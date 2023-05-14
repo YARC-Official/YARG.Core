@@ -4,7 +4,10 @@ using YARG.Core.Input;
 
 namespace YARG.Core.Engine
 {
-    public abstract class BaseEngine<T> where T : Note
+    public abstract class BaseEngine<TNoteType, TEngineParams, TEngineStats> 
+        where TNoteType : Note 
+        where TEngineParams : BaseEngineParameters
+        where TEngineStats : BaseStats, new()
     {
         protected const int POINTS_PER_NOTE = 50;
         protected const int POINTS_PER_BEAT = 25;
@@ -13,20 +16,32 @@ namespace YARG.Core.Engine
         
         protected readonly Queue<GameInput> InputQueue;
         
-        protected readonly List<T> Notes;
+        protected readonly List<TNoteType> Notes;
+        protected readonly TEngineParams EngineParameters;
+        protected readonly TEngineStats EngineStats;
         
-        protected BaseEngine(List<T> notes)
+        protected BaseEngine(List<TNoteType> notes, TEngineParams engineParameters)
         {
             Notes = notes;
+            EngineParameters = engineParameters;
+
+            EngineStats = new TEngineStats();
             
             InputQueue = new Queue<GameInput>();
         }
         
+        /// <summary>
+        /// Queue an input to be processed by the engine.
+        /// </summary>
+        /// <param name="input">The input to queue into the engine.</param>
         public void QueueInput(GameInput input)
         {
             InputQueue.Enqueue(input);
         }
 
+        /// <summary>
+        /// Updates the engine and processes all inputs currently queued.
+        /// </summary>
         public void UpdateEngine()
         {
             if (InputQueue.Count > 0)
@@ -52,7 +67,7 @@ namespace YARG.Core.Engine
         /// </summary>
         /// <param name="note">The Note to attempt to hit.</param>
         /// <returns>True if note can be hit. False otherwise.</returns>
-        protected abstract bool CanNoteBeHit(T note);
+        protected abstract bool CanNoteBeHit(TNoteType note);
         
         /// <summary>
         /// Resets the engine's state back to default and then processes the list of inputs up to the given time.
