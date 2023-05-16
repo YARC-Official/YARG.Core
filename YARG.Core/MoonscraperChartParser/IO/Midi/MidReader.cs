@@ -38,6 +38,16 @@ namespace MoonscraperChartEditor.Song.IO
             { MidIOHelper.GHL_GUITAR_COOP_TRACK, MoonSong.MoonInstrument.GHLiveCoop },
         };
 
+        // true == override existing track, false == discard if already exists
+        private static readonly Dictionary<string, bool> TrackOverrides = new()
+        {
+            { MidIOHelper.GUITAR_TRACK,     true },
+            { MidIOHelper.GH1_GUITAR_TRACK, false },
+
+            { MidIOHelper.DRUMS_TRACK,      true },
+            { MidIOHelper.DRUMS_REAL_TRACK, false },
+        };
+
         private static readonly Dictionary<string, bool> ExcludedTracks = new()
         {
             { MidIOHelper.BEAT_TRACK,       true },
@@ -122,19 +132,6 @@ namespace MoonscraperChartEditor.Song.IO
         {
         };
 
-        // For handling things that require user intervention
-        private delegate void MessageProcessFn(MessageProcessParams processParams);
-        private struct MessageProcessParams
-        {
-            public string title;
-            public string message;
-            public MoonSong currentMoonSong;
-            public MoonSong.MoonInstrument moonInstrument;
-            public TrackChunk track;
-            public MessageProcessFn processFn;
-            public bool executeInEditor;
-        }
-
         private static readonly ReadingSettings ReadSettings = new()
         {
             InvalidChunkSizePolicy = InvalidChunkSizePolicy.Ignore,
@@ -143,14 +140,11 @@ namespace MoonscraperChartEditor.Song.IO
             InvalidChannelEventParameterValuePolicy = InvalidChannelEventParameterValuePolicy.ReadValid,
         };
 
-        public static MoonSong ReadMidi(string path, ref CallbackState callBackState)
+        public static MoonSong ReadMidi(string path)
         {
             // Initialize new song
             var moonSong = new MoonSong();
             string directory = Path.GetDirectoryName(path);
-
-            // Make message list
-            var messageList = new List<MessageProcessParams>();
 
             MidiFile midi;
 
@@ -204,18 +198,7 @@ namespace MoonscraperChartEditor.Song.IO
                         break;
 
                     case MidIOHelper.VOCALS_TRACK:
-                        messageList.Add(new MessageProcessParams()
-                        {
-                            message = "A vocals track was found in the file. Would you like to import the text events as global lyrics and phrase events?",
-                            title = "Vocals Track Found",
-                            executeInEditor = true,
-                            currentMoonSong = moonSong,
-                            track = track,
-                            processFn = (MessageProcessParams processParams) => {
-                                Console.WriteLine("Loading lyrics from Vocals track");
-                                ReadTextEventsIntoGlobalEventsAsLyrics(track, processParams.currentMoonSong);
-                            }
-                        });
+                        ReadTextEventsIntoGlobalEventsAsLyrics(track, moonSong);
                         break;
 
                     default:
@@ -224,77 +207,27 @@ namespace MoonscraperChartEditor.Song.IO
                         {
                             moonInstrument = MoonSong.MoonInstrument.Unrecognised;
                         }
-
-                        if ((moonInstrument != MoonSong.MoonInstrument.Unrecognised) && moonSong.ChartExistsForInstrument(moonInstrument))
+                        else if (moonSong.ChartExistsForInstrument(moonInstrument))
                         {
-                            messageList.Add(new MessageProcessParams()
+                            if (!TrackOverrides.TryGetValue(trackNameKey, out bool overwrite) || !overwrite)
+                                continue;
+
+                            // Overwrite existing track
+                            foreach (var difficulty in EnumX<MoonSong.Difficulty>.Values)
                             {
-                                message = $"A track was already loaded for instrument {moonInstrument}, but another track was found for this instrument: {trackNameKey}\nWould you like to overwrite the currently loaded track?",
-                                title = "Duplicate Instrument Track Found",
-                                executeInEditor = false,
-                                currentMoonSong = moonSong,
-                                track = track,
-                                processFn = (MessageProcessParams processParams) => {
-                                    Console.WriteLine($"Overwriting already-loaded part {processParams.moonInstrument}");
-                                    foreach (var difficulty in EnumX<MoonSong.Difficulty>.Values)
-                                    {
-                                        var chart = processParams.currentMoonSong.GetChart(processParams.moonInstrument, difficulty);
-                                        chart.Clear();
-                                        chart.UpdateCache();
-                                    }
+                                var chart = moonSong.GetChart(moonInstrument, difficulty);
+                                chart.Clear();
+                                chart.UpdateCache();
+                            }
+                        }
 
-                                    ReadNotes(track, messageList, processParams.currentMoonSong, processParams.moonInstrument);
-                                }
-                            });
-                        }
-                        else
-                        {
-                            Console.WriteLine("Loading midi track {0}", moonInstrument);
-                            ReadNotes(track, messageList, moonSong, moonInstrument);
-                        }
+                        Console.WriteLine("Loading midi track {0}", moonInstrument);
+                        ReadNotes(track, moonSong, moonInstrument);
                         break;
                 }
             }
 
-            // Display messages to user
-            ProcessPendingUserMessages(messageList, ref callBackState);
-
             return moonSong;
-        }
-
-        private static void ProcessPendingUserMessages(IList<MessageProcessParams> messageList, ref CallbackState callBackState)
-        {
-            if (messageList == null)
-            {
-                Debug.Assert(false, $"No message list provided to {nameof(ProcessPendingUserMessages)}!");
-                return;
-            }
-
-            foreach (var processParams in messageList)
-            {
-#if UNITY_EDITOR
-		        // The editor freezes when its message box API is used during parsing,
-		        // we use the params to determine whether or not to execute actions instead
-		        if (!processParams.executeInEditor)
-		        {
-			        Console.WriteLine("Auto-skipping action for message: " + processParams.message);
-			        continue;
-		        }
-		        else
-		        {
-			        Console.WriteLine("Auto-executing action for message: " + processParams.message);
-			        processParams.processFn(processParams);
-		        }
-#else
-                // callBackState = CallbackState.WaitingForExternalInformation;
-                // NativeMessageBox.Result result = NativeMessageBox.Show(processParams.message, processParams.title, NativeMessageBox.Type.YesNo, null);
-                // callBackState = CallbackState.None;
-                // if (result == NativeMessageBox.Result.Yes)
-                // {
-                //     processParams.processFn(processParams);
-                // }
-#endif
-            }
         }
 
         private static void ReadSync(TempoMap tempoMap, MoonSong moonSong)
@@ -391,15 +324,13 @@ namespace MoonscraperChartEditor.Song.IO
             moonSong.UpdateCache();
         }
 
-        private static void ReadNotes(TrackChunk track, IList<MessageProcessParams> messageList, MoonSong moonSong, MoonSong.MoonInstrument moonInstrument)
+        private static void ReadNotes(TrackChunk track, MoonSong moonSong, MoonSong.MoonInstrument moonInstrument)
         {
             if (track == null || track.Events.Count < 1)
             {
                 Console.WriteLine($"Attempted to load null or empty track.");
                 return;
             }
-
-            Debug.Assert(messageList != null, $"No message list provided to {nameof(ReadNotes)}!");
 
             var noteQueue = new List<(NoteOnEvent note, long tick)>();
             var sysexEventQueue = new List<(PhaseShiftSysEx sysex, long tick)>();
@@ -580,48 +511,13 @@ namespace MoonscraperChartEditor.Song.IO
             {
                 // Only need to check one difficulty since Star Power gets copied to all difficulties
                 var chart = moonSong.GetChart(moonInstrument, MoonSong.Difficulty.Expert);
-                if (chart.starPower.Count <= 0 && (ContainsTextEvent(chart.events, MidIOHelper.SOLO_EVENT_TEXT) || ContainsTextEvent(chart.events, MidIOHelper.SOLO_END_EVENT_TEXT)))
+                if (chart.starPower.Count <= 0 && chart.events.Any((text) => text.eventName is MidIOHelper.SOLO_EVENT_TEXT or MidIOHelper.SOLO_END_EVENT_TEXT))
                 {
-                    var text = track.Events[0] as TextEvent;
-                    Debug.Assert(text != null, "Track name not found when processing legacy starpower fixups");
-                    messageList?.Add(new MessageProcessParams()
-                    {
-                        message = $"No Star Power phrases were found on track {text.Text}. However, solo phrases were found. These may be legacy star power phrases.\nImport these solo phrases as Star Power?",
-                        title = "Legacy Star Power Detected",
-                        executeInEditor = true,
-                        currentMoonSong = processParams.moonSong,
-                        moonInstrument = processParams.moonInstrument,
-                        processFn = (messageParams) => {
-                            Console.WriteLine("Loading solo events as Star Power");
-                            ProcessTextEventPairAsStarpower(
-                                new EventProcessParams()
-                                {
-                                    moonSong = messageParams.currentMoonSong,
-                                    moonInstrument = messageParams.moonInstrument
-                                },
-                                MidIOHelper.SOLO_EVENT_TEXT,
-                                MidIOHelper.SOLO_END_EVENT_TEXT
-                            );
-                            // Update instrument's caches
-                            foreach (var diff in EnumX<MoonSong.Difficulty>.Values)
-                                messageParams.currentMoonSong.GetChart(messageParams.moonInstrument, diff).UpdateCache();
-                        }
-                    });
+                    ProcessTextEventPairAsStarpower(processParams, MidIOHelper.SOLO_EVENT_TEXT, MidIOHelper.SOLO_END_EVENT_TEXT);
+                    foreach (var diff in EnumX<MoonSong.Difficulty>.Values)
+                        moonSong.GetChart(moonInstrument, diff).UpdateCache();
                 }
             }
-        }
-
-        private static bool ContainsTextEvent(IList<ChartEvent> events, string text)
-        {
-            foreach (var textEvent in events)
-            {
-                if (textEvent.eventName == text)
-                {
-                    return true;
-                }
-            }
-
-            return false;
         }
 
         private static Dictionary<int, EventProcessFn> GetNoteProcessDict(MoonChart.GameMode gameMode)
