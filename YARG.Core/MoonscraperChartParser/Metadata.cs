@@ -1,17 +1,17 @@
-// Copyright (c) 2016-2020 Alexander Ong
+﻿// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
 namespace MoonscraperChartEditor.Song
 {
     public class Metadata
     {
-        string m_name, m_artist, m_charter, m_genre, m_album;
+        private string m_name, m_artist, m_charter, m_genre, m_album;
         
-        public string name { get { return m_name; } set { m_name = MakeValidMetadataString(value); } }
-        public string artist { get { return m_artist; } set { m_artist = MakeValidMetadataString(value); } }
-        public string charter { get { return m_charter; } set { m_charter = MakeValidMetadataString(value); } }
-        public string genre { get { return m_genre; } set { m_genre = MakeValidMetadataString(value); } }
-        public string album { get { return m_album; } set { m_album = MakeValidMetadataString(value); } }
+        public string name { get => m_name; set => m_name = MakeValidMetadataString(value); }
+        public string artist { get => m_artist; set => m_artist = MakeValidMetadataString(value); }
+        public string charter { get => m_charter; set => m_charter = MakeValidMetadataString(value); }
+        public string genre { get => m_genre; set => m_genre = MakeValidMetadataString(value); }
+        public string album { get => m_album; set => m_album = MakeValidMetadataString(value); }
         public string year;
 
         public int difficulty;
@@ -38,7 +38,7 @@ namespace MoonscraperChartEditor.Song
             genre = metaData.genre;
         }
 
-        string MakeValidMetadataString(string v)
+        private string MakeValidMetadataString(string v)
         {
             return v.Replace("\"", string.Empty);
         }

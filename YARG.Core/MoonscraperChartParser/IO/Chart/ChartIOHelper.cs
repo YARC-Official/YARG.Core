@@ -1,34 +1,32 @@
 // Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
-using System.Collections;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
+using System.Globalization;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace MoonscraperChartEditor.Song.IO
 {
     public static class ChartIOHelper
     {
-        public const string
-            c_dataBlockSong = "[Song]"
-            , c_dataBlockSyncTrack = "[SyncTrack]"
-            , c_dataBlockEvents = "[Events]"
-            ;
+        public const string SECTION_SONG = "[Song]";
+        public const string SECTION_SYNC_TRACK = "[SyncTrack]";
+        public const string SECTION_EVENTS = "[Events]";
 
         public const string LYRIC_EVENT_PREFIX = "lyric ";
-        public const string PhraseStartText = "phrase_start";
-        public const string PhraseEndText = "phrase_end";
+        public const string EVENT_PHRASE_START = "phrase_start";
+        public const string EVENT_PHRASE_END = "phrase_end";
 
-        public const int c_proDrumsOffset = 64;
-        public const int c_instrumentPlusOffset = 32;
-        public const int c_drumsAccentOffset = 33;
-        public const int c_drumsGhostOffset = 39;
+        public const int NOTE_OFFSET_PRO_DRUMS = 64;
+        public const int NOTE_OFFSET_INSTRUMENT_PLUS = 32;
+        public const int NOTE_OFFSET_DRUMS_ACCENT = 33;
+        public const int NOTE_OFFSET_DRUMS_GHOST = 39;
 
-        public const int c_starpowerId = 2;
-        public const int c_starpowerDrumFillId = 64;
-        public const int c_drumRollStandardId = 65;
-        public const int c_drumRollSpecialId = 66;
+        public const int PHRASE_STARPOWER = 2;
+        public const int PHRASE_DRUM_FILL = 64;
+        public const int PHRASE_DRUM_ROLL_SINGLE = 65;
+        public const int PHRASE_DRUM_ROLL_DOUBLE = 66;
 
         public enum TrackLoadType
         {
@@ -39,7 +37,7 @@ namespace MoonscraperChartEditor.Song.IO
             Unrecognised
         }
 
-        public static readonly IReadOnlyDictionary<int, int> c_guitarNoteNumLookup = new Dictionary<int, int>()
+        public static readonly Dictionary<int, int> GuitarNoteNumLookup = new()
         {
             { 0, (int)MoonNote.GuitarFret.Green     },
             { 1, (int)MoonNote.GuitarFret.Red       },
@@ -49,13 +47,13 @@ namespace MoonscraperChartEditor.Song.IO
             { 7, (int)MoonNote.GuitarFret.Open      },
         };
 
-        public static readonly IReadOnlyDictionary<int, MoonNote.Flags> c_guitarFlagNumLookup = new Dictionary<int, MoonNote.Flags>()
+        public static readonly Dictionary<int, MoonNote.Flags> GuitarFlagNumLookup = new()
         {
             { 5      , MoonNote.Flags.Forced },
             { 6      , MoonNote.Flags.Tap },
         };
 
-        public static readonly IReadOnlyDictionary<int, int> c_drumNoteNumLookup = new Dictionary<int, int>()
+        public static readonly Dictionary<int, int> DrumNoteNumLookup = new()
         {
             { 0, (int)MoonNote.DrumPad.Kick      },
             { 1, (int)MoonNote.DrumPad.Red       },
@@ -66,7 +64,7 @@ namespace MoonscraperChartEditor.Song.IO
         };
 
         // Default flags for drums notes
-        public static readonly IReadOnlyDictionary<int, MoonNote.Flags> c_drumNoteDefaultFlagsLookup = new Dictionary<int, MoonNote.Flags>()
+        public static readonly Dictionary<int, MoonNote.Flags> DrumNoteDefaultFlagsLookup = new()
         {
             { (int)MoonNote.DrumPad.Kick      , MoonNote.Flags.None },
             { (int)MoonNote.DrumPad.Red       , MoonNote.Flags.None },
@@ -76,7 +74,7 @@ namespace MoonscraperChartEditor.Song.IO
             { (int)MoonNote.DrumPad.Green     , MoonNote.Flags.None },
         };
 
-        public static readonly IReadOnlyDictionary<int, int> c_ghlNoteNumLookup = new Dictionary<int, int>()
+        public static readonly Dictionary<int, int> GhlNoteNumLookup = new()
         {
             { 0, (int)MoonNote.GHLiveGuitarFret.White1    },
             { 1, (int)MoonNote.GHLiveGuitarFret.White2    },
@@ -87,9 +85,9 @@ namespace MoonscraperChartEditor.Song.IO
             { 7, (int)MoonNote.GHLiveGuitarFret.Open      },
         };
 
-        public static readonly IReadOnlyDictionary<int, MoonNote.Flags> c_ghlFlagNumLookup = c_guitarFlagNumLookup;
+        public static readonly Dictionary<int, MoonNote.Flags> GhlFlagNumLookup = GuitarFlagNumLookup;
 
-        public static readonly IReadOnlyDictionary<string, MoonSong.Difficulty> c_trackNameToTrackDifficultyLookup = new Dictionary<string, MoonSong.Difficulty>()
+        public static readonly Dictionary<string, MoonSong.Difficulty> TrackNameToTrackDifficultyLookup = new()
         {
             { "Easy",   MoonSong.Difficulty.Easy    },
             { "Medium", MoonSong.Difficulty.Medium  },
@@ -97,7 +95,7 @@ namespace MoonscraperChartEditor.Song.IO
             { "Expert", MoonSong.Difficulty.Expert  },
         };
 
-        public static readonly IReadOnlyDictionary<string, MoonSong.MoonInstrument> c_instrumentStrToEnumLookup = new Dictionary<string, MoonSong.MoonInstrument>()
+        public static readonly Dictionary<string, MoonSong.MoonInstrument> InstrumentStrToEnumLookup = new()
         {
             { "Single",         MoonSong.MoonInstrument.Guitar },
             { "DoubleGuitar",   MoonSong.MoonInstrument.GuitarCoop },
@@ -111,7 +109,7 @@ namespace MoonscraperChartEditor.Song.IO
             { "GHLCoop",        MoonSong.MoonInstrument.GHLiveCoop },
         };
 
-        public static readonly IReadOnlyDictionary<MoonSong.MoonInstrument, TrackLoadType> c_instrumentParsingTypeLookup = new Dictionary<MoonSong.MoonInstrument, TrackLoadType>()
+        public static readonly Dictionary<MoonSong.MoonInstrument, TrackLoadType> InstrumentParsingTypeLookup = new()
         {
             // Other instruments default to loading as a guitar type track
             { MoonSong.MoonInstrument.Drums, TrackLoadType.Drums },
@@ -123,11 +121,11 @@ namespace MoonscraperChartEditor.Song.IO
 
         public static class MetaData
         {
-            const string QUOTEVALIDATE = @"""[^""\\]*(?:\\.[^""\\]*)*""";
-            const string QUOTESEARCH = "\"([^\"]*)\"";
-            const string FLOATSEARCH = @"[\-\+]?\d+(\.\d+)?";       // US culture only
+            private const string QUOTEVALIDATE = @"""[^""\\]*(?:\\.[^""\\]*)*""";
+            private const string QUOTESEARCH = "\"([^\"]*)\"";
+            private const string FLOATSEARCH = @"[\-\+]?\d+(\.\d+)?";       // US culture only
 
-            public static readonly System.Globalization.CultureInfo c_cultureInfo = new System.Globalization.CultureInfo("en-US");
+            public static readonly CultureInfo FormatCulture = new("en-US");
 
             public enum MetadataValueType
             {
@@ -140,68 +138,39 @@ namespace MoonscraperChartEditor.Song.IO
 
             public class MetadataItem
             {
-                string m_key;
-                Regex m_readerParseRegex;
+                private readonly string m_key;
+                private readonly Regex m_readerParseRegex;
 
-                public string key { get { return m_key; } }
-                public Regex regex { get { return m_readerParseRegex; } }
+                public string key => m_key;
+                public Regex regex => m_readerParseRegex;
 
                 public MetadataItem(string key, MetadataValueType type)
                 {
                     m_key = key;
-
-                    Regex parseStrRegex = new Regex(key + " = " + QUOTEVALIDATE, RegexOptions.Compiled);
-
-                    switch (type)
+                    m_readerParseRegex = type switch
                     {
-                        case MetadataValueType.String:
-                            {
-                                m_readerParseRegex = parseStrRegex;
-                                break;
-                            }
-
-                        case MetadataValueType.Float:
-                            {
-                                m_readerParseRegex = new Regex(key + " = " + FLOATSEARCH, RegexOptions.Compiled);
-                                break;
-                            }
-
-                        case MetadataValueType.Player2:
-                            {
-                                m_readerParseRegex = new Regex(key + @" = \w+", RegexOptions.Compiled);
-                                break;
-                            }
-
-                        case MetadataValueType.Difficulty:
-                            {
-                                m_readerParseRegex = new Regex(key + @" = \d+", RegexOptions.Compiled);
-                                break;
-                            }
-
-                        case MetadataValueType.Year:
-                            {
-                                m_readerParseRegex = parseStrRegex;
-                                break;
-                            }
-
-                        default:
-                            throw new System.Exception("Unhandled Metadata item type");
-                    }
+                        MetadataValueType.String => new Regex(key + " = " + QUOTEVALIDATE, RegexOptions.Compiled),
+                        MetadataValueType.Float => new Regex(key + " = " + FLOATSEARCH, RegexOptions.Compiled),
+                        MetadataValueType.Player2 => new Regex(key + @" = \w+", RegexOptions.Compiled),
+                        MetadataValueType.Difficulty => new Regex(key + @" = \d+", RegexOptions.Compiled),
+                        MetadataValueType.Year => new Regex(key + " = " + QUOTEVALIDATE, RegexOptions.Compiled),
+                        _ => throw new System.Exception("Unhandled Metadata item type")
+                    };
                 }
             }
 
-            public readonly static MetadataItem name = new MetadataItem("Name", MetadataValueType.String);
-            public readonly static MetadataItem artist = new MetadataItem("Artist", MetadataValueType.String);
-            public readonly static MetadataItem charter = new MetadataItem("Charter", MetadataValueType.String);
-            public readonly static MetadataItem offset = new MetadataItem("Offset", MetadataValueType.Float);
-            public readonly static MetadataItem resolution = new MetadataItem("Resolution", MetadataValueType.Float);
-            public readonly static MetadataItem difficulty = new MetadataItem("Difficulty", MetadataValueType.Difficulty);
-            public readonly static MetadataItem length = new MetadataItem("Length", MetadataValueType.Float);
-            public readonly static MetadataItem previewStart = new MetadataItem("PreviewStart", MetadataValueType.Float);
-            public readonly static MetadataItem previewEnd = new MetadataItem("PreviewEnd", MetadataValueType.Float);
-            public readonly static MetadataItem genre = new MetadataItem("Genre", MetadataValueType.String);
-            public readonly static MetadataItem year = new MetadataItem("Year", MetadataValueType.Year);
-            public readonly static MetadataItem album = new MetadataItem("Album", MetadataValueType.String);
+            public static readonly MetadataItem name = new("Name", MetadataValueType.String);
+            public static readonly MetadataItem artist = new("Artist", MetadataValueType.String);
+            public static readonly MetadataItem charter = new("Charter", MetadataValueType.String);
+            public static readonly MetadataItem offset = new("Offset", MetadataValueType.Float);
+            public static readonly MetadataItem resolution = new("Resolution", MetadataValueType.Float);
+            public static readonly MetadataItem difficulty = new("Difficulty", MetadataValueType.Difficulty);
+            public static readonly MetadataItem length = new("Length", MetadataValueType.Float);
+            public static readonly MetadataItem previewStart = new("PreviewStart", MetadataValueType.Float);
+            public static readonly MetadataItem previewEnd = new("PreviewEnd", MetadataValueType.Float);
+            public static readonly MetadataItem genre = new("Genre", MetadataValueType.String);
+            public static readonly MetadataItem year = new("Year", MetadataValueType.Year);
+            public static readonly MetadataItem album = new("Album", MetadataValueType.String);
 
             public static string ParseAsString(string line)
             {
@@ -210,7 +179,7 @@ namespace MoonscraperChartEditor.Song.IO
 
             public static float ParseAsFloat(string line)
             {
-                return float.Parse(Regex.Matches(line, FLOATSEARCH)[0].ToString(), c_cultureInfo);  // .chart format only allows '.' as decimal seperators. Need to parse correctly under any locale.
+                return float.Parse(Regex.Matches(line, FLOATSEARCH)[0].ToString(), FormatCulture);  // .chart format only allows '.' as decimal seperators. Need to parse correctly under any locale.
             }
 
             public static short ParseAsShort(string line)
@@ -222,23 +191,24 @@ namespace MoonscraperChartEditor.Song.IO
         public class NoteFlagPriority
         {
             // Flags to skip adding if the corresponding flag is already present
-            private static readonly IReadOnlyDictionary<MoonNote.Flags, MoonNote.Flags> c_noteBlockingFlagsLookup = new Dictionary<MoonNote.Flags, MoonNote.Flags>()
+            private static readonly Dictionary<MoonNote.Flags, MoonNote.Flags> NoteBlockingFlagsLookup = new()
             {
                 { MoonNote.Flags.Forced, MoonNote.Flags.Tap },
                 { MoonNote.Flags.ProDrums_Ghost, MoonNote.Flags.ProDrums_Accent },
             };
 
             // Flags to remove if the corresponding flag is being added
-            private static readonly IReadOnlyDictionary<MoonNote.Flags, MoonNote.Flags> c_noteFlagsToRemoveLookup = c_noteBlockingFlagsLookup.ToDictionary((i) => i.Value, (i) => i.Key);
+            private static readonly Dictionary<MoonNote.Flags, MoonNote.Flags> NoteFlagsToRemoveLookup =
+                NoteBlockingFlagsLookup.ToDictionary((i) => i.Value, (i) => i.Key);
 
-            public static readonly NoteFlagPriority Forced = new NoteFlagPriority(MoonNote.Flags.Forced);
-            public static readonly NoteFlagPriority Tap = new NoteFlagPriority(MoonNote.Flags.Tap);
-            public static readonly NoteFlagPriority InstrumentPlus = new NoteFlagPriority(MoonNote.Flags.InstrumentPlus);
-            public static readonly NoteFlagPriority Cymbal = new NoteFlagPriority(MoonNote.Flags.ProDrums_Cymbal);
-            public static readonly NoteFlagPriority Accent = new NoteFlagPriority(MoonNote.Flags.ProDrums_Accent);
-            public static readonly NoteFlagPriority Ghost = new NoteFlagPriority(MoonNote.Flags.ProDrums_Ghost);
+            public static readonly NoteFlagPriority Forced = new(MoonNote.Flags.Forced);
+            public static readonly NoteFlagPriority Tap = new(MoonNote.Flags.Tap);
+            public static readonly NoteFlagPriority InstrumentPlus = new(MoonNote.Flags.InstrumentPlus);
+            public static readonly NoteFlagPriority Cymbal = new(MoonNote.Flags.ProDrums_Cymbal);
+            public static readonly NoteFlagPriority Accent = new(MoonNote.Flags.ProDrums_Accent);
+            public static readonly NoteFlagPriority Ghost = new(MoonNote.Flags.ProDrums_Ghost);
 
-            private static readonly IReadOnlyList<NoteFlagPriority> priorities = new List<NoteFlagPriority>()
+            private static readonly List<NoteFlagPriority> priorities = new()
             {
                 Forced,
                 Tap,
@@ -256,14 +226,12 @@ namespace MoonscraperChartEditor.Song.IO
             {
                 flagToAdd = flag;
 
-                MoonNote.Flags blockingFlag;
-                if (c_noteBlockingFlagsLookup.TryGetValue(flagToAdd, out blockingFlag))
+                if (NoteBlockingFlagsLookup.TryGetValue(flagToAdd, out var blockingFlag))
                 {
                     this.blockingFlag = blockingFlag;
                 }
 
-                MoonNote.Flags flagToRemove;
-                if (c_noteFlagsToRemoveLookup.TryGetValue(flagToAdd, out flagToRemove))
+                if (NoteFlagsToRemoveLookup.TryGetValue(flagToAdd, out var flagToRemove))
                 {
                     this.flagToRemove = flagToRemove;
                 }

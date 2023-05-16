@@ -1,17 +1,17 @@
-// Copyright (c) 2016-2020 Alexander Ong
+﻿// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
-using System.Diagnostics;
+using System;
 
 namespace MoonscraperChartEditor.Song
 {
-    [System.Serializable]
+    [Serializable]
     public abstract class SongObject
     {
         /// <summary>
         /// The song this object is connected to.
         /// </summary>
-        [System.NonSerialized]
+        [NonSerialized]
         public MoonSong moonSong;
         /// <summary>
         /// The tick position of the object
@@ -28,26 +28,15 @@ namespace MoonscraperChartEditor.Song
         /// <summary>
         /// Automatically converts the object's tick position into the time it will appear in the song.
         /// </summary>
-        public double time
-        {
-            get
-            {
-                return moonSong.TickToTime(tick, moonSong.resolution);
-            }
-        }
-        
+        public double time => moonSong.TickToTime(tick, moonSong.resolution);
+
         public static bool operator ==(SongObject a, SongObject b)
         {
-            bool aIsNull = ReferenceEquals(a, null);
-            bool bIsNull = ReferenceEquals(b, null);
+            bool aIsNull = a is null;
+            bool bIsNull = b is null;
 
             if (aIsNull || bIsNull)
-            {
-                if (aIsNull == bIsNull)
-                    return true;
-                else
-                    return false;
-            }
+                return aIsNull == bIsNull;
             else
                 return a.Equals(b);
         }
@@ -64,12 +53,7 @@ namespace MoonscraperChartEditor.Song
 
         protected virtual bool LessThan(SongObject b)
         {
-            if (tick < b.tick)
-                return true;
-            else if (tick == b.tick && classID < b.classID)
-                return true;
-            else
-                return false;
+            return tick < b.tick || (tick == b.tick && classID < b.classID);
         }
 
         public static bool operator <(SongObject a, SongObject b)
@@ -87,15 +71,15 @@ namespace MoonscraperChartEditor.Song
 
         public static bool operator <=(SongObject a, SongObject b)
         {
-            return (a < b || a == b);
+            return a < b || a == b;
         }
 
         public static bool operator >=(SongObject a, SongObject b)
         {
-            return (a > b || a == b);
+            return a > b || a == b;
         }
 
-        public override bool Equals(System.Object obj)
+        public override bool Equals(object obj)
         {
             return base.Equals(obj);
         }

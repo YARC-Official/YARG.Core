@@ -1,14 +1,15 @@
-// Copyright (c) 2016-2020 Alexander Ong
+﻿// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
+
+using System;
 
 namespace MoonscraperChartEditor.Song
 {
-    [System.Serializable]
+    [Serializable]
     public class TimeSignature : SyncTrack
     {
         private readonly ID _classID = ID.TimeSignature;
-
-        public override int classID { get { return (int)_classID; } }
+        public override int classID => (int)_classID;
 
         public uint numerator;
         public uint denominator;
@@ -36,7 +37,7 @@ namespace MoonscraperChartEditor.Song
 
         public MeasureInfo GetMeasureInfo()
         {
-            MeasureInfo measureInfo = new MeasureInfo();
+            var measureInfo = new MeasureInfo();
             float resolution = moonSong.resolution;
 
             {

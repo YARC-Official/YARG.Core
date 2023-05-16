@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2020 Alexander Ong
+﻿// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
 using System;
@@ -15,8 +15,7 @@ namespace MoonscraperChartEditor.Song
         }
 
         private readonly ID _classID = ID.DrumRoll;
-
-        public override int classID { get { return (int)_classID; } }
+        public override int classID => (int)_classID;
 
         public uint length;
         public Type type = Type.Standard;
@@ -29,7 +28,7 @@ namespace MoonscraperChartEditor.Song
 
         public uint GetCappedLengthForPos(uint pos)
         {
-            uint newLength = length;
+            uint newLength;
             if (pos > tick)
                 newLength = pos - tick;
             else

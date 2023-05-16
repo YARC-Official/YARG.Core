@@ -1,14 +1,15 @@
-// Copyright (c) 2016-2020 Alexander Ong
+﻿// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
+
+using System;
 
 namespace MoonscraperChartEditor.Song
 {
-    [System.Serializable]
+    [Serializable]
     public class ChartEvent : ChartObject
     {
         private readonly ID _classID = ID.ChartEvent;
-
-        public override int classID { get { return (int)_classID; } }
+        public override int classID => (int)_classID;
 
         public string eventName { get; private set; }
 
@@ -21,11 +22,8 @@ namespace MoonscraperChartEditor.Song
         {
             if (b.GetType() == typeof(ChartEvent))
             {
-                ChartEvent realB = b as ChartEvent;
-                if (tick == realB.tick && eventName == realB.eventName)
-                    return true;
-                else
-                    return false;
+                var realB = b as ChartEvent;
+                return tick == realB.tick && eventName == realB.eventName;
             }
             else
                 return base.Equals(b);
@@ -35,7 +33,7 @@ namespace MoonscraperChartEditor.Song
         {
             if (b.GetType() == typeof(ChartEvent))
             {
-                ChartEvent realB = b as ChartEvent;
+                var realB = b as ChartEvent;
                 if (tick < b.tick)
                     return true;
                 else if (tick == b.tick)
