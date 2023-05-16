@@ -2,12 +2,13 @@
 // See LICENSE in project root for license information.
 
 using System;
-using System.IO;
 using System.Collections.Generic;
 using System.Diagnostics;
-using NAudio.Midi;
+using System.IO;
+using System.Linq;
+using Melanchall.DryWetMidi.Core;
+using Melanchall.DryWetMidi.Interaction;
 using MoonscraperEngine;
-using YARG.Core;
 
 namespace MoonscraperChartEditor.Song.IO
 {
@@ -58,12 +59,21 @@ namespace MoonscraperChartEditor.Song.IO
             { MoonSong.AudioInstrument.Drum, new string[] { "drums", "drums_1" } },
         };
 
+        struct TimedMidiEvent
+        {
+            public MidiEvent midiEvent;
+            public long startTime;
+            public long endTime;
+
+            public long length => endTime - startTime;
+        }
+
         struct EventProcessParams
         {
             public MoonSong moonSong;
             public MoonSong.MoonInstrument moonInstrument;
             public MoonChart currentUnrecognisedMoonChart;
-            public MidiEvent midiEvent;
+            public TimedMidiEvent timedEvent;
             public IReadOnlyDictionary<int, EventProcessFn> noteProcessMap;
             public IReadOnlyDictionary<string, ProcessModificationProcessFn> textProcessMap;
             public IReadOnlyDictionary<byte, EventProcessFn> sysexProcessMap;
@@ -127,10 +137,18 @@ namespace MoonscraperChartEditor.Song.IO
             public string message;
             public MoonSong currentMoonSong;
             public MoonSong.MoonInstrument moonInstrument;
-            public int trackNumber;
+            public TrackChunk track;
             public MessageProcessFn processFn;
             public bool executeInEditor;
         }
+
+		private static readonly ReadingSettings ReadSettings = new() {
+			InvalidChunkSizePolicy = InvalidChunkSizePolicy.Ignore,
+			NotEnoughBytesPolicy = NotEnoughBytesPolicy.Ignore,
+			NoHeaderChunkPolicy = NoHeaderChunkPolicy.Ignore,
+			InvalidChannelEventParameterValuePolicy = InvalidChannelEventParameterValuePolicy.ReadValid,
+		};
+
         public static MoonSong ReadMidi(string path, ref CallbackState callBackState)
         {
             // Initialize new song
@@ -180,35 +198,39 @@ namespace MoonscraperChartEditor.Song.IO
 
             try
             {
-                midi = new MidiFile(path);
+                midi = MidiFile.Read(path, ReadSettings);
             }
             catch (SystemException e)
             {
                 throw new SystemException("Bad or corrupted midi file- " + e.Message);
             }
 
-            if (midi.Events == null || midi.Tracks < 1)
+            if (midi.Chunks == null || midi.Chunks.Count < 1)
             {
                 throw new InvalidOperationException("MIDI file has no tracks, unable to parse.");
             }
 
-            moonSong.resolution = (short)midi.DeltaTicksPerQuarterNote;
+            if (midi.TimeDivision is not TicksPerQuarterNoteTimeDivision ticks)
+                throw new InvalidOperationException("MIDI file has no beat resolution set!");
+
+            moonSong.resolution = ticks.TicksPerQuarterNote;
 
             // Read all bpm data in first. This will also allow song.TimeToTick to function properly.
-            ReadSync(midi.Events[0], moonSong);
+            ReadSync(midi.GetTempoMap(), moonSong);
 
-            for (int i = 1; i < midi.Tracks; ++i)
+            foreach (var track in midi.GetTrackChunks())
             {
-                var track = midi.Events[i];
-                if (track == null || track.Count < 1)
+                if (track == null || track.Events.Count < 1)
                 {
-                    Console.WriteLine($"Track {i} is null or empty.");
+                    Console.WriteLine("Encountered an empty track!");
                     continue;
                 }
 
-                var trackName = track[0] as TextEvent;
-                if (trackName == null)
+                if (track.Events[0] is not SequenceTrackNameEvent trackName)
+                {
+                    Console.WriteLine($"Could not determine track name! (Likely the tempo track)");
                     continue;
+                }
                 Console.WriteLine("Found midi track " + trackName.Text);
 
                 string trackNameKey = trackName.Text.ToUpper();
@@ -230,10 +252,10 @@ namespace MoonscraperChartEditor.Song.IO
                             title = "Vocals Track Found",
                             executeInEditor = true,
                             currentMoonSong = moonSong,
-                            trackNumber = i,
+                            track = track,
                             processFn = (MessageProcessParams processParams) => {
                                 Console.WriteLine("Loading lyrics from Vocals track");
-                                ReadTextEventsIntoGlobalEventsAsLyrics(midi.Events[processParams.trackNumber], processParams.currentMoonSong);
+                                ReadTextEventsIntoGlobalEventsAsLyrics(track, processParams.currentMoonSong);
                             }
                         });
                         break;
@@ -253,7 +275,7 @@ namespace MoonscraperChartEditor.Song.IO
                                 title = "Duplicate Instrument Track Found",
                                 executeInEditor = false,
                                 currentMoonSong = moonSong,
-                                trackNumber = i,
+                                track = track,
                                 processFn = (MessageProcessParams processParams) => {
                                     Console.WriteLine($"Overwriting already-loaded part {processParams.moonInstrument}");
                                     foreach (MoonSong.Difficulty difficulty in EnumX<MoonSong.Difficulty>.Values)
@@ -263,7 +285,7 @@ namespace MoonscraperChartEditor.Song.IO
                                         chart.UpdateCache();
                                     }
 
-                                    ReadNotes(midi.Events[processParams.trackNumber], messageList, processParams.currentMoonSong, processParams.moonInstrument);
+                                    ReadNotes(track, messageList, processParams.currentMoonSong, processParams.moonInstrument);
                                 }
                             });
                         }
@@ -316,70 +338,40 @@ namespace MoonscraperChartEditor.Song.IO
 #endif
 	        }
         }
-        
-        static void ReadTrack(IList<MidiEvent> track)
-        {
-            foreach (var me in track)
-            {
-                var note = me as NoteOnEvent;
-                if (note != null)
-                {
-                    Console.WriteLine("Note: " + note.NoteNumber + ", Pos: " + note.AbsoluteTime + ", Vel: " + note.Velocity + ", Channel: " + note.Channel + ", Off pos: " + note.OffEvent.AbsoluteTime);
-                }
 
-                var text = me as TextEvent;
-                if (text != null)
-                {
-                    Console.WriteLine(text.Text + " " + text.AbsoluteTime);
-                }
+        private static void ReadSync(TempoMap tempoMap, MoonSong moonSong)
+        {
+            foreach (var tempo in tempoMap.GetTempoChanges())
+            {
+                moonSong.Add(new BPM((uint)tempo.Time, (uint)(tempo.Value.BeatsPerMinute * 1000)), false);
             }
-        }
-
-        private static void ReadSync(IList<MidiEvent> track, MoonSong moonSong)
-        {
-            foreach (var me in track)
+            foreach (var timesig in tempoMap.GetTimeSignatureChanges())
             {
-                var ts = me as TimeSignatureEvent;
-                if (ts != null)
-                {
-                    var tick = me.AbsoluteTime;
-
-                    moonSong.Add(new TimeSignature((uint)tick, (uint)ts.Numerator, (uint)(Math.Pow(2, ts.Denominator))), false);
-                    continue;
-                }
-                var tempo = me as TempoEvent;
-                if (tempo != null)
-                {
-                    var tick = me.AbsoluteTime;
-                    moonSong.Add(new BPM((uint)tick, (uint)(tempo.Tempo * 1000)), false);
-                    continue;
-                }
-
-                // Read the song name
-                var text = me as TextEvent;
-                if (text != null)
-                {
-                    moonSong.name = text.Text;
-                }
+                moonSong.Add(new TimeSignature((uint)timesig.Time, (uint)timesig.Value.Numerator, (uint)Math.Pow(2, timesig.Value.Denominator)), false);
             }
 
             moonSong.UpdateCache();
         }
 
-        private static void ReadSongGlobalEvents(IList<MidiEvent> track, MoonSong moonSong)
+        private static void ReadSongGlobalEvents(TrackChunk track, MoonSong moonSong)
         {
             const string rb2SectionPrefix = "[" + MidIOHelper.SECTION_PREFIX_RB2;
             const string rb3SectionPrefix = "[" + MidIOHelper.SECTION_PREFIX_RB3;
 
-            for (int i = 1; i < track.Count; ++i)
-            {
-                var text = track[i] as TextEvent;
+            if (track.Events.Count < 1)
+                return;
 
-                if (text != null)
+            long absoluteTime = track.Events[0].DeltaTime;
+            for (int i = 1; i < track.Events.Count; i++)
+            {
+                var trackEvent = track.Events[i];
+                absoluteTime += trackEvent.DeltaTime;
+
+                if (trackEvent is BaseTextEvent text)
                 {
                     if (text.Text.Contains(rb2SectionPrefix))
                     {
-                        moonSong.Add(new Section(text.Text.Substring(9, text.Text.Length - 10), (uint)text.AbsoluteTime), false);
+                        moonSong.Add(new Section(text.Text.Substring(9, text.Text.Length - 10), (uint)absoluteTime), false);
                     }
                     else if (text.Text.Contains(rb3SectionPrefix) && text.Text.Length > 1)
                     {
@@ -400,11 +392,11 @@ namespace MoonscraperChartEditor.Song.IO
                             Console.WriteLine("Found section name in an unknown format: " + text.Text);
                         }
 
-                        moonSong.Add(new Section(sectionText, (uint)text.AbsoluteTime), false);
+                        moonSong.Add(new Section(sectionText, (uint)absoluteTime), false);
                     }
                     else
                     {
-                        moonSong.Add(new Event(text.Text.Trim(new char[] { '[', ']' }), (uint)text.AbsoluteTime), false);
+                        moonSong.Add(new Event(text.Text.Trim(new char[] { '[', ']' }), (uint)absoluteTime), false);
                     }
                 }
             }
@@ -412,35 +404,38 @@ namespace MoonscraperChartEditor.Song.IO
             moonSong.UpdateCache();
         }
 
-        private static void ReadTextEventsIntoGlobalEventsAsLyrics(IList<MidiEvent> track, MoonSong moonSong)
+        private static void ReadTextEventsIntoGlobalEventsAsLyrics(TrackChunk track, MoonSong moonSong)
         {
-            for (int i = 1; i < track.Count; ++i)
+            if (track.Events.Count < 1)
+                return;
+
+            long absoluteTime = track.Events[0].DeltaTime;
+            for (int i = 1; i < track.Events.Count; i++)
             {
-                var text = track[i] as TextEvent;
-                if (text != null && text.Text.Length > 0 && text.MetaEventType == MetaEventType.Lyric)
+                var trackEvent = track.Events[i];
+                absoluteTime += trackEvent.DeltaTime;
+
+                if (trackEvent is LyricEvent lyric && lyric.Text.Length > 0)
                 {
-                    string lyricEvent = MidIOHelper.LYRIC_EVENT_PREFIX + text.Text;
-                    moonSong.Add(new Event(lyricEvent, (uint)text.AbsoluteTime), false);
+                    string lyricEvent = MidIOHelper.LYRIC_EVENT_PREFIX + lyric.Text;
+                    moonSong.Add(new Event(lyricEvent, (uint)absoluteTime), false);
                 }
 
-                var phrase = track[i] as NoteOnEvent;
-                if (phrase != null && phrase.OffEvent != null &&
-                    (phrase.NoteNumber == MidIOHelper.LYRICS_PHRASE_1 || phrase.NoteNumber == MidIOHelper.LYRICS_PHRASE_2))
+                if (trackEvent is NoteEvent note && (byte)note.NoteNumber is MidIOHelper.LYRICS_PHRASE_1 or MidIOHelper.LYRICS_PHRASE_2)
                 {
-                    string phraseStartEvent = MidIOHelper.LYRICS_PHRASE_START_TEXT;
-                    moonSong.Add(new Event(phraseStartEvent, (uint)phrase.AbsoluteTime), false);
-
-                    string phraseEndEvent = MidIOHelper.LYRICS_PHRASE_END_TEXT;
-                    moonSong.Add(new Event(phraseEndEvent, (uint)phrase.OffEvent.AbsoluteTime), false);
+                    if (note.EventType == MidiEventType.NoteOn)
+                        moonSong.Add(new Event(MidIOHelper.LYRICS_PHRASE_START_TEXT, (uint)absoluteTime), false);
+                    else if (note.EventType == MidiEventType.NoteOff)
+                        moonSong.Add(new Event(MidIOHelper.LYRICS_PHRASE_END_TEXT, (uint)absoluteTime), false);
                 }
             }
 
             moonSong.UpdateCache();
         }
 
-        private static void ReadNotes(IList<MidiEvent> track, IList<MessageProcessParams> messageList, MoonSong moonSong, MoonSong.MoonInstrument moonInstrument)
+        private static void ReadNotes(TrackChunk track, IList<MessageProcessParams> messageList, MoonSong moonSong, MoonSong.MoonInstrument moonInstrument)
         {
-            if (track == null || track.Count < 1)
+            if (track == null || track.Events.Count < 1)
             {
                 Console.WriteLine($"Attempted to load null or empty track.");
                 return;
@@ -448,7 +443,8 @@ namespace MoonscraperChartEditor.Song.IO
 
             Debug.Assert(messageList != null, $"No message list provided to {nameof(ReadNotes)}!");
 
-            var sysexEventQueue = new List<PhaseShiftSysExStart>();
+            var noteQueue = new List<(NoteOnEvent note, long tick)>();
+            var sysexEventQueue = new List<(PhaseShiftSysEx sysex, long tick)>();
 
             MoonChart unrecognised = new MoonChart(moonSong, MoonSong.MoonInstrument.Unrecognised);
             MoonChart.GameMode gameMode = MoonSong.InstumentToChartGameMode(moonInstrument);
@@ -466,19 +462,27 @@ namespace MoonscraperChartEditor.Song.IO
 
             if (moonInstrument == MoonSong.MoonInstrument.Unrecognised)
             {
-                var text = track[0] as TextEvent;
-                if (text != null)
-                    unrecognised.name = text.Text;
+                if (track.Events[0] is SequenceTrackNameEvent trackName)
+                    unrecognised.name = trackName.Text;
                 moonSong.unrecognisedCharts.Add(unrecognised);
             }
 
             // Load all the notes
-            for (int i = 1; i < track.Count; i++)
+            long absoluteTime = track.Events[0].DeltaTime;
+            for (int i = 1; i < track.Events.Count; i++)
             {
-                var text = track[i] as TextEvent;
-                if (text != null)
+                var trackEvent = track.Events[i];
+                absoluteTime += trackEvent.DeltaTime;
+
+                processParams.timedEvent = new()
                 {
-                    var tick = (uint)text.AbsoluteTime;
+                    midiEvent = trackEvent,
+                    startTime = absoluteTime
+                };
+
+                if (trackEvent is TextEvent text)
+                {
+                    var tick = (uint)absoluteTime;
                     var eventName = text.Text;
 
                     ChartEvent chartEvent = new ChartEvent(tick, eventName);
@@ -493,7 +497,6 @@ namespace MoonscraperChartEditor.Song.IO
                         if (processParams.textProcessMap.TryGetValue(eventName, out processFn))
                         {
                             // This text event affects parsing of the .mid file, run its function and don't parse it into the chart
-                            processParams.midiEvent = text;
                             processFn(ref processParams);
                         }
                         else
@@ -507,37 +510,59 @@ namespace MoonscraperChartEditor.Song.IO
                     }
                 }
 
-                var note = track[i] as NoteOnEvent;
-                if (note != null && note.OffEvent != null)
+                if (trackEvent is NoteOnEvent noteOn)
                 {
+                    if (noteQueue.Any((queued) =>
+                        queued.note.NoteNumber == noteOn.NoteNumber && queued.note.Channel == noteOn.Channel))
+                    {
+                        Console.WriteLine($"Found duplicate note on event at tick {absoluteTime}!");
+                        continue;
+                    }
+                    noteQueue.Add((noteOn, absoluteTime));
+                }
+
+                if (trackEvent is NoteOffEvent noteOff)
+                {
+                    // Get note on event
+                    long noteOnTime = 0;
+                    var queued = noteQueue.FirstOrDefault((queued) =>
+                        queued.note.NoteNumber == noteOff.NoteNumber && queued.note.Channel == noteOff.Channel);
+                    (noteOn, noteOnTime) = queued;
+                    if (noteOn == null)
+                    {
+                        Console.WriteLine($"Found note off with no corresponding note on at tick {absoluteTime}!");
+                        continue;
+                    }
+                    noteQueue.Remove(queued);
+
                     if (moonInstrument == MoonSong.MoonInstrument.Unrecognised)
                     {
-                        var tick = (uint)note.AbsoluteTime;
-                        var sus = CalculateSustainLength(moonSong, note);
+                        var tick = (uint)absoluteTime;
+                        var sus = CalculateSustainLength(moonSong, (uint)(absoluteTime - noteOnTime));
 
-                        int rawNote = note.NoteNumber;
+                        int rawNote = noteOff.NoteNumber;
                         MoonNote newMoonNote = new MoonNote(tick, rawNote, sus);
                         unrecognised.Add(newMoonNote);
                         continue;
                     }
 
-                    processParams.midiEvent = note;
+                    processParams.timedEvent.startTime = noteOnTime;
+                    processParams.timedEvent.endTime = absoluteTime;
 
                     EventProcessFn processFn;
-                    if (processParams.noteProcessMap.TryGetValue(note.NoteNumber, out processFn))
+                    if (processParams.noteProcessMap.TryGetValue(noteOn.NoteNumber, out processFn))
                     {
                         processFn(processParams);
                     }
                 }
 
-                var sysexEvent = track[i] as SysexEvent;
-                if (sysexEvent != null)
+                if (trackEvent is SysExEvent sysex)
                 {
                     PhaseShiftSysEx psEvent;
-                    if (!PhaseShiftSysEx.TryParse(sysexEvent, out psEvent))
+                    if (!PhaseShiftSysEx.TryParse(sysex, out psEvent))
                     {
                         // SysEx event is not a Phase Shift SysEx event
-                        Console.WriteLine($"Encountered unknown SysEx event: {BitConverter.ToString(HelperMethods.GetSysexData(sysexEvent))}");
+                        Console.WriteLine($"Encountered unknown SysEx event: {BitConverter.ToString(sysex.Data)}");
                         continue;
                     }
 
@@ -549,12 +574,28 @@ namespace MoonscraperChartEditor.Song.IO
 
                     if (psEvent.value == MidIOHelper.SYSEX_VALUE_PHRASE_START)
                     {
-                        sysexEventQueue.Add(new PhaseShiftSysExStart(psEvent));
+                        if (sysexEventQueue.Any((queued) => queued.sysex.MatchesWith(psEvent)))
+                        {
+                            Console.WriteLine($"Found duplicate PS SysEx start event at tick {absoluteTime}!");
+                            continue;
+                        }
+                        sysexEventQueue.Add((psEvent, absoluteTime));
                     }
-                    else if (psEvent.value == MidIOHelper.SYSEX_VALUE_PHRASE_END && TryPairSysExEvents(sysexEventQueue, psEvent, out var eventPair, out int index))
+                    else if (psEvent.value == MidIOHelper.SYSEX_VALUE_PHRASE_END)
                     {
-                        sysexEventQueue.RemoveAt(index);
-                        processParams.midiEvent = eventPair;
+                        var queued = sysexEventQueue.FirstOrDefault((queued) => queued.sysex.MatchesWith(psEvent));
+                        var (startEvent, startTime) = queued;
+                        if (startEvent == null)
+                        {
+                            Console.WriteLine($"Found PS SysEx end with no corresponding start at tick {absoluteTime}!");
+                            continue;
+                        }
+                        sysexEventQueue.Remove(queued);
+
+                        processParams.timedEvent.midiEvent = psEvent;
+                        processParams.timedEvent.startTime = startTime;
+                        processParams.timedEvent.endTime = absoluteTime;
+
                         EventProcessFn processFn;
                         if (processParams.sysexProcessMap.TryGetValue(psEvent.code, out processFn))
                         {
@@ -564,6 +605,7 @@ namespace MoonscraperChartEditor.Song.IO
                 }
             }
 
+            Debug.Assert(noteQueue.Count == 0, $"Note queue was not fully processed! Remaining event count: {noteQueue.Count}");
             Debug.Assert(sysexEventQueue.Count == 0, $"SysEx event queue was not fully processed! Remaining event count: {sysexEventQueue.Count}");
 
             // Update all chart arrays
@@ -588,7 +630,7 @@ namespace MoonscraperChartEditor.Song.IO
                 var chart = moonSong.GetChart(moonInstrument, MoonSong.Difficulty.Expert);
                 if (chart.starPower.Count <= 0 && (ContainsTextEvent(chart.events, MidIOHelper.SOLO_EVENT_TEXT) || ContainsTextEvent(chart.events, MidIOHelper.SOLO_END_EVENT_TEXT)))
                 {
-                    TextEvent text = track[0] as TextEvent;
+                    var text = track.Events[0] as TextEvent;
                     Debug.Assert(text != null, "Track name not found when processing legacy starpower fixups");
                     messageList?.Add(new MessageProcessParams()
                     {
@@ -628,33 +670,6 @@ namespace MoonscraperChartEditor.Song.IO
                 }
             }
 
-            return false;
-        }
-
-        static bool TryPairSysExEvents(IList<PhaseShiftSysExStart> startEvents, PhaseShiftSysEx endEvent, out PhaseShiftSysExStart eventPair, out int index)
-        {
-            if (startEvents == null)
-                throw new ArgumentNullException(nameof(startEvents));
-
-            if (endEvent == null)
-                throw new ArgumentNullException(nameof(endEvent));
-
-            // Iterate through event queue in reverse to find the corresponding start event
-            for (int startIndex = startEvents.Count - 1; startIndex >= 0; startIndex--)
-            {
-                var startEvent = startEvents[startIndex];
-                if (startEvent.AbsoluteTime <= endEvent.AbsoluteTime && startEvent.MatchesWith(endEvent))
-                {
-                    startEvent.endEvent = endEvent;
-                    eventPair = startEvent;
-                    index = startIndex;
-                    return true;
-                }
-            }
-
-            Debug.Assert(false, $"SysEx end event without a matching start event!\n{endEvent}");
-            eventPair = null;
-            index = -1;
             return false;
         }
 
@@ -917,8 +932,8 @@ namespace MoonscraperChartEditor.Song.IO
                         {
                             processFnDict.Add(key, (in EventProcessParams eventProcessParams) =>
                             {
-                                var noteEvent = eventProcessParams.midiEvent as NoteOnEvent;
-                                Debug.Assert(noteEvent != null, $"Wrong note event type passed to drums note process. Expected: {typeof(NoteOnEvent)}, Actual: {eventProcessParams.midiEvent.GetType()}");
+                                var noteEvent = eventProcessParams.timedEvent.midiEvent as NoteEvent;
+                                Debug.Assert(noteEvent != null, $"Wrong note event type passed to drums note process. Expected: {typeof(NoteEvent)}, Actual: {eventProcessParams.timedEvent.midiEvent.GetType()}");
 
                                 var flags = defaultFlags;
                                 switch (noteEvent.Velocity)
@@ -943,9 +958,6 @@ namespace MoonscraperChartEditor.Song.IO
                         {
                             processFnDict.Add(key, (in EventProcessParams eventProcessParams) =>
                             {
-                                var noteEvent = eventProcessParams.midiEvent as NoteOnEvent;
-                                Debug.Assert(noteEvent != null, $"Wrong note event type passed to drums note process. Expected: {typeof(NoteOnEvent)}, Actual: {eventProcessParams.midiEvent.GetType()}");
-
                                 ProcessNoteOnEventAsNote(eventProcessParams, difficulty, fret, defaultFlags);
                             });
                         }
@@ -979,24 +991,22 @@ namespace MoonscraperChartEditor.Song.IO
                 moonChart = eventProcessParams.moonSong.GetChart(eventProcessParams.moonInstrument, diff);
             }
 
-            NoteOnEvent noteEvent = eventProcessParams.midiEvent as NoteOnEvent;
-            Debug.Assert(noteEvent != null, $"Wrong note event type passed to {nameof(ProcessNoteOnEventAsNote)}. Expected: {typeof(NoteOnEvent)}, Actual: {eventProcessParams.midiEvent.GetType()}");
-            var tick = (uint)noteEvent.AbsoluteTime;
-            var sus = CalculateSustainLength(eventProcessParams.moonSong, noteEvent);
+            var timedEvent = eventProcessParams.timedEvent;
+            uint tick = (uint)timedEvent.length;
+            uint sus = CalculateSustainLength(eventProcessParams.moonSong, tick);
 
-            MoonNote newMoonNote = new MoonNote(tick, ingameFret, sus, defaultFlags);
+            MoonNote newMoonNote = new MoonNote((uint)timedEvent.startTime, ingameFret, sus, defaultFlags);
             moonChart.Add(newMoonNote, false);
         }
 
         static void ProcessNoteOnEventAsStarpower(in EventProcessParams eventProcessParams)
         {
-            var noteEvent = eventProcessParams.midiEvent as NoteOnEvent;
-            Debug.Assert(noteEvent != null, $"Wrong note event type passed to {nameof(ProcessNoteOnEventAsStarpower)}. Expected: {typeof(NoteOnEvent)}, Actual: {eventProcessParams.midiEvent.GetType()}");
             var song = eventProcessParams.moonSong;
             var instrument = eventProcessParams.moonInstrument;
 
-            var tick = (uint)noteEvent.AbsoluteTime;
-            var sus = CalculateSustainLength(song, noteEvent);
+            var timedEvent = eventProcessParams.timedEvent;
+            uint tick = (uint)timedEvent.length;
+            uint sus = CalculateSustainLength(eventProcessParams.moonSong, tick);
 
             foreach (MoonSong.Difficulty diff in EnumX<MoonSong.Difficulty>.Values)
             {
@@ -1006,13 +1016,12 @@ namespace MoonscraperChartEditor.Song.IO
 
         static void ProcessNoteOnEventAsDrumFill(in EventProcessParams eventProcessParams)
         {
-            var noteEvent = eventProcessParams.midiEvent as NoteOnEvent;
-            Debug.Assert(noteEvent != null, $"Wrong note event type passed to {nameof(ProcessNoteOnEventAsDrumFill)}. Expected: {typeof(NoteOnEvent)}, Actual: {eventProcessParams.midiEvent.GetType()}");
             var song = eventProcessParams.moonSong;
             var instrument = eventProcessParams.moonInstrument;
 
-            var tick = (uint)noteEvent.AbsoluteTime;
-            var sus = CalculateSustainLength(song, noteEvent);
+            var timedEvent = eventProcessParams.timedEvent;
+            uint tick = (uint)timedEvent.length;
+            uint sus = CalculateSustainLength(eventProcessParams.moonSong, tick);
 
             foreach (MoonSong.Difficulty diff in EnumX<MoonSong.Difficulty>.Values)
             {
@@ -1022,13 +1031,12 @@ namespace MoonscraperChartEditor.Song.IO
 
         static void ProcessNoteOnEventAsDrumRoll(in EventProcessParams eventProcessParams, DrumRoll.Type type)
         {
-            var noteEvent = eventProcessParams.midiEvent as NoteOnEvent;
-            Debug.Assert(noteEvent != null, $"Wrong note event type passed to {nameof(ProcessNoteOnEventAsDrumRoll)}. Expected: {typeof(NoteOnEvent)}, Actual: {eventProcessParams.midiEvent.GetType()}");
             var song = eventProcessParams.moonSong;
             var instrument = eventProcessParams.moonInstrument;
 
-            var tick = (uint)noteEvent.AbsoluteTime;
-            var sus = CalculateSustainLength(song, noteEvent);
+            var timedEvent = eventProcessParams.timedEvent;
+            uint tick = (uint)timedEvent.length;
+            uint sus = CalculateSustainLength(eventProcessParams.moonSong, tick);
 
             foreach (MoonSong.Difficulty diff in EnumX<MoonSong.Difficulty>.Values)
             {
@@ -1038,11 +1046,9 @@ namespace MoonscraperChartEditor.Song.IO
 
         static void ProcessNoteOnEventAsForcedType(in EventProcessParams eventProcessParams, MoonNote.MoonNoteType moonNoteType)
         {
-            var flagEvent = eventProcessParams.midiEvent as NoteOnEvent;
-            Debug.Assert(flagEvent != null, $"Wrong note event type passed to {nameof(ProcessNoteOnEventAsForcedType)}. Expected: {typeof(NoteOnEvent)}, Actual: {eventProcessParams.midiEvent.GetType()}");
-
-            uint startTick = (uint)flagEvent.AbsoluteTime;
-            uint endTick = (uint)flagEvent.OffEvent.AbsoluteTime;
+            var timedEvent = eventProcessParams.timedEvent;
+            uint startTick = (uint)timedEvent.startTime;
+            uint endTick = (uint)timedEvent.endTime;
 
             foreach (MoonSong.Difficulty diff in EnumX<MoonSong.Difficulty>.Values)
             {
@@ -1056,11 +1062,9 @@ namespace MoonscraperChartEditor.Song.IO
 
         static void ProcessNoteOnEventAsForcedType(in EventProcessParams eventProcessParams, MoonSong.Difficulty difficulty, MoonNote.MoonNoteType moonNoteType)
         {
-            var flagEvent = eventProcessParams.midiEvent as NoteOnEvent;
-            Debug.Assert(flagEvent != null, $"Wrong note event type passed to {nameof(ProcessNoteOnEventAsForcedType)}. Expected: {typeof(NoteOnEvent)}, Actual: {eventProcessParams.midiEvent.GetType()}");
-
-            uint startTick = (uint)flagEvent.AbsoluteTime;
-            uint endTick = (uint)flagEvent.OffEvent.AbsoluteTime;
+            var timedEvent = eventProcessParams.timedEvent;
+            uint startTick = (uint)timedEvent.startTime;
+            uint endTick = (uint)timedEvent.endTime;
 
             // Delay the actual processing once all the notes are actually in
             eventProcessParams.delayedProcessesList.Add((in EventProcessParams processParams) =>
@@ -1172,26 +1176,23 @@ namespace MoonscraperChartEditor.Song.IO
             }
         }
 
-        static uint CalculateSustainLength(MoonSong moonSong, NoteOnEvent noteEvent)
+        static uint CalculateSustainLength(MoonSong moonSong, uint length)
         {
-            uint tick = (uint)noteEvent.AbsoluteTime;
-            var sus = (uint)(noteEvent.OffEvent.AbsoluteTime - tick);
             int susCutoff = (int)(SongConfig.MIDI_SUSTAIN_CUTOFF_THRESHOLD * moonSong.resolution / SongConfig.STANDARD_BEAT_RESOLUTION); // 1/12th note
-            if (sus <= susCutoff)
-                sus = 0;
+            if (length <= susCutoff)
+                length = 0;
 
-            return sus;
+            return length;
         }
 
         static void ProcessNoteOnEventAsEvent(EventProcessParams eventProcessParams, string eventStartText, int tickStartOffset, string eventEndText, int tickEndOffset)
         {
-            var noteEvent = eventProcessParams.midiEvent as NoteOnEvent;
-            Debug.Assert(noteEvent != null, $"Wrong note event type passed to {nameof(ProcessNoteOnEventAsEvent)}. Expected: {typeof(NoteOnEvent)}, Actual: {eventProcessParams.midiEvent.GetType()}");
             var song = eventProcessParams.moonSong;
             var instrument = eventProcessParams.moonInstrument;
 
-            uint tick = (uint)(noteEvent.AbsoluteTime + tickStartOffset);            
-            uint sus = CalculateSustainLength(song, noteEvent);
+            var timedEvent = eventProcessParams.timedEvent;
+            uint tick = (uint)timedEvent.length;
+            uint sus = CalculateSustainLength(eventProcessParams.moonSong, tick);
             if (sus >= tickEndOffset)
             {
                 sus = (uint)(sus + tickEndOffset);
@@ -1207,31 +1208,29 @@ namespace MoonscraperChartEditor.Song.IO
 
         static void ProcessNoteOnEventAsFlagToggle(in EventProcessParams eventProcessParams, MoonNote.Flags flags, int individualNoteSpecifier)
         {
-            var flagEvent = eventProcessParams.midiEvent as NoteOnEvent;
-            Debug.Assert(flagEvent != null, $"Wrong note event type passed to {nameof(ProcessNoteOnEventAsFlagToggle)}. Expected: {typeof(NoteOnEvent)}, Actual: {eventProcessParams.midiEvent.GetType()}");
-
             // Delay the actual processing once all the notes are actually in
             eventProcessParams.delayedProcessesList.Add((in EventProcessParams processParams) =>
             {
-                ProcessNoteOnEventAsFlagTogglePostDelay(processParams, flagEvent, flags, individualNoteSpecifier);
+                ProcessNoteOnEventAsFlagTogglePostDelay(processParams, flags, individualNoteSpecifier);
             });
         }
 
-        static void ProcessNoteOnEventAsFlagTogglePostDelay(in EventProcessParams eventProcessParams, NoteOnEvent noteEvent, MoonNote.Flags flags, int individualNoteSpecifier)   // individualNoteSpecifier as -1 to apply to the whole chord
+        static void ProcessNoteOnEventAsFlagTogglePostDelay(in EventProcessParams eventProcessParams, MoonNote.Flags flags, int individualNoteSpecifier)   // individualNoteSpecifier as -1 to apply to the whole chord
         {
             var song = eventProcessParams.moonSong;
             var instrument = eventProcessParams.moonInstrument;
 
-            uint tick = (uint)noteEvent.AbsoluteTime;
-            uint endPos = (uint)(noteEvent.OffEvent.AbsoluteTime - tick);
-            --endPos;
+            var timedEvent = eventProcessParams.timedEvent;
+            uint startTick = (uint)timedEvent.startTime;
+            uint endTick = (uint)timedEvent.endTime;
+            --endTick;
 
             foreach (MoonSong.Difficulty difficulty in EnumX<MoonSong.Difficulty>.Values)
             {
                 MoonChart moonChart = song.GetChart(instrument, difficulty);
 
                 int index, length;
-                SongObjectHelper.GetRange(moonChart.notes, tick, tick + endPos, out index, out length);
+                SongObjectHelper.GetRange(moonChart.notes, startTick, startTick + endTick, out index, out length);
 
                 for (int i = index; i < index + length; ++i)
                 {
@@ -1304,13 +1303,12 @@ namespace MoonscraperChartEditor.Song.IO
 
         static void ProcessSysExEventPairAsForcedType(in EventProcessParams eventProcessParams, MoonNote.MoonNoteType moonNoteType)
         {
-            var startEvent = eventProcessParams.midiEvent as PhaseShiftSysExStart;
-            Debug.Assert(startEvent != null, $"Wrong note event type passed to {nameof(ProcessSysExEventPairAsForcedType)}. Expected: {typeof(PhaseShiftSysExStart)}, Actual: {eventProcessParams.midiEvent.GetType()}");
-            var endEvent = startEvent.endEvent;
-            Debug.Assert(endEvent != null, $"No end event supplied to {nameof(ProcessSysExEventPairAsForcedType)}.");
+            var timedEvent = eventProcessParams.timedEvent;
+            var startEvent = eventProcessParams.timedEvent.midiEvent as PhaseShiftSysEx;
+            Debug.Assert(startEvent != null, $"Wrong note event type passed to {nameof(ProcessSysExEventPairAsForcedType)}. Expected: {typeof(PhaseShiftSysEx)}, Actual: {eventProcessParams.timedEvent.midiEvent.GetType()}");
 
-            uint startTick = (uint)startEvent.AbsoluteTime;
-            uint endTick = (uint)endEvent.AbsoluteTime;
+            uint startTick = (uint)timedEvent.startTime;
+            uint endTick = (uint)timedEvent.endTime;
 
             if (startEvent.difficulty == MidIOHelper.SYSEX_DIFFICULTY_ALL)
             {
@@ -1334,13 +1332,12 @@ namespace MoonscraperChartEditor.Song.IO
 
         static void ProcessSysExEventPairAsOpenNoteModifier(in EventProcessParams eventProcessParams)
         {
-            var startEvent = eventProcessParams.midiEvent as PhaseShiftSysExStart;
-            Debug.Assert(startEvent != null, $"Wrong note event type passed to {nameof(ProcessSysExEventPairAsOpenNoteModifier)}. Expected: {typeof(PhaseShiftSysExStart)}, Actual: {eventProcessParams.midiEvent.GetType()}");
-            var endEvent = startEvent.endEvent;
-            Debug.Assert(endEvent != null, $"No end event supplied to {nameof(ProcessSysExEventPairAsOpenNoteModifier)}.");
+            var timedEvent = eventProcessParams.timedEvent;
+            var startEvent = timedEvent.midiEvent as PhaseShiftSysEx;
+            Debug.Assert(startEvent != null, $"Wrong note event type passed to {nameof(ProcessSysExEventPairAsOpenNoteModifier)}. Expected: {typeof(PhaseShiftSysEx)}, Actual: {eventProcessParams.timedEvent.midiEvent.GetType()}");
 
-            uint startTick = (uint)startEvent.AbsoluteTime;
-            uint endTick = (uint)endEvent.AbsoluteTime;
+            uint startTick = (uint)timedEvent.startTime;
+            uint endTick = (uint)timedEvent.endTime;
             // Exclude the last tick of the phrase
             if (endTick > 0)
                 --endTick;
