@@ -6,7 +6,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="NAudio" Version="2.1.0" />
+      <PackageReference Include="Melanchall.DryWetMidi" Version="6.1.4" />
     </ItemGroup>
 
     <ItemGroup>
