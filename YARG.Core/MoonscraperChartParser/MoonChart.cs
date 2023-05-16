@@ -1,21 +1,16 @@
 ﻿// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
-//#define TIMING_DEBUG
-
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
-using System.Linq;
 
 namespace MoonscraperChartEditor.Song
 {
     public class MoonChart
     {
-        MoonSong _moonSong;
-        List<ChartObject> _chartObjects;
-        int _note_count;
-        GameMode _gameMode;
-        public string name = string.Empty;
+        private readonly MoonSong _moonSong;
+        private readonly List<ChartObject> _chartObjects;
+        private int _note_count;
+        private readonly GameMode _gameMode;
 
         /// <summary>
         /// Read only list of notes.
@@ -36,11 +31,11 @@ namespace MoonscraperChartEditor.Song
         /// <summary>
         /// The song this chart is connected to.
         /// </summary>
-        public MoonSong MoonSong { get { return _moonSong; } }
+        public MoonSong MoonSong => _moonSong;
         /// <summary>
         /// The game mode the chart is designed for
         /// </summary>
-        public GameMode gameMode { get { return _gameMode; } }
+        public GameMode gameMode => _gameMode;
 
         /// <summary>
         /// Read only list containing all chart notes, starpower, drumRoll and events.
@@ -50,14 +45,14 @@ namespace MoonscraperChartEditor.Song
         /// <summary>
         /// The total amount of notes in the chart, counting chord (notes sharing the same tick position) as a single note.
         /// </summary>
-        public int note_count { get { return _note_count; } }
+        public int note_count => _note_count;
 
         /// <summary>
         /// Creates a new chart object.
         /// </summary>
         /// <param name="moonSong">The song to associate this chart with.</param>
         /// <param name="name">The name of the chart (easy single, expert double guitar, etc.</param>
-        public MoonChart(MoonSong moonSong, GameMode gameMode, string name = "")
+        public MoonChart(MoonSong moonSong, GameMode gameMode)
         {
             _moonSong = moonSong;
             _chartObjects = new List<ChartObject>();
@@ -70,26 +65,21 @@ namespace MoonscraperChartEditor.Song
             events = new SongObjectCache<ChartEvent>();
 
             _note_count = 0;
-
-            this.name = name;
         }
 
-        public MoonChart(MoonSong moonSong, MoonSong.MoonInstrument moonInstrument, string name = "") : this(moonSong, MoonSong.InstumentToChartGameMode(moonInstrument), name)
+        public MoonChart(MoonSong moonSong, MoonSong.MoonInstrument moonInstrument) : this(moonSong, MoonSong.InstumentToChartGameMode(moonInstrument))
         {
         }
 
         public MoonChart(MoonChart moonChart, MoonSong moonSong)
         {
             _moonSong = moonSong;
-            name = moonChart.name;
             _gameMode = moonChart.gameMode;
 
             _chartObjects = new List<ChartObject>();
             _chartObjects.AddRange(moonChart._chartObjects);
 
             chartObjects = new ReadOnlyList<ChartObject>(_chartObjects);
-
-            this.name = moonChart.name;
         }
 
         /// <summary>
@@ -105,7 +95,7 @@ namespace MoonscraperChartEditor.Song
             _note_count = GetNoteCount();
         }
 
-        int GetNoteCount()
+        private int GetNoteCount()
         {
             if (notes.Count > 0)
             {
@@ -139,20 +129,6 @@ namespace MoonscraperChartEditor.Song
         }
 
         /// <summary>
-        /// Adds a series of chart objects (note, starpower, drumRoll and/or chart events) into the chart.
-        /// </summary>
-        /// <param name="chartObjects">Items to add.</param>
-        public void Add(ChartObject[] chartObjects)
-        {
-            foreach (ChartObject chartObject in chartObjects)
-            {
-                Add(chartObject, false);
-            }
-
-            UpdateCache();
-        }
-
-        /// <summary>
         /// Adds a chart object (note, starpower, drumRoll and/or chart event) into the chart.
         /// </summary>
         /// <param name="chartObject">The item to add</param>
@@ -161,7 +137,7 @@ namespace MoonscraperChartEditor.Song
         public int Add(ChartObject chartObject, bool update = true)
         {
             chartObject.moonChart = this;
-            chartObject.moonSong = this._moonSong;
+            chartObject.moonSong = _moonSong;
 
             int pos = SongObjectHelper.Insert(chartObject, _chartObjects);
 
@@ -169,20 +145,6 @@ namespace MoonscraperChartEditor.Song
                 UpdateCache();
 
             return pos;
-        }
-
-        /// <summary>
-        /// Removes a series of chart objects (note, starpower, drumRoll and/or chart events) from the chart.
-        /// </summary>
-        /// <param name="chartObjects">Items to add.</param>
-        public void Remove(ChartObject[] chartObjects)
-        {
-            foreach (ChartObject chartObject in chartObjects)
-            {
-                Remove(chartObject, false);
-            }
-
-            UpdateCache();
         }
 
         /// <summary>

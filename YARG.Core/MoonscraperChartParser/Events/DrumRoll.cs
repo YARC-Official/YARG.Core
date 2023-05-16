@@ -15,8 +15,7 @@ namespace MoonscraperChartEditor.Song
         }
 
         private readonly ID _classID = ID.DrumRoll;
-
-        public override int classID { get { return (int)_classID; } }
+        public override int classID => (int)_classID;
 
         public uint length;
         public Type type = Type.Standard;
@@ -27,25 +26,9 @@ namespace MoonscraperChartEditor.Song
             type = _type;
         }
 
-        public DrumRoll(DrumRoll _drumRoll) : base(_drumRoll.tick)
-        {
-            length = _drumRoll.length;
-            type = _drumRoll.type;
-        }
-
-        public override SongObject Clone()
-        {
-            return new DrumRoll(this);
-        }
-
-        public override bool AllValuesCompare<T>(T songObject)
-        {
-            return this == songObject && (songObject as DrumRoll).length == length && (songObject as DrumRoll).type == type;
-        }
-
         public uint GetCappedLengthForPos(uint pos)
         {
-            uint newLength = length;
+            uint newLength;
             if (pos > tick)
                 newLength = pos - tick;
             else
@@ -79,18 +62,6 @@ namespace MoonscraperChartEditor.Song
             }
 
             return newLength;
-        }
-
-        public void SetLengthByPos(uint pos)
-        {
-            length = GetCappedLengthForPos(pos);
-        }
-
-        public void CopyFrom(DrumRoll roll)
-        {
-            tick = roll.tick;
-            length = roll.length;
-            type = roll.type;
         }
     }
 }

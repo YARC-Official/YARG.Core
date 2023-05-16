@@ -5,7 +5,7 @@ using System;
 
 namespace MoonscraperChartEditor.Song
 {
-    [System.Serializable]
+    [Serializable]
     public class Starpower : ChartObject
     {
         [Flags]
@@ -18,8 +18,7 @@ namespace MoonscraperChartEditor.Song
         }
 
         private readonly ID _classID = ID.Starpower;
-
-        public override int classID { get { return (int)_classID; } }
+        public override int classID => (int)_classID;
 
         public uint length;
         public Flags flags = Flags.None;
@@ -30,28 +29,9 @@ namespace MoonscraperChartEditor.Song
             flags = _flags;
         }
 
-        public Starpower(Starpower _starpower) : base(_starpower.tick)
-        {
-            length = _starpower.length;
-            flags = _starpower.flags;
-        }
-
-        public override SongObject Clone()
-        {
-            return new Starpower(this);
-        }
-
-        public override bool AllValuesCompare<T>(T songObject)
-        {
-            if (this == songObject && (songObject as Starpower).length == length && (songObject as Starpower).flags == flags)
-                return true;
-            else
-                return false;
-        }
-
         public uint GetCappedLengthForPos(uint pos)
         {
-            uint newLength = length;
+            uint newLength;
             if (pos > tick)
                 newLength = pos - tick;
             else
@@ -85,18 +65,6 @@ namespace MoonscraperChartEditor.Song
             }
 
             return newLength;
-        }
-
-        public void SetLengthByPos(uint pos)
-        {
-            length = GetCappedLengthForPos(pos);
-        }
-
-        public void CopyFrom(Starpower sp)
-        {
-            tick = sp.tick;
-            length = sp.length;
-            flags = sp.flags;
         }
     }
 }

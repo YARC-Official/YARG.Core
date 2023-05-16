@@ -1,11 +1,10 @@
 ﻿// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
-using System.IO;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System;
 using MoonscraperEngine;
 
 namespace MoonscraperChartEditor.Song
@@ -13,58 +12,27 @@ namespace MoonscraperChartEditor.Song
     public class MoonSong
     {
         // Song properties
-        public Metadata metaData = new Metadata();
-        //public INIParser iniProperties = new INIParser();
+        public Metadata metaData = new();
 
         public string name
         {
-            get
-            {
-                return metaData.name;
-            }
-            set
-            {
-                metaData.name = value;
-            }
+            get => metaData.name;
+            set => metaData.name = value;
         }
+
         public float resolution = SongConfig.STANDARD_BEAT_RESOLUTION;
         public float offset = 0;
-
-        string[] audioLocations = new string[EnumX<AudioInstrument>.Count];
-
-        public IO.ExportOptions defaultExportOptions
-        {
-            get
-            {
-                IO.ExportOptions exportOptions = default(IO.ExportOptions);
-
-                exportOptions.forced = true;
-                exportOptions.copyDownEmptyDifficulty = false;
-                exportOptions.format = IO.ExportOptions.Format.Chart;
-                exportOptions.targetResolution = this.resolution;
-                exportOptions.tickOffset = 0;
-                exportOptions.isGeneralSave = false;
-
-                exportOptions.midiOptions = new IO.ExportOptions.MidiOptions()
-                {
-                    difficultyToUseGlobalTrackEvents = Difficulty.Expert,
-                    rbFormat = IO.ExportOptions.MidiOptions.RBFormat.RB3,
-                };
-
-                return exportOptions;
-            }
-        }
 
         public float? manualLength = null;
 
         // Charts
-        MoonChart[] charts;
-        public List<MoonChart> unrecognisedCharts = new List<MoonChart>();
+        private readonly MoonChart[] charts;
+        public List<MoonChart> unrecognisedCharts = new();
 
         public IReadOnlyList<MoonChart> Charts => charts.ToList();
-        
+
         public List<Event> _events;
-        List<SyncTrack> _syncTrack;
+        private readonly List<SyncTrack> _syncTrack;
 
         /// <summary>
         /// Read only list of song events.
@@ -112,61 +80,9 @@ namespace MoonscraperChartEditor.Song
 
             for (int i = 0; i < charts.Length; ++i)
             {
-                MoonInstrument moonInstrument = (MoonInstrument)(i / EnumX<Difficulty>.Count);
+                var moonInstrument = (MoonInstrument)(i / EnumX<Difficulty>.Count);
                 charts[i] = new MoonChart(this, moonInstrument);
             }
-
-            // Set the name of the chart
-            foreach (MoonInstrument instrument in EnumX<MoonInstrument>.Values)
-            {
-                if (instrument == MoonInstrument.Unrecognised)
-                    continue;
-
-                string instrumentName = string.Empty;
-                switch (instrument)
-                {
-                    case (MoonInstrument.Guitar):
-                        instrumentName += "Guitar - ";
-                        break;
-                    case (MoonInstrument.GuitarCoop):
-                        instrumentName += "Guitar - Co-op - ";
-                        break;
-                    case (MoonInstrument.Bass):
-                        instrumentName += "Bass - ";
-                        break;
-                    case (MoonInstrument.Rhythm):
-                        instrumentName += "Rhythm - ";
-                        break;
-                    case (MoonInstrument.Keys):
-                        instrumentName += "Keys - ";
-                        break;
-                    case (MoonInstrument.Drums):
-                        instrumentName += "Drums - ";
-                        break;
-                    case (MoonInstrument.GHLiveGuitar):
-                        instrumentName += "GHLive Guitar - ";
-                        break;
-                    case (MoonInstrument.GHLiveBass):
-                        instrumentName += "GHLive Bass - ";
-                        break;
-                    case (MoonInstrument.GHLiveRhythm):
-                        instrumentName += "GHLive Rhythm - ";
-                        break;
-                    case (MoonInstrument.GHLiveCoop):
-                        instrumentName += "GHLive Co-op - ";
-                        break;
-                    default:
-                        continue;
-                }
-
-                foreach (Difficulty difficulty in EnumX<Difficulty>.Values)
-                {
-                    GetChart(instrument, difficulty).name = instrumentName + difficulty.ToString();
-                }
-            }
-
-            for (int i = 0; i < audioLocations.Length; ++i)
-                audioLocations[i] = string.Empty;
 
             UpdateCache();
         }
@@ -190,15 +106,6 @@ namespace MoonscraperChartEditor.Song
             {
                 charts[i] = new MoonChart(moonSong.charts[i], this);
             }
-
-            for (int i = 0; i < audioLocations.Length; ++i)
-            {
-                audioLocations[i] = moonSong.audioLocations[i];
-            }
-
-            // iniProperties = new INIParser();
-            // iniProperties.OpenFromString(string.Empty);
-            // iniProperties.WriteValue(song.iniProperties);
         }
 
         ~MoonSong()
@@ -220,7 +127,7 @@ namespace MoonscraperChartEditor.Song
 
         public bool ChartExistsForInstrument(MoonInstrument moonInstrument)
         {
-            foreach (Difficulty difficulty in EnumX<Difficulty>.Values)
+            foreach (var difficulty in EnumX<Difficulty>.Values)
             {
                 var chart = GetChart(moonInstrument, difficulty);
                 if (chart.chartObjects.Count > 0)
@@ -231,11 +138,11 @@ namespace MoonscraperChartEditor.Song
 
             return false;
         }
-        
+
         public bool DoesChartExist(MoonInstrument moonInstrument, Difficulty difficulty)
-		{
-			return GetChart(moonInstrument, difficulty).chartObjects.Count > 0;
-		}
+        {
+            return GetChart(moonInstrument, difficulty).chartObjects.Count > 0;
+        }
 
         /// <summary>
         /// Converts a time value into a tick position value. May be inaccurate due to interger rounding.
@@ -248,27 +155,23 @@ namespace MoonscraperChartEditor.Song
             if (time < 0)
                 time = 0;
 
-            uint position = 0;
-
-            BPM prevBPM = bpms[0];
+            var prevBPM = bpms[0];
 
             // Search for the last bpm
             for (int i = 0; i < bpms.Count; ++i)
             {
-                BPM bpmInfo = bpms[i];
+                var bpmInfo = bpms[i];
                 if (bpmInfo.assignedTime >= time)
                     break;
                 else
                     prevBPM = bpmInfo;
             }
 
-            position = prevBPM.tick;
+            uint position = prevBPM.tick;
             position += TickFunctions.TimeToDis(prevBPM.assignedTime, time, resolution, prevBPM.value / 1000.0f);
 
             return position;
         }
-
-
 
         /// <summary>
         /// Finds the value of the first bpm that appears before or on the specified tick position.
@@ -302,7 +205,7 @@ namespace MoonscraperChartEditor.Song
         /// <returns>Returns the time in seconds.</returns>
         public double TickToTime(uint position)
         {
-            return TickToTime(position, this.resolution);
+            return TickToTime(position, resolution);
         }
 
         /// <summary>
@@ -317,7 +220,7 @@ namespace MoonscraperChartEditor.Song
             if (bpms[previousBPMPos].tick > position)
                 --previousBPMPos;
 
-            BPM prevBPM = bpms[previousBPMPos];
+            var prevBPM = bpms[previousBPMPos];
             double time = prevBPM.assignedTime;
             time += TickFunctions.DisToTime(prevBPM.tick, position, resolution, prevBPM.value / 1000.0f);
 
@@ -388,8 +291,7 @@ namespace MoonscraperChartEditor.Song
         /// <returns>Returns whether the removal was successful or not (item may not have been found if false).</returns>
         public bool Remove(Event eventObject, bool autoUpdate = true)
         {
-            bool success = false;
-            success = SongObjectHelper.Remove(eventObject, _events);
+            bool success = SongObjectHelper.Remove(eventObject, _events);
 
             if (success)
             {
@@ -409,7 +311,7 @@ namespace MoonscraperChartEditor.Song
             var cacheObjectList = cache.EditCache();
             cacheObjectList.Clear();
 
-            foreach (U objectToCache in objectsToCache)
+            foreach (var objectToCache in objectsToCache)
             {
                 if (objectToCache.GetType() == typeof(T))
                 {
@@ -433,28 +335,28 @@ namespace MoonscraperChartEditor.Song
 
         public void UpdateAllChartCaches()
         {
-            foreach (MoonChart chart in charts)
+            foreach (var chart in charts)
                 chart.UpdateCache();
         }
 
         /// <summary>
         /// Dramatically speeds up calculations of songs with lots of bpm changes.
         /// </summary>
-        void UpdateBPMTimeValues()
+        private void UpdateBPMTimeValues()
         {
             /*
              * Essentially just an optimised version of this, as this was n^2 and bad
-             * foreach (BPM bpm in bpms)
+             * foreach (var bpm in bpms)
              * {
              *     bpm.assignedTime = LiveTickToTime(bpm.tick, resolution);
              * }
             */
 
             double time = 0;
-            BPM prevBPM = bpms[0];
+            var prevBPM = bpms[0];
             prevBPM.assignedTime = 0;
 
-            foreach (BPM bpm in bpms)
+            foreach (var bpm in bpms)
             {
                 time += TickFunctions.DisToTime(prevBPM.tick, bpm.tick, resolution, prevBPM.value / 1000.0f);
                 bpm.assignedTime = time;
@@ -470,11 +372,11 @@ namespace MoonscraperChartEditor.Song
         public static double LiveTickToTime(uint position, float resolution, BPM initialBpm, IList<SyncTrack> synctrack)
         {
             double time = 0;
-            BPM prevBPM = initialBpm;
+            var prevBPM = initialBpm;
 
-            foreach (SyncTrack syncTrack in synctrack)
+            foreach (var syncTrack in synctrack)
             {
-                BPM bpmInfo = syncTrack as BPM;
+                var bpmInfo = syncTrack as BPM;
 
                 if (bpmInfo == null)
                     continue;
@@ -497,45 +399,27 @@ namespace MoonscraperChartEditor.Song
 
         public float ResolutionScaleRatio(float targetResoltion)
         {
-            return (targetResoltion / resolution);
-        }
-
-        public string GetAudioName(AudioInstrument audio)
-        {
-            return Path.GetFileName(audioLocations[(int)audio]);
-        }
-
-        public string GetAudioLocation(AudioInstrument audio)
-        {
-            return audioLocations[(int)audio];
-        }
-
-        public void SetAudioLocation(AudioInstrument audio, string path)
-        {
-            if (File.Exists(path))
-                audioLocations[(int)audio] = Path.GetFullPath(path);
-            else if (string.IsNullOrEmpty(path))
-                audioLocations[(int)audio] = string.Empty;
+            return targetResoltion / resolution;
         }
 
         public static MoonChart.GameMode InstumentToChartGameMode(MoonInstrument moonInstrument)
         {
             switch (moonInstrument)
             {
-                case (MoonInstrument.Guitar):
-                case (MoonInstrument.GuitarCoop):
-                case (MoonInstrument.Bass):
-                case (MoonInstrument.Rhythm):
-                case (MoonInstrument.Keys):
+                case MoonInstrument.Guitar:
+                case MoonInstrument.GuitarCoop:
+                case MoonInstrument.Bass:
+                case MoonInstrument.Rhythm:
+                case MoonInstrument.Keys:
                     return MoonChart.GameMode.Guitar;
 
-                case (MoonInstrument.Drums):
+                case MoonInstrument.Drums:
                     return MoonChart.GameMode.Drums;
 
-                case (MoonInstrument.GHLiveGuitar):
-                case (MoonInstrument.GHLiveBass):
-                case (MoonInstrument.GHLiveRhythm):
-                case (MoonInstrument.GHLiveCoop):
+                case MoonInstrument.GHLiveGuitar:
+                case MoonInstrument.GHLiveBass:
+                case MoonInstrument.GHLiveRhythm:
+                case MoonInstrument.GHLiveCoop:
                     return MoonChart.GameMode.GHLGuitar;
 
                 default:
@@ -587,7 +471,7 @@ namespace MoonscraperChartEditor.Song
 
     public class SongObjectCache<T> : IList<T>, IEnumerable<T> where T : SongObject
     {
-        List<T> cache = new List<T>();
+        private readonly List<T> cache = new();
 
         public T this[int index] { get { return cache[index]; } set { cache[index] = value; } }
 
@@ -618,7 +502,7 @@ namespace MoonscraperChartEditor.Song
 
         public void CopyTo(T[] array, int arrayIndex)
         {
-	        
+
         }
 
         public IEnumerator<T> GetEnumerator()
@@ -664,7 +548,7 @@ namespace MoonscraperChartEditor.Song
 
     public class ReadOnlyList<T> : IList<T>, IEnumerable<T>
     {
-        List<T> _realListHandle;
+        private readonly List<T> _realListHandle;
         public ReadOnlyList(List<T> realListHandle)
         {
             _realListHandle = realListHandle;
@@ -699,7 +583,7 @@ namespace MoonscraperChartEditor.Song
 
         public void CopyTo(T[] array, int arrayIndex)
         {
-	        
+
         }
 
         public IEnumerator<T> GetEnumerator()

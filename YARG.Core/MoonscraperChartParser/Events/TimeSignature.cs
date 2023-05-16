@@ -1,51 +1,23 @@
 ﻿// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
+using System;
+
 namespace MoonscraperChartEditor.Song
 {
-    [System.Serializable]
+    [Serializable]
     public class TimeSignature : SyncTrack
     {
         private readonly ID _classID = ID.TimeSignature;
-
-        public override int classID { get { return (int)_classID; } }
+        public override int classID => (int)_classID;
 
         public uint numerator;
         public uint denominator;
-
-        public uint quarterNotesPerMeasure { get { return numerator; } }
-        public uint beatsPerMeasure { get { return denominator; } }
 
         public TimeSignature(uint _position = 0, uint _numerator = 4, uint _denominator = 4) : base(_position)
         {
             numerator = _numerator;
             denominator = _denominator;
-        }
-
-        public TimeSignature(TimeSignature ts) : base(ts.tick)
-        {
-            numerator = ts.numerator;
-            denominator = ts.denominator;
-        }
-
-        public override SongObject Clone()
-        {
-            return new TimeSignature(this);
-        }
-
-        public override bool AllValuesCompare<T>(T songObject)
-        {
-            if (this == songObject && songObject as TimeSignature != null && (songObject as TimeSignature).numerator == numerator)
-                return true;
-            else
-                return false;
-        }
-
-        public void CopyFrom(TimeSignature ts)
-        {
-            tick = ts.tick;
-            numerator = ts.numerator;
-            denominator = ts.denominator;
         }
 
         public struct BeatInfo
@@ -65,7 +37,7 @@ namespace MoonscraperChartEditor.Song
 
         public MeasureInfo GetMeasureInfo()
         {
-            MeasureInfo measureInfo = new MeasureInfo();
+            var measureInfo = new MeasureInfo();
             float resolution = moonSong.resolution;
 
             {

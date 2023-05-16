@@ -1,7 +1,6 @@
 ﻿// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
-using System.Collections;
 using System.Collections.Generic;
 
 namespace MoonscraperChartEditor.Song
@@ -24,7 +23,7 @@ namespace MoonscraperChartEditor.Song
             int upperBound = objects.Count - 1;
             int index = NOTFOUND;
 
-            int midPoint = NOTFOUND;
+            int midPoint;
 
             while (lowerBound <= upperBound)
             {
@@ -66,7 +65,7 @@ namespace MoonscraperChartEditor.Song
             int upperBound = objects.Count - 1;
             int index = NOTFOUND;
 
-            int midPoint = NOTFOUND;
+            int midPoint;
 
             while (lowerBound <= upperBound)
             {
@@ -175,7 +174,7 @@ namespace MoonscraperChartEditor.Song
             return pos;
         }
 
-        static int FindPreviousPosition<T>(System.Type type, int startPosition, IList<T> list) where T : SongObject
+        private static int FindPreviousPosition<T>(System.Type type, int startPosition, IList<T> list) where T : SongObject
         {
             // Linear search
             if (startPosition < 0 || startPosition > list.Count - 1)
@@ -195,7 +194,7 @@ namespace MoonscraperChartEditor.Song
             }
         }
 
-        static T FindPreviousOfType<T>(System.Type type, int startPosition, IList<T> list) where T : SongObject
+        private static T FindPreviousOfType<T>(System.Type type, int startPosition, IList<T> list) where T : SongObject
         {
             int pos = FindPreviousPosition(type, startPosition, list);
 
@@ -205,7 +204,7 @@ namespace MoonscraperChartEditor.Song
                 return list[pos];
         }
 
-        static int FindNextPosition<T>(System.Type type, int startPosition, IList<T> list) where T : SongObject
+        private static int FindNextPosition<T>(System.Type type, int startPosition, IList<T> list) where T : SongObject
         {
             // Linear search
             if (startPosition < 0 || startPosition > list.Count - 1)
@@ -225,7 +224,7 @@ namespace MoonscraperChartEditor.Song
             }
         }
 
-        static T FindNextOfType<T>(System.Type type, int startPosition, IList<T> list) where T : SongObject
+        private static T FindNextOfType<T>(System.Type type, int startPosition, IList<T> list) where T : SongObject
         {
             int pos = FindNextPosition(type, startPosition, list);
             if (pos == NOTFOUND)
@@ -265,10 +264,6 @@ namespace MoonscraperChartEditor.Song
                     // Account for overwrite
                     if (insertionPos < count && list[insertionPos] == item)
                     {
-#if APPLICATION_MOONSCRAPER
-                        if (list[insertionPos].controller != null)
-                            list[insertionPos].controller.gameObject.SetActive(false);
-#endif
                         list[insertionPos] = item;
                     }
                     else
@@ -282,15 +277,6 @@ namespace MoonscraperChartEditor.Song
                     {
                         if (list[insertionPos] == item && item.classID == list[insertionPos].classID)
                         {
-#if APPLICATION_MOONSCRAPER
-                            // Overwrite 
-                            if (list[insertionPos].controller != null)
-                            {
-                                list[insertionPos].controller.gameObject.SetActive(false);
-                                //GameObject.Destroy(list[insertionPos].controller.gameObject);
-                            }
-#endif
-
                             list[insertionPos] = item;
                         }
                         // Insert into sorted position
@@ -316,10 +302,10 @@ namespace MoonscraperChartEditor.Song
             if ((SongObject.ID)item.classID == SongObject.ID.Note)
             {
                 // Update linked list
-                MoonNote current = list[insertionPos] as MoonNote;
+                var current = list[insertionPos] as MoonNote;
 
-                MoonNote previous = FindPreviousOfType(typeof(MoonNote), insertionPos, list) as MoonNote;
-                MoonNote next = FindNextOfType(typeof(MoonNote), insertionPos, list) as MoonNote;
+                var previous = FindPreviousOfType(typeof(MoonNote), insertionPos, list) as MoonNote;
+                var next = FindNextOfType(typeof(MoonNote), insertionPos, list) as MoonNote;
 
                 current.previous = previous;
                 if (previous != null)
@@ -407,8 +393,8 @@ namespace MoonscraperChartEditor.Song
                 if (uniqueData && item.GetType() == typeof(MoonNote))
                 {
                     // Update linked list
-                    MoonNote previous = FindPreviousOfType(item.GetType(), pos, list) as MoonNote;
-                    MoonNote next = FindNextOfType(item.GetType(), pos, list) as MoonNote;
+                    var previous = FindPreviousOfType(item.GetType(), pos, list) as MoonNote;
+                    var next = FindNextOfType(item.GetType(), pos, list) as MoonNote;
 
                     if (previous != null)
                         previous.next = next;
@@ -424,10 +410,9 @@ namespace MoonscraperChartEditor.Song
         }
         public static T[] GetRangeCopy<T>(T[] list, uint minPos, uint maxPos) where T : SongObject
         {
-            int index, length;
-            GetRange(list, minPos, maxPos, out index, out length);
+            GetRange(list, minPos, maxPos, out int index, out int length);
 
-            T[] rangedList = new T[length];
+            var rangedList = new T[length];
             System.Array.Copy(list, index, rangedList, 0, rangedList.Length);
 
             return rangedList;
