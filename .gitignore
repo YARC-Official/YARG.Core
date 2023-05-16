@@ -403,3 +403,9 @@ FodyWeavers.xsd
 
 # Rider #
 .idea/
+
+# VS Code
+.vscode/*
+# Tasks/launch are kept for convenience
+!.vscode/tasks.json
+!.vscode/launch.json

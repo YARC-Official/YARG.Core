@@ -1,0 +1,31 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Build & Launch",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/TestConsole/bin/Debug/net7.0/TestConsole.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/TestConsole",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
+            "name": "Launch",
+            "type": "coreclr",
+            "request": "launch",
+            "program": "${workspaceFolder}/TestConsole/bin/Debug/net7.0/TestConsole.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/TestConsole",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
+            "name": "Attach",
+            "type": "coreclr",
+            "request": "attach"
+        }
+    ]
+}
