@@ -12,7 +12,7 @@ public static class NoteFunctions
             chordNote.flags = CopyChordFlags(chordNote.flags, moonNote.flags);
         }
     }
-    
+
     private static MoonNote.Flags CopyChordFlags(MoonNote.Flags original, MoonNote.Flags noteToCopyFrom)
     {
         var flagsToPreserve = original & MoonNote.PER_NOTE_FLAGS;

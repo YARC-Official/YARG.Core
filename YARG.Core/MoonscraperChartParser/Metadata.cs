@@ -6,7 +6,7 @@ namespace MoonscraperChartEditor.Song
     public class Metadata
     {
         private string m_name, m_artist, m_charter, m_genre, m_album;
-        
+
         public string name { get => m_name; set => m_name = MakeValidMetadataString(value); }
         public string artist { get => m_artist; set => m_artist = MakeValidMetadataString(value); }
         public string charter { get => m_charter; set => m_charter = MakeValidMetadataString(value); }

@@ -30,7 +30,7 @@ namespace MoonscraperChartEditor.Song
         public List<MoonChart> unrecognisedCharts = new();
 
         public IReadOnlyList<MoonChart> Charts => charts.ToList();
-        
+
         public List<Event> _events;
         private readonly List<SyncTrack> _syncTrack;
 
@@ -138,11 +138,11 @@ namespace MoonscraperChartEditor.Song
 
             return false;
         }
-        
+
         public bool DoesChartExist(MoonInstrument moonInstrument, Difficulty difficulty)
-		{
-			return GetChart(moonInstrument, difficulty).chartObjects.Count > 0;
-		}
+        {
+            return GetChart(moonInstrument, difficulty).chartObjects.Count > 0;
+        }
 
         /// <summary>
         /// Converts a time value into a tick position value. May be inaccurate due to interger rounding.
@@ -502,7 +502,7 @@ namespace MoonscraperChartEditor.Song
 
         public void CopyTo(T[] array, int arrayIndex)
         {
-	        
+
         }
 
         public IEnumerator<T> GetEnumerator()
@@ -583,7 +583,7 @@ namespace MoonscraperChartEditor.Song
 
         public void CopyTo(T[] array, int arrayIndex)
         {
-	        
+
         }
 
         public IEnumerator<T> GetEnumerator()

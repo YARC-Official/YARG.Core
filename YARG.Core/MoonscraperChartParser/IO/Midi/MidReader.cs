@@ -135,12 +135,13 @@ namespace MoonscraperChartEditor.Song.IO
             public bool executeInEditor;
         }
 
-		private static readonly ReadingSettings ReadSettings = new() {
-			InvalidChunkSizePolicy = InvalidChunkSizePolicy.Ignore,
-			NotEnoughBytesPolicy = NotEnoughBytesPolicy.Ignore,
-			NoHeaderChunkPolicy = NoHeaderChunkPolicy.Ignore,
-			InvalidChannelEventParameterValuePolicy = InvalidChannelEventParameterValuePolicy.ReadValid,
-		};
+        private static readonly ReadingSettings ReadSettings = new()
+        {
+            InvalidChunkSizePolicy = InvalidChunkSizePolicy.Ignore,
+            NotEnoughBytesPolicy = NotEnoughBytesPolicy.Ignore,
+            NoHeaderChunkPolicy = NoHeaderChunkPolicy.Ignore,
+            InvalidChannelEventParameterValuePolicy = InvalidChannelEventParameterValuePolicy.ReadValid,
+        };
 
         public static MoonSong ReadMidi(string path, ref CallbackState callBackState)
         {
@@ -254,7 +255,7 @@ namespace MoonscraperChartEditor.Song.IO
                         break;
                 }
             }
-            
+
             // Display messages to user
             ProcessPendingUserMessages(messageList, ref callBackState);
 
@@ -263,14 +264,14 @@ namespace MoonscraperChartEditor.Song.IO
 
         private static void ProcessPendingUserMessages(IList<MessageProcessParams> messageList, ref CallbackState callBackState)
         {
-	        if (messageList == null)
-	        {
-		        Debug.Assert(false, $"No message list provided to {nameof(ProcessPendingUserMessages)}!");
-		        return;
-	        }
+            if (messageList == null)
+            {
+                Debug.Assert(false, $"No message list provided to {nameof(ProcessPendingUserMessages)}!");
+                return;
+            }
 
-	        foreach (var processParams in messageList)
-	        {
+            foreach (var processParams in messageList)
+            {
 #if UNITY_EDITOR
 		        // The editor freezes when its message box API is used during parsing,
 		        // we use the params to determine whether or not to execute actions instead
@@ -293,7 +294,7 @@ namespace MoonscraperChartEditor.Song.IO
                 //     processParams.processFn(processParams);
                 // }
 #endif
-	        }
+            }
         }
 
         private static void ReadSync(TempoMap tempoMap, MoonSong moonSong)

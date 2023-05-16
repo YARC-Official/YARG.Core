@@ -39,7 +39,7 @@ namespace MoonscraperChartEditor.Song.IO
         private struct NoteEvent
         {
             public uint tick;
-            public int noteNumber;          
+            public int noteNumber;
             public uint length;
         }
 
