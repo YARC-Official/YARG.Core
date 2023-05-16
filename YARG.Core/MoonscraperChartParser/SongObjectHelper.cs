@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2016-2020 Alexander Ong
+// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
 using System.Collections;
@@ -265,10 +265,6 @@ namespace MoonscraperChartEditor.Song
                     // Account for overwrite
                     if (insertionPos < count && list[insertionPos] == item)
                     {
-#if APPLICATION_MOONSCRAPER
-                        if (list[insertionPos].controller != null)
-                            list[insertionPos].controller.gameObject.SetActive(false);
-#endif
                         list[insertionPos] = item;
                     }
                     else
@@ -282,15 +278,6 @@ namespace MoonscraperChartEditor.Song
                     {
                         if (list[insertionPos] == item && item.classID == list[insertionPos].classID)
                         {
-#if APPLICATION_MOONSCRAPER
-                            // Overwrite 
-                            if (list[insertionPos].controller != null)
-                            {
-                                list[insertionPos].controller.gameObject.SetActive(false);
-                                //GameObject.Destroy(list[insertionPos].controller.gameObject);
-                            }
-#endif
-
                             list[insertionPos] = item;
                         }
                         // Insert into sorted position

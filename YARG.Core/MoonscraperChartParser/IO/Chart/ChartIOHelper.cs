@@ -10,19 +10,15 @@ namespace MoonscraperChartEditor.Song.IO
 {
     public static class ChartIOHelper
     {
-        public enum FileSubType
-        {
-            Default,
-
-            // Stores space characters found in ChartEvent objects as Japanese full-width spaces. Need to convert this back when loading.
-            MoonscraperPropriety,
-        }
-
         public const string
             c_dataBlockSong = "[Song]"
             , c_dataBlockSyncTrack = "[SyncTrack]"
             , c_dataBlockEvents = "[Events]"
             ;
+
+        public const string LYRIC_EVENT_PREFIX = "lyric ";
+        public const string PhraseStartText = "phrase_start";
+        public const string PhraseEndText = "phrase_end";
 
         public const int c_proDrumsOffset = 64;
         public const int c_instrumentPlusOffset = 32;
@@ -146,14 +142,9 @@ namespace MoonscraperChartEditor.Song.IO
             {
                 string m_key;
                 Regex m_readerParseRegex;
-                string m_saveFormat;
-
-                static readonly string c_metaDataSaveFormat = string.Format("{0}{{0}} = \"{{{{0}}}}\"{1}", Globals.TABSPACE, Globals.LINE_ENDING);
-                static readonly string c_metaDataSaveFormatNoQuote = string.Format("{0}{{0}} = {{{{0}}}}{1}", Globals.TABSPACE, Globals.LINE_ENDING);
 
                 public string key { get { return m_key; } }
                 public Regex regex { get { return m_readerParseRegex; } }
-                public string saveFormat { get { return m_saveFormat; } }
 
                 public MetadataItem(string key, MetadataValueType type)
                 {
@@ -166,35 +157,30 @@ namespace MoonscraperChartEditor.Song.IO
                         case MetadataValueType.String:
                             {
                                 m_readerParseRegex = parseStrRegex;
-                                m_saveFormat = string.Format(c_metaDataSaveFormat, key);
                                 break;
                             }
 
                         case MetadataValueType.Float:
                             {
                                 m_readerParseRegex = new Regex(key + " = " + FLOATSEARCH, RegexOptions.Compiled);
-                                m_saveFormat = string.Format(c_cultureInfo, c_metaDataSaveFormatNoQuote, key);
                                 break;
                             }
 
                         case MetadataValueType.Player2:
                             {
                                 m_readerParseRegex = new Regex(key + @" = \w+", RegexOptions.Compiled);
-                                m_saveFormat = string.Format(c_metaDataSaveFormatNoQuote, key);
                                 break;
                             }
 
                         case MetadataValueType.Difficulty:
                             {
                                 m_readerParseRegex = new Regex(key + @" = \d+", RegexOptions.Compiled);
-                                m_saveFormat = string.Format(c_metaDataSaveFormatNoQuote, key);
                                 break;
                             }
 
                         case MetadataValueType.Year:
                             {
                                 m_readerParseRegex = parseStrRegex;
-                                m_saveFormat = string.Format("{0}{1} = \", {{0}}\"{2}", Globals.TABSPACE, "Year", Globals.LINE_ENDING);
                                 break;
                             }
 
@@ -209,7 +195,6 @@ namespace MoonscraperChartEditor.Song.IO
             public readonly static MetadataItem charter = new MetadataItem("Charter", MetadataValueType.String);
             public readonly static MetadataItem offset = new MetadataItem("Offset", MetadataValueType.Float);
             public readonly static MetadataItem resolution = new MetadataItem("Resolution", MetadataValueType.Float);
-            public readonly static MetadataItem player2 = new MetadataItem("Player2", MetadataValueType.Player2);
             public readonly static MetadataItem difficulty = new MetadataItem("Difficulty", MetadataValueType.Difficulty);
             public readonly static MetadataItem length = new MetadataItem("Length", MetadataValueType.Float);
             public readonly static MetadataItem previewStart = new MetadataItem("PreviewStart", MetadataValueType.Float);
@@ -217,18 +202,6 @@ namespace MoonscraperChartEditor.Song.IO
             public readonly static MetadataItem genre = new MetadataItem("Genre", MetadataValueType.String);
             public readonly static MetadataItem year = new MetadataItem("Year", MetadataValueType.Year);
             public readonly static MetadataItem album = new MetadataItem("Album", MetadataValueType.String);
-            public readonly static MetadataItem mediaType = new MetadataItem("MediaType", MetadataValueType.String);
-            public readonly static MetadataItem musicStream = new MetadataItem("MusicStream", MetadataValueType.String);
-            public readonly static MetadataItem guitarStream = new MetadataItem("GuitarStream", MetadataValueType.String);
-            public readonly static MetadataItem bassStream = new MetadataItem("BassStream", MetadataValueType.String);
-            public readonly static MetadataItem rhythmStream = new MetadataItem("RhythmStream", MetadataValueType.String);
-            public readonly static MetadataItem drumStream = new MetadataItem("DrumStream", MetadataValueType.String);
-            public readonly static MetadataItem drum2Stream = new MetadataItem("Drum2Stream", MetadataValueType.String);
-            public readonly static MetadataItem drum3Stream = new MetadataItem("Drum3Stream", MetadataValueType.String);
-            public readonly static MetadataItem drum4Stream = new MetadataItem("Drum4Stream", MetadataValueType.String);
-            public readonly static MetadataItem vocalStream = new MetadataItem("VocalStream", MetadataValueType.String);
-            public readonly static MetadataItem keysStream = new MetadataItem("KeysStream", MetadataValueType.String);
-            public readonly static MetadataItem crowdStream = new MetadataItem("CrowdStream", MetadataValueType.String);
 
             public static string ParseAsString(string line)
             {

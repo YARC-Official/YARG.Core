@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2016-2020 Alexander Ong
+// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
 using System;
@@ -136,13 +136,7 @@ namespace MoonscraperChartEditor.Song
         public MoonNote next;
 
         public Chord chord { get { return new Chord(this); } }
-#if APPLICATION_MOONSCRAPER
-        new public NoteController controller
-        {
-            get { return (NoteController)base.controller; }
-            set { base.controller = value; }
-        }
-#endif 
+
         public MoonNote(uint _position,
                     int _rawNote,
                     uint _sustain = 0,
@@ -156,35 +150,6 @@ namespace MoonscraperChartEditor.Song
             next = null;
         }
 
-        public MoonNote(uint _position,
-                    GuitarFret _fret_type,
-                    uint _sustain = 0,
-                    Flags _flags = Flags.None) : base(_position)
-        {
-            length = _sustain;
-            flags = _flags;
-            guitarFret = _fret_type;
-
-            previous = null;
-            next = null;
-        }
-
-        public MoonNote(MoonNote moonNote) : base(moonNote.tick)
-        {
-            tick = moonNote.tick;
-            length = moonNote.length;
-            flags = moonNote.flags;
-            rawNote = moonNote.rawNote;
-        }
-
-        public void CopyFrom(MoonNote moonNote)
-        {
-            tick = moonNote.tick;
-            length = moonNote.length;
-            flags = moonNote.flags;
-            rawNote = moonNote.rawNote;
-        }
-
         public MoonChart.GameMode gameMode
         {
             get
@@ -193,11 +158,7 @@ namespace MoonscraperChartEditor.Song
                     return moonChart.gameMode;
                 else
                 {
-#if APPLICATION_MOONSCRAPER     // Moonscraper doesn't use note.chart.gameMode directly because notes might not have charts associated with them, esp when copy-pasting and storing undo-redo
-                    return ChartEditor.Instance.currentChart.gameMode;
-#else
-                return MoonChart.GameMode.Unrecognised;
-#endif
+                    return MoonChart.GameMode.Unrecognised;
                 }
             }
         }
@@ -243,19 +204,6 @@ namespace MoonscraperChartEditor.Song
                     previousMoonNote = previousMoonNote.previous;
                 return previousMoonNote;
             }
-        }
-
-        public override SongObject Clone()
-        {
-            return new MoonNote(this);
-        }
-
-        public override bool AllValuesCompare<T>(T songObject)
-        {
-            if (this == songObject && (songObject as MoonNote).length == length && (songObject as MoonNote).rawNote == rawNote && (songObject as MoonNote).flags == flags)
-                return true;
-            else
-                return false;
         }
 
         protected override bool Equals(SongObject b)
@@ -463,56 +411,12 @@ namespace MoonscraperChartEditor.Song
             }
         }
 
-        public delegate void ChordEnumerateFn(MoonNote moonNote);
-        public void EnumerateChord(ChordEnumerateFn fn)
-        {
-            MoonNote moonNote = this;
-            while (moonNote.previous != null && moonNote.previous.tick == moonNote.tick)
-            {
-                moonNote = moonNote.previous;
-            }
-
-            fn(moonNote);
-
-            while (moonNote.next != null && moonNote.tick == moonNote.next.tick)
-            {
-                moonNote = moonNote.next;
-                fn(moonNote);
-            }
-        }
-
         public bool IsOpenNote()
         {
             if (gameMode == MoonChart.GameMode.GHLGuitar)
                 return ghliveGuitarFret == GHLiveGuitarFret.Open;
             else
                 return guitarFret == GuitarFret.Open;
-        }
-
-        public static Flags GetBannedFlagsForGameMode(MoonChart.GameMode gameMode)
-        {
-            Flags bannedFlags = Flags.None;
-
-            switch (gameMode)
-            {
-                case MoonChart.GameMode.Guitar:
-                case MoonChart.GameMode.GHLGuitar:
-                    {
-                        bannedFlags = Flags.ProDrums_Cymbal | Flags.ProDrums_Accent | Flags.ProDrums_Ghost;
-                        break;
-                    }
-                case MoonChart.GameMode.Drums:
-                    {
-                        bannedFlags = Flags.Forced | Flags.Tap;
-                        break;
-                    }
-                default:
-                    {
-                        break;
-                    }
-            }
-
-            return bannedFlags;
         }
     }
 }

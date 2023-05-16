@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2016-2020 Alexander Ong
+// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
 namespace MoonscraperChartEditor.Song
@@ -15,30 +15,6 @@ namespace MoonscraperChartEditor.Song
         public Event(string _title, uint _position) : base(_position)
         {
             title = _title;
-        }
-
-        public Event(Event songEvent) : base(songEvent.tick)
-        {
-            CopyFrom(songEvent);
-        }
-
-        public void CopyFrom(Event songEvent)
-        {
-            tick = songEvent.tick;
-            title = songEvent.title;
-        }
-
-        public override SongObject Clone()
-        {
-            return new Event(this);
-        }
-
-        public override bool AllValuesCompare<T>(T songObject)
-        {
-            if (this == songObject && (songObject as Event).title == title)
-                return true;
-            else
-                return false;
         }
 
         protected override bool Equals(SongObject b)

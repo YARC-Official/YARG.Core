@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2016-2020 Alexander Ong
+// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
 using System.Diagnostics;
@@ -18,14 +18,6 @@ namespace MoonscraperChartEditor.Song
         /// </summary>
         public uint tick;
 
-#if APPLICATION_MOONSCRAPER
-        /// <summary>
-        /// Unity only.
-        /// </summary>
-        [System.NonSerialized]
-        public SongObjectController controller;
-#endif
-
         public abstract int classID { get; }
 
         public SongObject(uint _tick)
@@ -44,19 +36,6 @@ namespace MoonscraperChartEditor.Song
             }
         }
         
-        public bool CollidesWith(SongObject other) => tick == other?.tick;
-
-        public abstract SongObject Clone();
-
-        public T CloneAs<T>() where T : SongObject
-        {
-            T clone = this.Clone() as T;
-            Debug.Assert(clone != null, "Clone As casting type was incorrect");
-            return clone;
-        }
-
-        public abstract bool AllValuesCompare<T>(T songObject) where T : SongObject;
-
         public static bool operator ==(SongObject a, SongObject b)
         {
             bool aIsNull = ReferenceEquals(a, null);

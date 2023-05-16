@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2016-2020 Alexander Ong
+// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
 // Chart file format specifications- https://docs.google.com/document/d/1v2v0U-9HQ5qHeccpExDOLJ5CMPZZ3QytPmAG5WF0Kzs/edit?usp=sharing
@@ -146,23 +146,13 @@ namespace MoonscraperChartEditor.Song.IO
                     throw new Exception("File does not exist");
 
                 string extension = Path.GetExtension(filepath);
-                bool standardChartFormat = extension == ".chart";
 
-                if (standardChartFormat || extension == MsceIOHelper.FileExtention)
-                {
-                    MoonSong moonSong = new MoonSong();
-
-                    ChartIOHelper.FileSubType fileLoadType = standardChartFormat ? ChartIOHelper.FileSubType.Default : ChartIOHelper.FileSubType.MoonscraperPropriety;
-
-                    LoadChart(moonSong, filepath, fileLoadType);
-
-                    return moonSong;
-                }
-                else
-                {
+                if (extension != ".chart")
                     throw new Exception("Bad file type");
-                }
 
+                MoonSong moonSong = new MoonSong();
+                LoadChart(moonSong, filepath);
+                return moonSong;
             }
             catch (System.Exception e)
             {
@@ -170,15 +160,13 @@ namespace MoonscraperChartEditor.Song.IO
             }
         }
 
-        static void LoadChart(MoonSong moonSong, string filepath, ChartIOHelper.FileSubType fileLoadType)
+        static void LoadChart(MoonSong moonSong, string filepath)
         {
             bool open = false;
             string dataName = string.Empty;
 
             List<string> dataStrings = new List<string>();
-#if TIMING_DEBUG
-        float time = Time.realtimeSinceStartup;
-#endif
+
             StreamReader sr = File.OpenText(filepath);
 
             // Gather lines between {} brackets and submit data
@@ -201,7 +189,7 @@ namespace MoonscraperChartEditor.Song.IO
                     open = false;
 
                     // Submit data
-                    SubmitChartData(moonSong, dataName, dataStrings, fileLoadType, filepath);
+                    SubmitChartData(moonSong, dataName, dataStrings);
 
                     dataName = string.Empty;
                     dataStrings.Clear();
@@ -216,7 +204,7 @@ namespace MoonscraperChartEditor.Song.IO
                     else if (dataStrings.Count > 0 && dataName != string.Empty)
                     {
                         // Submit data
-                        SubmitChartData(moonSong, dataName, dataStrings, fileLoadType, filepath);
+                        SubmitChartData(moonSong, dataName, dataStrings);
 
                         dataName = string.Empty;
                         dataStrings.Clear();
@@ -225,34 +213,23 @@ namespace MoonscraperChartEditor.Song.IO
             }
 
             sr.Close();
-
-#if TIMING_DEBUG
-        Debug.Log("Chart file load time: " + (Time.realtimeSinceStartup - time));
-        time = Time.realtimeSinceStartup;
-#endif
-
             moonSong.UpdateCache();
         }
 
-        static void SubmitChartData(MoonSong moonSong, string dataName, List<string> stringData, ChartIOHelper.FileSubType fileLoadType, string filePath = "")
+        static void SubmitChartData(MoonSong moonSong, string dataName, List<string> stringData)
         {
             switch (dataName)
             {
                 case ChartIOHelper.c_dataBlockSong:
-#if SONG_DEBUG
-                Debug.Log("Loading chart properties");
-#endif
-                    SubmitDataSong(moonSong, stringData, new FileInfo(filePath).Directory.FullName);
+                    Debug.WriteLine("Loading chart properties");
+                    SubmitDataSong(moonSong, stringData);
                     break;
                 case ChartIOHelper.c_dataBlockSyncTrack:
-#if SONG_DEBUG
-                Debug.Log("Loading sync data");
-#endif
+                    Debug.WriteLine("Loading sync data");
+                    goto case ChartIOHelper.c_dataBlockEvents;
                 case ChartIOHelper.c_dataBlockEvents:
-#if SONG_DEBUG
-                Debug.Log("Loading events data");
-#endif
-                    SubmitDataGlobals(moonSong, stringData, fileLoadType);
+                    Debug.WriteLine("Loading events data");
+                    SubmitDataGlobals(moonSong, stringData);
                     break;
                 default:
                     // Determine what difficulty
@@ -273,11 +250,11 @@ namespace MoonscraperChartEditor.Song.IO
                                     instrumentParsingType = ChartIOHelper.TrackLoadType.Guitar;
                                 }
 
-                                LoadChart(moonSong.GetChart(moonInstrument, chartDiff), stringData, instrumentParsingType, fileLoadType);
+                                LoadChart(moonSong.GetChart(moonInstrument, chartDiff), stringData, instrumentParsingType);
                             }
                             else
                             {
-                                LoadUnrecognisedChart(moonSong, dataName, stringData, fileLoadType);
+                                LoadUnrecognisedChart(moonSong, stringData);
                             }
 
                             goto OnChartLoaded;
@@ -286,7 +263,7 @@ namespace MoonscraperChartEditor.Song.IO
 
                     {
                         // Add to the unused chart list
-                        LoadUnrecognisedChart(moonSong, dataName, stringData, fileLoadType);
+                        LoadUnrecognisedChart(moonSong, stringData);
                         goto OnChartLoaded;
                     }
 
@@ -296,24 +273,16 @@ namespace MoonscraperChartEditor.Song.IO
             }
         }
 
-        static void LoadUnrecognisedChart(MoonSong moonSong, string dataName, List<string> stringData, ChartIOHelper.FileSubType fileLoadType)
+        static void LoadUnrecognisedChart(MoonSong moonSong, List<string> stringData)
         {
-            dataName = dataName.TrimStart('[');
-            dataName = dataName.TrimEnd(']');
-            MoonChart unrecognisedMoonChart = new MoonChart(moonSong, MoonSong.MoonInstrument.Unrecognised, dataName);
-            LoadChart(unrecognisedMoonChart, stringData, ChartIOHelper.TrackLoadType.Unrecognised, fileLoadType);
+            var unrecognisedMoonChart = new MoonChart(moonSong, MoonSong.MoonInstrument.Unrecognised);
+            LoadChart(unrecognisedMoonChart, stringData, ChartIOHelper.TrackLoadType.Unrecognised);
             moonSong.unrecognisedCharts.Add(unrecognisedMoonChart);
         }
 
-        static void SubmitDataSong(MoonSong moonSong, List<string> stringData, string audioDirectory = "")
+        static void SubmitDataSong(MoonSong moonSong, List<string> stringData)
         {
-#if SONG_DEBUG
-        Debug.Log("Loading song properties");
-#endif
-#if TIMING_DEBUG
-        float time = Time.realtimeSinceStartup;
-#endif
-
+            Debug.WriteLine("Loading song properties");
             Metadata metaData = moonSong.metaData;
 
             try
@@ -356,22 +325,6 @@ namespace MoonscraperChartEditor.Song.IO
                         moonSong.resolution = ChartIOHelper.MetaData.ParseAsShort(line);
                     }
 
-                    // Player2 = bass
-                    else if (ChartIOHelper.MetaData.player2.regex.IsMatch(line))
-                    {
-                        string[] instrumentTypes = { "Bass", "Rhythm" };
-                        string split = line.Split('=')[1].Trim();
-
-                        foreach (string instrument in instrumentTypes)
-                        {
-                            if (split.Equals(instrument, System.StringComparison.InvariantCultureIgnoreCase))
-                            {
-                                metaData.player2 = instrument;
-                                break;
-                            }
-                        }
-                    }
-
                     // Difficulty = 0
                     else if (ChartIOHelper.MetaData.difficulty.regex.IsMatch(line))
                     {
@@ -402,65 +355,9 @@ namespace MoonscraperChartEditor.Song.IO
                         metaData.genre = ChartIOHelper.MetaData.ParseAsString(line);
                     }
 
-                    // MediaType = "cd"
-                    else if (ChartIOHelper.MetaData.mediaType.regex.IsMatch(line))
-                    {
-                        metaData.mediatype = ChartIOHelper.MetaData.ParseAsString(line);
-                    }
-
                     else if (ChartIOHelper.MetaData.year.regex.IsMatch(line))
                         metaData.year = Regex.Replace(ChartIOHelper.MetaData.ParseAsString(line), @"\D", "");
-
-                    // MusicStream = "ENDLESS REBIRTH.ogg"
-                    else if (ChartIOHelper.MetaData.musicStream.regex.IsMatch(line))
-                    {
-                        AudioLoadFromChart(moonSong, MoonSong.AudioInstrument.Song, line, audioDirectory);
-                    }
-                    else if (ChartIOHelper.MetaData.guitarStream.regex.IsMatch(line))
-                    {
-                        AudioLoadFromChart(moonSong, MoonSong.AudioInstrument.Guitar, line, audioDirectory);
-                    }
-                    else if (ChartIOHelper.MetaData.bassStream.regex.IsMatch(line))
-                    {
-                        AudioLoadFromChart(moonSong, MoonSong.AudioInstrument.Bass, line, audioDirectory);
-                    }
-                    else if (ChartIOHelper.MetaData.rhythmStream.regex.IsMatch(line))
-                    {
-                        AudioLoadFromChart(moonSong, MoonSong.AudioInstrument.Rhythm, line, audioDirectory);
-                    }
-                    else if (ChartIOHelper.MetaData.drumStream.regex.IsMatch(line))
-                    {
-                        AudioLoadFromChart(moonSong, MoonSong.AudioInstrument.Drum, line, audioDirectory);
-                    }
-                    else if (ChartIOHelper.MetaData.drum2Stream.regex.IsMatch(line))
-                    {
-                        AudioLoadFromChart(moonSong, MoonSong.AudioInstrument.Drums_2, line, audioDirectory);
-                    }
-                    else if (ChartIOHelper.MetaData.drum3Stream.regex.IsMatch(line))
-                    {
-                        AudioLoadFromChart(moonSong, MoonSong.AudioInstrument.Drums_3, line, audioDirectory);
-                    }
-                    else if (ChartIOHelper.MetaData.drum4Stream.regex.IsMatch(line))
-                    {
-                        AudioLoadFromChart(moonSong, MoonSong.AudioInstrument.Drums_4, line, audioDirectory);
-                    }
-                    else if (ChartIOHelper.MetaData.vocalStream.regex.IsMatch(line))
-                    {
-                        AudioLoadFromChart(moonSong, MoonSong.AudioInstrument.Vocals, line, audioDirectory);
-                    }
-                    else if (ChartIOHelper.MetaData.keysStream.regex.IsMatch(line))
-                    {
-                        AudioLoadFromChart(moonSong, MoonSong.AudioInstrument.Keys, line, audioDirectory);
-                    }
-                    else if (ChartIOHelper.MetaData.crowdStream.regex.IsMatch(line))
-                    {
-                        AudioLoadFromChart(moonSong, MoonSong.AudioInstrument.Crowd, line, audioDirectory);
-                    }
                 }
-
-#if TIMING_DEBUG
-            Debug.Log("Song properties load time: " + (Time.realtimeSinceStartup - time));
-#endif
             }
             catch (System.Exception e)
             {
@@ -468,27 +365,11 @@ namespace MoonscraperChartEditor.Song.IO
             }
         }
 
-        static void AudioLoadFromChart(MoonSong moonSong, MoonSong.AudioInstrument streamAudio, string line, string audioDirectory)
-        {
-            string audioFilepath = ChartIOHelper.MetaData.ParseAsString(line);
-
-            // Check if it's already the full path. If not, make it relative to the chart file.
-            if (!Path.IsPathRooted(audioFilepath))
-                audioFilepath = Path.Combine(audioDirectory, audioFilepath);
-
-            if (File.Exists(audioFilepath) && Utility.validateExtension(audioFilepath, Globals.validAudioExtensions))
-                moonSong.SetAudioLocation(streamAudio, Path.GetFullPath(audioFilepath));
-        }
-
-        static void SubmitDataGlobals(MoonSong moonSong, List<string> stringData, ChartIOHelper.FileSubType fileLoadType)
+        static void SubmitDataGlobals(MoonSong moonSong, List<string> stringData)
         {
             const int TEXT_POS_TICK = 0;
             const int TEXT_POS_EVENT_TYPE = 2;
             const int TEXT_POS_DATA_1 = 3;
-
-#if TIMING_DEBUG
-        float time = Time.realtimeSinceStartup;
-#endif
 
             List<Anchor> anchorData = new List<Anchor>();
 
@@ -550,17 +431,7 @@ namespace MoonscraperChartEditor.Song.IO
                         }
                         else
                         {
-                            string eventTitle = sb.ToString();
-
-                            if (LyricHelper.IsLyric(eventTitle) && fileLoadType == ChartIOHelper.FileSubType.MoonscraperPropriety)
-                            {
-                                foreach (var replacement in MsceIOHelper.LyricEventCharReplacementFromMsce)
-                                {
-                                    eventTitle = eventTitle.Replace(replacement.Key, replacement.Value);
-                                }
-                            }
-
-                            moonSong.Add(new Event(eventTitle, tick), false);
+                            moonSong.Add(new Event(sb.ToString(), tick), false);
                         }
 
                         break;
@@ -600,9 +471,6 @@ namespace MoonscraperChartEditor.Song.IO
                     anchoredBPM.anchor = anchor.anchorTime;
                 }
             }
-#if TIMING_DEBUG
-        Debug.Log("Synctrack load time: " + (Time.realtimeSinceStartup - time));
-#endif
         }
 
         /*************************************************************************************
@@ -627,11 +495,8 @@ namespace MoonscraperChartEditor.Song.IO
             while ((startIndex + ++length) < line.Length && line[startIndex + length] != ' ') ;
         }
 
-        static void LoadChart(MoonChart moonChart, IList<string> data, ChartIOHelper.TrackLoadType instrument, ChartIOHelper.FileSubType fileLoadType)
+        static void LoadChart(MoonChart moonChart, IList<string> data, ChartIOHelper.TrackLoadType instrument)
         {
-#if TIMING_DEBUG
-        float time = Time.realtimeSinceStartup;
-#endif
             List<NoteFlag> flags = new List<NoteFlag>();
             List<NoteEventProcessFn> postNotesAddedProcessList = new List<NoteEventProcessFn>();
 
@@ -789,15 +654,6 @@ namespace MoonscraperChartEditor.Song.IO
                                         AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
                                     }
                                     string eventName = line.Substring(stringStartIndex, stringLength);
-
-                                    if (fileLoadType == ChartIOHelper.FileSubType.MoonscraperPropriety)
-                                    {
-                                        foreach (var replacement in MsceIOHelper.LocalEventCharReplacementFromMsce)
-                                        {
-                                            eventName = eventName.Replace(replacement.Key, replacement.Value);
-                                        }
-                                    }
-
                                     moonChart.Add(new ChartEvent(tick, eventName), false);
                                     break;
                                 }
@@ -817,10 +673,6 @@ namespace MoonscraperChartEditor.Song.IO
                 {
                     fn(processParams);
                 }
-
-#if TIMING_DEBUG
-            Debug.Log("Chart load time: " + (Time.realtimeSinceStartup - time));
-#endif
             }
             catch (System.Exception e)
             {

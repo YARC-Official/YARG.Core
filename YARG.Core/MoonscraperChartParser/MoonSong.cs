@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2016-2020 Alexander Ong
+// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
 using System.IO;
@@ -29,31 +29,6 @@ namespace MoonscraperChartEditor.Song
         }
         public float resolution = SongConfig.STANDARD_BEAT_RESOLUTION;
         public float offset = 0;
-
-        string[] audioLocations = new string[EnumX<AudioInstrument>.Count];
-
-        public IO.ExportOptions defaultExportOptions
-        {
-            get
-            {
-                IO.ExportOptions exportOptions = default(IO.ExportOptions);
-
-                exportOptions.forced = true;
-                exportOptions.copyDownEmptyDifficulty = false;
-                exportOptions.format = IO.ExportOptions.Format.Chart;
-                exportOptions.targetResolution = this.resolution;
-                exportOptions.tickOffset = 0;
-                exportOptions.isGeneralSave = false;
-
-                exportOptions.midiOptions = new IO.ExportOptions.MidiOptions()
-                {
-                    difficultyToUseGlobalTrackEvents = Difficulty.Expert,
-                    rbFormat = IO.ExportOptions.MidiOptions.RBFormat.RB3,
-                };
-
-                return exportOptions;
-            }
-        }
 
         public float? manualLength = null;
 
@@ -116,58 +91,6 @@ namespace MoonscraperChartEditor.Song
                 charts[i] = new MoonChart(this, moonInstrument);
             }
 
-            // Set the name of the chart
-            foreach (MoonInstrument instrument in EnumX<MoonInstrument>.Values)
-            {
-                if (instrument == MoonInstrument.Unrecognised)
-                    continue;
-
-                string instrumentName = string.Empty;
-                switch (instrument)
-                {
-                    case (MoonInstrument.Guitar):
-                        instrumentName += "Guitar - ";
-                        break;
-                    case (MoonInstrument.GuitarCoop):
-                        instrumentName += "Guitar - Co-op - ";
-                        break;
-                    case (MoonInstrument.Bass):
-                        instrumentName += "Bass - ";
-                        break;
-                    case (MoonInstrument.Rhythm):
-                        instrumentName += "Rhythm - ";
-                        break;
-                    case (MoonInstrument.Keys):
-                        instrumentName += "Keys - ";
-                        break;
-                    case (MoonInstrument.Drums):
-                        instrumentName += "Drums - ";
-                        break;
-                    case (MoonInstrument.GHLiveGuitar):
-                        instrumentName += "GHLive Guitar - ";
-                        break;
-                    case (MoonInstrument.GHLiveBass):
-                        instrumentName += "GHLive Bass - ";
-                        break;
-                    case (MoonInstrument.GHLiveRhythm):
-                        instrumentName += "GHLive Rhythm - ";
-                        break;
-                    case (MoonInstrument.GHLiveCoop):
-                        instrumentName += "GHLive Co-op - ";
-                        break;
-                    default:
-                        continue;
-                }
-
-                foreach (Difficulty difficulty in EnumX<Difficulty>.Values)
-                {
-                    GetChart(instrument, difficulty).name = instrumentName + difficulty.ToString();
-                }
-            }
-
-            for (int i = 0; i < audioLocations.Length; ++i)
-                audioLocations[i] = string.Empty;
-
             UpdateCache();
         }
 
@@ -190,15 +113,6 @@ namespace MoonscraperChartEditor.Song
             {
                 charts[i] = new MoonChart(moonSong.charts[i], this);
             }
-
-            for (int i = 0; i < audioLocations.Length; ++i)
-            {
-                audioLocations[i] = moonSong.audioLocations[i];
-            }
-
-            // iniProperties = new INIParser();
-            // iniProperties.OpenFromString(string.Empty);
-            // iniProperties.WriteValue(song.iniProperties);
         }
 
         ~MoonSong()
@@ -498,24 +412,6 @@ namespace MoonscraperChartEditor.Song
         public float ResolutionScaleRatio(float targetResoltion)
         {
             return (targetResoltion / resolution);
-        }
-
-        public string GetAudioName(AudioInstrument audio)
-        {
-            return Path.GetFileName(audioLocations[(int)audio]);
-        }
-
-        public string GetAudioLocation(AudioInstrument audio)
-        {
-            return audioLocations[(int)audio];
-        }
-
-        public void SetAudioLocation(AudioInstrument audio, string path)
-        {
-            if (File.Exists(path))
-                audioLocations[(int)audio] = Path.GetFullPath(path);
-            else if (string.IsNullOrEmpty(path))
-                audioLocations[(int)audio] = string.Empty;
         }
 
         public static MoonChart.GameMode InstumentToChartGameMode(MoonInstrument moonInstrument)

@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2016-2020 Alexander Ong
+// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
 using System;
@@ -25,22 +25,6 @@ namespace MoonscraperChartEditor.Song
         {
             length = _length;
             type = _type;
-        }
-
-        public DrumRoll(DrumRoll _drumRoll) : base(_drumRoll.tick)
-        {
-            length = _drumRoll.length;
-            type = _drumRoll.type;
-        }
-
-        public override SongObject Clone()
-        {
-            return new DrumRoll(this);
-        }
-
-        public override bool AllValuesCompare<T>(T songObject)
-        {
-            return this == songObject && (songObject as DrumRoll).length == length && (songObject as DrumRoll).type == type;
         }
 
         public uint GetCappedLengthForPos(uint pos)
@@ -79,18 +63,6 @@ namespace MoonscraperChartEditor.Song
             }
 
             return newLength;
-        }
-
-        public void SetLengthByPos(uint pos)
-        {
-            length = GetCappedLengthForPos(pos);
-        }
-
-        public void CopyFrom(DrumRoll roll)
-        {
-            tick = roll.tick;
-            length = roll.length;
-            type = roll.type;
         }
     }
 }

@@ -51,9 +51,9 @@ namespace MoonscraperChartEditor.Song.IO
         public const string SOLO_EVENT_TEXT = "solo";
         public const string SOLO_END_EVENT_TEXT = "soloend";
 
-        public const string LYRIC_EVENT_PREFIX = LyricHelper.LYRIC_EVENT_PREFIX;
-        public const string LYRICS_PHRASE_START_TEXT = LyricHelper.PhraseStartText;
-        public const string LYRICS_PHRASE_END_TEXT = LyricHelper.PhraseEndText;
+        public const string LYRIC_EVENT_PREFIX = ChartIOHelper.LYRIC_EVENT_PREFIX;
+        public const string LYRICS_PHRASE_START_TEXT = ChartIOHelper.PhraseStartText;
+        public const string LYRICS_PHRASE_END_TEXT = ChartIOHelper.PhraseEndText;
 
         public const string SECTION_PREFIX_RB2 = "section ";
         public const string SECTION_PREFIX_RB3 = "prc_";

@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2016-2020 Alexander Ong
+// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
 namespace MoonscraperChartEditor.Song
@@ -12,20 +12,9 @@ namespace MoonscraperChartEditor.Song
 
         public string eventName { get; private set; }
 
-        public ChartEvent(ChartEvent chartEvent) : base(chartEvent.tick)
-        {
-            eventName = chartEvent.eventName;
-        }
-
         public ChartEvent(uint _position, string _eventName) : base(_position)
         {
             eventName = _eventName;
-        }
-
-        public void CopyFrom(ChartEvent chartEvent)
-        {
-            tick = chartEvent.tick;
-            eventName = chartEvent.eventName;
         }
 
         protected override bool Equals(SongObject b)
@@ -59,19 +48,6 @@ namespace MoonscraperChartEditor.Song
             }
             else
                 return base.LessThan(b);
-        }
-
-        public override SongObject Clone()
-        {
-            return new ChartEvent(this);
-        }
-
-        public override bool AllValuesCompare<T>(T songObject)
-        {
-            if (this == songObject && (songObject as ChartEvent).eventName == eventName)
-                return true;
-            else
-                return false;
         }
     }
 }

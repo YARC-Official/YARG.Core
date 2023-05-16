@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2016-2020 Alexander Ong
+// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
 namespace MoonscraperChartEditor.Song
@@ -33,34 +33,6 @@ namespace MoonscraperChartEditor.Song
         {
             value = _value;
             anchor = _anchor;
-        }
-
-        public BPM(BPM _bpm) : base(_bpm.tick)
-        {
-            value = _bpm.value;
-            anchor = _bpm.anchor;
-        }
-
-        public double assignedTime = 0;
-
-        public override SongObject Clone()
-        {
-            return new BPM(this);
-        }
-
-        public override bool AllValuesCompare<T>(T songObject)
-        {
-            if (this == songObject && songObject as BPM != null && (songObject as BPM).value == value)
-                return true;
-            else
-                return false;
-        }
-
-        public void CopyFrom(BPM bpm)
-        {
-            tick = bpm.tick;
-            value = bpm.value;
-            anchor = bpm.anchor;
         }
     }
 }

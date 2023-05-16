@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2016-2020 Alexander Ong
+// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
 using System;
@@ -28,25 +28,6 @@ namespace MoonscraperChartEditor.Song
         {
             length = _length;
             flags = _flags;
-        }
-
-        public Starpower(Starpower _starpower) : base(_starpower.tick)
-        {
-            length = _starpower.length;
-            flags = _starpower.flags;
-        }
-
-        public override SongObject Clone()
-        {
-            return new Starpower(this);
-        }
-
-        public override bool AllValuesCompare<T>(T songObject)
-        {
-            if (this == songObject && (songObject as Starpower).length == length && (songObject as Starpower).flags == flags)
-                return true;
-            else
-                return false;
         }
 
         public uint GetCappedLengthForPos(uint pos)
@@ -85,18 +66,6 @@ namespace MoonscraperChartEditor.Song
             }
 
             return newLength;
-        }
-
-        public void SetLengthByPos(uint pos)
-        {
-            length = GetCappedLengthForPos(pos);
-        }
-
-        public void CopyFrom(Starpower sp)
-        {
-            tick = sp.tick;
-            length = sp.length;
-            flags = sp.flags;
         }
     }
 }

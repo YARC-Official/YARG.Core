@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2016-2020 Alexander Ong
+// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
 using System;
@@ -50,13 +50,6 @@ namespace MoonscraperChartEditor.Song.IO
             MoonSong.MoonInstrument.GuitarCoop,
             MoonSong.MoonInstrument.Bass,
             MoonSong.MoonInstrument.Rhythm,
-        };
-
-        static readonly IReadOnlyDictionary<MoonSong.AudioInstrument, string[]> c_audioStreamLocationOverrideDict = new Dictionary<MoonSong.AudioInstrument, string[]>()
-        {
-            // String list is ordered in priority. If it finds a file names with the first string it'll skip over the rest.
-            // Otherwise just does a ToString on the AudioInstrument enum
-            { MoonSong.AudioInstrument.Drum, new string[] { "drums", "drums_1" } },
         };
 
         struct TimedMidiEvent
@@ -157,42 +150,6 @@ namespace MoonscraperChartEditor.Song.IO
 
             // Make message list
             var messageList = new List<MessageProcessParams>();
-
-            foreach (MoonSong.AudioInstrument audio in EnumX<MoonSong.AudioInstrument>.Values)
-            {
-                // First try any specific filenames for the instrument, then try the instrument name
-                List<string> filenamesToTry = new List<string>();
-
-                if (c_audioStreamLocationOverrideDict.ContainsKey(audio)) {
-                    filenamesToTry.AddRange(c_audioStreamLocationOverrideDict[audio]);
-                }
-
-                filenamesToTry.Add(audio.ToString());
-
-                // Search for each combination of filenamesToTry + audio extension until we find a file
-                string audioFilepath = null;
-
-                foreach (string testFilename in filenamesToTry)
-                {
-                    foreach (string extension in Globals.validAudioExtensions) {
-                        string testFilepath = Path.Combine(directory, testFilename.ToLower() + extension);
-
-                        if (File.Exists(testFilepath))
-                        {
-                            audioFilepath = testFilepath;
-                            break;
-                        }
-                    }
-                }
-
-                // If we didn't find a file, assign a default value to the audio path
-                if (audioFilepath == null) {
-                    audioFilepath = Path.Combine(directory, audio.ToString().ToLower() + ".ogg");
-                }
-
-                Console.WriteLine(audioFilepath);
-                moonSong.SetAudioLocation(audio, audioFilepath);
-            }
 
             MidiFile midi;
 
@@ -462,8 +419,6 @@ namespace MoonscraperChartEditor.Song.IO
 
             if (moonInstrument == MoonSong.MoonInstrument.Unrecognised)
             {
-                if (track.Events[0] is SequenceTrackNameEvent trackName)
-                    unrecognised.name = trackName.Text;
                 moonSong.unrecognisedCharts.Add(unrecognised);
             }
 

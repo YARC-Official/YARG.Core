@@ -6,32 +6,6 @@ using MoonscraperChartEditor.Song;
 
 public static class NoteFunctions {
 
-    /// <summary>
-    /// Gets all the notes (including this one) that share the same tick position as this one.
-    /// </summary>
-    /// <returns>Returns an array of all the notes currently sharing the same tick position as this note.</returns>
-    public static MoonNote[] GetChord(this MoonNote moonNote)
-    {
-        List<MoonNote> chord = new List<MoonNote>();
-        chord.Add(moonNote);
-    
-        MoonNote previous = moonNote.previous;
-        while (previous != null && previous.tick == moonNote.tick)
-        {
-            chord.Add(previous);
-            previous = previous.previous;
-        }
-    
-        MoonNote next = moonNote.next;
-        while (next != null && next.tick == moonNote.tick)
-        {
-            chord.Add(next);
-            next = next.next;
-        }
-    
-        return chord.ToArray();
-    }
-
     public static void ApplyFlagsToChord(this MoonNote moonNote)
     {
         foreach (MoonNote chordNote in moonNote.chord)
