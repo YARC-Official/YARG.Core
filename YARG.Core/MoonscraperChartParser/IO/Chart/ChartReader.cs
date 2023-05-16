@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2020 Alexander Ong
+﻿// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
 // Chart file format specifications- https://docs.google.com/document/d/1v2v0U-9HQ5qHeccpExDOLJ5CMPZZ3QytPmAG5WF0Kzs/edit?usp=sharing
@@ -14,8 +14,6 @@ using System.Text.RegularExpressions;
 
 namespace MoonscraperChartEditor.Song.IO
 {
-    using NoteFlagPriority = ChartIOHelper.NoteFlagPriority;
-
     public static class ChartReader
     {
         private struct Anchor
@@ -290,73 +288,73 @@ namespace MoonscraperChartEditor.Song.IO
                 foreach (string line in stringData)
                 {
                     // Name = "5000 Robots"
-                    if (ChartIOHelper.MetaData.name.regex.IsMatch(line))
+                    if (ChartMetadata.name.regex.IsMatch(line))
                     {
-                        metaData.name = ChartIOHelper.MetaData.ParseAsString(line);
+                        metaData.name = ChartMetadata.ParseAsString(line);
                     }
 
                     // Artist = "TheEruptionOffer"
-                    else if (ChartIOHelper.MetaData.artist.regex.IsMatch(line))
+                    else if (ChartMetadata.artist.regex.IsMatch(line))
                     {
-                        metaData.artist = ChartIOHelper.MetaData.ParseAsString(line);
+                        metaData.artist = ChartMetadata.ParseAsString(line);
                     }
 
                     // Charter = "TheEruptionOffer"
-                    else if (ChartIOHelper.MetaData.charter.regex.IsMatch(line))
+                    else if (ChartMetadata.charter.regex.IsMatch(line))
                     {
-                        metaData.charter = ChartIOHelper.MetaData.ParseAsString(line);
+                        metaData.charter = ChartMetadata.ParseAsString(line);
                     }
 
                     // Album = "Rockman Holic"
-                    else if (ChartIOHelper.MetaData.album.regex.IsMatch(line))
+                    else if (ChartMetadata.album.regex.IsMatch(line))
                     {
-                        metaData.album = ChartIOHelper.MetaData.ParseAsString(line);
+                        metaData.album = ChartMetadata.ParseAsString(line);
                     }
 
                     // Offset = 0
-                    else if (ChartIOHelper.MetaData.offset.regex.IsMatch(line))
+                    else if (ChartMetadata.offset.regex.IsMatch(line))
                     {
-                        moonSong.offset = ChartIOHelper.MetaData.ParseAsFloat(line);
+                        moonSong.offset = ChartMetadata.ParseAsFloat(line);
                     }
 
                     // Resolution = 192
-                    else if (ChartIOHelper.MetaData.resolution.regex.IsMatch(line))
+                    else if (ChartMetadata.resolution.regex.IsMatch(line))
                     {
-                        moonSong.resolution = ChartIOHelper.MetaData.ParseAsShort(line);
+                        moonSong.resolution = ChartMetadata.ParseAsShort(line);
                     }
 
                     // Difficulty = 0
-                    else if (ChartIOHelper.MetaData.difficulty.regex.IsMatch(line))
+                    else if (ChartMetadata.difficulty.regex.IsMatch(line))
                     {
                         metaData.difficulty = int.Parse(Regex.Matches(line, @"\d+")[0].ToString());
                     }
 
                     // Length = 300
-                    else if (ChartIOHelper.MetaData.length.regex.IsMatch(line))
+                    else if (ChartMetadata.length.regex.IsMatch(line))
                     {
-                        moonSong.manualLength = ChartIOHelper.MetaData.ParseAsFloat(line);
+                        moonSong.manualLength = ChartMetadata.ParseAsFloat(line);
                     }
 
                     // PreviewStart = 0.00
-                    else if (ChartIOHelper.MetaData.previewStart.regex.IsMatch(line))
+                    else if (ChartMetadata.previewStart.regex.IsMatch(line))
                     {
-                        metaData.previewStart = ChartIOHelper.MetaData.ParseAsFloat(line);
+                        metaData.previewStart = ChartMetadata.ParseAsFloat(line);
                     }
 
                     // PreviewEnd = 0.00
-                    else if (ChartIOHelper.MetaData.previewEnd.regex.IsMatch(line))
+                    else if (ChartMetadata.previewEnd.regex.IsMatch(line))
                     {
-                        metaData.previewEnd = ChartIOHelper.MetaData.ParseAsFloat(line);
+                        metaData.previewEnd = ChartMetadata.ParseAsFloat(line);
                     }
 
                     // Genre = "rock"
-                    else if (ChartIOHelper.MetaData.genre.regex.IsMatch(line))
+                    else if (ChartMetadata.genre.regex.IsMatch(line))
                     {
-                        metaData.genre = ChartIOHelper.MetaData.ParseAsString(line);
+                        metaData.genre = ChartMetadata.ParseAsString(line);
                     }
 
-                    else if (ChartIOHelper.MetaData.year.regex.IsMatch(line))
-                        metaData.year = Regex.Replace(ChartIOHelper.MetaData.ParseAsString(line), @"\D", "");
+                    else if (ChartMetadata.year.regex.IsMatch(line))
+                        metaData.year = Regex.Replace(ChartMetadata.ParseAsString(line), @"\D", "");
                 }
             }
             catch (Exception e)
