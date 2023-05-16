@@ -156,7 +156,7 @@ namespace MoonscraperChartEditor.Song.IO
             }
             catch (Exception e)
             {
-                throw new Exception("Could not open file: " + e.Message);
+                throw new Exception("Could not open file!", e);
             }
         }
 
@@ -235,7 +235,7 @@ namespace MoonscraperChartEditor.Song.IO
                     // Determine what difficulty
                     foreach (var kvPair in ChartIOHelper.TrackNameToTrackDifficultyLookup)
                     {
-                        if (Regex.IsMatch(dataName, string.Format(@"\[{0}.", kvPair.Key)))
+                        if (Regex.IsMatch(dataName, $@"\[{kvPair.Key}."))
                         {
                             var chartDiff = kvPair.Value;
                             int instumentStringOffset = 1 + kvPair.Key.Length;
@@ -255,19 +255,14 @@ namespace MoonscraperChartEditor.Song.IO
                                 LoadUnrecognisedChart(moonSong, stringData);
                             }
 
-                            goto OnChartLoaded;
+                            // Chart loaded
+                            break;
                         }
                     }
 
-                    {
-                        // Add to the unused chart list
-                        LoadUnrecognisedChart(moonSong, stringData);
-                        goto OnChartLoaded;
-                    }
-
-                // Easy break out of loop
-                OnChartLoaded:
-                    return;
+                    // Add to the unused chart list
+                    LoadUnrecognisedChart(moonSong, stringData);
+                    break;
             }
         }
 
@@ -381,7 +376,9 @@ namespace MoonscraperChartEditor.Song.IO
                     eventType = eventType.ToLower();
                 }
                 else
+                {
                     continue;
+                }
 
                 switch (eventType)
                 {
@@ -395,8 +392,9 @@ namespace MoonscraperChartEditor.Song.IO
                         if (stringSplit.Length > TEXT_POS_DATA_1 + 1 && !uint.TryParse(stringSplit[TEXT_POS_DATA_1 + 1], out denominator))
                             continue;
 
-                        moonSong.Add(new TimeSignature(tick, numerator, (uint)(Math.Pow(2, denominator))), false);
+                        moonSong.Add(new TimeSignature(tick, numerator, (uint)Math.Pow(2, denominator)), false);
                         break;
+
                     case "b":
                         uint value;
                         if (!uint.TryParse(stringSplit[TEXT_POS_DATA_1], out value))
@@ -404,6 +402,7 @@ namespace MoonscraperChartEditor.Song.IO
 
                         moonSong.Add(new BPM(tick, value), false);
                         break;
+
                     case "e":
                         var sb = new StringBuilder();
                         int startIndex = TEXT_POS_DATA_1;
@@ -432,6 +431,7 @@ namespace MoonscraperChartEditor.Song.IO
                         }
 
                         break;
+
                     case "a":
                         ulong anchorValue;
                         if (ulong.TryParse(stringSplit[TEXT_POS_DATA_1], out anchorValue))
@@ -442,6 +442,7 @@ namespace MoonscraperChartEditor.Song.IO
                             anchorData.Add(a);
                         }
                         break;
+
                     default:
                         break;
                 }
@@ -476,11 +477,11 @@ namespace MoonscraperChartEditor.Song.IO
         private static int FastStringToIntParse(string str, int index, int length)
         {
             // https://cc.davelozinski.com/c-sharp/fastest-way-to-convert-a-string-to-an-int
-            int y = 0;
+            int value = 0;
             for (int i = index; i < index + length; i++)
-                y = y * 10 + (str[i] - '0');
+                value = value * 10 + (str[i] - '0');
 
-            return y;
+            return value;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -521,16 +522,12 @@ namespace MoonscraperChartEditor.Song.IO
                         uint tick = (uint)FastStringToIntParse(line, stringStartIndex, stringLength);
 
                         // Advance to equality
-                        {
-                            stringStartIndex += stringLength;
-                            AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
-                        }
+                        stringStartIndex += stringLength;
+                        AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
 
                         // Advance to type
-                        {
-                            stringStartIndex += stringLength;
-                            AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
-                        }
+                        stringStartIndex += stringLength;
+                        AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
 
                         switch (line[stringStartIndex])    // Note this will need to be changed if keys are ever greater than 1 character long
                         {
@@ -538,17 +535,13 @@ namespace MoonscraperChartEditor.Song.IO
                             case 'n':
                             {
                                 // Advance to note number
-                                {
-                                    stringStartIndex += stringLength;
-                                    AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
-                                }
+                                stringStartIndex += stringLength;
+                                AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
                                 int fret_type = FastStringToIntParse(line, stringStartIndex, stringLength);
 
                                 // Advance to note length
-                                {
-                                    stringStartIndex += stringLength;
-                                    AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
-                                }
+                                stringStartIndex += stringLength;
+                                AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
                                 uint length = (uint)FastStringToIntParse(line, stringStartIndex, stringLength);
 
                                 if (instrument == ChartIOHelper.TrackLoadType.Unrecognised)
@@ -573,18 +566,14 @@ namespace MoonscraperChartEditor.Song.IO
                             case 's':
                             {
                                 // Advance to note number
-                                {
-                                    stringStartIndex += stringLength;
-                                    AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
-                                }
+                                stringStartIndex += stringLength;
+                                AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
 
                                 int fret_type = FastStringToIntParse(line, stringStartIndex, stringLength);
 
                                 // Advance to note length
-                                {
-                                    stringStartIndex += stringLength;
-                                    AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
-                                }
+                                stringStartIndex += stringLength;
+                                AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
 
                                 uint length = (uint)FastStringToIntParse(line, stringStartIndex, stringLength);
 
@@ -596,35 +585,23 @@ namespace MoonscraperChartEditor.Song.IO
 
                                     case ChartIOHelper.PHRASE_DRUM_FILL:
                                         if (instrument == ChartIOHelper.TrackLoadType.Drums)
-                                        {
                                             moonChart.Add(new Starpower(tick, length, Starpower.Flags.ProDrums_Activation), false);
-                                        }
                                         else
-                                        {
                                             Debug.Assert(false, "Found drum fill flag on incompatible instrument.");
-                                        }
                                         break;
 
                                     case ChartIOHelper.PHRASE_DRUM_ROLL_SINGLE:
                                         if (instrument == ChartIOHelper.TrackLoadType.Drums)
-                                        {
                                             moonChart.Add(new DrumRoll(tick, length, DrumRoll.Type.Standard), false);
-                                        }
                                         else
-                                        {
                                             Debug.Assert(false, "Found standard drum roll flag on incompatible instrument.");
-                                        }
                                         break;
 
                                     case ChartIOHelper.PHRASE_DRUM_ROLL_DOUBLE:
                                         if (instrument == ChartIOHelper.TrackLoadType.Drums)
-                                        {
                                             moonChart.Add(new DrumRoll(tick, length, DrumRoll.Type.Special), false);
-                                        }
                                         else
-                                        {
                                             Debug.Assert(false, "Found special drum roll flag on incompatible instrument.");
-                                        }
                                         break;
 
                                     default:
@@ -637,10 +614,8 @@ namespace MoonscraperChartEditor.Song.IO
                             case 'e':
                             {
                                 // Advance to event
-                                {
-                                    stringStartIndex += stringLength;
-                                    AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
-                                }
+                                stringStartIndex += stringLength;
+                                AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
                                 string eventName = line.Substring(stringStartIndex, stringLength);
                                 moonChart.Add(new ChartEvent(tick, eventName), false);
                                 break;

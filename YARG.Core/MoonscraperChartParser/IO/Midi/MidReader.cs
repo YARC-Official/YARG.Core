@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
@@ -144,23 +143,19 @@ namespace MoonscraperChartEditor.Song.IO
         {
             // Initialize new song
             var moonSong = new MoonSong();
-            string directory = Path.GetDirectoryName(path);
 
             MidiFile midi;
-
             try
             {
                 midi = MidiFile.Read(path, ReadSettings);
             }
-            catch (SystemException e)
+            catch (Exception e)
             {
-                throw new SystemException("Bad or corrupted midi file- " + e.Message);
+                throw new Exception("Bad or corrupted midi file!", e);
             }
 
             if (midi.Chunks == null || midi.Chunks.Count < 1)
-            {
                 throw new InvalidOperationException("MIDI file has no tracks, unable to parse.");
-            }
 
             if (midi.TimeDivision is not TicksPerQuarterNoteTimeDivision ticks)
                 throw new InvalidOperationException("MIDI file has no beat resolution set!");
@@ -187,9 +182,7 @@ namespace MoonscraperChartEditor.Song.IO
 
                 string trackNameKey = trackName.Text.ToUpper();
                 if (ExcludedTracks.ContainsKey(trackNameKey))
-                {
                     continue;
-                }
 
                 switch (trackNameKey)
                 {
@@ -495,10 +488,14 @@ namespace MoonscraperChartEditor.Song.IO
             if (moonInstrument != MoonSong.MoonInstrument.Unrecognised)
             {
                 foreach (var diff in EnumX<MoonSong.Difficulty>.Values)
+                {
                     moonSong.GetChart(moonInstrument, diff).UpdateCache();
+                }
             }
             else
+            {
                 unrecognised.UpdateCache();
+            }
 
             // Apply forcing events
             foreach (var process in processParams.delayedProcessesList)
@@ -515,7 +512,9 @@ namespace MoonscraperChartEditor.Song.IO
                 {
                     ProcessTextEventPairAsStarpower(processParams, MidIOHelper.SOLO_EVENT_TEXT, MidIOHelper.SOLO_END_EVENT_TEXT);
                     foreach (var diff in EnumX<MoonSong.Difficulty>.Values)
+                    {
                         moonSong.GetChart(moonInstrument, diff).UpdateCache();
+                    }
                 }
             }
         }
@@ -1014,7 +1013,7 @@ namespace MoonscraperChartEditor.Song.IO
                 tick += (uint)tickStartOffset;
 
             if (sus >= tickEndOffset)
-                sus = (uint)(sus + tickEndOffset);
+                sus += (uint)tickEndOffset;
 
             foreach (var diff in EnumX<MoonSong.Difficulty>.Values)
             {
