@@ -69,7 +69,7 @@ namespace MoonscraperChartEditor.Song.IO
             public TimedMidiEvent timedEvent;
             public Dictionary<int, EventProcessFn> noteProcessMap;
             public Dictionary<string, ProcessModificationProcessFn> textProcessMap;
-            public Dictionary<byte, EventProcessFn> sysexProcessMap;
+            public Dictionary<PhaseShiftSysEx.PhraseCode, EventProcessFn> sysexProcessMap;
             public List<EventProcessFn> delayedProcessesList;
         }
 
@@ -102,23 +102,23 @@ namespace MoonscraperChartEditor.Song.IO
             { MidIOHelper.CHART_DYNAMICS_TEXT_BRACKET, SwitchToDrumsVelocityProcessMap },
         };
 
-        private static readonly Dictionary<byte, EventProcessFn> GuitarSysExEventToProcessFnMap = new()
+        private static readonly Dictionary<PhaseShiftSysEx.PhraseCode, EventProcessFn> GuitarSysExEventToProcessFnMap = new()
         {
-            { MidIOHelper.SYSEX_CODE_GUITAR_OPEN, ProcessSysExEventPairAsOpenNoteModifier },
-            { MidIOHelper.SYSEX_CODE_GUITAR_TAP, (in EventProcessParams eventProcessParams) => {
+            { PhaseShiftSysEx.PhraseCode.Guitar_Open, ProcessSysExEventPairAsOpenNoteModifier },
+            { PhaseShiftSysEx.PhraseCode.Guitar_Tap, (in EventProcessParams eventProcessParams) => {
                 ProcessSysExEventPairAsForcedType(eventProcessParams, MoonNote.MoonNoteType.Tap);
             }},
         };
 
-        private static readonly Dictionary<byte, EventProcessFn> GhlGuitarSysExEventToProcessFnMap = new()
+        private static readonly Dictionary<PhaseShiftSysEx.PhraseCode, EventProcessFn> GhlGuitarSysExEventToProcessFnMap = new()
         {
-            { MidIOHelper.SYSEX_CODE_GUITAR_OPEN, ProcessSysExEventPairAsOpenNoteModifier },
-            { MidIOHelper.SYSEX_CODE_GUITAR_TAP, (in EventProcessParams eventProcessParams) => {
+            { PhaseShiftSysEx.PhraseCode.Guitar_Open, ProcessSysExEventPairAsOpenNoteModifier },
+            { PhaseShiftSysEx.PhraseCode.Guitar_Tap, (in EventProcessParams eventProcessParams) => {
                 ProcessSysExEventPairAsForcedType(eventProcessParams, MoonNote.MoonNoteType.Tap);
             }},
         };
 
-        private static readonly Dictionary<byte, EventProcessFn> DrumsSysExEventToProcessFnMap = new()
+        private static readonly Dictionary<PhaseShiftSysEx.PhraseCode, EventProcessFn> DrumsSysExEventToProcessFnMap = new()
         {
         };
 
@@ -518,13 +518,13 @@ namespace MoonscraperChartEditor.Song.IO
                         continue;
                     }
 
-                    if (psEvent.type != MidIOHelper.SYSEX_TYPE_PHRASE)
+                    if (psEvent.type != PhaseShiftSysEx.Type.Phrase)
                     {
                         Console.WriteLine($"Encountered unknown Phase Shift SysEx event type {psEvent.type}");
                         continue;
                     }
 
-                    if (psEvent.value == MidIOHelper.SYSEX_VALUE_PHRASE_START)
+                    if (psEvent.phraseValue == PhaseShiftSysEx.PhraseValue.Start)
                     {
                         if (sysexEventQueue.Any((queued) => queued.sysex.MatchesWith(psEvent)))
                         {
@@ -533,7 +533,7 @@ namespace MoonscraperChartEditor.Song.IO
                         }
                         sysexEventQueue.Add((psEvent, absoluteTime));
                     }
-                    else if (psEvent.value == MidIOHelper.SYSEX_VALUE_PHRASE_END)
+                    else if (psEvent.phraseValue == PhaseShiftSysEx.PhraseValue.End)
                     {
                         var queued = sysexEventQueue.FirstOrDefault((queued) => queued.sysex.MatchesWith(psEvent));
                         var (startEvent, startTime) = queued;
@@ -548,7 +548,7 @@ namespace MoonscraperChartEditor.Song.IO
                         processParams.timedEvent.startTime = startTime;
                         processParams.timedEvent.endTime = absoluteTime;
 
-                        if (processParams.sysexProcessMap.TryGetValue(psEvent.code, out var processFn))
+                        if (processParams.sysexProcessMap.TryGetValue(psEvent.phraseCode, out var processFn))
                         {
                             processFn(processParams);
                         }
@@ -643,7 +643,7 @@ namespace MoonscraperChartEditor.Song.IO
             };
         }
 
-        private static Dictionary<byte, EventProcessFn> GetSysExEventProcessDict(MoonChart.GameMode gameMode)
+        private static Dictionary<PhaseShiftSysEx.PhraseCode, EventProcessFn> GetSysExEventProcessDict(MoonChart.GameMode gameMode)
         {
             return gameMode switch
             {
@@ -1230,7 +1230,7 @@ namespace MoonscraperChartEditor.Song.IO
             uint startTick = (uint)timedEvent.startTime;
             uint endTick = (uint)timedEvent.endTime;
 
-            if (startEvent.difficulty == MidIOHelper.SYSEX_DIFFICULTY_ALL)
+            if (startEvent.difficulty == PhaseShiftSysEx.Difficulty.All)
             {
                 foreach (var diff in EnumX<MoonSong.Difficulty>.Values)
                 {
@@ -1242,7 +1242,7 @@ namespace MoonscraperChartEditor.Song.IO
             }
             else
             {
-                var diff = MidIOHelper.SYSEX_TO_MS_DIFF_LOOKUP[startEvent.difficulty];
+                var diff = PhaseShiftSysEx.SysExDiffToMsDiff[startEvent.difficulty];
                 eventProcessParams.delayedProcessesList.Add((in EventProcessParams processParams) =>
                 {
                     ProcessEventAsForcedTypePostDelay(processParams, startTick, endTick, diff, moonNoteType);
@@ -1262,7 +1262,7 @@ namespace MoonscraperChartEditor.Song.IO
             if (endTick > 0)
                 --endTick;
 
-            if (startEvent.difficulty == MidIOHelper.SYSEX_DIFFICULTY_ALL)
+            if (startEvent.difficulty == PhaseShiftSysEx.Difficulty.All)
             {
                 foreach (var diff in EnumX<MoonSong.Difficulty>.Values)
                 {
@@ -1274,7 +1274,7 @@ namespace MoonscraperChartEditor.Song.IO
             }
             else
             {
-                var diff = MidIOHelper.SYSEX_TO_MS_DIFF_LOOKUP[startEvent.difficulty];
+                var diff = PhaseShiftSysEx.SysExDiffToMsDiff[startEvent.difficulty];
                 eventProcessParams.delayedProcessesList.Add((in EventProcessParams processParams) =>
                 {
                     ProcessEventAsOpenNoteModifierPostDelay(processParams, startTick, endTick, diff);
