@@ -2,7 +2,7 @@
 
 namespace YARG.Core.Engine
 {
-    public class BaseEngineParameters
+    public abstract class BaseEngineParameters
     {
         // Don't use this value in logic, use the FrontEnd and BackEnd (-1/2 and +1/2 values respectively)
         public double HitWindow        { get; }
@@ -11,7 +11,7 @@ namespace YARG.Core.Engine
         public double FrontEnd { get; private set; }
         public double BackEnd  { get; private set; }
 
-        public BaseEngineParameters(double hitWindow, double frontBackRatio)
+        protected BaseEngineParameters(double hitWindow, double frontBackRatio)
         {
             HitWindow = hitWindow;
             FrontToBackRatio = frontBackRatio;
