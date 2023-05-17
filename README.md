@@ -32,3 +32,4 @@ Please note that other libraries are **not** packaged within the source code, an
 | [GuitarGame_ChartFormats](https://github.com/TheNathannator/GuitarGame_ChartFormats) | Reference | File Format Documentation
 | [DryWetMidi](https://www.nuget.org/packages/Melanchall.DryWetMidi) | Library | Parsing `.mid` Files
 | [Moonscraper](https://github.com/FireFox2000000/Moonscraper-Chart-Editor) | Library | Parsing `.chart` Files
+| [NUnit](https://docs.nunit.org/articles/nunit/intro.html) | Library | Unit tests
