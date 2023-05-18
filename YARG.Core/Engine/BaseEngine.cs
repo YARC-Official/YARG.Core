@@ -5,17 +5,20 @@ using YARG.Core.Input;
 
 namespace YARG.Core.Engine
 {
-    public abstract class BaseEngine<TNoteType, TInputType, TActionType, TEngineParams, TEngineStats> 
+    public abstract class BaseEngine<TNoteType, TInputType, TActionType, TEngineParams, TEngineStats, TEngineState> 
         where TNoteType : Note
         where TInputType : AbstractGameInput<TActionType>
         where TActionType : Enum
         where TEngineParams : BaseEngineParameters
         where TEngineStats : BaseStats, new()
+        where TEngineState : BaseEngineState, new()
     {
         protected const int POINTS_PER_NOTE = 50;
         protected const int POINTS_PER_BEAT = 25;
         
         protected const double STAR_POWER_PHRASE_AMOUNT = 0.25;
+
+        protected double LastUpdateTime;
         
         protected readonly Queue<TInputType> InputQueue;
         
@@ -23,12 +26,15 @@ namespace YARG.Core.Engine
         protected readonly TEngineParams EngineParameters;
         protected readonly TEngineStats EngineStats;
         
+        protected TEngineState EngineState;
+        
         protected BaseEngine(List<TNoteType> notes, TEngineParams engineParameters)
         {
             Notes = notes;
             EngineParameters = engineParameters;
 
             EngineStats = new TEngineStats();
+            EngineState = new TEngineState();
             
             InputQueue = new Queue<TInputType>();
         }
@@ -71,14 +77,34 @@ namespace YARG.Core.Engine
         /// <param name="note">The Note to attempt to hit.</param>
         /// <returns>True if note can be hit. False otherwise.</returns>
         protected abstract bool CanNoteBeHit(TNoteType note);
-        
+
         /// <summary>
         /// Resets the engine's state back to default and then processes the list of inputs up to the given time.
         /// </summary>
         /// <param name="time">Time to process up to.</param>
         /// <param name="inputs">List of inputs to execute against.</param>
         /// <returns>The input index that was processed up to.</returns>
-        public abstract int ProcessUpToTime(double time, IList<TInputType> inputs);
+        public virtual int ProcessUpToTime(double time, IList<TInputType> inputs)
+        {
+            EngineState.Reset();
+
+            foreach (var note in Notes)
+            {
+                note.SetHitState(false, true);
+                note.SetMissState(false, true);
+            }
+            
+            var inputIndex = 0;
+            while (inputIndex < inputs.Count && inputs[inputIndex].Time <= time)
+            {
+                InputQueue.Enqueue(inputs[inputIndex]);
+                inputIndex++;
+            }
+            
+            ProcessInputs();
+
+            return inputIndex;
+        }
 
         /// <summary>
         /// Processes the list of inputs from the given start time to the given end time. Does not reset the engine's state.
@@ -86,6 +112,9 @@ namespace YARG.Core.Engine
         /// <param name="startTime">Time to begin processing from.</param>
         /// <param name="endTime">Time to process up to.</param>
         /// <param name="inputs">List of inputs to execute against.</param>
-        public abstract void ProcessFromTimeToTime(double startTime, double endTime, IList<TInputType> inputs);
+        public virtual void ProcessFromTimeToTime(double startTime, double endTime, IList<TInputType> inputs)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

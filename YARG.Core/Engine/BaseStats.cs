@@ -1,6 +1,6 @@
 ﻿namespace YARG.Core.Engine
 {
-    public class BaseStats
+    public abstract class BaseStats
     {
         public int Score    { get; set; }
         public int Combo    { get; set; }
@@ -17,11 +17,11 @@
 
         public int PhrasesHit { get; set; }
 
-        public BaseStats()
+        protected BaseStats()
         {
         }
-    
-        public BaseStats(int score, int combo, int maxCombo, int scoreMultiplier, int notesHit, int notesMissed,
+
+        protected BaseStats(int score, int combo, int maxCombo, int scoreMultiplier, int notesHit, int notesMissed,
             double           starPowerAmount, bool isStarPowerActive, int phrasesHit)
         {
             Score = score;
