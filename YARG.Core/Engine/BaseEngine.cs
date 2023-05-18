@@ -18,6 +18,12 @@ namespace YARG.Core.Engine
         
         protected const double STAR_POWER_PHRASE_AMOUNT = 0.25;
 
+        public delegate void NoteHitEvent(int noteIndex, TNoteType note);
+        public delegate void NoteMissedEvent(int noteIndex, TNoteType note);
+        
+        public NoteHitEvent OnNoteHit;
+        public NoteMissedEvent OnNoteMissed;
+        
         protected double LastUpdateTime;
         
         protected readonly Queue<TInputType> InputQueue;
@@ -26,7 +32,11 @@ namespace YARG.Core.Engine
         protected readonly TEngineParams EngineParameters;
         protected readonly TEngineStats EngineStats;
         
-        protected TEngineState EngineState;
+        protected TEngineState State;
+        
+        protected TInputType CurrentInput;
+
+        protected bool IsInputUpdate { get; private set; }
         
         protected BaseEngine(List<TNoteType> notes, TEngineParams engineParameters)
         {
@@ -34,7 +44,7 @@ namespace YARG.Core.Engine
             EngineParameters = engineParameters;
 
             EngineStats = new TEngineStats();
-            EngineState = new TEngineState();
+            State = new TEngineState();
             
             InputQueue = new Queue<TInputType>();
         }
@@ -55,8 +65,19 @@ namespace YARG.Core.Engine
         {
             if (InputQueue.Count > 0)
             {
+                IsInputUpdate = true;
                 ProcessInputs();
             }
+        }
+
+        /// <summary>
+        /// Updates the engine with no input processing.
+        /// </summary>
+        /// <param name="time">The time to simulate hit logic at.</param>
+        public void UpdateEngine(double time)
+        {
+            IsInputUpdate = false;
+            UpdateHitLogic(time);
         }
         
         /// <summary>
@@ -86,7 +107,7 @@ namespace YARG.Core.Engine
         /// <returns>The input index that was processed up to.</returns>
         public virtual int ProcessUpToTime(double time, IList<TInputType> inputs)
         {
-            EngineState.Reset();
+            State.Reset();
 
             foreach (var note in Notes)
             {
