@@ -1,24 +1,25 @@
 using MoonscraperChartEditor.Song;
-using NUnit.Framework;
 using MoonscraperChartEditor.Song.IO;
+using NUnit.Framework;
 
-namespace YARG.Core.UnitTests {
+namespace YARG.Core.UnitTests
+{
     public class ChartParsingTests
     {
         private string? projectDirectory;
         private string? fullChartPath;
         private MoonSong song;
-        
+
         [SetUp]
         public void Setup()
         {
             // This will get the current WORKING directory (i.e. \bin\Debug)
             string workingDirectory = Environment.CurrentDirectory;
-            
+
             // This will get the current PROJECT directory
             projectDirectory = Directory.GetParent(workingDirectory)?.Parent?.Parent?.FullName;
         }
-        
+
         [TestCase("test.chart")]
         public void ParseChartFile(string notesFile)
         {
@@ -28,12 +29,12 @@ namespace YARG.Core.UnitTests {
                 {
                     throw new NullReferenceException();
                 }
-                
+
                 fullChartPath = Path.Combine(projectDirectory, "Test Charts", notesFile);
                 song = ChartReader.ReadChart(fullChartPath);
             });
         }
-        
+
         [TestCase("test.mid")]
         public void ParseMidiFile(string notesFile)
         {
@@ -43,7 +44,7 @@ namespace YARG.Core.UnitTests {
                 {
                     throw new NullReferenceException();
                 }
-                
+
                 fullChartPath = Path.Combine(projectDirectory, "Test Charts", notesFile);
                 song = MidReader.ReadMidi(fullChartPath);
             });
