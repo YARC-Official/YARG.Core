@@ -70,6 +70,22 @@ namespace MoonscraperChartEditor.Song.IO
         public const byte VELOCITY_GHOST = 1;         // fof/ps
 
         // Lookup tables
+        public static readonly Dictionary<string, MoonSong.MoonInstrument> TrackNameToInstrumentMap = new()
+        {
+            { GUITAR_TRACK,        MoonSong.MoonInstrument.Guitar },
+            { GH1_GUITAR_TRACK,    MoonSong.MoonInstrument.Guitar },
+            { GUITAR_COOP_TRACK,   MoonSong.MoonInstrument.GuitarCoop },
+            { BASS_TRACK,          MoonSong.MoonInstrument.Bass },
+            { RHYTHM_TRACK,        MoonSong.MoonInstrument.Rhythm },
+            { KEYS_TRACK,          MoonSong.MoonInstrument.Keys },
+            { DRUMS_TRACK,         MoonSong.MoonInstrument.Drums },
+            { DRUMS_REAL_TRACK,    MoonSong.MoonInstrument.Drums },
+            { GHL_GUITAR_TRACK,    MoonSong.MoonInstrument.GHLiveGuitar },
+            { GHL_BASS_TRACK,      MoonSong.MoonInstrument.GHLiveBass },
+            { GHL_RHYTHM_TRACK,    MoonSong.MoonInstrument.GHLiveRhythm },
+            { GHL_GUITAR_COOP_TRACK, MoonSong.MoonInstrument.GHLiveCoop },
+        };
+
         public static readonly Dictionary<MoonSong.Difficulty, int> GUITAR_DIFF_START_LOOKUP = new()
         {
             { MoonSong.Difficulty.Easy, 60 },

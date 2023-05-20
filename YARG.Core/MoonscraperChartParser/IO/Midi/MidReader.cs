@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2016-2020 Alexander Ong
+// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
 using System;
@@ -14,22 +14,6 @@ namespace MoonscraperChartEditor.Song.IO
     public static class MidReader
     {
         private const int SOLO_END_CORRECTION_OFFSET = -1;
-
-        private static readonly Dictionary<string, MoonSong.MoonInstrument> TrackNameToInstrumentMap = new()
-        {
-            { MidIOHelper.GUITAR_TRACK,        MoonSong.MoonInstrument.Guitar },
-            { MidIOHelper.GH1_GUITAR_TRACK,    MoonSong.MoonInstrument.Guitar },
-            { MidIOHelper.GUITAR_COOP_TRACK,   MoonSong.MoonInstrument.GuitarCoop },
-            { MidIOHelper.BASS_TRACK,          MoonSong.MoonInstrument.Bass },
-            { MidIOHelper.RHYTHM_TRACK,        MoonSong.MoonInstrument.Rhythm },
-            { MidIOHelper.KEYS_TRACK,          MoonSong.MoonInstrument.Keys },
-            { MidIOHelper.DRUMS_TRACK,         MoonSong.MoonInstrument.Drums },
-            { MidIOHelper.DRUMS_REAL_TRACK,    MoonSong.MoonInstrument.Drums },
-            { MidIOHelper.GHL_GUITAR_TRACK,    MoonSong.MoonInstrument.GHLiveGuitar },
-            { MidIOHelper.GHL_BASS_TRACK,      MoonSong.MoonInstrument.GHLiveBass },
-            { MidIOHelper.GHL_RHYTHM_TRACK,    MoonSong.MoonInstrument.GHLiveRhythm },
-            { MidIOHelper.GHL_GUITAR_COOP_TRACK, MoonSong.MoonInstrument.GHLiveCoop },
-        };
 
         // true == override existing track, false == discard if already exists
         private static readonly Dictionary<string, bool> TrackOverrides = new()
@@ -195,7 +179,7 @@ namespace MoonscraperChartEditor.Song.IO
 
                     default:
                         MoonSong.MoonInstrument moonInstrument;
-                        if (!TrackNameToInstrumentMap.TryGetValue(trackNameKey, out moonInstrument))
+                        if (!MidIOHelper.TrackNameToInstrumentMap.TryGetValue(trackNameKey, out moonInstrument))
                         {
                             moonInstrument = MoonSong.MoonInstrument.Unrecognised;
                         }
