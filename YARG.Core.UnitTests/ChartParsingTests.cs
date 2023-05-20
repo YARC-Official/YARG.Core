@@ -36,9 +36,7 @@ namespace YARG.Core.UnitTests {
         
         [TestCase("test.mid")]
         public void ParseMidiFile(string notesFile)
-        { 
-            MidReader.CallbackState state = default;
-            
+        {
             Assert.DoesNotThrow(() =>
             {
                 if (projectDirectory == null)
@@ -47,8 +45,7 @@ namespace YARG.Core.UnitTests {
                 }
                 
                 fullChartPath = Path.Combine(projectDirectory, "Test Charts", notesFile);
-                song = MidReader.ReadMidi(fullChartPath, ref state);
-                Assert.That(state, Is.EqualTo(MidReader.CallbackState.None));
+                song = MidReader.ReadMidi(fullChartPath);
             });
         }
     }

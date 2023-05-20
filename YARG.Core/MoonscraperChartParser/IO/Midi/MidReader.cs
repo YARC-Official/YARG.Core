@@ -15,12 +15,6 @@ namespace MoonscraperChartEditor.Song.IO
     {
         private const int SOLO_END_CORRECTION_OFFSET = -1;
 
-        public enum CallbackState
-        {
-            None,
-            WaitingForExternalInformation,
-        }
-
         private static readonly Dictionary<string, MoonSong.MoonInstrument> TrackNameToInstrumentMap = new()
         {
             { MidIOHelper.GUITAR_TRACK,        MoonSong.MoonInstrument.Guitar },
