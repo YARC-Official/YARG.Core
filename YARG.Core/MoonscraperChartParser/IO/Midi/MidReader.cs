@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2020 Alexander Ong
+﻿// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
 using System;
@@ -1008,22 +1008,21 @@ namespace MoonscraperChartEditor.Song.IO
 
         private static void ProcessNoteOnEventAsFlagToggle(in EventProcessParams eventProcessParams, MoonNote.Flags flags, int individualNoteSpecifier)
         {
-            // Delay the actual processing once all the notes are actually in
-            eventProcessParams.delayedProcessesList.Add((in EventProcessParams processParams) =>
-            {
-                ProcessNoteOnEventAsFlagTogglePostDelay(processParams, flags, individualNoteSpecifier);
-            });
-        }
-
-        private static void ProcessNoteOnEventAsFlagTogglePostDelay(in EventProcessParams eventProcessParams, MoonNote.Flags flags, int individualNoteSpecifier)   // individualNoteSpecifier as -1 to apply to the whole chord
-        {
-            var song = eventProcessParams.moonSong;
-            var instrument = eventProcessParams.moonInstrument;
-
             var timedEvent = eventProcessParams.timedEvent;
             uint startTick = (uint)timedEvent.startTime;
             uint endTick = (uint)timedEvent.endTime;
-            --endTick;
+
+            // Delay the actual processing once all the notes are actually in
+            eventProcessParams.delayedProcessesList.Add((in EventProcessParams processParams) =>
+            {
+                ProcessNoteOnEventAsFlagTogglePostDelay(processParams, startTick, --endTick, flags, individualNoteSpecifier);
+            });
+        }
+
+        private static void ProcessNoteOnEventAsFlagTogglePostDelay(in EventProcessParams eventProcessParams, uint startTick, uint endTick, MoonNote.Flags flags, int individualNoteSpecifier)   // individualNoteSpecifier as -1 to apply to the whole chord
+        {
+            var song = eventProcessParams.moonSong;
+            var instrument = eventProcessParams.moonInstrument;
 
             foreach (var difficulty in EnumX<MoonSong.Difficulty>.Values)
             {
