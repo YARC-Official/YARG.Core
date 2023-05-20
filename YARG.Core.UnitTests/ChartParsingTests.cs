@@ -2,13 +2,11 @@ using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
 using NUnit.Framework;
 
-namespace YARG.Core.UnitTests
+namespace YARG.Core.UnitTests.Parsing
 {
     public class ChartParsingTests
     {
-        private string? projectDirectory;
-        private string? fullChartPath;
-        private MoonSong song;
+        private string? chartsDirectory;
 
         [SetUp]
         public void Setup()
@@ -17,7 +15,9 @@ namespace YARG.Core.UnitTests
             string workingDirectory = Environment.CurrentDirectory;
 
             // This will get the current PROJECT directory
-            projectDirectory = Directory.GetParent(workingDirectory)?.Parent?.Parent?.FullName;
+            string projectDirectory = Directory.GetParent(workingDirectory)!.Parent!.Parent!.FullName;
+
+            chartsDirectory = Path.Combine(projectDirectory, "Parsing", "Test Charts");
         }
 
         [TestCase("test.chart")]
@@ -25,13 +25,8 @@ namespace YARG.Core.UnitTests
         {
             Assert.DoesNotThrow(() =>
             {
-                if (projectDirectory == null)
-                {
-                    throw new NullReferenceException();
-                }
-
-                fullChartPath = Path.Combine(projectDirectory, "Test Charts", notesFile);
-                song = ChartReader.ReadChart(fullChartPath);
+                string chartPath = Path.Combine(chartsDirectory!, notesFile);
+                var song = ChartReader.ReadChart(chartPath);
             });
         }
 
@@ -40,13 +35,8 @@ namespace YARG.Core.UnitTests
         {
             Assert.DoesNotThrow(() =>
             {
-                if (projectDirectory == null)
-                {
-                    throw new NullReferenceException();
-                }
-
-                fullChartPath = Path.Combine(projectDirectory, "Test Charts", notesFile);
-                song = MidReader.ReadMidi(fullChartPath);
+                string chartPath = Path.Combine(chartsDirectory!, notesFile);
+                var song = MidReader.ReadMidi(chartPath);
             });
         }
     }
