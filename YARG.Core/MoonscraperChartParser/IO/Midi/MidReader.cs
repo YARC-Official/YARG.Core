@@ -135,9 +135,6 @@ namespace MoonscraperChartEditor.Song.IO
 
         public static MoonSong ReadMidi(string path)
         {
-            // Initialize new song
-            var moonSong = new MoonSong();
-
             MidiFile midi;
             try
             {
@@ -148,13 +145,21 @@ namespace MoonscraperChartEditor.Song.IO
                 throw new Exception("Bad or corrupted midi file!", e);
             }
 
+            return ReadMidi(midi);
+        }
+
+        public static MoonSong ReadMidi(MidiFile midi)
+        {
             if (midi.Chunks == null || midi.Chunks.Count < 1)
                 throw new InvalidOperationException("MIDI file has no tracks, unable to parse.");
 
             if (midi.TimeDivision is not TicksPerQuarterNoteTimeDivision ticks)
                 throw new InvalidOperationException("MIDI file has no beat resolution set!");
 
-            moonSong.resolution = ticks.TicksPerQuarterNote;
+            var moonSong = new MoonSong()
+            {
+                resolution = ticks.TicksPerQuarterNote
+            };
 
             // Read all bpm data in first. This will also allow song.TimeToTick to function properly.
             ReadSync(midi.GetTempoMap(), moonSong);

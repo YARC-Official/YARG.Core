@@ -150,9 +150,8 @@ namespace MoonscraperChartEditor.Song.IO
                 if (extension != ".chart")
                     throw new Exception("Bad file type");
 
-                var moonSong = new MoonSong();
-                LoadChart(moonSong, filepath);
-                return moonSong;
+                var reader = File.OpenText(filepath);
+                return ReadChart(reader);
             }
             catch (Exception e)
             {
@@ -160,19 +159,18 @@ namespace MoonscraperChartEditor.Song.IO
             }
         }
 
-        private static void LoadChart(MoonSong moonSong, string filepath)
+        public static MoonSong ReadChart(TextReader reader)
         {
+            var moonSong = new MoonSong();
             bool open = false;
             string dataName = string.Empty;
 
             var dataStrings = new List<string>();
 
-            var sr = File.OpenText(filepath);
-
             // Gather lines between {} brackets and submit data
-            while (!sr.EndOfStream)
+            for (string line = reader.ReadLine(); line != null; line = reader.ReadLine())
             {
-                string trimmedLine = sr.ReadLine().Trim();
+                string trimmedLine = line.Trim();
                 if (trimmedLine.Length <= 0)
                     continue;
 
@@ -212,8 +210,9 @@ namespace MoonscraperChartEditor.Song.IO
                 }
             }
 
-            sr.Close();
+            reader.Close();
             moonSong.UpdateCache();
+            return moonSong;
         }
 
         private static void SubmitChartData(MoonSong moonSong, string dataName, List<string> stringData)
