@@ -16,6 +16,8 @@ namespace YARG.Core.Chart
         public double Time       { get; }
         public double TimeLength { get; }
 		
+        public double TimeEnd => Time + TimeLength;
+
         public uint Tick       { get; }
         public uint TickLength { get; }
 		
