@@ -16,6 +16,8 @@ namespace YARG.Core.Chart
         public double Time       { get; }
         public double TimeLength { get; }
 		
+        public double TimeEnd => Time + TimeLength;
+
         public uint Tick       { get; }
         public uint TickLength { get; }
 		
@@ -56,7 +58,8 @@ namespace YARG.Core.Chart
         SoloStart       = 64,
         SoloEnd         = 128,
         Cymbal          = 256,
-        DrumsGhost      = 512,
-        DrumsAccent     = 1024,
+        DrumGhost       = 512,
+        DrumAccent      = 1024,
+        VocalNonPitched = 2048,
     }
 }
