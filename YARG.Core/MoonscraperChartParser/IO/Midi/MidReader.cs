@@ -408,6 +408,7 @@ namespace MoonscraperChartEditor.Song.IO
                         continue;
                     }
 
+                    processParams.timedEvent.midiEvent = noteOn;
                     processParams.timedEvent.startTime = noteOnTime;
                     processParams.timedEvent.endTime = absoluteTime;
 
