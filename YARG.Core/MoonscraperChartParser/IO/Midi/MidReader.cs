@@ -15,22 +15,6 @@ namespace MoonscraperChartEditor.Song.IO
     {
         private const int SOLO_END_CORRECTION_OFFSET = -1;
 
-        private static readonly Dictionary<string, MoonSong.MoonInstrument> TrackNameToInstrumentMap = new()
-        {
-            { MidIOHelper.GUITAR_TRACK,        MoonSong.MoonInstrument.Guitar },
-            { MidIOHelper.GH1_GUITAR_TRACK,    MoonSong.MoonInstrument.Guitar },
-            { MidIOHelper.GUITAR_COOP_TRACK,   MoonSong.MoonInstrument.GuitarCoop },
-            { MidIOHelper.BASS_TRACK,          MoonSong.MoonInstrument.Bass },
-            { MidIOHelper.RHYTHM_TRACK,        MoonSong.MoonInstrument.Rhythm },
-            { MidIOHelper.KEYS_TRACK,          MoonSong.MoonInstrument.Keys },
-            { MidIOHelper.DRUMS_TRACK,         MoonSong.MoonInstrument.Drums },
-            { MidIOHelper.DRUMS_REAL_TRACK,    MoonSong.MoonInstrument.Drums },
-            { MidIOHelper.GHL_GUITAR_TRACK,    MoonSong.MoonInstrument.GHLiveGuitar },
-            { MidIOHelper.GHL_BASS_TRACK,      MoonSong.MoonInstrument.GHLiveBass },
-            { MidIOHelper.GHL_RHYTHM_TRACK,    MoonSong.MoonInstrument.GHLiveRhythm },
-            { MidIOHelper.GHL_GUITAR_COOP_TRACK, MoonSong.MoonInstrument.GHLiveCoop },
-        };
-
         // true == override existing track, false == discard if already exists
         private static readonly Dictionary<string, bool> TrackOverrides = new()
         {
@@ -135,9 +119,6 @@ namespace MoonscraperChartEditor.Song.IO
 
         public static MoonSong ReadMidi(string path)
         {
-            // Initialize new song
-            var moonSong = new MoonSong();
-
             MidiFile midi;
             try
             {
@@ -148,13 +129,21 @@ namespace MoonscraperChartEditor.Song.IO
                 throw new Exception("Bad or corrupted midi file!", e);
             }
 
+            return ReadMidi(midi);
+        }
+
+        public static MoonSong ReadMidi(MidiFile midi)
+        {
             if (midi.Chunks == null || midi.Chunks.Count < 1)
                 throw new InvalidOperationException("MIDI file has no tracks, unable to parse.");
 
             if (midi.TimeDivision is not TicksPerQuarterNoteTimeDivision ticks)
                 throw new InvalidOperationException("MIDI file has no beat resolution set!");
 
-            moonSong.resolution = ticks.TicksPerQuarterNote;
+            var moonSong = new MoonSong()
+            {
+                resolution = ticks.TicksPerQuarterNote
+            };
 
             // Read all bpm data in first. This will also allow song.TimeToTick to function properly.
             ReadSync(midi.GetTempoMap(), moonSong);
@@ -190,7 +179,7 @@ namespace MoonscraperChartEditor.Song.IO
 
                     default:
                         MoonSong.MoonInstrument moonInstrument;
-                        if (!TrackNameToInstrumentMap.TryGetValue(trackNameKey, out moonInstrument))
+                        if (!MidIOHelper.TrackNameToInstrumentMap.TryGetValue(trackNameKey, out moonInstrument))
                         {
                             moonInstrument = MoonSong.MoonInstrument.Unrecognised;
                         }
@@ -419,6 +408,7 @@ namespace MoonscraperChartEditor.Song.IO
                         continue;
                     }
 
+                    processParams.timedEvent.midiEvent = noteOn;
                     processParams.timedEvent.startTime = noteOnTime;
                     processParams.timedEvent.endTime = absoluteTime;
 
@@ -1019,28 +1009,27 @@ namespace MoonscraperChartEditor.Song.IO
 
         private static void ProcessNoteOnEventAsFlagToggle(in EventProcessParams eventProcessParams, MoonNote.Flags flags, int individualNoteSpecifier)
         {
-            // Delay the actual processing once all the notes are actually in
-            eventProcessParams.delayedProcessesList.Add((in EventProcessParams processParams) =>
-            {
-                ProcessNoteOnEventAsFlagTogglePostDelay(processParams, flags, individualNoteSpecifier);
-            });
-        }
-
-        private static void ProcessNoteOnEventAsFlagTogglePostDelay(in EventProcessParams eventProcessParams, MoonNote.Flags flags, int individualNoteSpecifier)   // individualNoteSpecifier as -1 to apply to the whole chord
-        {
-            var song = eventProcessParams.moonSong;
-            var instrument = eventProcessParams.moonInstrument;
-
             var timedEvent = eventProcessParams.timedEvent;
             uint startTick = (uint)timedEvent.startTime;
             uint endTick = (uint)timedEvent.endTime;
-            --endTick;
+
+            // Delay the actual processing once all the notes are actually in
+            eventProcessParams.delayedProcessesList.Add((in EventProcessParams processParams) =>
+            {
+                ProcessNoteOnEventAsFlagTogglePostDelay(processParams, startTick, --endTick, flags, individualNoteSpecifier);
+            });
+        }
+
+        private static void ProcessNoteOnEventAsFlagTogglePostDelay(in EventProcessParams eventProcessParams, uint startTick, uint endTick, MoonNote.Flags flags, int individualNoteSpecifier)   // individualNoteSpecifier as -1 to apply to the whole chord
+        {
+            var song = eventProcessParams.moonSong;
+            var instrument = eventProcessParams.moonInstrument;
 
             foreach (var difficulty in EnumX<MoonSong.Difficulty>.Values)
             {
                 var moonChart = song.GetChart(instrument, difficulty);
 
-                SongObjectHelper.GetRange(moonChart.notes, startTick, startTick + endTick, out int index, out int length);
+                SongObjectHelper.GetRange(moonChart.notes, startTick, endTick, out int index, out int length);
 
                 for (int i = index; i < index + length; ++i)
                 {
