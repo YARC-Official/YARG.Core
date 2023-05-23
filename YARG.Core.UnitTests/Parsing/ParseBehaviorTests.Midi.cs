@@ -155,8 +155,10 @@ namespace YARG.Core.UnitTests.Parsing
                 sync,
                 GenerateTrackChunk(GuitarNotes, MoonInstrument.Guitar),
                 GenerateTrackChunk(GhlGuitarNotes, MoonInstrument.GHLiveGuitar),
-                GenerateTrackChunk(DrumsNotes, MoonInstrument.Drums)
-            );
+                GenerateTrackChunk(DrumsNotes, MoonInstrument.Drums))
+            {
+                TimeDivision = new TicksPerQuarterNoteTimeDivision((short)RESOLUTION)
+            };
 
             return midi;
         }
