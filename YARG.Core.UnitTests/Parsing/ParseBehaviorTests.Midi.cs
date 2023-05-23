@@ -140,8 +140,7 @@ namespace YARG.Core.UnitTests.Parsing
             return chunk;
         }
 
-        [TestCase]
-        public void GenerateAndParseMidiFile()
+        private static MidiFile GenerateMidi()
         {
             byte denominator = 1;
             for (int i = 0; i < DENOMINATOR_POW2; i++)
@@ -159,7 +158,13 @@ namespace YARG.Core.UnitTests.Parsing
                 GenerateTrackChunk(DrumsNotes, MoonInstrument.Drums)
             );
 
+            return midi;
+        }
 
+        [TestCase]
+        public void GenerateAndParseMidiFile()
+        {
+            var midi = GenerateMidi();
             MoonSong song;
             try
             {

@@ -90,8 +90,7 @@ namespace YARG.Core.UnitTests.Parsing
             builder.Append("}\n");
         }
 
-        [TestCase]
-        public void GenerateAndParseChartFile()
+        private static string GenerateChartFile()
         {
             string header = $$"""
                 {{SECTION_SONG}}
@@ -106,15 +105,21 @@ namespace YARG.Core.UnitTests.Parsing
 
                 """; // Trailing newline is deliberate
 
-            var chartText = new StringBuilder(header, 1000);
-            GenerateSection(chartText, GuitarNotes, MoonInstrument.Guitar, Difficulty.Expert);
-            GenerateSection(chartText, GhlGuitarNotes, MoonInstrument.GHLiveGuitar, Difficulty.Expert);
-            GenerateSection(chartText, DrumsNotes, MoonInstrument.Drums, Difficulty.Expert);
+            var chartBuilder = new StringBuilder(header, 1000);
+            GenerateSection(chartBuilder, GuitarNotes, MoonInstrument.Guitar, Difficulty.Expert);
+            GenerateSection(chartBuilder, GhlGuitarNotes, MoonInstrument.GHLiveGuitar, Difficulty.Expert);
+            GenerateSection(chartBuilder, DrumsNotes, MoonInstrument.Drums, Difficulty.Expert);
+            return chartBuilder.ToString();
+        }
 
+        [TestCase]
+        public void GenerateAndParseChartFile()
+        {
+            string chartText = GenerateChartFile();
             MoonSong song;
             try
             {
-                song = ChartReader.ReadChart(new StringReader(chartText.ToString()));
+                song = ChartReader.ReadChart(new StringReader(chartText));
             }
             catch (Exception ex)
             {
