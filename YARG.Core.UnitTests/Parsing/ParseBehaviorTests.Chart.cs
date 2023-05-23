@@ -94,11 +94,11 @@ namespace YARG.Core.UnitTests.Parsing
         public void GenerateAndParseChartFile()
         {
             string header = $$"""
-                [{{SECTION_SONG}}]
+                {{SECTION_SONG}}
                 {
                   Resolution = {{RESOLUTION}}
                 }
-                [{{SECTION_SYNC_TRACK}}]
+                {{SECTION_SYNC_TRACK}}
                 {
                   {{RESOLUTION * 0}} = TS {{NUMERATOR}} {{DENOMINATOR_POW2}}
                   {{RESOLUTION * 0}} = B {{(int)(TEMPO * 1000)}}
