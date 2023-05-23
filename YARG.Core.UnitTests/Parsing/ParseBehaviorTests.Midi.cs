@@ -180,6 +180,8 @@ namespace YARG.Core.UnitTests.Parsing
 
             Assert.Multiple(() =>
             {
+                VerifyMetadata(song);
+                VerifySync(song);
                 VerifyTrack(song, GuitarNotes, MoonInstrument.Guitar, Difficulty.Expert);
                 VerifyTrack(song, GhlGuitarNotes, MoonInstrument.GHLiveGuitar, Difficulty.Expert);
                 VerifyTrack(song, DrumsNotes, MoonInstrument.Drums, Difficulty.Expert);
