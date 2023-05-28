@@ -113,6 +113,36 @@ namespace YARG.Core.UnitTests.Parsing
             new NoteData(DrumPad.Orange, flags: Flags.ProDrums_Cymbal | Flags.ProDrums_Ghost),
         };
 
+        public static void VerifyMetadata(MoonSong song)
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(song.resolution, Is.EqualTo((float)RESOLUTION), $"Resolution was not parsed correctly!");
+            });
+        }
+
+        public static void VerifySync(MoonSong song)
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(song.bpms, Has.Count.EqualTo(1), $"Incorrect number of BPM events!");
+                Assert.That(song.timeSignatures, Has.Count.EqualTo(1), $"Incorrect number of time signatures!");
+
+                if (song.bpms.Count > 0)
+                    Assert.That(song.bpms[0].displayValue, Is.InRange(TEMPO - 0.001, TEMPO + 0.001), "Parsed tempo is incorrect!");
+
+                if (song.timeSignatures.Count > 0)
+                {
+                    Assert.That(song.timeSignatures[0].numerator, Is.EqualTo(NUMERATOR), "Parsed numerator is incorrect!");
+                    uint denominator = song.timeSignatures[0].denominator;
+                    uint denominator_pow2 = denominator;
+                    for (int i = 1; i < DENOMINATOR_POW2; i++)
+                        denominator_pow2 /= 2;
+                    Assert.That(denominator_pow2, Is.EqualTo(DENOMINATOR_POW2), $"Parsed denominator is incorrect! (Original: {denominator})");
+                }
+            });
+        }
+
         public static void VerifyTrack(MoonSong song, List<NoteData> data, MoonInstrument instrument, Difficulty difficulty)
         {
             Assert.Multiple(() =>

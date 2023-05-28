@@ -140,8 +140,7 @@ namespace YARG.Core.UnitTests.Parsing
             return chunk;
         }
 
-        [TestCase]
-        public void GenerateAndParseMidiFile()
+        private static MidiFile GenerateMidi()
         {
             byte denominator = 1;
             for (int i = 0; i < DENOMINATOR_POW2; i++)
@@ -156,10 +155,18 @@ namespace YARG.Core.UnitTests.Parsing
                 sync,
                 GenerateTrackChunk(GuitarNotes, MoonInstrument.Guitar),
                 GenerateTrackChunk(GhlGuitarNotes, MoonInstrument.GHLiveGuitar),
-                GenerateTrackChunk(DrumsNotes, MoonInstrument.Drums)
-            );
+                GenerateTrackChunk(DrumsNotes, MoonInstrument.Drums))
+            {
+                TimeDivision = new TicksPerQuarterNoteTimeDivision((short)RESOLUTION)
+            };
 
+            return midi;
+        }
 
+        [TestCase]
+        public void GenerateAndParseMidiFile()
+        {
+            var midi = GenerateMidi();
             MoonSong song;
             try
             {
@@ -173,6 +180,8 @@ namespace YARG.Core.UnitTests.Parsing
 
             Assert.Multiple(() =>
             {
+                VerifyMetadata(song);
+                VerifySync(song);
                 VerifyTrack(song, GuitarNotes, MoonInstrument.Guitar, Difficulty.Expert);
                 VerifyTrack(song, GhlGuitarNotes, MoonInstrument.GHLiveGuitar, Difficulty.Expert);
                 VerifyTrack(song, DrumsNotes, MoonInstrument.Drums, Difficulty.Expert);
