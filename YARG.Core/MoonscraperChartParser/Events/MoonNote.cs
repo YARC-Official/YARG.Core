@@ -411,5 +411,12 @@ namespace MoonscraperChartEditor.Song
                 _ => guitarFret == GuitarFret.Open
             };
         }
+
+        public static int MakeProGuitarRawNote(ProGuitarString proString, int fret)
+        {
+            int rawNote = (fret & PRO_GUITAR_STRING_MASK) << PRO_GUITAR_STRING_OFFSET;
+            rawNote |= ((int)proString & PRO_GUITAR_FRET_MASK) << PRO_GUITAR_FRET_OFFSET;
+            return rawNote;
+        }
     }
 }
