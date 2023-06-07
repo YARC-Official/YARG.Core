@@ -57,7 +57,7 @@ namespace YARG.Core.UnitTests.Parsing
             { GameMode.GHLGuitar, GhlGuitarNoteLookup },
         };
 
-        private static void GenerateSection(StringBuilder builder, List<NoteData> data, MoonInstrument instrument, Difficulty difficulty)
+        private static void GenerateSection(StringBuilder builder, List<MoonNote> data, MoonInstrument instrument, Difficulty difficulty)
         {
             string instrumentName = InstrumentToNameLookup[instrument];
             var gameMode = MoonSong.InstumentToChartGameMode(instrument);
@@ -71,7 +71,15 @@ namespace YARG.Core.UnitTests.Parsing
                 var note = data[index];
                 var flags = note.flags;
 
-                int chartNumber = noteLookup[note.number];
+                // Not technically necessary, but might as well lol
+                int rawNote = gameMode switch {
+                    GameMode.Guitar => (int)note.guitarFret,
+                    GameMode.GHLGuitar => (int)note.ghliveGuitarFret,
+                    GameMode.Drums => (int)note.drumPad,
+                    _ => note.rawNote
+                };
+
+                int chartNumber = noteLookup[rawNote];
                 if ((flags & Flags.DoubleKick) != 0)
                     chartNumber = NOTE_OFFSET_INSTRUMENT_PLUS;
 

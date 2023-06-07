@@ -69,7 +69,7 @@ namespace YARG.Core.UnitTests.Parsing
 
         private static SevenBitNumber S(byte number) => (SevenBitNumber)number;
 
-        private static TrackChunk GenerateTrackChunk(List<NoteData> data, MoonInstrument instrument)
+        private static TrackChunk GenerateTrackChunk(List<MoonNote> data, MoonInstrument instrument)
         {
             // This code is hacky and makes a lot of assumptions, but it does the job
 
@@ -89,7 +89,14 @@ namespace YARG.Core.UnitTests.Parsing
                 var note = data[index];
                 var flags = note.flags;
 
-                byte noteNumber = noteLookup[note.number];
+                int rawNote = gameMode switch {
+                    GameMode.Guitar => (int)note.guitarFret,
+                    GameMode.GHLGuitar => (int)note.ghliveGuitarFret,
+                    GameMode.Drums => (int)note.drumPad,
+                    _ => note.rawNote
+                };
+
+                byte noteNumber = noteLookup[rawNote];
                 // hack: double-kick is one note below kick
                 // when done properly, needs to only be done on kick
                 if (gameMode == GameMode.Drums && (flags & Flags.DoubleKick) != 0)
@@ -112,7 +119,7 @@ namespace YARG.Core.UnitTests.Parsing
                     chunk.Events.Add(new NoteOnEvent(S(101), S(VELOCITY)));
                 if (gameMode != GameMode.Drums && (flags & Flags.Tap) != 0)
                     chunk.Events.Add(new NoteOnEvent(S(104), S(VELOCITY)));
-                if (gameMode == GameMode.Drums && PAD_TO_CYMBAL_LOOKUP.TryGetValue((DrumPad)note.number, out int padNote) &&
+                if (gameMode == GameMode.Drums && PAD_TO_CYMBAL_LOOKUP.TryGetValue((DrumPad)rawNote, out int padNote) &&
                     (flags & Flags.ProDrums_Cymbal) == 0)
                     // hack: tom markers are exactly 1 octave above their corresponding Expert notes
                     // when done properly, only on yellow/blue/green
@@ -130,7 +137,7 @@ namespace YARG.Core.UnitTests.Parsing
                     chunk.Events.Add(new NoteOffEvent(S(101), S(0)));
                 if (gameMode != GameMode.Drums && (flags & Flags.Tap) != 0)
                     chunk.Events.Add(new NoteOffEvent(S(104), S(0)));
-                if (gameMode == GameMode.Drums && PAD_TO_CYMBAL_LOOKUP.TryGetValue((DrumPad)note.number, out padNote) &&
+                if (gameMode == GameMode.Drums && PAD_TO_CYMBAL_LOOKUP.TryGetValue((DrumPad)rawNote, out padNote) &&
                     (flags & Flags.ProDrums_Cymbal) == 0)
                     chunk.Events.Add(new NoteOffEvent(S((byte)padNote), S(0)));
 
