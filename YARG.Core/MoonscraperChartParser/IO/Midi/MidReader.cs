@@ -798,10 +798,10 @@ namespace MoonscraperChartEditor.Song.IO
             }
 
             var timedEvent = eventProcessParams.timedEvent;
-            uint tick = (uint)timedEvent.length;
-            uint sus = CalculateSustainLength(eventProcessParams.moonSong, tick);
+            uint tick = (uint)timedEvent.startTick;
+            uint sus = AdjustSustainLength(eventProcessParams.song, (uint)timedEvent.length);
 
-            var newMoonNote = new MoonNote((uint)timedEvent.startTime, ingameFret, sus, defaultFlags);
+            var newMoonNote = new MoonNote(tick, ingameFret, sus, defaultFlags);
             moonChart.Add(newMoonNote, false);
         }
 
@@ -811,8 +811,8 @@ namespace MoonscraperChartEditor.Song.IO
             var instrument = eventProcessParams.moonInstrument;
 
             var timedEvent = eventProcessParams.timedEvent;
-            uint tick = (uint)timedEvent.length;
-            uint sus = CalculateSustainLength(eventProcessParams.moonSong, tick);
+            uint tick = (uint)timedEvent.startTick;
+            uint sus = AdjustSustainLength(eventProcessParams.song, (uint)timedEvent.length);
 
             foreach (var diff in EnumX<MoonSong.Difficulty>.Values)
             {
@@ -826,8 +826,8 @@ namespace MoonscraperChartEditor.Song.IO
             var instrument = eventProcessParams.moonInstrument;
 
             var timedEvent = eventProcessParams.timedEvent;
-            uint tick = (uint)timedEvent.length;
-            uint sus = CalculateSustainLength(eventProcessParams.moonSong, tick);
+            uint tick = (uint)timedEvent.startTick;
+            uint sus = AdjustSustainLength(eventProcessParams.song, (uint)timedEvent.length);
 
             foreach (var diff in EnumX<MoonSong.Difficulty>.Values)
             {
@@ -841,8 +841,8 @@ namespace MoonscraperChartEditor.Song.IO
             var instrument = eventProcessParams.moonInstrument;
 
             var timedEvent = eventProcessParams.timedEvent;
-            uint tick = (uint)timedEvent.length;
-            uint sus = CalculateSustainLength(eventProcessParams.moonSong, tick);
+            uint tick = (uint)timedEvent.startTick;
+            uint sus = AdjustSustainLength(eventProcessParams.song, (uint)timedEvent.length);
 
             foreach (var diff in EnumX<MoonSong.Difficulty>.Values)
             {
@@ -990,8 +990,8 @@ namespace MoonscraperChartEditor.Song.IO
             var instrument = eventProcessParams.moonInstrument;
 
             var timedEvent = eventProcessParams.timedEvent;
-            uint tick = (uint)timedEvent.length;
-            uint sus = CalculateSustainLength(eventProcessParams.moonSong, tick);
+            uint tick = (uint)timedEvent.startTick;
+            uint sus = AdjustSustainLength(eventProcessParams.song, (uint)timedEvent.length);
 
             if (tick >= tickStartOffset)
                 tick += (uint)tickStartOffset;
