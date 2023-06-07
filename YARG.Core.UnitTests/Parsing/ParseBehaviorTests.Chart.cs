@@ -64,6 +64,12 @@ namespace YARG.Core.UnitTests.Parsing
             string difficultyName = DifficultyToNameLookup[difficulty];
             builder.Append($"[{difficultyName}{instrumentName}]\n{{\n");
 
+            bool canForce = gameMode is GameMode.Guitar or GameMode.GHLGuitar;
+            bool canTap = gameMode is GameMode.Guitar or GameMode.GHLGuitar;
+            bool canCymbal = gameMode is GameMode.Drums;
+            bool canDoubleKick = gameMode is GameMode.Drums;
+            bool canDynamics = gameMode is GameMode.Drums;
+
             var noteLookup = InstrumentToNoteLookupLookup[gameMode];
             for (int index = 0; index < data.Count; index++)
             {
@@ -80,19 +86,19 @@ namespace YARG.Core.UnitTests.Parsing
                 };
 
                 int chartNumber = noteLookup[rawNote];
-                if ((flags & Flags.DoubleKick) != 0)
+                if (canDoubleKick && (flags & Flags.DoubleKick) != 0)
                     chartNumber = NOTE_OFFSET_INSTRUMENT_PLUS;
 
                 builder.Append($"  {tick} = N {chartNumber} {note.length}\n");
-                if (gameMode != GameMode.Drums && (flags & Flags.Forced) != 0)
+                if (canForce && (flags & Flags.Forced) != 0)
                     builder.Append($"  {tick} = N 5 0\n");
-                if (gameMode != GameMode.Drums && (flags & Flags.Tap) != 0)
+                if (canTap && (flags & Flags.Tap) != 0)
                     builder.Append($"  {tick} = N 6 0\n");
-                if (gameMode == GameMode.Drums && (flags & Flags.ProDrums_Cymbal) != 0)
+                if (canCymbal && (flags & Flags.ProDrums_Cymbal) != 0)
                     builder.Append($"  {tick} = N {NOTE_OFFSET_PRO_DRUMS + chartNumber} 0\n");
-                if (gameMode == GameMode.Drums && (flags & Flags.ProDrums_Accent) != 0)
+                if (canDynamics && (flags & Flags.ProDrums_Accent) != 0)
                     builder.Append($"  {tick} = N {NOTE_OFFSET_DRUMS_ACCENT + chartNumber} 0\n");
-                if (gameMode == GameMode.Drums && (flags & Flags.ProDrums_Ghost) != 0)
+                if (canDynamics && (flags & Flags.ProDrums_Ghost) != 0)
                     builder.Append($"  {tick} = N {NOTE_OFFSET_DRUMS_GHOST + chartNumber} 0\n");
             }
             builder.Append("}\n");
