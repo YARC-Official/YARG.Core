@@ -175,6 +175,7 @@ namespace MoonscraperChartEditor.Song
             Guitar,
             Drums,
             GHLGuitar,
+            ProGuitar,
 
             Unrecognised,
         }
