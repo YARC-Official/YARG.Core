@@ -3,6 +3,7 @@ using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.Core;
 using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
+using MoonscraperEngine;
 using NUnit.Framework;
 
 namespace YARG.Core.UnitTests.Parsing
@@ -15,6 +16,8 @@ namespace YARG.Core.UnitTests.Parsing
 
     public class MidiParseBehaviorTests
     {
+        private const uint SUSTAIN_CUTOFF_THRESHOLD = RESOLUTION / 3;
+
         private static readonly Dictionary<MoonInstrument, string> InstrumentToNameLookup = new()
         {
             { MoonInstrument.Guitar,       GUITAR_TRACK },
@@ -29,50 +32,74 @@ namespace YARG.Core.UnitTests.Parsing
             { MoonInstrument.GHLiveCoop,   GHL_GUITAR_COOP_TRACK },
         };
 
-        private static readonly Dictionary<int, byte> GuitarNoteLookup = new()
+        private static readonly Dictionary<int, int> GuitarNoteOffsetLookup = new()
         {
-            { (int)GuitarFret.Open,   95 },
-            { (int)GuitarFret.Green,  96 },
-            { (int)GuitarFret.Red,    97 },
-            { (int)GuitarFret.Yellow, 98 },
-            { (int)GuitarFret.Blue,   99 },
-            { (int)GuitarFret.Orange, 100 },
+            { (int)GuitarFret.Open,   -1 },
+            { (int)GuitarFret.Green,  0 },
+            { (int)GuitarFret.Red,    1 },
+            { (int)GuitarFret.Yellow, 2 },
+            { (int)GuitarFret.Blue,   3 },
+            { (int)GuitarFret.Orange, 4 },
         };
 
-        private static readonly Dictionary<int, byte> GhlGuitarNoteLookup = new()
+        private static readonly Dictionary<MoonNoteType, int> GuitarForceOffsetLookup = new()
         {
-            { (int)GHLiveGuitarFret.Open,   94 },
-            { (int)GHLiveGuitarFret.Black1, 98 },
-            { (int)GHLiveGuitarFret.Black2, 99 },
-            { (int)GHLiveGuitarFret.Black3, 100 },
-            { (int)GHLiveGuitarFret.White1, 95 },
-            { (int)GHLiveGuitarFret.White2, 96 },
-            { (int)GHLiveGuitarFret.White3, 97 },
+            { MoonNoteType.Hopo,  5 },
+            { MoonNoteType.Strum, 6 },
         };
 
-        private static readonly Dictionary<int, byte> DrumsNoteLookup = new()
+        private static readonly Dictionary<int, int> GhlGuitarNoteOffsetLookup = new()
         {
-            { (int)DrumPad.Kick,   96 },
-            { (int)DrumPad.Red,    97 },
-            { (int)DrumPad.Yellow, 98 },
-            { (int)DrumPad.Blue,   99 },
-            { (int)DrumPad.Orange, 100 },
-            { (int)DrumPad.Green,  101 },
+            { (int)GHLiveGuitarFret.Open,   0 },
+            { (int)GHLiveGuitarFret.Black1, 4 },
+            { (int)GHLiveGuitarFret.Black2, 5 },
+            { (int)GHLiveGuitarFret.Black3, 6 },
+            { (int)GHLiveGuitarFret.White1, 1 },
+            { (int)GHLiveGuitarFret.White2, 2 },
+            { (int)GHLiveGuitarFret.White3, 3 },
         };
 
-        private static readonly Dictionary<GameMode, Dictionary<int, byte>> InstrumentToNoteLookupLookup = new()
+        private static readonly Dictionary<MoonNoteType, int> GhlGuitarForceOffsetLookup = new()
         {
-            { GameMode.Guitar,    GuitarNoteLookup },
-            { GameMode.Drums,     DrumsNoteLookup },
-            { GameMode.GHLGuitar, GhlGuitarNoteLookup },
+            { MoonNoteType.Hopo,  7 },
+            { MoonNoteType.Strum, 8 },
+        };
+
+        private static readonly Dictionary<int, int> DrumsNoteOffsetLookup = new()
+        {
+            { (int)DrumPad.Kick,   0 },
+            { (int)DrumPad.Red,    1 },
+            { (int)DrumPad.Yellow, 2 },
+            { (int)DrumPad.Blue,   3 },
+            { (int)DrumPad.Orange, 4 },
+            { (int)DrumPad.Green,  5 },
+        };
+
+        private static readonly Dictionary<GameMode, Dictionary<int, int>> InstrumentNoteOffsetLookup = new()
+        {
+            { GameMode.Guitar,    GuitarNoteOffsetLookup },
+            { GameMode.Drums,     DrumsNoteOffsetLookup },
+            { GameMode.GHLGuitar, GhlGuitarNoteOffsetLookup },
+        };
+
+        private static readonly Dictionary<GameMode, Dictionary<MoonNoteType, int>> InstrumentForceOffsetLookup = new()
+        {
+            { GameMode.Guitar,    GuitarForceOffsetLookup },
+            { GameMode.Drums,     new() },
+            { GameMode.GHLGuitar, GhlGuitarForceOffsetLookup },
+        };
+
+        private static readonly Dictionary<GameMode, Dictionary<Difficulty, int>> InstrumentDifficultyStartLookup = new()
+        {
+            { GameMode.Guitar,    GUITAR_DIFF_START_LOOKUP },
+            { GameMode.Drums,     DRUMS_DIFF_START_LOOKUP },
+            { GameMode.GHLGuitar, GHL_GUITAR_DIFF_START_LOOKUP },
         };
 
         private static SevenBitNumber S(byte number) => (SevenBitNumber)number;
 
-        private static TrackChunk GenerateTrackChunk(List<NoteData> data, MoonInstrument instrument)
+        private static TrackChunk GenerateTrackChunk(List<MoonNote> data, MoonInstrument instrument)
         {
-            // This code is hacky and makes a lot of assumptions, but it does the job
-
             string instrumentName = InstrumentToNameLookup[instrument];
             var gameMode = MoonSong.InstumentToChartGameMode(instrument);
             var chunk = new TrackChunk(new SequenceTrackNameEvent(instrumentName));
@@ -83,61 +110,99 @@ namespace YARG.Core.UnitTests.Parsing
                 chunk.Events.Add(new TextEvent(ENHANCED_OPENS_TEXT_BRACKET));
 
             long deltaTime = 0;
-            var noteLookup = InstrumentToNoteLookupLookup[gameMode];
-            for (int index = 0; index < data.Count; index++)
+            long lastNoteStartDelta = 0;
+            foreach (var note in data)
             {
-                var note = data[index];
-                var flags = note.flags;
-
-                byte noteNumber = noteLookup[note.number];
-                // hack: double-kick is one note below kick
-                // when done properly, needs to only be done on kick
-                if (gameMode == GameMode.Drums && (flags & Flags.DoubleKick) != 0)
-                    noteNumber--;
-
-                byte velocity = VELOCITY;
-                if (gameMode == GameMode.Drums)
-                {
-                    if ((flags & Flags.ProDrums_Accent) != 0)
-                        velocity = VELOCITY_ACCENT;
-                    else if ((flags & Flags.ProDrums_Ghost) != 0)
-                        velocity = VELOCITY_GHOST;
-                }
-
-                chunk.Events.Add(new NoteOnEvent(S(noteNumber), S(velocity)) { DeltaTime = deltaTime });
-                if (gameMode != GameMode.Drums && (flags & Flags.Forced) != 0)
-                    // hack: since we're spacing things out based on resolution, notes are always 1 beat apart and
-                    // forcing will always turn things into HOPOs
-                    // when done properly, need to check if previous note time is less than RESOLUTION / 3
-                    chunk.Events.Add(new NoteOnEvent(S(101), S(VELOCITY)));
-                if (gameMode != GameMode.Drums && (flags & Flags.Tap) != 0)
-                    chunk.Events.Add(new NoteOnEvent(S(104), S(VELOCITY)));
-                if (gameMode == GameMode.Drums && PAD_TO_CYMBAL_LOOKUP.TryGetValue((DrumPad)note.number, out int padNote) &&
-                    (flags & Flags.ProDrums_Cymbal) == 0)
-                    // hack: tom markers are exactly 1 octave above their corresponding Expert notes
-                    // when done properly, only on yellow/blue/green
-                    chunk.Events.Add(new NoteOnEvent(S((byte)padNote), S(VELOCITY)));
-
-                if (note.length < (RESOLUTION / 3))
-                {
+                // Apply sustain cutoffs
+                if (note.length < (SUSTAIN_CUTOFF_THRESHOLD))
                     note.length = 0;
-                    data[index] = note;
+
+                // Note ons
+                // *MUST* be generated on all difficulties before note offs! Otherwise notes will be placed incorrectly
+                long currentDelta = deltaTime;
+                foreach (var difficulty in EnumX<Difficulty>.Values)
+                {
+                    GenerateNotesForDifficulty<NoteOnEvent>(chunk, gameMode, difficulty, note, currentDelta, VELOCITY, lastNoteStartDelta);
+                    currentDelta = 0;
                 }
 
+                // Note offs
                 long endDelta = Math.Max(note.length, 1);
-                chunk.Events.Add(new NoteOffEvent(S(noteNumber), S(0)) { DeltaTime = endDelta });
-                if (gameMode != GameMode.Drums && (flags & Flags.Forced) != 0)
-                    chunk.Events.Add(new NoteOffEvent(S(101), S(0)));
-                if (gameMode != GameMode.Drums && (flags & Flags.Tap) != 0)
-                    chunk.Events.Add(new NoteOffEvent(S(104), S(0)));
-                if (gameMode == GameMode.Drums && PAD_TO_CYMBAL_LOOKUP.TryGetValue((DrumPad)note.number, out padNote) &&
-                    (flags & Flags.ProDrums_Cymbal) == 0)
-                    chunk.Events.Add(new NoteOffEvent(S((byte)padNote), S(0)));
+                currentDelta = endDelta;
+                foreach (var difficulty in EnumX<Difficulty>.Values)
+                {
+                    GenerateNotesForDifficulty<NoteOffEvent>(chunk, gameMode, difficulty, note, currentDelta, 0, lastNoteStartDelta);
+                    currentDelta = 0;
+                }
 
                 deltaTime = RESOLUTION - endDelta;
+                lastNoteStartDelta = RESOLUTION;
             }
 
             return chunk;
+        }
+
+        private static void GenerateNotesForDifficulty<TNoteEvent>(TrackChunk chunk, GameMode gameMode, Difficulty difficulty,
+            MoonNote note, long noteDelta, byte velocity, long lastStartDelta)
+            where TNoteEvent : NoteEvent, new()
+        {
+            // This code is somewhat hacky and makes a lot of assumptions, but it does the job
+
+            // Whether or not certain note flags can be placed
+            // 5/6-fret guitar
+            bool canForce = gameMode is GameMode.Guitar or GameMode.GHLGuitar;
+            bool canTap = gameMode is GameMode.Guitar or GameMode.GHLGuitar && difficulty == Difficulty.Expert; // Tap marker is all-difficulty
+            // Drums
+            bool canTom = gameMode is GameMode.Drums && difficulty == Difficulty.Expert; // Tom markers are all-difficulty
+            bool canDoubleKick = gameMode is GameMode.Drums;
+            bool canDynamics = gameMode is GameMode.Drums;
+
+            // Note start + offsets
+            int difficultyStart = InstrumentDifficultyStartLookup[gameMode][difficulty];
+            var noteOffsetLookup = InstrumentNoteOffsetLookup[gameMode];
+            var forceOffsetLookup = InstrumentForceOffsetLookup[gameMode];
+
+            // Note properties
+            var flags = note.flags;
+            int rawNote = gameMode switch {
+                GameMode.Guitar => (int)note.guitarFret,
+                GameMode.GHLGuitar => (int)note.ghliveGuitarFret,
+                GameMode.Drums => (int)note.drumPad,
+                _ => note.rawNote
+            };
+
+            // Note number
+            byte noteNumber = (byte)(difficultyStart + noteOffsetLookup[rawNote]);
+            if (canDoubleKick && rawNote == (int)DrumPad.Kick && (flags & Flags.DoubleKick) != 0)
+                noteNumber--;
+
+            // Drum dynamics
+            if (canDynamics && velocity > 0)
+            {
+                if ((flags & Flags.ProDrums_Accent) != 0)
+                    velocity = VELOCITY_ACCENT;
+                else if ((flags & Flags.ProDrums_Ghost) != 0)
+                    velocity = VELOCITY_GHOST;
+            }
+
+            // Main note
+            chunk.Events.Add(new TNoteEvent() { NoteNumber = S(noteNumber), Velocity = S(velocity), DeltaTime = noteDelta });
+
+            // Note flags
+            if (canForce && (flags & Flags.Forced) != 0)
+            {
+                byte forceNote;
+                if (lastStartDelta is >= HOPO_THRESHOLD and > 0) 
+                    forceNote = (byte)(difficultyStart + forceOffsetLookup[MoonNoteType.Hopo]);
+                else
+                    forceNote = (byte)(difficultyStart + forceOffsetLookup[MoonNoteType.Strum]);
+                chunk.Events.Add(new TNoteEvent() { NoteNumber = S(forceNote), Velocity = S(velocity) });
+            }
+            if (canTap && (flags & Flags.Tap) != 0)
+                chunk.Events.Add(new TNoteEvent() { NoteNumber = S(TAP_NOTE_CH), Velocity = S(velocity) });
+            if (canTom && PAD_TO_CYMBAL_LOOKUP.TryGetValue((DrumPad)rawNote, out int padNote) &&
+                (flags & Flags.ProDrums_Cymbal) == 0)
+                chunk.Events.Add(new TNoteEvent() { NoteNumber = S((byte)padNote), Velocity = S(velocity) });
         }
 
         private static MidiFile GenerateMidi()
@@ -182,9 +247,12 @@ namespace YARG.Core.UnitTests.Parsing
             {
                 VerifyMetadata(song);
                 VerifySync(song);
-                VerifyTrack(song, GuitarNotes, MoonInstrument.Guitar, Difficulty.Expert);
-                VerifyTrack(song, GhlGuitarNotes, MoonInstrument.GHLiveGuitar, Difficulty.Expert);
-                VerifyTrack(song, DrumsNotes, MoonInstrument.Drums, Difficulty.Expert);
+                foreach (var difficulty in EnumX<Difficulty>.Values)
+                {
+                    VerifyTrack(song, GuitarNotes, MoonInstrument.Guitar, difficulty);
+                    VerifyTrack(song, GhlGuitarNotes, MoonInstrument.GHLiveGuitar, difficulty);
+                    VerifyTrack(song, DrumsNotes, MoonInstrument.Drums, difficulty);
+                }
             });
         }
     }

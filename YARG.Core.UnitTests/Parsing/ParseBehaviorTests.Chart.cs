@@ -1,6 +1,7 @@
 using System.Text;
 using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
+using MoonscraperEngine;
 using NUnit.Framework;
 
 namespace YARG.Core.UnitTests.Parsing
@@ -57,12 +58,18 @@ namespace YARG.Core.UnitTests.Parsing
             { GameMode.GHLGuitar, GhlGuitarNoteLookup },
         };
 
-        private static void GenerateSection(StringBuilder builder, List<NoteData> data, MoonInstrument instrument, Difficulty difficulty)
+        private static void GenerateSection(StringBuilder builder, List<MoonNote> data, MoonInstrument instrument, Difficulty difficulty)
         {
             string instrumentName = InstrumentToNameLookup[instrument];
             var gameMode = MoonSong.InstumentToChartGameMode(instrument);
             string difficultyName = DifficultyToNameLookup[difficulty];
             builder.Append($"[{difficultyName}{instrumentName}]\n{{\n");
+
+            bool canForce = gameMode is GameMode.Guitar or GameMode.GHLGuitar;
+            bool canTap = gameMode is GameMode.Guitar or GameMode.GHLGuitar;
+            bool canCymbal = gameMode is GameMode.Drums;
+            bool canDoubleKick = gameMode is GameMode.Drums;
+            bool canDynamics = gameMode is GameMode.Drums;
 
             var noteLookup = InstrumentToNoteLookupLookup[gameMode];
             for (int index = 0; index < data.Count; index++)
@@ -71,20 +78,28 @@ namespace YARG.Core.UnitTests.Parsing
                 var note = data[index];
                 var flags = note.flags;
 
-                int chartNumber = noteLookup[note.number];
-                if ((flags & Flags.DoubleKick) != 0)
+                // Not technically necessary, but might as well lol
+                int rawNote = gameMode switch {
+                    GameMode.Guitar => (int)note.guitarFret,
+                    GameMode.GHLGuitar => (int)note.ghliveGuitarFret,
+                    GameMode.Drums => (int)note.drumPad,
+                    _ => note.rawNote
+                };
+
+                int chartNumber = noteLookup[rawNote];
+                if (canDoubleKick && (flags & Flags.DoubleKick) != 0)
                     chartNumber = NOTE_OFFSET_INSTRUMENT_PLUS;
 
                 builder.Append($"  {tick} = N {chartNumber} {note.length}\n");
-                if (gameMode != GameMode.Drums && (flags & Flags.Forced) != 0)
+                if (canForce && (flags & Flags.Forced) != 0)
                     builder.Append($"  {tick} = N 5 0\n");
-                if (gameMode != GameMode.Drums && (flags & Flags.Tap) != 0)
+                if (canTap && (flags & Flags.Tap) != 0)
                     builder.Append($"  {tick} = N 6 0\n");
-                if (gameMode == GameMode.Drums && (flags & Flags.ProDrums_Cymbal) != 0)
+                if (canCymbal && (flags & Flags.ProDrums_Cymbal) != 0)
                     builder.Append($"  {tick} = N {NOTE_OFFSET_PRO_DRUMS + chartNumber} 0\n");
-                if (gameMode == GameMode.Drums && (flags & Flags.ProDrums_Accent) != 0)
+                if (canDynamics && (flags & Flags.ProDrums_Accent) != 0)
                     builder.Append($"  {tick} = N {NOTE_OFFSET_DRUMS_ACCENT + chartNumber} 0\n");
-                if (gameMode == GameMode.Drums && (flags & Flags.ProDrums_Ghost) != 0)
+                if (canDynamics && (flags & Flags.ProDrums_Ghost) != 0)
                     builder.Append($"  {tick} = N {NOTE_OFFSET_DRUMS_GHOST + chartNumber} 0\n");
             }
             builder.Append("}\n");
@@ -106,9 +121,12 @@ namespace YARG.Core.UnitTests.Parsing
                 """; // Trailing newline is deliberate
 
             var chartBuilder = new StringBuilder(header, 1000);
-            GenerateSection(chartBuilder, GuitarNotes, MoonInstrument.Guitar, Difficulty.Expert);
-            GenerateSection(chartBuilder, GhlGuitarNotes, MoonInstrument.GHLiveGuitar, Difficulty.Expert);
-            GenerateSection(chartBuilder, DrumsNotes, MoonInstrument.Drums, Difficulty.Expert);
+            foreach (var difficulty in EnumX<Difficulty>.Values)
+            {
+                GenerateSection(chartBuilder, GuitarNotes, MoonInstrument.Guitar, difficulty);
+                GenerateSection(chartBuilder, GhlGuitarNotes, MoonInstrument.GHLiveGuitar, difficulty);
+                GenerateSection(chartBuilder, DrumsNotes, MoonInstrument.Drums, difficulty);
+            }
             return chartBuilder.ToString();
         }
 
@@ -131,9 +149,12 @@ namespace YARG.Core.UnitTests.Parsing
             {
                 VerifyMetadata(song);
                 VerifySync(song);
-                VerifyTrack(song, GuitarNotes, MoonInstrument.Guitar, Difficulty.Expert);
-                VerifyTrack(song, GhlGuitarNotes, MoonInstrument.GHLiveGuitar, Difficulty.Expert);
-                VerifyTrack(song, DrumsNotes, MoonInstrument.Drums, Difficulty.Expert);
+                foreach (var difficulty in EnumX<Difficulty>.Values)
+                {
+                    VerifyTrack(song, GuitarNotes, MoonInstrument.Guitar, difficulty);
+                    VerifyTrack(song, GhlGuitarNotes, MoonInstrument.GHLiveGuitar, difficulty);
+                    VerifyTrack(song, DrumsNotes, MoonInstrument.Drums, difficulty);
+                }
             });
         }
     }

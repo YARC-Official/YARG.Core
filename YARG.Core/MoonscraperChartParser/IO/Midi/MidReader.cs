@@ -691,9 +691,6 @@ namespace MoonscraperChartEditor.Song.IO
                 { MidIOHelper.SOLO_NOTE, (in EventProcessParams eventProcessParams) => {
                     ProcessNoteOnEventAsEvent(eventProcessParams, MidIOHelper.SOLO_EVENT_TEXT, MidIOHelper.SOLO_END_EVENT_TEXT, tickEndOffset: SOLO_END_CORRECTION_OFFSET);
                 }},
-                { MidIOHelper.DOUBLE_KICK_NOTE, (in EventProcessParams eventProcessParams) => {
-                    ProcessNoteOnEventAsNote(eventProcessParams, MoonSong.Difficulty.Expert, (int)MoonNote.DrumPad.Kick, MoonNote.Flags.InstrumentPlus);
-                }},
 
                 { MidIOHelper.STARPOWER_DRUM_FILL_0, ProcessNoteOnEventAsDrumFill },
                 { MidIOHelper.STARPOWER_DRUM_FILL_1, ProcessNoteOnEventAsDrumFill },
@@ -765,6 +762,14 @@ namespace MoonscraperChartEditor.Song.IO
                             processFnDict.Add(key, (in EventProcessParams eventProcessParams) =>
                             {
                                 ProcessNoteOnEventAsNote(eventProcessParams, difficulty, fret, defaultFlags);
+                            });
+                        }
+
+                        // Double-kick
+                        if (pad == MoonNote.DrumPad.Kick)
+                        {
+                            processFnDict.Add(key - 1, (in EventProcessParams eventProcessParams) => {
+                                ProcessNoteOnEventAsNote(eventProcessParams, difficulty, fret, MoonNote.Flags.InstrumentPlus);
                             });
                         }
                     }
