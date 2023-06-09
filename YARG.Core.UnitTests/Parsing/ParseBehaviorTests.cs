@@ -13,6 +13,8 @@ namespace YARG.Core.UnitTests.Parsing
         public const int NUMERATOR = 4;
         public const int DENOMINATOR_POW2 = 2;
 
+        public const uint HOPO_THRESHOLD = (uint)(SongConfig.FORCED_NOTE_TICK_THRESHOLD * RESOLUTION / SongConfig.STANDARD_BEAT_RESOLUTION);
+
         private static MoonNote NewNote(GuitarFret fret, uint length = 0, Flags flags = Flags.None)
             => new(0, (int)fret, length, flags);
         private static MoonNote NewNote(GHLiveGuitarFret fret, uint length = 0, Flags flags = Flags.None)

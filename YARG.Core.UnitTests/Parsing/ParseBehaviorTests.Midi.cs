@@ -15,6 +15,8 @@ namespace YARG.Core.UnitTests.Parsing
 
     public class MidiParseBehaviorTests
     {
+        private const uint SUSTAIN_CUTOFF_THRESHOLD = RESOLUTION / 3;
+
         private static readonly Dictionary<MoonInstrument, string> InstrumentToNameLookup = new()
         {
             { MoonInstrument.Guitar,       GUITAR_TRACK },
@@ -89,11 +91,16 @@ namespace YARG.Core.UnitTests.Parsing
                 chunk.Events.Add(new TextEvent(ENHANCED_OPENS_TEXT_BRACKET));
 
             long deltaTime = 0;
+            long lastNoteStartDelta = 0;
             var noteLookup = InstrumentToNoteLookupLookup[gameMode];
             for (int index = 0; index < data.Count; index++)
             {
                 var note = data[index];
                 var flags = note.flags;
+
+                // Apply sustain cutoffs
+                if (note.length < (SUSTAIN_CUTOFF_THRESHOLD))
+                    note.length = 0;
 
                 int rawNote = gameMode switch {
                     GameMode.Guitar => (int)note.guitarFret,
@@ -103,9 +110,7 @@ namespace YARG.Core.UnitTests.Parsing
                 };
 
                 byte noteNumber = noteLookup[rawNote];
-                // hack: double-kick is one note below kick
-                // when done properly, needs to only be done on kick
-                if (canDoubleKick && (flags & Flags.DoubleKick) != 0)
+                if (canDoubleKick && rawNote == (int)DrumPad.Kick && (flags & Flags.DoubleKick) != 0)
                     noteNumber--;
 
                 byte velocity = VELOCITY;
@@ -119,28 +124,27 @@ namespace YARG.Core.UnitTests.Parsing
 
                 chunk.Events.Add(new NoteOnEvent(S(noteNumber), S(velocity)) { DeltaTime = deltaTime });
                 if (canForce && (flags & Flags.Forced) != 0)
-                    // hack: since we're spacing things out based on resolution, notes are always 1 beat apart and
-                    // forcing will always turn things into HOPOs
-                    // when done properly, need to check if previous note time is less than RESOLUTION / 3
-                    chunk.Events.Add(new NoteOnEvent(S(101), S(VELOCITY)));
+                {
+                    if (lastNoteStartDelta is >= HOPO_THRESHOLD and > 0)
+                        chunk.Events.Add(new NoteOnEvent(S(101), S(VELOCITY))); // Force HOPO
+                    else
+                        chunk.Events.Add(new NoteOnEvent(S(102), S(VELOCITY))); // Force strum
+                }
                 if (canTap && (flags & Flags.Tap) != 0)
                     chunk.Events.Add(new NoteOnEvent(S(104), S(VELOCITY)));
                 if (canCymbal && PAD_TO_CYMBAL_LOOKUP.TryGetValue((DrumPad)rawNote, out int padNote) &&
                     (flags & Flags.ProDrums_Cymbal) == 0)
-                    // hack: tom markers are exactly 1 octave above their corresponding Expert notes
-                    // when done properly, only on yellow/blue/green
                     chunk.Events.Add(new NoteOnEvent(S((byte)padNote), S(VELOCITY)));
-
-                if (note.length < (RESOLUTION / 3))
-                {
-                    note.length = 0;
-                    data[index] = note;
-                }
 
                 long endDelta = Math.Max(note.length, 1);
                 chunk.Events.Add(new NoteOffEvent(S(noteNumber), S(0)) { DeltaTime = endDelta });
                 if (canForce && (flags & Flags.Forced) != 0)
-                    chunk.Events.Add(new NoteOffEvent(S(101), S(0)));
+                {
+                    if (lastNoteStartDelta is >= HOPO_THRESHOLD and > 0)
+                        chunk.Events.Add(new NoteOffEvent(S(101), S(0))); // Force HOPO
+                    else
+                        chunk.Events.Add(new NoteOffEvent(S(102), S(0))); // Force strum
+                }
                 if (canTap && (flags & Flags.Tap) != 0)
                     chunk.Events.Add(new NoteOffEvent(S(104), S(0)));
                 if (canCymbal && PAD_TO_CYMBAL_LOOKUP.TryGetValue((DrumPad)rawNote, out padNote) &&
@@ -148,6 +152,7 @@ namespace YARG.Core.UnitTests.Parsing
                     chunk.Events.Add(new NoteOffEvent(S((byte)padNote), S(0)));
 
                 deltaTime = RESOLUTION - endDelta;
+                lastNoteStartDelta = RESOLUTION;
             }
 
             return chunk;
