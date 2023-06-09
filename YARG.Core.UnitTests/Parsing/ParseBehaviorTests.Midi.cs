@@ -118,11 +118,22 @@ namespace YARG.Core.UnitTests.Parsing
                     note.length = 0;
 
                 // Note ons
-                GenerateNotesForDifficulty<NoteOnEvent>(chunk, gameMode, Difficulty.Expert, note, deltaTime, VELOCITY, lastNoteStartDelta);
+                // *MUST* be generated on all difficulties before note offs! Otherwise notes will be placed incorrectly
+                long currentDelta = deltaTime;
+                foreach (var difficulty in EnumX<Difficulty>.Values)
+                {
+                    GenerateNotesForDifficulty<NoteOnEvent>(chunk, gameMode, difficulty, note, currentDelta, VELOCITY, lastNoteStartDelta);
+                    currentDelta = 0;
+                }
 
                 // Note offs
                 long endDelta = Math.Max(note.length, 1);
-                GenerateNotesForDifficulty<NoteOffEvent>(chunk, gameMode, Difficulty.Expert, note, endDelta, 0, lastNoteStartDelta);
+                currentDelta = endDelta;
+                foreach (var difficulty in EnumX<Difficulty>.Values)
+                {
+                    GenerateNotesForDifficulty<NoteOffEvent>(chunk, gameMode, difficulty, note, currentDelta, 0, lastNoteStartDelta);
+                    currentDelta = 0;
+                }
 
                 deltaTime = RESOLUTION - endDelta;
                 lastNoteStartDelta = RESOLUTION;
@@ -236,9 +247,12 @@ namespace YARG.Core.UnitTests.Parsing
             {
                 VerifyMetadata(song);
                 VerifySync(song);
-                VerifyTrack(song, GuitarNotes, MoonInstrument.Guitar, Difficulty.Expert);
-                VerifyTrack(song, GhlGuitarNotes, MoonInstrument.GHLiveGuitar, Difficulty.Expert);
-                VerifyTrack(song, DrumsNotes, MoonInstrument.Drums, Difficulty.Expert);
+                foreach (var difficulty in EnumX<Difficulty>.Values)
+                {
+                    VerifyTrack(song, GuitarNotes, MoonInstrument.Guitar, difficulty);
+                    VerifyTrack(song, GhlGuitarNotes, MoonInstrument.GHLiveGuitar, difficulty);
+                    VerifyTrack(song, DrumsNotes, MoonInstrument.Drums, difficulty);
+                }
             });
         }
     }

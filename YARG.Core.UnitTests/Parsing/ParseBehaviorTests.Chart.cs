@@ -1,6 +1,7 @@
 using System.Text;
 using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
+using MoonscraperEngine;
 using NUnit.Framework;
 
 namespace YARG.Core.UnitTests.Parsing
@@ -120,9 +121,12 @@ namespace YARG.Core.UnitTests.Parsing
                 """; // Trailing newline is deliberate
 
             var chartBuilder = new StringBuilder(header, 1000);
-            GenerateSection(chartBuilder, GuitarNotes, MoonInstrument.Guitar, Difficulty.Expert);
-            GenerateSection(chartBuilder, GhlGuitarNotes, MoonInstrument.GHLiveGuitar, Difficulty.Expert);
-            GenerateSection(chartBuilder, DrumsNotes, MoonInstrument.Drums, Difficulty.Expert);
+            foreach (var difficulty in EnumX<Difficulty>.Values)
+            {
+                GenerateSection(chartBuilder, GuitarNotes, MoonInstrument.Guitar, difficulty);
+                GenerateSection(chartBuilder, GhlGuitarNotes, MoonInstrument.GHLiveGuitar, difficulty);
+                GenerateSection(chartBuilder, DrumsNotes, MoonInstrument.Drums, difficulty);
+            }
             return chartBuilder.ToString();
         }
 
@@ -145,9 +149,12 @@ namespace YARG.Core.UnitTests.Parsing
             {
                 VerifyMetadata(song);
                 VerifySync(song);
-                VerifyTrack(song, GuitarNotes, MoonInstrument.Guitar, Difficulty.Expert);
-                VerifyTrack(song, GhlGuitarNotes, MoonInstrument.GHLiveGuitar, Difficulty.Expert);
-                VerifyTrack(song, DrumsNotes, MoonInstrument.Drums, Difficulty.Expert);
+                foreach (var difficulty in EnumX<Difficulty>.Values)
+                {
+                    VerifyTrack(song, GuitarNotes, MoonInstrument.Guitar, difficulty);
+                    VerifyTrack(song, GhlGuitarNotes, MoonInstrument.GHLiveGuitar, difficulty);
+                    VerifyTrack(song, DrumsNotes, MoonInstrument.Drums, difficulty);
+                }
             });
         }
     }
