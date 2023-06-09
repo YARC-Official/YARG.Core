@@ -409,3 +409,7 @@ FodyWeavers.xsd
 # Tasks/launch are kept for convenience
 !.vscode/tasks.json
 !.vscode/launch.json
+
+# draw.io temp.backup files
+*.bkp
+*.dtmp
