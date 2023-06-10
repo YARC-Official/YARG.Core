@@ -694,13 +694,13 @@ namespace MoonscraperChartEditor.Song.IO
                     ProcessNoteOnEventAsEvent(eventProcessParams, MidIOHelper.SOLO_EVENT_TEXT, MidIOHelper.SOLO_END_EVENT_TEXT, tickEndOffset: SOLO_END_CORRECTION_OFFSET);
                 }},
 
-                { MidIOHelper.STARPOWER_DRUM_FILL_0, ProcessNoteOnEventAsDrumFill },
-                { MidIOHelper.STARPOWER_DRUM_FILL_1, ProcessNoteOnEventAsDrumFill },
-                { MidIOHelper.STARPOWER_DRUM_FILL_2, ProcessNoteOnEventAsDrumFill },
-                { MidIOHelper.STARPOWER_DRUM_FILL_3, ProcessNoteOnEventAsDrumFill },
-                { MidIOHelper.STARPOWER_DRUM_FILL_4, ProcessNoteOnEventAsDrumFill },
-                { MidIOHelper.DRUM_ROLL_STANDARD, ProcessNoteOnEventAsTremoloLane },
-                { MidIOHelper.DRUM_ROLL_SPECIAL, ProcessNoteOnEventAsTrillLane },
+                { MidIOHelper.DRUM_FILL_NOTE_0, ProcessNoteOnEventAsDrumFill },
+                { MidIOHelper.DRUM_FILL_NOTE_1, ProcessNoteOnEventAsDrumFill },
+                { MidIOHelper.DRUM_FILL_NOTE_2, ProcessNoteOnEventAsDrumFill },
+                { MidIOHelper.DRUM_FILL_NOTE_3, ProcessNoteOnEventAsDrumFill },
+                { MidIOHelper.DRUM_FILL_NOTE_4, ProcessNoteOnEventAsDrumFill },
+                { MidIOHelper.TREMOLO_LANE_NOTE, ProcessNoteOnEventAsTremoloLane },
+                { MidIOHelper.TRILL_LANE_NOTE, ProcessNoteOnEventAsTrillLane },
             };
 
             var DrumPadToMidiKey = new Dictionary<MoonNote.DrumPad, int>()

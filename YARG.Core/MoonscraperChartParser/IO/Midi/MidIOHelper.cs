@@ -36,15 +36,15 @@ namespace MoonscraperChartEditor.Song.IO
         public const byte STARPOWER_NOTE = 116;            // http://docs.c3universe.com/rbndocs/index.php?title=Overdrive_and_Big_Rock_Endings
 
         // http://docs.c3universe.com/rbndocs/index.php?title=Drum_Authoring#Drum_Fills
-        public const byte STARPOWER_DRUM_FILL_0 = 120;
-        public const byte STARPOWER_DRUM_FILL_1 = 121;
-        public const byte STARPOWER_DRUM_FILL_2 = 122;
-        public const byte STARPOWER_DRUM_FILL_3 = 123;
-        public const byte STARPOWER_DRUM_FILL_4 = 124;
+        public const byte DRUM_FILL_NOTE_0 = 120;
+        public const byte DRUM_FILL_NOTE_1 = 121;
+        public const byte DRUM_FILL_NOTE_2 = 122;
+        public const byte DRUM_FILL_NOTE_3 = 123;
+        public const byte DRUM_FILL_NOTE_4 = 124;
 
         // Drum rolls - http://docs.c3universe.com/rbndocs/index.php?title=Drum_Authoring#Drum_Rolls
-        public const byte DRUM_ROLL_STANDARD = 126;
-        public const byte DRUM_ROLL_SPECIAL = 127;
+        public const byte TREMOLO_LANE_NOTE = 126;
+        public const byte TRILL_LANE_NOTE = 127;
 
         // Text events
         public const string SOLO_EVENT_TEXT = "solo";

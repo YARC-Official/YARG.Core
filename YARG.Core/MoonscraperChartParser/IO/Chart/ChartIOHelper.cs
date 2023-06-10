@@ -22,8 +22,8 @@ namespace MoonscraperChartEditor.Song.IO
 
         public const int PHRASE_STARPOWER = 2;
         public const int PHRASE_DRUM_FILL = 64;
-        public const int PHRASE_DRUM_ROLL_SINGLE = 65;
-        public const int PHRASE_DRUM_ROLL_DOUBLE = 66;
+        public const int PHRASE_TREMOLO_LANE = 65;
+        public const int PHRASE_TRILL_LANE = 66;
 
         public enum TrackLoadType
         {

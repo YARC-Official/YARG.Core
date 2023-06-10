@@ -589,14 +589,14 @@ namespace MoonscraperChartEditor.Song.IO
                                             Debug.Assert(false, "Found drum fill flag on incompatible instrument.");
                                         break;
 
-                                    case ChartIOHelper.PHRASE_DRUM_ROLL_SINGLE:
+                                    case ChartIOHelper.PHRASE_TREMOLO_LANE:
                                         if (instrument == ChartIOHelper.TrackLoadType.Drums)
                                             moonChart.Add(new SpecialPhrase(tick, length, SpecialPhrase.Type.TremoloLane), false);
                                         else
                                             Debug.Assert(false, "Found standard drum roll flag on incompatible instrument.");
                                         break;
 
-                                    case ChartIOHelper.PHRASE_DRUM_ROLL_DOUBLE:
+                                    case ChartIOHelper.PHRASE_TRILL_LANE:
                                         if (instrument == ChartIOHelper.TrackLoadType.Drums)
                                             moonChart.Add(new SpecialPhrase(tick, length, SpecialPhrase.Type.TrillLane), false);
                                         else
