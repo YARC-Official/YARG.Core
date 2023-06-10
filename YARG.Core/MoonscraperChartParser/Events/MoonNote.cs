@@ -123,13 +123,13 @@ namespace MoonscraperChartEditor.Song
         public int proGuitarFret
         {
             get => (rawNote & PRO_GUITAR_FRET_MASK) >> PRO_GUITAR_FRET_OFFSET;
-            set => rawNote |= (rawNote & ~PRO_GUITAR_FRET_MASK) | (value << PRO_GUITAR_FRET_OFFSET);
+            set => rawNote = MakeProGuitarRawNote(proGuitarString, value);
         }
 
         public ProGuitarString proGuitarString
         {
             get => (ProGuitarString)((rawNote & PRO_GUITAR_STRING_MASK) >> PRO_GUITAR_STRING_OFFSET);
-            set => rawNote |= (rawNote & ~PRO_GUITAR_STRING_MASK) | ((int)value << PRO_GUITAR_STRING_OFFSET);
+            set => rawNote = MakeProGuitarRawNote(value, proGuitarFret);
         }
 
         /// <summary>
@@ -414,8 +414,9 @@ namespace MoonscraperChartEditor.Song
 
         public static int MakeProGuitarRawNote(ProGuitarString proString, int fret)
         {
-            int rawNote = (fret & PRO_GUITAR_STRING_MASK) << PRO_GUITAR_STRING_OFFSET;
-            rawNote |= ((int)proString & PRO_GUITAR_FRET_MASK) << PRO_GUITAR_FRET_OFFSET;
+            fret = Math.Clamp(fret, 0, 22);
+            int rawNote = (fret << PRO_GUITAR_FRET_OFFSET) & PRO_GUITAR_FRET_MASK;
+            rawNote |= ((int)proString << PRO_GUITAR_STRING_OFFSET) & PRO_GUITAR_STRING_MASK;
             return rawNote;
         }
     }
