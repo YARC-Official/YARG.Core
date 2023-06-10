@@ -492,9 +492,11 @@ namespace MoonscraperChartEditor.Song.IO
             {
                 // Only need to check one difficulty since Star Power gets copied to all difficulties
                 var chart = moonSong.GetChart(moonInstrument, MoonSong.Difficulty.Expert);
-                if (chart.starPower.Count <= 0 && chart.events.Any((text) => text.eventName is MidIOHelper.SOLO_EVENT_TEXT or MidIOHelper.SOLO_END_EVENT_TEXT))
+                if (!chart.specialPhrases.Any((sp) => sp.type == SpecialPhrase.Type.Starpower)
+                    && chart.events.Any((text) => text.eventName is MidIOHelper.SOLO_EVENT_TEXT or MidIOHelper.SOLO_END_EVENT_TEXT))
                 {
-                    ProcessTextEventPairAsStarpower(processParams, MidIOHelper.SOLO_EVENT_TEXT, MidIOHelper.SOLO_END_EVENT_TEXT);
+                    ProcessTextEventPairAsSpecialPhrase(processParams, MidIOHelper.SOLO_EVENT_TEXT, MidIOHelper.SOLO_END_EVENT_TEXT,
+                        SpecialPhrase.Type.Starpower);
                     foreach (var diff in EnumX<MoonSong.Difficulty>.Values)
                     {
                         moonSong.GetChart(moonInstrument, diff).UpdateCache();
@@ -697,12 +699,8 @@ namespace MoonscraperChartEditor.Song.IO
                 { MidIOHelper.STARPOWER_DRUM_FILL_2, ProcessNoteOnEventAsDrumFill },
                 { MidIOHelper.STARPOWER_DRUM_FILL_3, ProcessNoteOnEventAsDrumFill },
                 { MidIOHelper.STARPOWER_DRUM_FILL_4, ProcessNoteOnEventAsDrumFill },
-                { MidIOHelper.DRUM_ROLL_STANDARD, (in EventProcessParams eventProcessParams) => {
-                    ProcessNoteOnEventAsDrumRoll(eventProcessParams, DrumRoll.Type.Standard);
-                }},
-                { MidIOHelper.DRUM_ROLL_SPECIAL, (in EventProcessParams eventProcessParams) => {
-                    ProcessNoteOnEventAsDrumRoll(eventProcessParams, DrumRoll.Type.Special);
-                }},
+                { MidIOHelper.DRUM_ROLL_STANDARD, ProcessNoteOnEventAsTremoloLane },
+                { MidIOHelper.DRUM_ROLL_SPECIAL, ProcessNoteOnEventAsTrillLane },
             };
 
             var DrumPadToMidiKey = new Dictionary<MoonNote.DrumPad, int>()
@@ -810,7 +808,7 @@ namespace MoonscraperChartEditor.Song.IO
             moonChart.Add(newMoonNote, false);
         }
 
-        private static void ProcessNoteOnEventAsStarpower(in EventProcessParams eventProcessParams)
+        private static void ProcessNoteOnEventAsSpecialPhrase(in EventProcessParams eventProcessParams, SpecialPhrase.Type type)
         {
             var song = eventProcessParams.song;
             var instrument = eventProcessParams.instrument;
@@ -821,39 +819,21 @@ namespace MoonscraperChartEditor.Song.IO
 
             foreach (var diff in EnumX<MoonSong.Difficulty>.Values)
             {
-                song.GetChart(instrument, diff).Add(new Starpower(tick, sus), false);
+                song.GetChart(instrument, diff).Add(new SpecialPhrase(tick, sus, type), false);
             }
         }
+
+        private static void ProcessNoteOnEventAsStarpower(in EventProcessParams eventProcessParams)
+            => ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, SpecialPhrase.Type.Starpower);
 
         private static void ProcessNoteOnEventAsDrumFill(in EventProcessParams eventProcessParams)
-        {
-            var song = eventProcessParams.song;
-            var instrument = eventProcessParams.instrument;
+            => ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, SpecialPhrase.Type.ProDrums_Activation);
 
-            var timedEvent = eventProcessParams.timedEvent;
-            uint tick = (uint)timedEvent.startTick;
-            uint sus = CutoffSustainIfNeeded(eventProcessParams.song, (uint)timedEvent.length);
+        private static void ProcessNoteOnEventAsTremoloLane(in EventProcessParams eventProcessParams)
+            => ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, SpecialPhrase.Type.TremoloLane);
 
-            foreach (var diff in EnumX<MoonSong.Difficulty>.Values)
-            {
-                song.GetChart(instrument, diff).Add(new Starpower(tick, sus, Starpower.Flags.ProDrums_Activation), false);
-            }
-        }
-
-        private static void ProcessNoteOnEventAsDrumRoll(in EventProcessParams eventProcessParams, DrumRoll.Type type)
-        {
-            var song = eventProcessParams.song;
-            var instrument = eventProcessParams.instrument;
-
-            var timedEvent = eventProcessParams.timedEvent;
-            uint tick = (uint)timedEvent.startTick;
-            uint sus = CutoffSustainIfNeeded(eventProcessParams.song, (uint)timedEvent.length);
-
-            foreach (var diff in EnumX<MoonSong.Difficulty>.Values)
-            {
-                song.GetChart(instrument, diff).Add(new DrumRoll(tick, sus, type), false);
-            }
-        }
+        private static void ProcessNoteOnEventAsTrillLane(in EventProcessParams eventProcessParams)
+            => ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, SpecialPhrase.Type.TrillLane);
 
         private static void ProcessNoteOnEventAsForcedType(in EventProcessParams eventProcessParams, MoonNote.MoonNoteType moonNoteType)
         {
@@ -1049,7 +1029,8 @@ namespace MoonscraperChartEditor.Song.IO
             }
         }
 
-        private static void ProcessTextEventPairAsStarpower(in EventProcessParams eventProcessParams, string startText, string endText, Starpower.Flags flags = Starpower.Flags.None)
+        private static void ProcessTextEventPairAsSpecialPhrase(in EventProcessParams eventProcessParams, string startText,
+            string endText, SpecialPhrase.Type type)
         {
             foreach (var difficulty in EnumX<MoonSong.Difficulty>.Values)
             {
@@ -1098,7 +1079,7 @@ namespace MoonscraperChartEditor.Song.IO
                             continue;
                         }
 
-                        chart.Add(new Starpower(startTick, endTick - startTick, flags), false);
+                        chart.Add(new SpecialPhrase(startTick, endTick - startTick, type), false);
                         currentStartTick = null;
                     }
                 }

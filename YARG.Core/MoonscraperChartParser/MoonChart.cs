@@ -17,13 +17,9 @@ namespace MoonscraperChartEditor.Song
         /// </summary>
         public SongObjectCache<MoonNote> notes { get; private set; }
         /// <summary>
-        /// Read only list of starpower.
+        /// Read only list of special phrases.
         /// </summary>
-        public SongObjectCache<Starpower> starPower { get; private set; }
-        /// <summary>
-        /// Read only list of drum rolls.
-        /// </summary>
-        public SongObjectCache<DrumRoll> drumRoll { get; private set; }
+        public SongObjectCache<SpecialPhrase> specialPhrases { get; private set; }
         /// <summary>
         /// Read only list of local events.
         /// </summary>
@@ -38,7 +34,7 @@ namespace MoonscraperChartEditor.Song
         public GameMode gameMode => _gameMode;
 
         /// <summary>
-        /// Read only list containing all chart notes, starpower, drumRoll and events.
+        /// Read only list containing all chart notes, special phrases, and text events.
         /// </summary>
         public ReadOnlyList<ChartObject> chartObjects;
 
@@ -60,8 +56,7 @@ namespace MoonscraperChartEditor.Song
             _gameMode = gameMode;
 
             notes = new SongObjectCache<MoonNote>();
-            starPower = new SongObjectCache<Starpower>();
-            drumRoll = new SongObjectCache<DrumRoll>();
+            specialPhrases = new SongObjectCache<SpecialPhrase>();
             events = new SongObjectCache<ChartEvent>();
 
             _note_count = 0;
@@ -88,8 +83,7 @@ namespace MoonscraperChartEditor.Song
         public void UpdateCache()
         {
             MoonSong.UpdateCacheList(notes, _chartObjects);
-            MoonSong.UpdateCacheList(starPower, _chartObjects);
-            MoonSong.UpdateCacheList(drumRoll, _chartObjects);
+            MoonSong.UpdateCacheList(specialPhrases, _chartObjects);
             MoonSong.UpdateCacheList(events, _chartObjects);
 
             _note_count = GetNoteCount();
@@ -129,7 +123,7 @@ namespace MoonscraperChartEditor.Song
         }
 
         /// <summary>
-        /// Adds a chart object (note, starpower, drumRoll and/or chart event) into the chart.
+        /// Adds a chart object (note, special phrase, and/or chart event) into the chart.
         /// </summary>
         /// <param name="chartObject">The item to add</param>
         /// <param name="update">Automatically update all read-only arrays? 
@@ -148,7 +142,7 @@ namespace MoonscraperChartEditor.Song
         }
 
         /// <summary>
-        /// Removes a chart object (note, starpower, drumRoll and/or chart event) from the chart.
+        /// Removes a chart object (note, special phrase, and/or chart event) from the chart.
         /// </summary>
         /// <param name="chartObject">Item to add.</param>
         /// <param name="update">Automatically update all read-only arrays? 

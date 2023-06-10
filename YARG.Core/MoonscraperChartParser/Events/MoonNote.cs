@@ -53,13 +53,6 @@ namespace MoonscraperChartEditor.Song
             Cymbal,
         }
 
-        public enum SpecialType
-        {
-            None,
-            StarPower,
-            Battle
-        }
-
         [Flags]
         public enum Flags
         {
