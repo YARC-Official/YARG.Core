@@ -34,21 +34,23 @@ namespace MoonscraperChartEditor.Song.IO
         public const byte DOUBLE_KICK_NOTE = 95;
         public const byte SOLO_NOTE = 103;                 // http://docs.c3universe.com/rbndocs/index.php?title=Guitar_and_Bass_Authoring#Solo_Sections
         public const byte TAP_NOTE_CH = 104;               // https://github.com/TheNathannator/GuitarGame_ChartFormats/blob/main/doc/FileFormats/.mid/Standard/5-Fret Guitar.md
-        public const byte LYRICS_PHRASE_1 = 105;           // http://docs.c3universe.com/rbndocs/index.php?title=Vocal_Authoring
-        public const byte LYRICS_PHRASE_2 = 106;           // Rock Band charts before RB3 mark phrases using this note as well
+        public const byte VERSUS_PHRASE_PLAYER_1 = 105;    // Guitar Hero 2 and Rock Band 1/2 use these to mark phrases for face-off
+        public const byte VERSUS_PHRASE_PLAYER_2 = 106;    // and other competitive modes where the players trade off phrases of notes
+        public const byte LYRICS_PHRASE_1 = VERSUS_PHRASE_PLAYER_1; // These are also used to mark phrases on vocals
+        public const byte LYRICS_PHRASE_2 = VERSUS_PHRASE_PLAYER_2; // Rock Band 3 dropped these versus phrases however, and on vocals just uses note 105
         public const byte FLAM_MARKER = 109;
         public const byte STARPOWER_NOTE = 116;            // http://docs.c3universe.com/rbndocs/index.php?title=Overdrive_and_Big_Rock_Endings
 
         // http://docs.c3universe.com/rbndocs/index.php?title=Drum_Authoring#Drum_Fills
-        public const byte STARPOWER_DRUM_FILL_0 = 120;
-        public const byte STARPOWER_DRUM_FILL_1 = 121;
-        public const byte STARPOWER_DRUM_FILL_2 = 122;
-        public const byte STARPOWER_DRUM_FILL_3 = 123;
-        public const byte STARPOWER_DRUM_FILL_4 = 124;
+        public const byte DRUM_FILL_NOTE_0 = 120;
+        public const byte DRUM_FILL_NOTE_1 = 121;
+        public const byte DRUM_FILL_NOTE_2 = 122;
+        public const byte DRUM_FILL_NOTE_3 = 123;
+        public const byte DRUM_FILL_NOTE_4 = 124;
 
         // Drum rolls - http://docs.c3universe.com/rbndocs/index.php?title=Drum_Authoring#Drum_Rolls
-        public const byte DRUM_ROLL_STANDARD = 126;
-        public const byte DRUM_ROLL_SPECIAL = 127;
+        public const byte TREMOLO_LANE_NOTE = 126;
+        public const byte TRILL_LANE_NOTE = 127;
 
         // Pro Guitar notes
         public const byte SOLO_NOTE_PRO_GUITAR = 115;

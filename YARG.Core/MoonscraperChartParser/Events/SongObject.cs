@@ -100,9 +100,8 @@ namespace MoonscraperChartEditor.Song
             Event,
             Section,
             Note,
-            Starpower,
+            Special,
             ChartEvent,
-            DrumRoll,
         }
     }
 }

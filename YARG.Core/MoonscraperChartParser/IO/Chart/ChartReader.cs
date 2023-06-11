@@ -578,27 +578,35 @@ namespace MoonscraperChartEditor.Song.IO
 
                                 switch (fret_type)
                                 {
+                                    case ChartIOHelper.PHRASE_VERSUS_PLAYER_1:
+                                        moonChart.Add(new SpecialPhrase(tick, length, SpecialPhrase.Type.Versus_Player1), false);
+                                        break;
+
+                                    case ChartIOHelper.PHRASE_VERSUS_PLAYER_2:
+                                        moonChart.Add(new SpecialPhrase(tick, length, SpecialPhrase.Type.Versus_Player2), false);
+                                        break;
+
                                     case ChartIOHelper.PHRASE_STARPOWER:
-                                        moonChart.Add(new Starpower(tick, length), false);
+                                        moonChart.Add(new SpecialPhrase(tick, length, SpecialPhrase.Type.Starpower), false);
                                         break;
 
                                     case ChartIOHelper.PHRASE_DRUM_FILL:
                                         if (instrument == ChartIOHelper.TrackLoadType.Drums)
-                                            moonChart.Add(new Starpower(tick, length, Starpower.Flags.ProDrums_Activation), false);
+                                            moonChart.Add(new SpecialPhrase(tick, length, SpecialPhrase.Type.ProDrums_Activation), false);
                                         else
                                             Debug.Assert(false, "Found drum fill flag on incompatible instrument.");
                                         break;
 
-                                    case ChartIOHelper.PHRASE_DRUM_ROLL_SINGLE:
+                                    case ChartIOHelper.PHRASE_TREMOLO_LANE:
                                         if (instrument == ChartIOHelper.TrackLoadType.Drums)
-                                            moonChart.Add(new DrumRoll(tick, length, DrumRoll.Type.Standard), false);
+                                            moonChart.Add(new SpecialPhrase(tick, length, SpecialPhrase.Type.TremoloLane), false);
                                         else
                                             Debug.Assert(false, "Found standard drum roll flag on incompatible instrument.");
                                         break;
 
-                                    case ChartIOHelper.PHRASE_DRUM_ROLL_DOUBLE:
+                                    case ChartIOHelper.PHRASE_TRILL_LANE:
                                         if (instrument == ChartIOHelper.TrackLoadType.Drums)
-                                            moonChart.Add(new DrumRoll(tick, length, DrumRoll.Type.Special), false);
+                                            moonChart.Add(new SpecialPhrase(tick, length, SpecialPhrase.Type.TrillLane), false);
                                         else
                                             Debug.Assert(false, "Found special drum roll flag on incompatible instrument.");
                                         break;

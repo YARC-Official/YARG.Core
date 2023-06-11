@@ -6,27 +6,33 @@ using System;
 namespace MoonscraperChartEditor.Song
 {
     [Serializable]
-    public class Starpower : ChartObject
+    public class SpecialPhrase : ChartObject
     {
         [Flags]
-        public enum Flags
+        public enum Type
         {
-            None = 0,
+            Starpower,
+
+            Versus_Player1,
+            Versus_Player2,
+
+            TremoloLane,
+            TrillLane,
 
             // RB Pro Drums
-            ProDrums_Activation = 1 << 0,
+            ProDrums_Activation,
         }
 
-        private readonly ID _classID = ID.Starpower;
+        private readonly ID _classID = ID.Special;
         public override int classID => (int)_classID;
 
         public uint length;
-        public Flags flags = Flags.None;
+        public Type type;
 
-        public Starpower(uint _position, uint _length, Flags _flags = Flags.None) : base(_position)
+        public SpecialPhrase(uint _position, uint _length, Type _type) : base(_position)
         {
             length = _length;
-            flags = _flags;
+            type = _type;
         }
 
         public uint GetCappedLengthForPos(uint pos)
@@ -37,20 +43,20 @@ namespace MoonscraperChartEditor.Song
             else
                 newLength = 0;
 
-            Starpower nextSp = null;
+            SpecialPhrase nextSp = null;
             if (moonSong != null && moonChart != null)
             {
-                int arrayPos = SongObjectHelper.FindClosestPosition(this, moonChart.starPower);
+                int arrayPos = SongObjectHelper.FindClosestPosition(this, moonChart.specialPhrases);
                 if (arrayPos == SongObjectHelper.NOTFOUND)
                     return newLength;
 
-                while (arrayPos < moonChart.starPower.Count - 1 && moonChart.starPower[arrayPos].tick <= tick)
+                while (arrayPos < moonChart.specialPhrases.Count - 1 && moonChart.specialPhrases[arrayPos].tick <= tick)
                 {
                     ++arrayPos;
                 }
 
-                if (moonChart.starPower[arrayPos].tick > tick)
-                    nextSp = moonChart.starPower[arrayPos];
+                if (moonChart.specialPhrases[arrayPos].tick > tick)
+                    nextSp = moonChart.specialPhrases[arrayPos];
 
                 if (nextSp != null)
                 {
@@ -61,7 +67,7 @@ namespace MoonscraperChartEditor.Song
                         // Cap sustain
                         newLength = nextSp.tick - tick;
                 }
-                // else it's the only starpower or it's the last starpower 
+                // else it's the last or only special phrase
             }
 
             return newLength;
