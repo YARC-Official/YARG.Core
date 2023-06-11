@@ -26,10 +26,16 @@ namespace YARG.Core.UnitTests.Parsing
             { MoonInstrument.Rhythm,       RHYTHM_TRACK },
             { MoonInstrument.Keys,         KEYS_TRACK },
             { MoonInstrument.Drums,        DRUMS_TRACK },
+
             { MoonInstrument.GHLiveGuitar, GHL_GUITAR_TRACK },
             { MoonInstrument.GHLiveBass,   GHL_BASS_TRACK },
             { MoonInstrument.GHLiveRhythm, GHL_RHYTHM_TRACK },
             { MoonInstrument.GHLiveCoop,   GHL_GUITAR_COOP_TRACK },
+
+            { MoonInstrument.ProGuitar_17Fret, PRO_GUITAR_17_FRET_TRACK },
+            { MoonInstrument.ProGuitar_22Fret, PRO_GUITAR_22_FRET_TRACK },
+            { MoonInstrument.ProBass_17Fret,   PRO_BASS_17_FRET_TRACK },
+            { MoonInstrument.ProBass_22Fret,   PRO_BASS_22_FRET_TRACK },
         };
 
         private static readonly Dictionary<int, int> GuitarNoteOffsetLookup = new()
@@ -65,6 +71,24 @@ namespace YARG.Core.UnitTests.Parsing
             { MoonNoteType.Strum, 8 },
         };
 
+        private static readonly Dictionary<int, int> ProGuitarNoteOffsetLookup = new()
+        {
+            { (int)ProGuitarString.Red,    0 },
+            { (int)ProGuitarString.Green,  1 },
+            { (int)ProGuitarString.Orange, 2 },
+            { (int)ProGuitarString.Blue,   3 },
+            { (int)ProGuitarString.Yellow, 4 },
+            { (int)ProGuitarString.Purple, 5 },
+        };
+
+        private static readonly Dictionary<MoonNoteType, int> ProGuitarForceOffsetLookup = new()
+        {
+            { MoonNoteType.Hopo,  6 },
+        };
+
+        private static readonly Dictionary<Flags, byte> ProGuitarChannelFlagLookup =
+            PRO_GUITAR_CHANNEL_FLAG_LOOKUP.ToDictionary((pair) => pair.Value, (pair) => pair.Key);
+
         private static readonly Dictionary<int, int> DrumsNoteOffsetLookup = new()
         {
             { (int)DrumPad.Kick,   0 },
@@ -80,6 +104,7 @@ namespace YARG.Core.UnitTests.Parsing
             { GameMode.Guitar,    GuitarNoteOffsetLookup },
             { GameMode.Drums,     DrumsNoteOffsetLookup },
             { GameMode.GHLGuitar, GhlGuitarNoteOffsetLookup },
+            { GameMode.ProGuitar, ProGuitarNoteOffsetLookup },
         };
 
         private static readonly Dictionary<GameMode, Dictionary<MoonNoteType, int>> InstrumentForceOffsetLookup = new()
@@ -87,6 +112,15 @@ namespace YARG.Core.UnitTests.Parsing
             { GameMode.Guitar,    GuitarForceOffsetLookup },
             { GameMode.Drums,     new() },
             { GameMode.GHLGuitar, GhlGuitarForceOffsetLookup },
+            { GameMode.ProGuitar, ProGuitarForceOffsetLookup },
+        };
+
+        private static readonly Dictionary<GameMode, Dictionary<Flags, byte>> InstrumentChannelFlagLookup = new()
+        {
+            { GameMode.Guitar,    new() },
+            { GameMode.Drums,     new() },
+            { GameMode.GHLGuitar, new() },
+            { GameMode.ProGuitar, ProGuitarChannelFlagLookup },
         };
 
         private static readonly Dictionary<GameMode, Dictionary<Difficulty, int>> InstrumentDifficultyStartLookup = new()
@@ -94,9 +128,12 @@ namespace YARG.Core.UnitTests.Parsing
             { GameMode.Guitar,    GUITAR_DIFF_START_LOOKUP },
             { GameMode.Drums,     DRUMS_DIFF_START_LOOKUP },
             { GameMode.GHLGuitar, GHL_GUITAR_DIFF_START_LOOKUP },
+            { GameMode.ProGuitar, PRO_GUITAR_DIFF_START_LOOKUP },
         };
 
+        // Because SevenBitNumber andFourBitNumber have no implicit operators for taking in bytes
         private static SevenBitNumber S(byte number) => (SevenBitNumber)number;
+        private static FourBitNumber F(byte number) => (FourBitNumber)number;
 
         private static TrackChunk GenerateTrackChunk(List<MoonNote> data, MoonInstrument instrument)
         {
@@ -150,7 +187,8 @@ namespace YARG.Core.UnitTests.Parsing
 
             // Whether or not certain note flags can be placed
             // 5/6-fret guitar
-            bool canForce = gameMode is GameMode.Guitar or GameMode.GHLGuitar;
+            bool canForceStrum = gameMode is not GameMode.Drums or GameMode.ProGuitar;
+            bool canForceHopo = gameMode is not GameMode.Drums;
             bool canTap = gameMode is GameMode.Guitar or GameMode.GHLGuitar && difficulty == Difficulty.Expert; // Tap marker is all-difficulty
             // Drums
             bool canTom = gameMode is GameMode.Drums && difficulty == Difficulty.Expert; // Tom markers are all-difficulty
@@ -161,12 +199,14 @@ namespace YARG.Core.UnitTests.Parsing
             int difficultyStart = InstrumentDifficultyStartLookup[gameMode][difficulty];
             var noteOffsetLookup = InstrumentNoteOffsetLookup[gameMode];
             var forceOffsetLookup = InstrumentForceOffsetLookup[gameMode];
+            var channelFlagLookup = InstrumentChannelFlagLookup[gameMode];
 
             // Note properties
             var flags = note.flags;
             int rawNote = gameMode switch {
                 GameMode.Guitar => (int)note.guitarFret,
                 GameMode.GHLGuitar => (int)note.ghliveGuitarFret,
+                GameMode.ProGuitar => (int)note.proGuitarString,
                 GameMode.Drums => (int)note.drumPad,
                 _ => note.rawNote
             };
@@ -185,14 +225,22 @@ namespace YARG.Core.UnitTests.Parsing
                     velocity = VELOCITY_GHOST;
             }
 
+            // Pro Guitar fret number
+            if (gameMode is GameMode.ProGuitar && velocity > 0)
+                velocity = (byte)(100 + note.proGuitarFret);
+
+            // Pro Guitar channel flags
+            if (!channelFlagLookup.TryGetValue(flags, out byte channel))
+                channel = 0;
+
             // Main note
-            chunk.Events.Add(new TNoteEvent() { NoteNumber = S(noteNumber), Velocity = S(velocity), DeltaTime = noteDelta });
+            chunk.Events.Add(new TNoteEvent() { NoteNumber = S(noteNumber), Velocity = S(velocity), DeltaTime = noteDelta, Channel = F(channel) });
 
             // Note flags
-            if (canForce && (flags & Flags.Forced) != 0)
+            if ((canForceStrum || canForceHopo) && (flags & Flags.Forced) != 0)
             {
                 byte forceNote;
-                if (lastStartDelta is >= HOPO_THRESHOLD and > 0) 
+                if (canForceHopo && lastStartDelta is >= HOPO_THRESHOLD and > 0) 
                     forceNote = (byte)(difficultyStart + forceOffsetLookup[MoonNoteType.Hopo]);
                 else
                     forceNote = (byte)(difficultyStart + forceOffsetLookup[MoonNoteType.Strum]);
@@ -220,6 +268,7 @@ namespace YARG.Core.UnitTests.Parsing
                 sync,
                 GenerateTrackChunk(GuitarNotes, MoonInstrument.Guitar),
                 GenerateTrackChunk(GhlGuitarNotes, MoonInstrument.GHLiveGuitar),
+                GenerateTrackChunk(ProGuitarNotes, MoonInstrument.ProGuitar_22Fret),
                 GenerateTrackChunk(DrumsNotes, MoonInstrument.Drums))
             {
                 TimeDivision = new TicksPerQuarterNoteTimeDivision((short)RESOLUTION)
@@ -251,6 +300,7 @@ namespace YARG.Core.UnitTests.Parsing
                 {
                     VerifyTrack(song, GuitarNotes, MoonInstrument.Guitar, difficulty);
                     VerifyTrack(song, GhlGuitarNotes, MoonInstrument.GHLiveGuitar, difficulty);
+                    VerifyTrack(song, ProGuitarNotes, MoonInstrument.ProGuitar_22Fret, difficulty);
                     VerifyTrack(song, DrumsNotes, MoonInstrument.Drums, difficulty);
                 }
             });

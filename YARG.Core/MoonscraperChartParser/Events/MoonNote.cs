@@ -44,6 +44,21 @@ namespace MoonscraperChartEditor.Song
             Open
         }
 
+        public enum ProGuitarString
+        {
+            Red,
+            Green,
+            Orange,
+            Blue,
+            Yellow,
+            Purple
+        }
+
+        private const int PRO_GUITAR_FRET_OFFSET = 0;
+        private const int PRO_GUITAR_FRET_MASK = 0x1F << PRO_GUITAR_FRET_OFFSET;
+        private const int PRO_GUITAR_STRING_OFFSET = 5;
+        private const int PRO_GUITAR_STRING_MASK = 0x07 << PRO_GUITAR_STRING_OFFSET;
+
         public enum MoonNoteType
         {
             Natural,
@@ -68,6 +83,9 @@ namespace MoonscraperChartEditor.Song
             // Guitar
             Forced = 1 << 0,
             Tap = 1 << 1,
+
+            // Pro Guitar
+            ProGuitar_Muted = 1 << 2,
 
             // RB Pro Drums
             ProDrums_Cymbal = 1 << 6,
@@ -100,6 +118,18 @@ namespace MoonscraperChartEditor.Song
         {
             get => (GHLiveGuitarFret)rawNote;
             set => rawNote = (int)value;
+        }
+
+        public int proGuitarFret
+        {
+            get => (rawNote & PRO_GUITAR_FRET_MASK) >> PRO_GUITAR_FRET_OFFSET;
+            set => rawNote = MakeProGuitarRawNote(proGuitarString, value);
+        }
+
+        public ProGuitarString proGuitarString
+        {
+            get => (ProGuitarString)((rawNote & PRO_GUITAR_STRING_MASK) >> PRO_GUITAR_STRING_OFFSET);
+            set => rawNote = MakeProGuitarRawNote(value, proGuitarFret);
         }
 
         /// <summary>
@@ -374,10 +404,20 @@ namespace MoonscraperChartEditor.Song
 
         public bool IsOpenNote()
         {
-            if (gameMode == MoonChart.GameMode.GHLGuitar)
-                return ghliveGuitarFret == GHLiveGuitarFret.Open;
-            else
-                return guitarFret == GuitarFret.Open;
+            return gameMode switch
+            {
+                MoonChart.GameMode.GHLGuitar => ghliveGuitarFret == GHLiveGuitarFret.Open,
+                MoonChart.GameMode.ProGuitar => proGuitarFret == 0,
+                _ => guitarFret == GuitarFret.Open
+            };
+        }
+
+        public static int MakeProGuitarRawNote(ProGuitarString proString, int fret)
+        {
+            fret = Math.Clamp(fret, 0, 22);
+            int rawNote = (fret << PRO_GUITAR_FRET_OFFSET) & PRO_GUITAR_FRET_MASK;
+            rawNote |= ((int)proString << PRO_GUITAR_STRING_OFFSET) & PRO_GUITAR_STRING_MASK;
+            return rawNote;
         }
     }
 }

@@ -422,6 +422,12 @@ namespace MoonscraperChartEditor.Song
                 case MoonInstrument.GHLiveCoop:
                     return MoonChart.GameMode.GHLGuitar;
 
+                case MoonInstrument.ProGuitar_17Fret:
+                case MoonInstrument.ProGuitar_22Fret:
+                case MoonInstrument.ProBass_17Fret:
+                case MoonInstrument.ProBass_22Fret:
+                    return MoonChart.GameMode.ProGuitar;
+
                 default:
                     break;
             }
@@ -449,6 +455,10 @@ namespace MoonscraperChartEditor.Song
             GHLiveBass,
             GHLiveRhythm,
             GHLiveCoop,
+            ProGuitar_17Fret,
+            ProGuitar_22Fret,
+            ProBass_17Fret,
+            ProBass_22Fret,
             Unrecognised = 99,
         }
 

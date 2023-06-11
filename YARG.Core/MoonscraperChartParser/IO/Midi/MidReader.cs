@@ -69,6 +69,7 @@ namespace MoonscraperChartEditor.Song.IO
         private static readonly Dictionary<int, EventProcessFn> GuitarMidiNoteNumberToProcessFnMap = BuildGuitarMidiNoteNumberToProcessFnDict();
         private static readonly Dictionary<int, EventProcessFn> GuitarMidiNoteNumberToProcessFnMap_EnhancedOpens = BuildGuitarMidiNoteNumberToProcessFnDict(enhancedOpens: true);
         private static readonly Dictionary<int, EventProcessFn> GhlGuitarMidiNoteNumberToProcessFnMap = BuildGhlGuitarMidiNoteNumberToProcessFnDict();
+        private static readonly Dictionary<int, EventProcessFn> ProGuitarMidiNoteNumberToProcessFnMap = BuildProGuitarMidiNoteNumberToProcessFnDict();
         private static readonly Dictionary<int, EventProcessFn> DrumsMidiNoteNumberToProcessFnMap = BuildDrumsMidiNoteNumberToProcessFnDict();
         private static readonly Dictionary<int, EventProcessFn> DrumsMidiNoteNumberToProcessFnMap_Velocity = BuildDrumsMidiNoteNumberToProcessFnDict(enableVelocity: true);
 
@@ -80,6 +81,10 @@ namespace MoonscraperChartEditor.Song.IO
         };
 
         private static readonly Dictionary<string, ProcessModificationProcessFn> GhlGuitarTextEventToProcessFnMap = new()
+        {
+        };
+
+        private static readonly Dictionary<string, ProcessModificationProcessFn> ProGuitarTextEventToProcessFnMap = new()
         {
         };
 
@@ -103,6 +108,10 @@ namespace MoonscraperChartEditor.Song.IO
             { PhaseShiftSysEx.PhraseCode.Guitar_Tap, (in EventProcessParams eventProcessParams) => {
                 ProcessSysExEventPairAsForcedType(eventProcessParams, MoonNote.MoonNoteType.Tap);
             }},
+        };
+
+        private static readonly Dictionary<PhaseShiftSysEx.PhraseCode, EventProcessFn> ProGuitarSysExEventToProcessFnMap = new()
+        {
         };
 
         private static readonly Dictionary<PhaseShiftSysEx.PhraseCode, EventProcessFn> DrumsSysExEventToProcessFnMap = new()
@@ -508,6 +517,7 @@ namespace MoonscraperChartEditor.Song.IO
             return gameMode switch
             {
                 MoonChart.GameMode.GHLGuitar => GhlGuitarMidiNoteNumberToProcessFnMap,
+                MoonChart.GameMode.ProGuitar => ProGuitarMidiNoteNumberToProcessFnMap,
                 MoonChart.GameMode.Drums => DrumsMidiNoteNumberToProcessFnMap,
                 _ => GuitarMidiNoteNumberToProcessFnMap
             };
@@ -518,6 +528,7 @@ namespace MoonscraperChartEditor.Song.IO
             return gameMode switch
             {
                 MoonChart.GameMode.GHLGuitar => GhlGuitarTextEventToProcessFnMap,
+                MoonChart.GameMode.ProGuitar => ProGuitarTextEventToProcessFnMap,
                 MoonChart.GameMode.Drums => DrumsTextEventToProcessFnMap,
                 _ => GuitarTextEventToProcessFnMap
             };
@@ -529,6 +540,7 @@ namespace MoonscraperChartEditor.Song.IO
             {
                 MoonChart.GameMode.Guitar => GuitarSysExEventToProcessFnMap,
                 MoonChart.GameMode.GHLGuitar => GhlGuitarSysExEventToProcessFnMap,
+                MoonChart.GameMode.ProGuitar => ProGuitarSysExEventToProcessFnMap,
                 MoonChart.GameMode.Drums => DrumsSysExEventToProcessFnMap,
                 // Don't process any SysEx events on unrecognized tracks
                 _ => new()
@@ -678,6 +690,52 @@ namespace MoonscraperChartEditor.Song.IO
                         ProcessNoteOnEventAsForcedType(eventProcessParams, difficulty, MoonNote.MoonNoteType.Strum);
                     });
                 }
+            };
+
+            return processFnDict;
+        }
+
+        private static Dictionary<int, EventProcessFn> BuildProGuitarMidiNoteNumberToProcessFnDict()
+        {
+            var processFnDict = new Dictionary<int, EventProcessFn>()
+            {
+                { MidIOHelper.STARPOWER_NOTE, ProcessNoteOnEventAsStarpower },
+                { MidIOHelper.SOLO_NOTE_PRO_GUITAR, (in EventProcessParams eventProcessParams) => {
+                    ProcessNoteOnEventAsEvent(eventProcessParams, MidIOHelper.SOLO_EVENT_TEXT, MidIOHelper.SOLO_END_EVENT_TEXT, tickEndOffset: SOLO_END_CORRECTION_OFFSET);
+                }},
+            };
+
+            foreach (var difficulty in EnumX<MoonSong.Difficulty>.Values)
+            {
+                int difficultyStartRange = MidIOHelper.PRO_GUITAR_DIFF_START_LOOKUP[difficulty];
+                foreach (var proString in EnumX<MoonNote.ProGuitarString>.Values)
+                {
+                    int key = (int)proString + difficultyStartRange;
+                    processFnDict.Add(key, (in EventProcessParams eventProcessParams) =>
+                    {
+                        var noteEvent = eventProcessParams.timedEvent.midiEvent as NoteEvent;
+                        Debug.Assert(noteEvent != null, $"Wrong note event type passed to Pro Guitar note process. Expected: {typeof(NoteEvent)}, Actual: {eventProcessParams.timedEvent.midiEvent.GetType()}");
+
+                        if (noteEvent.Velocity < 100)
+                        {
+                            Debug.WriteLine($"Encountered Pro Guitar note with invalid fret velocity {noteEvent.Velocity}! Must be at least 100");
+                            return;
+                        }
+
+                        int fret = noteEvent.Velocity - 100;
+                        int rawNote = MoonNote.MakeProGuitarRawNote(proString, fret);
+                        if (!MidIOHelper.PRO_GUITAR_CHANNEL_FLAG_LOOKUP.TryGetValue(noteEvent.Channel, out var flags))
+                            flags = MoonNote.Flags.None;
+
+                        ProcessNoteOnEventAsNote(eventProcessParams, difficulty, rawNote, flags);
+                    });
+                }
+
+                // Process forced hopo
+                processFnDict.Add(difficultyStartRange + 6, (in EventProcessParams eventProcessParams) =>
+                {
+                    ProcessNoteOnEventAsForcedType(eventProcessParams, difficulty, MoonNote.MoonNoteType.Hopo);
+                });
             };
 
             return processFnDict;

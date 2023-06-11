@@ -82,6 +82,7 @@ namespace YARG.Core.UnitTests.Parsing
                 int rawNote = gameMode switch {
                     GameMode.Guitar => (int)note.guitarFret,
                     GameMode.GHLGuitar => (int)note.ghliveGuitarFret,
+                    GameMode.ProGuitar => throw new NotSupportedException(".chart does not support Pro Guitar!"),
                     GameMode.Drums => (int)note.drumPad,
                     _ => note.rawNote
                 };

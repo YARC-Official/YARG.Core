@@ -21,6 +21,8 @@ namespace YARG.Core.UnitTests.Parsing
             => new(0, (int)fret, length, flags);
         private static MoonNote NewNote(DrumPad pad, uint length = 0, Flags flags = Flags.None)
             => new(0, (int)pad, length, flags);
+        private static MoonNote NewNote(ProGuitarString str, int fret, uint length = 0, Flags flags = Flags.None)
+            => new(0, MoonNote.MakeProGuitarRawNote(str, fret), length, flags);
 
         public static readonly List<MoonNote> GuitarNotes = new()
         {
@@ -69,6 +71,30 @@ namespace YARG.Core.UnitTests.Parsing
             NewNote(GHLiveGuitarFret.White1, flags: Flags.Tap),
             NewNote(GHLiveGuitarFret.White2, flags: Flags.Tap),
             NewNote(GHLiveGuitarFret.White3, flags: Flags.Tap),
+        };
+
+        public static readonly List<MoonNote> ProGuitarNotes = new()
+        {
+            NewNote(ProGuitarString.Red, 0),
+            NewNote(ProGuitarString.Green, 1),
+            NewNote(ProGuitarString.Orange, 2),
+            NewNote(ProGuitarString.Blue, 3),
+            NewNote(ProGuitarString.Yellow, 4),
+            NewNote(ProGuitarString.Purple, 5),
+
+            NewNote(ProGuitarString.Red, 6, flags: Flags.Forced),
+            NewNote(ProGuitarString.Green, 7, flags: Flags.Forced),
+            NewNote(ProGuitarString.Orange, 8, flags: Flags.Forced),
+            NewNote(ProGuitarString.Blue, 9, flags: Flags.Forced),
+            NewNote(ProGuitarString.Yellow, 10, flags: Flags.Forced),
+            NewNote(ProGuitarString.Purple, 11, flags: Flags.Forced),
+
+            NewNote(ProGuitarString.Red, 12, flags: Flags.ProGuitar_Muted),
+            NewNote(ProGuitarString.Green, 13, flags: Flags.ProGuitar_Muted),
+            NewNote(ProGuitarString.Orange, 14, flags: Flags.ProGuitar_Muted),
+            NewNote(ProGuitarString.Blue, 15, flags: Flags.ProGuitar_Muted),
+            NewNote(ProGuitarString.Yellow, 16, flags: Flags.ProGuitar_Muted),
+            NewNote(ProGuitarString.Purple, 17, flags: Flags.ProGuitar_Muted),
         };
 
         public static readonly List<MoonNote> DrumsNotes = new()
