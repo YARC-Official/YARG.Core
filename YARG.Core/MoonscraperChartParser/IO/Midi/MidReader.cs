@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2016-2020 Alexander Ong
+// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
 using System;
@@ -573,6 +573,11 @@ namespace MoonscraperChartEditor.Song.IO
                 { MidIOHelper.SOLO_NOTE, (in EventProcessParams eventProcessParams) => {
                     ProcessNoteOnEventAsEvent(eventProcessParams, MidIOHelper.SOLO_EVENT_TEXT, MidIOHelper.SOLO_END_EVENT_TEXT, tickEndOffset: SOLO_END_CORRECTION_OFFSET);
                 }},
+
+                { MidIOHelper.VERSUS_PHRASE_PLAYER_1, ProcessNoteOnEventAsVersusPlayerOne },
+                { MidIOHelper.VERSUS_PHRASE_PLAYER_2, ProcessNoteOnEventAsVersusPlayerTwo },
+                { MidIOHelper.TREMOLO_LANE_NOTE, ProcessNoteOnEventAsTremoloLane },
+                { MidIOHelper.TRILL_LANE_NOTE, ProcessNoteOnEventAsTrillLane },
             };
 
             var FretToMidiKey = new Dictionary<MoonNote.GuitarFret, int>()
@@ -699,6 +704,9 @@ namespace MoonscraperChartEditor.Song.IO
                 { MidIOHelper.DRUM_FILL_NOTE_2, ProcessNoteOnEventAsDrumFill },
                 { MidIOHelper.DRUM_FILL_NOTE_3, ProcessNoteOnEventAsDrumFill },
                 { MidIOHelper.DRUM_FILL_NOTE_4, ProcessNoteOnEventAsDrumFill },
+
+                { MidIOHelper.VERSUS_PHRASE_PLAYER_1, ProcessNoteOnEventAsVersusPlayerOne },
+                { MidIOHelper.VERSUS_PHRASE_PLAYER_2, ProcessNoteOnEventAsVersusPlayerTwo },
                 { MidIOHelper.TREMOLO_LANE_NOTE, ProcessNoteOnEventAsTremoloLane },
                 { MidIOHelper.TRILL_LANE_NOTE, ProcessNoteOnEventAsTrillLane },
             };
@@ -825,6 +833,12 @@ namespace MoonscraperChartEditor.Song.IO
 
         private static void ProcessNoteOnEventAsStarpower(in EventProcessParams eventProcessParams)
             => ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, SpecialPhrase.Type.Starpower);
+
+        private static void ProcessNoteOnEventAsVersusPlayerOne(in EventProcessParams eventProcessParams)
+            => ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, SpecialPhrase.Type.Versus_Player1);
+
+        private static void ProcessNoteOnEventAsVersusPlayerTwo(in EventProcessParams eventProcessParams)
+            => ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, SpecialPhrase.Type.Versus_Player2);
 
         private static void ProcessNoteOnEventAsDrumFill(in EventProcessParams eventProcessParams)
             => ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, SpecialPhrase.Type.ProDrums_Activation);

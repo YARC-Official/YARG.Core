@@ -20,6 +20,8 @@ namespace MoonscraperChartEditor.Song.IO
         public const int NOTE_OFFSET_DRUMS_ACCENT = 33;
         public const int NOTE_OFFSET_DRUMS_GHOST = 39;
 
+        public const int PHRASE_VERSUS_PLAYER_1 = 0;
+        public const int PHRASE_VERSUS_PLAYER_2 = 1;
         public const int PHRASE_STARPOWER = 2;
         public const int PHRASE_DRUM_FILL = 64;
         public const int PHRASE_TREMOLO_LANE = 65;

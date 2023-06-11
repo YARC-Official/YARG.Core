@@ -578,6 +578,14 @@ namespace MoonscraperChartEditor.Song.IO
 
                                 switch (fret_type)
                                 {
+                                    case ChartIOHelper.PHRASE_VERSUS_PLAYER_1:
+                                        moonChart.Add(new SpecialPhrase(tick, length, SpecialPhrase.Type.Versus_Player1), false);
+                                        break;
+
+                                    case ChartIOHelper.PHRASE_VERSUS_PLAYER_2:
+                                        moonChart.Add(new SpecialPhrase(tick, length, SpecialPhrase.Type.Versus_Player2), false);
+                                        break;
+
                                     case ChartIOHelper.PHRASE_STARPOWER:
                                         moonChart.Add(new SpecialPhrase(tick, length, SpecialPhrase.Type.Starpower), false);
                                         break;
