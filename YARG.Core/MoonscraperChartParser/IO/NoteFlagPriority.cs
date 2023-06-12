@@ -55,21 +55,21 @@ namespace MoonscraperChartEditor.Song.IO
             }
         }
 
-        public bool TryApplyToNote(MoonNote moonNote)
+        public bool TryApplyToNote(MoonNote note)
         {
             // Don't add if the flag to be added is lower-priority than a conflicting, already-added flag
-            if (blockingFlag != MoonNote.Flags.None && moonNote.flags.HasFlag(blockingFlag))
+            if (blockingFlag != MoonNote.Flags.None && note.flags.HasFlag(blockingFlag))
             {
                 return false;
             }
 
             // Flag can be added without issue
-            moonNote.flags |= flagToAdd;
+            note.flags |= flagToAdd;
 
             // Remove flags that are lower-priority than the added flag
-            if (flagToRemove != MoonNote.Flags.None && moonNote.flags.HasFlag(flagToRemove))
+            if (flagToRemove != MoonNote.Flags.None && note.flags.HasFlag(flagToRemove))
             {
-                moonNote.flags &= ~flagToRemove;
+                note.flags &= ~flagToRemove;
             }
 
             return true;

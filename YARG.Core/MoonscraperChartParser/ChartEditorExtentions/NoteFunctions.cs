@@ -5,11 +5,11 @@ using MoonscraperChartEditor.Song;
 
 public static class NoteFunctions
 {
-    public static void ApplyFlagsToChord(this MoonNote moonNote)
+    public static void ApplyFlagsToChord(this MoonNote note)
     {
-        foreach (var chordNote in moonNote.chord)
+        foreach (var chordNote in note.chord)
         {
-            chordNote.flags = CopyChordFlags(chordNote.flags, moonNote.flags);
+            chordNote.flags = CopyChordFlags(chordNote.flags, note.flags);
         }
     }
 

@@ -44,19 +44,19 @@ namespace MoonscraperChartEditor.Song
                 newLength = 0;
 
             SpecialPhrase nextSp = null;
-            if (moonSong != null && moonChart != null)
+            if (song != null && chart != null)
             {
-                int arrayPos = SongObjectHelper.FindClosestPosition(this, moonChart.specialPhrases);
+                int arrayPos = SongObjectHelper.FindClosestPosition(this, chart.specialPhrases);
                 if (arrayPos == SongObjectHelper.NOTFOUND)
                     return newLength;
 
-                while (arrayPos < moonChart.specialPhrases.Count - 1 && moonChart.specialPhrases[arrayPos].tick <= tick)
+                while (arrayPos < chart.specialPhrases.Count - 1 && chart.specialPhrases[arrayPos].tick <= tick)
                 {
                     ++arrayPos;
                 }
 
-                if (moonChart.specialPhrases[arrayPos].tick > tick)
-                    nextSp = moonChart.specialPhrases[arrayPos];
+                if (chart.specialPhrases[arrayPos].tick > tick)
+                    nextSp = chart.specialPhrases[arrayPos];
 
                 if (nextSp != null)
                 {

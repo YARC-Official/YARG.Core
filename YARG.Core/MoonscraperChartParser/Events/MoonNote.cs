@@ -151,7 +151,7 @@ namespace MoonscraperChartEditor.Song
             next = null;
         }
 
-        public MoonChart.GameMode gameMode => moonChart?.gameMode ?? MoonChart.GameMode.Unrecognised;
+        public MoonChart.GameMode gameMode => chart?.gameMode ?? MoonChart.GameMode.Unrecognised;
 
         public bool forced
         {
@@ -247,7 +247,7 @@ namespace MoonscraperChartEditor.Song
                     if (prevIsChord || (!prevIsChord && rawNote != previous.rawNote))
                     {
                         // Check distance from previous note 
-                        int HOPODistance = (int)(SongConfig.FORCED_NOTE_TICK_THRESHOLD * moonSong.resolution / SongConfig.STANDARD_BEAT_RESOLUTION);
+                        int HOPODistance = (int)(SongConfig.FORCED_NOTE_TICK_THRESHOLD * song.resolution / SongConfig.STANDARD_BEAT_RESOLUTION);
 
                         if (tick - previous.tick <= HOPODistance)
                             HOPO = true;
@@ -286,18 +286,18 @@ namespace MoonscraperChartEditor.Song
                 // Don't interate using chord, as chord will get messed up for the tool notes which override their linked list references. 
                 int mask = 1 << rawNote;
 
-                var moonNote = this;
-                while (moonNote.previous != null && moonNote.previous.tick == tick)
+                var note = this;
+                while (note.previous != null && note.previous.tick == tick)
                 {
-                    moonNote = moonNote.previous;
-                    mask |= (1 << moonNote.rawNote);
+                    note = note.previous;
+                    mask |= (1 << note.rawNote);
                 }
 
-                moonNote = this;
-                while (moonNote.next != null && moonNote.tick == moonNote.next.tick)
+                note = this;
+                while (note.next != null && note.tick == note.next.tick)
                 {
-                    moonNote = moonNote.next;
-                    mask |= (1 << moonNote.rawNote);
+                    note = note.next;
+                    mask |= (1 << note.rawNote);
                 }
 
                 return mask;
@@ -366,26 +366,26 @@ namespace MoonscraperChartEditor.Song
         public class Chord : IEnumerable<MoonNote>
         {
             private readonly MoonNote _baseMoonNote;
-            public Chord(MoonNote moonNote) : base()
+            public Chord(MoonNote note) : base()
             {
-                _baseMoonNote = moonNote;
+                _baseMoonNote = note;
             }
 
             public IEnumerator<MoonNote> GetEnumerator()
             {
-                var moonNote = _baseMoonNote;
+                var note = _baseMoonNote;
 
-                while (moonNote.previous != null && moonNote.previous.tick == moonNote.tick)
+                while (note.previous != null && note.previous.tick == note.tick)
                 {
-                    moonNote = moonNote.previous;
+                    note = note.previous;
                 }
 
-                yield return moonNote;
+                yield return note;
 
-                while (moonNote.next != null && moonNote.tick == moonNote.next.tick)
+                while (note.next != null && note.tick == note.next.tick)
                 {
-                    moonNote = moonNote.next;
-                    yield return moonNote;
+                    note = note.next;
+                    yield return note;
                 }
             }
 

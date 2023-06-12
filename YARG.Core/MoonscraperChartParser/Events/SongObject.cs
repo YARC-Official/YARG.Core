@@ -12,7 +12,7 @@ namespace MoonscraperChartEditor.Song
         /// The song this object is connected to.
         /// </summary>
         [NonSerialized]
-        public MoonSong moonSong;
+        public MoonSong song;
         /// <summary>
         /// The tick position of the object
         /// </summary>
@@ -28,7 +28,7 @@ namespace MoonscraperChartEditor.Song
         /// <summary>
         /// Automatically converts the object's tick position into the time it will appear in the song.
         /// </summary>
-        public double time => moonSong.TickToTime(tick, moonSong.resolution);
+        public double time => song.TickToTime(tick, song.resolution);
 
         public static bool operator ==(SongObject a, SongObject b)
         {
