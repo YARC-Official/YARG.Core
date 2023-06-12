@@ -27,15 +27,6 @@ namespace MoonscraperChartEditor.Song.IO
         public const int PHRASE_TREMOLO_LANE = 65;
         public const int PHRASE_TRILL_LANE = 66;
 
-        public enum TrackLoadType
-        {
-            Guitar,
-            Drums,
-            GHLiveGuitar,
-
-            Unrecognised
-        }
-
         public static readonly Dictionary<int, int> GuitarNoteNumLookup = new()
         {
             { 0, (int)MoonNote.GuitarFret.Green     },
@@ -106,16 +97,6 @@ namespace MoonscraperChartEditor.Song.IO
             { "GHLBass",        MoonSong.MoonInstrument.GHLiveBass },
             { "GHLRhythm",      MoonSong.MoonInstrument.GHLiveRhythm },
             { "GHLCoop",        MoonSong.MoonInstrument.GHLiveCoop },
-        };
-
-        public static readonly Dictionary<MoonSong.MoonInstrument, TrackLoadType> InstrumentParsingTypeLookup = new()
-        {
-            // Other instruments default to loading as a guitar type track
-            { MoonSong.MoonInstrument.Drums, TrackLoadType.Drums },
-            { MoonSong.MoonInstrument.GHLiveGuitar, TrackLoadType.GHLiveGuitar },
-            { MoonSong.MoonInstrument.GHLiveBass,  TrackLoadType.GHLiveGuitar },
-            { MoonSong.MoonInstrument.GHLiveRhythm,  TrackLoadType.GHLiveGuitar },
-            { MoonSong.MoonInstrument.GHLiveCoop,  TrackLoadType.GHLiveGuitar },
         };
     }
 }

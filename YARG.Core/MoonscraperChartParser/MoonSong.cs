@@ -28,7 +28,6 @@ namespace MoonscraperChartEditor.Song
 
         // Charts
         private readonly MoonChart[] charts;
-        public List<MoonChart> unrecognisedCharts = new();
 
         public IReadOnlyList<MoonChart> Charts => charts.ToList();
 
@@ -430,10 +429,8 @@ namespace MoonscraperChartEditor.Song
                     return MoonChart.GameMode.ProGuitar;
 
                 default:
-                    break;
+                    throw new NotImplementedException($"Unhandled instrument {instrument}!");
             }
-
-            return MoonChart.GameMode.Unrecognised;
         }
 
         public enum Difficulty
@@ -460,7 +457,6 @@ namespace MoonscraperChartEditor.Song
             ProGuitar_22Fret,
             ProBass_17Fret,
             ProBass_22Fret,
-            Unrecognised = 99,
         }
 
         public enum AudioInstrument

@@ -240,36 +240,19 @@ namespace MoonscraperChartEditor.Song.IO
                             int instumentStringOffset = 1 + kvPair.Key.Length;
 
                             string instrumentKey = dataName.Substring(instumentStringOffset, dataName.Length - instumentStringOffset - 1);
-                            if (ChartIOHelper.InstrumentStrToEnumLookup.TryGetValue(instrumentKey, out var instrument))
+                            if (!ChartIOHelper.InstrumentStrToEnumLookup.TryGetValue(instrumentKey, out var instrument))
                             {
-                                if (!ChartIOHelper.InstrumentParsingTypeLookup.TryGetValue(instrument, out var instrumentParsingType))
-                                {
-                                    instrumentParsingType = ChartIOHelper.TrackLoadType.Guitar;
-                                }
+                                break;
+                            }
 
-                                LoadChart(song.GetChart(instrument, chartDiff), stringData, instrumentParsingType);
-                            }
-                            else
-                            {
-                                LoadUnrecognisedChart(song, stringData);
-                            }
+                            LoadChart(song, stringData, instrument, chartDiff);
 
                             // Chart loaded
                             break;
                         }
                     }
-
-                    // Add to the unused chart list
-                    LoadUnrecognisedChart(song, stringData);
                     break;
             }
-        }
-
-        private static void LoadUnrecognisedChart(MoonSong song, List<string> stringData)
-        {
-            var unrecognisedMoonChart = new MoonChart(song, MoonSong.MoonInstrument.Unrecognised);
-            LoadChart(unrecognisedMoonChart, stringData, ChartIOHelper.TrackLoadType.Unrecognised);
-            song.unrecognisedCharts.Add(unrecognisedMoonChart);
         }
 
         private static void SubmitDataSong(MoonSong song, List<string> stringData)
@@ -491,8 +474,12 @@ namespace MoonscraperChartEditor.Song.IO
             while ((startIndex + ++length) < line.Length && line[startIndex + length] != ' ') ;
         }
 
-        private static void LoadChart(MoonChart chart, IList<string> data, ChartIOHelper.TrackLoadType instrument)
+        private static void LoadChart(MoonSong song, IList<string> data, MoonSong.MoonInstrument instrument,
+            MoonSong.Difficulty difficulty)
         {
+            var chart = song.GetChart(instrument, difficulty);
+            var gameMode = chart.gameMode;
+
             var flags = new List<NoteFlag>();
             var postNotesAddedProcessList = new List<NoteEventProcessFn>();
 
@@ -504,7 +491,7 @@ namespace MoonscraperChartEditor.Song.IO
 
             chart.SetCapacity(data.Count);
 
-            var noteProcessDict = GetNoteProcessDict(chart.gameMode);
+            var noteProcessDict = GetNoteProcessDict(gameMode);
 
             try
             {
@@ -543,21 +530,12 @@ namespace MoonscraperChartEditor.Song.IO
                                 AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
                                 uint length = (uint)FastStringToIntParse(line, stringStartIndex, stringLength);
 
-                                if (instrument == ChartIOHelper.TrackLoadType.Unrecognised)
+                                if (noteProcessDict.TryGetValue(fret_type, out var processFn))
                                 {
-                                    var newMoonNote = new MoonNote(tick, fret_type, length);
-                                    chart.Add(newMoonNote, false);
+                                    var noteEvent = new NoteEvent() { tick = tick, noteNumber = fret_type, length = length };
+                                    processParams.noteEvent = noteEvent;
+                                    processFn(processParams);
                                 }
-                                else
-                                {
-                                    if (noteProcessDict.TryGetValue(fret_type, out var processFn))
-                                    {
-                                        var noteEvent = new NoteEvent() { tick = tick, noteNumber = fret_type, length = length };
-                                        processParams.noteEvent = noteEvent;
-                                        processFn(processParams);
-                                    }
-                                }
-
                                 break;
                             }
 
@@ -591,21 +569,21 @@ namespace MoonscraperChartEditor.Song.IO
                                         break;
 
                                     case ChartIOHelper.PHRASE_DRUM_FILL:
-                                        if (instrument == ChartIOHelper.TrackLoadType.Drums)
+                                        if (gameMode == MoonChart.GameMode.Drums)
                                             chart.Add(new SpecialPhrase(tick, length, SpecialPhrase.Type.ProDrums_Activation), false);
                                         else
                                             Debug.Assert(false, "Found drum fill flag on incompatible instrument.");
                                         break;
 
                                     case ChartIOHelper.PHRASE_TREMOLO_LANE:
-                                        if (instrument == ChartIOHelper.TrackLoadType.Drums)
+                                        if (gameMode == MoonChart.GameMode.Drums)
                                             chart.Add(new SpecialPhrase(tick, length, SpecialPhrase.Type.TremoloLane), false);
                                         else
                                             Debug.Assert(false, "Found standard drum roll flag on incompatible instrument.");
                                         break;
 
                                     case ChartIOHelper.PHRASE_TRILL_LANE:
-                                        if (instrument == ChartIOHelper.TrackLoadType.Drums)
+                                        if (gameMode == MoonChart.GameMode.Drums)
                                             chart.Add(new SpecialPhrase(tick, length, SpecialPhrase.Type.TrillLane), false);
                                         else
                                             Debug.Assert(false, "Found special drum roll flag on incompatible instrument.");
@@ -656,9 +634,10 @@ namespace MoonscraperChartEditor.Song.IO
         {
             return gameMode switch
             {
+                MoonChart.GameMode.Guitar => GuitarChartNoteNumberToProcessFnMap,
                 MoonChart.GameMode.GHLGuitar => GhlChartNoteNumberToProcessFnMap,
                 MoonChart.GameMode.Drums => DrumsChartNoteNumberToProcessFnMap,
-                _ => GuitarChartNoteNumberToProcessFnMap
+                _ => throw new NotImplementedException($"No process map for game mode {gameMode}!")
             };
         }
 

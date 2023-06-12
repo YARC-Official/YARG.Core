@@ -149,7 +149,7 @@ namespace MoonscraperChartEditor.Song
             next = null;
         }
 
-        public MoonChart.GameMode gameMode => chart?.gameMode ?? MoonChart.GameMode.Unrecognised;
+        public MoonChart.GameMode gameMode => chart?.gameMode ?? throw new InvalidOperationException("This note has no chart associated with it!");
 
         public bool forced
         {
