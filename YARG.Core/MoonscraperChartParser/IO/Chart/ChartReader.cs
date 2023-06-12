@@ -353,7 +353,7 @@ namespace MoonscraperChartEditor.Song.IO
             }
             catch (Exception e)
             {
-                Console.WriteLine($"Error when reading chart metadata: {e.Message}");
+                Debug.WriteLine($"Error when reading chart metadata: {e.Message}");
             }
         }
 
@@ -634,7 +634,7 @@ namespace MoonscraperChartEditor.Song.IO
                     }
                     catch (Exception e)
                     {
-                        Console.WriteLine($"Error parsing .chart line '{line}': {e}");
+                        Debug.WriteLine($"Error parsing .chart line '{line}': {e}");
                     }
                 }
                 moonChart.UpdateCache();
@@ -647,7 +647,7 @@ namespace MoonscraperChartEditor.Song.IO
             catch (Exception e)
             {
                 // Bad load, most likely a parsing error
-                Console.WriteLine($"Error parsing chart reader chart data: {e}");
+                Debug.WriteLine($"Error parsing chart reader chart data: {e}");
                 moonChart.Clear();
             }
         }
@@ -735,7 +735,7 @@ namespace MoonscraperChartEditor.Song.IO
         {
             if (!flagData.TryApplyToNote(moonNote))
             {
-                Console.WriteLine($"Could not apply flag {flagData.flagToAdd} to a note. It was blocked by existing flag {flagData.blockingFlag}.");
+                Debug.WriteLine($"Could not apply flag {flagData.flagToAdd} to a note. It was blocked by existing flag {flagData.blockingFlag}.");
             }
         }
     }

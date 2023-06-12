@@ -4,6 +4,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using MoonscraperEngine;
 
@@ -120,7 +121,7 @@ namespace MoonscraperChartEditor.Song
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.Message);
+                Debug.WriteLine(e.Message);
                 return charts[0];
             }
         }

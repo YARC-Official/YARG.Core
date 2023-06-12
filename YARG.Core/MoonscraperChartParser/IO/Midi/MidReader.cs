@@ -161,16 +161,16 @@ namespace MoonscraperChartEditor.Song.IO
             {
                 if (track == null || track.Events.Count < 1)
                 {
-                    Console.WriteLine("Encountered an empty track!");
+                    Debug.WriteLine("Encountered an empty track!");
                     continue;
                 }
 
                 if (track.Events[0] is not SequenceTrackNameEvent trackName)
                 {
-                    Console.WriteLine($"Could not determine track name! (Likely the tempo track)");
+                    Debug.WriteLine($"Could not determine track name! (Likely the tempo track)");
                     continue;
                 }
-                Console.WriteLine("Found midi track " + trackName.Text);
+                Debug.WriteLine("Found midi track " + trackName.Text);
 
                 string trackNameKey = trackName.Text.ToUpper();
                 if (ExcludedTracks.ContainsKey(trackNameKey))
@@ -206,7 +206,7 @@ namespace MoonscraperChartEditor.Song.IO
                             }
                         }
 
-                        Console.WriteLine("Loading midi track {0}", moonInstrument);
+                        Debug.WriteLine("Loading midi track {0}", moonInstrument);
                         ReadNotes(track, moonSong, moonInstrument);
                         break;
                 }
@@ -265,7 +265,7 @@ namespace MoonscraperChartEditor.Song.IO
                         }
                         else
                         {
-                            Console.WriteLine("Found section name in an unknown format: " + text.Text);
+                            Debug.WriteLine("Found section name in an unknown format: " + text.Text);
                         }
 
                         moonSong.Add(new Section(sectionText, (uint)absoluteTime), false);
@@ -313,7 +313,7 @@ namespace MoonscraperChartEditor.Song.IO
         {
             if (track == null || track.Events.Count < 1)
             {
-                Console.WriteLine($"Attempted to load null or empty track.");
+                Debug.WriteLine($"Attempted to load null or empty track.");
                 return;
             }
 
@@ -386,7 +386,7 @@ namespace MoonscraperChartEditor.Song.IO
                     if (noteQueue.Any((queued) =>
                         queued.note.NoteNumber == noteOn.NoteNumber && queued.note.Channel == noteOn.Channel))
                     {
-                        Console.WriteLine($"Found duplicate note on event at tick {absoluteTime}!");
+                        Debug.WriteLine($"Found duplicate note on event at tick {absoluteTime}!");
                         continue;
                     }
                     noteQueue.Add((noteOn, absoluteTime));
@@ -401,7 +401,7 @@ namespace MoonscraperChartEditor.Song.IO
                     (noteOn, noteOnTime) = queued;
                     if (noteOn == null)
                     {
-                        Console.WriteLine($"Found note off with no corresponding note on at tick {absoluteTime}!");
+                        Debug.WriteLine($"Found note off with no corresponding note on at tick {absoluteTime}!");
                         continue;
                     }
                     noteQueue.Remove(queued);
@@ -432,13 +432,13 @@ namespace MoonscraperChartEditor.Song.IO
                     if (!PhaseShiftSysEx.TryParse(sysex, out var psEvent))
                     {
                         // SysEx event is not a Phase Shift SysEx event
-                        Console.WriteLine($"Encountered unknown SysEx event: {BitConverter.ToString(sysex.Data)}");
+                        Debug.WriteLine($"Encountered unknown SysEx event: {BitConverter.ToString(sysex.Data)}");
                         continue;
                     }
 
                     if (psEvent.type != PhaseShiftSysEx.Type.Phrase)
                     {
-                        Console.WriteLine($"Encountered unknown Phase Shift SysEx event type {psEvent.type}");
+                        Debug.WriteLine($"Encountered unknown Phase Shift SysEx event type {psEvent.type}");
                         continue;
                     }
 
@@ -446,7 +446,7 @@ namespace MoonscraperChartEditor.Song.IO
                     {
                         if (sysexEventQueue.Any((queued) => queued.sysex.MatchesWith(psEvent)))
                         {
-                            Console.WriteLine($"Found duplicate PS SysEx start event at tick {absoluteTime}!");
+                            Debug.WriteLine($"Found duplicate PS SysEx start event at tick {absoluteTime}!");
                             continue;
                         }
                         sysexEventQueue.Add((psEvent, absoluteTime));
@@ -457,7 +457,7 @@ namespace MoonscraperChartEditor.Song.IO
                         var (startEvent, startTick) = queued;
                         if (startEvent == null)
                         {
-                            Console.WriteLine($"Found PS SysEx end with no corresponding start at tick {absoluteTime}!");
+                            Debug.WriteLine($"Found PS SysEx end with no corresponding start at tick {absoluteTime}!");
                             continue;
                         }
                         sysexEventQueue.Remove(queued);
@@ -554,7 +554,7 @@ namespace MoonscraperChartEditor.Song.IO
             var gameMode = MoonSong.InstumentToChartGameMode(processParams.instrument);
             if (gameMode != MoonChart.GameMode.Guitar)
             {
-                Console.WriteLine($"Attempted to apply guitar enhanced opens process map to non-guitar instrument: {processParams.instrument}");
+                Debug.WriteLine($"Attempted to apply guitar enhanced opens process map to non-guitar instrument: {processParams.instrument}");
                 return;
             }
 
@@ -566,7 +566,7 @@ namespace MoonscraperChartEditor.Song.IO
         {
             if (processParams.instrument != MoonSong.MoonInstrument.Drums)
             {
-                Console.WriteLine($"Attempted to apply drums velocity process map to non-drums instrument: {processParams.instrument}");
+                Debug.WriteLine($"Attempted to apply drums velocity process map to non-drums instrument: {processParams.instrument}");
                 return;
             }
 
@@ -1124,7 +1124,7 @@ namespace MoonscraperChartEditor.Song.IO
                         // Only one start event can be active at a time
                         if (currentStartTick != null)
                         {
-                            Console.WriteLine($"A previous start event at tick {currentStartTick.Value} is interrupted by another start event at tick {startTick}!");
+                            Debug.WriteLine($"A previous start event at tick {currentStartTick.Value} is interrupted by another start event at tick {startTick}!");
                             continue;
                         }
 
@@ -1139,7 +1139,7 @@ namespace MoonscraperChartEditor.Song.IO
                         // Events must pair up
                         if (currentStartTick == null)
                         {
-                            Console.WriteLine($"End event at tick {endTick} does not have a corresponding start event!");
+                            Debug.WriteLine($"End event at tick {endTick} does not have a corresponding start event!");
                             continue;
                         }
 
@@ -1147,7 +1147,7 @@ namespace MoonscraperChartEditor.Song.IO
                         // Current start must occur before the current end
                         if (currentStartTick > textEvent.tick)
                         {
-                            Console.WriteLine($"Start event at tick {endTick} occurs before end event at {endTick}!");
+                            Debug.WriteLine($"Start event at tick {endTick} occurs before end event at {endTick}!");
                             continue;
                         }
 
