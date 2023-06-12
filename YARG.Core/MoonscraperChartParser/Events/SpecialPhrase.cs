@@ -21,6 +21,9 @@ namespace MoonscraperChartEditor.Song
 
             // RB Pro Drums
             ProDrums_Activation,
+
+            // Vocals
+            Vocals_LyricPhrase,
         }
 
         private readonly ID _classID = ID.Special;

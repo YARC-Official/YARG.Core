@@ -69,6 +69,7 @@ namespace MoonscraperChartEditor.Song
         }
 
         [Flags]
+        // TODO: These need to be organized a little better down the line
         public enum Flags
         {
             None = 0,
@@ -79,6 +80,9 @@ namespace MoonscraperChartEditor.Song
 
             // Pro Guitar
             ProGuitar_Muted = 1 << 2,
+
+            // Vocals
+            Vocals_Percussion = 1 << 3,
 
             // RB Pro Drums
             ProDrums_Cymbal = 1 << 6,
@@ -121,6 +125,15 @@ namespace MoonscraperChartEditor.Song
         {
             get => (ProGuitarString)((rawNote & PRO_GUITAR_STRING_MASK) >> PRO_GUITAR_STRING_OFFSET);
             set => rawNote = MakeProGuitarRawNote(value, proGuitarFret);
+        }
+
+        /// <summary>
+        /// MIDI note of the vocals pitch, typically ranging from C2 (36) to C6 (84).
+        /// </summary>
+        public int vocalsPitch
+        {
+            get => rawNote;
+            set => rawNote = Math.Clamp(value, 0, 127);
         }
 
         /// <summary>
