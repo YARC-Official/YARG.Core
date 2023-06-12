@@ -1020,33 +1020,28 @@ namespace MoonscraperChartEditor.Song.IO
 
             SongObjectHelper.GetRange(chart.notes, startTick, endTick, out int index, out int length);
 
-            bool expectedForceFailure = true; // Whether or not it is expected that the actual type will not match the expected type
-            bool shouldBeForced;
-
             for (int i = index; i < index + length; ++i)
             {
+                var note = chart.notes[i];
+                var newType = noteType; // The requested type might not be able to be marked for this note
+
                 // Tap marking overrides all other forcing
-                if ((chart.notes[i].flags & MoonNote.Flags.Tap) != 0)
+                if ((note.flags & MoonNote.Flags.Tap) != 0)
                     continue;
 
-                var note = chart.notes[i];
-
-                expectedForceFailure = false;
-                shouldBeForced = false;
-
-                switch (noteType)
+                switch (newType)
                 {
                     case MoonNote.MoonNoteType.Strum:
                         if (!note.isChord && note.isNaturalHopo)
                         {
-                            shouldBeForced = true;
+                            note.flags |= MoonNote.Flags.Forced;
                         }
                         break;
 
                     case MoonNote.MoonNoteType.Hopo:
                         if (note.isChord || !note.isNaturalHopo)
                         {
-                            shouldBeForced = true;
+                            note.flags |= MoonNote.Flags.Forced;
                         }
                         break;
 
@@ -1054,33 +1049,22 @@ namespace MoonscraperChartEditor.Song.IO
                         if (!note.IsOpenNote())
                         {
                             note.flags |= MoonNote.Flags.Tap;
-                            // Forced flag will be removed shortly after here
+                            note.flags &= ~MoonNote.Flags.Forced;
                         }
                         else
                         {
-                            // Open notes cannot become taps
-                            // CH handles this by turning them into open HOPOs, we'll do the same here for consistency with them
-                            expectedForceFailure = true;
-                            // In the case that consecutive open notes are marked as taps, they should all become HOPOs
-                            shouldBeForced = !note.isHopo;
+                            // Open notes cannot become taps, mark them as HOPOs instead
+                            newType = MoonNote.MoonNoteType.Hopo;
+                            goto case MoonNote.MoonNoteType.Hopo;
                         }
                         break;
 
                     default:
-                        Debug.Assert(false, $"Unhandled note type {noteType} in .mid forced type processing");
-                        continue; // Unhandled
+                        Debug.Fail($"Unhandled note type {newType} in .mid forced type processing ({nameof(ProcessEventAsForcedTypePostDelay)})");
+                        continue;
                 }
 
-                if (shouldBeForced)
-                {
-                    note.flags |= MoonNote.Flags.Forced;
-                }
-                else
-                {
-                    note.flags &= ~MoonNote.Flags.Forced;
-                }
-
-                Debug.Assert(note.type == noteType || expectedForceFailure, $"Failed to set forced type! Expected: {noteType}  Actual: {note.type}  Natural HOPO: {note.isNaturalHopo}  Chord: {note.isChord}\non {difficulty} {instrument} at tick {note.tick} ({TimeSpan.FromSeconds(note.time):mm':'ss'.'ff})");
+                Debug.Assert(note.type == newType, $"Failed to set forced type! Expected: {newType}  Actual: {note.type}\non {difficulty} {instrument} at tick {note.tick} ({TimeSpan.FromSeconds(note.time):mm':'ss'.'ff})");
             }
         }
 
