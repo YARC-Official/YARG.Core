@@ -347,19 +347,6 @@ namespace MoonscraperChartEditor.Song
             }
         }
 
-        public bool cannotBeForced
-        {
-            get
-            {
-                var seperatePrevious = PreviousSeperateMoonNote;
-
-                if ((seperatePrevious == null) || (seperatePrevious != null && mask == seperatePrevious.mask))
-                    return true;
-
-                return false;
-            }
-        }
-
         public class Chord : IEnumerable<MoonNote>
         {
             private readonly MoonNote _baseMoonNote;
