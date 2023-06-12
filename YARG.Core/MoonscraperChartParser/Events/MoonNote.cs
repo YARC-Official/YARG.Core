@@ -322,28 +322,27 @@ namespace MoonscraperChartEditor.Song
         {
             get
             {
-                if (gameMode == MoonChart.GameMode.Drums)
+                switch (gameMode)
                 {
-                    if (!IsOpenNote() && (flags & Flags.ProDrums_Cymbal) == Flags.ProDrums_Cymbal)
-                    {
-                        return MoonNoteType.Cymbal;
-                    }
+                    case MoonChart.GameMode.Guitar:
+                    case MoonChart.GameMode.GHLGuitar:
+                    case MoonChart.GameMode.ProGuitar:
+                        if (!IsOpenNote() && (flags & Flags.Tap) != 0)
+                        {
+                            return MoonNoteType.Tap;
+                        }
+                        return isHopo ? MoonNoteType.Hopo : MoonNoteType.Strum;
 
-                    return MoonNoteType.Strum;
-                }
-                else
-                {
-                    if (!IsOpenNote() && (flags & Flags.Tap) == Flags.Tap)
-                    {
-                        return MoonNoteType.Tap;
-                    }
-                    else
-                    {
-                        if (isHopo)
-                            return MoonNoteType.Hopo;
-                        else
-                            return MoonNoteType.Strum;
-                    }
+                    case MoonChart.GameMode.Drums:
+                        if (drumPad is DrumPad.Yellow or DrumPad.Blue or DrumPad.Orange &&
+                           (flags & Flags.ProDrums_Cymbal) != 0)
+                        {
+                            return MoonNoteType.Cymbal;
+                        }
+                        return MoonNoteType.Strum;
+
+                    default:
+                        return MoonNoteType.Natural;
                 }
             }
         }
@@ -397,9 +396,11 @@ namespace MoonscraperChartEditor.Song
         {
             return gameMode switch
             {
+                MoonChart.GameMode.Guitar => guitarFret == GuitarFret.Open,
                 MoonChart.GameMode.GHLGuitar => ghliveGuitarFret == GHLiveGuitarFret.Open,
                 MoonChart.GameMode.ProGuitar => proGuitarFret == 0,
-                _ => guitarFret == GuitarFret.Open
+                MoonChart.GameMode.Drums => drumPad == DrumPad.Kick,
+                _ => false
             };
         }
 
