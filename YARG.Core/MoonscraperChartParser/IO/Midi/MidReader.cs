@@ -11,6 +11,9 @@ using MoonscraperEngine;
 
 namespace MoonscraperChartEditor.Song.IO
 {
+    using NoteEventQueue = List<(NoteEvent note, long tick)>;
+    using SysExEventQueue = List<(PhaseShiftSysEx sysex, long tick)>;
+
     public static class MidReader
     {
         private const int SOLO_END_CORRECTION_OFFSET = -1;
@@ -309,7 +312,7 @@ namespace MoonscraperChartEditor.Song.IO
             moonSong.UpdateCache();
         }
 
-        private static void ReadNotes(TrackChunk track, MoonSong moonSong, MoonSong.MoonInstrument moonInstrument)
+        private static void ReadNotes(TrackChunk track, MoonSong song, MoonSong.MoonInstrument instrument)
         {
             if (track == null || track.Events.Count < 1)
             {
@@ -317,172 +320,64 @@ namespace MoonscraperChartEditor.Song.IO
                 return;
             }
 
-            var noteQueue = new List<(NoteOnEvent note, long tick)>();
-            var sysexEventQueue = new List<(PhaseShiftSysEx sysex, long tick)>();
+            var unpairedNoteQueue = new NoteEventQueue();
+            var unpairedSysexQueue = new SysExEventQueue();
 
-            var unrecognised = new MoonChart(moonSong, MoonSong.MoonInstrument.Unrecognised);
-            var gameMode = MoonSong.InstumentToChartGameMode(moonInstrument);
+            var unrecognised = new MoonChart(song, MoonSong.MoonInstrument.Unrecognised);
+            var gameMode = MoonSong.InstumentToChartGameMode(instrument);
 
             var processParams = new EventProcessParams()
             {
-                song = moonSong,
+                song = song,
                 currentUnrecognisedChart = unrecognised,
-                instrument = moonInstrument,
+                instrument = instrument,
                 noteProcessMap = GetNoteProcessDict(gameMode),
                 textProcessMap = GetTextEventProcessDict(gameMode),
                 sysexProcessMap = GetSysExEventProcessDict(gameMode),
                 delayedProcessesList = new List<EventProcessFn>(),
             };
 
-            if (moonInstrument == MoonSong.MoonInstrument.Unrecognised)
+            if (instrument == MoonSong.MoonInstrument.Unrecognised)
             {
-                moonSong.unrecognisedCharts.Add(unrecognised);
+                song.unrecognisedCharts.Add(unrecognised);
             }
 
             // Load all the notes
-            long absoluteTime = track.Events[0].DeltaTime;
+            long absoluteTick = track.Events[0].DeltaTime;
             for (int i = 1; i < track.Events.Count; i++)
             {
                 var trackEvent = track.Events[i];
-                absoluteTime += trackEvent.DeltaTime;
+                absoluteTick += trackEvent.DeltaTime;
 
-                processParams.timedEvent = new()
+                processParams.timedEvent = new TimedMidiEvent()
                 {
                     midiEvent = trackEvent,
-                    startTick = absoluteTime
+                    startTick = absoluteTick
                 };
 
-                if (trackEvent is TextEvent text)
+                if (trackEvent is NoteEvent note)
                 {
-                    uint tick = (uint)absoluteTime;
-                    string eventName = text.Text;
-
-                    var chartEvent = new ChartEvent(tick, eventName);
-
-                    if (moonInstrument == MoonSong.MoonInstrument.Unrecognised)
-                    {
-                        unrecognised.Add(chartEvent);
-                    }
-                    else
-                    {
-                        if (processParams.textProcessMap.TryGetValue(eventName, out var processFn))
-                        {
-                            // This text event affects parsing of the .mid file, run its function and don't parse it into the chart
-                            processFn(ref processParams);
-                        }
-                        else
-                        {
-                            // Copy text event to all difficulties so that .chart format can store these properly. Midi writer will strip duplicate events just fine anyway.
-                            foreach (var difficulty in EnumX<MoonSong.Difficulty>.Values)
-                            {
-                                moonSong.GetChart(moonInstrument, difficulty).Add(chartEvent);
-                            }
-                        }
-                    }
+                    ProcessNoteEvent(ref processParams, unpairedNoteQueue, note, absoluteTick);
                 }
-
-                if (trackEvent is NoteOnEvent noteOn)
+                else if (trackEvent is BaseTextEvent text)
                 {
-                    if (noteQueue.Any((queued) =>
-                        queued.note.NoteNumber == noteOn.NoteNumber && queued.note.Channel == noteOn.Channel))
-                    {
-                        Debug.WriteLine($"Found duplicate note on event at tick {absoluteTime}!");
-                        continue;
-                    }
-                    noteQueue.Add((noteOn, absoluteTime));
+                    ProcessTextEvent(ref processParams, text, absoluteTick);
                 }
-
-                if (trackEvent is NoteOffEvent noteOff)
+                else if (trackEvent is SysExEvent sysex)
                 {
-                    // Get note on event
-                    long noteOnTime = 0;
-                    var queued = noteQueue.FirstOrDefault((queued) =>
-                        queued.note.NoteNumber == noteOff.NoteNumber && queued.note.Channel == noteOff.Channel);
-                    (noteOn, noteOnTime) = queued;
-                    if (noteOn == null)
-                    {
-                        Debug.WriteLine($"Found note off with no corresponding note on at tick {absoluteTime}!");
-                        continue;
-                    }
-                    noteQueue.Remove(queued);
-
-                    if (moonInstrument == MoonSong.MoonInstrument.Unrecognised)
-                    {
-                        uint tick = (uint)absoluteTime;
-                        uint sus = CutoffSustainIfNeeded(moonSong, (uint)(absoluteTime - noteOnTime));
-
-                        int rawNote = noteOff.NoteNumber;
-                        var newMoonNote = new MoonNote(tick, rawNote, sus);
-                        unrecognised.Add(newMoonNote);
-                        continue;
-                    }
-
-                    processParams.timedEvent.midiEvent = noteOn;
-                    processParams.timedEvent.startTick = noteOnTime;
-                    processParams.timedEvent.endTick = absoluteTime;
-
-                    if (processParams.noteProcessMap.TryGetValue(noteOn.NoteNumber, out var processFn))
-                    {
-                        processFn(processParams);
-                    }
-                }
-
-                if (trackEvent is SysExEvent sysex)
-                {
-                    if (!PhaseShiftSysEx.TryParse(sysex, out var psEvent))
-                    {
-                        // SysEx event is not a Phase Shift SysEx event
-                        Debug.WriteLine($"Encountered unknown SysEx event: {BitConverter.ToString(sysex.Data)}");
-                        continue;
-                    }
-
-                    if (psEvent.type != PhaseShiftSysEx.Type.Phrase)
-                    {
-                        Debug.WriteLine($"Encountered unknown Phase Shift SysEx event type {psEvent.type}");
-                        continue;
-                    }
-
-                    if (psEvent.phraseValue == PhaseShiftSysEx.PhraseValue.Start)
-                    {
-                        if (sysexEventQueue.Any((queued) => queued.sysex.MatchesWith(psEvent)))
-                        {
-                            Debug.WriteLine($"Found duplicate PS SysEx start event at tick {absoluteTime}!");
-                            continue;
-                        }
-                        sysexEventQueue.Add((psEvent, absoluteTime));
-                    }
-                    else if (psEvent.phraseValue == PhaseShiftSysEx.PhraseValue.End)
-                    {
-                        var queued = sysexEventQueue.FirstOrDefault((queued) => queued.sysex.MatchesWith(psEvent));
-                        var (startEvent, startTick) = queued;
-                        if (startEvent == null)
-                        {
-                            Debug.WriteLine($"Found PS SysEx end with no corresponding start at tick {absoluteTime}!");
-                            continue;
-                        }
-                        sysexEventQueue.Remove(queued);
-
-                        processParams.timedEvent.midiEvent = psEvent;
-                        processParams.timedEvent.startTick = startTick;
-                        processParams.timedEvent.endTick = absoluteTime;
-
-                        if (processParams.sysexProcessMap.TryGetValue(psEvent.phraseCode, out var processFn))
-                        {
-                            processFn(processParams);
-                        }
-                    }
+                    ProcessSysExEvent(ref processParams, unpairedSysexQueue, sysex, absoluteTick);
                 }
             }
 
-            Debug.Assert(noteQueue.Count == 0, $"Note queue was not fully processed! Remaining event count: {noteQueue.Count}");
-            Debug.Assert(sysexEventQueue.Count == 0, $"SysEx event queue was not fully processed! Remaining event count: {sysexEventQueue.Count}");
+            Debug.Assert(unpairedNoteQueue.Count == 0, $"Note queue was not fully processed! Remaining event count: {unpairedNoteQueue.Count}");
+            Debug.Assert(unpairedSysexQueue.Count == 0, $"SysEx event queue was not fully processed! Remaining event count: {unpairedSysexQueue.Count}");
 
             // Update all chart arrays
-            if (moonInstrument != MoonSong.MoonInstrument.Unrecognised)
+            if (instrument != MoonSong.MoonInstrument.Unrecognised)
             {
                 foreach (var diff in EnumX<MoonSong.Difficulty>.Values)
                 {
-                    moonSong.GetChart(moonInstrument, diff).UpdateCache();
+                    song.GetChart(instrument, diff).UpdateCache();
                 }
             }
             else
@@ -497,21 +392,197 @@ namespace MoonscraperChartEditor.Song.IO
             }
 
             // Legacy star power fixup
-            if (LegacyStarPowerFixupWhitelist.Contains(moonInstrument))
+            FixupStarPowerIfNeeded(ref processParams);
+        }
+
+        private static void FixupStarPowerIfNeeded(ref EventProcessParams processParams)
+        {
+            // Check if instrument is allowed to be fixed up
+            if (!LegacyStarPowerFixupWhitelist.Contains(processParams.instrument))
+                return;
+
+            // Only need to check one difficulty since Star Power gets copied to all difficulties
+            var chart = processParams.song.GetChart(processParams.instrument, MoonSong.Difficulty.Expert);
+            if (chart.specialPhrases.Any((sp) => sp.type == SpecialPhrase.Type.Starpower)
+                || !chart.events.Any((text) => text.eventName is MidIOHelper.SOLO_EVENT_TEXT or MidIOHelper.SOLO_END_EVENT_TEXT))
             {
-                // Only need to check one difficulty since Star Power gets copied to all difficulties
-                var chart = moonSong.GetChart(moonInstrument, MoonSong.Difficulty.Expert);
-                if (!chart.specialPhrases.Any((sp) => sp.type == SpecialPhrase.Type.Starpower)
-                    && chart.events.Any((text) => text.eventName is MidIOHelper.SOLO_EVENT_TEXT or MidIOHelper.SOLO_END_EVENT_TEXT))
+                return;
+            }
+
+            ProcessTextEventPairAsSpecialPhrase(processParams, MidIOHelper.SOLO_EVENT_TEXT, MidIOHelper.SOLO_END_EVENT_TEXT, SpecialPhrase.Type.Starpower);
+            foreach (var diff in EnumX<MoonSong.Difficulty>.Values)
+            {
+                chart = processParams.song.GetChart(processParams.instrument, diff);
+                chart.UpdateCache();
+            }
+        }
+
+        private static void ProcessNoteEvent(ref EventProcessParams processParams, NoteEventQueue unpairedNotes,
+            NoteEvent note, long absoluteTick)
+        {
+            if (note.EventType == MidiEventType.NoteOn)
+            {
+                // Check for duplicates
+                if (TryFindMatchingNote(unpairedNotes, note, out _, out _, out _))
+                    Debug.WriteLine($"Found duplicate note on at tick {absoluteTick}!");
+                else
+                    unpairedNotes.Add((note, absoluteTick));
+            }
+            else if (note.EventType == MidiEventType.NoteOff)
+            {
+                if (!TryFindMatchingNote(unpairedNotes, note, out var noteStart, out long startTick, out int startIndex))
                 {
-                    ProcessTextEventPairAsSpecialPhrase(processParams, MidIOHelper.SOLO_EVENT_TEXT, MidIOHelper.SOLO_END_EVENT_TEXT,
-                        SpecialPhrase.Type.Starpower);
-                    foreach (var diff in EnumX<MoonSong.Difficulty>.Values)
+                    Debug.WriteLine($"Found note off with no corresponding note on at tick {absoluteTick}!");
+                    return;
+                }
+                unpairedNotes.RemoveAt(startIndex);
+
+                if (processParams.instrument == MoonSong.MoonInstrument.Unrecognised)
+                {
+                    uint tick = (uint)absoluteTick;
+                    uint sus = ApplySustainCutoff(processParams.song, (uint)(absoluteTick - startTick));
+
+                    int rawNote = noteStart.NoteNumber;
+                    var newNote = new MoonNote(tick, rawNote, sus);
+                    processParams.currentUnrecognisedChart.Add(newNote);
+                    return;
+                }
+
+                processParams.timedEvent.midiEvent = noteStart;
+                processParams.timedEvent.startTick = startTick;
+                processParams.timedEvent.endTick = absoluteTick;
+
+                if (processParams.noteProcessMap.TryGetValue(noteStart.NoteNumber, out var processFn))
+                {
+                    processFn(processParams);
+                }
+            }
+        }
+
+        private static void ProcessTextEvent(ref EventProcessParams processParams, BaseTextEvent text, long absoluteTick)
+        {
+            uint tick = (uint)absoluteTick;
+            string eventName = text.Text;
+
+            var chartEvent = new ChartEvent(tick, eventName);
+
+            if (processParams.instrument == MoonSong.MoonInstrument.Unrecognised)
+            {
+                processParams.currentUnrecognisedChart.Add(chartEvent);
+            }
+            else
+            {
+                if (processParams.textProcessMap.TryGetValue(eventName, out var processFn))
+                {
+                    // This text event affects parsing of the .mid file, run its function and don't parse it into the chart
+                    processFn(ref processParams);
+                }
+                else
+                {
+                    // Copy text event to all difficulties so that .chart format can store these properly. Midi writer will strip duplicate events just fine anyway.
+                    foreach (var difficulty in EnumX<MoonSong.Difficulty>.Values)
                     {
-                        moonSong.GetChart(moonInstrument, diff).UpdateCache();
+                        processParams.song.GetChart(processParams.instrument, difficulty).Add(chartEvent);
                     }
                 }
             }
+        }
+
+        private static void ProcessSysExEvent(ref EventProcessParams processParams, SysExEventQueue unpairedSysex,
+            SysExEvent sysex, long absoluteTick)
+        {
+            if (!PhaseShiftSysEx.TryParse(sysex, out var psEvent))
+            {
+                // SysEx event is not a Phase Shift SysEx event
+                Debug.WriteLine($"Encountered unknown SysEx event: {BitConverter.ToString(sysex.Data)}");
+                return;
+            }
+
+            if (psEvent.type != PhaseShiftSysEx.Type.Phrase)
+            {
+                Debug.WriteLine($"Encountered unknown Phase Shift SysEx event type {psEvent.type}");
+                return;
+            }
+
+            if (psEvent.phraseValue == PhaseShiftSysEx.PhraseValue.Start)
+            {
+                // Check for duplicates
+                if (TryFindMatchingSysEx(unpairedSysex, psEvent, out _, out _, out _))
+                    Debug.WriteLine($"Found duplicate SysEx start event at tick {absoluteTick}!");
+                else
+                    unpairedSysex.Add((psEvent, absoluteTick));
+            }
+            else if (psEvent.phraseValue == PhaseShiftSysEx.PhraseValue.End)
+            {
+                if (!TryFindMatchingSysEx(unpairedSysex, psEvent, out var sysexStart, out long startTick, out int startIndex))
+                {
+                    Debug.WriteLine($"Found PS SysEx end with no corresponding start at tick {absoluteTick}!");
+                    return;
+                }
+                unpairedSysex.RemoveAt(startIndex);
+
+                processParams.timedEvent.midiEvent = sysexStart;
+                processParams.timedEvent.startTick = startTick;
+                processParams.timedEvent.endTick = absoluteTick;
+
+                if (processParams.sysexProcessMap.TryGetValue(psEvent.phraseCode, out var processFn))
+                {
+                    processFn(processParams);
+                }
+            }
+        }
+
+        private static bool TryFindMatchingNote(NoteEventQueue unpairedNotes, NoteEvent noteToMatch,
+            out NoteEvent matchingNote, out long matchTick, out int matchIndex)
+        {
+            for (int i = 0; i < unpairedNotes.Count; i++)
+            {
+                var queued = unpairedNotes[i];
+                if (queued.note.NoteNumber == noteToMatch.NoteNumber && queued.note.Channel == noteToMatch.Channel)
+                {
+                    (matchingNote, matchTick) = queued;
+                    matchIndex = i;
+                    return true;
+                }
+            }
+
+            matchingNote = null;
+            matchTick = -1;
+            matchIndex = -1;
+            return false;
+        }
+
+        private static bool TryFindMatchingSysEx(SysExEventQueue unpairedSysex, PhaseShiftSysEx sysexToMatch,
+            out PhaseShiftSysEx matchingSysex, out long matchTick, out int matchIndex)
+        {
+            for (int i = 0; i < unpairedSysex.Count; i++)
+            {
+                var queued = unpairedSysex[i];
+                if (queued.sysex.MatchesWith(sysexToMatch))
+                {
+                    (matchingSysex, matchTick) = queued;
+                    matchIndex = i;
+                    return true;
+                }
+            }
+
+            matchingSysex = null;
+            matchTick = -1;
+            matchIndex = -1;
+            return false;
+        }
+
+        private static bool ContainsTextEvent(IList<ChartEvent> events, string text)
+        {
+            foreach (var textEvent in events)
+            {
+                if (textEvent.eventName == text)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static Dictionary<int, EventProcessFn> GetNoteProcessDict(MoonChart.GameMode gameMode)
@@ -868,7 +939,7 @@ namespace MoonscraperChartEditor.Song.IO
 
             var timedEvent = eventProcessParams.timedEvent;
             uint tick = (uint)timedEvent.startTick;
-            uint sus = CutoffSustainIfNeeded(eventProcessParams.song, (uint)timedEvent.length);
+            uint sus = ApplySustainCutoff(eventProcessParams.song, (uint)timedEvent.length);
 
             var newMoonNote = new MoonNote(tick, ingameFret, sus, defaultFlags);
             moonChart.Add(newMoonNote, false);
@@ -881,7 +952,7 @@ namespace MoonscraperChartEditor.Song.IO
 
             var timedEvent = eventProcessParams.timedEvent;
             uint tick = (uint)timedEvent.startTick;
-            uint sus = CutoffSustainIfNeeded(eventProcessParams.song, (uint)timedEvent.length);
+            uint sus = ApplySustainCutoff(eventProcessParams.song, (uint)timedEvent.length);
 
             foreach (var diff in EnumX<MoonSong.Difficulty>.Values)
             {
@@ -1032,7 +1103,7 @@ namespace MoonscraperChartEditor.Song.IO
             }
         }
 
-        private static uint CutoffSustainIfNeeded(MoonSong moonSong, uint length)
+        private static uint ApplySustainCutoff(MoonSong moonSong, uint length)
         {
             int susCutoff = (int)(SongConfig.MIDI_SUSTAIN_CUTOFF_THRESHOLD * moonSong.resolution / SongConfig.STANDARD_BEAT_RESOLUTION); // 1/12th note
             if (length <= susCutoff)
@@ -1048,7 +1119,7 @@ namespace MoonscraperChartEditor.Song.IO
 
             var timedEvent = eventProcessParams.timedEvent;
             uint tick = (uint)timedEvent.startTick;
-            uint sus = CutoffSustainIfNeeded(eventProcessParams.song, (uint)timedEvent.length);
+            uint sus = ApplySustainCutoff(eventProcessParams.song, (uint)timedEvent.length);
 
             if (tick >= tickStartOffset)
                 tick += (uint)tickStartOffset;
