@@ -1020,7 +1020,6 @@ namespace MoonscraperChartEditor.Song.IO
 
             SongObjectHelper.GetRange(chart.notes, startTick, endTick, out int index, out int length);
 
-            uint lastChordTick = uint.MaxValue;
             bool expectedForceFailure = true; // Whether or not it is expected that the actual type will not match the expected type
             bool shouldBeForced;
 
@@ -1032,72 +1031,64 @@ namespace MoonscraperChartEditor.Song.IO
 
                 var note = chart.notes[i];
 
-                // Check if the chord has changed
-                if (lastChordTick != note.tick)
+                expectedForceFailure = false;
+                shouldBeForced = false;
+
+                switch (noteType)
                 {
-                    expectedForceFailure = false;
-                    shouldBeForced = false;
+                    case MoonNote.MoonNoteType.Strum:
+                        if (!note.isChord && note.isNaturalHopo)
+                        {
+                            shouldBeForced = true;
+                        }
+                        break;
 
-                    switch (noteType)
-                    {
-                        case MoonNote.MoonNoteType.Strum:
-                            if (!note.isChord && note.isNaturalHopo)
+                    case MoonNote.MoonNoteType.Hopo:
+                        // Forcing consecutive same-fret HOPOs is possible in charts, but we do not allow it
+                        // (see RB2's chart of Steely Dan - Bodhisattva)
+                        if (!note.isNaturalHopo && note.cannotBeForced)
+                        {
+                            expectedForceFailure = true;
+                        }
+
+                        if (!note.cannotBeForced && (note.isChord || !note.isNaturalHopo))
+                        {
+                            shouldBeForced = true;
+                        }
+                        break;
+
+                    case MoonNote.MoonNoteType.Tap:
+                        if (!note.IsOpenNote())
+                        {
+                            note.flags |= MoonNote.Flags.Tap;
+                            // Forced flag will be removed shortly after here
+                        }
+                        else
+                        {
+                            // Open notes cannot become taps
+                            // CH handles this by turning them into open HOPOs, we'll do the same here for consistency with them
+                            expectedForceFailure = true;
+                            // In the case that consecutive open notes are marked as taps, only the first will become a HOPO
+                            if (!note.cannotBeForced && !note.isNaturalHopo)
                             {
                                 shouldBeForced = true;
                             }
-                            break;
+                        }
+                        break;
 
-                        case MoonNote.MoonNoteType.Hopo:
-                            // Forcing consecutive same-fret HOPOs is possible in charts, but we do not allow it
-                            // (see RB2's chart of Steely Dan - Bodhisattva)
-                            if (!note.isNaturalHopo && note.cannotBeForced)
-                            {
-                                expectedForceFailure = true;
-                            }
-
-                            if (!note.cannotBeForced && (note.isChord || !note.isNaturalHopo))
-                            {
-                                shouldBeForced = true;
-                            }
-                            break;
-
-                        case MoonNote.MoonNoteType.Tap:
-                            if (!note.IsOpenNote())
-                            {
-                                note.flags |= MoonNote.Flags.Tap;
-                                // Forced flag will be removed shortly after here
-                            }
-                            else
-                            {
-                                // Open notes cannot become taps
-                                // CH handles this by turning them into open HOPOs, we'll do the same here for consistency with them
-                                expectedForceFailure = true;
-                                // In the case that consecutive open notes are marked as taps, only the first will become a HOPO
-                                if (!note.cannotBeForced && !note.isNaturalHopo)
-                                {
-                                    shouldBeForced = true;
-                                }
-                            }
-                            break;
-
-                        default:
-                            Debug.Assert(false, $"Unhandled note type {noteType} in .mid forced type processing");
-                            continue; // Unhandled
-                    }
-
-                    if (shouldBeForced)
-                    {
-                        note.flags |= MoonNote.Flags.Forced;
-                    }
-                    else
-                    {
-                        note.flags &= ~MoonNote.Flags.Forced;
-                    }
-
-                    note.ApplyFlagsToChord();
+                    default:
+                        Debug.Assert(false, $"Unhandled note type {noteType} in .mid forced type processing");
+                        continue; // Unhandled
                 }
 
-                lastChordTick = note.tick;
+                if (shouldBeForced)
+                {
+                    note.flags |= MoonNote.Flags.Forced;
+                }
+                else
+                {
+                    note.flags &= ~MoonNote.Flags.Forced;
+                }
 
                 Debug.Assert(note.type == noteType || expectedForceFailure, $"Failed to set forced type! Expected: {noteType}  Actual: {note.type}  Natural HOPO: {note.isNaturalHopo}  Chord: {note.isChord}  Forceable: {!note.cannotBeForced}\non {difficulty} {instrument} at tick {note.tick} ({TimeSpan.FromSeconds(note.time):mm':'ss'.'ff})");
             }

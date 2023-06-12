@@ -92,8 +92,6 @@ namespace MoonscraperChartEditor.Song
             ProDrums_Ghost = 1 << 13,
         }
 
-        public const Flags PER_NOTE_FLAGS = Flags.ProDrums_Cymbal | Flags.InstrumentPlus | Flags.ProDrums_Accent | Flags.ProDrums_Ghost;
-
         private readonly ID _classID = ID.Note;
         public override int classID => (int)_classID;
 
