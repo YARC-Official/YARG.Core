@@ -9,7 +9,7 @@ namespace MoonscraperChartEditor.Song
     public abstract class ChartObject : SongObject
     {
         [NonSerialized]
-        public MoonChart moonChart;
+        public MoonChart chart;
 
         public ChartObject(uint position) : base(position) { }
     }

@@ -4,6 +4,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using MoonscraperEngine;
 
@@ -27,7 +28,6 @@ namespace MoonscraperChartEditor.Song
 
         // Charts
         private readonly MoonChart[] charts;
-        public List<MoonChart> unrecognisedCharts = new();
 
         public IReadOnlyList<MoonChart> Charts => charts.ToList();
 
@@ -80,31 +80,31 @@ namespace MoonscraperChartEditor.Song
 
             for (int i = 0; i < charts.Length; ++i)
             {
-                var moonInstrument = (MoonInstrument)(i / EnumX<Difficulty>.Count);
-                charts[i] = new MoonChart(this, moonInstrument);
+                var instrument = (MoonInstrument)(i / EnumX<Difficulty>.Count);
+                charts[i] = new MoonChart(this, instrument);
             }
 
             UpdateCache();
         }
 
-        public MoonSong(MoonSong moonSong) : this()
+        public MoonSong(MoonSong song) : this()
         {
-            metaData = new Metadata(moonSong.metaData);
-            offset = moonSong.offset;
-            resolution = moonSong.resolution;
+            metaData = new Metadata(song.metaData);
+            offset = song.offset;
+            resolution = song.resolution;
 
             _events.Clear();
             _syncTrack.Clear();
 
-            _events.AddRange(moonSong._events);
-            _syncTrack.AddRange(moonSong._syncTrack);
+            _events.AddRange(song._events);
+            _syncTrack.AddRange(song._syncTrack);
 
-            manualLength = moonSong.manualLength;
+            manualLength = song.manualLength;
 
-            charts = new MoonChart[moonSong.charts.Length];
+            charts = new MoonChart[song.charts.Length];
             for (int i = 0; i < charts.Length; ++i)
             {
-                charts[i] = new MoonChart(moonSong.charts[i], this);
+                charts[i] = new MoonChart(song.charts[i], this);
             }
         }
 
@@ -112,24 +112,24 @@ namespace MoonscraperChartEditor.Song
         {
         }
 
-        public MoonChart GetChart(MoonInstrument moonInstrument, Difficulty difficulty)
+        public MoonChart GetChart(MoonInstrument instrument, Difficulty difficulty)
         {
             try
             {
-                return charts[(int)moonInstrument * EnumX<Difficulty>.Count + (int)difficulty];
+                return charts[(int)instrument * EnumX<Difficulty>.Count + (int)difficulty];
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.Message);
+                Debug.WriteLine(e.Message);
                 return charts[0];
             }
         }
 
-        public bool ChartExistsForInstrument(MoonInstrument moonInstrument)
+        public bool ChartExistsForInstrument(MoonInstrument instrument)
         {
             foreach (var difficulty in EnumX<Difficulty>.Values)
             {
-                var chart = GetChart(moonInstrument, difficulty);
+                var chart = GetChart(instrument, difficulty);
                 if (chart.chartObjects.Count > 0)
                 {
                     return true;
@@ -139,9 +139,9 @@ namespace MoonscraperChartEditor.Song
             return false;
         }
 
-        public bool DoesChartExist(MoonInstrument moonInstrument, Difficulty difficulty)
+        public bool DoesChartExist(MoonInstrument instrument, Difficulty difficulty)
         {
-            return GetChart(moonInstrument, difficulty).chartObjects.Count > 0;
+            return GetChart(instrument, difficulty).chartObjects.Count > 0;
         }
 
         /// <summary>
@@ -235,7 +235,7 @@ namespace MoonscraperChartEditor.Song
         /// If set to false, you must manually call the updateArrays() method, but is useful when adding multiple objects as it increases performance dramatically.</param>
         public void Add(SyncTrack syncTrackObject, bool autoUpdate = true)
         {
-            syncTrackObject.moonSong = this;
+            syncTrackObject.song = this;
             SongObjectHelper.Insert(syncTrackObject, _syncTrack);
 
             if (autoUpdate)
@@ -259,7 +259,7 @@ namespace MoonscraperChartEditor.Song
 
             if (success)
             {
-                syncTrackObject.moonSong = null;
+                syncTrackObject.song = null;
             }
 
             if (autoUpdate)
@@ -276,7 +276,7 @@ namespace MoonscraperChartEditor.Song
         /// If set to false, you must manually call the updateArrays() method, but is useful when adding multiple objects as it increases performance dramatically.</param>
         public void Add(Event eventObject, bool autoUpdate = true)
         {
-            eventObject.moonSong = this;
+            eventObject.song = this;
             SongObjectHelper.Insert(eventObject, _events);
 
             if (autoUpdate)
@@ -295,7 +295,7 @@ namespace MoonscraperChartEditor.Song
 
             if (success)
             {
-                eventObject.moonSong = null;
+                eventObject.song = null;
             }
 
             if (autoUpdate)
@@ -402,9 +402,9 @@ namespace MoonscraperChartEditor.Song
             return targetResoltion / resolution;
         }
 
-        public static MoonChart.GameMode InstumentToChartGameMode(MoonInstrument moonInstrument)
+        public static MoonChart.GameMode InstumentToChartGameMode(MoonInstrument instrument)
         {
-            switch (moonInstrument)
+            switch (instrument)
             {
                 case MoonInstrument.Guitar:
                 case MoonInstrument.GuitarCoop:
@@ -429,10 +429,8 @@ namespace MoonscraperChartEditor.Song
                     return MoonChart.GameMode.ProGuitar;
 
                 default:
-                    break;
+                    throw new NotImplementedException($"Unhandled instrument {instrument}!");
             }
-
-            return MoonChart.GameMode.Unrecognised;
         }
 
         public enum Difficulty
@@ -459,7 +457,6 @@ namespace MoonscraperChartEditor.Song
             ProGuitar_22Fret,
             ProBass_17Fret,
             ProBass_22Fret,
-            Unrecognised = 99,
         }
 
         public enum AudioInstrument
