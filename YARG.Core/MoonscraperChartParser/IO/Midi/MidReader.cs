@@ -855,6 +855,8 @@ namespace MoonscraperChartEditor.Song.IO
                 { MidIOHelper.SOLO_NOTE_PRO_GUITAR, (in EventProcessParams eventProcessParams) => {
                     ProcessNoteOnEventAsEvent(eventProcessParams, MidIOHelper.SOLO_EVENT_TEXT, MidIOHelper.SOLO_END_EVENT_TEXT, tickEndOffset: SOLO_END_CORRECTION_OFFSET);
                 }},
+                { MidIOHelper.TREMOLO_LANE_NOTE, ProcessNoteOnEventAsTremoloLane },
+                { MidIOHelper.TRILL_LANE_NOTE, ProcessNoteOnEventAsTrillLane },
             };
 
             foreach (var difficulty in EnumX<MoonSong.Difficulty>.Values)
