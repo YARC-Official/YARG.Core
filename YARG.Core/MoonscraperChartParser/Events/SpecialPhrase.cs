@@ -21,6 +21,9 @@ namespace MoonscraperChartEditor.Song
 
             // RB Pro Drums
             ProDrums_Activation,
+
+            // Vocals
+            Vocals_LyricPhrase,
         }
 
         private readonly ID _classID = ID.Special;
@@ -33,6 +36,39 @@ namespace MoonscraperChartEditor.Song
         {
             length = _length;
             type = _type;
+        }
+
+        protected override bool Equals(SongObject b)
+        {
+            if (b.GetType() == typeof(SpecialPhrase))
+            {
+                var realB = b as SpecialPhrase;
+                if (tick == realB.tick && type == realB.type)
+                    return true;
+                else
+                    return false;
+            }
+            else
+                return base.Equals(b);
+        }
+
+        protected override bool LessThan(SongObject b)
+        {
+            if (b.GetType() == typeof(SpecialPhrase))
+            {
+                var realB = b as SpecialPhrase;
+                if (tick < b.tick)
+                    return true;
+                else if (tick == b.tick)
+                {
+                    if (type < realB.type)
+                        return true;
+                }
+
+                return false;
+            }
+            else
+                return base.LessThan(b);
         }
 
         public uint GetCappedLengthForPos(uint pos)

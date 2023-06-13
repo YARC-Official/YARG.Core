@@ -170,6 +170,7 @@ namespace MoonscraperChartEditor.Song
             Drums,
             GHLGuitar,
             ProGuitar,
+            Vocals,
         }
     }
 }

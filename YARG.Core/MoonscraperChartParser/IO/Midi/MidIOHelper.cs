@@ -29,6 +29,13 @@ namespace MoonscraperChartEditor.Song.IO
         public const string GHL_RHYTHM_TRACK = "PART RHYTHM GHL";
         public const string GHL_GUITAR_COOP_TRACK = "PART GUITAR COOP GHL";
         public const string VOCALS_TRACK = "PART VOCALS";
+        public const string HARMONY_1_TRACK = "HARM1";
+        public const string HARMONY_2_TRACK = "HARM2";
+        public const string HARMONY_3_TRACK = "HARM3";
+        // The Beatles: Rock Band uses these instead for its harmony tracks
+        public const string HARMONY_1_TRACK_2 = "PART HARM1";
+        public const string HARMONY_2_TRACK_2 = "PART HARM2";
+        public const string HARMONY_3_TRACK_2 = "PART HARM3";
 
         // Note numbers
         public const byte DOUBLE_KICK_NOTE = 95;
@@ -54,6 +61,14 @@ namespace MoonscraperChartEditor.Song.IO
 
         // Pro Guitar notes
         public const byte SOLO_NOTE_PRO_GUITAR = 115;
+
+        // Vocals notes
+        public const byte LYRIC_SHIFT_NOTE = 0;
+        public const byte RANGE_SHIFT_NOTE = 1;
+        public const byte VOCALS_RANGE_START = 36;
+        public const byte VOCALS_RANGE_END = 84;
+        public const byte PERCUSSION_NOTE = 96;
+        public const byte NONPLAYED_PERCUSSION_NOTE = 97;
 
         // Pro Guitar channels
         public const byte PRO_GUITAR_CHANNEL_NORMAL = 0;
@@ -106,6 +121,13 @@ namespace MoonscraperChartEditor.Song.IO
             { PRO_GUITAR_22_FRET_TRACK, MoonSong.MoonInstrument.ProGuitar_22Fret },
             { PRO_BASS_17_FRET_TRACK,   MoonSong.MoonInstrument.ProBass_17Fret },
             { PRO_BASS_22_FRET_TRACK,   MoonSong.MoonInstrument.ProBass_22Fret },
+            { VOCALS_TRACK,        MoonSong.MoonInstrument.Vocals },
+            { HARMONY_1_TRACK,     MoonSong.MoonInstrument.Harmony1 },
+            { HARMONY_2_TRACK,     MoonSong.MoonInstrument.Harmony2 },
+            { HARMONY_3_TRACK,     MoonSong.MoonInstrument.Harmony3 },
+            { HARMONY_1_TRACK_2,   MoonSong.MoonInstrument.Harmony1 },
+            { HARMONY_2_TRACK_2,   MoonSong.MoonInstrument.Harmony2 },
+            { HARMONY_3_TRACK_2,   MoonSong.MoonInstrument.Harmony3 },
         };
 
         public static readonly Dictionary<MoonSong.Difficulty, int> GUITAR_DIFF_START_LOOKUP = new()

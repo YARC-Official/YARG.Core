@@ -428,6 +428,12 @@ namespace MoonscraperChartEditor.Song
                 case MoonInstrument.ProBass_22Fret:
                     return MoonChart.GameMode.ProGuitar;
 
+                case MoonInstrument.Vocals:
+                case MoonInstrument.Harmony1:
+                case MoonInstrument.Harmony2:
+                case MoonInstrument.Harmony3:
+                    return MoonChart.GameMode.Vocals;
+
                 default:
                     throw new NotImplementedException($"Unhandled instrument {instrument}!");
             }
@@ -457,6 +463,10 @@ namespace MoonscraperChartEditor.Song
             ProGuitar_22Fret,
             ProBass_17Fret,
             ProBass_22Fret,
+            Vocals,
+            Harmony1,
+            Harmony2,
+            Harmony3,
         }
 
         public enum AudioInstrument
