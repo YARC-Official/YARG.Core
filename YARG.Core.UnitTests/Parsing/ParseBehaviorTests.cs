@@ -1,4 +1,5 @@
 using MoonscraperChartEditor.Song;
+using MoonscraperChartEditor.Song.IO;
 using MoonscraperEngine;
 using NUnit.Framework;
 
@@ -29,14 +30,16 @@ namespace YARG.Core.UnitTests.Parsing
         {
         };
 
+        private static MoonNote NewNote(int index, int rawNote, uint length = 0, Flags flags = Flags.None)
+            => new((uint)(index * RESOLUTION), rawNote, length, flags);
         private static MoonNote NewNote(int index, GuitarFret fret, uint length = 0, Flags flags = Flags.None)
-            => new((uint)(index * RESOLUTION), (int)fret, length, flags);
+            => NewNote(index, (int)fret, length, flags);
         private static MoonNote NewNote(int index, GHLiveGuitarFret fret, uint length = 0, Flags flags = Flags.None)
-            => new((uint)(index * RESOLUTION), (int)fret, length, flags);
+            => NewNote(index, (int)fret, length, flags);
         private static MoonNote NewNote(int index, DrumPad pad, uint length = 0, Flags flags = Flags.None)
-            => new((uint)(index * RESOLUTION), (int)pad, length, flags);
+            => NewNote(index, (int)pad, length, flags);
         private static MoonNote NewNote(int index, ProGuitarString str, int fret, uint length = 0, Flags flags = Flags.None)
-            => new((uint)(index * RESOLUTION), MoonNote.MakeProGuitarRawNote(str, fret), length, flags);
+            => NewNote(index, MoonNote.MakeProGuitarRawNote(str, fret), length, flags);
         private static SpecialPhrase NewSpecial(int index, SpecialPhrase.Type type, uint length = 0)
             => new((uint)(index * RESOLUTION), length, type);
 
@@ -261,6 +264,78 @@ namespace YARG.Core.UnitTests.Parsing
             NewNote(69, DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
         };
 
+        private const byte VOCALS_RANGE_START = MidIOHelper.VOCALS_RANGE_START;
+
+        public static readonly List<ChartObject> VocalsNotes = new()
+        {
+            NewSpecial(0, SpecialPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 12),
+            NewSpecial(0, SpecialPhrase.Type.Versus_Player1, RESOLUTION * 12),
+            NewNote(0, VOCALS_RANGE_START + 0, length: RESOLUTION / 2),
+            NewNote(1, VOCALS_RANGE_START + 1, length: RESOLUTION / 2),
+            NewNote(2, VOCALS_RANGE_START + 2, length: RESOLUTION / 2),
+            NewNote(3, VOCALS_RANGE_START + 3, length: RESOLUTION / 2),
+            NewNote(4, VOCALS_RANGE_START + 4, length: RESOLUTION / 2),
+            NewNote(5, VOCALS_RANGE_START + 5, length: RESOLUTION / 2),
+            NewNote(6, VOCALS_RANGE_START + 6, length: RESOLUTION / 2),
+            NewNote(7, VOCALS_RANGE_START + 7, length: RESOLUTION / 2),
+            NewNote(8, VOCALS_RANGE_START + 8, length: RESOLUTION / 2),
+            NewNote(9, VOCALS_RANGE_START + 9, length: RESOLUTION / 2),
+            NewNote(10, VOCALS_RANGE_START + 10, length: RESOLUTION / 2),
+            NewNote(11, VOCALS_RANGE_START + 11, length: RESOLUTION / 2),
+
+            NewSpecial(12, SpecialPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 12),
+            NewSpecial(12, SpecialPhrase.Type.Versus_Player2, RESOLUTION * 12),
+            NewSpecial(12, SpecialPhrase.Type.Starpower, RESOLUTION * 12),
+            NewNote(12, VOCALS_RANGE_START + 12, length: RESOLUTION / 2),
+            NewNote(13, VOCALS_RANGE_START + 13, length: RESOLUTION / 2),
+            NewNote(14, VOCALS_RANGE_START + 14, length: RESOLUTION / 2),
+            NewNote(15, VOCALS_RANGE_START + 15, length: RESOLUTION / 2),
+            NewNote(16, VOCALS_RANGE_START + 16, length: RESOLUTION / 2),
+            NewNote(17, VOCALS_RANGE_START + 17, length: RESOLUTION / 2),
+            NewNote(18, VOCALS_RANGE_START + 18, length: RESOLUTION / 2),
+            NewNote(19, VOCALS_RANGE_START + 19, length: RESOLUTION / 2),
+            NewNote(20, VOCALS_RANGE_START + 20, length: RESOLUTION / 2),
+            NewNote(21, VOCALS_RANGE_START + 21, length: RESOLUTION / 2),
+            NewNote(22, VOCALS_RANGE_START + 22, length: RESOLUTION / 2),
+            NewNote(23, VOCALS_RANGE_START + 23, length: RESOLUTION / 2),
+
+            NewSpecial(24, SpecialPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 12),
+            NewSpecial(24, SpecialPhrase.Type.Versus_Player1, RESOLUTION * 12),
+            NewSpecial(24, SpecialPhrase.Type.Versus_Player2, RESOLUTION * 12),
+            NewNote(24, VOCALS_RANGE_START + 24, length: RESOLUTION / 2),
+            NewNote(25, VOCALS_RANGE_START + 25, length: RESOLUTION / 2),
+            NewNote(26, VOCALS_RANGE_START + 26, length: RESOLUTION / 2),
+            NewNote(27, VOCALS_RANGE_START + 27, length: RESOLUTION / 2),
+            NewNote(28, VOCALS_RANGE_START + 28, length: RESOLUTION / 2),
+            NewNote(29, VOCALS_RANGE_START + 29, length: RESOLUTION / 2),
+            NewNote(30, VOCALS_RANGE_START + 30, length: RESOLUTION / 2),
+            NewNote(31, VOCALS_RANGE_START + 31, length: RESOLUTION / 2),
+            NewNote(32, VOCALS_RANGE_START + 32, length: RESOLUTION / 2),
+            NewNote(33, VOCALS_RANGE_START + 33, length: RESOLUTION / 2),
+            NewNote(34, VOCALS_RANGE_START + 34, length: RESOLUTION / 2),
+            NewNote(35, VOCALS_RANGE_START + 35, length: RESOLUTION / 2),
+
+            NewSpecial(36, SpecialPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 13),
+            NewSpecial(36, SpecialPhrase.Type.Versus_Player2, RESOLUTION * 13),
+            NewNote(36, VOCALS_RANGE_START + 36, length: RESOLUTION / 2),
+            NewNote(37, VOCALS_RANGE_START + 37, length: RESOLUTION / 2),
+            NewNote(38, VOCALS_RANGE_START + 38, length: RESOLUTION / 2),
+            NewNote(39, VOCALS_RANGE_START + 39, length: RESOLUTION / 2),
+            NewNote(40, VOCALS_RANGE_START + 40, length: RESOLUTION / 2),
+            NewNote(41, VOCALS_RANGE_START + 41, length: RESOLUTION / 2),
+            NewNote(42, VOCALS_RANGE_START + 42, length: RESOLUTION / 2),
+            NewNote(43, VOCALS_RANGE_START + 43, length: RESOLUTION / 2),
+            NewNote(44, VOCALS_RANGE_START + 44, length: RESOLUTION / 2),
+            NewNote(45, VOCALS_RANGE_START + 45, length: RESOLUTION / 2),
+            NewNote(46, VOCALS_RANGE_START + 46, length: RESOLUTION / 2),
+            NewNote(47, VOCALS_RANGE_START + 47, length: RESOLUTION / 2),
+            NewNote(48, VOCALS_RANGE_START + 48, length: RESOLUTION / 2),
+
+            NewSpecial(49, SpecialPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 1),
+            NewSpecial(49, SpecialPhrase.Type.Versus_Player1, RESOLUTION * 1),
+            NewNote(49, 0, flags: Flags.Vocals_Percussion),
+        };
+
         public static MoonSong GenerateSong()
         {
             var song = new MoonSong();
@@ -282,7 +357,7 @@ namespace YARG.Core.UnitTests.Parsing
                 GameMode.GHLGuitar => GhlGuitarTrack,
                 GameMode.ProGuitar => ProGuitarTrack,
                 GameMode.Drums => DrumsTrack,
-                GameMode.Vocals => new(), // TODO
+                GameMode.Vocals => VocalsNotes,
                 _ => throw new NotImplementedException($"No note data for game mode {gameMode}")
             };
         }
