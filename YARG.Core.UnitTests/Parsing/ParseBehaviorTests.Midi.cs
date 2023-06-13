@@ -341,14 +341,21 @@ namespace YARG.Core.UnitTests.Parsing
         {
             var midi = new MidiFile(
                 GenerateSyncChunk(sourceSong),
-                GenerateEventsChunk(sourceSong),
-                GenerateTrackChunk(sourceSong, MoonInstrument.Guitar),
-                GenerateTrackChunk(sourceSong, MoonInstrument.GHLiveGuitar),
-                GenerateTrackChunk(sourceSong, MoonInstrument.ProGuitar_22Fret),
-                GenerateTrackChunk(sourceSong, MoonInstrument.Drums))
+                GenerateEventsChunk(sourceSong)
+            )
             {
                 TimeDivision = new TicksPerQuarterNoteTimeDivision((short)sourceSong.resolution)
             };
+
+            foreach (var instrument in EnumX<MoonInstrument>.Values)
+            {
+                var gameMode = MoonSong.InstumentToChartGameMode(instrument);
+                if (!InstrumentNoteOffsetLookup.ContainsKey(gameMode))
+                    continue;
+
+                var chunk = GenerateTrackChunk(sourceSong, instrument);
+                midi.Chunks.Add(chunk);
+            }
 
             return midi;
         }
@@ -369,18 +376,7 @@ namespace YARG.Core.UnitTests.Parsing
                 return;
             }
 
-            Assert.Multiple(() =>
-            {
-                VerifyMetadata(sourceSong, parsedSong);
-                VerifySync(sourceSong, parsedSong);
-                foreach (var difficulty in EnumX<Difficulty>.Values)
-                {
-                    VerifyTrack(sourceSong, parsedSong, MoonInstrument.Guitar, difficulty);
-                    VerifyTrack(sourceSong, parsedSong, MoonInstrument.GHLiveGuitar, difficulty);
-                    VerifyTrack(sourceSong, parsedSong, MoonInstrument.ProGuitar_22Fret, difficulty);
-                    VerifyTrack(sourceSong, parsedSong, MoonInstrument.Drums, difficulty);
-                }
-            });
+            VerifySong(sourceSong, parsedSong, InstrumentNoteOffsetLookup.Keys);
         }
     }
 }

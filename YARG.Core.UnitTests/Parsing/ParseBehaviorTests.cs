@@ -5,6 +5,7 @@ using NUnit.Framework;
 namespace YARG.Core.UnitTests.Parsing
 {
     using static MoonSong;
+    using static MoonChart;
     using static MoonNote;
 
     public class ParseBehaviorTests
@@ -248,11 +249,25 @@ namespace YARG.Core.UnitTests.Parsing
             var song = new MoonSong();
             PopulateSyncTrack(song, TempoMap);
             PopulateGlobalEvents(song, GlobalEvents);
-            PopulateInstrument(song, MoonInstrument.Guitar, GuitarTrack);
-            PopulateInstrument(song, MoonInstrument.GHLiveGuitar, GhlGuitarTrack);
-            PopulateInstrument(song, MoonInstrument.ProGuitar_22Fret, ProGuitarTrack);
-            PopulateInstrument(song, MoonInstrument.Drums, DrumsTrack);
+            foreach (var instrument in EnumX<MoonInstrument>.Values)
+            {
+                var gameMode = MoonSong.InstumentToChartGameMode(instrument);
+                var data = GameModeToChartData(gameMode);
+                PopulateInstrument(song, instrument, data);
+            }
             return song;
+        }
+
+        public static List<ChartObject> GameModeToChartData(GameMode gameMode)
+        {
+            return gameMode switch {
+                GameMode.Guitar => GuitarTrack,
+                GameMode.GHLGuitar => GhlGuitarTrack,
+                GameMode.ProGuitar => ProGuitarTrack,
+                GameMode.Drums => DrumsTrack,
+                GameMode.Vocals => new(), // TODO
+                _ => throw new NotImplementedException($"No note data for game mode {gameMode}")
+            };
         }
 
         public static void PopulateSyncTrack(MoonSong song, List<SyncTrack> tempoMap)
@@ -299,6 +314,24 @@ namespace YARG.Core.UnitTests.Parsing
             chart.UpdateCache();
         }
 
+        public static void VerifySong(MoonSong sourceSong, MoonSong parsedSong, IEnumerable<GameMode> supportedModes)
+        {
+            Assert.Multiple(() =>
+            {
+                VerifyMetadata(sourceSong, parsedSong);
+                VerifySync(sourceSong, parsedSong);
+                foreach (var instrument in EnumX<MoonInstrument>.Values)
+                {
+                    // Skip unsupported instruments
+                    var gameMode = MoonSong.InstumentToChartGameMode(instrument);
+                    if (!supportedModes.Contains(gameMode))
+                        continue;
+
+                    VerifyInstrument(sourceSong, parsedSong, instrument);
+                }
+            });
+        }
+
         public static void VerifyMetadata(MoonSong sourceSong, MoonSong parsedSong)
         {
             Assert.Multiple(() =>
@@ -317,7 +350,15 @@ namespace YARG.Core.UnitTests.Parsing
             });
         }
 
-        public static void VerifyTrack(MoonSong sourceSong, MoonSong parsedSong, MoonInstrument instrument, Difficulty difficulty)
+        public static void VerifyInstrument(MoonSong sourceSong, MoonSong parsedSong, MoonInstrument instrument)
+        {
+            foreach (var difficulty in EnumX<Difficulty>.Values)
+            {
+                VerifyDifficulty(sourceSong, parsedSong, instrument, difficulty);
+            }
+        }
+
+        public static void VerifyDifficulty(MoonSong sourceSong, MoonSong parsedSong, MoonInstrument instrument, Difficulty difficulty)
         {
             Assert.Multiple(() =>
             {

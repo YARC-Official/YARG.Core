@@ -95,6 +95,11 @@ namespace YARG.Core.UnitTests.Parsing
 
         private static void GenerateInstrumentSection(MoonSong sourceSong, StringBuilder builder, MoonInstrument instrument, Difficulty difficulty)
         {
+            // Skip unsupported instruments
+            var gameMode = MoonSong.InstumentToChartGameMode(instrument);
+            if (!InstrumentToNoteLookupLookup.ContainsKey(gameMode))
+                return;
+
             var chart = sourceSong.GetChart(instrument, difficulty);
 
             string instrumentName = InstrumentToNameLookup[instrument];
@@ -159,11 +164,12 @@ namespace YARG.Core.UnitTests.Parsing
             GenerateSongSection(sourceSong, chartBuilder);
             GenerateSyncSection(sourceSong, chartBuilder);
             GenerateEventsSection(sourceSong, chartBuilder);
-            foreach (var difficulty in EnumX<Difficulty>.Values)
+            foreach (var instrument in EnumX<MoonInstrument>.Values)
             {
-                GenerateInstrumentSection(sourceSong, chartBuilder, MoonInstrument.Guitar, difficulty);
-                GenerateInstrumentSection(sourceSong, chartBuilder, MoonInstrument.GHLiveGuitar, difficulty);
-                GenerateInstrumentSection(sourceSong, chartBuilder, MoonInstrument.Drums, difficulty);
+                foreach (var difficulty in EnumX<Difficulty>.Values)
+                {
+                    GenerateInstrumentSection(sourceSong, chartBuilder, instrument, difficulty);
+                }
             }
             return chartBuilder.ToString();
         }
@@ -184,17 +190,7 @@ namespace YARG.Core.UnitTests.Parsing
                 return;
             }
 
-            Assert.Multiple(() =>
-            {
-                VerifyMetadata(sourceSong, parsedSong);
-                VerifySync(sourceSong, parsedSong);
-                foreach (var difficulty in EnumX<Difficulty>.Values)
-                {
-                    VerifyTrack(sourceSong, parsedSong, MoonInstrument.Guitar, difficulty);
-                    VerifyTrack(sourceSong, parsedSong, MoonInstrument.GHLiveGuitar, difficulty);
-                    VerifyTrack(sourceSong, parsedSong, MoonInstrument.Drums, difficulty);
-                }
-            });
+            VerifySong(sourceSong, parsedSong, InstrumentToNoteLookupLookup.Keys);
         }
     }
 }
