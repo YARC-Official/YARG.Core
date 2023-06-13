@@ -8,7 +8,6 @@ namespace MoonscraperChartEditor.Song
     [Serializable]
     public class SpecialPhrase : ChartObject
     {
-        [Flags]
         public enum Type
         {
             Starpower,
