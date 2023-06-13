@@ -437,7 +437,25 @@ namespace YARG.Core.UnitTests.Parsing
                 else if (ev1.absoluteTick < ev2.absoluteTick)
                     return -1;
 
-                return 0;
+                // Determine priority for certain types of events
+                return (ev1.midiEvent, ev2.midiEvent) switch {
+                    // Same-type note events should be sorted by note number
+                    // Not *entirely* necessary, but without this then
+                    // sorting is inconsistent and will throw an exception
+                    (NoteOnEvent on1, NoteOnEvent on2) =>
+                        on1.NoteNumber > on2.NoteNumber ? 1
+                        : on1.NoteNumber < on2.NoteNumber ? -1
+                        : 0,
+                    (NoteOffEvent off1, NoteOffEvent off2) =>
+                        off1.NoteNumber > off2.NoteNumber ? 1
+                        : off1.NoteNumber < off2.NoteNumber ? -1
+                        : 0,
+                    // Note on events should come last, and note offs first
+                    (NoteOnEvent, _) => 1,
+                    (NoteOffEvent, _) => -1,
+                    // The ordering of other events doesn't matter
+                    _ => 0
+                };
             });
 
             // Calculate delta time
