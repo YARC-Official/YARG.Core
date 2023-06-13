@@ -1026,10 +1026,11 @@ namespace MoonscraperChartEditor.Song.IO
 
             for (int i = MidIOHelper.VOCALS_RANGE_START; i <= MidIOHelper.VOCALS_RANGE_END; i++)
             {
+                int rawNote = i; // Capture the note value
                 processFnDict.Add(i, (in EventProcessParams eventProcessParams) => {
                     foreach (var difficulty in EnumX<MoonSong.Difficulty>.Values)
                     {
-                        ProcessNoteOnEventAsNote(eventProcessParams, difficulty, i);
+                        ProcessNoteOnEventAsNote(eventProcessParams, difficulty, rawNote);
                     };
                 });
             }
