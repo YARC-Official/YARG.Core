@@ -47,5 +47,21 @@ namespace MoonscraperChartEditor.Song
             else
                 return base.LessThan(b);
         }
+
+        protected override ChartObject ChartClone() => Clone();
+
+        public new ChartEvent Clone()
+        {
+            return new ChartEvent(tick, eventName)
+            {
+                song = song,
+                chart = chart,
+            };
+        }
+
+        public override string ToString()
+        {
+            return $"Local event at tick {tick} with text '{eventName}'";
+        }
     }
 }

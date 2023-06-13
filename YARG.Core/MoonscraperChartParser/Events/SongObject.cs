@@ -30,6 +30,10 @@ namespace MoonscraperChartEditor.Song
         /// </summary>
         public double time => song.TickToTime(tick, song.resolution);
 
+        // Clone needs to be hideable so it can return a different type in derived classes
+        protected abstract SongObject SongClone();
+        public SongObject Clone() => SongClone();
+
         public static bool operator ==(SongObject a, SongObject b)
         {
             bool aIsNull = a is null;
@@ -87,6 +91,11 @@ namespace MoonscraperChartEditor.Song
         public override int GetHashCode()
         {
             return base.GetHashCode();
+        }
+
+        public override string ToString()
+        {
+            return $"{classID} at tick {tick}";
         }
 
         /// <summary>

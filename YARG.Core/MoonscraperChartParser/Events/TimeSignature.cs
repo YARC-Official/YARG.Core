@@ -63,5 +63,20 @@ namespace MoonscraperChartEditor.Song
 
             return measureInfo;
         }
+
+        protected override SyncTrack SyncClone() => Clone();
+
+        public new TimeSignature Clone()
+        {
+            return new TimeSignature(tick, numerator, denominator)
+            {
+                song = song,
+            };
+        }
+
+        public override string ToString()
+        {
+            return $"Time signature at tick {tick} with numerator {numerator} and denominator {denominator}";
+        }
     }
 }

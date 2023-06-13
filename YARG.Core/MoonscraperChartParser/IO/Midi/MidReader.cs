@@ -657,7 +657,7 @@ namespace MoonscraperChartEditor.Song.IO
                 if (phrase.type == SpecialPhrase.Type.Starpower)
                 {
                     // Make a new copy instead of adding the original reference
-                    chart.Add(new SpecialPhrase(phrase.tick, phrase.length, phrase.type), false);
+                    chart.Add(phrase.Clone(), false);
                 }
             }
 
@@ -686,7 +686,7 @@ namespace MoonscraperChartEditor.Song.IO
                 if (phrase.type == SpecialPhrase.Type.Starpower)
                 {
                     // Make a new copy instead of adding the original reference
-                    chart.Add(new SpecialPhrase(phrase.tick, phrase.length, phrase.type), false);
+                    chart.Add(phrase.Clone(), false);
                 }
             }
 
