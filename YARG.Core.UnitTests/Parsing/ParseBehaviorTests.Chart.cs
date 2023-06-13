@@ -58,6 +58,16 @@ namespace YARG.Core.UnitTests.Parsing
             { GameMode.GHLGuitar, GhlGuitarNoteLookup },
         };
 
+        private static readonly Dictionary<SpecialPhrase.Type, int> SpecialPhraseLookup = new()
+        {
+            { SpecialPhrase.Type.Starpower,           PHRASE_STARPOWER },
+            { SpecialPhrase.Type.Versus_Player1,      PHRASE_VERSUS_PLAYER_1 },
+            { SpecialPhrase.Type.Versus_Player2,      PHRASE_VERSUS_PLAYER_2 },
+            { SpecialPhrase.Type.TremoloLane,         PHRASE_TREMOLO_LANE },
+            { SpecialPhrase.Type.TrillLane,           PHRASE_TRILL_LANE },
+            { SpecialPhrase.Type.ProDrums_Activation, PHRASE_DRUM_FILL },
+        };
+
         private static void GenerateSongSection(MoonSong sourceSong, StringBuilder builder)
         {
             builder.Append($"{SECTION_SONG}\n{{\n");
@@ -106,6 +116,7 @@ namespace YARG.Core.UnitTests.Parsing
             string difficultyName = DifficultyToNameLookup[difficulty];
             builder.Append($"[{difficultyName}{instrumentName}]\n{{\n");
 
+            List<ChartObject> eventsToRemove = new();
             foreach (var chartObj in chart.chartObjects)
             {
                 switch (chartObj)
@@ -113,8 +124,28 @@ namespace YARG.Core.UnitTests.Parsing
                     case MoonNote note:
                         AppendNote(builder, note);
                         break;
+                    case SpecialPhrase phrase:
+                        // Drums-only phrases
+                        if (gameMode is not GameMode.Drums && phrase.type is SpecialPhrase.Type.TremoloLane or
+                            SpecialPhrase.Type.TrillLane or SpecialPhrase.Type.ProDrums_Activation)
+                        {
+                            eventsToRemove.Add(chartObj);
+                            continue;
+                        }
+                        int phraseNumber = SpecialPhraseLookup[phrase.type];
+                        builder.Append($"  {phrase.tick} = S {phraseNumber} {phrase.length}\n");
+                        break;
+                    case ChartEvent text:
+                        builder.Append($"  {text.tick} = E {text.eventName}\n");
+                        break;
                 }
             }
+
+            foreach (var chartObj in eventsToRemove)
+            {
+                chart.Remove(chartObj);
+            }
+
             builder.Append("}\n");
         }
 

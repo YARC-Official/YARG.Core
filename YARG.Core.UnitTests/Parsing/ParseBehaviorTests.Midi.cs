@@ -39,6 +39,7 @@ namespace YARG.Core.UnitTests.Parsing
             { MoonInstrument.ProBass_22Fret,   PRO_BASS_22_FRET_TRACK },
         };
 
+#pragma warning disable IDE0230 // Use UTF-8 string literal
         private static readonly Dictionary<int, int> GuitarNoteOffsetLookup = new()
         {
             { (int)GuitarFret.Open,   -1 },
@@ -53,6 +54,15 @@ namespace YARG.Core.UnitTests.Parsing
         {
             { MoonNoteType.Hopo,  5 },
             { MoonNoteType.Strum, 6 },
+        };
+
+        private static readonly Dictionary<SpecialPhrase.Type, byte[]> GuitarSpecialPhraseLookup = new()
+        {
+            { SpecialPhrase.Type.Starpower,      new[] { STARPOWER_NOTE } },
+            { SpecialPhrase.Type.Versus_Player1, new[] { VERSUS_PHRASE_PLAYER_1 } },
+            { SpecialPhrase.Type.Versus_Player2, new[] { VERSUS_PHRASE_PLAYER_2 } },
+            { SpecialPhrase.Type.TremoloLane,    new[] { TREMOLO_LANE_NOTE } },
+            { SpecialPhrase.Type.TrillLane,      new[] { TRILL_LANE_NOTE } },
         };
 
         private static readonly Dictionary<int, int> GhlGuitarNoteOffsetLookup = new()
@@ -70,6 +80,11 @@ namespace YARG.Core.UnitTests.Parsing
         {
             { MoonNoteType.Hopo,  7 },
             { MoonNoteType.Strum, 8 },
+        };
+
+        private static readonly Dictionary<SpecialPhrase.Type, byte[]> GhlGuitarSpecialPhraseLookup = new()
+        {
+            { SpecialPhrase.Type.Starpower, new[] { STARPOWER_NOTE } },
         };
 
         private static readonly Dictionary<int, int> ProGuitarNoteOffsetLookup = new()
@@ -90,6 +105,13 @@ namespace YARG.Core.UnitTests.Parsing
         private static readonly Dictionary<Flags, byte> ProGuitarChannelFlagLookup =
             PRO_GUITAR_CHANNEL_FLAG_LOOKUP.ToDictionary((pair) => pair.Value, (pair) => pair.Key);
 
+        private static readonly Dictionary<SpecialPhrase.Type, byte[]> ProGuitarSpecialPhraseLookup = new()
+        {
+            { SpecialPhrase.Type.Starpower,   new[] { STARPOWER_NOTE } },
+            { SpecialPhrase.Type.TremoloLane, new[] { TREMOLO_LANE_NOTE } },
+            { SpecialPhrase.Type.TrillLane,   new[] { TRILL_LANE_NOTE } },
+        };
+
         private static readonly Dictionary<int, int> DrumsNoteOffsetLookup = new()
         {
             { (int)DrumPad.Kick,   0 },
@@ -98,6 +120,16 @@ namespace YARG.Core.UnitTests.Parsing
             { (int)DrumPad.Blue,   3 },
             { (int)DrumPad.Orange, 4 },
             { (int)DrumPad.Green,  5 },
+        };
+
+        private static readonly Dictionary<SpecialPhrase.Type, byte[]> DrumsSpecialPhraseLookup = new()
+        {
+            { SpecialPhrase.Type.Starpower,           new[] { STARPOWER_NOTE } },
+            { SpecialPhrase.Type.Versus_Player1,      new[] { VERSUS_PHRASE_PLAYER_1 } },
+            { SpecialPhrase.Type.Versus_Player2,      new[] { VERSUS_PHRASE_PLAYER_2 } },
+            { SpecialPhrase.Type.TremoloLane,         new[] { TREMOLO_LANE_NOTE } },
+            { SpecialPhrase.Type.TrillLane,           new[] { TRILL_LANE_NOTE } },
+            { SpecialPhrase.Type.ProDrums_Activation, new[] { DRUM_FILL_NOTE_0, DRUM_FILL_NOTE_1, DRUM_FILL_NOTE_2, DRUM_FILL_NOTE_3, DRUM_FILL_NOTE_4 } },
         };
 
         private static readonly Dictionary<GameMode, Dictionary<int, int>> InstrumentNoteOffsetLookup = new()
@@ -131,6 +163,15 @@ namespace YARG.Core.UnitTests.Parsing
             { GameMode.GHLGuitar, GHL_GUITAR_DIFF_START_LOOKUP },
             { GameMode.ProGuitar, PRO_GUITAR_DIFF_START_LOOKUP },
         };
+
+        private static readonly Dictionary<GameMode, Dictionary<SpecialPhrase.Type, byte[]>> InstrumentSpecialPhraseLookup = new()
+        {
+            { GameMode.Guitar,    GuitarSpecialPhraseLookup },
+            { GameMode.Drums,     DrumsSpecialPhraseLookup },
+            { GameMode.GHLGuitar, GhlGuitarSpecialPhraseLookup },
+            { GameMode.ProGuitar, ProGuitarSpecialPhraseLookup },
+        };
+#pragma warning restore IDE0230
 
         // Because SevenBitNumber andFourBitNumber have no implicit operators for taking in bytes
         private static SevenBitNumber S(byte number) => (SevenBitNumber)number;
@@ -191,6 +232,12 @@ namespace YARG.Core.UnitTests.Parsing
                     {
                         case MoonNote note:
                             GenerateNote(timedEvents, note, gameMode, difficulty, ref lastNoteTick);
+                            break;
+                        case SpecialPhrase phrase when difficulty == Difficulty.Expert:
+                            GenerateSpecialPhrase(timedEvents, phrase, gameMode);
+                            break;
+                        case ChartEvent text when difficulty == Difficulty.Expert:
+                            timedEvents.Add((text.tick, new TextEvent(text.eventName)));
                             break;
                     }
                 }
@@ -306,6 +353,23 @@ namespace YARG.Core.UnitTests.Parsing
             {
                 midiNote = new TNoteEvent() { NoteNumber = S((byte)padNote), Velocity = S(velocity) };
                 events.Add((noteTick, midiNote));
+            }
+        }
+
+        private static void GenerateSpecialPhrase(MidiEventList events, SpecialPhrase phrase, GameMode gameMode)
+        {
+            // Apply sustain cutoffs
+            if (phrase.length < (SUSTAIN_CUTOFF_THRESHOLD))
+                phrase.length = 0;
+
+            // Write notes
+            long startTick = phrase.tick;
+            long endTick = startTick + Math.Max(phrase.length, 1);
+            byte[] notesToAdd = InstrumentSpecialPhraseLookup[gameMode][phrase.type];
+            foreach (byte note in notesToAdd)
+            {
+                events.Add((startTick, new NoteOnEvent() { NoteNumber = S(note), Velocity = S(VELOCITY) }));
+                events.Add((endTick, new NoteOffEvent() { NoteNumber = S(note), Velocity = S(0) }));
             }
         }
 
