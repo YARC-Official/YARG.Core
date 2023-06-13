@@ -58,12 +58,66 @@ namespace YARG.Core.UnitTests.Parsing
             { GameMode.GHLGuitar, GhlGuitarNoteLookup },
         };
 
-        private static void GenerateSection(StringBuilder builder, List<MoonNote> data, MoonInstrument instrument, Difficulty difficulty)
+        private static void GenerateSongSection(MoonSong sourceSong, StringBuilder builder)
         {
+            builder.Append($"{SECTION_SONG}\n{{\n");
+            builder.Append($"  Resolution = {sourceSong.resolution}");
+            builder.Append("}\n");
+        }
+
+        private static void GenerateSyncSection(MoonSong sourceSong, StringBuilder builder)
+        {
+            builder.Append($"{SECTION_SYNC_TRACK}\n{{\n");
+            foreach (var sync in sourceSong.syncTrack)
+            {
+                switch (sync)
+                {
+                    case BPM bpm:
+                        builder.Append($"  {bpm.tick} = B {bpm.value}");
+                        break;
+                    case TimeSignature ts:
+                        builder.Append($"  {ts.tick} = TS {ts.numerator} {(int)Math.Log2(ts.denominator)}");
+                        break;
+                }
+            }
+            builder.Append("}\n");
+        }
+
+        private static void GenerateEventsSection(MoonSong sourceSong, StringBuilder builder)
+        {
+            builder.Append($"{SECTION_EVENTS}\n{{\n");
+            foreach (var text in sourceSong.eventsAndSections)
+            {
+                builder.Append($"  {text.tick} = E \"{text.title}\"");
+            }
+            builder.Append("}\n");
+        }
+
+        private static void GenerateInstrumentSection(MoonSong sourceSong, StringBuilder builder, MoonInstrument instrument, Difficulty difficulty)
+        {
+            var chart = sourceSong.GetChart(instrument, difficulty);
+
             string instrumentName = InstrumentToNameLookup[instrument];
-            var gameMode = MoonSong.InstumentToChartGameMode(instrument);
             string difficultyName = DifficultyToNameLookup[difficulty];
             builder.Append($"[{difficultyName}{instrumentName}]\n{{\n");
+
+            foreach (var chartObj in chart.chartObjects)
+            {
+                switch (chartObj)
+                {
+                    case MoonNote note:
+                        AppendNote(builder, note);
+                        break;
+                }
+            }
+            builder.Append("}\n");
+        }
+
+        private static void AppendNote(StringBuilder builder, MoonNote note)
+        {
+            uint tick = note.tick;
+            var flags = note.flags;
+            var gameMode = note.gameMode;
 
             bool canForce = gameMode is GameMode.Guitar or GameMode.GHLGuitar;
             bool canTap = gameMode is GameMode.Guitar or GameMode.GHLGuitar;
@@ -72,61 +126,44 @@ namespace YARG.Core.UnitTests.Parsing
             bool canDynamics = gameMode is GameMode.Drums;
 
             var noteLookup = InstrumentToNoteLookupLookup[gameMode];
-            for (int index = 0; index < data.Count; index++)
-            {
-                uint tick = RESOLUTION * (uint)index;
-                var note = data[index];
-                var flags = note.flags;
 
-                // Not technically necessary, but might as well lol
-                int rawNote = gameMode switch {
-                    GameMode.Guitar => (int)note.guitarFret,
-                    GameMode.GHLGuitar => (int)note.ghliveGuitarFret,
-                    GameMode.ProGuitar => throw new NotSupportedException(".chart does not support Pro Guitar!"),
-                    GameMode.Drums => (int)note.drumPad,
-                    _ => note.rawNote
-                };
+            // Not technically necessary, but might as well lol
+            int rawNote = gameMode switch {
+                GameMode.Guitar => (int)note.guitarFret,
+                GameMode.GHLGuitar => (int)note.ghliveGuitarFret,
+                GameMode.ProGuitar => throw new NotSupportedException(".chart does not support Pro Guitar!"),
+                GameMode.Drums => (int)note.drumPad,
+                _ => note.rawNote
+            };
 
-                int chartNumber = noteLookup[rawNote];
-                if (canDoubleKick && (flags & Flags.DoubleKick) != 0)
-                    chartNumber = NOTE_OFFSET_INSTRUMENT_PLUS;
+            int chartNumber = noteLookup[rawNote];
+            if (canDoubleKick && (flags & Flags.DoubleKick) != 0)
+                chartNumber = NOTE_OFFSET_INSTRUMENT_PLUS;
 
-                builder.Append($"  {tick} = N {chartNumber} {note.length}\n");
-                if (canForce && (flags & Flags.Forced) != 0)
-                    builder.Append($"  {tick} = N 5 0\n");
-                if (canTap && (flags & Flags.Tap) != 0)
-                    builder.Append($"  {tick} = N 6 0\n");
-                if (canCymbal && (flags & Flags.ProDrums_Cymbal) != 0)
-                    builder.Append($"  {tick} = N {NOTE_OFFSET_PRO_DRUMS + chartNumber} 0\n");
-                if (canDynamics && (flags & Flags.ProDrums_Accent) != 0)
-                    builder.Append($"  {tick} = N {NOTE_OFFSET_DRUMS_ACCENT + chartNumber} 0\n");
-                if (canDynamics && (flags & Flags.ProDrums_Ghost) != 0)
-                    builder.Append($"  {tick} = N {NOTE_OFFSET_DRUMS_GHOST + chartNumber} 0\n");
-            }
-            builder.Append("}\n");
+            builder.Append($"  {tick} = N {chartNumber} {note.length}\n");
+            if (canForce && (flags & Flags.Forced) != 0)
+                builder.Append($"  {tick} = N 5 0\n");
+            if (canTap && (flags & Flags.Tap) != 0)
+                builder.Append($"  {tick} = N 6 0\n");
+            if (canCymbal && (flags & Flags.ProDrums_Cymbal) != 0)
+                builder.Append($"  {tick} = N {NOTE_OFFSET_PRO_DRUMS + chartNumber} 0\n");
+            if (canDynamics && (flags & Flags.ProDrums_Accent) != 0)
+                builder.Append($"  {tick} = N {NOTE_OFFSET_DRUMS_ACCENT + chartNumber} 0\n");
+            if (canDynamics && (flags & Flags.ProDrums_Ghost) != 0)
+                builder.Append($"  {tick} = N {NOTE_OFFSET_DRUMS_GHOST + chartNumber} 0\n");
         }
 
-        private static string GenerateChartFile()
+        private static string GenerateChartFile(MoonSong sourceSong)
         {
-            string header = $$"""
-                {{SECTION_SONG}}
-                {
-                  Resolution = {{RESOLUTION}}
-                }
-                {{SECTION_SYNC_TRACK}}
-                {
-                  {{RESOLUTION * 0}} = TS {{NUMERATOR}} {{DENOMINATOR_POW2}}
-                  {{RESOLUTION * 0}} = B {{(int)(TEMPO * 1000)}}
-                }
-
-                """; // Trailing newline is deliberate
-
-            var chartBuilder = new StringBuilder(header, 1000);
+            var chartBuilder = new StringBuilder(5000);
+            GenerateSongSection(sourceSong, chartBuilder);
+            GenerateSyncSection(sourceSong, chartBuilder);
+            GenerateEventsSection(sourceSong, chartBuilder);
             foreach (var difficulty in EnumX<Difficulty>.Values)
             {
-                GenerateSection(chartBuilder, GuitarNotes, MoonInstrument.Guitar, difficulty);
-                GenerateSection(chartBuilder, GhlGuitarNotes, MoonInstrument.GHLiveGuitar, difficulty);
-                GenerateSection(chartBuilder, DrumsNotes, MoonInstrument.Drums, difficulty);
+                GenerateInstrumentSection(sourceSong, chartBuilder, MoonInstrument.Guitar, difficulty);
+                GenerateInstrumentSection(sourceSong, chartBuilder, MoonInstrument.GHLiveGuitar, difficulty);
+                GenerateInstrumentSection(sourceSong, chartBuilder, MoonInstrument.Drums, difficulty);
             }
             return chartBuilder.ToString();
         }
@@ -134,11 +171,12 @@ namespace YARG.Core.UnitTests.Parsing
         [TestCase]
         public void GenerateAndParseChartFile()
         {
-            string chartText = GenerateChartFile();
-            MoonSong song;
+            var sourceSong = GenerateSong();
+            string chartText = GenerateChartFile(sourceSong);
+            MoonSong parsedSong;
             try
             {
-                song = ChartReader.ReadChart(new StringReader(chartText));
+                parsedSong = ChartReader.ReadChart(new StringReader(chartText));
             }
             catch (Exception ex)
             {
@@ -148,13 +186,13 @@ namespace YARG.Core.UnitTests.Parsing
 
             Assert.Multiple(() =>
             {
-                VerifyMetadata(song);
-                VerifySync(song);
+                VerifyMetadata(sourceSong, parsedSong);
+                VerifySync(sourceSong, parsedSong);
                 foreach (var difficulty in EnumX<Difficulty>.Values)
                 {
-                    VerifyTrack(song, GuitarNotes, MoonInstrument.Guitar, difficulty);
-                    VerifyTrack(song, GhlGuitarNotes, MoonInstrument.GHLiveGuitar, difficulty);
-                    VerifyTrack(song, DrumsNotes, MoonInstrument.Drums, difficulty);
+                    VerifyTrack(sourceSong, parsedSong, MoonInstrument.Guitar, difficulty);
+                    VerifyTrack(sourceSong, parsedSong, MoonInstrument.GHLiveGuitar, difficulty);
+                    VerifyTrack(sourceSong, parsedSong, MoonInstrument.Drums, difficulty);
                 }
             });
         }

@@ -1,4 +1,5 @@
 using MoonscraperChartEditor.Song;
+using MoonscraperEngine;
 using NUnit.Framework;
 
 namespace YARG.Core.UnitTests.Parsing
@@ -11,9 +12,21 @@ namespace YARG.Core.UnitTests.Parsing
         public const uint RESOLUTION = 192;
         public const double TEMPO = 120.0;
         public const int NUMERATOR = 4;
-        public const int DENOMINATOR_POW2 = 2;
+        public const int DENOMINATOR = 4;
 
         public const uint HOPO_THRESHOLD = (uint)(SongConfig.FORCED_NOTE_TICK_THRESHOLD * RESOLUTION / SongConfig.STANDARD_BEAT_RESOLUTION);
+
+        public static readonly SongObjectComparer Comparer = new();
+
+        public static readonly List<SyncTrack> TempoMap = new()
+        {
+            new BPM(0, (uint)(TEMPO * 1000)),
+            new TimeSignature(0, NUMERATOR, DENOMINATOR),
+        };
+
+        public static readonly List<Event> GlobalEvents = new()
+        {
+        };
 
         private static MoonNote NewNote(GuitarFret fret, uint length = 0, Flags flags = Flags.None)
             => new(0, (int)fret, length, flags);
@@ -24,7 +37,7 @@ namespace YARG.Core.UnitTests.Parsing
         private static MoonNote NewNote(ProGuitarString str, int fret, uint length = 0, Flags flags = Flags.None)
             => new(0, MoonNote.MakeProGuitarRawNote(str, fret), length, flags);
 
-        public static readonly List<MoonNote> GuitarNotes = new()
+        public static readonly List<ChartObject> GuitarTrack = new()
         {
             NewNote(GuitarFret.Green),
             NewNote(GuitarFret.Red),
@@ -45,9 +58,30 @@ namespace YARG.Core.UnitTests.Parsing
             NewNote(GuitarFret.Yellow, flags: Flags.Tap),
             NewNote(GuitarFret.Blue, flags: Flags.Tap),
             NewNote(GuitarFret.Orange, flags: Flags.Tap),
+
+            NewNote(GuitarFret.Green),
+            NewNote(GuitarFret.Red),
+            NewNote(GuitarFret.Yellow),
+            NewNote(GuitarFret.Blue),
+            NewNote(GuitarFret.Orange),
+            NewNote(GuitarFret.Open),
+
+            NewNote(GuitarFret.Yellow),
+            NewNote(GuitarFret.Yellow),
+            NewNote(GuitarFret.Yellow),
+            NewNote(GuitarFret.Yellow),
+            NewNote(GuitarFret.Yellow),
+            NewNote(GuitarFret.Yellow),
+
+            NewNote(GuitarFret.Green),
+            NewNote(GuitarFret.Red),
+            NewNote(GuitarFret.Green),
+            NewNote(GuitarFret.Red),
+            NewNote(GuitarFret.Green),
+            NewNote(GuitarFret.Red),
         };
 
-        public static readonly List<MoonNote> GhlGuitarNotes = new()
+        public static readonly List<ChartObject> GhlGuitarTrack = new()
         {
             NewNote(GHLiveGuitarFret.Black1),
             NewNote(GHLiveGuitarFret.Black2),
@@ -71,9 +105,17 @@ namespace YARG.Core.UnitTests.Parsing
             NewNote(GHLiveGuitarFret.White1, flags: Flags.Tap),
             NewNote(GHLiveGuitarFret.White2, flags: Flags.Tap),
             NewNote(GHLiveGuitarFret.White3, flags: Flags.Tap),
+
+            NewNote(GHLiveGuitarFret.Black1),
+            NewNote(GHLiveGuitarFret.Black2),
+            NewNote(GHLiveGuitarFret.Black3),
+            NewNote(GHLiveGuitarFret.White1),
+            NewNote(GHLiveGuitarFret.White2),
+            NewNote(GHLiveGuitarFret.White3),
+            NewNote(GHLiveGuitarFret.Open),
         };
 
-        public static readonly List<MoonNote> ProGuitarNotes = new()
+        public static readonly List<ChartObject> ProGuitarTrack = new()
         {
             NewNote(ProGuitarString.Red, 0),
             NewNote(ProGuitarString.Green, 1),
@@ -95,9 +137,30 @@ namespace YARG.Core.UnitTests.Parsing
             NewNote(ProGuitarString.Blue, 15, flags: Flags.ProGuitar_Muted),
             NewNote(ProGuitarString.Yellow, 16, flags: Flags.ProGuitar_Muted),
             NewNote(ProGuitarString.Purple, 17, flags: Flags.ProGuitar_Muted),
+
+            NewNote(ProGuitarString.Red, 0),
+            NewNote(ProGuitarString.Green, 1),
+            NewNote(ProGuitarString.Orange, 2),
+            NewNote(ProGuitarString.Blue, 3),
+            NewNote(ProGuitarString.Yellow, 4),
+            NewNote(ProGuitarString.Purple, 5),
+
+            NewNote(ProGuitarString.Red, 0),
+            NewNote(ProGuitarString.Red, 0),
+            NewNote(ProGuitarString.Red, 0),
+            NewNote(ProGuitarString.Red, 0),
+            NewNote(ProGuitarString.Red, 0),
+            NewNote(ProGuitarString.Red, 0),
+
+            NewNote(ProGuitarString.Yellow, 5),
+            NewNote(ProGuitarString.Yellow, 6),
+            NewNote(ProGuitarString.Yellow, 5),
+            NewNote(ProGuitarString.Yellow, 6),
+            NewNote(ProGuitarString.Yellow, 5),
+            NewNote(ProGuitarString.Yellow, 6),
         };
 
-        public static readonly List<MoonNote> DrumsNotes = new()
+        public static readonly List<ChartObject> DrumsTrack = new()
         {
             NewNote(DrumPad.Kick),
             NewNote(DrumPad.Kick, flags: Flags.DoubleKick),
@@ -128,65 +191,146 @@ namespace YARG.Core.UnitTests.Parsing
             NewNote(DrumPad.Yellow, flags: Flags.ProDrums_Cymbal | Flags.ProDrums_Ghost),
             NewNote(DrumPad.Blue, flags: Flags.ProDrums_Cymbal | Flags.ProDrums_Ghost),
             NewNote(DrumPad.Orange, flags: Flags.ProDrums_Cymbal | Flags.ProDrums_Ghost),
+
+            NewNote(DrumPad.Red),
+            NewNote(DrumPad.Yellow),
+            NewNote(DrumPad.Blue),
+            NewNote(DrumPad.Orange),
+            NewNote(DrumPad.Green),
+            NewNote(DrumPad.Yellow, flags: Flags.ProDrums_Cymbal),
+            NewNote(DrumPad.Blue, flags: Flags.ProDrums_Cymbal),
+            NewNote(DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
+
+            NewNote(DrumPad.Red),
+            NewNote(DrumPad.Yellow),
+            NewNote(DrumPad.Blue),
+            NewNote(DrumPad.Orange),
+            NewNote(DrumPad.Green),
+            NewNote(DrumPad.Yellow, flags: Flags.ProDrums_Cymbal),
+            NewNote(DrumPad.Blue, flags: Flags.ProDrums_Cymbal),
+            NewNote(DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
+
+            NewNote(DrumPad.Red),
+            NewNote(DrumPad.Yellow),
+            NewNote(DrumPad.Blue),
+            NewNote(DrumPad.Orange),
+            NewNote(DrumPad.Green),
+            NewNote(DrumPad.Yellow, flags: Flags.ProDrums_Cymbal),
+            NewNote(DrumPad.Blue, flags: Flags.ProDrums_Cymbal),
+            NewNote(DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
+
+            NewNote(DrumPad.Red),
+            NewNote(DrumPad.Yellow),
+            NewNote(DrumPad.Blue),
+            NewNote(DrumPad.Orange),
+            NewNote(DrumPad.Green),
+            NewNote(DrumPad.Yellow, flags: Flags.ProDrums_Cymbal),
+            NewNote(DrumPad.Blue, flags: Flags.ProDrums_Cymbal),
+            NewNote(DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
+
+            NewNote(DrumPad.Red),
+            NewNote(DrumPad.Red),
+            NewNote(DrumPad.Red),
+            NewNote(DrumPad.Red),
+            NewNote(DrumPad.Red),
+            NewNote(DrumPad.Red),
+
+            NewNote(DrumPad.Yellow, flags: Flags.ProDrums_Cymbal),
+            NewNote(DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
+            NewNote(DrumPad.Yellow, flags: Flags.ProDrums_Cymbal),
+            NewNote(DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
+            NewNote(DrumPad.Yellow, flags: Flags.ProDrums_Cymbal),
+            NewNote(DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
         };
 
-        public static void VerifyMetadata(MoonSong song)
+        public static MoonSong GenerateSong()
+        {
+            var song = new MoonSong();
+            PopulateSyncTrack(song, TempoMap);
+            PopulateGlobalEvents(song, GlobalEvents);
+            PopulateInstrument(song, MoonInstrument.Guitar, GuitarTrack);
+            PopulateInstrument(song, MoonInstrument.GHLiveGuitar, GhlGuitarTrack);
+            PopulateInstrument(song, MoonInstrument.ProGuitar_22Fret, ProGuitarTrack);
+            PopulateInstrument(song, MoonInstrument.Drums, DrumsTrack);
+            return song;
+        }
+
+        public static void PopulateSyncTrack(MoonSong song, List<SyncTrack> tempoMap)
+        {
+            foreach (var sync in tempoMap)
+            {
+                song.Add(sync.Clone(), false);
+            }
+            song.UpdateCache();
+        }
+
+        public static void PopulateGlobalEvents(MoonSong song, List<Event> events)
+        {
+            foreach (var text in events)
+            {
+                song.Add(text.Clone(), false);
+            }
+            song.UpdateCache();
+        }
+
+        public static void PopulateInstrument(MoonSong song, MoonInstrument instrument, List<ChartObject> data)
+        {
+            foreach (var difficulty in EnumX<Difficulty>.Values)
+            {
+                PopulateDifficulty(song, instrument, difficulty, data);
+            }
+        }
+
+        public static void PopulateDifficulty(MoonSong song, MoonInstrument instrument, Difficulty difficulty, List<ChartObject> data)
+        {
+            var chart = song.GetChart(instrument, difficulty);
+            uint currentTick = 0;
+            foreach (var chartObj in data)
+            {
+                var newObj = chartObj.Clone();
+                newObj.tick = currentTick;
+                chart.Add(newObj, false);
+
+                // Only notes will progress the current tick forward, other events
+                // will occur at the same position as the last note
+                if (newObj.GetType() == typeof(MoonNote))
+                    currentTick += RESOLUTION;
+            }
+            chart.UpdateCache();
+        }
+
+        public static void VerifyMetadata(MoonSong sourceSong, MoonSong parsedSong)
         {
             Assert.Multiple(() =>
             {
-                Assert.That(song.resolution, Is.EqualTo((float)RESOLUTION), $"Resolution was not parsed correctly!");
+                Assert.That(parsedSong.resolution, Is.EqualTo(sourceSong.resolution), $"Resolution was not parsed correctly!");
             });
         }
 
-        public static void VerifySync(MoonSong song)
+        public static void VerifySync(MoonSong sourceSong, MoonSong parsedSong)
         {
             Assert.Multiple(() =>
             {
-                Assert.That(song.bpms, Has.Count.EqualTo(1), $"Incorrect number of BPM events!");
-                Assert.That(song.timeSignatures, Has.Count.EqualTo(1), $"Incorrect number of time signatures!");
-
-                if (song.bpms.Count > 0)
-                    Assert.That(song.bpms[0].displayValue, Is.InRange(TEMPO - 0.001, TEMPO + 0.001), "Parsed tempo is incorrect!");
-
-                if (song.timeSignatures.Count > 0)
-                {
-                    Assert.That(song.timeSignatures[0].numerator, Is.EqualTo(NUMERATOR), "Parsed numerator is incorrect!");
-                    uint denominator = song.timeSignatures[0].denominator;
-                    uint denominator_pow2 = denominator;
-                    for (int i = 1; i < DENOMINATOR_POW2; i++)
-                        denominator_pow2 /= 2;
-                    Assert.That(denominator_pow2, Is.EqualTo(DENOMINATOR_POW2), $"Parsed denominator is incorrect! (Original: {denominator})");
-                }
+                CollectionAssert.AreEqual(sourceSong.bpms, parsedSong.bpms, Comparer, "BPMs do not match!");
+                CollectionAssert.AreEqual(sourceSong.timeSignatures, parsedSong.timeSignatures, Comparer, "Time signatures do not match!");
+                CollectionAssert.AreEqual(parsedSong.events, parsedSong.events, Comparer, "Global events do not match!");
             });
         }
 
-        public static void VerifyTrack(MoonSong song, List<MoonNote> data, MoonInstrument instrument, Difficulty difficulty)
+        public static void VerifyTrack(MoonSong sourceSong, MoonSong parsedSong, MoonInstrument instrument, Difficulty difficulty)
         {
             Assert.Multiple(() =>
             {
-                bool chartExists = song.DoesChartExist(instrument, difficulty);
+                bool chartExists = parsedSong.DoesChartExist(instrument, difficulty);
                 Assert.That(chartExists, Is.True, $"Chart for {difficulty} {instrument} was not parsed!");
                 if (!chartExists)
                     return;
 
-                var chart = song.GetChart(instrument, difficulty);
-                for (int index = 0; index < data.Count; index++)
-                {
-                    uint tick = RESOLUTION * (uint)index;
-                    var originalNote = data[index];
-                    SongObjectHelper.FindObjectsAtPosition(tick, chart.notes, out int start, out int length);
-                    Assert.That(start, Is.Not.EqualTo(SongObjectHelper.NOTFOUND), $"Note at position {tick} was not parsed on {difficulty} {instrument}!");
-                    Assert.That(length, Is.AtLeast(1), $"Note at position {tick} was not parsed on {difficulty} {instrument}!");
-                    Assert.That(length, Is.AtMost(1), $"More than one note was found at position {tick} on {difficulty} {instrument}!");
-                    if (start == SongObjectHelper.NOTFOUND || length != 1)
-                        continue;
-
-                    var parsedNote = chart.notes[start];
-                    Assert.That(parsedNote.tick, Is.EqualTo(tick), $"Note position does not match! (Note {originalNote.rawNote} on {difficulty} {instrument})");
-                    Assert.That(parsedNote.rawNote, Is.EqualTo(originalNote.rawNote), $"Raw note does not match! (Tick {tick} on {difficulty} {instrument})");
-                    Assert.That(parsedNote.length, Is.EqualTo(originalNote.length), $"Note length does not match! (Note {originalNote.rawNote} at {tick} on {difficulty} {instrument})");
-                    Assert.That(parsedNote.flags, Is.EqualTo(originalNote.flags), $"Note flags do not match! (Note {originalNote.rawNote} at {tick} on {difficulty} {instrument})");
-                }
+                var sourceChart = sourceSong.GetChart(instrument, difficulty);
+                var parsedChart = parsedSong.GetChart(instrument, difficulty);
+                CollectionAssert.AreEqual(sourceChart.notes, parsedChart.notes, Comparer, $"Notes on {difficulty} {instrument} do not match!");
+                CollectionAssert.AreEqual(sourceChart.specialPhrases, parsedChart.specialPhrases, Comparer, $"Special phrases on {difficulty} {instrument} do not match!");
+                CollectionAssert.AreEqual(sourceChart.events, parsedChart.events, Comparer, $"Local events on {difficulty} {instrument} do not match!");
             });
         }
     }
