@@ -219,8 +219,9 @@ namespace MoonscraperChartEditor.Song.IO
                         break;
 
                     case MidIOHelper.VOCALS_TRACK:
+                        // Parse lyrics to global track, and then parse as an instrument
                         ReadTextEventsIntoGlobalEventsAsLyrics(track, song);
-                        break;
+                        goto default;
 
                     default:
                         MoonSong.MoonInstrument instrument;
