@@ -411,5 +411,21 @@ namespace MoonscraperChartEditor.Song
             rawNote |= ((int)proString << PRO_GUITAR_STRING_OFFSET) & PRO_GUITAR_STRING_MASK;
             return rawNote;
         }
+
+        protected override ChartObject ChartClone() => Clone();
+
+        public new MoonNote Clone()
+        {
+            return new MoonNote(tick, rawNote, length, flags)
+            {
+                song = song,
+                chart = chart,
+            };
+        }
+
+        public override string ToString()
+        {
+            return $"Note at tick {tick} with value {rawNote} and length {length}";
+        }
     }
 }

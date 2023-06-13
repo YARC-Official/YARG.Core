@@ -75,9 +75,7 @@ namespace MoonscraperChartEditor.Song
             Add(new TimeSignature());
 
             // Chart initialisation
-            int numberOfInstruments = EnumX<MoonInstrument>.Count - 1;     // Don't count the "Unused" instrument
-            charts = new MoonChart[numberOfInstruments * EnumX<Difficulty>.Count];
-
+            charts = new MoonChart[EnumX<MoonInstrument>.Count * EnumX<Difficulty>.Count];
             for (int i = 0; i < charts.Length; ++i)
             {
                 var instrument = (MoonInstrument)(i / EnumX<Difficulty>.Count);
@@ -114,15 +112,7 @@ namespace MoonscraperChartEditor.Song
 
         public MoonChart GetChart(MoonInstrument instrument, Difficulty difficulty)
         {
-            try
-            {
-                return charts[(int)instrument * EnumX<Difficulty>.Count + (int)difficulty];
-            }
-            catch (Exception e)
-            {
-                Debug.WriteLine(e.Message);
-                return charts[0];
-            }
+            return charts[(int)instrument * EnumX<Difficulty>.Count + (int)difficulty];
         }
 
         public bool ChartExistsForInstrument(MoonInstrument instrument)

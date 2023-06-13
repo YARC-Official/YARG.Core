@@ -31,5 +31,21 @@ namespace MoonscraperChartEditor.Song
             value = _value;
             anchor = _anchor;
         }
+
+        protected override SyncTrack SyncClone() => Clone();
+
+        public new BPM Clone()
+        {
+            return new BPM(tick, value, anchor)
+            {
+                assignedTime = assignedTime,
+                song = song,
+            };
+        }
+
+        public override string ToString()
+        {
+            return $"BPM at tick {tick} with tempo {displayValue}";
+        }
     }
 }

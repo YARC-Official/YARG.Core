@@ -260,7 +260,7 @@ namespace MoonscraperChartEditor.Song.IO
             }
             foreach (var timesig in tempoMap.GetTimeSignatureChanges())
             {
-                song.Add(new TimeSignature((uint)timesig.Time, (uint)timesig.Value.Numerator, (uint)Math.Pow(2, timesig.Value.Denominator)), false);
+                song.Add(new TimeSignature((uint)timesig.Time, (uint)timesig.Value.Numerator, (uint)timesig.Value.Denominator), false);
             }
 
             song.UpdateCache();
@@ -657,7 +657,7 @@ namespace MoonscraperChartEditor.Song.IO
                 if (phrase.type == SpecialPhrase.Type.Starpower)
                 {
                     // Make a new copy instead of adding the original reference
-                    chart.Add(new SpecialPhrase(phrase.tick, phrase.length, phrase.type), false);
+                    chart.Add(phrase.Clone(), false);
                 }
             }
 
@@ -686,7 +686,7 @@ namespace MoonscraperChartEditor.Song.IO
                 if (phrase.type == SpecialPhrase.Type.Starpower)
                 {
                     // Make a new copy instead of adding the original reference
-                    chart.Add(new SpecialPhrase(phrase.tick, phrase.length, phrase.type), false);
+                    chart.Add(phrase.Clone(), false);
                 }
             }
 
@@ -855,6 +855,8 @@ namespace MoonscraperChartEditor.Song.IO
                 { MidIOHelper.SOLO_NOTE_PRO_GUITAR, (in EventProcessParams eventProcessParams) => {
                     ProcessNoteOnEventAsEvent(eventProcessParams, MidIOHelper.SOLO_EVENT_TEXT, MidIOHelper.SOLO_END_EVENT_TEXT, tickEndOffset: SOLO_END_CORRECTION_OFFSET);
                 }},
+                { MidIOHelper.TREMOLO_LANE_NOTE, ProcessNoteOnEventAsTremoloLane },
+                { MidIOHelper.TRILL_LANE_NOTE, ProcessNoteOnEventAsTrillLane },
             };
 
             foreach (var difficulty in EnumX<MoonSong.Difficulty>.Values)

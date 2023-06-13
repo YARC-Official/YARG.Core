@@ -108,5 +108,21 @@ namespace MoonscraperChartEditor.Song
 
             return newLength;
         }
+
+        protected override ChartObject ChartClone() => Clone();
+
+        public new SpecialPhrase Clone()
+        {
+            return new SpecialPhrase(tick, length, type)
+            {
+                song = song,
+                chart = chart,
+            };
+        }
+
+        public override string ToString()
+        {
+            return $"Special phrase at tick {tick} with type {type} and length {length}";
+        }
     }
 }

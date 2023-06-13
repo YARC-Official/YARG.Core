@@ -1,4 +1,3 @@
-using System.Text;
 using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.Core;
 using MoonscraperChartEditor.Song;
@@ -13,6 +12,8 @@ namespace YARG.Core.UnitTests.Parsing
     using static MoonNote;
     using static MidIOHelper;
     using static ParseBehaviorTests;
+
+    using MidiEventList = List<(long absoluteTick, MidiEvent midiEvent)>;
 
     public class MidiParseBehaviorTests
     {
@@ -38,6 +39,7 @@ namespace YARG.Core.UnitTests.Parsing
             { MoonInstrument.ProBass_22Fret,   PRO_BASS_22_FRET_TRACK },
         };
 
+#pragma warning disable IDE0230 // Use UTF-8 string literal
         private static readonly Dictionary<int, int> GuitarNoteOffsetLookup = new()
         {
             { (int)GuitarFret.Open,   -1 },
@@ -52,6 +54,15 @@ namespace YARG.Core.UnitTests.Parsing
         {
             { MoonNoteType.Hopo,  5 },
             { MoonNoteType.Strum, 6 },
+        };
+
+        private static readonly Dictionary<SpecialPhrase.Type, byte[]> GuitarSpecialPhraseLookup = new()
+        {
+            { SpecialPhrase.Type.Starpower,      new[] { STARPOWER_NOTE } },
+            { SpecialPhrase.Type.Versus_Player1, new[] { VERSUS_PHRASE_PLAYER_1 } },
+            { SpecialPhrase.Type.Versus_Player2, new[] { VERSUS_PHRASE_PLAYER_2 } },
+            { SpecialPhrase.Type.TremoloLane,    new[] { TREMOLO_LANE_NOTE } },
+            { SpecialPhrase.Type.TrillLane,      new[] { TRILL_LANE_NOTE } },
         };
 
         private static readonly Dictionary<int, int> GhlGuitarNoteOffsetLookup = new()
@@ -69,6 +80,11 @@ namespace YARG.Core.UnitTests.Parsing
         {
             { MoonNoteType.Hopo,  7 },
             { MoonNoteType.Strum, 8 },
+        };
+
+        private static readonly Dictionary<SpecialPhrase.Type, byte[]> GhlGuitarSpecialPhraseLookup = new()
+        {
+            { SpecialPhrase.Type.Starpower, new[] { STARPOWER_NOTE } },
         };
 
         private static readonly Dictionary<int, int> ProGuitarNoteOffsetLookup = new()
@@ -89,6 +105,13 @@ namespace YARG.Core.UnitTests.Parsing
         private static readonly Dictionary<Flags, byte> ProGuitarChannelFlagLookup =
             PRO_GUITAR_CHANNEL_FLAG_LOOKUP.ToDictionary((pair) => pair.Value, (pair) => pair.Key);
 
+        private static readonly Dictionary<SpecialPhrase.Type, byte[]> ProGuitarSpecialPhraseLookup = new()
+        {
+            { SpecialPhrase.Type.Starpower,   new[] { STARPOWER_NOTE } },
+            { SpecialPhrase.Type.TremoloLane, new[] { TREMOLO_LANE_NOTE } },
+            { SpecialPhrase.Type.TrillLane,   new[] { TRILL_LANE_NOTE } },
+        };
+
         private static readonly Dictionary<int, int> DrumsNoteOffsetLookup = new()
         {
             { (int)DrumPad.Kick,   0 },
@@ -97,6 +120,16 @@ namespace YARG.Core.UnitTests.Parsing
             { (int)DrumPad.Blue,   3 },
             { (int)DrumPad.Orange, 4 },
             { (int)DrumPad.Green,  5 },
+        };
+
+        private static readonly Dictionary<SpecialPhrase.Type, byte[]> DrumsSpecialPhraseLookup = new()
+        {
+            { SpecialPhrase.Type.Starpower,           new[] { STARPOWER_NOTE } },
+            { SpecialPhrase.Type.Versus_Player1,      new[] { VERSUS_PHRASE_PLAYER_1 } },
+            { SpecialPhrase.Type.Versus_Player2,      new[] { VERSUS_PHRASE_PLAYER_2 } },
+            { SpecialPhrase.Type.TremoloLane,         new[] { TREMOLO_LANE_NOTE } },
+            { SpecialPhrase.Type.TrillLane,           new[] { TRILL_LANE_NOTE } },
+            { SpecialPhrase.Type.ProDrums_Activation, new[] { DRUM_FILL_NOTE_0, DRUM_FILL_NOTE_1, DRUM_FILL_NOTE_2, DRUM_FILL_NOTE_3, DRUM_FILL_NOTE_4 } },
         };
 
         private static readonly Dictionary<GameMode, Dictionary<int, int>> InstrumentNoteOffsetLookup = new()
@@ -131,56 +164,110 @@ namespace YARG.Core.UnitTests.Parsing
             { GameMode.ProGuitar, PRO_GUITAR_DIFF_START_LOOKUP },
         };
 
+        private static readonly Dictionary<GameMode, Dictionary<SpecialPhrase.Type, byte[]>> InstrumentSpecialPhraseLookup = new()
+        {
+            { GameMode.Guitar,    GuitarSpecialPhraseLookup },
+            { GameMode.Drums,     DrumsSpecialPhraseLookup },
+            { GameMode.GHLGuitar, GhlGuitarSpecialPhraseLookup },
+            { GameMode.ProGuitar, ProGuitarSpecialPhraseLookup },
+        };
+#pragma warning restore IDE0230
+
         // Because SevenBitNumber andFourBitNumber have no implicit operators for taking in bytes
         private static SevenBitNumber S(byte number) => (SevenBitNumber)number;
         private static FourBitNumber F(byte number) => (FourBitNumber)number;
 
-        private static TrackChunk GenerateTrackChunk(List<MoonNote> data, MoonInstrument instrument)
+        private static TrackChunk GenerateSyncChunk(MoonSong sourceSong)
         {
-            string instrumentName = InstrumentToNameLookup[instrument];
-            var gameMode = MoonSong.InstumentToChartGameMode(instrument);
-            var chunk = new TrackChunk(new SequenceTrackNameEvent(instrumentName));
-
-            if (gameMode == GameMode.Drums)
-                chunk.Events.Add(new TextEvent(CHART_DYNAMICS_TEXT_BRACKET));
-            else if (gameMode == GameMode.Guitar)
-                chunk.Events.Add(new TextEvent(ENHANCED_OPENS_TEXT_BRACKET));
-
-            long deltaTime = 0;
-            long lastNoteStartDelta = 0;
-            foreach (var note in data)
+            var timedEvents = new MidiEventList();
+            foreach (var sync in sourceSong.syncTrack)
             {
-                // Apply sustain cutoffs
-                if (note.length < (SUSTAIN_CUTOFF_THRESHOLD))
-                    note.length = 0;
-
-                // Note ons
-                // *MUST* be generated on all difficulties before note offs! Otherwise notes will be placed incorrectly
-                long currentDelta = deltaTime;
-                foreach (var difficulty in EnumX<Difficulty>.Values)
+                switch (sync)
                 {
-                    GenerateNotesForDifficulty<NoteOnEvent>(chunk, gameMode, difficulty, note, currentDelta, VELOCITY, lastNoteStartDelta);
-                    currentDelta = 0;
+                    case BPM bpm:
+                        // MIDI stores tempo as microseconds per quarter note, so we need to convert
+                        // Moonscraper already ties BPM to quarter notes, so no additional conversion is needed
+                        double secondsPerBeat = 60 / bpm.displayValue;
+                        double microseconds = secondsPerBeat * 1000 * 1000;
+                        timedEvents.Add((sync.tick, new SetTempoEvent((long)microseconds)));
+                        break;
+                    case TimeSignature ts:
+                        timedEvents.Add((sync.tick, new TimeSignatureEvent((byte)ts.numerator, (byte)ts.denominator)));
+                        break;
                 }
-
-                // Note offs
-                long endDelta = Math.Max(note.length, 1);
-                currentDelta = endDelta;
-                foreach (var difficulty in EnumX<Difficulty>.Values)
-                {
-                    GenerateNotesForDifficulty<NoteOffEvent>(chunk, gameMode, difficulty, note, currentDelta, 0, lastNoteStartDelta);
-                    currentDelta = 0;
-                }
-
-                deltaTime = RESOLUTION - endDelta;
-                lastNoteStartDelta = RESOLUTION;
             }
 
-            return chunk;
+            return FinalizeTrackChunk("TEMPO_TRACK", timedEvents);
         }
 
-        private static void GenerateNotesForDifficulty<TNoteEvent>(TrackChunk chunk, GameMode gameMode, Difficulty difficulty,
-            MoonNote note, long noteDelta, byte velocity, long lastStartDelta)
+        private static TrackChunk GenerateEventsChunk(MoonSong sourceSong)
+        {
+            var timedEvents = new MidiEventList();
+            foreach (var text in sourceSong.eventsAndSections)
+            {
+                timedEvents.Add((text.tick, new TextEvent(text.title)));
+            }
+
+            return FinalizeTrackChunk(EVENTS_TRACK, timedEvents);
+        }
+
+        private static TrackChunk GenerateTrackChunk(MoonSong sourceSong, MoonInstrument instrument)
+        {
+            var gameMode = MoonSong.InstumentToChartGameMode(instrument);
+            var timedEvents = new MidiEventList();
+
+            // Text event flags to enable extended features
+            if (gameMode == GameMode.Drums)
+                timedEvents.Add((0, new TextEvent(CHART_DYNAMICS_TEXT_BRACKET)));
+            else if (gameMode == GameMode.Guitar)
+                timedEvents.Add((0, new TextEvent(ENHANCED_OPENS_TEXT_BRACKET)));
+
+            long lastNoteTick = 0;
+            foreach (var difficulty in EnumX<Difficulty>.Values)
+            {
+                var chart = sourceSong.GetChart(instrument, difficulty);
+                foreach (var chartObj in chart.chartObjects)
+                {
+                    switch (chartObj)
+                    {
+                        case MoonNote note:
+                            GenerateNote(timedEvents, note, gameMode, difficulty, ref lastNoteTick);
+                            break;
+                        case SpecialPhrase phrase when difficulty == Difficulty.Expert:
+                            GenerateSpecialPhrase(timedEvents, phrase, gameMode);
+                            break;
+                        case ChartEvent text when difficulty == Difficulty.Expert:
+                            timedEvents.Add((text.tick, new TextEvent(text.eventName)));
+                            break;
+                    }
+                }
+            }
+
+            // Write events to new track
+            string instrumentName = InstrumentToNameLookup[instrument];
+            return FinalizeTrackChunk(instrumentName, timedEvents);
+        }
+
+        private static void GenerateNote(MidiEventList events, MoonNote note, GameMode gameMode, Difficulty difficulty,
+            ref long lastNoteTick)
+        {
+            // Apply sustain cutoffs
+            if (note.length < (SUSTAIN_CUTOFF_THRESHOLD))
+                note.length = 0;
+
+            // Write notes
+            long startTick = note.tick;
+            long endTick = startTick + Math.Max(note.length, 1);
+            long lastNoteDelta = startTick - lastNoteTick;
+            GenerateNotesForDifficulty<NoteOnEvent>(events, gameMode, difficulty, note, startTick, VELOCITY, lastNoteDelta);
+            GenerateNotesForDifficulty<NoteOffEvent>(events, gameMode, difficulty, note, endTick, 0, lastNoteDelta);
+
+            // Keep track of last note tick for HOPO marking
+            lastNoteTick = startTick;
+        }
+
+        private static void GenerateNotesForDifficulty<TNoteEvent>(MidiEventList events, GameMode gameMode, Difficulty difficulty,
+            MoonNote note, long noteTick, byte velocity, long lastStartDelta)
             where TNoteEvent : NoteEvent, new()
         {
             // This code is somewhat hacky and makes a lot of assumptions, but it does the job
@@ -234,45 +321,105 @@ namespace YARG.Core.UnitTests.Parsing
                 channel = 0;
 
             // Main note
-            chunk.Events.Add(new TNoteEvent() { NoteNumber = S(noteNumber), Velocity = S(velocity), DeltaTime = noteDelta, Channel = F(channel) });
+            var midiNote = new TNoteEvent()
+            {
+                NoteNumber = S(noteNumber),
+                Velocity = S(velocity),
+                DeltaTime = noteTick,
+                Channel = F(channel)
+            };
+            events.Add((noteTick, midiNote));
 
             // Note flags
             if ((canForceStrum || canForceHopo) && (flags & Flags.Forced) != 0)
             {
-                byte forceNote;
+                MoonNoteType type;
                 if (canForceHopo && lastStartDelta is >= HOPO_THRESHOLD and > 0) 
-                    forceNote = (byte)(difficultyStart + forceOffsetLookup[MoonNoteType.Hopo]);
+                    type = MoonNoteType.Hopo;
                 else
-                    forceNote = (byte)(difficultyStart + forceOffsetLookup[MoonNoteType.Strum]);
-                chunk.Events.Add(new TNoteEvent() { NoteNumber = S(forceNote), Velocity = S(velocity) });
+                    type = MoonNoteType.Strum;
+
+                byte forceNote = (byte)(difficultyStart + forceOffsetLookup[type]);
+                midiNote = new TNoteEvent() { NoteNumber = S(forceNote), Velocity = S(velocity) };
+                events.Add((noteTick, midiNote));
             }
             if (canTap && (flags & Flags.Tap) != 0)
-                chunk.Events.Add(new TNoteEvent() { NoteNumber = S(TAP_NOTE_CH), Velocity = S(velocity) });
+            {
+                midiNote = new TNoteEvent() { NoteNumber = S(TAP_NOTE_CH), Velocity = S(velocity) };
+                events.Add((noteTick, midiNote));
+            }
             if (canTom && PAD_TO_CYMBAL_LOOKUP.TryGetValue((DrumPad)rawNote, out int padNote) &&
                 (flags & Flags.ProDrums_Cymbal) == 0)
-                chunk.Events.Add(new TNoteEvent() { NoteNumber = S((byte)padNote), Velocity = S(velocity) });
+            {
+                midiNote = new TNoteEvent() { NoteNumber = S((byte)padNote), Velocity = S(velocity) };
+                events.Add((noteTick, midiNote));
+            }
         }
 
-        private static MidiFile GenerateMidi()
+        private static void GenerateSpecialPhrase(MidiEventList events, SpecialPhrase phrase, GameMode gameMode)
         {
-            byte denominator = 1;
-            for (int i = 0; i < DENOMINATOR_POW2; i++)
-                denominator *= 2;
+            // Apply sustain cutoffs
+            if (phrase.length < (SUSTAIN_CUTOFF_THRESHOLD))
+                phrase.length = 0;
 
-            var sync = new TrackChunk(
-                new SequenceTrackNameEvent("TEMPO_TRACK"),
-                new SetTempoEvent((long)((60 / TEMPO) * 1000000)),
-                new TimeSignatureEvent(NUMERATOR, denominator)
-            );
-            var midi = new MidiFile(
-                sync,
-                GenerateTrackChunk(GuitarNotes, MoonInstrument.Guitar),
-                GenerateTrackChunk(GhlGuitarNotes, MoonInstrument.GHLiveGuitar),
-                GenerateTrackChunk(ProGuitarNotes, MoonInstrument.ProGuitar_22Fret),
-                GenerateTrackChunk(DrumsNotes, MoonInstrument.Drums))
+            // Write notes
+            long startTick = phrase.tick;
+            long endTick = startTick + Math.Max(phrase.length, 1);
+            byte[] notesToAdd = InstrumentSpecialPhraseLookup[gameMode][phrase.type];
+            foreach (byte note in notesToAdd)
             {
-                TimeDivision = new TicksPerQuarterNoteTimeDivision((short)RESOLUTION)
+                events.Add((startTick, new NoteOnEvent() { NoteNumber = S(note), Velocity = S(VELOCITY) }));
+                events.Add((endTick, new NoteOffEvent() { NoteNumber = S(note), Velocity = S(0) }));
+            }
+        }
+
+        private static TrackChunk FinalizeTrackChunk(string trackName, MidiEventList events)
+        {
+            // Sort events by time
+            events.Sort((ev1, ev2) => {
+                if (ev1.absoluteTick > ev2.absoluteTick)
+                    return 1;
+                else if (ev1.absoluteTick < ev2.absoluteTick)
+                    return -1;
+
+                return 0;
+            });
+
+            // Calculate delta time
+            long previousTick = 0;
+            foreach (var (tick, midi) in events)
+            {
+                long delta = tick - previousTick;
+                midi.DeltaTime = delta;
+                previousTick = tick;
+            }
+
+            // Write events to new track
+            // Track name is written here to ensure it is the first event
+            var chunk = new TrackChunk(new SequenceTrackNameEvent(trackName));
+            chunk.Events.AddRange(events.Select((ev) => ev.midiEvent));
+            return chunk;
+        }
+
+        private static MidiFile GenerateMidi(MoonSong sourceSong)
+        {
+            var midi = new MidiFile(
+                GenerateSyncChunk(sourceSong),
+                GenerateEventsChunk(sourceSong)
+            )
+            {
+                TimeDivision = new TicksPerQuarterNoteTimeDivision((short)sourceSong.resolution)
             };
+
+            foreach (var instrument in EnumX<MoonInstrument>.Values)
+            {
+                var gameMode = MoonSong.InstumentToChartGameMode(instrument);
+                if (!InstrumentNoteOffsetLookup.ContainsKey(gameMode))
+                    continue;
+
+                var chunk = GenerateTrackChunk(sourceSong, instrument);
+                midi.Chunks.Add(chunk);
+            }
 
             return midi;
         }
@@ -280,11 +427,12 @@ namespace YARG.Core.UnitTests.Parsing
         [TestCase]
         public void GenerateAndParseMidiFile()
         {
-            var midi = GenerateMidi();
-            MoonSong song;
+            var sourceSong = GenerateSong();
+            var midi = GenerateMidi(sourceSong);
+            MoonSong parsedSong;
             try
             {
-                song = MidReader.ReadMidi(midi);
+                parsedSong = MidReader.ReadMidi(midi);
             }
             catch (Exception ex)
             {
@@ -292,18 +440,7 @@ namespace YARG.Core.UnitTests.Parsing
                 return;
             }
 
-            Assert.Multiple(() =>
-            {
-                VerifyMetadata(song);
-                VerifySync(song);
-                foreach (var difficulty in EnumX<Difficulty>.Values)
-                {
-                    VerifyTrack(song, GuitarNotes, MoonInstrument.Guitar, difficulty);
-                    VerifyTrack(song, GhlGuitarNotes, MoonInstrument.GHLiveGuitar, difficulty);
-                    VerifyTrack(song, ProGuitarNotes, MoonInstrument.ProGuitar_22Fret, difficulty);
-                    VerifyTrack(song, DrumsNotes, MoonInstrument.Drums, difficulty);
-                }
-            });
+            VerifySong(sourceSong, parsedSong, InstrumentNoteOffsetLookup.Keys);
         }
     }
 }

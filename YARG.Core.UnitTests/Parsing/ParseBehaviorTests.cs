@@ -1,9 +1,11 @@
 using MoonscraperChartEditor.Song;
+using MoonscraperEngine;
 using NUnit.Framework;
 
 namespace YARG.Core.UnitTests.Parsing
 {
     using static MoonSong;
+    using static MoonChart;
     using static MoonNote;
 
     public class ParseBehaviorTests
@@ -11,182 +13,374 @@ namespace YARG.Core.UnitTests.Parsing
         public const uint RESOLUTION = 192;
         public const double TEMPO = 120.0;
         public const int NUMERATOR = 4;
-        public const int DENOMINATOR_POW2 = 2;
+        public const int DENOMINATOR = 4;
 
         public const uint HOPO_THRESHOLD = (uint)(SongConfig.FORCED_NOTE_TICK_THRESHOLD * RESOLUTION / SongConfig.STANDARD_BEAT_RESOLUTION);
 
-        private static MoonNote NewNote(GuitarFret fret, uint length = 0, Flags flags = Flags.None)
-            => new(0, (int)fret, length, flags);
-        private static MoonNote NewNote(GHLiveGuitarFret fret, uint length = 0, Flags flags = Flags.None)
-            => new(0, (int)fret, length, flags);
-        private static MoonNote NewNote(DrumPad pad, uint length = 0, Flags flags = Flags.None)
-            => new(0, (int)pad, length, flags);
-        private static MoonNote NewNote(ProGuitarString str, int fret, uint length = 0, Flags flags = Flags.None)
-            => new(0, MoonNote.MakeProGuitarRawNote(str, fret), length, flags);
+        public static readonly SongObjectComparer Comparer = new();
 
-        public static readonly List<MoonNote> GuitarNotes = new()
+        public static readonly List<SyncTrack> TempoMap = new()
         {
-            NewNote(GuitarFret.Green),
-            NewNote(GuitarFret.Red),
-            NewNote(GuitarFret.Yellow),
-            NewNote(GuitarFret.Blue),
-            NewNote(GuitarFret.Orange),
-            NewNote(GuitarFret.Open),
-
-            NewNote(GuitarFret.Green, flags: Flags.Forced),
-            NewNote(GuitarFret.Red, flags: Flags.Forced),
-            NewNote(GuitarFret.Yellow, flags: Flags.Forced),
-            NewNote(GuitarFret.Blue, flags: Flags.Forced),
-            NewNote(GuitarFret.Orange, flags: Flags.Forced),
-            NewNote(GuitarFret.Open, flags: Flags.Forced),
-
-            NewNote(GuitarFret.Green, flags: Flags.Tap),
-            NewNote(GuitarFret.Red, flags: Flags.Tap),
-            NewNote(GuitarFret.Yellow, flags: Flags.Tap),
-            NewNote(GuitarFret.Blue, flags: Flags.Tap),
-            NewNote(GuitarFret.Orange, flags: Flags.Tap),
+            new BPM(0, (uint)(TEMPO * 1000)),
+            new TimeSignature(0, NUMERATOR, DENOMINATOR),
         };
 
-        public static readonly List<MoonNote> GhlGuitarNotes = new()
+        public static readonly List<Event> GlobalEvents = new()
         {
-            NewNote(GHLiveGuitarFret.Black1),
-            NewNote(GHLiveGuitarFret.Black2),
-            NewNote(GHLiveGuitarFret.Black3),
-            NewNote(GHLiveGuitarFret.White1),
-            NewNote(GHLiveGuitarFret.White2),
-            NewNote(GHLiveGuitarFret.White3),
-            NewNote(GHLiveGuitarFret.Open),
-
-            NewNote(GHLiveGuitarFret.Black1, flags: Flags.Forced),
-            NewNote(GHLiveGuitarFret.Black2, flags: Flags.Forced),
-            NewNote(GHLiveGuitarFret.Black3, flags: Flags.Forced),
-            NewNote(GHLiveGuitarFret.White1, flags: Flags.Forced),
-            NewNote(GHLiveGuitarFret.White2, flags: Flags.Forced),
-            NewNote(GHLiveGuitarFret.White3, flags: Flags.Forced),
-            NewNote(GHLiveGuitarFret.Open, flags: Flags.Forced),
-
-            NewNote(GHLiveGuitarFret.Black1, flags: Flags.Tap),
-            NewNote(GHLiveGuitarFret.Black2, flags: Flags.Tap),
-            NewNote(GHLiveGuitarFret.Black3, flags: Flags.Tap),
-            NewNote(GHLiveGuitarFret.White1, flags: Flags.Tap),
-            NewNote(GHLiveGuitarFret.White2, flags: Flags.Tap),
-            NewNote(GHLiveGuitarFret.White3, flags: Flags.Tap),
         };
 
-        public static readonly List<MoonNote> ProGuitarNotes = new()
+        private static MoonNote NewNote(int index, GuitarFret fret, uint length = 0, Flags flags = Flags.None)
+            => new((uint)(index * RESOLUTION), (int)fret, length, flags);
+        private static MoonNote NewNote(int index, GHLiveGuitarFret fret, uint length = 0, Flags flags = Flags.None)
+            => new((uint)(index * RESOLUTION), (int)fret, length, flags);
+        private static MoonNote NewNote(int index, DrumPad pad, uint length = 0, Flags flags = Flags.None)
+            => new((uint)(index * RESOLUTION), (int)pad, length, flags);
+        private static MoonNote NewNote(int index, ProGuitarString str, int fret, uint length = 0, Flags flags = Flags.None)
+            => new((uint)(index * RESOLUTION), MoonNote.MakeProGuitarRawNote(str, fret), length, flags);
+        private static SpecialPhrase NewSpecial(int index, SpecialPhrase.Type type, uint length = 0)
+            => new((uint)(index * RESOLUTION), length, type);
+
+        public static readonly List<ChartObject> GuitarTrack = new()
         {
-            NewNote(ProGuitarString.Red, 0),
-            NewNote(ProGuitarString.Green, 1),
-            NewNote(ProGuitarString.Orange, 2),
-            NewNote(ProGuitarString.Blue, 3),
-            NewNote(ProGuitarString.Yellow, 4),
-            NewNote(ProGuitarString.Purple, 5),
+            NewNote(0, GuitarFret.Green),
+            NewNote(1, GuitarFret.Red),
+            NewNote(2, GuitarFret.Yellow),
+            NewNote(3, GuitarFret.Blue),
+            NewNote(4, GuitarFret.Orange),
+            NewNote(5, GuitarFret.Open),
 
-            NewNote(ProGuitarString.Red, 6, flags: Flags.Forced),
-            NewNote(ProGuitarString.Green, 7, flags: Flags.Forced),
-            NewNote(ProGuitarString.Orange, 8, flags: Flags.Forced),
-            NewNote(ProGuitarString.Blue, 9, flags: Flags.Forced),
-            NewNote(ProGuitarString.Yellow, 10, flags: Flags.Forced),
-            NewNote(ProGuitarString.Purple, 11, flags: Flags.Forced),
+            NewSpecial(6, SpecialPhrase.Type.Versus_Player1, RESOLUTION * 6),
+            NewNote(6, GuitarFret.Green, flags: Flags.Forced),
+            NewNote(7, GuitarFret.Red, flags: Flags.Forced),
+            NewNote(8, GuitarFret.Yellow, flags: Flags.Forced),
+            NewNote(9, GuitarFret.Blue, flags: Flags.Forced),
+            NewNote(10, GuitarFret.Orange, flags: Flags.Forced),
+            NewNote(11, GuitarFret.Open, flags: Flags.Forced),
 
-            NewNote(ProGuitarString.Red, 12, flags: Flags.ProGuitar_Muted),
-            NewNote(ProGuitarString.Green, 13, flags: Flags.ProGuitar_Muted),
-            NewNote(ProGuitarString.Orange, 14, flags: Flags.ProGuitar_Muted),
-            NewNote(ProGuitarString.Blue, 15, flags: Flags.ProGuitar_Muted),
-            NewNote(ProGuitarString.Yellow, 16, flags: Flags.ProGuitar_Muted),
-            NewNote(ProGuitarString.Purple, 17, flags: Flags.ProGuitar_Muted),
+            NewSpecial(12, SpecialPhrase.Type.Versus_Player2, RESOLUTION * 5),
+            NewNote(12, GuitarFret.Green, flags: Flags.Tap),
+            NewNote(13, GuitarFret.Red, flags: Flags.Tap),
+            NewNote(14, GuitarFret.Yellow, flags: Flags.Tap),
+            NewNote(15, GuitarFret.Blue, flags: Flags.Tap),
+            NewNote(16, GuitarFret.Orange, flags: Flags.Tap),
+
+            NewSpecial(17, SpecialPhrase.Type.Starpower, RESOLUTION * 6),
+            NewNote(17, GuitarFret.Green),
+            NewNote(18, GuitarFret.Red),
+            NewNote(19, GuitarFret.Yellow),
+            NewNote(20, GuitarFret.Blue),
+            NewNote(21, GuitarFret.Orange),
+            NewNote(22, GuitarFret.Open),
+
+            NewSpecial(23, SpecialPhrase.Type.TremoloLane, RESOLUTION * 6),
+            NewNote(23, GuitarFret.Yellow),
+            NewNote(24, GuitarFret.Yellow),
+            NewNote(25, GuitarFret.Yellow),
+            NewNote(26, GuitarFret.Yellow),
+            NewNote(27, GuitarFret.Yellow),
+            NewNote(28, GuitarFret.Yellow),
+
+            NewSpecial(29, SpecialPhrase.Type.TrillLane, RESOLUTION * 6),
+            NewNote(29, GuitarFret.Green),
+            NewNote(30, GuitarFret.Red),
+            NewNote(31, GuitarFret.Green),
+            NewNote(32, GuitarFret.Red),
+            NewNote(33, GuitarFret.Green),
+            NewNote(34, GuitarFret.Red),
         };
 
-        public static readonly List<MoonNote> DrumsNotes = new()
+        public static readonly List<ChartObject> GhlGuitarTrack = new()
         {
-            NewNote(DrumPad.Kick),
-            NewNote(DrumPad.Kick, flags: Flags.DoubleKick),
+            NewNote(0, GHLiveGuitarFret.Black1),
+            NewNote(1, GHLiveGuitarFret.Black2),
+            NewNote(2, GHLiveGuitarFret.Black3),
+            NewNote(3, GHLiveGuitarFret.White1),
+            NewNote(4, GHLiveGuitarFret.White2),
+            NewNote(5, GHLiveGuitarFret.White3),
+            NewNote(6, GHLiveGuitarFret.Open),
 
-            NewNote(DrumPad.Red, length: 16),
-            NewNote(DrumPad.Yellow, length: 16),
-            NewNote(DrumPad.Blue, length: 16),
-            NewNote(DrumPad.Orange, length: 16),
-            NewNote(DrumPad.Green, length: 16),
-            NewNote(DrumPad.Yellow, flags: Flags.ProDrums_Cymbal),
-            NewNote(DrumPad.Blue, flags: Flags.ProDrums_Cymbal),
-            NewNote(DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
+            NewNote(7, GHLiveGuitarFret.Black1, flags: Flags.Forced),
+            NewNote(8, GHLiveGuitarFret.Black2, flags: Flags.Forced),
+            NewNote(9, GHLiveGuitarFret.Black3, flags: Flags.Forced),
+            NewNote(10, GHLiveGuitarFret.White1, flags: Flags.Forced),
+            NewNote(11, GHLiveGuitarFret.White2, flags: Flags.Forced),
+            NewNote(12, GHLiveGuitarFret.White3, flags: Flags.Forced),
+            NewNote(13, GHLiveGuitarFret.Open, flags: Flags.Forced),
 
-            NewNote(DrumPad.Red, flags: Flags.ProDrums_Accent),
-            NewNote(DrumPad.Yellow, flags: Flags.ProDrums_Accent),
-            NewNote(DrumPad.Blue, flags: Flags.ProDrums_Accent),
-            NewNote(DrumPad.Orange, flags: Flags.ProDrums_Accent),
-            NewNote(DrumPad.Green, flags: Flags.ProDrums_Accent),
-            NewNote(DrumPad.Yellow, flags: Flags.ProDrums_Cymbal | Flags.ProDrums_Accent),
-            NewNote(DrumPad.Blue, flags: Flags.ProDrums_Cymbal | Flags.ProDrums_Accent),
-            NewNote(DrumPad.Orange, flags: Flags.ProDrums_Cymbal | Flags.ProDrums_Accent),
+            NewNote(14, GHLiveGuitarFret.Black1, flags: Flags.Tap),
+            NewNote(15, GHLiveGuitarFret.Black2, flags: Flags.Tap),
+            NewNote(16, GHLiveGuitarFret.Black3, flags: Flags.Tap),
+            NewNote(17, GHLiveGuitarFret.White1, flags: Flags.Tap),
+            NewNote(18, GHLiveGuitarFret.White2, flags: Flags.Tap),
+            NewNote(19, GHLiveGuitarFret.White3, flags: Flags.Tap),
 
-            NewNote(DrumPad.Red, flags: Flags.ProDrums_Ghost),
-            NewNote(DrumPad.Yellow, flags: Flags.ProDrums_Ghost),
-            NewNote(DrumPad.Blue, flags: Flags.ProDrums_Ghost),
-            NewNote(DrumPad.Orange, flags: Flags.ProDrums_Ghost),
-            NewNote(DrumPad.Green, flags: Flags.ProDrums_Ghost),
-            NewNote(DrumPad.Yellow, flags: Flags.ProDrums_Cymbal | Flags.ProDrums_Ghost),
-            NewNote(DrumPad.Blue, flags: Flags.ProDrums_Cymbal | Flags.ProDrums_Ghost),
-            NewNote(DrumPad.Orange, flags: Flags.ProDrums_Cymbal | Flags.ProDrums_Ghost),
+            NewSpecial(20, SpecialPhrase.Type.Starpower, RESOLUTION * 7),
+            NewNote(20, GHLiveGuitarFret.Black1),
+            NewNote(21, GHLiveGuitarFret.Black2),
+            NewNote(22, GHLiveGuitarFret.Black3),
+            NewNote(23, GHLiveGuitarFret.White1),
+            NewNote(24, GHLiveGuitarFret.White2),
+            NewNote(25, GHLiveGuitarFret.White3),
+            NewNote(26, GHLiveGuitarFret.Open),
         };
 
-        public static void VerifyMetadata(MoonSong song)
+        public static readonly List<ChartObject> ProGuitarTrack = new()
         {
-            Assert.Multiple(() =>
+            NewNote(0, ProGuitarString.Red, 0),
+            NewNote(1, ProGuitarString.Green, 1),
+            NewNote(2, ProGuitarString.Orange, 2),
+            NewNote(3, ProGuitarString.Blue, 3),
+            NewNote(4, ProGuitarString.Yellow, 4),
+            NewNote(5, ProGuitarString.Purple, 5),
+
+            NewNote(6, ProGuitarString.Red, 6, flags: Flags.Forced),
+            NewNote(7, ProGuitarString.Green, 7, flags: Flags.Forced),
+            NewNote(8, ProGuitarString.Orange, 8, flags: Flags.Forced),
+            NewNote(9, ProGuitarString.Blue, 9, flags: Flags.Forced),
+            NewNote(10, ProGuitarString.Yellow, 10, flags: Flags.Forced),
+            NewNote(11, ProGuitarString.Purple, 11, flags: Flags.Forced),
+
+            NewNote(12, ProGuitarString.Red, 12, flags: Flags.ProGuitar_Muted),
+            NewNote(13, ProGuitarString.Green, 13, flags: Flags.ProGuitar_Muted),
+            NewNote(14, ProGuitarString.Orange, 14, flags: Flags.ProGuitar_Muted),
+            NewNote(15, ProGuitarString.Blue, 15, flags: Flags.ProGuitar_Muted),
+            NewNote(16, ProGuitarString.Yellow, 16, flags: Flags.ProGuitar_Muted),
+            NewNote(17, ProGuitarString.Purple, 17, flags: Flags.ProGuitar_Muted),
+
+            NewSpecial(18, SpecialPhrase.Type.Starpower, RESOLUTION * 6),
+            NewNote(18, ProGuitarString.Red, 0),
+            NewNote(19, ProGuitarString.Green, 1),
+            NewNote(20, ProGuitarString.Orange, 2),
+            NewNote(21, ProGuitarString.Blue, 3),
+            NewNote(22, ProGuitarString.Yellow, 4),
+            NewNote(23, ProGuitarString.Purple, 5),
+
+            NewSpecial(24, SpecialPhrase.Type.TremoloLane, RESOLUTION * 6),
+            NewNote(24, ProGuitarString.Red, 0),
+            NewNote(25, ProGuitarString.Red, 0),
+            NewNote(26, ProGuitarString.Red, 0),
+            NewNote(27, ProGuitarString.Red, 0),
+            NewNote(28, ProGuitarString.Red, 0),
+            NewNote(29, ProGuitarString.Red, 0),
+
+            NewSpecial(30, SpecialPhrase.Type.TrillLane, RESOLUTION * 6),
+            NewNote(30, ProGuitarString.Yellow, 5),
+            NewNote(31, ProGuitarString.Yellow, 6),
+            NewNote(32, ProGuitarString.Yellow, 5),
+            NewNote(33, ProGuitarString.Yellow, 6),
+            NewNote(34, ProGuitarString.Yellow, 5),
+            NewNote(35, ProGuitarString.Yellow, 6),
+        };
+
+        public static readonly List<ChartObject> DrumsTrack = new()
+        {
+            NewNote(0, DrumPad.Kick),
+            NewNote(1, DrumPad.Kick, flags: Flags.DoubleKick),
+
+            NewNote(2, DrumPad.Red, length: 16),
+            NewNote(3, DrumPad.Yellow, length: 16),
+            NewNote(4, DrumPad.Blue, length: 16),
+            NewNote(5, DrumPad.Orange, length: 16),
+            NewNote(6, DrumPad.Green, length: 16),
+            NewNote(7, DrumPad.Yellow, flags: Flags.ProDrums_Cymbal),
+            NewNote(8, DrumPad.Blue, flags: Flags.ProDrums_Cymbal),
+            NewNote(9, DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
+
+            NewNote(10, DrumPad.Red, flags: Flags.ProDrums_Accent),
+            NewNote(11, DrumPad.Yellow, flags: Flags.ProDrums_Accent),
+            NewNote(12, DrumPad.Blue, flags: Flags.ProDrums_Accent),
+            NewNote(13, DrumPad.Orange, flags: Flags.ProDrums_Accent),
+            NewNote(14, DrumPad.Green, flags: Flags.ProDrums_Accent),
+            NewNote(15, DrumPad.Yellow, flags: Flags.ProDrums_Cymbal | Flags.ProDrums_Accent),
+            NewNote(16, DrumPad.Blue, flags: Flags.ProDrums_Cymbal | Flags.ProDrums_Accent),
+            NewNote(17, DrumPad.Orange, flags: Flags.ProDrums_Cymbal | Flags.ProDrums_Accent),
+
+            NewNote(18, DrumPad.Red, flags: Flags.ProDrums_Ghost),
+            NewNote(19, DrumPad.Yellow, flags: Flags.ProDrums_Ghost),
+            NewNote(20, DrumPad.Blue, flags: Flags.ProDrums_Ghost),
+            NewNote(21, DrumPad.Orange, flags: Flags.ProDrums_Ghost),
+            NewNote(22, DrumPad.Green, flags: Flags.ProDrums_Ghost),
+            NewNote(23, DrumPad.Yellow, flags: Flags.ProDrums_Cymbal | Flags.ProDrums_Ghost),
+            NewNote(24, DrumPad.Blue, flags: Flags.ProDrums_Cymbal | Flags.ProDrums_Ghost),
+            NewNote(25, DrumPad.Orange, flags: Flags.ProDrums_Cymbal | Flags.ProDrums_Ghost),
+
+            NewSpecial(26, SpecialPhrase.Type.Starpower, RESOLUTION * 8),
+            NewNote(26, DrumPad.Red),
+            NewNote(27, DrumPad.Yellow),
+            NewNote(28, DrumPad.Blue),
+            NewNote(29, DrumPad.Orange),
+            NewNote(30, DrumPad.Green),
+            NewNote(31, DrumPad.Yellow, flags: Flags.ProDrums_Cymbal),
+            NewNote(32, DrumPad.Blue, flags: Flags.ProDrums_Cymbal),
+            NewNote(33, DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
+
+            NewSpecial(34, SpecialPhrase.Type.ProDrums_Activation, RESOLUTION * 5),
+            NewNote(34, DrumPad.Red),
+            NewNote(35, DrumPad.Yellow),
+            NewNote(36, DrumPad.Blue),
+            NewNote(37, DrumPad.Orange),
+            NewNote(38, DrumPad.Green),
+            NewNote(39, DrumPad.Yellow, flags: Flags.ProDrums_Cymbal),
+            NewNote(40, DrumPad.Blue, flags: Flags.ProDrums_Cymbal),
+            NewNote(41, DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
+
+            NewSpecial(42, SpecialPhrase.Type.Versus_Player1, RESOLUTION * 8),
+            NewNote(42, DrumPad.Red),
+            NewNote(43, DrumPad.Yellow),
+            NewNote(44, DrumPad.Blue),
+            NewNote(45, DrumPad.Orange),
+            NewNote(46, DrumPad.Green),
+            NewNote(47, DrumPad.Yellow, flags: Flags.ProDrums_Cymbal),
+            NewNote(48, DrumPad.Blue, flags: Flags.ProDrums_Cymbal),
+            NewNote(49, DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
+
+            NewSpecial(50, SpecialPhrase.Type.Versus_Player2, RESOLUTION * 8),
+            NewNote(50, DrumPad.Red),
+            NewNote(51, DrumPad.Yellow),
+            NewNote(52, DrumPad.Blue),
+            NewNote(53, DrumPad.Orange),
+            NewNote(54, DrumPad.Green),
+            NewNote(55, DrumPad.Yellow, flags: Flags.ProDrums_Cymbal),
+            NewNote(56, DrumPad.Blue, flags: Flags.ProDrums_Cymbal),
+            NewNote(57, DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
+
+            NewSpecial(58, SpecialPhrase.Type.TremoloLane, RESOLUTION * 6),
+            NewNote(58, DrumPad.Red),
+            NewNote(59, DrumPad.Red),
+            NewNote(60, DrumPad.Red),
+            NewNote(61, DrumPad.Red),
+            NewNote(62, DrumPad.Red),
+            NewNote(63, DrumPad.Red),
+
+            NewSpecial(64, SpecialPhrase.Type.TrillLane, RESOLUTION * 6),
+            NewNote(64, DrumPad.Yellow, flags: Flags.ProDrums_Cymbal),
+            NewNote(65, DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
+            NewNote(66, DrumPad.Yellow, flags: Flags.ProDrums_Cymbal),
+            NewNote(67, DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
+            NewNote(68, DrumPad.Yellow, flags: Flags.ProDrums_Cymbal),
+            NewNote(69, DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
+        };
+
+        public static MoonSong GenerateSong()
+        {
+            var song = new MoonSong();
+            PopulateSyncTrack(song, TempoMap);
+            PopulateGlobalEvents(song, GlobalEvents);
+            foreach (var instrument in EnumX<MoonInstrument>.Values)
             {
-                Assert.That(song.resolution, Is.EqualTo((float)RESOLUTION), $"Resolution was not parsed correctly!");
-            });
+                var gameMode = MoonSong.InstumentToChartGameMode(instrument);
+                var data = GameModeToChartData(gameMode);
+                PopulateInstrument(song, instrument, data);
+            }
+            return song;
         }
 
-        public static void VerifySync(MoonSong song)
+        public static List<ChartObject> GameModeToChartData(GameMode gameMode)
+        {
+            return gameMode switch {
+                GameMode.Guitar => GuitarTrack,
+                GameMode.GHLGuitar => GhlGuitarTrack,
+                GameMode.ProGuitar => ProGuitarTrack,
+                GameMode.Drums => DrumsTrack,
+                GameMode.Vocals => new(), // TODO
+                _ => throw new NotImplementedException($"No note data for game mode {gameMode}")
+            };
+        }
+
+        public static void PopulateSyncTrack(MoonSong song, List<SyncTrack> tempoMap)
+        {
+            foreach (var sync in tempoMap)
+            {
+                song.Add(sync.Clone(), false);
+            }
+            song.UpdateCache();
+        }
+
+        public static void PopulateGlobalEvents(MoonSong song, List<Event> events)
+        {
+            foreach (var text in events)
+            {
+                song.Add(text.Clone(), false);
+            }
+            song.UpdateCache();
+        }
+
+        public static void PopulateInstrument(MoonSong song, MoonInstrument instrument, List<ChartObject> data)
+        {
+            foreach (var difficulty in EnumX<Difficulty>.Values)
+            {
+                PopulateDifficulty(song, instrument, difficulty, data);
+            }
+        }
+
+        public static void PopulateDifficulty(MoonSong song, MoonInstrument instrument, Difficulty difficulty, List<ChartObject> data)
+        {
+            var chart = song.GetChart(instrument, difficulty);
+            foreach (var chartObj in data)
+            {
+                chart.Add(chartObj.Clone(), false);
+            }
+            chart.UpdateCache();
+        }
+
+        public static void VerifySong(MoonSong sourceSong, MoonSong parsedSong, IEnumerable<GameMode> supportedModes)
         {
             Assert.Multiple(() =>
             {
-                Assert.That(song.bpms, Has.Count.EqualTo(1), $"Incorrect number of BPM events!");
-                Assert.That(song.timeSignatures, Has.Count.EqualTo(1), $"Incorrect number of time signatures!");
-
-                if (song.bpms.Count > 0)
-                    Assert.That(song.bpms[0].displayValue, Is.InRange(TEMPO - 0.001, TEMPO + 0.001), "Parsed tempo is incorrect!");
-
-                if (song.timeSignatures.Count > 0)
+                VerifyMetadata(sourceSong, parsedSong);
+                VerifySync(sourceSong, parsedSong);
+                foreach (var instrument in EnumX<MoonInstrument>.Values)
                 {
-                    Assert.That(song.timeSignatures[0].numerator, Is.EqualTo(NUMERATOR), "Parsed numerator is incorrect!");
-                    uint denominator = song.timeSignatures[0].denominator;
-                    uint denominator_pow2 = denominator;
-                    for (int i = 1; i < DENOMINATOR_POW2; i++)
-                        denominator_pow2 /= 2;
-                    Assert.That(denominator_pow2, Is.EqualTo(DENOMINATOR_POW2), $"Parsed denominator is incorrect! (Original: {denominator})");
+                    // Skip unsupported instruments
+                    var gameMode = MoonSong.InstumentToChartGameMode(instrument);
+                    if (!supportedModes.Contains(gameMode))
+                        continue;
+
+                    VerifyInstrument(sourceSong, parsedSong, instrument);
                 }
             });
         }
 
-        public static void VerifyTrack(MoonSong song, List<MoonNote> data, MoonInstrument instrument, Difficulty difficulty)
+        public static void VerifyMetadata(MoonSong sourceSong, MoonSong parsedSong)
         {
             Assert.Multiple(() =>
             {
-                bool chartExists = song.DoesChartExist(instrument, difficulty);
+                Assert.That(parsedSong.resolution, Is.EqualTo(sourceSong.resolution), $"Resolution was not parsed correctly!");
+            });
+        }
+
+        public static void VerifySync(MoonSong sourceSong, MoonSong parsedSong)
+        {
+            Assert.Multiple(() =>
+            {
+                CollectionAssert.AreEqual(sourceSong.bpms, parsedSong.bpms, Comparer, "BPMs do not match!");
+                CollectionAssert.AreEqual(sourceSong.timeSignatures, parsedSong.timeSignatures, Comparer, "Time signatures do not match!");
+                CollectionAssert.AreEqual(parsedSong.events, parsedSong.events, Comparer, "Global events do not match!");
+            });
+        }
+
+        public static void VerifyInstrument(MoonSong sourceSong, MoonSong parsedSong, MoonInstrument instrument)
+        {
+            foreach (var difficulty in EnumX<Difficulty>.Values)
+            {
+                VerifyDifficulty(sourceSong, parsedSong, instrument, difficulty);
+            }
+        }
+
+        public static void VerifyDifficulty(MoonSong sourceSong, MoonSong parsedSong, MoonInstrument instrument, Difficulty difficulty)
+        {
+            Assert.Multiple(() =>
+            {
+                bool chartExists = parsedSong.DoesChartExist(instrument, difficulty);
                 Assert.That(chartExists, Is.True, $"Chart for {difficulty} {instrument} was not parsed!");
                 if (!chartExists)
                     return;
 
-                var chart = song.GetChart(instrument, difficulty);
-                for (int index = 0; index < data.Count; index++)
-                {
-                    uint tick = RESOLUTION * (uint)index;
-                    var originalNote = data[index];
-                    SongObjectHelper.FindObjectsAtPosition(tick, chart.notes, out int start, out int length);
-                    Assert.That(start, Is.Not.EqualTo(SongObjectHelper.NOTFOUND), $"Note at position {tick} was not parsed on {difficulty} {instrument}!");
-                    Assert.That(length, Is.AtLeast(1), $"Note at position {tick} was not parsed on {difficulty} {instrument}!");
-                    Assert.That(length, Is.AtMost(1), $"More than one note was found at position {tick} on {difficulty} {instrument}!");
-                    if (start == SongObjectHelper.NOTFOUND || length != 1)
-                        continue;
-
-                    var parsedNote = chart.notes[start];
-                    Assert.That(parsedNote.tick, Is.EqualTo(tick), $"Note position does not match! (Note {originalNote.rawNote} on {difficulty} {instrument})");
-                    Assert.That(parsedNote.rawNote, Is.EqualTo(originalNote.rawNote), $"Raw note does not match! (Tick {tick} on {difficulty} {instrument})");
-                    Assert.That(parsedNote.length, Is.EqualTo(originalNote.length), $"Note length does not match! (Note {originalNote.rawNote} at {tick} on {difficulty} {instrument})");
-                    Assert.That(parsedNote.flags, Is.EqualTo(originalNote.flags), $"Note flags do not match! (Note {originalNote.rawNote} at {tick} on {difficulty} {instrument})");
-                }
+                var sourceChart = sourceSong.GetChart(instrument, difficulty);
+                var parsedChart = parsedSong.GetChart(instrument, difficulty);
+                CollectionAssert.AreEqual(sourceChart.notes, parsedChart.notes, Comparer, $"Notes on {difficulty} {instrument} do not match!");
+                CollectionAssert.AreEqual(sourceChart.specialPhrases, parsedChart.specialPhrases, Comparer, $"Special phrases on {difficulty} {instrument} do not match!");
+                CollectionAssert.AreEqual(sourceChart.events, parsedChart.events, Comparer, $"Local events on {difficulty} {instrument} do not match!");
             });
         }
     }
