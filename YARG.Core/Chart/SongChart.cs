@@ -42,5 +42,45 @@ namespace YARG.Core.Chart
         public List<InstrumentTrack<VocalNote>> Harmonies { get; }
 
         // public InstrumentTrack<DjNote> Dj { get; }
+
+        public static SongChart FromFile(string filePath)
+        {
+            return Path.GetExtension(filePath).ToLower() switch
+            {
+                ".mid" => FromMidiPath(filePath),
+                ".chart" => FromDotChartPath(filePath),
+                _ => throw new ArgumentException($"Unrecognized file extension for chart path '{filePath}'!", nameof(filePath))
+            };
+        }
+
+        public static SongChart FromMidiPath(string filePath)
+        {
+            var moonSong = MidReader.ReadMidi(filePath);
+            return FromMoonSong(moonSong);
+        }
+
+        public static SongChart FromMidi(MidiFile midi)
+        {
+            var moonSong = MidReader.ReadMidi(midi);
+            return FromMoonSong(moonSong);
+        }
+
+        public static SongChart FromDotChartPath(string filePath)
+        {
+            var moonSong = ChartReader.ReadChart(filePath);
+            return FromMoonSong(moonSong);
+        }
+
+        public static SongChart FromDotChartText(string fileText)
+        {
+            var moonSong = ChartReader.ReadChart(new StringReader(fileText));
+            return FromMoonSong(moonSong);
+        }
+
+        public static SongChart FromMoonSong(MoonSong moonSong)
+        {
+            // TODO
+            return new SongChart();
+        }
     }
 }
