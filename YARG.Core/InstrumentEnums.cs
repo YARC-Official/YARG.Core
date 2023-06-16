@@ -8,18 +8,18 @@ namespace YARG.Core
     public enum GameMode
     {
         FiveFretGuitar,
-        SixFretGuitar,
+        // SixFretGuitar,
 
         FourLaneDrums,
         FiveLaneDrums,
-        TrueDrums,
+        // TrueDrums,
 
         ProGuitar,
-        ProKeys,
+        // ProKeys,
 
         Vocals,
 
-        Dj,
+        // Dj,
     }
 
     /// <summary>
@@ -33,29 +33,29 @@ namespace YARG.Core
         FiveFretCoopGuitar,
         Keys,
 
-        SixFretGuitar,
-        SixFretBass,
-        SixFretRhythm,
-        SixFretCoopGuitar,
+        // SixFretGuitar,
+        // SixFretBass,
+        // SixFretRhythm,
+        // SixFretCoopGuitar,
 
         FourLaneDrums,
         ProDrums,
 
         FiveLaneDrums,
 
-        TrueDrums,
+        // TrueDrums,
 
         ProGuitar_17Fret,
         ProGuitar_22Fret,
         ProBass_17Fret,
         ProBass_22Fret,
 
-        ProKeys,
+        // ProKeys,
 
         Vocals,
         Harmony,
 
-        Dj,
+        // Dj,
     }
 
     /// <summary>
@@ -82,29 +82,29 @@ namespace YARG.Core
                 Instrument.FiveFretCoopGuitar or
                 Instrument.Keys => GameMode.FiveFretGuitar,
 
-                Instrument.SixFretGuitar or
-                Instrument.SixFretBass or
-                Instrument.SixFretRhythm or
-                Instrument.SixFretCoopGuitar => GameMode.SixFretGuitar,
+                // Instrument.SixFretGuitar or
+                // Instrument.SixFretBass or
+                // Instrument.SixFretRhythm or
+                // Instrument.SixFretCoopGuitar => GameMode.SixFretGuitar,
 
                 Instrument.FourLaneDrums or
                 Instrument.ProDrums => GameMode.FourLaneDrums,
 
                 Instrument.FiveLaneDrums => GameMode.FiveLaneDrums,
 
-                Instrument.TrueDrums => GameMode.TrueDrums,
+                // Instrument.TrueDrums => GameMode.TrueDrums,
 
                 Instrument.ProGuitar_17Fret or
                 Instrument.ProGuitar_22Fret or
                 Instrument.ProBass_17Fret or
                 Instrument.ProBass_22Fret => GameMode.ProGuitar,
 
-                Instrument.ProKeys => GameMode.ProKeys,
+                // Instrument.ProKeys => GameMode.ProKeys,
 
                 Instrument.Vocals or
                 Instrument.Harmony => GameMode.Vocals,
 
-                Instrument.Dj => GameMode.Dj,
+                // Instrument.Dj => GameMode.Dj,
 
                 _ => throw new NotImplementedException($"Unhandled instrument {instrument}!")
             };
