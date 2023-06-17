@@ -64,6 +64,7 @@ namespace YARG.Core.UnitTests.Parsing
         private static readonly Dictionary<SpecialPhrase.Type, byte[]> GuitarSpecialPhraseLookup = new()
         {
             { SpecialPhrase.Type.Starpower,      new[] { STARPOWER_NOTE } },
+            { SpecialPhrase.Type.Solo,           new[] { SOLO_NOTE } },
             { SpecialPhrase.Type.Versus_Player1, new[] { VERSUS_PHRASE_PLAYER_1 } },
             { SpecialPhrase.Type.Versus_Player2, new[] { VERSUS_PHRASE_PLAYER_2 } },
             { SpecialPhrase.Type.TremoloLane,    new[] { TREMOLO_LANE_NOTE } },
@@ -90,6 +91,7 @@ namespace YARG.Core.UnitTests.Parsing
         private static readonly Dictionary<SpecialPhrase.Type, byte[]> GhlGuitarSpecialPhraseLookup = new()
         {
             { SpecialPhrase.Type.Starpower, new[] { STARPOWER_NOTE } },
+            { SpecialPhrase.Type.Solo,      new[] { SOLO_NOTE } },
         };
 
         private static readonly Dictionary<int, int> ProGuitarNoteOffsetLookup = new()
@@ -113,6 +115,7 @@ namespace YARG.Core.UnitTests.Parsing
         private static readonly Dictionary<SpecialPhrase.Type, byte[]> ProGuitarSpecialPhraseLookup = new()
         {
             { SpecialPhrase.Type.Starpower,   new[] { STARPOWER_NOTE } },
+            { SpecialPhrase.Type.Solo,        new[] { SOLO_NOTE_PRO_GUITAR } },
             { SpecialPhrase.Type.TremoloLane, new[] { TREMOLO_LANE_NOTE } },
             { SpecialPhrase.Type.TrillLane,   new[] { TRILL_LANE_NOTE } },
         };
@@ -130,6 +133,7 @@ namespace YARG.Core.UnitTests.Parsing
         private static readonly Dictionary<SpecialPhrase.Type, byte[]> DrumsSpecialPhraseLookup = new()
         {
             { SpecialPhrase.Type.Starpower,           new[] { STARPOWER_NOTE } },
+            { SpecialPhrase.Type.Solo,                new[] { SOLO_NOTE } },
             { SpecialPhrase.Type.Versus_Player1,      new[] { VERSUS_PHRASE_PLAYER_1 } },
             { SpecialPhrase.Type.Versus_Player2,      new[] { VERSUS_PHRASE_PLAYER_2 } },
             { SpecialPhrase.Type.TremoloLane,         new[] { TREMOLO_LANE_NOTE } },
