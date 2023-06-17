@@ -16,6 +16,9 @@ namespace YARG.Core.Chart
         public bool IsStarPowerStart => (_flags & NoteFlags.StarPowerStart) != 0;
         public bool IsStarPower      => (_flags & NoteFlags.StarPower) != 0;
         public bool IsStarPowerEnd   => (_flags & NoteFlags.StarPowerEnd) != 0;
+        
+        public bool WasHit { get; private set; }
+        public bool WasMissed { get; private set; }
 
         protected Note(Note previousNote, double time, double timeLength, uint tick, uint tickLength, NoteFlags flags)
             : base(time, timeLength, tick, tickLength)
@@ -30,6 +33,28 @@ namespace YARG.Core.Chart
             }
 			
             _childNotes.Add(note);
+        }
+
+        public void SetHitState(bool hit, bool includeChildren)
+        {
+            WasHit = true;
+            if (!includeChildren) return;
+            
+            foreach (var childNote in _childNotes)
+            {
+                childNote.SetHitState(hit, true);
+            }
+        }
+        
+        public void SetMissState(bool miss, bool includeChildren)
+        {
+            WasMissed = true;
+            if (!includeChildren) return;
+            
+            foreach (var childNote in _childNotes)
+            {
+                childNote.SetMissState(miss, true);
+            }
         }
     }
 

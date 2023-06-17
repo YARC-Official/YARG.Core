@@ -4,8 +4,14 @@ using YARG.Core.Input;
 
 namespace YARG.Core.Engine.Guitar
 {
-    public abstract class GuitarEngine : BaseEngine<GuitarNote, GuitarInput, GuitarAction, GuitarEngineParameters, GuitarStats>
+    public abstract class GuitarEngine : BaseEngine<GuitarNote, GuitarInput, GuitarAction, GuitarEngineParameters, 
+        GuitarStats, GuitarEngineState>
     {
+
+        public delegate void OverstrumEvent();
+        
+        public OverstrumEvent OnOverstrum;
+        
         protected GuitarEngine(List<GuitarNote> notes, GuitarEngineParameters engineParameters) : base(notes, engineParameters)
         {
         }
