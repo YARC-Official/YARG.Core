@@ -14,6 +14,7 @@ namespace MoonscraperChartEditor.Song.IO
 
         // See MidIOHelper for regex details
 		public static readonly Regex TextEventRegex = MidIOHelper.TextEventRegex;
+		public static readonly Regex SectionEventRegex = MidIOHelper.SectionEventRegex;
 
         public const string LYRIC_EVENT_PREFIX = "lyric ";
         public const string EVENT_PHRASE_START = "phrase_start";

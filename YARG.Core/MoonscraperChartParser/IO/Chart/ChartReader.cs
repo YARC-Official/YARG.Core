@@ -254,91 +254,112 @@ namespace MoonscraperChartEditor.Song.IO
 
         private static void SubmitDataGlobals(MoonSong song, List<string> stringData)
         {
-            const int TEXT_POS_TICK = 0;
-            const int TEXT_POS_EVENT_TYPE = 2;
-            const int TEXT_POS_DATA_1 = 3;
-
             var anchorData = new List<Anchor>();
 
             foreach (string line in stringData)
             {
-                string[] stringSplit = line.Split(' ');
-                string eventType;
-                if (stringSplit.Length > TEXT_POS_DATA_1 && uint.TryParse(stringSplit[TEXT_POS_TICK], out uint tick))
+                try
                 {
-                    eventType = stringSplit[TEXT_POS_EVENT_TYPE];
-                    eventType = eventType.ToLower();
+                    int stringStartIndex = 0;
+                    int stringLength = 0;
+
+                    // Advance to tick
+                    AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
+                    uint tick = (uint)FastStringToIntParse(line, stringStartIndex, stringLength);
+
+                    // Advance to equality
+                    stringStartIndex += stringLength;
+                    AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
+
+                    // Advance to type
+                    stringStartIndex += stringLength;
+                    AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
+            
+                    string typeCode = line.Substring(stringStartIndex, stringLength).ToUpperInvariant();
+                    switch (typeCode)
+                    {
+                        case "TS":
+                        {
+                            // Advance to numerator
+                            stringStartIndex += stringLength;
+                            AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
+                            uint numerator = (uint)FastStringToIntParse(line, stringStartIndex, stringLength);
+
+                            uint denominator = 2;
+                            // Check for denominator
+                            if (stringStartIndex + stringLength < line.Length)
+                            {
+                                // Advance to denominator
+                                stringStartIndex += stringLength;
+                                AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
+                                denominator = (uint)FastStringToIntParse(line, stringStartIndex, stringLength);
+                            }
+
+                            song.Add(new TimeSignature(tick, numerator, (uint)Math.Pow(2, denominator)), false);
+                            break;
+                        }
+
+                        case "B":
+                        {
+                            // Advance to tempo value
+                            stringStartIndex += stringLength;
+                            AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
+                            uint tempo = (uint)FastStringToIntParse(line, stringStartIndex, stringLength);
+
+                            song.Add(new BPM(tick, tempo), false);
+                            break;
+                        }
+
+                        case "E":
+                        {
+                            // Advance to start of event text
+                            stringStartIndex += stringLength;
+                            AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
+                            // Ignore whitespace in the text
+                            stringLength = line.Length - stringStartIndex;
+                            // Trim off quotation marks
+                            if (line[stringStartIndex] == '"')
+                                stringStartIndex++;
+                            if (line[^1] == '"')
+                                stringLength--;
+
+                            string eventName = line.Substring(stringStartIndex, stringLength);
+
+                            // Check for section events
+                            var sectionMatch = ChartIOHelper.SectionEventRegex.Match(eventName);
+                            if (sectionMatch.Success)
+                            {
+                                // This is a section, use the text grouped by the regex
+                                string sectionText = sectionMatch.Groups[1].Value;
+                                song.Add(new Section(sectionText, tick), false);
+                            }
+                            else
+                            {
+                                song.Add(new Event(eventName, tick), false);
+                            }
+                            break;
+                        }
+
+                        case "A":
+                        {
+                            // Advance to anchor time
+                            stringStartIndex += stringLength;
+                            AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
+                            ulong anchorTime = FastStringToUInt64Parse(line, stringStartIndex, stringLength);
+
+                            var anchor = new Anchor()
+                            {
+                                tick = tick,
+                                anchorTime = anchorTime / 1000000.0
+                            };
+                            anchorData.Add(anchor);
+                            break;
+                        }
+                    }
                 }
-                else
+                catch (Exception e)
                 {
-                    continue;
-                }
-
-                switch (eventType)
-                {
-                    case "ts":
-                        uint numerator;
-                        uint denominator = 2;
-
-                        if (!uint.TryParse(stringSplit[TEXT_POS_DATA_1], out numerator))
-                            continue;
-
-                        if (stringSplit.Length > TEXT_POS_DATA_1 + 1 && !uint.TryParse(stringSplit[TEXT_POS_DATA_1 + 1], out denominator))
-                            continue;
-
-                        song.Add(new TimeSignature(tick, numerator, (uint)Math.Pow(2, denominator)), false);
-                        break;
-
-                    case "b":
-                        uint value;
-                        if (!uint.TryParse(stringSplit[TEXT_POS_DATA_1], out value))
-                            continue;
-
-                        song.Add(new BPM(tick, value), false);
-                        break;
-
-                    case "e":
-                        var sb = new StringBuilder();
-                        int startIndex = TEXT_POS_DATA_1;
-                        bool isSection = false;
-
-                        if (stringSplit.Length > TEXT_POS_DATA_1 + 1 && stringSplit[TEXT_POS_DATA_1] == "\"section")
-                        {
-                            startIndex = TEXT_POS_DATA_1 + 1;
-                            isSection = true;
-                        }
-
-                        for (int i = startIndex; i < stringSplit.Length; ++i)
-                        {
-                            sb.Append(stringSplit[i].Trim('"'));
-                            if (i < stringSplit.Length - 1)
-                                sb.Append(" ");
-                        }
-
-                        if (isSection)
-                        {
-                            song.Add(new Section(sb.ToString(), tick), false);
-                        }
-                        else
-                        {
-                            song.Add(new Event(sb.ToString(), tick), false);
-                        }
-
-                        break;
-
-                    case "a":
-                        ulong anchorValue;
-                        if (ulong.TryParse(stringSplit[TEXT_POS_DATA_1], out anchorValue))
-                        {
-                            Anchor a;
-                            a.tick = tick;
-                            a.anchorTime = (float)(anchorValue / 1000000.0d);
-                            anchorData.Add(a);
-                        }
-                        break;
-
-                    default:
-                        break;
+                    Debug.WriteLine($"Error parsing .chart line '{line}': {e}");
                 }
             }
 
@@ -374,6 +395,16 @@ namespace MoonscraperChartEditor.Song.IO
             int value = 0;
             for (int i = index; i < index + length; i++)
                 value = value * 10 + (str[i] - '0');
+
+            return value;
+        }
+
+        private static ulong FastStringToUInt64Parse(string str, int index, int length)
+        {
+            // https://cc.davelozinski.com/c-sharp/fastest-way-to-convert-a-string-to-an-int
+            ulong value = 0;
+            for (int i = index; i < index + length; i++)
+                value = value * 10 + (ulong)(str[i] - '0');
 
             return value;
         }
