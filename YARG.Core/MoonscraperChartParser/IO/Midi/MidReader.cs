@@ -488,27 +488,6 @@ namespace MoonscraperChartEditor.Song.IO
             }
         }
 
-        private static void ProcessNoteOnEventAsStarpower(in EventProcessParams eventProcessParams)
-            => ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, SpecialPhrase.Type.Starpower);
-
-        private static void ProcessNoteOnEventAsVersusPlayerOne(in EventProcessParams eventProcessParams)
-            => ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, SpecialPhrase.Type.Versus_Player1);
-
-        private static void ProcessNoteOnEventAsVersusPlayerTwo(in EventProcessParams eventProcessParams)
-            => ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, SpecialPhrase.Type.Versus_Player2);
-
-        private static void ProcessNoteOnEventAsDrumFill(in EventProcessParams eventProcessParams)
-            => ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, SpecialPhrase.Type.ProDrums_Activation);
-
-        private static void ProcessNoteOnEventAsTremoloLane(in EventProcessParams eventProcessParams)
-            => ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, SpecialPhrase.Type.TremoloLane);
-
-        private static void ProcessNoteOnEventAsTrillLane(in EventProcessParams eventProcessParams)
-            => ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, SpecialPhrase.Type.TrillLane);
-
-        private static void ProcessNoteOnEventAsLyricsPhrase(in EventProcessParams eventProcessParams)
-            => ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, SpecialPhrase.Type.Vocals_LyricPhrase);
-
         private static void ProcessNoteOnEventAsForcedType(in EventProcessParams eventProcessParams, MoonNote.MoonNoteType noteType)
         {
             var timedEvent = eventProcessParams.timedEvent;
