@@ -341,6 +341,11 @@ namespace MoonscraperChartEditor.Song.IO
             {
                 eventName = bracketMatch.Groups[1].Value;
             }
+            // No brackets to strip off, on vocals this is most likely a lyric event
+            else if (MoonSong.InstumentToChartGameMode(processParams.instrument) is MoonChart.GameMode.Vocals)
+            {
+                eventName = MidIOHelper.LYRIC_EVENT_PREFIX + text.Text;
+            }
 
             if (processParams.textProcessMap.TryGetValue(eventName, out var processFn))
             {
