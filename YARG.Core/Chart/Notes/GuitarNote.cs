@@ -66,6 +66,18 @@ namespace YARG.Core.Chart
             }
         }
 
+        public GuitarNote(FiveFretGuitarFret fret, MoonNote.MoonNoteType moonNoteType, GuitarNoteFlags guitarFlags,
+            NoteFlags flags, double time, double timeLength, uint tick, uint tickLength)
+            : this((int)fret, moonNoteType, guitarFlags, flags, time, timeLength, tick, tickLength) 
+        {
+        }
+
+        public GuitarNote(SixFretGuitarFret fret, MoonNote.MoonNoteType moonNoteType, GuitarNoteFlags guitarFlags,
+            NoteFlags flags, double time, double timeLength, uint tick, uint tickLength)
+            : this((int)fret, moonNoteType, guitarFlags, flags, time, timeLength, tick, tickLength) 
+        {
+        }
+
         public GuitarNote(int fret, MoonNote.MoonNoteType moonNoteType, GuitarNoteFlags guitarFlags, NoteFlags flags,
             double time, double timeLength, uint tick, uint tickLength)
             : base(flags, time, timeLength, tick, tickLength) 
@@ -90,8 +102,29 @@ namespace YARG.Core.Chart
 
             base.AddChildNote(note);
 
-            NoteMask |= 1 << guitarNote.Fret - 1;
+            NoteMask |= 1 << guitarNote.Fret;
         }
+    }
+
+    public enum FiveFretGuitarFret
+    {
+        Open,
+        Green,
+        Red,
+        Yellow,
+        Blue,
+        Orange,
+    }
+
+    public enum SixFretGuitarFret
+    {
+        Open,
+        Black1,
+        Black2,
+        Black3,
+        White1,
+        White2,
+        White3,
     }
 
     [Flags]

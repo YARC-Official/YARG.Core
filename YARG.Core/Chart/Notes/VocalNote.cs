@@ -8,14 +8,18 @@ namespace YARG.Core.Chart
         private readonly List<PitchTimePair> _pitchesOverTime;
         private readonly VocalNoteFlags      _vocalFlags;
 
+        // 0-based: harmony part 1 is 0, harmony part 2 is 1, harmony part 3 is 2, etc.
+        public int HarmonyPart { get; }
+
         public IReadOnlyList<PitchTimePair> PitchesOverTime => _pitchesOverTime;
 
         public bool IsNonPitched => (_vocalFlags & VocalNoteFlags.NonPitched) != 0;
 
-        public VocalNote(List<PitchTimePair> pitchesOverTime, VocalNoteFlags vocalFlags, NoteFlags flags, double time,
-            double timeLength, uint tick, uint tickLength)
+        public VocalNote(List<PitchTimePair> pitchesOverTime, int harmonyPart, VocalNoteFlags vocalFlags, NoteFlags flags,
+            double time, double timeLength, uint tick, uint tickLength)
             : base(flags, time, timeLength, tick, tickLength)
         {
+            HarmonyPart = harmonyPart;
             _pitchesOverTime = pitchesOverTime;
             _vocalFlags = vocalFlags;
         }
