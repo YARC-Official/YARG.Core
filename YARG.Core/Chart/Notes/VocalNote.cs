@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace YARG.Core.Chart
@@ -5,15 +6,22 @@ namespace YARG.Core.Chart
     public class VocalNote : Note
     {
         private readonly List<PitchTimePair> _pitchesOverTime;
+        private readonly VocalNoteFlags      _vocalFlags;
+
+        // 0-based: harmony part 1 is 0, harmony part 2 is 1, harmony part 3 is 2, etc.
+        public int HarmonyPart { get; }
+
         public IReadOnlyList<PitchTimePair> PitchesOverTime => _pitchesOverTime;
 
-        public bool IsNonPitched => (_flags & NoteFlags.VocalNonPitched) != 0;
+        public bool IsNonPitched => (_vocalFlags & VocalNoteFlags.NonPitched) != 0;
 
-        public VocalNote(Note previousNote, double time, double timeLength, uint tick,
-            uint tickLength, List<PitchTimePair> pitchesOverTime, NoteFlags flags)
-            : base(previousNote, time, timeLength, tick, tickLength, flags)
+        public VocalNote(List<PitchTimePair> pitchesOverTime, int harmonyPart, VocalNoteFlags vocalFlags, NoteFlags flags,
+            double time, double timeLength, uint tick, uint tickLength)
+            : base(flags, time, timeLength, tick, tickLength)
         {
+            HarmonyPart = harmonyPart;
             _pitchesOverTime = pitchesOverTime;
+            _vocalFlags = vocalFlags;
         }
 
         public float PitchAtNormalizedTime(float normalizedTime)
@@ -71,5 +79,13 @@ namespace YARG.Core.Chart
             NormalizedTime = normalizedTime;
             Pitch = pitch;
         }
+    }
+
+    [Flags]
+    public enum VocalNoteFlags
+    {
+        None = 0,
+
+        NonPitched = 1 << 0,
     }
 }

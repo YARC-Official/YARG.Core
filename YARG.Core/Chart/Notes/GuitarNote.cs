@@ -1,80 +1,46 @@
-﻿using MoonscraperChartEditor.Song;
+using System;
+using MoonscraperChartEditor.Song;
 
 namespace YARG.Core.Chart
 {
     public class GuitarNote : Note
     {
+        private readonly GuitarNoteFlags _guitarFlags;
+
         public int Fret     { get; }
         public int NoteMask { get; private set; }
 
-        public bool IsSustain { get; }
+        public GuitarNoteType Type { get; set; }
 
-        public bool IsChord => (_flags & NoteFlags.Chord) != 0;
+        public bool IsStrum => Type == GuitarNoteType.Strum;
+        public bool IsHopo  => Type == GuitarNoteType.Hopo;
+        public bool IsTap   => Type == GuitarNoteType.Tap;
 
-        public bool IsExtendedSustain => (_flags & NoteFlags.ExtendedSustain) != 0;
-        public bool IsDisjoint        => (_flags & NoteFlags.Disjoint) != 0;
+        public bool IsSustain => TickLength > 0;
 
-        private bool _isForced;
+        public bool IsExtendedSustain => (_guitarFlags & GuitarNoteFlags.ExtendedSustain) != 0;
+        public bool IsDisjoint        => (_guitarFlags & GuitarNoteFlags.Disjoint) != 0;
 
-        private bool _isStrum;
-        private bool _isHopo;
-        private bool _isTap;
-
-        public bool IsStrum
+        public GuitarNote(FiveFretGuitarFret fret, GuitarNoteType noteType, GuitarNoteFlags guitarFlags,
+            NoteFlags flags, double time, double timeLength, uint tick, uint tickLength)
+            : this((int)fret, noteType, guitarFlags, flags, time, timeLength, tick, tickLength) 
         {
-            get => _isStrum;
-            set
-            {
-                if (value)
-                {
-                    IsHopo = false;
-                    IsTap = false;
-                }
-
-                _isStrum = true;
-            }
         }
 
-        public bool IsHopo
+        public GuitarNote(SixFretGuitarFret fret, GuitarNoteType noteType, GuitarNoteFlags guitarFlags,
+            NoteFlags flags, double time, double timeLength, uint tick, uint tickLength)
+            : this((int)fret, noteType, guitarFlags, flags, time, timeLength, tick, tickLength) 
         {
-            get => _isHopo;
-            set
-            {
-                if (value)
-                {
-                    IsStrum = false;
-                    IsTap = false;
-                }
-
-                _isHopo = true;
-            }
         }
 
-        public bool IsTap
-        {
-            get => _isTap;
-            set
-            {
-                if (value)
-                {
-                    IsStrum = false;
-                    IsHopo = false;
-                }
-
-                _isTap = true;
-            }
-        }
-
-        public GuitarNote(Note previousNote, double time, double timeLength, uint tick, uint tickLength, int fret,
-            MoonNote.MoonNoteType moonNoteType, NoteFlags flags) : base(previousNote, time, timeLength, tick, tickLength, flags)
+        public GuitarNote(int fret, GuitarNoteType noteType, GuitarNoteFlags guitarFlags, NoteFlags flags,
+            double time, double timeLength, uint tick, uint tickLength)
+            : base(flags, time, timeLength, tick, tickLength) 
         {
             Fret = fret;
+            Type = noteType;
 
-            IsSustain = tickLength > 0;
-
-            _isStrum = moonNoteType == MoonNote.MoonNoteType.Strum;
-            _isTap = moonNoteType == MoonNote.MoonNoteType.Tap;
-            _isHopo = moonNoteType == MoonNote.MoonNoteType.Hopo && !_isTap;
+            _guitarFlags = guitarFlags;
 
             NoteMask = 1 << fret - 1;
         }
@@ -86,7 +52,44 @@ namespace YARG.Core.Chart
 
             base.AddChildNote(note);
 
-            NoteMask |= 1 << guitarNote.Fret - 1;
+            NoteMask |= 1 << guitarNote.Fret;
         }
+    }
+
+    public enum FiveFretGuitarFret
+    {
+        Open,
+        Green,
+        Red,
+        Yellow,
+        Blue,
+        Orange,
+    }
+
+    public enum SixFretGuitarFret
+    {
+        Open,
+        Black1,
+        Black2,
+        Black3,
+        White1,
+        White2,
+        White3,
+    }
+
+    public enum GuitarNoteType
+    {
+        Strum,
+        Hopo,
+        Tap
+    }
+
+    [Flags]
+    public enum GuitarNoteFlags
+    {
+        None = 0,
+
+        ExtendedSustain = 1 << 0,
+        Disjoint        = 1 << 1,
     }
 }
