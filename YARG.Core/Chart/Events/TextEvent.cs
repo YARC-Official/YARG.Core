@@ -7,8 +7,8 @@ namespace YARG.Core.Chart
     {
         public string Text { get; }
 
-        public TextEvent(string text, double time, double timeLength, uint tick, uint tickLength)
-            : base(time, timeLength, tick, tickLength)
+        public TextEvent(string text, double time, uint tick)
+            : base(time, 0, tick, 0)
         {
             Text = text;
         }

@@ -20,10 +20,9 @@ namespace YARG.Core.Chart
         public bool WasHit { get; private set; }
         public bool WasMissed { get; private set; }
 
-        protected Note(Note previousNote, double time, double timeLength, uint tick, uint tickLength, NoteFlags flags)
+        protected Note(NoteFlags flags, double time, double timeLength, uint tick, uint tickLength)
             : base(time, timeLength, tick, tickLength)
         {
-            this.previousNote = previousNote;
             _flags = flags;
         }
 

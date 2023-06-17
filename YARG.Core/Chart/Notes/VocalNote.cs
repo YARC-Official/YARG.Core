@@ -9,9 +9,9 @@ namespace YARG.Core.Chart
 
         public bool IsNonPitched => (_flags & NoteFlags.VocalNonPitched) != 0;
 
-        public VocalNote(Note previousNote, double time, double timeLength, uint tick,
-            uint tickLength, List<PitchTimePair> pitchesOverTime, NoteFlags flags)
-            : base(previousNote, time, timeLength, tick, tickLength, flags)
+        public VocalNote(List<PitchTimePair> pitchesOverTime, NoteFlags flags, double time, double timeLength, uint tick,
+            uint tickLength)
+            : base(flags, time, timeLength, tick, tickLength)
         {
             _pitchesOverTime = pitchesOverTime;
         }

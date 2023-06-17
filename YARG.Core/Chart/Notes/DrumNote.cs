@@ -1,4 +1,4 @@
-﻿namespace YARG.Core.Chart
+namespace YARG.Core.Chart
 {
     public class DrumNote : Note 
     {
@@ -9,8 +9,8 @@
         public bool IsGhost  => (_flags & NoteFlags.DrumGhost) != 0;
         public bool IsAccent => (_flags & NoteFlags.DrumAccent) != 0;
 
-        public DrumNote(Note previousNote, double time, uint tick, int pad, NoteFlags flags)
-            : base(previousNote, time, 0, tick, 0, flags) 
+        public DrumNote(int pad, NoteFlags flags, double time, uint tick)
+            : base(flags, time, 0, tick, 0) 
         {
             Pad = pad;
         }

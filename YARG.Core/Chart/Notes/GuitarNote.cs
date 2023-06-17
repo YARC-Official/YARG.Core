@@ -65,8 +65,9 @@ namespace YARG.Core.Chart
             }
         }
 
-        public GuitarNote(Note previousNote, double time, double timeLength, uint tick, uint tickLength, int fret,
-            MoonNote.MoonNoteType moonNoteType, NoteFlags flags) : base(previousNote, time, timeLength, tick, tickLength, flags)
+        public GuitarNote(int fret, MoonNote.MoonNoteType moonNoteType, NoteFlags flags, double time, double timeLength,
+            uint tick, uint tickLength)
+            : base(flags, time, timeLength, tick, tickLength) 
         {
             Fret = fret;
 
