@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace YARG.Core.Chart
 {
-    public abstract class Note 
+    public abstract class Note : ChartEvent
     {
         public Note previousNote;
         public Note nextNote;
@@ -13,12 +13,6 @@ namespace YARG.Core.Chart
 		
         protected NoteFlags _flags;
 		
-        public double Time       { get; }
-        public double TimeLength { get; }
-		
-        public uint Tick       { get; }
-        public uint TickLength { get; }
-		
         public bool IsStarPowerStart => (_flags & NoteFlags.StarPowerStart) != 0;
         public bool IsStarPower      => (_flags & NoteFlags.StarPower) != 0;
         public bool IsStarPowerEnd   => (_flags & NoteFlags.StarPowerEnd) != 0;
@@ -26,14 +20,10 @@ namespace YARG.Core.Chart
         public bool WasHit { get; private set; }
         public bool WasMissed { get; private set; }
 
-        protected Note(Note previousNote, double time, double timeLength, uint tick, uint tickLength, NoteFlags flags) 
+        protected Note(Note previousNote, double time, double timeLength, uint tick, uint tickLength, NoteFlags flags)
+            : base(time, timeLength, tick, tickLength)
         {
             this.previousNote = previousNote;
-            Time = time;
-            TimeLength = timeLength;
-            Tick = tick;
-            TickLength = tickLength;
-
             _flags = flags;
         }
 
@@ -81,7 +71,8 @@ namespace YARG.Core.Chart
         SoloStart       = 64,
         SoloEnd         = 128,
         Cymbal          = 256,
-        DrumsGhost      = 512,
-        DrumsAccent     = 1024,
+        DrumGhost       = 512,
+        DrumAccent      = 1024,
+        VocalNonPitched = 2048,
     }
 }

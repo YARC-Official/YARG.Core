@@ -8,9 +8,9 @@
 
         public YargPlayer()
         {
-            Instrument = Instrument.Invalid;
+            Instrument = Instrument.FiveFretGuitar;
             Difficulty = Difficulty.Expert;
         }
-        
+
     }
 }

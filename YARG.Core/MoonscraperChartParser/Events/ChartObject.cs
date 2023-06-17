@@ -9,8 +9,13 @@ namespace MoonscraperChartEditor.Song
     public abstract class ChartObject : SongObject
     {
         [NonSerialized]
-        public MoonChart moonChart;
+        public MoonChart chart;
 
         public ChartObject(uint position) : base(position) { }
+
+        // Clone needs to be hideable so it can return a different type in derived classes
+        protected override SongObject SongClone() => ChartClone();
+        protected abstract ChartObject ChartClone();
+        public new ChartObject Clone() => ChartClone();
     }
 }

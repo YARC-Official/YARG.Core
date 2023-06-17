@@ -20,19 +20,12 @@ namespace MoonscraperChartEditor.Song.IO
         public const int NOTE_OFFSET_DRUMS_ACCENT = 33;
         public const int NOTE_OFFSET_DRUMS_GHOST = 39;
 
+        public const int PHRASE_VERSUS_PLAYER_1 = 0;
+        public const int PHRASE_VERSUS_PLAYER_2 = 1;
         public const int PHRASE_STARPOWER = 2;
         public const int PHRASE_DRUM_FILL = 64;
-        public const int PHRASE_DRUM_ROLL_SINGLE = 65;
-        public const int PHRASE_DRUM_ROLL_DOUBLE = 66;
-
-        public enum TrackLoadType
-        {
-            Guitar,
-            Drums,
-            GHLiveGuitar,
-
-            Unrecognised
-        }
+        public const int PHRASE_TREMOLO_LANE = 65;
+        public const int PHRASE_TRILL_LANE = 66;
 
         public static readonly Dictionary<int, int> GuitarNoteNumLookup = new()
         {
@@ -104,16 +97,6 @@ namespace MoonscraperChartEditor.Song.IO
             { "GHLBass",        MoonSong.MoonInstrument.GHLiveBass },
             { "GHLRhythm",      MoonSong.MoonInstrument.GHLiveRhythm },
             { "GHLCoop",        MoonSong.MoonInstrument.GHLiveCoop },
-        };
-
-        public static readonly Dictionary<MoonSong.MoonInstrument, TrackLoadType> InstrumentParsingTypeLookup = new()
-        {
-            // Other instruments default to loading as a guitar type track
-            { MoonSong.MoonInstrument.Drums, TrackLoadType.Drums },
-            { MoonSong.MoonInstrument.GHLiveGuitar, TrackLoadType.GHLiveGuitar },
-            { MoonSong.MoonInstrument.GHLiveBass,  TrackLoadType.GHLiveGuitar },
-            { MoonSong.MoonInstrument.GHLiveRhythm,  TrackLoadType.GHLiveGuitar },
-            { MoonSong.MoonInstrument.GHLiveCoop,  TrackLoadType.GHLiveGuitar },
         };
     }
 }

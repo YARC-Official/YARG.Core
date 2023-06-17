@@ -12,7 +12,7 @@ namespace MoonscraperChartEditor.Song
         /// The song this object is connected to.
         /// </summary>
         [NonSerialized]
-        public MoonSong moonSong;
+        public MoonSong song;
         /// <summary>
         /// The tick position of the object
         /// </summary>
@@ -28,7 +28,11 @@ namespace MoonscraperChartEditor.Song
         /// <summary>
         /// Automatically converts the object's tick position into the time it will appear in the song.
         /// </summary>
-        public double time => moonSong.TickToTime(tick, moonSong.resolution);
+        public double time => song.TickToTime(tick, song.resolution);
+
+        // Clone needs to be hideable so it can return a different type in derived classes
+        protected abstract SongObject SongClone();
+        public SongObject Clone() => SongClone();
 
         public static bool operator ==(SongObject a, SongObject b)
         {
@@ -89,6 +93,11 @@ namespace MoonscraperChartEditor.Song
             return base.GetHashCode();
         }
 
+        public override string ToString()
+        {
+            return $"{classID} at tick {tick}";
+        }
+
         /// <summary>
         /// Allows different classes to be sorted and grouped together in arrays by giving each class a comparable numeric value that is greater or less than other classes.
         /// </summary>
@@ -100,9 +109,8 @@ namespace MoonscraperChartEditor.Song
             Event,
             Section,
             Note,
-            Starpower,
+            Special,
             ChartEvent,
-            DrumRoll,
         }
     }
 }

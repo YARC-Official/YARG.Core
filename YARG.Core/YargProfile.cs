@@ -4,8 +4,8 @@
     {
 
         public string Name;
-        
-        public InstrumentType InstrumentType;
+
+        public Instrument Instrument;
 
         public float NoteSpeed;
         public float HighwayLength;
