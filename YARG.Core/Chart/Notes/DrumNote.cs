@@ -10,6 +10,10 @@ namespace YARG.Core.Chart
 
         public DrumNoteType Type { get; }
 
+        public bool IsNeutral => Type == DrumNoteType.Neutral;
+        public bool IsAccent  => Type == DrumNoteType.Accent;
+        public bool IsGhost   => Type == DrumNoteType.Ghost;
+
         public bool IsStarPowerActivator => (_drumFlags & DrumNoteFlags.StarPowerActivator) != 0;
 
         public DrumNote(FourLaneDrumPad pad, DrumNoteType noteType, DrumNoteFlags drumFlags,

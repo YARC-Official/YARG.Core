@@ -12,6 +12,10 @@ namespace YARG.Core.Chart
 
         public GuitarNoteType Type { get; }
 
+        public bool IsStrum => Type == GuitarNoteType.Strum;
+        public bool IsHopo  => Type == GuitarNoteType.Hopo;
+        public bool IsTap   => Type == GuitarNoteType.Tap;
+
         public bool IsSustain { get; }
 
         public bool IsExtendedSustain => (_guitarFlags & GuitarNoteFlags.ExtendedSustain) != 0;

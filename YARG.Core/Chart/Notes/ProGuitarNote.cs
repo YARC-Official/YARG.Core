@@ -11,6 +11,10 @@ namespace YARG.Core.Chart
 
         public ProGuitarNoteType Type { get; }
 
+        public bool IsStrum => Type == ProGuitarNoteType.Strum;
+        public bool IsHopo  => Type == ProGuitarNoteType.Hopo;
+        public bool IsTap   => Type == ProGuitarNoteType.Tap;
+
         public bool IsSustain { get; }
 
         public bool IsExtendedSustain => (_proFlags & ProGuitarNoteFlags.ExtendedSustain) != 0;
