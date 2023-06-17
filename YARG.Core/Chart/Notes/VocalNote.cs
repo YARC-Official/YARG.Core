@@ -6,9 +6,9 @@ namespace YARG.Core.Chart
     public class VocalNote : Note
     {
         private readonly List<PitchTimePair> _pitchesOverTime;
-        public IReadOnlyList<PitchTimePair> PitchesOverTime => _pitchesOverTime;
+        private readonly VocalNoteFlags      _vocalFlags;
 
-        private readonly VocalNoteFlags _vocalFlags;
+        public IReadOnlyList<PitchTimePair> PitchesOverTime => _pitchesOverTime;
 
         public bool IsNonPitched => (_vocalFlags & VocalNoteFlags.NonPitched) != 0;
 

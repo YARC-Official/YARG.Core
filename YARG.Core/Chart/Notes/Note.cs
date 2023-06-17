@@ -5,13 +5,13 @@ namespace YARG.Core.Chart
 {
     public abstract class Note : ChartEvent
     {
+        private readonly List<Note> _childNotes;
+        private readonly NoteFlags  _flags;
+
         public Note previousNote;
         public Note nextNote;
 
-        private readonly List<Note>          _childNotes;
-        public           IReadOnlyList<Note> ChildNotes => _childNotes;
-		
-        private readonly NoteFlags _flags;
+        public IReadOnlyList<Note> ChildNotes => _childNotes;
 
         public bool IsChord => _childNotes.Count > 0;
 		
@@ -22,7 +22,7 @@ namespace YARG.Core.Chart
         public bool IsSoloStart => (_flags & NoteFlags.SoloStart) != 0;
         public bool IsSoloEnd   => (_flags & NoteFlags.SoloEnd) != 0;
         
-        public bool WasHit { get; private set; }
+        public bool WasHit    { get; private set; }
         public bool WasMissed { get; private set; }
 
         protected Note(NoteFlags flags, double time, double timeLength, uint tick, uint tickLength)

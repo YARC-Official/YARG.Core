@@ -5,21 +5,21 @@ namespace YARG.Core.Chart
 {
     public class GuitarNote : Note
     {
-        public int Fret     { get; }
-        public int NoteMask { get; private set; }
-
         private readonly GuitarNoteFlags _guitarFlags;
-
-        public bool IsSustain { get; }
-
-        public bool IsExtendedSustain => (_guitarFlags & GuitarNoteFlags.ExtendedSustain) != 0;
-        public bool IsDisjoint        => (_guitarFlags & GuitarNoteFlags.Disjoint) != 0;
 
         private bool _isForced;
 
         private bool _isStrum;
         private bool _isHopo;
         private bool _isTap;
+
+        public int Fret     { get; }
+        public int NoteMask { get; private set; }
+
+        public bool IsSustain { get; }
+
+        public bool IsExtendedSustain => (_guitarFlags & GuitarNoteFlags.ExtendedSustain) != 0;
+        public bool IsDisjoint        => (_guitarFlags & GuitarNoteFlags.Disjoint) != 0;
 
         public bool IsStrum
         {

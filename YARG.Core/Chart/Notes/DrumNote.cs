@@ -4,9 +4,9 @@ namespace YARG.Core.Chart
 {
     public class DrumNote : Note 
     {
-        public int Pad { get; }
-
         private readonly DrumNoteFlags _drumFlags;
+
+        public int Pad { get; }
 
         public bool IsCymbal => (_drumFlags & DrumNoteFlags.Cymbal) != 0;
 
