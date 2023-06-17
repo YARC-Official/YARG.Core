@@ -16,7 +16,7 @@ namespace YARG.Core.Chart
         public bool IsHopo  => Type == GuitarNoteType.Hopo;
         public bool IsTap   => Type == GuitarNoteType.Tap;
 
-        public bool IsSustain { get; }
+        public bool IsSustain => TickLength > 0;
 
         public bool IsExtendedSustain => (_guitarFlags & GuitarNoteFlags.ExtendedSustain) != 0;
         public bool IsDisjoint        => (_guitarFlags & GuitarNoteFlags.Disjoint) != 0;
@@ -38,9 +38,6 @@ namespace YARG.Core.Chart
             : base(flags, time, timeLength, tick, tickLength) 
         {
             Fret = fret;
-
-            IsSustain = tickLength > 0;
-
             Type = noteType;
 
             _guitarFlags = guitarFlags;

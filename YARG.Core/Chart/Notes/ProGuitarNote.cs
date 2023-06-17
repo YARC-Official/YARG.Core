@@ -15,7 +15,7 @@ namespace YARG.Core.Chart
         public bool IsHopo  => Type == ProGuitarNoteType.Hopo;
         public bool IsTap   => Type == ProGuitarNoteType.Tap;
 
-        public bool IsSustain { get; }
+        public bool IsSustain => TickLength > 0;
 
         public bool IsExtendedSustain => (_proFlags & ProGuitarNoteFlags.ExtendedSustain) != 0;
         public bool IsDisjoint        => (_proFlags & ProGuitarNoteFlags.Disjoint) != 0;
@@ -31,8 +31,6 @@ namespace YARG.Core.Chart
             Type = type;
 
             _proFlags = proFlags;
-
-            IsSustain = tickLength > 0;
         }
     }
 
