@@ -68,6 +68,16 @@ namespace YARG.Core.UnitTests.Parsing
             { SpecialPhrase.Type.ProDrums_Activation, PHRASE_DRUM_FILL },
         };
 
+        private static readonly List<SpecialPhrase.Type> DrumsOnlySpecialPhrases = new()
+        {
+            SpecialPhrase.Type.Starpower,
+            SpecialPhrase.Type.Versus_Player1,
+            SpecialPhrase.Type.Versus_Player2,
+            SpecialPhrase.Type.TremoloLane,
+            SpecialPhrase.Type.TrillLane,
+            SpecialPhrase.Type.ProDrums_Activation,
+        };
+
         private static void GenerateSongSection(MoonSong sourceSong, StringBuilder builder)
         {
             builder.Append($"{SECTION_SONG}\n{{\n");
@@ -126,12 +136,20 @@ namespace YARG.Core.UnitTests.Parsing
                         break;
                     case SpecialPhrase phrase:
                         // Drums-only phrases
-                        if (gameMode is not GameMode.Drums && phrase.type is SpecialPhrase.Type.TremoloLane or
-                            SpecialPhrase.Type.TrillLane or SpecialPhrase.Type.ProDrums_Activation)
+                        if (gameMode is not GameMode.Drums && DrumsOnlySpecialPhrases.Contains(phrase.type))
                         {
                             eventsToRemove.Add(chartObj);
                             continue;
                         }
+
+                        // Solos are written as text events in .chart
+                        if (phrase.type is SpecialPhrase.Type.Solo)
+                        {
+                            builder.Append($"  {phrase.tick} = E {EVENT_SOLO_START}\n");
+                            builder.Append($"  {phrase.tick + phrase.length} = E {EVENT_SOLO_END}\n");
+                            continue;
+                        }
+
                         int phraseNumber = SpecialPhraseLookup[phrase.type];
                         builder.Append($"  {phrase.tick} = S {phraseNumber} {phrase.length}\n");
                         break;

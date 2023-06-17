@@ -90,6 +90,14 @@ namespace YARG.Core.UnitTests.Parsing
             NewNote(32, GuitarFret.Red),
             NewNote(33, GuitarFret.Green),
             NewNote(34, GuitarFret.Red),
+
+            NewSpecial(35, SpecialPhrase.Type.Solo, RESOLUTION * 6),
+            NewNote(35, GuitarFret.Green, flags: Flags.Forced),
+            NewNote(36, GuitarFret.Red, flags: Flags.Forced),
+            NewNote(37, GuitarFret.Yellow, flags: Flags.Forced),
+            NewNote(38, GuitarFret.Blue, flags: Flags.Forced),
+            NewNote(39, GuitarFret.Orange, flags: Flags.Forced),
+            NewNote(40, GuitarFret.Open, flags: Flags.Forced),
         };
 
         public static readonly List<ChartObject> GhlGuitarTrack = new()
@@ -125,6 +133,15 @@ namespace YARG.Core.UnitTests.Parsing
             NewNote(24, GHLiveGuitarFret.White2),
             NewNote(25, GHLiveGuitarFret.White3),
             NewNote(26, GHLiveGuitarFret.Open),
+
+            NewSpecial(27, SpecialPhrase.Type.Solo, RESOLUTION * 7),
+            NewNote(27, GHLiveGuitarFret.Black1),
+            NewNote(28, GHLiveGuitarFret.Black2),
+            NewNote(29, GHLiveGuitarFret.Black3),
+            NewNote(30, GHLiveGuitarFret.White1),
+            NewNote(31, GHLiveGuitarFret.White2),
+            NewNote(32, GHLiveGuitarFret.White3),
+            NewNote(33, GHLiveGuitarFret.Open),
         };
 
         public static readonly List<ChartObject> ProGuitarTrack = new()
@@ -173,6 +190,14 @@ namespace YARG.Core.UnitTests.Parsing
             NewNote(33, ProGuitarString.Yellow, 6),
             NewNote(34, ProGuitarString.Yellow, 5),
             NewNote(35, ProGuitarString.Yellow, 6),
+
+            NewSpecial(36, SpecialPhrase.Type.Solo, RESOLUTION * 6),
+            NewNote(36, ProGuitarString.Red, 0),
+            NewNote(37, ProGuitarString.Green, 1),
+            NewNote(38, ProGuitarString.Orange, 2),
+            NewNote(39, ProGuitarString.Blue, 3),
+            NewNote(40, ProGuitarString.Yellow, 4),
+            NewNote(41, ProGuitarString.Purple, 5),
         };
 
         public static readonly List<ChartObject> DrumsTrack = new()
@@ -262,6 +287,16 @@ namespace YARG.Core.UnitTests.Parsing
             NewNote(67, DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
             NewNote(68, DrumPad.Yellow, flags: Flags.ProDrums_Cymbal),
             NewNote(69, DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
+
+            NewSpecial(70, SpecialPhrase.Type.Solo, RESOLUTION * 8),
+            NewNote(70, DrumPad.Red),
+            NewNote(71, DrumPad.Yellow),
+            NewNote(72, DrumPad.Blue),
+            NewNote(73, DrumPad.Orange),
+            NewNote(74, DrumPad.Green),
+            NewNote(75, DrumPad.Yellow, flags: Flags.ProDrums_Cymbal),
+            NewNote(76, DrumPad.Blue, flags: Flags.ProDrums_Cymbal),
+            NewNote(77, DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
         };
 
         private const byte VOCALS_RANGE_START = MidIOHelper.VOCALS_RANGE_START;

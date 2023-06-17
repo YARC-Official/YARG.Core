@@ -3,6 +3,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace MoonscraperChartEditor.Song.IO
 {
@@ -36,6 +37,17 @@ namespace MoonscraperChartEditor.Song.IO
         public const string HARMONY_1_TRACK_2 = "PART HARM1";
         public const string HARMONY_2_TRACK_2 = "PART HARM2";
         public const string HARMONY_3_TRACK_2 = "PART HARM3";
+
+        // Regex for text events, matches text inside [brackets] without including the brackets
+		// '[end]' -> 'end'
+        // '[section Solo] - "Solo"' -> 'section Solo'
+		public static readonly Regex TextEventRegex = new(@"\[(.*?)\]", RegexOptions.Compiled | RegexOptions.Singleline);
+
+        // Regex for section events, assumes the brackets have already been stripped out
+        // 'section Practice' -> 'Practice'
+        // 'prc_intro' -> 'intro'
+        // 'section_outro' -> 'outro'
+		public static readonly Regex SectionEventRegex = new(@"(?:section|prc)[ _](.*)", RegexOptions.Compiled | RegexOptions.Singleline);
 
         // Note numbers
         public const byte DOUBLE_KICK_NOTE = 95;
@@ -79,23 +91,14 @@ namespace MoonscraperChartEditor.Song.IO
         public const byte PRO_GUITAR_CHANNEL_HARMONIC = 5;
         public const byte PRO_GUITAR_CHANNEL_PINCH_HARMONIC = 6;
 
-        // Text events
-        public const string SOLO_EVENT_TEXT = "solo";
-        public const string SOLO_END_EVENT_TEXT = "soloend";
-
         public const string LYRIC_EVENT_PREFIX = ChartIOHelper.LYRIC_EVENT_PREFIX;
         public const string LYRICS_PHRASE_START_TEXT = ChartIOHelper.EVENT_PHRASE_START;
         public const string LYRICS_PHRASE_END_TEXT = ChartIOHelper.EVENT_PHRASE_END;
 
-        public const string SECTION_PREFIX_RB2 = "section ";
-        public const string SECTION_PREFIX_RB3 = "prc_";
-
         // These events are valid both with and without brackets.
         // The bracketed versions follow the style of other existing .mid text events.
         public const string CHART_DYNAMICS_TEXT = "ENABLE_CHART_DYNAMICS";
-        public const string CHART_DYNAMICS_TEXT_BRACKET = "[ENABLE_CHART_DYNAMICS]";
         public const string ENHANCED_OPENS_TEXT = "ENHANCED_OPENS";
-        public const string ENHANCED_OPENS_TEXT_BRACKET = "[ENHANCED_OPENS]";
 
         // Note velocities
         public const byte VELOCITY = 100;             // default note velocity for exporting

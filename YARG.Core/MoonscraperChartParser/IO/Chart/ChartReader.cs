@@ -14,7 +14,7 @@ using System.Text.RegularExpressions;
 
 namespace MoonscraperChartEditor.Song.IO
 {
-    public static class ChartReader
+    public static partial class ChartReader
     {
         private struct Anchor
         {
@@ -49,94 +49,6 @@ namespace MoonscraperChartEditor.Song.IO
             public NoteEvent noteEvent;
             public List<NoteEventProcessFn> postNotesAddedProcessList;
         }
-
-        private delegate void NoteEventProcessFn(in NoteProcessParams noteProcessParams);
-
-        // These dictionaries map the number of a note event to a specific function of how to process them
-        private static readonly Dictionary<int, NoteEventProcessFn> GuitarChartNoteNumberToProcessFnMap = new()
-        {
-            { 0, (in NoteProcessParams noteProcessParams) => { ProcessNoteOnEventAsNote(noteProcessParams, (int)MoonNote.GuitarFret.Green); }},
-            { 1, (in NoteProcessParams noteProcessParams) => { ProcessNoteOnEventAsNote(noteProcessParams, (int)MoonNote.GuitarFret.Red); }},
-            { 2, (in NoteProcessParams noteProcessParams) => { ProcessNoteOnEventAsNote(noteProcessParams, (int)MoonNote.GuitarFret.Yellow); }},
-            { 3, (in NoteProcessParams noteProcessParams) => { ProcessNoteOnEventAsNote(noteProcessParams, (int)MoonNote.GuitarFret.Blue); }},
-            { 4, (in NoteProcessParams noteProcessParams) => { ProcessNoteOnEventAsNote(noteProcessParams, (int)MoonNote.GuitarFret.Orange); }},
-            { 7, (in NoteProcessParams noteProcessParams) => { ProcessNoteOnEventAsNote(noteProcessParams, (int)MoonNote.GuitarFret.Open); }},
-
-            { 5, (in NoteProcessParams noteProcessParams) => { ProcessNoteOnEventAsChordFlag(noteProcessParams, NoteFlagPriority.Forced); }},
-            { 6, (in NoteProcessParams noteProcessParams) => { ProcessNoteOnEventAsChordFlag(noteProcessParams, NoteFlagPriority.Tap); }},
-        };
-
-        private static readonly Dictionary<int, NoteEventProcessFn> DrumsChartNoteNumberToProcessFnMap = new()
-        {
-            { 0, (in NoteProcessParams noteProcessParams) => { ProcessNoteOnEventAsNote(noteProcessParams, (int)MoonNote.DrumPad.Kick); }},
-            { 1, (in NoteProcessParams noteProcessParams) => { ProcessNoteOnEventAsNote(noteProcessParams, (int)MoonNote.DrumPad.Red); }},
-            { 2, (in NoteProcessParams noteProcessParams) => { ProcessNoteOnEventAsNote(noteProcessParams, (int)MoonNote.DrumPad.Yellow); }},
-            { 3, (in NoteProcessParams noteProcessParams) => { ProcessNoteOnEventAsNote(noteProcessParams, (int)MoonNote.DrumPad.Blue); }},
-            { 4, (in NoteProcessParams noteProcessParams) => { ProcessNoteOnEventAsNote(noteProcessParams, (int)MoonNote.DrumPad.Orange); }},
-            { 5, (in NoteProcessParams noteProcessParams) => { ProcessNoteOnEventAsNote(noteProcessParams, (int)MoonNote.DrumPad.Green); }},
-
-            { ChartIOHelper.NOTE_OFFSET_INSTRUMENT_PLUS, (in NoteProcessParams noteProcessParams) => {
-                ProcessNoteOnEventAsNote(noteProcessParams, (int)MoonNote.DrumPad.Kick, MoonNote.Flags.DoubleKick);
-            } },
-
-            { ChartIOHelper.NOTE_OFFSET_PRO_DRUMS + 2, (in NoteProcessParams noteProcessParams) => {
-                ProcessNoteOnEventAsNoteFlagToggle(noteProcessParams, (int)MoonNote.DrumPad.Yellow, NoteFlagPriority.Cymbal);
-            } },
-            { ChartIOHelper.NOTE_OFFSET_PRO_DRUMS + 3, (in NoteProcessParams noteProcessParams) => {
-                ProcessNoteOnEventAsNoteFlagToggle(noteProcessParams, (int)MoonNote.DrumPad.Blue, NoteFlagPriority.Cymbal);
-            } },
-            { ChartIOHelper.NOTE_OFFSET_PRO_DRUMS + 4, (in NoteProcessParams noteProcessParams) => {
-                ProcessNoteOnEventAsNoteFlagToggle(noteProcessParams, (int)MoonNote.DrumPad.Orange, NoteFlagPriority.Cymbal);
-            } },
-
-            // { ChartIOHelper.NOTE_OFFSET_DRUMS_ACCENT + 0, ... }  // Reserved for kick accents, if they should ever be a thing
-            { ChartIOHelper.NOTE_OFFSET_DRUMS_ACCENT + 1, (in NoteProcessParams noteProcessParams) => {
-                ProcessNoteOnEventAsNoteFlagToggle(noteProcessParams, (int)MoonNote.DrumPad.Red, NoteFlagPriority.Accent);
-            } },
-            { ChartIOHelper.NOTE_OFFSET_DRUMS_ACCENT + 2, (in NoteProcessParams noteProcessParams) => {
-                ProcessNoteOnEventAsNoteFlagToggle(noteProcessParams, (int)MoonNote.DrumPad.Yellow, NoteFlagPriority.Accent);
-            } },
-            { ChartIOHelper.NOTE_OFFSET_DRUMS_ACCENT + 3, (in NoteProcessParams noteProcessParams) => {
-                ProcessNoteOnEventAsNoteFlagToggle(noteProcessParams, (int)MoonNote.DrumPad.Blue, NoteFlagPriority.Accent);
-            } },
-            { ChartIOHelper.NOTE_OFFSET_DRUMS_ACCENT + 4, (in NoteProcessParams noteProcessParams) => {
-                ProcessNoteOnEventAsNoteFlagToggle(noteProcessParams, (int)MoonNote.DrumPad.Orange, NoteFlagPriority.Accent);
-            } },
-            { ChartIOHelper.NOTE_OFFSET_DRUMS_ACCENT + 5, (in NoteProcessParams noteProcessParams) => {
-                ProcessNoteOnEventAsNoteFlagToggle(noteProcessParams, (int)MoonNote.DrumPad.Green, NoteFlagPriority.Accent);
-            } },
-
-            // { ChartIOHelper.NOTE_OFFSET_DRUMS_GHOST + 0, ... }  // Reserved for kick ghosts, if they should ever be a thing
-            { ChartIOHelper.NOTE_OFFSET_DRUMS_GHOST + 1, (in NoteProcessParams noteProcessParams) => {
-                ProcessNoteOnEventAsNoteFlagToggle(noteProcessParams, (int)MoonNote.DrumPad.Red, NoteFlagPriority.Ghost);
-            } },
-            { ChartIOHelper.NOTE_OFFSET_DRUMS_GHOST + 2, (in NoteProcessParams noteProcessParams) => {
-                ProcessNoteOnEventAsNoteFlagToggle(noteProcessParams, (int)MoonNote.DrumPad.Yellow, NoteFlagPriority.Ghost);
-            } },
-            { ChartIOHelper.NOTE_OFFSET_DRUMS_GHOST + 3, (in NoteProcessParams noteProcessParams) => {
-                ProcessNoteOnEventAsNoteFlagToggle(noteProcessParams, (int)MoonNote.DrumPad.Blue, NoteFlagPriority.Ghost);
-            } },
-            { ChartIOHelper.NOTE_OFFSET_DRUMS_GHOST + 4, (in NoteProcessParams noteProcessParams) => {
-                ProcessNoteOnEventAsNoteFlagToggle(noteProcessParams, (int)MoonNote.DrumPad.Orange, NoteFlagPriority.Ghost);
-            } },
-            { ChartIOHelper.NOTE_OFFSET_DRUMS_GHOST + 5, (in NoteProcessParams noteProcessParams) => {
-                ProcessNoteOnEventAsNoteFlagToggle(noteProcessParams, (int)MoonNote.DrumPad.Green, NoteFlagPriority.Ghost);
-            } },
-        };
-
-        private static readonly Dictionary<int, NoteEventProcessFn> GhlChartNoteNumberToProcessFnMap = new()
-        {
-            { 0, (in NoteProcessParams noteProcessParams) => { ProcessNoteOnEventAsNote(noteProcessParams, (int)MoonNote.GHLiveGuitarFret.White1); }},
-            { 1, (in NoteProcessParams noteProcessParams) => { ProcessNoteOnEventAsNote(noteProcessParams, (int)MoonNote.GHLiveGuitarFret.White2); }},
-            { 2, (in NoteProcessParams noteProcessParams) => { ProcessNoteOnEventAsNote(noteProcessParams, (int)MoonNote.GHLiveGuitarFret.White3); }},
-            { 3, (in NoteProcessParams noteProcessParams) => { ProcessNoteOnEventAsNote(noteProcessParams, (int)MoonNote.GHLiveGuitarFret.Black1); }},
-            { 4, (in NoteProcessParams noteProcessParams) => { ProcessNoteOnEventAsNote(noteProcessParams, (int)MoonNote.GHLiveGuitarFret.Black2); }},
-            { 8, (in NoteProcessParams noteProcessParams) => { ProcessNoteOnEventAsNote(noteProcessParams, (int)MoonNote.GHLiveGuitarFret.Black3); }},
-            { 7, (in NoteProcessParams noteProcessParams) => { ProcessNoteOnEventAsNote(noteProcessParams, (int)MoonNote.GHLiveGuitarFret.Open); }},
-
-            { 5, (in NoteProcessParams noteProcessParams) => { ProcessNoteOnEventAsChordFlag(noteProcessParams, NoteFlagPriority.Forced); }},
-            { 6, (in NoteProcessParams noteProcessParams) => { ProcessNoteOnEventAsChordFlag(noteProcessParams, NoteFlagPriority.Tap); }},
-        };
 
         public static MoonSong ReadChart(string filepath)
         {
@@ -342,91 +254,112 @@ namespace MoonscraperChartEditor.Song.IO
 
         private static void SubmitDataGlobals(MoonSong song, List<string> stringData)
         {
-            const int TEXT_POS_TICK = 0;
-            const int TEXT_POS_EVENT_TYPE = 2;
-            const int TEXT_POS_DATA_1 = 3;
-
             var anchorData = new List<Anchor>();
 
             foreach (string line in stringData)
             {
-                string[] stringSplit = line.Split(' ');
-                string eventType;
-                if (stringSplit.Length > TEXT_POS_DATA_1 && uint.TryParse(stringSplit[TEXT_POS_TICK], out uint tick))
+                try
                 {
-                    eventType = stringSplit[TEXT_POS_EVENT_TYPE];
-                    eventType = eventType.ToLower();
+                    int stringStartIndex = 0;
+                    int stringLength = 0;
+
+                    // Advance to tick
+                    AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
+                    uint tick = (uint)FastStringToIntParse(line, stringStartIndex, stringLength);
+
+                    // Advance to equality
+                    stringStartIndex += stringLength;
+                    AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
+
+                    // Advance to type
+                    stringStartIndex += stringLength;
+                    AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
+            
+                    string typeCode = line.Substring(stringStartIndex, stringLength).ToUpperInvariant();
+                    switch (typeCode)
+                    {
+                        case "TS":
+                        {
+                            // Advance to numerator
+                            stringStartIndex += stringLength;
+                            AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
+                            uint numerator = (uint)FastStringToIntParse(line, stringStartIndex, stringLength);
+
+                            uint denominator = 2;
+                            // Check for denominator
+                            if (stringStartIndex + stringLength < line.Length)
+                            {
+                                // Advance to denominator
+                                stringStartIndex += stringLength;
+                                AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
+                                denominator = (uint)FastStringToIntParse(line, stringStartIndex, stringLength);
+                            }
+
+                            song.Add(new TimeSignature(tick, numerator, (uint)Math.Pow(2, denominator)), false);
+                            break;
+                        }
+
+                        case "B":
+                        {
+                            // Advance to tempo value
+                            stringStartIndex += stringLength;
+                            AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
+                            uint tempo = (uint)FastStringToIntParse(line, stringStartIndex, stringLength);
+
+                            song.Add(new BPM(tick, tempo), false);
+                            break;
+                        }
+
+                        case "E":
+                        {
+                            // Advance to start of event text
+                            stringStartIndex += stringLength;
+                            AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
+                            // Ignore whitespace in the text
+                            stringLength = line.Length - stringStartIndex;
+                            // Trim off quotation marks
+                            if (line[stringStartIndex] == '"')
+                                stringStartIndex++;
+                            if (line[^1] == '"')
+                                stringLength--;
+
+                            string eventName = line.Substring(stringStartIndex, stringLength);
+
+                            // Check for section events
+                            var sectionMatch = ChartIOHelper.SectionEventRegex.Match(eventName);
+                            if (sectionMatch.Success)
+                            {
+                                // This is a section, use the text grouped by the regex
+                                string sectionText = sectionMatch.Groups[1].Value;
+                                song.Add(new Section(sectionText, tick), false);
+                            }
+                            else
+                            {
+                                song.Add(new Event(eventName, tick), false);
+                            }
+                            break;
+                        }
+
+                        case "A":
+                        {
+                            // Advance to anchor time
+                            stringStartIndex += stringLength;
+                            AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
+                            ulong anchorTime = FastStringToUInt64Parse(line, stringStartIndex, stringLength);
+
+                            var anchor = new Anchor()
+                            {
+                                tick = tick,
+                                anchorTime = anchorTime / 1000000.0
+                            };
+                            anchorData.Add(anchor);
+                            break;
+                        }
+                    }
                 }
-                else
+                catch (Exception e)
                 {
-                    continue;
-                }
-
-                switch (eventType)
-                {
-                    case "ts":
-                        uint numerator;
-                        uint denominator = 2;
-
-                        if (!uint.TryParse(stringSplit[TEXT_POS_DATA_1], out numerator))
-                            continue;
-
-                        if (stringSplit.Length > TEXT_POS_DATA_1 + 1 && !uint.TryParse(stringSplit[TEXT_POS_DATA_1 + 1], out denominator))
-                            continue;
-
-                        song.Add(new TimeSignature(tick, numerator, (uint)Math.Pow(2, denominator)), false);
-                        break;
-
-                    case "b":
-                        uint value;
-                        if (!uint.TryParse(stringSplit[TEXT_POS_DATA_1], out value))
-                            continue;
-
-                        song.Add(new BPM(tick, value), false);
-                        break;
-
-                    case "e":
-                        var sb = new StringBuilder();
-                        int startIndex = TEXT_POS_DATA_1;
-                        bool isSection = false;
-
-                        if (stringSplit.Length > TEXT_POS_DATA_1 + 1 && stringSplit[TEXT_POS_DATA_1] == "\"section")
-                        {
-                            startIndex = TEXT_POS_DATA_1 + 1;
-                            isSection = true;
-                        }
-
-                        for (int i = startIndex; i < stringSplit.Length; ++i)
-                        {
-                            sb.Append(stringSplit[i].Trim('"'));
-                            if (i < stringSplit.Length - 1)
-                                sb.Append(" ");
-                        }
-
-                        if (isSection)
-                        {
-                            song.Add(new Section(sb.ToString(), tick), false);
-                        }
-                        else
-                        {
-                            song.Add(new Event(sb.ToString(), tick), false);
-                        }
-
-                        break;
-
-                    case "a":
-                        ulong anchorValue;
-                        if (ulong.TryParse(stringSplit[TEXT_POS_DATA_1], out anchorValue))
-                        {
-                            Anchor a;
-                            a.tick = tick;
-                            a.anchorTime = (float)(anchorValue / 1000000.0d);
-                            anchorData.Add(a);
-                        }
-                        break;
-
-                    default:
-                        break;
+                    Debug.WriteLine($"Error parsing .chart line '{line}': {e}");
                 }
             }
 
@@ -466,6 +399,16 @@ namespace MoonscraperChartEditor.Song.IO
             return value;
         }
 
+        private static ulong FastStringToUInt64Parse(string str, int index, int length)
+        {
+            // https://cc.davelozinski.com/c-sharp/fastest-way-to-convert-a-string-to-an-int
+            ulong value = 0;
+            for (int i = index; i < index + length; i++)
+                value = value * 10 + (ulong)(str[i] - '0');
+
+            return value;
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void AdvanceNextWord(string line, ref int startIndex, ref int length)
         {
@@ -481,7 +424,7 @@ namespace MoonscraperChartEditor.Song.IO
             var gameMode = chart.gameMode;
 
             var flags = new List<NoteFlag>();
-            var postNotesAddedProcessList = new List<NoteEventProcessFn>();
+            var postNotesAddedProcessList = GetInitialPostProcessList(gameMode);
 
             var processParams = new NoteProcessParams()
             {
@@ -492,6 +435,7 @@ namespace MoonscraperChartEditor.Song.IO
             chart.SetCapacity(data.Count);
 
             var noteProcessDict = GetNoteProcessDict(gameMode);
+            var specialPhraseProcessDict = GetSpecialPhraseProcessDict(gameMode);
 
             try
             {
@@ -554,43 +498,11 @@ namespace MoonscraperChartEditor.Song.IO
 
                                 uint length = (uint)FastStringToIntParse(line, stringStartIndex, stringLength);
 
-                                switch (fret_type)
+                                if (specialPhraseProcessDict.TryGetValue(fret_type, out var processFn))
                                 {
-                                    case ChartIOHelper.PHRASE_VERSUS_PLAYER_1:
-                                        chart.Add(new SpecialPhrase(tick, length, SpecialPhrase.Type.Versus_Player1), false);
-                                        break;
-
-                                    case ChartIOHelper.PHRASE_VERSUS_PLAYER_2:
-                                        chart.Add(new SpecialPhrase(tick, length, SpecialPhrase.Type.Versus_Player2), false);
-                                        break;
-
-                                    case ChartIOHelper.PHRASE_STARPOWER:
-                                        chart.Add(new SpecialPhrase(tick, length, SpecialPhrase.Type.Starpower), false);
-                                        break;
-
-                                    case ChartIOHelper.PHRASE_DRUM_FILL:
-                                        if (gameMode == MoonChart.GameMode.Drums)
-                                            chart.Add(new SpecialPhrase(tick, length, SpecialPhrase.Type.ProDrums_Activation), false);
-                                        else
-                                            Debug.Assert(false, "Found drum fill flag on incompatible instrument.");
-                                        break;
-
-                                    case ChartIOHelper.PHRASE_TREMOLO_LANE:
-                                        if (gameMode == MoonChart.GameMode.Drums)
-                                            chart.Add(new SpecialPhrase(tick, length, SpecialPhrase.Type.TremoloLane), false);
-                                        else
-                                            Debug.Assert(false, "Found standard drum roll flag on incompatible instrument.");
-                                        break;
-
-                                    case ChartIOHelper.PHRASE_TRILL_LANE:
-                                        if (gameMode == MoonChart.GameMode.Drums)
-                                            chart.Add(new SpecialPhrase(tick, length, SpecialPhrase.Type.TrillLane), false);
-                                        else
-                                            Debug.Assert(false, "Found special drum roll flag on incompatible instrument.");
-                                        break;
-
-                                    default:
-                                        continue;
+                                    var noteEvent = new NoteEvent() { tick = tick, noteNumber = fret_type, length = length };
+                                    processParams.noteEvent = noteEvent;
+                                    processFn(processParams);
                                 }
 
                                 break;
@@ -601,7 +513,15 @@ namespace MoonscraperChartEditor.Song.IO
                                 // Advance to event
                                 stringStartIndex += stringLength;
                                 AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
+
                                 string eventName = line.Substring(stringStartIndex, stringLength);
+                                // Strip off brackets and any garbage outside of them
+                                var match = ChartIOHelper.TextEventRegex.Match(eventName);
+                                if (match.Success)
+                                {
+                                    eventName = match.Groups[1].Value;
+                                }
+
                                 chart.Add(new ChartEvent(tick, eventName), false);
                                 break;
                             }
@@ -630,17 +550,6 @@ namespace MoonscraperChartEditor.Song.IO
             }
         }
 
-        private static Dictionary<int, NoteEventProcessFn> GetNoteProcessDict(MoonChart.GameMode gameMode)
-        {
-            return gameMode switch
-            {
-                MoonChart.GameMode.Guitar => GuitarChartNoteNumberToProcessFnMap,
-                MoonChart.GameMode.GHLGuitar => GhlChartNoteNumberToProcessFnMap,
-                MoonChart.GameMode.Drums => DrumsChartNoteNumberToProcessFnMap,
-                _ => throw new NotImplementedException($"No process map for game mode {gameMode}!")
-            };
-        }
-
         private static void ProcessNoteOnEventAsNote(in NoteProcessParams noteProcessParams, int ingameFret, MoonNote.Flags defaultFlags = MoonNote.Flags.None)
         {
             var chart = noteProcessParams.chart;
@@ -651,6 +560,18 @@ namespace MoonscraperChartEditor.Song.IO
 
             var newMoonNote = new MoonNote(tick, ingameFret, sus, defaultFlags);
             chart.Add(newMoonNote, false);
+        }
+
+        private static void ProcessNoteOnEventAsSpecialPhrase(in NoteProcessParams noteProcessParams, SpecialPhrase.Type type)
+        {
+            var chart = noteProcessParams.chart;
+
+            var noteEvent = noteProcessParams.noteEvent;
+            uint tick = noteEvent.tick;
+            uint sus = noteEvent.length;
+
+            var newPhrase = new SpecialPhrase(tick, sus, type);
+            chart.Add(newPhrase, false);
         }
 
         private static void ProcessNoteOnEventAsChordFlag(in NoteProcessParams noteProcessParams, NoteFlagPriority flagData)

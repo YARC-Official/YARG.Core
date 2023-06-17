@@ -2,6 +2,7 @@
 // See LICENSE in project root for license information.
 
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 namespace MoonscraperChartEditor.Song.IO
 {
@@ -11,9 +12,15 @@ namespace MoonscraperChartEditor.Song.IO
         public const string SECTION_SYNC_TRACK = "[SyncTrack]";
         public const string SECTION_EVENTS = "[Events]";
 
+        // See MidIOHelper for regex details
+		public static readonly Regex TextEventRegex = MidIOHelper.TextEventRegex;
+		public static readonly Regex SectionEventRegex = MidIOHelper.SectionEventRegex;
+
         public const string LYRIC_EVENT_PREFIX = "lyric ";
         public const string EVENT_PHRASE_START = "phrase_start";
         public const string EVENT_PHRASE_END = "phrase_end";
+        public const string EVENT_SOLO_START = "solo";
+        public const string EVENT_SOLO_END = "soloend";
 
         public const int NOTE_OFFSET_PRO_DRUMS = 64;
         public const int NOTE_OFFSET_INSTRUMENT_PLUS = 32;
