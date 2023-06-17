@@ -10,6 +10,8 @@ namespace YARG.Core.Chart
 
         public DrumNoteType Type { get; }
 
+        public bool IsStarPowerActivator => (_drumFlags & DrumNoteFlags.StarPowerActivator) != 0;
+
         public DrumNote(FourLaneDrumPad pad, DrumNoteType noteType, DrumNoteFlags drumFlags,
             NoteFlags flags, double time, uint tick)
             : this((int)pad, noteType, drumFlags, flags, time, tick) 
@@ -67,5 +69,7 @@ namespace YARG.Core.Chart
     public enum DrumNoteFlags
     {
         None = 0,
+
+        StarPowerActivator = 1 << 0,
     }
 }
