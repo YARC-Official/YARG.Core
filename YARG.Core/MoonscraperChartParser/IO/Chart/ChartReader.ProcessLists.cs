@@ -11,6 +11,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
+using MoonscraperEngine;
 
 namespace MoonscraperChartEditor.Song.IO
 {
@@ -154,6 +155,22 @@ namespace MoonscraperChartEditor.Song.IO
             }},
         };
 
+        // Initial post-processing list
+        private static readonly List<NoteEventProcessFn> GuitarInitialPostProcessList = new()
+        {
+            ConvertSoloEvents,
+        };
+
+        private static readonly List<NoteEventProcessFn> DrumsInitialPostProcessList = new()
+        {
+            ConvertSoloEvents,
+        };
+
+        private static readonly List<NoteEventProcessFn> GhlGuitarInitialPostProcessList = new()
+        {
+            ConvertSoloEvents,
+        };
+
         private static Dictionary<int, NoteEventProcessFn> GetNoteProcessDict(MoonChart.GameMode gameMode)
         {
             return gameMode switch
@@ -174,6 +191,55 @@ namespace MoonscraperChartEditor.Song.IO
                 MoonChart.GameMode.Drums => DrumsChartSpecialPhraseNumberToProcessFnMap,
                 _ => throw new NotImplementedException($"No process map for game mode {gameMode}!")
             };
+        }
+
+        private static List<NoteEventProcessFn> GetInitialPostProcessList(MoonChart.GameMode gameMode)
+        {
+            return gameMode switch
+            {
+                MoonChart.GameMode.Guitar => GuitarInitialPostProcessList,
+                MoonChart.GameMode.GHLGuitar => GhlGuitarInitialPostProcessList,
+                MoonChart.GameMode.Drums => DrumsInitialPostProcessList,
+                _ => throw new NotImplementedException($"No process list for game mode {gameMode}!")
+            };
+        }
+
+        private static void ConvertSoloEvents(in NoteProcessParams noteProcessParams)
+        {
+            var chart = noteProcessParams.chart;
+
+            uint? currentStartTick = null;
+            foreach (var text in chart.events)
+            {
+                if (text.eventName == ChartIOHelper.EVENT_SOLO_START)
+                {
+                    // Remove text event unconditionally
+                    chart.Remove(text, false);
+                    if (currentStartTick != null)
+                    {
+                        Debug.WriteLine($"Encountered duplicate solo start event!");
+                        continue;
+                    }
+
+                    currentStartTick = text.tick;
+                }
+                else if (text.eventName == ChartIOHelper.EVENT_SOLO_END)
+                {
+                    // Remove text event unconditionally
+                    chart.Remove(text, false);
+                    if (currentStartTick == null)
+                    {
+                        Debug.WriteLine($"Encountered solo end with no solo start!");
+                        continue;
+                    }
+
+                    uint startTick = currentStartTick.Value;
+                    uint endTick = text.tick;
+                    chart.Add(new SpecialPhrase(startTick, endTick - startTick, SpecialPhrase.Type.Solo), false);
+                }
+            }
+
+            chart.UpdateCache();
         }
     }
 }

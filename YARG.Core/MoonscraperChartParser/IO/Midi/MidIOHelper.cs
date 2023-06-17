@@ -79,10 +79,6 @@ namespace MoonscraperChartEditor.Song.IO
         public const byte PRO_GUITAR_CHANNEL_HARMONIC = 5;
         public const byte PRO_GUITAR_CHANNEL_PINCH_HARMONIC = 6;
 
-        // Text events
-        public const string SOLO_EVENT_TEXT = "solo";
-        public const string SOLO_END_EVENT_TEXT = "soloend";
-
         public const string LYRIC_EVENT_PREFIX = ChartIOHelper.LYRIC_EVENT_PREFIX;
         public const string LYRICS_PHRASE_START_TEXT = ChartIOHelper.EVENT_PHRASE_START;
         public const string LYRICS_PHRASE_END_TEXT = ChartIOHelper.EVENT_PHRASE_END;

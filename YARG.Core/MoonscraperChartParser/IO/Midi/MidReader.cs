@@ -661,63 +661,6 @@ namespace MoonscraperChartEditor.Song.IO
             }
         }
 
-        private static void ProcessTextEventPairAsSpecialPhrase(in EventProcessParams eventProcessParams, string startText,
-            string endText, SpecialPhrase.Type type)
-        {
-            foreach (var difficulty in EnumX<MoonSong.Difficulty>.Values)
-            {
-                var song = eventProcessParams.song;
-                var instrument = eventProcessParams.instrument;
-                var chart = song.GetChart(instrument, difficulty);
-
-                // Convert start and end events into phrases
-                uint? currentStartTick = null;
-                for (int i = 0; i < chart.events.Count; ++i)
-                {
-                    var textEvent = chart.events[i];
-                    if (textEvent.eventName == startText)
-                    {
-                        // Remove text event
-                        chart.Remove(textEvent, false);
-
-                        uint startTick = textEvent.tick;
-                        // Only one start event can be active at a time
-                        if (currentStartTick != null)
-                        {
-                            Debug.WriteLine($"A previous start event at tick {currentStartTick.Value} is interrupted by another start event at tick {startTick}!");
-                            continue;
-                        }
-
-                        currentStartTick = startTick;
-                    }
-                    else if (textEvent.eventName == endText)
-                    {
-                        // Remove text event
-                        chart.Remove(textEvent, false);
-
-                        uint endTick = textEvent.tick;
-                        // Events must pair up
-                        if (currentStartTick == null)
-                        {
-                            Debug.WriteLine($"End event at tick {endTick} does not have a corresponding start event!");
-                            continue;
-                        }
-
-                        uint startTick = currentStartTick.GetValueOrDefault();
-                        // Current start must occur before the current end
-                        if (currentStartTick > textEvent.tick)
-                        {
-                            Debug.WriteLine($"Start event at tick {endTick} occurs before end event at {endTick}!");
-                            continue;
-                        }
-
-                        chart.Add(new SpecialPhrase(startTick, endTick - startTick, type), false);
-                        currentStartTick = null;
-                    }
-                }
-            }
-        }
-
         private static void ProcessSysExEventPairAsForcedType(in EventProcessParams eventProcessParams, MoonNote.MoonNoteType noteType)
         {
             var timedEvent = eventProcessParams.timedEvent;

@@ -393,7 +393,7 @@ namespace MoonscraperChartEditor.Song.IO
             var gameMode = chart.gameMode;
 
             var flags = new List<NoteFlag>();
-            var postNotesAddedProcessList = new List<NoteEventProcessFn>();
+            var postNotesAddedProcessList = GetInitialPostProcessList(gameMode);
 
             var processParams = new NoteProcessParams()
             {

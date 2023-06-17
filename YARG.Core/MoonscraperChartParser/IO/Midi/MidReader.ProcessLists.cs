@@ -170,19 +170,22 @@ namespace MoonscraperChartEditor.Song.IO
             if (!LegacyStarPowerFixupWhitelist.Contains(processParams.instrument))
                 return;
 
-            // Only need to check one difficulty since Star Power gets copied to all difficulties
+            // Only need to check one difficulty since phrases get copied to all difficulties
             var chart = processParams.song.GetChart(processParams.instrument, MoonSong.Difficulty.Expert);
             if (chart.specialPhrases.Any((sp) => sp.type == SpecialPhrase.Type.Starpower)
-                || !chart.events.Any((text) => text.eventName is MidIOHelper.SOLO_EVENT_TEXT or MidIOHelper.SOLO_END_EVENT_TEXT))
+                || !chart.specialPhrases.Any((sp) => sp.type == SpecialPhrase.Type.Solo))
             {
                 return;
             }
 
-            ProcessTextEventPairAsSpecialPhrase(processParams, MidIOHelper.SOLO_EVENT_TEXT, MidIOHelper.SOLO_END_EVENT_TEXT, SpecialPhrase.Type.Starpower);
             foreach (var diff in EnumX<MoonSong.Difficulty>.Values)
             {
                 chart = processParams.song.GetChart(processParams.instrument, diff);
-                chart.UpdateCache();
+                foreach (var phrase in chart.specialPhrases)
+                {
+                    if (phrase.type == SpecialPhrase.Type.Solo)
+                        phrase.type = SpecialPhrase.Type.Starpower;
+                }
             }
         }
 
@@ -281,7 +284,7 @@ namespace MoonscraperChartEditor.Song.IO
                     ProcessNoteOnEventAsForcedType(eventProcessParams, MoonNote.MoonNoteType.Tap);
                 }},
                 { MidIOHelper.SOLO_NOTE, (in EventProcessParams eventProcessParams) => {
-                    ProcessNoteOnEventAsEvent(eventProcessParams, MidIOHelper.SOLO_EVENT_TEXT, MidIOHelper.SOLO_END_EVENT_TEXT, tickEndOffset: SOLO_END_CORRECTION_OFFSET);
+                    ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, SpecialPhrase.Type.Solo);
                 }},
 
                 { MidIOHelper.VERSUS_PHRASE_PLAYER_1, (in EventProcessParams eventProcessParams) => {
@@ -359,7 +362,7 @@ namespace MoonscraperChartEditor.Song.IO
                     ProcessNoteOnEventAsForcedType(eventProcessParams, MoonNote.MoonNoteType.Tap);
                 }},
                 { MidIOHelper.SOLO_NOTE, (in EventProcessParams eventProcessParams) => {
-                    ProcessNoteOnEventAsEvent(eventProcessParams, MidIOHelper.SOLO_EVENT_TEXT, MidIOHelper.SOLO_END_EVENT_TEXT, tickEndOffset: SOLO_END_CORRECTION_OFFSET);
+                    ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, SpecialPhrase.Type.Solo);
                 }},
             };
 
@@ -419,7 +422,7 @@ namespace MoonscraperChartEditor.Song.IO
                     ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, SpecialPhrase.Type.Starpower);
                 }},
                 { MidIOHelper.SOLO_NOTE_PRO_GUITAR, (in EventProcessParams eventProcessParams) => {
-                    ProcessNoteOnEventAsEvent(eventProcessParams, MidIOHelper.SOLO_EVENT_TEXT, MidIOHelper.SOLO_END_EVENT_TEXT, tickEndOffset: SOLO_END_CORRECTION_OFFSET);
+                    ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, SpecialPhrase.Type.Solo);
                 }},
 
                 { MidIOHelper.TREMOLO_LANE_NOTE, (in EventProcessParams eventProcessParams) => {
@@ -474,7 +477,7 @@ namespace MoonscraperChartEditor.Song.IO
                     ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, SpecialPhrase.Type.Starpower);
                 }},
                 { MidIOHelper.SOLO_NOTE, (in EventProcessParams eventProcessParams) => {
-                    ProcessNoteOnEventAsEvent(eventProcessParams, MidIOHelper.SOLO_EVENT_TEXT, MidIOHelper.SOLO_END_EVENT_TEXT, tickEndOffset: SOLO_END_CORRECTION_OFFSET);
+                    ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, SpecialPhrase.Type.Solo);
                 }},
 
                 { MidIOHelper.DRUM_FILL_NOTE_0, (in EventProcessParams eventProcessParams) => {

@@ -11,6 +11,7 @@ namespace MoonscraperChartEditor.Song
         public enum Type
         {
             Starpower,
+            Solo,
 
             Versus_Player1,
             Versus_Player2,
