@@ -5,7 +5,7 @@ namespace YARG.Core.Chart
 {
     public abstract class Note : ChartEvent
     {
-        private readonly List<Note> _childNotes;
+        private readonly List<Note> _childNotes = new();
         private readonly NoteFlags  _flags;
 
         public Note previousNote;
