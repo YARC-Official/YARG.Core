@@ -7,78 +7,29 @@ namespace YARG.Core.Chart
     {
         private readonly GuitarNoteFlags _guitarFlags;
 
-        private bool _isForced;
-
-        private bool _isStrum;
-        private bool _isHopo;
-        private bool _isTap;
-
         public int Fret     { get; }
         public int NoteMask { get; private set; }
+
+        public GuitarNoteType Type { get; }
 
         public bool IsSustain { get; }
 
         public bool IsExtendedSustain => (_guitarFlags & GuitarNoteFlags.ExtendedSustain) != 0;
         public bool IsDisjoint        => (_guitarFlags & GuitarNoteFlags.Disjoint) != 0;
 
-        public bool IsStrum
-        {
-            get => _isStrum;
-            set
-            {
-                if (value)
-                {
-                    IsHopo = false;
-                    IsTap = false;
-                }
-
-                _isStrum = true;
-            }
-        }
-
-        public bool IsHopo
-        {
-            get => _isHopo;
-            set
-            {
-                if (value)
-                {
-                    IsStrum = false;
-                    IsTap = false;
-                }
-
-                _isHopo = true;
-            }
-        }
-
-        public bool IsTap
-        {
-            get => _isTap;
-            set
-            {
-                if (value)
-                {
-                    IsStrum = false;
-                    IsHopo = false;
-                }
-
-                _isTap = true;
-            }
-        }
-
-        public GuitarNote(FiveFretGuitarFret fret, MoonNote.MoonNoteType moonNoteType, GuitarNoteFlags guitarFlags,
+        public GuitarNote(FiveFretGuitarFret fret, GuitarNoteType noteType, GuitarNoteFlags guitarFlags,
             NoteFlags flags, double time, double timeLength, uint tick, uint tickLength)
-            : this((int)fret, moonNoteType, guitarFlags, flags, time, timeLength, tick, tickLength) 
+            : this((int)fret, noteType, guitarFlags, flags, time, timeLength, tick, tickLength) 
         {
         }
 
-        public GuitarNote(SixFretGuitarFret fret, MoonNote.MoonNoteType moonNoteType, GuitarNoteFlags guitarFlags,
+        public GuitarNote(SixFretGuitarFret fret, GuitarNoteType noteType, GuitarNoteFlags guitarFlags,
             NoteFlags flags, double time, double timeLength, uint tick, uint tickLength)
-            : this((int)fret, moonNoteType, guitarFlags, flags, time, timeLength, tick, tickLength) 
+            : this((int)fret, noteType, guitarFlags, flags, time, timeLength, tick, tickLength) 
         {
         }
 
-        public GuitarNote(int fret, MoonNote.MoonNoteType moonNoteType, GuitarNoteFlags guitarFlags, NoteFlags flags,
+        public GuitarNote(int fret, GuitarNoteType noteType, GuitarNoteFlags guitarFlags, NoteFlags flags,
             double time, double timeLength, uint tick, uint tickLength)
             : base(flags, time, timeLength, tick, tickLength) 
         {
@@ -86,9 +37,7 @@ namespace YARG.Core.Chart
 
             IsSustain = tickLength > 0;
 
-            _isStrum = moonNoteType == MoonNote.MoonNoteType.Strum;
-            _isTap = moonNoteType == MoonNote.MoonNoteType.Tap;
-            _isHopo = moonNoteType == MoonNote.MoonNoteType.Hopo && !_isTap;
+            Type = noteType;
 
             _guitarFlags = guitarFlags;
 
@@ -125,6 +74,13 @@ namespace YARG.Core.Chart
         White1,
         White2,
         White3,
+    }
+
+    public enum GuitarNoteType
+    {
+        Strum,
+        Hopo,
+        Tap
     }
 
     [Flags]

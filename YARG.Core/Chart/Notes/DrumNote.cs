@@ -8,25 +8,25 @@ namespace YARG.Core.Chart
 
         public int Pad { get; }
 
-        public bool IsGhost  => (_drumFlags & DrumNoteFlags.DrumGhost) != 0;
-        public bool IsAccent => (_drumFlags & DrumNoteFlags.DrumAccent) != 0;
+        public DrumNoteType Type { get; }
 
-        public DrumNote(FourLaneDrumPad pad, DrumNoteFlags drumFlags,
+        public DrumNote(FourLaneDrumPad pad, DrumNoteType noteType, DrumNoteFlags drumFlags,
             NoteFlags flags, double time, uint tick)
-            : this((int)pad, drumFlags, flags, time, tick) 
+            : this((int)pad, noteType, drumFlags, flags, time, tick) 
         {
         }
 
-        public DrumNote(FiveLaneDrumPad pad, DrumNoteFlags drumFlags,
+        public DrumNote(FiveLaneDrumPad pad, DrumNoteType noteType, DrumNoteFlags drumFlags,
             NoteFlags flags, double time, uint tick)
-            : this((int)pad, drumFlags, flags, time, tick) 
+            : this((int)pad, noteType, drumFlags, flags, time, tick) 
         {
         }
 
-        public DrumNote(int pad, DrumNoteFlags drumFlags, NoteFlags flags, double time, uint tick)
+        public DrumNote(int pad, DrumNoteType noteType, DrumNoteFlags drumFlags, NoteFlags flags, double time, uint tick)
             : base(flags, time, 0, tick, 0) 
         {
             Pad = pad;
+            Type = noteType;
             _drumFlags = drumFlags;
         }
     }
@@ -56,12 +56,16 @@ namespace YARG.Core.Chart
         Green,
     }
 
+    public enum DrumNoteType
+    {
+        Neutral,
+        Ghost,
+        Accent,
+    }
+
     [Flags]
     public enum DrumNoteFlags
     {
         None = 0,
-
-        DrumGhost  = 1 << 1,
-        DrumAccent = 1 << 2,
     }
 }
