@@ -8,7 +8,7 @@ namespace YARG.Core.Chart
 
         public int Pad { get; }
 
-        public DrumNoteType Type { get; }
+        public DrumNoteType Type { get; set; }
 
         public bool IsNeutral => Type == DrumNoteType.Neutral;
         public bool IsAccent  => Type == DrumNoteType.Accent;

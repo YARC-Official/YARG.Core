@@ -10,7 +10,7 @@ namespace YARG.Core.Chart
         public int Fret     { get; }
         public int NoteMask { get; private set; }
 
-        public GuitarNoteType Type { get; }
+        public GuitarNoteType Type { get; set; }
 
         public bool IsStrum => Type == GuitarNoteType.Strum;
         public bool IsHopo  => Type == GuitarNoteType.Hopo;

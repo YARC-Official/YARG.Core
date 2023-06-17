@@ -9,7 +9,7 @@ namespace YARG.Core.Chart
         public int String   { get; }
         public int Fret     { get; }
 
-        public ProGuitarNoteType Type { get; }
+        public ProGuitarNoteType Type { get; set; }
 
         public bool IsStrum => Type == ProGuitarNoteType.Strum;
         public bool IsHopo  => Type == ProGuitarNoteType.Hopo;
