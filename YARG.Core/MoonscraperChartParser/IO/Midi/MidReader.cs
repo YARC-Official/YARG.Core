@@ -219,8 +219,9 @@ namespace MoonscraperChartEditor.Song.IO
                         break;
 
                     case MidIOHelper.VOCALS_TRACK:
+                        // Parse lyrics to global track, and then parse as an instrument
                         ReadTextEventsIntoGlobalEventsAsLyrics(track, song);
-                        break;
+                        goto default;
 
                     default:
                         MoonSong.MoonInstrument instrument;
@@ -1016,14 +1017,21 @@ namespace MoonscraperChartEditor.Song.IO
                 }},
 
                 { MidIOHelper.PERCUSSION_NOTE, (in EventProcessParams eventProcessParams) => {
-                    ProcessNoteOnEventAsNote(eventProcessParams, MoonSong.Difficulty.Expert, 0, MoonNote.Flags.Vocals_Percussion);
+                    foreach (var difficulty in EnumX<MoonSong.Difficulty>.Values)
+                    {
+                        ProcessNoteOnEventAsNote(eventProcessParams, difficulty, 0, MoonNote.Flags.Vocals_Percussion);
+                    };
                 }},
             };
 
             for (int i = MidIOHelper.VOCALS_RANGE_START; i <= MidIOHelper.VOCALS_RANGE_END; i++)
             {
+                int rawNote = i; // Capture the note value
                 processFnDict.Add(i, (in EventProcessParams eventProcessParams) => {
-                    ProcessNoteOnEventAsNote(eventProcessParams, MoonSong.Difficulty.Expert, i);
+                    foreach (var difficulty in EnumX<MoonSong.Difficulty>.Values)
+                    {
+                        ProcessNoteOnEventAsNote(eventProcessParams, difficulty, rawNote);
+                    };
                 });
             }
 

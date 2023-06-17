@@ -37,6 +37,11 @@ namespace YARG.Core.UnitTests.Parsing
             { MoonInstrument.ProGuitar_22Fret, PRO_GUITAR_22_FRET_TRACK },
             { MoonInstrument.ProBass_17Fret,   PRO_BASS_17_FRET_TRACK },
             { MoonInstrument.ProBass_22Fret,   PRO_BASS_22_FRET_TRACK },
+
+            { MoonInstrument.Vocals,   VOCALS_TRACK },
+            { MoonInstrument.Harmony1, HARMONY_1_TRACK },
+            { MoonInstrument.Harmony2, HARMONY_2_TRACK },
+            { MoonInstrument.Harmony3, HARMONY_3_TRACK },
         };
 
 #pragma warning disable IDE0230 // Use UTF-8 string literal
@@ -132,12 +137,45 @@ namespace YARG.Core.UnitTests.Parsing
             { SpecialPhrase.Type.ProDrums_Activation, new[] { DRUM_FILL_NOTE_0, DRUM_FILL_NOTE_1, DRUM_FILL_NOTE_2, DRUM_FILL_NOTE_3, DRUM_FILL_NOTE_4 } },
         };
 
+        private static readonly Dictionary<int, int> VocalsNoteOffsetLookup = BuildVocalsNoteLookup();
+
+        private static Dictionary<int, int> BuildVocalsNoteLookup()
+        {
+            var lookup = new Dictionary<int, int>()
+            {
+                { 0,   PERCUSSION_NOTE},
+            };
+            
+            for (int i = VOCALS_RANGE_START; i <= VOCALS_RANGE_END; i++)
+            {
+                lookup.Add(i, i);
+            }
+
+            return lookup;
+        }
+
+        private static readonly Dictionary<Difficulty, int> VocalsDifficultyStartOffsetLookup = new()
+        {
+            { Difficulty.Expert, 0 },
+            { Difficulty.Hard,   0 },
+            { Difficulty.Medium, 0 },
+            { Difficulty.Easy,   0 },
+        };
+
+        private static readonly Dictionary<SpecialPhrase.Type, byte[]> VocalsSpecialPhraseLookup = new()
+        {
+            { SpecialPhrase.Type.Starpower,      new[] { STARPOWER_NOTE } },
+            { SpecialPhrase.Type.Versus_Player1, new[] { LYRICS_PHRASE_1 } },
+            { SpecialPhrase.Type.Versus_Player2, new[] { LYRICS_PHRASE_2 } },
+        };
+
         private static readonly Dictionary<GameMode, Dictionary<int, int>> InstrumentNoteOffsetLookup = new()
         {
             { GameMode.Guitar,    GuitarNoteOffsetLookup },
             { GameMode.Drums,     DrumsNoteOffsetLookup },
             { GameMode.GHLGuitar, GhlGuitarNoteOffsetLookup },
             { GameMode.ProGuitar, ProGuitarNoteOffsetLookup },
+            { GameMode.Vocals,    VocalsNoteOffsetLookup },
         };
 
         private static readonly Dictionary<GameMode, Dictionary<MoonNoteType, int>> InstrumentForceOffsetLookup = new()
@@ -146,6 +184,7 @@ namespace YARG.Core.UnitTests.Parsing
             { GameMode.Drums,     new() },
             { GameMode.GHLGuitar, GhlGuitarForceOffsetLookup },
             { GameMode.ProGuitar, ProGuitarForceOffsetLookup },
+            { GameMode.Vocals,     new() },
         };
 
         private static readonly Dictionary<GameMode, Dictionary<Flags, byte>> InstrumentChannelFlagLookup = new()
@@ -154,6 +193,7 @@ namespace YARG.Core.UnitTests.Parsing
             { GameMode.Drums,     new() },
             { GameMode.GHLGuitar, new() },
             { GameMode.ProGuitar, ProGuitarChannelFlagLookup },
+            { GameMode.Vocals,     new() },
         };
 
         private static readonly Dictionary<GameMode, Dictionary<Difficulty, int>> InstrumentDifficultyStartLookup = new()
@@ -162,6 +202,7 @@ namespace YARG.Core.UnitTests.Parsing
             { GameMode.Drums,     DRUMS_DIFF_START_LOOKUP },
             { GameMode.GHLGuitar, GHL_GUITAR_DIFF_START_LOOKUP },
             { GameMode.ProGuitar, PRO_GUITAR_DIFF_START_LOOKUP },
+            { GameMode.Vocals,    VocalsDifficultyStartOffsetLookup },
         };
 
         private static readonly Dictionary<GameMode, Dictionary<SpecialPhrase.Type, byte[]>> InstrumentSpecialPhraseLookup = new()
@@ -170,6 +211,7 @@ namespace YARG.Core.UnitTests.Parsing
             { GameMode.Drums,     DrumsSpecialPhraseLookup },
             { GameMode.GHLGuitar, GhlGuitarSpecialPhraseLookup },
             { GameMode.ProGuitar, ProGuitarSpecialPhraseLookup },
+            { GameMode.Vocals,    VocalsSpecialPhraseLookup },
         };
 #pragma warning restore IDE0230
 
@@ -216,6 +258,8 @@ namespace YARG.Core.UnitTests.Parsing
             var gameMode = MoonSong.InstumentToChartGameMode(instrument);
             var timedEvents = new MidiEventList();
 
+            bool singleDifficulty = gameMode is GameMode.Vocals;
+
             // Text event flags to enable extended features
             if (gameMode == GameMode.Drums)
                 timedEvents.Add((0, new TextEvent(CHART_DYNAMICS_TEXT_BRACKET)));
@@ -225,6 +269,9 @@ namespace YARG.Core.UnitTests.Parsing
             long lastNoteTick = 0;
             foreach (var difficulty in EnumX<Difficulty>.Values)
             {
+                if (singleDifficulty && difficulty != Difficulty.Expert)
+                    continue;
+
                 var chart = sourceSong.GetChart(instrument, difficulty);
                 foreach (var chartObj in chart.chartObjects)
                 {
@@ -295,6 +342,7 @@ namespace YARG.Core.UnitTests.Parsing
                 GameMode.GHLGuitar => (int)note.ghliveGuitarFret,
                 GameMode.ProGuitar => (int)note.proGuitarString,
                 GameMode.Drums => (int)note.drumPad,
+                GameMode.Vocals => note.vocalsPitch,
                 _ => note.rawNote
             };
 
@@ -319,6 +367,10 @@ namespace YARG.Core.UnitTests.Parsing
             // Pro Guitar channel flags
             if (!channelFlagLookup.TryGetValue(flags, out byte channel))
                 channel = 0;
+
+            // Vocals percussion note
+            if (gameMode is GameMode.Vocals && (flags & Flags.Vocals_Percussion) != 0)
+                noteNumber = PERCUSSION_NOTE;
 
             // Main note
             var midiNote = new TNoteEvent()
@@ -362,10 +414,13 @@ namespace YARG.Core.UnitTests.Parsing
             if (phrase.length < (SUSTAIN_CUTOFF_THRESHOLD))
                 phrase.length = 0;
 
+            // Get note number (ignore if not supported by the game mode)
+            if (!InstrumentSpecialPhraseLookup[gameMode].TryGetValue(phrase.type, out byte[]? notesToAdd))
+                return;
+
             // Write notes
             long startTick = phrase.tick;
             long endTick = startTick + Math.Max(phrase.length, 1);
-            byte[] notesToAdd = InstrumentSpecialPhraseLookup[gameMode][phrase.type];
             foreach (byte note in notesToAdd)
             {
                 events.Add((startTick, new NoteOnEvent() { NoteNumber = S(note), Velocity = S(VELOCITY) }));
@@ -382,7 +437,25 @@ namespace YARG.Core.UnitTests.Parsing
                 else if (ev1.absoluteTick < ev2.absoluteTick)
                     return -1;
 
-                return 0;
+                // Determine priority for certain types of events
+                return (ev1.midiEvent, ev2.midiEvent) switch {
+                    // Same-type note events should be sorted by note number
+                    // Not *entirely* necessary, but without this then
+                    // sorting is inconsistent and will throw an exception
+                    (NoteOnEvent on1, NoteOnEvent on2) =>
+                        on1.NoteNumber > on2.NoteNumber ? 1
+                        : on1.NoteNumber < on2.NoteNumber ? -1
+                        : 0,
+                    (NoteOffEvent off1, NoteOffEvent off2) =>
+                        off1.NoteNumber > off2.NoteNumber ? 1
+                        : off1.NoteNumber < off2.NoteNumber ? -1
+                        : 0,
+                    // Note on events should come last, and note offs first
+                    (NoteOnEvent, _) => 1,
+                    (NoteOffEvent, _) => -1,
+                    // The ordering of other events doesn't matter
+                    _ => 0
+                };
             });
 
             // Calculate delta time
@@ -413,10 +486,6 @@ namespace YARG.Core.UnitTests.Parsing
 
             foreach (var instrument in EnumX<MoonInstrument>.Values)
             {
-                var gameMode = MoonSong.InstumentToChartGameMode(instrument);
-                if (!InstrumentNoteOffsetLookup.ContainsKey(gameMode))
-                    continue;
-
                 var chunk = GenerateTrackChunk(sourceSong, instrument);
                 midi.Chunks.Add(chunk);
             }
