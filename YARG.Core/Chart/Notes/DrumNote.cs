@@ -1,18 +1,33 @@
+﻿using System;
+
 namespace YARG.Core.Chart
 {
     public class DrumNote : Note 
     {
         public int Pad { get; }
 
-        public bool IsCymbal => (_flags & NoteFlags.Cymbal) != 0;
+        private readonly DrumNoteFlags _drumFlags;
 
-        public bool IsGhost  => (_flags & NoteFlags.DrumGhost) != 0;
-        public bool IsAccent => (_flags & NoteFlags.DrumAccent) != 0;
+        public bool IsCymbal => (_drumFlags & DrumNoteFlags.Cymbal) != 0;
 
-        public DrumNote(int pad, NoteFlags flags, double time, uint tick)
+        public bool IsGhost  => (_drumFlags & DrumNoteFlags.DrumGhost) != 0;
+        public bool IsAccent => (_drumFlags & DrumNoteFlags.DrumAccent) != 0;
+
+        public DrumNote(int pad, DrumNoteFlags drumFlags, NoteFlags flags, double time, uint tick)
             : base(flags, time, 0, tick, 0) 
         {
             Pad = pad;
+            _drumFlags = drumFlags;
         }
+    }
+
+    [Flags]
+    public enum DrumNoteFlags
+    {
+        None = 0,
+
+        Cymbal     = 1 << 0,
+        DrumGhost  = 1 << 1,
+        DrumAccent = 1 << 2,
     }
 }

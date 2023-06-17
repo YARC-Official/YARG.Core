@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace YARG.Core.Chart
@@ -7,13 +8,16 @@ namespace YARG.Core.Chart
         private readonly List<PitchTimePair> _pitchesOverTime;
         public IReadOnlyList<PitchTimePair> PitchesOverTime => _pitchesOverTime;
 
-        public bool IsNonPitched => (_flags & NoteFlags.VocalNonPitched) != 0;
+        private readonly VocalNoteFlags _vocalFlags;
 
-        public VocalNote(List<PitchTimePair> pitchesOverTime, NoteFlags flags, double time, double timeLength, uint tick,
-            uint tickLength)
+        public bool IsNonPitched => (_vocalFlags & VocalNoteFlags.NonPitched) != 0;
+
+        public VocalNote(List<PitchTimePair> pitchesOverTime, VocalNoteFlags vocalFlags, NoteFlags flags, double time,
+            double timeLength, uint tick, uint tickLength)
             : base(flags, time, timeLength, tick, tickLength)
         {
             _pitchesOverTime = pitchesOverTime;
+            _vocalFlags = vocalFlags;
         }
 
         public float PitchAtNormalizedTime(float normalizedTime)
@@ -71,5 +75,13 @@ namespace YARG.Core.Chart
             NormalizedTime = normalizedTime;
             Pitch = pitch;
         }
+    }
+
+    [Flags]
+    public enum VocalNoteFlags
+    {
+        None = 0,
+
+        NonPitched = 1 << 0,
     }
 }

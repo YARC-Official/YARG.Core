@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace YARG.Core.Chart
@@ -11,11 +11,16 @@ namespace YARG.Core.Chart
         private readonly List<Note>          _childNotes;
         public           IReadOnlyList<Note> ChildNotes => _childNotes;
 		
-        protected NoteFlags _flags;
+        private readonly NoteFlags _flags;
+
+        public bool IsChord => _childNotes.Count > 0;
 		
-        public bool IsStarPowerStart => (_flags & NoteFlags.StarPowerStart) != 0;
         public bool IsStarPower      => (_flags & NoteFlags.StarPower) != 0;
+        public bool IsStarPowerStart => (_flags & NoteFlags.StarPowerStart) != 0;
         public bool IsStarPowerEnd   => (_flags & NoteFlags.StarPowerEnd) != 0;
+		
+        public bool IsSoloStart => (_flags & NoteFlags.SoloStart) != 0;
+        public bool IsSoloEnd   => (_flags & NoteFlags.SoloEnd) != 0;
         
         public bool WasHit { get; private set; }
         public bool WasMissed { get; private set; }
@@ -60,18 +65,13 @@ namespace YARG.Core.Chart
     [Flags]
     public enum NoteFlags 
     {
-        None            = 0,
-        Chord           = 1,
-        ExtendedSustain = 2,
-        Disjoint        = 4,
-        StarPowerStart  = 8,
-        StarPower       = 16,
-        StarPowerEnd    = 32,
-        SoloStart       = 64,
-        SoloEnd         = 128,
-        Cymbal          = 256,
-        DrumGhost       = 512,
-        DrumAccent      = 1024,
-        VocalNonPitched = 2048,
+        None = 0,
+
+        StarPower      = 1 << 0,
+        StarPowerStart = 1 << 1,
+        StarPowerEnd   = 1 << 2,
+
+        SoloStart = 1 << 3,
+        SoloEnd   = 1 << 4,
     }
 }
