@@ -104,6 +104,56 @@ namespace MoonscraperChartEditor.Song.IO
             { 6, (in NoteProcessParams noteProcessParams) => { ProcessNoteOnEventAsChordFlag(noteProcessParams, NoteFlagPriority.Tap); }},
         };
 
+        // These dictionaries map the number of a special phrase event to a specific function of how to process them
+        // Not all tracks support the same phrases, so this is done for flexibility
+        private static readonly Dictionary<int, NoteEventProcessFn> GuitarChartSpecialPhraseNumberToProcessFnMap = new()
+        {
+            { ChartIOHelper.PHRASE_VERSUS_PLAYER_1, (in NoteProcessParams noteProcessParams) => {
+                ProcessNoteOnEventAsSpecialPhrase(noteProcessParams, SpecialPhrase.Type.Versus_Player1);
+            }},
+            { ChartIOHelper.PHRASE_VERSUS_PLAYER_2, (in NoteProcessParams noteProcessParams) => {
+                ProcessNoteOnEventAsSpecialPhrase(noteProcessParams, SpecialPhrase.Type.Versus_Player2);
+            }},
+            { ChartIOHelper.PHRASE_STARPOWER, (in NoteProcessParams noteProcessParams) => {
+                ProcessNoteOnEventAsSpecialPhrase(noteProcessParams, SpecialPhrase.Type.Starpower);
+            }},
+        };
+
+        private static readonly Dictionary<int, NoteEventProcessFn> DrumsChartSpecialPhraseNumberToProcessFnMap = new()
+        {
+            { ChartIOHelper.PHRASE_VERSUS_PLAYER_1, (in NoteProcessParams noteProcessParams) => {
+                ProcessNoteOnEventAsSpecialPhrase(noteProcessParams, SpecialPhrase.Type.Versus_Player1);
+            }},
+            { ChartIOHelper.PHRASE_VERSUS_PLAYER_2, (in NoteProcessParams noteProcessParams) => {
+                ProcessNoteOnEventAsSpecialPhrase(noteProcessParams, SpecialPhrase.Type.Versus_Player2);
+            }},
+            { ChartIOHelper.PHRASE_STARPOWER, (in NoteProcessParams noteProcessParams) => {
+                ProcessNoteOnEventAsSpecialPhrase(noteProcessParams, SpecialPhrase.Type.Starpower);
+            }},
+            { ChartIOHelper.PHRASE_DRUM_FILL, (in NoteProcessParams noteProcessParams) => {
+                ProcessNoteOnEventAsSpecialPhrase(noteProcessParams, SpecialPhrase.Type.ProDrums_Activation);
+            }},
+            { ChartIOHelper.PHRASE_TREMOLO_LANE, (in NoteProcessParams noteProcessParams) => {
+                ProcessNoteOnEventAsSpecialPhrase(noteProcessParams, SpecialPhrase.Type.TremoloLane);
+            }},
+            { ChartIOHelper.PHRASE_TRILL_LANE, (in NoteProcessParams noteProcessParams) => {
+                ProcessNoteOnEventAsSpecialPhrase(noteProcessParams, SpecialPhrase.Type.TrillLane);
+            }},
+        };
+
+        private static readonly Dictionary<int, NoteEventProcessFn> GhlChartSpecialPhraseNumberToProcessFnMap = new()
+        {
+            { ChartIOHelper.PHRASE_VERSUS_PLAYER_1, (in NoteProcessParams noteProcessParams) => {
+                ProcessNoteOnEventAsSpecialPhrase(noteProcessParams, SpecialPhrase.Type.Versus_Player1);
+            }},
+            { ChartIOHelper.PHRASE_VERSUS_PLAYER_2, (in NoteProcessParams noteProcessParams) => {
+                ProcessNoteOnEventAsSpecialPhrase(noteProcessParams, SpecialPhrase.Type.Versus_Player2);
+            }},
+            { ChartIOHelper.PHRASE_STARPOWER, (in NoteProcessParams noteProcessParams) => {
+                ProcessNoteOnEventAsSpecialPhrase(noteProcessParams, SpecialPhrase.Type.Starpower);
+            }},
+        };
+
         private static Dictionary<int, NoteEventProcessFn> GetNoteProcessDict(MoonChart.GameMode gameMode)
         {
             return gameMode switch
@@ -111,6 +161,17 @@ namespace MoonscraperChartEditor.Song.IO
                 MoonChart.GameMode.Guitar => GuitarChartNoteNumberToProcessFnMap,
                 MoonChart.GameMode.GHLGuitar => GhlChartNoteNumberToProcessFnMap,
                 MoonChart.GameMode.Drums => DrumsChartNoteNumberToProcessFnMap,
+                _ => throw new NotImplementedException($"No process map for game mode {gameMode}!")
+            };
+        }
+
+        private static Dictionary<int, NoteEventProcessFn> GetSpecialPhraseProcessDict(MoonChart.GameMode gameMode)
+        {
+            return gameMode switch
+            {
+                MoonChart.GameMode.Guitar => GuitarChartSpecialPhraseNumberToProcessFnMap,
+                MoonChart.GameMode.GHLGuitar => GhlChartSpecialPhraseNumberToProcessFnMap,
+                MoonChart.GameMode.Drums => DrumsChartSpecialPhraseNumberToProcessFnMap,
                 _ => throw new NotImplementedException($"No process map for game mode {gameMode}!")
             };
         }

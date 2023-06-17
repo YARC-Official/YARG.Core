@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2020 Alexander Ong
+﻿// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
 // Chart file format specifications- https://docs.google.com/document/d/1v2v0U-9HQ5qHeccpExDOLJ5CMPZZ3QytPmAG5WF0Kzs/edit?usp=sharing
@@ -404,6 +404,7 @@ namespace MoonscraperChartEditor.Song.IO
             chart.SetCapacity(data.Count);
 
             var noteProcessDict = GetNoteProcessDict(gameMode);
+            var specialPhraseProcessDict = GetSpecialPhraseProcessDict(gameMode);
 
             try
             {
@@ -466,43 +467,11 @@ namespace MoonscraperChartEditor.Song.IO
 
                                 uint length = (uint)FastStringToIntParse(line, stringStartIndex, stringLength);
 
-                                switch (fret_type)
+                                if (specialPhraseProcessDict.TryGetValue(fret_type, out var processFn))
                                 {
-                                    case ChartIOHelper.PHRASE_VERSUS_PLAYER_1:
-                                        chart.Add(new SpecialPhrase(tick, length, SpecialPhrase.Type.Versus_Player1), false);
-                                        break;
-
-                                    case ChartIOHelper.PHRASE_VERSUS_PLAYER_2:
-                                        chart.Add(new SpecialPhrase(tick, length, SpecialPhrase.Type.Versus_Player2), false);
-                                        break;
-
-                                    case ChartIOHelper.PHRASE_STARPOWER:
-                                        chart.Add(new SpecialPhrase(tick, length, SpecialPhrase.Type.Starpower), false);
-                                        break;
-
-                                    case ChartIOHelper.PHRASE_DRUM_FILL:
-                                        if (gameMode == MoonChart.GameMode.Drums)
-                                            chart.Add(new SpecialPhrase(tick, length, SpecialPhrase.Type.ProDrums_Activation), false);
-                                        else
-                                            Debug.Assert(false, "Found drum fill flag on incompatible instrument.");
-                                        break;
-
-                                    case ChartIOHelper.PHRASE_TREMOLO_LANE:
-                                        if (gameMode == MoonChart.GameMode.Drums)
-                                            chart.Add(new SpecialPhrase(tick, length, SpecialPhrase.Type.TremoloLane), false);
-                                        else
-                                            Debug.Assert(false, "Found standard drum roll flag on incompatible instrument.");
-                                        break;
-
-                                    case ChartIOHelper.PHRASE_TRILL_LANE:
-                                        if (gameMode == MoonChart.GameMode.Drums)
-                                            chart.Add(new SpecialPhrase(tick, length, SpecialPhrase.Type.TrillLane), false);
-                                        else
-                                            Debug.Assert(false, "Found special drum roll flag on incompatible instrument.");
-                                        break;
-
-                                    default:
-                                        continue;
+                                    var noteEvent = new NoteEvent() { tick = tick, noteNumber = fret_type, length = length };
+                                    processParams.noteEvent = noteEvent;
+                                    processFn(processParams);
                                 }
 
                                 break;
@@ -552,6 +521,18 @@ namespace MoonscraperChartEditor.Song.IO
 
             var newMoonNote = new MoonNote(tick, ingameFret, sus, defaultFlags);
             chart.Add(newMoonNote, false);
+        }
+
+        private static void ProcessNoteOnEventAsSpecialPhrase(in NoteProcessParams noteProcessParams, SpecialPhrase.Type type)
+        {
+            var chart = noteProcessParams.chart;
+
+            var noteEvent = noteProcessParams.noteEvent;
+            uint tick = noteEvent.tick;
+            uint sus = noteEvent.length;
+
+            var newPhrase = new SpecialPhrase(tick, sus, type);
+            chart.Add(newPhrase, false);
         }
 
         private static void ProcessNoteOnEventAsChordFlag(in NoteProcessParams noteProcessParams, NoteFlagPriority flagData)
