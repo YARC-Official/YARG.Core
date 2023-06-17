@@ -266,9 +266,9 @@ namespace YARG.Core.UnitTests.Parsing
 
             // Text event flags to enable extended features
             if (gameMode == GameMode.Drums)
-                timedEvents.Add((0, new TextEvent(CHART_DYNAMICS_TEXT_BRACKET)));
+                timedEvents.Add((0, new TextEvent($"[{CHART_DYNAMICS_TEXT}]")));
             else if (gameMode == GameMode.Guitar)
-                timedEvents.Add((0, new TextEvent(ENHANCED_OPENS_TEXT_BRACKET)));
+                timedEvents.Add((0, new TextEvent($"[{ENHANCED_OPENS_TEXT}]")));
 
             long lastNoteTick = 0;
             foreach (var difficulty in EnumX<Difficulty>.Values)

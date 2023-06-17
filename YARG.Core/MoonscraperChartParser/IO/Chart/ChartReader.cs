@@ -482,7 +482,15 @@ namespace MoonscraperChartEditor.Song.IO
                                 // Advance to event
                                 stringStartIndex += stringLength;
                                 AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
+
                                 string eventName = line.Substring(stringStartIndex, stringLength);
+                                // Strip off brackets and any garbage outside of them
+                                var match = ChartIOHelper.TextEventRegex.Match(eventName);
+                                if (match.Success)
+                                {
+                                    eventName = match.Groups[1].Value;
+                                }
+
                                 chart.Add(new ChartEvent(tick, eventName), false);
                                 break;
                             }

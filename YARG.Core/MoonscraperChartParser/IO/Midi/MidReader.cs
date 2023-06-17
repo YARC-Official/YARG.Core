@@ -168,9 +168,6 @@ namespace MoonscraperChartEditor.Song.IO
 
         private static void ReadSongGlobalEvents(TrackChunk track, MoonSong song)
         {
-            const string rb2SectionPrefix = "[" + MidIOHelper.SECTION_PREFIX_RB2;
-            const string rb3SectionPrefix = "[" + MidIOHelper.SECTION_PREFIX_RB3;
-
             if (track.Events.Count < 1)
                 return;
 
@@ -182,35 +179,26 @@ namespace MoonscraperChartEditor.Song.IO
 
                 if (trackEvent is BaseTextEvent text)
                 {
-                    if (text.Text.Contains(rb2SectionPrefix))
+                    string eventText = text.Text;
+                    // Strip off brackets and any garbage outside of them
+                    var bracketMatch = MidIOHelper.TextEventRegex.Match(eventText);
+                    if (bracketMatch.Success)
                     {
-                        song.Add(new Section(text.Text[9..^10], (uint)absoluteTime), false);
+                        eventText = bracketMatch.Groups[1].Value;
                     }
-                    else if (text.Text.Contains(rb3SectionPrefix) && text.Text.Length > 1)
-                    {
-                        string sectionText = string.Empty;
-                        char lastChar = text.Text[^1];
-                        if (lastChar == ']')
-                        {
-                            sectionText = text.Text[5..^1];
-                        }
-                        else if (lastChar == '"')
-                        {
-                            // Is in the format [prc_intro] "Intro". Strip for just the quoted section
-                            int startIndex = text.Text.IndexOf('"') + 1;
-                            sectionText = text.Text.Substring(startIndex, text.Text.Length - (startIndex + 1));
-                        }
-                        else
-                        {
-                            Debug.WriteLine("Found section name in an unknown format: " + text.Text);
-                        }
 
-                        song.Add(new Section(sectionText, (uint)absoluteTime), false);
-                    }
-                    else
+                    // Check for section events
+                    var sectionMatch = MidIOHelper.SectionEventRegex.Match(eventText);
+                    if (sectionMatch.Success)
                     {
-                        song.Add(new Event(text.Text.Trim(new char[] { '[', ']' }), (uint)absoluteTime), false);
+                        // This is a section, use the text grouped by the regex
+                        string sectionText = sectionMatch.Groups[1].Value;
+                        song.Add(new Section(sectionText, (uint)absoluteTime), false);
+                        continue;
                     }
+
+                    // Add the event as-is
+                    song.Add(new Event(eventText, (uint)absoluteTime), false);
                 }
             }
 
@@ -228,13 +216,12 @@ namespace MoonscraperChartEditor.Song.IO
                 var trackEvent = track.Events[i];
                 absoluteTime += trackEvent.DeltaTime;
 
-                if (trackEvent is LyricEvent lyric && lyric.Text.Length > 0)
+                if (trackEvent is BaseTextEvent text && !text.Text.Contains('['))
                 {
-                    string lyricEvent = MidIOHelper.LYRIC_EVENT_PREFIX + lyric.Text;
+                    string lyricEvent = MidIOHelper.LYRIC_EVENT_PREFIX + text.Text;
                     song.Add(new Event(lyricEvent, (uint)absoluteTime), false);
                 }
-
-                if (trackEvent is NoteEvent note && (byte)note.NoteNumber is MidIOHelper.LYRICS_PHRASE_1 or MidIOHelper.LYRICS_PHRASE_2)
+                else if (trackEvent is NoteEvent note && (byte)note.NoteNumber is MidIOHelper.LYRICS_PHRASE_1 or MidIOHelper.LYRICS_PHRASE_2)
                 {
                     if (note.EventType == MidiEventType.NoteOn)
                         song.Add(new Event(MidIOHelper.LYRICS_PHRASE_START_TEXT, (uint)absoluteTime), false);
@@ -346,9 +333,15 @@ namespace MoonscraperChartEditor.Song.IO
         private static void ProcessTextEvent(ref EventProcessParams processParams, BaseTextEvent text, long absoluteTick)
         {
             uint tick = (uint)absoluteTick;
-            string eventName = text.Text;
 
-            var chartEvent = new ChartEvent(tick, eventName);
+            string eventName = text.Text;
+            // Strip off brackets and any garbage outside of them
+            var bracketMatch = MidIOHelper.TextEventRegex.Match(eventName);
+            if (bracketMatch.Success)
+            {
+                eventName = bracketMatch.Groups[1].Value;
+            }
+
             if (processParams.textProcessMap.TryGetValue(eventName, out var processFn))
             {
                 // This text event affects parsing of the .mid file, run its function and don't parse it into the chart
@@ -359,6 +352,7 @@ namespace MoonscraperChartEditor.Song.IO
                 // Copy text event to all difficulties so that .chart format can store these properly. Midi writer will strip duplicate events just fine anyway.
                 foreach (var difficulty in EnumX<MoonSong.Difficulty>.Values)
                 {
+                    var chartEvent = new ChartEvent(tick, eventName);
                     processParams.song.GetChart(processParams.instrument, difficulty).Add(chartEvent);
                 }
             }
