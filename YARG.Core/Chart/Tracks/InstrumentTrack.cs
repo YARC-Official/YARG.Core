@@ -9,19 +9,16 @@ namespace YARG.Core.Chart
         where TNote : Note
     {
         public Instrument Instrument { get; }
-        public Difficulty MaxDifficulty { get; }
 
         public Dictionary<Difficulty, InstrumentDifficulty<TNote>> Difficulties { get; } = new();
 
-        public InstrumentTrack(Instrument instrument, Difficulty maxDifficulty)
+        public InstrumentTrack(Instrument instrument)
         {
             Instrument = instrument;
-            MaxDifficulty = maxDifficulty;
         }
 
-        public InstrumentTrack(Instrument instrument, Difficulty maxDifficulty,
-            Dictionary<Difficulty, InstrumentDifficulty<TNote>> difficulties)
-            : this(instrument, maxDifficulty)
+        public InstrumentTrack(Instrument instrument, Dictionary<Difficulty, InstrumentDifficulty<TNote>> difficulties)
+            : this(instrument)
         {
             Difficulties = difficulties;
         }
