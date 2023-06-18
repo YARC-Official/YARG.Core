@@ -12,36 +12,36 @@ namespace YARG.Core.Chart
     /// </summary>
     public class SongChart 
     {
-        public InstrumentTrack<GuitarNote> FiveFretGuitar { get; }
-        public InstrumentTrack<GuitarNote> FiveFretCoop { get; }
-        public InstrumentTrack<GuitarNote> FiveFretRhythm { get; }
-        public InstrumentTrack<GuitarNote> FiveFretBass { get; }
-        public InstrumentTrack<GuitarNote> Keys { get; }
+        public InstrumentTrack<GuitarNote> FiveFretGuitar { get; set; } = new(Instrument.FiveFretGuitar);
+        public InstrumentTrack<GuitarNote> FiveFretCoop { get; set; } = new(Instrument.FiveFretCoopGuitar);
+        public InstrumentTrack<GuitarNote> FiveFretRhythm { get; set; } = new(Instrument.FiveFretRhythm);
+        public InstrumentTrack<GuitarNote> FiveFretBass { get; set; } = new(Instrument.FiveFretBass);
+        public InstrumentTrack<GuitarNote> Keys { get; set; } = new(Instrument.Keys);
 
         // Not supported yet
-        // public InstrumentTrack<GuitarNote> SixFretGuitar { get; }
-        // public InstrumentTrack<GuitarNote> SixFretCoop { get; }
-        // public InstrumentTrack<GuitarNote> SixFretRhythm { get; }
-        // public InstrumentTrack<GuitarNote> SixFretBass { get; }
+        // public InstrumentTrack<GuitarNote> SixFretGuitar { get; set; } = new(Instrument.SixFretGuitar);
+        // public InstrumentTrack<GuitarNote> SixFretCoop { get; set; } = new(Instrument.SixFretCoopGuitar);
+        // public InstrumentTrack<GuitarNote> SixFretRhythm { get; set; } = new(Instrument.SixFretRhythm);
+        // public InstrumentTrack<GuitarNote> SixFretBass { get; set; } = new(Instrument.SixFretBass);
 
-        public InstrumentTrack<DrumNote> FourLaneDrums { get; }
-        public InstrumentTrack<DrumNote> ProDrums { get; }
+        public InstrumentTrack<DrumNote> FourLaneDrums { get; set; } = new(Instrument.FourLaneDrums);
+        public InstrumentTrack<DrumNote> ProDrums { get; set; } = new(Instrument.ProDrums);
 
-        public InstrumentTrack<DrumNote> FiveLaneDrums { get; }
+        public InstrumentTrack<DrumNote> FiveLaneDrums { get; set; } = new(Instrument.FiveLaneDrums);
 
-        // public InstrumentTrack<DrumNote> TrueDrums { get; }
+        // public InstrumentTrack<DrumNote> TrueDrums { get; set; } = new(Instrument.TrueDrums);
 
-        // public InstrumentTrack<ProGuitarNote> ProGuitar_17Fret { get; }
-        // public InstrumentTrack<ProGuitarNote> ProGuitar_22Fret { get; }
-        // public InstrumentTrack<ProGuitarNote> ProBass_17Fret { get; }
-        // public InstrumentTrack<ProGuitarNote> ProBass_22Fret { get; }
+        // public InstrumentTrack<ProGuitarNote> ProGuitar_17Fret { get; set; } = new(Instrument.ProGuitar_17Fret);
+        // public InstrumentTrack<ProGuitarNote> ProGuitar_22Fret { get; set; } = new(Instrument.ProGuitar_22Fret);
+        // public InstrumentTrack<ProGuitarNote> ProBass_17Fret { get; set; } = new(Instrument.ProBass_17Fret);
+        // public InstrumentTrack<ProGuitarNote> ProBass_22Fret { get; set; } = new(Instrument.ProBass_22Fret);
 
-        // public InstrumentTrack<ProKeysNote> ProKeys { get; }
+        // public InstrumentTrack<ProKeysNote> ProKeys { get; set; } = new(Instrument.ProKeys);
 
-        public InstrumentTrack<VocalNote> Vocals { get; }
-        public List<InstrumentTrack<VocalNote>> Harmonies { get; }
+        public InstrumentTrack<VocalNote> Vocals { get; set; } = new(Instrument.Vocals);
+        public List<InstrumentTrack<VocalNote>> Harmonies { get; set; } = new();
 
-        // public InstrumentTrack<DjNote> Dj { get; }
+        // public InstrumentTrack<DjNote> Dj { get; set; } = new(Instrument.Dj);
 
         public static SongChart FromFile(string filePath)
         {
