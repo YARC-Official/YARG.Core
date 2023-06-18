@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using Melanchall.DryWetMidi.Core;
 using MoonscraperChartEditor.Song;
@@ -31,15 +30,15 @@ namespace YARG.Core.Chart
 
         // public InstrumentTrack<DrumNote> TrueDrums { get; set; } = new(Instrument.TrueDrums);
 
-        // public InstrumentTrack<ProGuitarNote> ProGuitar_17Fret { get; set; } = new(Instrument.ProGuitar_17Fret);
-        // public InstrumentTrack<ProGuitarNote> ProGuitar_22Fret { get; set; } = new(Instrument.ProGuitar_22Fret);
-        // public InstrumentTrack<ProGuitarNote> ProBass_17Fret { get; set; } = new(Instrument.ProBass_17Fret);
-        // public InstrumentTrack<ProGuitarNote> ProBass_22Fret { get; set; } = new(Instrument.ProBass_22Fret);
+        public InstrumentTrack<ProGuitarNote> ProGuitar_17Fret { get; set; } = new(Instrument.ProGuitar_17Fret);
+        public InstrumentTrack<ProGuitarNote> ProGuitar_22Fret { get; set; } = new(Instrument.ProGuitar_22Fret);
+        public InstrumentTrack<ProGuitarNote> ProBass_17Fret { get; set; } = new(Instrument.ProBass_17Fret);
+        public InstrumentTrack<ProGuitarNote> ProBass_22Fret { get; set; } = new(Instrument.ProBass_22Fret);
 
         // public InstrumentTrack<ProKeysNote> ProKeys { get; set; } = new(Instrument.ProKeys);
 
         public InstrumentTrack<VocalNote> Vocals { get; set; } = new(Instrument.Vocals);
-        public List<InstrumentTrack<VocalNote>> Harmonies { get; set; } = new();
+        public InstrumentTrack<VocalNote> Harmony { get; set; } = new(Instrument.Harmony);
 
         // public InstrumentTrack<DjNote> Dj { get; set; } = new(Instrument.Dj);
 
