@@ -42,41 +42,54 @@ namespace YARG.Core.Chart
 
         // public InstrumentTrack<DjNote> Dj { get; set; } = new(Instrument.Dj);
 
-        public static SongChart FromFile(string filePath)
+        // To explicitly allow creation without going through a file
+        public SongChart() { }
+
+        internal SongChart(ISongLoader loader)
         {
-            return Path.GetExtension(filePath).ToLower() switch
-            {
-                ".mid" => FromMidiPath(filePath),
-                ".chart" => FromDotChartPath(filePath),
-                _ => throw new ArgumentException($"Unrecognized file extension for chart path '{filePath}'!", nameof(filePath))
-            };
+            FiveFretGuitar = loader.LoadGuitarTrack(Instrument.FiveFretGuitar);
+            FiveFretCoop = loader.LoadGuitarTrack(Instrument.FiveFretCoopGuitar);
+            FiveFretRhythm = loader.LoadGuitarTrack(Instrument.FiveFretRhythm);
+            FiveFretBass = loader.LoadGuitarTrack(Instrument.FiveFretBass);
+            Keys = loader.LoadGuitarTrack(Instrument.Keys);
+
+            // SixFretGuitar = loader.LoadGuitarTrack(Instrument.SixFretGuitar);
+            // SixFretCoop = loader.LoadGuitarTrack(Instrument.SixFretCoopGuitar);
+            // SixFretRhythm = loader.LoadGuitarTrack(Instrument.SixFretRhythm);
+            // SixFretBass = loader.LoadGuitarTrack(Instrument.SixFretBass);
+
+            FourLaneDrums = loader.LoadDrumsTrack(Instrument.FourLaneDrums);
+            ProDrums = loader.LoadDrumsTrack(Instrument.ProDrums);
+            FiveLaneDrums = loader.LoadDrumsTrack(Instrument.FiveLaneDrums);
+
+            // TrueDrums = loader.LoadDrumsTrack(Instrument.TrueDrums);
+
+            ProGuitar_17Fret = loader.LoadProGuitarTrack(Instrument.ProGuitar_17Fret);
+            ProGuitar_22Fret = loader.LoadProGuitarTrack(Instrument.ProGuitar_22Fret);
+            ProBass_17Fret = loader.LoadProGuitarTrack(Instrument.ProBass_17Fret);
+            ProBass_22Fret = loader.LoadProGuitarTrack(Instrument.ProBass_22Fret);
+
+            // ProKeys = loader.LoadProKeysTrack(Instrument.ProKeys);
+
+            Vocals = loader.LoadVocalsTrack(Instrument.Vocals);
+            Harmony = loader.LoadVocalsTrack(Instrument.Harmony);
+
+            // Dj = loader.LoadDjTrack(Instrument.Dj);
         }
 
-        public static SongChart FromMidiPath(string filePath)
+        public static SongChart FromFile(string filePath)
         {
-            var moonSong = MidReader.ReadMidi(filePath);
-            return FromMoonSong(moonSong);
+            // TODO
+            return new SongChart();
         }
 
         public static SongChart FromMidi(MidiFile midi)
         {
-            var moonSong = MidReader.ReadMidi(midi);
-            return FromMoonSong(moonSong);
+            // TODO
+            return new SongChart();
         }
 
-        public static SongChart FromDotChartPath(string filePath)
-        {
-            var moonSong = ChartReader.ReadChart(filePath);
-            return FromMoonSong(moonSong);
-        }
-
-        public static SongChart FromDotChartText(string fileText)
-        {
-            var moonSong = ChartReader.ReadChart(new StringReader(fileText));
-            return FromMoonSong(moonSong);
-        }
-
-        public static SongChart FromMoonSong(MoonSong moonSong)
+        public static SongChart FromDotChart(string chartText)
         {
             // TODO
             return new SongChart();
