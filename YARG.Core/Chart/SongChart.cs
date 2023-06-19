@@ -18,10 +18,10 @@ namespace YARG.Core.Chart
         public InstrumentTrack<GuitarNote> Keys { get; set; } = new(Instrument.Keys);
 
         // Not supported yet
-        // public InstrumentTrack<GuitarNote> SixFretGuitar { get; set; } = new(Instrument.SixFretGuitar);
-        // public InstrumentTrack<GuitarNote> SixFretCoop { get; set; } = new(Instrument.SixFretCoopGuitar);
-        // public InstrumentTrack<GuitarNote> SixFretRhythm { get; set; } = new(Instrument.SixFretRhythm);
-        // public InstrumentTrack<GuitarNote> SixFretBass { get; set; } = new(Instrument.SixFretBass);
+        public InstrumentTrack<GuitarNote> SixFretGuitar { get; set; } = new(Instrument.SixFretGuitar);
+        public InstrumentTrack<GuitarNote> SixFretCoop { get; set; } = new(Instrument.SixFretCoopGuitar);
+        public InstrumentTrack<GuitarNote> SixFretRhythm { get; set; } = new(Instrument.SixFretRhythm);
+        public InstrumentTrack<GuitarNote> SixFretBass { get; set; } = new(Instrument.SixFretBass);
 
         public InstrumentTrack<DrumNote> FourLaneDrums { get; set; } = new(Instrument.FourLaneDrums);
         public InstrumentTrack<DrumNote> ProDrums { get; set; } = new(Instrument.ProDrums);
@@ -53,10 +53,10 @@ namespace YARG.Core.Chart
             FiveFretBass = loader.LoadGuitarTrack(Instrument.FiveFretBass);
             Keys = loader.LoadGuitarTrack(Instrument.Keys);
 
-            // SixFretGuitar = loader.LoadGuitarTrack(Instrument.SixFretGuitar);
-            // SixFretCoop = loader.LoadGuitarTrack(Instrument.SixFretCoopGuitar);
-            // SixFretRhythm = loader.LoadGuitarTrack(Instrument.SixFretRhythm);
-            // SixFretBass = loader.LoadGuitarTrack(Instrument.SixFretBass);
+            SixFretGuitar = loader.LoadGuitarTrack(Instrument.SixFretGuitar);
+            SixFretCoop = loader.LoadGuitarTrack(Instrument.SixFretCoopGuitar);
+            SixFretRhythm = loader.LoadGuitarTrack(Instrument.SixFretRhythm);
+            SixFretBass = loader.LoadGuitarTrack(Instrument.SixFretBass);
 
             FourLaneDrums = loader.LoadDrumsTrack(Instrument.FourLaneDrums);
             ProDrums = loader.LoadDrumsTrack(Instrument.ProDrums);
