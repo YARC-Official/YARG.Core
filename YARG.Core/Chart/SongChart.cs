@@ -1,8 +1,4 @@
-using System;
-using System.IO;
 using Melanchall.DryWetMidi.Core;
-using MoonscraperChartEditor.Song;
-using MoonscraperChartEditor.Song.IO;
 
 namespace YARG.Core.Chart
 {
@@ -79,20 +75,23 @@ namespace YARG.Core.Chart
 
         public static SongChart FromFile(string filePath)
         {
-            // TODO
-            return new SongChart();
+            ISongLoader loader = new MoonSongLoader();
+            loader.LoadSong(filePath);
+            return new SongChart(loader);
         }
 
         public static SongChart FromMidi(MidiFile midi)
         {
-            // TODO
-            return new SongChart();
+            ISongLoader loader = new MoonSongLoader();
+            loader.LoadMidi(midi);
+            return new SongChart(loader);
         }
 
         public static SongChart FromDotChart(string chartText)
         {
-            // TODO
-            return new SongChart();
+            ISongLoader loader = new MoonSongLoader();
+            loader.LoadDotChart(chartText);
+            return new SongChart(loader);
         }
     }
 }
