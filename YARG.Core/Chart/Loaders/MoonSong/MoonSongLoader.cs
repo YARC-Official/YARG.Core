@@ -39,12 +39,6 @@ namespace YARG.Core.Chart
             _moonSong = ChartReader.ReadChart(new StringReader(chartText));
         }
 
-        public InstrumentTrack<GuitarNote> LoadGuitarTrack(Instrument instrument)
-        {
-            // TODO
-            return new(instrument);
-        }
-
         public InstrumentTrack<ProGuitarNote> LoadProGuitarTrack(Instrument instrument)
         {
             // TODO
