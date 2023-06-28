@@ -39,12 +39,6 @@ namespace YARG.Core.Chart
             _moonSong = ChartReader.ReadChart(new StringReader(chartText));
         }
 
-        public InstrumentTrack<DrumNote> LoadDrumsTrack(Instrument instrument)
-        {
-            // TODO
-            return new(instrument);
-        }
-
         public InstrumentTrack<VocalNote> LoadVocalsTrack(Instrument instrument)
         {
             // TODO
@@ -217,6 +211,61 @@ namespace YARG.Core.Chart
         private static bool IsNoteInPhrase(MoonNote note, SpecialPhrase phrase)
         {
             return note.tick >= phrase.tick && note.tick < (phrase.tick + phrase.length);
+        }
+
+        private static bool IsNoteClosestToEndOfPhrase(MoonNote note, SpecialPhrase phrase)
+        {
+            int endTick = (int) (phrase.tick + phrase.length);
+
+            // Find the note to compare against
+            MoonNote otherNote;
+            {
+                var previousNote = note.PreviousSeperateMoonNote;
+                var nextNote = note.NextSeperateMoonNote;
+
+                if (IsNoteInPhrase(note, phrase))
+                {
+                    // Note is in the phrase, check if this is the last note in the phrase
+                    if (nextNote is not null && !IsNoteInPhrase(nextNote, phrase))
+                    {
+                        // The phrase ends between the given note and the next note
+                        otherNote = nextNote;
+                    }
+                    else
+                    {
+                        // This is either the last note in the chart, or not the last note of the phrase
+                        return nextNote is null;
+                    }
+                }
+                else
+                {
+                    // Note is not in the phrase, check if the previous note is the last in the phrase
+                    if (previousNote is null)
+                    {
+                        // This is the first note in the chart, check by distance
+                        float tickThreshold = note.song.resolution / 3; // 1/12th note
+                        return Math.Abs((int) note.tick - endTick) < tickThreshold;
+                    }
+                    else if (note.tick > endTick && previousNote.tick < endTick)
+                    {
+                        // The phrase ends between the previous note and the given note
+                        // IsNoteInPhrase() is not used here since cases such as drum activations at the end of breaks
+                        // can possibly make it so that neither the previous nor given note are in the phrase
+                        otherNote = previousNote;
+                    }
+                    else
+                    {
+                        // The phrase is not applicable to the given note
+                        return false;
+                    }
+                }
+            }
+
+            // Compare the distance of each note
+            // If the distances are equal, the previous note wins
+            int currentDistance = Math.Abs((int) note.tick - endTick);
+            int otherDistance = Math.Abs((int) otherNote.tick - endTick);
+            return currentDistance < otherDistance || (currentDistance == otherDistance && note.tick < otherNote.tick);
         }
 
         private MoonChart GetMoonChart(Instrument instrument, Difficulty difficulty)
