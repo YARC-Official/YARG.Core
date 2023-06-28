@@ -22,16 +22,32 @@ namespace YARG.Core.Chart
 
         public bool IsMuted => (_proFlags & ProGuitarNoteFlags.Muted) != 0;
 
-        public ProGuitarNote(int stringNo, int fret, ProGuitarNoteType type, ProGuitarNoteFlags proFlags,
+        public ProGuitarNote(ProGuitarString proString, int proFret, ProGuitarNoteType type, ProGuitarNoteFlags proFlags,
+            NoteFlags flags, double time, double timeLength, uint tick, uint tickLength)
+            : this((int) proString, proFret, type, proFlags, flags, time, timeLength, tick, tickLength)
+        {
+        }
+
+        public ProGuitarNote(int proString, int proFret, ProGuitarNoteType type, ProGuitarNoteFlags proFlags,
             NoteFlags flags, double time, double timeLength, uint tick, uint tickLength)
             : base(flags, time, timeLength, tick, tickLength)
         {
-            String = stringNo;
-            Fret = fret;
+            String = proString;
+            Fret = proFret;
             Type = type;
 
             _proFlags = proFlags;
         }
+    }
+
+    public enum ProGuitarString
+    {
+        Red,
+        Green,
+        Orange,
+        Blue,
+        Yellow,
+        Purple,
     }
 
     public enum ProGuitarNoteType
@@ -49,6 +65,6 @@ namespace YARG.Core.Chart
         ExtendedSustain = 1 << 0,
         Disjoint        = 1 << 1,
 
-        Muted = 1 << 2,
+        Muted = 1 << 2, // TODO: would this make more sense as its own note type? physically, only strums can be muted
     }
 }
