@@ -33,8 +33,8 @@ namespace YARG.Core.Chart
 
         // public InstrumentTrack<ProKeysNote> ProKeys { get; set; } = new(Instrument.ProKeys);
 
-        public InstrumentTrack<VocalNote> Vocals { get; set; } = new(Instrument.Vocals);
-        public InstrumentTrack<VocalNote> Harmony { get; set; } = new(Instrument.Harmony);
+        public VocalsTrack Vocals { get; set; } = new(Instrument.Vocals);
+        public VocalsTrack Harmony { get; set; } = new(Instrument.Harmony);
 
         // public InstrumentTrack<DjNote> Dj { get; set; } = new(Instrument.Dj);
 

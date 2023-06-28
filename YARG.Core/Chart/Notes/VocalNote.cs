@@ -87,5 +87,6 @@ namespace YARG.Core.Chart
         None = 0,
 
         NonPitched = 1 << 0,
+        Percussion = 1 << 1,
     }
 }

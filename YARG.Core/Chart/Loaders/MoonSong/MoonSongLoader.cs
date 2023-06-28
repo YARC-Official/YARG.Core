@@ -39,7 +39,7 @@ namespace YARG.Core.Chart
             _moonSong = ChartReader.ReadChart(new StringReader(chartText));
         }
 
-        public InstrumentTrack<VocalNote> LoadVocalsTrack(Instrument instrument)
+        public VocalsTrack LoadVocalsTrack(Instrument instrument)
         {
             // TODO
             return new(instrument);
