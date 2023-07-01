@@ -6,7 +6,7 @@ using YARG.Core.Input;
 namespace YARG.Core.Engine
 {
     public abstract class BaseEngine<TNoteType, TInputType, TActionType, TEngineParams, TEngineStats, TEngineState> 
-        where TNoteType : Note
+        where TNoteType : Note<TNoteType>
         where TInputType : AbstractGameInput<TActionType>
         where TActionType : Enum
         where TEngineParams : BaseEngineParameters

@@ -2,7 +2,7 @@
 
 namespace YARG.Core.Chart
 {
-    public class DrumNote : Note 
+    public class DrumNote : Note<DrumNote>
     {
         private readonly DrumNoteFlags _drumFlags;
 

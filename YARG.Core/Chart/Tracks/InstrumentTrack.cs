@@ -6,7 +6,7 @@ namespace YARG.Core.Chart
     /// An instrument track and all of its difficulties.
     /// </summary>
     public class InstrumentTrack<TNote>
-        where TNote : Note
+        where TNote : Note<TNote>
     {
         public Instrument Instrument { get; }
 

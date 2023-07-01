@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace YARG.Core.Chart
 {
-    public class VocalNote : Note
+    public class VocalNote : Note<VocalNote>
     {
         private readonly List<PitchTimePair> _pitchesOverTime;
         private readonly VocalNoteFlags      _vocalFlags;

@@ -15,7 +15,7 @@ namespace YARG.Core.Chart
     internal partial class MoonSongLoader : ISongLoader
     {
         private delegate TNote CreateNoteDelegate<TNote>(MoonNote moonNote, CurrentPhrases currentPhrases)
-            where TNote : Note;
+            where TNote : Note<TNote>;
 
         private MoonSong _moonSong;
 
@@ -47,7 +47,7 @@ namespace YARG.Core.Chart
 
         private InstrumentDifficulty<TNote> LoadDifficulty<TNote>(Instrument instrument, Difficulty difficulty,
             CreateNoteDelegate<TNote> createNote)
-            where TNote : Note
+            where TNote : Note<TNote>
         {
             var moonChart = GetMoonChart(instrument, difficulty);
             var notes = GetNotes(moonChart, difficulty, createNote);
@@ -57,7 +57,7 @@ namespace YARG.Core.Chart
         }
 
         private List<TNote> GetNotes<TNote>(MoonChart moonChart, Difficulty difficulty, CreateNoteDelegate<TNote> createNote)
-            where TNote : Note
+            where TNote : Note<TNote>
         {
             var notes = new List<TNote>(moonChart.notes.Count);
 
@@ -160,7 +160,7 @@ namespace YARG.Core.Chart
         }
 
         private void AddNoteToList<TNote>(List<TNote> notes, TNote note)
-            where TNote : Note
+            where TNote : Note<TNote>
         {
             // The parent of all notes on the current tick
             var currentParent = notes.Count > 0 ? notes[^1] : null;

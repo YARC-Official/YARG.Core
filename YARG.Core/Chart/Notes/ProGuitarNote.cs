@@ -2,7 +2,7 @@
 
 namespace YARG.Core.Chart
 {
-    public class ProGuitarNote : Note
+    public class ProGuitarNote : Note<ProGuitarNote>
     {
         private readonly ProGuitarNoteFlags _proFlags;
 
