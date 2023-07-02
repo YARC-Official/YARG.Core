@@ -1,83 +1,90 @@
 using System;
-using System.Collections.Generic;
 
 namespace YARG.Core.Chart
 {
     public class VocalNote : Note<VocalNote>
     {
-        private readonly List<PitchTimePair> _pitchesOverTime;
-        private readonly VocalNoteFlags      _vocalFlags;
+        private readonly VocalNoteFlags _vocalFlags;
 
         // 0-based: harmony part 1 is 0, harmony part 2 is 1, harmony part 3 is 2, etc.
         public int HarmonyPart { get; }
 
-        public IReadOnlyList<PitchTimePair> PitchesOverTime => _pitchesOverTime;
+        public float Pitch { get; }
+
+        // Total between all of the pitches
+        public double TotalTimeLength { get; private set; }
+        public double TotalTimeEnd    => Time + TotalTimeLength;
+
+        public uint TotalTickLength { get; private set; }
+        public uint TotalTickEnd    => Tick + TotalTickLength;
 
         public bool IsNonPitched => (_vocalFlags & VocalNoteFlags.NonPitched) != 0;
 
-        public VocalNote(List<PitchTimePair> pitchesOverTime, int harmonyPart, VocalNoteFlags vocalFlags, NoteFlags flags,
+        public VocalNote(float pitch, int harmonyPart, VocalNoteFlags vocalFlags, NoteFlags flags,
             double time, double timeLength, uint tick, uint tickLength)
             : base(flags, time, timeLength, tick, tickLength)
         {
+            Pitch = pitch;
             HarmonyPart = harmonyPart;
-            _pitchesOverTime = pitchesOverTime;
             _vocalFlags = vocalFlags;
         }
 
-        public float PitchAtNormalizedTime(float normalizedTime)
+        public float PitchAtSongTime(double time)
         {
-            int firstIndex = _pitchesOverTime.FindIndex(i => i.NormalizedTime > normalizedTime);
+            // Clamp to start
+            if (time < TimeEnd || ChildNotes.Count < 1)
+                return Pitch;
 
-            // If an index was not found, it must mean it's outside of the note in the forward direction
-            if (firstIndex == -1)
+            // Search child notes
+            var firstNote = this;
+            for (int index = 0; index < ChildNotes.Count; index++)
             {
-                firstIndex = _pitchesOverTime.Count - 1;
+                var secondNote = ChildNotes[index];
+
+                // Check note bounds
+                if (time >= firstNote.Time && time < secondNote.TimeEnd)
+                {
+                    // Check if time is in a specific pitch
+                    if (time < firstNote.TimeEnd)
+                        return firstNote.Pitch;
+
+                    if (time >= secondNote.Time)
+                        return secondNote.Pitch;
+
+                    // Time is between the two pitches, lerp them
+                    double lerpStart = firstNote.TimeEnd;
+                    double lerpEnd = secondNote.Time - lerpStart;
+                    float lerpAmount = (float) ((time - lerpStart) / lerpEnd);
+                    return firstNote.Pitch + (secondNote.Pitch - firstNote.Pitch) * lerpAmount;
+                }
+
+                firstNote = secondNote;
             }
 
-            // The second index must be after the first
-            int secondIndex = firstIndex + 1;
-
-            // If it's outside of the list, just clamp to the pitch of the last index
-            if (secondIndex >= _pitchesOverTime.Count)
-            {
-                return _pitchesOverTime[^1].Pitch;
-            }
-
-            // Transform all of the points such that firstIndex's time is 0
-            // Then transform the points such that the secondIndex is 1
-            float offset = _pitchesOverTime[firstIndex].NormalizedTime;
-            float secondTime = _pitchesOverTime[secondIndex].NormalizedTime - offset;
-            normalizedTime = (normalizedTime - offset) / secondTime;
-
-            // Now we can lerp!
-            float firstPitch = _pitchesOverTime[firstIndex].Pitch;
-            float secondPitch = _pitchesOverTime[secondIndex].Pitch;
-            return firstPitch + (secondPitch - firstPitch) * normalizedTime;
+            // Clamp to end
+            return ChildNotes[^1].Pitch;
         }
 
-        public float? PitchAtSongTime(double time)
+        public override void AddChildNote(VocalNote note)
         {
-            // If out of bounds, return null
-            if (time < Time || time > TimeEnd)
+            if (note.Tick <= Tick || note.ChildNotes.Count > 0)
+                return;
+
+            _childNotes.Add(note);
+
+            // Sort child notes by tick
+            _childNotes.Sort((note1, note2) =>
             {
-                return null;
-            }
+                if (note1.Tick > note2.Tick)
+                    return 1;
+                else if (note1.Tick < note2.Tick)
+                    return -1;
+                return 0;
+            });
 
-            // Otherwise, convert to normalized time and return
-            time = (time - Time) / TimeLength;
-            return PitchAtNormalizedTime((float) time);
-        }
-    }
-
-    public readonly struct PitchTimePair
-    {
-        public readonly float NormalizedTime;
-        public readonly float Pitch;
-
-        public PitchTimePair(float normalizedTime, float pitch)
-        {
-            NormalizedTime = normalizedTime;
-            Pitch = pitch;
+            // Track total length
+            TotalTimeLength = _childNotes[^1].TimeEnd - Time;
+            TotalTickLength = _childNotes[^1].TickEnd - Tick;
         }
     }
 

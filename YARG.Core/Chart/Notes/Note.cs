@@ -6,7 +6,7 @@ namespace YARG.Core.Chart
     public abstract class Note<TNote> : ChartEvent
         where TNote : Note<TNote>
     {
-        private readonly List<TNote> _childNotes = new();
+        protected readonly List<TNote> _childNotes = new();
         private readonly NoteFlags  _flags;
 
         public TNote previousNote;
