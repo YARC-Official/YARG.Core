@@ -2,33 +2,84 @@ using System;
 
 namespace YARG.Core.Chart
 {
+    /// <summary>
+    /// A note on a vocals track.
+    /// </summary>
     public class VocalNote : Note<VocalNote>
     {
-        private readonly VocalNoteFlags _vocalFlags;
+        // private readonly VocalNoteFlags _vocalFlags; // Left for convenience later
 
-        // 0-based: harmony part 1 is 0, harmony part 2 is 1, harmony part 3 is 2, etc.
+        /// <summary>
+        /// The type of vocals note (either a lyrical note or a percussion hit).
+        /// </summary>
+        public VocalNoteType Type { get; }
+
+        /// <summary>
+        /// 0-based index for the harmony part this note is a part of.
+        /// HARM1 is 0, HARM2 is 1, HARM3 is 2.
+        /// </summary>
         public int HarmonyPart { get; }
 
+        /// <summary>
+        /// The MIDI pitch of the note, as a float.
+        /// -1 means the note is unpitched.
+        /// </summary>
         public float Pitch { get; }
 
-        // Total between all of the pitches
+        /// <summary>
+        /// The octave of the vocal pitch.
+        /// Octaves start at -1 in MIDI: note 60 is C4, note 12 is C0, note 0 is C-1.
+        /// </summary>
+        public int Octave => (int) (Pitch / 12) - 1; 
+        /// <summary>
+        /// The pitch of the note wrapped relative to an octave (0-11).
+        /// C is 0, B is 11. -1 means the note is unpitched.
+        /// </summary>
+        public float OctavePitch => Pitch % 12;
+
+        /// <summary>
+        /// The length of this note and all of its children, in seconds.
+        /// </summary>
         public double TotalTimeLength { get; private set; }
+        /// <summary>
+        /// The time-based end of this note and all of its children.
+        /// </summary>
         public double TotalTimeEnd    => Time + TotalTimeLength;
 
+        /// <summary>
+        /// The length of this note and all of its children, in ticks.
+        /// </summary>
         public uint TotalTickLength { get; private set; }
+        /// <summary>
+        /// The tick-based end of this note and all of its children.
+        /// </summary>
         public uint TotalTickEnd    => Tick + TotalTickLength;
 
-        public bool IsNonPitched => (_vocalFlags & VocalNoteFlags.NonPitched) != 0;
+        /// <summary>
+        /// Whether or not this note is non-pitched.
+        /// </summary>
+        public bool IsNonPitched => Pitch < 0;
+        /// <summary>
+        /// Whether or not this note is a percussion note.
+        /// </summary>
+        public bool IsPercussion => Type is VocalNoteType.Percussion;
 
-        public VocalNote(float pitch, int harmonyPart, VocalNoteFlags vocalFlags, NoteFlags flags,
+        /// <summary>
+        /// Creates a new <see cref="VocalNote"/> with the given properties.
+        /// </summary>
+        public VocalNote(float pitch, int harmonyPart, VocalNoteType type, NoteFlags flags,
             double time, double timeLength, uint tick, uint tickLength)
             : base(flags, time, timeLength, tick, tickLength)
         {
+            Type = type;
             Pitch = pitch;
             HarmonyPart = harmonyPart;
-            _vocalFlags = vocalFlags;
         }
 
+        /// <summary>
+        /// Gets the pitch of this note and its children at the specified time.
+        /// Clamps to the start and end if the time is out of bounds.
+        /// </summary>
         public float PitchAtSongTime(double time)
         {
             // Clamp to start
@@ -65,6 +116,7 @@ namespace YARG.Core.Chart
             return ChildNotes[^1].Pitch;
         }
 
+        /// <inheritdoc/>
         public override void AddChildNote(VocalNote note)
         {
             if (note.Tick <= Tick || note.ChildNotes.Count > 0)
@@ -88,12 +140,21 @@ namespace YARG.Core.Chart
         }
     }
 
+    /// <summary>
+    /// Possible vocal note types.
+    /// </summary>
+    public enum VocalNoteType
+    {
+        Lyric,
+        Percussion
+    }
+
+    /// <summary>
+    /// Modifier flags for a vocal note.
+    /// </summary>
     [Flags]
     public enum VocalNoteFlags
     {
         None = 0,
-
-        NonPitched = 1 << 0,
-        Percussion = 1 << 1,
     }
 }
