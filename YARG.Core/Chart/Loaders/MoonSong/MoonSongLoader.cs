@@ -39,12 +39,6 @@ namespace YARG.Core.Chart
             _moonSong = ChartReader.ReadChart(new StringReader(chartText));
         }
 
-        public VocalsTrack LoadVocalsTrack(Instrument instrument)
-        {
-            // TODO
-            return new(instrument);
-        }
-
         private InstrumentDifficulty<TNote> LoadDifficulty<TNote>(Instrument instrument, Difficulty difficulty,
             CreateNoteDelegate<TNote> createNote)
             where TNote : Note<TNote>
@@ -106,10 +100,9 @@ namespace YARG.Core.Chart
                     SpecialPhrase.Type.TrillLane           => PhraseType.TrillLane,
                     SpecialPhrase.Type.ProDrums_Activation => PhraseType.DrumFill,
                     SpecialPhrase.Type.Vocals_LyricPhrase  => PhraseType.LyricPhrase,
+                    SpecialPhrase.Type.Vocals_PercussionPhrase => PhraseType.PercussionPhrase,
                     _ => throw new NotImplementedException($"Unhandled special phrase type {moonPhrase.type}!")
                 };
-
-                // TODO: Detect vocals percussion phrases
 
                 var newPhrase = new Phrase(phraseType, moonPhrase.time, GetLengthInTime(moonPhrase), moonPhrase.tick, moonPhrase.length);
                 phrases.Add(newPhrase);
@@ -135,24 +128,24 @@ namespace YARG.Core.Chart
             var flags = NoteFlags.None;
 
             // Star power
-            if (currentPhrases.TryGetValue(SpecialPhrase.Type.Starpower, out var starPower) && IsNoteInPhrase(moonNote, starPower))
+            if (currentPhrases.TryGetValue(SpecialPhrase.Type.Starpower, out var starPower) && IsEventInPhrase(moonNote, starPower))
             {
                 flags |= NoteFlags.StarPower;
 
-                if (!IsNoteInPhrase(moonNote.PreviousSeperateMoonNote, starPower))
+                if (!IsEventInPhrase(moonNote.PreviousSeperateMoonNote, starPower))
                     flags |= NoteFlags.StarPowerStart;
 
-                if (!IsNoteInPhrase(moonNote.NextSeperateMoonNote, starPower))
+                if (!IsEventInPhrase(moonNote.NextSeperateMoonNote, starPower))
                     flags |= NoteFlags.StarPowerEnd;
             }
 
             // Solos
-            if (currentPhrases.TryGetValue(SpecialPhrase.Type.Solo, out var solo) && IsNoteInPhrase(moonNote, solo))
+            if (currentPhrases.TryGetValue(SpecialPhrase.Type.Solo, out var solo) && IsEventInPhrase(moonNote, solo))
             {
-                if (!IsNoteInPhrase(moonNote.PreviousSeperateMoonNote, solo))
+                if (!IsEventInPhrase(moonNote.PreviousSeperateMoonNote, solo))
                     flags |= NoteFlags.SoloStart;
 
-                if (!IsNoteInPhrase(moonNote.NextSeperateMoonNote, solo))
+                if (!IsEventInPhrase(moonNote.NextSeperateMoonNote, solo))
                     flags |= NoteFlags.SoloEnd;
             }
 
@@ -208,7 +201,7 @@ namespace YARG.Core.Chart
             return GetLengthInTime(phrase.time, phrase.tick, phrase.length - 1);
         }
 
-        private static bool IsNoteInPhrase(MoonNote note, SpecialPhrase phrase)
+        private static bool IsEventInPhrase(SongObject note, SpecialPhrase phrase)
         {
             return note.tick >= phrase.tick && note.tick < (phrase.tick + phrase.length);
         }
@@ -223,10 +216,10 @@ namespace YARG.Core.Chart
                 var previousNote = note.PreviousSeperateMoonNote;
                 var nextNote = note.NextSeperateMoonNote;
 
-                if (IsNoteInPhrase(note, phrase))
+                if (IsEventInPhrase(note, phrase))
                 {
                     // Note is in the phrase, check if this is the last note in the phrase
-                    if (nextNote is not null && !IsNoteInPhrase(nextNote, phrase))
+                    if (nextNote is not null && !IsEventInPhrase(nextNote, phrase))
                     {
                         // The phrase ends between the given note and the next note
                         otherNote = nextNote;
@@ -249,7 +242,7 @@ namespace YARG.Core.Chart
                     else if (note.tick > endTick && previousNote.tick < endTick)
                     {
                         // The phrase ends between the previous note and the given note
-                        // IsNoteInPhrase() is not used here since cases such as drum activations at the end of breaks
+                        // IsEventInPhrase() is not used here since cases such as drum activations at the end of breaks
                         // can possibly make it so that neither the previous nor given note are in the phrase
                         otherNote = previousNote;
                     }
