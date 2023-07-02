@@ -1,6 +1,6 @@
 ﻿namespace YARG.Core.Input
 {
-    public class GuitarInput : AbstractGameInput<GuitarAction>
+    public class GuitarInput : GameInput<GuitarAction>
     {
         public GuitarInput(GuitarAction action, double time, ActionType type) : base(action, time, type)
         {
