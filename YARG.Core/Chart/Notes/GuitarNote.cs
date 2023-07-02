@@ -1,5 +1,4 @@
 using System;
-using MoonscraperChartEditor.Song;
 
 namespace YARG.Core.Chart
 {
