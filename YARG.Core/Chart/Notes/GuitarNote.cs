@@ -1,9 +1,8 @@
 using System;
-using MoonscraperChartEditor.Song;
 
 namespace YARG.Core.Chart
 {
-    public class GuitarNote : Note
+    public class GuitarNote : Note<GuitarNote>
     {
         private readonly GuitarNoteFlags _guitarFlags;
 
@@ -45,14 +44,11 @@ namespace YARG.Core.Chart
             NoteMask = 1 << fret - 1;
         }
 
-        public override void AddChildNote(Note note)
+        public override void AddChildNote(GuitarNote note)
         {
-            if (note is not GuitarNote guitarNote)
-                return;
-
             base.AddChildNote(note);
 
-            NoteMask |= 1 << guitarNote.Fret;
+            NoteMask |= 1 << note.Fret;
         }
     }
 

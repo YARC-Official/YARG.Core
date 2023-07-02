@@ -7,7 +7,7 @@ namespace YARG.Core.Chart
     /// A single difficulty of an instrument track.
     /// </summary>
     public class InstrumentDifficulty<TNote>
-        where TNote : Note
+        where TNote : Note<TNote>
     {
         public Instrument Instrument { get; }
         public Difficulty Difficulty { get; }

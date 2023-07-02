@@ -24,6 +24,7 @@ namespace MoonscraperChartEditor.Song
 
             // Vocals
             Vocals_LyricPhrase,
+            Vocals_PercussionPhrase,
         }
 
         private readonly ID _classID = ID.Special;

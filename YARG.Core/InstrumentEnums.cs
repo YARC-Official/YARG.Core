@@ -8,7 +8,7 @@ namespace YARG.Core
     public enum GameMode
     {
         FiveFretGuitar,
-        // SixFretGuitar,
+        SixFretGuitar,
 
         FourLaneDrums,
         FiveLaneDrums,
@@ -33,10 +33,10 @@ namespace YARG.Core
         FiveFretCoopGuitar,
         Keys,
 
-        // SixFretGuitar,
-        // SixFretBass,
-        // SixFretRhythm,
-        // SixFretCoopGuitar,
+        SixFretGuitar,
+        SixFretBass,
+        SixFretRhythm,
+        SixFretCoopGuitar,
 
         FourLaneDrums,
         ProDrums,
@@ -82,10 +82,10 @@ namespace YARG.Core
                 Instrument.FiveFretCoopGuitar or
                 Instrument.Keys => GameMode.FiveFretGuitar,
 
-                // Instrument.SixFretGuitar or
-                // Instrument.SixFretBass or
-                // Instrument.SixFretRhythm or
-                // Instrument.SixFretCoopGuitar => GameMode.SixFretGuitar,
+                Instrument.SixFretGuitar or
+                Instrument.SixFretBass or
+                Instrument.SixFretRhythm or
+                Instrument.SixFretCoopGuitar => GameMode.SixFretGuitar,
 
                 Instrument.FourLaneDrums or
                 Instrument.ProDrums => GameMode.FourLaneDrums,

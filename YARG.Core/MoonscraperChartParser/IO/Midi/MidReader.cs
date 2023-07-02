@@ -523,7 +523,7 @@ namespace MoonscraperChartEditor.Song.IO
 
             var chart = song.GetChart(instrument, difficulty);
 
-            SongObjectHelper.GetRange(chart.notes, startTick, endTick, out int index, out int length);
+            SongObjectHelper.GetRange(chart.notes, startTick, --endTick, out int index, out int length);
 
             for (int i = index; i < index + length; ++i)
             {

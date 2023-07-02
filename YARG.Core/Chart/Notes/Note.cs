@@ -3,15 +3,16 @@ using System.Collections.Generic;
 
 namespace YARG.Core.Chart
 {
-    public abstract class Note : ChartEvent
+    public abstract class Note<TNote> : ChartEvent
+        where TNote : Note<TNote>
     {
-        private readonly List<Note> _childNotes = new();
+        protected readonly List<TNote> _childNotes = new();
         private readonly NoteFlags  _flags;
 
-        public Note previousNote;
-        public Note nextNote;
+        public TNote previousNote;
+        public TNote nextNote;
 
-        public IReadOnlyList<Note> ChildNotes => _childNotes;
+        public IReadOnlyList<TNote> ChildNotes => _childNotes;
 
         public bool IsChord => _childNotes.Count > 0;
 		
@@ -31,7 +32,7 @@ namespace YARG.Core.Chart
             _flags = flags;
         }
 
-        public virtual void AddChildNote(Note note) {
+        public virtual void AddChildNote(TNote note) {
             if (note.Tick != Tick || note.ChildNotes.Count > 0) {
                 return;
             }
