@@ -5,7 +5,25 @@ using YARG.Core.Input;
 
 namespace YARG.Core.Engine
 {
-    public abstract class BaseEngine<TNoteType, TInputType, TActionType, TEngineParams, TEngineStats, TEngineState> 
+
+    // This is a hack lol
+    public abstract class BaseEngine
+    {
+
+        /// <summary>
+        /// Updates the engine and processes all inputs currently queued.
+        /// </summary>
+        public abstract void UpdateEngine();
+
+        /// <summary>
+        /// Updates the engine with no input processing.
+        /// </summary>
+        /// <param name="time">The time to simulate hit logic at.</param>
+        public abstract void UpdateEngine(double time);
+
+    }
+
+    public abstract class BaseEngine<TNoteType, TInputType, TActionType, TEngineParams, TEngineStats, TEngineState> : BaseEngine
         where TNoteType : Note<TNoteType>
         where TInputType : GameInput<TActionType>
         where TActionType : Enum
@@ -15,29 +33,29 @@ namespace YARG.Core.Engine
     {
         protected const int POINTS_PER_NOTE = 50;
         protected const int POINTS_PER_BEAT = 25;
-        
+
         protected const double STAR_POWER_PHRASE_AMOUNT = 0.25;
 
         public delegate void NoteHitEvent(int noteIndex, TNoteType note);
         public delegate void NoteMissedEvent(int noteIndex, TNoteType note);
-        
+
         public NoteHitEvent OnNoteHit;
         public NoteMissedEvent OnNoteMissed;
-        
+
         protected double LastUpdateTime;
-        
+
         protected readonly Queue<TInputType> InputQueue;
-        
+
         protected readonly List<TNoteType> Notes;
         protected readonly TEngineParams EngineParameters;
         protected readonly TEngineStats EngineStats;
-        
+
         protected TEngineState State;
-        
+
         protected TInputType CurrentInput;
 
         protected bool IsInputUpdate { get; private set; }
-        
+
         protected BaseEngine(List<TNoteType> notes, TEngineParams engineParameters)
         {
             Notes = notes;
@@ -45,10 +63,10 @@ namespace YARG.Core.Engine
 
             EngineStats = new TEngineStats();
             State = new TEngineState();
-            
+
             InputQueue = new Queue<TInputType>();
         }
-        
+
         /// <summary>
         /// Queue an input to be processed by the engine.
         /// </summary>
@@ -58,10 +76,7 @@ namespace YARG.Core.Engine
             InputQueue.Enqueue(input);
         }
 
-        /// <summary>
-        /// Updates the engine and processes all inputs currently queued.
-        /// </summary>
-        public void UpdateEngine()
+        public override void UpdateEngine()
         {
             if (InputQueue.Count > 0)
             {
@@ -74,24 +89,24 @@ namespace YARG.Core.Engine
         /// Updates the engine with no input processing.
         /// </summary>
         /// <param name="time">The time to simulate hit logic at.</param>
-        public void UpdateEngine(double time)
+        public override void UpdateEngine(double time)
         {
             IsInputUpdate = false;
             UpdateHitLogic(time);
         }
-        
+
         /// <summary>
         /// Loops through the input queue and processes each input. Invokes engine logic for each input.
         /// </summary>
         protected abstract void ProcessInputs();
-        
+
         /// <summary>
         /// Executes engine logic with respect to the given time.
         /// </summary>
         /// <param name="time">The time in which to simulate hit logic at.</param>
         /// <returns>True if a note was updated (hit or missed). False if no changes.</returns>
         protected abstract bool UpdateHitLogic(double time);
-        
+
         /// <summary>
         /// Checks if the given note can be hit with the current input state.
         /// </summary>
@@ -114,14 +129,14 @@ namespace YARG.Core.Engine
                 note.SetHitState(false, true);
                 note.SetMissState(false, true);
             }
-            
+
             var inputIndex = 0;
             while (inputIndex < inputs.Count && inputs[inputIndex].Time <= time)
             {
                 InputQueue.Enqueue(inputs[inputIndex]);
                 inputIndex++;
             }
-            
+
             ProcessInputs();
 
             return inputIndex;
