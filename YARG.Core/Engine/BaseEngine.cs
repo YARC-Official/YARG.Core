@@ -7,7 +7,7 @@ namespace YARG.Core.Engine
 {
     public abstract class BaseEngine<TNoteType, TInputType, TActionType, TEngineParams, TEngineStats, TEngineState> 
         where TNoteType : Note<TNoteType>
-        where TInputType : AbstractGameInput<TActionType>
+        where TInputType : GameInput<TActionType>
         where TActionType : Enum
         where TEngineParams : BaseEngineParameters
         where TEngineStats : BaseStats, new()
