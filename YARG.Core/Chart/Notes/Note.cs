@@ -3,16 +3,7 @@ using System.Collections.Generic;
 
 namespace YARG.Core.Chart
 {
-
-    // Another hack
-    public abstract class BaseNote : ChartEvent
-    {
-        protected BaseNote(double time, double timeLength, uint tick, uint tickLength) : base(time, timeLength, tick, tickLength)
-        {
-        }
-    }
-
-    public abstract class Note<TNote> : BaseNote
+    public abstract class Note<TNote> : ChartEvent
         where TNote : Note<TNote>
     {
         protected readonly List<TNote> _childNotes = new();
