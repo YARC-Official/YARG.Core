@@ -23,9 +23,8 @@ namespace YARG.Core.Engine
 
     }
 
-    public abstract class BaseEngine<TNoteType, TInputType, TActionType, TEngineParams, TEngineStats, TEngineState> : BaseEngine
+    public abstract class BaseEngine<TNoteType, TActionType, TEngineParams, TEngineStats, TEngineState> : BaseEngine
         where TNoteType : Note<TNoteType>
-        where TInputType : GameInput<TActionType>
         where TActionType : Enum
         where TEngineParams : BaseEngineParameters
         where TEngineStats : BaseStats, new()
@@ -44,7 +43,7 @@ namespace YARG.Core.Engine
 
         protected double LastUpdateTime;
 
-        protected readonly Queue<TInputType> InputQueue;
+        protected readonly Queue<GameInput> InputQueue;
 
         protected readonly List<TNoteType> Notes;
         protected readonly TEngineParams EngineParameters;
@@ -52,7 +51,7 @@ namespace YARG.Core.Engine
 
         protected TEngineState State;
 
-        protected TInputType CurrentInput;
+        protected GameInput CurrentInput;
 
         protected bool IsInputUpdate { get; private set; }
 
@@ -64,14 +63,14 @@ namespace YARG.Core.Engine
             EngineStats = new TEngineStats();
             State = new TEngineState();
 
-            InputQueue = new Queue<TInputType>();
+            InputQueue = new Queue<GameInput>();
         }
 
         /// <summary>
         /// Queue an input to be processed by the engine.
         /// </summary>
         /// <param name="input">The input to queue into the engine.</param>
-        public void QueueInput(TInputType input)
+        public void QueueInput(GameInput input)
         {
             InputQueue.Enqueue(input);
         }
@@ -120,7 +119,7 @@ namespace YARG.Core.Engine
         /// <param name="time">Time to process up to.</param>
         /// <param name="inputs">List of inputs to execute against.</param>
         /// <returns>The input index that was processed up to.</returns>
-        public virtual int ProcessUpToTime(double time, IList<TInputType> inputs)
+        public virtual int ProcessUpToTime(double time, IList<GameInput> inputs)
         {
             State.Reset();
 
@@ -148,7 +147,7 @@ namespace YARG.Core.Engine
         /// <param name="startTime">Time to begin processing from.</param>
         /// <param name="endTime">Time to process up to.</param>
         /// <param name="inputs">List of inputs to execute against.</param>
-        public virtual void ProcessFromTimeToTime(double startTime, double endTime, IList<TInputType> inputs)
+        public virtual void ProcessFromTimeToTime(double startTime, double endTime, IList<GameInput> inputs)
         {
             throw new NotImplementedException();
         }

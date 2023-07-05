@@ -1,22 +1,32 @@
-﻿using System;
-
-namespace YARG.Core.Input
+﻿namespace YARG.Core.Input
 {
-    public abstract class GameInput<TAction> where TAction : Enum
+    public struct GameInput
     {
-
-        public TAction Action { get; }
-
-        public int RawValue { get; protected set; }
+        private readonly int _rawActionValue;
 
         public ActionType Type { get; }
         public double     Time { get; set; }
 
-        protected GameInput(TAction action, double time, ActionType type)
+        public GameInput(int rawActionValue, double time, ActionType type)
         {
-            Action = action;
+            _rawActionValue = rawActionValue;
             Time = time;
             Type = type;
+        }
+
+        public GuitarAction GetGuitarAction()
+        {
+            return (GuitarAction) _rawActionValue;
+        }
+
+        public DrumAction GetDrumAction()
+        {
+            return (DrumAction) _rawActionValue;
+        }
+
+        public MenuAction GetMenuAction()
+        {
+            return (MenuAction) _rawActionValue;
         }
     }
 }

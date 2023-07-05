@@ -10,7 +10,7 @@ namespace YARG.Core.Engine.Guitar.Engines
 
         public YargFiveFretEngine(List<GuitarNote> notes, GuitarEngineParameters engineParameters) : base(notes, engineParameters)
         {
-            
+
         }
 
         protected override void ProcessInputs()
@@ -25,9 +25,9 @@ namespace YARG.Core.Engine.Guitar.Engines
         protected override bool UpdateHitLogic(double time)
         {
             double delta = time - LastUpdateTime;
-            
+
             UpdateTimers(delta);
-            
+
             // remove later
             return true;
         }
@@ -43,7 +43,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 {
                     return;
                 }
-                
+
                 // Hopo leniency active and strum leniency active so hopo was strummed
                 if (State.HopoLeniencyTimer > 0)
                 {
@@ -79,10 +79,10 @@ namespace YARG.Core.Engine.Guitar.Engines
         {
             throw new System.NotImplementedException();
         }
-        
-        protected bool IsFretInput(GuitarInput input)
+
+        protected bool IsFretInput(GameInput input)
         {
-            switch (input.Action)
+            switch (input.GetGuitarAction())
             {
                 case GuitarAction.Green:
                 case GuitarAction.Red:
@@ -94,10 +94,10 @@ namespace YARG.Core.Engine.Guitar.Engines
                     return false;
             }
         }
-        
-        protected bool IsStrumInput(GuitarInput input)
+
+        protected bool IsStrumInput(GameInput input)
         {
-            switch (input.Action)
+            switch (input.GetGuitarAction())
             {
                 case GuitarAction.StrumUp:
                 case GuitarAction.StrumDown:
