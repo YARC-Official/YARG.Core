@@ -164,7 +164,7 @@ namespace YARG.Core.Chart
             if (note.Tick == currentParent?.Tick)
             {
                 // Same chord, assign previous and add as child
-                note.previousNote = previousParent;
+                note.PreviousNote = previousParent;
                 currentParent.AddChildNote(note);
                 return;
             }
@@ -176,11 +176,11 @@ namespace YARG.Core.Chart
             // Assign next/previous note references
             if (previousParent is not null)
             {
-                previousParent.nextNote = currentParent;
+                previousParent.NextNote = currentParent;
                 foreach (var child in previousParent.ChildNotes)
-                    child.nextNote = currentParent;
+                    child.NextNote = currentParent;
 
-                currentParent.previousNote = previousParent;
+                currentParent.PreviousNote = previousParent;
             }
 
             notes.Add(note);

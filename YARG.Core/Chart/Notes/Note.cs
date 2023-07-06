@@ -9,8 +9,8 @@ namespace YARG.Core.Chart
         protected readonly List<TNote> _childNotes = new();
         private readonly NoteFlags  _flags;
 
-        public TNote previousNote;
-        public TNote nextNote;
+        public TNote PreviousNote;
+        public TNote NextNote;
 
         public IReadOnlyList<TNote> ChildNotes => _childNotes;
 
