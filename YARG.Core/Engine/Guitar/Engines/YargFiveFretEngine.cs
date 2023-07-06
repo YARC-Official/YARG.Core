@@ -80,31 +80,27 @@ namespace YARG.Core.Engine.Guitar.Engines
             throw new System.NotImplementedException();
         }
 
-        protected bool IsFretInput(GameInput input)
+        protected bool IsFretInput(GameInput<GuitarAction> input)
         {
-            switch (input.GetGuitarAction())
+            return input.Action switch
             {
-                case GuitarAction.Green:
-                case GuitarAction.Red:
-                case GuitarAction.Yellow:
-                case GuitarAction.Blue:
-                case GuitarAction.Orange:
-                    return true;
-                default:
-                    return false;
-            }
+                GuitarAction.Green or
+                GuitarAction.Red or
+                GuitarAction.Yellow or
+                GuitarAction.Blue or
+                GuitarAction.Orange => true,
+                _ => false,
+            };
         }
 
-        protected bool IsStrumInput(GameInput input)
+        protected bool IsStrumInput(GameInput<GuitarAction> input)
         {
-            switch (input.GetGuitarAction())
+            return input.Action switch
             {
-                case GuitarAction.StrumUp:
-                case GuitarAction.StrumDown:
-                    return true;
-                default:
-                    return false;
-            }
+                GuitarAction.StrumUp or
+                GuitarAction.StrumDown => true,
+                _ => false,
+            };
         }
     }
 }

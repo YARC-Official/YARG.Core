@@ -1,32 +1,53 @@
-﻿namespace YARG.Core.Input
+﻿using System;
+using System.Runtime.InteropServices;
+
+namespace YARG.Core.Input
 {
-    public struct GameInput
+    [StructLayout(LayoutKind.Explicit)]
+    public readonly struct GameInput<TAction>
+        where TAction : unmanaged, Enum
     {
-        private readonly int _rawActionValue;
+        [FieldOffset(0)]
+        // Not TAction, since we can't determine the
+        // size of that ahead of time for FieldOffset
+        private readonly int _action;
 
-        public ActionType Type { get; }
-        public double     Time { get; set; }
+        public TAction Action => _action.Convert<TAction>();
 
-        public GameInput(int rawActionValue, double time, ActionType type)
+        [field: FieldOffset(sizeof(int))]
+        public double Time { get; }
+
+        // For memory/serialization efficiency, a C/C++ union is being
+        // emulated here by placing multiple fields at the same offset
+
+        [field: FieldOffset(sizeof(int) + sizeof(double))]
+        public int Integer { get; }
+
+        [field: FieldOffset(sizeof(int) + sizeof(double))]
+        public float Axis { get; }
+
+        [field: FieldOffset(sizeof(int) + sizeof(double))]
+        public bool Button { get; }
+
+        public GameInput(TAction action, double time, int value) : this()
         {
-            _rawActionValue = rawActionValue;
+            _action = action.Convert();
             Time = time;
-            Type = type;
+            Integer = value;
         }
 
-        public GuitarAction GetGuitarAction()
+        public GameInput(TAction action, double time, float value) : this()
         {
-            return (GuitarAction) _rawActionValue;
+            _action = action.Convert();
+            Time = time;
+            Axis = value;
         }
 
-        public DrumAction GetDrumAction()
+        public GameInput(TAction action, double time, bool value) : this()
         {
-            return (DrumAction) _rawActionValue;
-        }
-
-        public MenuAction GetMenuAction()
-        {
-            return (MenuAction) _rawActionValue;
+            _action = action.Convert();
+            Time = time;
+            Button = value;
         }
     }
 }
