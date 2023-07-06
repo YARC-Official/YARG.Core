@@ -26,6 +26,8 @@ namespace YARG.Core.Engine.Guitar.Engines
         {
             double delta = time - LastUpdateTime;
 
+            State.StrummedThisUpdate = IsInputUpdate && IsStrumInput(CurrentInput);
+
             UpdateTimers(delta);
 
             // remove later
@@ -34,16 +36,10 @@ namespace YARG.Core.Engine.Guitar.Engines
 
         protected void UpdateTimers(double delta)
         {
-            State.StrummedThisUpdate = false;
-
             // If engine was invoked with an input update and the input is a fret
-            if (IsInputUpdate && IsFretInput(CurrentInput) || !IsInputUpdate)
+            // or: Did not strum at all
+            if (State.StrummedThisUpdate || !IsInputUpdate)
             {
-                if (!(State.StrumLeniencyTimer > 0) || State.StrummedThisUpdate)
-                {
-                    return;
-                }
-
                 // Hopo leniency active and strum leniency active so hopo was strummed
                 if (State.HopoLeniencyTimer > 0)
                 {
@@ -78,6 +74,33 @@ namespace YARG.Core.Engine.Guitar.Engines
         protected override bool CanNoteBeHit(GuitarNote note)
         {
             throw new System.NotImplementedException();
+        }
+
+        protected override void HitNote(GuitarNote note)
+        {
+            if (note.IsHopo || note.IsTap)
+            {
+                if(EngineStats.Combo > 0 && State.StrumLeniencyTimer > 0)
+                {
+                    EngineStats.Combo++;
+                    EngineStats.HoposStrummed++;
+
+                    State.HopoLeniencyTimer = EngineParameters.HopoLeniency;
+                    State.StrumLeniencyTimer = EngineParameters.StrumLeniency / 2;
+                    State.WasHopoStrummed = true;
+                }
+                else
+                {
+                    State.StrumLeniencyTimer = 0;
+                    State.HopoLeniencyTimer = EngineParameters.HopoLeniency;
+                }
+            }
+            else
+            {
+                State.StrumLeniencyTimer = 0;
+            }
+
+            base.HitNote(note);
         }
 
         protected bool IsFretInput(GameInput<GuitarAction> input)

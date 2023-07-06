@@ -113,6 +113,12 @@ namespace YARG.Core.Engine
         /// <returns>True if note can be hit. False otherwise.</returns>
         protected abstract bool CanNoteBeHit(TNoteType note);
 
+        protected abstract void HitNote(TNoteType note);
+
+        protected abstract void MissNote(TNoteType note);
+
+        protected abstract void UpdateMultiplier();
+
         /// <summary>
         /// Resets the engine's state back to default and then processes the list of inputs up to the given time.
         /// </summary>
