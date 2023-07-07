@@ -1,44 +1,71 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace YARG.Core.Input
 {
-    public readonly struct GameInput<TAction>
-        where TAction : unmanaged, Enum
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    public readonly struct GameInput
     {
-        public TAction Action { get; }
-
         public double Time { get; }
+        public int    Action { get; }
 
         private readonly int _value;
 
-        public int Integer => _value;
-
+        public int   Integer => _value;
         public float Axis => GetValue<float>(_value);
+        public bool  Button => GetValue<bool>(_value);
 
-        public bool Button => GetValue<bool>(_value);
-
-        public GameInput(TAction action, double time, int value) : this()
+        public GameInput(double time, int action, int value) : this()
         {
-            Action = action;
             Time = time;
+            Action = action;
             _value = SetValue(value);
         }
 
-        public GameInput(TAction action, double time, float value) : this()
+        public GameInput(double time, int action, float value) : this()
         {
-            Action = action;
             Time = time;
+            Action = action;
             _value = SetValue(value);
         }
 
-        public GameInput(TAction action, double time, bool value) : this()
+        public GameInput(double time, int action, bool value) : this()
         {
-            Action = action;
             Time = time;
+            Action = action;
             _value = SetValue(value);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static GameInput Create<TAction>(double time, TAction action, int value)
+            where TAction : unmanaged, Enum
+        {
+            return new GameInput(time, action.Convert(), value);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static GameInput Create<TAction>(double time, TAction action, float value)
+            where TAction : unmanaged, Enum
+        {
+            return new GameInput(time, action.Convert(), value);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static GameInput Create<TAction>(double time, TAction action, bool value)
+            where TAction : unmanaged, Enum
+        {
+            return new GameInput(time, action.Convert(), value);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public TAction GetAction<TAction>()
+            where TAction : unmanaged, Enum
+        {
+            return Action.Convert<TAction>();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static T GetValue<T>(int value)
             where T : unmanaged
         {
@@ -53,6 +80,7 @@ namespace YARG.Core.Input
             };
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int SetValue<T>(T value)
             where T : unmanaged
         {

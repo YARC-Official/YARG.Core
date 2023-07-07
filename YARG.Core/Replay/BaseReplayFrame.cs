@@ -13,13 +13,12 @@ namespace YARG.Core.Replay
         public Difficulty Difficulty;
     }
 
-    public class ReplayFrame<TStats, TAction, TInput> : BaseReplayFrame
+    public class ReplayFrame<TStats, TAction> : BaseReplayFrame
         where TStats : BaseStats
         where TAction : unmanaged, Enum
-        where TInput : GameInput
     {
         public TStats     Stats;
         public int        InputCount;
-        public TInput[]   Inputs;
+        public GameInput[]   Inputs;
     }
 }

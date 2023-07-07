@@ -43,7 +43,7 @@ namespace YARG.Core.Engine
 
         protected double LastUpdateTime;
 
-        protected readonly Queue<GameInput<TActionType>> InputQueue;
+        protected readonly Queue<GameInput> InputQueue;
 
         protected readonly List<TNoteType> Notes;
         protected readonly TEngineParams EngineParameters;
@@ -51,7 +51,7 @@ namespace YARG.Core.Engine
 
         protected TEngineState State;
 
-        protected GameInput<TActionType> CurrentInput;
+        protected GameInput CurrentInput;
 
         protected bool IsInputUpdate { get; private set; }
 
@@ -63,14 +63,14 @@ namespace YARG.Core.Engine
             EngineStats = new TEngineStats();
             State = new TEngineState();
 
-            InputQueue = new Queue<GameInput<TActionType>>();
+            InputQueue = new Queue<GameInput>();
         }
 
         /// <summary>
         /// Queue an input to be processed by the engine.
         /// </summary>
         /// <param name="input">The input to queue into the engine.</param>
-        public void QueueInput(GameInput<TActionType> input)
+        public void QueueInput(GameInput input)
         {
             InputQueue.Enqueue(input);
         }
@@ -125,7 +125,7 @@ namespace YARG.Core.Engine
         /// <param name="time">Time to process up to.</param>
         /// <param name="inputs">List of inputs to execute against.</param>
         /// <returns>The input index that was processed up to.</returns>
-        public virtual int ProcessUpToTime(double time, IList<GameInput<TActionType>> inputs)
+        public virtual int ProcessUpToTime(double time, IList<GameInput> inputs)
         {
             State.Reset();
 
@@ -153,7 +153,7 @@ namespace YARG.Core.Engine
         /// <param name="startTime">Time to begin processing from.</param>
         /// <param name="endTime">Time to process up to.</param>
         /// <param name="inputs">List of inputs to execute against.</param>
-        public virtual void ProcessFromTimeToTime(double startTime, double endTime, IList<GameInput<TActionType>> inputs)
+        public virtual void ProcessFromTimeToTime(double startTime, double endTime, IList<GameInput> inputs)
         {
             throw new NotImplementedException();
         }

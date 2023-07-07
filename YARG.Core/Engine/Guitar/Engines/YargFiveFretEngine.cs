@@ -103,9 +103,9 @@ namespace YARG.Core.Engine.Guitar.Engines
             base.HitNote(note);
         }
 
-        protected bool IsFretInput(GameInput<GuitarAction> input)
+        protected bool IsFretInput(GameInput input)
         {
-            return input.Action switch
+            return input.GetAction<GuitarAction>() switch
             {
                 GuitarAction.Green or
                 GuitarAction.Red or
@@ -116,9 +116,9 @@ namespace YARG.Core.Engine.Guitar.Engines
             };
         }
 
-        protected bool IsStrumInput(GameInput<GuitarAction> input)
+        protected bool IsStrumInput(GameInput input)
         {
-            return input.Action switch
+            return input.GetAction<GuitarAction>() switch
             {
                 GuitarAction.StrumUp or
                 GuitarAction.StrumDown => true,
