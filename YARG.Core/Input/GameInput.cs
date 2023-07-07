@@ -1,53 +1,68 @@
 ﻿using System;
-using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 
 namespace YARG.Core.Input
 {
-    [StructLayout(LayoutKind.Explicit)]
     public readonly struct GameInput<TAction>
         where TAction : unmanaged, Enum
     {
-        [FieldOffset(0)]
-        // Not TAction, since we can't determine the
-        // size of that ahead of time for FieldOffset
-        private readonly int _action;
+        public TAction Action { get; }
 
-        public TAction Action => _action.Convert<TAction>();
-
-        [field: FieldOffset(sizeof(int))]
         public double Time { get; }
 
-        // For memory/serialization efficiency, a C/C++ union is being
-        // emulated here by placing multiple fields at the same offset
+        private readonly int _value;
 
-        [field: FieldOffset(sizeof(int) + sizeof(double))]
-        public int Integer { get; }
+        public int Integer => _value;
 
-        [field: FieldOffset(sizeof(int) + sizeof(double))]
-        public float Axis { get; }
+        public float Axis => GetValue<float>(_value);
 
-        [field: FieldOffset(sizeof(int) + sizeof(double))]
-        public bool Button { get; }
+        public bool Button => GetValue<bool>(_value);
 
         public GameInput(TAction action, double time, int value) : this()
         {
-            _action = action.Convert();
+            Action = action;
             Time = time;
-            Integer = value;
+            _value = SetValue(value);
         }
 
         public GameInput(TAction action, double time, float value) : this()
         {
-            _action = action.Convert();
+            Action = action;
             Time = time;
-            Axis = value;
+            _value = SetValue(value);
         }
 
         public GameInput(TAction action, double time, bool value) : this()
         {
-            _action = action.Convert();
+            Action = action;
             Time = time;
-            Button = value;
+            _value = SetValue(value);
+        }
+
+        private static T GetValue<T>(int value)
+            where T : unmanaged
+        {
+            byte bValue = (byte)value;
+            short sValue = (short)value;
+            return Unsafe.SizeOf<T>() switch
+            {
+                sizeof(byte) => Unsafe.As<byte, T>(ref bValue),
+                sizeof(short) => Unsafe.As<short, T>(ref sValue),
+                sizeof(int) => Unsafe.As<int, T>(ref value),
+                _ => throw new ArgumentException($"Cannot convert to {typeof(T).Name} from an int!")
+            };
+        }
+
+        private static int SetValue<T>(T value)
+            where T : unmanaged
+        {
+            return Unsafe.SizeOf<T>() switch
+            {
+                sizeof(byte) => Unsafe.As<T, byte>(ref value),
+                sizeof(short) => Unsafe.As<T, short>(ref value),
+                sizeof(int) => Unsafe.As<T, int>(ref value),
+                _ => throw new ArgumentException($"Cannot convert from {typeof(T).Name} to an int!")
+            };
         }
     }
 }
