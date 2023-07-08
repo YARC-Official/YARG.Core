@@ -2,27 +2,28 @@
 {
     public abstract class BaseStats
     {
-        public int Score    { get; set; }
-        public int Combo    { get; set; }
-        public int MaxCombo { get; set; }
+        public int Score;
+        public int Combo;
+        public int MaxCombo;
 
-        public int ScoreMultiplier { get; set; }
+        public int ScoreMultiplier;
 
-        public int NotesHit    { get; set; }
-        public int NotesMissed { get; set; }
+        public int NotesHit;
+        public int NotesMissed;
 
-        public double StarPowerAmount { get; set; }
+        public double StarPowerAmount;
 
-        public bool IsStarPowerActive { get; set; }
+        public bool IsStarPowerActive;
 
-        public int PhrasesHit { get; set; }
+        public int PhrasesHit;
+        public int PhrasesMissed;
 
         protected BaseStats()
         {
         }
 
         protected BaseStats(int score, int combo, int maxCombo, int scoreMultiplier, int notesHit, int notesMissed,
-            double           starPowerAmount, bool isStarPowerActive, int phrasesHit)
+            double starPowerAmount, bool isStarPowerActive, int phrasesHit)
         {
             Score = score;
             Combo = combo;
