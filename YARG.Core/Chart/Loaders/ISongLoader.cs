@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using Melanchall.DryWetMidi.Core;
+using YARG.Core.Chart.Events.SyncTrack;
 
 namespace YARG.Core.Chart
 {
@@ -15,5 +17,8 @@ namespace YARG.Core.Chart
         InstrumentTrack<ProGuitarNote> LoadProGuitarTrack(Instrument instrument);
         InstrumentTrack<DrumNote> LoadDrumsTrack(Instrument instrument);
         VocalsTrack LoadVocalsTrack(Instrument instrument);
+
+        List<TextEvent> LoadGlobalEvents();
+        List<SyncTrackEvent> LoadSyncTrack();
     }
 }

@@ -4,6 +4,8 @@ using System.IO;
 using Melanchall.DryWetMidi.Core;
 using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
+using YARG.Core.Chart.Events.SyncTrack;
+using TimeSignatureEvent = YARG.Core.Chart.Events.SyncTrack.TimeSignatureEvent;
 
 namespace YARG.Core.Chart
 {
@@ -37,6 +39,37 @@ namespace YARG.Core.Chart
         public void LoadDotChart(string chartText)
         {
             _moonSong = ChartReader.ReadChart(new StringReader(chartText));
+        }
+
+        public List<TextEvent> LoadGlobalEvents()
+        {
+            var textEvents = new List<TextEvent>(_moonSong.events.Count);
+            foreach (var moonText in _moonSong.events)
+            {
+                var newText = new TextEvent(moonText.title, moonText.time, moonText.tick);
+                textEvents.Add(newText);
+            }
+
+            return textEvents;
+        }
+
+        public List<SyncTrackEvent> LoadSyncTrack()
+        {
+            var syncTrack = new List<SyncTrackEvent>(_moonSong.syncTrack.Count);
+            foreach (var moonSync in _moonSong.syncTrack)
+            {
+                if (moonSync is BPM bpm)
+                {
+                    var newSync = new BpmEvent(bpm.value, moonSync.time, moonSync.tick);
+                    syncTrack.Add(newSync);
+                } else if (moonSync is TimeSignature timeSig)
+                {
+                    var newSync = new TimeSignatureEvent(timeSig.numerator, timeSig.denominator, moonSync.time, moonSync.tick);
+                    syncTrack.Add(newSync);
+                }
+            }
+
+            return syncTrack;
         }
 
         private InstrumentDifficulty<TNote> LoadDifficulty<TNote>(Instrument instrument, Difficulty difficulty,

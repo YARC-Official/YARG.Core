@@ -1,11 +1,13 @@
+using System.Collections.Generic;
 using Melanchall.DryWetMidi.Core;
+using YARG.Core.Chart.Events.SyncTrack;
 
 namespace YARG.Core.Chart
 {
     /// <summary>
     /// The chart data for a song.
     /// </summary>
-    public class SongChart 
+    public class SongChart
     {
         public InstrumentTrack<GuitarNote> FiveFretGuitar { get; set; } = new(Instrument.FiveFretGuitar);
         public InstrumentTrack<GuitarNote> FiveFretCoop { get; set; } = new(Instrument.FiveFretCoopGuitar);
@@ -38,6 +40,9 @@ namespace YARG.Core.Chart
 
         // public InstrumentTrack<DjNote> Dj { get; set; } = new(Instrument.Dj);
 
+        public List<TextEvent> GlobalEvents { get; set; } = new();
+        public List<SyncTrackEvent> SyncTrack { get; set; } = new();
+
         // To explicitly allow creation without going through a file
         public SongChart() { }
 
@@ -69,6 +74,9 @@ namespace YARG.Core.Chart
 
             Vocals = loader.LoadVocalsTrack(Instrument.Vocals);
             Harmony = loader.LoadVocalsTrack(Instrument.Harmony);
+
+            GlobalEvents = loader.LoadGlobalEvents();
+            SyncTrack = loader.LoadSyncTrack();
 
             // Dj = loader.LoadDjTrack(Instrument.Dj);
         }
