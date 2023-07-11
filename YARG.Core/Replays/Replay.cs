@@ -1,6 +1,6 @@
 using System;
 
-namespace YARG.Core.Replay
+namespace YARG.Core.Replays
 {
     public struct ReplayHeader
     {

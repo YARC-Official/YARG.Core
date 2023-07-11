@@ -4,7 +4,7 @@ using YARG.Core.Engine;
 using YARG.Core.Engine.Drums;
 using YARG.Core.Engine.Guitar;
 
-namespace YARG.Core.Replay.IO
+namespace YARG.Core.Replays.IO
 {
     public abstract class ReplayReadWriter
     {

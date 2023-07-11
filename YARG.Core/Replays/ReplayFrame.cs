@@ -1,7 +1,7 @@
 using YARG.Core.Engine;
 using YARG.Core.Input;
 
-namespace YARG.Core.Replay
+namespace YARG.Core.Replays
 {
     public abstract class ReplayFrame
     {

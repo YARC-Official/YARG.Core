@@ -4,7 +4,7 @@ using YARG.Core.Engine;
 using YARG.Core.Engine.Drums;
 using YARG.Core.Engine.Guitar;
 
-namespace YARG.Core.Replay.IO.Versions
+namespace YARG.Core.Replays.IO.Versions
 {
     public class ReplayIoVersion1 : ReplayReadWriter
     {

@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
-using YARG.Core.Replay.IO.Versions;
+using YARG.Core.Replays.IO.Versions;
 
-namespace YARG.Core.Replay.IO
+namespace YARG.Core.Replays.IO
 {
     public enum ReplayReadResult
     {
