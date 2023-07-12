@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace YARG.Core.Chart
@@ -21,6 +22,28 @@ namespace YARG.Core.Chart
             : this(instrument)
         {
             Difficulties = difficulties;
+        }
+
+        public uint GetFirstTick()
+        {
+            uint totalFirstTick = 0;
+            foreach (var difficulty in Difficulties.Values)
+            {
+                totalFirstTick = Math.Min(difficulty.GetFirstTick(), totalFirstTick);
+            }
+
+            return totalFirstTick;
+        }
+
+        public uint GetLastTick()
+        {
+            uint totalLastTick = 0;
+            foreach (var difficulty in Difficulties.Values)
+            {
+                totalLastTick = Math.Max(difficulty.GetLastTick(), totalLastTick);
+            }
+
+            return totalLastTick;
         }
     }
 }

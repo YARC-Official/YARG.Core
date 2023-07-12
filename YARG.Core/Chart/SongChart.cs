@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using Melanchall.DryWetMidi.Core;
 
 namespace YARG.Core.Chart
@@ -160,6 +162,50 @@ namespace YARG.Core.Chart
             ISongLoader loader = new MoonSongLoader();
             loader.LoadDotChart(chartText);
             return new SongChart(metadata, loader);
+        }
+
+        public uint GetFirstTick()
+        {
+            static uint TrackMin<TNote>(IEnumerable<InstrumentTrack<TNote>> tracks) where TNote : Note<TNote>
+                => tracks.Min((track) => track.GetFirstTick());
+            static uint VoxMin(IEnumerable<VocalsTrack> tracks)
+                => tracks.Min((track) => track.GetFirstTick());
+
+            uint totalFirstTick = 0;
+
+            // Tracks
+            totalFirstTick = Math.Min(TrackMin(FiveFretTracks), totalFirstTick);
+            totalFirstTick = Math.Min(TrackMin(SixFretTracks), totalFirstTick);
+            totalFirstTick = Math.Min(TrackMin(DrumsTracks), totalFirstTick);
+            totalFirstTick = Math.Min(TrackMin(ProGuitarTracks), totalFirstTick);
+            totalFirstTick = Math.Min(VoxMin(VocalsTracks), totalFirstTick);
+
+            // Global
+            totalFirstTick = Math.Min(GlobalEvents.GetFirstTick(), totalFirstTick);
+
+            return totalFirstTick;
+        }
+
+        public uint GetLastTick()
+        {
+            static uint TrackMax<TNote>(IEnumerable<InstrumentTrack<TNote>> tracks) where TNote : Note<TNote>
+                => tracks.Max((track) => track.GetLastTick());
+            static uint VoxMax(IEnumerable<VocalsTrack> tracks)
+                => tracks.Max((track) => track.GetLastTick());
+
+            uint totalLastTick = 0;
+
+            // Tracks
+            totalLastTick = Math.Max(TrackMax(FiveFretTracks), totalLastTick);
+            totalLastTick = Math.Max(TrackMax(SixFretTracks), totalLastTick);
+            totalLastTick = Math.Max(TrackMax(DrumsTracks), totalLastTick);
+            totalLastTick = Math.Max(TrackMax(ProGuitarTracks), totalLastTick);
+            totalLastTick = Math.Max(VoxMax(VocalsTracks), totalLastTick);
+
+            // Global
+            totalLastTick = Math.Max(GlobalEvents.GetLastTick(), totalLastTick);
+
+            return totalLastTick;
         }
     }
 }

@@ -36,6 +36,18 @@ namespace YARG.Core.Chart
             Notes = notes;
             Lyrics = lyrics;
         }
+
+        public uint GetFirstTick()
+        {
+            // Events inside a phrase cannot exceed its bounds 
+            return Bounds.Tick;
+        }
+
+        public uint GetLastTick()
+        {
+            // Events inside a phrase cannot exceed its bounds 
+            return Bounds.TickEnd;
+        }
     }
 
     public enum VocalsPhraseType

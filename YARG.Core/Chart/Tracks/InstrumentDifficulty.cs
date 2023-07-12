@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 
@@ -52,6 +53,28 @@ namespace YARG.Core.Chart
                         continue;
                 }
             }
+        }
+
+        public uint GetFirstTick()
+        {
+            uint totalFirstTick = 0;
+
+            totalFirstTick = Math.Min(Notes.GetFirstTick(), totalFirstTick);
+            totalFirstTick = Math.Min(Phrases.GetFirstTick(), totalFirstTick);
+            totalFirstTick = Math.Min(TextEvents.GetFirstTick(), totalFirstTick);
+
+            return totalFirstTick;
+        }
+
+        public uint GetLastTick()
+        {
+            uint totalLastTick = 0;
+
+            totalLastTick = Math.Max(Notes.GetLastTick(), totalLastTick);
+            totalLastTick = Math.Max(Phrases.GetLastTick(), totalLastTick);
+            totalLastTick = Math.Max(TextEvents.GetLastTick(), totalLastTick);
+
+            return totalLastTick;
         }
     }
 }
