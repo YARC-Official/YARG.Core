@@ -19,6 +19,9 @@ namespace YARG.Core.Chart
             Resolution = resolution;
             Tempos = tempos;
             TimeSignatures = timeSignatures;
+
+            Tempos.Sort((x, y) => x.Tick.CompareTo(y.Tick));
+            TimeSignatures.Sort((x, y) => x.Tick.CompareTo(y.Tick));
         }
 
         public List<Beatline> GenerateBeatlines()
@@ -95,6 +98,16 @@ namespace YARG.Core.Chart
                 }
                 while (currentTick < endTick);
             }
+        }
+
+        public TimeSignatureChange GetPrevTimeSignature(uint tick)
+        {
+            return TimeSignatures.GetPrevious(tick);
+        }
+
+        public TempoChange GetPrevTempoChange(uint tick)
+        {
+            return Tempos.GetPrevious(tick);
         }
 
         public double TickToTime(uint tick)
