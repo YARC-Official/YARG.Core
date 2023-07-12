@@ -8,6 +8,8 @@ namespace YARG.Core.Chart
     /// </summary>
     public class SongChart
     {
+        public SongMetadata Metadata { get; set; }
+
         public List<TextEvent> GlobalEvents { get; set; } = new();
         public List<SyncEvent> SyncTrack { get; set; } = new();
 
@@ -45,8 +47,11 @@ namespace YARG.Core.Chart
         // To explicitly allow creation without going through a file
         public SongChart() { }
 
-        internal SongChart(ISongLoader loader)
+        internal SongChart(SongMetadata metadata, ISongLoader loader)
         {
+            loader.CompleteMetadata(metadata);
+            Metadata = metadata;
+
             GlobalEvents = loader.LoadGlobalEvents();
             SyncTrack = loader.LoadSyncTrack();
 
@@ -80,25 +85,25 @@ namespace YARG.Core.Chart
             // Dj = loader.LoadDjTrack(Instrument.Dj);
         }
 
-        public static SongChart FromFile(string filePath)
+        public static SongChart FromFile(SongMetadata metadata, string filePath)
         {
             ISongLoader loader = new MoonSongLoader();
             loader.LoadSong(filePath);
-            return new SongChart(loader);
+            return new SongChart(metadata, loader);
         }
 
-        public static SongChart FromMidi(MidiFile midi)
+        public static SongChart FromMidi(SongMetadata metadata, MidiFile midi)
         {
             ISongLoader loader = new MoonSongLoader();
             loader.LoadMidi(midi);
-            return new SongChart(loader);
+            return new SongChart(metadata, loader);
         }
 
-        public static SongChart FromDotChart(string chartText)
+        public static SongChart FromDotChart(SongMetadata metadata, string chartText)
         {
             ISongLoader loader = new MoonSongLoader();
             loader.LoadDotChart(chartText);
-            return new SongChart(loader);
+            return new SongChart(metadata, loader);
         }
     }
 }
