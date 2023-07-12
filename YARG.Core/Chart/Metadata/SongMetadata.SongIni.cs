@@ -24,6 +24,12 @@ namespace YARG.Core.Chart
             AllowDecimals = false,
         };
 
+        // Putting this here for now so I can bypass creating this class properly because I have no idea what I'm supposed to do with it
+        public SongMetadata()
+        {
+
+        }
+
         private SongMetadata(IniSection section)
         {
             Name = section.GetField("name");
