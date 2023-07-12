@@ -21,28 +21,80 @@ namespace YARG.Core.Chart
         public InstrumentTrack<GuitarNote> FiveFretBass { get; set; } = new(Instrument.FiveFretBass);
         public InstrumentTrack<GuitarNote> Keys { get; set; } = new(Instrument.Keys);
 
+        public IEnumerable<InstrumentTrack<GuitarNote>> FiveFretTracks
+        {
+            get
+            {
+                yield return FiveFretGuitar;
+                yield return FiveFretCoop;
+                yield return FiveFretRhythm;
+                yield return FiveFretBass;
+                yield return Keys;
+            }
+        }
+
         // Not supported yet
         public InstrumentTrack<GuitarNote> SixFretGuitar { get; set; } = new(Instrument.SixFretGuitar);
         public InstrumentTrack<GuitarNote> SixFretCoop { get; set; } = new(Instrument.SixFretCoopGuitar);
         public InstrumentTrack<GuitarNote> SixFretRhythm { get; set; } = new(Instrument.SixFretRhythm);
         public InstrumentTrack<GuitarNote> SixFretBass { get; set; } = new(Instrument.SixFretBass);
 
+        public IEnumerable<InstrumentTrack<GuitarNote>> SixFretTracks
+        {
+            get
+            {
+                yield return SixFretGuitar;
+                yield return SixFretCoop;
+                yield return SixFretRhythm;
+                yield return SixFretBass;
+            }
+        }
+
         public InstrumentTrack<DrumNote> FourLaneDrums { get; set; } = new(Instrument.FourLaneDrums);
         public InstrumentTrack<DrumNote> ProDrums { get; set; } = new(Instrument.ProDrums);
-
         public InstrumentTrack<DrumNote> FiveLaneDrums { get; set; } = new(Instrument.FiveLaneDrums);
 
         // public InstrumentTrack<DrumNote> TrueDrums { get; set; } = new(Instrument.TrueDrums);
+
+        public IEnumerable<InstrumentTrack<DrumNote>> DrumsTracks
+        {
+            get
+            {
+                yield return FourLaneDrums;
+                yield return ProDrums;
+                yield return FiveLaneDrums;
+            }
+        }
 
         public InstrumentTrack<ProGuitarNote> ProGuitar_17Fret { get; set; } = new(Instrument.ProGuitar_17Fret);
         public InstrumentTrack<ProGuitarNote> ProGuitar_22Fret { get; set; } = new(Instrument.ProGuitar_22Fret);
         public InstrumentTrack<ProGuitarNote> ProBass_17Fret { get; set; } = new(Instrument.ProBass_17Fret);
         public InstrumentTrack<ProGuitarNote> ProBass_22Fret { get; set; } = new(Instrument.ProBass_22Fret);
 
+        public IEnumerable<InstrumentTrack<ProGuitarNote>> ProGuitarTracks
+        {
+            get
+            {
+                yield return ProGuitar_17Fret;
+                yield return ProGuitar_22Fret;
+                yield return ProBass_17Fret;
+                yield return ProBass_22Fret;
+            }
+        }
+
         // public InstrumentTrack<ProKeysNote> ProKeys { get; set; } = new(Instrument.ProKeys);
 
         public VocalsTrack Vocals { get; set; } = new(Instrument.Vocals);
         public VocalsTrack Harmony { get; set; } = new(Instrument.Harmony);
+
+        public IEnumerable<VocalsTrack> VocalsTracks
+        {
+            get
+            {
+                yield return Vocals;
+                yield return Harmony;
+            }
+        }
 
         // public InstrumentTrack<DjNote> Dj { get; set; } = new(Instrument.Dj);
 
