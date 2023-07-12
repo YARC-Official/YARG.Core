@@ -41,13 +41,14 @@ namespace YARG.Core.Engine
         public NoteHitEvent OnNoteHit;
         public NoteMissedEvent OnNoteMissed;
 
-        protected double LastUpdateTime;
+        public readonly TEngineStats EngineStats;
 
         protected readonly Queue<GameInput> InputQueue;
 
         protected readonly List<TNoteType> Notes;
         protected readonly TEngineParams EngineParameters;
-        protected readonly TEngineStats EngineStats;
+
+        protected double LastUpdateTime;
 
         protected TEngineState State;
 

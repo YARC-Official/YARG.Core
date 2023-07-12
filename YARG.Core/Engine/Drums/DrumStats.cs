@@ -2,6 +2,15 @@
 {
     public class DrumStats : BaseStats
     {
-        
+
+        public DrumStats()
+        {
+        }
+
+        public DrumStats(DrumStats stats) : base(stats)
+        {
+
+        }
+
     }
 }

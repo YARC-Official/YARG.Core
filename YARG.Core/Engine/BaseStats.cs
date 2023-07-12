@@ -22,6 +22,20 @@
         {
         }
 
+        protected BaseStats(BaseStats stats)
+        {
+            Score = stats.Score;
+            Combo = stats.Combo;
+            MaxCombo = stats.MaxCombo;
+            ScoreMultiplier = stats.ScoreMultiplier;
+            NotesHit = stats.NotesHit;
+            NotesMissed = stats.NotesMissed;
+            StarPowerAmount = stats.StarPowerAmount;
+            IsStarPowerActive = stats.IsStarPowerActive;
+            PhrasesHit = stats.PhrasesHit;
+            PhrasesMissed = stats.PhrasesMissed;
+        }
+
         protected BaseStats(int score, int combo, int maxCombo, int scoreMultiplier, int notesHit, int notesMissed,
             double starPowerAmount, bool isStarPowerActive, int phrasesHit)
         {
