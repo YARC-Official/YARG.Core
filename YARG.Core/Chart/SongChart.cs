@@ -10,7 +10,7 @@ namespace YARG.Core.Chart
     /// </summary>
     public class SongChart
     {
-        public uint Resolution { get; set; } = 480;
+        public uint Resolution => SyncTrack.Resolution;
 
         public SongMetadata Metadata { get; set; }
 
@@ -107,8 +107,6 @@ namespace YARG.Core.Chart
         {
             loader.CompleteMetadata(metadata);
             Metadata = metadata;
-
-            Resolution = loader.Resolution;
 
             GlobalEvents = loader.LoadGlobalEvents();
             SyncTrack = loader.LoadSyncTrack();

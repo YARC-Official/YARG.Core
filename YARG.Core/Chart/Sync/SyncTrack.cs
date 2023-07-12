@@ -8,13 +8,15 @@ namespace YARG.Core.Chart
     /// </summary>
     public class SyncTrack
     {
+        public uint Resolution { get; } = 480;
         public List<TempoChange> Tempos { get; } = new();
         public List<TimeSignatureChange> TimeSignatures { get; } = new();
 
         public SyncTrack() { }
 
-        public SyncTrack(List<TempoChange> tempos, List<TimeSignatureChange> timeSignatures)
+        public SyncTrack(uint resolution, List<TempoChange> tempos, List<TimeSignatureChange> timeSignatures)
         {
+            Resolution = resolution;
             Tempos = tempos;
             TimeSignatures = timeSignatures;
         }

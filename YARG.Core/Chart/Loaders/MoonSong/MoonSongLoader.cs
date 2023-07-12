@@ -19,8 +19,6 @@ namespace YARG.Core.Chart
 
         private MoonSong _moonSong;
 
-        public uint Resolution => (uint) _moonSong.resolution;
-
         public void LoadSong(string filePath)
         {
             _moonSong = Path.GetExtension(filePath).ToLower() switch
@@ -110,7 +108,7 @@ namespace YARG.Core.Chart
                 timeSigs.Add(timeSig);
             }
 
-            return new(tempos, timeSigs);
+            return new((uint) _moonSong.resolution, tempos, timeSigs);
         }
 
         private InstrumentDifficulty<TNote> LoadDifficulty<TNote>(Instrument instrument, Difficulty difficulty,
