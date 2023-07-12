@@ -3,6 +3,7 @@ using System.IO;
 using YARG.Core.Engine;
 using YARG.Core.Engine.Drums;
 using YARG.Core.Engine.Guitar;
+using YARG.Core.Input;
 
 namespace YARG.Core.Replays.IO.Versions
 {
@@ -63,6 +64,14 @@ namespace YARG.Core.Replays.IO.Versions
             writer.Write((int) frame.Difficulty);
 
             WriteInstrumentFrame(writer, frame);
+
+            writer.Write(frame.InputCount);
+            for (int i = 0; i < frame.InputCount; i++)
+            {
+                writer.Write(frame.Inputs[i].Time);
+                writer.Write(frame.Inputs[i].Action);
+                writer.Write(frame.Inputs[i].Integer);
+            }
         }
 
         protected override ReplayReadResult ReadFrame(BinaryReader reader, out ReplayFrame frame)
@@ -71,6 +80,7 @@ namespace YARG.Core.Replays.IO.Versions
             string playerName = reader.ReadString();
             var instrument = (Instrument) reader.ReadInt32();
             var difficulty = (Difficulty) reader.ReadInt32();
+
 
             switch (instrument.ToGameMode())
             {
@@ -94,6 +104,18 @@ namespace YARG.Core.Replays.IO.Versions
             frame.Difficulty = difficulty;
 
             ReadInstrumentFrame(reader, frame);
+
+            int inputCount = reader.ReadInt32();
+            frame.InputCount = inputCount;
+            frame.Inputs = new GameInput[inputCount];
+
+            for(int i = 0; i < inputCount; i++)
+            {
+                double time = reader.ReadDouble();
+                int action = reader.ReadInt32();
+                int value = reader.ReadInt32();
+                frame.Inputs[i] = new GameInput(time, action, value);
+            }
 
             return ReplayReadResult.Valid;
         }
