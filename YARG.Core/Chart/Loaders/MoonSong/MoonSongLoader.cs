@@ -92,23 +92,25 @@ namespace YARG.Core.Chart
             return textEvents;
         }
 
-        public List<SyncEvent> LoadSyncTrack()
+        public SyncTrack LoadSyncTrack()
         {
-            var syncTrack = new List<SyncEvent>(_moonSong.syncTrack.Count);
-            foreach (var moonSync in _moonSong.syncTrack)
+            var tempos = new List<TempoChange>(_moonSong.bpms.Count);
+            var timeSigs = new List<TimeSignatureChange>(_moonSong.timeSignatures.Count);
+
+            foreach (var moonBpm in _moonSong.bpms)
             {
-                if (moonSync is BPM bpm)
-                {
-                    var newSync = new TempoChange(bpm.displayValue, moonSync.time, moonSync.tick);
-                    syncTrack.Add(newSync);
-                } else if (moonSync is TimeSignature timeSig)
-                {
-                    var newSync = new TimeSignatureChange(timeSig.numerator, timeSig.denominator, moonSync.time, moonSync.tick);
-                    syncTrack.Add(newSync);
-                }
+                var tempo = new TempoChange(moonBpm.displayValue, moonBpm.time, moonBpm.tick);
+                tempos.Add(tempo);
             }
 
-            return syncTrack;
+            foreach (var moonTimeSig in _moonSong.timeSignatures)
+            {
+                var timeSig = new TimeSignatureChange(moonTimeSig.numerator, moonTimeSig.denominator,
+                    moonTimeSig.time, moonTimeSig.tick);
+                timeSigs.Add(timeSig);
+            }
+
+            return new(tempos, timeSigs);
         }
 
         private InstrumentDifficulty<TNote> LoadDifficulty<TNote>(Instrument instrument, Difficulty difficulty,

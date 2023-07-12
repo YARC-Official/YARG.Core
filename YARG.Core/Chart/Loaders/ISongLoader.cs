@@ -17,7 +17,7 @@ namespace YARG.Core.Chart
         void CompleteMetadata(SongMetadata metadata);
 
         List<TextEvent> LoadGlobalEvents();
-        List<SyncEvent> LoadSyncTrack();
+        SyncTrack LoadSyncTrack();
 
         InstrumentTrack<GuitarNote> LoadGuitarTrack(Instrument instrument);
         InstrumentTrack<ProGuitarNote> LoadProGuitarTrack(Instrument instrument);

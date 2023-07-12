@@ -15,7 +15,7 @@ namespace YARG.Core.Chart
         public SongMetadata Metadata { get; set; }
 
         public List<TextEvent> GlobalEvents { get; set; } = new();
-        public List<SyncEvent> SyncTrack { get; set; } = new();
+        public SyncTrack SyncTrack { get; set; } = new();
 
         public InstrumentTrack<GuitarNote> FiveFretGuitar { get; set; } = new(Instrument.FiveFretGuitar);
         public InstrumentTrack<GuitarNote> FiveFretCoop { get; set; } = new(Instrument.FiveFretCoopGuitar);
