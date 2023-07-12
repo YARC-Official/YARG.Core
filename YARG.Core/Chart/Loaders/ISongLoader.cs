@@ -8,6 +8,8 @@ namespace YARG.Core.Chart
     /// </summary>
     internal interface ISongLoader
     {
+        uint Resolution { get; }
+
         void LoadSong(string filePath);
         void LoadMidi(MidiFile midi);
         void LoadDotChart(string chartText);

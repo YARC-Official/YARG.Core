@@ -8,6 +8,8 @@ namespace YARG.Core.Chart
     /// </summary>
     public class SongChart
     {
+        public uint Resolution { get; set; } = 480;
+
         public SongMetadata Metadata { get; set; }
 
         public List<TextEvent> GlobalEvents { get; set; } = new();
@@ -51,6 +53,8 @@ namespace YARG.Core.Chart
         {
             loader.CompleteMetadata(metadata);
             Metadata = metadata;
+
+            Resolution = loader.Resolution;
 
             GlobalEvents = loader.LoadGlobalEvents();
             SyncTrack = loader.LoadSyncTrack();

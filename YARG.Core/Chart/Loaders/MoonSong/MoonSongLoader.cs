@@ -19,6 +19,8 @@ namespace YARG.Core.Chart
 
         private MoonSong _moonSong;
 
+        public uint Resolution => (uint) _moonSong.resolution;
+
         public void LoadSong(string filePath)
         {
             _moonSong = Path.GetExtension(filePath).ToLower() switch
