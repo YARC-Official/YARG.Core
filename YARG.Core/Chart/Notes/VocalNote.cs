@@ -103,10 +103,7 @@ namespace YARG.Core.Chart
                         return secondNote.Pitch;
 
                     // Time is between the two pitches, lerp them
-                    double lerpStart = firstNote.TimeEnd;
-                    double lerpEnd = secondNote.Time - lerpStart;
-                    float lerpAmount = (float) ((time - lerpStart) / lerpEnd);
-                    return firstNote.Pitch + (secondNote.Pitch - firstNote.Pitch) * lerpAmount;
+                    return YargMath.Lerp(firstNote.Pitch, secondNote.Pitch, firstNote.TimeEnd, secondNote.Time, time);
                 }
 
                 firstNote = secondNote;
