@@ -21,6 +21,82 @@ namespace YARG.Core.Chart
             TimeSignatures = timeSignatures;
         }
 
+        public List<Beatline> GenerateBeatlines()
+        {
+            uint lastTick = GetLastTick();
+
+            var beatlines = new List<Beatline>((int) (lastTick / Resolution));
+
+            // List indexes
+            int tempoIndex = 0;
+            int timeSigIndex = 0;
+
+            // Iterate through all of the time signatures
+            var currentTimeSig = TimeSignatures[timeSigIndex++];
+            for (; timeSigIndex < TimeSignatures.Count; timeSigIndex++)
+            {
+                var nextTimeSig = TimeSignatures[timeSigIndex];
+
+                // Determine bounds
+                uint startTick = currentTimeSig.Tick;
+                uint endTick = nextTimeSig.Tick;
+
+                // Generate beatlines for this time signature
+                GenerateBeatsForTimeSignature(currentTimeSig, startTick, endTick);
+                currentTimeSig = nextTimeSig;
+            }
+
+            // Final time signature
+            GenerateBeatsForTimeSignature(currentTimeSig, currentTimeSig.Tick, lastTick);
+
+            beatlines.TrimExcess();
+            return beatlines;
+
+            void GenerateBeatsForTimeSignature(TimeSignatureChange currentTimeSig, uint startTick, uint endTick)
+            {
+                uint beatlineTickRate = (Resolution * 4) / currentTimeSig.Denominator;
+
+                uint beatlineCount = 0;
+                uint currentTick = startTick;
+                var currentTempo = Tempos[tempoIndex];
+                do // Always generate at least 1 beatline on a new time signature
+                {
+                    // Progress to current tempo
+                    while (tempoIndex < Tempos.Count - 1)
+                    {
+                        var nextTempo = Tempos[tempoIndex + 1];
+                        if (nextTempo.Tick > currentTick)
+                            break;
+
+                        currentTempo = nextTempo;
+                        tempoIndex++;
+                    }
+
+                    // Determine beatline type
+                    BeatlineType beatlineType;
+                    if ((beatlineCount % currentTimeSig.Numerator) == 0)
+                    {
+                        beatlineType = BeatlineType.Measure;
+                    }
+                    else
+                    {
+                        beatlineType = BeatlineType.Strong;
+                    }
+
+                    // TODO:
+                    // - In-between lines for denominators <= 4?
+                    // - Do we still want the behavior that the old code has for 1/x time signatures?
+
+                    // Create beatline
+                    double time = TickToTime(currentTick, currentTempo);
+                    beatlines.Add(new Beatline(beatlineType, time, currentTick));
+                    beatlineCount++;
+                    currentTick += beatlineTickRate;
+                }
+                while (currentTick < endTick);
+            }
+        }
+
         public double TickToTime(uint tick)
         {
             // Find the current tempo marker at the given tick
