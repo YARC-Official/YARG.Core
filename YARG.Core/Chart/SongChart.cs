@@ -162,6 +162,46 @@ namespace YARG.Core.Chart
             return new SongChart(metadata, loader);
         }
 
+        public double TickToTime(uint tick)
+        {
+            return SyncTrack.TickToTime(tick);
+        }
+
+        public uint TimeToTick(double time)
+        {
+            return SyncTrack.TimeToTick(time);
+        }
+
+        public double TickToTime(uint tick, TempoChange currentTempo)
+        {
+            return SyncTrack.TickToTime(tick, currentTempo);
+        }
+
+        public uint TimeToTick(double time, TempoChange currentTempo)
+        {
+            return SyncTrack.TimeToTick(time, currentTempo);
+        }
+
+        public double TickRangeToTimeDelta(uint tickStart, uint tickEnd, float currentBpm)
+        {
+            return SyncTrack.TickRangeToTimeDelta(tickStart, tickEnd, currentBpm);
+        }
+
+        public uint TimeRangeToTickDelta(double timeStart, double timeEnd, float currentBpm)
+        {
+            return SyncTrack.TimeRangeToTickDelta(timeStart, timeEnd, currentBpm);
+        }
+
+        public static double TickRangeToTimeDelta(uint tickStart, uint tickEnd, uint resolution, float currentBpm)
+        {
+            return SyncTrack.TickRangeToTimeDelta(tickStart, tickEnd, resolution, currentBpm);
+        }
+
+        public static uint TimeRangeToTickDelta(double timeStart, double timeEnd, uint resolution, float currentBpm)
+        {
+            return SyncTrack.TimeRangeToTickDelta(timeStart, timeEnd, resolution, currentBpm);
+        }
+
         public uint GetFirstTick()
         {
             static uint TrackMin<TNote>(IEnumerable<InstrumentTrack<TNote>> tracks) where TNote : Note<TNote>
