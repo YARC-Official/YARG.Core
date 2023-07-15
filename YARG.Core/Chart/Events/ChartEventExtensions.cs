@@ -7,6 +7,11 @@ namespace YARG.Core.Chart
         public static uint GetFirstTick<TEvent>(this IList<TEvent> list)
             where TEvent : ChartEvent
         {
+            if(list.Count == 0)
+            {
+                return 0;
+            }
+
             // Chart events are sorted
             var chartEvent = list[0];
             return chartEvent.Tick;
@@ -15,6 +20,11 @@ namespace YARG.Core.Chart
         public static uint GetLastTick<TEvent>(this IList<TEvent> list)
             where TEvent : ChartEvent
         {
+            if(list.Count == 0)
+            {
+                return 0;
+            }
+
             // Chart events are sorted
             var chartEvent = list[^1];
             return chartEvent.TickEnd;
@@ -59,14 +69,16 @@ namespace YARG.Core.Chart
             // Binary search
             int low = 0;
             int high = events.Count - 1;
+            int index = -1;
 
             while (low <= high)
             {
                 int mid = (low + high) / 2;
+                index = mid;
 
                 if (events[mid].Tick == position)
                 {
-                    return mid;
+                    return index;
                 }
 
                 if (events[mid].Tick < position)
@@ -79,7 +91,7 @@ namespace YARG.Core.Chart
                 }
             }
 
-            return -1;
+            return index;
         }
     }
 }
