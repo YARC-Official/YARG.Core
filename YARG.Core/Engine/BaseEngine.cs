@@ -5,65 +5,21 @@ using YARG.Core.Input;
 
 namespace YARG.Core.Engine
 {
-
     // This is a hack lol
     public abstract class BaseEngine
     {
-
-        /// <summary>
-        /// Updates the engine and processes all inputs currently queued.
-        /// </summary>
-        public abstract void UpdateEngine();
-
-        /// <summary>
-        /// Updates the engine with no input processing.
-        /// </summary>
-        /// <param name="time">The time to simulate hit logic at.</param>
-        public abstract void UpdateEngine(double time);
-
-    }
-
-    public abstract class BaseEngine<TNoteType, TActionType, TEngineParams, TEngineStats, TEngineState> : BaseEngine
-        where TNoteType : Note<TNoteType>
-        where TActionType : unmanaged, Enum
-        where TEngineParams : BaseEngineParameters
-        where TEngineStats : BaseStats, new()
-        where TEngineState : BaseEngineState, new()
-    {
-        protected const int POINTS_PER_NOTE = 50;
-        protected const int POINTS_PER_BEAT = 25;
-
-        protected const double STAR_POWER_PHRASE_AMOUNT = 0.25;
-
-        public delegate void NoteHitEvent(int noteIndex, TNoteType note);
-        public delegate void NoteMissedEvent(int noteIndex, TNoteType note);
-
-        public NoteHitEvent OnNoteHit;
-        public NoteMissedEvent OnNoteMissed;
-
-        public readonly TEngineStats EngineStats;
-
-        protected readonly Queue<GameInput> InputQueue;
-
-        protected readonly List<TNoteType> Notes;
-        protected readonly TEngineParams EngineParameters;
-
-        protected double LastUpdateTime;
-
-        protected TEngineState State;
-
-        protected GameInput CurrentInput;
+        public bool IsInputQueued => InputQueue.Count > 0;
 
         protected bool IsInputUpdate { get; private set; }
 
-        protected BaseEngine(List<TNoteType> notes, TEngineParams engineParameters)
+        protected readonly Queue<GameInput> InputQueue;
+
+        protected GameInput CurrentInput;
+
+        protected double LastUpdateTime;
+
+        protected BaseEngine()
         {
-            Notes = notes;
-            EngineParameters = engineParameters;
-
-            EngineStats = new TEngineStats();
-            State = new TEngineState();
-
             InputQueue = new Queue<GameInput>();
         }
 
@@ -76,20 +32,25 @@ namespace YARG.Core.Engine
             InputQueue.Enqueue(input);
         }
 
-        public override void UpdateEngine()
+        /// <summary>
+        /// Updates the engine and processes all inputs currently queued.
+        /// </summary>
+        public void UpdateEngine()
         {
-            if (InputQueue.Count > 0)
+            if (!IsInputQueued)
             {
-                IsInputUpdate = true;
-                ProcessInputs();
+                return;
             }
+
+            IsInputUpdate = true;
+            ProcessInputs();
         }
 
         /// <summary>
         /// Updates the engine with no input processing.
         /// </summary>
         /// <param name="time">The time to simulate hit logic at.</param>
-        public override void UpdateEngine(double time)
+        public void UpdateEngine(double time)
         {
             IsInputUpdate = false;
             UpdateHitLogic(time);
@@ -106,6 +67,42 @@ namespace YARG.Core.Engine
         /// <param name="time">The time in which to simulate hit logic at.</param>
         /// <returns>True if a note was updated (hit or missed). False if no changes.</returns>
         protected abstract bool UpdateHitLogic(double time);
+    }
+
+    public abstract class BaseEngine<TNoteType, TActionType, TEngineParams, TEngineStats, TEngineState> : BaseEngine
+        where TNoteType : Note<TNoteType>
+        where TActionType : unmanaged, Enum
+        where TEngineParams : BaseEngineParameters
+        where TEngineStats : BaseStats, new()
+        where TEngineState : BaseEngineState, new()
+    {
+        protected const int POINTS_PER_NOTE = 50;
+        protected const int POINTS_PER_BEAT = 25;
+
+        protected const double STAR_POWER_PHRASE_AMOUNT = 0.25;
+
+        public delegate void NoteHitEvent(int noteIndex, TNoteType note);
+
+        public delegate void NoteMissedEvent(int noteIndex, TNoteType note);
+
+        public NoteHitEvent    OnNoteHit;
+        public NoteMissedEvent OnNoteMissed;
+
+        public readonly TEngineStats EngineStats;
+
+        protected readonly List<TNoteType> Notes;
+        protected readonly TEngineParams   EngineParameters;
+
+        protected TEngineState State;
+
+        protected BaseEngine(List<TNoteType> notes, TEngineParams engineParameters)
+        {
+            Notes = notes;
+            EngineParameters = engineParameters;
+
+            EngineStats = new TEngineStats();
+            State = new TEngineState();
+        }
 
         /// <summary>
         /// Checks if the given note can be hit with the current input state.
