@@ -7,10 +7,9 @@ namespace YARG.Core.Engine.Guitar.Engines
 {
     public class YargFiveFretEngine : GuitarEngine
     {
-
-        public YargFiveFretEngine(List<GuitarNote> notes, GuitarEngineParameters engineParameters) : base(notes, engineParameters)
+        public YargFiveFretEngine(List<GuitarNote> notes, GuitarEngineParameters engineParameters) : base(notes,
+            engineParameters)
         {
-
         }
 
         protected override void ProcessInputs()
@@ -27,18 +26,74 @@ namespace YARG.Core.Engine.Guitar.Engines
             double delta = time - LastUpdateTime;
 
             State.StrummedThisUpdate = IsInputUpdate && IsStrumInput(CurrentInput);
+            if (IsFretInput(CurrentInput))
+            {
+                ToggleFret(CurrentInput.Action, CurrentInput.Button);
+            }
 
             UpdateTimers(delta);
+            var note = Notes[State.NoteIndex];
 
-            // remove later
-            return true;
+            if (note.WasHit || note.WasMissed)
+            {
+                return false;
+            }
+
+            if (time < note.Time + EngineParameters.FrontEnd)
+            {
+                return false;
+            }
+
+            if (time > note.Time + EngineParameters.BackEnd && !note.WasHit)
+            {
+                MissNote(note);
+                return true;
+            }
+
+            if (!CanNoteBeHit(note))
+            {
+                if (EngineStats.Combo != 0)
+                {
+                    return false;
+                }
+
+                var next = note.NextNote;
+                while (next is not null)
+                {
+                    if (time < next.Time + EngineParameters.FrontEnd)
+                    {
+                        return false;
+                    }
+
+                    // Don't need to check back end because if we're here then the previous note was not out of time
+
+                    if (CanNoteBeHit(next) && (State.StrummedThisUpdate || State.StrumLeniencyTimer > 0f || note.IsTap))
+                    {
+                        HitNote(next);
+                        return true;
+                    }
+
+                    next = next.NextNote;
+                }
+
+                return false;
+            }
+
+            if (State.StrummedThisUpdate || State.StrumLeniencyTimer > 0f || note.IsTap ||
+                (note.IsHopo && EngineStats.Combo > 0))
+            {
+                HitNote(note);
+                return true;
+            }
+
+            return false;
         }
 
         protected void UpdateTimers(double delta)
         {
             // If engine was invoked with an input update and the input is a fret
             // or: Did not strum at all
-            if (State.StrummedThisUpdate || !IsInputUpdate)
+            if (!State.StrummedThisUpdate && IsInputUpdate)
             {
                 // Hopo leniency active and strum leniency active so hopo was strummed
                 if (State.HopoLeniencyTimer > 0)
@@ -57,7 +112,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                         }
                         else
                         {
-                            // Overstrum in here
+                            Overstrum();
                         }
 
                         State.WasHopoStrummed = false;
@@ -68,19 +123,63 @@ namespace YARG.Core.Engine.Guitar.Engines
                 {
                     State.HopoLeniencyTimer -= delta;
                 }
+            } else if (State.StrummedThisUpdate)
+            {
+                if (State.HopoLeniencyTimer > 0)
+                {
+                    State.StrumLeniencyTimer = 0;
+                }
+                else
+                {
+                    // Strummed while strum leniency is already active, so double/triple strum
+                    if (State.StrumLeniencyTimer > 0)
+                    {
+                        Overstrum();
+                    }
+
+                    State.StrumLeniencyTimer = EngineParameters.StrumLeniency;
+                    State.WasHopoStrummed = false;
+                }
             }
         }
 
         protected override bool CanNoteBeHit(GuitarNote note)
         {
-            throw new System.NotImplementedException();
+            // If open, must not hold any frets
+            if (note.NoteMask == 0 && State.ButtonMask != 0)
+            {
+                return false;
+            }
+
+            // If holding exact note mask, can hit
+            if (State.ButtonMask == note.NoteMask)
+            {
+                return true;
+            }
+
+            // Anchoring
+
+            // XORing the two masks will give the anchor around the note.
+            int anchorButtons = State.ButtonMask ^ note.NoteMask;
+
+            // Strum chord (cannot anchor)
+            if (note.IsChord && note.IsStrum)
+            {
+                // Buttons must match note mask exactly for strum chords
+                return State.ButtonMask == note.NoteMask;
+            }
+
+            // Anchoring single notes or hopo/tap chords
+
+            // Anchor buttons held are lower than the note mask
+            return anchorButtons < note.NoteMask;
         }
 
         protected override void HitNote(GuitarNote note)
         {
             if (note.IsHopo || note.IsTap)
             {
-                if(EngineStats.Combo > 0 && State.StrumLeniencyTimer > 0)
+                if (EngineStats.Combo > 0 && State.StrumLeniencyTimer > 0)
                 {
                     EngineStats.Combo++;
                     EngineStats.HoposStrummed++;
@@ -108,10 +207,10 @@ namespace YARG.Core.Engine.Guitar.Engines
             return input.GetAction<GuitarAction>() switch
             {
                 GuitarAction.Green or
-                GuitarAction.Red or
-                GuitarAction.Yellow or
-                GuitarAction.Blue or
-                GuitarAction.Orange => true,
+                    GuitarAction.Red or
+                    GuitarAction.Yellow or
+                    GuitarAction.Blue or
+                    GuitarAction.Orange => true,
                 _ => false,
             };
         }
@@ -121,7 +220,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             return input.GetAction<GuitarAction>() switch
             {
                 GuitarAction.StrumUp or
-                GuitarAction.StrumDown => true,
+                    GuitarAction.StrumDown => true,
                 _ => false,
             };
         }

@@ -38,13 +38,16 @@ namespace YARG.Core.Engine.Guitar
                 prevNote = prevNote.PreviousNote;
                 notesSkipped++;
                 EngineStats.NotesMissed++;
+                State.NoteIndex++;
             }
 
             EngineStats.Combo++;
             EngineStats.NotesHit++;
 
-            // Dont know what I'm doing with the note index just yet
-            OnNoteHit?.Invoke(0, note);
+            UpdateMultiplier();
+
+            OnNoteHit?.Invoke(State.NoteIndex, note);
+            State.NoteIndex++;
         }
 
         protected override void MissNote(GuitarNote note)
@@ -54,7 +57,10 @@ namespace YARG.Core.Engine.Guitar
             EngineStats.Combo = 0;
             EngineStats.NotesMissed++;
 
-            OnNoteMissed?.Invoke(0, note);
+            UpdateMultiplier();
+
+            OnNoteMissed?.Invoke(State.NoteIndex, note);
+            State.NoteIndex++;
         }
 
         protected override void UpdateMultiplier()
@@ -71,6 +77,11 @@ namespace YARG.Core.Engine.Guitar
             {
                 EngineStats.ScoreMultiplier *= 2;
             }
+        }
+
+        protected void ToggleFret(int fret, bool active)
+        {
+            State.ButtonMask = (byte)(active ? State.ButtonMask | (1 << fret) : State.ButtonMask & ~(1 << fret));
         }
     }
 }
