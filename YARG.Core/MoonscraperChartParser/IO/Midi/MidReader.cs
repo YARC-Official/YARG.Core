@@ -26,6 +26,13 @@ namespace MoonscraperChartEditor.Song.IO
 
             { MidIOHelper.DRUMS_TRACK,      true },
             { MidIOHelper.DRUMS_REAL_TRACK, false },
+
+            { MidIOHelper.HARMONY_1_TRACK, true },
+            { MidIOHelper.HARMONY_2_TRACK, true },
+            { MidIOHelper.HARMONY_3_TRACK, true },
+            { MidIOHelper.HARMONY_1_TRACK_2, false },
+            { MidIOHelper.HARMONY_2_TRACK_2, false },
+            { MidIOHelper.HARMONY_3_TRACK_2, false },
         };
 
         private static readonly Dictionary<string, bool> ExcludedTracks = new()

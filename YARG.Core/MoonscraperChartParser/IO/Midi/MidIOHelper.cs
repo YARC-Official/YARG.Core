@@ -114,16 +114,20 @@ namespace MoonscraperChartEditor.Song.IO
             { BASS_TRACK,          MoonSong.MoonInstrument.Bass },
             { RHYTHM_TRACK,        MoonSong.MoonInstrument.Rhythm },
             { KEYS_TRACK,          MoonSong.MoonInstrument.Keys },
+
             { DRUMS_TRACK,         MoonSong.MoonInstrument.Drums },
             { DRUMS_REAL_TRACK,    MoonSong.MoonInstrument.Drums },
+
             { GHL_GUITAR_TRACK,    MoonSong.MoonInstrument.GHLiveGuitar },
             { GHL_BASS_TRACK,      MoonSong.MoonInstrument.GHLiveBass },
             { GHL_RHYTHM_TRACK,    MoonSong.MoonInstrument.GHLiveRhythm },
             { GHL_GUITAR_COOP_TRACK, MoonSong.MoonInstrument.GHLiveCoop },
+
             { PRO_GUITAR_17_FRET_TRACK, MoonSong.MoonInstrument.ProGuitar_17Fret },
             { PRO_GUITAR_22_FRET_TRACK, MoonSong.MoonInstrument.ProGuitar_22Fret },
             { PRO_BASS_17_FRET_TRACK,   MoonSong.MoonInstrument.ProBass_17Fret },
             { PRO_BASS_22_FRET_TRACK,   MoonSong.MoonInstrument.ProBass_22Fret },
+
             { VOCALS_TRACK,        MoonSong.MoonInstrument.Vocals },
             { HARMONY_1_TRACK,     MoonSong.MoonInstrument.Harmony1 },
             { HARMONY_2_TRACK,     MoonSong.MoonInstrument.Harmony2 },
