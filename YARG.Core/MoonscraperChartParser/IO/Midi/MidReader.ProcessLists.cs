@@ -213,11 +213,11 @@ namespace MoonscraperChartEditor.Song.IO
         {
             return gameMode switch
             {
-                MoonChart.GameMode.Guitar => GuitarInitialPostProcessList,
-                MoonChart.GameMode.GHLGuitar => GhlGuitarInitialPostProcessList,
-                MoonChart.GameMode.ProGuitar => ProGuitarInitialPostProcessList,
-                MoonChart.GameMode.Drums => DrumsInitialPostProcessList,
-                MoonChart.GameMode.Vocals => VocalsInitialPostProcessList,
+                MoonChart.GameMode.Guitar => new(GuitarInitialPostProcessList),
+                MoonChart.GameMode.GHLGuitar => new(GhlGuitarInitialPostProcessList),
+                MoonChart.GameMode.ProGuitar => new(ProGuitarInitialPostProcessList),
+                MoonChart.GameMode.Drums => new(DrumsInitialPostProcessList),
+                MoonChart.GameMode.Vocals => new(VocalsInitialPostProcessList),
                 _ => throw new NotImplementedException($"No process map for game mode {gameMode}!")
             };
         }

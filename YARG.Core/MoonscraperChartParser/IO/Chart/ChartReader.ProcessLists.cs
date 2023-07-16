@@ -197,9 +197,9 @@ namespace MoonscraperChartEditor.Song.IO
         {
             return gameMode switch
             {
-                MoonChart.GameMode.Guitar => GuitarInitialPostProcessList,
-                MoonChart.GameMode.GHLGuitar => GhlGuitarInitialPostProcessList,
-                MoonChart.GameMode.Drums => DrumsInitialPostProcessList,
+                MoonChart.GameMode.Guitar => new(GuitarInitialPostProcessList),
+                MoonChart.GameMode.GHLGuitar => new(GhlGuitarInitialPostProcessList),
+                MoonChart.GameMode.Drums => new(DrumsInitialPostProcessList),
                 _ => throw new NotImplementedException($"No process list for game mode {gameMode}!")
             };
         }
