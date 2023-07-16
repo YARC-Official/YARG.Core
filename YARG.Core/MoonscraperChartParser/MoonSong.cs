@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2020 Alexander Ong
+﻿// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
 using System;
@@ -55,6 +55,10 @@ namespace MoonscraperChartEditor.Song
         /// Read only list of a song's time signature changes.
         /// </summary>
         public SongObjectCache<TimeSignature> timeSignatures { get; private set; } = new();
+        /// <summary>
+        /// Read only list of a song's beats.
+        /// </summary>
+        public SongObjectCache<Beat> beats { get; private set; } = new();
 
         /// <summary>
         /// Default constructor for a new chart. Initialises all lists and adds locked bpm and timesignature objects.
@@ -287,6 +291,7 @@ namespace MoonscraperChartEditor.Song
             UpdateCacheList(events, _events);
             UpdateCacheList(bpms, _syncTrack);
             UpdateCacheList(timeSignatures, _syncTrack);
+            UpdateCacheList(beats, _syncTrack);
 
             UpdateBPMTimeValues();
         }

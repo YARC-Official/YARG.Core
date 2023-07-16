@@ -91,6 +91,10 @@ namespace MoonscraperChartEditor.Song.IO
         public const byte PRO_GUITAR_CHANNEL_HARMONIC = 5;
         public const byte PRO_GUITAR_CHANNEL_PINCH_HARMONIC = 6;
 
+        // BEAT track notes
+        public const byte BEAT_STRONG = 12;
+        public const byte BEAT_WEAK = 13;
+
         public const string LYRIC_EVENT_PREFIX = ChartIOHelper.LYRIC_EVENT_PREFIX;
         public const string LYRICS_PHRASE_START_TEXT = ChartIOHelper.EVENT_PHRASE_START;
         public const string LYRICS_PHRASE_END_TEXT = ChartIOHelper.EVENT_PHRASE_END;

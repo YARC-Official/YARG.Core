@@ -106,6 +106,7 @@ namespace MoonscraperChartEditor.Song
             TimeSignature,
             BPM,
             Anchor,
+            Beat,
             Event,
             Section,
             Note,

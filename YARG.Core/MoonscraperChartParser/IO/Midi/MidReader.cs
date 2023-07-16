@@ -180,6 +180,37 @@ namespace MoonscraperChartEditor.Song.IO
             song.UpdateCache();
         }
 
+        private static void ReadSongBeats(TrackChunk track, MoonSong song)
+        {
+            if (track.Events.Count < 1)
+                return;
+
+            long absoluteTime = track.Events[0].DeltaTime;
+            for (int i = 1; i < track.Events.Count; i++)
+            {
+                var trackEvent = track.Events[i];
+                absoluteTime += trackEvent.DeltaTime;
+
+                if (trackEvent is NoteEvent note && note.EventType == MidiEventType.NoteOn)
+                {
+                    Beat.Type beatType;
+                    switch ((byte)note.NoteNumber)
+                    {
+                        case MidIOHelper.BEAT_STRONG:
+                            beatType = Beat.Type.Measure;
+                            break;
+                        case MidIOHelper.BEAT_WEAK:
+                            beatType = Beat.Type.Beat;
+                            break;
+                        default:
+                            continue;
+                    }
+
+                    song.Add(new Beat((uint)absoluteTime, beatType), false);
+                }
+            }
+        }
+
         private static void ReadSongGlobalEvents(TrackChunk track, MoonSong song)
         {
             if (track.Events.Count < 1)

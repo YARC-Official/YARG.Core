@@ -17,14 +17,17 @@ namespace YARG.Core.Chart
         public uint Resolution { get; } = 480;
         public List<TempoChange> Tempos { get; } = new();
         public List<TimeSignatureChange> TimeSignatures { get; } = new();
+        public List<Beatline> Beatlines { get; } = new();
 
         public SyncTrack() { }
 
-        public SyncTrack(uint resolution, List<TempoChange> tempos, List<TimeSignatureChange> timeSignatures)
+        public SyncTrack(uint resolution, List<TempoChange> tempos, List<TimeSignatureChange> timeSignatures,
+            List<Beatline> beatlines)
         {
             Resolution = resolution;
             Tempos = tempos;
             TimeSignatures = timeSignatures;
+            Beatlines = beatlines;
 
             Tempos.Sort((x, y) => x.Tick.CompareTo(y.Tick));
             TimeSignatures.Sort((x, y) => x.Tick.CompareTo(y.Tick));

@@ -98,6 +98,7 @@ namespace YARG.Core.Chart
         {
             var tempos = new List<TempoChange>(_moonSong.bpms.Count);
             var timeSigs = new List<TimeSignatureChange>(_moonSong.timeSignatures.Count);
+            var beats = new List<Beatline>(_moonSong.beats.Count);
 
             foreach (var moonBpm in _moonSong.bpms)
             {
@@ -112,7 +113,19 @@ namespace YARG.Core.Chart
                 timeSigs.Add(timeSig);
             }
 
-            return new((uint) _moonSong.resolution, tempos, timeSigs);
+            foreach (var moonBeat in _moonSong.beats)
+            {
+                var beatType = moonBeat.type switch
+                {
+                    Beat.Type.Measure => BeatlineType.Measure,
+                    Beat.Type.Beat => BeatlineType.Strong,
+                    _ => throw new NotImplementedException($"Unhandled Moonscraper beat type {moonBeat.type}!")
+                };
+                var beatline = new Beatline(beatType, moonBeat.time, moonBeat.tick);
+                beats.Add(beatline);
+            }
+
+            return new((uint) _moonSong.resolution, tempos, timeSigs, beats);
         }
 
         private InstrumentDifficulty<TNote> LoadDifficulty<TNote>(Instrument instrument, Difficulty difficulty,
