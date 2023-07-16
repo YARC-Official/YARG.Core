@@ -8,6 +8,12 @@ namespace YARG.Core.Chart
     /// </summary>
     public class SyncTrack
     {
+        /// <returns>
+        /// The power of two to multiply the denominator by to increase the beatline rate.
+        /// </returns>
+        public delegate uint GetBeatlineRatePower(TimeSignatureChange timeSignature);
+        public delegate BeatlineType GetBeatlineType(TimeSignatureChange currentTimeSig, uint beatlineCount);
+
         public uint Resolution { get; } = 480;
         public List<TempoChange> Tempos { get; } = new();
         public List<TimeSignatureChange> TimeSignatures { get; } = new();
@@ -24,7 +30,81 @@ namespace YARG.Core.Chart
             TimeSignatures.Sort((x, y) => x.Tick.CompareTo(y.Tick));
         }
 
-        public List<Beatline> GenerateBeatlines()
+        public List<Beatline> GenerateComplexBeatlines()
+        {
+            return GenerateBeatlines(GetBeatlinePower, GetBeatlineType);
+
+            static uint GetBeatlinePower(TimeSignatureChange currentTimeSig)
+            {
+                if (currentTimeSig.Denominator == 4)
+                    return 1;
+
+                return 0;
+            }
+
+            static BeatlineType GetBeatlineType(TimeSignatureChange currentTimeSig, uint beatlineCount)
+            {
+                // 1/x time signatures
+                if (currentTimeSig.Numerator == 1)
+                {
+                    // Only make the first beat a measure
+                    return beatlineCount < 1 ? BeatlineType.Measure : BeatlineType.Strong;
+                }
+
+                // Measure lines
+                if ((beatlineCount % currentTimeSig.Numerator) == 0)
+                {
+                    return BeatlineType.Measure;
+                }
+
+                // In-between beats for x/4 time signatures, and
+                // emphasize only every quarter note for denominators greater than 4
+                if (currentTimeSig.Denominator >= 4)
+                {
+                    uint quarterCount = currentTimeSig.Denominator / 4;
+                    if (currentTimeSig.Denominator == 4)
+                        quarterCount *= 2;
+
+                    return (beatlineCount % quarterCount) == 0 ? BeatlineType.Strong : BeatlineType.Weak;
+                }
+
+                // All other beats
+                return BeatlineType.Strong;
+            }
+        }
+
+        public List<Beatline> GenerateSimpleBeatlines()
+        {
+            return GenerateBeatlines(GetBeatlinePower, GetBeatlineType);
+
+            static uint GetBeatlinePower(TimeSignatureChange currentTimeSig)
+            {
+                if (currentTimeSig.Denominator == 4)
+                    return 1;
+
+                return 0;
+            }
+
+            static BeatlineType GetBeatlineType(TimeSignatureChange currentTimeSig, uint beatlineCount)
+            {
+                // Measure lines
+                if ((beatlineCount % currentTimeSig.Numerator) == 0)
+                {
+                    return BeatlineType.Measure;
+                }
+
+                // In-between beats for x/4 time signatures
+                if (currentTimeSig.Denominator == 4 && (beatlineCount % 2) == 1)
+                {
+                    return BeatlineType.Weak;
+                }
+
+                // All other beats
+                return BeatlineType.Strong;
+            }
+        }
+
+        public List<Beatline> GenerateBeatlines(GetBeatlineRatePower getBeatlinePower, GetBeatlineType getBeatlineType)
         {
             uint lastTick = GetLastTick();
 
@@ -57,7 +137,8 @@ namespace YARG.Core.Chart
 
             void GenerateBeatsForTimeSignature(TimeSignatureChange currentTimeSig, uint startTick, uint endTick)
             {
-                uint beatlineTickRate = (Resolution * 4) / currentTimeSig.Denominator;
+                uint beatlineTickFactor = currentTimeSig.Denominator * (uint)Math.Pow(2, getBeatlinePower(currentTimeSig));
+                uint beatlineTickRate = (Resolution * 4) / beatlineTickFactor;
 
                 uint beatlineCount = 0;
                 uint currentTick = startTick;
@@ -75,20 +156,7 @@ namespace YARG.Core.Chart
                         tempoIndex++;
                     }
 
-                    // Determine beatline type
-                    BeatlineType beatlineType;
-                    if ((beatlineCount % currentTimeSig.Numerator) == 0)
-                    {
-                        beatlineType = BeatlineType.Measure;
-                    }
-                    else
-                    {
-                        beatlineType = BeatlineType.Strong;
-                    }
-
-                    // TODO:
-                    // - In-between lines for denominators <= 4?
-                    // - Do we still want the behavior that the old code has for 1/x time signatures?
+                    var beatlineType = getBeatlineType(currentTimeSig, beatlineCount);
 
                     // Create beatline
                     double time = TickToTime(currentTick, currentTempo);
