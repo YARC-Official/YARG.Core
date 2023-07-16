@@ -237,7 +237,7 @@ namespace YARG.Core.Chart
             var previousParent = notes.Count > 1 ? notes[^2] : null;
 
             // Determine if this is part of a chord
-            if (note.Tick == currentParent?.Tick)
+            if ((note.Tick - currentParent?.Tick) >= _settings.NoteSnapThreshold)
             {
                 // Same chord, assign previous and add as child
                 note.PreviousNote = previousParent;
