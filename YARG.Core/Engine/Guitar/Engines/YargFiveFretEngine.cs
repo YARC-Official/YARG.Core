@@ -12,15 +12,6 @@ namespace YARG.Core.Engine.Guitar.Engines
         {
         }
 
-        protected override void ProcessInputs()
-        {
-            while (InputQueue.TryDequeue(out var input))
-            {
-                CurrentInput = input;
-                UpdateHitLogic(input.Time);
-            }
-        }
-
         protected override bool UpdateHitLogic(double time)
         {
             double delta = time - LastUpdateTime;

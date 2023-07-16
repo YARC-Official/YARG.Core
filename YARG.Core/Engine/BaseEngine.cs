@@ -53,13 +53,28 @@ namespace YARG.Core.Engine
         public void UpdateEngine(double time)
         {
             IsInputUpdate = false;
-            UpdateHitLogic(time);
+            bool noteUpdated;
+            do
+            {
+                noteUpdated = UpdateHitLogic(time);
+            } while (noteUpdated);
         }
 
         /// <summary>
         /// Loops through the input queue and processes each input. Invokes engine logic for each input.
         /// </summary>
-        protected abstract void ProcessInputs();
+        protected void ProcessInputs()
+        {
+            while (InputQueue.TryDequeue(out var input))
+            {
+                CurrentInput = input;
+                bool noteUpdated;
+                do
+                {
+                    noteUpdated = UpdateHitLogic(input.Time);
+                } while (noteUpdated);
+            }
+        }
 
         /// <summary>
         /// Executes engine logic with respect to the given time.
