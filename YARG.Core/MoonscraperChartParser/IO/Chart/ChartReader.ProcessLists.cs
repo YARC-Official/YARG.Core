@@ -12,6 +12,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using MoonscraperEngine;
+using YARG.Core.Chart;
 
 namespace MoonscraperChartEditor.Song.IO
 {
@@ -164,6 +165,7 @@ namespace MoonscraperChartEditor.Song.IO
         private static readonly List<NoteEventProcessFn> DrumsInitialPostProcessList = new()
         {
             ConvertSoloEvents,
+            DisambiguateDrumsType,
         };
 
         private static readonly List<NoteEventProcessFn> GhlGuitarInitialPostProcessList = new()
@@ -240,6 +242,33 @@ namespace MoonscraperChartEditor.Song.IO
             }
 
             chart.UpdateCache();
+        }
+
+        private static void DisambiguateDrumsType(in NoteProcessParams processParams)
+        {
+            var settings = processParams.settings;
+            if (settings.DrumsType is not DrumsType.Unknown)
+                return;
+
+            foreach (var note in processParams.chart.notes)
+            {
+                // Cymbal markers indicate 4-lane
+                if ((note.flags & MoonNote.Flags.ProDrums_Cymbal) != 0)
+                {
+                    settings.DrumsType = DrumsType.FourLane;
+                    return;
+                }
+
+                // 5-lane green indicates 5-lane
+                if (note.drumPad is MoonNote.DrumPad.Green)
+                {
+                    settings.DrumsType = DrumsType.FiveLane;
+                    return;
+                }
+            }
+
+            // Assume 4-lane if otherwise undetermined
+            settings.DrumsType = DrumsType.FourLane;
         }
     }
 }

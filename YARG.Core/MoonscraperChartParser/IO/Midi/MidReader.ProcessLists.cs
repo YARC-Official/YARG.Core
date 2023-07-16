@@ -146,6 +146,7 @@ namespace MoonscraperChartEditor.Song.IO
 
         private static readonly List<EventProcessFn> DrumsInitialPostProcessList = new()
         {
+            DisambiguateDrumsType,
         };
 
         private static readonly List<EventProcessFn> VocalsInitialPostProcessList = new()
@@ -245,6 +246,39 @@ namespace MoonscraperChartEditor.Song.IO
                         phrase.type = SpecialPhrase.Type.Starpower;
                 }
             }
+        }
+
+        private static void DisambiguateDrumsType(in EventProcessParams processParams)
+        {
+            var settings = processParams.settings;
+            if (processParams.instrument is not MoonSong.MoonInstrument.Drums ||
+                settings.DrumsType is not DrumsType.Unknown)
+                return;
+
+            foreach (var difficulty in EnumX<MoonSong.Difficulty>.Values)
+            {
+                var chart = processParams.song.GetChart(processParams.instrument, difficulty);
+                foreach (var note in chart.notes)
+                {
+                    // Tom markers indicate 4-lane
+                    if (note.drumPad is not MoonNote.DrumPad.Red &&
+                        (note.flags & MoonNote.Flags.ProDrums_Cymbal) == 0)
+                    {
+                        settings.DrumsType = DrumsType.FourLane;
+                        return;
+                    }
+
+                    // 5-lane green indicates 5-lane
+                    if (note.drumPad is MoonNote.DrumPad.Green)
+                    {
+                        settings.DrumsType = DrumsType.FiveLane;
+                        return;
+                    }
+                }
+            }
+
+            // Assume 4-lane if otherwise undetermined
+            settings.DrumsType = DrumsType.FourLane;
         }
 
         private static void TransferHarm1StarPower(in EventProcessParams processParams)
