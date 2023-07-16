@@ -33,6 +33,16 @@ namespace YARG.Core.Chart
             TimeSignatures.Sort((x, y) => x.Tick.CompareTo(y.Tick));
         }
 
+        /// <summary>
+        /// Generates more complex beatlines based on the tempo map.
+        /// Ignores <see cref="Beatlines"/>.
+        /// </summary>
+        /// <remarks>
+        /// x/4 time signatures will have in-between beats generated.<br/>
+        /// Time signatures with denominators greater than 4 will have every quarter note beat emphasized,
+        /// with the rest being weak beats.<br/>
+        /// 1/x time signatures will only have their first beat marked as a measure.
+        /// </remarks>
         public List<Beatline> GenerateComplexBeatlines()
         {
             return GenerateBeatlines(GetBeatlinePower, GetBeatlineType);
@@ -76,6 +86,14 @@ namespace YARG.Core.Chart
             }
         }
 
+        /// <summary>
+        /// Generates simpler beatlines based on the tempo map.
+        /// Ignores <see cref="Beatlines"/>.
+        /// </summary>
+        /// <remarks>
+        /// x/4 time signatures will have in-between weak beats generated. All other time signatures will
+        /// simply use measure and strong beats.
+        /// </remarks>
         public List<Beatline> GenerateSimpleBeatlines()
         {
             return GenerateBeatlines(GetBeatlinePower, GetBeatlineType);
@@ -107,6 +125,10 @@ namespace YARG.Core.Chart
             }
         }
 
+        /// <summary>
+        /// Generates beatlines based on the tempo map and provided configuration delegates.
+        /// Ignores <see cref="Beatlines"/>.
+        /// </summary>
         public List<Beatline> GenerateBeatlines(GetBeatlineRatePower getBeatlinePower, GetBeatlineType getBeatlineType)
         {
             uint lastTick = GetLastTick();
