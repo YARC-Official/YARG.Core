@@ -87,6 +87,38 @@ namespace YARG.Core.Chart
                 { Instrument.Vocals,                section.GetField("diff_vocals", DIFFICULTY_DEFAULT).Get(IntConverter) },
                 { Instrument.Harmony,               section.GetField("diff_vocals_harm", DIFFICULTY_DEFAULT).Get(IntConverter) },
             };
+
+            var drumsType = DrumsType.Unknown;
+            if (section.GetField("pro_drums", "false").Get(BooleanConverter))
+            {
+                drumsType = DrumsType.FourLane;
+            }
+            else if (section.GetField("five_lane_drums", "false").Get(BooleanConverter))
+            {
+                drumsType = DrumsType.FiveLane;
+            }
+
+            int hopoThreshold = section.GetField("hopo_frequency", "-1").Get(IntConverter);
+            bool eighthNoteHopo = section.GetField("eighthnote_hopo", "false").Get(BooleanConverter);
+            int susCutoffThreshold = section.GetField("sustain_cutoff_threshold", "-1").Get(IntConverter);
+
+            int starPowerNote = section.GetField("multiplier_note", "-1").Get(IntConverter);
+            if (starPowerNote < 0)
+            {
+                // Legacy tag from Phase Shift
+                starPowerNote = section.GetField("star_power_note", "-1").Get(IntConverter);
+            }
+
+            ParseSettings = new()
+            {
+                DrumsType = drumsType,
+
+                HopoThreshold = hopoThreshold,
+                EighthNoteHopo = eighthNoteHopo,
+                SustainCutoffThreshold = susCutoffThreshold,
+
+                StarPowerNote = starPowerNote,
+            };
         }
 
         public static SongMetadata FromIni(string filePath)

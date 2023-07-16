@@ -48,6 +48,8 @@ namespace YARG.Core.Chart
         public int BandDifficulty { get; set; }
         public Dictionary<Instrument, int> PartDifficulties { get; set; } = new();
 
+        public ParseSettings ParseSettings { get; set; }
+
         public SongMetadata() { }
     }
 }

@@ -18,9 +18,11 @@ namespace YARG.Core.Chart
             where TNote : Note<TNote>;
 
         private MoonSong _moonSong;
+        private ParseSettings _settings;
 
-        public void LoadSong(string filePath)
+        public void LoadSong(ParseSettings settings, string filePath)
         {
+            _settings = settings;
             _moonSong = Path.GetExtension(filePath).ToLower() switch
             {
                 ".mid" => MidReader.ReadMidi(filePath),
@@ -29,13 +31,15 @@ namespace YARG.Core.Chart
             };
         }
 
-        public void LoadMidi(MidiFile midi)
+        public void LoadMidi(ParseSettings settings, MidiFile midi)
         {
+            _settings = settings;
             _moonSong = MidReader.ReadMidi(midi);
         }
 
-        public void LoadDotChart(string chartText)
+        public void LoadDotChart(ParseSettings settings, string chartText)
         {
+            _settings = settings;
             _moonSong = ChartReader.ReadChart(new StringReader(chartText));
         }
 
