@@ -151,8 +151,7 @@ namespace MoonscraperChartEditor.Song.IO
 
         private static readonly List<EventProcessFn> VocalsInitialPostProcessList = new()
         {
-            TransferHarm1StarPower,
-            TransferHarm2LyricPhrases,
+            CopyDownHarmonyPhrases,
         };
 
         private static Dictionary<int, EventProcessFn> GetNoteProcessDict(MoonChart.GameMode gameMode)
@@ -281,59 +280,26 @@ namespace MoonscraperChartEditor.Song.IO
             settings.DrumsType = DrumsType.FourLane;
         }
 
-        private static void TransferHarm1StarPower(in EventProcessParams processParams)
+        private static void CopyDownHarmonyPhrases(in EventProcessParams processParams)
         {
             if (processParams.instrument is not MoonSong.MoonInstrument.Harmony2 or MoonSong.MoonInstrument.Harmony3)
                 return;
 
-            // Remove any existing star power phrases
+            // Remove any existing phrases
+            // TODO: HARM2 phrases are used to mark when lyrics shift in static lyrics, this needs to be preserved in some way
+            // TODO: Determine if there are any phrases that shouldn't be removed/copied down
             var chart = processParams.song.GetChart(processParams.instrument, MoonSong.Difficulty.Expert);
             foreach (var phrase in chart.specialPhrases)
             {
-                if (phrase.type == SpecialPhrase.Type.Starpower)
-                {
-                    chart.Remove(phrase, false);
-                }
+                chart.Remove(phrase, false);
             }
 
             // Add in phrases from HARM1
             var harm1 = processParams.song.GetChart(MoonSong.MoonInstrument.Harmony1, MoonSong.Difficulty.Expert);
             foreach (var phrase in harm1.specialPhrases)
             {
-                if (phrase.type == SpecialPhrase.Type.Starpower)
-                {
-                    // Make a new copy instead of adding the original reference
-                    chart.Add(phrase.Clone(), false);
-                }
-            }
-
-            chart.UpdateCache();
-        }
-
-        private static void TransferHarm2LyricPhrases(in EventProcessParams processParams)
-        {
-            if (processParams.instrument is not MoonSong.MoonInstrument.Harmony3)
-                return;
-
-            // Remove any existing lyric phrases
-            var chart = processParams.song.GetChart(processParams.instrument, MoonSong.Difficulty.Expert);
-            foreach (var phrase in chart.specialPhrases)
-            {
-                if (phrase.type == SpecialPhrase.Type.Starpower)
-                {
-                    chart.Remove(phrase, false);
-                }
-            }
-
-            // Add in phrases from HARM2
-            var harm1 = processParams.song.GetChart(MoonSong.MoonInstrument.Harmony3, MoonSong.Difficulty.Expert);
-            foreach (var phrase in harm1.specialPhrases)
-            {
-                if (phrase.type == SpecialPhrase.Type.Starpower)
-                {
-                    // Make a new copy instead of adding the original reference
-                    chart.Add(phrase.Clone(), false);
-                }
+                // Make a new copy instead of adding the original reference
+                chart.Add(phrase.Clone(), false);
             }
 
             chart.UpdateCache();

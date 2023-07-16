@@ -172,6 +172,13 @@ namespace YARG.Core.Chart
                     previousNote = note;
                 }
 
+                if (notes.Count < 1)
+                {
+                    // This can occur on harmonies, HARM1 must contain phrases for all harmony parts
+                    // so, for example, phrases with only HARM2/3 notes will cause this
+                    continue;
+                }
+
                 var vocalsPhrase = CreateVocalsPhrase(moonPhrase, currentPhrases, notes, lyrics);
                 phrases.Add(vocalsPhrase);
             }
