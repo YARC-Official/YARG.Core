@@ -22,6 +22,7 @@ namespace MoonscraperChartEditor.Song
         }
 
         public float resolution = SongConfig.STANDARD_BEAT_RESOLUTION;
+        public float hopoThreshold = SongConfig.FORCED_NOTE_TICK_THRESHOLD;
         public float offset = 0;
 
         public float? manualLength = null;

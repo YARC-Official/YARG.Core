@@ -28,6 +28,7 @@ namespace MoonscraperChartEditor.Song.IO
 
         private struct CommonPhraseSettings
         {
+            public int starPowerNote;
             public int soloNote;
             public bool versusPhrases;
             public bool lanePhrases;
@@ -166,7 +167,7 @@ namespace MoonscraperChartEditor.Song.IO
             };
         }
 
-        private static Dictionary<int, EventProcessFn> GetPhraseProcessDict(MoonChart.GameMode gameMode)
+        private static Dictionary<int, EventProcessFn> GetPhraseProcessDict(ParseSettings settings, MoonChart.GameMode gameMode)
         {
             var phraseSettings = gameMode switch
             {
@@ -177,6 +178,7 @@ namespace MoonscraperChartEditor.Song.IO
                 MoonChart.GameMode.Vocals => VocalsPhraseSettings,
                 _ => throw new NotImplementedException($"No process map for game mode {gameMode}!")
             };
+            phraseSettings.starPowerNote = settings.StarPowerNote;
 
             return BuildCommonPhraseProcessMap(phraseSettings);
         }
@@ -333,9 +335,12 @@ namespace MoonscraperChartEditor.Song.IO
         {
             var processMap = new Dictionary<int, EventProcessFn>();
 
-            processMap.Add(MidIOHelper.STARPOWER_NOTE, (in EventProcessParams eventProcessParams) => {
-                ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, SpecialPhrase.Type.Starpower);
-            });
+            if (settings.starPowerNote >= 0)
+            {
+                processMap.Add(settings.starPowerNote, (in EventProcessParams eventProcessParams) => {
+                    ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, SpecialPhrase.Type.Starpower);
+                });
+            }
 
             if (settings.soloNote >= 0)
             {

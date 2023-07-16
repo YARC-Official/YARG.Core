@@ -7,6 +7,7 @@ using System.Diagnostics;
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 using MoonscraperEngine;
+using YARG.Core.Chart;
 
 namespace MoonscraperChartEditor.Song.IO
 {
@@ -46,6 +47,7 @@ namespace MoonscraperChartEditor.Song.IO
         {
             public MoonSong song;
             public MoonSong.MoonInstrument instrument;
+            public ParseSettings settings;
             public TimedMidiEvent timedEvent;
             public Dictionary<int, EventProcessFn> noteProcessMap;
             public Dictionary<int, EventProcessFn> phraseProcessMap;
@@ -62,7 +64,7 @@ namespace MoonscraperChartEditor.Song.IO
             InvalidChannelEventParameterValuePolicy = InvalidChannelEventParameterValuePolicy.ReadValid,
         };
 
-        public static MoonSong ReadMidi(string path)
+        public static MoonSong ReadMidi(ParseSettings settings, string path)
         {
             MidiFile midi;
             try
@@ -74,10 +76,10 @@ namespace MoonscraperChartEditor.Song.IO
                 throw new Exception("Bad or corrupted midi file!", e);
             }
 
-            return ReadMidi(midi);
+            return ReadMidi(settings, midi);
         }
 
-        public static MoonSong ReadMidi(MidiFile midi)
+        public static MoonSong ReadMidi(ParseSettings settings, MidiFile midi)
         {
             if (midi.Chunks == null || midi.Chunks.Count < 1)
                 throw new InvalidOperationException("MIDI file has no tracks, unable to parse.");
@@ -89,6 +91,15 @@ namespace MoonscraperChartEditor.Song.IO
             {
                 resolution = ticks.TicksPerQuarterNote
             };
+
+            // Apply HOPO threshold settings
+            // Prefer explicit tick value to eighth-note HOPO value
+            if (settings.HopoThreshold >= 0)
+                song.hopoThreshold = settings.HopoThreshold;
+            else if (settings.EighthNoteHopo)
+                song.hopoThreshold = song.resolution / 2;
+            else
+                song.hopoThreshold = SongConfig.FORCED_NOTE_TICK_THRESHOLD;
 
             // Read all bpm data in first. This will also allow song.TimeToTick to function properly.
             ReadSync(midi.GetTempoMap(), song);
@@ -145,7 +156,7 @@ namespace MoonscraperChartEditor.Song.IO
                         }
 
                         Debug.WriteLine("Loading midi track {0}", instrument);
-                        ReadNotes(track, song, instrument);
+                        ReadNotes(settings, track, song, instrument);
                         break;
                 }
             }
@@ -234,7 +245,8 @@ namespace MoonscraperChartEditor.Song.IO
             song.UpdateCache();
         }
 
-        private static void ReadNotes(TrackChunk track, MoonSong song, MoonSong.MoonInstrument instrument)
+        private static void ReadNotes(ParseSettings settings, TrackChunk track, MoonSong song,
+            MoonSong.MoonInstrument instrument)
         {
             if (track == null || track.Events.Count < 1)
             {
@@ -251,8 +263,9 @@ namespace MoonscraperChartEditor.Song.IO
             {
                 song = song,
                 instrument = instrument,
+                settings = settings,
                 noteProcessMap = GetNoteProcessDict(gameMode),
-                phraseProcessMap = GetPhraseProcessDict(gameMode),
+                phraseProcessMap = GetPhraseProcessDict(settings, gameMode),
                 textProcessMap = GetTextEventProcessDict(gameMode),
                 sysexProcessMap = GetSysExEventProcessDict(gameMode),
                 delayedProcessesList = GetInitialPostProcessList(gameMode),
@@ -469,7 +482,7 @@ namespace MoonscraperChartEditor.Song.IO
 
             var timedEvent = eventProcessParams.timedEvent;
             uint tick = (uint)timedEvent.startTick;
-            uint sus = ApplySustainCutoff(eventProcessParams.song, (uint)timedEvent.length);
+            uint sus = ApplySustainCutoff(eventProcessParams.settings, (uint)timedEvent.length);
 
             var newMoonNote = new MoonNote(tick, ingameFret, sus, defaultFlags);
             chart.Add(newMoonNote, false);
@@ -482,7 +495,7 @@ namespace MoonscraperChartEditor.Song.IO
 
             var timedEvent = eventProcessParams.timedEvent;
             uint tick = (uint)timedEvent.startTick;
-            uint sus = ApplySustainCutoff(eventProcessParams.song, (uint)timedEvent.length);
+            uint sus = ApplySustainCutoff(eventProcessParams.settings, (uint)timedEvent.length);
 
             foreach (var diff in EnumX<MoonSong.Difficulty>.Values)
             {
@@ -576,10 +589,9 @@ namespace MoonscraperChartEditor.Song.IO
             }
         }
 
-        private static uint ApplySustainCutoff(MoonSong song, uint length)
+        private static uint ApplySustainCutoff(ParseSettings settings, uint length)
         {
-            int susCutoff = (int)(SongConfig.MIDI_SUSTAIN_CUTOFF_THRESHOLD * song.resolution / SongConfig.STANDARD_BEAT_RESOLUTION); // 1/12th note
-            if (length <= susCutoff)
+            if (length <= settings.SustainCutoffThreshold)
                 length = 0;
 
             return length;
@@ -610,7 +622,7 @@ namespace MoonscraperChartEditor.Song.IO
 
             var timedEvent = eventProcessParams.timedEvent;
             uint tick = (uint)timedEvent.startTick;
-            uint sus = ApplySustainCutoff(eventProcessParams.song, (uint)timedEvent.length);
+            uint sus = ApplySustainCutoff(eventProcessParams.settings, (uint)timedEvent.length);
 
             if (tick >= tickStartOffset)
                 tick += (uint)tickStartOffset;

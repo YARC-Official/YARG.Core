@@ -11,6 +11,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
+using YARG.Core.Chart;
 
 namespace MoonscraperChartEditor.Song.IO
 {
@@ -46,11 +47,12 @@ namespace MoonscraperChartEditor.Song.IO
         private struct NoteProcessParams
         {
             public MoonChart chart;
+            public ParseSettings settings;
             public NoteEvent noteEvent;
             public List<NoteEventProcessFn> postNotesAddedProcessList;
         }
 
-        public static MoonSong ReadChart(string filepath)
+        public static MoonSong ReadChart(ParseSettings settings, string filepath)
         {
             try
             {
@@ -63,7 +65,7 @@ namespace MoonscraperChartEditor.Song.IO
                     throw new Exception("Bad file type");
 
                 var reader = File.OpenText(filepath);
-                return ReadChart(reader);
+                return ReadChart(settings, reader);
             }
             catch (Exception e)
             {
@@ -71,7 +73,7 @@ namespace MoonscraperChartEditor.Song.IO
             }
         }
 
-        public static MoonSong ReadChart(TextReader reader)
+        public static MoonSong ReadChart(ParseSettings settings, TextReader reader)
         {
             var song = new MoonSong();
             bool open = false;
@@ -99,7 +101,7 @@ namespace MoonscraperChartEditor.Song.IO
                     open = false;
 
                     // Submit data
-                    SubmitChartData(song, dataName, dataStrings);
+                    SubmitChartData(settings, song, dataName, dataStrings);
 
                     dataName = string.Empty;
                     dataStrings.Clear();
@@ -114,7 +116,7 @@ namespace MoonscraperChartEditor.Song.IO
                     else if (dataStrings.Count > 0 && dataName != string.Empty)
                     {
                         // Submit data
-                        SubmitChartData(song, dataName, dataStrings);
+                        SubmitChartData(settings, song, dataName, dataStrings);
 
                         dataName = string.Empty;
                         dataStrings.Clear();
@@ -127,7 +129,7 @@ namespace MoonscraperChartEditor.Song.IO
             return song;
         }
 
-        private static void SubmitChartData(MoonSong song, string dataName, List<string> stringData)
+        private static void SubmitChartData(ParseSettings settings, MoonSong song, string dataName, List<string> stringData)
         {
             switch (dataName)
             {
@@ -157,7 +159,7 @@ namespace MoonscraperChartEditor.Song.IO
                                 break;
                             }
 
-                            LoadChart(song, stringData, instrument, chartDiff);
+                            LoadChart(settings, song, stringData, instrument, chartDiff);
 
                             // Chart loaded
                             break;
@@ -417,8 +419,8 @@ namespace MoonscraperChartEditor.Song.IO
             while ((startIndex + ++length) < line.Length && line[startIndex + length] != ' ') ;
         }
 
-        private static void LoadChart(MoonSong song, IList<string> data, MoonSong.MoonInstrument instrument,
-            MoonSong.Difficulty difficulty)
+        private static void LoadChart(ParseSettings settings, MoonSong song, IList<string> data,
+            MoonSong.MoonInstrument instrument, MoonSong.Difficulty difficulty)
         {
             var chart = song.GetChart(instrument, difficulty);
             var gameMode = chart.gameMode;
@@ -429,6 +431,7 @@ namespace MoonscraperChartEditor.Song.IO
             var processParams = new NoteProcessParams()
             {
                 chart = chart,
+                settings = settings,
                 postNotesAddedProcessList = postNotesAddedProcessList
             };
 
@@ -550,13 +553,21 @@ namespace MoonscraperChartEditor.Song.IO
             }
         }
 
+        private static uint ApplySustainCutoff(ParseSettings settings, uint length)
+        {
+            if (length <= settings.SustainCutoffThreshold)
+                length = 0;
+
+            return length;
+        }
+
         private static void ProcessNoteOnEventAsNote(in NoteProcessParams noteProcessParams, int ingameFret, MoonNote.Flags defaultFlags = MoonNote.Flags.None)
         {
             var chart = noteProcessParams.chart;
 
             var noteEvent = noteProcessParams.noteEvent;
             uint tick = noteEvent.tick;
-            uint sus = noteEvent.length;
+            uint sus = ApplySustainCutoff(noteProcessParams.settings, noteEvent.length);
 
             var newMoonNote = new MoonNote(tick, ingameFret, sus, defaultFlags);
             chart.Add(newMoonNote, false);
