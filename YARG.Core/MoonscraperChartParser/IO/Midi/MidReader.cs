@@ -35,12 +35,6 @@ namespace MoonscraperChartEditor.Song.IO
             { MidIOHelper.HARMONY_3_TRACK_2, false },
         };
 
-        private static readonly Dictionary<string, bool> ExcludedTracks = new()
-        {
-            { MidIOHelper.BEAT_TRACK,       true },
-            { MidIOHelper.VENUE_TRACK,      true },
-        };
-
         private struct TimedMidiEvent
         {
             public MidiEvent midiEvent;
@@ -127,11 +121,12 @@ namespace MoonscraperChartEditor.Song.IO
                 Debug.WriteLine("Found midi track " + trackName.Text);
 
                 string trackNameKey = trackName.Text.ToUpper();
-                if (ExcludedTracks.ContainsKey(trackNameKey))
-                    continue;
-
                 switch (trackNameKey)
                 {
+                    case MidIOHelper.BEAT_TRACK:
+                        ReadSongBeats(track, song);
+                        break;
+
                     case MidIOHelper.EVENTS_TRACK:
                         ReadSongGlobalEvents(track, song);
                         break;
