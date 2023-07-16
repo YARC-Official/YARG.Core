@@ -19,36 +19,36 @@ namespace YARG.Core.Chart
     /// </remarks>
     public sealed partial class SongMetadata
     {
-        public string Name { get; set; }
-        public string Artist { get; set; }
-        public string Album { get; set; }
-        public string Genre { get; set; }
-        public string Year { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Artist { get; set; } = string.Empty;
+        public string Album { get; set; } = string.Empty;
+        public string Genre { get; set; } = string.Empty;
+        public string Year { get; set; } = string.Empty;
 
-        public bool IsMaster { get; set; }
+        public bool IsMaster { get; set; } = true;
 
-        public string Charter { get; set; }
-        public string Source { get; set; }
+        public string Charter { get; set; } = string.Empty;
+        public string Source { get; set; } = string.Empty;
 
-        public string LoadingPhrase { get; set; }
+        public string LoadingPhrase { get; set; } = string.Empty;
 
-        public int AlbumTrack { get; set; }
-        public int PlaylistTrack { get; set; }
+        public int AlbumTrack { get; set; } = 0;
+        public int PlaylistTrack { get; set; } = 0;
 
-        public double SongLength { get; set; }
+        public double SongLength { get; set; } = 0;
 
-        public double ChartOffset { get; set; }
+        public double ChartOffset { get; set; } = 0;
 
-        public double PreviewStart { get; set; }
-        public double PreviewEnd { get; set; }
+        public double PreviewStart { get; set; } = -1;
+        public double PreviewEnd { get; set; } = -1;
 
-        public double VideoStartTime { get; set; }
-        public double VideoEndTime { get; set; }
+        public double VideoStartTime { get; set; } = 0;
+        public double VideoEndTime { get; set; } = -1;
 
-        public int BandDifficulty { get; set; }
+        public int BandDifficulty { get; set; } = -1;
         public Dictionary<Instrument, int> PartDifficulties { get; set; } = new();
 
-        public ParseSettings ParseSettings { get; set; }
+        public ParseSettings ParseSettings { get; set; } = ParseSettings.Default;
 
         public SongMetadata() { }
     }
