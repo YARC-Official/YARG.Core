@@ -26,39 +26,39 @@ namespace MoonscraperChartEditor.Song.IO
         private delegate void ProcessModificationProcessFn(ref EventProcessParams eventProcessParams);
 
         // These dictionaries map the NoteNumber of each midi note event to a specific function of how to process them
-        private static readonly Dictionary<int, EventProcessFn> GuitarMidiNoteNumberToProcessFnMap = BuildGuitarMidiNoteNumberToProcessFnDict();
-        private static readonly Dictionary<int, EventProcessFn> GuitarMidiNoteNumberToProcessFnMap_EnhancedOpens = BuildGuitarMidiNoteNumberToProcessFnDict(enhancedOpens: true);
-        private static readonly Dictionary<int, EventProcessFn> GhlGuitarMidiNoteNumberToProcessFnMap = BuildGhlGuitarMidiNoteNumberToProcessFnDict();
-        private static readonly Dictionary<int, EventProcessFn> ProGuitarMidiNoteNumberToProcessFnMap = BuildProGuitarMidiNoteNumberToProcessFnDict();
-        private static readonly Dictionary<int, EventProcessFn> DrumsMidiNoteNumberToProcessFnMap = BuildDrumsMidiNoteNumberToProcessFnDict();
-        private static readonly Dictionary<int, EventProcessFn> DrumsMidiNoteNumberToProcessFnMap_Velocity = BuildDrumsMidiNoteNumberToProcessFnDict(enableVelocity: true);
-        private static readonly Dictionary<int, EventProcessFn> VocalsMidiNoteNumberToProcessFnMap = BuildVocalsMidiNoteNumberToProcessFnDict();
+        private static readonly Dictionary<int, EventProcessFn> GuitarNoteProcessMap = BuildGuitarNoteProcessDict(enhancedOpens: false);
+        private static readonly Dictionary<int, EventProcessFn> GuitarNoteProcessMap_EnhancedOpens = BuildGuitarNoteProcessDict(enhancedOpens: true);
+        private static readonly Dictionary<int, EventProcessFn> GhlGuitarNoteProcessMap = BuildGhlGuitarNoteProcessDict();
+        private static readonly Dictionary<int, EventProcessFn> ProGuitarNoteProcessMap = BuildProGuitarNoteProcessDict();
+        private static readonly Dictionary<int, EventProcessFn> DrumsNoteProcessMap = BuildDrumsNoteProcessDict(enableVelocity: false);
+        private static readonly Dictionary<int, EventProcessFn> DrumsNoteProcessMap_Velocity = BuildDrumsNoteProcessDict(enableVelocity: true);
+        private static readonly Dictionary<int, EventProcessFn> VocalsNoteProcessMap = BuildVocalsNoteProcessDict();
 
         // These dictionaries map the text of a MIDI text event to a specific function that processes them
-        private static readonly Dictionary<string, ProcessModificationProcessFn> GuitarTextEventToProcessFnMap = new()
+        private static readonly Dictionary<string, ProcessModificationProcessFn> GuitarTextProcessMap = new()
         {
             { MidIOHelper.ENHANCED_OPENS_TEXT, SwitchToGuitarEnhancedOpensProcessMap },
         };
 
-        private static readonly Dictionary<string, ProcessModificationProcessFn> GhlGuitarTextEventToProcessFnMap = new()
+        private static readonly Dictionary<string, ProcessModificationProcessFn> GhlGuitarTextProcessMap = new()
         {
         };
 
-        private static readonly Dictionary<string, ProcessModificationProcessFn> ProGuitarTextEventToProcessFnMap = new()
+        private static readonly Dictionary<string, ProcessModificationProcessFn> ProGuitarTextProcessMap = new()
         {
         };
 
-        private static readonly Dictionary<string, ProcessModificationProcessFn> DrumsTextEventToProcessFnMap = new()
+        private static readonly Dictionary<string, ProcessModificationProcessFn> DrumsTextProcessMap = new()
         {
             { MidIOHelper.CHART_DYNAMICS_TEXT, SwitchToDrumsVelocityProcessMap },
         };
 
-        private static readonly Dictionary<string, ProcessModificationProcessFn> VocalsTextEventToProcessFnMap = new()
+        private static readonly Dictionary<string, ProcessModificationProcessFn> VocalsTextProcessMap = new()
         {
         };
 
         // These dictionaries map the phrase code of a SysEx event to a specific function that processes them
-        private static readonly Dictionary<PhaseShiftSysEx.PhraseCode, EventProcessFn> GuitarSysExEventToProcessFnMap = new()
+        private static readonly Dictionary<PhaseShiftSysEx.PhraseCode, EventProcessFn> GuitarSysExProcessMap = new()
         {
             { PhaseShiftSysEx.PhraseCode.Guitar_Open, ProcessSysExEventPairAsOpenNoteModifier },
             { PhaseShiftSysEx.PhraseCode.Guitar_Tap, (in EventProcessParams eventProcessParams) => {
@@ -66,7 +66,7 @@ namespace MoonscraperChartEditor.Song.IO
             }},
         };
 
-        private static readonly Dictionary<PhaseShiftSysEx.PhraseCode, EventProcessFn> GhlGuitarSysExEventToProcessFnMap = new()
+        private static readonly Dictionary<PhaseShiftSysEx.PhraseCode, EventProcessFn> GhlGuitarSysExProcessMap = new()
         {
             { PhaseShiftSysEx.PhraseCode.Guitar_Open, ProcessSysExEventPairAsOpenNoteModifier },
             { PhaseShiftSysEx.PhraseCode.Guitar_Tap, (in EventProcessParams eventProcessParams) => {
@@ -74,15 +74,15 @@ namespace MoonscraperChartEditor.Song.IO
             }},
         };
 
-        private static readonly Dictionary<PhaseShiftSysEx.PhraseCode, EventProcessFn> ProGuitarSysExEventToProcessFnMap = new()
+        private static readonly Dictionary<PhaseShiftSysEx.PhraseCode, EventProcessFn> ProGuitarSysExProcessMap = new()
         {
         };
 
-        private static readonly Dictionary<PhaseShiftSysEx.PhraseCode, EventProcessFn> DrumsSysExEventToProcessFnMap = new()
+        private static readonly Dictionary<PhaseShiftSysEx.PhraseCode, EventProcessFn> DrumsSysExProcessMap = new()
         {
         };
 
-        private static readonly Dictionary<PhaseShiftSysEx.PhraseCode, EventProcessFn> VocalsSysExEventToProcessFnMap = new()
+        private static readonly Dictionary<PhaseShiftSysEx.PhraseCode, EventProcessFn> VocalsSysExProcessMap = new()
         {
         };
 
@@ -114,11 +114,11 @@ namespace MoonscraperChartEditor.Song.IO
         {
             return gameMode switch
             {
-                MoonChart.GameMode.Guitar => GuitarMidiNoteNumberToProcessFnMap,
-                MoonChart.GameMode.GHLGuitar => GhlGuitarMidiNoteNumberToProcessFnMap,
-                MoonChart.GameMode.ProGuitar => ProGuitarMidiNoteNumberToProcessFnMap,
-                MoonChart.GameMode.Drums => DrumsMidiNoteNumberToProcessFnMap,
-                MoonChart.GameMode.Vocals => VocalsMidiNoteNumberToProcessFnMap,
+                MoonChart.GameMode.Guitar => GuitarNoteProcessMap,
+                MoonChart.GameMode.GHLGuitar => GhlGuitarNoteProcessMap,
+                MoonChart.GameMode.ProGuitar => ProGuitarNoteProcessMap,
+                MoonChart.GameMode.Drums => DrumsNoteProcessMap,
+                MoonChart.GameMode.Vocals => VocalsNoteProcessMap,
                 _ => throw new NotImplementedException($"No process map for game mode {gameMode}!")
             };
         }
@@ -127,11 +127,11 @@ namespace MoonscraperChartEditor.Song.IO
         {
             return gameMode switch
             {
-                MoonChart.GameMode.Guitar => GuitarTextEventToProcessFnMap,
-                MoonChart.GameMode.GHLGuitar => GhlGuitarTextEventToProcessFnMap,
-                MoonChart.GameMode.ProGuitar => ProGuitarTextEventToProcessFnMap,
-                MoonChart.GameMode.Drums => DrumsTextEventToProcessFnMap,
-                MoonChart.GameMode.Vocals => VocalsTextEventToProcessFnMap,
+                MoonChart.GameMode.Guitar => GuitarTextProcessMap,
+                MoonChart.GameMode.GHLGuitar => GhlGuitarTextProcessMap,
+                MoonChart.GameMode.ProGuitar => ProGuitarTextProcessMap,
+                MoonChart.GameMode.Drums => DrumsTextProcessMap,
+                MoonChart.GameMode.Vocals => VocalsTextProcessMap,
                 _ => throw new NotImplementedException($"No process map for game mode {gameMode}!")
             };
         }
@@ -140,11 +140,11 @@ namespace MoonscraperChartEditor.Song.IO
         {
             return gameMode switch
             {
-                MoonChart.GameMode.Guitar => GuitarSysExEventToProcessFnMap,
-                MoonChart.GameMode.GHLGuitar => GhlGuitarSysExEventToProcessFnMap,
-                MoonChart.GameMode.ProGuitar => ProGuitarSysExEventToProcessFnMap,
-                MoonChart.GameMode.Drums => DrumsSysExEventToProcessFnMap,
-                MoonChart.GameMode.Vocals => VocalsSysExEventToProcessFnMap,
+                MoonChart.GameMode.Guitar => GuitarSysExProcessMap,
+                MoonChart.GameMode.GHLGuitar => GhlGuitarSysExProcessMap,
+                MoonChart.GameMode.ProGuitar => ProGuitarSysExProcessMap,
+                MoonChart.GameMode.Drums => DrumsSysExProcessMap,
+                MoonChart.GameMode.Vocals => VocalsSysExProcessMap,
                 _ => throw new NotImplementedException($"No process map for game mode {gameMode}!")
             };
         }
@@ -255,7 +255,7 @@ namespace MoonscraperChartEditor.Song.IO
             }
 
             // Switch process map to guitar enhanced opens process map
-            processParams.noteProcessMap = GuitarMidiNoteNumberToProcessFnMap_EnhancedOpens;
+            processParams.noteProcessMap = GuitarNoteProcessMap_EnhancedOpens;
         }
 
         private static void SwitchToDrumsVelocityProcessMap(ref EventProcessParams processParams)
@@ -268,10 +268,10 @@ namespace MoonscraperChartEditor.Song.IO
             }
 
             // Switch process map to drums velocity process map
-            processParams.noteProcessMap = DrumsMidiNoteNumberToProcessFnMap_Velocity;
+            processParams.noteProcessMap = DrumsNoteProcessMap_Velocity;
         }
 
-        private static Dictionary<int, EventProcessFn> BuildGuitarMidiNoteNumberToProcessFnDict(bool enhancedOpens = false)
+        private static Dictionary<int, EventProcessFn> BuildGuitarNoteProcessDict(bool enhancedOpens = false)
         {
             var processFnDict = new Dictionary<int, EventProcessFn>()
             {
@@ -349,7 +349,7 @@ namespace MoonscraperChartEditor.Song.IO
             return processFnDict;
         }
 
-        private static Dictionary<int, EventProcessFn> BuildGhlGuitarMidiNoteNumberToProcessFnDict()
+        private static Dictionary<int, EventProcessFn> BuildGhlGuitarNoteProcessDict()
         {
             var processFnDict = new Dictionary<int, EventProcessFn>()
             {
@@ -412,7 +412,7 @@ namespace MoonscraperChartEditor.Song.IO
             return processFnDict;
         }
 
-        private static Dictionary<int, EventProcessFn> BuildProGuitarMidiNoteNumberToProcessFnDict()
+        private static Dictionary<int, EventProcessFn> BuildProGuitarNoteProcessDict()
         {
             var processFnDict = new Dictionary<int, EventProcessFn>()
             {
@@ -467,7 +467,7 @@ namespace MoonscraperChartEditor.Song.IO
             return processFnDict;
         }
 
-        private static Dictionary<int, EventProcessFn> BuildDrumsMidiNoteNumberToProcessFnDict(bool enableVelocity = false)
+        private static Dictionary<int, EventProcessFn> BuildDrumsNoteProcessDict(bool enableVelocity = false)
         {
             var processFnDict = new Dictionary<int, EventProcessFn>()
             {
@@ -594,7 +594,7 @@ namespace MoonscraperChartEditor.Song.IO
             return processFnDict;
         }
 
-        private static Dictionary<int, EventProcessFn> BuildVocalsMidiNoteNumberToProcessFnDict()
+        private static Dictionary<int, EventProcessFn> BuildVocalsNoteProcessDict()
         {
             var processFnDict = new Dictionary<int, EventProcessFn>()
             {
