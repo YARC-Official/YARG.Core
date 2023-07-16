@@ -231,7 +231,7 @@ namespace YARG.Core.UnitTests.Parsing
             MoonSong parsedSong;
             try
             {
-                parsedSong = ChartReader.ReadChart(new StringReader(chartText));
+                parsedSong = ChartReader.ReadChart(Chart.ParseSettings.Default, new StringReader(chartText));
             }
             catch (Exception ex)
             {

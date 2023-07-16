@@ -505,7 +505,7 @@ namespace YARG.Core.UnitTests.Parsing
             MoonSong parsedSong;
             try
             {
-                parsedSong = MidReader.ReadMidi(midi);
+                parsedSong = MidReader.ReadMidi(Chart.ParseSettings.Default, midi);
             }
             catch (Exception ex)
             {
