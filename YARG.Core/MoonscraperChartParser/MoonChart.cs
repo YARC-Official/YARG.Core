@@ -7,74 +7,49 @@ namespace MoonscraperChartEditor.Song
 {
     public class MoonChart
     {
-        private readonly MoonSong _song;
-        private readonly List<ChartObject> _chartObjects;
-        private int _note_count;
-        private readonly GameMode _gameMode;
+        private readonly List<ChartObject> _chartObjects = new();
+
+        /// <summary>
+        /// The song this chart is connected to.
+        /// </summary>
+        public MoonSong song { get; private set; }
+        /// <summary>
+        /// The game mode the chart is designed for
+        /// </summary>
+        public GameMode gameMode { get; private set; }
 
         /// <summary>
         /// Read only list of notes.
         /// </summary>
-        public SongObjectCache<MoonNote> notes { get; private set; }
+        public SongObjectCache<MoonNote> notes { get; private set; } = new();
         /// <summary>
         /// Read only list of special phrases.
         /// </summary>
-        public SongObjectCache<SpecialPhrase> specialPhrases { get; private set; }
+        public SongObjectCache<SpecialPhrase> specialPhrases { get; private set; } = new();
         /// <summary>
         /// Read only list of local events.
         /// </summary>
-        public SongObjectCache<ChartEvent> events { get; private set; }
-        /// <summary>
-        /// The song this chart is connected to.
-        /// </summary>
-        public MoonSong MoonSong => _song;
-        /// <summary>
-        /// The game mode the chart is designed for
-        /// </summary>
-        public GameMode gameMode => _gameMode;
+        public SongObjectCache<ChartEvent> events { get; private set; } = new();
 
         /// <summary>
         /// Read only list containing all chart notes, special phrases, and text events.
         /// </summary>
-        public ReadOnlyList<ChartObject> chartObjects;
-
-        /// <summary>
-        /// The total amount of notes in the chart, counting chord (notes sharing the same tick position) as a single note.
-        /// </summary>
-        public int note_count => _note_count;
+        public ReadOnlyList<ChartObject> chartObjects { get; private set; }
 
         /// <summary>
         /// Creates a new chart object.
         /// </summary>
-        /// <param name="song">The song to associate this chart with.</param>
-        /// <param name="name">The name of the chart (easy single, expert double guitar, etc.</param>
-        public MoonChart(MoonSong song, GameMode gameMode)
+        /// <param name="_song">The song to associate this chart with.</param>
+        public MoonChart(MoonSong _song, GameMode _gameMode)
         {
-            _song = song;
-            _chartObjects = new List<ChartObject>();
+            song = _song;
+            gameMode = _gameMode;
+
             chartObjects = new ReadOnlyList<ChartObject>(_chartObjects);
-            _gameMode = gameMode;
-
-            notes = new SongObjectCache<MoonNote>();
-            specialPhrases = new SongObjectCache<SpecialPhrase>();
-            events = new SongObjectCache<ChartEvent>();
-
-            _note_count = 0;
         }
 
         public MoonChart(MoonSong song, MoonSong.MoonInstrument Instrument) : this(song, MoonSong.InstumentToChartGameMode(Instrument))
         {
-        }
-
-        public MoonChart(MoonChart chart, MoonSong song)
-        {
-            _song = song;
-            _gameMode = chart.gameMode;
-
-            _chartObjects = new List<ChartObject>();
-            _chartObjects.AddRange(chart._chartObjects);
-
-            chartObjects = new ReadOnlyList<ChartObject>(_chartObjects);
         }
 
         /// <summary>
@@ -85,30 +60,6 @@ namespace MoonscraperChartEditor.Song
             MoonSong.UpdateCacheList(notes, _chartObjects);
             MoonSong.UpdateCacheList(specialPhrases, _chartObjects);
             MoonSong.UpdateCacheList(events, _chartObjects);
-
-            _note_count = GetNoteCount();
-        }
-
-        private int GetNoteCount()
-        {
-            if (notes.Count > 0)
-            {
-                int count = 1;
-
-                uint previousPos = notes[0].tick;
-                for (int i = 1; i < notes.Count; ++i)
-                {
-                    if (notes[i].tick > previousPos)
-                    {
-                        ++count;
-                        previousPos = notes[i].tick;
-                    }
-                }
-
-                return count;
-            }
-            else
-                return 0;
         }
 
         public void SetCapacity(int size)
@@ -131,7 +82,7 @@ namespace MoonscraperChartEditor.Song
         public int Add(ChartObject chartObject, bool update = true)
         {
             chartObject.chart = this;
-            chartObject.song = _song;
+            chartObject.song = song;
 
             int pos = SongObjectHelper.Insert(chartObject, _chartObjects);
 

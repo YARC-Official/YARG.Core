@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2016-2020 Alexander Ong
+// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
 using System;
@@ -32,45 +32,37 @@ namespace MoonscraperChartEditor.Song
 
         public IReadOnlyList<MoonChart> Charts => charts.ToList();
 
-        public List<Event> _events;
-        private readonly List<SyncTrack> _syncTrack;
+        private readonly List<Event> _events = new();
+        private readonly List<SyncTrack> _syncTrack = new();
+
+        public ReadOnlyList<Event> eventsAndSections { get; private set; }
+        public ReadOnlyList<SyncTrack> syncTrack { get; private set; }
 
         /// <summary>
         /// Read only list of song events.
         /// </summary>
-        public SongObjectCache<Event> events { get; private set; }
+        public SongObjectCache<Event> events { get; private set; } = new();
         /// <summary>
         /// Read only list of song sections.
         /// </summary>
-        public SongObjectCache<Section> sections { get; private set; }
-
-        public ReadOnlyList<SyncTrack> syncTrack;
-        public ReadOnlyList<Event> eventsAndSections;
+        public SongObjectCache<Section> sections { get; private set; } = new();
 
         /// <summary>
         /// Read only list of a song's bpm changes.
         /// </summary>
-        public SongObjectCache<BPM> bpms { get; private set; }
+        public SongObjectCache<BPM> bpms { get; private set; } = new();
         /// <summary>
         /// Read only list of a song's time signature changes.
         /// </summary>
-        public SongObjectCache<TimeSignature> timeSignatures { get; private set; }
+        public SongObjectCache<TimeSignature> timeSignatures { get; private set; } = new();
 
         /// <summary>
         /// Default constructor for a new chart. Initialises all lists and adds locked bpm and timesignature objects.
         /// </summary>
         public MoonSong()
         {
-            _events = new List<Event>();
-            _syncTrack = new List<SyncTrack>();
-
             eventsAndSections = new ReadOnlyList<Event>(_events);
             syncTrack = new ReadOnlyList<SyncTrack>(_syncTrack);
-
-            events = new SongObjectCache<Event>();
-            sections = new SongObjectCache<Section>();
-            bpms = new SongObjectCache<BPM>();
-            timeSignatures = new SongObjectCache<TimeSignature>();
 
             Add(new BPM());
             Add(new TimeSignature());
@@ -84,31 +76,6 @@ namespace MoonscraperChartEditor.Song
             }
 
             UpdateCache();
-        }
-
-        public MoonSong(MoonSong song) : this()
-        {
-            metaData = new Metadata(song.metaData);
-            offset = song.offset;
-            resolution = song.resolution;
-
-            _events.Clear();
-            _syncTrack.Clear();
-
-            _events.AddRange(song._events);
-            _syncTrack.AddRange(song._syncTrack);
-
-            manualLength = song.manualLength;
-
-            charts = new MoonChart[song.charts.Length];
-            for (int i = 0; i < charts.Length; ++i)
-            {
-                charts[i] = new MoonChart(song.charts[i], this);
-            }
-        }
-
-        ~MoonSong()
-        {
         }
 
         public MoonChart GetChart(MoonInstrument instrument, Difficulty difficulty)
