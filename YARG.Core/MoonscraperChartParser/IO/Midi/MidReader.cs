@@ -48,6 +48,7 @@ namespace MoonscraperChartEditor.Song.IO
             public MoonSong.MoonInstrument instrument;
             public TimedMidiEvent timedEvent;
             public Dictionary<int, EventProcessFn> noteProcessMap;
+            public Dictionary<int, EventProcessFn> phraseProcessMap;
             public Dictionary<string, ProcessModificationProcessFn> textProcessMap;
             public Dictionary<PhaseShiftSysEx.PhraseCode, EventProcessFn> sysexProcessMap;
             public List<EventProcessFn> delayedProcessesList;
@@ -251,6 +252,7 @@ namespace MoonscraperChartEditor.Song.IO
                 song = song,
                 instrument = instrument,
                 noteProcessMap = GetNoteProcessDict(gameMode),
+                phraseProcessMap = GetPhraseProcessDict(gameMode),
                 textProcessMap = GetTextEventProcessDict(gameMode),
                 sysexProcessMap = GetSysExEventProcessDict(gameMode),
                 delayedProcessesList = GetInitialPostProcessList(gameMode),
@@ -323,7 +325,8 @@ namespace MoonscraperChartEditor.Song.IO
                 processParams.timedEvent.startTick = startTick;
                 processParams.timedEvent.endTick = absoluteTick;
 
-                if (processParams.noteProcessMap.TryGetValue(noteStart.NoteNumber, out var processFn))
+                if (processParams.noteProcessMap.TryGetValue(noteStart.NoteNumber, out var processFn) ||
+                    processParams.phraseProcessMap.TryGetValue(noteStart.NoteNumber, out processFn))
                 {
                     processFn(processParams);
                 }
