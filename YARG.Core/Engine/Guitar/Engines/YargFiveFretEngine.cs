@@ -15,6 +15,12 @@ namespace YARG.Core.Engine.Guitar.Engines
         protected override bool UpdateHitLogic(double time)
         {
             double delta = time - LastUpdateTime;
+            LastUpdateTime = time;
+
+            if(State.NoteIndex >= Notes.Count)
+            {
+                return false;
+            }
 
             State.StrummedThisUpdate = IsInputUpdate && IsStrumInput(CurrentInput);
             if (IsFretInput(CurrentInput))
@@ -84,32 +90,35 @@ namespace YARG.Core.Engine.Guitar.Engines
         {
             // If engine was invoked with an input update and the input is a fret
             // or: Did not strum at all
-            if (!State.StrummedThisUpdate && IsInputUpdate)
+            if (!State.StrummedThisUpdate)
             {
-                // Hopo leniency active and strum leniency active so hopo was strummed
-                if (State.HopoLeniencyTimer > 0)
+                if (State.StrumLeniencyTimer > 0)
                 {
-                    State.HopoLeniencyTimer = 0;
-                    State.StrumLeniencyTimer = 0;
-                }
-                else
-                {
-                    State.StrumLeniencyTimer -= delta;
-                    if (State.StrumLeniencyTimer <= 0)
+                    // Hopo leniency active and strum leniency active so hopo was strummed
+                    if (State.HopoLeniencyTimer > 0)
                     {
-                        if (State.WasHopoStrummed)
+                        State.HopoLeniencyTimer = 0;
+                        State.StrumLeniencyTimer = 0;
+                    }
+                    else
+                    {
+                        State.StrumLeniencyTimer -= delta;
+                        if (State.StrumLeniencyTimer <= 0)
                         {
-                            State.StrumLeniencyTimer = 0;
-                        }
-                        else
-                        {
-                            Overstrum();
-                        }
+                            Console.WriteLine("Strum leniency ended");
+                            if (State.WasHopoStrummed)
+                            {
+                                State.StrumLeniencyTimer = 0;
+                            }
+                            else
+                            {
+                                Overstrum();
+                            }
 
-                        State.WasHopoStrummed = false;
+                            State.WasHopoStrummed = false;
+                        }
                     }
                 }
-
                 if (State.HopoLeniencyTimer > 0)
                 {
                     State.HopoLeniencyTimer -= delta;
