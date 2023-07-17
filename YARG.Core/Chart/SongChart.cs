@@ -162,6 +162,67 @@ namespace YARG.Core.Chart
             return new SongChart(metadata, loader);
         }
 
+        public InstrumentTrack<GuitarNote> GetFiveFretTrack(Instrument instrument)
+        {
+            return instrument switch
+            {
+                Instrument.FiveFretGuitar => FiveFretGuitar,
+                Instrument.FiveFretCoopGuitar => FiveFretCoop,
+                Instrument.FiveFretRhythm => FiveFretRhythm,
+                Instrument.FiveFretBass => FiveFretBass,
+                Instrument.Keys => Keys,
+                _ => throw new ArgumentException($"Instrument {instrument} is not a 5-fret guitar instrument!")
+            };
+        }
+
+
+        public InstrumentTrack<GuitarNote> GetSixFretTrack(Instrument instrument)
+        {
+            return instrument switch
+            {
+                Instrument.SixFretGuitar => SixFretGuitar,
+                Instrument.SixFretCoopGuitar => SixFretCoop,
+                Instrument.SixFretRhythm => SixFretRhythm,
+                Instrument.SixFretBass => SixFretBass,
+                _ => throw new ArgumentException($"Instrument {instrument} is not a 6-fret guitar instrument!")
+            };
+        }
+
+
+        public InstrumentTrack<DrumNote> GetDrumsTrack(Instrument instrument)
+        {
+            return instrument switch
+            {
+                Instrument.FourLaneDrums => FourLaneDrums,
+                Instrument.ProDrums => ProDrums,
+                Instrument.FiveLaneDrums => FiveLaneDrums,
+                _ => throw new ArgumentException($"Instrument {instrument} is not a drums instrument!")
+            };
+        }
+
+
+        public InstrumentTrack<ProGuitarNote> GetProGuitarTrack(Instrument instrument)
+        {
+            return instrument switch
+            {
+                Instrument.ProGuitar_17Fret => ProGuitar_17Fret,
+                Instrument.ProGuitar_22Fret => ProGuitar_22Fret,
+                Instrument.ProBass_17Fret => ProBass_17Fret,
+                Instrument.ProBass_22Fret => ProBass_22Fret,
+                _ => throw new ArgumentException($"Instrument {instrument} is not a Pro Guitar instrument!")
+            };
+        }
+
+        public VocalsTrack GetVocalsTrack(Instrument instrument)
+        {
+            return instrument switch
+            {
+                Instrument.Vocals => Vocals,
+                Instrument.Harmony => Harmony,
+                _ => throw new ArgumentException($"Instrument {instrument} is not a vocals instrument!")
+            };
+        }
+
         public double TickToTime(uint tick)
         {
             return SyncTrack.TickToTime(tick);
