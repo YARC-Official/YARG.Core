@@ -41,7 +41,11 @@ namespace YARG.Core.Chart
 
             _guitarFlags = guitarFlags;
 
-            NoteMask = 1 << fret - 1;
+            // Resulting shift is 1 too high, shifting down by 1 corrects this.
+            // Reason for not doing (fret - 1) is this breaks open notes.
+            // Shifting down by 1 accounts for open notes and sets the mask to 0.
+            NoteMask = 1 << fret;
+            NoteMask >>= 1;
         }
 
         public override void AddChildNote(GuitarNote note)
