@@ -26,6 +26,7 @@ namespace MoonscraperChartEditor.Song.IO
             { MidIOHelper.GH1_GUITAR_TRACK, false },
 
             { MidIOHelper.DRUMS_TRACK,      true },
+            { MidIOHelper.DRUMS_TRACK_2,    false },
             { MidIOHelper.DRUMS_REAL_TRACK, false },
 
             { MidIOHelper.HARMONY_1_TRACK, true },

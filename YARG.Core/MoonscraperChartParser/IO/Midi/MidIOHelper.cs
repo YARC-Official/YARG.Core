@@ -24,6 +24,7 @@ namespace MoonscraperChartEditor.Song.IO
         public const string PRO_BASS_17_FRET_TRACK = "PART REAL_BASS";
         public const string PRO_BASS_22_FRET_TRACK = "PART REAL_BASS_22";
         public const string DRUMS_TRACK = "PART DRUMS";
+        public const string DRUMS_TRACK_2 = "PART DRUM";
         public const string DRUMS_REAL_TRACK = "PART REAL_DRUMS_PS";
         public const string GHL_GUITAR_TRACK = "PART GUITAR GHL";
         public const string GHL_BASS_TRACK = "PART BASS GHL";
