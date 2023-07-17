@@ -86,5 +86,10 @@ namespace YARG.Core.Engine.Guitar
         {
             State.ButtonMask = (byte)(active ? State.ButtonMask | (1 << fret) : State.ButtonMask & ~(1 << fret));
         }
+
+        public bool IsFretHeld(GuitarAction fret)
+        {
+            return (State.ButtonMask & (1 << (int)fret)) != 0;
+        }
     }
 }
