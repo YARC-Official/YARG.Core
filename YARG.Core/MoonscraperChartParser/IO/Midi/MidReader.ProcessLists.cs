@@ -170,6 +170,9 @@ namespace MoonscraperChartEditor.Song.IO
 
         private static Dictionary<int, EventProcessFn> GetPhraseProcessDict(ParseSettings settings, MoonChart.GameMode gameMode)
         {
+            if (settings.StarPowerNote < 0)
+                settings.StarPowerNote = MidIOHelper.STARPOWER_NOTE;
+
             var phraseSettings = gameMode switch
             {
                 MoonChart.GameMode.Guitar => GuitarPhraseSettings,

@@ -23,6 +23,10 @@ namespace YARG.Core.Chart
         public void LoadSong(ParseSettings settings, string filePath)
         {
             _settings = settings;
+
+            if (_settings.NoteSnapThreshold < 0)
+                _settings.NoteSnapThreshold = 0;
+
             _moonSong = Path.GetExtension(filePath).ToLower() switch
             {
                 ".mid" => MidReader.ReadMidi(_settings, filePath),
