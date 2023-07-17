@@ -37,28 +37,34 @@ namespace YARG.Core.Chart
         /// Generates more complex beatlines based on the tempo map.
         /// Ignores <see cref="Beatlines"/>.
         /// </summary>
-        /// <remarks>
-        /// x/4 time signatures will have in-between beats generated.<br/>
-        /// Time signatures with denominators greater than 4 will have every quarter note beat emphasized,
-        /// with the rest being weak beats.<br/>
-        /// 1/x time signatures will only have their first beat marked as a measure.
-        /// </remarks>
-        public List<Beatline> GenerateComplexBeatlines()
+        /// <param name="singleBeatStrongs">
+        /// If true, 1/x time signatures will only have their first beat marked as a measure.
+        /// </param>
+        /// <param name="inbetweenWeaksOnFour">
+        /// If true, x/4 time signatures will have in-between weak beats generated.
+        /// </param>
+        /// <param name="highDenominatorStrongRate">
+        /// If true, time signatures with denominators greater than 4 will have every quarter note beat emphasized,
+        /// with the rest being weak beats.
+        /// </param>
+        public List<Beatline> GenerateBeatlines(bool singleBeatStrongs = true, bool inbetweenWeaksOnFour = false,
+            uint highDenominatorStrongRate = 4)
         {
+            highDenominatorStrongRate = Math.Max(highDenominatorStrongRate, 1);
             return GenerateBeatlines(GetBeatlinePower, GetBeatlineType);
 
-            static uint GetBeatlinePower(TimeSignatureChange currentTimeSig)
+            uint GetBeatlinePower(TimeSignatureChange currentTimeSig)
             {
-                if (currentTimeSig.Denominator == 4)
+                if (currentTimeSig.Denominator == 4 && inbetweenWeaksOnFour)
                     return 1;
 
                 return 0;
             }
 
-            static BeatlineType GetBeatlineType(TimeSignatureChange currentTimeSig, uint beatlineCount)
+            BeatlineType GetBeatlineType(TimeSignatureChange currentTimeSig, uint beatlineCount)
             {
                 // 1/x time signatures
-                if (currentTimeSig.Numerator == 1)
+                if (currentTimeSig.Numerator == 1 && singleBeatStrongs)
                 {
                     // Only make the first beat a measure
                     return beatlineCount < 1 ? BeatlineType.Measure : BeatlineType.Strong;
@@ -70,54 +76,16 @@ namespace YARG.Core.Chart
                     return BeatlineType.Measure;
                 }
 
-                // In-between beats for x/4 time signatures, and
-                // emphasize only every quarter note for denominators greater than 4
-                if (currentTimeSig.Denominator >= 4)
+                // Emphasize only every quarter note for denominators greater than 4
+                if (currentTimeSig.Denominator > 4)
                 {
-                    uint quarterCount = currentTimeSig.Denominator / 4;
-                    if (currentTimeSig.Denominator == 4)
-                        quarterCount *= 2;
-
+                    uint quarterCount = currentTimeSig.Denominator / highDenominatorStrongRate;
                     return (beatlineCount % quarterCount) == 0 ? BeatlineType.Strong : BeatlineType.Weak;
                 }
-
-                // All other beats
-                return BeatlineType.Strong;
-            }
-        }
-
-        /// <summary>
-        /// Generates simpler beatlines based on the tempo map.
-        /// Ignores <see cref="Beatlines"/>.
-        /// </summary>
-        /// <remarks>
-        /// x/4 time signatures will have in-between weak beats generated. All other time signatures will
-        /// simply use measure and strong beats.
-        /// </remarks>
-        public List<Beatline> GenerateSimpleBeatlines()
-        {
-            return GenerateBeatlines(GetBeatlinePower, GetBeatlineType);
-
-            static uint GetBeatlinePower(TimeSignatureChange currentTimeSig)
-            {
-                if (currentTimeSig.Denominator == 4)
-                    return 1;
-
-                return 0;
-            }
-
-            static BeatlineType GetBeatlineType(TimeSignatureChange currentTimeSig, uint beatlineCount)
-            {
-                // Measure lines
-                if ((beatlineCount % currentTimeSig.Numerator) == 0)
-                {
-                    return BeatlineType.Measure;
-                }
-
                 // In-between beats for x/4 time signatures
-                if (currentTimeSig.Denominator == 4 && (beatlineCount % 2) == 1)
+                else if (currentTimeSig.Denominator == 4 && inbetweenWeaksOnFour)
                 {
-                    return BeatlineType.Weak;
+                    return (beatlineCount % 2) == 0 ? BeatlineType.Strong : BeatlineType.Weak;
                 }
 
                 // All other beats
