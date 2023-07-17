@@ -1,7 +1,9 @@
 using System;
+using System.IO;
 
 namespace YARG.Core.Chart
 {
+    [Serializable]
     public class AvailableParts
     {
         public DifficultyMask FiveFretGuitar;
@@ -26,6 +28,61 @@ namespace YARG.Core.Chart
 
         public bool VocalsAvailable;
         public bool HarmonyAvailable;
+
+        public static AvailableParts Deserialize(BinaryReader reader)
+        {
+            return new AvailableParts
+            {
+                FiveFretGuitar = (DifficultyMask) reader.ReadByte(),
+                FiveFretBass = (DifficultyMask) reader.ReadByte(),
+                FiveFretRhythm = (DifficultyMask) reader.ReadByte(),
+                FiveFretCoopGuitar = (DifficultyMask) reader.ReadByte(),
+                Keys = (DifficultyMask) reader.ReadByte(),
+
+                SixFretGuitar = (DifficultyMask) reader.ReadByte(),
+                SixFretBass = (DifficultyMask) reader.ReadByte(),
+                SixFretRhythm = (DifficultyMask) reader.ReadByte(),
+                SixFretCoopGuitar = (DifficultyMask) reader.ReadByte(),
+
+                FourLaneDrums = (DifficultyMask) reader.ReadByte(),
+                ProDrums = (DifficultyMask) reader.ReadByte(),
+                FiveLaneDrums = (DifficultyMask) reader.ReadByte(),
+
+                ProGuitar_17Fret = (DifficultyMask) reader.ReadByte(),
+                ProGuitar_22Fret = (DifficultyMask) reader.ReadByte(),
+                ProBass_17Fret = (DifficultyMask) reader.ReadByte(),
+                ProBass_22Fret = (DifficultyMask) reader.ReadByte(),
+
+                VocalsAvailable = reader.ReadBoolean(),
+                HarmonyAvailable = reader.ReadBoolean()
+            };
+        }
+
+        public void Serialize(BinaryWriter writer)
+        {
+            writer.Write((byte)FiveFretGuitar);
+            writer.Write((byte)FiveFretBass);
+            writer.Write((byte)FiveFretRhythm);
+            writer.Write((byte)FiveFretCoopGuitar);
+            writer.Write((byte)Keys);
+
+            writer.Write((byte)SixFretGuitar);
+            writer.Write((byte)SixFretBass);
+            writer.Write((byte)SixFretRhythm);
+            writer.Write((byte)SixFretCoopGuitar);
+
+            writer.Write((byte)FourLaneDrums);
+            writer.Write((byte)ProDrums);
+            writer.Write((byte)FiveLaneDrums);
+
+            writer.Write((byte)ProGuitar_17Fret);
+            writer.Write((byte)ProGuitar_22Fret);
+            writer.Write((byte)ProBass_17Fret);
+            writer.Write((byte)ProBass_22Fret);
+
+            writer.Write(VocalsAvailable);
+            writer.Write(HarmonyAvailable);
+        }
 
         public DifficultyMask GetAvailableDifficulties(Instrument instrument)
         {
