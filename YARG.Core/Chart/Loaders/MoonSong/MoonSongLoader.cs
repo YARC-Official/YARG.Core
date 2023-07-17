@@ -296,7 +296,7 @@ namespace YARG.Core.Chart
 
         private static bool IsEventInPhrase(SongObject note, SpecialPhrase phrase)
         {
-            return note.tick >= phrase.tick && note.tick < (phrase.tick + phrase.length);
+            return note?.tick >= phrase.tick && note.tick < (phrase.tick + phrase.length);
         }
 
         private static bool IsNoteClosestToEndOfPhrase(MoonNote note, SpecialPhrase phrase)
