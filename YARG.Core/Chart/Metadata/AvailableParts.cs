@@ -84,6 +84,32 @@ namespace YARG.Core.Chart
             writer.Write(HarmonyAvailable);
         }
 
+        public void Merge(AvailableParts partsToMerge)
+        {
+            FiveFretGuitar |= partsToMerge.FiveFretGuitar;
+            FiveFretBass |= partsToMerge.FiveFretBass;
+            FiveFretRhythm |= partsToMerge.FiveFretRhythm;
+            FiveFretCoopGuitar |= partsToMerge.FiveFretCoopGuitar;
+            Keys |= partsToMerge.Keys;
+
+            SixFretGuitar |= partsToMerge.SixFretGuitar;
+            SixFretBass |= partsToMerge.SixFretBass;
+            SixFretRhythm |= partsToMerge.SixFretRhythm;
+            SixFretCoopGuitar |= partsToMerge.SixFretCoopGuitar;
+
+            FourLaneDrums |= partsToMerge.FourLaneDrums;
+            ProDrums |= partsToMerge.ProDrums;
+            FiveLaneDrums |= partsToMerge.FiveLaneDrums;
+
+            ProGuitar_17Fret |= partsToMerge.ProGuitar_17Fret;
+            ProGuitar_22Fret |= partsToMerge.ProGuitar_22Fret;
+            ProBass_17Fret |= partsToMerge.ProBass_17Fret;
+            ProBass_22Fret |= partsToMerge.ProBass_22Fret;
+
+            VocalsAvailable |= partsToMerge.VocalsAvailable;
+            HarmonyAvailable |= partsToMerge.HarmonyAvailable;
+        }
+
         public DifficultyMask GetAvailableDifficulties(Instrument instrument)
         {
             return instrument switch
