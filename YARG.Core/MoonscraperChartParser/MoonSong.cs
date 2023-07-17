@@ -6,7 +6,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using MoonscraperEngine;
+using YARG.Core;
 
 namespace MoonscraperChartEditor.Song
 {
@@ -72,10 +72,10 @@ namespace MoonscraperChartEditor.Song
             Add(new TimeSignature());
 
             // Chart initialisation
-            charts = new MoonChart[EnumX<MoonInstrument>.Count * EnumX<Difficulty>.Count];
+            charts = new MoonChart[EnumExtensions<MoonInstrument>.Count * EnumExtensions<Difficulty>.Count];
             for (int i = 0; i < charts.Length; ++i)
             {
-                var instrument = (MoonInstrument)(i / EnumX<Difficulty>.Count);
+                var instrument = (MoonInstrument)(i / EnumExtensions<Difficulty>.Count);
                 charts[i] = new MoonChart(this, instrument);
             }
 
@@ -84,12 +84,12 @@ namespace MoonscraperChartEditor.Song
 
         public MoonChart GetChart(MoonInstrument instrument, Difficulty difficulty)
         {
-            return charts[(int)instrument * EnumX<Difficulty>.Count + (int)difficulty];
+            return charts[(int)instrument * EnumExtensions<Difficulty>.Count + (int)difficulty];
         }
 
         public bool ChartExistsForInstrument(MoonInstrument instrument)
         {
-            foreach (var difficulty in EnumX<Difficulty>.Values)
+            foreach (var difficulty in EnumExtensions<Difficulty>.Values)
             {
                 var chart = GetChart(instrument, difficulty);
                 if (chart.chartObjects.Count > 0)

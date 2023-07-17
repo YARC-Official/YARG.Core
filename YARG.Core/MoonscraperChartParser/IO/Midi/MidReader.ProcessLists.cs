@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using Melanchall.DryWetMidi.Core;
-using MoonscraperEngine;
 using YARG.Core;
 using YARG.Core.Chart;
 
@@ -240,7 +239,7 @@ namespace MoonscraperChartEditor.Song.IO
                 return;
             }
 
-            foreach (var diff in EnumX<MoonSong.Difficulty>.Values)
+            foreach (var diff in EnumExtensions<MoonSong.Difficulty>.Values)
             {
                 chart = processParams.song.GetChart(processParams.instrument, diff);
                 foreach (var phrase in chart.specialPhrases)
@@ -258,7 +257,7 @@ namespace MoonscraperChartEditor.Song.IO
                 settings.DrumsType is not DrumsType.Unknown)
                 return;
 
-            foreach (var difficulty in EnumX<MoonSong.Difficulty>.Values)
+            foreach (var difficulty in EnumExtensions<MoonSong.Difficulty>.Values)
             {
                 var chart = processParams.song.GetChart(processParams.instrument, difficulty);
                 foreach (var note in chart.notes)
@@ -397,10 +396,10 @@ namespace MoonscraperChartEditor.Song.IO
             if (enhancedOpens)
                 FretToMidiKey.Add(MoonNote.GuitarFret.Open, -1);
 
-            foreach (var difficulty in EnumX<MoonSong.Difficulty>.Values)
+            foreach (var difficulty in EnumExtensions<MoonSong.Difficulty>.Values)
             {
                 int difficultyStartRange = MidIOHelper.GUITAR_DIFF_START_LOOKUP[difficulty];
-                foreach (var guitarFret in EnumX<MoonNote.GuitarFret>.Values)
+                foreach (var guitarFret in EnumExtensions<MoonNote.GuitarFret>.Values)
                 {
                     if (FretToMidiKey.TryGetValue(guitarFret, out int fretOffset))
                     {
@@ -454,10 +453,10 @@ namespace MoonscraperChartEditor.Song.IO
                 { MoonNote.GHLiveGuitarFret.Black3, 6 },
             };
 
-            foreach (var difficulty in EnumX<MoonSong.Difficulty>.Values)
+            foreach (var difficulty in EnumExtensions<MoonSong.Difficulty>.Values)
             {
                 int difficultyStartRange = MidIOHelper.GHL_GUITAR_DIFF_START_LOOKUP[difficulty];
-                foreach (var guitarFret in EnumX<MoonNote.GHLiveGuitarFret>.Values)
+                foreach (var guitarFret in EnumExtensions<MoonNote.GHLiveGuitarFret>.Values)
                 {
                     if (FretToMidiKey.TryGetValue(guitarFret, out int fretOffset))
                     {
@@ -497,10 +496,10 @@ namespace MoonscraperChartEditor.Song.IO
             {
             };
 
-            foreach (var difficulty in EnumX<MoonSong.Difficulty>.Values)
+            foreach (var difficulty in EnumExtensions<MoonSong.Difficulty>.Values)
             {
                 int difficultyStartRange = MidIOHelper.PRO_GUITAR_DIFF_START_LOOKUP[difficulty];
-                foreach (var proString in EnumX<MoonNote.ProGuitarString>.Values)
+                foreach (var proString in EnumExtensions<MoonNote.ProGuitarString>.Values)
                 {
                     int key = (int)proString + difficultyStartRange;
                     processFnDict.Add(key, (in EventProcessParams eventProcessParams) =>
@@ -571,10 +570,10 @@ namespace MoonscraperChartEditor.Song.IO
                 { MoonNote.DrumPad.Orange, MoonNote.Flags.ProDrums_Cymbal },
             };
 
-            foreach (var difficulty in EnumX<MoonSong.Difficulty>.Values)
+            foreach (var difficulty in EnumExtensions<MoonSong.Difficulty>.Values)
             {
                 int difficultyStartRange = MidIOHelper.DRUMS_DIFF_START_LOOKUP[difficulty];
-                foreach (var pad in EnumX<MoonNote.DrumPad>.Values)
+                foreach (var pad in EnumExtensions<MoonNote.DrumPad>.Values)
                 {
                     if (DrumPadToMidiKey.TryGetValue(pad, out int padOffset))
                     {
@@ -653,7 +652,7 @@ namespace MoonscraperChartEditor.Song.IO
                 }},
 
                 { MidIOHelper.PERCUSSION_NOTE, (in EventProcessParams eventProcessParams) => {
-                    foreach (var difficulty in EnumX<MoonSong.Difficulty>.Values)
+                    foreach (var difficulty in EnumExtensions<MoonSong.Difficulty>.Values)
                     {
                         ProcessNoteOnEventAsNote(eventProcessParams, difficulty, 0, MoonNote.Flags.Vocals_Percussion);
                     };
@@ -664,7 +663,7 @@ namespace MoonscraperChartEditor.Song.IO
             {
                 int rawNote = i; // Capture the note value
                 processFnDict.Add(i, (in EventProcessParams eventProcessParams) => {
-                    foreach (var difficulty in EnumX<MoonSong.Difficulty>.Values)
+                    foreach (var difficulty in EnumExtensions<MoonSong.Difficulty>.Values)
                     {
                         ProcessNoteOnEventAsNote(eventProcessParams, difficulty, rawNote);
                     };

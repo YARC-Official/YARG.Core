@@ -3,10 +3,16 @@ using System.Runtime.CompilerServices;
 
 namespace YARG.Core
 {
+    public static class EnumExtensions<TEnum>
+        where TEnum : Enum
+    {
+        public static readonly TEnum[] Values = (TEnum[])Enum.GetValues(typeof(TEnum));
+        public static int Count => Values.Length;
+    }
+
     public static class EnumExtensions
     {
-        // Non-boxing generic conversion of enums: https://stackoverflow.com/a/4026609
-
+        #region Non-boxing generic conversion of enums: https://stackoverflow.com/a/4026609
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool TryConvert<TEnum>(this TEnum @enum, out int value)
             where TEnum : unmanaged, Enum
@@ -65,5 +71,6 @@ namespace YARG.Core
 
             return @enum;
         }
+        #endregion
     }
 }

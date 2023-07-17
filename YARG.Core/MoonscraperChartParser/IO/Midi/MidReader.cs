@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
-using MoonscraperEngine;
 using YARG.Core;
 using YARG.Core.Chart;
 
@@ -151,7 +150,7 @@ namespace MoonscraperChartEditor.Song.IO
                                 continue;
 
                             // Overwrite existing track
-                            foreach (var difficulty in EnumX<MoonSong.Difficulty>.Values)
+                            foreach (var difficulty in EnumExtensions<MoonSong.Difficulty>.Values)
                             {
                                 var chart = song.GetChart(instrument, difficulty);
                                 chart.Clear();
@@ -342,7 +341,7 @@ namespace MoonscraperChartEditor.Song.IO
             YargTrace.Assert(unpairedSysexQueue.Count == 0, $"SysEx event queue was not fully processed! Remaining event count: {unpairedSysexQueue.Count}");
 
             // Update chart caches
-            foreach (var diff in EnumX<MoonSong.Difficulty>.Values)
+            foreach (var diff in EnumExtensions<MoonSong.Difficulty>.Values)
             {
                 song.GetChart(instrument, diff).UpdateCache();
             }
@@ -411,7 +410,7 @@ namespace MoonscraperChartEditor.Song.IO
             else
             {
                 // Copy text event to all difficulties so that .chart format can store these properly. Midi writer will strip duplicate events just fine anyway.
-                foreach (var difficulty in EnumX<MoonSong.Difficulty>.Values)
+                foreach (var difficulty in EnumExtensions<MoonSong.Difficulty>.Values)
                 {
                     var chartEvent = new ChartEvent(tick, eventName);
                     processParams.song.GetChart(processParams.instrument, difficulty).Add(chartEvent);
@@ -537,7 +536,7 @@ namespace MoonscraperChartEditor.Song.IO
             uint tick = (uint)timedEvent.startTick;
             uint sus = ApplySustainCutoff(eventProcessParams.settings, (uint)timedEvent.length);
 
-            foreach (var diff in EnumX<MoonSong.Difficulty>.Values)
+            foreach (var diff in EnumExtensions<MoonSong.Difficulty>.Values)
             {
                 song.GetChart(instrument, diff).Add(new SpecialPhrase(tick, sus, type), false);
             }
@@ -549,7 +548,7 @@ namespace MoonscraperChartEditor.Song.IO
             uint startTick = (uint)timedEvent.startTick;
             uint endTick = (uint)timedEvent.endTick;
 
-            foreach (var diff in EnumX<MoonSong.Difficulty>.Values)
+            foreach (var diff in EnumExtensions<MoonSong.Difficulty>.Values)
             {
                 // Delay the actual processing once all the notes are actually in
                 eventProcessParams.delayedProcessesList.Add((in EventProcessParams processParams) =>
@@ -648,7 +647,7 @@ namespace MoonscraperChartEditor.Song.IO
             if (tick >= tickOffset)
                 tick += (uint)tickOffset;
 
-            foreach (var diff in EnumX<MoonSong.Difficulty>.Values)
+            foreach (var diff in EnumExtensions<MoonSong.Difficulty>.Values)
             {
                 var moonChart = song.GetChart(instrument, diff);
                 moonChart.Add(new ChartEvent(tick, eventText));
@@ -670,7 +669,7 @@ namespace MoonscraperChartEditor.Song.IO
             if (sus >= tickEndOffset)
                 sus += (uint)tickEndOffset;
 
-            foreach (var diff in EnumX<MoonSong.Difficulty>.Values)
+            foreach (var diff in EnumExtensions<MoonSong.Difficulty>.Values)
             {
                 var chart = song.GetChart(instrument, diff);
                 chart.Add(new ChartEvent(tick, eventStartText));
@@ -696,7 +695,7 @@ namespace MoonscraperChartEditor.Song.IO
             var song = eventProcessParams.song;
             var instrument = eventProcessParams.instrument;
 
-            foreach (var difficulty in EnumX<MoonSong.Difficulty>.Values)
+            foreach (var difficulty in EnumExtensions<MoonSong.Difficulty>.Values)
             {
                 var chart = song.GetChart(instrument, difficulty);
 
@@ -726,7 +725,7 @@ namespace MoonscraperChartEditor.Song.IO
 
             if (startEvent.difficulty == PhaseShiftSysEx.Difficulty.All)
             {
-                foreach (var diff in EnumX<MoonSong.Difficulty>.Values)
+                foreach (var diff in EnumExtensions<MoonSong.Difficulty>.Values)
                 {
                     eventProcessParams.delayedProcessesList.Add((in EventProcessParams processParams) =>
                     {
@@ -758,7 +757,7 @@ namespace MoonscraperChartEditor.Song.IO
 
             if (startEvent.difficulty == PhaseShiftSysEx.Difficulty.All)
             {
-                foreach (var diff in EnumX<MoonSong.Difficulty>.Values)
+                foreach (var diff in EnumExtensions<MoonSong.Difficulty>.Values)
                 {
                     eventProcessParams.delayedProcessesList.Add((in EventProcessParams processParams) =>
                     {
