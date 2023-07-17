@@ -22,19 +22,19 @@ namespace YARG.Core.Chart
 
         public GuitarNote(FiveFretGuitarFret fret, GuitarNoteType noteType, GuitarNoteFlags guitarFlags,
             NoteFlags flags, double time, double timeLength, uint tick, uint tickLength)
-            : this((int)fret, noteType, guitarFlags, flags, time, timeLength, tick, tickLength) 
+            : this((int)fret, noteType, guitarFlags, flags, time, timeLength, tick, tickLength)
         {
         }
 
         public GuitarNote(SixFretGuitarFret fret, GuitarNoteType noteType, GuitarNoteFlags guitarFlags,
             NoteFlags flags, double time, double timeLength, uint tick, uint tickLength)
-            : this((int)fret, noteType, guitarFlags, flags, time, timeLength, tick, tickLength) 
+            : this((int)fret, noteType, guitarFlags, flags, time, timeLength, tick, tickLength)
         {
         }
 
         public GuitarNote(int fret, GuitarNoteType noteType, GuitarNoteFlags guitarFlags, NoteFlags flags,
             double time, double timeLength, uint tick, uint tickLength)
-            : base(flags, time, timeLength, tick, tickLength) 
+            : base(flags, time, timeLength, tick, tickLength)
         {
             Fret = fret;
             Type = noteType;
@@ -48,7 +48,7 @@ namespace YARG.Core.Chart
         {
             base.AddChildNote(note);
 
-            NoteMask |= 1 << note.Fret;
+            NoteMask |= 1 << note.Fret - 1;
         }
     }
 

@@ -27,7 +27,7 @@ namespace YARG.Core.Chart
             StarPowerNote = SETTING_DEFAULT,
         };
 
-        public const int SETTING_DEFAULT = -1;
+        public const int SETTING_DEFAULT = 0;
 
         public DrumsType DrumsType;
 
