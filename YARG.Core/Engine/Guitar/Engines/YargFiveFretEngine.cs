@@ -27,6 +27,7 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                 break;
             }
+            UpdateEngine(songTime);
         }
 
         protected override bool UpdateHitLogic(double time)
