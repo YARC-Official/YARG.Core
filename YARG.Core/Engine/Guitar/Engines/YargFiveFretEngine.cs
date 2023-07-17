@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using YARG.Core.Chart;
 using YARG.Core.Input;
 
@@ -59,7 +58,6 @@ namespace YARG.Core.Engine.Guitar.Engines
                 State.StrumLeniencyTimer = EngineParameters.StrumLeniency;
             }
 
-            UpdateTimers(delta);
             var note = Notes[State.NoteIndex];
 
             if (note.WasHit || note.WasMissed)
@@ -135,6 +133,12 @@ namespace YARG.Core.Engine.Guitar.Engines
 
         protected override bool CanNoteBeHit(GuitarNote note)
         {
+            // Disallow hitting if front end timer is not in range of note time
+            if (!EngineParameters.InfiniteFrontEnd)
+            {
+
+            }
+
             // If open, must not hold any frets
             // If not open, must be holding at least 1 fret
             if (note.NoteMask == 0 && State.ButtonMask != 0 || note.NoteMask != 0 && State.ButtonMask == 0)
