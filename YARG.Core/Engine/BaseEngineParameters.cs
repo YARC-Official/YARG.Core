@@ -8,7 +8,14 @@ namespace YARG.Core.Engine
         public double HitWindow        { get; }
         public double FrontToBackRatio { get; }
 
+        /// <summary>
+        /// How much time ahead of the strikeline can a note be hit. This value is always negative.
+        /// </summary>
         public double FrontEnd { get; private set; }
+
+        /// <summary>
+        /// How much time behind the strikeline can a note be hit. This value is always positive.
+        /// </summary>
         public double BackEnd  { get; private set; }
 
         protected BaseEngineParameters(double hitWindow, double frontBackRatio)

@@ -35,15 +35,28 @@ namespace YARG.Core.Engine.Guitar.Engines
             double delta = time - LastUpdateTime;
             LastUpdateTime = time;
 
+            UpdateTimers(delta);
+
+            State.StrummedThisUpdate = IsInputUpdate && IsStrumInput(CurrentInput) && CurrentInput.Button;
+            if (IsInputUpdate && IsFretInput(CurrentInput))
+            {
+                ToggleFret(CurrentInput.Action, CurrentInput.Button);
+                State.FrontEndTimer = time;
+            }
+
             if(State.NoteIndex >= Notes.Count)
             {
                 return false;
             }
 
-            State.StrummedThisUpdate = IsInputUpdate && IsStrumInput(CurrentInput) && CurrentInput.Button;
-            if (IsFretInput(CurrentInput))
+            // Update strum leniency if strummed this update
+            if (State.StrummedThisUpdate)
             {
-                ToggleFret(CurrentInput.Action, CurrentInput.Button);
+                if (State.StrumLeniencyTimer > 0)
+                {
+                    Overstrum();
+                }
+                State.StrumLeniencyTimer = EngineParameters.StrumLeniency;
             }
 
             UpdateTimers(delta);
@@ -108,59 +121,16 @@ namespace YARG.Core.Engine.Guitar.Engines
 
         protected void UpdateTimers(double delta)
         {
-            // If engine was invoked with an input update and the input is a fret
-            // or: Did not strum at all
-            // if (!State.StrummedThisUpdate)
-            // {
-            //     if (State.StrumLeniencyTimer > 0)
-            //     {
-            //         // Hopo leniency active and strum leniency active so hopo was strummed
-            //         if (State.HopoLeniencyTimer > 0)
-            //         {
-            //             State.HopoLeniencyTimer = 0;
-            //             State.StrumLeniencyTimer = 0;
-            //         }
-            //         else
-            //         {
-            //             State.StrumLeniencyTimer -= delta;
-            //             if (State.StrumLeniencyTimer <= 0)
-            //             {
-            //                 YargTrace.DebugInfo("Strum leniency ended");
-            //                 if (State.WasHopoStrummed)
-            //                 {
-            //                     State.StrumLeniencyTimer = 0;
-            //                 }
-            //                 else
-            //                 {
-            //                     Overstrum();
-            //                 }
-            //
-            //                 State.WasHopoStrummed = false;
-            //             }
-            //         }
-            //     }
-            //     if (State.HopoLeniencyTimer > 0)
-            //     {
-            //         State.HopoLeniencyTimer -= delta;
-            //     }
-            // } else if (State.StrummedThisUpdate)
-            // {
-            //     if (State.HopoLeniencyTimer > 0)
-            //     {
-            //         State.StrumLeniencyTimer = 0;
-            //     }
-            //     else
-            //     {
-            //         // Strummed while strum leniency is already active, so double/triple strum
-            //         if (State.StrumLeniencyTimer > 0)
-            //         {
-            //             Overstrum();
-            //         }
-            //
-            //         State.StrumLeniencyTimer = EngineParameters.StrumLeniency;
-            //         State.WasHopoStrummed = false;
-            //     }
-            // }
+            if (State.StrumLeniencyTimer > 0)
+            {
+                // Add hopo leniency later
+
+                State.StrumLeniencyTimer -= delta;
+                if (State.StrumLeniencyTimer <= 0)
+                {
+                    Overstrum();
+                }
+            }
         }
 
         protected override bool CanNoteBeHit(GuitarNote note)
