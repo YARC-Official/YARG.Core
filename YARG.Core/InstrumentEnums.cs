@@ -70,6 +70,23 @@ namespace YARG.Core
         ExpertPlus,
     }
 
+    /// <summary>
+    /// Available difficulty levels.
+    /// </summary>
+    [Flags]
+    public enum DifficultyMask : byte
+    {
+        None = 0,
+
+        Easy   = 1 << 0,
+        Medium = 1 << 1,
+        Hard   = 1 << 2,
+        Expert = 1 << 3,
+        ExpertPlus = 1 << 4,
+
+        All = Easy | Medium | Hard | Expert | ExpertPlus,
+    }
+
     public static class ChartEnumExtensions
     {
         public static GameMode ToGameMode(this Instrument instrument)
@@ -107,6 +124,32 @@ namespace YARG.Core
                 // Instrument.Dj => GameMode.Dj,
 
                 _ => throw new NotImplementedException($"Unhandled instrument {instrument}!")
+            };
+        }
+
+        public static DifficultyMask ToDifficultyMask(this Difficulty difficulty)
+        {
+            return difficulty switch
+            {
+                Difficulty.Easy       => DifficultyMask.Easy,
+                Difficulty.Medium     => DifficultyMask.Easy,
+                Difficulty.Hard       => DifficultyMask.Easy,
+                Difficulty.Expert     => DifficultyMask.Expert,
+                Difficulty.ExpertPlus => DifficultyMask.ExpertPlus,
+                _ => throw new ArgumentException($"Invalid difficulty {difficulty}!")
+            };
+        }
+
+        public static Difficulty ToDifficulty(this DifficultyMask difficulty)
+        {
+            return difficulty switch
+            {
+                DifficultyMask.Easy       => Difficulty.Easy,
+                DifficultyMask.Medium     => Difficulty.Easy,
+                DifficultyMask.Hard       => Difficulty.Easy,
+                DifficultyMask.Expert     => Difficulty.Expert,
+                DifficultyMask.ExpertPlus => Difficulty.ExpertPlus,
+                _ => throw new ArgumentException($"Cannot convert difficulty mask {difficulty} into a single difficulty!")
             };
         }
     }

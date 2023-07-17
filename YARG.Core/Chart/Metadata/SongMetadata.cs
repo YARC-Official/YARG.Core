@@ -45,6 +45,8 @@ namespace YARG.Core.Chart
         public double VideoStartTime { get; set; } = 0;
         public double VideoEndTime { get; set; } = -1;
 
+        public AvailableParts AvailableParts { get; set;}
+
         public int BandDifficulty { get; set; } = -1;
         public Dictionary<Instrument, int> PartDifficulties { get; set; } = new();
 

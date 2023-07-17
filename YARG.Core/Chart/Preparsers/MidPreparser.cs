@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using Melanchall.DryWetMidi.Core;
@@ -48,8 +48,7 @@ namespace YARG.Core.Chart
             { MidIOHelper.HARMONY_3_TRACK_2, Instrument.Harmony },
         };
 
-        // TODO: A ulong is no longer enough to store all of the tracks
-        public static bool GetAvailableTracks(byte[] chartData, out ulong tracks)
+        public static bool GetAvailableTracks(byte[] chartData, out AvailableParts tracks)
         {
             try
             {
@@ -61,12 +60,12 @@ namespace YARG.Core.Chart
             catch (Exception e)
             {
                 YargTrace.LogException(e, "Error reading available .mid tracks!");
-                tracks = 0;
+                tracks = new();
                 return false;
             }
         }
 
-        public static bool GetAvailableTracks(string filePath, out ulong tracks)
+        public static bool GetAvailableTracks(string filePath, out AvailableParts tracks)
         {
             try
             {
@@ -77,14 +76,14 @@ namespace YARG.Core.Chart
             catch (Exception e)
             {
                 YargTrace.LogException(e, "Error reading available .mid tracks!");
-                tracks = 0;
+                tracks = new();
                 return false;
             }
         }
 
-        private static ulong PreparseMidi(MidiFile midi)
+        private static AvailableParts PreparseMidi(MidiFile midi)
         {
-            ulong tracks = 0;
+            var parts = new AvailableParts();
 
             foreach (var chunk in midi.GetTrackChunks())
             {
@@ -97,12 +96,11 @@ namespace YARG.Core.Chart
                     if (!PartLookup.TryGetValue(trackNameKey, out var instrument))
                         continue;
 
-                    int shiftAmount = (int) instrument * 4;
-                    tracks |= 0xFUL << shiftAmount;
+                    parts.SetInstrumentAvailable(instrument, true);
                 }
             }
 
-            return tracks;
+            return parts;
         }
     }
 }

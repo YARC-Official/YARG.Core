@@ -10,12 +10,12 @@ namespace YARG.Core.Chart
         private static readonly Regex ChartEventRegex =
             new Regex(@"(\d+)\s?=\s?[NSE]\s?((\d+\s?\d+)|\w+)", RegexOptions.Compiled);
 
-        private static readonly Dictionary<string, Difficulty> DifficultyLookup = new()
+        private static readonly Dictionary<string, DifficultyMask> DifficultyLookup = new()
         {
-            { "Easy",   Difficulty.Easy   },
-            { "Medium", Difficulty.Medium },
-            { "Hard",   Difficulty.Hard   },
-            { "Expert", Difficulty.Expert },
+            { "Easy",   DifficultyMask.Easy   },
+            { "Medium", DifficultyMask.Medium },
+            { "Hard",   DifficultyMask.Hard   },
+            { "Expert", DifficultyMask.Expert },
         };
 
         private static readonly Dictionary<string, Instrument> InstrumentLookup = new()
@@ -34,43 +34,42 @@ namespace YARG.Core.Chart
             { "Drums", Instrument.FourLaneDrums },
         };
 
-        // TODO: A ulong is no longer enough to store all of the tracks
-        public static bool GetAvailableTracks(byte[] chartData, out ulong tracks)
+        public static bool GetAvailableTracks(byte[] chartData, out AvailableParts parts)
         {
             try
             {
                 using var stream = new MemoryStream(chartData);
                 using var reader = new StreamReader(stream);
-                tracks = PreparseChart(reader);
+                parts = PreparseChart(reader);
                 return true;
             }
             catch (Exception e)
             {
                 YargTrace.LogException(e, "Error reading available .chart tracks!");
-                tracks = 0;
+                parts = new();
                 return false;
             }
         }
 
-        public static bool GetAvailableTracks(string filePath, out ulong tracks)
+        public static bool GetAvailableTracks(string filePath, out AvailableParts parts)
         {
             try
             {
                 using var reader = File.OpenText(filePath);
-                tracks = PreparseChart(reader);
+                parts = PreparseChart(reader);
                 return true;
             }
             catch (Exception e)
             {
                 YargTrace.LogException(e, "Error reading available .chart tracks!");
-                tracks = 0;
+                parts = new();
                 return false;
             }
         }
 
-        private static ulong PreparseChart(StreamReader reader)
+        private static AvailableParts PreparseChart(StreamReader reader)
         {
-            ulong tracks = 0;
+            var parts = new AvailableParts();
 
             while (!reader.EndOfStream)
             {
@@ -96,14 +95,13 @@ namespace YARG.Core.Chart
                 if (!GetTrackFromHeader(headerName, out var track))
                     continue;
 
-                int shiftAmount = (int) track.instrument * 4 + (int) track.difficulty;
-                tracks |= 1UL << shiftAmount;
+                parts.AddAvailableDifficulty(track.instrument, track.difficulty);
             }
 
-            return tracks;
+            return parts;
         }
 
-        private static bool GetTrackFromHeader(string header, out (Instrument instrument, Difficulty difficulty) track)
+        private static bool GetTrackFromHeader(string header, out (Instrument instrument, DifficultyMask difficulty) track)
         {
             foreach (var (diffName, difficulty) in DifficultyLookup)
             {
@@ -120,7 +118,7 @@ namespace YARG.Core.Chart
                 }
             }
 
-            track = ((Instrument) (-1), (Difficulty) (-1));
+            track = default;
             return false;
         }
     }
