@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Linq;
 using Melanchall.DryWetMidi.Core;
 using MoonscraperEngine;
+using YARG.Core;
 using YARG.Core.Chart;
 
 namespace MoonscraperChartEditor.Song.IO
@@ -310,7 +311,7 @@ namespace MoonscraperChartEditor.Song.IO
             var gameMode = MoonSong.InstumentToChartGameMode(processParams.instrument);
             if (gameMode != MoonChart.GameMode.Guitar)
             {
-                Debug.WriteLine($"Attempted to apply guitar enhanced opens process map to non-guitar instrument: {processParams.instrument}");
+                YargTrace.DebugWarning($"Attempted to apply guitar enhanced opens process map to non-guitar instrument: {processParams.instrument}");
                 return;
             }
 
@@ -323,7 +324,7 @@ namespace MoonscraperChartEditor.Song.IO
             var gameMode = MoonSong.InstumentToChartGameMode(processParams.instrument);
             if (gameMode != MoonChart.GameMode.Drums)
             {
-                Debug.WriteLine($"Attempted to apply drums velocity process map to non-drums instrument: {processParams.instrument}");
+                YargTrace.DebugWarning($"Attempted to apply drums velocity process map to non-drums instrument: {processParams.instrument}");
                 return;
             }
 
@@ -502,11 +503,11 @@ namespace MoonscraperChartEditor.Song.IO
                     processFnDict.Add(key, (in EventProcessParams eventProcessParams) =>
                     {
                         var noteEvent = eventProcessParams.timedEvent.midiEvent as NoteEvent;
-                        Debug.Assert(noteEvent != null, $"Wrong note event type passed to Pro Guitar note process. Expected: {typeof(NoteEvent)}, Actual: {eventProcessParams.timedEvent.midiEvent.GetType()}");
+                        YargTrace.Assert(noteEvent != null, $"Wrong note event type passed to Pro Guitar note process. Expected: {typeof(NoteEvent)}, Actual: {eventProcessParams.timedEvent.midiEvent.GetType()}");
 
                         if (noteEvent.Velocity < 100)
                         {
-                            Debug.WriteLine($"Encountered Pro Guitar note with invalid fret velocity {noteEvent.Velocity}! Must be at least 100");
+                            YargTrace.DebugWarning($"Encountered Pro Guitar note with invalid fret velocity {noteEvent.Velocity}! Must be at least 100");
                             return;
                         }
 
@@ -584,7 +585,7 @@ namespace MoonscraperChartEditor.Song.IO
                             processFnDict.Add(key, (in EventProcessParams eventProcessParams) =>
                             {
                                 var noteEvent = eventProcessParams.timedEvent.midiEvent as NoteEvent;
-                                Debug.Assert(noteEvent != null, $"Wrong note event type passed to drums note process. Expected: {typeof(NoteEvent)}, Actual: {eventProcessParams.timedEvent.midiEvent.GetType()}");
+                                YargTrace.Assert(noteEvent != null, $"Wrong note event type passed to drums note process. Expected: {typeof(NoteEvent)}, Actual: {eventProcessParams.timedEvent.midiEvent.GetType()}");
 
                                 var flags = defaultFlags;
                                 switch (noteEvent.Velocity)

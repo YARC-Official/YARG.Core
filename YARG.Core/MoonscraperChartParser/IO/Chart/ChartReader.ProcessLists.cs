@@ -12,6 +12,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using MoonscraperEngine;
+using YARG.Core;
 using YARG.Core.Chart;
 
 namespace MoonscraperChartEditor.Song.IO
@@ -219,7 +220,7 @@ namespace MoonscraperChartEditor.Song.IO
                     chart.Remove(text, false);
                     if (currentStartTick != null)
                     {
-                        Debug.WriteLine($"Encountered duplicate solo start event!");
+                        YargTrace.DebugWarning($"Encountered duplicate solo start event!");
                         continue;
                     }
 
@@ -231,7 +232,7 @@ namespace MoonscraperChartEditor.Song.IO
                     chart.Remove(text, false);
                     if (currentStartTick == null)
                     {
-                        Debug.WriteLine($"Encountered solo end with no solo start!");
+                        YargTrace.DebugWarning($"Encountered solo end with no solo start!");
                         continue;
                     }
 

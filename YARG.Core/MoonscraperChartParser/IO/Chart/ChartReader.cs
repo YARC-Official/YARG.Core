@@ -11,6 +11,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
+using YARG.Core;
 using YARG.Core.Chart;
 
 namespace MoonscraperChartEditor.Song.IO
@@ -134,14 +135,14 @@ namespace MoonscraperChartEditor.Song.IO
             switch (dataName)
             {
                 case ChartIOHelper.SECTION_SONG:
-                    Debug.WriteLine("Loading chart properties");
+                    YargTrace.DebugInfo("Loading chart properties");
                     SubmitDataSong(song, stringData);
                     break;
                 case ChartIOHelper.SECTION_SYNC_TRACK:
-                    Debug.WriteLine("Loading sync data");
+                    YargTrace.DebugInfo("Loading sync data");
                     goto case ChartIOHelper.SECTION_EVENTS;
                 case ChartIOHelper.SECTION_EVENTS:
-                    Debug.WriteLine("Loading events data");
+                    YargTrace.DebugInfo("Loading events data");
                     SubmitDataGlobals(song, stringData);
                     break;
                 default:
@@ -171,7 +172,7 @@ namespace MoonscraperChartEditor.Song.IO
 
         private static void SubmitDataSong(MoonSong song, List<string> stringData)
         {
-            Debug.WriteLine("Loading song properties");
+            YargTrace.DebugInfo("Loading song properties");
             var metaData = song.metaData;
 
             try
@@ -250,7 +251,7 @@ namespace MoonscraperChartEditor.Song.IO
             }
             catch (Exception e)
             {
-                Debug.WriteLine($"Error when reading chart metadata: {e.Message}");
+                YargTrace.LogException(e, "Error when reading .chart metadata!");
             }
         }
 
@@ -361,7 +362,7 @@ namespace MoonscraperChartEditor.Song.IO
                 }
                 catch (Exception e)
                 {
-                    Debug.WriteLine($"Error parsing .chart line '{line}': {e}");
+                    YargTrace.LogException(e, $"Error parsing .chart line '{line}'!");
                 }
             }
 
@@ -535,7 +536,7 @@ namespace MoonscraperChartEditor.Song.IO
                     }
                     catch (Exception e)
                     {
-                        Debug.WriteLine($"Error parsing .chart line '{line}': {e}");
+                        YargTrace.LogException(e, $"Error parsing .chart line '{line}'!");
                     }
                 }
                 chart.UpdateCache();
@@ -548,7 +549,7 @@ namespace MoonscraperChartEditor.Song.IO
             catch (Exception e)
             {
                 // Bad load, most likely a parsing error
-                Debug.WriteLine($"Error parsing chart reader chart data: {e}");
+                YargTrace.LogException(e, $"Error parsing .chart section for {difficulty} {instrument}!");
                 chart.Clear();
             }
         }
@@ -646,7 +647,7 @@ namespace MoonscraperChartEditor.Song.IO
         {
             if (!flagData.TryApplyToNote(note))
             {
-                Debug.WriteLine($"Could not apply flag {flagData.flagToAdd} to a note. It was blocked by existing flag {flagData.blockingFlag}.");
+                YargTrace.DebugWarning($"Could not apply flag {flagData.flagToAdd} to a note. It was blocked by existing flag {flagData.blockingFlag}.");
             }
         }
     }

@@ -133,7 +133,7 @@ namespace YARG.Core.Chart
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error while parsing song.ini!\n{ex}");
+                YargTrace.LogException(ex, "Error while parsing song.ini!");
                 return null;
             }
 

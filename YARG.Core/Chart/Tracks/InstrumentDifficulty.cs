@@ -49,7 +49,7 @@ namespace YARG.Core.Chart
                         TextEvents.Add(text);
                         break;
                     default:
-                        Debug.WriteLine($"Unrecognized event type {ev}!");
+                        YargTrace.DebugWarning($"Unrecognized event type {ev.GetType()}!");
                         continue;
                 }
             }

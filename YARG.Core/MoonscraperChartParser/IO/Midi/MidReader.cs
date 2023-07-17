@@ -7,6 +7,7 @@ using System.Diagnostics;
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 using MoonscraperEngine;
+using YARG.Core;
 using YARG.Core.Chart;
 
 namespace MoonscraperChartEditor.Song.IO
@@ -109,16 +110,15 @@ namespace MoonscraperChartEditor.Song.IO
             {
                 if (track == null || track.Events.Count < 1)
                 {
-                    Debug.WriteLine("Encountered an empty track!");
+                    YargTrace.DebugWarning("Encountered an empty MIDI track!");
                     continue;
                 }
 
                 if (track.Events[0] is not SequenceTrackNameEvent trackName)
                 {
-                    Debug.WriteLine($"Could not determine track name! (Likely the tempo track)");
+                    YargTrace.DebugWarning("Could not determine the name of a track! (Likely the tempo track)");
                     continue;
                 }
-                Debug.WriteLine("Found midi track " + trackName.Text);
 
                 string trackNameKey = trackName.Text.ToUpper();
                 switch (trackNameKey)
@@ -141,6 +141,7 @@ namespace MoonscraperChartEditor.Song.IO
                         if (!MidIOHelper.TrackNameToInstrumentMap.TryGetValue(trackNameKey, out instrument))
                         {
                             // Ignore unrecognized tracks
+                            YargTrace.DebugInfo($"Skipping unrecognized track {trackNameKey}");
                             continue;
                         }
                         else if (song.ChartExistsForInstrument(instrument))
@@ -157,7 +158,7 @@ namespace MoonscraperChartEditor.Song.IO
                             }
                         }
 
-                        Debug.WriteLine("Loading midi track {0}", instrument);
+                        YargTrace.DebugInfo($"Loading MIDI track {trackNameKey}");
                         ReadNotes(settings, track, song, instrument);
                         break;
                 }
@@ -168,6 +169,8 @@ namespace MoonscraperChartEditor.Song.IO
 
         private static void ReadSync(TempoMap tempoMap, MoonSong song)
         {
+            YargTrace.DebugInfo("Reading sync track");
+
             foreach (var tempo in tempoMap.GetTempoChanges())
             {
                 song.Add(new BPM((uint)tempo.Time, (uint)(tempo.Value.BeatsPerMinute * 1000)), false);
@@ -185,6 +188,7 @@ namespace MoonscraperChartEditor.Song.IO
             if (track.Events.Count < 1)
                 return;
 
+            YargTrace.DebugInfo("Reading beat track");
             long absoluteTime = track.Events[0].DeltaTime;
             for (int i = 1; i < track.Events.Count; i++)
             {
@@ -216,6 +220,7 @@ namespace MoonscraperChartEditor.Song.IO
             if (track.Events.Count < 1)
                 return;
 
+            YargTrace.DebugInfo("Reading global events");
             long absoluteTime = track.Events[0].DeltaTime;
             for (int i = 1; i < track.Events.Count; i++)
             {
@@ -255,6 +260,7 @@ namespace MoonscraperChartEditor.Song.IO
             if (track.Events.Count < 1)
                 return;
 
+            YargTrace.DebugInfo("Reading global lyrics");
             long absoluteTime = track.Events[0].DeltaTime;
             for (int i = 1; i < track.Events.Count; i++)
             {
@@ -283,7 +289,7 @@ namespace MoonscraperChartEditor.Song.IO
         {
             if (track == null || track.Events.Count < 1)
             {
-                Debug.WriteLine($"Attempted to load null or empty track.");
+                YargTrace.DebugError("Attempted to load an empty track!");
                 return;
             }
 
@@ -331,8 +337,8 @@ namespace MoonscraperChartEditor.Song.IO
                 }
             }
 
-            Debug.Assert(unpairedNoteQueue.Count == 0, $"Note queue was not fully processed! Remaining event count: {unpairedNoteQueue.Count}");
-            Debug.Assert(unpairedSysexQueue.Count == 0, $"SysEx event queue was not fully processed! Remaining event count: {unpairedSysexQueue.Count}");
+            YargTrace.Assert(unpairedNoteQueue.Count == 0, $"Note queue was not fully processed! Remaining event count: {unpairedNoteQueue.Count}");
+            YargTrace.Assert(unpairedSysexQueue.Count == 0, $"SysEx event queue was not fully processed! Remaining event count: {unpairedSysexQueue.Count}");
 
             // Update chart caches
             foreach (var diff in EnumX<MoonSong.Difficulty>.Values)
@@ -354,7 +360,7 @@ namespace MoonscraperChartEditor.Song.IO
             {
                 // Check for duplicates
                 if (TryFindMatchingNote(unpairedNotes, note, out _, out _, out _))
-                    Debug.WriteLine($"Found duplicate note on at tick {absoluteTick}!");
+                    YargTrace.DebugWarning($"Found duplicate note on at tick {absoluteTick}!");
                 else
                     unpairedNotes.Add((note, absoluteTick));
             }
@@ -362,7 +368,7 @@ namespace MoonscraperChartEditor.Song.IO
             {
                 if (!TryFindMatchingNote(unpairedNotes, note, out var noteStart, out long startTick, out int startIndex))
                 {
-                    Debug.WriteLine($"Found note off with no corresponding note on at tick {absoluteTick}!");
+                    YargTrace.DebugWarning($"Found note off with no corresponding note on at tick {absoluteTick}!");
                     return;
                 }
                 unpairedNotes.RemoveAt(startIndex);
@@ -418,13 +424,13 @@ namespace MoonscraperChartEditor.Song.IO
             if (!PhaseShiftSysEx.TryParse(sysex, out var psEvent))
             {
                 // SysEx event is not a Phase Shift SysEx event
-                Debug.WriteLine($"Encountered unknown SysEx event: {BitConverter.ToString(sysex.Data)}");
+                YargTrace.DebugWarning($"Encountered unknown SysEx event at tick {absoluteTick}: {BitConverter.ToString(sysex.Data)}");
                 return;
             }
 
             if (psEvent.type != PhaseShiftSysEx.Type.Phrase)
             {
-                Debug.WriteLine($"Encountered unknown Phase Shift SysEx event type {psEvent.type}");
+                YargTrace.DebugWarning($"Encountered unknown Phase Shift SysEx event type {psEvent.type} at tick {absoluteTick}!");
                 return;
             }
 
@@ -432,7 +438,7 @@ namespace MoonscraperChartEditor.Song.IO
             {
                 // Check for duplicates
                 if (TryFindMatchingSysEx(unpairedSysex, psEvent, out _, out _, out _))
-                    Debug.WriteLine($"Found duplicate SysEx start event at tick {absoluteTick}!");
+                    YargTrace.DebugWarning($"Found duplicate SysEx start event at tick {absoluteTick}!");
                 else
                     unpairedSysex.Add((psEvent, absoluteTick));
             }
@@ -440,7 +446,7 @@ namespace MoonscraperChartEditor.Song.IO
             {
                 if (!TryFindMatchingSysEx(unpairedSysex, psEvent, out var sysexStart, out long startTick, out int startIndex))
                 {
-                    Debug.WriteLine($"Found PS SysEx end with no corresponding start at tick {absoluteTick}!");
+                    YargTrace.DebugWarning($"Found PS SysEx end with no corresponding start at tick {absoluteTick}!");
                     return;
                 }
                 unpairedSysex.RemoveAt(startIndex);
@@ -614,11 +620,11 @@ namespace MoonscraperChartEditor.Song.IO
                         break;
 
                     default:
-                        Debug.Fail($"Unhandled note type {newType} in .mid forced type processing ({nameof(ProcessEventAsForcedTypePostDelay)})");
+                        YargTrace.Fail($"Unhandled note type {newType} in .mid forced type processing!");
                         continue;
                 }
 
-                Debug.Assert(note.type == newType, $"Failed to set forced type! Expected: {newType}  Actual: {note.type}\non {difficulty} {instrument} at tick {note.tick} ({TimeSpan.FromSeconds(note.time):mm':'ss'.'ff})");
+                YargTrace.Assert(note.type == newType, $"Failed to set forced type! Expected: {newType}  Actual: {note.type}\non {difficulty} {instrument} at tick {note.tick} ({TimeSpan.FromSeconds(note.time):mm':'ss'.'ff})");
             }
         }
 
@@ -712,7 +718,7 @@ namespace MoonscraperChartEditor.Song.IO
         {
             var timedEvent = eventProcessParams.timedEvent;
             var startEvent = eventProcessParams.timedEvent.midiEvent as PhaseShiftSysEx;
-            Debug.Assert(startEvent != null, $"Wrong note event type passed to {nameof(ProcessSysExEventPairAsForcedType)}. Expected: {typeof(PhaseShiftSysEx)}, Actual: {eventProcessParams.timedEvent.midiEvent.GetType()}");
+            YargTrace.Assert(startEvent != null, $"Wrong note event type passed to {nameof(ProcessSysExEventPairAsForcedType)}. Expected: {typeof(PhaseShiftSysEx)}, Actual: {eventProcessParams.timedEvent.midiEvent.GetType()}");
 
             uint startTick = (uint)timedEvent.startTick;
             uint endTick = (uint)timedEvent.endTick;
@@ -741,7 +747,7 @@ namespace MoonscraperChartEditor.Song.IO
         {
             var timedEvent = eventProcessParams.timedEvent;
             var startEvent = timedEvent.midiEvent as PhaseShiftSysEx;
-            Debug.Assert(startEvent != null, $"Wrong note event type passed to {nameof(ProcessSysExEventPairAsOpenNoteModifier)}. Expected: {typeof(PhaseShiftSysEx)}, Actual: {eventProcessParams.timedEvent.midiEvent.GetType()}");
+            YargTrace.Assert(startEvent != null, $"Wrong note event type passed to {nameof(ProcessSysExEventPairAsOpenNoteModifier)}. Expected: {typeof(PhaseShiftSysEx)}, Actual: {eventProcessParams.timedEvent.midiEvent.GetType()}");
 
             uint startTick = (uint)timedEvent.startTick;
             uint endTick = (uint)timedEvent.endTick;
@@ -792,7 +798,7 @@ namespace MoonscraperChartEditor.Song.IO
                         break;
 
                     default:
-                        Debug.Assert(false, $"Unhandled game mode for open note modifier: {gameMode} (instrument: {instrument})");
+                        YargTrace.Fail($"Unhandled game mode {gameMode} (instrument: {instrument}) for open note modifier!)");
                         break;
                 }
             }

@@ -128,7 +128,7 @@ namespace YARG.Core.Chart
                     // Don't process notes that occur before the phrase
                     if (moonNote.tick < moonPhrase.tick)
                     {
-                        Debug.WriteLine($"Vocals note at {moonNote.tick} does not exist within a phrase!");
+                        YargTrace.DebugWarning($"Vocals note at {moonNote.tick} does not exist within a phrase!");
                         continue;
                     }
 
@@ -247,7 +247,7 @@ namespace YARG.Core.Chart
             };
 
             // Some debug verifications
-            Debug.Assert(notes.All((note) => note.Type == firstNote.Type), "Vocals phrase with inconsistent note types! Must be either lyric or percussion, but found both");
+            YargTrace.DebugAssert(notes.All((note) => note.Type == firstNote.Type), "Vocals phrase with inconsistent note types! Must be either lyric or percussion, but found both");
 
             // Modify Moonscraper phrase to have the correct type
             moonPhrase.type = phraseType switch

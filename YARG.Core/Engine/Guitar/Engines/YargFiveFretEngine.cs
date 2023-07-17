@@ -105,7 +105,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                         State.StrumLeniencyTimer -= delta;
                         if (State.StrumLeniencyTimer <= 0)
                         {
-                            Console.WriteLine("Strum leniency ended");
+                            YargTrace.DebugInfo("Strum leniency ended");
                             if (State.WasHopoStrummed)
                             {
                                 State.StrumLeniencyTimer = 0;
