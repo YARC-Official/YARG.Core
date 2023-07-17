@@ -96,10 +96,6 @@ namespace MoonscraperChartEditor.Song.IO
         public const byte BEAT_STRONG = 12;
         public const byte BEAT_WEAK = 13;
 
-        public const string LYRIC_EVENT_PREFIX = ChartIOHelper.LYRIC_EVENT_PREFIX;
-        public const string LYRICS_PHRASE_START_TEXT = ChartIOHelper.EVENT_PHRASE_START;
-        public const string LYRICS_PHRASE_END_TEXT = ChartIOHelper.EVENT_PHRASE_END;
-
         // These events are valid both with and without brackets.
         // The bracketed versions follow the style of other existing .mid text events.
         public const string CHART_DYNAMICS_TEXT = "ENABLE_CHART_DYNAMICS";

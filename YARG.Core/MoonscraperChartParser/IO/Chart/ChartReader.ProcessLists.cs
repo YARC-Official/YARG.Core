@@ -213,7 +213,7 @@ namespace MoonscraperChartEditor.Song.IO
             uint? currentStartTick = null;
             foreach (var text in chart.events)
             {
-                if (text.eventName == ChartIOHelper.EVENT_SOLO_START)
+                if (text.eventName == TextEventDefinitions.SOLO_START)
                 {
                     // Remove text event unconditionally
                     chart.Remove(text, false);
@@ -225,7 +225,7 @@ namespace MoonscraperChartEditor.Song.IO
 
                     currentStartTick = text.tick;
                 }
-                else if (text.eventName == ChartIOHelper.EVENT_SOLO_END)
+                else if (text.eventName == TextEventDefinitions.SOLO_END)
                 {
                     // Remove text event unconditionally
                     chart.Remove(text, false);

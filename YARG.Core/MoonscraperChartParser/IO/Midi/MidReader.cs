@@ -269,15 +269,15 @@ namespace MoonscraperChartEditor.Song.IO
 
                 if (trackEvent is BaseTextEvent text && !text.Text.Contains('['))
                 {
-                    string lyricEvent = MidIOHelper.LYRIC_EVENT_PREFIX + text.Text;
+                    string lyricEvent = TextEventDefinitions.LYRIC_PREFIX + text.Text;
                     song.Add(new Event(lyricEvent, (uint)absoluteTime), false);
                 }
                 else if (trackEvent is NoteEvent note && (byte)note.NoteNumber is MidIOHelper.LYRICS_PHRASE_1 or MidIOHelper.LYRICS_PHRASE_2)
                 {
                     if (note.EventType == MidiEventType.NoteOn)
-                        song.Add(new Event(MidIOHelper.LYRICS_PHRASE_START_TEXT, (uint)absoluteTime), false);
+                        song.Add(new Event(TextEventDefinitions.LYRIC_PHRASE_START, (uint)absoluteTime), false);
                     else if (note.EventType == MidiEventType.NoteOff)
-                        song.Add(new Event(MidIOHelper.LYRICS_PHRASE_END_TEXT, (uint)absoluteTime), false);
+                        song.Add(new Event(TextEventDefinitions.LYRIC_PHRASE_END, (uint)absoluteTime), false);
                 }
             }
 
@@ -399,7 +399,7 @@ namespace MoonscraperChartEditor.Song.IO
             // No brackets to strip off, on vocals this is most likely a lyric event
             else if (MoonSong.InstumentToChartGameMode(processParams.instrument) is MoonChart.GameMode.Vocals)
             {
-                eventName = MidIOHelper.LYRIC_EVENT_PREFIX + text.Text;
+                eventName = TextEventDefinitions.LYRIC_PREFIX + text.Text;
             }
 
             if (processParams.textProcessMap.TryGetValue(eventName, out var processFn))
