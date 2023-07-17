@@ -37,6 +37,7 @@ namespace YARG.Core.Engine.Guitar
                 prevNote.SetMissState(true, true);
                 prevNote = prevNote.PreviousNote;
                 notesSkipped++;
+                EngineStats.Combo = 0;
                 EngineStats.NotesMissed++;
                 State.NoteIndex++;
             }
@@ -45,6 +46,8 @@ namespace YARG.Core.Engine.Guitar
             EngineStats.NotesHit++;
 
             UpdateMultiplier();
+
+            EngineStats.Score += POINTS_PER_NOTE * (1 + note.ChildNotes.Count) * EngineStats.ScoreMultiplier;
 
             OnNoteHit?.Invoke(State.NoteIndex, note);
             State.NoteIndex++;

@@ -21,6 +21,7 @@ namespace YARG.Core.Engine
         protected BaseEngine()
         {
             InputQueue = new Queue<GameInput>();
+            CurrentInput = new GameInput(-9999, -9999, -9999);
         }
 
         /// <summary>
@@ -68,13 +69,17 @@ namespace YARG.Core.Engine
             while (InputQueue.TryDequeue(out var input))
             {
                 CurrentInput = input;
+                IsInputUpdate = true;
                 bool noteUpdated;
                 do
                 {
                     noteUpdated = UpdateHitLogic(input.Time);
+                    IsInputUpdate = false;
                 } while (noteUpdated);
             }
         }
+
+        public abstract void UpdateBot(double songTime);
 
         /// <summary>
         /// Executes engine logic with respect to the given time.
@@ -117,6 +122,8 @@ namespace YARG.Core.Engine
 
             EngineStats = new TEngineStats();
             State = new TEngineState();
+
+            EngineStats.ScoreMultiplier = 1;
         }
 
         /// <summary>
