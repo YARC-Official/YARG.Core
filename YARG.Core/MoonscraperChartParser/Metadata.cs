@@ -3,7 +3,7 @@
 
 namespace MoonscraperChartEditor.Song
 {
-    public class Metadata
+    internal class Metadata
     {
         private string m_name, m_artist, m_charter, m_genre, m_album;
 

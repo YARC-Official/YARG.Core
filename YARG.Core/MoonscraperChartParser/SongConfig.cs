@@ -3,7 +3,7 @@
 
 namespace MoonscraperChartEditor.Song
 {
-    public static class SongConfig
+    internal static class SongConfig
     {
         public const float STANDARD_BEAT_RESOLUTION = 192.0f;
         public const int FORCED_NOTE_TICK_THRESHOLD = 65;

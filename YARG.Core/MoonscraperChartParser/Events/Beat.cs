@@ -6,7 +6,7 @@ using System;
 namespace MoonscraperChartEditor.Song
 {
     [Serializable]
-    public class Beat : SyncTrack
+    internal class Beat : SyncTrack
     {
         public enum Type
         {

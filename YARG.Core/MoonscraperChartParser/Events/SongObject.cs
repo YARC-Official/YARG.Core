@@ -6,7 +6,7 @@ using System;
 namespace MoonscraperChartEditor.Song
 {
     [Serializable]
-    public abstract class SongObject
+    internal abstract class SongObject
     {
         /// <summary>
         /// The song this object is connected to.

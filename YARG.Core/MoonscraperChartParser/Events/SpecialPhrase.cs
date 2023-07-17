@@ -6,7 +6,7 @@ using System;
 namespace MoonscraperChartEditor.Song
 {
     [Serializable]
-    public class SpecialPhrase : ChartObject
+    internal class SpecialPhrase : ChartObject
     {
         public enum Type
         {

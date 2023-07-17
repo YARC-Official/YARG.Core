@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 
 namespace MoonscraperChartEditor.Song.IO
 {
-    public static class MidIOHelper
+    internal static class MidIOHelper
     {
         // Track names
         public const string BEAT_TRACK = "BEAT";

@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 namespace MoonscraperChartEditor.Song
 {
-    public static class SongObjectHelper
+    internal static class SongObjectHelper
     {
         public const int NOTFOUND = -1;
 

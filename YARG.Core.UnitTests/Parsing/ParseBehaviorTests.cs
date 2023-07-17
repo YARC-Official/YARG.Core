@@ -9,7 +9,7 @@ namespace YARG.Core.UnitTests.Parsing
     using static MoonChart;
     using static MoonNote;
 
-    public class ParseBehaviorTests
+    internal class ParseBehaviorTests
     {
         public const uint RESOLUTION = 192;
         public const double TEMPO = 120.0;

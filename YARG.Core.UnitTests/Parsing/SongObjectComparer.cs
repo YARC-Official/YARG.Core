@@ -3,7 +3,7 @@ using MoonscraperChartEditor.Song;
 
 namespace YARG.Core.UnitTests.Parsing
 {
-    public class SongObjectComparer : IComparer<SongObject>, IComparer
+    internal class SongObjectComparer : IComparer<SongObject>, IComparer
     {
         public int Compare(SongObject? x, SongObject? y)
         {

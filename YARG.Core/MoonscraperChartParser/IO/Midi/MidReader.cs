@@ -14,7 +14,7 @@ namespace MoonscraperChartEditor.Song.IO
     using NoteEventQueue = List<(NoteEvent note, long tick)>;
     using SysExEventQueue = List<(PhaseShiftSysEx sysex, long tick)>;
 
-    public static partial class MidReader
+    internal static partial class MidReader
     {
         private const int SOLO_END_CORRECTION_OFFSET = -1;
 

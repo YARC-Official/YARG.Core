@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace MoonscraperChartEditor.Song.IO
 {
-    public class NoteFlagPriority
+    internal class NoteFlagPriority
     {
         // Flags to skip adding if the corresponding flag is already present
         private static readonly Dictionary<MoonNote.Flags, MoonNote.Flags> NoteBlockingFlagsLookup = new()

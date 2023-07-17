@@ -10,7 +10,7 @@ using MoonscraperEngine;
 
 namespace MoonscraperChartEditor.Song
 {
-    public class MoonSong
+    internal class MoonSong
     {
         // Song properties
         public Metadata metaData = new();
@@ -449,7 +449,7 @@ namespace MoonscraperChartEditor.Song
         }
     }
 
-    public class SongObjectCache<T> : IList<T>, IEnumerable<T> where T : SongObject
+    internal class SongObjectCache<T> : IList<T>, IEnumerable<T> where T : SongObject
     {
         private readonly List<T> cache = new();
 
@@ -526,7 +526,7 @@ namespace MoonscraperChartEditor.Song
         }
     }
 
-    public class ReadOnlyList<T> : IList<T>, IEnumerable<T>
+    internal class ReadOnlyList<T> : IList<T>, IEnumerable<T>
     {
         private readonly List<T> _realListHandle;
         public ReadOnlyList(List<T> realListHandle)

@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 
 namespace MoonscraperChartEditor.Song.IO
 {
-    public static class ChartMetadata
+    internal static class ChartMetadata
     {
         private const string QUOTEVALIDATE = @"""[^""\\]*(?:\\.[^""\\]*)*""";
         private const string QUOTESEARCH = "\"([^\"]*)\"";

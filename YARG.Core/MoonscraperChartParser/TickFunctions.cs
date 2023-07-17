@@ -5,7 +5,7 @@ using System;       // import math lib
 
 namespace MoonscraperChartEditor.Song
 {
-    public static class TickFunctions
+    internal static class TickFunctions
     {
         public const float SECONDS_PER_MINUTE = 60.0f;
 

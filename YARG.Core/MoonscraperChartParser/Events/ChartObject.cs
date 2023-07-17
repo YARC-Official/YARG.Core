@@ -6,7 +6,7 @@ using System;
 namespace MoonscraperChartEditor.Song
 {
     [Serializable]
-    public abstract class ChartObject : SongObject
+    internal abstract class ChartObject : SongObject
     {
         [NonSerialized]
         public MoonChart chart;

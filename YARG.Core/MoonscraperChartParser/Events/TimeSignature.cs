@@ -6,7 +6,7 @@ using System;
 namespace MoonscraperChartEditor.Song
 {
     [Serializable]
-    public class TimeSignature : SyncTrack
+    internal class TimeSignature : SyncTrack
     {
         private readonly ID _classID = ID.TimeSignature;
         public override int classID => (int)_classID;

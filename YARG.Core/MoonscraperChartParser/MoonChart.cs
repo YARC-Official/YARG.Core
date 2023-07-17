@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 namespace MoonscraperChartEditor.Song
 {
-    public class MoonChart
+    internal class MoonChart
     {
         private readonly List<ChartObject> _chartObjects = new();
 

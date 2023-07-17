@@ -6,7 +6,7 @@ using System;
 namespace MoonscraperChartEditor.Song
 {
     [Serializable]
-    public abstract class SyncTrack : SongObject
+    internal abstract class SyncTrack : SongObject
     {
         public SyncTrack(uint _position) : base(_position) { }
 

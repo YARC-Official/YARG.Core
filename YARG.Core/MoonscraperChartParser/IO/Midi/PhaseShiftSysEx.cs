@@ -9,7 +9,7 @@ using Melanchall.DryWetMidi.Core;
 namespace MoonscraperChartEditor.Song.IO
 {
     // SysEx event format: https://dwsk.proboards.com/thread/404/song-standard-advancements
-    public class PhaseShiftSysEx : SysExEvent
+    internal class PhaseShiftSysEx : SysExEvent
     {
         public enum Type : byte
         {

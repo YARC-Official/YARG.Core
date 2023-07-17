@@ -6,7 +6,7 @@ using System;
 namespace MoonscraperChartEditor.Song
 {
     [Serializable]
-    public class Event : SongObject
+    internal class Event : SongObject
     {
         private readonly ID _classID = ID.Event;
         public override int classID => (int)_classID;

@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 
 namespace MoonscraperChartEditor.Song.IO
 {
-    public static class ChartIOHelper
+    internal static class ChartIOHelper
     {
         public const string SECTION_SONG = "[Song]";
         public const string SECTION_SYNC_TRACK = "[SyncTrack]";

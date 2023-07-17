@@ -16,7 +16,7 @@ using YARG.Core.Chart;
 
 namespace MoonscraperChartEditor.Song.IO
 {
-    public static partial class ChartReader
+    internal static partial class ChartReader
     {
         private delegate void NoteEventProcessFn(in NoteProcessParams noteProcessParams);
 

@@ -11,7 +11,7 @@ using YARG.Core.Chart;
 
 namespace MoonscraperChartEditor.Song.IO
 {
-    public static partial class MidReader
+    internal static partial class MidReader
     {
         private static readonly List<MoonSong.MoonInstrument> LegacyStarPowerFixupWhitelist = new()
         {
