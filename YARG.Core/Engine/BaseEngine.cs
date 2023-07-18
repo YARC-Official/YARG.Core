@@ -110,8 +110,18 @@ namespace YARG.Core.Engine
 
         public delegate void NoteMissedEvent(int noteIndex, TNoteType note);
 
+        public delegate void StarPowerPhraseHitEvent(TNoteType note);
+
+        public delegate void StarPowerPhraseMissEvent(TNoteType note);
+
+        public delegate void StarPowerStatusEvent(bool active);
+
         public NoteHitEvent    OnNoteHit;
         public NoteMissedEvent OnNoteMissed;
+
+        public StarPowerPhraseHitEvent  OnStarPowerPhraseHit;
+        public StarPowerPhraseMissEvent OnStarPowerPhraseMissed;
+        public StarPowerStatusEvent     OnStarPowerStatus;
 
         public readonly TEngineStats EngineStats;
 
@@ -143,6 +153,33 @@ namespace YARG.Core.Engine
         protected abstract void MissNote(TNoteType note);
 
         protected abstract void UpdateMultiplier();
+
+        protected virtual void StripStarPower(TNoteType note)
+        {
+            OnStarPowerPhraseMissed?.Invoke(note);
+        }
+
+        protected void AwardStarPower(TNoteType note)
+        {
+            EngineStats.StarPowerAmount += STAR_POWER_PHRASE_AMOUNT;
+            if (EngineStats.StarPowerAmount >= 1)
+            {
+                EngineStats.StarPowerAmount = 1;
+            }
+
+            OnStarPowerPhraseHit?.Invoke(note);
+        }
+
+        protected void DepleteStarPower(double amount)
+        {
+            EngineStats.StarPowerAmount -= amount;
+            if (EngineStats.StarPowerAmount <= 0)
+            {
+                EngineStats.StarPowerAmount = 0;
+                EngineStats.IsStarPowerActive = false;
+                OnStarPowerStatus?.Invoke(false);
+            }
+        }
 
         /// <summary>
         /// Resets the engine's state back to default and then processes the list of inputs up to the given time.
