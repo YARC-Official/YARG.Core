@@ -19,7 +19,7 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                 if (songTime >= note.Time)
                 {
-                    State.ButtonMask = (byte)note.NoteMask;
+                    State.ButtonMask = (byte) note.NoteMask;
                     State.StrumLeniencyTimer = EngineParameters.StrumLeniency;
                     UpdateEngine(note.Time);
                     continue;
@@ -27,6 +27,7 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                 break;
             }
+
             UpdateEngine(songTime);
         }
 
@@ -44,7 +45,12 @@ namespace YARG.Core.Engine.Guitar.Engines
                 State.FrontEndTimer = time;
             }
 
-            if(State.NoteIndex >= Notes.Count)
+            if (State.ButtonMask != State.TapButtonMask)
+            {
+                State.TapButtonMask = 0;
+            }
+
+            if (State.NoteIndex >= Notes.Count)
             {
                 return false;
             }
@@ -56,6 +62,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 {
                     Overstrum();
                 }
+
                 State.StrumLeniencyTimer = EngineParameters.StrumLeniency;
             }
 
@@ -95,11 +102,15 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                     // Don't need to check back end because if we're here then the previous note was not out of time
 
-                    if (CanNoteBeHit(next) && (State.StrummedThisUpdate || State.StrumLeniencyTimer > 0f || note.IsTap))
+                    if (CanNoteBeHit(next) &&
+                        (State.StrummedThisUpdate || State.StrumLeniencyTimer > 0f || note.IsTap) &&
+                        State.TapButtonMask == 0)
                     {
-                        YargTrace.LogInfo("Skipping to hit next note as it is hittable");
-                        HitNote(next);
-                        return true;
+                        if (HitNote(next))
+                        {
+                            YargTrace.LogInfo($"Skipping to hit next note as it is hittable ({State.TapButtonMask})");
+                            return true;
+                        }
                     }
 
                     next = next.NextNote;
@@ -108,11 +119,16 @@ namespace YARG.Core.Engine.Guitar.Engines
                 return false;
             }
 
-            if (State.StrummedThisUpdate || State.StrumLeniencyTimer > 0f || note.IsTap ||
-                (note.IsHopo && EngineStats.Combo > 0))
+            // Handles hitting a hopo/tap notes
+            if (State.TapButtonMask == 0 && note.IsTap || (note.IsHopo && EngineStats.Combo > 0))
             {
-                HitNote(note);
-                return true;
+                return HitNote(note);
+            }
+
+            // If hopo/tap checks failed then the note can be hit if it was strummed
+            if (State.StrummedThisUpdate || State.StrumLeniencyTimer > 0f)
+            {
+                return HitNote(note);
             }
 
             return false;
@@ -120,6 +136,12 @@ namespace YARG.Core.Engine.Guitar.Engines
 
         protected void UpdateTimers(double delta)
         {
+            // Timer will never decrease if infinite front end is enabled
+            if (!EngineParameters.InfiniteFrontEnd && State.FrontEndTimer > 0)
+            {
+                State.FrontEndTimer -= delta;
+            }
+
             if (State.StrumLeniencyTimer > 0)
             {
                 // Add hopo leniency later
@@ -134,12 +156,6 @@ namespace YARG.Core.Engine.Guitar.Engines
 
         protected override bool CanNoteBeHit(GuitarNote note)
         {
-            // Disallow hitting if front end timer is not in range of note time
-            if (!EngineParameters.InfiniteFrontEnd)
-            {
-
-            }
-
             // If open, must not hold any frets
             // If not open, must be holding at least 1 fret
             if (note.NoteMask == 0 && State.ButtonMask != 0 || note.NoteMask != 0 && State.ButtonMask == 0)
@@ -171,33 +187,38 @@ namespace YARG.Core.Engine.Guitar.Engines
             return anchorButtons < note.NoteMask;
         }
 
-        protected override void HitNote(GuitarNote note)
+        protected override bool HitNote(GuitarNote note)
         {
+            State.TapButtonMask = State.ButtonMask;
+
             if (note.IsHopo || note.IsTap)
             {
-                // if (EngineStats.Combo > 0 && State.StrumLeniencyTimer > 0)
-                // {
-                //     EngineStats.Combo++;
-                //     EngineStats.HoposStrummed++;
-                //
-                //     State.HopoLeniencyTimer = EngineParameters.HopoLeniency;
-                //     State.StrumLeniencyTimer = EngineParameters.StrumLeniency / 2;
-                //     State.WasHopoStrummed = true;
-                // }
-                // else
-                // {
-                //     State.StrumLeniencyTimer = 0;
-                //     State.HopoLeniencyTimer = EngineParameters.HopoLeniency;
-                // }
+                // Disallow hitting if front end timer is not in range of note time
+                if (State.FrontEndTimer <= 0)
+                {
+                    return false;
+                }
 
                 State.StrumLeniencyTimer = 0;
             }
             else
             {
+                // This line allows for hopos/taps to be hit using infinite front end after strumming
+                State.TapButtonMask = 0;
+
+                // Does the same thing but ensures it still works when infinite front end is disabled
+                State.FrontEndTimer = double.MaxValue;
+
                 State.StrumLeniencyTimer = 0;
             }
 
-            base.HitNote(note);
+            return base.HitNote(note);
+        }
+
+        protected override void MissNote(GuitarNote note)
+        {
+            State.TapButtonMask = State.ButtonMask;
+            base.MissNote(note);
         }
 
         protected bool IsFretInput(GameInput input)

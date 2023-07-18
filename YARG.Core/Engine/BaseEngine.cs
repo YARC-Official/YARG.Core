@@ -133,7 +133,7 @@ namespace YARG.Core.Engine
         /// <returns>True if note can be hit. False otherwise.</returns>
         protected abstract bool CanNoteBeHit(TNoteType note);
 
-        protected abstract void HitNote(TNoteType note);
+        protected abstract bool HitNote(TNoteType note);
 
         protected abstract void MissNote(TNoteType note);
 

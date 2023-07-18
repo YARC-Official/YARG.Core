@@ -4,6 +4,7 @@
     {
 
         public byte ButtonMask;
+        public byte TapButtonMask;
 
         public bool StrummedThisUpdate;
         public bool WasHopoStrummed;
