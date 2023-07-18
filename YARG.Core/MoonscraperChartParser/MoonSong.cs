@@ -46,6 +46,10 @@ namespace MoonscraperChartEditor.Song
         /// Read only list of song sections.
         /// </summary>
         public SongObjectCache<Section> sections { get; private set; } = new();
+        /// <summary>
+        /// Read only list of venue events.
+        /// </summary>
+        public SongObjectCache<VenueEvent> venue { get; private set; } = new();
 
         /// <summary>
         /// Read only list of a song's bpm changes.
@@ -233,7 +237,7 @@ namespace MoonscraperChartEditor.Song
         /// <summary>
         /// Adds an event object (section or event) into the song.
         /// </summary>
-        /// <param name="syncTrackObject">Item to add.</param>
+        /// <param name="eventObject">Item to add.</param>
         /// <param name="autoUpdate">Automatically update all read-only arrays? 
         /// If set to false, you must manually call the updateArrays() method, but is useful when adding multiple objects as it increases performance dramatically.</param>
         public void Add(Event eventObject, bool autoUpdate = true)
@@ -289,6 +293,8 @@ namespace MoonscraperChartEditor.Song
         {
             UpdateCacheList(sections, _events);
             UpdateCacheList(events, _events);
+            UpdateCacheList(venue, _events);
+
             UpdateCacheList(bpms, _syncTrack);
             UpdateCacheList(timeSignatures, _syncTrack);
             UpdateCacheList(beats, _syncTrack);

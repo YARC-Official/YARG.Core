@@ -108,6 +108,7 @@ namespace MoonscraperChartEditor.Song
             Anchor,
             Beat,
             Event,
+            Venue,
             Section,
             Note,
             Special,

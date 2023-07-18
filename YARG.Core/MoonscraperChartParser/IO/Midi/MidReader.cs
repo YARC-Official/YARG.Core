@@ -131,6 +131,10 @@ namespace MoonscraperChartEditor.Song.IO
                         ReadSongGlobalEvents(track, song);
                         break;
 
+                    case MidIOHelper.VENUE_TRACK:
+                        ReadVenueEvents(track, song);
+                        break;
+
                     case MidIOHelper.VOCALS_TRACK:
                         // Parse lyrics to global track, and then parse as an instrument
                         ReadTextEventsIntoGlobalEventsAsLyrics(track, song);
@@ -282,6 +286,85 @@ namespace MoonscraperChartEditor.Song.IO
             }
 
             song.UpdateCache();
+        }
+
+        private static void ReadVenueEvents(TrackChunk track, MoonSong song)
+        {
+            if (track.Events.Count < 1)
+                return;
+
+            YargTrace.DebugInfo("Reading venue track");
+            long absoluteTime = track.Events[0].DeltaTime;
+            for (int i = 1; i < track.Events.Count; i++)
+            {
+                var trackEvent = track.Events[i];
+                absoluteTime += trackEvent.DeltaTime;
+
+                var unpairedNoteQueue = new NoteEventQueue();
+
+                if (trackEvent is NoteEvent note)
+                {
+                    if (note.EventType == MidiEventType.NoteOn)
+                    {
+                        // Check for duplicates
+                        if (TryFindMatchingNote(unpairedNoteQueue, note, out _, out _, out _))
+                            YargTrace.DebugWarning($"Found duplicate note on at tick {absoluteTime}!");
+                        else
+                            unpairedNoteQueue.Add((note, absoluteTime));
+                    }
+                    else if (note.EventType == MidiEventType.NoteOff)
+                    {
+                        // Find starting note
+                        if (!TryFindMatchingNote(unpairedNoteQueue, note, out var noteStart, out long startTick, out int startIndex))
+                        {
+                            YargTrace.DebugWarning($"Found note off with no corresponding note on at tick {absoluteTime}!");
+                            return;
+                        }
+                        unpairedNoteQueue.RemoveAt(startIndex);
+
+                        // Turn note into text
+                        if (!MidIOHelper.VENUE_NOTE_TO_TEXT_LOOKUP.TryGetValue((byte)noteStart.NoteNumber, out string eventText))
+                            continue;
+
+                        // Add the event
+                        song.Add(new VenueEvent(eventText, (uint)startTick, (uint)(startTick - absoluteTime)), false);
+                    }
+                }
+                else if (trackEvent is BaseTextEvent text)
+                {
+                    string eventText = text.Text;
+                    // Strip off brackets and any garbage outside of them
+                    if (MidIOHelper.TextEventRegex.Match(eventText) is { Success: true } bracketMatch)
+                        eventText = bracketMatch.Groups[1].Value;
+
+                    // Get new representation of the event
+                    if (MidIOHelper.VENUE_TEXT_CONVERSION_LOOKUP.TryGetValue(eventText, out string converted))
+                    {
+                        eventText = converted;
+                    }
+                    // Events that need special matching
+                    else foreach (var (regex, (lookup, defaultValue)) in MidIOHelper.VENUE_EVENT_REGEX_TO_LOOKUP)
+                    {
+                        if (regex.Match(eventText) is not { Success: true } match)
+                            continue;
+
+                        // Get the matched text
+                        eventText = match.Groups[1].Value;
+
+                        // Get new representation of the event
+                        if (!lookup.TryGetValue(eventText, out converted))
+                        {
+                            if (string.IsNullOrEmpty(defaultValue))
+                                continue;
+                            converted = defaultValue;
+                        }
+                        eventText = converted;
+                    }
+
+                    // Add the event
+                    song.Add(new VenueEvent(eventText, (uint)absoluteTime), false);
+                }
+            }
         }
 
         private static void ReadNotes(ParseSettings settings, TrackChunk track, MoonSong song,
