@@ -13,22 +13,31 @@ namespace YARG.Core.Engine.Guitar.Engines
 
         public override void UpdateBot(double songTime)
         {
-            for (int i = State.NoteIndex; i < Notes.Count; i++)
-            {
-                var note = Notes[i];
+            base.UpdateBot(songTime);
+            var note = Notes[State.NoteIndex];
 
-                if (songTime >= note.Time)
+            bool updateToSongTime = true;
+            while (note is not null && songTime >= note.Time)
+            {
+                updateToSongTime = false;
+
+                State.ButtonMask = (byte) note.NoteMask;
+                State.StrummedThisUpdate = true;
+                State.FrontEndTimer = note.Time;
+                if (!UpdateHitLogic(note.Time))
                 {
-                    State.ButtonMask = (byte) note.NoteMask;
-                    State.StrumLeniencyTimer = EngineParameters.StrumLeniency;
-                    UpdateEngine(note.Time);
-                    continue;
+                    break;
                 }
 
-                break;
+                note = note.NextNote;
             }
 
-            UpdateEngine(songTime);
+            State.StrummedThisUpdate = false;
+
+            if (updateToSongTime)
+            {
+                UpdateHitLogic(songTime);
+            }
         }
 
         protected override bool UpdateHitLogic(double time)
@@ -38,7 +47,8 @@ namespace YARG.Core.Engine.Guitar.Engines
 
             UpdateTimers(delta);
 
-            State.StrummedThisUpdate = IsInputUpdate && IsStrumInput(CurrentInput) && CurrentInput.Button;
+            State.StrummedThisUpdate = (IsInputUpdate && IsStrumInput(CurrentInput) && CurrentInput.Button)
+                || (State.StrummedThisUpdate && IsBotUpdate);
             if (IsInputUpdate && IsFretInput(CurrentInput))
             {
                 ToggleFret(CurrentInput.Action, CurrentInput.Button);

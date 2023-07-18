@@ -11,6 +11,7 @@ namespace YARG.Core.Engine
         public bool IsInputQueued => InputQueue.Count > 0;
 
         protected bool IsInputUpdate { get; private set; }
+        protected bool IsBotUpdate   { get; private set; }
 
         protected readonly Queue<GameInput> InputQueue;
 
@@ -79,7 +80,11 @@ namespace YARG.Core.Engine
             }
         }
 
-        public abstract void UpdateBot(double songTime);
+        public virtual void UpdateBot(double songTime)
+        {
+            IsInputUpdate = false;
+            IsBotUpdate = true;
+        }
 
         /// <summary>
         /// Executes engine logic with respect to the given time.
