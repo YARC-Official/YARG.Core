@@ -6,6 +6,8 @@ namespace YARG.Core.Chart
     {
         private readonly GuitarNoteFlags _guitarFlags;
 
+        public GuitarNoteFlags GuitarFlags;
+
         public int Fret     { get; }
         public int NoteMask { get; private set; }
 
@@ -17,8 +19,8 @@ namespace YARG.Core.Chart
 
         public bool IsSustain => TickLength > 0;
 
-        public bool IsExtendedSustain => (_guitarFlags & GuitarNoteFlags.ExtendedSustain) != 0;
-        public bool IsDisjoint        => (_guitarFlags & GuitarNoteFlags.Disjoint) != 0;
+        public bool IsExtendedSustain => (GuitarFlags & GuitarNoteFlags.ExtendedSustain) != 0;
+        public bool IsDisjoint        => (GuitarFlags & GuitarNoteFlags.Disjoint) != 0;
 
         public GuitarNote(FiveFretGuitarFret fret, GuitarNoteType noteType, GuitarNoteFlags guitarFlags,
             NoteFlags flags, double time, double timeLength, uint tick, uint tickLength)
@@ -40,6 +42,7 @@ namespace YARG.Core.Chart
             Type = noteType;
 
             _guitarFlags = guitarFlags;
+            GuitarFlags = guitarFlags;
 
             // Resulting shift is 1 too high, shifting down by 1 corrects this.
             // Reason for not doing (fret - 1) is this breaks open notes.
@@ -53,6 +56,12 @@ namespace YARG.Core.Chart
             base.AddChildNote(note);
 
             NoteMask |= 1 << note.Fret - 1;
+        }
+
+        public override void ResetFlags()
+        {
+            base.ResetFlags();
+            GuitarFlags = _guitarFlags;
         }
     }
 

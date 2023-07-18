@@ -6,6 +6,8 @@ namespace YARG.Core.Chart
     {
         private readonly DrumNoteFlags _drumFlags;
 
+        public DrumNoteFlags DrumFlags;
+
         public int Pad { get; }
 
         public DrumNoteType Type { get; set; }
@@ -14,26 +16,34 @@ namespace YARG.Core.Chart
         public bool IsAccent  => Type == DrumNoteType.Accent;
         public bool IsGhost   => Type == DrumNoteType.Ghost;
 
-        public bool IsStarPowerActivator => (_drumFlags & DrumNoteFlags.StarPowerActivator) != 0;
+        public bool IsStarPowerActivator => (DrumFlags & DrumNoteFlags.StarPowerActivator) != 0;
 
         public DrumNote(FourLaneDrumPad pad, DrumNoteType noteType, DrumNoteFlags drumFlags,
             NoteFlags flags, double time, uint tick)
-            : this((int)pad, noteType, drumFlags, flags, time, tick) 
+            : this((int)pad, noteType, drumFlags, flags, time, tick)
         {
         }
 
         public DrumNote(FiveLaneDrumPad pad, DrumNoteType noteType, DrumNoteFlags drumFlags,
             NoteFlags flags, double time, uint tick)
-            : this((int)pad, noteType, drumFlags, flags, time, tick) 
+            : this((int)pad, noteType, drumFlags, flags, time, tick)
         {
         }
 
         public DrumNote(int pad, DrumNoteType noteType, DrumNoteFlags drumFlags, NoteFlags flags, double time, uint tick)
-            : base(flags, time, 0, tick, 0) 
+            : base(flags, time, 0, tick, 0)
         {
             Pad = pad;
             Type = noteType;
+
             _drumFlags = drumFlags;
+            DrumFlags = drumFlags;
+        }
+
+        public override void ResetFlags()
+        {
+            base.ResetFlags();
+            DrumFlags = _drumFlags;
         }
     }
 

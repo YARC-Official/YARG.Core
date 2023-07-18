@@ -9,6 +9,8 @@ namespace YARG.Core.Chart
         protected readonly List<TNote> _childNotes = new();
         private readonly NoteFlags  _flags;
 
+        public NoteFlags Flags;
+
         public TNote PreviousNote;
         public TNote NextNote;
 
@@ -16,12 +18,12 @@ namespace YARG.Core.Chart
 
         public bool IsChord => _childNotes.Count > 0;
 
-        public bool IsStarPower      => (_flags & NoteFlags.StarPower) != 0;
-        public bool IsStarPowerStart => (_flags & NoteFlags.StarPowerStart) != 0;
-        public bool IsStarPowerEnd   => (_flags & NoteFlags.StarPowerEnd) != 0;
+        public bool IsStarPower      => (Flags & NoteFlags.StarPower) != 0;
+        public bool IsStarPowerStart => (Flags & NoteFlags.StarPowerStart) != 0;
+        public bool IsStarPowerEnd   => (Flags & NoteFlags.StarPowerEnd) != 0;
 
-        public bool IsSoloStart => (_flags & NoteFlags.SoloStart) != 0;
-        public bool IsSoloEnd   => (_flags & NoteFlags.SoloEnd) != 0;
+        public bool IsSoloStart => (Flags & NoteFlags.SoloStart) != 0;
+        public bool IsSoloEnd   => (Flags & NoteFlags.SoloEnd) != 0;
 
         public bool WasHit    { get; private set; }
         public bool WasMissed { get; private set; }
@@ -30,6 +32,7 @@ namespace YARG.Core.Chart
             : base(time, timeLength, tick, tickLength)
         {
             _flags = flags;
+            Flags = flags;
         }
 
         public virtual void AddChildNote(TNote note) {
@@ -60,6 +63,11 @@ namespace YARG.Core.Chart
             {
                 childNote.SetMissState(miss, true);
             }
+        }
+
+        public virtual void ResetFlags()
+        {
+            Flags = _flags;
         }
     }
 

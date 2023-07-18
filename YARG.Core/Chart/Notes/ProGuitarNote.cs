@@ -6,6 +6,8 @@ namespace YARG.Core.Chart
     {
         private readonly ProGuitarNoteFlags _proFlags;
 
+        public ProGuitarNoteFlags ProFlags;
+
         public int String   { get; }
         public int Fret     { get; }
 
@@ -17,10 +19,10 @@ namespace YARG.Core.Chart
 
         public bool IsSustain => TickLength > 0;
 
-        public bool IsExtendedSustain => (_proFlags & ProGuitarNoteFlags.ExtendedSustain) != 0;
-        public bool IsDisjoint        => (_proFlags & ProGuitarNoteFlags.Disjoint) != 0;
+        public bool IsExtendedSustain => (ProFlags & ProGuitarNoteFlags.ExtendedSustain) != 0;
+        public bool IsDisjoint        => (ProFlags & ProGuitarNoteFlags.Disjoint) != 0;
 
-        public bool IsMuted => (_proFlags & ProGuitarNoteFlags.Muted) != 0;
+        public bool IsMuted => (ProFlags & ProGuitarNoteFlags.Muted) != 0;
 
         public ProGuitarNote(ProGuitarString proString, int proFret, ProGuitarNoteType type, ProGuitarNoteFlags proFlags,
             NoteFlags flags, double time, double timeLength, uint tick, uint tickLength)
@@ -37,6 +39,13 @@ namespace YARG.Core.Chart
             Type = type;
 
             _proFlags = proFlags;
+            ProFlags = proFlags;
+        }
+
+        public override void ResetFlags()
+        {
+            base.ResetFlags();
+            ProFlags = _proFlags;
         }
     }
 
