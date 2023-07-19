@@ -123,8 +123,6 @@ namespace YARG.Core.Engine.Guitar
             var nextNote = note.NextNote;
             while (nextNote is not null && nextNote.IsStarPower)
             {
-                nextNote = nextNote.NextNote;
-
                 nextNote.Flags &= ~NoteFlags.StarPower;
                 foreach (var childNote in nextNote.ChildNotes)
                 {
