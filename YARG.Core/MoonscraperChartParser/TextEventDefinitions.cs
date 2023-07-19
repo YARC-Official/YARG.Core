@@ -38,20 +38,9 @@ namespace MoonscraperChartEditor.Song
         VENUE_CHARACTER_KEYS = "keys";
         #endregion
 
-        #region Sing-alongs/spotlights
-        public const string
-        VENUE_SINGALONG_PREFIX = "singalong",
-        VENUE_SINGALONG_PREFIX_WITH_SPACE = VENUE_SINGALONG_PREFIX + " ",
-        VENUE_SPOTLIGHT_PREFIX = "spotlight",
-        VENUE_SPOTLIGHT_PREFIX_WITH_SPACE = VENUE_SPOTLIGHT_PREFIX + " ";
-        #endregion
-
         #region Lighting
-        public const string
-        VENUE_LIGHTING_PREFIX = "lighting",
-        VENUE_LIGHTING_PREFIX_WITH_SPACE = VENUE_LIGHTING_PREFIX + " ",
-
         // Keyframed
+        public const string
         VENUE_LIGHTING_DEFAULT = "default",
         VENUE_LIGHTING_DISCHORD = "dischord",
         VENUE_LIGHTING_CHORUS = "chorus",
@@ -77,23 +66,16 @@ namespace MoonscraperChartEditor.Song
         VENUE_LIGHTING_STROBE_FAST = "strobe_fast",
         VENUE_LIGHTING_STROBE_SLOW = "strobe_slow",
         VENUE_LIGHTING_SWEEP = "sweep",
-        VENUE_LIGHTING_WARM_AUTOMATIC = "warm_automatic"; // loop_warm
+        VENUE_LIGHTING_WARM_AUTOMATIC = "warm_automatic", // loop_warm
 
         // Keyframe events
-        public const string
-        VENUE_LIGHTFRAME_PREFIX = "lightframe",
-        VENUE_LIGHTFRAME_PREFIX_WITH_SPACE = VENUE_LIGHTFRAME_PREFIX + " ",
-
-        VENUE_LIGHTFRAME_FIRST = "first",
-        VENUE_LIGHTFRAME_NEXT = "next",
-        VENUE_LIGHTFRAME_PREVIOUS = "previous";
+        VENUE_LIGHTING_FIRST = "first",
+        VENUE_LIGHTING_NEXT = "next",
+        VENUE_LIGHTING_PREVIOUS = "previous";
         #endregion
 
         #region Post-processing
         public const string
-        VENUE_POSTPROCESS_PREFIX = "postprocess",
-        VENUE_POSTPROCESS_PREFIX_WITH_SPACE = VENUE_POSTPROCESS_PREFIX + " ",
-
         VENUE_POSTPROCESS_DEFAULT = "default", // ProFilm_a.pp
 
         // Basic effects

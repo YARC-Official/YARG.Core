@@ -323,12 +323,12 @@ namespace MoonscraperChartEditor.Song.IO
                         }
                         unpairedNoteQueue.RemoveAt(startIndex);
 
-                        // Turn note into text
-                        if (!MidIOHelper.VENUE_NOTE_TO_TEXT_LOOKUP.TryGetValue((byte)noteStart.NoteNumber, out string eventText))
+                        // Turn note into event data
+                        if (!MidIOHelper.VENUE_NOTE_LOOKUP.TryGetValue((byte)noteStart.NoteNumber, out var eventData))
                             continue;
 
                         // Add the event
-                        song.Add(new VenueEvent(eventText, (uint)startTick, (uint)(startTick - absoluteTime)), false);
+                        song.Add(new VenueEvent(eventData.type, eventData.text, (uint)startTick, (uint)(startTick - absoluteTime)), false);
                     }
                 }
                 else if (trackEvent is BaseTextEvent text)
@@ -339,31 +339,27 @@ namespace MoonscraperChartEditor.Song.IO
                         eventText = bracketMatch.Groups[1].Value;
 
                     // Get new representation of the event
-                    if (MidIOHelper.VENUE_TEXT_CONVERSION_LOOKUP.TryGetValue(eventText, out string converted))
+                    if (MidIOHelper.VENUE_TEXT_CONVERSION_LOOKUP.TryGetValue(eventText, out var eventData))
                     {
-                        eventText = converted;
+                        song.Add(new VenueEvent(eventData.type, eventData.text, (uint)absoluteTime), false);
                     }
                     // Events that need special matching
-                    else foreach (var (regex, (lookup, defaultValue)) in MidIOHelper.VENUE_EVENT_REGEX_TO_LOOKUP)
+                    else foreach (var (regex, (lookup, type, defaultValue)) in MidIOHelper.VENUE_EVENT_REGEX_TO_LOOKUP)
                     {
                         if (regex.Match(eventText) is not { Success: true } match)
                             continue;
 
-                        // Get the matched text
-                        eventText = match.Groups[1].Value;
-
                         // Get new representation of the event
-                        if (!lookup.TryGetValue(eventText, out converted))
+                        if (!lookup.TryGetValue(match.Groups[1].Value, out string converted))
                         {
                             if (string.IsNullOrEmpty(defaultValue))
                                 continue;
                             converted = defaultValue;
                         }
-                        eventText = converted;
-                    }
 
-                    // Add the event
-                    song.Add(new VenueEvent(eventText, (uint)absoluteTime), false);
+                        song.Add(new VenueEvent(type, converted, (uint)absoluteTime), false);
+                        break;
+                    }
                 }
             }
         }
