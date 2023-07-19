@@ -37,6 +37,9 @@ namespace YARG.Core.Chart
         /// Generates more complex beatlines based on the tempo map.
         /// Ignores <see cref="Beatlines"/>.
         /// </summary>
+        /// <param name="lastTick">
+        /// The last tick to generate beatlines up to.
+        /// </param>
         /// <param name="singleBeatStrongs">
         /// If true, 1/x time signatures will only have their first beat marked as a measure.
         /// </param>
@@ -47,11 +50,11 @@ namespace YARG.Core.Chart
         /// If true, time signatures with denominators greater than 4 will have every quarter note beat emphasized,
         /// with the rest being weak beats.
         /// </param>
-        public List<Beatline> GenerateBeatlines(bool singleBeatStrongs = true, bool inbetweenWeaksOnFour = false,
+        public List<Beatline> GenerateBeatlines(uint lastTick, bool singleBeatStrongs = true, bool inbetweenWeaksOnFour = false,
             uint highDenominatorStrongRate = 4)
         {
             highDenominatorStrongRate = Math.Max(highDenominatorStrongRate, 1);
-            return GenerateBeatlines(GetBeatlinePower, GetBeatlineType);
+            return GenerateBeatlines(lastTick, GetBeatlinePower, GetBeatlineType);
 
             uint GetBeatlinePower(TimeSignatureChange currentTimeSig)
             {
@@ -97,10 +100,8 @@ namespace YARG.Core.Chart
         /// Generates beatlines based on the tempo map and provided configuration delegates.
         /// Ignores <see cref="Beatlines"/>.
         /// </summary>
-        public List<Beatline> GenerateBeatlines(GetBeatlineRatePower getBeatlinePower, GetBeatlineType getBeatlineType)
+        public List<Beatline> GenerateBeatlines(uint lastTick, GetBeatlineRatePower getBeatlinePower, GetBeatlineType getBeatlineType)
         {
-            uint lastTick = GetLastTick();
-
             var beatlines = new List<Beatline>((int) (lastTick / Resolution));
 
             // List indexes
