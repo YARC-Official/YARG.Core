@@ -1,3 +1,5 @@
+using YARG.Core.Chart;
+
 namespace MoonscraperChartEditor.Song
 {
     /// <summary>
@@ -123,9 +125,9 @@ namespace MoonscraperChartEditor.Song
 
         #region Miscellaneous
         public const string
-        VENUE_MISC_BONUS_FX = "bonus_fx",
-        VENUE_MISC_FOG_ON = "fog_on",
-        VENUE_MISC_FOG_OFF = "fog_off";
+        VENUE_MISC_BONUS_FX = VenueMiscellaneous.BONUS_FX,
+        VENUE_MISC_FOG_ON = VenueMiscellaneous.FOG_ON,
+        VENUE_MISC_FOG_OFF = VenueMiscellaneous.FOG_OFF;
         #endregion
 
         #endregion // Venue
