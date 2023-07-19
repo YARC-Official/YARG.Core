@@ -31,11 +31,11 @@ namespace MoonscraperChartEditor.Song
 
         #region Performers
         public const string
-        VENUE_CHARACTER_GUITAR = "guitar",
-        VENUE_CHARACTER_BASS = "bass",
-        VENUE_CHARACTER_DRUMS = "drums",
-        VENUE_CHARACTER_VOCALS = "vocals",
-        VENUE_CHARACTER_KEYS = "keys";
+        VENUE_PERFORMER_GUITAR = "guitar",
+        VENUE_PERFORMER_BASS = "bass",
+        VENUE_PERFORMER_DRUMS = "drums",
+        VENUE_PERFORMER_VOCALS = "vocals",
+        VENUE_PERFORMER_KEYS = "keys";
         #endregion
 
         #region Lighting
@@ -79,21 +79,22 @@ namespace MoonscraperChartEditor.Song
         VENUE_POSTPROCESS_DEFAULT = "default", // ProFilm_a.pp
 
         // Basic effects
-        VENUE_POSTPROCESS_BASIC_BLOOM = "basic_bloom", // bloom.pp
-        VENUE_POSTPROCESS_BASIC_BRIGHT = "basic_bright", // bright.pp
-        VENUE_POSTPROCESS_BASIC_CONTRAST = "basic_contrast", // film_contrast.pp
-        VENUE_POSTPROCESS_BASIC_POSTERIZE = "basic_posterize", // posterize.pp
-        VENUE_POSTPROCESS_BASIC_PHOTONEGATIVE = "basic_negative", // photo_negative.pp
-        VENUE_POSTPROCESS_BASIC_MIRROR = "basic_mirror", // ProFilm_mirror_a.pp
+        VENUE_POSTPROCESS_BLOOM = "bloom", // bloom.pp
+        VENUE_POSTPROCESS_BRIGHT = "bright", // bright.pp
+        VENUE_POSTPROCESS_CONTRAST = "contrast", // film_contrast.pp
+        VENUE_POSTPROCESS_MIRROR = "mirror", // ProFilm_mirror_a.pp
+        VENUE_POSTPROCESS_PHOTONEGATIVE = "photonegative", // photo_negative.pp
+        VENUE_POSTPROCESS_POSTERIZE = "posterize", // posterize.pp
 
-        // Color filters
-        VENUE_POSTPROCESS_COLOR_BLACK_WHITE = "color_b&w", // film_b+w.pp
-        VENUE_POSTPROCESS_COLOR_SEPIA = "color_sepia", // film_sepia_ink.pp
-        VENUE_POSTPROCESS_COLOR_SILVERTONE = "color_silvertone", // film_silvertone.pp
-        VENUE_POSTPROCESS_COLOR_BLACK_WHITE_POLARIZED = "color_polarized_b&w", // contrast_a.pp
-        VENUE_POSTPROCESS_COLOR_BLACK_WHITE_CHOPPY = "color_choppy_b&w", // photocopy.pp
-        VENUE_POSTPROCESS_COLOR_RED_BLACK = "color_red_black", // horror_movie_special.pp
-        VENUE_POSTPROCESS_COLOR_RED_BLUE = "color_red_blue", // ProFilm_psychedelic_blue_red.pp
+        // Color filters/effects
+        VENUE_POSTPROCESS_BLACK_WHITE = "black_white", // film_b+w.pp
+        VENUE_POSTPROCESS_SEPIATONE = "sepiatone", // film_sepia_ink.pp
+        VENUE_POSTPROCESS_SILVERTONE = "silvertone", // film_silvertone.pp
+
+        VENUE_POSTPROCESS_CHOPPY_BLACK_WHITE = "choppy_black_white", // photocopy.pp
+        VENUE_POSTPROCESS_PHOTONEGATIVE_RED_BLACK = "photonegative_red_black", // horror_movie_special.pp
+        VENUE_POSTPROCESS_POLARIZED_BLACK_WHITE = "polarized_black_white", // contrast_a.pp
+        VENUE_POSTPROCESS_POLARIZED_RED_BLUE = "polarized_red_blue", // ProFilm_psychedelic_blue_red.pp
 
         VENUE_POSTPROCESS_DESATURATED_RED = "desaturated_red", // ProFilm_b.pp
         VENUE_POSTPROCESS_DESATURATED_BLUE = "desaturated_blue", // desat_blue.pp
@@ -108,16 +109,16 @@ namespace MoonscraperChartEditor.Song
 
         // Scanlines
         VENUE_POSTPROCESS_SCANLINES = "scanlines", // video_a.pp
-        VENUE_POSTPROCESS_SCANLINES_BLACK_WHITE = "b&w_scanlines", // video_bw.pp
-        VENUE_POSTPROCESS_SCANLINES_BLUE = "blue_scanlines", // film_blue_filter.pp
-        VENUE_POSTPROCESS_SCANLINES_SECURITY = "security_scanlines", // video_security.pp
+        VENUE_POSTPROCESS_SCANLINES_BLACK_WHITE = "scanlines_black_white", // video_bw.pp
+        VENUE_POSTPROCESS_SCANLINES_BLUE = "scanlines_blue", // film_blue_filter.pp
+        VENUE_POSTPROCESS_SCANLINES_SECURITY = "scanlines_security", // video_security.pp
 
         // Trails (video feed delay, a "visual echo")
         VENUE_POSTPROCESS_TRAILS = "trails", // clean_trails.pp
-        VENUE_POSTPROCESS_TRAILS_LONG = "long_trails", // video_trails.pp
-        VENUE_POSTPROCESS_TRAILS_DESATURATED = "desaturated_trails", // desat_posterize_trails.pp
-        VENUE_POSTPROCESS_TRAILS_FLICKER = "flicker_trails", // flicker_trails.pp
-        VENUE_POSTPROCESS_TRAILS_SPACEY = "spacey_trails"; // space_woosh.pp
+        VENUE_POSTPROCESS_TRAILS_LONG = "trails_long", // video_trails.pp
+        VENUE_POSTPROCESS_TRAILS_DESATURATED = "trails_desaturated", // desat_posterize_trails.pp
+        VENUE_POSTPROCESS_TRAILS_FLICKERY = "trails_flickery", // flicker_trails.pp
+        VENUE_POSTPROCESS_TRAILS_SPACEY = "trails_spacey"; // space_woosh.pp
         #endregion
 
         #region Miscellaneous

@@ -203,27 +203,27 @@ namespace MoonscraperChartEditor.Song.IO
         public static readonly Dictionary<int, (VenueEvent.Type type, string text)> VENUE_NOTE_LOOKUP = new()
         {
             #region Post-processing events
-            { 110, (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_TRAILS_LONG) },                 // Trails
-            { 109, (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_SCANLINES_SECURITY) },          // Security camera
-            { 108, (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_SCANLINES_BLACK_WHITE) },       // Black and white
-            { 107, (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_SCANLINES) },                   // Scanlines
-            { 106, (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_SCANLINES_BLUE) },              // Blue tint
-            { 105, (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_BASIC_MIRROR) },                // Mirror
-            { 104, (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_DESATURATED_RED) },             // Bloom B
-            { 103, (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_BASIC_BLOOM) },                 // Bloom A
-            { 102, (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_COLOR_BLACK_WHITE_CHOPPY) },    // Photocopy
-            { 101, (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_BASIC_PHOTONEGATIVE) },         // Negative
-            { 100, (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_COLOR_SILVERTONE) },            // Silvertone
-            { 99,  (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_COLOR_SEPIA) },                 // Sepia
-            { 98,  (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_GRAINY_FILM) },                 // 16mm
-            { 97,  (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_COLOR_BLACK_WHITE_POLARIZED) }, // Contrast A
-            { 96,  (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_DEFAULT) },                     // Default
+            { 110, (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_TRAILS_LONG) },           // Trails
+            { 109, (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_SCANLINES_SECURITY) },    // Security camera
+            { 108, (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_SCANLINES_BLACK_WHITE) }, // Black and white
+            { 107, (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_SCANLINES) },             // Scanlines
+            { 106, (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_SCANLINES_BLUE) },        // Blue tint
+            { 105, (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_MIRROR) },                // Mirror
+            { 104, (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_DESATURATED_RED) },       // Bloom B
+            { 103, (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_BLOOM) },                 // Bloom A
+            { 102, (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_CHOPPY_BLACK_WHITE) },    // Photocopy
+            { 101, (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_PHOTONEGATIVE) },         // Negative
+            { 100, (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_SILVERTONE) },            // Silvertone
+            { 99,  (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_SEPIATONE) },             // Sepia
+            { 98,  (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_GRAINY_FILM) },           // 16mm
+            { 97,  (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_POLARIZED_BLACK_WHITE) }, // Contrast A
+            { 96,  (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_DEFAULT) },               // Default
             #endregion
 
             #region Performer singalongs
-            { 87, (VenueEvent.Type.Singalong, VENUE_CHARACTER_GUITAR) },
-            { 86, (VenueEvent.Type.Singalong, VENUE_CHARACTER_DRUMS) },
-            { 85, (VenueEvent.Type.Singalong, VENUE_CHARACTER_BASS) },
+            { 87, (VenueEvent.Type.Singalong, VENUE_PERFORMER_GUITAR) },
+            { 86, (VenueEvent.Type.Singalong, VENUE_PERFORMER_DRUMS) },
+            { 85, (VenueEvent.Type.Singalong, VENUE_PERFORMER_BASS) },
             #endregion
 
             #region Lighting keyframes
@@ -233,11 +233,11 @@ namespace MoonscraperChartEditor.Song.IO
             #endregion
 
             #region Performer spotlights
-            { 41, (VenueEvent.Type.Spotlight, VENUE_CHARACTER_KEYS) },
-            { 40, (VenueEvent.Type.Spotlight, VENUE_CHARACTER_VOCALS) },
-            { 39, (VenueEvent.Type.Spotlight, VENUE_CHARACTER_GUITAR) },
-            { 38, (VenueEvent.Type.Spotlight, VENUE_CHARACTER_DRUMS) },
-            { 37, (VenueEvent.Type.Spotlight, VENUE_CHARACTER_BASS) },
+            { 41, (VenueEvent.Type.Spotlight, VENUE_PERFORMER_KEYS) },
+            { 40, (VenueEvent.Type.Spotlight, VENUE_PERFORMER_VOCALS) },
+            { 39, (VenueEvent.Type.Spotlight, VENUE_PERFORMER_GUITAR) },
+            { 38, (VenueEvent.Type.Spotlight, VENUE_PERFORMER_DRUMS) },
+            { 37, (VenueEvent.Type.Spotlight, VENUE_PERFORMER_BASS) },
             #endregion
         };
 
@@ -255,30 +255,30 @@ namespace MoonscraperChartEditor.Song.IO
             #endregion
 
             #region Post-processing events
-            { "bloom.pp",                        (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_BASIC_BLOOM) },
-            { "bright.pp",                       (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_BASIC_BRIGHT) },
+            { "bloom.pp",                        (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_BLOOM) },
+            { "bright.pp",                       (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_BRIGHT) },
             { "clean_trails.pp",                 (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_TRAILS) },
-            { "contrast_a.pp",                   (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_COLOR_BLACK_WHITE_POLARIZED) },
+            { "contrast_a.pp",                   (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_POLARIZED_BLACK_WHITE) },
             { "desat_blue.pp",                   (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_DESATURATED_BLUE) },
             { "desat_posterize_trails.pp",       (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_TRAILS_DESATURATED) },
-            { "film_contrast.pp",                (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_BASIC_CONTRAST) },
-            { "film_b+w.pp",                     (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_COLOR_BLACK_WHITE) },
-            { "film_sepia_ink.pp",               (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_COLOR_SEPIA) },
-            { "film_silvertone.pp",              (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_COLOR_SILVERTONE) },
+            { "film_contrast.pp",                (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_CONTRAST) },
+            { "film_b+w.pp",                     (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_BLACK_WHITE) },
+            { "film_sepia_ink.pp",               (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_SEPIATONE) },
+            { "film_silvertone.pp",              (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_SILVERTONE) },
             { "film_contrast_red.pp",            (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_CONTRAST_RED) },
             { "film_contrast_green.pp",          (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_CONTRAST_GREEN) },
             { "film_contrast_blue.pp",           (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_CONTRAST_BLUE) },
             { "film_16mm.pp",                    (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_GRAINY_FILM) },
             { "film_blue_filter.pp",             (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_SCANLINES_BLUE) },
-            { "flicker_trails.pp",               (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_TRAILS_FLICKER) },
-            { "horror_movie_special.pp",         (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_COLOR_RED_BLACK) },
-            { "photocopy.pp",                    (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_COLOR_BLACK_WHITE_CHOPPY) },
-            { "photo_negative.pp",               (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_BASIC_PHOTONEGATIVE) },
-            { "posterize.pp",                    (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_BASIC_POSTERIZE) },
+            { "flicker_trails.pp",               (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_TRAILS_FLICKERY) },
+            { "horror_movie_special.pp",         (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_PHOTONEGATIVE_RED_BLACK) },
+            { "photocopy.pp",                    (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_CHOPPY_BLACK_WHITE) },
+            { "photo_negative.pp",               (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_PHOTONEGATIVE) },
+            { "posterize.pp",                    (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_POSTERIZE) },
             { "ProFilm_a.pp",                    (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_DEFAULT) },
             { "ProFilm_b.pp",                    (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_DESATURATED_RED) },
-            { "ProFilm_mirror_a.pp",             (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_BASIC_MIRROR) },
-            { "ProFilm_psychedelic_blue_red.pp", (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_COLOR_RED_BLUE) },
+            { "ProFilm_mirror_a.pp",             (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_MIRROR) },
+            { "ProFilm_psychedelic_blue_red.pp", (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_POLARIZED_RED_BLUE) },
             { "shitty_tv.pp",                    (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_GRAINY_CHROMATIC_ABBERATION) },
             { "space_woosh.pp",                  (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_TRAILS_SPACEY) },
             { "video_a.pp",                      (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_SCANLINES) },
