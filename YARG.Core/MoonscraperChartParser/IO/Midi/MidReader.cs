@@ -294,13 +294,14 @@ namespace MoonscraperChartEditor.Song.IO
                 return;
 
             YargTrace.DebugInfo("Reading venue track");
+
+            var unpairedNoteQueue = new NoteEventQueue();
+
             long absoluteTime = track.Events[0].DeltaTime;
             for (int i = 1; i < track.Events.Count; i++)
             {
                 var trackEvent = track.Events[i];
                 absoluteTime += trackEvent.DeltaTime;
-
-                var unpairedNoteQueue = new NoteEventQueue();
 
                 if (trackEvent is NoteEvent note)
                 {
