@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using MoonscraperChartEditor.Song;
 
-// TODO: 5-lane <-> 4-lane conversions
+// TODO: Disco flip
 
 namespace YARG.Core.Chart
 {
