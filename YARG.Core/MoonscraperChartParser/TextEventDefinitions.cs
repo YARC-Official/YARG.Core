@@ -7,7 +7,8 @@ namespace MoonscraperChartEditor.Song
     {
         #region Global lyric events
         public const string
-        LYRIC_PREFIX = "lyric ",
+        LYRIC_PREFIX = "lyric",
+        LYRIC_PREFIX_WITH_SPACE = LYRIC_PREFIX + " ",
         LYRIC_PHRASE_START = "phrase_start",
         LYRIC_PHRASE_END = "phrase_end";
         #endregion
@@ -24,7 +25,8 @@ namespace MoonscraperChartEditor.Song
 
         #region General
         public const string
-        VENUE_OPTIONAL_EVENT_PREFIX = "optional ";
+        VENUE_OPTIONAL_EVENT_PREFIX = "optional",
+        VENUE_OPTIONAL_EVENT_PREFIX_WITH_SPACE = VENUE_OPTIONAL_EVENT_PREFIX + " ";
         #endregion
 
         #region Performers
@@ -38,13 +40,16 @@ namespace MoonscraperChartEditor.Song
 
         #region Sing-alongs/spotlights
         public const string
-        VENUE_SINGALONG_PREFIX = "singalong ",
-        VENUE_SPOTLIGHT_PREFIX = "spotlight ";
+        VENUE_SINGALONG_PREFIX = "singalong",
+        VENUE_SINGALONG_PREFIX_WITH_SPACE = VENUE_SINGALONG_PREFIX + " ",
+        VENUE_SPOTLIGHT_PREFIX = "spotlight",
+        VENUE_SPOTLIGHT_PREFIX_WITH_SPACE = VENUE_SPOTLIGHT_PREFIX + " ";
         #endregion
 
         #region Lighting
         public const string
-        VENUE_LIGHTING_PREFIX = "lighting ",
+        VENUE_LIGHTING_PREFIX = "lighting",
+        VENUE_LIGHTING_PREFIX_WITH_SPACE = VENUE_LIGHTING_PREFIX + " ",
 
         // Keyframed
         VENUE_LIGHTING_DEFAULT = "default",
@@ -76,7 +81,9 @@ namespace MoonscraperChartEditor.Song
 
         // Keyframe events
         public const string
-        VENUE_LIGHTFRAME_PREFIX = "lightframe ",
+        VENUE_LIGHTFRAME_PREFIX = "lightframe",
+        VENUE_LIGHTFRAME_PREFIX_WITH_SPACE = VENUE_LIGHTFRAME_PREFIX + " ",
+
         VENUE_LIGHTFRAME_FIRST = "first",
         VENUE_LIGHTFRAME_NEXT = "next",
         VENUE_LIGHTFRAME_PREVIOUS = "previous";
@@ -84,7 +91,8 @@ namespace MoonscraperChartEditor.Song
 
         #region Post-processing
         public const string
-        VENUE_POSTPROCESS_PREFIX = "postprocess ",
+        VENUE_POSTPROCESS_PREFIX = "postprocess",
+        VENUE_POSTPROCESS_PREFIX_WITH_SPACE = VENUE_POSTPROCESS_PREFIX + " ",
 
         VENUE_POSTPROCESS_DEFAULT = "default", // ProFilm_a.pp
 

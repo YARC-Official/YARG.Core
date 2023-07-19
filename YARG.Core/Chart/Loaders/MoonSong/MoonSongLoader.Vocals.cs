@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using MoonscraperChartEditor.Song;
-using MoonscraperChartEditor.Song.IO;
+using YARG.Core.Utility;
 
 // TODO: Better parsing/sanitization of lyric events
 
@@ -141,11 +141,12 @@ namespace YARG.Core.Chart
                             break;
                         moonTextIndex++;
 
+                        var splitter = moonEvent.eventName.AsSpan().Split(' ');
                         // Ignore non-lyric events
-                        if (!moonEvent.eventName.StartsWith(TextEventDefinitions.LYRIC_PREFIX))
+                        var start = splitter.GetNext();
+                        var lyric = splitter.Remaining;
+                        if (!start.Equals(TextEventDefinitions.LYRIC_PREFIX, StringComparison.Ordinal))
                             continue;
-
-                        string lyric = moonEvent.eventName.Replace(TextEventDefinitions.LYRIC_PREFIX, "");
 
                         // Only process note modifiers for lyrics that match the current note
                         if (moonEvent.tick == moonNote.tick)
@@ -157,7 +158,7 @@ namespace YARG.Core.Chart
                                 lyricType = LyricType.NonPitched;
                         }
 
-                        lyrics.Add(new(lyric, moonEvent.time, moonEvent.tick));
+                        lyrics.Add(new(lyric.ToString(), moonEvent.time, moonEvent.tick));
                     }
 
                     // Create new note
