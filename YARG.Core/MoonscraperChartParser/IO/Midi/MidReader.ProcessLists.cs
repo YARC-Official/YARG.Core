@@ -169,8 +169,10 @@ namespace MoonscraperChartEditor.Song.IO
 
         private static Dictionary<int, EventProcessFn> GetPhraseProcessDict(ParseSettings settings, MoonChart.GameMode gameMode)
         {
-            if (settings.StarPowerNote < 0)
-                settings.StarPowerNote = MidIOHelper.STARPOWER_NOTE;
+            int spNote = settings.StarPowerNote;
+            // Set default if no override given
+            if (spNote < 0)
+                spNote = MidIOHelper.STARPOWER_NOTE;
 
             var phraseSettings = gameMode switch
             {
@@ -181,7 +183,11 @@ namespace MoonscraperChartEditor.Song.IO
                 MoonChart.GameMode.Vocals => VocalsPhraseSettings,
                 _ => throw new NotImplementedException($"No process map for game mode {gameMode}!")
             };
-            phraseSettings.starPowerNote = settings.StarPowerNote;
+            phraseSettings.starPowerNote = spNote;
+
+            // Don't add solos when SP is overridden to the legacy SP note
+            if (phraseSettings.soloNote == spNote)
+                phraseSettings.soloNote = -1;
 
             return BuildCommonPhraseProcessMap(phraseSettings);
         }
@@ -227,6 +233,10 @@ namespace MoonscraperChartEditor.Song.IO
 
         private static void FixupStarPowerIfNeeded(in EventProcessParams processParams)
         {
+            // Ignore if SP override is specified
+            if (processParams.settings.StarPowerNote >= 0)
+                return;
+
             // Check if instrument is allowed to be fixed up
             if (!LegacyStarPowerFixupWhitelist.Contains(processParams.instrument))
                 return;
