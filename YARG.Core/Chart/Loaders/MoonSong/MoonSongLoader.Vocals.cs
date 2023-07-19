@@ -98,7 +98,7 @@ namespace YARG.Core.Chart
             {
                 var moonPhrase = moonChart.specialPhrases[moonPhraseIndex];
                 currentPhrases[moonPhrase.type] = moonPhrase;
-                
+
                 if (moonPhrase.type != SpecialPhrase.Type.Vocals_LyricPhrase)
                     continue;
 
@@ -142,10 +142,10 @@ namespace YARG.Core.Chart
                         moonTextIndex++;
 
                         // Ignore non-lyric events
-                        if (!moonEvent.eventName.StartsWith(ChartIOHelper.LYRIC_EVENT_PREFIX))
+                        if (!moonEvent.eventName.StartsWith(TextEventDefinitions.LYRIC_PREFIX))
                             continue;
 
-                        string lyric = moonEvent.eventName.Replace(ChartIOHelper.LYRIC_EVENT_PREFIX, "");
+                        string lyric = moonEvent.eventName.Replace(TextEventDefinitions.LYRIC_PREFIX, "");
 
                         // Only process note modifiers for lyrics that match the current note
                         if (moonEvent.tick == moonNote.tick)
