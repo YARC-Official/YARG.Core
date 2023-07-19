@@ -618,7 +618,7 @@ namespace MoonscraperChartEditor.Song.IO
 
             var timedEvent = eventProcessParams.timedEvent;
             uint tick = (uint)timedEvent.startTick;
-            uint sus = ApplySustainCutoff(eventProcessParams.settings, (uint)timedEvent.length);
+            uint sus = (uint)timedEvent.length;
 
             foreach (var diff in EnumExtensions<MoonSong.Difficulty>.Values)
             {
@@ -745,7 +745,7 @@ namespace MoonscraperChartEditor.Song.IO
 
             var timedEvent = eventProcessParams.timedEvent;
             uint tick = (uint)timedEvent.startTick;
-            uint sus = ApplySustainCutoff(eventProcessParams.settings, (uint)timedEvent.length);
+            uint sus = (uint)timedEvent.length;
 
             if (tick >= tickStartOffset)
                 tick += (uint)tickStartOffset;
