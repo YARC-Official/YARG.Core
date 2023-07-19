@@ -14,6 +14,12 @@ namespace YARG.Core.Engine.Guitar.Engines
         public override void UpdateBot(double songTime)
         {
             base.UpdateBot(songTime);
+
+            if(State.NoteIndex >= Notes.Count)
+            {
+                return;
+            }
+
             var note = Notes[State.NoteIndex];
 
             bool updateToSongTime = true;
