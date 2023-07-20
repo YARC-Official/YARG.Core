@@ -1,7 +1,7 @@
 using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
-using MoonscraperEngine;
 using NUnit.Framework;
+using YARG.Core;
 
 namespace YARG.Core.UnitTests.Parsing
 {
@@ -376,7 +376,7 @@ namespace YARG.Core.UnitTests.Parsing
             var song = new MoonSong();
             PopulateSyncTrack(song, TempoMap);
             PopulateGlobalEvents(song, GlobalEvents);
-            foreach (var instrument in EnumX<MoonInstrument>.Values)
+            foreach (var instrument in EnumExtensions<MoonInstrument>.Values)
             {
                 var gameMode = MoonSong.InstumentToChartGameMode(instrument);
                 var data = GameModeToChartData(gameMode);
@@ -417,7 +417,7 @@ namespace YARG.Core.UnitTests.Parsing
 
         public static void PopulateInstrument(MoonSong song, MoonInstrument instrument, List<ChartObject> data)
         {
-            foreach (var difficulty in EnumX<Difficulty>.Values)
+            foreach (var difficulty in EnumExtensions<Difficulty>.Values)
             {
                 PopulateDifficulty(song, instrument, difficulty, data);
             }
@@ -439,7 +439,7 @@ namespace YARG.Core.UnitTests.Parsing
             {
                 VerifyMetadata(sourceSong, parsedSong);
                 VerifySync(sourceSong, parsedSong);
-                foreach (var instrument in EnumX<MoonInstrument>.Values)
+                foreach (var instrument in EnumExtensions<MoonInstrument>.Values)
                 {
                     // Skip unsupported instruments
                     var gameMode = MoonSong.InstumentToChartGameMode(instrument);
@@ -471,7 +471,7 @@ namespace YARG.Core.UnitTests.Parsing
 
         public static void VerifyInstrument(MoonSong sourceSong, MoonSong parsedSong, MoonInstrument instrument)
         {
-            foreach (var difficulty in EnumX<Difficulty>.Values)
+            foreach (var difficulty in EnumExtensions<Difficulty>.Values)
             {
                 VerifyDifficulty(sourceSong, parsedSong, instrument, difficulty);
             }

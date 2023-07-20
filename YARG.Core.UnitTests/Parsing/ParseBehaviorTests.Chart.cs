@@ -1,7 +1,6 @@
 using System.Text;
 using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
-using MoonscraperEngine;
 using NUnit.Framework;
 
 namespace YARG.Core.UnitTests.Parsing
@@ -10,6 +9,7 @@ namespace YARG.Core.UnitTests.Parsing
     using static MoonChart;
     using static MoonNote;
     using static ChartIOHelper;
+    using static TextEventDefinitions;
     using static ParseBehaviorTests;
 
     public class ChartParseBehaviorTests
@@ -145,8 +145,8 @@ namespace YARG.Core.UnitTests.Parsing
                         // Solos are written as text events in .chart
                         if (phrase.type is SpecialPhrase.Type.Solo)
                         {
-                            builder.Append($"  {phrase.tick} = E {EVENT_SOLO_START}\n");
-                            builder.Append($"  {phrase.tick + phrase.length} = E {EVENT_SOLO_END}\n");
+                            builder.Append($"  {phrase.tick} = E {SOLO_START}\n");
+                            builder.Append($"  {phrase.tick + phrase.length} = E {SOLO_END}\n");
                             continue;
                         }
 
@@ -213,9 +213,9 @@ namespace YARG.Core.UnitTests.Parsing
             GenerateSongSection(sourceSong, chartBuilder);
             GenerateSyncSection(sourceSong, chartBuilder);
             GenerateEventsSection(sourceSong, chartBuilder);
-            foreach (var instrument in EnumX<MoonInstrument>.Values)
+            foreach (var instrument in EnumExtensions<MoonInstrument>.Values)
             {
-                foreach (var difficulty in EnumX<Difficulty>.Values)
+                foreach (var difficulty in EnumExtensions<Difficulty>.Values)
                 {
                     GenerateInstrumentSection(sourceSong, chartBuilder, instrument, difficulty);
                 }

@@ -2,8 +2,8 @@ using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.Core;
 using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
-using MoonscraperEngine;
 using NUnit.Framework;
+using YARG.Core;
 
 namespace YARG.Core.UnitTests.Parsing
 {
@@ -271,7 +271,7 @@ namespace YARG.Core.UnitTests.Parsing
                 timedEvents.Add((0, new TextEvent($"[{ENHANCED_OPENS_TEXT}]")));
 
             long lastNoteTick = 0;
-            foreach (var difficulty in EnumX<Difficulty>.Values)
+            foreach (var difficulty in EnumExtensions<Difficulty>.Values)
             {
                 if (singleDifficulty && difficulty != Difficulty.Expert)
                     continue;
@@ -488,7 +488,7 @@ namespace YARG.Core.UnitTests.Parsing
                 TimeDivision = new TicksPerQuarterNoteTimeDivision((short)sourceSong.resolution)
             };
 
-            foreach (var instrument in EnumX<MoonInstrument>.Values)
+            foreach (var instrument in EnumExtensions<MoonInstrument>.Values)
             {
                 var chunk = GenerateTrackChunk(sourceSong, instrument);
                 midi.Chunks.Add(chunk);
