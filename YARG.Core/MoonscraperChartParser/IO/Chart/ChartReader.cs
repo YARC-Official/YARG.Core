@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2016-2020 Alexander Ong
+// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
 // Chart file format specifications- https://docs.google.com/document/d/1v2v0U-9HQ5qHeccpExDOLJ5CMPZZ3QytPmAG5WF0Kzs/edit?usp=sharing
@@ -140,7 +140,8 @@ namespace MoonscraperChartEditor.Song.IO
                     break;
                 case ChartIOHelper.SECTION_SYNC_TRACK:
                     YargTrace.DebugInfo("Loading sync data");
-                    goto case ChartIOHelper.SECTION_EVENTS;
+                    SubmitDataGlobals(song, stringData);
+                    break;
                 case ChartIOHelper.SECTION_EVENTS:
                     YargTrace.DebugInfo("Loading events data");
                     SubmitDataGlobals(song, stringData);
