@@ -58,20 +58,12 @@ namespace MoonscraperChartEditor.Song.IO
             public List<EventProcessFn> delayedProcessesList;
         }
 
-        private static readonly ReadingSettings ReadSettings = new()
-        {
-            InvalidChunkSizePolicy = InvalidChunkSizePolicy.Ignore,
-            NotEnoughBytesPolicy = NotEnoughBytesPolicy.Ignore,
-            NoHeaderChunkPolicy = NoHeaderChunkPolicy.Ignore,
-            InvalidChannelEventParameterValuePolicy = InvalidChannelEventParameterValuePolicy.ReadValid,
-        };
-
         public static MoonSong ReadMidi(ParseSettings settings, string path)
         {
             MidiFile midi;
             try
             {
-                midi = MidiFile.Read(path, ReadSettings);
+                midi = MidiFile.Read(path, MidiSettings.Instance);
             }
             catch (Exception e)
             {
