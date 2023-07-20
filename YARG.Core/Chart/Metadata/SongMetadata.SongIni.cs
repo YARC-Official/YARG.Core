@@ -3,6 +3,7 @@ using System.Diagnostics;
 using EasySharpIni;
 using EasySharpIni.Converters;
 using EasySharpIni.Models;
+using YARG.Core.Ini;
 
 namespace YARG.Core.Chart
 {

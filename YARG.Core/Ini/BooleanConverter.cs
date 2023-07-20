@@ -1,6 +1,6 @@
 using EasySharpIni.Converters;
 
-namespace YARG.Core
+namespace YARG.Core.Ini
 {
     public class BooleanConverter : Converter<bool>
     {
