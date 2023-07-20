@@ -40,9 +40,9 @@ namespace YARG.Core.Chart
             DrumFlags = drumFlags;
         }
 
-        public override void ResetFlags()
+        public override void ResetNoteState()
         {
-            base.ResetFlags();
+            base.ResetNoteState();
             DrumFlags = _drumFlags;
         }
     }

@@ -10,17 +10,35 @@ namespace YARG.Core.Engine
     {
         public bool IsInputQueued => InputQueue.Count > 0;
 
+        public int BaseScore { get; protected set; }
+
         protected bool IsInputUpdate { get; private set; }
         protected bool IsBotUpdate   { get; private set; }
 
+        protected abstract float[] StarMultiplierThresholds { get; }
+        protected abstract float[] StarScoreThresholds      { get; }
+
+        private readonly SyncTrack _syncTrack;
+
         protected readonly Queue<GameInput> InputQueue;
+
+        protected readonly uint Resolution;
+        protected readonly int  TicksPerSustainPoint;
 
         protected GameInput CurrentInput;
 
+        protected double CurrentTime;
         protected double LastUpdateTime;
 
-        protected BaseEngine()
+        protected uint LastTick;
+
+        protected BaseEngine(SyncTrack syncTrack)
         {
+            _syncTrack = syncTrack;
+            Resolution = syncTrack.Resolution;
+
+            TicksPerSustainPoint = (int) Resolution / 25;
+
             InputQueue = new Queue<GameInput>();
             CurrentInput = new GameInput(-9999, -9999, -9999);
         }
@@ -80,6 +98,11 @@ namespace YARG.Core.Engine
             }
         }
 
+        protected uint GetCurrentTick(double time)
+        {
+            return _syncTrack.TimeToTick(time);
+        }
+
         public virtual void UpdateBot(double songTime)
         {
             IsInputUpdate = false;
@@ -125,14 +148,19 @@ namespace YARG.Core.Engine
 
         public readonly TEngineStats EngineStats;
 
+        protected readonly InstrumentDifficulty<TNoteType> Chart;
+
         protected readonly List<TNoteType> Notes;
         protected readonly TEngineParams   EngineParameters;
 
         protected TEngineState State;
 
-        protected BaseEngine(List<TNoteType> notes, TEngineParams engineParameters)
+        protected BaseEngine(InstrumentDifficulty<TNoteType> chart, SyncTrack syncTrack,
+            TEngineParams engineParameters) : base(syncTrack)
         {
-            Notes = notes;
+            Chart = chart;
+            Notes = Chart.Notes;
+
             EngineParameters = engineParameters;
 
             EngineStats = new TEngineStats();
@@ -151,6 +179,8 @@ namespace YARG.Core.Engine
         protected abstract bool HitNote(TNoteType note);
 
         protected abstract void MissNote(TNoteType note);
+
+        protected abstract void AddScore(TNoteType note);
 
         protected abstract void UpdateMultiplier();
 
@@ -219,5 +249,7 @@ namespace YARG.Core.Engine
         {
             throw new NotImplementedException();
         }
+
+        protected abstract int CalculateBaseScore();
     }
 }

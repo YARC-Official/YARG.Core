@@ -11,6 +11,11 @@ namespace YARG.Core.Chart
         public int Fret     { get; }
         public int NoteMask { get; private set; }
 
+        public uint   SustainTickPosition;
+        public double SustainTimeLength;
+
+        public int SustainTickLength;
+
         public GuitarNoteType Type { get; set; }
 
         public bool IsStrum => Type == GuitarNoteType.Strum;
@@ -24,13 +29,13 @@ namespace YARG.Core.Chart
 
         public GuitarNote(FiveFretGuitarFret fret, GuitarNoteType noteType, GuitarNoteFlags guitarFlags,
             NoteFlags flags, double time, double timeLength, uint tick, uint tickLength)
-            : this((int)fret, noteType, guitarFlags, flags, time, timeLength, tick, tickLength)
+            : this((int) fret, noteType, guitarFlags, flags, time, timeLength, tick, tickLength)
         {
         }
 
         public GuitarNote(SixFretGuitarFret fret, GuitarNoteType noteType, GuitarNoteFlags guitarFlags,
             NoteFlags flags, double time, double timeLength, uint tick, uint tickLength)
-            : this((int)fret, noteType, guitarFlags, flags, time, timeLength, tick, tickLength)
+            : this((int) fret, noteType, guitarFlags, flags, time, timeLength, tick, tickLength)
         {
         }
 
@@ -43,6 +48,8 @@ namespace YARG.Core.Chart
 
             _guitarFlags = guitarFlags;
             GuitarFlags = guitarFlags;
+
+            SustainTickLength = (int) TickLength;
 
             // Resulting shift is 1 too high, shifting down by 1 corrects this.
             // Reason for not doing (fret - 1) is this breaks open notes.
@@ -58,10 +65,14 @@ namespace YARG.Core.Chart
             NoteMask |= 1 << note.Fret - 1;
         }
 
-        public override void ResetFlags()
+        public override void ResetNoteState()
         {
-            base.ResetFlags();
+            base.ResetNoteState();
             GuitarFlags = _guitarFlags;
+            SustainTickPosition = Tick;
+
+            SustainTimeLength = TimeLength;
+            SustainTickLength = (int) TickLength;
         }
     }
 

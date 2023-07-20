@@ -52,6 +52,12 @@
         /// </summary>
         public int PhrasesMissed;
 
+        /// <summary>
+        /// The number of stars the player has achieved.
+        /// </summary>
+        /// <remarks>This value should not be written to Replay files as Star Cutoffs may change over time.</remarks>
+        public int Stars;
+
         protected BaseStats()
         {
         }
@@ -68,20 +74,7 @@
             IsStarPowerActive = stats.IsStarPowerActive;
             PhrasesHit = stats.PhrasesHit;
             PhrasesMissed = stats.PhrasesMissed;
-        }
-
-        protected BaseStats(int score, int combo, int maxCombo, int scoreMultiplier, int notesHit, int notesMissed,
-            double starPowerAmount, bool isStarPowerActive, int phrasesHit)
-        {
-            Score = score;
-            Combo = combo;
-            MaxCombo = maxCombo;
-            ScoreMultiplier = scoreMultiplier;
-            NotesHit = notesHit;
-            NotesMissed = notesMissed;
-            StarPowerAmount = starPowerAmount;
-            IsStarPowerActive = isStarPowerActive;
-            PhrasesHit = phrasesHit;
+            Stars = stats.Stars;
         }
     }
 }

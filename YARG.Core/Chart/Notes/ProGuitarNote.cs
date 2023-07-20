@@ -42,9 +42,9 @@ namespace YARG.Core.Chart
             ProFlags = proFlags;
         }
 
-        public override void ResetFlags()
+        public override void ResetNoteState()
         {
-            base.ResetFlags();
+            base.ResetNoteState();
             ProFlags = _proFlags;
         }
     }

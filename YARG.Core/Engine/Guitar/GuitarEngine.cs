@@ -7,13 +7,34 @@ namespace YARG.Core.Engine.Guitar
     public abstract class GuitarEngine : BaseEngine<GuitarNote, GuitarAction, GuitarEngineParameters,
         GuitarStats, GuitarEngineState>
     {
-
         public delegate void OverstrumEvent();
 
-        public OverstrumEvent OnOverstrum;
+        public delegate void SustainStartEvent(GuitarNote note);
 
-        protected GuitarEngine(List<GuitarNote> notes, GuitarEngineParameters engineParameters) : base(notes, engineParameters)
+        public delegate void SustainEndEvent(GuitarNote note);
+
+        public OverstrumEvent    OnOverstrum;
+        public SustainStartEvent OnSustainStart;
+        public SustainEndEvent   OnSustainEnd;
+
+        protected List<GuitarNote> ActiveSustains;
+
+        protected sealed override float[] StarMultiplierThresholds { get; } =
+            { 0.21f, 0.46f, 0.77f, 1.85f, 3.08f, 4.52f };
+
+        protected sealed override float[] StarScoreThresholds { get; }
+
+        protected GuitarEngine(InstrumentDifficulty<GuitarNote> chart, SyncTrack syncTrack,
+            GuitarEngineParameters engineParameters) : base(chart, syncTrack, engineParameters)
         {
+            BaseScore = CalculateBaseScore();
+            ActiveSustains = new List<GuitarNote>();
+
+            StarScoreThresholds = new float[StarMultiplierThresholds.Length];
+            for (int i = 0; i < StarMultiplierThresholds.Length; i++)
+            {
+                StarScoreThresholds[i] = BaseScore * StarMultiplierThresholds[i];
+            }
         }
 
         protected virtual void Overstrum()
@@ -60,7 +81,7 @@ namespace YARG.Core.Engine.Guitar
 
             UpdateMultiplier();
 
-            EngineStats.Score += POINTS_PER_NOTE * (1 + note.ChildNotes.Count) * EngineStats.ScoreMultiplier;
+            AddScore(note);
 
             OnNoteHit?.Invoke(State.NoteIndex, note);
             State.NoteIndex++;
@@ -83,6 +104,11 @@ namespace YARG.Core.Engine.Guitar
 
             OnNoteMissed?.Invoke(State.NoteIndex, note);
             State.NoteIndex++;
+        }
+
+        protected override void AddScore(GuitarNote note)
+        {
+            EngineStats.Score += POINTS_PER_NOTE * (1 + note.ChildNotes.Count) * EngineStats.ScoreMultiplier;
         }
 
         protected override void UpdateMultiplier()
@@ -140,14 +166,36 @@ namespace YARG.Core.Engine.Guitar
             base.StripStarPower(note);
         }
 
+        protected sealed override int CalculateBaseScore()
+        {
+            int score = 0;
+            foreach (var note in Notes)
+            {
+                score += POINTS_PER_NOTE * (1 + note.ChildNotes.Count);
+                score += (int) Math.Ceiling((double) note.TickLength / TicksPerSustainPoint);
+
+                // If a note is disjoint, each sustain is counted separately.
+                if (note.IsDisjoint)
+                {
+                    foreach (var child in note.ChildNotes)
+                    {
+                        score += (int) Math.Ceiling((double) child.TickLength / TicksPerSustainPoint);
+                    }
+                }
+            }
+
+            return score;
+        }
+
+
         protected void ToggleFret(int fret, bool active)
         {
-            State.ButtonMask = (byte)(active ? State.ButtonMask | (1 << fret) : State.ButtonMask & ~(1 << fret));
+            State.ButtonMask = (byte) (active ? State.ButtonMask | (1 << fret) : State.ButtonMask & ~(1 << fret));
         }
 
         public bool IsFretHeld(GuitarAction fret)
         {
-            return (State.ButtonMask & (1 << (int)fret)) != 0;
+            return (State.ButtonMask & (1 << (int) fret)) != 0;
         }
     }
 }

@@ -6,8 +6,8 @@ namespace YARG.Core.Engine.Guitar.Engines
 {
     public class YargFiveFretEngine : GuitarEngine
     {
-        public YargFiveFretEngine(List<GuitarNote> notes, GuitarEngineParameters engineParameters) : base(notes,
-            engineParameters)
+        public YargFiveFretEngine(InstrumentDifficulty<GuitarNote> chart, SyncTrack syncTrack,
+            GuitarEngineParameters engineParameters) : base(chart, syncTrack, engineParameters)
         {
         }
 
@@ -15,7 +15,7 @@ namespace YARG.Core.Engine.Guitar.Engines
         {
             base.UpdateBot(songTime);
 
-            if(State.NoteIndex >= Notes.Count)
+            if (State.NoteIndex >= Notes.Count)
             {
                 return;
             }
@@ -49,7 +49,9 @@ namespace YARG.Core.Engine.Guitar.Engines
         protected override bool UpdateHitLogic(double time)
         {
             double delta = time - LastUpdateTime;
-            LastUpdateTime = time;
+            LastUpdateTime = CurrentTime;
+
+            CurrentTime = time;
 
             UpdateTimers(delta);
 

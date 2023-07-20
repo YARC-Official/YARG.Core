@@ -25,8 +25,8 @@ namespace YARG.Core.Chart
         public bool IsSoloStart => (Flags & NoteFlags.SoloStart) != 0;
         public bool IsSoloEnd   => (Flags & NoteFlags.SoloEnd) != 0;
 
-        public bool WasHit    { get; private set; }
-        public bool WasMissed { get; private set; }
+        public bool WasHit;
+        public bool WasMissed;
 
         protected Note(NoteFlags flags, double time, double timeLength, uint tick, uint tickLength)
             : base(time, timeLength, tick, tickLength)
@@ -65,9 +65,11 @@ namespace YARG.Core.Chart
             }
         }
 
-        public virtual void ResetFlags()
+        public virtual void ResetNoteState()
         {
             Flags = _flags;
+            WasHit = false;
+            WasMissed = false;
         }
     }
 
