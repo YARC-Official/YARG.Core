@@ -98,10 +98,10 @@ namespace YARG.Core.Chart
                 return -1;
 
             // Ensure the index we return is for an event that occurs before (or at) the given time
-            if (events[closestIndex].Time <= time)
-                return closestIndex;
-            else
-                return closestIndex - 1;
+            while (closestIndex >= 0 && events[closestIndex].Time > time)
+                closestIndex--;
+
+            return closestIndex;
         }
 
         public static int GetIndexOfPrevious<TEvent>(this IList<TEvent> events, uint tick)
@@ -112,10 +112,10 @@ namespace YARG.Core.Chart
                 return -1;
 
             // Ensure the index we return is for an event that occurs before (or at) the given tick
-            if (events[closestIndex].Tick <= tick)
-                return closestIndex;
-            else
-                return closestIndex - 1;
+            while (closestIndex >= 0 && events[closestIndex].Tick > tick)
+                closestIndex--;
+
+            return closestIndex;
         }
 
         public static int GetIndexOfNext<TEvent>(this IList<TEvent> events, double time)
@@ -126,12 +126,11 @@ namespace YARG.Core.Chart
                 return -1;
 
             // Ensure the index we return is for an event that occurs after the given time
-            if (events[closestIndex].Time > time)
-                return closestIndex;
-            else if (closestIndex < events.Count - 1)
-                return closestIndex + 1;
+            int count = events.Count;
+            while (closestIndex < count && events[closestIndex].Time <= time)
+                closestIndex++;
 
-            return -1;
+            return closestIndex < count ? count : -1;
         }
 
         public static int GetIndexOfNext<TEvent>(this IList<TEvent> events, uint tick)
@@ -142,12 +141,11 @@ namespace YARG.Core.Chart
                 return -1;
 
             // Ensure the index we return is for an event that occurs after the given tick
-            if (events[closestIndex].Tick > tick)
-                return closestIndex;
-            else if (closestIndex < events.Count - 1)
-                return closestIndex + 1;
+            int count = events.Count;
+            while (closestIndex < count && events[closestIndex].Tick <= tick)
+                closestIndex++;
 
-            return -1;
+            return closestIndex < count ? count : -1;
         }
 
         public static TEvent FindClosestEvent<TEvent>(this IList<TEvent> events, double time)
