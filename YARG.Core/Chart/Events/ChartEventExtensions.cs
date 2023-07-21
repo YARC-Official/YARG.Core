@@ -8,10 +8,8 @@ namespace YARG.Core.Chart
         public static uint GetFirstTick<TEvent>(this IList<TEvent> list)
             where TEvent : ChartEvent
         {
-            if(list.Count == 0)
-            {
+            if (list.Count < 1)
                 return 0;
-            }
 
             // Chart events are sorted
             var chartEvent = list[0];
@@ -21,10 +19,8 @@ namespace YARG.Core.Chart
         public static uint GetLastTick<TEvent>(this IList<TEvent> list)
             where TEvent : ChartEvent
         {
-            if(list.Count == 0)
-            {
+            if (list.Count < 1)
                 return 0;
-            }
 
             // Chart events are sorted
             var chartEvent = list[^1];
@@ -34,40 +30,31 @@ namespace YARG.Core.Chart
         public static TEvent GetPrevious<TEvent>(this IList<TEvent> chartEvents, uint tick)
             where TEvent : ChartEvent
         {
-            int pos = GetIndexOfPrevious(chartEvents, tick);
-            if (pos != -1)
-            {
-                return chartEvents[pos];
-            }
+            int index = GetIndexOfPrevious(chartEvents, tick);
+            if (index < 0)
+                return null;
 
             return null;
         }
 
-        public static int GetIndexOfPrevious<TEvent>(this IList<TEvent> chartEvents, uint position) where TEvent : ChartEvent
+        public static int GetIndexOfPrevious<TEvent>(this IList<TEvent> chartEvents, uint tick)
+            where TEvent : ChartEvent
         {
-            int closestPos = FindClosestEventToPosition(position, chartEvents);
-            if (closestPos != -1)
-            {
-                // Select the smaller of the two
-                if (chartEvents[closestPos].Tick <= position)
-                {
-                    return closestPos;
-                }
-
-                if (closestPos > 0)
-                {
-                    return closestPos - 1;
-                }
-
+            int closestIndex = chartEvents.FindClosestEvent(tick);
+            if (closestIndex < 0)
                 return -1;
-            }
 
-            return closestPos;
+            // Ensure the index we return is for an event that occurs before (or at) the given tick
+            if (chartEvents[closestIndex].Tick <= tick)
+                return closestIndex;
+            else
+                return closestIndex - 1;
         }
 
-        public static int FindClosestEventToPosition<TEvent>(uint position, IList<TEvent> events) where TEvent : ChartEvent
+        public static int FindClosestEvent<TEvent>(this IList<TEvent> events, uint tick)
+            where TEvent : ChartEvent
         {
-            return events.BinarySearchIndex(position, Compare);
+            return events.BinarySearchIndex(tick, Compare);
 
             static int Compare(TEvent currentEvent, uint targetTick)
             {
