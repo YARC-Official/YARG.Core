@@ -37,6 +37,18 @@ namespace YARG.Core.Chart
         /// Generates beatlines based on the tempo map.
         /// Ignores <see cref="Beatlines"/>.
         /// </summary>
+        /// <param name="endTime">
+        /// The time to generate beatlines up to.
+        /// </param>
+        public List<Beatline> GenerateBeatlines(double endTime)
+        {
+            return GenerateBeatlines(TimeToTick(endTime));
+        }
+
+        /// <summary>
+        /// Generates beatlines based on the tempo map.
+        /// Ignores <see cref="Beatlines"/>.
+        /// </summary>
         /// <param name="lastTick">
         /// The tick to generate beatlines up to, inclusive.
         /// </param>
@@ -72,6 +84,18 @@ namespace YARG.Core.Chart
 
                 return (beatlineCount % strongRate) == 0 ? BeatlineType.Strong : BeatlineType.Weak;
             }
+        }
+
+        /// <summary>
+        /// Generates beatlines based on the tempo map and provided configuration delegates.
+        /// Ignores <see cref="Beatlines"/>.
+        /// </summary>
+        /// <param name="endTime">
+        /// The time to generate beatlines up to.
+        /// </param>
+        public List<Beatline> GenerateBeatlines(double endTime, GetBeatlineRatePower getBeatlinePower, GetBeatlineType getBeatlineType)
+        {
+            return GenerateBeatlines(TimeToTick(endTime), getBeatlinePower, getBeatlineType);
         }
 
         /// <summary>
