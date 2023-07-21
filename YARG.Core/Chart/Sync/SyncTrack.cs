@@ -190,53 +190,55 @@ namespace YARG.Core.Chart
 
         public double TickToTime(uint tick, TempoChange currentTempo)
         {
-            if (tick < currentTempo.Tick)
-                throw new ArgumentOutOfRangeException(nameof(tick), tick, $"The given tick must be after the given tempo's tick ({currentTempo.Tick})!");
-
-            return currentTempo.Time + TickRangeToTimeDelta(currentTempo.Tick, tick, currentTempo.BeatsPerMinute);
+            return currentTempo.Time + TickRangeToTimeDelta(currentTempo.Tick, tick, currentTempo);
         }
 
         public uint TimeToTick(double time, TempoChange currentTempo)
         {
-            if (time < currentTempo.Time)
-                throw new ArgumentOutOfRangeException(nameof(time), time, $"The given time must be after the given tempo's time ({currentTempo.Time})!");
-
-            return currentTempo.Tick + TimeRangeToTickDelta(currentTempo.Time, time, currentTempo.BeatsPerMinute);
+            return currentTempo.Tick + TimeRangeToTickDelta(currentTempo.Time, time, currentTempo);
         }
 
-        public double TickRangeToTimeDelta(uint tickStart, uint tickEnd, float currentBpm)
+        public double TickRangeToTimeDelta(uint tickStart, uint tickEnd, TempoChange currentTempo)
         {
-            return TickRangeToTimeDelta(tickStart, tickEnd, Resolution, currentBpm);
+            return TickRangeToTimeDelta(tickStart, tickEnd, Resolution, currentTempo);
         }
 
-        public uint TimeRangeToTickDelta(double timeStart, double timeEnd, float currentBpm)
+        public uint TimeRangeToTickDelta(double timeStart, double timeEnd, TempoChange currentTempo)
         {
-            return TimeRangeToTickDelta(timeStart, timeEnd, Resolution, currentBpm);
+            return TimeRangeToTickDelta(timeStart, timeEnd, Resolution, currentTempo);
         }
 
-        public static double TickRangeToTimeDelta(uint tickStart, uint tickEnd, uint resolution, float currentBpm)
+        public static double TickRangeToTimeDelta(uint tickStart, uint tickEnd, uint resolution,
+            TempoChange currentTempo)
         {
-            if (tickStart == tickEnd)
-                return 0.0;
+            if (tickStart < currentTempo.Tick)
+                throw new ArgumentOutOfRangeException(nameof(tickStart), tickStart,
+                    $"The given start tick must occur during the given tempo (starting at {currentTempo.Tick})!");
 
-            const double SECONDS_PER_MINUTE = 60.0;
+            if (tickEnd < tickStart)
+                throw new ArgumentOutOfRangeException(nameof(tickEnd), tickEnd,
+                    $"The given end tick must occur after the starting tick ({tickStart})!");
 
             uint tickDelta = tickEnd - tickStart;
-            uint beatDelta = tickDelta / resolution;
-            double timeDelta = beatDelta * SECONDS_PER_MINUTE / currentBpm;
+            double beatDelta = tickDelta / (double)resolution;
+            double timeDelta = beatDelta * currentTempo.SecondsPerBeat;
 
             return timeDelta;
         }
 
-        public static uint TimeRangeToTickDelta(double timeStart, double timeEnd, uint resolution, float currentBpm)
+        public static uint TimeRangeToTickDelta(double timeStart, double timeEnd, uint resolution,
+            TempoChange currentTempo)
         {
-            if (timeStart == timeEnd)
-                return 0;
+            if (timeStart < currentTempo.Time)
+                throw new ArgumentOutOfRangeException(nameof(timeStart), timeStart,
+                    $"The given start time must occur during the given tempo (starting at {currentTempo.Tick})!");
 
-            const double SECONDS_PER_MINUTE = 60.0;
+            if (timeEnd < timeStart)
+                throw new ArgumentOutOfRangeException(nameof(timeEnd), timeEnd,
+                    $"The given end time must occur after the starting time ({timeStart})!");
 
-            double timeDelta = timeStart - timeEnd;
-            double beatDelta = timeDelta * currentBpm / SECONDS_PER_MINUTE;
+            double timeDelta = timeEnd - timeStart;
+            double beatDelta = timeDelta / currentTempo.SecondsPerBeat;
             uint tickDelta = (uint) (beatDelta * resolution);
 
             return tickDelta;

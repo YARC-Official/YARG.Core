@@ -245,24 +245,24 @@ namespace YARG.Core.Chart
             return SyncTrack.TimeToTick(time, currentTempo);
         }
 
-        public double TickRangeToTimeDelta(uint tickStart, uint tickEnd, float currentBpm)
+        public double TickRangeToTimeDelta(uint tickStart, uint tickEnd, TempoChange currentTempo)
         {
-            return SyncTrack.TickRangeToTimeDelta(tickStart, tickEnd, currentBpm);
+            return SyncTrack.TickRangeToTimeDelta(tickStart, tickEnd, currentTempo);
         }
 
-        public uint TimeRangeToTickDelta(double timeStart, double timeEnd, float currentBpm)
+        public uint TimeRangeToTickDelta(double timeStart, double timeEnd, TempoChange currentTempo)
         {
-            return SyncTrack.TimeRangeToTickDelta(timeStart, timeEnd, currentBpm);
+            return SyncTrack.TimeRangeToTickDelta(timeStart, timeEnd, currentTempo);
         }
 
-        public static double TickRangeToTimeDelta(uint tickStart, uint tickEnd, uint resolution, float currentBpm)
+        public static double TickRangeToTimeDelta(uint tickStart, uint tickEnd, uint resolution, TempoChange currentTempo)
         {
-            return SyncTrack.TickRangeToTimeDelta(tickStart, tickEnd, resolution, currentBpm);
+            return SyncTrack.TickRangeToTimeDelta(tickStart, tickEnd, resolution, currentTempo);
         }
 
-        public static uint TimeRangeToTickDelta(double timeStart, double timeEnd, uint resolution, float currentBpm)
+        public static uint TimeRangeToTickDelta(double timeStart, double timeEnd, uint resolution, TempoChange currentTempo)
         {
-            return SyncTrack.TimeRangeToTickDelta(timeStart, timeEnd, resolution, currentBpm);
+            return SyncTrack.TimeRangeToTickDelta(timeStart, timeEnd, resolution, currentTempo);
         }
 
         public uint GetFirstTick()
