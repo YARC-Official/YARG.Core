@@ -24,24 +24,33 @@ namespace YARG.Core.Engine
         protected readonly Queue<GameInput> InputQueue;
 
         protected readonly uint Resolution;
-        protected readonly int  TicksPerSustainPoint;
+        protected readonly uint TicksPerSustainPoint;
 
         protected GameInput CurrentInput;
 
         protected double CurrentTime;
         protected double LastUpdateTime;
 
+        protected uint CurrentTick;
         protected uint LastTick;
+
+        protected uint TicksEveryEightMeasures;
+
+        private int _currentTimeSigIndex;
+        private int _nextTimeSigIndex;
 
         protected BaseEngine(SyncTrack syncTrack)
         {
             _syncTrack = syncTrack;
             Resolution = syncTrack.Resolution;
 
-            TicksPerSustainPoint = (int) Resolution / 25;
+            TicksPerSustainPoint = Resolution / 25;
 
             InputQueue = new Queue<GameInput>();
             CurrentInput = new GameInput(-9999, -9999, -9999);
+
+            _currentTimeSigIndex = 0;
+            _nextTimeSigIndex = 1;
         }
 
         /// <summary>
@@ -104,6 +113,11 @@ namespace YARG.Core.Engine
             return _syncTrack.TimeToTick(time);
         }
 
+        protected double GetUsedStarPower()
+        {
+            return (CurrentTick - LastTick) / (double)TicksEveryEightMeasures;
+        }
+
         public virtual void UpdateBot(double songTime)
         {
             IsInputUpdate = false;
@@ -117,11 +131,31 @@ namespace YARG.Core.Engine
         /// <returns>True if a note was updated (hit or missed). False if no changes.</returns>
         protected abstract bool UpdateHitLogic(double time);
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected void UpdateTimeVariables(double time)
         {
             LastUpdateTime = CurrentTime;
             CurrentTime = time;
+
+            LastTick = CurrentTick;
+            CurrentTick = GetCurrentTick(time);
+
+            var timeSigs = _syncTrack.TimeSignatures;
+            while (_nextTimeSigIndex < timeSigs.Count && timeSigs[_nextTimeSigIndex].Time < time)
+            {
+                _currentTimeSigIndex++;
+                _nextTimeSigIndex++;
+            }
+
+            var currentTimeSig = timeSigs[_currentTimeSigIndex];
+
+            TicksEveryEightMeasures = Resolution * (4 / currentTimeSig.Denominator) * currentTimeSig.Numerator * 8;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected void SetTimer(ref double timer, double maxTime, double negation = 0)
+        {
+            double diff = Math.Abs(maxTime - negation);
+            timer = CurrentTime - diff;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -237,6 +271,12 @@ namespace YARG.Core.Engine
             }
         }
 
+        protected void ActivateStarPower()
+        {
+            EngineStats.IsStarPowerActive = true;
+            OnStarPowerStatus?.Invoke(true);
+        }
+
         /// <summary>
         /// Resets the engine's state back to default and then processes the list of inputs up to the given time.
         /// </summary>
@@ -277,5 +317,11 @@ namespace YARG.Core.Engine
         }
 
         protected abstract int CalculateBaseScore();
+
+        protected bool IsNoteInWindow(TNoteType note)
+        {
+            return note.Time - CurrentTime < EngineParameters.BackEnd &&
+                note.Time - CurrentTime > EngineParameters.FrontEnd;
+        }
     }
 }

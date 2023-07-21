@@ -50,6 +50,17 @@ namespace YARG.Core.Engine.Guitar.Engines
         {
             UpdateTimeVariables(time);
             UpdateTimers();
+            if (!EngineStats.IsStarPowerActive)
+            {
+                if (IsInputUpdate && CurrentInput.GetAction<GuitarAction>() == GuitarAction.StarPower)
+                {
+                    ActivateStarPower();
+                }
+            }
+            else
+            {
+                DepleteStarPower(GetUsedStarPower());
+            }
 
             State.StrummedThisUpdate = (IsInputUpdate && IsStrumInput(CurrentInput) && CurrentInput.Button)
                 || (State.StrummedThisUpdate && IsBotUpdate);
@@ -69,6 +80,8 @@ namespace YARG.Core.Engine.Guitar.Engines
                 return false;
             }
 
+            var note = Notes[State.NoteIndex];
+
             // Update strum leniency if strummed this update
             if (State.StrummedThisUpdate)
             {
@@ -77,10 +90,17 @@ namespace YARG.Core.Engine.Guitar.Engines
                     Overstrum();
                 }
 
-                State.StrumLeniencyStartTime = CurrentTime;
+                //State.StrumLeniencyStartTime = CurrentTime;
+                if (IsNoteInWindow(note))
+                {
+                    State.StrumLeniencyStartTime = CurrentTime;
+                } else
+                {
+                    double diff = Math.Abs(EngineParameters.StrumLeniency - EngineParameters.StrumLeniencySmall);
+                    State.StrumLeniencyStartTime = CurrentTime - diff;
+                    YargTrace.LogInfo($"$Set strum leniency to small time ({CurrentTime} - {diff})");
+                }
             }
-
-            var note = Notes[State.NoteIndex];
 
             if (note.WasHit || note.WasMissed)
             {
@@ -119,7 +139,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                     if (CanNoteBeHit(next) &&
                         (State.StrummedThisUpdate ||
                             IsTimerActive(CurrentTime, State.StrumLeniencyStartTime, EngineParameters.StrumLeniency) ||
-                            note.IsTap) && State.TapButtonMask == 0)
+                            next.IsTap) && State.TapButtonMask == 0)
                     {
                         if (HitNote(next))
                         {
