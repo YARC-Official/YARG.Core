@@ -249,7 +249,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 State.TapButtonMask = 0;
 
                 // Does the same thing but ensures it still works when infinite front end is disabled
-                State.FrontEndStartTime = double.MinValue;
+                State.FrontEndStartTime = double.MaxValue;
 
                 State.WasHopoStrummed = false;
             }
