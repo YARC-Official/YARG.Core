@@ -72,7 +72,7 @@ namespace YARG.Core.Chart
         public static int GetIndexOfPrevious<TEvent>(this IList<TEvent> chartEvents, double time)
             where TEvent : ChartEvent
         {
-            int closestIndex = chartEvents.FindClosestEvent(time);
+            int closestIndex = chartEvents.FindClosestEventIndex(time);
             if (closestIndex < 0)
                 return -1;
 
@@ -86,7 +86,7 @@ namespace YARG.Core.Chart
         public static int GetIndexOfPrevious<TEvent>(this IList<TEvent> chartEvents, uint tick)
             where TEvent : ChartEvent
         {
-            int closestIndex = chartEvents.FindClosestEvent(tick);
+            int closestIndex = chartEvents.FindClosestEventIndex(tick);
             if (closestIndex < 0)
                 return -1;
 
@@ -97,7 +97,39 @@ namespace YARG.Core.Chart
                 return closestIndex - 1;
         }
 
-        public static int FindClosestEvent<TEvent>(this IList<TEvent> events, double time)
+        public static TEvent FindClosestEvent<TEvent>(this IList<TEvent> events, double time)
+            where TEvent : ChartEvent
+        {
+            return events.BinarySearch(time, Compare);
+
+            static int Compare(TEvent currentEvent, double targetTime)
+            {
+                if (currentEvent.Time == targetTime)
+                    return 0;
+                else if (currentEvent.Time < targetTime)
+                    return -1;
+                else
+                    return 1;
+            }
+        }
+
+        public static TEvent FindClosestEvent<TEvent>(this IList<TEvent> events, uint tick)
+            where TEvent : ChartEvent
+        {
+            return events.BinarySearch(tick, Compare);
+
+            static int Compare(TEvent currentEvent, uint targetTick)
+            {
+                if (currentEvent.Tick == targetTick)
+                    return 0;
+                else if (currentEvent.Tick < targetTick)
+                    return -1;
+                else
+                    return 1;
+            }
+        }
+
+        public static int FindClosestEventIndex<TEvent>(this IList<TEvent> events, double time)
             where TEvent : ChartEvent
         {
             return events.BinarySearchIndex(time, Compare);
@@ -113,7 +145,7 @@ namespace YARG.Core.Chart
             }
         }
 
-        public static int FindClosestEvent<TEvent>(this IList<TEvent> events, uint tick)
+        public static int FindClosestEventIndex<TEvent>(this IList<TEvent> events, uint tick)
             where TEvent : ChartEvent
         {
             return events.BinarySearchIndex(tick, Compare);
