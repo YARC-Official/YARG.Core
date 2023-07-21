@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.Chart
 {
@@ -66,32 +67,17 @@ namespace YARG.Core.Chart
 
         public static int FindClosestEventToPosition<TEvent>(uint position, IList<TEvent> events) where TEvent : ChartEvent
         {
-            // Binary search
-            int low = 0;
-            int high = events.Count - 1;
-            int index = -1;
+            return events.BinarySearchIndex(position, Compare);
 
-            while (low <= high)
+            static int Compare(TEvent currentEvent, uint targetTick)
             {
-                int mid = (low + high) / 2;
-                index = mid;
-
-                if (events[mid].Tick == position)
-                {
-                    return index;
-                }
-
-                if (events[mid].Tick < position)
-                {
-                    low = mid + 1;
-                }
+                if (currentEvent.Tick == targetTick)
+                    return 0;
+                else if (currentEvent.Tick < targetTick)
+                    return -1;
                 else
-                {
-                    high = mid - 1;
-                }
+                    return 1;
             }
-
-            return index;
         }
     }
 }
