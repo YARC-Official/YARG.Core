@@ -225,46 +225,6 @@ namespace YARG.Core.Chart
             };
         }
 
-        public double TickToTime(uint tick)
-        {
-            return SyncTrack.TickToTime(tick);
-        }
-
-        public uint TimeToTick(double time)
-        {
-            return SyncTrack.TimeToTick(time);
-        }
-
-        public double TickToTime(uint tick, TempoChange currentTempo)
-        {
-            return SyncTrack.TickToTime(tick, currentTempo);
-        }
-
-        public uint TimeToTick(double time, TempoChange currentTempo)
-        {
-            return SyncTrack.TimeToTick(time, currentTempo);
-        }
-
-        public double TickRangeToTimeDelta(uint tickStart, uint tickEnd, TempoChange currentTempo)
-        {
-            return SyncTrack.TickRangeToTimeDelta(tickStart, tickEnd, currentTempo);
-        }
-
-        public uint TimeRangeToTickDelta(double timeStart, double timeEnd, TempoChange currentTempo)
-        {
-            return SyncTrack.TimeRangeToTickDelta(timeStart, timeEnd, currentTempo);
-        }
-
-        public static double TickRangeToTimeDelta(uint tickStart, uint tickEnd, uint resolution, TempoChange currentTempo)
-        {
-            return SyncTrack.TickRangeToTimeDelta(tickStart, tickEnd, resolution, currentTempo);
-        }
-
-        public static uint TimeRangeToTickDelta(double timeStart, double timeEnd, uint resolution, TempoChange currentTempo)
-        {
-            return SyncTrack.TimeRangeToTickDelta(timeStart, timeEnd, resolution, currentTempo);
-        }
-
         public double GetStartTime()
         {
             static double TrackMin<TNote>(IEnumerable<InstrumentTrack<TNote>> tracks) where TNote : Note<TNote>

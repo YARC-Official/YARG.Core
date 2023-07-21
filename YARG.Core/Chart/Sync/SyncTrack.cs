@@ -167,16 +167,6 @@ namespace YARG.Core.Chart
             }
         }
 
-        public TimeSignatureChange GetPrevTimeSignature(uint tick)
-        {
-            return TimeSignatures.GetPrevious(tick);
-        }
-
-        public TempoChange GetPrevTempoChange(uint tick)
-        {
-            return Tempos.GetPrevious(tick);
-        }
-
         public double TickToTime(uint tick)
         {
             // Find the current tempo marker at the given tick
