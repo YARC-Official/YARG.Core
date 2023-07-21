@@ -13,6 +13,14 @@ namespace YARG.Core.Chart
 
         public ChartEvent Bounds { get; }
 
+        public double Time       => Bounds.Time;
+        public double TimeLength => Bounds.TimeLength;
+        public double TimeEnd    => Bounds.TimeEnd;
+
+        public uint Tick       => Bounds.Tick;
+        public uint TickLength => Bounds.TickLength;
+        public uint TickEnd    => Bounds.TickEnd;
+
         public List<VocalNote> Notes  { get; } = new();
         public List<TextEvent> Lyrics { get; } = new();
 
@@ -35,18 +43,6 @@ namespace YARG.Core.Chart
         {
             Notes = notes;
             Lyrics = lyrics;
-        }
-
-        public uint GetFirstTick()
-        {
-            // Events inside a phrase cannot exceed its bounds 
-            return Bounds.Tick;
-        }
-
-        public uint GetLastTick()
-        {
-            // Events inside a phrase cannot exceed its bounds 
-            return Bounds.TickEnd;
         }
     }
 

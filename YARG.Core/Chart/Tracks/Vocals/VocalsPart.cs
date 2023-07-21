@@ -19,12 +19,38 @@ namespace YARG.Core.Chart
             TextEvents = text;
         }
 
+        public double GetStartTime()
+        {
+            double totalStartTime = 0;
+
+            if (NotePhrases.Count > 0)
+                totalStartTime = Math.Min(NotePhrases[^1].Time, totalStartTime);
+
+            totalStartTime = Math.Min(OtherPhrases.GetStartTime(), totalStartTime);
+            totalStartTime = Math.Min(TextEvents.GetStartTime(), totalStartTime);
+
+            return totalStartTime;
+        }
+
+        public double GetEndTime()
+        {
+            double totalEndTime = 0;
+
+            if (NotePhrases.Count > 0)
+                totalEndTime = Math.Max(NotePhrases[^1].TimeEnd, totalEndTime);
+
+            totalEndTime = Math.Max(OtherPhrases.GetEndTime(), totalEndTime);
+            totalEndTime = Math.Max(TextEvents.GetEndTime(), totalEndTime);
+
+            return totalEndTime;
+        }
+
         public uint GetFirstTick()
         {
             uint totalFirstTick = 0;
 
             if (NotePhrases.Count > 0)
-                totalFirstTick = Math.Min(NotePhrases[^1].GetFirstTick(), totalFirstTick);
+                totalFirstTick = Math.Min(NotePhrases[^1].Tick, totalFirstTick);
 
             totalFirstTick = Math.Min(OtherPhrases.GetFirstTick(), totalFirstTick);
             totalFirstTick = Math.Min(TextEvents.GetFirstTick(), totalFirstTick);
@@ -37,7 +63,7 @@ namespace YARG.Core.Chart
             uint totalLastTick = 0;
 
             if (NotePhrases.Count > 0)
-                totalLastTick = Math.Max(NotePhrases[^1].GetLastTick(), totalLastTick);
+                totalLastTick = Math.Max(NotePhrases[^1].TickEnd, totalLastTick);
 
             totalLastTick = Math.Max(OtherPhrases.GetLastTick(), totalLastTick);
             totalLastTick = Math.Max(TextEvents.GetLastTick(), totalLastTick);

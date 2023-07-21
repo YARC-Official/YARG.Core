@@ -25,6 +25,28 @@ namespace YARG.Core.Chart
 
         // TODO: Helper methods for getting note info across all parts
 
+        public double GetStartTime()
+        {
+            double totalStartTime = 0;
+            foreach (var part in Parts)
+            {
+                totalStartTime = Math.Min(part.GetStartTime(), totalStartTime);
+            }
+
+            return totalStartTime;
+        }
+
+        public double GetEndTime()
+        {
+            double totalEndTime = 0;
+            foreach (var part in Parts)
+            {
+                totalEndTime = Math.Max(part.GetEndTime(), totalEndTime);
+            }
+
+            return totalEndTime;
+        }
+
         public uint GetFirstTick()
         {
             uint totalFirstTick = 0;

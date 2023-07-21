@@ -24,6 +24,28 @@ namespace YARG.Core.Chart
             Difficulties = difficulties;
         }
 
+        public double GetStartTime()
+        {
+            double totalStartTime = 0;
+            foreach (var difficulty in Difficulties.Values)
+            {
+                totalStartTime = Math.Min(difficulty.GetStartTime(), totalStartTime);
+            }
+
+            return totalStartTime;
+        }
+
+        public double GetEndTime()
+        {
+            double totalEndTime = 0;
+            foreach (var difficulty in Difficulties.Values)
+            {
+                totalEndTime = Math.Max(difficulty.GetEndTime(), totalEndTime);
+            }
+
+            return totalEndTime;
+        }
+
         public uint GetFirstTick()
         {
             uint totalFirstTick = 0;

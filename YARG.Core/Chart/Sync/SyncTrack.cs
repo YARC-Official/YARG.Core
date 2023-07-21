@@ -271,6 +271,22 @@ namespace YARG.Core.Chart
             return tickDelta;
         }
 
+        public double GetStartTime()
+        {
+            // The sync track always starts at the very beginning of the chart
+            return 0;
+        }
+
+        public double GetEndTime()
+        {
+            double totalEndTime = 0;
+
+            totalEndTime = Math.Max(Tempos.GetEndTime(), totalEndTime);
+            totalEndTime = Math.Max(TimeSignatures.GetEndTime(), totalEndTime);
+
+            return totalEndTime;
+        }
+
         public uint GetFirstTick()
         {
             uint totalFirstTick = 0;

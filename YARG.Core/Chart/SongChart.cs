@@ -265,6 +265,50 @@ namespace YARG.Core.Chart
             return SyncTrack.TimeRangeToTickDelta(timeStart, timeEnd, resolution, currentTempo);
         }
 
+        public double GetStartTime()
+        {
+            static double TrackMin<TNote>(IEnumerable<InstrumentTrack<TNote>> tracks) where TNote : Note<TNote>
+                => tracks.Min((track) => track.GetStartTime());
+            static double VoxMin(IEnumerable<VocalsTrack> tracks)
+                => tracks.Min((track) => track.GetStartTime());
+
+            double totalStartTime = 0;
+
+            // Tracks
+            totalStartTime = Math.Min(TrackMin(FiveFretTracks), totalStartTime);
+            totalStartTime = Math.Min(TrackMin(SixFretTracks), totalStartTime);
+            totalStartTime = Math.Min(TrackMin(DrumsTracks), totalStartTime);
+            totalStartTime = Math.Min(TrackMin(ProGuitarTracks), totalStartTime);
+            totalStartTime = Math.Min(VoxMin(VocalsTracks), totalStartTime);
+
+            // Global
+            totalStartTime = Math.Min(GlobalEvents.GetStartTime(), totalStartTime);
+
+            return totalStartTime;
+        }
+
+        public double GetEndTime()
+        {
+            static double TrackMax<TNote>(IEnumerable<InstrumentTrack<TNote>> tracks) where TNote : Note<TNote>
+                => tracks.Max((track) => track.GetEndTime());
+            static double VoxMax(IEnumerable<VocalsTrack> tracks)
+                => tracks.Max((track) => track.GetEndTime());
+
+            double totalEndTime = 0;
+
+            // Tracks
+            totalEndTime = Math.Max(TrackMax(FiveFretTracks), totalEndTime);
+            totalEndTime = Math.Max(TrackMax(SixFretTracks), totalEndTime);
+            totalEndTime = Math.Max(TrackMax(DrumsTracks), totalEndTime);
+            totalEndTime = Math.Max(TrackMax(ProGuitarTracks), totalEndTime);
+            totalEndTime = Math.Max(VoxMax(VocalsTracks), totalEndTime);
+
+            // Global
+            totalEndTime = Math.Max(GlobalEvents.GetEndTime(), totalEndTime);
+
+            return totalEndTime;
+        }
+
         public uint GetFirstTick()
         {
             static uint TrackMin<TNote>(IEnumerable<InstrumentTrack<TNote>> tracks) where TNote : Note<TNote>

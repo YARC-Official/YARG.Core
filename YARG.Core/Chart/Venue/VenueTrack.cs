@@ -24,6 +24,30 @@ namespace YARG.Core.Chart
             Other = other;
         }
 
+        public double GetStartTime()
+        {
+            double totalStartTime = 0;
+
+            totalStartTime = Math.Min(Lighting.GetStartTime(), totalStartTime);
+            totalStartTime = Math.Min(PostProcessing.GetStartTime(), totalStartTime);
+            totalStartTime = Math.Min(Performer.GetStartTime(), totalStartTime);
+            totalStartTime = Math.Min(Other.GetStartTime(), totalStartTime);
+
+            return totalStartTime;
+        }
+
+        public double GetEndTime()
+        {
+            double totalEndTime = 0;
+
+            totalEndTime = Math.Max(Lighting.GetEndTime(), totalEndTime);
+            totalEndTime = Math.Max(PostProcessing.GetEndTime(), totalEndTime);
+            totalEndTime = Math.Max(Performer.GetEndTime(), totalEndTime);
+            totalEndTime = Math.Max(Other.GetEndTime(), totalEndTime);
+
+            return totalEndTime;
+        }
+
         public uint GetFirstTick()
         {
             uint totalFirstTick = 0;

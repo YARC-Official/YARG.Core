@@ -54,6 +54,28 @@ namespace YARG.Core.Chart
             }
         }
 
+        public double GetStartTime()
+        {
+            double totalStartTime = 0;
+
+            totalStartTime = Math.Min(Notes.GetStartTime(), totalStartTime);
+            totalStartTime = Math.Min(Phrases.GetStartTime(), totalStartTime);
+            totalStartTime = Math.Min(TextEvents.GetStartTime(), totalStartTime);
+
+            return totalStartTime;
+        }
+
+        public double GetEndTime()
+        {
+            double totalEndTime = 0;
+
+            totalEndTime = Math.Max(Notes.GetEndTime(), totalEndTime);
+            totalEndTime = Math.Max(Phrases.GetEndTime(), totalEndTime);
+            totalEndTime = Math.Max(TextEvents.GetEndTime(), totalEndTime);
+
+            return totalEndTime;
+        }
+
         public uint GetFirstTick()
         {
             uint totalFirstTick = 0;
