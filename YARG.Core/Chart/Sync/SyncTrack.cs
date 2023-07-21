@@ -170,15 +170,7 @@ namespace YARG.Core.Chart
         public double TickToTime(uint tick)
         {
             // Find the current tempo marker at the given tick
-            var currentTempo = Tempos[0];
-            foreach (var tempo in Tempos)
-            {
-                if (tempo.Tick >= tick)
-                    break;
-
-                currentTempo = tempo;
-            }
-
+            var currentTempo = Tempos.GetPrevious(tick);
             return TickToTime(tick, currentTempo);
 
             // Fun little tidbit: if you're between two tempo markers, you can just lerp
@@ -193,15 +185,7 @@ namespace YARG.Core.Chart
                 return 0;
 
             // Find the current tempo marker at the given time
-            var currentTempo = Tempos[0];
-            foreach (var tempo in Tempos)
-            {
-                if (tempo.Time >= time)
-                    break;
-
-                currentTempo = tempo;
-            }
-
+            var currentTempo = Tempos.GetPrevious(time);
             return TimeToTick(time, currentTempo);
         }
 
