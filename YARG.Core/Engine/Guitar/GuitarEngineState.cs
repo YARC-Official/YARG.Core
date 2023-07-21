@@ -9,10 +9,10 @@
         public bool StrummedThisUpdate;
         public bool WasHopoStrummed;
 
-        public double StrumLeniencyTimer;
-        public double HopoLeniencyTimer;
+        public double StrumLeniencyStartTime;
+        public double HopoLeniencyStartTime;
 
-        public double FrontEndTimer;
+        public double FrontEndStartTime;
 
         public override void Reset()
         {
@@ -22,10 +22,10 @@
             StrummedThisUpdate = false;
             WasHopoStrummed = false;
 
-            StrumLeniencyTimer = 0;
-            HopoLeniencyTimer = 0;
+            StrumLeniencyStartTime = 0;
+            HopoLeniencyStartTime = 0;
 
-            FrontEndTimer = 0;
+            FrontEndStartTime = 0;
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using YARG.Core.Chart;
 using YARG.Core.Input;
 
@@ -115,6 +116,31 @@ namespace YARG.Core.Engine
         /// <param name="time">The time in which to simulate hit logic at.</param>
         /// <returns>True if a note was updated (hit or missed). False if no changes.</returns>
         protected abstract bool UpdateHitLogic(double time);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected void UpdateTimeVariables(double time)
+        {
+            LastUpdateTime = CurrentTime;
+            CurrentTime = time;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected static void ResetTimer(ref double timer)
+        {
+            timer = double.MaxValue;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected static bool IsTimerActive(double currentTime, double startTime, double timeThreshold)
+        {
+            return currentTime - startTime < timeThreshold && currentTime - startTime >= 0;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected static bool HasTimerExpired(double currentTime, double startTime, double timeThreshold)
+        {
+            return currentTime - startTime >= timeThreshold;
+        }
     }
 
     public abstract class BaseEngine<TNoteType, TActionType, TEngineParams, TEngineStats, TEngineState> : BaseEngine
