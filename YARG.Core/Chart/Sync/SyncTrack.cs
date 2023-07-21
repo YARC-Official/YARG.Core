@@ -66,23 +66,43 @@ namespace YARG.Core.Chart
                 // The denominator at which to generate strong beats
                 const uint strongStep = 4;
 
-                // Measure lines
-                if (beatlineCount % currentTimeSig.Numerator == 0 &&
-                    // 1/x time signatures only have their first beatline marked as a measure
-                    (currentTimeSig.Numerator != 1 || beatlineCount < 1))
+                uint measureBeatCount = beatlineCount % currentTimeSig.Numerator;
+                uint strongRate = currentTimeSig.Denominator is <= 4 or < strongStep
+                    ? 1
+                    : currentTimeSig.Denominator / strongStep;
+
+                // 1/x time signatures
+                if (currentTimeSig.Numerator == 1)
                 {
-                    return BeatlineType.Measure;
+                    // Only the first beatline should be a measure line
+                    if (beatlineCount < 1)
+                        return BeatlineType.Measure;
+
+                    // The rest are emphasized periodically
+                    return (beatlineCount % strongRate) == 0 ? BeatlineType.Strong : BeatlineType.Weak;
                 }
 
-                // All other beats
-                uint strongRate = currentTimeSig.Denominator / strongStep;
-                if (strongRate < 2)
+                // Measure lines
+                if (measureBeatCount == 0)
+                    return BeatlineType.Measure;
+
+                // Only use weak beats on x/8 or greater
+                if (currentTimeSig.Denominator is <= 4 or < strongStep)
+                    return BeatlineType.Strong;
+
+                // Emphasize beatlines periodically
+                if ((measureBeatCount % strongRate) == 0)
                 {
-                    // Denominator is less than strong step, 
+                    // Always force the last beatline of a measure to be weak
+                    if (measureBeatCount == currentTimeSig.Numerator - 1)
+                        return BeatlineType.Weak;
+
                     return BeatlineType.Strong;
                 }
-
-                return (beatlineCount % strongRate) == 0 ? BeatlineType.Strong : BeatlineType.Weak;
+                else
+                {
+                    return BeatlineType.Weak;
+                }
             }
         }
 
