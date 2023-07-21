@@ -66,7 +66,7 @@ namespace YARG.Core.Chart
             if (index < 0)
                 return null;
 
-            return null;
+            return chartEvents[index];
         }
 
         public static int GetIndexOfPrevious<TEvent>(this IList<TEvent> chartEvents, double time)
