@@ -148,6 +148,58 @@ namespace YARG.Core.Chart
             return closestIndex < count ? count : -1;
         }
 
+        public static bool GetEventRange<TEvent>(this IList<TEvent> events, double startTime, double endTime,
+            out Range range)
+            where TEvent : ChartEvent
+        {
+            range = default;
+
+            int startIndex = events.FindClosestEventIndex(startTime);
+            int endIndex = events.FindClosestEventIndex(endTime);
+            if (startIndex < 0 || endIndex < 0)
+                return false;
+
+            // Ensure indexes are within time bounds
+            int count = events.Count;
+            while (startIndex < count && events[startIndex].Time < startTime)
+                startIndex++;
+            while (endIndex >= 0 && events[endIndex].Time >= endTime)
+                endIndex--;
+
+            // Ensure indexes are still in bounds
+            if (startIndex >= count || endIndex < 0 || startIndex > endIndex)
+                return false;
+
+            range = new Range(startIndex, endIndex + 1);
+            return true;
+        }
+
+        public static bool GetEventRange<TEvent>(this IList<TEvent> events, uint startTick, uint endTick,
+            out Range range)
+            where TEvent : ChartEvent
+        {
+            range = default;
+
+            int startIndex = events.FindClosestEventIndex(startTick);
+            int endIndex = events.FindClosestEventIndex(endTick);
+            if (startIndex < 0 || endIndex < 0)
+                return false;
+
+            // Ensure indexes are within tick bounds
+            int count = events.Count;
+            while (startIndex < count && events[startIndex].Tick < startTick)
+                startIndex++;
+            while (endIndex >= 0 && events[endIndex].Tick >= endTick)
+                endIndex--;
+
+            // Ensure indexes are still in bounds
+            if (startIndex >= count || endIndex < 0 || startIndex > endIndex)
+                return false;
+
+            range = new Range(startIndex, endIndex + 1);
+            return true;
+        }
+
         public static TEvent FindClosestEvent<TEvent>(this IList<TEvent> events, double time)
             where TEvent : ChartEvent
         {
