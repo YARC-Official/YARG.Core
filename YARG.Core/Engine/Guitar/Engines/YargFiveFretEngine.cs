@@ -52,7 +52,8 @@ namespace YARG.Core.Engine.Guitar.Engines
             UpdateTimers();
             if (!EngineStats.IsStarPowerActive)
             {
-                if (IsInputUpdate && CurrentInput.GetAction<GuitarAction>() == GuitarAction.StarPower)
+                if (IsInputUpdate && CurrentInput.GetAction<GuitarAction>() == GuitarAction.StarPower &&
+                    EngineStats.StarPowerAmount >= 0.5)
                 {
                     ActivateStarPower();
                 }
@@ -94,7 +95,8 @@ namespace YARG.Core.Engine.Guitar.Engines
                 if (IsNoteInWindow(note))
                 {
                     State.StrumLeniencyStartTime = CurrentTime;
-                } else
+                }
+                else
                 {
                     double diff = Math.Abs(EngineParameters.StrumLeniency - EngineParameters.StrumLeniencySmall);
                     State.StrumLeniencyStartTime = CurrentTime - diff;
