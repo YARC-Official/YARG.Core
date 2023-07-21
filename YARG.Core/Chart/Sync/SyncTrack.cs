@@ -38,7 +38,7 @@ namespace YARG.Core.Chart
         /// Ignores <see cref="Beatlines"/>.
         /// </summary>
         /// <param name="lastTick">
-        /// The last tick to generate beatlines up to.
+        /// The tick to generate beatlines up to, inclusive.
         /// </param>
         public List<Beatline> GenerateBeatlines(uint lastTick)
         {
@@ -78,8 +78,12 @@ namespace YARG.Core.Chart
         /// Generates beatlines based on the tempo map and provided configuration delegates.
         /// Ignores <see cref="Beatlines"/>.
         /// </summary>
+        /// <param name="lastTick">
+        /// The tick to generate beatlines up to, inclusive.
+        /// </param>
         public List<Beatline> GenerateBeatlines(uint lastTick, GetBeatlineRatePower getBeatlinePower, GetBeatlineType getBeatlineType)
         {
+            lastTick++;
             var beatlines = new List<Beatline>((int) (lastTick / Resolution));
 
             // List indexes
@@ -94,7 +98,7 @@ namespace YARG.Core.Chart
 
                 // Determine bounds
                 uint startTick = currentTimeSig.Tick;
-                uint endTick = nextTimeSig.Tick;
+                uint endTick = nextTimeSig.Tick - 1;
 
                 // Generate beatlines for this time signature
                 GenerateBeatsForTimeSignature(currentTimeSig, startTick, endTick);
@@ -115,7 +119,7 @@ namespace YARG.Core.Chart
                 uint beatlineCount = 0;
                 uint currentTick = startTick;
                 var currentTempo = Tempos[tempoIndex];
-                do // Always generate at least 1 beatline on a new time signature
+                while (currentTick <= endTick)
                 {
                     // Progress to current tempo
                     while (tempoIndex < Tempos.Count - 1)
@@ -136,7 +140,6 @@ namespace YARG.Core.Chart
                     beatlineCount++;
                     currentTick += beatlineTickRate;
                 }
-                while (currentTick < endTick);
             }
         }
 
