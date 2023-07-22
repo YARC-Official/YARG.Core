@@ -21,10 +21,16 @@ namespace YARG.Core.Chart
         public DifficultyMask ProDrums;
         public DifficultyMask FiveLaneDrums;
 
+        // public DifficultyMask TrueDrums;
+
         public DifficultyMask ProGuitar_17Fret;
         public DifficultyMask ProGuitar_22Fret;
         public DifficultyMask ProBass_17Fret;
         public DifficultyMask ProBass_22Fret;
+
+        public DifficultyMask ProKeys;
+
+        // public DifficultyMask Dj;
 
         public bool VocalsAvailable;
         public bool HarmonyAvailable;
@@ -47,11 +53,17 @@ namespace YARG.Core.Chart
                 FourLaneDrums = (DifficultyMask) reader.ReadByte(),
                 ProDrums = (DifficultyMask) reader.ReadByte(),
                 FiveLaneDrums = (DifficultyMask) reader.ReadByte(),
+    
+                // FiveLaneDrums = (DifficultyMask) reader.ReadByte(),
 
                 ProGuitar_17Fret = (DifficultyMask) reader.ReadByte(),
                 ProGuitar_22Fret = (DifficultyMask) reader.ReadByte(),
                 ProBass_17Fret = (DifficultyMask) reader.ReadByte(),
                 ProBass_22Fret = (DifficultyMask) reader.ReadByte(),
+    
+                ProKeys = (DifficultyMask) reader.ReadByte(),
+    
+                // Dj = (DifficultyMask) reader.ReadByte(),
 
                 VocalsAvailable = reader.ReadBoolean(),
                 HarmonyAvailable = reader.ReadBoolean()
@@ -75,10 +87,16 @@ namespace YARG.Core.Chart
             writer.Write((byte)ProDrums);
             writer.Write((byte)FiveLaneDrums);
 
+            // writer.Write((byte)TrueDrums);
+
             writer.Write((byte)ProGuitar_17Fret);
             writer.Write((byte)ProGuitar_22Fret);
             writer.Write((byte)ProBass_17Fret);
             writer.Write((byte)ProBass_22Fret);
+
+            writer.Write((byte)ProKeys);
+
+            // writer.Write((byte)Dj);
 
             writer.Write(VocalsAvailable);
             writer.Write(HarmonyAvailable);
@@ -101,10 +119,16 @@ namespace YARG.Core.Chart
             ProDrums |= partsToMerge.ProDrums;
             FiveLaneDrums |= partsToMerge.FiveLaneDrums;
 
+            // TrueDrums |= partsToMerge.TrueDrums;
+
             ProGuitar_17Fret |= partsToMerge.ProGuitar_17Fret;
             ProGuitar_22Fret |= partsToMerge.ProGuitar_22Fret;
             ProBass_17Fret |= partsToMerge.ProBass_17Fret;
             ProBass_22Fret |= partsToMerge.ProBass_22Fret;
+
+            ProKeys |= partsToMerge.ProKeys;
+
+            // Dj |= partsToMerge.Dj;
 
             VocalsAvailable |= partsToMerge.VocalsAvailable;
             HarmonyAvailable |= partsToMerge.HarmonyAvailable;
@@ -129,10 +153,16 @@ namespace YARG.Core.Chart
                 Instrument.FiveLaneDrums => FiveLaneDrums,
                 Instrument.ProDrums => ProDrums,
 
+                // Instrument.TrueDrums => TrueDrums,
+
                 Instrument.ProGuitar_17Fret => ProGuitar_17Fret,
                 Instrument.ProGuitar_22Fret => ProGuitar_22Fret,
                 Instrument.ProBass_17Fret => ProBass_17Fret,
                 Instrument.ProBass_22Fret => ProBass_22Fret,
+
+                Instrument.ProKeys => ProKeys,
+
+                // Instrument.Dj => Dj,
 
                 Instrument.Vocals or
                 Instrument.Harmony => throw new ArgumentException($"{instrument} does not have difficulties!", nameof(instrument)),
@@ -160,10 +190,16 @@ namespace YARG.Core.Chart
                 Instrument.FiveLaneDrums => FiveLaneDrums = difficulties,
                 Instrument.ProDrums => ProDrums = difficulties,
 
+                // Instrument.TrueDrums => TrueDrums = difficulties,
+
                 Instrument.ProGuitar_17Fret => ProGuitar_17Fret = difficulties,
                 Instrument.ProGuitar_22Fret => ProGuitar_22Fret = difficulties,
                 Instrument.ProBass_17Fret => ProBass_17Fret = difficulties,
                 Instrument.ProBass_22Fret => ProBass_22Fret = difficulties,
+
+                Instrument.ProKeys => ProKeys = difficulties,
+
+                // Instrument.Dj => Dj = difficulties,
 
                 Instrument.Vocals or
                 Instrument.Harmony => throw new ArgumentException($"{instrument} does not have difficulties!", nameof(instrument)),
@@ -192,10 +228,16 @@ namespace YARG.Core.Chart
                 Instrument.FiveLaneDrums => FiveLaneDrums |= difficulty,
                 Instrument.ProDrums => ProDrums |= difficulty,
 
+                // Instrument.TrueDrums => TrueDrums |= difficulty,
+
                 Instrument.ProGuitar_17Fret => ProGuitar_17Fret |= difficulty,
                 Instrument.ProGuitar_22Fret => ProGuitar_22Fret |= difficulty,
                 Instrument.ProBass_17Fret => ProBass_17Fret |= difficulty,
                 Instrument.ProBass_22Fret => ProBass_22Fret |= difficulty,
+
+                Instrument.ProKeys => ProKeys |= difficulty,
+
+                // Instrument.Dj => Dj |= difficulty,
 
                 Instrument.Vocals or
                 Instrument.Harmony => throw new ArgumentException($"{instrument} does not have difficulties!", nameof(instrument)),
@@ -224,10 +266,16 @@ namespace YARG.Core.Chart
                 Instrument.FiveLaneDrums => FiveLaneDrums &= ~difficulty,
                 Instrument.ProDrums => ProDrums &= ~difficulty,
 
+                // Instrument.TrueDrums => TrueDrums &= ~difficulty,
+
                 Instrument.ProGuitar_17Fret => ProGuitar_17Fret &= ~difficulty,
                 Instrument.ProGuitar_22Fret => ProGuitar_22Fret &= ~difficulty,
                 Instrument.ProBass_17Fret => ProBass_17Fret &= ~difficulty,
                 Instrument.ProBass_22Fret => ProBass_22Fret &= ~difficulty,
+
+                Instrument.ProKeys => ProKeys &= ~difficulty,
+
+                // Instrument.Dj => Dj &= ~difficulty,
 
                 Instrument.Vocals or
                 Instrument.Harmony => throw new ArgumentException($"{instrument} does not have difficulties!", nameof(instrument)),
@@ -255,10 +303,16 @@ namespace YARG.Core.Chart
                 Instrument.FiveLaneDrums => FiveLaneDrums != DifficultyMask.None,
                 Instrument.ProDrums => ProDrums != DifficultyMask.None,
 
+                // Instrument.TrueDrums => TrueDrums != DifficultyMask.None,
+
                 Instrument.ProGuitar_17Fret => ProGuitar_17Fret != DifficultyMask.None,
                 Instrument.ProGuitar_22Fret => ProGuitar_22Fret != DifficultyMask.None,
                 Instrument.ProBass_17Fret => ProBass_17Fret != DifficultyMask.None,
                 Instrument.ProBass_22Fret => ProBass_22Fret != DifficultyMask.None,
+
+                Instrument.ProKeys => ProKeys != DifficultyMask.None,
+
+                // Instrument.Dj => Dj != DifficultyMask.None,
 
                 Instrument.Vocals => VocalsAvailable,
                 Instrument.Harmony => HarmonyAvailable,
@@ -292,10 +346,16 @@ namespace YARG.Core.Chart
                 Instrument.FiveLaneDrums => SetDifficulties(ref FiveLaneDrums, available),
                 Instrument.ProDrums => SetDifficulties(ref ProDrums, available),
 
+                // Instrument.TrueDrums => SetDifficulties(ref TrueDrums, available),
+
                 Instrument.ProGuitar_17Fret => SetDifficulties(ref ProGuitar_17Fret, available),
                 Instrument.ProGuitar_22Fret => SetDifficulties(ref ProGuitar_22Fret, available),
                 Instrument.ProBass_17Fret => SetDifficulties(ref ProBass_17Fret, available),
                 Instrument.ProBass_22Fret => SetDifficulties(ref ProBass_22Fret, available),
+
+                Instrument.ProKeys => SetDifficulties(ref ProKeys, available),
+
+                // Instrument.Dj => SetDifficulties(ref Dj, available),
 
                 Instrument.Vocals => VocalsAvailable = available,
                 Instrument.Harmony => HarmonyAvailable = available,
