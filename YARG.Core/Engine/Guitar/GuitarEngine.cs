@@ -12,7 +12,7 @@ namespace YARG.Core.Engine.Guitar
 
         public delegate void SustainStartEvent(GuitarNote note);
 
-        public delegate void SustainEndEvent(GuitarNote note);
+        public delegate void SustainEndEvent(GuitarNote note, double timeEnded);
 
         public OverstrumEvent    OnOverstrum;
         public SustainStartEvent OnSustainStart;

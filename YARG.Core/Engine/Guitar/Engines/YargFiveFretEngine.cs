@@ -268,7 +268,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                     (note.NoteMask & State.ButtonMask) != note.NoteMask || sustainEnded)
                 {
                     ActiveSustains.Remove(note);
-                    OnSustainEnd?.Invoke(note);
+                    OnSustainEnd?.Invoke(note, CurrentTime);
                 }
             }
         }
