@@ -3,6 +3,19 @@ using System.Collections.Generic;
 
 namespace YARG.Core.Chart
 {
+    [Flags]
+    public enum NoteFlags
+    {
+        None = 0,
+
+        StarPower      = 1 << 0,
+        StarPowerStart = 1 << 1,
+        StarPowerEnd   = 1 << 2,
+
+        SoloStart = 1 << 3,
+        SoloEnd   = 1 << 4,
+    }
+
     public abstract class Note<TNote> : ChartEvent
         where TNote : Note<TNote>
     {
@@ -43,6 +56,15 @@ namespace YARG.Core.Chart
             _childNotes.Add(note);
         }
 
+        public IEnumerable<TNote> ChordEnumerator()
+        {
+            yield return (TNote) this;
+            foreach (var child in ChildNotes)
+            {
+                yield return child;
+            }
+        }
+
         public void SetHitState(bool hit, bool includeChildren)
         {
             WasHit = true;
@@ -71,18 +93,5 @@ namespace YARG.Core.Chart
             WasHit = false;
             WasMissed = false;
         }
-    }
-
-    [Flags]
-    public enum NoteFlags
-    {
-        None = 0,
-
-        StarPower      = 1 << 0,
-        StarPowerStart = 1 << 1,
-        StarPowerEnd   = 1 << 2,
-
-        SoloStart = 1 << 3,
-        SoloEnd   = 1 << 4,
     }
 }
