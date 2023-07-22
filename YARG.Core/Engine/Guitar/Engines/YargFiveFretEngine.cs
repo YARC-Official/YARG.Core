@@ -217,15 +217,24 @@ namespace YARG.Core.Engine.Guitar.Engines
 
         protected override bool CanNoteBeHit(GuitarNote note)
         {
+            byte maskNoExtended = State.ButtonMask;
+            foreach (var sustainNote in ActiveSustains)
+            {
+                if (sustainNote.IsExtendedSustain)
+                {
+                    maskNoExtended &= (byte)~sustainNote.NoteMask;
+                }
+            }
+
             // If open, must not hold any frets
             // If not open, must be holding at least 1 fret
-            if (note.NoteMask == 0 && State.ButtonMask != 0 || note.NoteMask != 0 && State.ButtonMask == 0)
+            if (note.NoteMask == 0 && maskNoExtended != 0 || note.NoteMask != 0 && maskNoExtended == 0)
             {
                 return false;
             }
 
             // If holding exact note mask, can hit
-            if (State.ButtonMask == note.NoteMask)
+            if (maskNoExtended == note.NoteMask)
             {
                 return true;
             }
@@ -233,13 +242,13 @@ namespace YARG.Core.Engine.Guitar.Engines
             // Anchoring
 
             // XORing the two masks will give the anchor around the note.
-            int anchorButtons = State.ButtonMask ^ note.NoteMask;
+            int anchorButtons = maskNoExtended ^ note.NoteMask;
 
             // Strum chord (cannot anchor)
             if (note.IsChord && note.IsStrum)
             {
                 // Buttons must match note mask exactly for strum chords
-                return State.ButtonMask == note.NoteMask;
+                return maskNoExtended == note.NoteMask;
             }
 
             // Anchoring single notes or hopo/tap chords
