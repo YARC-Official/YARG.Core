@@ -11,10 +11,7 @@ namespace YARG.Core.Chart
         public int Fret     { get; }
         public int NoteMask { get; private set; }
 
-        public uint   SustainTickPosition;
-        public double SustainTimeLength;
-
-        public int SustainTickLength;
+        public uint   SustainTicksHeld;
 
         public GuitarNoteType Type { get; set; }
 
@@ -49,8 +46,6 @@ namespace YARG.Core.Chart
             _guitarFlags = guitarFlags;
             GuitarFlags = guitarFlags;
 
-            SustainTickLength = (int) TickLength;
-
             // Resulting shift is 1 too high, shifting down by 1 corrects this.
             // Reason for not doing (fret - 1) is this breaks open notes.
             // Shifting down by 1 accounts for open notes and sets the mask to 0.
@@ -69,10 +64,9 @@ namespace YARG.Core.Chart
         {
             base.ResetNoteState();
             GuitarFlags = _guitarFlags;
-            SustainTickPosition = Tick;
+            SustainTicksHeld = Tick;
 
-            SustainTimeLength = TimeLength;
-            SustainTickLength = (int) TickLength;
+            SustainTicksHeld = 0;
         }
     }
 

@@ -229,6 +229,8 @@ namespace YARG.Core.Engine
             EngineStats.ScoreMultiplier = 1;
         }
 
+        protected abstract bool CheckForNoteHit();
+
         /// <summary>
         /// Checks if the given note can be hit with the current input state.
         /// </summary>
@@ -262,6 +264,11 @@ namespace YARG.Core.Engine
 
         protected void DepleteStarPower(double amount)
         {
+            if (!EngineStats.IsStarPowerActive)
+            {
+                return;
+            }
+
             EngineStats.StarPowerAmount -= amount;
             if (EngineStats.StarPowerAmount <= 0)
             {
@@ -273,6 +280,11 @@ namespace YARG.Core.Engine
 
         protected void ActivateStarPower()
         {
+            if (EngineStats.IsStarPowerActive)
+            {
+                return;
+            }
+
             EngineStats.IsStarPowerActive = true;
             OnStarPowerStatus?.Invoke(true);
         }

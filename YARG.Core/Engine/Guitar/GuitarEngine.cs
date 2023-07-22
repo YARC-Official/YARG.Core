@@ -38,6 +38,8 @@ namespace YARG.Core.Engine.Guitar
             }
         }
 
+        protected abstract void UpdateSustains();
+
         protected virtual void Overstrum()
         {
             EngineStats.Combo = 0;
@@ -83,6 +85,12 @@ namespace YARG.Core.Engine.Guitar
             UpdateMultiplier();
 
             AddScore(note);
+
+            if (note.TimeLength > 0)
+            {
+                ActiveSustains.Add(note);
+                OnSustainStart?.Invoke(note);
+            }
 
             OnNoteHit?.Invoke(State.NoteIndex, note);
             State.NoteIndex++;
