@@ -8,10 +8,11 @@ namespace YARG.Core.Chart
 
         public GuitarNoteFlags GuitarFlags;
 
-        public int Fret     { get; }
-        public int NoteMask { get; private set; }
+        public int Fret         { get; }
+        public int DisjointMask { get; }
+        public int NoteMask     { get; private set; }
 
-        public uint   SustainTicksHeld;
+        public uint SustainTicksHeld;
 
         public GuitarNoteType Type { get; set; }
 
@@ -51,6 +52,9 @@ namespace YARG.Core.Chart
             // Shifting down by 1 accounts for open notes and sets the mask to 0.
             NoteMask = 1 << fret;
             NoteMask >>= 1;
+
+            DisjointMask = 1 << fret;
+            DisjointMask >>= 1;
         }
 
         public override void AddChildNote(GuitarNote note)

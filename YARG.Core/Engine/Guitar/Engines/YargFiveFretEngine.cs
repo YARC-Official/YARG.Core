@@ -217,24 +217,47 @@ namespace YARG.Core.Engine.Guitar.Engines
 
         protected override bool CanNoteBeHit(GuitarNote note)
         {
-            byte maskNoExtended = State.ButtonMask;
+            byte buttonsMasked = State.ButtonMask;
             foreach (var sustainNote in ActiveSustains)
             {
-                if (sustainNote.IsExtendedSustain)
+                // Don't want to mask off the note we're checking otherwise it'll always return false lol
+                if (note == sustainNote)
                 {
-                    maskNoExtended &= (byte)~sustainNote.NoteMask;
+                    continue;
                 }
+
+                // Mask off the disjoint mask if its disjointed or extended disjointed
+                // This removes just the single fret of the disjoint note
+                if ((sustainNote.IsExtendedSustain && sustainNote.IsDisjoint) || sustainNote.IsDisjoint)
+                {
+                    buttonsMasked -= (byte)sustainNote.DisjointMask;
+                } else if (sustainNote.IsExtendedSustain)
+                {
+                    // Remove the entire note mask if its an extended sustain
+                    // Difference between NoteMask and DisjointMask is that DisjointMask is only a single fret
+                    // while NoteMask is the entire chord
+                    buttonsMasked -= (byte)sustainNote.NoteMask;
+                }
+            }
+
+            // Use the DisjointMask for comparison if disjointed and was hit (for sustain logic)
+            int noteMask = note.IsDisjoint && note.WasHit ? note.DisjointMask : note.NoteMask;
+
+            // If disjointed and is sustain logic (was hit), can hit if disjoint mask matches
+            if (note.IsDisjoint && note.WasHit && (note.DisjointMask & buttonsMasked) != 0)
+            {
+                return true;
             }
 
             // If open, must not hold any frets
             // If not open, must be holding at least 1 fret
-            if (note.NoteMask == 0 && maskNoExtended != 0 || note.NoteMask != 0 && maskNoExtended == 0)
+            if (noteMask == 0 && buttonsMasked != 0 || noteMask != 0 && buttonsMasked == 0)
             {
                 return false;
             }
 
             // If holding exact note mask, can hit
-            if (maskNoExtended == note.NoteMask)
+            if (buttonsMasked == noteMask)
             {
                 return true;
             }
@@ -242,19 +265,19 @@ namespace YARG.Core.Engine.Guitar.Engines
             // Anchoring
 
             // XORing the two masks will give the anchor around the note.
-            int anchorButtons = maskNoExtended ^ note.NoteMask;
+            int anchorButtons = buttonsMasked ^ noteMask;
 
             // Strum chord (cannot anchor)
             if (note.IsChord && note.IsStrum)
             {
                 // Buttons must match note mask exactly for strum chords
-                return maskNoExtended == note.NoteMask;
+                return buttonsMasked == noteMask;
             }
 
             // Anchoring single notes or hopo/tap chords
 
             // Anchor buttons held are lower than the note mask
-            return anchorButtons < note.NoteMask;
+            return anchorButtons < noteMask;
         }
 
         protected override void UpdateSustains()
@@ -273,10 +296,10 @@ namespace YARG.Core.Engine.Guitar.Engines
                 isStarPowerSustainActive = note.IsStarPower || isStarPowerSustainActive;
                 bool sustainEnded = CurrentTick > note.TickEnd;
 
-                if (!CanNoteBeHit(note) && !note.IsExtendedSustain ||
-                    (note.NoteMask & State.ButtonMask) != note.NoteMask || sustainEnded)
+                if (!CanNoteBeHit(note) || sustainEnded)
                 {
                     ActiveSustains.Remove(note);
+                    i--;
                     OnSustainEnd?.Invoke(note, CurrentTime);
                 }
             }
