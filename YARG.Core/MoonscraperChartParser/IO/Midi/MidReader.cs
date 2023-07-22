@@ -616,17 +616,9 @@ namespace MoonscraperChartEditor.Song.IO
 
         private static void ProcessNoteOnEventAsForcedType(in EventProcessParams eventProcessParams, MoonNote.MoonNoteType noteType)
         {
-            var timedEvent = eventProcessParams.timedEvent;
-            uint startTick = (uint)timedEvent.startTick;
-            uint endTick = (uint)timedEvent.endTick;
-
             foreach (var diff in EnumExtensions<MoonSong.Difficulty>.Values)
             {
-                // Delay the actual processing once all the notes are actually in
-                eventProcessParams.delayedProcessesList.Add((in EventProcessParams processParams) =>
-                {
-                    ProcessEventAsForcedTypePostDelay(processParams, startTick, endTick, diff, noteType);
-                });
+                ProcessNoteOnEventAsForcedType(eventProcessParams, diff, noteType);
             }
         }
 
@@ -635,6 +627,9 @@ namespace MoonscraperChartEditor.Song.IO
             var timedEvent = eventProcessParams.timedEvent;
             uint startTick = (uint)timedEvent.startTick;
             uint endTick = (uint)timedEvent.endTick;
+            // Exclude the last tick of the phrase
+            if (endTick > startTick)
+                --endTick;
 
             // Delay the actual processing once all the notes are actually in
             eventProcessParams.delayedProcessesList.Add((in EventProcessParams processParams) =>
@@ -754,6 +749,9 @@ namespace MoonscraperChartEditor.Song.IO
             var timedEvent = eventProcessParams.timedEvent;
             uint startTick = (uint)timedEvent.startTick;
             uint endTick = (uint)timedEvent.endTick;
+            // Exclude the last tick of the phrase
+            if (endTick > startTick)
+                --endTick;
 
             // Delay the actual processing once all the notes are actually in
             eventProcessParams.delayedProcessesList.Add((in EventProcessParams processParams) =>
@@ -794,6 +792,9 @@ namespace MoonscraperChartEditor.Song.IO
 
             uint startTick = (uint)timedEvent.startTick;
             uint endTick = (uint)timedEvent.endTick;
+            // Exclude the last tick of the phrase
+            if (endTick > startTick)
+                --endTick;
 
             if (startEvent.difficulty == PhaseShiftSysEx.Difficulty.All)
             {
@@ -824,7 +825,7 @@ namespace MoonscraperChartEditor.Song.IO
             uint startTick = (uint)timedEvent.startTick;
             uint endTick = (uint)timedEvent.endTick;
             // Exclude the last tick of the phrase
-            if (endTick > 0)
+            if (endTick > startTick)
                 --endTick;
 
             if (startEvent.difficulty == PhaseShiftSysEx.Difficulty.All)
