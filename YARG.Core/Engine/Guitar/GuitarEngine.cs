@@ -79,6 +79,20 @@ namespace YARG.Core.Engine.Guitar
                 EngineStats.PhrasesHit++;
             }
 
+            if (note.IsSoloEnd)
+            {
+                EndSolo();
+            }
+            if (note.IsSoloStart)
+            {
+                StartSolo();
+            }
+
+            if (IsSoloActive)
+            {
+                CurrentSolo.NotesHit++;
+            }
+
             EngineStats.Combo++;
             EngineStats.NotesHit++;
 
@@ -117,6 +131,15 @@ namespace YARG.Core.Engine.Guitar
             if (note.IsStarPower)
             {
                 StripStarPower(note);
+            }
+
+            if (note.IsSoloEnd)
+            {
+                EndSolo();
+            }
+            if (note.IsSoloStart)
+            {
+                StartSolo();
             }
 
             EngineStats.Combo = 0;

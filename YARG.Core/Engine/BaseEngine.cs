@@ -13,6 +13,8 @@ namespace YARG.Core.Engine
 
         public int BaseScore { get; protected set; }
 
+        public SoloSection CurrentSolo => Solos[CurrentSoloIndex];
+
         protected bool IsInputUpdate { get; private set; }
         protected bool IsBotUpdate   { get; private set; }
 
@@ -34,7 +36,13 @@ namespace YARG.Core.Engine
         protected uint CurrentTick;
         protected uint LastTick;
 
+        protected int CurrentSoloIndex;
+
+        protected bool IsSoloActive;
+
         protected uint TicksEveryEightMeasures;
+
+        protected List<SoloSection> Solos;
 
         private int _currentTimeSigIndex;
         private int _nextTimeSigIndex;
@@ -199,12 +207,19 @@ namespace YARG.Core.Engine
 
         public delegate void StarPowerStatusEvent(bool active);
 
+        public delegate void SoloStartEvent(SoloSection soloSection);
+
+        public delegate void SoloEndEvent(SoloSection soloSection);
+
         public NoteHitEvent    OnNoteHit;
         public NoteMissedEvent OnNoteMissed;
 
         public StarPowerPhraseHitEvent  OnStarPowerPhraseHit;
         public StarPowerPhraseMissEvent OnStarPowerPhraseMissed;
         public StarPowerStatusEvent     OnStarPowerStatus;
+
+        public SoloStartEvent OnSoloStart;
+        public SoloEndEvent OnSoloEnd;
 
         public readonly TEngineStats EngineStats;
 
@@ -227,6 +242,8 @@ namespace YARG.Core.Engine
             State = new TEngineState();
 
             EngineStats.ScoreMultiplier = 1;
+
+            Solos = GetSoloSections();
         }
 
         protected abstract bool CheckForNoteHit();
@@ -289,6 +306,17 @@ namespace YARG.Core.Engine
             OnStarPowerStatus?.Invoke(true);
         }
 
+        protected void StartSolo()
+        {
+            OnSoloStart?.Invoke(CurrentSolo);
+        }
+
+        protected void EndSolo()
+        {
+            OnSoloEnd?.Invoke(CurrentSolo);
+            CurrentSoloIndex++;
+        }
+
         /// <summary>
         /// Resets the engine's state back to default and then processes the list of inputs up to the given time.
         /// </summary>
@@ -334,6 +362,41 @@ namespace YARG.Core.Engine
         {
             return note.Time - CurrentTime < EngineParameters.BackEnd &&
                 note.Time - CurrentTime > EngineParameters.FrontEnd;
+        }
+
+        private List<SoloSection> GetSoloSections()
+        {
+            var soloSections = new List<SoloSection>();
+            for (int i = 0; i < Notes.Count; i++)
+            {
+                var start = Notes[i];
+                if (!start.IsSoloStart)
+                {
+                    continue;
+                }
+
+                // note is a SoloStart
+
+                // Try to find a solo end
+                var soloNoteCount = 1;
+                for (int j = i + 1; j < Notes.Count; j++)
+                {
+                    soloNoteCount++;
+                    var end = Notes[j];
+                    if (!end.IsSoloEnd)
+                    {
+                        continue;
+                    }
+
+                    soloSections.Add(new SoloSection(soloNoteCount));
+
+                    // Move i to the end of the solo section
+                    i = j + 1;
+                    break;
+                }
+            }
+
+            return soloSections;
         }
     }
 }
