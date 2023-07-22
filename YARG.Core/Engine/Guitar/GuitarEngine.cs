@@ -86,7 +86,20 @@ namespace YARG.Core.Engine.Guitar
 
             AddScore(note);
 
-            if (note.TimeLength > 0)
+            if (note.IsDisjoint)
+            {
+                foreach(var chordNote in note.ChordEnumerator())
+                {
+                    if (!chordNote.IsSustain)
+                    {
+                        continue;
+                    }
+
+                    ActiveSustains.Add(chordNote);
+                    OnSustainStart?.Invoke(chordNote);
+                }
+            }
+            else if(note.IsSustain)
             {
                 ActiveSustains.Add(note);
                 OnSustainStart?.Invoke(note);
