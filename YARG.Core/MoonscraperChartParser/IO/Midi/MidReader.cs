@@ -660,16 +660,16 @@ namespace MoonscraperChartEditor.Song.IO
                 {
                     case MoonNote.MoonNoteType.Strum:
                         if (!note.isChord && note.isNaturalHopo)
-                        {
                             note.flags |= MoonNote.Flags.Forced;
-                        }
+                        else
+                            note.flags &= ~MoonNote.Flags.Forced;
                         break;
 
                     case MoonNote.MoonNoteType.Hopo:
                         if (note.isChord || !note.isNaturalHopo)
-                        {
                             note.flags |= MoonNote.Flags.Forced;
-                        }
+                        else
+                            note.flags &= ~MoonNote.Flags.Forced;
                         break;
 
                     case MoonNote.MoonNoteType.Tap:
