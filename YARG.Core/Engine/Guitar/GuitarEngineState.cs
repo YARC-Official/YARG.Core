@@ -22,8 +22,8 @@
             StrummedThisUpdate = false;
             WasHopoStrummed = false;
 
-            StrumLeniencyStartTime = 0;
-            HopoLeniencyStartTime = 0;
+            StrumLeniencyStartTime = double.MaxValue;
+            HopoLeniencyStartTime = double.MaxValue;
 
             FrontEndStartTime = 0;
         }

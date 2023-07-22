@@ -240,6 +240,7 @@ namespace YARG.Core.Engine
 
             EngineStats = new TEngineStats();
             State = new TEngineState();
+            State.Reset();
 
             EngineStats.ScoreMultiplier = 1;
 
