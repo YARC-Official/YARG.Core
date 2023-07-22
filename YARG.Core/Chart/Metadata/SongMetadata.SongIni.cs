@@ -85,7 +85,7 @@ namespace YARG.Core.Chart
                 { Instrument.ProDrums,              section.GetField("diff_drums_real", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },
 
                 { Instrument.Keys,                  section.GetField("diff_keys", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },
-                // { Instrument.ProKeys,               section.GetField("diff_keys_real", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },
+                { Instrument.ProKeys,               section.GetField("diff_keys_real", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },
 
                 { Instrument.Vocals,                section.GetField("diff_vocals", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },
                 { Instrument.Harmony,               section.GetField("diff_vocals_harm", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },

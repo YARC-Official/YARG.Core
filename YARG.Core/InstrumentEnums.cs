@@ -15,7 +15,7 @@ namespace YARG.Core
         // TrueDrums,
 
         ProGuitar,
-        // ProKeys,
+        ProKeys,
 
         Vocals,
 
@@ -50,7 +50,7 @@ namespace YARG.Core
         ProBass_17Fret,
         ProBass_22Fret,
 
-        // ProKeys,
+        ProKeys,
 
         Vocals,
         Harmony,
@@ -116,7 +116,7 @@ namespace YARG.Core
                 Instrument.ProBass_17Fret or
                 Instrument.ProBass_22Fret => GameMode.ProGuitar,
 
-                // Instrument.ProKeys => GameMode.ProKeys,
+                Instrument.ProKeys => GameMode.ProKeys,
 
                 Instrument.Vocals or
                 Instrument.Harmony => GameMode.Vocals,
