@@ -703,47 +703,6 @@ namespace MoonscraperChartEditor.Song.IO
             return length;
         }
 
-        private static void ProcessNoteOnEventAsEvent(EventProcessParams eventProcessParams, string eventText, int tickOffset = 0)
-        {
-            var song = eventProcessParams.song;
-            var instrument = eventProcessParams.instrument;
-
-            var timedEvent = eventProcessParams.timedEvent;
-            uint tick = (uint)timedEvent.startTick;
-
-            if (tick >= tickOffset)
-                tick += (uint)tickOffset;
-
-            foreach (var diff in EnumExtensions<MoonSong.Difficulty>.Values)
-            {
-                var moonChart = song.GetChart(instrument, diff);
-                moonChart.Add(new ChartEvent(tick, eventText));
-            }
-        }
-
-        private static void ProcessNoteOnEventAsEvent(EventProcessParams eventProcessParams, string eventStartText, string eventEndText, int tickStartOffset = 0, int tickEndOffset = 0)
-        {
-            var song = eventProcessParams.song;
-            var instrument = eventProcessParams.instrument;
-
-            var timedEvent = eventProcessParams.timedEvent;
-            uint tick = (uint)timedEvent.startTick;
-            uint sus = (uint)timedEvent.length;
-
-            if (tick >= tickStartOffset)
-                tick += (uint)tickStartOffset;
-
-            if (sus >= tickEndOffset)
-                sus += (uint)tickEndOffset;
-
-            foreach (var diff in EnumExtensions<MoonSong.Difficulty>.Values)
-            {
-                var chart = song.GetChart(instrument, diff);
-                chart.Add(new ChartEvent(tick, eventStartText));
-                chart.Add(new ChartEvent(tick + sus, eventEndText));
-            }
-        }
-
         private static void ProcessNoteOnEventAsFlagToggle(in EventProcessParams eventProcessParams, MoonNote.Flags flags, int individualNoteSpecifier)
         {
             var timedEvent = eventProcessParams.timedEvent;
