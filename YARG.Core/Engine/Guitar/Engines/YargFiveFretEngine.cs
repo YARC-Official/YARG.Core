@@ -30,6 +30,18 @@ namespace YARG.Core.Engine.Guitar.Engines
                 State.ButtonMask = (byte) note.NoteMask;
                 State.StrummedThisUpdate = true;
                 State.FrontEndStartTime = note.Time;
+
+                foreach (var sustainNote in ActiveSustains)
+                {
+                    if (sustainNote.IsDisjoint)
+                    {
+                        State.ButtonMask |= (byte) sustainNote.DisjointMask;
+                    }
+                    else
+                    {
+                        State.ButtonMask |= (byte) sustainNote.NoteMask;
+                    }
+                }
                 if (!UpdateHitLogic(note.Time))
                 {
                     break;
