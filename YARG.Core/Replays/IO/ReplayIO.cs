@@ -66,6 +66,7 @@ namespace YARG.Core.Replays.IO
 
             readWriter.WriteReplayData(contentWriter, replay);
 
+            contentStream.Seek(0, SeekOrigin.Begin);
             byte[] checksum = SHA1.Create().ComputeHash(contentStream);
             string checksumString = BitConverter.ToString(checksum).Replace("-", string.Empty);
 
@@ -99,9 +100,7 @@ namespace YARG.Core.Replays.IO
             writer.Write(REPLAY_MAGIC_HEADER);
             writer.Write(REPLAY_VERSION);
 
-            // Skip over checksum for now
-            writer.Seek(20, SeekOrigin.Current);
-
+            writer.Write(replay.Header.ReplayChecksum);
             writer.Write(replay.Header.GameVersion);
         }
 
