@@ -253,10 +253,10 @@ namespace YARG.Core.Engine.Guitar.Engines
             }
 
             // Use the DisjointMask for comparison if disjointed and was hit (for sustain logic)
-            int noteMask = note.IsDisjoint && note.WasHit ? note.DisjointMask : note.NoteMask;
+            int noteMask = (note.IsDisjoint || note.IsExtendedSustain) && note.WasHit ? note.DisjointMask : note.NoteMask;
 
             // If disjointed and is sustain logic (was hit), can hit if disjoint mask matches
-            if (note.IsDisjoint && note.WasHit && (note.DisjointMask & buttonsMasked) != 0)
+            if ((note.IsDisjoint || note.IsExtendedSustain) && note.WasHit && (note.DisjointMask & buttonsMasked) != 0)
             {
                 return true;
             }
