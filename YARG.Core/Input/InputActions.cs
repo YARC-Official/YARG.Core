@@ -31,6 +31,21 @@
 
         Whammy,
         StarPower,
+
+        // 5-fret
+        GreenFret  = Fret1,
+        RedFret    = Fret2,
+        YellowFret = Fret3,
+        BlueFret   = Fret4,
+        OrangeFret = Fret5,
+
+        // 6-fret
+        Black1Fret = Fret1,
+        Black2Fret = Fret2,
+        Black3Fret = Fret3,
+        White1Fret = Fret4,
+        White2Fret = Fret5,
+        White3Fret = Fret6,
     }
 
     public enum ProGuitarAction : byte
@@ -55,16 +70,26 @@
 
     public enum DrumsAction : byte
     {
-        Tom1,
-        Tom2,
-        Tom3,
-        Tom4,
+        Drum1,
+        Drum2,
+        Drum3,
+        Drum4,
 
         Cymbal1,
         Cymbal2,
         Cymbal3,
 
         Kick,
+
+        RedDrum    = Drum1,
+        YellowDrum = Drum2,
+        BlueDrum   = Drum3,
+        GreenDrum  = Drum4,
+
+        YellowCymbal = Cymbal1,
+        OrangeCymbal = Cymbal2,
+        BlueCymbal   = Cymbal2,
+        GreenCymbal  = Cymbal3,
     }
 
     public enum VocalsAction : byte
