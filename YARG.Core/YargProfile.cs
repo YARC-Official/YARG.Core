@@ -10,7 +10,7 @@ namespace YARG.Core
 
         public string Name;
 
-        public GameMode InstrumentType;
+        public GameMode GameMode;
 
         [JsonIgnore]
         public Instrument Instrument;
@@ -29,7 +29,7 @@ namespace YARG.Core
         {
             Id = Guid.NewGuid();
             Name = "Default";
-            InstrumentType = GameMode.FiveFretGuitar;
+            GameMode = GameMode.FiveFretGuitar;
             Instrument = Instrument.FiveFretGuitar;
             Difficulty = Difficulty.Expert;
             NoteSpeed = 6;
