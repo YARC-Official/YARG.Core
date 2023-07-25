@@ -10,7 +10,8 @@ namespace YARG.Core.Replays.IO
     {
         protected void WriteInstrumentFrame(BinaryWriter writer, ReplayFrame frame)
         {
-            switch (frame.Instrument.ToGameMode())
+            var gameMode = frame.Instrument.ToGameMode();
+            switch (gameMode)
             {
                 case GameMode.FiveFretGuitar:
                 case GameMode.SixFretGuitar:
@@ -24,13 +25,14 @@ namespace YARG.Core.Replays.IO
                 case GameMode.Vocals:
                     break;
                 default:
-                    throw new ArgumentOutOfRangeException();
+                    throw new NotImplementedException($"Unhandled game mode {gameMode}!");
             }
         }
 
         protected void ReadInstrumentFrame(BinaryReader reader, ReplayFrame frame)
         {
-            switch (frame.Instrument.ToGameMode())
+            var gameMode = frame.Instrument.ToGameMode();
+            switch (gameMode)
             {
                 case GameMode.FiveFretGuitar:
                 case GameMode.SixFretGuitar:
@@ -44,7 +46,7 @@ namespace YARG.Core.Replays.IO
                 case GameMode.Vocals:
                     break;
                 default:
-                    throw new ArgumentOutOfRangeException();
+                    throw new NotImplementedException($"Unhandled game mode {gameMode}!");
             }
         }
 

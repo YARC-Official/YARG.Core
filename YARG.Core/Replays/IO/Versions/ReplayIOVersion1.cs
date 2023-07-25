@@ -81,8 +81,8 @@ namespace YARG.Core.Replays.IO.Versions
             var instrument = (Instrument) reader.ReadInt32();
             var difficulty = (Difficulty) reader.ReadInt32();
 
-
-            switch (instrument.ToGameMode())
+            var gameMode = instrument.ToGameMode();
+            switch (gameMode)
             {
                 case GameMode.FiveFretGuitar:
                 case GameMode.SixFretGuitar:
@@ -95,7 +95,7 @@ namespace YARG.Core.Replays.IO.Versions
                 case GameMode.ProGuitar:
                 case GameMode.Vocals:
                 default:
-                    throw new ArgumentOutOfRangeException();
+                    throw new NotImplementedException($"Unhandled game mode {gameMode}!");
             }
 
             frame.PlayerId = playerId;
