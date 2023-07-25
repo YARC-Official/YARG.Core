@@ -369,7 +369,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 GuitarAction.GreenFret or
                 GuitarAction.RedFret or
                 GuitarAction.YellowFret or
-                GuitarAction.Black1Fret or
+                GuitarAction.BlueFret or
                 GuitarAction.OrangeFret => true,
                 _ => false,
             };
