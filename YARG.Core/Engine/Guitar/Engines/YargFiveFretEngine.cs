@@ -366,11 +366,11 @@ namespace YARG.Core.Engine.Guitar.Engines
         {
             return input.GetAction<GuitarAction>() switch
             {
-                GuitarAction.Green or
-                    GuitarAction.Red or
-                    GuitarAction.Yellow or
-                    GuitarAction.Blue or
-                    GuitarAction.Orange => true,
+                GuitarAction.Fret1 or
+                GuitarAction.Fret2 or
+                GuitarAction.Fret3 or
+                GuitarAction.Fret4 or
+                GuitarAction.Fret5 => true,
                 _ => false,
             };
         }
@@ -380,7 +380,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             return input.GetAction<GuitarAction>() switch
             {
                 GuitarAction.StrumUp or
-                    GuitarAction.StrumDown => true,
+                GuitarAction.StrumDown => true,
                 _ => false,
             };
         }
