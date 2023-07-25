@@ -7,8 +7,6 @@ namespace YARG.Core
     /// </summary>
     public enum GameMode
     {
-        None,
-
         FiveFretGuitar,
         SixFretGuitar,
 
@@ -29,8 +27,6 @@ namespace YARG.Core
     /// </summary>
     public enum Instrument
     {
-        None,
-
         FiveFretGuitar,
         FiveFretBass,
         FiveFretRhythm,
@@ -97,8 +93,6 @@ namespace YARG.Core
         {
             return instrument switch
             {
-                Instrument.None => GameMode.None,
-
                 Instrument.FiveFretGuitar or
                 Instrument.FiveFretBass or
                 Instrument.FiveFretRhythm or
