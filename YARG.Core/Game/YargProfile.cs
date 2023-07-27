@@ -1,7 +1,7 @@
 ﻿using System;
 using Newtonsoft.Json;
 
-namespace YARG.Core
+namespace YARG.Core.Game
 {
     public class YargProfile
     {
