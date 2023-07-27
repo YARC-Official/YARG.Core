@@ -35,26 +35,26 @@ namespace YARG.Core.Chart
 
         /// <summary>
         /// Generates beatlines based on the tempo map.
-        /// Ignores <see cref="Beatlines"/>.
+        /// Overwrites <see cref="Beatlines"/>.
         /// </summary>
         /// <param name="endTime">
         /// The time to generate beatlines up to.
         /// </param>
-        public List<Beatline> GenerateBeatlines(double endTime)
+        public void GenerateBeatlines(double endTime)
         {
-            return GenerateBeatlines(TimeToTick(endTime));
+            GenerateBeatlines(TimeToTick(endTime));
         }
 
         /// <summary>
         /// Generates beatlines based on the tempo map.
-        /// Ignores <see cref="Beatlines"/>.
+        /// Overwrites <see cref="Beatlines"/>.
         /// </summary>
         /// <param name="lastTick">
         /// The tick to generate beatlines up to, inclusive.
         /// </param>
-        public List<Beatline> GenerateBeatlines(uint lastTick)
+        public void GenerateBeatlines(uint lastTick)
         {
-            return GenerateBeatlines(lastTick, GetBeatlinePower, GetBeatlineType);
+            GenerateBeatlines(lastTick, GetBeatlinePower, GetBeatlineType);
 
             static uint GetBeatlinePower(TimeSignatureChange currentTimeSig)
             {
@@ -108,27 +108,28 @@ namespace YARG.Core.Chart
 
         /// <summary>
         /// Generates beatlines based on the tempo map and provided configuration delegates.
-        /// Ignores <see cref="Beatlines"/>.
+        /// Overwrites <see cref="Beatlines"/>.
         /// </summary>
         /// <param name="endTime">
         /// The time to generate beatlines up to.
         /// </param>
-        public List<Beatline> GenerateBeatlines(double endTime, GetBeatlineRatePower getBeatlinePower, GetBeatlineType getBeatlineType)
+        public void GenerateBeatlines(double endTime, GetBeatlineRatePower getBeatlinePower, GetBeatlineType getBeatlineType)
         {
-            return GenerateBeatlines(TimeToTick(endTime), getBeatlinePower, getBeatlineType);
+            GenerateBeatlines(TimeToTick(endTime), getBeatlinePower, getBeatlineType);
         }
 
         /// <summary>
         /// Generates beatlines based on the tempo map and provided configuration delegates.
-        /// Ignores <see cref="Beatlines"/>.
+        /// Overwrites <see cref="Beatlines"/>.
         /// </summary>
         /// <param name="lastTick">
         /// The tick to generate beatlines up to, inclusive.
         /// </param>
-        public List<Beatline> GenerateBeatlines(uint lastTick, GetBeatlineRatePower getBeatlinePower, GetBeatlineType getBeatlineType)
+        public void GenerateBeatlines(uint lastTick, GetBeatlineRatePower getBeatlinePower, GetBeatlineType getBeatlineType)
         {
             lastTick++;
-            var beatlines = new List<Beatline>((int) (lastTick / Resolution));
+            Beatlines.Clear();
+            Beatlines.Capacity = (int) (lastTick / Resolution);
 
             // List indexes
             int tempoIndex = 0;
@@ -152,8 +153,7 @@ namespace YARG.Core.Chart
             // Final time signature
             GenerateBeatsForTimeSignature(currentTimeSig, currentTimeSig.Tick, lastTick);
 
-            beatlines.TrimExcess();
-            return beatlines;
+            Beatlines.TrimExcess();
 
             void GenerateBeatsForTimeSignature(TimeSignatureChange timeSignature, uint startTick, uint endTick)
             {
@@ -180,7 +180,7 @@ namespace YARG.Core.Chart
 
                     // Create beatline
                     double time = TickToTime(currentTick, currentTempo);
-                    beatlines.Add(new Beatline(beatlineType, time, currentTick));
+                    Beatlines.Add(new Beatline(beatlineType, time, currentTick));
                     beatlineCount++;
                     currentTick += beatlineTickRate;
                 }
