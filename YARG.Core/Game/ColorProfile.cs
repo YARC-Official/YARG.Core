@@ -7,9 +7,13 @@ namespace YARG.Core.Game
 
         public string Name;
 
+        public FiveFretGuitarColors FiveFretGuitar;
+
         public ColorProfile(string name)
         {
             Name = name;
+
+            FiveFretGuitar = new FiveFretGuitarColors();
         }
     }
 }
