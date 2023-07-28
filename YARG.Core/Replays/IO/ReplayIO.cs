@@ -114,6 +114,8 @@ namespace YARG.Core.Replays.IO
                 GameVersion = reader.ReadInt32(),
             };
 
+            replay.Header = header;
+
             if (header.Magic != REPLAY_MAGIC_HEADER)
             {
                 return ReplayReadResult.NotAReplay;
