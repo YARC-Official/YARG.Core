@@ -276,17 +276,42 @@ namespace YARG.Core.Engine.Guitar.Engines
 
             // Anchoring
 
-            // XORing the two masks will give the anchor around the note.
+            // XORing the two masks will give the anchor (held frets) around the note.
             int anchorButtons = buttonsMasked ^ noteMask;
 
-            // Strum chord (cannot anchor)
-            if (note.IsChord && note.IsStrum)
+            // Chord logic
+            if (note.IsChord)
             {
-                // Buttons must match note mask exactly for strum chords
-                return buttonsMasked == noteMask;
+                if (note.IsStrum)
+                {
+                    // Buttons must match note mask exactly for strum chords
+                    return buttonsMasked == noteMask;
+                }
+
+                // Anchoring hopo/tap chords
+
+                // Gets the lowest fret of the chord.
+                var fretMask = 0;
+                for (var fret = GuitarAction.GreenFret + 1; fret <= GuitarAction.OrangeFret; fret++)
+                {
+                    fretMask = (int)fret << 1;
+
+                    // If the current fret mask is part of the chord, break
+                    if ((fretMask & note.NoteMask) == fretMask)
+                    {
+                        break;
+                    }
+                }
+
+                // Anchor part:
+                // Lowest fret of chord must be bigger or equal to anchor buttons
+                // (can't hold note higher than the highest fret of chord)
+
+                // Button mask subtract the anchor must equal chord mask (all frets of chord held)
+                return fretMask >= anchorButtons && buttonsMasked - anchorButtons == note.NoteMask;
             }
 
-            // Anchoring single notes or hopo/tap chords
+            // Anchoring single notes
 
             // Anchor buttons held are lower than the note mask
             return anchorButtons < noteMask;
