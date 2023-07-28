@@ -94,6 +94,12 @@ namespace YARG.Core.Engine.Guitar
             }
 
             EngineStats.Combo++;
+
+            if(EngineStats.Combo > EngineStats.MaxCombo)
+            {
+                EngineStats.MaxCombo = EngineStats.Combo;
+            }
+
             EngineStats.NotesHit++;
 
             UpdateMultiplier();
