@@ -15,7 +15,7 @@ namespace YARG.Core.Chart
     /// </summary>
     public class ParseSettings
     {
-        public static readonly ParseSettings Default = new()
+        public static ParseSettings Default => new()
         {
             DrumsType = DrumsType.Unknown,
 
@@ -27,7 +27,7 @@ namespace YARG.Core.Chart
             StarPowerNote = SETTING_DEFAULT,
         };
 
-        public const int SETTING_DEFAULT = 0;
+        public const int SETTING_DEFAULT = -1;
 
         public DrumsType DrumsType;
 
