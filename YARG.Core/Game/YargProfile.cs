@@ -5,7 +5,6 @@ namespace YARG.Core.Game
 {
     public class YargProfile
     {
-        [JsonConverter(typeof(GuidConverter))]
         public Guid Id;
 
         public string Name;
