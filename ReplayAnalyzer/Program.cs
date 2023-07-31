@@ -25,7 +25,7 @@ while (true)
     // Show the options
     Console.WriteLine("Choose on of the options below:");
     Console.WriteLine("1. Verify replay");
-    // Console.WriteLine("2. Look for engine discrepancies");
+    Console.WriteLine("2. Simulate randomized frame updates");
 
     // Prompt the user to select an option
     Console.Write("Enter option: ");
@@ -35,7 +35,7 @@ while (true)
     {
         continue;
     }
-    if (selectedOption is < 0 or > 1)
+    if (selectedOption is < 1 or > 2)
     {
         continue;
     }
@@ -108,25 +108,60 @@ while (true)
     // Analyze replay
     Console.WriteLine("Analyzing replay...");
     var analyzer = new Analyzer(chart, replay);
-    analyzer.Run();
-    Console.WriteLine("Done!\n");
-
-    // Results
-    if (analyzer.BandScore != replay.BandScore)
+    if (selectedOption == 1)
     {
-        Console.ForegroundColor = ConsoleColor.Red;
-        Console.WriteLine("VERIFICATION FAILED!");
-        Console.WriteLine($"Metadata score: {replay.BandScore}");
-        Console.WriteLine($"Real score    : {analyzer.BandScore}");
-        Console.WriteLine($"Difference    : {Math.Abs(analyzer.BandScore - replay.BandScore)}\n");
+        analyzer.Run();
     }
     else
     {
-        Console.ForegroundColor = ConsoleColor.Green;
-        Console.WriteLine("VERIFICATION SUCCESS!");
-        Console.WriteLine($"Metadata score: {replay.BandScore}");
-        Console.WriteLine($"Real score    : {analyzer.BandScore}");
-        Console.WriteLine($"Difference    : {Math.Abs(analyzer.BandScore - replay.BandScore)}\n");
+        analyzer.RunWithSimulatedUpdates();
+    }
+    Console.WriteLine("Done!\n");
+
+    // Results
+    if (selectedOption == 1)
+    {
+        var bandScore = analyzer.BandScores[0];
+        if (bandScore != replay.BandScore)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("VERIFICATION FAILED!");
+            Console.WriteLine($"Metadata score : {replay.BandScore}");
+            Console.WriteLine($"Real score     : {bandScore}");
+            Console.WriteLine($"Difference     : {Math.Abs(bandScore - replay.BandScore)}\n");
+        }
+        else
+        {
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine("VERIFICATION SUCCESS!");
+            Console.WriteLine($"Metadata score : {replay.BandScore}");
+            Console.WriteLine($"Real score     : {bandScore}");
+            Console.WriteLine($"Difference     : {Math.Abs(bandScore - replay.BandScore)}\n");
+        }
+    }
+    else
+    {
+        var distinctScores = analyzer.BandScores.Distinct().ToList();
+
+        if (distinctScores.Count != 1)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("SCORES ARE NOT CONSISTENT!");
+            Console.WriteLine($"Chart runs      : {Analyzer.ATTEMPTS}");
+            Console.WriteLine($"Distinct scores : {distinctScores.Count}\n");
+            Console.WriteLine("Scores:");
+            foreach (var score in distinctScores)
+            {
+                Console.WriteLine($" - {score}");
+            }
+        }
+        else
+        {
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine("SCORES WERE CONSISTENT!");
+            Console.WriteLine($"Chart runs      : {Analyzer.ATTEMPTS}");
+            Console.WriteLine($"Distinct scores : {distinctScores.Count}");
+        }
     }
 
     Console.WriteLine("Press any key to continue...");
