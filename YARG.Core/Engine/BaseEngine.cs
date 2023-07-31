@@ -103,6 +103,14 @@ namespace YARG.Core.Engine
         /// </summary>
         protected void ProcessInputs()
         {
+            // Execute a non-input update using the first input in the queue's time.
+            // This will update the engine to the time of the first input, missing notes before the input is processed
+            if (InputQueue.TryPeek(out var peeked))
+            {
+                UpdateEngine(peeked.Time);
+            }
+
+            // Start to process inputs in queue.
             while (InputQueue.TryDequeue(out var input))
             {
                 CurrentInput = input;
