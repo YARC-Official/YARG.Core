@@ -63,8 +63,9 @@ while (true)
 
     // Look for song.ini and notes file
     string songIni = Path.Combine(songFolder, "song.ini");
-    string notesFile = Path.Combine(songFolder, "notes.mid");
-    if (!File.Exists(songIni) || !File.Exists(notesFile)) {
+    string notesMid = Path.Combine(songFolder, "notes.mid");
+    string notesChart = Path.Combine(songFolder, "notes.chart");
+    if (!File.Exists(songIni) || (!File.Exists(notesMid) && !File.Exists(notesChart)) ) {
         Console.WriteLine("ERROR: Song folder does not have to proper files inside! Press any key to continue.");
         Console.ReadKey(true);
         continue;
@@ -76,7 +77,13 @@ while (true)
     SongChart chart;
     try
     {
-        chart = SongChart.FromFile(new SongMetadata(), notesFile);
+        if (File.Exists(notesMid))
+        {
+            chart = SongChart.FromFile(new SongMetadata(), notesMid);
+        } else
+        {
+            chart = SongChart.FromFile(new SongMetadata(), notesChart);
+        }
     }
     catch (Exception e)
     {
