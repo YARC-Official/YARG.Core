@@ -78,16 +78,18 @@ namespace YARG.Core.UnitTests.Parsing
             SpecialPhrase.Type.ProDrums_Activation,
         };
 
+        private const string NEWLINE = "\r\n";
+
         private static void GenerateSongSection(MoonSong sourceSong, StringBuilder builder)
         {
-            builder.Append($"[{SECTION_SONG}]\n{{\n");
+            builder.Append($"[{SECTION_SONG}]{NEWLINE}{{{NEWLINE}");
             builder.Append($"  Resolution = {sourceSong.resolution}");
-            builder.Append("}\n");
+            builder.Append($"}}{NEWLINE}");
         }
 
         private static void GenerateSyncSection(MoonSong sourceSong, StringBuilder builder)
         {
-            builder.Append($"[{SECTION_SYNC_TRACK}]\n{{\n");
+            builder.Append($"[{SECTION_SYNC_TRACK}]{NEWLINE}{{{NEWLINE}");
             foreach (var sync in sourceSong.syncTrack)
             {
                 switch (sync)
@@ -100,17 +102,17 @@ namespace YARG.Core.UnitTests.Parsing
                         break;
                 }
             }
-            builder.Append("}\n");
+            builder.Append($"}}{NEWLINE}");
         }
 
         private static void GenerateEventsSection(MoonSong sourceSong, StringBuilder builder)
         {
-            builder.Append($"[{SECTION_EVENTS}]\n{{\n");
+            builder.Append($"[{SECTION_EVENTS}]{NEWLINE}{{{NEWLINE}");
             foreach (var text in sourceSong.eventsAndSections)
             {
                 builder.Append($"  {text.tick} = E \"{text.title}\"");
             }
-            builder.Append("}\n");
+            builder.Append($"}}{NEWLINE}");
         }
 
         private static void GenerateInstrumentSection(MoonSong sourceSong, StringBuilder builder, MoonInstrument instrument, Difficulty difficulty)
@@ -124,7 +126,7 @@ namespace YARG.Core.UnitTests.Parsing
 
             string instrumentName = InstrumentToNameLookup[instrument];
             string difficultyName = DifficultyToNameLookup[difficulty];
-            builder.Append($"[{difficultyName}{instrumentName}]\n{{\n");
+            builder.Append($"[{difficultyName}{instrumentName}]{NEWLINE}{{{NEWLINE}");
 
             List<ChartObject> eventsToRemove = new();
             foreach (var chartObj in chart.chartObjects)
@@ -145,16 +147,16 @@ namespace YARG.Core.UnitTests.Parsing
                         // Solos are written as text events in .chart
                         if (phrase.type is SpecialPhrase.Type.Solo)
                         {
-                            builder.Append($"  {phrase.tick} = E {SOLO_START}\n");
-                            builder.Append($"  {phrase.tick + phrase.length} = E {SOLO_END}\n");
+                            builder.Append($"  {phrase.tick} = E {SOLO_START}{NEWLINE}");
+                            builder.Append($"  {phrase.tick + phrase.length} = E {SOLO_END}{NEWLINE}");
                             continue;
                         }
 
                         int phraseNumber = SpecialPhraseLookup[phrase.type];
-                        builder.Append($"  {phrase.tick} = S {phraseNumber} {phrase.length}\n");
+                        builder.Append($"  {phrase.tick} = S {phraseNumber} {phrase.length}{NEWLINE}");
                         break;
                     case ChartEvent text:
-                        builder.Append($"  {text.tick} = E {text.eventName}\n");
+                        builder.Append($"  {text.tick} = E {text.eventName}{NEWLINE}");
                         break;
                 }
             }
@@ -164,7 +166,7 @@ namespace YARG.Core.UnitTests.Parsing
                 chart.Remove(chartObj);
             }
 
-            builder.Append("}\n");
+            builder.Append($"}}{NEWLINE}");
         }
 
         private static void AppendNote(StringBuilder builder, MoonNote note)
@@ -194,17 +196,17 @@ namespace YARG.Core.UnitTests.Parsing
             if (canDoubleKick && (flags & Flags.DoubleKick) != 0)
                 chartNumber = NOTE_OFFSET_INSTRUMENT_PLUS;
 
-            builder.Append($"  {tick} = N {chartNumber} {note.length}\n");
+            builder.Append($"  {tick} = N {chartNumber} {note.length}{NEWLINE}");
             if (canForce && (flags & Flags.Forced) != 0)
-                builder.Append($"  {tick} = N 5 0\n");
+                builder.Append($"  {tick} = N 5 0{NEWLINE}");
             if (canTap && (flags & Flags.Tap) != 0)
-                builder.Append($"  {tick} = N 6 0\n");
+                builder.Append($"  {tick} = N 6 0{NEWLINE}");
             if (canCymbal && (flags & Flags.ProDrums_Cymbal) != 0)
-                builder.Append($"  {tick} = N {NOTE_OFFSET_PRO_DRUMS + chartNumber} 0\n");
+                builder.Append($"  {tick} = N {NOTE_OFFSET_PRO_DRUMS + chartNumber} 0{NEWLINE}");
             if (canDynamics && (flags & Flags.ProDrums_Accent) != 0)
-                builder.Append($"  {tick} = N {NOTE_OFFSET_DRUMS_ACCENT + chartNumber} 0\n");
+                builder.Append($"  {tick} = N {NOTE_OFFSET_DRUMS_ACCENT + chartNumber} 0{NEWLINE}");
             if (canDynamics && (flags & Flags.ProDrums_Ghost) != 0)
-                builder.Append($"  {tick} = N {NOTE_OFFSET_DRUMS_GHOST + chartNumber} 0\n");
+                builder.Append($"  {tick} = N {NOTE_OFFSET_DRUMS_GHOST + chartNumber} 0{NEWLINE}");
         }
 
         private static string GenerateChartFile(MoonSong sourceSong)
