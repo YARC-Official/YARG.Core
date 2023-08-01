@@ -15,6 +15,7 @@ namespace YARG.Core.Chart
         List<TextEvent> LoadGlobalEvents();
         SyncTrack LoadSyncTrack();
         VenueTrack LoadVenueTrack();
+        List<Section> LoadSections();
 
         InstrumentTrack<GuitarNote> LoadGuitarTrack(Instrument instrument);
         InstrumentTrack<ProGuitarNote> LoadProGuitarTrack(Instrument instrument);

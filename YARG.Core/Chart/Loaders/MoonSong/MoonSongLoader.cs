@@ -59,6 +59,18 @@ namespace YARG.Core.Chart
             return textEvents;
         }
 
+        public List<Section> LoadSections()
+        {
+            var sections = new List<Section>();
+
+            foreach (var moonSection in _moonSong.sections)
+            {
+                sections.Add(new Section(moonSection.title, moonSection.time, moonSection.tick));
+            }
+
+            return sections;
+        }
+
         public SyncTrack LoadSyncTrack()
         {
             var tempos = new List<TempoChange>(_moonSong.bpms.Count);

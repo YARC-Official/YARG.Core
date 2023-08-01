@@ -16,6 +16,8 @@ namespace YARG.Core.Chart
         public SyncTrack SyncTrack { get; set; } = new();
         public VenueTrack VenueTrack { get; set; } = new();
 
+        public List<Section> Sections { get; set; } = new();
+
         public InstrumentTrack<GuitarNote> FiveFretGuitar { get; set; } = new(Instrument.FiveFretGuitar);
         public InstrumentTrack<GuitarNote> FiveFretCoop { get; set; } = new(Instrument.FiveFretCoopGuitar);
         public InstrumentTrack<GuitarNote> FiveFretRhythm { get; set; } = new(Instrument.FiveFretRhythm);
@@ -107,6 +109,7 @@ namespace YARG.Core.Chart
             GlobalEvents = loader.LoadGlobalEvents();
             SyncTrack = loader.LoadSyncTrack();
             VenueTrack = loader.LoadVenueTrack();
+            Sections = loader.LoadSections();
 
             FiveFretGuitar = loader.LoadGuitarTrack(Instrument.FiveFretGuitar);
             FiveFretCoop = loader.LoadGuitarTrack(Instrument.FiveFretCoopGuitar);
