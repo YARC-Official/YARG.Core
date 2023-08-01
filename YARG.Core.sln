@@ -8,6 +8,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "YARG.Core.UnitTests", "YARG
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReplayAnalyzer", "ReplayAnalyzer\ReplayAnalyzer.csproj", "{40F9BEDC-2124-4CCF-9CF8-74C43170A4C5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "YARG.Core.Benchmarks", "YARG.Core.Benchmarks\YARG.Core.Benchmarks.csproj", "{D26697B2-1739-4327-9B34-1501FE0E619F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,5 +32,9 @@ Global
 		{40F9BEDC-2124-4CCF-9CF8-74C43170A4C5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{40F9BEDC-2124-4CCF-9CF8-74C43170A4C5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{40F9BEDC-2124-4CCF-9CF8-74C43170A4C5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D26697B2-1739-4327-9B34-1501FE0E619F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D26697B2-1739-4327-9B34-1501FE0E619F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D26697B2-1739-4327-9B34-1501FE0E619F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D26697B2-1739-4327-9B34-1501FE0E619F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

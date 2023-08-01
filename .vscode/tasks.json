@@ -2,7 +2,19 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "build",
+            "label": "buildCore",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "build",
+                "${workspaceFolder}/YARG.Core/YARG.Core.csproj",
+                "/property:GenerateFullPaths=true",
+                "/consoleloggerparameters:NoSummary"
+            ],
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "buildConsole",
             "command": "dotnet",
             "type": "process",
             "args": [
@@ -14,15 +26,31 @@
             "problemMatcher": "$msCompile"
         },
         {
-            "label": "publish",
+            "label": "buildBenchmarks",
             "command": "dotnet",
             "type": "process",
             "args": [
-                "publish",
-                "${workspaceFolder}/TestConsole/TestConsole.csproj",
+                "build",
+                "${workspaceFolder}/YARG.Core.Benchmarks/YARG.Core.Benchmarks.csproj",
                 "/property:GenerateFullPaths=true",
+                "/property:Configuration=Release",
                 "/consoleloggerparameters:NoSummary"
             ],
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "buildAndRunBenchmarks",
+            "dependsOn": "buildBenchmarks",
+            "command": "${workspaceFolder}/YARG.Core.Benchmarks/bin/Release/net7.0/YARG.Core.Benchmarks.exe",
+            "type": "process",
+            "args": [],
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "runBenchmarks",
+            "command": "${workspaceFolder}/YARG.Core.Benchmarks/bin/Release/net7.0/YARG.Core.Benchmarks.exe",
+            "type": "process",
+            "args": [],
             "problemMatcher": "$msCompile"
         },
         {

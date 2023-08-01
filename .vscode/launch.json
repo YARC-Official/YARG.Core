@@ -2,10 +2,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Build & Launch",
+            "name": "TestConsole: Build & Launch",
             "type": "coreclr",
             "request": "launch",
-            "preLaunchTask": "build",
+            "preLaunchTask": "buildConsole",
             "program": "${workspaceFolder}/TestConsole/bin/Debug/net7.0/TestConsole.dll",
             "args": [],
             "cwd": "${workspaceFolder}/TestConsole",
@@ -13,7 +13,7 @@
             "stopAtEntry": false
         },
         {
-            "name": "Launch",
+            "name": "TestConsole: Launch",
             "type": "coreclr",
             "request": "launch",
             "program": "${workspaceFolder}/TestConsole/bin/Debug/net7.0/TestConsole.dll",
