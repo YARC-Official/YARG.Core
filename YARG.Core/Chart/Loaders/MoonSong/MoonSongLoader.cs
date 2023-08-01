@@ -47,45 +47,6 @@ namespace YARG.Core.Chart
             _moonSong = ChartReader.ReadChart(_settings, new StringReader(chartText));
         }
 
-        public void CompleteMetadata(SongMetadata metadata)
-        {
-            static int LoadInteger(int existing, int newValue)
-            {
-                if (existing < 0)
-                    return newValue;
-
-                return existing;
-            }
-
-            static double LoadDouble(double existing, double newValue)
-            {
-                if (existing < 0.0)
-                    return newValue;
-
-                return existing;
-            }
-
-            static string LoadString(string existing, string newString)
-            {
-                if (string.IsNullOrWhiteSpace(existing))
-                    return newString;
-
-                return existing;
-            }
-
-            metadata.Name = LoadString(metadata.Name, _moonSong.metaData.name);
-            metadata.Artist = LoadString(metadata.Artist, _moonSong.metaData.artist);
-            metadata.Album = LoadString(metadata.Album, _moonSong.metaData.album);
-            metadata.Genre = LoadString(metadata.Genre, _moonSong.metaData.genre);
-            metadata.Year = LoadString(metadata.Year, _moonSong.metaData.year);
-            metadata.Charter = LoadString(metadata.Charter, _moonSong.metaData.charter);
-
-            metadata.PreviewStart = LoadDouble(metadata.PreviewStart, _moonSong.metaData.previewStart);
-            metadata.PreviewEnd = LoadDouble(metadata.PreviewEnd, _moonSong.metaData.previewEnd);
-
-            metadata.BandDifficulty = LoadInteger(metadata.BandDifficulty, _moonSong.metaData.difficulty);
-        }
-
         public List<TextEvent> LoadGlobalEvents()
         {
             var textEvents = new List<TextEvent>(_moonSong.events.Count);

@@ -12,8 +12,6 @@ namespace YARG.Core.Chart
         void LoadMidi(ParseSettings settings, MidiFile midi);
         void LoadDotChart(ParseSettings settings, string chartText);
 
-        void CompleteMetadata(SongMetadata metadata);
-
         List<TextEvent> LoadGlobalEvents();
         SyncTrack LoadSyncTrack();
         VenueTrack LoadVenueTrack();

@@ -12,8 +12,6 @@ namespace YARG.Core.Chart
     {
         public uint Resolution => SyncTrack.Resolution;
 
-        public SongMetadata Metadata { get; set; }
-
         public List<TextEvent> GlobalEvents { get; set; } = new();
         public SyncTrack SyncTrack { get; set; } = new();
         public VenueTrack VenueTrack { get; set; } = new();
@@ -104,11 +102,8 @@ namespace YARG.Core.Chart
         // To explicitly allow creation without going through a file
         public SongChart() { }
 
-        internal SongChart(SongMetadata metadata, ISongLoader loader)
+        internal SongChart(ISongLoader loader)
         {
-            loader.CompleteMetadata(metadata);
-            Metadata = metadata;
-
             GlobalEvents = loader.LoadGlobalEvents();
             SyncTrack = loader.LoadSyncTrack();
             VenueTrack = loader.LoadVenueTrack();
@@ -147,21 +142,21 @@ namespace YARG.Core.Chart
         {
             ISongLoader loader = new MoonSongLoader();
             loader.LoadSong(metadata.ParseSettings, filePath);
-            return new SongChart(metadata, loader);
+            return new SongChart(loader);
         }
 
         public static SongChart FromMidi(SongMetadata metadata, MidiFile midi)
         {
             ISongLoader loader = new MoonSongLoader();
             loader.LoadMidi(metadata.ParseSettings, midi);
-            return new SongChart(metadata, loader);
+            return new SongChart(loader);
         }
 
         public static SongChart FromDotChart(SongMetadata metadata, string chartText)
         {
             ISongLoader loader = new MoonSongLoader();
             loader.LoadDotChart(metadata.ParseSettings, chartText);
-            return new SongChart(metadata, loader);
+            return new SongChart(loader);
         }
 
         public InstrumentTrack<GuitarNote> GetFiveFretTrack(Instrument instrument)
