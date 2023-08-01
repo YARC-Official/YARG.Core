@@ -34,25 +34,7 @@ namespace YARG.Core.Utility
             if (_remaining.IsEmpty)
                 return false;
 
-            // Find next non-empty segment
-            int splitIndex = 0;
-            while (_remaining.Length > 0)
-            {
-                splitIndex = _remaining.IndexOf(_split);
-                if (splitIndex < 0)
-                    // Reached the final segment
-                    splitIndex = _remaining.Length;
-
-                // Extract current section
-                Current = _remaining[..splitIndex];
-                if (!Current.IsEmpty)
-                    break;
-
-                // Empty segment, skip to next index
-                _remaining = _remaining[1..];
-            }
-
-            _remaining = _remaining[splitIndex..];
+            Current = _remaining.SplitOnce(_split, out _remaining);
             return !Current.IsEmpty;
         }
 
@@ -72,5 +54,49 @@ namespace YARG.Core.Utility
         public static SpanSplitter<T> Split<T>(this ReadOnlySpan<T> buffer, T split)
             where T : IEquatable<T>
             => new(buffer, split);
+
+        public static ReadOnlySpan<T> SplitOnce<T>(this Span<T> buffer, T split, out ReadOnlySpan<T> remaining)
+            where T : IEquatable<T>
+            => SplitOnce((ReadOnlySpan<T>)buffer, split, out remaining);
+
+        public static ReadOnlySpan<T> SplitOnce<T>(this ReadOnlySpan<T> buffer, T split, out ReadOnlySpan<T> remaining)
+            where T : IEquatable<T>
+        {
+            remaining = buffer;
+
+            // `while` to ignore splits that consist of only the split value
+            while (!remaining.IsEmpty)
+            {
+                int splitIndex = remaining.IndexOf(split);
+                if (splitIndex < 0)
+                {
+                    // No result, use the rest of the buffer
+                    var finalResult = remaining;
+                    remaining = ReadOnlySpan<T>.Empty;
+                    return finalResult;
+                }
+
+                // Split on the value
+                var result = remaining[..splitIndex];
+
+                // Skip the split value
+                if (splitIndex < remaining.Length)
+                    splitIndex++;
+                remaining = remaining[splitIndex..];
+
+                // Ignore empty splits
+                if (!result.IsEmpty)
+                    return result;
+            }
+
+            return ReadOnlySpan<T>.Empty;
+        }
+
+        public static ReadOnlySpan<char> SplitOnceTrim(this ReadOnlySpan<char> buffer, char split, out ReadOnlySpan<char> remaining)
+        {
+            var result = buffer.SplitOnce(split, out remaining).Trim();
+            remaining = remaining.TrimStart(); // Trim only the start, leave the rest untouched
+            return result;
+        }
     }
 }
