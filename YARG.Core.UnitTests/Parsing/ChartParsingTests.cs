@@ -24,16 +24,20 @@ namespace YARG.Core.UnitTests.Parsing
         [TestCase("test.chart")]
         public void ParseChartFile(string notesFile)
         {
+            YargTrace.AddListener(new YargDebugTraceListener());
+
             Assert.DoesNotThrow(() =>
             {
                 string chartPath = Path.Combine(chartsDirectory!, notesFile);
-                var song = ChartReader.ReadChart(ParseSettings.Default, chartPath);
+                var song = ChartReader.ReadFromFile(ParseSettings.Default, chartPath);
             });
         }
 
         [TestCase("test.mid")]
         public void ParseMidiFile(string notesFile)
         {
+            YargTrace.AddListener(new YargDebugTraceListener());
+
             Assert.DoesNotThrow(() =>
             {
                 string chartPath = Path.Combine(chartsDirectory!, notesFile);

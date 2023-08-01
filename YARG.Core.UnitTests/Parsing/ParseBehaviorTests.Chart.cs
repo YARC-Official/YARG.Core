@@ -80,14 +80,14 @@ namespace YARG.Core.UnitTests.Parsing
 
         private static void GenerateSongSection(MoonSong sourceSong, StringBuilder builder)
         {
-            builder.Append($"{SECTION_SONG}\n{{\n");
+            builder.Append($"[{SECTION_SONG}]\n{{\n");
             builder.Append($"  Resolution = {sourceSong.resolution}");
             builder.Append("}\n");
         }
 
         private static void GenerateSyncSection(MoonSong sourceSong, StringBuilder builder)
         {
-            builder.Append($"{SECTION_SYNC_TRACK}\n{{\n");
+            builder.Append($"[{SECTION_SYNC_TRACK}]\n{{\n");
             foreach (var sync in sourceSong.syncTrack)
             {
                 switch (sync)
@@ -105,7 +105,7 @@ namespace YARG.Core.UnitTests.Parsing
 
         private static void GenerateEventsSection(MoonSong sourceSong, StringBuilder builder)
         {
-            builder.Append($"{SECTION_EVENTS}\n{{\n");
+            builder.Append($"[{SECTION_EVENTS}]\n{{\n");
             foreach (var text in sourceSong.eventsAndSections)
             {
                 builder.Append($"  {text.tick} = E \"{text.title}\"");
@@ -226,12 +226,14 @@ namespace YARG.Core.UnitTests.Parsing
         [TestCase]
         public void GenerateAndParseChartFile()
         {
+            YargTrace.AddListener(new YargDebugTraceListener());
+
             var sourceSong = GenerateSong();
             string chartText = GenerateChartFile(sourceSong);
             MoonSong parsedSong;
             try
             {
-                parsedSong = ChartReader.ReadChart(Chart.ParseSettings.Default, new StringReader(chartText));
+                parsedSong = ChartReader.ReadFromText(Chart.ParseSettings.Default, chartText);
             }
             catch (Exception ex)
             {

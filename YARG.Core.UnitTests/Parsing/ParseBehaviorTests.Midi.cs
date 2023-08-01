@@ -500,6 +500,8 @@ namespace YARG.Core.UnitTests.Parsing
         [TestCase]
         public void GenerateAndParseMidiFile()
         {
+            YargTrace.AddListener(new YargDebugTraceListener());
+
             var sourceSong = GenerateSong();
             var midi = GenerateMidi(sourceSong);
             MoonSong parsedSong;
