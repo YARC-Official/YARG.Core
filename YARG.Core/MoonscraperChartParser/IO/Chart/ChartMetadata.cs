@@ -25,13 +25,13 @@ namespace MoonscraperChartEditor.Song.IO
         public const string PREVIEW_END_KEY = "PreviewEnd";
         public const string RESOLUTION_KEY = "Resolution";
 
-        public static void ParseSongSection(MoonSong song, SpanSplitter<char> sectionLines)
+        public static void ParseSongSection(MoonSong song, TrimSplitter sectionLines)
         {
             var metadata = song.metaData = new Metadata();
 
             foreach (var line in sectionLines)
             {
-                var key = line.SplitOnceTrim('=', out var value);
+                var key = line.SplitOnceTrimmed('=', out var value);
 
                 // Name = "5000 Robots"
                 if (key.Equals(NAME_KEY, StringComparison.Ordinal))

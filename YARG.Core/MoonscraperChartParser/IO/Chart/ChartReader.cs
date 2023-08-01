@@ -79,7 +79,7 @@ namespace MoonscraperChartEditor.Song.IO
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static ReadOnlySpan<char> GetNextWord(this ReadOnlySpan<char> buffer, out ReadOnlySpan<char> remaining)
-            => buffer.SplitOnceTrim(' ', out remaining);
+            => buffer.SplitOnceTrimmed(' ', out remaining);
         #endregion
 
         public static MoonSong ReadFromFile(ParseSettings settings, string filepath)
@@ -129,7 +129,7 @@ namespace MoonscraperChartEditor.Song.IO
                 var sectionText = chartText[sectionIndex..sectionEndIndex];
                 chartText = chartText[sectionEndIndex..];
 
-                var splitter = sectionText.Split('\n');
+                var splitter = sectionText.SplitTrimmed('\n');
                 SubmitChartData(settings, song, sectionName, splitter);
             }
 
@@ -138,7 +138,7 @@ namespace MoonscraperChartEditor.Song.IO
         }
 
         private static void SubmitChartData(ParseSettings settings, MoonSong song, ReadOnlySpan<char> sectionName,
-            SpanSplitter<char> sectionLines)
+            TrimSplitter sectionLines)
         {
             if (sectionName.Equals(ChartIOHelper.SECTION_SONG, StringComparison.Ordinal))
             {
@@ -179,7 +179,7 @@ namespace MoonscraperChartEditor.Song.IO
             }
         }
 
-        private static void SubmitDataSong(MoonSong song, SpanSplitter<char> sectionLines)
+        private static void SubmitDataSong(MoonSong song, TrimSplitter sectionLines)
         {
             try
             {
@@ -191,16 +191,20 @@ namespace MoonscraperChartEditor.Song.IO
             }
         }
 
-        private static void SubmitDataGlobals(MoonSong song, SpanSplitter<char> sectionLines)
+        private static void SubmitDataGlobals(MoonSong song, TrimSplitter sectionLines)
         {
             var anchorData = new List<Anchor>();
 
-            foreach (var line in sectionLines)
+            foreach (var _line in sectionLines)
             {
+                var line = _line.Trim();
+                if (line.IsEmpty)
+                    continue;
+
                 try
                 {
                     // Split on the equals sign
-                    var tickText = line.SplitOnceTrim('=', out var remaining);
+                    var tickText = line.SplitOnceTrimmed('=', out var remaining);
 
                     // Get tick
                     uint tick = (uint)FastInt32Parse(tickText);
@@ -312,7 +316,7 @@ namespace MoonscraperChartEditor.Song.IO
         #region Utility
         #endregion
 
-        private static void LoadChart(ParseSettings settings, MoonSong song, SpanSplitter<char> sectionLines,
+        private static void LoadChart(ParseSettings settings, MoonSong song, TrimSplitter sectionLines,
             MoonSong.MoonInstrument instrument, MoonSong.Difficulty difficulty)
         {
             var chart = song.GetChart(instrument, difficulty);
@@ -344,7 +348,7 @@ namespace MoonscraperChartEditor.Song.IO
                     try
                     {
                         // Split on the equals sign
-                        var tickText = line.SplitOnceTrim('=', out var remaining);
+                        var tickText = line.SplitOnceTrimmed('=', out var remaining);
 
                         // Get tick
                         uint tick = (uint)FastInt32Parse(tickText);
