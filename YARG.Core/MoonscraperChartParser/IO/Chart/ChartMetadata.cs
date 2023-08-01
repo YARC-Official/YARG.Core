@@ -1,77 +1,106 @@
 // Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
+using System;
 using System.Globalization;
-using System.Text.RegularExpressions;
+using YARG.Core.Utility;
 
 namespace MoonscraperChartEditor.Song.IO
 {
     internal static class ChartMetadata
     {
-        private const string QUOTEVALIDATE = @"""[^""\\]*(?:\\.[^""\\]*)*""";
-        private const string QUOTESEARCH = "\"([^\"]*)\"";
-        private const string FLOATSEARCH = @"[\-\+]?\d+(\.\d+)?";       // US culture only
-
+        // .chart only allows floating point values that use periods for decimal points
         public static readonly CultureInfo FormatCulture = new("en-US");
 
-        public enum MetadataValueType
+        public const string NAME_KEY = "Name";
+        public const string ARTIST_KEY = "Artist";
+        public const string ALBUM_KEY = "Album";
+        public const string GENRE_KEY = "Genre";
+        public const string YEAR_KEY = "Year";
+        public const string CHARTER_KEY = "Charter";
+        public const string DIFFICULTY_KEY = "Difficulty";
+        public const string LENGTH_KEY = "Length";
+        public const string OFFSET_KEY = "Offset";
+        public const string PREVIEW_START_KEY = "PreviewStart";
+        public const string PREVIEW_END_KEY = "PreviewEnd";
+        public const string RESOLUTION_KEY = "Resolution";
+
+        public static void ParseSongSection(MoonSong song, SpanSplitter<char> sectionLines)
         {
-            String,
-            Float,
-            Player2,
-            Difficulty,
-            Year,
-        }
+            var metadata = song.metaData = new Metadata();
 
-        public class MetadataItem
-        {
-            private readonly string m_key;
-            private readonly Regex m_readerParseRegex;
-
-            public string key => m_key;
-            public Regex regex => m_readerParseRegex;
-
-            public MetadataItem(string key, MetadataValueType type)
+            foreach (var line in sectionLines)
             {
-                m_key = key;
-                m_readerParseRegex = type switch
-                {
-                    MetadataValueType.String => new Regex(key + " = " + QUOTEVALIDATE, RegexOptions.Compiled),
-                    MetadataValueType.Float => new Regex(key + " = " + FLOATSEARCH, RegexOptions.Compiled),
-                    MetadataValueType.Player2 => new Regex(key + @" = \w+", RegexOptions.Compiled),
-                    MetadataValueType.Difficulty => new Regex(key + @" = \d+", RegexOptions.Compiled),
-                    MetadataValueType.Year => new Regex(key + " = " + QUOTEVALIDATE, RegexOptions.Compiled),
-                    _ => throw new System.Exception("Unhandled Metadata item type")
-                };
+                var key = line.SplitOnceTrim('=', out var value);
+
+                // Name = "5000 Robots"
+                if (key.Equals(NAME_KEY, StringComparison.Ordinal))
+                    metadata.name = ParseString(value);
+
+                // Artist = "TheEruptionOffer"
+                else if (key.Equals(ARTIST_KEY, StringComparison.Ordinal))
+                    metadata.artist = ParseString(value);
+
+                // Album = "Rockman Holic"
+                else if (key.Equals(ALBUM_KEY, StringComparison.Ordinal))
+                    metadata.album = ParseString(value);
+
+                // Genre = "rock"
+                else if (key.Equals(GENRE_KEY, StringComparison.Ordinal))
+                    metadata.genre = ParseString(value);
+
+                // Year = ", 2023"
+                else if (key.Equals(YEAR_KEY, StringComparison.Ordinal))
+                    metadata.year = ParseYear(value);
+
+                // Charter = "TheEruptionOffer"
+                else if (key.Equals(CHARTER_KEY, StringComparison.Ordinal))
+                    metadata.charter = ParseString(value);
+
+                // Difficulty = 0
+                else if (key.Equals(DIFFICULTY_KEY, StringComparison.Ordinal))
+                    metadata.difficulty = ParseInteger(value);
+
+                // Length = 300
+                else if (key.Equals(LENGTH_KEY, StringComparison.Ordinal))
+                    song.manualLength = ParseFloat(value);
+
+                // PreviewStart = 0.00
+                else if (key.Equals(PREVIEW_START_KEY, StringComparison.Ordinal))
+                    metadata.previewStart = ParseFloat(value);
+
+                // PreviewEnd = 0.00
+                else if (key.Equals(PREVIEW_END_KEY, StringComparison.Ordinal))
+                    metadata.previewEnd = ParseFloat(value);
+
+                // Offset = 0
+                else if (key.Equals(OFFSET_KEY, StringComparison.Ordinal))
+                    song.offset = ParseFloat(value);
+
+                // Resolution = 192
+                else if (key.Equals(RESOLUTION_KEY, StringComparison.Ordinal))
+                    song.resolution = ParseInteger(value);
             }
         }
 
-        public static readonly MetadataItem name = new("Name", MetadataValueType.String);
-        public static readonly MetadataItem artist = new("Artist", MetadataValueType.String);
-        public static readonly MetadataItem charter = new("Charter", MetadataValueType.String);
-        public static readonly MetadataItem offset = new("Offset", MetadataValueType.Float);
-        public static readonly MetadataItem resolution = new("Resolution", MetadataValueType.Float);
-        public static readonly MetadataItem difficulty = new("Difficulty", MetadataValueType.Difficulty);
-        public static readonly MetadataItem length = new("Length", MetadataValueType.Float);
-        public static readonly MetadataItem previewStart = new("PreviewStart", MetadataValueType.Float);
-        public static readonly MetadataItem previewEnd = new("PreviewEnd", MetadataValueType.Float);
-        public static readonly MetadataItem genre = new("Genre", MetadataValueType.String);
-        public static readonly MetadataItem year = new("Year", MetadataValueType.Year);
-        public static readonly MetadataItem album = new("Album", MetadataValueType.String);
-
-        public static string ParseAsString(string line)
+        private static string ParseString(ReadOnlySpan<char> valueString)
         {
-            return Regex.Matches(line, QUOTESEARCH)[0].ToString().Trim('"');
+            return valueString.Trim('"').ToString();
         }
 
-        public static float ParseAsFloat(string line)
+        private static string ParseYear(ReadOnlySpan<char> valueString)
         {
-            return float.Parse(Regex.Matches(line, FLOATSEARCH)[0].ToString(), FormatCulture);  // .chart format only allows '.' as decimal seperators. Need to parse correctly under any locale.
+            return valueString.Trim(',').Trim().ToString();
         }
 
-        public static short ParseAsShort(string line)
+        private static int ParseInteger(ReadOnlySpan<char> valueString, int defaultValue = -1)
         {
-            return short.Parse(Regex.Matches(line, FLOATSEARCH)[0].ToString());
+            return int.TryParse(valueString, out int value) ? value : defaultValue;
+        }
+
+        private static float ParseFloat(ReadOnlySpan<char> valueString, float defaultValue = 0f)
+        {
+            return float.TryParse(valueString, NumberStyles.Float, FormatCulture, out float value) ? value : defaultValue;
         }
     }
 }

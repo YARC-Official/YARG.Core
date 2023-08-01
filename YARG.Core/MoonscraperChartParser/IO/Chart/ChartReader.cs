@@ -8,11 +8,13 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using YARG.Core;
 using YARG.Core.Chart;
+using YARG.Core.Utility;
 
 namespace MoonscraperChartEditor.Song.IO
 {
@@ -53,7 +55,34 @@ namespace MoonscraperChartEditor.Song.IO
             public List<NoteEventProcessFn> postNotesAddedProcessList;
         }
 
-        public static MoonSong ReadChart(ParseSettings settings, string filepath)
+        #region Utility
+        // https://cc.davelozinski.com/c-sharp/fastest-way-to-convert-a-string-to-an-int
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int FastInt32Parse(ReadOnlySpan<char> text)
+        {
+            int value = 0;
+            foreach (char character in text)
+                value = value * 10 + (character - '0');
+
+            return value;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static ulong FastUint64Parse(ReadOnlySpan<char> text)
+        {
+            ulong value = 0;
+            foreach (char character in text)
+                value = value * 10 + (ulong)(character - '0');
+
+            return value;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static ReadOnlySpan<char> GetNextWord(this ReadOnlySpan<char> buffer, out ReadOnlySpan<char> remaining)
+            => buffer.SplitOnceTrim(' ', out remaining);
+        #endregion
+
+        public static MoonSong ReadFromFile(ParseSettings settings, string filepath)
         {
             try
             {
@@ -65,8 +94,8 @@ namespace MoonscraperChartEditor.Song.IO
                 if (extension != ".chart")
                     throw new Exception("Bad file type");
 
-                var reader = File.OpenText(filepath);
-                return ReadChart(settings, reader);
+                string text = File.ReadAllText(filepath);
+                return ReadFromText(settings, text);
             }
             catch (Exception e)
             {
@@ -74,181 +103,87 @@ namespace MoonscraperChartEditor.Song.IO
             }
         }
 
-        public static MoonSong ReadChart(ParseSettings settings, TextReader reader)
+        public static MoonSong ReadFromText(ParseSettings settings, ReadOnlySpan<char> chartText)
         {
             var song = new MoonSong();
-            bool open = false;
-            string dataName = string.Empty;
 
-            var dataStrings = new List<string>();
-
-            // Gather lines between {} brackets and submit data
-            for (string line = reader.ReadLine(); line != null; line = reader.ReadLine())
+            while (!chartText.IsEmpty)
             {
-                string trimmedLine = line.Trim();
-                if (trimmedLine.Length <= 0)
-                    continue;
+                // Find section name
+                int nameIndex = chartText.IndexOf('[');
+                int nameEndIndex = chartText.IndexOf(']');
+                if (nameIndex < 0 || nameEndIndex < 0 || nameEndIndex < nameIndex)
+                    break;
 
-                if (trimmedLine[0] == '[' && trimmedLine[^1] == ']')
-                {
-                    dataName = trimmedLine;
-                }
-                else if (trimmedLine == "{")
-                {
-                    open = true;
-                }
-                else if (trimmedLine == "}")
-                {
-                    open = false;
+                nameIndex++; // Exclude starting bracket
+                var sectionName = chartText[nameIndex..nameEndIndex];
+                chartText = chartText[nameEndIndex..];
 
-                    // Submit data
-                    SubmitChartData(settings, song, dataName, dataStrings);
+                // Find section body
+                int sectionIndex = chartText.IndexOf('{');
+                int sectionEndIndex = chartText.IndexOf('}');
+                if (sectionIndex < 0 || sectionEndIndex < 0 || sectionEndIndex < sectionIndex)
+                    break;
 
-                    dataName = string.Empty;
-                    dataStrings.Clear();
-                }
-                else
-                {
-                    if (open)
-                    {
-                        // Add data into the array
-                        dataStrings.Add(trimmedLine);
-                    }
-                    else if (dataStrings.Count > 0 && dataName != string.Empty)
-                    {
-                        // Submit data
-                        SubmitChartData(settings, song, dataName, dataStrings);
+                sectionIndex++; // Exclude starting bracket
+                var sectionText = chartText[sectionIndex..sectionEndIndex];
+                chartText = chartText[sectionEndIndex..];
 
-                        dataName = string.Empty;
-                        dataStrings.Clear();
-                    }
-                }
+                var splitter = sectionText.Split('\n');
+                SubmitChartData(settings, song, sectionName, splitter);
             }
 
-            reader.Close();
             song.UpdateCache();
             return song;
         }
 
-        private static void SubmitChartData(ParseSettings settings, MoonSong song, string dataName, List<string> stringData)
+        private static void SubmitChartData(ParseSettings settings, MoonSong song, ReadOnlySpan<char> sectionName,
+            SpanSplitter<char> sectionLines)
         {
-            switch (dataName)
+            if (sectionName.Equals(ChartIOHelper.SECTION_SONG, StringComparison.Ordinal))
             {
-                case ChartIOHelper.SECTION_SONG:
-                    YargTrace.DebugInfo("Loading chart properties");
-                    SubmitDataSong(song, stringData);
-                    break;
-                case ChartIOHelper.SECTION_SYNC_TRACK:
-                    YargTrace.DebugInfo("Loading sync data");
-                    SubmitDataGlobals(song, stringData);
-                    break;
-                case ChartIOHelper.SECTION_EVENTS:
-                    YargTrace.DebugInfo("Loading events data");
-                    SubmitDataGlobals(song, stringData);
-                    break;
-                default:
-                    // Determine what difficulty
-                    foreach (var kvPair in ChartIOHelper.TrackNameToTrackDifficultyLookup)
-                    {
-                        if (Regex.IsMatch(dataName, $@"\[{kvPair.Key}."))
-                        {
-                            var chartDiff = kvPair.Value;
-                            int instumentStringOffset = 1 + kvPair.Key.Length;
+                YargTrace.DebugInfo("Loading chart properties");
+                SubmitDataSong(song, sectionLines);
+                return;
+            }
+            else if (sectionName.Equals(ChartIOHelper.SECTION_SYNC_TRACK, StringComparison.Ordinal))
+            {
+                YargTrace.DebugInfo("Loading sync data");
+                SubmitDataGlobals(song, sectionLines);
+                return;
+            }
+            else if (sectionName.Equals(ChartIOHelper.SECTION_EVENTS, StringComparison.Ordinal))
+            {
+                YargTrace.DebugInfo("Loading events data");
+                SubmitDataGlobals(song, sectionLines);
+                return;
+            }
 
-                            string instrumentKey = dataName.Substring(instumentStringOffset, dataName.Length - instumentStringOffset - 1);
-                            if (!ChartIOHelper.InstrumentStrToEnumLookup.TryGetValue(instrumentKey, out var instrument))
-                            {
-                                break;
-                            }
+            // Determine what difficulty
+            foreach (var (diffName, difficulty) in ChartIOHelper.TrackNameToTrackDifficultyLookup)
+            {
+                if (!sectionName.StartsWith(diffName, StringComparison.Ordinal))
+                    continue;
 
-                            LoadChart(settings, song, stringData, instrument, chartDiff);
+                foreach (var (instrumentName, instrument) in ChartIOHelper.InstrumentStrToEnumLookup)
+                {
+                    if (!sectionName.EndsWith(instrumentName, StringComparison.Ordinal))
+                        continue;
 
-                            // Chart loaded
-                            break;
-                        }
-                    }
+                    YargTrace.DebugInfo($"Loading data for {difficulty} {instrument}");
+                    LoadChart(settings, song, sectionLines, instrument, difficulty);
                     break;
+                }
+
+                break;
             }
         }
 
-        private static void SubmitDataSong(MoonSong song, List<string> stringData)
+        private static void SubmitDataSong(MoonSong song, SpanSplitter<char> sectionLines)
         {
-            YargTrace.DebugInfo("Loading song properties");
-            var metaData = song.metaData;
-
             try
             {
-                foreach (string line in stringData)
-                {
-                    // Name = "5000 Robots"
-                    if (ChartMetadata.name.regex.IsMatch(line))
-                    {
-                        metaData.name = ChartMetadata.ParseAsString(line);
-                    }
-
-                    // Artist = "TheEruptionOffer"
-                    else if (ChartMetadata.artist.regex.IsMatch(line))
-                    {
-                        metaData.artist = ChartMetadata.ParseAsString(line);
-                    }
-
-                    // Charter = "TheEruptionOffer"
-                    else if (ChartMetadata.charter.regex.IsMatch(line))
-                    {
-                        metaData.charter = ChartMetadata.ParseAsString(line);
-                    }
-
-                    // Album = "Rockman Holic"
-                    else if (ChartMetadata.album.regex.IsMatch(line))
-                    {
-                        metaData.album = ChartMetadata.ParseAsString(line);
-                    }
-
-                    // Offset = 0
-                    else if (ChartMetadata.offset.regex.IsMatch(line))
-                    {
-                        song.offset = ChartMetadata.ParseAsFloat(line);
-                    }
-
-                    // Resolution = 192
-                    else if (ChartMetadata.resolution.regex.IsMatch(line))
-                    {
-                        song.resolution = ChartMetadata.ParseAsShort(line);
-                    }
-
-                    // Difficulty = 0
-                    else if (ChartMetadata.difficulty.regex.IsMatch(line))
-                    {
-                        metaData.difficulty = int.Parse(Regex.Matches(line, @"\d+")[0].ToString());
-                    }
-
-                    // Length = 300
-                    else if (ChartMetadata.length.regex.IsMatch(line))
-                    {
-                        song.manualLength = ChartMetadata.ParseAsFloat(line);
-                    }
-
-                    // PreviewStart = 0.00
-                    else if (ChartMetadata.previewStart.regex.IsMatch(line))
-                    {
-                        metaData.previewStart = ChartMetadata.ParseAsFloat(line);
-                    }
-
-                    // PreviewEnd = 0.00
-                    else if (ChartMetadata.previewEnd.regex.IsMatch(line))
-                    {
-                        metaData.previewEnd = ChartMetadata.ParseAsFloat(line);
-                    }
-
-                    // Genre = "rock"
-                    else if (ChartMetadata.genre.regex.IsMatch(line))
-                    {
-                        metaData.genre = ChartMetadata.ParseAsString(line);
-                    }
-
-                    else if (ChartMetadata.year.regex.IsMatch(line))
-                        metaData.year = Regex.Replace(ChartMetadata.ParseAsString(line), @"\D", "");
-                }
+                ChartMetadata.ParseSongSection(song, sectionLines);
             }
             catch (Exception e)
             {
@@ -256,81 +191,63 @@ namespace MoonscraperChartEditor.Song.IO
             }
         }
 
-        private static void SubmitDataGlobals(MoonSong song, List<string> stringData)
+        private static void SubmitDataGlobals(MoonSong song, SpanSplitter<char> sectionLines)
         {
             var anchorData = new List<Anchor>();
 
-            foreach (string line in stringData)
+            foreach (var line in sectionLines)
             {
                 try
                 {
-                    int stringStartIndex = 0;
-                    int stringLength = 0;
+                    // Split on the equals sign
+                    var tickText = line.SplitOnceTrim('=', out var remaining);
 
-                    // Advance to tick
-                    AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
-                    uint tick = (uint)FastStringToIntParse(line, stringStartIndex, stringLength);
+                    // Get tick
+                    uint tick = (uint)FastInt32Parse(tickText);
 
-                    // Advance to equality
-                    stringStartIndex += stringLength;
-                    AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
-
-                    // Advance to type
-                    stringStartIndex += stringLength;
-                    AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
-            
-                    string typeCode = line.Substring(stringStartIndex, stringLength).ToUpperInvariant();
+                    // Get event type
+                    var typeCodeText = remaining.GetNextWord(out remaining);
+                    char typeCode = typeCodeText[0];
                     switch (typeCode)
                     {
-                        case "TS":
+                        case 'T' when typeCodeText[1] == 'S':
                         {
-                            // Advance to numerator
-                            stringStartIndex += stringLength;
-                            AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
-                            uint numerator = (uint)FastStringToIntParse(line, stringStartIndex, stringLength);
+                            // Get numerator
+                            var numeratorText = remaining.GetNextWord(out remaining);
+                            uint numerator = (uint)FastInt32Parse(numeratorText);
 
-                            uint denominator = 2;
-                            // Check for denominator
-                            if (stringStartIndex + stringLength < line.Length)
-                            {
-                                // Advance to denominator
-                                stringStartIndex += stringLength;
-                                AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
-                                denominator = (uint)FastStringToIntParse(line, stringStartIndex, stringLength);
-                            }
+                            // Get denominator
+                            var denominatorText = remaining.GetNextWord(out remaining);
+                            uint denominator = denominatorText.IsEmpty ? 2 : (uint)FastInt32Parse(denominatorText);
 
                             song.Add(new TimeSignature(tick, numerator, (uint)Math.Pow(2, denominator)), false);
                             break;
                         }
 
-                        case "B":
+                        case 'B':
                         {
-                            // Advance to tempo value
-                            stringStartIndex += stringLength;
-                            AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
-                            uint tempo = (uint)FastStringToIntParse(line, stringStartIndex, stringLength);
+                            // Get tempo value
+                            var tempoText = remaining.GetNextWord(out remaining);
+                            uint tempo = (uint)FastInt32Parse(tempoText);
 
                             song.Add(new BPM(tick, tempo), false);
                             break;
                         }
 
-                        case "E":
+                        case 'E':
                         {
-                            // Advance to start of event text
-                            stringStartIndex += stringLength;
-                            AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
-                            // Ignore whitespace in the text
-                            stringLength = line.Length - stringStartIndex;
-                            // Trim off quotation marks
-                            if (line[stringStartIndex] == '"')
-                                stringStartIndex++;
-                            if (line[^1] == '"')
-                                stringLength--;
+                            // Get event text
+                            string eventText = remaining.Trim().Trim('"').ToString();
 
-                            string eventName = line.Substring(stringStartIndex, stringLength);
+                            // Strip off brackets and any garbage outside of them
+                            var match = ChartIOHelper.TextEventRegex.Match(eventText);
+                            if (match.Success)
+                            {
+                                eventText = match.Groups[1].Value;
+                            }
 
                             // Check for section events
-                            var sectionMatch = ChartIOHelper.SectionEventRegex.Match(eventName);
+                            var sectionMatch = ChartIOHelper.SectionEventRegex.Match(eventText);
                             if (sectionMatch.Success)
                             {
                                 // This is a section, use the text grouped by the regex
@@ -339,17 +256,16 @@ namespace MoonscraperChartEditor.Song.IO
                             }
                             else
                             {
-                                song.Add(new Event(eventName, tick), false);
+                                song.Add(new Event(eventText, tick), false);
                             }
                             break;
                         }
 
-                        case "A":
+                        case 'A':
                         {
-                            // Advance to anchor time
-                            stringStartIndex += stringLength;
-                            AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
-                            ulong anchorTime = FastStringToUInt64Parse(line, stringStartIndex, stringLength);
+                            // Get anchor time
+                            var anchorText = remaining.GetNextWord(out remaining);
+                            ulong anchorTime = FastUint64Parse(anchorText);
 
                             var anchor = new Anchor()
                             {
@@ -359,11 +275,15 @@ namespace MoonscraperChartEditor.Song.IO
                             anchorData.Add(anchor);
                             break;
                         }
+
+                        default:
+                            YargTrace.LogWarning($"Unrecognized type code '{typeCode}'!");
+                            break;
                     }
                 }
                 catch (Exception e)
                 {
-                    YargTrace.LogException(e, $"Error parsing .chart line '{line}'!");
+                    YargTrace.LogException(e, $"Error parsing .chart line '{line.ToString()}'!");
                 }
             }
 
@@ -389,39 +309,10 @@ namespace MoonscraperChartEditor.Song.IO
             }
         }
 
-        /*************************************************************************************
-            Chart Loading
-        **************************************************************************************/
+        #region Utility
+        #endregion
 
-        private static int FastStringToIntParse(string str, int index, int length)
-        {
-            // https://cc.davelozinski.com/c-sharp/fastest-way-to-convert-a-string-to-an-int
-            int value = 0;
-            for (int i = index; i < index + length; i++)
-                value = value * 10 + (str[i] - '0');
-
-            return value;
-        }
-
-        private static ulong FastStringToUInt64Parse(string str, int index, int length)
-        {
-            // https://cc.davelozinski.com/c-sharp/fastest-way-to-convert-a-string-to-an-int
-            ulong value = 0;
-            for (int i = index; i < index + length; i++)
-                value = value * 10 + (ulong)(str[i] - '0');
-
-            return value;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void AdvanceNextWord(string line, ref int startIndex, ref int length)
-        {
-            length = 0;
-            while (startIndex < line.Length && line[startIndex] == ' ') { ++startIndex; };
-            while ((startIndex + ++length) < line.Length && line[startIndex + length] != ' ') ;
-        }
-
-        private static void LoadChart(ParseSettings settings, MoonSong song, IList<string> data,
+        private static void LoadChart(ParseSettings settings, MoonSong song, SpanSplitter<char> sectionLines,
             MoonSong.MoonInstrument instrument, MoonSong.Difficulty difficulty)
         {
             var chart = song.GetChart(instrument, difficulty);
@@ -437,7 +328,10 @@ namespace MoonscraperChartEditor.Song.IO
                 postNotesAddedProcessList = postNotesAddedProcessList
             };
 
-            chart.SetCapacity(data.Count);
+            // Estimate the number of events in the chart
+            var firstLine = sectionLines.Original.SplitOnce('\n', out _);
+            int capacity = sectionLines.Original.Length / firstLine.Length;
+            chart.SetCapacity(capacity);
 
             var noteProcessDict = GetNoteProcessDict(gameMode);
             var specialPhraseProcessDict = GetSpecialPhraseProcessDict(gameMode);
@@ -445,43 +339,38 @@ namespace MoonscraperChartEditor.Song.IO
             try
             {
                 // Load notes, collect flags
-                foreach (string line in data)
+                foreach (var line in sectionLines)
                 {
                     try
                     {
-                        int stringStartIndex = 0;
-                        int stringLength = 0;
+                        // Split on the equals sign
+                        var tickText = line.SplitOnceTrim('=', out var remaining);
 
-                        // Advance to tick
-                        AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
-                        uint tick = (uint)FastStringToIntParse(line, stringStartIndex, stringLength);
+                        // Get tick
+                        uint tick = (uint)FastInt32Parse(tickText);
 
-                        // Advance to equality
-                        stringStartIndex += stringLength;
-                        AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
-
-                        // Advance to type
-                        stringStartIndex += stringLength;
-                        AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
-
-                        switch (line[stringStartIndex])    // Note this will need to be changed if keys are ever greater than 1 character long
+                        // Get event type
+                        char typeCode = remaining.GetNextWord(out remaining)[0];
+                        switch (typeCode)    // Note this will need to be changed if keys are ever greater than 1 character long
                         {
                             case 'N':
-                            case 'n':
                             {
-                                // Advance to note number
-                                stringStartIndex += stringLength;
-                                AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
-                                int fret_type = FastStringToIntParse(line, stringStartIndex, stringLength);
+                                // Get note data
+                                var noteTypeText = remaining.GetNextWord(out remaining);
+                                int noteType = FastInt32Parse(noteTypeText);
 
-                                // Advance to note length
-                                stringStartIndex += stringLength;
-                                AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
-                                uint length = (uint)FastStringToIntParse(line, stringStartIndex, stringLength);
+                                var noteLengthText = remaining.GetNextWord(out remaining);
+                                uint noteLength = (uint)FastInt32Parse(noteLengthText);
 
-                                if (noteProcessDict.TryGetValue(fret_type, out var processFn))
+                                // Process the note
+                                if (noteProcessDict.TryGetValue(noteType, out var processFn))
                                 {
-                                    var noteEvent = new NoteEvent() { tick = tick, noteNumber = fret_type, length = length };
+                                    var noteEvent = new NoteEvent()
+                                    {
+                                        tick = tick,
+                                        noteNumber = noteType,
+                                        length = noteLength
+                                    };
                                     processParams.noteEvent = noteEvent;
                                     processFn(processParams);
                                 }
@@ -489,55 +378,52 @@ namespace MoonscraperChartEditor.Song.IO
                             }
 
                             case 'S':
-                            case 's':
                             {
-                                // Advance to note number
-                                stringStartIndex += stringLength;
-                                AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
+                                // Get phrase data
+                                var phraseTypeText = remaining.GetNextWord(out remaining);
+                                int phraseType = FastInt32Parse(phraseTypeText);
 
-                                int fret_type = FastStringToIntParse(line, stringStartIndex, stringLength);
+                                var phraseLengthText = remaining.GetNextWord(out remaining);
+                                uint phraseLength = (uint)FastInt32Parse(phraseLengthText);
 
-                                // Advance to note length
-                                stringStartIndex += stringLength;
-                                AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
-
-                                uint length = (uint)FastStringToIntParse(line, stringStartIndex, stringLength);
-
-                                if (specialPhraseProcessDict.TryGetValue(fret_type, out var processFn))
+                                if (specialPhraseProcessDict.TryGetValue(phraseType, out var processFn))
                                 {
-                                    var noteEvent = new NoteEvent() { tick = tick, noteNumber = fret_type, length = length };
+                                    var noteEvent = new NoteEvent()
+                                    {
+                                        tick = tick,
+                                        noteNumber = phraseType,
+                                        length = phraseLength
+                                    };
                                     processParams.noteEvent = noteEvent;
                                     processFn(processParams);
                                 }
-
                                 break;
                             }
                             case 'E':
-                            case 'e':
                             {
-                                // Advance to event
-                                stringStartIndex += stringLength;
-                                AdvanceNextWord(line, ref stringStartIndex, ref stringLength);
+                                // Get event text
+                                string eventText = remaining.Trim().Trim('"').ToString();
 
-                                string eventName = line.Substring(stringStartIndex, stringLength);
                                 // Strip off brackets and any garbage outside of them
-                                var match = ChartIOHelper.TextEventRegex.Match(eventName);
+                                var match = ChartIOHelper.TextEventRegex.Match(eventText);
                                 if (match.Success)
                                 {
-                                    eventName = match.Groups[1].Value;
+                                    eventText = match.Groups[1].Value;
                                 }
 
-                                chart.Add(new ChartEvent(tick, eventName), false);
+                                chart.Add(new ChartEvent(tick, eventText), false);
                                 break;
                             }
+
                             default:
+                                YargTrace.LogWarning($"Unrecognized type code '{typeCode}'!");
                                 break;
                         }
 
                     }
                     catch (Exception e)
                     {
-                        YargTrace.LogException(e, $"Error parsing .chart line '{line}'!");
+                        YargTrace.LogException(e, $"Error parsing .chart line '{line.ToString()}'!");
                     }
                 }
                 chart.UpdateCache();

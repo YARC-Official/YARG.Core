@@ -8,9 +8,9 @@ namespace MoonscraperChartEditor.Song.IO
 {
     internal static class ChartIOHelper
     {
-        public const string SECTION_SONG = "[Song]";
-        public const string SECTION_SYNC_TRACK = "[SyncTrack]";
-        public const string SECTION_EVENTS = "[Events]";
+        public const string SECTION_SONG = "Song";
+        public const string SECTION_SYNC_TRACK = "SyncTrack";
+        public const string SECTION_EVENTS = "Events";
 
         // See MidIOHelper for regex details
 		public static readonly Regex TextEventRegex = MidIOHelper.TextEventRegex;

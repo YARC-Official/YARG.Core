@@ -30,7 +30,7 @@ namespace YARG.Core.Chart
             _moonSong = Path.GetExtension(filePath).ToLower() switch
             {
                 ".mid" => MidReader.ReadMidi(_settings, filePath),
-                ".chart" => ChartReader.ReadChart(_settings, filePath),
+                ".chart" => ChartReader.ReadFromFile(_settings, filePath),
                 _ => throw new ArgumentException($"Unrecognized file extension for chart path '{filePath}'!", nameof(filePath))
             };
         }
@@ -44,7 +44,7 @@ namespace YARG.Core.Chart
         public void LoadDotChart(ParseSettings settings, string chartText)
         {
             _settings = settings;
-            _moonSong = ChartReader.ReadChart(_settings, new StringReader(chartText));
+            _moonSong = ChartReader.ReadFromText(_settings, chartText);
         }
 
         public List<TextEvent> LoadGlobalEvents()
