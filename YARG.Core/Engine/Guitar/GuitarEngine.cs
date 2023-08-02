@@ -79,10 +79,6 @@ namespace YARG.Core.Engine.Guitar
                 EngineStats.PhrasesHit++;
             }
 
-            if (note.IsSoloEnd)
-            {
-                EndSolo();
-            }
             if (note.IsSoloStart)
             {
                 StartSolo();
@@ -93,9 +89,14 @@ namespace YARG.Core.Engine.Guitar
                 CurrentSolo.NotesHit++;
             }
 
+            if (note.IsSoloEnd)
+            {
+                EndSolo();
+            }
+
             EngineStats.Combo++;
 
-            if(EngineStats.Combo > EngineStats.MaxCombo)
+            if (EngineStats.Combo > EngineStats.MaxCombo)
             {
                 EngineStats.MaxCombo = EngineStats.Combo;
             }
@@ -108,7 +109,7 @@ namespace YARG.Core.Engine.Guitar
 
             if (note.IsDisjoint)
             {
-                foreach(var chordNote in note.ChordEnumerator())
+                foreach (var chordNote in note.ChordEnumerator())
                 {
                     if (!chordNote.IsSustain)
                     {
@@ -119,7 +120,7 @@ namespace YARG.Core.Engine.Guitar
                     OnSustainStart?.Invoke(chordNote);
                 }
             }
-            else if(note.IsSustain)
+            else if (note.IsSustain)
             {
                 ActiveSustains.Add(note);
                 OnSustainStart?.Invoke(note);
