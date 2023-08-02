@@ -315,11 +315,13 @@ namespace YARG.Core.Engine
 
         protected void StartSolo()
         {
+            IsSoloActive = true;
             OnSoloStart?.Invoke(CurrentSolo);
         }
 
         protected void EndSolo()
         {
+            IsSoloActive = false;
             OnSoloEnd?.Invoke(CurrentSolo);
             CurrentSoloIndex++;
         }
