@@ -13,15 +13,13 @@ namespace YARG.Core.Engine
 
         public int BaseScore { get; protected set; }
 
-        public SoloSection CurrentSolo => Solos[CurrentSoloIndex];
-
         protected bool IsInputUpdate { get; private set; }
         protected bool IsBotUpdate   { get; private set; }
 
         protected abstract float[] StarMultiplierThresholds { get; }
         protected abstract float[] StarScoreThresholds      { get; }
 
-        private readonly SyncTrack _syncTrack;
+        protected readonly SyncTrack SyncTrack;
 
         protected readonly Queue<GameInput> InputQueue;
 
@@ -30,35 +28,17 @@ namespace YARG.Core.Engine
 
         protected GameInput CurrentInput;
 
-        protected double CurrentTime;
-        protected double LastUpdateTime;
-
-        protected uint CurrentTick;
-        protected uint LastTick;
-
-        protected int CurrentSoloIndex;
-
-        protected bool IsSoloActive;
-
-        protected uint TicksEveryEightMeasures;
-
         protected List<SoloSection> Solos;
-
-        private int _currentTimeSigIndex;
-        private int _nextTimeSigIndex;
 
         protected BaseEngine(SyncTrack syncTrack)
         {
-            _syncTrack = syncTrack;
+            SyncTrack = syncTrack;
             Resolution = syncTrack.Resolution;
 
             TicksPerSustainPoint = Resolution / 25;
 
             InputQueue = new Queue<GameInput>();
             CurrentInput = new GameInput(-9999, -9999, -9999);
-
-            _currentTimeSigIndex = 0;
-            _nextTimeSigIndex = 1;
         }
 
         /// <summary>
@@ -124,12 +104,7 @@ namespace YARG.Core.Engine
 
         protected uint GetCurrentTick(double time)
         {
-            return _syncTrack.TimeToTick(time);
-        }
-
-        protected double GetUsedStarPower()
-        {
-            return (CurrentTick - LastTick) / (double)TicksEveryEightMeasures;
+            return SyncTrack.TimeToTick(time);
         }
 
         public virtual void UpdateBot(double songTime)
@@ -144,33 +119,6 @@ namespace YARG.Core.Engine
         /// <param name="time">The time in which to simulate hit logic at.</param>
         /// <returns>True if a note was updated (hit or missed). False if no changes.</returns>
         protected abstract bool UpdateHitLogic(double time);
-
-        protected void UpdateTimeVariables(double time)
-        {
-            LastUpdateTime = CurrentTime;
-            CurrentTime = time;
-
-            LastTick = CurrentTick;
-            CurrentTick = GetCurrentTick(time);
-
-            var timeSigs = _syncTrack.TimeSignatures;
-            while (_nextTimeSigIndex < timeSigs.Count && timeSigs[_nextTimeSigIndex].Time < time)
-            {
-                _currentTimeSigIndex++;
-                _nextTimeSigIndex++;
-            }
-
-            var currentTimeSig = timeSigs[_currentTimeSigIndex];
-
-            TicksEveryEightMeasures = Resolution * (4 / currentTimeSig.Denominator) * currentTimeSig.Numerator * 8;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected void SetTimer(ref double timer, double maxTime, double negation = 0)
-        {
-            double diff = Math.Abs(maxTime - negation);
-            timer = CurrentTime - diff;
-        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected static void ResetTimer(ref double timer)
@@ -202,6 +150,8 @@ namespace YARG.Core.Engine
         protected const int POINTS_PER_BEAT = 25;
 
         protected const double STAR_POWER_PHRASE_AMOUNT = 0.25;
+
+        protected SoloSection CurrentSolo => Solos[State.CurrentSoloIndex];
 
         public delegate void NoteHitEvent(int noteIndex, TNoteType note);
 
@@ -251,6 +201,26 @@ namespace YARG.Core.Engine
             EngineStats.ScoreMultiplier = 1;
 
             Solos = GetSoloSections();
+        }
+
+        protected void UpdateTimeVariables(double time)
+        {
+            State.LastUpdateTime = State.CurrentTime;
+            State.CurrentTime = time;
+
+            State.LastTick = State.CurrentTick;
+            State.CurrentTick = GetCurrentTick(time);
+
+            var timeSigs = SyncTrack.TimeSignatures;
+            while (State.NextTimeSigIndex < timeSigs.Count && timeSigs[State.NextTimeSigIndex].Time < time)
+            {
+                State.CurrentTimeSigIndex++;
+                State.NextTimeSigIndex++;
+            }
+
+            var currentTimeSig = timeSigs[State.CurrentTimeSigIndex];
+
+            State.TicksEveryEightMeasures = Resolution * (4 / currentTimeSig.Denominator) * currentTimeSig.Numerator * 8;
         }
 
         protected abstract bool CheckForNoteHit();
@@ -313,17 +283,22 @@ namespace YARG.Core.Engine
             OnStarPowerStatus?.Invoke(true);
         }
 
+        protected double GetUsedStarPower()
+        {
+            return (State.CurrentTick - State.LastTick) / (double)State.TicksEveryEightMeasures;
+        }
+
         protected void StartSolo()
         {
-            IsSoloActive = true;
+            State.IsSoloActive = true;
             OnSoloStart?.Invoke(CurrentSolo);
         }
 
         protected void EndSolo()
         {
-            IsSoloActive = false;
+            State.IsSoloActive = false;
             OnSoloEnd?.Invoke(CurrentSolo);
-            CurrentSoloIndex++;
+            State.CurrentSoloIndex++;
         }
 
         /// <summary>
@@ -369,8 +344,8 @@ namespace YARG.Core.Engine
 
         protected bool IsNoteInWindow(TNoteType note)
         {
-            return note.Time - CurrentTime < EngineParameters.BackEnd &&
-                note.Time - CurrentTime > EngineParameters.FrontEnd;
+            return note.Time - State.CurrentTime < EngineParameters.BackEnd &&
+                note.Time - State.CurrentTime > EngineParameters.FrontEnd;
         }
 
         private List<SoloSection> GetSoloSections()
@@ -406,6 +381,13 @@ namespace YARG.Core.Engine
             }
 
             return soloSections;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected void SetTimer(ref double timer, double maxTime, double negation = 0)
+        {
+            double diff = Math.Abs(maxTime - negation);
+            timer = State.CurrentTime - diff;
         }
     }
 }

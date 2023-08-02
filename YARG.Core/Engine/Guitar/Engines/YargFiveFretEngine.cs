@@ -76,7 +76,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             if (IsInputUpdate && IsFretInput(CurrentInput))
             {
                 ToggleFret(CurrentInput.Action, CurrentInput.Button);
-                State.FrontEndStartTime = CurrentTime;
+                State.FrontEndStartTime = State.CurrentTime;
             }
 
             if (State.ButtonMask != State.TapButtonMask)
@@ -94,7 +94,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             // Update strum leniency if strummed this update
             if (State.StrummedThisUpdate)
             {
-                if (IsTimerActive(CurrentTime, State.StrumLeniencyStartTime, EngineParameters.StrumLeniency))
+                if (IsTimerActive(State.CurrentTime, State.StrumLeniencyStartTime, EngineParameters.StrumLeniency))
                 {
                     Overstrum();
                 }
@@ -102,13 +102,13 @@ namespace YARG.Core.Engine.Guitar.Engines
                 //State.StrumLeniencyStartTime = CurrentTime;
                 if (IsNoteInWindow(note))
                 {
-                    State.StrumLeniencyStartTime = CurrentTime;
+                    State.StrumLeniencyStartTime = State.CurrentTime;
                 }
                 else
                 {
                     double diff = Math.Abs(EngineParameters.StrumLeniency - EngineParameters.StrumLeniencySmall);
-                    State.StrumLeniencyStartTime = CurrentTime - diff;
-                    YargTrace.LogInfo($"$Set strum leniency to small time ({CurrentTime} - {diff})");
+                    State.StrumLeniencyStartTime = State.CurrentTime - diff;
+                    YargTrace.LogInfo($"$Set strum leniency to small time ({State.CurrentTime} - {diff})");
                 }
             }
 
@@ -122,10 +122,10 @@ namespace YARG.Core.Engine.Guitar.Engines
         {
             // We need to check if the strum leniency was active prior to this update
             // Then further down, we check if it expires on THIS update (if it does, we overstrum)
-            if (IsTimerActive(LastUpdateTime, State.StrumLeniencyStartTime, EngineParameters.StrumLeniency))
+            if (IsTimerActive(State.LastUpdateTime, State.StrumLeniencyStartTime, EngineParameters.StrumLeniency))
             {
                 // A hopo was strummed recently
-                if (IsTimerActive(CurrentTime, State.HopoLeniencyStartTime, EngineParameters.HopoLeniency))
+                if (IsTimerActive(State.CurrentTime, State.HopoLeniencyStartTime, EngineParameters.HopoLeniency))
                 {
                     // Hopo was double strummed, overstrum
                     if (State.WasHopoStrummed)
@@ -146,7 +146,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 }
                 else
                 {
-                    if (HasTimerExpired(CurrentTime, State.StrumLeniencyStartTime, EngineParameters.StrumLeniency))
+                    if (HasTimerExpired(State.CurrentTime, State.StrumLeniencyStartTime, EngineParameters.StrumLeniency))
                     {
                         YargTrace.LogInfo("Strum leniency ran out, overstrumming");
                         Overstrum();
@@ -164,12 +164,12 @@ namespace YARG.Core.Engine.Guitar.Engines
                 return false;
             }
 
-            if (CurrentTime < note.Time + EngineParameters.FrontEnd)
+            if (State.CurrentTime < note.Time + EngineParameters.FrontEnd)
             {
                 return false;
             }
 
-            if (CurrentTime > note.Time + EngineParameters.BackEnd && !note.WasHit)
+            if (State.CurrentTime > note.Time + EngineParameters.BackEnd && !note.WasHit)
             {
                 MissNote(note);
                 return true;
@@ -186,7 +186,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 var next = note.NextNote;
                 while (next is not null)
                 {
-                    if (CurrentTime < next.Time + EngineParameters.FrontEnd)
+                    if (State.CurrentTime < next.Time + EngineParameters.FrontEnd)
                     {
                         return false;
                     }
@@ -195,7 +195,7 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                     if (CanNoteBeHit(next) &&
                         (State.StrummedThisUpdate ||
-                            IsTimerActive(CurrentTime, State.StrumLeniencyStartTime, EngineParameters.StrumLeniency) ||
+                            IsTimerActive(State.CurrentTime, State.StrumLeniencyStartTime, EngineParameters.StrumLeniency) ||
                             next.IsTap) && State.TapButtonMask == 0)
                     {
                         if (HitNote(next))
@@ -219,7 +219,7 @@ namespace YARG.Core.Engine.Guitar.Engines
 
             // If hopo/tap checks failed then the note can be hit if it was strummed
             if (State.StrummedThisUpdate ||
-                IsTimerActive(CurrentTime, State.StrumLeniencyStartTime, EngineParameters.StrumLeniency))
+                IsTimerActive(State.CurrentTime, State.StrumLeniencyStartTime, EngineParameters.StrumLeniency))
             {
                 return HitNote(note);
             }
@@ -331,13 +331,13 @@ namespace YARG.Core.Engine.Guitar.Engines
                 var note = ActiveSustains[i];
 
                 isStarPowerSustainActive = note.IsStarPower || isStarPowerSustainActive;
-                bool sustainEnded = CurrentTick > note.TickEnd;
+                bool sustainEnded = State.CurrentTick > note.TickEnd;
 
                 if (!CanNoteBeHit(note) || sustainEnded)
                 {
                     ActiveSustains.Remove(note);
                     i--;
-                    OnSustainEnd?.Invoke(note, CurrentTime);
+                    OnSustainEnd?.Invoke(note, State.CurrentTime);
                 }
             }
         }
@@ -352,9 +352,8 @@ namespace YARG.Core.Engine.Guitar.Engines
                 // (tried to hit as a hammeron/pulloff)
                 if (!EngineParameters.InfiniteFrontEnd &&
                     HasTimerExpired(note.Time, State.FrontEndStartTime, Math.Abs(EngineParameters.FrontEnd)) &&
-                    !IsTimerActive(CurrentTime, State.StrumLeniencyStartTime, EngineParameters.StrumLeniency))
+                    !IsTimerActive(State.CurrentTime, State.StrumLeniencyStartTime, EngineParameters.StrumLeniency))
                 {
-                    YargTrace.LogInfo("Front end timer not in range");
                     return false;
                 }
 
@@ -363,7 +362,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 {
                 }
 
-                State.HopoLeniencyStartTime = CurrentTime;
+                State.HopoLeniencyStartTime = State.CurrentTime;
             }
             else
             {
