@@ -86,7 +86,7 @@ namespace YARG.Core.Engine.Guitar
 
             if (State.IsSoloActive)
             {
-                CurrentSolo.NotesHit++;
+                Solos[State.CurrentSoloIndex].NotesHit++;
             }
 
             if (note.IsSoloEnd)

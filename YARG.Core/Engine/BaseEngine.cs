@@ -151,8 +151,6 @@ namespace YARG.Core.Engine
 
         protected const double STAR_POWER_PHRASE_AMOUNT = 0.25;
 
-        protected SoloSection CurrentSolo => Solos[State.CurrentSoloIndex];
-
         public delegate void NoteHitEvent(int noteIndex, TNoteType note);
 
         public delegate void NoteMissedEvent(int noteIndex, TNoteType note);
@@ -290,14 +288,24 @@ namespace YARG.Core.Engine
 
         protected void StartSolo()
         {
+            if(State.CurrentSoloIndex >= Solos.Count)
+            {
+                return;
+            }
+
             State.IsSoloActive = true;
-            OnSoloStart?.Invoke(CurrentSolo);
+            OnSoloStart?.Invoke(Solos[State.CurrentSoloIndex]);
         }
 
         protected void EndSolo()
         {
+            if (!State.IsSoloActive)
+            {
+                return;
+            }
+
             State.IsSoloActive = false;
-            OnSoloEnd?.Invoke(CurrentSolo);
+            OnSoloEnd?.Invoke(Solos[State.CurrentSoloIndex]);
             State.CurrentSoloIndex++;
         }
 

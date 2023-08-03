@@ -120,8 +120,14 @@ namespace YARG.Core.Chart
             WasHit = false;
             WasMissed = false;
 
-            PreviousNote = _originalPreviousNote;
-            NextNote = _originalNextNote;
+            if(_originalPreviousNote != null)
+            {
+                PreviousNote = _originalPreviousNote;
+            }
+            if (_originalNextNote != null)
+            {
+                NextNote = _originalNextNote;
+            }
 
             _originalPreviousNote = null;
             _originalNextNote = null;
