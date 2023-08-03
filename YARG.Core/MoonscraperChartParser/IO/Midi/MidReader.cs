@@ -645,7 +645,7 @@ namespace MoonscraperChartEditor.Song.IO
 
             var chart = song.GetChart(instrument, difficulty);
 
-            SongObjectHelper.GetRange(chart.notes, startTick, --endTick, out int index, out int length);
+            SongObjectHelper.GetRange(chart.notes, startTick, endTick, out int index, out int length);
 
             for (int i = index; i < index + length; ++i)
             {
@@ -715,7 +715,7 @@ namespace MoonscraperChartEditor.Song.IO
             // Delay the actual processing once all the notes are actually in
             eventProcessParams.delayedProcessesList.Add((in EventProcessParams processParams) =>
             {
-                ProcessNoteOnEventAsFlagTogglePostDelay(processParams, startTick, --endTick, flags, individualNoteSpecifier);
+                ProcessNoteOnEventAsFlagTogglePostDelay(processParams, startTick, endTick, flags, individualNoteSpecifier);
             });
         }
 
