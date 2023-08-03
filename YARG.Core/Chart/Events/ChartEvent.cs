@@ -6,11 +6,11 @@ namespace YARG.Core.Chart
     public abstract class ChartEvent
     {
         public double Time       { get; }
-        public double TimeLength { get; }
+        public double TimeLength { get; set; }
         public double TimeEnd    => Time + TimeLength;
 
         public uint Tick       { get; }
-        public uint TickLength { get; }
+        public uint TickLength { get; set; }
         public uint TickEnd    => Tick + TickLength;
 
         public ChartEvent(double time, double timeLength, uint tick, uint tickLength)

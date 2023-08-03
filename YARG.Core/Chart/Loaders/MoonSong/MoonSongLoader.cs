@@ -63,9 +63,16 @@ namespace YARG.Core.Chart
         {
             var sections = new List<Section>();
 
-            foreach (var moonSection in _moonSong.sections)
+            for (var i = 0; i < _moonSong.sections.Count;)
             {
+                var moonSection = _moonSong.sections[i];
                 sections.Add(new Section(moonSection.title, moonSection.time, moonSection.tick));
+
+                if (++i < _moonSong.sections.Count)
+                {
+                    sections[^1].TimeLength = _moonSong.sections[i].time - moonSection.time;
+                    sections[^1].TickLength = _moonSong.sections[i].tick - moonSection.tick;
+                }
             }
 
             return sections;
