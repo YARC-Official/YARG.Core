@@ -24,6 +24,9 @@ namespace YARG.Core.Chart
 
         public NoteFlags Flags;
 
+        private TNote _originalPreviousNote;
+        private TNote _originalNextNote;
+
         public TNote PreviousNote;
         public TNote NextNote;
 
@@ -87,11 +90,46 @@ namespace YARG.Core.Chart
             }
         }
 
+        public void OverridePreviousNote()
+        {
+            // Prevent overriding previous note more than once without resetting note state
+            if(_originalPreviousNote != null)
+            {
+                throw new InvalidOperationException("Cannot override previous note more than once");
+            }
+
+            _originalPreviousNote = PreviousNote;
+            PreviousNote = null;
+        }
+
+        public void OverrideNextNote()
+        {
+            // Prevent overriding next note more than once without resetting note state
+            if(_originalNextNote != null)
+            {
+                throw new InvalidOperationException("Cannot override next note more than once");
+            }
+
+            _originalNextNote = NextNote;
+            NextNote = null;
+        }
+
         public virtual void ResetNoteState()
         {
             Flags = _flags;
             WasHit = false;
             WasMissed = false;
+
+            PreviousNote = _originalPreviousNote;
+            NextNote = _originalNextNote;
+
+            _originalPreviousNote = null;
+            _originalNextNote = null;
+
+            foreach(var childNote in _childNotes)
+            {
+                childNote.ResetNoteState();
+            }
         }
     }
 }
