@@ -372,7 +372,10 @@ namespace YARG.Core.UnitTests.Parsing
 
         public static MoonSong GenerateSong()
         {
-            var song = new MoonSong();
+            var song = new MoonSong()
+            {
+                resolution = RESOLUTION,
+            };
             PopulateSyncTrack(song, TempoMap);
             PopulateGlobalEvents(song, GlobalEvents);
             foreach (var instrument in EnumExtensions<MoonInstrument>.Values)
