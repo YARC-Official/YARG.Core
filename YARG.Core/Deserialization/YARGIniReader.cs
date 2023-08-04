@@ -76,7 +76,7 @@ namespace YARG.Core.Deserialization
             return !reader.IsEndOfFile() && reader.PeekByte() != '[';
         }
 
-        public Dictionary<string, List<IniModifier>> ExtractModifiers(ref Dictionary<string, IniModifierCreator> validNodes)
+        public IniSection ExtractModifiers(ref Dictionary<string, IniModifierCreator> validNodes)
         {
             Dictionary<string, List<IniModifier>> modifiers = new();
             reader.GotoNextLine();
@@ -93,7 +93,7 @@ namespace YARG.Core.Deserialization
                 }
                 reader.GotoNextLine();
             }
-            return modifiers;
+            return new IniSection(modifiers);
         }
 
         private bool GetDistanceToTrackCharacter(int position, out int i)

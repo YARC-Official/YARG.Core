@@ -8,10 +8,10 @@ namespace YARG.Core.Deserialization.Ini
 {
     public static class IniHandler
     {
-        public static Dictionary<string, Dictionary<string, List<IniModifier>>> ReadIniFile(string iniFile, Dictionary<string, Dictionary<string, IniModifierCreator>> sections)
+        public static Dictionary<string, IniSection> ReadIniFile(string iniFile, Dictionary<string, Dictionary<string, IniModifierCreator>> sections)
         {
             YARGIniReader reader = new(iniFile);
-            Dictionary<string, Dictionary<string, List<IniModifier>>> modifierMap = new();
+            Dictionary<string, IniSection> modifierMap = new();
             while (reader.IsStartOfSection())
             {
                 if (sections.TryGetValue(reader.Section, out var nodes))
@@ -22,7 +22,7 @@ namespace YARG.Core.Deserialization.Ini
             return modifierMap;
         }
 
-        internal static readonly Dictionary<string, Dictionary<string, IniModifierCreator>> SONG_INI_DICTIONARY = new();
+        private static readonly Dictionary<string, Dictionary<string, IniModifierCreator>> SONG_INI_DICTIONARY = new();
         static IniHandler()
         {
             SONG_INI_DICTIONARY.Add("[song]", new()
@@ -147,7 +147,7 @@ namespace YARG.Core.Deserialization.Ini
             });
         }
 
-        public static Dictionary<string, List<IniModifier>> ReadSongIniFile(string iniFile)
+        public static IniSection ReadSongIniFile(string iniFile)
         {
             var modifiers = ReadIniFile(iniFile, SONG_INI_DICTIONARY);
             if (modifiers.Count == 0)
