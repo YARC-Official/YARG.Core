@@ -258,9 +258,7 @@ namespace MoonscraperChartEditor.Song
                     if (prevIsChord || (!prevIsChord && rawNote != previous.rawNote))
                     {
                         // Check distance from previous note 
-                        int HOPODistance = (int)(song.hopoThreshold * song.resolution / SongConfig.STANDARD_BEAT_RESOLUTION);
-
-                        if (tick - previous.tick <= HOPODistance)
+                        if (tick - previous.tick <= song.hopoThreshold)
                             HOPO = true;
                     }
                 }

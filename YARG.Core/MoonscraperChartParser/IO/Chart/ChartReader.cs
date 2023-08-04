@@ -144,7 +144,7 @@ namespace MoonscraperChartEditor.Song.IO
             if (sectionName.Equals(ChartIOHelper.SECTION_SONG, StringComparison.Ordinal))
             {
                 YargTrace.DebugInfo("Loading chart properties");
-                SubmitDataSong(song, sectionLines);
+                SubmitDataSong(song, settings, sectionLines);
                 return;
             }
             else if (sectionName.Equals(ChartIOHelper.SECTION_SYNC_TRACK, StringComparison.Ordinal))
@@ -180,7 +180,7 @@ namespace MoonscraperChartEditor.Song.IO
             }
         }
 
-        private static void SubmitDataSong(MoonSong song, TrimSplitter sectionLines)
+        private static void SubmitDataSong(MoonSong song, ParseSettings settings, TrimSplitter sectionLines)
         {
             try
             {
@@ -190,6 +190,18 @@ namespace MoonscraperChartEditor.Song.IO
             {
                 YargTrace.LogException(e, "Error when reading .chart metadata!");
             }
+
+            ValidateAndApplySettings(song, settings);
+        }
+
+        private static void ValidateAndApplySettings(MoonSong song, ParseSettings settings)
+        {
+            // Apply HOPO threshold settings
+            song.hopoThreshold = ChartIOHelper.GetHopoThreshold(settings, song.resolution);
+
+            // Sustain cutoff threshold is not verified, sustains are not cut off by default in .chart
+            // SP note is not verified, as it is only relevant for .mid
+            // Note snap threshold is not verified, as the parser doesn't use it
         }
 
         private static void SubmitDataGlobals(MoonSong song, TrimSplitter sectionLines)

@@ -4,6 +4,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using YARG.Core.Chart;
 
 namespace MoonscraperChartEditor.Song.IO
 {
@@ -332,5 +333,16 @@ namespace MoonscraperChartEditor.Song.IO
             { "sweep",            VENUE_LIGHTING_SWEEP },
             #endregion
         };
+
+        public static float GetHopoThreshold(ParseSettings settings, float resolution)
+        {
+            // Prefer explicit tick value to eighth-note HOPO value
+            if (settings.HopoThreshold >= 0)
+                return settings.HopoThreshold;
+            else if (settings.EighthNoteHopo)
+                return (resolution / 2) + 1; // +1 for a small bit of leniency
+            else
+                return (resolution / 3) + 1; // +1 for a small bit of leniency
+        }
     }
 }

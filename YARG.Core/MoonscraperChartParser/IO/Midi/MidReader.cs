@@ -87,14 +87,8 @@ namespace MoonscraperChartEditor.Song.IO
                 resolution = ticks.TicksPerQuarterNote
             };
 
-            // Apply HOPO threshold settings
-            // Prefer explicit tick value to eighth-note HOPO value
-            if (settings.HopoThreshold >= 0)
-                song.hopoThreshold = settings.HopoThreshold;
-            else if (settings.EighthNoteHopo)
-                song.hopoThreshold = song.resolution / 2;
-            else
-                song.hopoThreshold = SongConfig.FORCED_NOTE_TICK_THRESHOLD;
+            // Apply settings
+            ValidateAndApplySettings(song, settings);
 
             // Read all bpm data in first. This will also allow song.TimeToTick to function properly.
             ReadSync(midi.GetTempoMap(), song);
@@ -162,6 +156,19 @@ namespace MoonscraperChartEditor.Song.IO
             }
 
             return song;
+        }
+
+        private static void ValidateAndApplySettings(MoonSong song, ParseSettings settings)
+        {
+            // Apply HOPO threshold settings
+            song.hopoThreshold = MidIOHelper.GetHopoThreshold(settings, song.resolution);
+
+            // Verify sustain cutoff threshold
+            if (settings.SustainCutoffThreshold < 0)
+                settings.SustainCutoffThreshold = (int)song.resolution / 3;
+
+            // SP note is not verified, as it being set is checked for by SP fixups
+            // Note snap threshold is also not verified, as the parser doesn't use it
         }
 
         private static void ReadSync(TempoMap tempoMap, MoonSong song)

@@ -1,7 +1,6 @@
 using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
 using NUnit.Framework;
-using YARG.Core;
 
 namespace YARG.Core.UnitTests.Parsing
 {
@@ -16,7 +15,7 @@ namespace YARG.Core.UnitTests.Parsing
         public const int NUMERATOR = 4;
         public const int DENOMINATOR = 4;
 
-        public const uint HOPO_THRESHOLD = (uint)(SongConfig.FORCED_NOTE_TICK_THRESHOLD * RESOLUTION / SongConfig.STANDARD_BEAT_RESOLUTION);
+        public static readonly Chart.ParseSettings Settings = Chart.ParseSettings.Default;
 
         public static readonly SongObjectComparer Comparer = new();
 

@@ -18,6 +18,7 @@ namespace YARG.Core.UnitTests.Parsing
     public class MidiParseBehaviorTests
     {
         private const uint SUSTAIN_CUTOFF_THRESHOLD = RESOLUTION / 3;
+        private static readonly uint HopoThreshold = (uint)GetHopoThreshold(Settings, RESOLUTION);
 
         private static readonly Dictionary<MoonInstrument, string> InstrumentToNameLookup = new()
         {
@@ -390,7 +391,7 @@ namespace YARG.Core.UnitTests.Parsing
             if ((canForceStrum || canForceHopo) && (flags & Flags.Forced) != 0)
             {
                 MoonNoteType type;
-                if (canForceHopo && lastStartDelta is >= HOPO_THRESHOLD and > 0) 
+                if (canForceHopo && lastStartDelta >= HopoThreshold) 
                     type = MoonNoteType.Hopo;
                 else
                     type = MoonNoteType.Strum;
@@ -507,7 +508,7 @@ namespace YARG.Core.UnitTests.Parsing
             MoonSong parsedSong;
             try
             {
-                parsedSong = MidReader.ReadMidi(Chart.ParseSettings.Default, midi);
+                parsedSong = MidReader.ReadMidi(Settings, midi);
             }
             catch (Exception ex)
             {

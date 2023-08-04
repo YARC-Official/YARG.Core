@@ -3,6 +3,7 @@
 
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using YARG.Core.Chart;
 
 namespace MoonscraperChartEditor.Song.IO
 {
@@ -15,6 +16,7 @@ namespace MoonscraperChartEditor.Song.IO
         // See MidIOHelper for regex details
 		public static readonly Regex TextEventRegex = MidIOHelper.TextEventRegex;
 		public static readonly Regex SectionEventRegex = MidIOHelper.SectionEventRegex;
+
 
         public const int NOTE_OFFSET_PRO_DRUMS = 64;
         public const int NOTE_OFFSET_INSTRUMENT_PLUS = 32;
@@ -99,5 +101,24 @@ namespace MoonscraperChartEditor.Song.IO
             { "GHLRhythm",      MoonSong.MoonInstrument.GHLiveRhythm },
             { "GHLCoop",        MoonSong.MoonInstrument.GHLiveCoop },
         };
+
+        public static float GetHopoThreshold(ParseSettings settings, float resolution)
+        {
+            // With a 192 resolution, .chart has a HOPO threshold of 65 ticks, not 64,
+            // so we need to scale this factor to different resolutions (480 res = 162.5 threshold)
+            // This extra tick is meant for some slight leniency, .mid has it too but it's applied
+            // after factoring in the resolution there, not before
+            const int DEFAULT_RESOLUTION = 192;
+            const float HOPO_THRESHOLD_FACTOR = ((DEFAULT_RESOLUTION / 3) + 1) / DEFAULT_RESOLUTION;
+            const float EIGHTHNOTE_HOPO_THRESHOLD_FACTOR = ((DEFAULT_RESOLUTION / 2) + 1) / DEFAULT_RESOLUTION;
+
+            // Prefer explicit tick value to eighth-note HOPO value
+            if (settings.HopoThreshold >= 0)
+                return settings.HopoThreshold;
+            else if (settings.EighthNoteHopo)
+                return resolution * EIGHTHNOTE_HOPO_THRESHOLD_FACTOR;
+            else
+                return resolution * HOPO_THRESHOLD_FACTOR;
+        }
     }
 }
