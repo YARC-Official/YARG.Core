@@ -2,9 +2,10 @@ using System;
 using EasySharpIni;
 using EasySharpIni.Converters;
 using EasySharpIni.Models;
+using YARG.Core.Chart;
 using YARG.Core.Ini;
 
-namespace YARG.Core.Chart
+namespace YARG.Core.Song
 {
     public partial class SongMetadata
     {

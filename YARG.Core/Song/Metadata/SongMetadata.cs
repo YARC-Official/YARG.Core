@@ -1,6 +1,7 @@
 using System.Collections.Generic;
+using YARG.Core.Chart;
 
-namespace YARG.Core.Chart
+namespace YARG.Core.Song
 {
     /// <summary>
     /// The metadata for a song.

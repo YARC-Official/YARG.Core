@@ -2,6 +2,7 @@
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Engines;
 using YARG.Core.Chart;
+using YARG.Core.Song;
 
 namespace YARG.Core.Benchmarks
 {

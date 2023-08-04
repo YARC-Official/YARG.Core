@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 
-namespace YARG.Core.Chart
+namespace YARG.Core.Song
 {
     [Serializable]
     public class AvailableParts

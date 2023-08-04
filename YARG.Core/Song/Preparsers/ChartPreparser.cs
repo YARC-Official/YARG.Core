@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
 
-namespace YARG.Core.Chart
+namespace YARG.Core.Song
 {
     public static class ChartPreparser
     {

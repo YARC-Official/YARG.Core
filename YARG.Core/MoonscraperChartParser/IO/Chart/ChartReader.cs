@@ -14,6 +14,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using YARG.Core;
 using YARG.Core.Chart;
+using YARG.Core.Song;
 using YARG.Core.Utility;
 
 namespace MoonscraperChartEditor.Song.IO

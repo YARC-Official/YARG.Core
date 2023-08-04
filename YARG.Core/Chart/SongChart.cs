@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Melanchall.DryWetMidi.Core;
+using YARG.Core.Song;
 
 namespace YARG.Core.Chart
 {

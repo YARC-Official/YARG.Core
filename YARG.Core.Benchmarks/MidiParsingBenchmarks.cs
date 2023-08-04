@@ -3,6 +3,7 @@ using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Engines;
 using Melanchall.DryWetMidi.Core;
 using YARG.Core.Chart;
+using YARG.Core.Song;
 
 namespace YARG.Core.Benchmarks
 {
