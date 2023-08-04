@@ -9,25 +9,21 @@ namespace YARG.Core.Benchmarks
 {
     public static class Program
     {
-        // Config to run benchmarks in-process, so that certain parameters can be set outside of benchmarking
-        public static readonly IConfig BenchmarkConfig = DefaultConfig.Instance
-            .AddJob(Job.Default
-                .WithToolchain(InProcessNoEmitToolchain.Instance)
-                .AsDefault());
-
         public static void Main()
         {
             ConsoleUtilities.WriteMenuHeader("YARG.Core Benchmarks", false);
 
             int choice = ConsoleUtilities.PromptChoice("Select a benchmark: ",
                 "Chart Parsing",
+                "Playground",
                 "Exit"
             );
 
             switch (choice)
             {
                 case 0: ChartParsingBenchmark(); break;
-                case 1: return;
+                case 1: BenchmarkPlayground(); break;
+                case 2: return;
             }
         }
 
@@ -52,6 +48,10 @@ namespace YARG.Core.Benchmarks
 
             Console.WriteLine();
 
+            // Configure to run in-process, so that chart path can be passed in
+            var config = DefaultConfig.Instance
+                .AddJob(Job.Default.WithToolchain(InProcessNoEmitToolchain.Instance));
+
             // A little unnecessary to split the file types into different tests, I suppose,
             // but why determine chart type repeatedly in the benchmark when you could do it once instead?
             string extension = Path.GetExtension(chartPath);
@@ -59,14 +59,20 @@ namespace YARG.Core.Benchmarks
             {
                 case ".chart":
                     DotChartParsingBenchmarks.ChartPath = chartPath;
-                    BenchmarkRunner.Run<DotChartParsingBenchmarks>(BenchmarkConfig);
+                    BenchmarkRunner.Run<DotChartParsingBenchmarks>(config);
                     break;
                 case ".mid":
                     MidiParsingBenchmarks.ChartPath = chartPath;
-                    BenchmarkRunner.Run<MidiParsingBenchmarks>(BenchmarkConfig);
+                    BenchmarkRunner.Run<MidiParsingBenchmarks>(config);
                     break;
             }
 
+            ConsoleUtilities.WaitForKey("Press any key to exit...");
+        }
+
+        private static void BenchmarkPlayground()
+        {
+            BenchmarkRunner.Run<BenchmarkPlayground>();
             ConsoleUtilities.WaitForKey("Press any key to exit...");
         }
     }
