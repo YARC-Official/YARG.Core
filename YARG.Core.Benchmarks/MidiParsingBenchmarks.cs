@@ -12,7 +12,7 @@ namespace YARG.Core.Benchmarks
     {
         public static string ChartPath { get; set; }
 
-        private SongMetadata metadata = new();
+        private ParseSettings settings = ParseSettings.Default;
         private MidiFile midi;
 
         [GlobalSetup]
@@ -24,7 +24,7 @@ namespace YARG.Core.Benchmarks
         [Benchmark]
         public SongChart ChartParsing()
         {
-            return SongChart.FromMidi(metadata, midi);
+            return SongChart.FromMidi(settings, midi);
         }
     }
 }

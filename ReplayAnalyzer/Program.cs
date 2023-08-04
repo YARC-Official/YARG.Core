@@ -1,7 +1,6 @@
 ﻿using ReplayAnalyzer;
 using YARG.Core;
 using YARG.Core.Chart;
-using YARG.Core.Song;
 using YARG.Core.Replays.IO;
 
 YargTrace.AddListener(new YargDebugTraceListener());
@@ -80,10 +79,10 @@ while (true)
     {
         if (File.Exists(notesMid))
         {
-            chart = SongChart.FromFile(new SongMetadata(), notesMid);
+            chart = SongChart.FromFile(ParseSettings.Default, notesMid);
         } else
         {
-            chart = SongChart.FromFile(new SongMetadata(), notesChart);
+            chart = SongChart.FromFile(ParseSettings.Default, notesChart);
         }
     }
     catch (Exception e)

@@ -11,7 +11,7 @@ namespace YARG.Core.Benchmarks
     {
         public static string ChartPath { get; set; }
 
-        private SongMetadata metadata = new();
+        private ParseSettings settings = ParseSettings.Default;
         private string chartText;
 
         [GlobalSetup]
@@ -23,7 +23,7 @@ namespace YARG.Core.Benchmarks
         [Benchmark]
         public SongChart ChartParsing()
         {
-            return SongChart.FromDotChart(metadata, chartText);
+            return SongChart.FromDotChart(settings, chartText);
         }
     }
 }

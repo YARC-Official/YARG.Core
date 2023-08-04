@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Melanchall.DryWetMidi.Core;
-using YARG.Core.Song;
 
 namespace YARG.Core.Chart
 {
@@ -142,24 +141,24 @@ namespace YARG.Core.Chart
             // Dj = loader.LoadDjTrack(Instrument.Dj);
         }
 
-        public static SongChart FromFile(SongMetadata metadata, string filePath)
+        public static SongChart FromFile(ParseSettings settings, string filePath)
         {
             ISongLoader loader = new MoonSongLoader();
-            loader.LoadSong(metadata.ParseSettings, filePath);
+            loader.LoadSong(settings, filePath);
             return new SongChart(loader);
         }
 
-        public static SongChart FromMidi(SongMetadata metadata, MidiFile midi)
+        public static SongChart FromMidi(ParseSettings settings, MidiFile midi)
         {
             ISongLoader loader = new MoonSongLoader();
-            loader.LoadMidi(metadata.ParseSettings, midi);
+            loader.LoadMidi(settings, midi);
             return new SongChart(loader);
         }
 
-        public static SongChart FromDotChart(SongMetadata metadata, string chartText)
+        public static SongChart FromDotChart(ParseSettings settings, string chartText)
         {
             ISongLoader loader = new MoonSongLoader();
-            loader.LoadDotChart(metadata.ParseSettings, chartText);
+            loader.LoadDotChart(settings, chartText);
             return new SongChart(loader);
         }
 
