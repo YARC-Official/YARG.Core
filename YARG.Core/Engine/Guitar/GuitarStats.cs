@@ -27,5 +27,13 @@
             HoposStrummed = stats.HoposStrummed;
             GhostInputs = stats.GhostInputs;
         }
+
+        public override void Reset()
+        {
+            base.Reset();
+            Overstrums = 0;
+            HoposStrummed = 0;
+            GhostInputs = 0;
+        }
     }
 }

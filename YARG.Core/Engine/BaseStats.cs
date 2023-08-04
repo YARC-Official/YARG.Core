@@ -76,5 +76,20 @@
             PhrasesMissed = stats.PhrasesMissed;
             Stars = stats.Stars;
         }
+
+        public virtual void Reset()
+        {
+            Score = 0;
+            Combo = 0;
+            MaxCombo = 0;
+            ScoreMultiplier = 1;
+            NotesHit = 0;
+            NotesMissed = 0;
+            StarPowerAmount = 0;
+            IsStarPowerActive = false;
+            PhrasesHit = 0;
+            PhrasesMissed = 0;
+            Stars = 0;
+        }
     }
 }

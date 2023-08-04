@@ -113,6 +113,8 @@ namespace YARG.Core.Engine
             IsBotUpdate = true;
         }
 
+        public abstract void Reset();
+
         /// <summary>
         /// Executes engine logic with respect to the given time.
         /// </summary>
@@ -182,7 +184,7 @@ namespace YARG.Core.Engine
         protected readonly List<TNoteType> Notes;
         protected readonly TEngineParams   EngineParameters;
 
-        protected TEngineState State;
+        public TEngineState State;
 
         protected BaseEngine(InstrumentDifficulty<TNoteType> chart, SyncTrack syncTrack,
             TEngineParams engineParameters) : base(syncTrack)
@@ -219,6 +221,20 @@ namespace YARG.Core.Engine
             var currentTimeSig = timeSigs[State.CurrentTimeSigIndex];
 
             State.TicksEveryEightMeasures = Resolution * (4 / currentTimeSig.Denominator) * currentTimeSig.Numerator * 8;
+        }
+
+        public override void Reset()
+        {
+            CurrentInput = new GameInput(-9999, -9999, -9999);
+            InputQueue.Clear();
+
+            State.Reset();
+            EngineStats.Reset();
+
+            foreach (var note in Notes)
+            {
+                note.ResetNoteState();
+            }
         }
 
         protected abstract bool CheckForNoteHit();
