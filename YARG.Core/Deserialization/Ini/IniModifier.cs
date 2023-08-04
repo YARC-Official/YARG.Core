@@ -23,7 +23,8 @@ namespace YARG.Core.Deserialization.Ini
         INT16,
         BOOL,
         FLOAT,
-        FLOATARRAY,
+        DOUBLE,
+        DOUBLEARRAY,
     };
 
     public unsafe class IniModifier
@@ -37,9 +38,10 @@ namespace YARG.Core.Deserialization.Ini
             [FieldOffset(0)] public int i;
             [FieldOffset(0)] public ushort us;
             [FieldOffset(0)] public short s;
+            [FieldOffset(0)] public double d;
             [FieldOffset(0)] public float f;
             [FieldOffset(0)] public bool b;
-            [FieldOffset(0)] public fixed float flArr[2];
+            [FieldOffset(0)] public fixed double dbArr[2];
         }
 
         private readonly ModifierType type;
@@ -98,11 +100,16 @@ namespace YARG.Core.Deserialization.Ini
             type = ModifierType.FLOAT;
             union.f = value;
         }
-        public IniModifier(float fl1, float fl2)
+        public IniModifier(double value)
         {
-            type = ModifierType.FLOATARRAY;
-            union.flArr[0] = fl1;
-            union.flArr[1] = fl2;
+            type = ModifierType.DOUBLE;
+            union.d = value;
+        }
+        public IniModifier(double dub1, double dub2)
+        {
+            type = ModifierType.DOUBLEARRAY;
+            union.dbArr[0] = dub1;
+            union.dbArr[1] = dub2;
         }
 
         public SortString SORTSTR
@@ -265,20 +272,36 @@ namespace YARG.Core.Deserialization.Ini
             }
         }
 
-        public float[] FLOATARRAY
+        public double DOUBLE
         {
             get
             {
-                if (type != ModifierType.FLOAT)
-                    throw new ArgumentException("Modifier is not a FLOAT");
-                return new float[] { union.flArr[0], union.flArr[1] };
+                if (type != ModifierType.DOUBLE)
+                    throw new ArgumentException("Modifier is not a DOUBLE");
+                return union.d;
             }
             set
             {
-                if (type != ModifierType.FLOAT)
-                    throw new ArgumentException("Modifier is not a FLOAT");
-                union.flArr[0] = value[0];
-                union.flArr[1] = value[1];
+                if (type != ModifierType.DOUBLE)
+                    throw new ArgumentException("Modifier is not a DOUBLE");
+                union.d = value;
+            }
+        }
+
+        public double[] DOUBLEARRAY
+        {
+            get
+            {
+                if (type != ModifierType.DOUBLEARRAY)
+                    throw new ArgumentException("Modifier is not a DOUBLEARRAY");
+                return new double[] { union.dbArr[0], union.dbArr[1] };
+            }
+            set
+            {
+                if (type != ModifierType.DOUBLEARRAY)
+                    throw new ArgumentException("Modifier is not a DOUBLEARRAY");
+                union.dbArr[0] = value[0];
+                union.dbArr[1] = value[1];
             }
         }
     }
