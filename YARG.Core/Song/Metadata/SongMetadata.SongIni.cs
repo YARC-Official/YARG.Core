@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using EasySharpIni;
 using EasySharpIni.Converters;
 using EasySharpIni.Models;
@@ -31,17 +31,16 @@ namespace YARG.Core.Song
 
         private SongMetadata(IniSection section)
         {
-            Name = section.GetField("name");
-            Artist = section.GetField("artist");
-            Album = section.GetField("album");
-            Genre = section.GetField("genre");
-            Year = section.GetField("year");
+            Name = section.GetField("name").Get();
+            Artist = section.GetField("artist").Get();
+            Album = section.GetField("album").Get();
+            Genre = section.GetField("genre").Get();
+            Year = section.GetField("year").Get();
+            Charter = section.GetField("charter").Get();
+            Source = section.GetField("icon").Get();
 
             // .ini songs are assumed to be masters and not covers
             IsMaster = true;
-
-            Charter = section.GetField("charter");
-            Source = section.GetField("icon");
 
             LoadingPhrase = section.GetField("loading_phrase");
 

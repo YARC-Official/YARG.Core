@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using YARG.Core.Chart;
 
 namespace YARG.Core.Song
@@ -20,16 +20,15 @@ namespace YARG.Core.Song
     /// </remarks>
     public sealed partial class SongMetadata
     {
-        public string Name { get; set; } = string.Empty;
-        public string Artist { get; set; } = string.Empty;
-        public string Album { get; set; } = string.Empty;
-        public string Genre { get; set; } = string.Empty;
-        public string Year { get; set; } = string.Empty;
+        public SortString Name { get; set; } = string.Empty;
+        public SortString Artist { get; set; } = string.Empty;
+        public SortString Album { get; set; } = string.Empty;
+        public SortString Genre { get; set; } = string.Empty;
+        public SortString Year { get; set; } = string.Empty;
+        public SortString Charter { get; set; } = string.Empty;
+        public SortString Source { get; set; } = string.Empty;
 
         public bool IsMaster { get; set; } = true;
-
-        public string Charter { get; set; } = string.Empty;
-        public string Source { get; set; } = string.Empty;
 
         public string LoadingPhrase { get; set; } = string.Empty;
 
