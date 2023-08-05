@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
-using YARG.Core.Deserialization;
+using YARG.Core.Song.Deserialization;
 
 namespace YARG.Core.Song
 {

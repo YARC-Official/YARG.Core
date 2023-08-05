@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace YARG.Core.Deserialization
+namespace YARG.Core.Song.Deserialization
 {
     public unsafe class YARGTXTReader : YARGTXTReader_Base
     {

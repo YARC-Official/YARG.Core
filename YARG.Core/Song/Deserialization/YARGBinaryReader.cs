@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace YARG.Core.Deserialization
+namespace YARG.Core.Song.Deserialization
 {
     public enum Endianness
     {

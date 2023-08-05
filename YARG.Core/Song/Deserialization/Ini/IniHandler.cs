@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace YARG.Core.Deserialization.Ini
+namespace YARG.Core.Song.Deserialization.Ini
 {
     public static class IniHandler
     {

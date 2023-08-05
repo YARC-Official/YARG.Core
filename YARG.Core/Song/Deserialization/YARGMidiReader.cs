@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace YARG.Core.Deserialization
+namespace YARG.Core.Song.Deserialization
 {
     public enum MidiEventType : byte
     {
@@ -204,7 +204,7 @@ namespace YARG.Core.Deserialization
 
             currentEvent.position += reader.ReadVLQ();
             byte tmp = reader.PeekByte();
-            MidiEventType type = (MidiEventType) tmp;
+            var type = (MidiEventType) tmp;
             if (type < MidiEventType.Note_Off)
             {
                 if (midiEvent == MidiEventType.Reset_Or_Meta)

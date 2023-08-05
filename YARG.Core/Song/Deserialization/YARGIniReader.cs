@@ -5,9 +5,9 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
-using YARG.Core.Deserialization.Ini;
+using YARG.Core.Song.Deserialization.Ini;
 
-namespace YARG.Core.Deserialization
+namespace YARG.Core.Song.Deserialization
 {
     public unsafe class YARGIniReader
     {

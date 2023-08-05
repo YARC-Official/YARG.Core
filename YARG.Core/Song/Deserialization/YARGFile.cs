@@ -7,7 +7,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace YARG.Core.Deserialization
+namespace YARG.Core.Song.Deserialization
 {
     public unsafe class YARGFile
     {

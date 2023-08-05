@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using YARG.Core.Deserialization;
+using YARG.Core.Song.Deserialization;
 
 namespace YARG.Core.Song
 {

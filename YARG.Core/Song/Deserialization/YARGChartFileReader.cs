@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using YARG.Core.Deserialization.Ini;
+using YARG.Core.Song.Deserialization.Ini;
 
-namespace YARG.Core.Deserialization
+namespace YARG.Core.Song.Deserialization
 {
     public enum ChartEvent
     {
@@ -46,15 +46,15 @@ namespace YARG.Core.Deserialization
             }
         }
 
-        internal static readonly byte[] HEADERTRACK =     Encoding.ASCII.GetBytes("[Song]");
-        internal static readonly byte[] SYNCTRACK =       Encoding.ASCII.GetBytes("[SyncTrack]");
-        internal static readonly byte[] EVENTTRACK =      Encoding.ASCII.GetBytes("[Events]");
-        internal static readonly EventCombo TEMPO =   new(Encoding.ASCII.GetBytes("B"),  ChartEvent.BPM);
+        internal static readonly byte[] HEADERTRACK = Encoding.ASCII.GetBytes("[Song]");
+        internal static readonly byte[] SYNCTRACK = Encoding.ASCII.GetBytes("[SyncTrack]");
+        internal static readonly byte[] EVENTTRACK = Encoding.ASCII.GetBytes("[Events]");
+        internal static readonly EventCombo TEMPO = new(Encoding.ASCII.GetBytes("B"), ChartEvent.BPM);
         internal static readonly EventCombo TIMESIG = new(Encoding.ASCII.GetBytes("TS"), ChartEvent.TIME_SIG);
-        internal static readonly EventCombo ANCHOR =  new(Encoding.ASCII.GetBytes("A"),  ChartEvent.ANCHOR);
-        internal static readonly EventCombo TEXT =    new(Encoding.ASCII.GetBytes("E"),  ChartEvent.EVENT);
-        internal static readonly EventCombo NOTE =    new(Encoding.ASCII.GetBytes("N"),  ChartEvent.NOTE);
-        internal static readonly EventCombo SPECIAL = new(Encoding.ASCII.GetBytes("S"),  ChartEvent.SPECIAL);
+        internal static readonly EventCombo ANCHOR = new(Encoding.ASCII.GetBytes("A"), ChartEvent.ANCHOR);
+        internal static readonly EventCombo TEXT = new(Encoding.ASCII.GetBytes("E"), ChartEvent.EVENT);
+        internal static readonly EventCombo NOTE = new(Encoding.ASCII.GetBytes("N"), ChartEvent.NOTE);
+        internal static readonly EventCombo SPECIAL = new(Encoding.ASCII.GetBytes("S"), ChartEvent.SPECIAL);
 
         internal static readonly byte[][] DIFFICULTIES =
         {

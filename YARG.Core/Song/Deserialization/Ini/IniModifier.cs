@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using System.Xml.Linq;
 using YARG.Core.Song;
 
-namespace YARG.Core.Deserialization.Ini
+namespace YARG.Core.Song.Deserialization.Ini
 {
     public enum ModifierType
     {
