@@ -22,25 +22,27 @@ namespace YARG.Core.Song.Deserialization.Ini
             return modifiers.ContainsKey(key);
         }
 
-        public bool TryGet(string key, ref SortString str, string defaultStr)
+        public bool TryGet(string key, out SortString str, string defaultStr)
         {
+            str = defaultStr;
             if (!modifiers.TryGetValue(key, out var results))
                 return false;
 
             for (int i = 0; i < results.Count; ++i)
             {
-                str = results[i].SORTSTR;
-                if (str.Str != string.Empty && str.Str != defaultStr)
-                    break;
+                if (results[i].SORTSTR.Str != string.Empty)
+                {
+                    str = results[i].SORTSTR;
+                    if (str.Str != defaultStr)
+                        break;
+                }
             }
-
-            if (str.Str == string.Empty)
-                str = defaultStr;
             return true;
         }
 
-        public bool TryGet(string key, ref string str)
+        public bool TryGet(string key, out string str)
         {
+            str = string.Empty;
             if (!modifiers.TryGetValue(key, out var results))
                 return false;
 
@@ -48,8 +50,9 @@ namespace YARG.Core.Song.Deserialization.Ini
             return true;
         }
 
-        public bool TryGet(string key, ref ulong val)
+        public bool TryGet(string key, out ulong val)
         {
+            val = 0;
             if (!modifiers.TryGetValue(key, out var results))
                 return false;
 
@@ -57,8 +60,9 @@ namespace YARG.Core.Song.Deserialization.Ini
             return true;
         }
 
-        public bool TryGet(string key, ref long val)
+        public bool TryGet(string key, out long val)
         {
+            val = -1;
             if (!modifiers.TryGetValue(key, out var results))
                 return false;
 
@@ -66,8 +70,9 @@ namespace YARG.Core.Song.Deserialization.Ini
             return true;
         }
 
-        public bool TryGet(string key, ref uint val)
+        public bool TryGet(string key, out uint val)
         {
+            val = 0;
             if (!modifiers.TryGetValue(key, out var results))
                 return false;
 
@@ -75,8 +80,9 @@ namespace YARG.Core.Song.Deserialization.Ini
             return true;
         }
 
-        public bool TryGet(string key, ref int val)
+        public bool TryGet(string key, out int val)
         {
+            val = -1;
             if (!modifiers.TryGetValue(key, out var results))
                 return false;
 
@@ -84,8 +90,9 @@ namespace YARG.Core.Song.Deserialization.Ini
             return true;
         }
 
-        public bool TryGet(string key, ref ushort val)
+        public bool TryGet(string key, out ushort val)
         {
+            val = 0;
             if (!modifiers.TryGetValue(key, out var results))
                 return false;
 
@@ -93,8 +100,9 @@ namespace YARG.Core.Song.Deserialization.Ini
             return true;
         }
 
-        public bool TryGet(string key, ref short val)
+        public bool TryGet(string key, out short val)
         {
+            val = -1;
             if (!modifiers.TryGetValue(key, out var results))
                 return false;
 
@@ -102,8 +110,9 @@ namespace YARG.Core.Song.Deserialization.Ini
             return true;
         }
 
-        public bool TryGet(string key, ref float val)
+        public bool TryGet(string key, out float val)
         {
+            val = 0;
             if (!modifiers.TryGetValue(key, out var results))
                 return false;
 
@@ -111,8 +120,9 @@ namespace YARG.Core.Song.Deserialization.Ini
             return true;
         }
 
-        public bool TryGet(string key, ref double val)
+        public bool TryGet(string key, out double val)
         {
+            val = 0;
             if (!modifiers.TryGetValue(key, out var results))
                 return false;
 
@@ -120,8 +130,10 @@ namespace YARG.Core.Song.Deserialization.Ini
             return true;
         }
 
-        public bool TryGet(string key, ref ulong val1, ref ulong val2)
+        public bool TryGet(string key, out ulong val1, out ulong val2)
         {
+            val1 = 0;
+            val2 = 0;
             if (!modifiers.TryGetValue(key, out var results))
                 return false;
 
@@ -131,8 +143,9 @@ namespace YARG.Core.Song.Deserialization.Ini
             return true;
         }
 
-        public bool TryGet(string key, ref bool val)
+        public bool TryGet(string key, out bool val)
         {
+            val = false;
             if (!modifiers.TryGetValue(key, out var results))
                 return false;
 
