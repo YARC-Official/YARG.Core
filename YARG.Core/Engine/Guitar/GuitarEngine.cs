@@ -38,6 +38,19 @@ namespace YARG.Core.Engine.Guitar
             }
         }
 
+        public override void Reset(bool keepCurrentButtons = false)
+        {
+            byte buttons = State.ButtonMask;
+            ActiveSustains.Clear();
+
+            base.Reset(keepCurrentButtons);
+
+            if (keepCurrentButtons)
+            {
+                State.ButtonMask = buttons;
+            }
+        }
+
         protected abstract void UpdateSustains();
 
         protected virtual void Overstrum()

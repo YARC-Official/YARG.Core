@@ -113,7 +113,7 @@ namespace YARG.Core.Engine
             IsBotUpdate = true;
         }
 
-        public abstract void Reset();
+        public abstract void Reset(bool keepCurrentButtons = false);
 
         /// <summary>
         /// Executes engine logic with respect to the given time.
@@ -223,7 +223,7 @@ namespace YARG.Core.Engine
             State.TicksEveryEightMeasures = Resolution * (4 / currentTimeSig.Denominator) * currentTimeSig.Numerator * 8;
         }
 
-        public override void Reset()
+        public override void Reset(bool keepCurrentButtons = false)
         {
             CurrentInput = new GameInput(-9999, -9999, -9999);
             InputQueue.Clear();
