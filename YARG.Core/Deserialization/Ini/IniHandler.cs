@@ -43,7 +43,7 @@ namespace YARG.Core.Deserialization.Ini
                 { "cover",                                new("cover", ModifierNodeType.STRING) },
 
                 { "dance_type",                           new("dance_type", ModifierNodeType.UINT32) },
-                { "delay",                                new("delay", ModifierNodeType.DOUBLE) },
+                { "delay",                                new("delay", ModifierNodeType.INT64) },
                 { "diff_band",                            new("diff_band", ModifierNodeType.INT32) },
                 { "diff_bass",                            new("diff_bass", ModifierNodeType.INT32) },
                 { "diff_bass_real",                       new("diff_bass_real", ModifierNodeType.INT32) },
@@ -99,9 +99,9 @@ namespace YARG.Core.Deserialization.Ini
 
                 { "playlist",                             new("playlist", ModifierNodeType.SORTSTRING) },
                 { "playlist_track",                       new("playlist_track", ModifierNodeType.UINT16) },
-                { "preview",                              new("preview", ModifierNodeType.DOUBLEARRAY) },
-                { "preview_end_time",                     new("preview_end_time", ModifierNodeType.DOUBLE) },
-                { "preview_start_time",                   new("preview_start_time", ModifierNodeType.DOUBLE) },
+                { "preview",                              new("preview", ModifierNodeType.UINT64ARRAY) },
+                { "preview_end_time",                     new("preview_end_time", ModifierNodeType.UINT64) },
+                { "preview_start_time",                   new("preview_start_time", ModifierNodeType.UINT64) },
 
                 { "pro_drum",                             new("pro_drums", ModifierNodeType.BOOL) },
                 { "pro_drums",                            new("pro_drums", ModifierNodeType.BOOL) },
@@ -138,9 +138,9 @@ namespace YARG.Core.Deserialization.Ini
 
                 { "version",                              new("version", ModifierNodeType.UINT32) },
                 { "video",                                new("video", ModifierNodeType.STRING) },
-                { "video_end_time",                       new("video_end_time", ModifierNodeType.DOUBLE) },
+                { "video_end_time",                       new("video_end_time", ModifierNodeType.INT64) },
                 { "video_loop",                           new("video_loop", ModifierNodeType.BOOL) },
-                { "video_start_time",                     new("video_start_time", ModifierNodeType.DOUBLE) },
+                { "video_start_time",                     new("video_start_time", ModifierNodeType.INT64) },
                 { "vocal_gender",                         new("vocal_gender", ModifierNodeType.UINT32) },
 
                 { "year",                                 new("year", ModifierNodeType.STRING) }

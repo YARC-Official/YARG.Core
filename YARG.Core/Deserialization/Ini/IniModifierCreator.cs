@@ -23,7 +23,7 @@ namespace YARG.Core.Deserialization.Ini
         BOOL,
         FLOAT,
         DOUBLE,
-        DOUBLEARRAY
+        UINT64ARRAY,
     }
 
     public class IniModifierCreator
@@ -56,10 +56,10 @@ namespace YARG.Core.Deserialization.Ini
                     case ModifierNodeType.BOOL:             return new(reader.ReadBoolean());
                     case ModifierNodeType.FLOAT:            return new(reader.ReadFloat());
                     case ModifierNodeType.DOUBLE:           return new(reader.ReadDouble());
-                    case ModifierNodeType.DOUBLEARRAY:
+                    case ModifierNodeType.UINT64ARRAY:
                         {
-                            double dub1 = reader.ReadDouble();
-                            double dub2 = reader.ReadDouble();
+                            ulong dub1 = reader.ReadUInt64();
+                            ulong dub2 = reader.ReadUInt64();
                             return new(dub1, dub2);
                         }
                 }
@@ -77,7 +77,7 @@ namespace YARG.Core.Deserialization.Ini
                     case ModifierNodeType.BOOL:        return new(false);
                     case ModifierNodeType.FLOAT:       return new(.0f);
                     case ModifierNodeType.DOUBLE:      return new(.0);
-                    case ModifierNodeType.DOUBLEARRAY: return new(0, 0);
+                    case ModifierNodeType.UINT64ARRAY: return new(0, 0);
                 }
             }
             throw new Exception("How in the fu-");

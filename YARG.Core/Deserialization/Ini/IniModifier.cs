@@ -24,7 +24,7 @@ namespace YARG.Core.Deserialization.Ini
         BOOL,
         FLOAT,
         DOUBLE,
-        DOUBLEARRAY,
+        UINT64ARRAY,
     };
 
     public unsafe class IniModifier
@@ -41,7 +41,7 @@ namespace YARG.Core.Deserialization.Ini
             [FieldOffset(0)] public double d;
             [FieldOffset(0)] public float f;
             [FieldOffset(0)] public bool b;
-            [FieldOffset(0)] public fixed double dbArr[2];
+            [FieldOffset(0)] public fixed ulong ulArr[2];
         }
 
         private readonly ModifierType type;
@@ -105,11 +105,11 @@ namespace YARG.Core.Deserialization.Ini
             type = ModifierType.DOUBLE;
             union.d = value;
         }
-        public IniModifier(double dub1, double dub2)
+        public IniModifier(ulong dub1, ulong dub2)
         {
-            type = ModifierType.DOUBLEARRAY;
-            union.dbArr[0] = dub1;
-            union.dbArr[1] = dub2;
+            type = ModifierType.UINT64ARRAY;
+            union.ulArr[0] = dub1;
+            union.ulArr[1] = dub2;
         }
 
         public SortString SORTSTR
@@ -288,20 +288,20 @@ namespace YARG.Core.Deserialization.Ini
             }
         }
 
-        public double[] DOUBLEARRAY
+        public ulong[] UINT64ARRAY
         {
             get
             {
-                if (type != ModifierType.DOUBLEARRAY)
-                    throw new ArgumentException("Modifier is not a DOUBLEARRAY");
-                return new double[] { union.dbArr[0], union.dbArr[1] };
+                if (type != ModifierType.UINT64ARRAY)
+                    throw new ArgumentException("Modifier is not a UINT64ARRAY");
+                return new ulong[] { union.ulArr[0], union.ulArr[1] };
             }
             set
             {
-                if (type != ModifierType.DOUBLEARRAY)
-                    throw new ArgumentException("Modifier is not a DOUBLEARRAY");
-                union.dbArr[0] = value[0];
-                union.dbArr[1] = value[1];
+                if (type != ModifierType.UINT64ARRAY)
+                    throw new ArgumentException("Modifier is not a UINT64ARRAY");
+                union.ulArr[0] = value[0];
+                union.ulArr[1] = value[1];
             }
         }
     }

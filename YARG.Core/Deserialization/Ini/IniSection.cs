@@ -120,12 +120,12 @@ namespace YARG.Core.Deserialization.Ini
             return true;
         }
 
-        public bool TrySetDoubleArray(string key, ref double val1, ref double val2)
+        public bool TryGet(string key, ref ulong val1, ref ulong val2)
         {
             if (!modifiers.TryGetValue(key, out var results))
                 return false;
 
-            var dub = results[0].DOUBLEARRAY;
+            ulong[] dub = results[0].UINT64ARRAY;
             val1 = dub[0];
             val2 = dub[1];
             return true;
