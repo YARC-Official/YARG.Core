@@ -28,6 +28,8 @@ namespace YARG.Core.Deserialization
         Keys,
         GHLGuitar,
         GHLBass,
+        GHLRhythm,
+        GHLCoop,
         Invalid,
     };
 
@@ -44,15 +46,15 @@ namespace YARG.Core.Deserialization
             }
         }
 
-        internal static readonly byte[] HEADERTRACK = Encoding.ASCII.GetBytes("[Song]");
-        internal static readonly byte[] SYNCTRACK = Encoding.ASCII.GetBytes("[SyncTrack]");
-        internal static readonly byte[] EVENTTRACK = Encoding.ASCII.GetBytes("[Events]");
-        internal static readonly EventCombo TEMPO = new(Encoding.ASCII.GetBytes("B"), ChartEvent.BPM);
+        internal static readonly byte[] HEADERTRACK =     Encoding.ASCII.GetBytes("[Song]");
+        internal static readonly byte[] SYNCTRACK =       Encoding.ASCII.GetBytes("[SyncTrack]");
+        internal static readonly byte[] EVENTTRACK =      Encoding.ASCII.GetBytes("[Events]");
+        internal static readonly EventCombo TEMPO =   new(Encoding.ASCII.GetBytes("B"),  ChartEvent.BPM);
         internal static readonly EventCombo TIMESIG = new(Encoding.ASCII.GetBytes("TS"), ChartEvent.TIME_SIG);
-        internal static readonly EventCombo ANCHOR = new(Encoding.ASCII.GetBytes("A"), ChartEvent.ANCHOR);
-        internal static readonly EventCombo TEXT = new(Encoding.ASCII.GetBytes("E"), ChartEvent.EVENT);
-        internal static readonly EventCombo NOTE = new(Encoding.ASCII.GetBytes("N"), ChartEvent.NOTE);
-        internal static readonly EventCombo SPECIAL = new(Encoding.ASCII.GetBytes("S"), ChartEvent.SPECIAL);
+        internal static readonly EventCombo ANCHOR =  new(Encoding.ASCII.GetBytes("A"),  ChartEvent.ANCHOR);
+        internal static readonly EventCombo TEXT =    new(Encoding.ASCII.GetBytes("E"),  ChartEvent.EVENT);
+        internal static readonly EventCombo NOTE =    new(Encoding.ASCII.GetBytes("N"),  ChartEvent.NOTE);
+        internal static readonly EventCombo SPECIAL = new(Encoding.ASCII.GetBytes("S"),  ChartEvent.SPECIAL);
 
         internal static readonly byte[][] DIFFICULTIES =
         {
@@ -69,9 +71,11 @@ namespace YARG.Core.Deserialization
             new(Encoding.ASCII.GetBytes("DoubleBass]"),   NoteTracks_Chart.DoubleBass ),
             new(Encoding.ASCII.GetBytes("DoubleRhythm]"), NoteTracks_Chart.DoubleRhythm ),
             new(Encoding.ASCII.GetBytes("Drums]"),        NoteTracks_Chart.Drums ),
-            new(Encoding.ASCII.GetBytes("Keys]"),         NoteTracks_Chart.Keys ),
+            new(Encoding.ASCII.GetBytes("Keyboard]"),     NoteTracks_Chart.Keys ),
             new(Encoding.ASCII.GetBytes("GHLGuitar]"),    NoteTracks_Chart.GHLGuitar ),
             new(Encoding.ASCII.GetBytes("GHLBass]"),      NoteTracks_Chart.GHLBass ),
+            new(Encoding.ASCII.GetBytes("GHLRhythm]"),    NoteTracks_Chart.GHLGuitar ),
+            new(Encoding.ASCII.GetBytes("GHLCoop]"),      NoteTracks_Chart.GHLBass ),
         };
 
         internal static readonly EventCombo[] EVENTS_SYNC = { TEMPO, TIMESIG, ANCHOR };
