@@ -17,7 +17,12 @@
 
         public bool this[int subTrack]
         {
-            get { return ((byte) (1 << subTrack) & subTracks) > 0; }
+            get
+            {
+                if (subTracks >= 5)
+                    throw new System.Exception("Subtrack index out of range");
+                return ((byte) (1 << subTrack) & subTracks) > 0;
+            }
         }
 
         public bool IsParsed() { return subTracks > 0; }
