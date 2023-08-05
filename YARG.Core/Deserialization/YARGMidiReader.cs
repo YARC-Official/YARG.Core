@@ -1,10 +1,6 @@
 ﻿using System;
-using System.Buffers.Binary;
 using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace YARG.Core.Deserialization
 {
@@ -188,14 +184,23 @@ namespace YARG.Core.Deserialization
             return true;
         }
 
-        public bool TryParseEvent()
+        public bool TryParseEvent(ref MidiParseEvent ev)
+        {
+            if (!TryParseEvent())
+                return false;
+
+            ev = currentEvent;
+            return true;
+        }
+
+        private bool TryParseEvent()
         {
             if (currentEvent.type != MidiEventType.Reset_Or_Meta)
                 reader.ExitSection();
 
             currentEvent.position += reader.ReadVLQ();
             byte tmp = reader.PeekByte();
-            var type = (MidiEventType) tmp;
+            MidiEventType type = (MidiEventType) tmp;
             if (type < MidiEventType.Note_Off)
             {
                 if (midiEvent == MidiEventType.Reset_Or_Meta)
