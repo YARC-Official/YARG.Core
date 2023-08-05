@@ -59,6 +59,18 @@ namespace YARG.Core
     }
 
     /// <summary>
+    /// Available Drum types. Unknown values for preparse purposes
+    /// </summary>
+    public enum DrumType
+    {
+        FOUR_LANE,
+        FOUR_PRO,
+        FIVE_LANE,
+        UNKNOWN,
+        UNKNOWN_PRO,
+    }
+
+    /// <summary>
     /// Available difficulty levels.
     /// </summary>
     public enum Difficulty
