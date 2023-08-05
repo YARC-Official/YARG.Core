@@ -20,6 +20,8 @@
             get { return ((byte) (1 << subTrack) & subTracks) > 0; }
         }
 
+        public bool IsParsed() { return subTracks > 0; }
+
         public static PartValues operator |(PartValues lhs, PartValues rhs)
         {
             lhs.subTracks |= rhs.subTracks;

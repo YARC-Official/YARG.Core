@@ -62,34 +62,6 @@ namespace YARG.Core.Song
             VideoEndTime = section.GetField("video_end_time", INTEGER_TIME_DEFAULT).Get(IntegerTimeConverter);
 
             BandDifficulty = section.GetField("diff_band", INTEGER_GENERAL_DEFAULT).Get(IntConverter);
-            PartDifficulties = new()
-            {
-                { Instrument.FiveFretGuitar,        section.GetField("diff_guitar", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },
-                { Instrument.FiveFretCoopGuitar,    section.GetField("diff_guitar_coop", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },
-                { Instrument.FiveFretRhythm,        section.GetField("diff_rhythm", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },
-                { Instrument.FiveFretBass,          section.GetField("diff_bass", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },
-
-                                                    // yes, guitarghl and bassghl have no underscore before "ghl"
-                { Instrument.SixFretGuitar,         section.GetField("diff_guitarghl", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },
-                { Instrument.SixFretCoopGuitar,     section.GetField("diff_guitar_coop_ghl", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },
-                { Instrument.SixFretRhythm,         section.GetField("diff_rhythm_ghl", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },
-                { Instrument.SixFretBass,           section.GetField("diff_bassghl", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },
-
-                { Instrument.ProGuitar_17Fret,      section.GetField("diff_guitar_real", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },
-                { Instrument.ProGuitar_22Fret,      section.GetField("diff_guitar_real_22", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },
-                { Instrument.ProBass_17Fret,        section.GetField("diff_bass_real", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },
-                { Instrument.ProBass_22Fret,        section.GetField("diff_bass_real_22", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },
-
-                { Instrument.FourLaneDrums,         section.GetField("diff_drums", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },
-                { Instrument.FiveLaneDrums,         section.GetField("diff_drums", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },
-                { Instrument.ProDrums,              section.GetField("diff_drums_real", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },
-
-                { Instrument.Keys,                  section.GetField("diff_keys", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },
-                { Instrument.ProKeys,               section.GetField("diff_keys_real", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },
-
-                { Instrument.Vocals,                section.GetField("diff_vocals", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },
-                { Instrument.Harmony,               section.GetField("diff_vocals_harm", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },
-            };
 
             var drumsType = DrumsType.Unknown;
             if (section.GetField("pro_drums", BOOLEAN_GENERAL_DEFAULT).Get(BooleanConverter))
