@@ -177,6 +177,55 @@ namespace YARG.Core.Song
                    HarmonyVocals.subTracks > 0;
         }
 
+        public PartValues GetValues(Instrument instrument)
+        {
+            return instrument switch
+            {
+                Instrument.FiveFretGuitar => FiveFretGuitar,
+                Instrument.FiveFretBass => FiveFretBass,
+                Instrument.FiveFretRhythm => FiveFretRhythm,
+                Instrument.FiveFretCoopGuitar => FiveFretCoopGuitar,
+                Instrument.Keys => Keys,
+
+                Instrument.SixFretGuitar => SixFretGuitar,
+                Instrument.SixFretBass => SixFretBass,
+                Instrument.SixFretRhythm => SixFretRhythm,
+                Instrument.SixFretCoopGuitar => SixFretCoopGuitar,
+
+                Instrument.FourLaneDrums => FourLaneDrums,
+                Instrument.FiveLaneDrums => FiveLaneDrums,
+                Instrument.ProDrums => ProDrums,
+
+                // Instrument.TrueDrums => TrueDrums,
+
+                Instrument.ProGuitar_17Fret => ProGuitar_17Fret,
+                Instrument.ProGuitar_22Fret => ProGuitar_22Fret,
+                Instrument.ProBass_17Fret => ProBass_17Fret,
+                Instrument.ProBass_22Fret => ProBass_22Fret,
+
+                Instrument.ProKeys => ProKeys,
+
+                // Instrument.Dj => Dj,
+
+                Instrument.Vocals => LeadVocals,
+                Instrument.Harmony => HarmonyVocals,
+
+                _ => throw new NotImplementedException($"Unhandled instrument {instrument}!")
+            };
+        }
+
+        public bool HasPart(Instrument instrument, int subtrack)
+        {
+            try
+            {
+                return GetValues(instrument)[subtrack];
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         /// <summary>
         /// Uses the current instrument to institute applicable test parameters.
         /// This not include drums as those must be handled by a dedicated ChartDrumPreparser object.
