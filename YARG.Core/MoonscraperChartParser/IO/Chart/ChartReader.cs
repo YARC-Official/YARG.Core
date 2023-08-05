@@ -182,15 +182,7 @@ namespace MoonscraperChartEditor.Song.IO
 
         private static void SubmitDataSong(MoonSong song, ParseSettings settings, TrimSplitter sectionLines)
         {
-            try
-            {
-                ChartMetadata.ParseSongSection(song, sectionLines);
-            }
-            catch (Exception e)
-            {
-                YargTrace.LogException(e, "Error when reading .chart metadata!");
-            }
-
+            ChartMetadata.ParseSongSection(song, sectionLines);
             ValidateAndApplySettings(song, settings);
         }
 

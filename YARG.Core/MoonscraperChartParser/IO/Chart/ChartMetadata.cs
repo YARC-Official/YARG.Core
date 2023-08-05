@@ -3,6 +3,7 @@
 
 using System;
 using System.Globalization;
+using System.IO;
 using YARG.Core.Utility;
 
 namespace MoonscraperChartEditor.Song.IO
@@ -32,6 +33,7 @@ namespace MoonscraperChartEditor.Song.IO
             foreach (var line in sectionLines)
             {
                 var key = line.SplitOnceTrimmed('=', out var value);
+                value = value.Trim('"'); // Strip off any quotation marks
 
                 // Name = "5000 Robots"
                 if (key.Equals(NAME_KEY, StringComparison.Ordinal))
@@ -79,13 +81,18 @@ namespace MoonscraperChartEditor.Song.IO
 
                 // Resolution = 192
                 else if (key.Equals(RESOLUTION_KEY, StringComparison.Ordinal))
-                    song.resolution = ParseInteger(value);
+                {
+                    int resolution = ParseInteger(value);
+                    if (resolution < 1)
+                        throw new InvalidDataException($"Invalid .chart resolution {resolution}! Must be at least 1\nLine text: {line.ToString()}");
+                    song.resolution = resolution;
+                }
             }
         }
 
         private static string ParseString(ReadOnlySpan<char> valueString)
         {
-            return valueString.Trim('"').ToString();
+            return valueString.ToString();
         }
 
         private static string ParseYear(ReadOnlySpan<char> valueString)
