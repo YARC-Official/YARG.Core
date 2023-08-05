@@ -123,7 +123,7 @@ namespace YARG.Core.Utility
             public readonly ReadOnlySpan<char> GetSegment(ReadOnlySpan<char> buffer, int splitIndex)
                 => buffer[..splitIndex].Trim();
             public readonly ReadOnlySpan<char> GetRemaining(ReadOnlySpan<char> buffer, int splitIndex)
-                => buffer[splitIndex..].TrimStart();
+                => buffer[splitIndex..].Trim();
         }
 
         public static SpanSplitter<T> Split<T>(this Span<T> buffer, T split)
