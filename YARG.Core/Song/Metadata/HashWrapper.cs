@@ -36,6 +36,11 @@ namespace YARG.Core.Song.Metadata
             }
         }
 
+        public void Serialize(BinaryWriter writer)
+        {
+            writer.Write(_hash);
+        }
+
         public int CompareTo(HashWrapper other)
         {
             Debug.Assert(_hash.Length == other._hash.Length, "Two incompatible hash types used");
