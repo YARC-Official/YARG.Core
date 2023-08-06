@@ -1,10 +1,11 @@
 ﻿using System;
-using System.Diagnostics;
+using System.Collections.Generic;
+using System.Text;
 using YARG.Core.Song.Deserialization;
 
-namespace YARG.Core.Song
+namespace YARG.Core.Song.Preparsers
 {
-    public class ChartDrumPreparser
+    public class DrumPreparseHandler
     {
         private byte _validations;
         private DrumType _type;
@@ -12,13 +13,39 @@ namespace YARG.Core.Song
         public byte ValidatedDiffs => _validations;
         public DrumType Type => _type;
 
-        public ChartDrumPreparser(DrumType type)
+        public DrumPreparseHandler(DrumType type)
         {
             _type = type;
             _validations = 0;
         }
 
-        public void Preparse(YARGChartFileReader reader)
+        public void ParseMidi(YARGMidiReader reader)
+        {
+            if (_validations > 0)
+                return;
+
+            if (_type == DrumType.FIVE_LANE)
+                _validations = MidiInstrumentPreparser.Parse<Midi_FiveLaneDrum>(reader);
+            else if (_type == DrumType.FOUR_LANE || _type == DrumType.FOUR_PRO)
+            {
+                var preparser = _type == DrumType.FOUR_PRO ? new Midi_ProDrum() : new Midi_FourLaneDrum();
+                _validations = MidiInstrumentPreparser.Parse(preparser, reader);
+                _type = preparser.Type;
+            }
+            else
+            {
+                Midi_UnknownDrums unknown = new(_type);
+                _validations = MidiInstrumentPreparser.Parse(unknown, reader);
+                _type = unknown.Type switch
+                {
+                    DrumType.UNKNOWN_PRO => DrumType.FOUR_PRO,
+                    DrumType.UNKNOWN => DrumType.FOUR_LANE,
+                    _ => unknown.Type,
+                };
+            }
+        }
+
+        public void ParseChart(YARGChartFileReader reader)
         {
             int index = reader.Difficulty;
             int mask = 1 << index;
@@ -28,9 +55,9 @@ namespace YARG.Core.Song
             {
                 skip = _type switch
                 {
-                    DrumType.UNKNOWN => PreparseUnknown(reader, index, (byte) mask),
-                    DrumType.FOUR_LANE => PreparseFourLane(reader, index, (byte) mask),
-                    _ => PreparseCommon(reader, index, (byte) mask),
+                    DrumType.UNKNOWN => ParseChartUnknown(reader, index, (byte) mask),
+                    DrumType.FOUR_LANE => ParseChartFourLane(reader, index, (byte) mask),
+                    _ => ParseChartCommon(reader, index, (byte) mask),
                 };
             }
 
@@ -38,7 +65,7 @@ namespace YARG.Core.Song
                 reader.SkipTrack();
         }
 
-        private bool PreparseUnknown(YARGChartFileReader reader, int index, byte mask)
+        private bool ParseChartUnknown(YARGChartFileReader reader, int index, byte mask)
         {
             bool found = false;
             bool expertPlus = index != 3;
@@ -73,7 +100,7 @@ namespace YARG.Core.Song
             return false;
         }
 
-        private bool PreparseFourLane(YARGChartFileReader reader, int index, byte mask)
+        private bool ParseChartFourLane(YARGChartFileReader reader, int index, byte mask)
         {
             bool found = false;
             bool expertPlus = index != 3;
@@ -105,7 +132,7 @@ namespace YARG.Core.Song
             return false;
         }
 
-        private bool PreparseCommon(YARGChartFileReader reader, int index, byte mask)
+        private bool ParseChartCommon(YARGChartFileReader reader, int index, byte mask)
         {
             bool found = false;
             bool expertPlus = index != 3;

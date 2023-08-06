@@ -228,7 +228,7 @@ namespace YARG.Core.Song
 
         /// <summary>
         /// Uses the current instrument to institute applicable test parameters.
-        /// This not include drums as those must be handled by a dedicated ChartDrumPreparser object.
+        /// This does not include drums as those must be handled by a dedicated DrumPreparseHandler object.
         /// </summary>
         public void ParseChart(YARGChartFileReader reader)
         {
@@ -250,6 +250,9 @@ namespace YARG.Core.Song
                 reader.SkipTrack();
         }
 
+        /// <summary>
+        /// This not include drums as those must be handled by a dedicated DrumPreparseHandler object.
+        /// </summary>
         public void ParseMidi(MidiTrackType trackType, YARGMidiReader reader)
         {
             switch (trackType)
@@ -276,47 +279,6 @@ namespace YARG.Core.Song
                 case MidiTrackType.Harm1:         if (!HarmonyVocals[0] && MidiPreparser.Parse<Midi_Vocal>(reader))   HarmonyVocals.Set(0); break;
                 case MidiTrackType.Harm2:         if (!HarmonyVocals[1] && MidiPreparser.Parse<Midi_Harmony>(reader)) HarmonyVocals.Set(1); break;
                 case MidiTrackType.Harm3:         if (!HarmonyVocals[2] && MidiPreparser.Parse<Midi_Harmony>(reader)) HarmonyVocals.Set(2); break;
-            }
-        }
-
-        public void PreparseMidiDrums(ref DrumType drumType, YARGMidiReader reader)
-        {
-            if (drumType == DrumType.FIVE_LANE)
-            {
-                if (!FiveLaneDrums.IsParsed())
-                    FiveLaneDrums.subTracks |= MidiInstrumentPreparser.Parse<Midi_FiveLaneDrum>(reader);
-            }
-            else if (drumType == DrumType.FOUR_LANE || drumType == DrumType.FOUR_PRO)
-            {
-                if (!FourLaneDrums.IsParsed())
-                {
-                    var preparser = drumType == DrumType.FOUR_PRO ? new Midi_ProDrum() : new Midi_FourLaneDrum();
-                    FourLaneDrums.subTracks |= MidiInstrumentPreparser.Parse(preparser, reader);
-                    drumType = preparser.Type;
-                    if (drumType == DrumType.FOUR_PRO)
-                        ProDrums = FourLaneDrums;
-                }
-            }
-            else
-            {
-                Midi_UnknownDrums legacy = new(drumType);
-                byte result = MidiInstrumentPreparser.Parse(legacy, reader);
-                if (legacy.Type == DrumType.FIVE_LANE)
-                {
-                    FiveLaneDrums.subTracks = result;
-                    drumType = DrumType.FIVE_LANE;
-                }
-                else
-                {
-                    FourLaneDrums.subTracks = result;
-                    if (legacy.Type == DrumType.FOUR_PRO || legacy.Type == DrumType.UNKNOWN_PRO)
-                    {
-                        ProDrums.subTracks = result;
-                        drumType = DrumType.FOUR_PRO;
-                    }
-                    else
-                        drumType = DrumType.FOUR_LANE;
-                }
             }
         }
     }
