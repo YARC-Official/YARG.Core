@@ -1,11 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+﻿using System.IO;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
+using YARG.Core.Song.Metadata;
 
 namespace YARG.Core.Song.Deserialization
 {
@@ -35,14 +31,9 @@ namespace YARG.Core.Song.Deserialization
             handle.Free();
         }
 
-        public byte[] CalcSHA()
+        public byte[] CalcHash()
         {
-            return SHA1.Create().ComputeHash((byte[]) handle.Target);
-        }
-
-        public byte[] CalcMD5()
-        {
-            return MD5.Create().ComputeHash((byte[]) handle.Target);
+            return HashWrapper.Algorithm.ComputeHash((byte[]) handle.Target);
         }
     }
 }

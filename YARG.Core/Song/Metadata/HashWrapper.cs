@@ -1,11 +1,20 @@
 ﻿using System;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 
 namespace YARG.Core.Song.Metadata
 {
     public readonly struct HashWrapper : IComparable<HashWrapper>, IEquatable<HashWrapper>
     {
+        public static readonly HashAlgorithm Algorithm;
+        public static readonly int HashSizeInBytes = 20;
+        static HashWrapper()
+        {
+            Algorithm = SHA1.Create();
+        }
+
         private readonly byte[] _hash;
         private readonly int _hashcode;
 
