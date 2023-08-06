@@ -17,6 +17,17 @@ namespace YARG.Core.Song.Deserialization.Ini
             this.modifiers = modifiers;
         }
 
+        public void Append(Dictionary<string, List<IniModifier>> modsToAdd)
+        {
+            foreach (var node in modsToAdd)
+            {
+                if (modifiers.TryGetValue(node.Key, out var list))
+                    list.AddRange(node.Value);
+                else
+                    modifiers.Add(node.Key, node.Value);
+            }
+        }
+
         public bool Contains(string key)
         {
             return modifiers.ContainsKey(key);
