@@ -25,7 +25,7 @@
             }
         }
 
-        public bool IsParsed() { return subTracks > 0; }
+        public bool WasParsed() { return subTracks > 0; }
 
         public static PartValues operator |(PartValues lhs, PartValues rhs)
         {

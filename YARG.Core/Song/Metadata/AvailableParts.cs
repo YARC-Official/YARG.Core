@@ -257,19 +257,19 @@ namespace YARG.Core.Song
         {
             switch (trackType)
             {
-                case MidiTrackType.Guitar_5:      if (!FiveFretGuitar.IsParsed())     FiveFretGuitar.subTracks     |= MidiInstrumentPreparser.Parse<Midi_FiveFret>(reader); break;
-                case MidiTrackType.Bass_5:        if (!FiveFretBass.IsParsed())       FiveFretBass.subTracks       |= MidiInstrumentPreparser.Parse<Midi_FiveFret>(reader); break;
-                case MidiTrackType.Rhythm_5:      if (!FiveFretRhythm.IsParsed())     FiveFretRhythm.subTracks     |= MidiInstrumentPreparser.Parse<Midi_FiveFret>(reader); break;
-                case MidiTrackType.Coop_5:        if (!FiveFretCoopGuitar.IsParsed()) FiveFretCoopGuitar.subTracks |= MidiInstrumentPreparser.Parse<Midi_FiveFret>(reader); break;
-                case MidiTrackType.Guitar_6:      if (!SixFretGuitar.IsParsed())      SixFretGuitar.subTracks      |= MidiInstrumentPreparser.Parse<Midi_SixFret>(reader); break;
-                case MidiTrackType.Bass_6:        if (!SixFretBass.IsParsed())        SixFretBass.subTracks        |= MidiInstrumentPreparser.Parse<Midi_SixFret>(reader); break;
-                case MidiTrackType.Rhythm_6:      if (!SixFretRhythm.IsParsed())      SixFretRhythm.subTracks      |= MidiInstrumentPreparser.Parse<Midi_SixFret>(reader); break;
-                case MidiTrackType.Coop_6:        if (!SixFretCoopGuitar.IsParsed())  SixFretCoopGuitar.subTracks  |= MidiInstrumentPreparser.Parse<Midi_FiveFret>(reader); break;
-                case MidiTrackType.Pro_Guitar_17: if (!ProGuitar_17Fret.IsParsed())   ProGuitar_17Fret.subTracks   |= MidiInstrumentPreparser.Parse<Midi_ProGuitar17>(reader); break;
-                case MidiTrackType.Pro_Guitar_22: if (!ProGuitar_22Fret.IsParsed())   ProGuitar_22Fret.subTracks   |= MidiInstrumentPreparser.Parse<Midi_ProGuitar22>(reader); break;
-                case MidiTrackType.Pro_Bass_17:   if (!ProBass_17Fret.IsParsed())     ProBass_17Fret.subTracks     |= MidiInstrumentPreparser.Parse<Midi_ProGuitar17>(reader); break;
-                case MidiTrackType.Pro_Bass_22:   if (!ProBass_22Fret.IsParsed())     ProBass_22Fret.subTracks     |= MidiInstrumentPreparser.Parse<Midi_ProGuitar22>(reader); break;
-                case MidiTrackType.Keys:          if (!Keys.IsParsed())               Keys.subTracks               |= MidiInstrumentPreparser.Parse<Midi_Keys>(reader); break;
+                case MidiTrackType.Guitar_5:      if (!FiveFretGuitar.WasParsed())     FiveFretGuitar.subTracks     |= MidiInstrumentPreparser.Parse<Midi_FiveFret>(reader); break;
+                case MidiTrackType.Bass_5:        if (!FiveFretBass.WasParsed())       FiveFretBass.subTracks       |= MidiInstrumentPreparser.Parse<Midi_FiveFret>(reader); break;
+                case MidiTrackType.Rhythm_5:      if (!FiveFretRhythm.WasParsed())     FiveFretRhythm.subTracks     |= MidiInstrumentPreparser.Parse<Midi_FiveFret>(reader); break;
+                case MidiTrackType.Coop_5:        if (!FiveFretCoopGuitar.WasParsed()) FiveFretCoopGuitar.subTracks |= MidiInstrumentPreparser.Parse<Midi_FiveFret>(reader); break;
+                case MidiTrackType.Guitar_6:      if (!SixFretGuitar.WasParsed())      SixFretGuitar.subTracks      |= MidiInstrumentPreparser.Parse<Midi_SixFret>(reader); break;
+                case MidiTrackType.Bass_6:        if (!SixFretBass.WasParsed())        SixFretBass.subTracks        |= MidiInstrumentPreparser.Parse<Midi_SixFret>(reader); break;
+                case MidiTrackType.Rhythm_6:      if (!SixFretRhythm.WasParsed())      SixFretRhythm.subTracks      |= MidiInstrumentPreparser.Parse<Midi_SixFret>(reader); break;
+                case MidiTrackType.Coop_6:        if (!SixFretCoopGuitar.WasParsed())  SixFretCoopGuitar.subTracks  |= MidiInstrumentPreparser.Parse<Midi_FiveFret>(reader); break;
+                case MidiTrackType.Pro_Guitar_17: if (!ProGuitar_17Fret.WasParsed())   ProGuitar_17Fret.subTracks   |= MidiInstrumentPreparser.Parse<Midi_ProGuitar17>(reader); break;
+                case MidiTrackType.Pro_Guitar_22: if (!ProGuitar_22Fret.WasParsed())   ProGuitar_22Fret.subTracks   |= MidiInstrumentPreparser.Parse<Midi_ProGuitar22>(reader); break;
+                case MidiTrackType.Pro_Bass_17:   if (!ProBass_17Fret.WasParsed())     ProBass_17Fret.subTracks     |= MidiInstrumentPreparser.Parse<Midi_ProGuitar17>(reader); break;
+                case MidiTrackType.Pro_Bass_22:   if (!ProBass_22Fret.WasParsed())     ProBass_22Fret.subTracks     |= MidiInstrumentPreparser.Parse<Midi_ProGuitar22>(reader); break;
+                case MidiTrackType.Keys:          if (!Keys.WasParsed())               Keys.subTracks               |= MidiInstrumentPreparser.Parse<Midi_Keys>(reader); break;
                 case MidiTrackType.Pro_Keys_X:    if (!ProKeys[3])                    ProKeys.subTracks            |= MidiInstrumentPreparser.Parse<Midi_ProKeysX>(reader); break;
                 case MidiTrackType.Pro_Keys_H:    if (!ProKeys[2])                    ProKeys.subTracks            |= MidiInstrumentPreparser.Parse<Midi_ProKeysH>(reader); break;
                 case MidiTrackType.Pro_Keys_M:    if (!ProKeys[1])                    ProKeys.subTracks            |= MidiInstrumentPreparser.Parse<Midi_ProKeysM>(reader); break;
