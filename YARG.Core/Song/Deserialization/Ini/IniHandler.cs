@@ -28,7 +28,7 @@ namespace YARG.Core.Song.Deserialization.Ini
             SONG_INI_DICTIONARY.Add("[song]", new()
             {
                 { "album",                                new("album", ModifierNodeType.SORTSTRING) },
-                { "album_track",                          new("album_track", ModifierNodeType.UINT16) },
+                { "album_track",                          new("album_track", ModifierNodeType.INT32) },
                 { "artist",                               new("artist", ModifierNodeType.SORTSTRING) },
 
                 { "background",                           new("background", ModifierNodeType.STRING) },
@@ -81,6 +81,7 @@ namespace YARG.Core.Song.Deserialization.Ini
                 { "guitar_type",                          new("guitar_type", ModifierNodeType.UINT32) },
 
                 { "hopo_frequency",                       new("hopo_frequency", ModifierNodeType.INT64) },
+                { "hopofreq",                             new("hopofreq", ModifierNodeType.INT32) },
 
                 { "icon",                                 new("icon", ModifierNodeType.STRING) },
 
@@ -93,12 +94,12 @@ namespace YARG.Core.Song.Deserialization.Ini
                 { "lyrics",                               new("lyrics", ModifierNodeType.BOOL) },
 
                 { "modchart",                             new("modchart", ModifierNodeType.BOOL) },
-                { "multiplier_note",                      new("multiplier_note", ModifierNodeType.UINT16) },
+                { "multiplier_note",                      new("multiplier_note", ModifierNodeType.INT32) },
 
                 { "name",                                 new("name", ModifierNodeType.SORTSTRING) },
 
                 { "playlist",                             new("playlist", ModifierNodeType.SORTSTRING) },
-                { "playlist_track",                       new("playlist_track", ModifierNodeType.UINT16) },
+                { "playlist_track",                       new("playlist_track", ModifierNodeType.INT32) },
                 { "preview",                              new("preview", ModifierNodeType.UINT64ARRAY) },
                 { "preview_end_time",                     new("preview_end_time", ModifierNodeType.UINT64) },
                 { "preview_start_time",                   new("preview_start_time", ModifierNodeType.UINT64) },
@@ -117,7 +118,7 @@ namespace YARG.Core.Song.Deserialization.Ini
                 { "scores",                               new("scores", ModifierNodeType.STRING) },
                 { "scores_ext",                           new("scores_ext", ModifierNodeType.STRING) },
                 { "song_length",                          new("song_length", ModifierNodeType.UINT64) },
-                { "star_power_note",                      new("multiplier_note", ModifierNodeType.UINT16) },
+                { "star_power_note",                      new("multiplier_note", ModifierNodeType.INT32) },
                 { "sub_genre",                            new("sub_genre", ModifierNodeType.SORTSTRING) },
                 { "sub_playlist",                         new("sub_playlist", ModifierNodeType.SORTSTRING) },
                 { "sustain_cutoff_threshold",             new("sustain_cutoff_threshold", ModifierNodeType.INT64) },
@@ -128,7 +129,7 @@ namespace YARG.Core.Song.Deserialization.Ini
                 { "sysex_slider",                         new("sysex_slider", ModifierNodeType.BOOL) },
 
                 { "tags",                                 new("tags", ModifierNodeType.STRING) },
-                { "track",                                new("album_track", ModifierNodeType.UINT16) },
+                { "track",                                new("album_track", ModifierNodeType.INT32) },
                 { "tutorial",                             new("tutorial", ModifierNodeType.BOOL) },
 
                 { "unlock_completed",                     new("unlock_completed", ModifierNodeType.UINT32) },
