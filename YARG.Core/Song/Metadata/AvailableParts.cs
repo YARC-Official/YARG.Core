@@ -11,6 +11,7 @@ namespace YARG.Core.Song
     [Serializable]
     public class AvailableParts
     {
+        public sbyte BandDifficulty { get; private set; }
 
         private PartValues FiveFretGuitar;
         private PartValues FiveFretBass;
@@ -43,6 +44,7 @@ namespace YARG.Core.Song
 
         public AvailableParts()
         {
+            BandDifficulty = -1;
             FiveFretGuitar = new(-1);
             FiveFretBass = new(-1);
             FiveFretRhythm = new(-1);
@@ -84,6 +86,7 @@ namespace YARG.Core.Song
                 };
             }
 
+            BandDifficulty = reader.ReadSByte();
             FiveFretGuitar = DeserializeValues();
             FiveFretBass = DeserializeValues();
             FiveFretRhythm = DeserializeValues();
@@ -122,6 +125,7 @@ namespace YARG.Core.Song
                 writer.Write(values.intensity);
             }
 
+            writer.Write(BandDifficulty);
             SerializeValues(ref FiveFretGuitar);
             SerializeValues(ref FiveFretBass);
             SerializeValues(ref FiveFretRhythm);
@@ -341,7 +345,10 @@ namespace YARG.Core.Song
 
         public void SetIntensities(IniSection modifiers)
         {
-            if (modifiers.TryGet("diff_guitar", out int intensity))
+            if (modifiers.TryGet("diff_band", out int intensity))
+                BandDifficulty = (sbyte)intensity;
+
+            if (modifiers.TryGet("diff_guitar", out intensity))
                 FiveFretGuitar.intensity = (sbyte) intensity;
 
             if (modifiers.TryGet("diff_bass", out intensity))
