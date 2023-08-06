@@ -2,7 +2,13 @@
 {
     public abstract class Midi_ProKeys : MidiInstrument
     {
-        protected readonly bool[] lanes = new bool[25];
+        private readonly bool[] lanes = new bool[25];
+        private readonly int difficulty;
+
+        protected Midi_ProKeys(int difficulty)
+        {
+            this.difficulty = difficulty;
+        }
 
         protected override bool IsNote() { return 48 <= note.value && note.value <= 72; }
 
@@ -11,53 +17,34 @@
             lanes[note.value - 48] = true;
             return false;
         }
+
+        protected override bool ParseLaneColor_Off()
+        {
+            if (!lanes[note.value - 48])
+                return false;
+
+            Validate(difficulty);
+            return true;
+        }
     }
 
     public class Midi_ProKeysX : Midi_ProKeys
     {
-        protected override bool ParseLaneColor_Off()
-        {
-            if (note.value < 48 || 72 < note.value || !lanes[note.value - 48])
-                return false;
-
-            Validate(3);
-            return true;
-        }
+        public Midi_ProKeysX() : base(3) { }
     }
 
     public class Midi_ProKeysH : Midi_ProKeys
     {
-        protected override bool ParseLaneColor_Off()
-        {
-            if (note.value < 48 || 72 < note.value || !lanes[note.value - 48])
-                return false;
-
-            Validate(2);
-            return true;
-        }
+        public Midi_ProKeysH() : base(2) { }
     }
 
     public class Midi_ProKeysM : Midi_ProKeys
     {
-        protected override bool ParseLaneColor_Off()
-        {
-            if (note.value < 48 || 72 < note.value || !lanes[note.value - 48])
-                return false;
-
-            Validate(1);
-            return true;
-        }
+        public Midi_ProKeysM() : base(1) { }
     }
 
     public class Midi_ProKeysE : Midi_ProKeys
     {
-        protected override bool ParseLaneColor_Off()
-        {
-            if (note.value < 48 || 72 < note.value || !lanes[note.value - 48])
-                return false;
-
-            Validate(0);
-            return true;
-        }
+        public Midi_ProKeysE() : base(0) { }
     }
 }
