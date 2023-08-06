@@ -19,7 +19,7 @@ namespace YARG.Core.Song
 
         protected override bool ParseNote_Off()
         {
-            return ProcessSpecialNote_Off() || ParseLaneColor_Off();
+            return ProcessSpecialNote_Off() || (IsNote() && ParseLaneColor_Off());
         }
 
         protected abstract bool ParseLaneColor();

@@ -22,9 +22,6 @@
 
         protected override bool ParseLaneColor_Off()
         {
-            if (note.value < 24 || 106 < note.value)
-                return false;
-
             int noteValue = note.value - 24;
             int diffIndex = DIFFVALUES[noteValue];
             if (!difficulties[diffIndex])

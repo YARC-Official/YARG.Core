@@ -32,9 +32,6 @@ namespace YARG.Core.Song
 
         protected override bool ParseLaneColor_Off()
         {
-            if (note.value < 59 || 107 < note.value)
-                return false;
-
             int noteValue = note.value - 59;
             int diffIndex = DIFFVALUES[noteValue];
             if (!difficulties[diffIndex])
