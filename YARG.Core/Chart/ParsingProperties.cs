@@ -42,11 +42,11 @@
 
         public DrumsType DrumsType;
 
-        public int HopoThreshold;
+        public long HopoThreshold;
         public int HopoFreq_FoF;
         public bool EighthNoteHopo;
-        public int SustainCutoffThreshold;
-        public int NoteSnapThreshold;
+        public long SustainCutoffThreshold;
+        public long NoteSnapThreshold;
 
         public int StarPowerNote;
     }
