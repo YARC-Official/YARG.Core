@@ -30,6 +30,7 @@
             DrumsType = DrumsType.Unknown,
 
             HopoThreshold = SETTING_DEFAULT,
+            HopoFreq_FoF = SETTING_DEFAULT,
             EighthNoteHopo = false,
             SustainCutoffThreshold = SETTING_DEFAULT,
             NoteSnapThreshold = SETTING_DEFAULT,
@@ -42,6 +43,7 @@
         public DrumsType DrumsType;
 
         public int HopoThreshold;
+        public int HopoFreq_FoF;
         public bool EighthNoteHopo;
         public int SustainCutoffThreshold;
         public int NoteSnapThreshold;
