@@ -4,7 +4,7 @@ using YARG.Core.Song.Deserialization;
 
 namespace YARG.Core.Song
 {
-    public abstract class MidiInstrument : MidiPreparser
+    public abstract class MidiInstrumentPreparser : MidiPreparser
     {
         protected int validations;
         protected override bool ParseNote()
@@ -38,22 +38,22 @@ namespace YARG.Core.Song
 
         protected void Validate(int diffIndex) { validations |= 1 << diffIndex; }
 
-        public new static byte Preparse<Preparser>(YARGMidiReader reader)
-            where Preparser : MidiInstrument, new()
+        public new static byte Parse<Preparser>(YARGMidiReader reader)
+            where Preparser : MidiInstrumentPreparser, new()
         {
             Preparser preparser = new();
-            return Preparse(preparser, reader);
+            return Parse(preparser, reader);
         }
 
-        public new static byte Preparse<Preparser>(Preparser preparser, YARGMidiReader reader)
-            where Preparser : MidiInstrument
+        public new static byte Parse<Preparser>(Preparser preparser, YARGMidiReader reader)
+            where Preparser : MidiInstrumentPreparser
         {
-            MidiPreparser.Preparse(preparser, reader);
+            MidiPreparser.Parse(preparser, reader);
             return (byte) preparser.validations;
         }
     }
 
-    public abstract class MidiInstrument_Common : MidiInstrument
+    public abstract class MidiInstrument_Common : MidiInstrumentPreparser
     {
         internal static readonly int[] DIFFVALUES = {
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,

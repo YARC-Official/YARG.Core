@@ -21,13 +21,13 @@ namespace YARG.Core.Song
 
         protected virtual void ParseText(ReadOnlySpan<byte> str) { }
 
-        public static bool Preparse<Preparser>(YARGMidiReader reader)
+        public static bool Parse<Preparser>(YARGMidiReader reader)
             where Preparser : MidiPreparser, new()
         {
-            return Preparse(new Preparser(), reader);
+            return Parse(new Preparser(), reader);
         }
 
-        protected static bool Preparse<Preparser>(Preparser preparser, YARGMidiReader reader)
+        protected static bool Parse<Preparser>(Preparser preparser, YARGMidiReader reader)
             where Preparser : MidiPreparser
         {
             bool complete = false;

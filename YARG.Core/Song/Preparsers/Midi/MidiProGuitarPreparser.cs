@@ -1,6 +1,6 @@
 ﻿namespace YARG.Core.Song
 {
-    public abstract class Midi_ProGuitar : MidiInstrument
+    public abstract class Midi_ProGuitar : MidiInstrumentPreparser
     {
         internal static readonly int[] DIFFVALUES = {
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,

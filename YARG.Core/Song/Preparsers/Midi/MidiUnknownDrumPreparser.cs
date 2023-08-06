@@ -1,11 +1,11 @@
 ﻿namespace YARG.Core.Song
 {
-    public class Midi_DrumLegacy : Midi_Drum
+    public class Midi_UnknownDrums : Midi_Drum
     {
         private DrumType _type = DrumType.FOUR_LANE;
         public DrumType Type { get { return _type; } }
 
-        public Midi_DrumLegacy(DrumType type)
+        public Midi_UnknownDrums(DrumType type)
         {
             _type = type;
         }

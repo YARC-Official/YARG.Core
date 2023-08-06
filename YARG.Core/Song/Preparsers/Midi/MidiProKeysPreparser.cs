@@ -1,6 +1,6 @@
 ﻿namespace YARG.Core.Song
 {
-    public abstract class Midi_ProKeys : MidiInstrument
+    public abstract class Midi_ProKeys : MidiInstrumentPreparser
     {
         private readonly bool[] lanes = new bool[25];
         private readonly int difficulty;
