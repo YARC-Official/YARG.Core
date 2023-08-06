@@ -45,7 +45,7 @@ namespace YARG.Core.Song
 
         public bool Equals(SortString other)
         {
-            return _hashCode == other._hashCode;
+            return _sortStr.Equals(other._sortStr);
         }
 
         public override string ToString()
