@@ -1,5 +1,15 @@
-namespace YARG.Core.Chart
+﻿namespace YARG.Core.Chart
 {
+    /// <summary>
+    /// The type of chart file to read.
+    /// </summary>
+    public enum ChartType
+    {
+        MID,
+        MIDI,
+        CHART,
+    };
+
     /// <summary>
     /// The type of drums contained in the chart.
     /// </summary>
