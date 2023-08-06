@@ -1,4 +1,5 @@
 using System;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.Parsing
 {
@@ -29,7 +30,8 @@ namespace YARG.Core.Parsing
                 return false;
 
             // Text events only have one parameter,
-            var text = tickEvent.Value.Trim('"');
+            // use the whole value and strip the start/end quotes
+            var text = tickEvent.Value.TrimOnce('"');
             if (text.IsEmpty)
                 return false;
 
