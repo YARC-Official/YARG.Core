@@ -3,6 +3,7 @@ using System.IO;
 using System.Text;
 using YARG.Core.Chart;
 using YARG.Core.Song.Deserialization;
+using YARG.Core.Song.Deserialization.Ini;
 using YARG.Core.Song.Preparsers;
 
 namespace YARG.Core.Song
@@ -337,6 +338,67 @@ namespace YARG.Core.Song
             }
             return drums.Type;
         }
+
+        public void SetIntensities(IniSection modifiers)
+        {
+            if (modifiers.TryGet("diff_guitar", out int intensity))
+                FiveFretGuitar.intensity = (sbyte) intensity;
+
+            if (modifiers.TryGet("diff_bass", out intensity))
+                FiveFretBass.intensity = (sbyte) intensity;
+
+            if (modifiers.TryGet("diff_rhythm", out intensity))
+                FiveFretRhythm.intensity = (sbyte) intensity;
+
+            if (modifiers.TryGet("diff_guitar_coop", out intensity))
+                FiveFretCoopGuitar.intensity = (sbyte) intensity;
+
+            if (modifiers.TryGet("diff_guitarghl", out intensity))
+                SixFretGuitar.intensity = (sbyte) intensity;
+
+            if (modifiers.TryGet("diff_bassghl", out intensity))
+                SixFretBass.intensity = (sbyte) intensity;
+
+            if (modifiers.TryGet("diff_rhythm_ghl", out intensity))
+                SixFretRhythm.intensity = (sbyte) intensity;
+
+            if (modifiers.TryGet("diff_guitar_coop_ghl", out intensity))
+                SixFretCoopGuitar.intensity = (sbyte) intensity;
+
+            if (modifiers.TryGet("diff_keys", out intensity))
+                Keys.intensity = (sbyte) intensity;
+
+            if (modifiers.TryGet("diff_drums", out intensity))
+            {
+                FourLaneDrums.intensity = (sbyte) intensity;
+                ProDrums.intensity = (sbyte) intensity;
+                FiveLaneDrums.intensity = (sbyte) intensity;
+            }
+
+            if (modifiers.TryGet("diff_drums_real", out intensity))
+            {
+                ProDrums.intensity = (sbyte) intensity;
+                if (FourLaneDrums.intensity == -1)
+                    FourLaneDrums.intensity = (sbyte) intensity;
+            }
+
+            if (modifiers.TryGet("diff_guitar_real", out intensity))
+                ProGuitar_17Fret.intensity = (sbyte) intensity;
+
+            if (modifiers.TryGet("diff_bass_real", out intensity))
+                ProBass_17Fret.intensity = (sbyte) intensity;
+
+            if (modifiers.TryGet("diff_guitar_real_22", out intensity))
+                ProGuitar_22Fret.intensity = (sbyte) intensity;
+
+            if (modifiers.TryGet("diff_bass_real_22", out intensity))
+                ProBass_22Fret.intensity = (sbyte) intensity;
+
+            if (modifiers.TryGet("diff_vocals", out intensity))
+                LeadVocals.intensity = (sbyte) intensity;
+
+            if (modifiers.TryGet("diff_vocals_harm", out intensity))
+                HarmonyVocals.intensity = (sbyte) intensity;
         }
     }
 }
