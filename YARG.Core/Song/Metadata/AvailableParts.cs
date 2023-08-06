@@ -230,9 +230,9 @@ namespace YARG.Core.Song
         /// Uses the current instrument to institute applicable test parameters.
         /// This not include drums as those must be handled by a dedicated ChartDrumPreparser object.
         /// </summary>
-        public bool PreparseChart(YARGChartFileReader reader)
+        public void PreparseChart(YARGChartFileReader reader)
         {
-            return reader.Instrument switch
+            bool skip = reader.Instrument switch
             {
                 NoteTracks_Chart.Single =>       ChartPreparser.Preparse(reader, ref FiveFretGuitar,     ChartPreparser.ValidateFiveFret),
                 NoteTracks_Chart.DoubleBass =>   ChartPreparser.Preparse(reader, ref FiveFretBass,       ChartPreparser.ValidateFiveFret),
@@ -245,6 +245,9 @@ namespace YARG.Core.Song
                 NoteTracks_Chart.Keys =>         ChartPreparser.Preparse(reader, ref Keys,               ChartPreparser.ValidateKeys),
                 _ => true,
             };
+
+            if (skip)
+                reader.SkipTrack();
         }
 
         public void PreparseMidi(MidiTrackType trackType, YARGMidiReader reader)

@@ -18,19 +18,24 @@ namespace YARG.Core.Song
             _validations = 0;
         }
 
-        public bool Preparse(YARGChartFileReader reader)
+        public void Preparse(YARGChartFileReader reader)
         {
             int index = reader.Difficulty;
             int mask = 1 << index;
-            if ((_validations & mask) > 0)
-                return true;
 
-            return _type switch
+            bool skip = true;
+            if ((_validations & mask) == 0)
             {
-                DrumType.UNKNOWN => PreparseUnknown(reader, index, (byte)mask),
-                DrumType.FOUR_LANE => PreparseFourLane(reader, index, (byte) mask),
-                _ => PreparseCommon(reader, index, (byte) mask),
-            };
+                skip = _type switch
+                {
+                    DrumType.UNKNOWN => PreparseUnknown(reader, index, (byte) mask),
+                    DrumType.FOUR_LANE => PreparseFourLane(reader, index, (byte) mask),
+                    _ => PreparseCommon(reader, index, (byte) mask),
+                };
+            }
+
+            if (skip)
+                reader.SkipTrack();
         }
 
         private bool PreparseUnknown(YARGChartFileReader reader, int index, byte mask)
