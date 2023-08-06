@@ -73,7 +73,7 @@ namespace YARG.Core.Song.Deserialization.Ini
 
         public bool TryGet(string key, out long val)
         {
-            val = -1;
+            val = 0;
             if (!modifiers.TryGetValue(key, out var results))
                 return false;
 
@@ -93,7 +93,7 @@ namespace YARG.Core.Song.Deserialization.Ini
 
         public bool TryGet(string key, out int val)
         {
-            val = -1;
+            val = 0;
             if (!modifiers.TryGetValue(key, out var results))
                 return false;
 
@@ -113,7 +113,7 @@ namespace YARG.Core.Song.Deserialization.Ini
 
         public bool TryGet(string key, out short val)
         {
-            val = -1;
+            val = 0;
             if (!modifiers.TryGetValue(key, out var results))
                 return false;
 
