@@ -1,40 +1,44 @@
 ﻿using System;
 using System.IO;
+using System.Text;
+using YARG.Core.Chart;
 using YARG.Core.Song.Deserialization;
+using YARG.Core.Song.Preparsers;
 
 namespace YARG.Core.Song
 {
     [Serializable]
     public class AvailableParts
     {
-        public PartValues FiveFretGuitar;
-        public PartValues FiveFretBass;
-        public PartValues FiveFretRhythm;
-        public PartValues FiveFretCoopGuitar;
-        public PartValues Keys;
 
-        public PartValues SixFretGuitar;
-        public PartValues SixFretBass;
-        public PartValues SixFretRhythm;
-        public PartValues SixFretCoopGuitar;
+        private PartValues FiveFretGuitar;
+        private PartValues FiveFretBass;
+        private PartValues FiveFretRhythm;
+        private PartValues FiveFretCoopGuitar;
+        private PartValues Keys;
 
-        public PartValues FourLaneDrums;
-        public PartValues ProDrums;
-        public PartValues FiveLaneDrums;
+        private PartValues SixFretGuitar;
+        private PartValues SixFretBass;
+        private PartValues SixFretRhythm;
+        private PartValues SixFretCoopGuitar;
 
-        // public PartValues TrueDrums;
+        private PartValues FourLaneDrums;
+        private PartValues ProDrums;
+        private PartValues FiveLaneDrums;
 
-        public PartValues ProGuitar_17Fret;
-        public PartValues ProGuitar_22Fret;
-        public PartValues ProBass_17Fret;
-        public PartValues ProBass_22Fret;
+        // puprivateblic PartValues TrueDrums;
 
-        public PartValues ProKeys;
+        private PartValues ProGuitar_17Fret;
+        private PartValues ProGuitar_22Fret;
+        private PartValues ProBass_17Fret;
+        private PartValues ProBass_22Fret;
 
-        // public PartValues Dj;
+        private PartValues ProKeys;
 
-        public PartValues LeadVocals;
-        public PartValues HarmonyVocals;
+        // private PartValues Dj;
+
+        private PartValues LeadVocals;
+        private PartValues HarmonyVocals;
 
         public AvailableParts()
         {
@@ -230,19 +234,44 @@ namespace YARG.Core.Song
         /// Uses the current instrument to institute applicable test parameters.
         /// This does not include drums as those must be handled by a dedicated DrumPreparseHandler object.
         /// </summary>
-        public void ParseChart(YARGChartFileReader reader)
+        public DrumType ParseChart(YARGChartFileReader reader, DrumType drumType)
+        {
+            DrumPreparseHandler drums = new(drumType);
+            while (reader.IsStartOfTrack())
+            {
+                if (!reader.ValidateDifficulty() || !reader.ValidateInstrument())
+                    reader.SkipTrack();
+                else if (reader.Instrument != NoteTracks_Chart.Drums)
+                    ParseChartTrack(reader);
+                else
+                    drums.ParseChart(reader);
+            }
+
+            if (drums.Type == DrumType.FIVE_LANE)
+                FiveLaneDrums.subTracks = drums.ValidatedDiffs;
+            else
+            {
+                FourLaneDrums.subTracks = drums.ValidatedDiffs;
+                if (drums.Type == DrumType.FOUR_PRO)
+                    ProDrums.subTracks = drums.ValidatedDiffs;
+            }
+            return drums.Type;
+            
+        }
+
+        private void ParseChartTrack(YARGChartFileReader reader)
         {
             bool skip = reader.Instrument switch
             {
-                NoteTracks_Chart.Single =>       ChartPreparser.Preparse(reader, ref FiveFretGuitar,     ChartPreparser.ValidateFiveFret),
-                NoteTracks_Chart.DoubleBass =>   ChartPreparser.Preparse(reader, ref FiveFretBass,       ChartPreparser.ValidateFiveFret),
-                NoteTracks_Chart.DoubleRhythm => ChartPreparser.Preparse(reader, ref FiveFretRhythm,     ChartPreparser.ValidateFiveFret),
+                NoteTracks_Chart.Single => ChartPreparser.Preparse(reader, ref FiveFretGuitar, ChartPreparser.ValidateFiveFret),
+                NoteTracks_Chart.DoubleBass => ChartPreparser.Preparse(reader, ref FiveFretBass, ChartPreparser.ValidateFiveFret),
+                NoteTracks_Chart.DoubleRhythm => ChartPreparser.Preparse(reader, ref FiveFretRhythm, ChartPreparser.ValidateFiveFret),
                 NoteTracks_Chart.DoubleGuitar => ChartPreparser.Preparse(reader, ref FiveFretCoopGuitar, ChartPreparser.ValidateFiveFret),
-                NoteTracks_Chart.GHLGuitar =>    ChartPreparser.Preparse(reader, ref SixFretGuitar,      ChartPreparser.ValidateSixFret),
-                NoteTracks_Chart.GHLBass =>      ChartPreparser.Preparse(reader, ref SixFretBass,        ChartPreparser.ValidateSixFret),
-                NoteTracks_Chart.GHLRhythm =>    ChartPreparser.Preparse(reader, ref SixFretRhythm,      ChartPreparser.ValidateSixFret),
-                NoteTracks_Chart.GHLCoop =>      ChartPreparser.Preparse(reader, ref SixFretCoopGuitar,  ChartPreparser.ValidateSixFret),
-                NoteTracks_Chart.Keys =>         ChartPreparser.Preparse(reader, ref Keys,               ChartPreparser.ValidateKeys),
+                NoteTracks_Chart.GHLGuitar => ChartPreparser.Preparse(reader, ref SixFretGuitar, ChartPreparser.ValidateSixFret),
+                NoteTracks_Chart.GHLBass => ChartPreparser.Preparse(reader, ref SixFretBass, ChartPreparser.ValidateSixFret),
+                NoteTracks_Chart.GHLRhythm => ChartPreparser.Preparse(reader, ref SixFretRhythm, ChartPreparser.ValidateSixFret),
+                NoteTracks_Chart.GHLCoop => ChartPreparser.Preparse(reader, ref SixFretCoopGuitar, ChartPreparser.ValidateSixFret),
+                NoteTracks_Chart.Keys => ChartPreparser.Preparse(reader, ref Keys, ChartPreparser.ValidateKeys),
                 _ => true,
             };
 
@@ -253,33 +282,61 @@ namespace YARG.Core.Song
         /// <summary>
         /// This not include drums as those must be handled by a dedicated DrumPreparseHandler object.
         /// </summary>
-        public void ParseMidi(MidiTrackType trackType, YARGMidiReader reader)
+        public DrumType ParseMidi(YARGFile file, DrumType drumType)
         {
-            switch (trackType)
+            YARGMidiReader reader = new(file);
+            DrumPreparseHandler drums = new(drumType);
+            while (reader.StartTrack())
             {
-                case MidiTrackType.Guitar_5:      if (!FiveFretGuitar.WasParsed())     FiveFretGuitar.subTracks     |= MidiInstrumentPreparser.Parse<Midi_FiveFret>(reader); break;
-                case MidiTrackType.Bass_5:        if (!FiveFretBass.WasParsed())       FiveFretBass.subTracks       |= MidiInstrumentPreparser.Parse<Midi_FiveFret>(reader); break;
-                case MidiTrackType.Rhythm_5:      if (!FiveFretRhythm.WasParsed())     FiveFretRhythm.subTracks     |= MidiInstrumentPreparser.Parse<Midi_FiveFret>(reader); break;
-                case MidiTrackType.Coop_5:        if (!FiveFretCoopGuitar.WasParsed()) FiveFretCoopGuitar.subTracks |= MidiInstrumentPreparser.Parse<Midi_FiveFret>(reader); break;
-                case MidiTrackType.Guitar_6:      if (!SixFretGuitar.WasParsed())      SixFretGuitar.subTracks      |= MidiInstrumentPreparser.Parse<Midi_SixFret>(reader); break;
-                case MidiTrackType.Bass_6:        if (!SixFretBass.WasParsed())        SixFretBass.subTracks        |= MidiInstrumentPreparser.Parse<Midi_SixFret>(reader); break;
-                case MidiTrackType.Rhythm_6:      if (!SixFretRhythm.WasParsed())      SixFretRhythm.subTracks      |= MidiInstrumentPreparser.Parse<Midi_SixFret>(reader); break;
-                case MidiTrackType.Coop_6:        if (!SixFretCoopGuitar.WasParsed())  SixFretCoopGuitar.subTracks  |= MidiInstrumentPreparser.Parse<Midi_FiveFret>(reader); break;
-                case MidiTrackType.Pro_Guitar_17: if (!ProGuitar_17Fret.WasParsed())   ProGuitar_17Fret.subTracks   |= MidiInstrumentPreparser.Parse<Midi_ProGuitar17>(reader); break;
-                case MidiTrackType.Pro_Guitar_22: if (!ProGuitar_22Fret.WasParsed())   ProGuitar_22Fret.subTracks   |= MidiInstrumentPreparser.Parse<Midi_ProGuitar22>(reader); break;
-                case MidiTrackType.Pro_Bass_17:   if (!ProBass_17Fret.WasParsed())     ProBass_17Fret.subTracks     |= MidiInstrumentPreparser.Parse<Midi_ProGuitar17>(reader); break;
-                case MidiTrackType.Pro_Bass_22:   if (!ProBass_22Fret.WasParsed())     ProBass_22Fret.subTracks     |= MidiInstrumentPreparser.Parse<Midi_ProGuitar22>(reader); break;
-                case MidiTrackType.Keys:          if (!Keys.WasParsed())               Keys.subTracks               |= MidiInstrumentPreparser.Parse<Midi_Keys>(reader); break;
-                case MidiTrackType.Pro_Keys_X:    if (!ProKeys[3])                    ProKeys.subTracks            |= MidiInstrumentPreparser.Parse<Midi_ProKeysX>(reader); break;
-                case MidiTrackType.Pro_Keys_H:    if (!ProKeys[2])                    ProKeys.subTracks            |= MidiInstrumentPreparser.Parse<Midi_ProKeysH>(reader); break;
-                case MidiTrackType.Pro_Keys_M:    if (!ProKeys[1])                    ProKeys.subTracks            |= MidiInstrumentPreparser.Parse<Midi_ProKeysM>(reader); break;
-                case MidiTrackType.Pro_Keys_E:    if (!ProKeys[0])                    ProKeys.subTracks            |= MidiInstrumentPreparser.Parse<Midi_ProKeysE>(reader); break;
+                if (reader.GetTrackNumber() == 1 || reader.GetEvent().type != MidiEventType.Text_TrackName)
+                    continue;
 
-                case MidiTrackType.Vocals:        if (!LeadVocals[0]    && MidiPreparser.Parse<Midi_Vocal>(reader))   LeadVocals.Set(0); break;
-                case MidiTrackType.Harm1:         if (!HarmonyVocals[0] && MidiPreparser.Parse<Midi_Vocal>(reader))   HarmonyVocals.Set(0); break;
-                case MidiTrackType.Harm2:         if (!HarmonyVocals[1] && MidiPreparser.Parse<Midi_Harmony>(reader)) HarmonyVocals.Set(1); break;
-                case MidiTrackType.Harm3:         if (!HarmonyVocals[2] && MidiPreparser.Parse<Midi_Harmony>(reader)) HarmonyVocals.Set(2); break;
+                string name = Encoding.ASCII.GetString(reader.ExtractTextOrSysEx());
+                if (YARGMidiReader.TRACKNAMES.TryGetValue(name, out var type) && type != MidiTrackType.Events && type != MidiTrackType.Beat)
+                {
+                    if (type != MidiTrackType.Drums)
+                    {
+                        switch (type)
+                        {
+                            case MidiTrackType.Guitar_5:      if (!FiveFretGuitar.WasParsed())     FiveFretGuitar.subTracks     |= MidiInstrumentPreparser.Parse<Midi_FiveFret>(reader); break;
+                            case MidiTrackType.Bass_5:        if (!FiveFretBass.WasParsed())       FiveFretBass.subTracks       |= MidiInstrumentPreparser.Parse<Midi_FiveFret>(reader); break;
+                            case MidiTrackType.Rhythm_5:      if (!FiveFretRhythm.WasParsed())     FiveFretRhythm.subTracks     |= MidiInstrumentPreparser.Parse<Midi_FiveFret>(reader); break;
+                            case MidiTrackType.Coop_5:        if (!FiveFretCoopGuitar.WasParsed()) FiveFretCoopGuitar.subTracks |= MidiInstrumentPreparser.Parse<Midi_FiveFret>(reader); break;
+                            case MidiTrackType.Guitar_6:      if (!SixFretGuitar.WasParsed())      SixFretGuitar.subTracks      |= MidiInstrumentPreparser.Parse<Midi_SixFret>(reader); break;
+                            case MidiTrackType.Bass_6:        if (!SixFretBass.WasParsed())        SixFretBass.subTracks        |= MidiInstrumentPreparser.Parse<Midi_SixFret>(reader); break;
+                            case MidiTrackType.Rhythm_6:      if (!SixFretRhythm.WasParsed())      SixFretRhythm.subTracks      |= MidiInstrumentPreparser.Parse<Midi_SixFret>(reader); break;
+                            case MidiTrackType.Coop_6:        if (!SixFretCoopGuitar.WasParsed())  SixFretCoopGuitar.subTracks  |= MidiInstrumentPreparser.Parse<Midi_FiveFret>(reader); break;
+                            case MidiTrackType.Pro_Guitar_17: if (!ProGuitar_17Fret.WasParsed())   ProGuitar_17Fret.subTracks   |= MidiInstrumentPreparser.Parse<Midi_ProGuitar17>(reader); break;
+                            case MidiTrackType.Pro_Guitar_22: if (!ProGuitar_22Fret.WasParsed())   ProGuitar_22Fret.subTracks   |= MidiInstrumentPreparser.Parse<Midi_ProGuitar22>(reader); break;
+                            case MidiTrackType.Pro_Bass_17:   if (!ProBass_17Fret.WasParsed())     ProBass_17Fret.subTracks     |= MidiInstrumentPreparser.Parse<Midi_ProGuitar17>(reader); break;
+                            case MidiTrackType.Pro_Bass_22:   if (!ProBass_22Fret.WasParsed())     ProBass_22Fret.subTracks     |= MidiInstrumentPreparser.Parse<Midi_ProGuitar22>(reader); break;
+                            case MidiTrackType.Keys:          if (!Keys.WasParsed())               Keys.subTracks               |= MidiInstrumentPreparser.Parse<Midi_Keys>(reader); break;
+                            case MidiTrackType.Pro_Keys_X:    if (!ProKeys[3])                     ProKeys.subTracks            |= MidiInstrumentPreparser.Parse<Midi_ProKeysX>(reader); break;
+                            case MidiTrackType.Pro_Keys_H:    if (!ProKeys[2])                     ProKeys.subTracks            |= MidiInstrumentPreparser.Parse<Midi_ProKeysH>(reader); break;
+                            case MidiTrackType.Pro_Keys_M:    if (!ProKeys[1])                     ProKeys.subTracks            |= MidiInstrumentPreparser.Parse<Midi_ProKeysM>(reader); break;
+                            case MidiTrackType.Pro_Keys_E:    if (!ProKeys[0])                     ProKeys.subTracks            |= MidiInstrumentPreparser.Parse<Midi_ProKeysE>(reader); break;
+
+                            case MidiTrackType.Vocals:        if (!LeadVocals[0]    && MidiPreparser.Parse<Midi_Vocal>(reader))   LeadVocals.Set(0); break;
+                            case MidiTrackType.Harm1:         if (!HarmonyVocals[0] && MidiPreparser.Parse<Midi_Vocal>(reader))   HarmonyVocals.Set(0); break;
+                            case MidiTrackType.Harm2:         if (!HarmonyVocals[1] && MidiPreparser.Parse<Midi_Harmony>(reader)) HarmonyVocals.Set(1); break;
+                            case MidiTrackType.Harm3:         if (!HarmonyVocals[2] && MidiPreparser.Parse<Midi_Harmony>(reader)) HarmonyVocals.Set(2); break;
+                        }
+                    }
+                    else
+                        drums.ParseMidi(reader);
+                }
             }
+
+            if (drums.Type == DrumType.FIVE_LANE)
+                FiveLaneDrums.subTracks = drums.ValidatedDiffs;
+            else
+            {
+                FourLaneDrums.subTracks = drums.ValidatedDiffs;
+                if (drums.Type == DrumType.FOUR_PRO)
+                    ProDrums.subTracks = drums.ValidatedDiffs;
+            }
+            return drums.Type;
+        }
         }
     }
 }
