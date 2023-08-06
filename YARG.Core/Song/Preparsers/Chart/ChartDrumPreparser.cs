@@ -14,8 +14,6 @@ namespace YARG.Core.Song
 
         public ChartDrumPreparser(DrumType type)
         {
-            // We have to ignore the "pro_drums" modifier with .chart preparsing, at least initally
-            Debug.Assert(type != DrumType.FOUR_PRO);
             _type = type;
             _validations = 0;
         }
@@ -62,7 +60,7 @@ namespace YARG.Core.Song
                         _validations |= 16;
                     }
 
-                    if (found && _type != DrumType.FOUR_LANE && expertPlus)
+                    if (found && _type != DrumType.UNKNOWN && expertPlus)
                         return true;
                 }
                 reader.NextEvent();
@@ -94,7 +92,7 @@ namespace YARG.Core.Song
                         _validations |= 16;
                     }
 
-                    if (found && _type != DrumType.FOUR_LANE && expertPlus)
+                    if (found && _type == DrumType.FOUR_PRO && expertPlus)
                         return true;
                 }
                 reader.NextEvent();
