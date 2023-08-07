@@ -1,7 +1,6 @@
 ﻿using System.IO;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
-using YARG.Core.Song.Metadata;
 
 namespace YARG.Core.Song.Deserialization
 {

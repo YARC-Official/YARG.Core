@@ -4,15 +4,17 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 
-namespace YARG.Core.Song.Metadata
+namespace YARG.Core.Song
 {
     public readonly struct HashWrapper : IComparable<HashWrapper>, IEquatable<HashWrapper>
     {
-        public static readonly HashAlgorithm Algorithm;
-        public static readonly int HashSizeInBytes = 20;
-        static HashWrapper()
+        public static HashAlgorithm Algorithm => SHA1.Create();
+        public const int HASHSIZEINBYTES = 20;
+        private const int NUMINTEGERS = 5;
+
+        public static HashWrapper Create(byte[] buffer)
         {
-            Algorithm = SHA1.Create();
+            return new HashWrapper(Algorithm.ComputeHash(buffer));
         }
 
         private readonly byte[] _hash;
@@ -44,14 +46,13 @@ namespace YARG.Core.Song.Metadata
         public int CompareTo(HashWrapper other)
         {
             Debug.Assert(_hash.Length == other._hash.Length, "Two incompatible hash types used");
-            int count = _hash.Length / 4;
             unsafe
             {
                 fixed(byte* p = _hash, p2 = other._hash)
                 {
                     int* integers = (int*) p;
                     int* integers2 = (int*) p2;
-                    for (int i = 0; i < count; i++)
+                    for (int i = 0; i < NUMINTEGERS; i++)
                     {
                         if (integers[i] < integers2[i])
                             return -1;
