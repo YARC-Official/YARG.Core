@@ -1,94 +1,115 @@
-﻿using System;
-using EasySharpIni;
-using EasySharpIni.Converters;
-using EasySharpIni.Models;
+﻿using System.Collections.Generic;
+using System.IO;
 using YARG.Core.Chart;
-using YARG.Core.Ini;
+using YARG.Core.Song.Deserialization;
+using YARG.Core.Song.Deserialization.Ini;
 
 namespace YARG.Core.Song
 {
-    public partial class SongMetadata
+#nullable enable
+    public sealed class IniSubmetadata
     {
-        private const string INTEGER_GENERAL_DEFAULT = "-1";
-        private const string INTEGER_TIME_DEFAULT = "-1000";
-        private const string BOOLEAN_GENERAL_DEFAULT = "false";
+        public readonly ChartType chartType;
+        public readonly AbridgedFileInfo chartFile;
+        public readonly AbridgedFileInfo? iniFile;
 
-        private static readonly IntConverter IntConverter = new();
-        private static readonly BooleanConverter BooleanConverter = new();
-
-        private static readonly TimeConverter DecimalTimeConverter = new()
+        public IniSubmetadata(ChartType chartType, string chartFile, string? iniFile)
         {
-            IntegerScaleFactor = 0.001,
-            AllowTimeSpans = false,
-        };
+            this.chartType = chartType;
+            this.chartFile = new(chartFile);
+            this.iniFile = iniFile != null ? new(iniFile) : null;
+        }
 
-        private static readonly TimeConverter IntegerTimeConverter = new()
+        public void Serialize(BinaryWriter writer)
         {
-            IntegerScaleFactor = 0.001,
-            AllowTimeSpans = false,
-            AllowDecimals = false,
-        };
+            writer.Write((byte) chartType);
+            writer.Write(chartFile.LastWriteTime.ToBinary());
+            if (iniFile != null)
+            {
+                writer.Write(true);
+                writer.Write(iniFile.LastWriteTime.ToBinary());
+            }
+            else
+                writer.Write(false);
+        }
+    }
 
-        private SongMetadata(IniSection section)
+    public sealed partial class SongMetadata
+    {
+        public SongMetadata(IniSection section, IniSubmetadata iniData, AvailableParts parts, DrumType drumType)
         {
-            Name = section.GetField("name").Get();
-            Artist = section.GetField("artist").Get();
-            Album = section.GetField("album").Get();
-            Genre = section.GetField("genre").Get();
-            Year = section.GetField("year").Get();
-            Charter = section.GetField("charter").Get();
-            Source = section.GetField("icon").Get();
-
             // .ini songs are assumed to be masters and not covers
-            IsMaster = true;
+            _isMaster = true;
+            _directory = Path.GetDirectoryName(iniData.chartFile.FullName);
+            _parts = parts;
+            _iniData = iniData;
 
-            LoadingPhrase = section.GetField("loading_phrase");
+            section.TryGet("name", out _name, DEFAULT_NAME);
+            section.TryGet("artist", out _artist, DEFAULT_ARTIST);
+            section.TryGet("album", out _album, DEFAULT_ALBUM);
+            section.TryGet("genre", out _genre, DEFAULT_GENRE);
+            section.TryGet("charter", out _charter, DEFAULT_CHARTER);
+            section.TryGet("source", out _source, DEFAULT_SOURCE);
+            section.TryGet("playlist", out _playlist, Path.GetFileName(Path.GetDirectoryName(_directory)));
 
-            PlaylistTrack = section.GetField("playlist_track", INTEGER_GENERAL_DEFAULT).Get(IntConverter);
-            AlbumTrack = section.GetField("album_track", INTEGER_GENERAL_DEFAULT).Get(IntConverter);
-            if (AlbumTrack < 1)
+            section.TryGet("loading_phrase", out _loadingPhrase);
+            section.TryGet("icon", out _icon);
+
+            if (!section.TryGet("playlist_track", out _playlistTrack))
+                _playlistTrack = -1;
+
+            if (!section.TryGet("album_track", out _albumTrack))
+                _albumTrack = -1;
+
+            section.TryGet("song_length", out _songLength);
+
+            if (!section.TryGet("preview", out _previewStart, out _previewEnd))
             {
-                // Legacy tag
-                AlbumTrack = section.GetField("track", INTEGER_GENERAL_DEFAULT).Get(IntConverter);
+                if (!section.TryGet("preview_start_time", out _previewStart) && section.TryGet("previewStart", out double previewValue))
+                    _previewStart = (ulong)(1000 * previewValue);
+
+                if (!section.TryGet("preview_end_time", out _previewEnd) && section.TryGet("previewStart", out previewValue))
+                    _previewEnd = (ulong)(1000 * previewValue);
             }
 
-            SongLength = section.GetField("song_length", INTEGER_TIME_DEFAULT).Get(IntegerTimeConverter);
-            PreviewStart = section.GetField("preview_start_time", INTEGER_TIME_DEFAULT).Get(IntegerTimeConverter);
-            PreviewEnd = section.GetField("preview_end_time", INTEGER_TIME_DEFAULT).Get(IntegerTimeConverter);
-
-            ChartOffset = section.GetField("delay").Get(DecimalTimeConverter);
-
-            VideoStartTime = section.GetField("video_start_time", "0").Get(IntegerTimeConverter);
-            VideoEndTime = section.GetField("video_end_time", INTEGER_TIME_DEFAULT).Get(IntegerTimeConverter);
-
-            BandDifficulty = section.GetField("diff_band", INTEGER_GENERAL_DEFAULT).Get(IntConverter);
-
-            var drumsType = DrumsType.Unknown;
-            if (section.GetField("pro_drums", BOOLEAN_GENERAL_DEFAULT).Get(BooleanConverter))
+            if (!section.TryGet("delay", out _chartOffset))
             {
-                drumsType = DrumsType.FourLane;
-            }
-            else if (section.GetField("five_lane_drums", BOOLEAN_GENERAL_DEFAULT).Get(BooleanConverter))
-            {
-                drumsType = DrumsType.FiveLane;
+                if (section.TryGet("offset", out double offset))
+                    _chartOffset = (long)(1000 * offset);
             }
 
-            int hopoThreshold = section.GetField("hopo_frequency", INTEGER_GENERAL_DEFAULT).Get(IntConverter);
-            bool eighthNoteHopo = section.GetField("eighthnote_hopo", BOOLEAN_GENERAL_DEFAULT).Get(BooleanConverter);
-            int susCutoffThreshold = section.GetField("sustain_cutoff_threshold", INTEGER_GENERAL_DEFAULT).Get(IntConverter);
+            section.TryGet("video_start_time", out _videoStartTime);
+            if (!section.TryGet("video_end_time", out _videoEndTime))
+                _videoEndTime = -1;
 
-            int starPowerNote = section.GetField("multiplier_note", INTEGER_GENERAL_DEFAULT).Get(IntConverter);
-            if (starPowerNote < 0)
+            var drumsType = drumType switch
             {
-                // Legacy tag from Phase Shift
-                starPowerNote = section.GetField("star_power_note", INTEGER_GENERAL_DEFAULT).Get(IntConverter);
-            }
+                DrumType.FOUR_LANE or
+                DrumType.FOUR_PRO => DrumsType.FourLane,
+                DrumType.FIVE_LANE => DrumsType.FiveLane,
+                _ => DrumsType.Unknown
+            };
 
-            ParseSettings = new()
+            if (!section.TryGet("hopo_frequency", out long hopoThreshold))
+                hopoThreshold = -1;
+
+            if (!section.TryGet("hopofreq", out int hopofreq_fof))
+                hopofreq_fof = -1;
+
+            section.TryGet("eighthnote_hopo", out bool eighthNoteHopo);
+
+            if (!section.TryGet("hopofreq", out long susCutoffThreshold))
+                susCutoffThreshold = -1;
+
+            if (!section.TryGet("multiplier_note", out int starPowerNote))
+                susCutoffThreshold = 116;
+
+            _parseSettings = new()
             {
                 DrumsType = drumsType,
 
                 HopoThreshold = hopoThreshold,
+                HopoFreq_FoF = hopofreq_fof,
                 EighthNoteHopo = eighthNoteHopo,
                 SustainCutoffThreshold = susCutoffThreshold,
 
@@ -96,30 +117,79 @@ namespace YARG.Core.Song
             };
         }
 
-        public static SongMetadata FromIni(string filePath)
+        private static readonly Dictionary<string, IniModifierCreator> MODIFIER_LIST = new()
         {
-            // Had some reports that ini parsing might throw an exception, leaving this in for now
-            // in as I don't know the cause just yet and I want to investigate it further. -Riley
-            IniFile file;
-            try
-            {
-                file = new IniFile(filePath);
-                file.Parse();
-            }
-            catch (Exception ex)
-            {
-                YargTrace.LogException(ex, "Error while parsing song.ini!");
-                return null;
-            }
+            { "Album",        new("album", ModifierNodeType.SORTSTRING_CHART ) },
+            { "Artist",       new("artist", ModifierNodeType.SORTSTRING_CHART ) },
+            { "Charter",      new("charter", ModifierNodeType.SORTSTRING_CHART ) },
+            { "Difficulty",   new("diff_band", ModifierNodeType.INT32 ) },
+            { "Genre",        new("genre", ModifierNodeType.SORTSTRING_CHART ) },
+            { "Name",         new("name", ModifierNodeType.SORTSTRING_CHART ) },
+            { "PreviewEnd",   new("previewEnd", ModifierNodeType.DOUBLE ) },
+            { "PreviewStart", new("previewStart", ModifierNodeType.DOUBLE ) },
+            { "Year",         new("year", ModifierNodeType.STRING_CHART ) },
+            { "Offset",       new("offset", ModifierNodeType.DOUBLE ) },
+        };
 
-            // Check for the [song]/[Song] section
-            string sectionName = file.ContainsSection("song") ? "song" : "Song";
-            if (!file.ContainsSection(sectionName))
-                return null;
+        public static (ScanResult, SongMetadata?) FromIni(YARGFile file, string chartFile, string? iniFile, ChartType type)
+        {
+            AvailableParts parts = new();
+            IniSection modifiers;
+            if (iniFile != null)
+                modifiers = IniHandler.ReadSongIniFile(iniFile);
+            else
+                modifiers = new();
 
-            // Load metadata
-            var section = file.GetSection(sectionName);
-            return new SongMetadata(section);
+            DrumType drumType = default;
+            if (type == ChartType.CHART)
+                drumType = ParseChart(file, modifiers, parts);
+
+            if (!modifiers.Contains("name"))
+                return (ScanResult.NoName, null);
+
+            if (type == ChartType.MID || type == ChartType.MIDI)
+                drumType = ParseMidi(file, modifiers, parts);
+
+            if (!parts.CheckScanValidity())
+                return (ScanResult.NoNotes, null);
+
+            IniSubmetadata metadata = new(type, chartFile, iniFile);
+            parts.SetIntensities(modifiers);
+            return (ScanResult.Success, new SongMetadata(modifiers, metadata, parts, drumType));
+        }
+
+        private static DrumType ParseChart(YARGFile file, IniSection modifiers, AvailableParts parts)
+        {
+            YARGChartFileReader reader = new(file);
+            if (!reader.ValidateHeaderTrack())
+                return DrumType.UNKNOWN;
+
+            var chartMods = reader.ExtractModifiers(MODIFIER_LIST);
+            modifiers.Append(chartMods);
+
+            return parts.ParseChart(reader, GetDrumTypeFromModifier(modifiers));
+        }
+
+        private static DrumType ParseMidi(YARGFile file, IniSection modifiers, AvailableParts parts)
+        {
+            var drumType = GetDrumTypeFromModifier(modifiers);
+            bool usePro = !modifiers.TryGet("pro_drums", out bool proDrums) || proDrums;
+            if (drumType == DrumType.UNKNOWN)
+            {
+                if (usePro)
+                    drumType = DrumType.UNKNOWN_PRO;
+            }
+            else if (drumType == DrumType.FOUR_LANE && usePro)
+                drumType = DrumType.FOUR_PRO;
+
+            return parts.ParseMidi(file, drumType);
+        }
+
+        private static DrumType GetDrumTypeFromModifier(IniSection modifiers)
+        {
+            if (!modifiers.TryGet("five_lane_drums", out bool fivelane))
+                return DrumType.UNKNOWN;
+            return fivelane ? DrumType.FIVE_LANE : DrumType.FOUR_LANE;
         }
     }
 }
