@@ -8,34 +8,36 @@ namespace YARG.Core.Song
 {
     public interface IRBProUpgrade
     {
+        public DateTime LastWrite { get; }
         public void WriteToCache(BinaryWriter writer);
         public bool Validate();
         public YARGFile? LoadUpgradeMidi();
     }
 
-    public sealed class PackedRBProUpgrade
+    public sealed class PackedRBProUpgrade : IRBProUpgrade
     {
         private readonly CONFile? conFile;
         private readonly FileListing? _midiListing;
-        private readonly DateTime lastWrite;
+        private readonly DateTime _lastWrite;
 
         public FileListing MidiListing => _midiListing;
+        public DateTime LastWrite => _lastWrite;
 
         public PackedRBProUpgrade(CONFile? conFile, FileListing? listing, DateTime lastWrite)
         {
             this.conFile = conFile;
             _midiListing = listing;
-            this.lastWrite = listing != null ? listing.lastWrite : lastWrite;
+            _lastWrite = listing != null ? listing.lastWrite : lastWrite;
         }
 
         public void WriteToCache(BinaryWriter writer)
         {
-            writer.Write(lastWrite.ToBinary());
+            writer.Write(_lastWrite.ToBinary());
         }
 
         public bool Validate()
         {
-            return _midiListing != null && _midiListing.lastWrite == lastWrite;
+            return _midiListing != null && _midiListing.lastWrite == _lastWrite;
         }
 
         public YARGFile? LoadUpgradeMidi()
@@ -46,12 +48,13 @@ namespace YARG.Core.Song
         }
     }
 
-    public sealed class UnPackedRBProUpgrade
+    public sealed class UnpackedRBProUpgrade : IRBProUpgrade
     {
         private AbridgedFileInfo _midiFile;
         public AbridgedFileInfo Midi => _midiFile;
+        public DateTime LastWrite => _midiFile.LastWriteTime;
 
-        public UnPackedRBProUpgrade(string filename, DateTime lastWrite)
+        public UnpackedRBProUpgrade(string filename, DateTime lastWrite)
         {
             _midiFile = new(filename, lastWrite);
         }
