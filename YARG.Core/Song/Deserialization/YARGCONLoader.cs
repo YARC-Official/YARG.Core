@@ -1,17 +1,12 @@
-﻿using MoonscraperChartEditor.Song;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace YARG.Core.Song.Deserialization
 {
-    public class FileListing
+    public sealed class FileListing
     {
         public string Filename { get; private set; } = string.Empty;
         public readonly byte flags;
@@ -69,7 +64,7 @@ namespace YARG.Core.Song.Deserialization
         }
     }
 
-    public class CONFile
+    public sealed class CONFile
     {
         public readonly string filename;
         private readonly FileStream stream;

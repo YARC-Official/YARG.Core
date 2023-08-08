@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using YARG.Core.Song.Deserialization.Ini;
 
 namespace YARG.Core.Song.Deserialization
@@ -33,7 +32,7 @@ namespace YARG.Core.Song.Deserialization
         Invalid,
     };
 
-    public unsafe class YARGChartFileReader
+    public sealed class YARGChartFileReader
     {
         internal struct EventCombo
         {
@@ -87,7 +86,7 @@ namespace YARG.Core.Song.Deserialization
         internal const double TEMPO_FACTOR = 60000000000;
 
         private readonly YARGTXTReader reader;
-        private readonly byte* ptr;
+        private readonly byte[] data;
         private readonly int length;
 
         private EventCombo[] eventSet = Array.Empty<EventCombo>();
@@ -98,11 +97,9 @@ namespace YARG.Core.Song.Deserialization
         public YARGChartFileReader(YARGTXTReader reader)
         {
             this.reader = reader;
-            ptr = reader.Ptr;
-            length = reader.Length;
+            data = reader.Data;
+            length = data.Length;
         }
-
-        public YARGChartFileReader(YARGFile file) : this(new YARGTXTReader(file)) { }
 
         public YARGChartFileReader(byte[] data) : this(new YARGTXTReader(data)) { }
 
@@ -185,7 +182,7 @@ namespace YARG.Core.Song.Deserialization
             if (position == length)
                 return false;
 
-            if (ptr[position] == '}')
+            if (data[position] == '}')
             {
                 reader.GotoNextLine();
                 return false;
@@ -196,11 +193,12 @@ namespace YARG.Core.Song.Deserialization
 
         public (long, ChartEvent) ParseEvent()
         {
-            static bool EqualSequences(byte* curr, int length, byte[] descriptor)
+            int start, length;
+            bool EqualSequences(byte[] descriptor)
             {
                 if (descriptor.Length != length) return false;
                 for (int i = 0; i < length; ++i)
-                    if (descriptor[i] != curr[i]) return false;
+                    if (descriptor[i] != data[start + i]) return false;
                 return true;
             }
 
@@ -210,20 +208,20 @@ namespace YARG.Core.Song.Deserialization
 
             tickPosition = position;
 
-            byte* ptr = reader.CurrentPtr;
-            byte* start = ptr;
+            int end = reader.Position;
+            start = end;
             while (true)
             {
-                byte curr = (byte) (*ptr & ~32);
+                byte curr = (byte) (data[end] & ~32);
                 if (curr < 'A' || 'Z' < curr)
                     break;
-                ++ptr;
+                ++end;
             }
 
-            int length = (int) (ptr - start);
-            reader.Position = (int) (ptr - this.ptr);
+            length = end - start;
+            reader.Position = end;
             foreach (var combo in eventSet)
-                if (EqualSequences(start, length, combo.descriptor))
+                if (EqualSequences(combo.descriptor))
                 {
                     reader.SkipWhiteSpace();
                     return new(position, combo.eventType);
@@ -255,10 +253,10 @@ namespace YARG.Core.Song.Deserialization
             while (GetDistanceToTrackCharacter(position, out int next))
             {
                 int point = position + next - 1;
-                while (point > position && ptr[point] <= 32 && ptr[point] != '\n')
+                while (point > position && data[point] <= 32 && data[point] != '\n')
                     --point;
 
-                if (ptr[point] == '\n')
+                if (data[point] == '\n')
                 {
                     reader.Position = position + next;
                     reader.SetNextPointer();
@@ -276,11 +274,10 @@ namespace YARG.Core.Song.Deserialization
         private bool GetDistanceToTrackCharacter(int position, out int i)
         {
             int distanceToEnd = length - position;
-            byte* curr = ptr + position;
             i = 0;
             while (i < distanceToEnd)
             {
-                if (curr[i] == '}')
+                if (data[position + i] == '}')
                     return true;
                 ++i;
             }

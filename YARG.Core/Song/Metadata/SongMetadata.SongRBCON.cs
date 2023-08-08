@@ -98,7 +98,7 @@ namespace YARG.Core.Song
             }
         }
 
-        public YARGFile? LoadMidiUpdateFile()
+        public byte[]? LoadMidiUpdateFile()
         {
             if (UpdateMidi == null)
                 return null;
@@ -106,17 +106,18 @@ namespace YARG.Core.Song
             FileInfo info = new(UpdateMidi.FullName);
             if (!info.Exists || info.LastWriteTime != UpdateMidi.LastWriteTime)
                 return null;
-            return new(UpdateMidi.FullName);
+            return File.ReadAllBytes(UpdateMidi.FullName);
         }
     }
 
     public interface IRBCONMetadata
     {
         public RBCONSubMetadata SharedMetadata { get; }
-        public YARGFile? LoadMidiFile();
-        public YARGFile? LoadMoggFile();
-        public YARGFile? LoadMiloFile();
-        public YARGFile? LoadImgFile();
+        public DateTime MidiLastWrite { get; }
+        public byte[]? LoadMidiFile();
+        public byte[]? LoadMoggFile();
+        public byte[]? LoadMiloFile();
+        public byte[]? LoadImgFile();
         public bool IsMoggUnencrypted();
     }
 
@@ -202,17 +203,22 @@ namespace YARG.Core.Song
                 {
                     fixed (byte* buf = buffer)
                     {
-                        MemoryManipulation.MemCpy(buf, chartFile.Data, (nuint) chartFile.Length);
-                        int offset = chartFile.Length;
-                        if (updateFile != null)
+                        int offset = 0;
+                        fixed (byte* chart = chartFile)
                         {
-                            MemoryManipulation.MemCpy(buf + offset, updateFile.Data, (nuint) updateFile.Length);
-                            offset += updateFile!.Length;
+                            System.Runtime.CompilerServices.Unsafe.CopyBlock(buf, chart, (uint) chartFile.Length);
+                            offset += chartFile.Length;
                         }
 
-                        if (upgradeFile != null)
+                        fixed (byte* update = updateFile)
                         {
-                            MemoryManipulation.MemCpy(buf + offset, upgradeFile.Data, (nuint) upgradeFile.Length);
+                            System.Runtime.CompilerServices.Unsafe.CopyBlock(buf, update, (uint) updateFile.Length);
+                            offset += updateFile.Length;
+                        }
+
+                        fixed (byte* upgrade = upgradeFile)
+                        {
+                            System.Runtime.CompilerServices.Unsafe.CopyBlock(buf, upgrade, (uint) upgradeFile.Length);
                             offset += upgradeFile.Length;
                         }
                     }

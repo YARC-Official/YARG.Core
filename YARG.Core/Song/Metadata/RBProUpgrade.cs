@@ -11,7 +11,7 @@ namespace YARG.Core.Song
         public DateTime LastWrite { get; }
         public void WriteToCache(BinaryWriter writer);
         public bool Validate();
-        public YARGFile? LoadUpgradeMidi();
+        public byte[]? LoadUpgradeMidi();
     }
 
     public sealed class PackedRBProUpgrade : IRBProUpgrade
@@ -40,11 +40,11 @@ namespace YARG.Core.Song
             return _midiListing != null && _midiListing.lastWrite == _lastWrite;
         }
 
-        public YARGFile? LoadUpgradeMidi()
+        public byte[]? LoadUpgradeMidi()
         {
             if (!Validate())
                 return null;
-            return new YARGFile(conFile.LoadSubFile(_midiListing));
+            return conFile.LoadSubFile(_midiListing);
         }
     }
 
@@ -69,11 +69,11 @@ namespace YARG.Core.Song
             return _midiFile.IsStillValid();
         }
 
-        public YARGFile? LoadUpgradeMidi()
+        public byte[]? LoadUpgradeMidi()
         {
             if (!Validate())
                 return null;
-            return new YARGFile(_midiFile.FullName);
+            return File.ReadAllBytes(_midiFile.FullName);
         }
     }
 }

@@ -44,14 +44,14 @@ namespace YARG.Core.Song
             metadata.Image = new(file + "_keep.png_xbox");
         }
 
-        public YARGFile? LoadMidiFile()
+        public byte[]? LoadMidiFile()
         {
-            if (!_metadata.Midi.IsStillValid())
+            if (!Midi.IsStillValid())
                 return null;
-            return new YARGFile(_metadata.Midi.FullName);
+            return File.ReadAllBytes(Midi.FullName);
         }
 
-        public YARGFile? LoadMoggFile()
+        public byte[]? LoadMoggFile()
         {
             //if (Yarg_Mogg != null)
             //{
@@ -61,21 +61,21 @@ namespace YARG.Core.Song
 
             if (_metadata.Mogg == null || !File.Exists(_metadata.Mogg.FullName))
                 return null;
-            return new YARGFile(_metadata.Mogg.FullName);
+            return File.ReadAllBytes(_metadata.Mogg.FullName);
         }
 
-        public YARGFile? LoadMiloFile()
+        public byte[]? LoadMiloFile()
         {
             if (_metadata.Milo == null || !File.Exists(_metadata.Milo.FullName))
                 return null;
-            return new YARGFile(_metadata.Milo.FullName);
+            return File.ReadAllBytes(_metadata.Milo.FullName);
         }
 
-        public YARGFile? LoadImgFile()
+        public byte[]? LoadImgFile()
         {
             if (_metadata.Image == null || !File.Exists(_metadata.Image.FullName))
                 return null;
-            return new YARGFile(_metadata.Image.FullName);
+            return File.ReadAllBytes(_metadata.Image.FullName);
         }
 
         public bool IsMoggUnencrypted()

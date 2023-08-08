@@ -1,18 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
+﻿using System.Collections.Generic;
 using System.Text;
-using System.Threading.Tasks;
 using YARG.Core.Song.Deserialization.Ini;
 
 namespace YARG.Core.Song.Deserialization
 {
-    public unsafe class YARGIniReader
+    public sealed class YARGIniReader
     {
         private readonly YARGTXTReader reader;
-        private readonly byte* ptr;
+        private readonly byte[] data;
         private readonly int length;
 
         private string sectionName = string.Empty;
@@ -21,11 +16,9 @@ namespace YARG.Core.Song.Deserialization
         public YARGIniReader(YARGTXTReader reader)
         {
             this.reader = reader;
-            ptr = reader.Ptr;
-            length = reader.Length;
+            data = reader.Data;
+            length = data.Length;
         }
-
-        public YARGIniReader(YARGFile file) : this(new YARGTXTReader(file)) { }
 
         public YARGIniReader(byte[] data) : this(new YARGTXTReader(data)) { }
 
@@ -43,7 +36,8 @@ namespace YARG.Core.Song.Deserialization
                     return false;
             }
 
-            sectionName = Encoding.UTF8.GetString(reader.CurrentPtr, reader.Length - reader.Position).TrimEnd().ToLower();
+            int position = reader.Position;
+            sectionName = Encoding.UTF8.GetString(data, position, reader.Next - position).TrimEnd().ToLower();
             return true;
         }
 
@@ -54,10 +48,10 @@ namespace YARG.Core.Song.Deserialization
             while (GetDistanceToTrackCharacter(position, out int next))
             {
                 int point = position + next - 1;
-                while (point > position && ptr[point] <= 32 && ptr[point] != '\n')
+                while (point > position && data[point] <= 32 && data[point] != '\n')
                     --point;
 
-                if (ptr[point] == '\n')
+                if (data[point] == '\n')
                 {
                     reader.Position = position + next;
                     reader.SetNextPointer();
@@ -99,11 +93,10 @@ namespace YARG.Core.Song.Deserialization
         private bool GetDistanceToTrackCharacter(int position, out int i)
         {
             int distanceToEnd = length - position;
-            byte* curr = ptr + position;
             i = 0;
             while (i < distanceToEnd)
             {
-                if (curr[i] == '[')
+                if (data[position + i] == '[')
                     return true;
                 ++i;
             }

@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 
 namespace YARG.Core.Song.Deserialization
@@ -91,7 +93,7 @@ namespace YARG.Core.Song.Deserialization
         Unknown
     }
 
-    public class YARGMidiReader
+    public sealed class YARGMidiReader
     {
         public static readonly Dictionary<string, MidiTrackType> TRACKNAMES = new()
         {
@@ -143,45 +145,52 @@ namespace YARG.Core.Song.Deserialization
         private int runningOffset;
 
         private readonly byte multiplierNote;
-        private readonly YARGBinaryReader reader;
+        private readonly Stream stream;
+        private readonly byte[] tagBuffer = new byte[8];
+        private YARGBinaryReader trackReader;
+        private int nextEvent;
 
-        public YARGMidiReader(YARGBinaryReader reader, byte multiplierNote = 116)
+        public YARGMidiReader(Stream stream, byte multiplierNote = 116)
         {
-            this.reader = reader;
+            this.stream = stream;
             this.multiplierNote = multiplierNote;
             ProcessHeaderChunk();
         }
 
-        public YARGMidiReader(YARGFile file, byte multiplierNote = 116) : this(new YARGBinaryReader(file), multiplierNote) { }
+        public YARGMidiReader(byte[] data, byte multiplierNote = 116) : this(new MemoryStream(data), multiplierNote) { }
 
-        public YARGMidiReader(byte[] data, byte multiplierNote = 116) : this(new YARGBinaryReader(data), multiplierNote) { }
+        public YARGMidiReader(string path, byte multiplierNote = 116) : this(new FileStream(path, FileMode.Open), multiplierNote) { }
 
-        public YARGMidiReader(string path, byte multiplierNote = 116) : this(new YARGBinaryReader(path), multiplierNote) { }
+        private bool LoadTrack(byte[] tag)
+        {
+            stream.Read(tagBuffer);
+            if (tagBuffer[0] != tag[0] ||
+                tagBuffer[1] != tag[1] ||
+                tagBuffer[2] != tag[2] ||
+                tagBuffer[3] != tag[3])
+                return false;
+
+            byte[] track = new byte[BinaryPrimitives.ReadInt32BigEndian(new ReadOnlySpan<byte>(tagBuffer, 4, 4))];
+            trackReader = new YARGBinaryReader(track);
+            return true;
+        }
 
         public bool StartTrack()
         {
             if (trackCount == header.numTracks)
                 return false;
 
-            if (currentEvent.type != MidiEventType.Reset_Or_Meta)
-                reader.ExitSection();
-
-            reader.ExitSection();
             trackCount++;
-
-            if (!reader.CompareTag(TRACKTAGS[1]))
+            if (!LoadTrack(TRACKTAGS[1]))
                 throw new Exception($"Midi Track Tag 'MTrk' not found for Track '{trackCount}'");
-
-            reader.EnterSection((int) reader.ReadUInt32(Endianness.BigEndian));
 
             currentEvent.position = 0;
             currentEvent.type = MidiEventType.Reset_Or_Meta;
+            nextEvent = 0;
 
-            int start = reader.Position;
             if (!TryParseEvent() || currentEvent.type != MidiEventType.Text_TrackName)
             {
-                reader.ExitSection();
-                reader.Position = start;
+                nextEvent = 0;
                 currentEvent.position = 0;
                 currentEvent.type = MidiEventType.Reset_Or_Meta;
             }
@@ -199,22 +208,21 @@ namespace YARG.Core.Song.Deserialization
 
         private bool TryParseEvent()
         {
-            if (currentEvent.type != MidiEventType.Reset_Or_Meta)
-                reader.ExitSection();
-
-            currentEvent.position += reader.ReadVLQ();
-            byte tmp = reader.PeekByte();
+            trackReader.Position = nextEvent;
+            currentEvent.position += trackReader.ReadVLQ();
+            byte tmp = trackReader.PeekByte();
             var type = (MidiEventType) tmp;
+            int eventLength;
             if (type < MidiEventType.Note_Off)
             {
                 if (midiEvent == MidiEventType.Reset_Or_Meta)
                     throw new Exception("Invalid running event");
                 currentEvent.type = midiEvent;
-                reader.EnterSection(runningOffset);
+                eventLength = runningOffset;
             }
             else
             {
-                reader.Move_Unsafe(1);
+                trackReader.Move_Unsafe(1);
                 if (type < MidiEventType.SysEx)
                 {
                     currentEvent.channel = (byte) (tmp & 15);
@@ -229,27 +237,27 @@ namespace YARG.Core.Song.Deserialization
                         _ => 1
                     };
                     currentEvent.type = midiEvent;
-                    reader.EnterSection(runningOffset);
+                    eventLength = runningOffset;
                 }
                 else
                 {
                     switch (type)
                     {
                         case MidiEventType.Reset_Or_Meta:
-                            type = (MidiEventType) reader.ReadByte();
+                            type = (MidiEventType) trackReader.ReadByte();
                             goto case MidiEventType.SysEx_End;
                         case MidiEventType.SysEx:
                         case MidiEventType.SysEx_End:
-                            reader.EnterSection((int) reader.ReadVLQ());
+                            eventLength = (int)trackReader.ReadVLQ();
                             break;
                         case MidiEventType.Song_Position:
-                            reader.EnterSection(2);
+                            eventLength = 2;
                             break;
                         case MidiEventType.Song_Select:
-                            reader.EnterSection(1);
+                            eventLength = 1;
                             break;
                         default:
-                            reader.EnterSection(0);
+                            eventLength = 0;
                             break;
                     }
                     currentEvent.type = type;
@@ -258,6 +266,7 @@ namespace YARG.Core.Song.Deserialization
                         return false;
                 }
             }
+            nextEvent = trackReader.Position + eventLength;
             return true;
         }
 
@@ -267,25 +276,23 @@ namespace YARG.Core.Song.Deserialization
 
         public ReadOnlySpan<byte> ExtractTextOrSysEx()
         {
-            return reader.ReadSpan(reader.Boundary - reader.Position);
+            return trackReader.ReadSpan(nextEvent - trackReader.Position);
         }
 
         public void ExtractMidiNote(ref MidiNote note)
         {
-            note.value = reader.ReadByte();
-            note.velocity = reader.ReadByte();
+            note.value = trackReader.ReadByte();
+            note.velocity = trackReader.ReadByte();
         }
 
         private void ProcessHeaderChunk()
         {
-            if (!reader.CompareTag(TRACKTAGS[0]))
+            if (!LoadTrack(TRACKTAGS[0]))
                 throw new Exception("Midi Header Chunk Tag 'MTrk' not found");
 
-            reader.EnterSection((int) reader.ReadUInt32(Endianness.BigEndian));
-            header.format = reader.ReadUInt16(Endianness.BigEndian);
-            header.numTracks = reader.ReadUInt16(Endianness.BigEndian);
-            header.tickRate = reader.ReadUInt16(Endianness.BigEndian);
-            currentEvent.type = MidiEventType.Reset_Or_Meta;
+            header.format = trackReader.ReadUInt16(Endianness.BigEndian);
+            header.numTracks = trackReader.ReadUInt16(Endianness.BigEndian);
+            header.tickRate = trackReader.ReadUInt16(Endianness.BigEndian);
         }
     };
 }

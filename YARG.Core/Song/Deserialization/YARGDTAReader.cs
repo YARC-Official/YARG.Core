@@ -1,56 +1,45 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
+using System.IO;
 using System.Text;
-using System.Threading.Tasks;
-using System.Xml.Linq;
 
 namespace YARG.Core.Song.Deserialization
 {
-    public unsafe class YARGDTAReader : YARGTXTReader_Base
+    public class YARGDTAReader : YARGTXTReader_Base
     {
-        private readonly YARGFile file;
         private readonly List<int> nodeEnds = new();
         //private static readonly Encoding Western = Encoding.GetEncoding(1252);
+        
 
-        public YARGDTAReader(YARGFile file) : base(file.Data, file.Length)
+        public YARGDTAReader(byte[] data) : base(data)
         {
-            this.file = file;
             SkipWhiteSpace();
         }
 
-        public YARGDTAReader(byte[] data) : this(new YARGFile(data)) { }
+        public YARGDTAReader(string path) : this(File.ReadAllBytes(path)) { }
 
-        public YARGDTAReader(string path) : this(new YARGFile(path)) { }
-
-        public YARGDTAReader Clone()
+        public YARGDTAReader(YARGDTAReader reader) : base(reader.data)
         {
-            return new(file)
-            {
-                _position = _position,
-                _next = _next,
-                nodeEnds = { nodeEnds[0] }
-            };
+            _position = reader._position;
+            _next = reader._next;
+            nodeEnds.Add(reader.nodeEnds[0]);
         }
 
         public override byte SkipWhiteSpace()
         {
             while (_position < length)
             {
-                byte ch = ptr[_position];
+                byte ch = data[_position];
                 if (ch > 32 && ch != ';')
                     return ch;
 
-                if (ch <= 32)
-                    ++_position;
-                else
+                ++_position;
+                if (ch > 32)
                 {
-                    ++_position;
                     while (_position < length)
                     {
                         ++_position;
-                        if (ptr[_position - 1] == '\n')
+                        if (data[_position - 1] == '\n')
                             break;
                     }
                 }
@@ -60,19 +49,19 @@ namespace YARG.Core.Song.Deserialization
 
         public string GetNameOfNode()
         {
-            byte ch = ptr[_position];
+            byte ch = data[_position];
             if (ch == '(')
                 return string.Empty;
 
             bool hasApostrophe = true;
             if (ch != '\'')
             {
-                if (ptr[_position - 1] != '(')
+                if (data[_position - 1] != '(')
                     throw new Exception("Invalid name call");
                 hasApostrophe = false;
             }
             else
-                ch = ptr[++_position];
+                ch = data[++_position];
 
             int start = _position;
             while (ch != '\'')
@@ -83,16 +72,16 @@ namespace YARG.Core.Song.Deserialization
                         throw new Exception("Invalid name format");
                     break;
                 }
-                ch = ptr[++_position];
+                ch = data[++_position];
             }
             int end = _position++;
             SkipWhiteSpace();
-            return Encoding.UTF8.GetString(new ReadOnlySpan<byte>(ptr + start, end - start));
+            return Encoding.UTF8.GetString(new ReadOnlySpan<byte>(data, start, end - start));
         }
 
         public string ExtractText()
         {
-            byte ch = ptr[_position];
+            byte ch = data[_position];
             bool inSquirley = ch == '{';
             bool inQuotes = !inSquirley && ch == '\"';
             bool inApostrophes = !inQuotes && ch == '\'';
@@ -103,7 +92,7 @@ namespace YARG.Core.Song.Deserialization
             int start = _position++;
             while (_position < _next)
             {
-                ch = ptr[_position];
+                ch = data[_position];
                 if (ch == '{')
                     throw new Exception("Text error - no { braces allowed");
 
@@ -146,13 +135,13 @@ namespace YARG.Core.Song.Deserialization
             else if (inSquirley || inQuotes || inApostrophes)
                 throw new Exception("Improper end to text");
 
-            return Encoding.UTF8.GetString(new ReadOnlySpan<byte>(ptr + start, end - start)).Replace("\\q", "\"");
+            return Encoding.UTF8.GetString(new ReadOnlySpan<byte>(data, start, end - start)).Replace("\\q", "\"");
         }
 
         public List<int> ExtractList_Int()
         {
             List<int> values = new();
-            while (*CurrentPtr != ')')
+            while (data[_position] != ')')
                 values.Add(ReadInt32());
             return values;
         }
@@ -160,7 +149,7 @@ namespace YARG.Core.Song.Deserialization
         public List<float> ExtractList_Float()
         {
             List<float> values = new();
-            while (*CurrentPtr != ')')
+            while (data[_position] != ')')
                 values.Add(ReadFloat());
             return values;
         }
@@ -168,14 +157,14 @@ namespace YARG.Core.Song.Deserialization
         public List<string> ExtractList_String()
         {
             List<string> strings = new();
-            while (*CurrentPtr != ')')
+            while (data[_position] != ')')
                 strings.Add(ExtractText());
             return strings;
         }
 
         public bool StartNode()
         {
-            byte ch = ptr[_position];
+            byte ch = data[_position];
             if (ch != '(')
                 return false;
 
@@ -189,7 +178,7 @@ namespace YARG.Core.Song.Deserialization
             int pos = _position;
             while (scopeLevel >= 1 && pos < length)
             {
-                ch = ptr[pos];
+                ch = data[pos];
                 if (inComment)
                 {
                     if (ch == '\n')

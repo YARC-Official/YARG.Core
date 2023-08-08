@@ -1,19 +1,14 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace YARG.Core.Song.Deserialization
 {
-    public unsafe abstract class YARGTXTReader_Base
+    public abstract class YARGTXTReader_Base
     {
-        protected readonly byte* ptr;
+        protected readonly byte[] data;
         protected readonly int length;
         protected int _position;
 
-        public byte* Ptr => ptr;
+        public byte[] Data => data;
         public int Length => length;
 
         public int Position
@@ -32,15 +27,13 @@ namespace YARG.Core.Song.Deserialization
 
         public byte PeekByte()
         {
-            return ptr[_position];
+            return data[_position];
         }
 
-        public byte* CurrentPtr { get { return ptr + _position; } }
-
-        protected YARGTXTReader_Base(byte* ptr, int length)
+        protected YARGTXTReader_Base(byte[] data)
         {
-            this.ptr = ptr;
-            this.length = length;
+            this.data = data;
+            this.length = data.Length;
         }
 
         public abstract byte SkipWhiteSpace();
@@ -52,15 +45,15 @@ namespace YARG.Core.Song.Deserialization
 
         public bool ReadBoolean(ref bool value)
         {
-            value = ptr[_position] switch
+            value = data[_position] switch
             {
                 (byte) '0' => false,
                 (byte) '1' => true,
                 _ => _position + 4 <= _next &&
-                                    (ptr[_position] == 't' || ptr[_position] == 'T') &&
-                                    (ptr[_position + 1] == 'r' || ptr[_position + 1] == 'R') &&
-                                    (ptr[_position + 2] == 'u' || ptr[_position + 2] == 'U') &&
-                                    (ptr[_position + 3] == 'e' || ptr[_position + 3] == 'E'),
+                                    (data[_position] == 't' || data[_position] == 'T') &&
+                                    (data[_position + 1] == 'r' || data[_position + 1] == 'R') &&
+                                    (data[_position + 2] == 'u' || data[_position + 2] == 'U') &&
+                                    (data[_position + 3] == 'e' || data[_position + 3] == 'E'),
             };
             return true;
         }
@@ -70,7 +63,7 @@ namespace YARG.Core.Song.Deserialization
             if (_position >= _next)
                 return false;
 
-            value = ptr[_position++];
+            value = data[_position++];
             SkipWhiteSpace();
             return true;
         }
@@ -80,7 +73,7 @@ namespace YARG.Core.Song.Deserialization
             if (_position >= _next)
                 return false;
 
-            value = (sbyte) ptr[_position++];
+            value = (sbyte) data[_position++];
             SkipWhiteSpace();
             return true;
         }
@@ -90,7 +83,7 @@ namespace YARG.Core.Song.Deserialization
             if (_position >= _next)
                 return false;
 
-            short b = ptr[_position];
+            short b = data[_position];
             if (b != '-')
             {
                 if (b == '+')
@@ -98,7 +91,7 @@ namespace YARG.Core.Song.Deserialization
                     ++_position;
                     if (_position == _next)
                         return false;
-                    b = ptr[_position];
+                    b = data[_position];
                 }
 
                 if (b < '0' || b > '9')
@@ -115,7 +108,7 @@ namespace YARG.Core.Song.Deserialization
                         if (_position == _next)
                             break;
 
-                        b = ptr[_position];
+                        b = data[_position];
                         if (b < '0' || b > '9')
                             break;
 
@@ -135,7 +128,7 @@ namespace YARG.Core.Song.Deserialization
                 if (_position == _next)
                     return false;
 
-                b = ptr[_position];
+                b = data[_position];
                 if (b < '0' || b > '9')
                     return false;
 
@@ -150,7 +143,7 @@ namespace YARG.Core.Song.Deserialization
                         if (_position == _next)
                             break;
 
-                        b = ptr[_position];
+                        b = data[_position];
                         if (b < '0' || b > '9')
                             break;
 
@@ -174,13 +167,13 @@ namespace YARG.Core.Song.Deserialization
             if (_position >= _next)
                 return false;
 
-            ushort b = ptr[_position];
+            ushort b = data[_position];
             if (b == '+')
             {
                 ++_position;
                 if (_position == _next)
                     return false;
-                b = ptr[_position];
+                b = data[_position];
             }
 
             if (b < '0' || b > '9')
@@ -197,7 +190,7 @@ namespace YARG.Core.Song.Deserialization
                     if (_position == _next)
                         break;
 
-                    b = ptr[_position];
+                    b = data[_position];
                     if (b < '0' || b > '9')
                         break;
 
@@ -219,7 +212,7 @@ namespace YARG.Core.Song.Deserialization
             if (_position >= _next)
                 return false;
 
-            int b = ptr[_position];
+            int b = data[_position];
             if (b != '-')
             {
                 if (b == '+')
@@ -227,7 +220,7 @@ namespace YARG.Core.Song.Deserialization
                     ++_position;
                     if (_position == _next)
                         return false;
-                    b = ptr[_position];
+                    b = data[_position];
                 }
 
                 if (b < '0' || b > '9')
@@ -244,7 +237,7 @@ namespace YARG.Core.Song.Deserialization
                         if (_position == _next)
                             break;
 
-                        b = ptr[_position];
+                        b = data[_position];
                         if (b < '0' || b > '9')
                             break;
 
@@ -264,7 +257,7 @@ namespace YARG.Core.Song.Deserialization
                 if (_position == _next)
                     return false;
 
-                b = ptr[_position];
+                b = data[_position];
                 if (b < '0' || b > '9')
                     return false;
 
@@ -279,7 +272,7 @@ namespace YARG.Core.Song.Deserialization
                         if (_position == _next)
                             break;
 
-                        b = ptr[_position];
+                        b = data[_position];
                         if (b < '0' || b > '9')
                             break;
 
@@ -302,13 +295,13 @@ namespace YARG.Core.Song.Deserialization
             if (_position >= _next)
                 return false;
 
-            uint b = ptr[_position];
+            uint b = data[_position];
             if (b == '+')
             {
                 ++_position;
                 if (_position == _next)
                     return false;
-                b = ptr[_position];
+                b = data[_position];
             }
 
             if (b < '0' || b > '9')
@@ -325,7 +318,7 @@ namespace YARG.Core.Song.Deserialization
                     if (_position == _next)
                         break;
 
-                    b = ptr[_position];
+                    b = data[_position];
                     if (b < '0' || b > '9')
                         break;
 
@@ -347,7 +340,7 @@ namespace YARG.Core.Song.Deserialization
             if (_position >= _next)
                 return false;
 
-            long b = ptr[_position];
+            long b = data[_position];
             if (b != '-')
             {
                 if (b == '+')
@@ -355,7 +348,7 @@ namespace YARG.Core.Song.Deserialization
                     ++_position;
                     if (_position == _next)
                         return false;
-                    b = ptr[_position];
+                    b = data[_position];
                 }
 
                 if (b < '0' || b > '9')
@@ -372,7 +365,7 @@ namespace YARG.Core.Song.Deserialization
                         if (_position == _next)
                             break;
 
-                        b = ptr[_position];
+                        b = data[_position];
                         if (b < '0' || b > '9')
                             break;
 
@@ -392,7 +385,7 @@ namespace YARG.Core.Song.Deserialization
                 if (_position == _next)
                     return false;
 
-                b = ptr[_position];
+                b = data[_position];
                 if (b < '0' || b > '9')
                     return false;
 
@@ -407,7 +400,7 @@ namespace YARG.Core.Song.Deserialization
                         if (_position == _next)
                             break;
 
-                        b = ptr[_position];
+                        b = data[_position];
                         if (b < '0' || b > '9')
                             break;
 
@@ -430,13 +423,13 @@ namespace YARG.Core.Song.Deserialization
             if (_position >= _next)
                 return false;
 
-            ulong b = ptr[_position];
+            ulong b = data[_position];
             if (b == '+')
             {
                 ++_position;
                 if (_position == _next)
                     return false;
-                b = ptr[_position];
+                b = data[_position];
             }
 
             if (b < '0' || b > '9')
@@ -453,7 +446,7 @@ namespace YARG.Core.Song.Deserialization
                     if (_position == _next)
                         break;
 
-                    b = ptr[_position];
+                    b = data[_position];
                     if (b < '0' || b > '9')
                         break;
 
@@ -475,7 +468,7 @@ namespace YARG.Core.Song.Deserialization
             if (_position >= _next)
                 return false;
 
-            byte b = ptr[_position];
+            byte b = data[_position];
             bool isNegative = false;
 
             if (b == '+')
@@ -483,14 +476,14 @@ namespace YARG.Core.Song.Deserialization
                 ++_position;
                 if (_position == _next)
                     return false;
-                b = ptr[_position];
+                b = data[_position];
             }
             else if (b == '-')
             {
                 ++_position;
                 if (_position == _next)
                     return false;
-                b = ptr[_position];
+                b = data[_position];
                 isNegative = true;
             }
 
@@ -510,7 +503,7 @@ namespace YARG.Core.Song.Deserialization
                     if (_position == _next)
                         break;
 
-                    b = ptr[_position];
+                    b = data[_position];
                     if (b < '0' || b > '9')
                         break;
 
@@ -526,7 +519,7 @@ namespace YARG.Core.Song.Deserialization
                 int count = 0;
                 if (_position < _next)
                 {
-                    b = ptr[_position];
+                    b = data[_position];
                     if ('0' <= b && b <= '9')
                     {
                         ++count;
@@ -537,7 +530,7 @@ namespace YARG.Core.Song.Deserialization
                             if (_position == _next)
                                 break;
 
-                            b = ptr[_position];
+                            b = data[_position];
                             if (b < '0' || b > '9')
                                 break;
                             dec *= 10;
@@ -564,7 +557,7 @@ namespace YARG.Core.Song.Deserialization
             if (_position >= _next)
                 return false;
 
-            byte b = ptr[_position];
+            byte b = data[_position];
             bool isNegative = false;
 
             if (b == '+')
@@ -597,7 +590,7 @@ namespace YARG.Core.Song.Deserialization
                     if (_position == _next)
                         break;
 
-                    b = ptr[_position];
+                    b = data[_position];
                     if (b < '0' || b > '9')
                         break;
 
@@ -613,7 +606,7 @@ namespace YARG.Core.Song.Deserialization
                 int count = 0;
                 if (_position < _next)
                 {
-                    b = ptr[_position];
+                    b = data[_position];
                     if ('0' <= b && b <= '9')
                     {
                         ++count;
@@ -624,7 +617,7 @@ namespace YARG.Core.Song.Deserialization
                             if (_position == _next)
                                 break;
 
-                            b = ptr[_position];
+                            b = data[_position];
                             if (b < '0' || b > '9')
                                 break;
                             dec *= 10;
@@ -666,7 +659,7 @@ namespace YARG.Core.Song.Deserialization
         {
             if (_position + 1 > _next)
                 throw new Exception("Failed to parse data");
-            return ref ptr[_position++];
+            return ref data[_position++];
         }
 
         public sbyte ReadSByte()
@@ -736,7 +729,7 @@ namespace YARG.Core.Song.Deserialization
 
         public ReadOnlySpan<byte> ExtractBasicSpan(int length)
         {
-            return new ReadOnlySpan<byte>(ptr + _position, length);
+            return new ReadOnlySpan<byte>(data, _position, length);
         }
     }
 }

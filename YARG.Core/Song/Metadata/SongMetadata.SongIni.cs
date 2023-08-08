@@ -13,11 +13,11 @@ namespace YARG.Core.Song
         public readonly AbridgedFileInfo chartFile;
         public readonly AbridgedFileInfo? iniFile;
 
-        public IniSubmetadata(ChartType chartType, string chartFile, string? iniFile)
+        public IniSubmetadata(ChartType chartType, AbridgedFileInfo chartFile, AbridgedFileInfo? iniFile)
         {
             this.chartType = chartType;
-            this.chartFile = new(chartFile);
-            this.iniFile = iniFile != null ? new(iniFile) : null;
+            this.chartFile = chartFile;
+            this.iniFile = iniFile;
         }
 
         public void Serialize(BinaryWriter writer)
@@ -36,7 +36,7 @@ namespace YARG.Core.Song
 
     public sealed partial class SongMetadata
     {
-        public SongMetadata(IniSection section, IniSubmetadata iniData, AvailableParts parts, DrumType drumType)
+        private SongMetadata(IniSection section, IniSubmetadata iniData, AvailableParts parts, DrumType drumType)
         {
             // .ini songs are assumed to be masters and not covers
             _isMaster = true;
@@ -131,34 +131,7 @@ namespace YARG.Core.Song
             { "Offset",       new("offset", ModifierNodeType.DOUBLE ) },
         };
 
-        public static (ScanResult, SongMetadata?) FromIni(YARGFile file, string chartFile, string? iniFile, ChartType type)
-        {
-            AvailableParts parts = new();
-            IniSection modifiers;
-            if (iniFile != null)
-                modifiers = IniHandler.ReadSongIniFile(iniFile);
-            else
-                modifiers = new();
-
-            DrumType drumType = default;
-            if (type == ChartType.CHART)
-                drumType = ParseChart(file, modifiers, parts);
-
-            if (!modifiers.Contains("name"))
-                return (ScanResult.NoName, null);
-
-            if (type == ChartType.MID || type == ChartType.MIDI)
-                drumType = ParseMidi(file, modifiers, parts);
-
-            if (!parts.CheckScanValidity())
-                return (ScanResult.NoNotes, null);
-
-            IniSubmetadata metadata = new(type, chartFile, iniFile);
-            parts.SetIntensities(modifiers);
-            return (ScanResult.Success, new SongMetadata(modifiers, metadata, parts, drumType));
-        }
-
-        private static DrumType ParseChart(YARGFile file, IniSection modifiers, AvailableParts parts)
+        private static DrumType ParseChart(byte[] file, IniSection modifiers, AvailableParts parts)
         {
             YARGChartFileReader reader = new(file);
             if (!reader.ValidateHeaderTrack())
@@ -170,7 +143,7 @@ namespace YARG.Core.Song
             return parts.ParseChart(reader, GetDrumTypeFromModifier(modifiers));
         }
 
-        private static DrumType ParseMidi(YARGFile file, IniSection modifiers, AvailableParts parts)
+        private static DrumType ParseMidi(byte[] file, IniSection modifiers, AvailableParts parts)
         {
             var drumType = GetDrumTypeFromModifier(modifiers);
             bool usePro = !modifiers.TryGet("pro_drums", out bool proDrums) || proDrums;
@@ -190,6 +163,40 @@ namespace YARG.Core.Song
             if (!modifiers.TryGet("five_lane_drums", out bool fivelane))
                 return DrumType.UNKNOWN;
             return fivelane ? DrumType.FIVE_LANE : DrumType.FOUR_LANE;
+        }
+
+        public static (ScanResult, SongMetadata?) FromIni(byte[] file, string chartFile, string? iniFile, ChartType type)
+        {
+            AvailableParts parts = new();
+            AbridgedFileInfo? iniInfo;
+            IniSection modifiers;
+            if (iniFile != null)
+            {
+                modifiers = IniHandler.ReadSongIniFile(iniFile);
+                iniInfo = new AbridgedFileInfo(iniFile);
+            }
+            else
+            {
+                modifiers = new();
+                iniInfo = null;
+            }
+
+            DrumType drumType = default;
+            if (type == ChartType.CHART)
+                drumType = ParseChart(file, modifiers, parts);
+
+            if (!modifiers.Contains("name"))
+                return (ScanResult.NoName, null);
+
+            if (type == ChartType.MID || type == ChartType.MIDI)
+                drumType = ParseMidi(file, modifiers, parts);
+
+            if (!parts.CheckScanValidity())
+                return (ScanResult.NoNotes, null);
+
+            IniSubmetadata metadata = new(type, new AbridgedFileInfo(chartFile), iniInfo);
+            parts.SetIntensities(modifiers);
+            return (ScanResult.Success, new SongMetadata(modifiers, metadata, parts, drumType));
         }
     }
 }

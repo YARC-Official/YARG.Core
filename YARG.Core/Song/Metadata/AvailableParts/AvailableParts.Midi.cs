@@ -9,7 +9,7 @@ namespace YARG.Core.Song
         /// <summary>
         /// This not include drums as those must be handled by a dedicated DrumPreparseHandler object.
         /// </summary>
-        public DrumType ParseMidi(YARGFile file, DrumType drumType)
+        public DrumType ParseMidi(byte[] file, DrumType drumType)
         {
             YARGMidiReader reader = new(file);
             DrumPreparseHandler drums = new(drumType);

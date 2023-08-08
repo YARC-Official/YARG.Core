@@ -43,14 +43,14 @@ namespace YARG.Core.Song
             imgListing = conFile[genPAth + "_keep.png_xbox"];
         }
 
-        public YARGFile? LoadMidiFile()
+        public byte[]? LoadMidiFile()
         {
             if (midiListing == null)
                 return null;
-            return new YARGFile(conFile.LoadSubFile(midiListing));
+            return conFile.LoadSubFile(midiListing);
         }
 
-        public YARGFile? LoadMoggFile()
+        public byte[]? LoadMoggFile()
         {
             //if (Yarg_Mogg != null)
             //{
@@ -59,31 +59,31 @@ namespace YARG.Core.Song
             //}
 
             if (_metadata.Mogg != null && File.Exists(_metadata.Mogg.FullName))
-                return new YARGFile(_metadata.Mogg.FullName);
+                return File.ReadAllBytes(_metadata.Mogg.FullName);
 
             if (moggListing != null)
-                return new YARGFile(conFile.LoadSubFile(moggListing));
+                return conFile.LoadSubFile(moggListing);
             return null;
         }
 
-        public YARGFile? LoadMiloFile()
+        public byte[]? LoadMiloFile()
         {
             if (_metadata.Milo != null && File.Exists(_metadata.Milo.FullName))
-                return new YARGFile(_metadata.Milo.FullName);
+                return File.ReadAllBytes(_metadata.Milo.FullName);
 
             if (miloListing != null)
-                return new YARGFile(conFile.LoadSubFile(miloListing));
+                return conFile.LoadSubFile(miloListing);
 
             return null;
         }
 
-        public YARGFile? LoadImgFile()
+        public byte[]? LoadImgFile()
         {
             if (_metadata.Image != null && File.Exists(_metadata.Image.FullName))
-                return new YARGFile(_metadata.Image.FullName);
+                return File.ReadAllBytes(_metadata.Image.FullName);
 
             if (imgListing != null)
-                return new YARGFile(conFile.LoadSubFile(imgListing));
+                return conFile.LoadSubFile(imgListing);
 
             return null;
         }
@@ -104,7 +104,7 @@ namespace YARG.Core.Song
                 fs.Read(buffer);
                 return BinaryPrimitives.ReadInt32LittleEndian(buffer) == 0x0A;
             }
-            else if (miloListing != null)
+            else if (moggListing != null)
                 return conFile.GetMoggVersion(moggListing) == 0x0A;
             return false;
         }

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Buffers.Binary;
 using System.Diagnostics;
-using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -15,83 +14,59 @@ namespace YARG.Core.Song.Deserialization
     };
 
 #nullable enable
-    public unsafe class YARGBinaryReader
+    public sealed unsafe class YARGBinaryReader
     {
-        private readonly YARGFile? file;
-        private readonly byte* data;
+        private GCHandle handle;
+        private readonly byte[] data;
+        private readonly byte* ptr;
         private readonly int length;
-        private readonly int[] boundaries = new int[8];
-
-        private int boundaryIndex = 0;
-        private int currentBoundary;
-
         private int _position;
+
+        public int Length => length;
 
         public int Position
         {
             get { return _position; }
             set
             {
-                if (value > boundaries[boundaryIndex])
+                if (value > length)
                     throw new ArgumentOutOfRangeException("Position");
                 _position = value;
             }
         }
-        public int Boundary { get { return currentBoundary; } }
 
-        public YARGBinaryReader(byte* data, int length)
+        public YARGBinaryReader(byte[] data)
         {
             this.data = data;
+            handle = GCHandle.Alloc(data, GCHandleType.Pinned);
+            ptr = (byte*)handle.AddrOfPinnedObject();
+            length = data.Length;
+        }
+
+        public YARGBinaryReader(YARGBinaryReader baseReader, int length)
+        {
+            data = Array.Empty<byte>();
+            ptr = baseReader.ptr + baseReader._position;
             this.length = length;
-            currentBoundary = boundaries[0] = length;
+            baseReader._position += length;
         }
 
-        public YARGBinaryReader(YARGFile file) : this(file.Data, file.Length)
+        ~YARGBinaryReader()
         {
-            this.file = file;
-        }
-
-        public YARGBinaryReader(byte[] data) : this(new YARGFile(data)) { }
-
-        public YARGBinaryReader(string path) : this(new YARGFile(path)) { }
-
-        public void ExitSection()
-        {
-            _position = currentBoundary;
-            if (boundaryIndex == 0)
-                throw new Exception("ayo wtf bro");
-            currentBoundary = boundaries[--boundaryIndex];
-        }
-
-        public void EnterSection(int length)
-        {
-            int boundary = _position + length;
-            if (boundary > boundaries[boundaryIndex])
-                throw new Exception("Invalid length for section");
-            if (boundaryIndex == 7)
-                throw new Exception("Nested Buffer limit reached");
-            currentBoundary = boundaries[++boundaryIndex] = boundary;
+            if (handle.IsAllocated)
+                handle.Free();
         }
 
         public bool CompareTag(byte[] tag)
         {
             Debug.Assert(tag.Length == 4);
-            if (tag[0] != data[_position] ||
-                tag[1] != data[_position + 1] ||
-                tag[2] != data[_position + 2] ||
-                tag[3] != data[_position + 3])
+            if (tag[0] != ptr[_position] ||
+                tag[1] != ptr[_position + 1] ||
+                tag[2] != ptr[_position + 2] ||
+                tag[3] != ptr[_position + 3])
                 return false;
 
             _position += 4;
-            return true;
-        }
-
-        public bool Move(int amount)
-        {
-            if (_position + amount > currentBoundary)
-                return false;
-
-            _position += amount;
             return true;
         }
 
@@ -102,141 +77,17 @@ namespace YARG.Core.Song.Deserialization
 
         public byte PeekByte()
         {
-            return data[_position];
+            return ptr[_position];
         }
 
-        public bool ReadByte(ref byte value)
-        {
-            if (_position >= currentBoundary)
-                return false;
-
-            value = data[_position++];
-            return true;
-        }
-
-        public bool ReadSByte(ref sbyte value)
-        {
-            if (_position >= currentBoundary)
-                return false;
-
-            value = (sbyte) data[_position++];
-            return true;
-        }
-
-        public bool ReadInt16(ref short value, Endianness endianness = Endianness.LittleEndian)
-        {
-            if (_position + 2 > currentBoundary)
-                return false;
-
-            Span<byte> span = new(data + _position, 2);
-            if (endianness == Endianness.LittleEndian)
-                value = BinaryPrimitives.ReadInt16LittleEndian(span);
-            else
-                value = BinaryPrimitives.ReadInt16BigEndian(span);
-            _position += 2;
-            return true;
-        }
-
-        public bool ReadUInt16(ref ushort value, Endianness endianness = Endianness.LittleEndian)
-        {
-            if (_position + 2 > currentBoundary)
-                return false;
-
-            Span<byte> span = new(data + _position, 2);
-            if (endianness == Endianness.LittleEndian)
-                value = BinaryPrimitives.ReadUInt16LittleEndian(span);
-            else
-                value = BinaryPrimitives.ReadUInt16BigEndian(span);
-            _position += 2;
-            return true;
-        }
-
-        public bool ReadInt32(ref int value, Endianness endianness = Endianness.LittleEndian)
-        {
-            if (_position + 4 > currentBoundary)
-                return false;
-
-            Span<byte> span = new(data + _position, 4);
-            if (endianness == Endianness.LittleEndian)
-                value = BinaryPrimitives.ReadInt32LittleEndian(span);
-            else
-                value = BinaryPrimitives.ReadInt32BigEndian(span);
-            _position += 4;
-            return true;
-        }
-
-        public bool ReadUInt32(ref uint value, Endianness endianness = Endianness.LittleEndian)
-        {
-            if (_position + 4 > currentBoundary)
-                return false;
-
-            Span<byte> span = new(data + _position, 4);
-            if (endianness == Endianness.LittleEndian)
-                value = BinaryPrimitives.ReadUInt32LittleEndian(span);
-            else
-                value = BinaryPrimitives.ReadUInt32BigEndian(span);
-            _position += 4;
-            return true;
-        }
-
-        public bool ReadInt64(ref long value, Endianness endianness = Endianness.LittleEndian)
-        {
-            if (_position + 8 > currentBoundary)
-                return false;
-
-            Span<byte> span = new(data + _position, 8);
-            if (endianness == Endianness.LittleEndian)
-                value = BinaryPrimitives.ReadInt64LittleEndian(span);
-            else
-                value = BinaryPrimitives.ReadInt64BigEndian(span);
-            Position += 8;
-            return true;
-        }
-
-        public bool ReadUInt64(ref ulong value, Endianness endianness = Endianness.LittleEndian)
-        {
-            if (_position + 8 > currentBoundary)
-                return false;
-
-            Span<byte> span = new(data + _position, 8);
-            if (endianness == Endianness.LittleEndian)
-                value = BinaryPrimitives.ReadUInt64LittleEndian(span);
-            else
-                value = BinaryPrimitives.ReadUInt64BigEndian(span);
-            _position += 8;
-            return true;
-        }
-
-        public bool ReadFloat(ref float value)
-        {
-            if (_position + 4 > currentBoundary)
-                return false;
-
-            value = BitConverter.ToSingle(new Span<byte>(data + _position, 4));
-            _position += 4;
-            return true;
-        }
         public byte ReadByte()
         {
-            if (_position >= currentBoundary)
-                throw new Exception("Failed to parse data");
-
-            return data[_position++];
-        }
-
-        public ref byte ReadByte_Ref()
-        {
-            if (_position >= currentBoundary)
-                throw new Exception("Failed to parse data");
-            return ref data[_position++];
+            return ptr[_position++];
         }
 
         public sbyte ReadSByte()
         {
-            if (_position >= currentBoundary)
-                throw new Exception("Failed to parse data");
-
-            return (sbyte) data[_position++];
+            return (sbyte) ptr[_position++];
         }
 
         public bool ReadBoolean()
@@ -245,60 +96,87 @@ namespace YARG.Core.Song.Deserialization
         }
         public short ReadInt16(Endianness endianness = Endianness.LittleEndian)
         {
-            short value = default;
-            if (!ReadInt16(ref value, endianness))
-                throw new Exception("Failed to parse data");
+            short value;
+            ReadOnlySpan<byte> span = new(ptr + _position, 2);
+            if (endianness == Endianness.LittleEndian)
+                value = BinaryPrimitives.ReadInt16LittleEndian(span);
+            else
+                value = BinaryPrimitives.ReadInt16BigEndian(span);
+            _position += 2;
             return value;
         }
         public ushort ReadUInt16(Endianness endianness = Endianness.LittleEndian)
         {
-            ushort value = default;
-            if (!ReadUInt16(ref value, endianness))
-                throw new Exception("Failed to parse data");
+            ushort value;
+            ReadOnlySpan<byte> span = new(ptr + _position, 2);
+            if (endianness == Endianness.LittleEndian)
+                value = BinaryPrimitives.ReadUInt16LittleEndian(span);
+            else
+                value = BinaryPrimitives.ReadUInt16BigEndian(span);
+            _position += 2;
             return value;
         }
         public int ReadInt32(Endianness endianness = Endianness.LittleEndian)
         {
-            int value = default;
-            if (!ReadInt32(ref value, endianness))
-                throw new Exception("Failed to parse data");
+            int value;
+            ReadOnlySpan<byte> span = new(ptr + _position, 4);
+            if (endianness == Endianness.LittleEndian)
+                value = BinaryPrimitives.ReadInt32LittleEndian(span);
+            else
+                value = BinaryPrimitives.ReadInt32BigEndian(span);
+            _position += 4;
             return value;
         }
         public uint ReadUInt32(Endianness endianness = Endianness.LittleEndian)
         {
-            uint value = default;
-            if (!ReadUInt32(ref value, endianness))
-                throw new Exception("Failed to parse data");
+            uint value;
+            ReadOnlySpan<byte> span = new(ptr + _position, 4);
+            if (endianness == Endianness.LittleEndian)
+                value = BinaryPrimitives.ReadUInt32LittleEndian(span);
+            else
+                value = BinaryPrimitives.ReadUInt32BigEndian(span);
+            _position += 4;
             return value;
         }
         public long ReadInt64(Endianness endianness = Endianness.LittleEndian)
         {
-            long value = default;
-            if (!ReadInt64(ref value, endianness))
-                throw new Exception("Failed to parse data");
+            long value;
+            ReadOnlySpan<byte> span = new(ptr + _position, 8);
+            if (endianness == Endianness.LittleEndian)
+                value = BinaryPrimitives.ReadInt64LittleEndian(span);
+            else
+                value = BinaryPrimitives.ReadInt64BigEndian(span);
+            Position += 8;
             return value;
         }
         public ulong ReadUInt64(Endianness endianness = Endianness.LittleEndian)
         {
-            ulong value = default;
-            if (!ReadUInt64(ref value, endianness))
-                throw new Exception("Failed to parse data");
+            ulong value;
+            ReadOnlySpan<byte> span = new(ptr + _position, 8);
+            if (endianness == Endianness.LittleEndian)
+                value = BinaryPrimitives.ReadUInt64LittleEndian(span);
+            else
+                value = BinaryPrimitives.ReadUInt64BigEndian(span);
+            _position += 8;
             return value;
         }
         public float ReadFloat()
         {
-            float value = default;
-            if (!ReadFloat(ref value))
-                throw new Exception("Failed to parse data");
+            float value = BitConverter.ToSingle(new ReadOnlySpan<byte>(ptr + _position, 4));
+            _position += 4;
             return value;
         }
         public bool ReadBytes(byte[] bytes)
         {
             int endPos = _position + bytes.Length;
-            if (endPos > currentBoundary)
+            if (endPos > length)
                 return false;
 
-            Marshal.Copy((IntPtr) (data + _position), bytes, 0, bytes.Length);
+            fixed (byte* dst = bytes)
+            {
+                Unsafe.CopyBlock(dst, ptr + _position, (uint) bytes.Length);
+            }
+
             _position = endPos;
             return true;
         }
@@ -325,10 +203,7 @@ namespace YARG.Core.Song.Deserialization
             const int MaxBytesWithoutOverflow = 4;
             for (int shift = 0; shift < MaxBytesWithoutOverflow * 7; shift += 7)
             {
-                if (_position >= currentBoundary)
-                    throw new Exception("Failed to parse data");
-
-                byteReadJustNow = data[_position++];
+                byteReadJustNow = ptr[_position++];
                 result |= (byteReadJustNow & 0x7Fu) << shift;
 
                 if (byteReadJustNow <= 0x7Fu)
@@ -337,10 +212,7 @@ namespace YARG.Core.Song.Deserialization
                 }
             }
 
-            if (_position >= currentBoundary)
-                throw new Exception("Failed to parse data");
-
-            byteReadJustNow = data[_position++];
+            byteReadJustNow = ptr[_position++];
             if (byteReadJustNow > 0b_1111u)
             {
                 throw new Exception("Failed to parse data");
@@ -356,10 +228,7 @@ namespace YARG.Core.Song.Deserialization
             uint i = 0;
             while (true)
             {
-                if (_position >= currentBoundary)
-                    throw new Exception("Failed to parse data");
-
-                uint b = data[_position++];
+                uint b = ptr[_position++];
                 value |= b & 127;
                 if (b < 128)
                     return value;
@@ -375,23 +244,9 @@ namespace YARG.Core.Song.Deserialization
         public ReadOnlySpan<byte> ReadSpan(int length)
         {
             int endPos = _position + length;
-            if (endPos > currentBoundary)
-                throw new Exception("Failed to parse data");
-
-            ReadOnlySpan<byte> span = new(data + _position, length);
+            ReadOnlySpan<byte> span = new(ptr + _position, length);
             _position = endPos;
             return span;
-        }
-
-        public YARGBinaryReader CreateReaderFromCurrentPosition(int length)
-        {
-            int endPos = _position + length;
-            if (endPos > currentBoundary)
-                throw new Exception("Failed to create reader");
-
-            YARGBinaryReader reader = new(data + _position, length);
-            _position = endPos;
-            return reader;
         }
     }
 }
