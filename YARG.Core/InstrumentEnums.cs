@@ -127,6 +127,52 @@ namespace YARG.Core
             };
         }
 
+        public static Instrument[] PossibleInstruments(this GameMode gameMode)
+        {
+            return gameMode switch
+            {
+                GameMode.FiveFretGuitar => new[]
+                {
+                    Instrument.FiveFretGuitar,
+                    Instrument.FiveFretBass,
+                    Instrument.FiveFretRhythm,
+                    Instrument.FiveFretCoopGuitar,
+                    Instrument.Keys,
+                },
+                GameMode.SixFretGuitar  => new[]
+                {
+                    Instrument.SixFretGuitar,
+                    Instrument.SixFretBass,
+                    Instrument.SixFretRhythm,
+                    Instrument.SixFretCoopGuitar,
+                },
+                GameMode.FourLaneDrums  => new[]
+                {
+                    Instrument.FourLaneDrums,
+                    Instrument.ProDrums,
+                },
+                GameMode.FiveLaneDrums  => new[]
+                {
+                    Instrument.FiveLaneDrums
+                },
+                GameMode.ProGuitar      => new[]
+                {
+                    Instrument.ProGuitar_17Fret,
+                    Instrument.ProBass_17Fret,
+                },
+                GameMode.ProKeys        => new[]
+                {
+                    Instrument.ProKeys
+                },
+                GameMode.Vocals         => new[]
+                {
+                    Instrument.Vocals,
+                    Instrument.Harmony
+                },
+                _  => throw new NotImplementedException($"Unhandled game mode {gameMode}!")
+            };
+        }
+
         public static DifficultyMask ToDifficultyMask(this Difficulty difficulty)
         {
             return difficulty switch
