@@ -36,6 +36,20 @@ namespace YARG.Core.Song
 
     public sealed partial class SongMetadata
     {
+        private static readonly Dictionary<string, IniModifierCreator> MODIFIER_LIST = new()
+        {
+            { "Album",        new("album", ModifierCreatorType.SortString_Chart ) },
+            { "Artist",       new("artist", ModifierCreatorType.SortString_Chart ) },
+            { "Charter",      new("charter", ModifierCreatorType.SortString_Chart ) },
+            { "Difficulty",   new("diff_band", ModifierCreatorType.Int32 ) },
+            { "Genre",        new("genre", ModifierCreatorType.SortString_Chart ) },
+            { "Name",         new("name", ModifierCreatorType.SortString_Chart ) },
+            { "PreviewEnd",   new("previewEnd", ModifierCreatorType.Double ) },
+            { "PreviewStart", new("previewStart", ModifierCreatorType.Double ) },
+            { "Year",         new("year", ModifierCreatorType.String_Chart ) },
+            { "Offset",       new("offset", ModifierCreatorType.Double ) },
+        };
+
         private SongMetadata(IniSection section, IniSubmetadata iniData, AvailableParts parts, DrumType drumType)
         {
             // .ini songs are assumed to be masters and not covers
@@ -116,20 +130,6 @@ namespace YARG.Core.Song
                 StarPowerNote = starPowerNote,
             };
         }
-
-        private static readonly Dictionary<string, IniModifierCreator> MODIFIER_LIST = new()
-        {
-            { "Album",        new("album", ModifierNodeType.SORTSTRING_CHART ) },
-            { "Artist",       new("artist", ModifierNodeType.SORTSTRING_CHART ) },
-            { "Charter",      new("charter", ModifierNodeType.SORTSTRING_CHART ) },
-            { "Difficulty",   new("diff_band", ModifierNodeType.INT32 ) },
-            { "Genre",        new("genre", ModifierNodeType.SORTSTRING_CHART ) },
-            { "Name",         new("name", ModifierNodeType.SORTSTRING_CHART ) },
-            { "PreviewEnd",   new("previewEnd", ModifierNodeType.DOUBLE ) },
-            { "PreviewStart", new("previewStart", ModifierNodeType.DOUBLE ) },
-            { "Year",         new("year", ModifierNodeType.STRING_CHART ) },
-            { "Offset",       new("offset", ModifierNodeType.DOUBLE ) },
-        };
 
         private static DrumType ParseChart(byte[] file, IniSection modifiers, AvailableParts parts)
         {

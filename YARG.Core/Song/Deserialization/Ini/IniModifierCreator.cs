@@ -7,31 +7,31 @@ using YARG.Core.Song;
 
 namespace YARG.Core.Song.Deserialization.Ini
 {
-    public enum ModifierNodeType
+    public enum ModifierCreatorType
     {
-        NONE,
-        SORTSTRING,
-        STRING,
-        SORTSTRING_CHART,
-        STRING_CHART,
-        UINT64,
-        INT64,
-        UINT32,
-        INT32,
-        UINT16,
-        INT16,
-        BOOL,
-        FLOAT,
-        DOUBLE,
-        UINT64ARRAY,
+        None,
+        SortString,
+        String,
+        SortString_Chart,
+        String_Chart,
+        UInt64,
+        Int64,
+        UInt32,
+        Int32,
+        UInt16,
+        Int16,
+        Bool,
+        Float,
+        Double,
+        UInt64Array,
     }
 
     public class IniModifierCreator
     {
         public readonly string outputName;
-        public readonly ModifierNodeType type;
+        public readonly ModifierCreatorType type;
 
-        public IniModifierCreator(string outputName, ModifierNodeType type)
+        public IniModifierCreator(string outputName, ModifierCreatorType type)
         {
             this.outputName = outputName;
             this.type = type;
@@ -43,20 +43,20 @@ namespace YARG.Core.Song.Deserialization.Ini
             {
                 switch (type)
                 {
-                    case ModifierNodeType.SORTSTRING: return new(new SortString(reader.ExtractEncodedString(false)));
-                    case ModifierNodeType.SORTSTRING_CHART: return new(new SortString(reader.ExtractEncodedString(true)));
-                    case ModifierNodeType.STRING: return new(reader.ExtractEncodedString(false));
-                    case ModifierNodeType.STRING_CHART: return new(reader.ExtractEncodedString(true));
-                    case ModifierNodeType.UINT64: return new(reader.ReadUInt64());
-                    case ModifierNodeType.INT64: return new(reader.ReadInt64());
-                    case ModifierNodeType.UINT32: return new(reader.ReadUInt32());
-                    case ModifierNodeType.INT32: return new(reader.ReadInt32());
-                    case ModifierNodeType.UINT16: return new(reader.ReadUInt16());
-                    case ModifierNodeType.INT16: return new(reader.ReadInt16());
-                    case ModifierNodeType.BOOL: return new(reader.ReadBoolean());
-                    case ModifierNodeType.FLOAT: return new(reader.ReadFloat());
-                    case ModifierNodeType.DOUBLE: return new(reader.ReadDouble());
-                    case ModifierNodeType.UINT64ARRAY:
+                    case ModifierCreatorType.SortString: return new(new SortString(reader.ExtractEncodedString(false)));
+                    case ModifierCreatorType.SortString_Chart: return new(new SortString(reader.ExtractEncodedString(true)));
+                    case ModifierCreatorType.String: return new(reader.ExtractEncodedString(false));
+                    case ModifierCreatorType.String_Chart: return new(reader.ExtractEncodedString(true));
+                    case ModifierCreatorType.UInt64: return new(reader.ReadUInt64());
+                    case ModifierCreatorType.Int64: return new(reader.ReadInt64());
+                    case ModifierCreatorType.UInt32: return new(reader.ReadUInt32());
+                    case ModifierCreatorType.Int32: return new(reader.ReadInt32());
+                    case ModifierCreatorType.UInt16: return new(reader.ReadUInt16());
+                    case ModifierCreatorType.Int16: return new(reader.ReadInt16());
+                    case ModifierCreatorType.Bool: return new(reader.ReadBoolean());
+                    case ModifierCreatorType.Float: return new(reader.ReadFloat());
+                    case ModifierCreatorType.Double: return new(reader.ReadDouble());
+                    case ModifierCreatorType.UInt64Array:
                         {
                             ulong dub1 = reader.ReadUInt64();
                             ulong dub2 = reader.ReadUInt64();
@@ -68,16 +68,16 @@ namespace YARG.Core.Song.Deserialization.Ini
             {
                 switch (type)
                 {
-                    case ModifierNodeType.UINT64: return new((ulong) 0);
-                    case ModifierNodeType.INT64: return new((long) 0);
-                    case ModifierNodeType.UINT32: return new((uint) 0);
-                    case ModifierNodeType.INT32: return new(0);
-                    case ModifierNodeType.UINT16: return new((ushort) 0);
-                    case ModifierNodeType.INT16: return new((short) 0);
-                    case ModifierNodeType.BOOL: return new(false);
-                    case ModifierNodeType.FLOAT: return new(.0f);
-                    case ModifierNodeType.DOUBLE: return new(.0);
-                    case ModifierNodeType.UINT64ARRAY: return new(0, 0);
+                    case ModifierCreatorType.UInt64: return new((ulong) 0);
+                    case ModifierCreatorType.Int64: return new((long) 0);
+                    case ModifierCreatorType.UInt32: return new((uint) 0);
+                    case ModifierCreatorType.Int32: return new(0);
+                    case ModifierCreatorType.UInt16: return new((ushort) 0);
+                    case ModifierCreatorType.Int16: return new((short) 0);
+                    case ModifierCreatorType.Bool: return new(false);
+                    case ModifierCreatorType.Float: return new(.0f);
+                    case ModifierCreatorType.Double: return new(.0);
+                    case ModifierCreatorType.UInt64Array: return new(0, 0);
                 }
             }
             throw new Exception("How in the fu-");

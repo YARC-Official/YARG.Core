@@ -41,9 +41,9 @@ namespace YARG.Core.Song.Deserialization.Ini
 
             for (int i = 0; i < results.Count; ++i)
             {
-                if (results[i].SORTSTR.Str != string.Empty)
+                if (results[i].SortString.Str != string.Empty)
                 {
-                    str = results[i].SORTSTR;
+                    str = results[i].SortString;
                     if (str.Str != defaultStr)
                         break;
                 }
@@ -57,7 +57,7 @@ namespace YARG.Core.Song.Deserialization.Ini
             if (!modifiers.TryGetValue(key, out var results))
                 return false;
 
-            str = results[0].STR;
+            str = results[0].String;
             return true;
         }
 
@@ -67,7 +67,7 @@ namespace YARG.Core.Song.Deserialization.Ini
             if (!modifiers.TryGetValue(key, out var results))
                 return false;
 
-            val = results[0].UINT64;
+            val = results[0].UInt64;
             return true;
         }
 
@@ -77,7 +77,7 @@ namespace YARG.Core.Song.Deserialization.Ini
             if (!modifiers.TryGetValue(key, out var results))
                 return false;
 
-            val = results[0].INT64;
+            val = results[0].Int64;
             return true;
         }
 
@@ -87,7 +87,7 @@ namespace YARG.Core.Song.Deserialization.Ini
             if (!modifiers.TryGetValue(key, out var results))
                 return false;
 
-            val = results[0].UINT32;
+            val = results[0].UInt32;
             return true;
         }
 
@@ -97,7 +97,7 @@ namespace YARG.Core.Song.Deserialization.Ini
             if (!modifiers.TryGetValue(key, out var results))
                 return false;
 
-            val = results[0].INT32;
+            val = results[0].Int32;
             return true;
         }
 
@@ -107,7 +107,7 @@ namespace YARG.Core.Song.Deserialization.Ini
             if (!modifiers.TryGetValue(key, out var results))
                 return false;
 
-            val = results[0].UINT16;
+            val = results[0].UInt16;
             return true;
         }
 
@@ -117,7 +117,7 @@ namespace YARG.Core.Song.Deserialization.Ini
             if (!modifiers.TryGetValue(key, out var results))
                 return false;
 
-            val = results[0].INT16;
+            val = results[0].Int16;
             return true;
         }
 
@@ -127,7 +127,7 @@ namespace YARG.Core.Song.Deserialization.Ini
             if (!modifiers.TryGetValue(key, out var results))
                 return false;
 
-            val = results[0].FLOAT;
+            val = results[0].Float;
             return true;
         }
 
@@ -137,7 +137,7 @@ namespace YARG.Core.Song.Deserialization.Ini
             if (!modifiers.TryGetValue(key, out var results))
                 return false;
 
-            val = results[0].DOUBLE;
+            val = results[0].Double;
             return true;
         }
 
@@ -148,7 +148,7 @@ namespace YARG.Core.Song.Deserialization.Ini
             if (!modifiers.TryGetValue(key, out var results))
                 return false;
 
-            ulong[] dub = results[0].UINT64ARRAY;
+            ulong[] dub = results[0].UInt64Array;
             val1 = dub[0];
             val2 = dub[1];
             return true;
@@ -160,7 +160,7 @@ namespace YARG.Core.Song.Deserialization.Ini
             if (!modifiers.TryGetValue(key, out var results))
                 return false;
 
-            val = results[0].BOOL;
+            val = results[0].Bool;
             return true;
         }
     }

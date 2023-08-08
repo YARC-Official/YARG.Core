@@ -12,19 +12,19 @@ namespace YARG.Core.Song.Deserialization.Ini
 {
     public enum ModifierType
     {
-        NONE,
-        SORTSTRING,
-        STRING,
-        UINT64,
-        INT64,
-        UINT32,
-        INT32,
-        UINT16,
-        INT16,
-        BOOL,
-        FLOAT,
-        DOUBLE,
-        UINT64ARRAY,
+        None,
+        SortString,
+        String,
+        UInt64,
+        Int64,
+        UInt32,
+        Int332,
+        UInt16,
+        Int16,
+        Bool,
+        Float,
+        Double,
+        UInt64Array,
     };
 
     public unsafe class IniModifier
@@ -52,253 +52,253 @@ namespace YARG.Core.Song.Deserialization.Ini
 
         public IniModifier(SortString str)
         {
-            type = ModifierType.SORTSTRING;
+            type = ModifierType.SortString;
             _sortStr = str;
         }
         public IniModifier(string str)
         {
-            type = ModifierType.STRING;
+            type = ModifierType.String;
             _str = str;
         }
         public IniModifier(ulong value)
         {
-            type = ModifierType.UINT64;
+            type = ModifierType.UInt64;
             union.ul = value;
         }
         public IniModifier(long value)
         {
-            type = ModifierType.INT64;
+            type = ModifierType.Int64;
             union.l = value;
         }
         public IniModifier(uint value)
         {
-            type = ModifierType.UINT32;
+            type = ModifierType.UInt32;
             union.ui = value;
         }
         public IniModifier(int value)
         {
-            type = ModifierType.INT32;
+            type = ModifierType.Int332;
             union.i = value;
         }
         public IniModifier(ushort value)
         {
-            type = ModifierType.UINT16;
+            type = ModifierType.UInt16;
             union.us = value;
         }
         public IniModifier(short value)
         {
-            type = ModifierType.INT16;
+            type = ModifierType.Int16;
             union.s = value;
         }
         public IniModifier(bool value)
         {
-            type = ModifierType.BOOL;
+            type = ModifierType.Bool;
             union.b = value;
         }
         public IniModifier(float value)
         {
-            type = ModifierType.FLOAT;
+            type = ModifierType.Float;
             union.f = value;
         }
         public IniModifier(double value)
         {
-            type = ModifierType.DOUBLE;
+            type = ModifierType.Double;
             union.d = value;
         }
         public IniModifier(ulong dub1, ulong dub2)
         {
-            type = ModifierType.UINT64ARRAY;
+            type = ModifierType.UInt64Array;
             union.ulArr[0] = dub1;
             union.ulArr[1] = dub2;
         }
 
-        public SortString SORTSTR
+        public SortString SortString
         {
             get
             {
-                if (type != ModifierType.SORTSTRING)
+                if (type != ModifierType.SortString)
                     throw new ArgumentException("Modifier is not a SortString");
                 return _sortStr;
             }
             set
             {
-                if (type != ModifierType.SORTSTRING)
+                if (type != ModifierType.SortString)
                     throw new ArgumentException("Modifier is not a SortString");
                 _sortStr = value;
             }
         }
 
-        public string STR
+        public string String
         {
             get
             {
-                if (type != ModifierType.STRING)
+                if (type != ModifierType.String)
                     throw new ArgumentException("Modifier is not a String");
                 return _str;
             }
             set
             {
-                if (type != ModifierType.STRING)
+                if (type != ModifierType.String)
                     throw new ArgumentException("Modifier is not a String");
                 _str = value;
             }
         }
 
-        public ulong UINT64
+        public ulong UInt64
         {
             get
             {
-                if (type != ModifierType.UINT64)
+                if (type != ModifierType.UInt64)
                     throw new ArgumentException("Modifier is not a UINT64");
                 return union.ul;
             }
             set
             {
-                if (type != ModifierType.UINT64)
+                if (type != ModifierType.UInt64)
                     throw new ArgumentException("Modifier is not a UINT64");
                 union.ul = value;
             }
         }
 
-        public long INT64
+        public long Int64
         {
             get
             {
-                if (type != ModifierType.INT64)
+                if (type != ModifierType.Int64)
                     throw new ArgumentException("Modifier is not a INT64");
                 return union.l;
             }
             set
             {
-                if (type != ModifierType.INT64)
+                if (type != ModifierType.Int64)
                     throw new ArgumentException("Modifier is not a INT64");
                 union.l = value;
             }
         }
 
-        public uint UINT32
+        public uint UInt32
         {
             get
             {
-                if (type != ModifierType.UINT32)
+                if (type != ModifierType.UInt32)
                     throw new ArgumentException("Modifier is not a UINT32");
                 return union.ui;
             }
             set
             {
-                if (type != ModifierType.UINT32)
+                if (type != ModifierType.UInt32)
                     throw new ArgumentException("Modifier is not a UINT32");
                 union.ui = value;
             }
         }
 
-        public int INT32
+        public int Int32
         {
             get
             {
-                if (type != ModifierType.INT32)
+                if (type != ModifierType.Int332)
                     throw new ArgumentException("Modifier is not a INT32");
                 return union.i;
             }
             set
             {
-                if (type != ModifierType.INT32)
+                if (type != ModifierType.Int332)
                     throw new ArgumentException("Modifier is not a INT32");
                 union.i = value;
             }
         }
 
-        public ushort UINT16
+        public ushort UInt16
         {
             get
             {
-                if (type != ModifierType.UINT16)
+                if (type != ModifierType.UInt16)
                     throw new ArgumentException("Modifier is not a UINT16");
                 return union.us;
             }
             set
             {
-                if (type != ModifierType.UINT16)
+                if (type != ModifierType.UInt16)
                     throw new ArgumentException("Modifier is not a UINT16");
                 union.us = value;
             }
         }
 
-        public short INT16
+        public short Int16
         {
             get
             {
-                if (type != ModifierType.INT16)
+                if (type != ModifierType.Int16)
                     throw new ArgumentException("Modifier is not a INT16");
                 return union.s;
             }
             set
             {
-                if (type != ModifierType.INT16)
+                if (type != ModifierType.Int16)
                     throw new ArgumentException("Modifier is not a INT16");
                 union.s = value;
             }
         }
 
-        public bool BOOL
+        public bool Bool
         {
             get
             {
-                if (type != ModifierType.BOOL)
+                if (type != ModifierType.Bool)
                     throw new ArgumentException("Modifier is not a BOOL");
                 return union.b;
             }
             set
             {
-                if (type != ModifierType.BOOL)
+                if (type != ModifierType.Bool)
                     throw new ArgumentException("Modifier is not a BOOL");
                 union.b = value;
             }
         }
 
-        public float FLOAT
+        public float Float
         {
             get
             {
-                if (type != ModifierType.FLOAT)
+                if (type != ModifierType.Float)
                     throw new ArgumentException("Modifier is not a FLOAT");
                 return union.f;
             }
             set
             {
-                if (type != ModifierType.FLOAT)
+                if (type != ModifierType.Float)
                     throw new ArgumentException("Modifier is not a FLOAT");
                 union.f = value;
             }
         }
 
-        public double DOUBLE
+        public double Double
         {
             get
             {
-                if (type != ModifierType.DOUBLE)
+                if (type != ModifierType.Double)
                     throw new ArgumentException("Modifier is not a DOUBLE");
                 return union.d;
             }
             set
             {
-                if (type != ModifierType.DOUBLE)
+                if (type != ModifierType.Double)
                     throw new ArgumentException("Modifier is not a DOUBLE");
                 union.d = value;
             }
         }
 
-        public ulong[] UINT64ARRAY
+        public ulong[] UInt64Array
         {
             get
             {
-                if (type != ModifierType.UINT64ARRAY)
+                if (type != ModifierType.UInt64Array)
                     throw new ArgumentException("Modifier is not a UINT64ARRAY");
                 return new ulong[] { union.ulArr[0], union.ulArr[1] };
             }
             set
             {
-                if (type != ModifierType.UINT64ARRAY)
+                if (type != ModifierType.UInt64Array)
                     throw new ArgumentException("Modifier is not a UINT64ARRAY");
                 union.ulArr[0] = value[0];
                 union.ulArr[1] = value[1];
