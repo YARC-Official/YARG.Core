@@ -5,6 +5,18 @@ using YARG.Core.Song.Deserialization;
 
 namespace YARG.Core.Song.Preparsers
 {
+    /// <summary>
+    /// Available Drum types. Unknown values for preparse purposes
+    /// </summary>
+    public enum DrumType
+    {
+        FourLane,
+        FourPro,
+        FiveLane,
+        Unknown,
+        UnknownPro,
+    }
+
     public class DrumPreparseHandler
     {
         private byte _validations;
@@ -24,11 +36,11 @@ namespace YARG.Core.Song.Preparsers
             if (_validations > 0)
                 return;
 
-            if (_type == DrumType.FIVE_LANE)
+            if (_type == DrumType.FiveLane)
                 _validations = MidiInstrumentPreparser.Parse<Midi_FiveLaneDrum>(reader);
-            else if (_type == DrumType.FOUR_LANE || _type == DrumType.FOUR_PRO)
+            else if (_type == DrumType.FourLane || _type == DrumType.FourPro)
             {
-                var preparser = _type == DrumType.FOUR_PRO ? new Midi_ProDrum() : new Midi_FourLaneDrum();
+                var preparser = _type == DrumType.FourPro ? new Midi_ProDrum() : new Midi_FourLaneDrum();
                 _validations = MidiInstrumentPreparser.Parse(preparser, reader);
                 _type = preparser.Type;
             }
@@ -38,8 +50,8 @@ namespace YARG.Core.Song.Preparsers
                 _validations = MidiInstrumentPreparser.Parse(unknown, reader);
                 _type = unknown.Type switch
                 {
-                    DrumType.UNKNOWN_PRO => DrumType.FOUR_PRO,
-                    DrumType.UNKNOWN => DrumType.FOUR_LANE,
+                    DrumType.UnknownPro => DrumType.FourPro,
+                    DrumType.Unknown => DrumType.FourLane,
                     _ => unknown.Type,
                 };
             }
@@ -55,8 +67,8 @@ namespace YARG.Core.Song.Preparsers
             {
                 skip = _type switch
                 {
-                    DrumType.UNKNOWN => ParseChartUnknown(reader, index, (byte) mask),
-                    DrumType.FOUR_LANE => ParseChartFourLane(reader, index, (byte) mask),
+                    DrumType.Unknown => ParseChartUnknown(reader, index, (byte) mask),
+                    DrumType.FourLane => ParseChartFourLane(reader, index, (byte) mask),
                     _ => ParseChartCommon(reader, index, (byte) mask),
                 };
             }
@@ -80,11 +92,11 @@ namespace YARG.Core.Song.Preparsers
                         found = true;
 
                         if (lane == 5)
-                            _type = DrumType.FIVE_LANE;
+                            _type = DrumType.FiveLane;
                     }
                     else if (66 <= lane && lane <= 68)
                     {
-                        _type = DrumType.FOUR_PRO;
+                        _type = DrumType.FourPro;
                     }
                     else if (index == 3 && lane == 32)
                     {
@@ -92,7 +104,7 @@ namespace YARG.Core.Song.Preparsers
                         _validations |= 16;
                     }
 
-                    if (found && _type != DrumType.UNKNOWN && expertPlus)
+                    if (found && _type != DrumType.Unknown && expertPlus)
                         return true;
                 }
                 reader.NextEvent();
@@ -116,7 +128,7 @@ namespace YARG.Core.Song.Preparsers
                     }
                     else if (66 <= lane && lane <= 68)
                     {
-                        _type = DrumType.FOUR_PRO;
+                        _type = DrumType.FourPro;
                     }
                     else if (index == 3 && lane == 32)
                     {
@@ -124,7 +136,7 @@ namespace YARG.Core.Song.Preparsers
                         _validations |= 16;
                     }
 
-                    if (found && _type == DrumType.FOUR_PRO && expertPlus)
+                    if (found && _type == DrumType.FourPro && expertPlus)
                         return true;
                 }
                 reader.NextEvent();
@@ -136,7 +148,7 @@ namespace YARG.Core.Song.Preparsers
         {
             bool found = false;
             bool expertPlus = index != 3;
-            int numPads = _type == DrumType.FOUR_PRO ? 4 : 5;
+            int numPads = _type == DrumType.FourPro ? 4 : 5;
             while (reader.IsStillCurrentTrack())
             {
                 if (reader.ParseEvent().Item2 == ChartEvent.NOTE)

@@ -84,9 +84,9 @@ namespace YARG.Core.Song
 
             var drumsType = drumType switch
             {
-                DrumType.FOUR_LANE or
-                DrumType.FOUR_PRO => DrumsType.FourLane,
-                DrumType.FIVE_LANE => DrumsType.FiveLane,
+                DrumType.FourLane or
+                DrumType.FourPro => DrumsType.FourLane,
+                DrumType.FiveLane => DrumsType.FiveLane,
                 _ => DrumsType.Unknown
             };
 
@@ -135,7 +135,7 @@ namespace YARG.Core.Song
         {
             YARGChartFileReader reader = new(file);
             if (!reader.ValidateHeaderTrack())
-                return DrumType.UNKNOWN;
+                return DrumType.Unknown;
 
             var chartMods = reader.ExtractModifiers(MODIFIER_LIST);
             modifiers.Append(chartMods);
@@ -147,13 +147,13 @@ namespace YARG.Core.Song
         {
             var drumType = GetDrumTypeFromModifier(modifiers);
             bool usePro = !modifiers.TryGet("pro_drums", out bool proDrums) || proDrums;
-            if (drumType == DrumType.UNKNOWN)
+            if (drumType == DrumType.Unknown)
             {
                 if (usePro)
-                    drumType = DrumType.UNKNOWN_PRO;
+                    drumType = DrumType.UnknownPro;
             }
-            else if (drumType == DrumType.FOUR_LANE && usePro)
-                drumType = DrumType.FOUR_PRO;
+            else if (drumType == DrumType.FourLane && usePro)
+                drumType = DrumType.FourPro;
 
             return parts.ParseMidi(file, drumType);
         }
@@ -161,8 +161,8 @@ namespace YARG.Core.Song
         private static DrumType GetDrumTypeFromModifier(IniSection modifiers)
         {
             if (!modifiers.TryGet("five_lane_drums", out bool fivelane))
-                return DrumType.UNKNOWN;
-            return fivelane ? DrumType.FIVE_LANE : DrumType.FOUR_LANE;
+                return DrumType.Unknown;
+            return fivelane ? DrumType.FiveLane : DrumType.FourLane;
         }
 
         public static (ScanResult, SongMetadata?) FromIni(byte[] file, string chartFile, string? iniFile, ChartType type)
