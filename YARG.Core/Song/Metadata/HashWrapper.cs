@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
+using YARG.Core.Song.Deserialization;
 
 namespace YARG.Core.Song
 {
@@ -19,6 +20,8 @@ namespace YARG.Core.Song
 
         private readonly byte[] _hash;
         private readonly int _hashcode;
+
+        public HashWrapper(YARGBinaryReader reader) : this (reader.ReadBytes(HASHSIZEINBYTES)) {}
 
         public HashWrapper(byte[] hash)
         {
