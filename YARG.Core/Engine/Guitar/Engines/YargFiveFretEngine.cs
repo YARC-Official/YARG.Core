@@ -42,6 +42,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                         State.ButtonMask |= (byte) sustainNote.NoteMask;
                     }
                 }
+
                 if (!UpdateHitLogic(note.Time))
                 {
                     break;
@@ -73,8 +74,12 @@ namespace YARG.Core.Engine.Guitar.Engines
 
             State.StrummedThisUpdate = (IsInputUpdate && IsStrumInput(CurrentInput) && CurrentInput.Button)
                 || (State.StrummedThisUpdate && IsBotUpdate);
-            if (IsInputUpdate && IsFretInput(CurrentInput))
+
+            bool isFretInput = IsInputUpdate && IsFretInput(CurrentInput);
+
+            if (isFretInput)
             {
+                State.LastButtonMask = State.ButtonMask;
                 ToggleFret(CurrentInput.Action, CurrentInput.Button);
                 State.FrontEndStartTime = State.CurrentTime;
             }
@@ -90,6 +95,21 @@ namespace YARG.Core.Engine.Guitar.Engines
             }
 
             var note = Notes[State.NoteIndex];
+
+            if (isFretInput)
+            {
+                // Check for fret ghosting
+                // We want to run ghost logic regardless of the setting for the ghost counter
+                if (note.PreviousNote is not null && !State.WasNoteGhosted &&
+                    CheckForGhostInput(note))
+                {
+                    if (EngineParameters.AntiGhosting)
+                    {
+                        State.WasNoteGhosted = true;
+                        EngineStats.GhostInputs++;
+                    }
+                }
+            }
 
             // Update strum leniency if strummed this update
             if (State.StrummedThisUpdate)
@@ -108,7 +128,6 @@ namespace YARG.Core.Engine.Guitar.Engines
                 {
                     double diff = Math.Abs(EngineParameters.StrumLeniency - EngineParameters.StrumLeniencySmall);
                     State.StrumLeniencyStartTime = State.CurrentTime - diff;
-                    YargTrace.LogInfo($"$Set strum leniency to small time ({State.CurrentTime} - {diff})");
                 }
             }
 
@@ -127,29 +146,43 @@ namespace YARG.Core.Engine.Guitar.Engines
                 // A hopo was strummed recently
                 if (IsTimerActive(State.CurrentTime, State.HopoLeniencyStartTime, EngineParameters.HopoLeniency))
                 {
-                    // Hopo was double strummed, overstrum
-                    if (State.WasHopoStrummed)
-                    {
-                        YargTrace.LogInfo("Hopo was double strummed. Overstrumming.");
-                        Overstrum();
-                        State.WasHopoStrummed = false;
-                    }
-                    else
-                    {
-                        YargTrace.LogInfo("Hopo/tap was strummed");
-                        State.WasHopoStrummed = true;
-                        ResetTimer(ref State.HopoLeniencyStartTime);
-                    }
+                    // // Hopo was double strummed, overstrum
+                    // if (State.WasHopoStrummed)
+                    // {
+                    //     YargTrace.LogInfo("Hopo was double strummed. Overstrumming.");
+                    //     Overstrum();
+                    //     State.WasHopoStrummed = false;
+                    // }
+                    // else
+                    // {
+                    //     YargTrace.LogInfo("Hopo/tap was strummed");
+                    //     State.WasHopoStrummed = true;
+                    // }
+
+                    YargTrace.LogInfo("Hopo ate strum input");
 
                     // This eats the strum input
                     ResetTimer(ref State.StrumLeniencyStartTime);
+                    ResetTimer(ref State.HopoLeniencyStartTime);
                 }
                 else
                 {
-                    if (HasTimerExpired(State.CurrentTime, State.StrumLeniencyStartTime, EngineParameters.StrumLeniency))
+                    // Strum leniency expires on this update, overstrum
+                    if (HasTimerExpired(State.CurrentTime, State.StrumLeniencyStartTime,
+                        EngineParameters.StrumLeniency))
                     {
-                        YargTrace.LogInfo("Strum leniency ran out, overstrumming");
-                        Overstrum();
+                        if (State.WasHopoStrummed)
+                        {
+                            ResetTimer(ref State.StrumLeniencyStartTime);
+                        }
+                        else
+                        {
+                            YargTrace.LogInfo($"Hopo leniency: {State.CurrentTime - State.HopoLeniencyStartTime}");
+                            YargTrace.LogInfo("Strum leniency ran out, overstrumming");
+                            Overstrum();
+                        }
+
+                        State.WasHopoStrummed = false;
                     }
                 }
             }
@@ -195,7 +228,8 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                     if (CanNoteBeHit(next) &&
                         (State.StrummedThisUpdate ||
-                            IsTimerActive(State.CurrentTime, State.StrumLeniencyStartTime, EngineParameters.StrumLeniency) ||
+                            IsTimerActive(State.CurrentTime, State.StrumLeniencyStartTime,
+                                EngineParameters.StrumLeniency) ||
                             next.IsTap) && State.TapButtonMask == 0)
                     {
                         if (HitNote(next))
@@ -213,7 +247,8 @@ namespace YARG.Core.Engine.Guitar.Engines
 
             // Handles hitting a hopo/tap notes
             // If first note is a hopo then it can be hit without combo (for practice mode)
-            if (State.TapButtonMask == 0 && note.IsTap || (note.IsHopo && (EngineStats.Combo > 0 || State.NoteIndex == 0)))
+            if ((State.TapButtonMask == 0 && note.IsTap ||
+                    (note.IsHopo && (EngineStats.Combo > 0 || State.NoteIndex == 0))) && !State.WasNoteGhosted)
             {
                 return HitNote(note);
             }
@@ -223,6 +258,32 @@ namespace YARG.Core.Engine.Guitar.Engines
                 IsTimerActive(State.CurrentTime, State.StrumLeniencyStartTime, EngineParameters.StrumLeniency))
             {
                 return HitNote(note);
+            }
+
+            return false;
+        }
+
+        protected bool CheckForGhostInput(GuitarNote note)
+        {
+            // First note cannot be ghosted, nor can a note be ghosted if a button is unpressed
+            if (note.PreviousNote is null || !CurrentInput.Button)
+            {
+                return false;
+            }
+
+            // Note can only be ghosted if it's in timing window
+            if (!IsNoteInWindow(note))
+            {
+                return false;
+            }
+
+            // Input is a hammer-on if the highest fret held is higher than the highest fret of the previous mask
+            bool isHammerOn = GetMostSignificantBit(State.ButtonMask) > GetMostSignificantBit(State.LastButtonMask);
+
+            // Input is a hammer-on and the button pressed is not part of the note mask (incorrect fret)
+            if(isHammerOn && (State.ButtonMask & note.NoteMask) == 0)
+            {
+                return true;
             }
 
             return false;
@@ -243,18 +304,21 @@ namespace YARG.Core.Engine.Guitar.Engines
                 // This removes just the single fret of the disjoint note
                 if ((sustainNote.IsExtendedSustain && sustainNote.IsDisjoint) || sustainNote.IsDisjoint)
                 {
-                    buttonsMasked -= (byte)sustainNote.DisjointMask;
-                } else if (sustainNote.IsExtendedSustain)
+                    buttonsMasked -= (byte) sustainNote.DisjointMask;
+                }
+                else if (sustainNote.IsExtendedSustain)
                 {
                     // Remove the entire note mask if its an extended sustain
                     // Difference between NoteMask and DisjointMask is that DisjointMask is only a single fret
                     // while NoteMask is the entire chord
-                    buttonsMasked -= (byte)sustainNote.NoteMask;
+                    buttonsMasked -= (byte) sustainNote.NoteMask;
                 }
             }
 
             // Use the DisjointMask for comparison if disjointed and was hit (for sustain logic)
-            int noteMask = (note.IsDisjoint || note.IsExtendedSustain) && note.WasHit ? note.DisjointMask : note.NoteMask;
+            int noteMask = (note.IsDisjoint || note.IsExtendedSustain) && note.WasHit
+                ? note.DisjointMask
+                : note.NoteMask;
 
             // If disjointed and is sustain logic (was hit), can hit if disjoint mask matches
             if ((note.IsDisjoint || note.IsExtendedSustain) && note.WasHit && (note.DisjointMask & buttonsMasked) != 0)
@@ -295,7 +359,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 var fretMask = 0;
                 for (var fret = GuitarAction.GreenFret + 1; fret <= GuitarAction.OrangeFret; fret++)
                 {
-                    fretMask = (int)fret << 1;
+                    fretMask = (int) fret << 1;
 
                     // If the current fret mask is part of the chord, break
                     if ((fretMask & note.NoteMask) == fretMask)
@@ -349,18 +413,29 @@ namespace YARG.Core.Engine.Guitar.Engines
 
             if (note.IsHopo || note.IsTap)
             {
+                bool strumLeniencyActive = IsTimerActive(State.CurrentTime, State.StrumLeniencyStartTime,
+                    EngineParameters.StrumLeniency);
+
                 // Disallow hitting if front end timer is not in range of note time and didn't strum
                 // (tried to hit as a hammeron/pulloff)
                 if (!EngineParameters.InfiniteFrontEnd &&
                     HasTimerExpired(note.Time, State.FrontEndStartTime, Math.Abs(EngineParameters.FrontEnd)) &&
-                    !IsTimerActive(State.CurrentTime, State.StrumLeniencyStartTime, EngineParameters.StrumLeniency))
+                    !strumLeniencyActive)
                 {
                     return false;
                 }
 
                 // Strummed a tap, or hopo while in combo
-                if (((note.IsHopo && EngineStats.Combo > 0) || note.IsTap) && State.StrumLeniencyStartTime > 0)
+                if (((note.IsHopo && EngineStats.Combo > 0) || note.IsTap) && strumLeniencyActive)
                 {
+                    double diff = Math.Abs(EngineParameters.StrumLeniency - EngineParameters.StrumLeniencySmall);
+                    State.StrumLeniencyStartTime = State.CurrentTime - diff;
+
+                    State.WasHopoStrummed = true;
+                }
+                else
+                {
+                    ResetTimer(ref State.StrumLeniencyStartTime);
                 }
 
                 State.HopoLeniencyStartTime = State.CurrentTime;
@@ -374,9 +449,9 @@ namespace YARG.Core.Engine.Guitar.Engines
                 State.FrontEndStartTime = double.MaxValue;
 
                 State.WasHopoStrummed = false;
-            }
 
-            ResetTimer(ref State.StrumLeniencyStartTime);
+                ResetTimer(ref State.StrumLeniencyStartTime);
+            }
 
             return base.HitNote(note);
         }
@@ -405,9 +480,22 @@ namespace YARG.Core.Engine.Guitar.Engines
             return input.GetAction<GuitarAction>() switch
             {
                 GuitarAction.StrumUp or
-                GuitarAction.StrumDown => true,
+                    GuitarAction.StrumDown => true,
                 _ => false,
             };
+        }
+
+        private int GetMostSignificantBit(int mask)
+        {
+            // Gets the most significant bit of the mask
+            var msbIndex = 0;
+            while (mask != 0)
+            {
+                mask >>= 1;
+                msbIndex++;
+            }
+
+            return msbIndex;
         }
     }
 }

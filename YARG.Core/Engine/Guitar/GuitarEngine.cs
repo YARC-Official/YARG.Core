@@ -139,6 +139,8 @@ namespace YARG.Core.Engine.Guitar
                 OnSustainStart?.Invoke(note);
             }
 
+            State.WasNoteGhosted = false;
+
             OnNoteHit?.Invoke(State.NoteIndex, note);
             State.NoteIndex++;
             return true;
@@ -161,6 +163,8 @@ namespace YARG.Core.Engine.Guitar
             {
                 StartSolo();
             }
+
+            State.WasNoteGhosted = false;
 
             EngineStats.Combo = 0;
             EngineStats.NotesMissed++;
