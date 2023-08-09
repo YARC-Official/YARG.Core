@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using YARG.Core.Chart;
 using YARG.Core.Song.Deserialization;
 
 namespace YARG.Core.Song
@@ -231,6 +232,17 @@ namespace YARG.Core.Song
             {
                 return false;
             }
+        }
+
+        public DrumsType GetDrumType()
+        {
+            if (FourLaneDrums.subTracks > 0)
+                return DrumsType.FourLane;
+
+            if (FiveLaneDrums.subTracks > 0)
+                return DrumsType.FiveLane;
+
+            return DrumsType.Unknown;
         }
     }
 }
