@@ -6,6 +6,24 @@ namespace YARG.Core.Extensions
     public static class CollectionExtensions
     {
         /// <summary>
+        /// Duplicates a list and every element inside it, such that the new list is
+        /// entirely independent and shares no references with the original.
+        /// </summary>
+        public static List<T> Duplicate<T>(this IList<T> list)
+            where T : ICloneable<T>
+        {
+            var newlist = new List<T>();
+
+            foreach (var ev in list)
+            {
+                var newEvent = ev.Clone();
+                newlist.Add(newEvent);
+            }
+
+            return newlist;
+        }
+
+        /// <summary>
         /// Searches for an item in the list using the given search object and comparer function.
         /// </summary>
         /// <returns>
