@@ -80,7 +80,7 @@ namespace YARG.Core.Song
 
         public override string ToString()
         {
-            return BitConverter.ToString(_hash);
+            return BitConverter.ToString(_hash).Replace("-", "");
         }
     }
 }
