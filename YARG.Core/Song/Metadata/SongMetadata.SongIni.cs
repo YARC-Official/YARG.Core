@@ -71,12 +71,13 @@ namespace YARG.Core.Song
             { "Offset",       new("offset",       ModifierCreatorType.Double ) },
         };
 
-        private SongMetadata(IniSection section, IniSubmetadata iniData, AvailableParts parts, DrumType drumType)
+        private SongMetadata(IniSection section, IniSubmetadata iniData, AvailableParts parts, DrumType drumType, HashWrapper hash)
         {
             // .ini songs are assumed to be masters and not covers
             _isMaster = true;
             _directory = Path.GetDirectoryName(iniData.chartFile.FullName);
             _parts = parts;
+            _hash = hash;
             _iniData = iniData;
 
             section.TryGet("name",     out _name,     DEFAULT_NAME);
@@ -238,7 +239,7 @@ namespace YARG.Core.Song
 
             IniSubmetadata metadata = new(chartType, new AbridgedFileInfo(chartFile), iniInfo);
             parts.SetIntensities(modifiers);
-            return (ScanResult.Success, new SongMetadata(modifiers, metadata, parts, drumType));
+            return (ScanResult.Success, new SongMetadata(modifiers, metadata, parts, drumType, HashWrapper.Create(file)));
         }
 
         public static SongMetadata? IniFromCache(string baseDirectory, YARGBinaryReader reader, CategoryCacheStrings strings)
