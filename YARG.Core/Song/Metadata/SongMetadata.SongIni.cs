@@ -1,42 +1,55 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using YARG.Core.Chart;
 using YARG.Core.Song.Deserialization;
 using YARG.Core.Song.Deserialization.Ini;
+using YARG.Core.Song.Preparsers;
 
 namespace YARG.Core.Song
 {
-#nullable enable
-    public sealed class IniSubmetadata
-    {
-        public readonly ChartType chartType;
-        public readonly AbridgedFileInfo chartFile;
-        public readonly AbridgedFileInfo? iniFile;
-
-        public IniSubmetadata(ChartType chartType, AbridgedFileInfo chartFile, AbridgedFileInfo? iniFile)
-        {
-            this.chartType = chartType;
-            this.chartFile = chartFile;
-            this.iniFile = iniFile;
-        }
-
-        public void Serialize(BinaryWriter writer)
-        {
-            writer.Write((byte) chartType);
-            writer.Write(chartFile.LastWriteTime.ToBinary());
-            if (iniFile != null)
-            {
-                writer.Write(true);
-                writer.Write(iniFile.LastWriteTime.ToBinary());
-            }
-            else
-                writer.Write(false);
-        }
-    }
-
     public sealed partial class SongMetadata
     {
-        private static readonly Dictionary<string, IniModifierCreator> MODIFIER_LIST = new()
+        /// <summary>
+        /// The type of chart file to read.
+        /// </summary>
+        public enum ChartType
+        {
+            Mid,
+            Midi,
+            Chart,
+        };
+
+#nullable enable
+        [Serializable]
+        public sealed class IniSubmetadata
+        {
+            public readonly ChartType chartType;
+            public readonly AbridgedFileInfo chartFile;
+            public readonly AbridgedFileInfo? iniFile;
+
+            public IniSubmetadata(ChartType chartType, AbridgedFileInfo chartFile, AbridgedFileInfo? iniFile)
+            {
+                this.chartType = chartType;
+                this.chartFile = chartFile;
+                this.iniFile = iniFile;
+            }
+
+            public void Serialize(BinaryWriter writer)
+            {
+                writer.Write((byte) chartType);
+                writer.Write(chartFile.LastWriteTime.ToBinary());
+                if (iniFile != null)
+                {
+                    writer.Write(true);
+                    writer.Write(iniFile.LastWriteTime.ToBinary());
+                }
+                else
+                    writer.Write(false);
+            }
+        }
+
+        private static readonly Dictionary<string, IniModifierCreator> CHART_MODIFIER_LIST = new()
         {
             { "Album",        new("album",        ModifierCreatorType.SortString_Chart ) },
             { "Artist",       new("artist",       ModifierCreatorType.SortString_Chart ) },
@@ -152,7 +165,7 @@ namespace YARG.Core.Song
             if (!reader.ValidateHeaderTrack())
                 return DrumType.Unknown;
 
-            var chartMods = reader.ExtractModifiers(MODIFIER_LIST);
+            var chartMods = reader.ExtractModifiers(CHART_MODIFIER_LIST);
             modifiers.Append(chartMods);
 
             return parts.ParseChart(reader, GetDrumTypeFromModifier(modifiers));
@@ -180,7 +193,7 @@ namespace YARG.Core.Song
             return fivelane ? DrumType.FiveLane : DrumType.FourLane;
         }
 
-        public static (ScanResult, SongMetadata?) FromIni(byte[] file, string chartFile, string? iniFile, ChartType type)
+        public static (ScanResult, SongMetadata?) FromIni(byte[] file, string chartFile, string? iniFile, ChartType chartType)
         {
             AvailableParts parts = new();
             AbridgedFileInfo? iniInfo;
@@ -197,19 +210,19 @@ namespace YARG.Core.Song
             }
 
             DrumType drumType = default;
-            if (type == ChartType.CHART)
+            if (chartType == ChartType.Chart)
                 drumType = ParseChart(file, modifiers, parts);
 
             if (!modifiers.Contains("name"))
                 return (ScanResult.NoName, null);
 
-            if (type == ChartType.MID || type == ChartType.MIDI)
+            if (chartType == ChartType.Mid || chartType == ChartType.Midi)
                 drumType = ParseMidi(file, modifiers, parts);
 
             if (!parts.CheckScanValidity())
                 return (ScanResult.NoNotes, null);
 
-            IniSubmetadata metadata = new(type, new AbridgedFileInfo(chartFile), iniInfo);
+            IniSubmetadata metadata = new(chartType, new AbridgedFileInfo(chartFile), iniInfo);
             parts.SetIntensities(modifiers);
             return (ScanResult.Success, new SongMetadata(modifiers, metadata, parts, drumType));
         }

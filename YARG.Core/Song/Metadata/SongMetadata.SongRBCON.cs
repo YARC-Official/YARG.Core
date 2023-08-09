@@ -4,156 +4,140 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using YARG.Core.Song.Deserialization;
+using YARG.Core.Song.Preparsers;
 
+#nullable enable
 namespace YARG.Core.Song
 {
-    public sealed class RBCONSubMetadata
-    {
-        public static readonly Encoding Latin1 = Encoding.GetEncoding("ISO-8859-1");
-
-        public string SongID = string.Empty;
-        public uint AnimTempo;
-        public string DrumBank = string.Empty;
-        public string VocalPercussionBank = string.Empty;
-        public uint VocalSongScrollSpeed;
-        public uint SongRating; // 1 = FF; 2 = SR; 3 = M; 4 = NR
-        public bool VocalGender = true;//true for male, false for female
-        public bool HasAlbumArt;
-        public bool IsFake;
-        public uint VocalTonicNote;
-        public bool SongTonality; // 0 = major, 1 = minor
-        public int TuningOffsetCents;
-
-        public Encoding MidiEncoding = Latin1;
-
-        public AbridgedFileInfo Midi;
-
-        public AbridgedFileInfo? UpdateMidi = null;
-
-        public AbridgedFileInfo? Mogg = null;
-        
-
-        public AbridgedFileInfo? Milo = null;
-        public uint VenueVersion;
-
-        public AbridgedFileInfo? Image = null;
-
-        public IRBProUpgrade? Upgrade;
-
-        public string[] Soloes = Array.Empty<string>();
-        public string[] VideoVenues = Array.Empty<string>();
-
-        public int[] RealGuitarTuning = Array.Empty<int>();
-        public int[] RealBassTuning = Array.Empty<int>();
-
-        public int[] DrumIndices = Array.Empty<int>();
-        public int[] BassIndices = Array.Empty<int>();
-        public int[] GuitarIndices = Array.Empty<int>();
-        public int[] KeysIndices = Array.Empty<int>();
-        public int[] VocalsIndices = Array.Empty<int>();
-        public int[] CrowdIndices = Array.Empty<int>();
-        public int[] TrackIndices = Array.Empty<int>();
-
-        public float[] TrackStemValues = Array.Empty<float>();
-        public float[] DrumStemValues = Array.Empty<float>();
-        public float[] BassStemValues = Array.Empty<float>();
-        public float[] GuitarStemValues = Array.Empty<float>();
-        public float[] KeysStemValues = Array.Empty<float>();
-        public float[] VocalsStemValues = Array.Empty<float>();
-        public float[] CrowdStemValues = Array.Empty<float>();
-
-        public RBCONDifficulties rbDifficulties = new();
-
-        public void Update(string folder, string nodeName, DTAResult results)
-        {
-            string dir = Path.Combine(folder, nodeName);
-            FileInfo info;
-            if (results.discUpdate)
-            {
-                string path = Path.Combine(dir, $"{nodeName}_update.mid");
-                info = new(path);
-                if (info.Exists)
-                {
-                    if (UpdateMidi == null || UpdateMidi.LastWriteTime < info.LastWriteTime)
-                        UpdateMidi = info;
-                }
-                else
-                    UpdateMidi ??= info;
-            }
-
-            info = new(Path.Combine(dir, $"{nodeName}_update.mogg"));
-            if (info.Exists && (Mogg == null || Mogg.LastWriteTime < info.LastWriteTime))
-                Mogg = info;
-            dir = Path.Combine(dir, "gen");
-
-            info = new(Path.Combine(dir, $"{nodeName}.milo_xbox"));
-            if (info.Exists && (Milo == null || Milo.LastWriteTime < info.LastWriteTime))
-                Milo = info;
-
-            if (HasAlbumArt && results.alternatePath)
-            {
-                info = new(Path.Combine(dir, $"{nodeName}_keep.png_xbox"));
-                if (info.Exists && (Image == null || Image.LastWriteTime < info.LastWriteTime))
-                    Image = info;
-            }
-        }
-
-        public byte[]? LoadMidiUpdateFile()
-        {
-            if (UpdateMidi == null)
-                return null;
-
-            FileInfo info = new(UpdateMidi.FullName);
-            if (!info.Exists || info.LastWriteTime != UpdateMidi.LastWriteTime)
-                return null;
-            return File.ReadAllBytes(UpdateMidi.FullName);
-        }
-    }
-
-    public interface IRBCONMetadata
-    {
-        public RBCONSubMetadata SharedMetadata { get; }
-        public DateTime MidiLastWrite { get; }
-        public byte[]? LoadMidiFile();
-        public byte[]? LoadMoggFile();
-        public byte[]? LoadMiloFile();
-        public byte[]? LoadImgFile();
-        public bool IsMoggUnencrypted();
-    }
-
-    public sealed class DTAResult
-    {
-        public readonly string nodeName;
-        public bool alternatePath = false;
-        public bool discUpdate = false;
-        public string location = string.Empty;
-        public string midiPath = string.Empty;
-        public DTAResult(string nodeName)
-        {
-            this.nodeName = nodeName;
-        }
-    }
-
     public sealed partial class SongMetadata
     {
-        private ScanResult ProcessRBCON(string nodeName, Dictionary<string, List<(string, YARGDTAReader)>> updates, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades)
+        public sealed class RBCONSubMetadata
         {
-            var sharedMetadata = _rbData.SharedMetadata;
-            if (updates.TryGetValue(nodeName, out var updateList))
+            public static readonly Encoding Latin1 = Encoding.GetEncoding("ISO-8859-1");
+            public string Directory = string.Empty;
+
+            public string SongID = string.Empty;
+            public uint AnimTempo;
+            public string DrumBank = string.Empty;
+            public string VocalPercussionBank = string.Empty;
+            public uint VocalSongScrollSpeed;
+            public uint SongRating; // 1 = FF; 2 = SR; 3 = M; 4 = NR
+            public bool VocalGender = true;//true for male, false for female
+            public bool HasAlbumArt;
+            //public bool IsFake;
+            public uint VocalTonicNote;
+            public bool SongTonality; // 0 = major, 1 = minor
+            public int TuningOffsetCents;
+            public uint VenueVersion;
+
+            public Encoding MidiEncoding = Latin1;
+
+            public AbridgedFileInfo? UpdateMidi = null;
+            public AbridgedFileInfo? Mogg = null;
+            public AbridgedFileInfo? Milo = null;
+            public AbridgedFileInfo? Image = null;
+
+            public IRBProUpgrade? Upgrade;
+
+            public string[] Soloes = Array.Empty<string>();
+            public string[] VideoVenues = Array.Empty<string>();
+
+            public int[] RealGuitarTuning = Array.Empty<int>();
+            public int[] RealBassTuning = Array.Empty<int>();
+
+            public int[] DrumIndices = Array.Empty<int>();
+            public int[] BassIndices = Array.Empty<int>();
+            public int[] GuitarIndices = Array.Empty<int>();
+            public int[] KeysIndices = Array.Empty<int>();
+            public int[] VocalsIndices = Array.Empty<int>();
+            public int[] CrowdIndices = Array.Empty<int>();
+            public int[] TrackIndices = Array.Empty<int>();
+
+            public float[] TrackStemValues = Array.Empty<float>();
+            public float[] DrumStemValues = Array.Empty<float>();
+            public float[] BassStemValues = Array.Empty<float>();
+            public float[] GuitarStemValues = Array.Empty<float>();
+            public float[] KeysStemValues = Array.Empty<float>();
+            public float[] VocalsStemValues = Array.Empty<float>();
+            public float[] CrowdStemValues = Array.Empty<float>();
+
+            public RBCONDifficulties RBDifficulties = new();
+
+            public RBCONSubMetadata() { }
+
+            public void Update(string folder, string nodeName, DTAResult results)
             {
-                foreach (var update in updateList!)
+                string dir = Path.Combine(folder, nodeName);
+                FileInfo info;
+                if (results.discUpdate)
                 {
-                    var updateResults = ParseDTA(nodeName, sharedMetadata, update.Item2.Clone());
-                    _rbData.SharedMetadata.Update(update.Item1, nodeName, updateResults);
+                    string path = Path.Combine(dir, $"{nodeName}_update.mid");
+                    info = new(path);
+                    if (info.Exists)
+                    {
+                        if (UpdateMidi == null || UpdateMidi.LastWriteTime < info.LastWriteTime)
+                            UpdateMidi = info;
+                    }
+                    else
+                        UpdateMidi ??= info;
+                }
+
+                info = new(Path.Combine(dir, $"{nodeName}_update.mogg"));
+                if (info.Exists && (Mogg == null || Mogg.LastWriteTime < info.LastWriteTime))
+                    Mogg = info;
+                dir = Path.Combine(dir, "gen");
+
+                info = new(Path.Combine(dir, $"{nodeName}.milo_xbox"));
+                if (info.Exists && (Milo == null || Milo.LastWriteTime < info.LastWriteTime))
+                    Milo = info;
+
+                if (HasAlbumArt && results.alternatePath)
+                {
+                    info = new(Path.Combine(dir, $"{nodeName}_keep.png_xbox"));
+                    if (info.Exists && (Image == null || Image.LastWriteTime < info.LastWriteTime))
+                        Image = info;
                 }
             }
 
-            if (upgrades.TryGetValue(nodeName, out var upgrade))
+            public byte[]? LoadMidiUpdateFile()
             {
-                sharedMetadata.Upgrade = upgrade.Item2;
-                ParseDTA(nodeName, sharedMetadata, upgrade.Item1!.Clone());
-            }
+                if (UpdateMidi == null)
+                    return null;
 
+                FileInfo info = new(UpdateMidi.FullName);
+                if (!info.Exists || info.LastWriteTime != UpdateMidi.LastWriteTime)
+                    return null;
+                return File.ReadAllBytes(UpdateMidi.FullName);
+            }
+        }
+
+        public interface IRBCONMetadata
+        {
+            public RBCONSubMetadata SharedMetadata { get; }
+            public DateTime MidiLastWrite { get; }
+            public byte[]? LoadMidiFile();
+            public byte[]? LoadMoggFile();
+            public byte[]? LoadMiloFile();
+            public byte[]? LoadImgFile();
+            public bool IsMoggUnencrypted();
+        }
+
+        public sealed class DTAResult
+        {
+            public readonly string nodeName;
+            public bool alternatePath = false;
+            public bool discUpdate = false;
+            public string location = string.Empty;
+            public string midiPath = string.Empty;
+            public DTAResult(string nodeName)
+            {
+                this.nodeName = nodeName;
+            }
+        }
+
+        public ScanResult ParseRBCONMidi()
+        {
+            var sharedMetadata = _rbData!.SharedMetadata;
             if (_name.Length == 0)
             {
                 return ScanResult.NoName;
@@ -210,16 +194,22 @@ namespace YARG.Core.Song
                             offset += chartFile.Length;
                         }
 
-                        fixed (byte* update = updateFile)
+                        if (updateFile != null)
                         {
-                            System.Runtime.CompilerServices.Unsafe.CopyBlock(buf, update, (uint) updateFile.Length);
-                            offset += updateFile.Length;
+                            fixed (byte* update = updateFile)
+                            {
+                                System.Runtime.CompilerServices.Unsafe.CopyBlock(buf, update, (uint) updateFile.Length);
+                                offset += updateFile.Length;
+                            }
                         }
 
-                        fixed (byte* upgrade = upgradeFile)
+                        if (upgradeFile != null)
                         {
-                            System.Runtime.CompilerServices.Unsafe.CopyBlock(buf, upgrade, (uint) upgradeFile.Length);
-                            offset += upgradeFile.Length;
+                            fixed (byte* upgrade = upgradeFile)
+                            {
+                                System.Runtime.CompilerServices.Unsafe.CopyBlock(buf, upgrade, (uint) upgradeFile.Length);
+                                offset += upgradeFile.Length;
+                            }
                         }
                     }
                 }
@@ -229,6 +219,29 @@ namespace YARG.Core.Song
             catch
             {
                 return ScanResult.PossibleCorruption;
+            }
+        }
+
+        private void ApplyRBCONUpdates(string nodeName, Dictionary<string, List<(string, YARGDTAReader)>> updates)
+        {
+            var sharedMetadata = _rbData!.SharedMetadata;
+            if (updates.TryGetValue(nodeName, out var updateList))
+            {
+                foreach (var update in updateList!)
+                {
+                    var updateResults = ParseDTA(nodeName, sharedMetadata, new YARGDTAReader(update.Item2));
+                    sharedMetadata.Update(update.Item1, nodeName, updateResults);
+                }
+            }
+        }
+
+        private void ApplyRBProUpgrade(string nodeName, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades)
+        {
+            var sharedMetadata = _rbData!.SharedMetadata;
+            if (upgrades.TryGetValue(nodeName, out var upgrade))
+            {
+                sharedMetadata.Upgrade = upgrade.Item2;
+                ParseDTA(nodeName, sharedMetadata, new YARGDTAReader(upgrade.Item1!));
             }
         }
 
@@ -265,7 +278,7 @@ namespace YARG.Core.Song
                         _previewStart = reader.ReadUInt32();
                         _previewEnd = reader.ReadUInt32();
                         break;
-                    case "rank": _parts.SetIntensities(rbConMetadata.rbDifficulties, reader); break;
+                    case "rank": _parts.SetIntensities(rbConMetadata.RBDifficulties, reader); break;
                     case "solo": rbConMetadata.Soloes = reader.ExtractList_String().ToArray(); break;
                     case "genre": _genre = reader.ExtractText(); break;
                     case "decade": /*Decade = reader.ExtractText();*/ break;
