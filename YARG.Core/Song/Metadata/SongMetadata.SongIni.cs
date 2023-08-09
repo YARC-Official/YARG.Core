@@ -24,6 +24,13 @@ namespace YARG.Core.Song
         [Serializable]
         public sealed class IniSubmetadata
         {
+            public static readonly (string, ChartType)[] CHART_FILE_TYPES =
+            {
+                new("notes.mid",   ChartType.Mid),
+                new("notes.midi",  ChartType.Midi),
+                new("notes.chart", ChartType.Chart),
+            };
+
             public readonly ChartType chartType;
             public readonly AbridgedFileInfo chartFile;
             public readonly AbridgedFileInfo? iniFile;
@@ -193,7 +200,7 @@ namespace YARG.Core.Song
             return fivelane ? DrumType.FiveLane : DrumType.FourLane;
         }
 
-        public static (ScanResult, SongMetadata?) FromIni(byte[] file, string chartFile, string? iniFile, ChartType chartType)
+        public static (ScanResult, SongMetadata?) FromIni(byte[] file, string chartFile, string? iniFile, int chartTypeIndex)
         {
             AvailableParts parts = new();
             AbridgedFileInfo? iniInfo;
@@ -209,6 +216,7 @@ namespace YARG.Core.Song
                 iniInfo = null;
             }
 
+            var chartType = IniSubmetadata.CHART_FILE_TYPES[chartTypeIndex].Item2;
             DrumType drumType = default;
             if (chartType == ChartType.Chart)
                 drumType = ParseChart(file, modifiers, parts);
