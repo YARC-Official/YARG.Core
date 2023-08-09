@@ -24,6 +24,8 @@ namespace YARG.Core.Song
 
         public HashWrapper(YARGBinaryReader reader) : this (reader.ReadBytes(HASHSIZEINBYTES)) {}
 
+        public HashWrapper(BinaryReader reader) : this(reader.ReadBytes(HASHSIZEINBYTES)) { }
+
         public HashWrapper(byte[] hash)
         {
             _hash = hash;

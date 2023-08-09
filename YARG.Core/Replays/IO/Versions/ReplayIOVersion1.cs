@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using YARG.Core.Engine;
 using YARG.Core.Engine.Drums;
@@ -16,7 +16,7 @@ namespace YARG.Core.Replays.IO.Versions
             writer.Write(replay.CharterName);
             writer.Write(replay.BandScore);
             writer.Write(replay.Date.ToBinary());
-            writer.Write(replay.SongChecksum);
+            replay.SongChecksum.Serialize(writer);
 
             writer.Write(replay.PlayerCount);
             for (int i = 0; i < replay.PlayerCount; i++)
@@ -37,7 +37,7 @@ namespace YARG.Core.Replays.IO.Versions
             replay.CharterName = reader.ReadString();
             replay.BandScore = reader.ReadInt32();
             replay.Date = DateTime.FromBinary(reader.ReadInt64());
-            replay.SongChecksum = reader.ReadString();
+            replay.SongChecksum = new(reader);
 
             replay.PlayerCount = reader.ReadInt32();
             replay.PlayerNames = new string[replay.PlayerCount];
