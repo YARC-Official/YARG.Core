@@ -14,22 +14,20 @@ namespace YARG.Core.Song.Deserialization
     };
 
 #nullable enable
-    public sealed unsafe class YARGBinaryReader
+    public sealed class YARGBinaryReader
     {
-        private GCHandle handle;
         private readonly byte[] data;
-        private readonly byte* ptr;
-        private readonly int length;
+        private readonly ReadOnlyMemory<byte> memory;
         private int _position;
 
-        public int Length => length;
+        public int Length => memory.Length;
 
         public int Position
         {
             get { return _position; }
             set
             {
-                if (value > length)
+                if (value > memory.Length)
                     throw new ArgumentOutOfRangeException("Position");
                 _position = value;
             }
@@ -38,32 +36,24 @@ namespace YARG.Core.Song.Deserialization
         public YARGBinaryReader(byte[] data)
         {
             this.data = data;
-            handle = GCHandle.Alloc(data, GCHandleType.Pinned);
-            ptr = (byte*)handle.AddrOfPinnedObject();
-            length = data.Length;
+            memory = data;
         }
 
         public YARGBinaryReader(YARGBinaryReader baseReader, int length)
         {
             data = Array.Empty<byte>();
-            ptr = baseReader.ptr + baseReader._position;
-            this.length = length;
+            memory = baseReader.memory.Slice(baseReader._position, length);
             baseReader._position += length;
-        }
-
-        ~YARGBinaryReader()
-        {
-            if (handle.IsAllocated)
-                handle.Free();
         }
 
         public bool CompareTag(byte[] tag)
         {
+            var span = memory.Span;
             Debug.Assert(tag.Length == 4);
-            if (tag[0] != ptr[_position] ||
-                tag[1] != ptr[_position + 1] ||
-                tag[2] != ptr[_position + 2] ||
-                tag[3] != ptr[_position + 3])
+            if (tag[0] != span[_position] ||
+                tag[1] != span[_position + 1] ||
+                tag[2] != span[_position + 2] ||
+                tag[3] != span[_position + 3])
                 return false;
 
             _position += 4;
@@ -77,17 +67,17 @@ namespace YARG.Core.Song.Deserialization
 
         public byte PeekByte()
         {
-            return ptr[_position];
+            return memory.Span[_position];
         }
 
         public byte ReadByte()
         {
-            return ptr[_position++];
+            return memory.Span[_position++];
         }
 
         public sbyte ReadSByte()
         {
-            return (sbyte) ptr[_position++];
+            return (sbyte) memory.Span[_position++];
         }
 
         public bool ReadBoolean()
@@ -97,7 +87,7 @@ namespace YARG.Core.Song.Deserialization
         public short ReadInt16(Endianness endianness = Endianness.LittleEndian)
         {
             short value;
-            ReadOnlySpan<byte> span = new(ptr + _position, 2);
+            var span = memory.Span.Slice(_position, 2);
             if (endianness == Endianness.LittleEndian)
                 value = BinaryPrimitives.ReadInt16LittleEndian(span);
             else
@@ -108,7 +98,7 @@ namespace YARG.Core.Song.Deserialization
         public ushort ReadUInt16(Endianness endianness = Endianness.LittleEndian)
         {
             ushort value;
-            ReadOnlySpan<byte> span = new(ptr + _position, 2);
+            var span = memory.Span.Slice(_position, 2);
             if (endianness == Endianness.LittleEndian)
                 value = BinaryPrimitives.ReadUInt16LittleEndian(span);
             else
@@ -119,7 +109,7 @@ namespace YARG.Core.Song.Deserialization
         public int ReadInt32(Endianness endianness = Endianness.LittleEndian)
         {
             int value;
-            ReadOnlySpan<byte> span = new(ptr + _position, 4);
+            var span = memory.Span.Slice(_position, 4);
             if (endianness == Endianness.LittleEndian)
                 value = BinaryPrimitives.ReadInt32LittleEndian(span);
             else
@@ -130,7 +120,7 @@ namespace YARG.Core.Song.Deserialization
         public uint ReadUInt32(Endianness endianness = Endianness.LittleEndian)
         {
             uint value;
-            ReadOnlySpan<byte> span = new(ptr + _position, 4);
+            var span = memory.Span.Slice(_position, 4);
             if (endianness == Endianness.LittleEndian)
                 value = BinaryPrimitives.ReadUInt32LittleEndian(span);
             else
@@ -141,7 +131,7 @@ namespace YARG.Core.Song.Deserialization
         public long ReadInt64(Endianness endianness = Endianness.LittleEndian)
         {
             long value;
-            ReadOnlySpan<byte> span = new(ptr + _position, 8);
+            var span = memory.Span.Slice(_position, 8);
             if (endianness == Endianness.LittleEndian)
                 value = BinaryPrimitives.ReadInt64LittleEndian(span);
             else
@@ -152,7 +142,7 @@ namespace YARG.Core.Song.Deserialization
         public ulong ReadUInt64(Endianness endianness = Endianness.LittleEndian)
         {
             ulong value;
-            ReadOnlySpan<byte> span = new(ptr + _position, 8);
+            var span = memory.Span.Slice(_position, 8);
             if (endianness == Endianness.LittleEndian)
                 value = BinaryPrimitives.ReadUInt64LittleEndian(span);
             else
@@ -162,19 +152,22 @@ namespace YARG.Core.Song.Deserialization
         }
         public float ReadFloat()
         {
-            float value = BitConverter.ToSingle(new ReadOnlySpan<byte>(ptr + _position, 4));
+            float value = BitConverter.ToSingle(memory.Span.Slice(_position, 4));
             _position += 4;
             return value;
         }
         public bool ReadBytes(byte[] bytes)
         {
             int endPos = _position + bytes.Length;
-            if (endPos > length)
+            if (endPos > memory.Length)
                 return false;
 
-            fixed (byte* dst = bytes)
+            unsafe
             {
-                Unsafe.CopyBlock(dst, ptr + _position, (uint) bytes.Length);
+                fixed (byte* dst = bytes, src = memory.Span)
+                {
+                    Unsafe.CopyBlock(dst, src + _position, (uint) bytes.Length);
+                }
             }
 
             _position = endPos;
@@ -197,13 +190,14 @@ namespace YARG.Core.Song.Deserialization
 
         public int ReadLEB()
         {
+            var span = memory.Span;
             uint result = 0;
             byte byteReadJustNow;
 
             const int MaxBytesWithoutOverflow = 4;
             for (int shift = 0; shift < MaxBytesWithoutOverflow * 7; shift += 7)
             {
-                byteReadJustNow = ptr[_position++];
+                byteReadJustNow = span[_position++];
                 result |= (byteReadJustNow & 0x7Fu) << shift;
 
                 if (byteReadJustNow <= 0x7Fu)
@@ -212,7 +206,7 @@ namespace YARG.Core.Song.Deserialization
                 }
             }
 
-            byteReadJustNow = ptr[_position++];
+            byteReadJustNow = span[_position++];
             if (byteReadJustNow > 0b_1111u)
             {
                 throw new Exception("LEB value exceeds max allowed");
@@ -224,11 +218,12 @@ namespace YARG.Core.Song.Deserialization
 
         public uint ReadVLQ()
         {
+            var span = memory.Span;
             uint value = 0;
             uint i = 0;
             while (true)
             {
-                uint b = ptr[_position++];
+                uint b = span[_position++];
                 value |= b & 127;
                 if (b < 128)
                     return value;
@@ -244,7 +239,7 @@ namespace YARG.Core.Song.Deserialization
         public ReadOnlySpan<byte> ReadSpan(int length)
         {
             int endPos = _position + length;
-            ReadOnlySpan<byte> span = new(ptr + _position, length);
+            var span = memory.Span.Slice(_position, length);
             _position = endPos;
             return span;
         }
