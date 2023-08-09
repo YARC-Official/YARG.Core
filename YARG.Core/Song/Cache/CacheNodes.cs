@@ -43,20 +43,13 @@ namespace YARG.Core.Song.Cache
             };
 
             int numCategories = strings.Length;
-            int numBytes;
-            Span<byte> numBytesAsSpan;
-            unsafe
-            {
-                numBytesAsSpan = new(&numBytes, 4);
-            }
-
             if (multithreaded)
             {
                 var tasks = new Task[numCategories];
                 for (int i = 0; i < numCategories; ++i)
                 {
-                    stream.Read(numBytesAsSpan);
-                    byte[] section = new byte[numBytes];
+                    int length = stream.ReadInt32LE();
+                    byte[] section = stream.ReadBytes(length);
                     tasks[i] = Task.Run(() => { strings[i] = ReadStrings(section); });
                 }
                 Task.WaitAll(tasks);
@@ -65,9 +58,8 @@ namespace YARG.Core.Song.Cache
             {
                 for (int i = 0; i < numCategories; ++i)
                 {
-                    stream.Read(numBytesAsSpan);
-                    byte[] section = new byte[numBytes];
-                    strings[i] = ReadStrings(section);
+                    int length = stream.ReadInt32LE();
+                    strings[i] = ReadStrings(stream.ReadBytes(length));
                 }
             }
 
