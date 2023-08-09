@@ -24,9 +24,10 @@ namespace YARG.Core.Song.Cache
             badSongsLocation = Path.Combine(badSongsDirectory, BADSONGS_FILE);
             this.multithreading = multithreading;
             this.baseDirectories = baseDirectories;
-            iniGroups = new IniGroup[baseDirectories.Length];
-            for (int i = 0; i < iniGroups.Length; ++i)
-                iniGroups[i] = new IniGroup(baseDirectories[i]);
+
+            iniGroups = new(baseDirectories.Length);
+            for (int i = 0; i < baseDirectories.Length; ++i)
+                iniGroups.Add(new(baseDirectories[i]));
         }
 
         public SongCache RunScan(bool fast)
@@ -82,7 +83,7 @@ namespace YARG.Core.Song.Cache
         private readonly List<UpgradeGroup> upgradeGroups = new();
         private readonly List<PackedCONGroup> conGroups = new();
         private readonly List<UnpackedCONGroup> extractedConGroups = new();
-        private readonly IniGroup[] iniGroups;
+        private readonly List<IniGroup> iniGroups;
         private readonly Dictionary<string, List<(string, YARGDTAReader)>> updates = new();
         private readonly Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades = new();
         private readonly HashSet<string> preScannedDirectories = new();
