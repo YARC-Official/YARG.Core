@@ -144,22 +144,20 @@ namespace YARG.Core.Song.Deserialization
         private MidiEventType midiEvent = MidiEventType.Reset_Or_Meta;
         private int runningOffset;
 
-        private readonly byte multiplierNote;
         private readonly Stream stream;
         private readonly byte[] tagBuffer = new byte[8];
         private YARGBinaryReader trackReader;
         private int nextEvent;
 
-        public YARGMidiReader(Stream stream, byte multiplierNote = 116)
+        public YARGMidiReader(Stream stream)
         {
             this.stream = stream;
-            this.multiplierNote = multiplierNote;
             ProcessHeaderChunk();
         }
 
-        public YARGMidiReader(byte[] data, byte multiplierNote = 116) : this(new MemoryStream(data), multiplierNote) { }
+        public YARGMidiReader(byte[] data) : this(new MemoryStream(data)) { }
 
-        public YARGMidiReader(string path, byte multiplierNote = 116) : this(new FileStream(path, FileMode.Open), multiplierNote) { }
+        public YARGMidiReader(string path) : this(new FileStream(path, FileMode.Open)) { }
 
         private bool LoadTrack(byte[] tag)
         {
