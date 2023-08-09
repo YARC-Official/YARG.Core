@@ -9,12 +9,12 @@ namespace YARG.Core.Song
         Name,
         Artist,
         Album,
+        Artist_Album,
         Genre,
         Year,
         Charter,
         Playlist,
         Source,
-        Artist_Album,
         SongLength,
     };
 
