@@ -1,6 +1,7 @@
 ﻿using System.Text.RegularExpressions;
 using YARG.Core.Chart;
 
+#nullable enable
 namespace YARG.Core.Song
 {
     public enum ScanResult
@@ -103,6 +104,9 @@ namespace YARG.Core.Song
         public AvailableParts Parts => _parts;
 
         public ParseSettings ParseSettings => _parseSettings;
+
+        public IniSubmetadata? IniData => _iniData;
+        public IRBCONMetadata? RBData => _rbData;
 
         private SortString _name = string.Empty;
         private SortString _artist = DEFAULT_ARTIST;
