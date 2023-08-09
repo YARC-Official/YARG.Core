@@ -9,16 +9,8 @@ namespace YARG.Core.Song.Cache
     {
         protected readonly Dictionary<string, SortedDictionary<int, SongMetadata>> entries = new();
         protected readonly object entryLock = new();
-        public int EntryCount
-        {
-            get
-            {
-                int count = 0;
-                foreach (var node in entries)
-                    count += node.Value.Count;
-                return count;
-            }
-        }
+        private int _entryCount;
+        public int EntryCount => _entryCount;
         public abstract void ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings);
 
         public void AddEntry(string name, int index, SongMetadata entry)
@@ -29,6 +21,7 @@ namespace YARG.Core.Song.Cache
                     dict.Add(index, entry);
                 else
                     entries.Add(name, new() { { index, entry } });
+                ++_entryCount;
             }
         }
 
@@ -44,7 +37,7 @@ namespace YARG.Core.Song.Cache
 
         protected void Serialize(BinaryWriter writer, ref Dictionary<SongMetadata, CategoryCacheWriteNode> nodes)
         {
-            writer.Write(EntryCount);
+            writer.Write(_entryCount);
             foreach (var entryList in entries)
             {
                 foreach (var entry in entryList.Value)

@@ -8,6 +8,7 @@ namespace YARG.Core.Song.Cache
         public readonly string directory;
         public readonly object iniLock = new();
         public readonly Dictionary<HashWrapper, List<SongMetadata>> entries = new();
+        private int _count;
 
         public IniGroup(string directory)
         {
@@ -23,6 +24,7 @@ namespace YARG.Core.Song.Cache
                     list.Add(entry);
                 else
                     entries.Add(hash, new() { entry });
+                ++_count;
             }
         }
 
@@ -32,7 +34,7 @@ namespace YARG.Core.Song.Cache
             using BinaryWriter writer = new(ms);
 
             writer.Write(directory);
-            writer.Write(entries.Count);
+            writer.Write(_count);
             foreach (var shared in entries)
             {
                 foreach (var entry in shared.Value)
