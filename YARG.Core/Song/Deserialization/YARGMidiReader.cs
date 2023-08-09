@@ -145,7 +145,7 @@ namespace YARG.Core.Song.Deserialization
         private int runningOffset;
 
         private readonly Stream stream;
-        private readonly byte[] tagBuffer = new byte[8];
+        private readonly byte[] tagBuffer = new byte[4];
         private YARGBinaryReader trackReader;
         private int nextEvent;
 
@@ -168,8 +168,7 @@ namespace YARG.Core.Song.Deserialization
                 tagBuffer[3] != tag[3])
                 return false;
 
-            byte[] track = new byte[BinaryPrimitives.ReadInt32BigEndian(new ReadOnlySpan<byte>(tagBuffer, 4, 4))];
-            trackReader = new YARGBinaryReader(track);
+            trackReader = new YARGBinaryReader(stream.ReadBytes(stream.ReadInt32BE()));
             return true;
         }
 
