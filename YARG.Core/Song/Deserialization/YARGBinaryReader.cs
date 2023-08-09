@@ -185,7 +185,7 @@ namespace YARG.Core.Song.Deserialization
         {
             byte[] bytes = new byte[length];
             if (!ReadBytes(bytes))
-                throw new Exception("Failed to parse data");
+                throw new Exception("Length of section exceeds bounds");
             return bytes;
         }
 
@@ -215,7 +215,7 @@ namespace YARG.Core.Song.Deserialization
             byteReadJustNow = ptr[_position++];
             if (byteReadJustNow > 0b_1111u)
             {
-                throw new Exception("Failed to parse data");
+                throw new Exception("LEB value exceeds max allowed");
             }
 
             result |= (uint) byteReadJustNow << MaxBytesWithoutOverflow * 7;
