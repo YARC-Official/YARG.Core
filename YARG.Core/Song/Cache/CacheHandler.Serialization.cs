@@ -18,7 +18,7 @@ namespace YARG.Core.Song.Cache
                 return null;
 
             FileStream fs = new(cacheLocation, FileMode.Open, FileAccess.Read);
-            if (fs.ReadInt32() != CACHE_VERSION)
+            if (fs.ReadInt32LE() != CACHE_VERSION)
             {
                 fs.Dispose();
                 return null;
@@ -37,53 +37,53 @@ namespace YARG.Core.Song.Cache
             if (multithreading)
             {
                 List<Task> entryTasks = new();
-                int count = stream.ReadInt32();
+                int count = stream.ReadInt32LE();
                 for (int i = 0; i < count; ++i)
                 {
-                    int length = stream.ReadInt32();
+                    int length = stream.ReadInt32LE();
                     YARGBinaryReader reader = new(stream.ReadBytes(length));
                     entryTasks.Add(Task.Run(() => ReadIniGroup_Parallel(reader, strings)));
                 }
 
                 List<Task> conTasks = new();
-                count = stream.ReadInt32();
+                count = stream.ReadInt32LE();
                 for (int i = 0; i < count; ++i)
                 {
-                    int length = stream.ReadInt32();
+                    int length = stream.ReadInt32LE();
                     YARGBinaryReader reader = new(stream.ReadBytes(length));
                     conTasks.Add(Task.Run(() => ReadUpdateDirectory(reader)));
                 }
 
-                count = stream.ReadInt32();
+                count = stream.ReadInt32LE();
                 for (int i = 0; i < count; ++i)
                 {
-                    int length = stream.ReadInt32();
+                    int length = stream.ReadInt32LE();
                     YARGBinaryReader reader = new(stream.ReadBytes(length));
                     conTasks.Add(Task.Run(() => ReadUpgradeDirectory(reader)));
                 }
 
-                count = stream.ReadInt32();
+                count = stream.ReadInt32LE();
                 for (int i = 0; i < count; ++i)
                 {
-                    int length = stream.ReadInt32();
+                    int length = stream.ReadInt32LE();
                     YARGBinaryReader reader = new(stream.ReadBytes(length));
                     conTasks.Add(Task.Run(() => ReadUpgradeCON(reader)));
                 }
 
                 Task.WaitAll(conTasks.ToArray());
 
-                count = stream.ReadInt32();
+                count = stream.ReadInt32LE();
                 for (int i = 0; i < count; ++i)
                 {
-                    int length = stream.ReadInt32();
+                    int length = stream.ReadInt32LE();
                     YARGBinaryReader reader = new(stream.ReadBytes(length));
                     entryTasks.Add(Task.Run(() => ReadCONGroup_Parallel(reader, strings)));
                 }
 
-                count = stream.ReadInt32();
+                count = stream.ReadInt32LE();
                 for (int i = 0; i < count; ++i)
                 {
-                    int length = stream.ReadInt32();
+                    int length = stream.ReadInt32LE();
                     YARGBinaryReader reader = new(stream.ReadBytes(length));
                     entryTasks.Add(Task.Run(() => ReadExtractedCONGroup_Parallel(reader, strings)));
                 }
@@ -92,45 +92,45 @@ namespace YARG.Core.Song.Cache
             }
             else
             {
-                int count = stream.ReadInt32();
+                int count = stream.ReadInt32LE();
                 for (int i = 0; i < count; ++i)
                 {
-                    int length = stream.ReadInt32();
+                    int length = stream.ReadInt32LE();
                     ReadIniGroup(new(stream.ReadBytes(length)), strings);
                 }
 
-                count = stream.ReadInt32();
+                count = stream.ReadInt32LE();
                 for (int i = 0; i < count; ++i)
                 {
-                    int length = stream.ReadInt32();
+                    int length = stream.ReadInt32LE();
                     ReadUpdateDirectory(new(stream.ReadBytes(length)));
                 }
 
-                count = stream.ReadInt32();
+                count = stream.ReadInt32LE();
                 for (int i = 0; i < count; ++i)
                 {
-                    int length = stream.ReadInt32();
+                    int length = stream.ReadInt32LE();
                     ReadUpgradeDirectory(new(stream.ReadBytes(length)));
                 }
 
-                count = stream.ReadInt32();
+                count = stream.ReadInt32LE();
                 for (int i = 0; i < count; ++i)
                 {
-                    int length = stream.ReadInt32();
+                    int length = stream.ReadInt32LE();
                     ReadUpgradeCON(new(stream.ReadBytes(length)));
                 }
 
-                count = stream.ReadInt32();
+                count = stream.ReadInt32LE();
                 for (int i = 0; i < count; ++i)
                 {
-                    int length = stream.ReadInt32();
+                    int length = stream.ReadInt32LE();
                     ReadCONGroup(new(stream.ReadBytes(length)), strings);
                 }
 
-                count = stream.ReadInt32();
+                count = stream.ReadInt32LE();
                 for (int i = 0; i < count; ++i)
                 {
-                    int length = stream.ReadInt32();
+                    int length = stream.ReadInt32LE();
                     ReadExtractedCONGroup(new(stream.ReadBytes(length)), strings);
                 }
             }
@@ -148,52 +148,52 @@ namespace YARG.Core.Song.Cache
             if (multithreading)
             {
                 List<Task> entryTasks = new();
-                int count = stream.ReadInt32();
+                int count = stream.ReadInt32LE();
                 for (int i = 0; i < count; ++i)
                 {
-                    int length = stream.ReadInt32();
+                    int length = stream.ReadInt32LE();
                     YARGBinaryReader reader = new(stream.ReadBytes(length));
                     entryTasks.Add(Task.Run(() => QuickReadIniGroup_Parallel(reader, strings)));
                 }
 
-                count = stream.ReadInt32();
+                count = stream.ReadInt32LE();
                 for (int i = 0; i < count; ++i)
                 {
-                    int length = stream.ReadInt32();
+                    int length = stream.ReadInt32LE();
                     stream.Position += length;
                 }
 
                 List<Task> conTasks = new();
-                count = stream.ReadInt32();
+                count = stream.ReadInt32LE();
                 for (int i = 0; i < count; ++i)
                 {
-                    int length = stream.ReadInt32();
+                    int length = stream.ReadInt32LE();
                     YARGBinaryReader reader = new(stream.ReadBytes(length));
                     conTasks.Add(Task.Run(() => QuickReadUpgradeDirectory(reader)));
                 }
 
-                count = stream.ReadInt32();
+                count = stream.ReadInt32LE();
                 for (int i = 0; i < count; ++i)
                 {
-                    int length = stream.ReadInt32();
+                    int length = stream.ReadInt32LE();
                     YARGBinaryReader reader = new(stream.ReadBytes(length));
                     conTasks.Add(Task.Run(() => QuickReadUpgradeCON(reader)));
                 }
 
                 Task.WaitAll(conTasks.ToArray());
 
-                count = stream.ReadInt32();
+                count = stream.ReadInt32LE();
                 for (int i = 0; i < count; ++i)
                 {
-                    int length = stream.ReadInt32();
+                    int length = stream.ReadInt32LE();
                     YARGBinaryReader reader = new(stream.ReadBytes(length));
                     entryTasks.Add(Task.Run(() => QuickReadCONGroup_Parallel(reader, strings)));
                 }
 
-                count = stream.ReadInt32();
+                count = stream.ReadInt32LE();
                 for (int i = 0; i < count; ++i)
                 {
-                    int length = stream.ReadInt32();
+                    int length = stream.ReadInt32LE();
                     YARGBinaryReader reader = new(stream.ReadBytes(length));
                     entryTasks.Add(Task.Run(() => QuickReadExtractedCONGroup_Parallel(reader, strings)));
                 }
@@ -202,45 +202,45 @@ namespace YARG.Core.Song.Cache
             }
             else
             {
-                int count = stream.ReadInt32();
+                int count = stream.ReadInt32LE();
                 for (int i = 0; i < count; ++i)
                 {
-                    int length = stream.ReadInt32();
+                    int length = stream.ReadInt32LE();
                     QuickReadIniGroup(new(stream.ReadBytes(length)), strings);
                 }
 
-                count = stream.ReadInt32();
+                count = stream.ReadInt32LE();
                 for (int i = 0; i < count; ++i)
                 {
-                    int length = stream.ReadInt32();
+                    int length = stream.ReadInt32LE();
                     stream.Position += length;
                 }
 
-                count = stream.ReadInt32();
+                count = stream.ReadInt32LE();
                 for (int i = 0; i < count; ++i)
                 {
-                    int length = stream.ReadInt32();
+                    int length = stream.ReadInt32LE();
                     QuickReadUpgradeDirectory(new(stream.ReadBytes(length)));
                 }
 
-                count = stream.ReadInt32();
+                count = stream.ReadInt32LE();
                 for (int i = 0; i < count; ++i)
                 {
-                    int length = stream.ReadInt32();
+                    int length = stream.ReadInt32LE();
                     QuickReadUpgradeCON(new(stream.ReadBytes(length)));
                 }
 
-                count = stream.ReadInt32();
+                count = stream.ReadInt32LE();
                 for (int i = 0; i < count; ++i)
                 {
-                    int length = stream.ReadInt32();
+                    int length = stream.ReadInt32LE();
                     QuickReadCONGroup(new(stream.ReadBytes(length)), strings);
                 }
 
-                count = stream.ReadInt32();
+                count = stream.ReadInt32LE();
                 for (int i = 0; i < count; ++i)
                 {
-                    int length = stream.ReadInt32();
+                    int length = stream.ReadInt32LE();
                     QuickReadExtractedCONGroup(new(stream.ReadBytes(length)), strings);
                 }
             }
