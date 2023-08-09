@@ -1,12 +1,4 @@
-﻿using MoonscraperChartEditor.Song.IO;
-using NUnit.Framework;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using YARG.Core.Chart;
+﻿using NUnit.Framework;
 using YARG.Core.Song.Cache;
 
 namespace YARG.Core.UnitTests.Scanning
