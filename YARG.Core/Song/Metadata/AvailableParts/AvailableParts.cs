@@ -222,6 +222,18 @@ namespace YARG.Core.Song
             };
         }
 
+        public bool HasInstrument(Instrument instrument)
+        {
+            try
+            {
+                return GetValues(instrument).subTracks > 0;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         public bool HasPart(Instrument instrument, int subtrack)
         {
             try
