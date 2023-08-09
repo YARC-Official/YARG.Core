@@ -19,6 +19,7 @@ namespace YARG.Core.Song.Cache
 
     public sealed class CategoryCacheStrings
     {
+        const int NUM_CATEGORIES = 8;
         public string[] titles = Array.Empty<string>();
         public string[] artists = Array.Empty<string>();
         public string[] albums = Array.Empty<string>();
@@ -30,36 +31,23 @@ namespace YARG.Core.Song.Cache
 
         public CategoryCacheStrings(FileStream stream, bool multithreaded)
         {
-            string[][] strings =
-            {
-                titles,
-                artists,
-                albums,
-                genres,
-                years,
-                charters,
-                playlists,
-                sources
-            };
-
-            int numCategories = strings.Length;
             if (multithreaded)
             {
-                var tasks = new Task[numCategories];
-                for (int i = 0; i < numCategories; ++i)
+                var tasks = new Task[NUM_CATEGORIES];
+                for (int i = 0; i < NUM_CATEGORIES; ++i)
                 {
                     int length = stream.ReadInt32LE();
                     byte[] section = stream.ReadBytes(length);
-                    tasks[i] = Task.Run(() => { strings[i] = ReadStrings(section); });
+                    tasks[i] = Task.Run(() => { GetArray(i) = ReadStrings(section); });
                 }
                 Task.WaitAll(tasks);
             }
             else
             {
-                for (int i = 0; i < numCategories; ++i)
+                for (int i = 0; i < NUM_CATEGORIES; ++i)
                 {
                     int length = stream.ReadInt32LE();
-                    strings[i] = ReadStrings(stream.ReadBytes(length));
+                    GetArray(i) = ReadStrings(stream.ReadBytes(length));
                 }
             }
 
@@ -71,6 +59,23 @@ namespace YARG.Core.Song.Cache
                 for (int i = 0; i < count; ++i)
                     strings[i] = reader.ReadLEBString();
                 return strings;
+            }
+        }
+
+        private ref string[] GetArray(int index)
+        {
+            switch(index)
+            {
+                case 0: return ref titles;
+                case 1: return ref artists;
+                case 2: return ref albums;
+                case 3: return ref genres;
+                case 4: return ref years;
+                case 5: return ref charters;
+                case 6: return ref playlists;
+                case 7: return ref sources;
+                default:
+                    throw new NotImplementedException();
             }
         }
     }
