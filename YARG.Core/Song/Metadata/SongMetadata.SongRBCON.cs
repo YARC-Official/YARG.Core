@@ -268,9 +268,9 @@ namespace YARG.Core.Song
 
             try
             {
-                var chartFile = _rbData.LoadMidiFile();
-                var updateFile = sharedMetadata.LoadMidiUpdateFile();
-                var upgradeFile = sharedMetadata.Upgrade?.LoadUpgradeMidi();
+                byte[]? chartFile = _rbData.LoadMidiFile();
+                byte[]? updateFile = sharedMetadata.LoadMidiUpdateFile();
+                byte[]? upgradeFile = sharedMetadata.Upgrade?.LoadUpgradeMidi();
 
                 int bufLength = 0;
                 if (sharedMetadata.UpdateMidi != null)
