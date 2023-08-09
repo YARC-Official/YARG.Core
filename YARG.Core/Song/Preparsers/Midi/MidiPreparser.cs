@@ -8,8 +8,6 @@ namespace YARG.Core.Song
     public abstract class MidiPreparser
     {
         protected static readonly byte[] SYSEXTAG = Encoding.ASCII.GetBytes("PS");
-        protected static readonly int[] ValidationMask = { 1, 2, 4, 8, 16 };
-        
         protected MidiParseEvent currEvent;
         protected MidiNote note;
 

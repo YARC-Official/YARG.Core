@@ -2,34 +2,35 @@
 {
     public class Midi_FiveLaneDrum : Midi_Drum
     {
-        protected override bool IsNote() { return 60 <= note.value && note.value <= 101; }
+        private const int NUM_LANES = MAX_NUMPADS;
+        protected override bool IsNote() { return DEFAULT_MIN <= note.value && note.value <= FIVELANE_MAX; }
 
-        protected override bool IsFullyScanned() { return validations == 31; }
+        protected override bool IsFullyScanned() { return validations == FULL_VALIDATION; }
 
         protected override bool ParseLaneColor()
         {
-            int noteValue = note.value - 60;
+            int noteValue = note.value - DEFAULT_MIN;
             int diffIndex = DIFFVALUES[noteValue];
-            if (!difficulties[diffIndex])
+            if (!difficultyTracker[diffIndex])
             {
-                int lane = LANEVALUES[noteValue];
-                if (lane < 7)
-                    notes[diffIndex, lane] = true;
+                int laneIndex = LANEINDICES[noteValue];
+                if (laneIndex < NUM_LANES)
+                    statuses[diffIndex, laneIndex] = true;
             }
             return false;
         }
 
         protected override bool ParseLaneColor_Off()
         {
-            int noteValue = note.value - 60;
+            int noteValue = note.value - DEFAULT_MIN;
             int diffIndex = DIFFVALUES[noteValue];
-            if (!difficulties[diffIndex])
+            if (!difficultyTracker[diffIndex])
             {
-                int lane = LANEVALUES[noteValue];
-                if (lane < 7)
+                int laneIndex = LANEINDICES[noteValue];
+                if (laneIndex < NUM_LANES)
                 {
                     Validate(diffIndex);
-                    difficulties[diffIndex] = true;
+                    difficultyTracker[diffIndex] = true;
                     return IsFullyScanned();
                 }
             }

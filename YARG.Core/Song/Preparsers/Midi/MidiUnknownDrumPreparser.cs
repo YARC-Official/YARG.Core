@@ -4,6 +4,8 @@ namespace YARG.Core.Song
 {
     public class Midi_UnknownDrums : Midi_Drum
     {
+        private const int NUM_LANES = MAX_NUMPADS;
+        private const int FIVE_LANE_DRUM = 6;
         private DrumPreparseType _type = DrumPreparseType.FourLane;
         public DrumPreparseType Type { get { return _type; } }
 
@@ -12,17 +14,17 @@ namespace YARG.Core.Song
             _type = type;
         }
 
-        protected override bool IsFullyScanned() { return validations == 31 && _type != DrumPreparseType.FourLane; }
-        protected override bool IsNote() { return 60 <= note.value && note.value <= 101; }
+        protected override bool IsFullyScanned() { return validations == FULL_VALIDATION && _type != DrumPreparseType.FourLane; }
+        protected override bool IsNote() { return DEFAULT_MIN <= note.value && note.value <= FIVELANE_MAX; }
 
         protected override bool ParseLaneColor()
         {
-            int noteValue = note.value - 60;
-            int lane = LANEVALUES[noteValue];
-            if (lane < 7)
+            int noteValue = note.value - DEFAULT_MIN;
+            int laneIndex = LANEINDICES[noteValue];
+            if (laneIndex < NUM_LANES)
             {
-                notes[DIFFVALUES[noteValue], lane] = true;
-                if (lane == 6)
+                statuses[DIFFVALUES[noteValue], laneIndex] = true;
+                if (laneIndex == FIVE_LANE_DRUM)
                 {
                     _type = DrumPreparseType.FiveLane;
                     return IsFullyScanned();
@@ -33,15 +35,15 @@ namespace YARG.Core.Song
 
         protected override bool ParseLaneColor_Off()
         {
-            int noteValue = note.value - 60;
+            int noteValue = note.value - DEFAULT_MIN;
             int diffIndex = DIFFVALUES[noteValue];
-            if (!difficulties[diffIndex])
+            if (!difficultyTracker[diffIndex])
             {
-                int lane = LANEVALUES[noteValue];
-                if (lane < 7)
+                int laneIndex = LANEINDICES[noteValue];
+                if (laneIndex < NUM_LANES)
                 {
                     Validate(diffIndex);
-                    difficulties[diffIndex] = true;
+                    difficultyTracker[diffIndex] = true;
                     return IsFullyScanned();
                 }
             }
@@ -50,7 +52,7 @@ namespace YARG.Core.Song
 
         protected override bool ToggleExtraValues()
         {
-            if (110 <= note.value && note.value <= 112)
+            if (YELLOW_FLAG <= note.value && note.value <= GREEN_FLAG)
             {
                 _type = DrumPreparseType.FourPro;
                 return IsFullyScanned();

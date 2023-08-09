@@ -2,13 +2,16 @@
 {
     public class Midi_SixFret : MidiInstrument_Common
     {
-        private readonly bool[,] notes = new bool[4, 7];
-        private static readonly uint[] LANEVALUES = new uint[] {
+        // Open note included
+        private const int NUM_LANES = 7;
+        private static readonly int[] LANEINDICES = new int[NUM_DIFFICULTIES * NOTES_PER_DIFFICULTY] {
             0, 4, 5, 6, 1, 2, 3, 7, 8, 9, 10, 11,
             0, 4, 5, 6, 1, 2, 3, 7, 8, 9, 10, 11,
             0, 4, 5, 6, 1, 2, 3, 7, 8, 9, 10, 11,
             0, 4, 5, 6, 1, 2, 3, 7, 8, 9, 10, 11,
         };
+
+        private readonly bool[,] statuses = new bool[NUM_DIFFICULTIES, NUM_LANES];
 
         protected override bool IsNote() { return 58 <= note.value && note.value <= 103; }
 
@@ -16,11 +19,11 @@
         {
             int noteValue = note.value - 58;
             int diffIndex = DIFFVALUES[noteValue];
-            if (!difficulties[diffIndex])
+            if (!difficultyTracker[diffIndex])
             {
-                uint lane = LANEVALUES[noteValue];
-                if (lane < 7)
-                    notes[diffIndex, lane] = true;
+                int laneIndex = LANEINDICES[noteValue];
+                if (laneIndex < NUM_LANES)
+                    statuses[diffIndex, laneIndex] = true;
             }
             return false;
         }
@@ -29,13 +32,13 @@
         {
             int noteValue = note.value - 59;
             int diffIndex = DIFFVALUES[noteValue];
-            if (!difficulties[diffIndex])
+            if (!difficultyTracker[diffIndex])
             {
-                uint lane = LANEVALUES[noteValue];
-                if (lane < 7 && notes[diffIndex, lane])
+                int laneIndex = LANEINDICES[noteValue];
+                if (laneIndex < NUM_LANES && statuses[diffIndex, laneIndex])
                 {
                     Validate(diffIndex);
-                    difficulties[diffIndex] = true;
+                    difficultyTracker[diffIndex] = true;
                     return IsFullyScanned();
                 }
             }

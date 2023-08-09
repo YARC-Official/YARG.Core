@@ -6,6 +6,10 @@ namespace YARG.Core.Song
 {
     public abstract class MidiInstrumentPreparser : MidiPreparser
     {
+        private const int ALL_DIFFICULTIES = 15;
+        protected const int DEFAULT_MIN = 60;
+        protected const int DEFAULT_MAX = 100;
+        protected const int NUM_DIFFICULTIES = 4;
         protected int validations;
         protected override bool ParseNote()
         {
@@ -26,9 +30,9 @@ namespace YARG.Core.Song
 
         protected abstract bool ParseLaneColor_Off();
 
-        protected virtual bool IsFullyScanned() { return validations == 15; }
+        protected virtual bool IsFullyScanned() { return validations == ALL_DIFFICULTIES; }
 
-        protected virtual bool IsNote() { return 60 <= note.value && note.value <= 100; }
+        protected virtual bool IsNote() { return DEFAULT_MIN <= note.value && note.value <= DEFAULT_MAX; }
 
         protected virtual bool ProcessSpecialNote() { return false; }
 
@@ -55,12 +59,14 @@ namespace YARG.Core.Song
 
     public abstract class MidiInstrument_Common : MidiInstrumentPreparser
     {
-        internal static readonly int[] DIFFVALUES = {
+        protected const int NOTES_PER_DIFFICULTY = 12;
+        protected static readonly int[] DIFFVALUES = new int[NUM_DIFFICULTIES * NOTES_PER_DIFFICULTY] {
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
             2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
             3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3
         };
-        protected bool[] difficulties = new bool[4];
+
+        protected bool[] difficultyTracker = new bool[NUM_DIFFICULTIES];
     }
 }

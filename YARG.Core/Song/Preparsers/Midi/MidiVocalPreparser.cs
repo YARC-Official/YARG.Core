@@ -4,13 +4,17 @@ namespace YARG.Core.Song
 {
     public class Midi_Vocal : MidiPreparser
     {
+        private const int VOACAL_MIN = 36;
+        private const int VOCAL_MAX = 84;
+        private const int PERCUSSION_NOTE = 96;
+
         protected bool vocal = false;
         protected bool lyric = false;
         protected bool percussion = false;
 
         protected override bool ParseNote()
         {
-            if (36 <= note.value && note.value <= 84)
+            if (VOACAL_MIN <= note.value && note.value <= VOCAL_MAX)
             {
                 if (vocal && lyric)
                     return true;
@@ -18,16 +22,16 @@ namespace YARG.Core.Song
                 vocal = true;
                 return false;
             }
-            else if (note.value == 96 || note.value == 97)
+            else if (note.value == PERCUSSION_NOTE)
                 percussion = true;
             return false;
         }
 
         protected override bool ParseNote_Off()
         {
-            if (36 <= note.value && note.value <= 84)
+            if (VOACAL_MIN <= note.value && note.value <= VOCAL_MAX)
                 return vocal && lyric;
-            else if (note.value == 96)
+            else if (note.value == PERCUSSION_NOTE)
                 return percussion;
             return false;
         }
@@ -41,12 +45,15 @@ namespace YARG.Core.Song
 
     public class Midi_Harmony : MidiPreparser
     {
+        private const int VOACAL_MIN = 36;
+        private const int VOCAL_MAX = 84;
+
         protected bool vocal = false;
         protected bool lyric = false;
 
         protected override bool ParseNote()
         {
-            if (36 <= note.value && note.value <= 84)
+            if (VOACAL_MIN <= note.value && note.value <= VOCAL_MAX)
             {
                 if (vocal && lyric)
                     return true;
@@ -59,7 +66,7 @@ namespace YARG.Core.Song
 
         protected override bool ParseNote_Off()
         {
-            if (36 <= note.value && note.value <= 84)
+            if (VOACAL_MIN <= note.value && note.value <= VOCAL_MAX)
                 return vocal && lyric;
             return false;
         }
