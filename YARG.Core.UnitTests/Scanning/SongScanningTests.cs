@@ -2,6 +2,7 @@
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -30,6 +31,9 @@ namespace YARG.Core.UnitTests.Scanning
             {
                 cache = handler.RunScan(false);
             });
+
+            foreach (object err in handler.errorList)
+                YargTrace.LogError(err.ToString());
         }
 
         [TestCase]
@@ -43,6 +47,9 @@ namespace YARG.Core.UnitTests.Scanning
             {
                 cache = handler.RunScan(true);
             });
+
+            foreach (object err in handler.errorList)
+                YargTrace.LogError(err.ToString());
         }
     }
 }
