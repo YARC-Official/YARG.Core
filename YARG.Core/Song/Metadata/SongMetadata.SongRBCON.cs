@@ -65,6 +65,116 @@ namespace YARG.Core.Song
 
             public RBCONSubMetadata() { }
 
+            public RBCONSubMetadata(YARGBinaryReader reader)
+            {
+                RBDifficulties = new(reader);
+                Directory = reader.ReadLEBString();
+                AnimTempo = reader.ReadUInt32();
+                SongID = reader.ReadLEBString();
+                VocalPercussionBank = reader.ReadLEBString();
+                VocalSongScrollSpeed = reader.ReadUInt32();
+                SongRating = reader.ReadUInt32();
+                VocalGender = reader.ReadBoolean();
+                VocalTonicNote = reader.ReadUInt32();
+                SongTonality = reader.ReadBoolean();
+                TuningOffsetCents = reader.ReadInt32();
+                VenueVersion = reader.ReadUInt32();
+
+                RealGuitarTuning = ReadIntArray(reader);
+                RealBassTuning = ReadIntArray(reader);
+
+                DrumIndices = ReadIntArray(reader);
+                BassIndices = ReadIntArray(reader);
+                GuitarIndices = ReadIntArray(reader);
+                KeysIndices = ReadIntArray(reader);
+                VocalsIndices = ReadIntArray(reader);
+                TrackIndices = ReadIntArray(reader);
+                CrowdIndices = ReadIntArray(reader);
+
+                DrumStemValues = ReadFloatArray(reader);
+                BassStemValues = ReadFloatArray(reader);
+                GuitarStemValues = ReadFloatArray(reader);
+                KeysStemValues = ReadFloatArray(reader);
+                VocalsStemValues = ReadFloatArray(reader);
+                TrackStemValues = ReadFloatArray(reader);
+                CrowdStemValues = ReadFloatArray(reader);
+            }
+
+            public void Serialize(BinaryWriter writer)
+            {
+                RBDifficulties.Serialize(writer);
+                writer.Write(Directory);
+                writer.Write(AnimTempo);
+                writer.Write(SongID);
+                writer.Write(VocalPercussionBank);
+                writer.Write(VocalSongScrollSpeed);
+                writer.Write(SongRating);
+                writer.Write(VocalGender);
+                writer.Write(VocalTonicNote);
+                writer.Write(SongTonality);
+                writer.Write(TuningOffsetCents);
+                writer.Write(VenueVersion);
+
+                WriteArray(RealGuitarTuning, writer);
+                WriteArray(RealBassTuning, writer);
+
+                WriteArray(DrumIndices, writer);
+                WriteArray(BassIndices, writer);
+                WriteArray(GuitarIndices, writer);
+                WriteArray(KeysIndices, writer);
+                WriteArray(VocalsIndices, writer);
+                WriteArray(TrackIndices, writer);
+                WriteArray(CrowdIndices, writer);
+
+                WriteArray(DrumStemValues, writer);
+                WriteArray(BassStemValues, writer);
+                WriteArray(GuitarStemValues, writer);
+                WriteArray(KeysStemValues, writer);
+                WriteArray(VocalsStemValues, writer);
+                WriteArray(TrackStemValues, writer);
+                WriteArray(CrowdStemValues, writer);
+            }
+
+            private static int[] ReadIntArray(YARGBinaryReader reader)
+            {
+                int length = reader.ReadInt32();
+                if (length == 0)
+                    return Array.Empty<int>();
+
+                int[] values = new int[length];
+                for (int i = 0; i < length; ++i)
+                    values[i] = reader.ReadInt32();
+                return values;
+            }
+
+            private static float[] ReadFloatArray(YARGBinaryReader reader)
+            {
+                int length = reader.ReadInt32();
+                if (length == 0)
+                    return Array.Empty<float>();
+
+                float[] values = new float[length];
+                for (int i = 0; i < length; ++i)
+                    values[i] = reader.ReadFloat();
+                return values;
+            }
+
+            private static void WriteArray(int[] values, BinaryWriter writer)
+            {
+                int length = values.Length;
+                writer.Write(length);
+                for (int i = 0; i < length; ++i)
+                    writer.Write(values[i]);
+            }
+
+            private static void WriteArray(float[] values, BinaryWriter writer)
+            {
+                int length = values.Length;
+                writer.Write(length);
+                for (int i = 0; i < length; ++i)
+                    writer.Write(values[i]);
+            }
+
             public void Update(string folder, string nodeName, DTAResult results)
             {
                 string dir = Path.Combine(folder, nodeName);
@@ -120,6 +230,7 @@ namespace YARG.Core.Song
             public byte[]? LoadMiloFile();
             public byte[]? LoadImgFile();
             public bool IsMoggUnencrypted();
+            public void Serialize(BinaryWriter writer);
         }
 
         public sealed class DTAResult

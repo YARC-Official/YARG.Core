@@ -51,6 +51,103 @@ namespace YARG.Core.Song
                 metadata.Directory = Path.Combine(conFile.filename, midiDirectory);
             }
 
+            public RBPackedCONMetadata(CONFile file, string nodeName, FileListing? midi, DateTime midiLastWrite, FileListing? moggListing, AbridgedFileInfo? moggInfo, AbridgedFileInfo? updateInfo, YARGBinaryReader reader)
+            {
+                conFile = file;
+                midiListing = midi;
+                _midiLastWrite = midiLastWrite;
+
+                if (moggListing != null)
+                    this.moggListing = moggListing;
+
+                if (midiListing != null && !midiListing.Filename.StartsWith($"songs/{nodeName}"))
+                    nodeName = conFile[midiListing.pathIndex].Filename.Split('/')[1];
+
+                string genPAth = $"songs/{nodeName}/gen/{nodeName}";
+
+                AbridgedFileInfo? miloInfo = null;
+                if (reader.ReadBoolean())
+                    miloListing = conFile[genPAth + ".milo_xbox"];
+                else
+                {
+                    string milopath = reader.ReadLEBString();
+                    if (milopath != string.Empty)
+                    {
+                        FileInfo info = new(milopath);
+                        if (info.Exists)
+                            miloInfo = info;
+                    }
+                }
+
+                AbridgedFileInfo? imageInfo = null;
+                if (reader.ReadBoolean())
+                    imgListing = conFile[genPAth + "_keep.png_xbox"];
+                else
+                {
+                    string imgpath = reader.ReadLEBString();
+                    if (imgpath != string.Empty)
+                    {
+                        FileInfo info = new(imgpath);
+                        if (info.Exists)
+                            imageInfo = info;
+                    }
+                }
+
+                _metadata = new(reader)
+                {
+                    Mogg = moggInfo,
+                    UpdateMidi = updateInfo,
+                    Milo = miloInfo,
+                    Image = imageInfo,
+                };
+            }
+
+            public void Serialize(BinaryWriter writer)
+            {
+                writer.Write(midiListing!.Filename);
+                writer.Write(_midiLastWrite.ToBinary());
+
+                if (_metadata.Mogg == null)
+                {
+                    writer.Write(true);
+                    writer.Write(moggListing!.Filename);
+                    writer.Write(moggListing.lastWrite.ToBinary());
+                }
+                else
+                {
+                    writer.Write(false);
+                    writer.Write(_metadata.Mogg.FullName);
+                    writer.Write(_metadata.Mogg.LastWriteTime.ToBinary());
+                }
+
+                if (_metadata.UpdateMidi != null)
+                {
+                    writer.Write(true);
+                    writer.Write(_metadata.UpdateMidi.FullName);
+                    writer.Write(_metadata.UpdateMidi.LastWriteTime.ToBinary());
+                }
+                else
+                    writer.Write(false);
+
+                if (_metadata.Milo != null)
+                {
+                    writer.Write(false);
+                    writer.Write(_metadata.Milo.FullName);
+                }
+                else
+                    writer.Write(true);
+
+                if (_metadata.Image != null)
+                {
+                    writer.Write(false);
+                    writer.Write(_metadata.Image.FullName);
+                }
+                else
+                    writer.Write(true);
+
+                _metadata.Serialize(writer);
+            }
+
             public byte[]? LoadMidiFile()
             {
                 if (midiListing == null)

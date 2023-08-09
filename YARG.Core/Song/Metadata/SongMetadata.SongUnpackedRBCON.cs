@@ -45,6 +45,57 @@ namespace YARG.Core.Song
                 metadata.Image = new(file + "_keep.png_xbox");
                 metadata.Directory = Path.GetDirectoryName(midiPath)!;
             }
+
+            public RBUnpackedCONMetadata(AbridgedFileInfo dta, AbridgedFileInfo midi, AbridgedFileInfo? moggInfo, AbridgedFileInfo? updateInfo, YARGBinaryReader reader)
+            {
+                DTA = dta;
+                Midi = midi;
+
+                string str = reader.ReadLEBString();
+                AbridgedFileInfo? miloInfo = str.Length > 0 ? new(str) : null;
+
+                str = reader.ReadLEBString();
+                AbridgedFileInfo? imageInfo = str.Length > 0 ? new(str) : null;
+
+                _metadata = new(reader)
+                {
+                    Mogg = moggInfo,
+                    UpdateMidi = updateInfo,
+                    Milo = miloInfo,
+                    Image = imageInfo,
+                };
+            }
+
+            public void Serialize(BinaryWriter writer)
+            {
+                writer.Write(Midi.FullName);
+                writer.Write(Midi.LastWriteTime.ToBinary());
+
+                writer.Write(_metadata.Mogg!.FullName);
+                writer.Write(_metadata.Mogg.LastWriteTime.ToBinary());
+
+                if (_metadata.UpdateMidi != null)
+                {
+                    writer.Write(true);
+                    writer.Write(_metadata.UpdateMidi.FullName);
+                    writer.Write(_metadata.UpdateMidi.LastWriteTime.ToBinary());
+                }
+                else
+                    writer.Write(false);
+
+                if (_metadata.Milo != null)
+                    writer.Write(_metadata.Milo.FullName);
+                else
+                    writer.Write(string.Empty);
+
+                if (_metadata.Image != null)
+                    writer.Write(_metadata.Image.FullName);
+                else
+                    writer.Write(string.Empty);
+
+                _metadata.Serialize(writer);
+            }
+
             public byte[]? LoadMidiFile()
             {
                 if (!Midi.IsStillValid())
