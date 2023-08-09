@@ -168,9 +168,9 @@ namespace YARG.Core.Song
             };
         }
 
-        private SongMetadata(AbridgedFileInfo chartFile, AbridgedFileInfo? iniFile, ChartType type, YARGBinaryReader reader, CategoryCacheStrings strings) : this(reader, strings)
+        private SongMetadata(IniSubmetadata iniData, YARGBinaryReader reader, CategoryCacheStrings strings) : this(reader, strings)
         {
-            _iniData = new IniSubmetadata(type, chartFile, iniFile);
+            _iniData = iniData;
         }
 
         private static DrumPreparseType ParseChart(byte[] file, IniSection modifiers, AvailableParts parts)
@@ -268,7 +268,8 @@ namespace YARG.Core.Song
                     return null;
             }
 
-            return new SongMetadata(chartFile, iniFile, chartType.Item2, reader, strings)
+            IniSubmetadata iniData = new(chartType.Item2, chartFile, iniFile);
+            return new SongMetadata(iniData, reader, strings)
             {
                 _directory = directory
             };
@@ -292,7 +293,8 @@ namespace YARG.Core.Song
                 iniFile = new(Path.Combine(directory, "song.ini"), lastWrite);
             }
 
-            return new SongMetadata(chartFile, iniFile, chartType.Item2, reader, strings)
+            IniSubmetadata iniData = new(chartType.Item2, chartFile, iniFile);
+            return new SongMetadata(iniData, reader, strings)
             {
                 _directory = directory
             };
