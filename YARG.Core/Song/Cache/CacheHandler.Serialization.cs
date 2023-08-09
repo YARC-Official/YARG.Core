@@ -11,6 +11,54 @@ namespace YARG.Core.Song.Cache
     {
         private readonly HashSet<string> invalidSongsInCache = new();
 
+        private static void RunTasks(FileStream stream, Action<YARGBinaryReader> func)
+        {
+            int count = stream.ReadInt32LE();
+            for (int i = 0; i < count; ++i)
+            {
+                int length = stream.ReadInt32LE();
+                YARGBinaryReader reader = new(stream.ReadBytes(length));
+                func(reader);
+            }
+        }
+
+        private static void RunTasks(FileStream stream, CategoryCacheStrings strings, Action<YARGBinaryReader, CategoryCacheStrings> func)
+        {
+            int count = stream.ReadInt32LE();
+            for (int i = 0; i < count; ++i)
+            {
+                int length = stream.ReadInt32LE();
+                YARGBinaryReader reader = new(stream.ReadBytes(length));
+                func(reader, strings);
+            }
+        }
+
+        private static List<Task> CreateParallelTasks(FileStream stream, Action<YARGBinaryReader> func)
+        {
+            List<Task> tasks = new();
+            int count = stream.ReadInt32LE();
+            for (int i = 0; i < count; ++i)
+            {
+                int length = stream.ReadInt32LE();
+                YARGBinaryReader reader = new(stream.ReadBytes(length));
+                tasks.Add(Task.Run(() => func(reader)));
+            }
+            return tasks;
+        }
+
+        private static List<Task> CreateParallelTasks(FileStream stream, CategoryCacheStrings strings, Action<YARGBinaryReader, CategoryCacheStrings> func)
+        {
+            List<Task> tasks = new();
+            int count = stream.ReadInt32LE();
+            for (int i = 0; i < count; ++i)
+            {
+                int length = stream.ReadInt32LE();
+                YARGBinaryReader reader = new(stream.ReadBytes(length));
+                tasks.Add(Task.Run(() => func(reader, strings)));
+            }
+            return tasks;
+        }
+
         private FileStream? CheckCacheFile()
         {
             FileInfo info = new(cacheLocation);
@@ -36,103 +84,26 @@ namespace YARG.Core.Song.Cache
             CategoryCacheStrings strings = new(stream, multithreading);
             if (multithreading)
             {
-                List<Task> entryTasks = new();
-                int count = stream.ReadInt32LE();
-                for (int i = 0; i < count; ++i)
-                {
-                    int length = stream.ReadInt32LE();
-                    YARGBinaryReader reader = new(stream.ReadBytes(length));
-                    entryTasks.Add(Task.Run(() => ReadIniGroup_Parallel(reader, strings)));
-                }
+                var entryTasks = CreateParallelTasks(stream, strings, ReadIniGroup_Parallel);
 
-                List<Task> conTasks = new();
-                count = stream.ReadInt32LE();
-                for (int i = 0; i < count; ++i)
-                {
-                    int length = stream.ReadInt32LE();
-                    YARGBinaryReader reader = new(stream.ReadBytes(length));
-                    conTasks.Add(Task.Run(() => ReadUpdateDirectory(reader)));
-                }
-
-                count = stream.ReadInt32LE();
-                for (int i = 0; i < count; ++i)
-                {
-                    int length = stream.ReadInt32LE();
-                    YARGBinaryReader reader = new(stream.ReadBytes(length));
-                    conTasks.Add(Task.Run(() => ReadUpgradeDirectory(reader)));
-                }
-
-                count = stream.ReadInt32LE();
-                for (int i = 0; i < count; ++i)
-                {
-                    int length = stream.ReadInt32LE();
-                    YARGBinaryReader reader = new(stream.ReadBytes(length));
-                    conTasks.Add(Task.Run(() => ReadUpgradeCON(reader)));
-                }
-
+                var conTasks = CreateParallelTasks(stream, ReadUpdateDirectory);
+                conTasks.AddRange(CreateParallelTasks(stream, ReadUpgradeDirectory));
+                conTasks.AddRange(CreateParallelTasks(stream, ReadUpgradeCON));
                 Task.WaitAll(conTasks.ToArray());
 
-                count = stream.ReadInt32LE();
-                for (int i = 0; i < count; ++i)
-                {
-                    int length = stream.ReadInt32LE();
-                    YARGBinaryReader reader = new(stream.ReadBytes(length));
-                    entryTasks.Add(Task.Run(() => ReadCONGroup_Parallel(reader, strings)));
-                }
-
-                count = stream.ReadInt32LE();
-                for (int i = 0; i < count; ++i)
-                {
-                    int length = stream.ReadInt32LE();
-                    YARGBinaryReader reader = new(stream.ReadBytes(length));
-                    entryTasks.Add(Task.Run(() => ReadExtractedCONGroup_Parallel(reader, strings)));
-                }
+                conTasks.AddRange(CreateParallelTasks(stream, strings, ReadCONGroup_Parallel));
+                conTasks.AddRange(CreateParallelTasks(stream, strings, ReadExtractedCONGroup_Parallel));
 
                 Task.WaitAll(entryTasks.ToArray());
             }
             else
             {
-                int count = stream.ReadInt32LE();
-                for (int i = 0; i < count; ++i)
-                {
-                    int length = stream.ReadInt32LE();
-                    ReadIniGroup(new(stream.ReadBytes(length)), strings);
-                }
-
-                count = stream.ReadInt32LE();
-                for (int i = 0; i < count; ++i)
-                {
-                    int length = stream.ReadInt32LE();
-                    ReadUpdateDirectory(new(stream.ReadBytes(length)));
-                }
-
-                count = stream.ReadInt32LE();
-                for (int i = 0; i < count; ++i)
-                {
-                    int length = stream.ReadInt32LE();
-                    ReadUpgradeDirectory(new(stream.ReadBytes(length)));
-                }
-
-                count = stream.ReadInt32LE();
-                for (int i = 0; i < count; ++i)
-                {
-                    int length = stream.ReadInt32LE();
-                    ReadUpgradeCON(new(stream.ReadBytes(length)));
-                }
-
-                count = stream.ReadInt32LE();
-                for (int i = 0; i < count; ++i)
-                {
-                    int length = stream.ReadInt32LE();
-                    ReadCONGroup(new(stream.ReadBytes(length)), strings);
-                }
-
-                count = stream.ReadInt32LE();
-                for (int i = 0; i < count; ++i)
-                {
-                    int length = stream.ReadInt32LE();
-                    ReadExtractedCONGroup(new(stream.ReadBytes(length)), strings);
-                }
+                RunTasks(stream, strings, ReadIniGroup);
+                RunTasks(stream, ReadUpdateDirectory);
+                RunTasks(stream, ReadUpgradeDirectory);
+                RunTasks(stream, ReadUpgradeCON);
+                RunTasks(stream, strings, ReadCONGroup);
+                RunTasks(stream, strings, ReadExtractedCONGroup);
             }
             return true;
         }
@@ -147,102 +118,39 @@ namespace YARG.Core.Song.Cache
             CategoryCacheStrings strings = new(stream, multithreading);
             if (multithreading)
             {
-                List<Task> entryTasks = new();
+                var entryTasks = CreateParallelTasks(stream, strings, QuickReadIniGroup_Parallel);
+
                 int count = stream.ReadInt32LE();
                 for (int i = 0; i < count; ++i)
                 {
                     int length = stream.ReadInt32LE();
-                    YARGBinaryReader reader = new(stream.ReadBytes(length));
-                    entryTasks.Add(Task.Run(() => QuickReadIniGroup_Parallel(reader, strings)));
+                    stream!.Position += length;
                 }
 
-                count = stream.ReadInt32LE();
-                for (int i = 0; i < count; ++i)
-                {
-                    int length = stream.ReadInt32LE();
-                    stream.Position += length;
-                }
-
-                List<Task> conTasks = new();
-                count = stream.ReadInt32LE();
-                for (int i = 0; i < count; ++i)
-                {
-                    int length = stream.ReadInt32LE();
-                    YARGBinaryReader reader = new(stream.ReadBytes(length));
-                    conTasks.Add(Task.Run(() => QuickReadUpgradeDirectory(reader)));
-                }
-
-                count = stream.ReadInt32LE();
-                for (int i = 0; i < count; ++i)
-                {
-                    int length = stream.ReadInt32LE();
-                    YARGBinaryReader reader = new(stream.ReadBytes(length));
-                    conTasks.Add(Task.Run(() => QuickReadUpgradeCON(reader)));
-                }
-
+                var conTasks = CreateParallelTasks(stream, QuickReadUpgradeDirectory);
+                conTasks.AddRange(CreateParallelTasks(stream, QuickReadUpgradeCON));
                 Task.WaitAll(conTasks.ToArray());
 
-                count = stream.ReadInt32LE();
-                for (int i = 0; i < count; ++i)
-                {
-                    int length = stream.ReadInt32LE();
-                    YARGBinaryReader reader = new(stream.ReadBytes(length));
-                    entryTasks.Add(Task.Run(() => QuickReadCONGroup_Parallel(reader, strings)));
-                }
-
-                count = stream.ReadInt32LE();
-                for (int i = 0; i < count; ++i)
-                {
-                    int length = stream.ReadInt32LE();
-                    YARGBinaryReader reader = new(stream.ReadBytes(length));
-                    entryTasks.Add(Task.Run(() => QuickReadExtractedCONGroup_Parallel(reader, strings)));
-                }
+                conTasks.AddRange(CreateParallelTasks(stream, strings, QuickReadCONGroup_Parallel));
+                conTasks.AddRange(CreateParallelTasks(stream, strings, QuickReadExtractedCONGroup_Parallel));
 
                 Task.WaitAll(entryTasks.ToArray());
             }
             else
             {
+                RunTasks(stream, strings, QuickReadIniGroup);
+
                 int count = stream.ReadInt32LE();
                 for (int i = 0; i < count; ++i)
                 {
                     int length = stream.ReadInt32LE();
-                    QuickReadIniGroup(new(stream.ReadBytes(length)), strings);
+                    stream!.Position += length;
                 }
 
-                count = stream.ReadInt32LE();
-                for (int i = 0; i < count; ++i)
-                {
-                    int length = stream.ReadInt32LE();
-                    stream.Position += length;
-                }
-
-                count = stream.ReadInt32LE();
-                for (int i = 0; i < count; ++i)
-                {
-                    int length = stream.ReadInt32LE();
-                    QuickReadUpgradeDirectory(new(stream.ReadBytes(length)));
-                }
-
-                count = stream.ReadInt32LE();
-                for (int i = 0; i < count; ++i)
-                {
-                    int length = stream.ReadInt32LE();
-                    QuickReadUpgradeCON(new(stream.ReadBytes(length)));
-                }
-
-                count = stream.ReadInt32LE();
-                for (int i = 0; i < count; ++i)
-                {
-                    int length = stream.ReadInt32LE();
-                    QuickReadCONGroup(new(stream.ReadBytes(length)), strings);
-                }
-
-                count = stream.ReadInt32LE();
-                for (int i = 0; i < count; ++i)
-                {
-                    int length = stream.ReadInt32LE();
-                    QuickReadExtractedCONGroup(new(stream.ReadBytes(length)), strings);
-                }
+                RunTasks(stream, QuickReadUpgradeDirectory);
+                RunTasks(stream, QuickReadUpgradeCON);
+                RunTasks(stream, strings, QuickReadCONGroup);
+                RunTasks(stream, strings, QuickReadExtractedCONGroup);
             }
             return true;
         }
