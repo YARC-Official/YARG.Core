@@ -71,7 +71,7 @@ namespace YARG.Core.Song
             { "Offset",       new("offset",       ModifierCreatorType.Double ) },
         };
 
-        private SongMetadata(IniSection section, IniSubmetadata iniData, AvailableParts parts, DrumType drumType, HashWrapper hash)
+        private SongMetadata(IniSection section, IniSubmetadata iniData, AvailableParts parts, DrumPreparseType drumType, HashWrapper hash)
         {
             // .ini songs are assumed to be masters and not covers
             _isMaster = true;
@@ -135,9 +135,9 @@ namespace YARG.Core.Song
 
             var drumsType = drumType switch
             {
-                DrumType.FourLane or
-                DrumType.FourPro => DrumsType.FourLane,
-                DrumType.FiveLane => DrumsType.FiveLane,
+                DrumPreparseType.FourLane or
+                DrumPreparseType.FourPro => DrumsType.FourLane,
+                DrumPreparseType.FiveLane => DrumsType.FiveLane,
                 _ => DrumsType.Unknown
             };
 
@@ -173,11 +173,11 @@ namespace YARG.Core.Song
             _iniData = new IniSubmetadata(type, chartFile, iniFile);
         }
 
-        private static DrumType ParseChart(byte[] file, IniSection modifiers, AvailableParts parts)
+        private static DrumPreparseType ParseChart(byte[] file, IniSection modifiers, AvailableParts parts)
         {
             YARGChartFileReader reader = new(file);
             if (!reader.ValidateHeaderTrack())
-                return DrumType.Unknown;
+                return DrumPreparseType.Unknown;
 
             var chartMods = reader.ExtractModifiers(CHART_MODIFIER_LIST);
             modifiers.Append(chartMods);
@@ -185,26 +185,26 @@ namespace YARG.Core.Song
             return parts.ParseChart(reader, GetDrumTypeFromModifier(modifiers));
         }
 
-        private static DrumType ParseMidi(byte[] file, IniSection modifiers, AvailableParts parts)
+        private static DrumPreparseType ParseMidi(byte[] file, IniSection modifiers, AvailableParts parts)
         {
             var drumType = GetDrumTypeFromModifier(modifiers);
             bool usePro = !modifiers.TryGet("pro_drums", out bool proDrums) || proDrums;
-            if (drumType == DrumType.Unknown)
+            if (drumType == DrumPreparseType.Unknown)
             {
                 if (usePro)
-                    drumType = DrumType.UnknownPro;
+                    drumType = DrumPreparseType.UnknownPro;
             }
-            else if (drumType == DrumType.FourLane && usePro)
-                drumType = DrumType.FourPro;
+            else if (drumType == DrumPreparseType.FourLane && usePro)
+                drumType = DrumPreparseType.FourPro;
 
             return parts.ParseMidi(file, drumType);
         }
 
-        private static DrumType GetDrumTypeFromModifier(IniSection modifiers)
+        private static DrumPreparseType GetDrumTypeFromModifier(IniSection modifiers)
         {
             if (!modifiers.TryGet("five_lane_drums", out bool fivelane))
-                return DrumType.Unknown;
-            return fivelane ? DrumType.FiveLane : DrumType.FourLane;
+                return DrumPreparseType.Unknown;
+            return fivelane ? DrumPreparseType.FiveLane : DrumPreparseType.FourLane;
         }
 
         public static (ScanResult, SongMetadata?) FromIni(byte[] file, string chartFile, string? iniFile, int chartTypeIndex)
@@ -224,7 +224,7 @@ namespace YARG.Core.Song
             }
 
             var chartType = IniSubmetadata.CHART_FILE_TYPES[chartTypeIndex].Item2;
-            DrumType drumType = default;
+            DrumPreparseType drumType = default;
             if (chartType == ChartType.Chart)
                 drumType = ParseChart(file, modifiers, parts);
 

@@ -9,7 +9,7 @@ namespace YARG.Core.Song
         /// <summary>
         /// This not include drums as those must be handled by a dedicated DrumPreparseHandler object.
         /// </summary>
-        public DrumType ParseMidi(byte[] file, DrumType drumType)
+        public DrumPreparseType ParseMidi(byte[] file, DrumPreparseType drumType)
         {
             YARGMidiReader reader = new(file);
             DrumPreparseHandler drums = new(drumType);
@@ -54,12 +54,12 @@ namespace YARG.Core.Song
                 }
             }
 
-            if (drums.Type == DrumType.FiveLane)
+            if (drums.Type == DrumPreparseType.FiveLane)
                 FiveLaneDrums.subTracks = drums.ValidatedDiffs;
             else
             {
                 FourLaneDrums.subTracks = drums.ValidatedDiffs;
-                if (drums.Type == DrumType.FourPro)
+                if (drums.Type == DrumPreparseType.FourPro)
                     ProDrums.subTracks = drums.ValidatedDiffs;
             }
             return drums.Type;

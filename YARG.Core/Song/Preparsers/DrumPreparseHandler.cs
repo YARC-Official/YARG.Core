@@ -8,7 +8,7 @@ namespace YARG.Core.Song.Preparsers
     /// <summary>
     /// Available Drum types. Unknown values for preparse purposes
     /// </summary>
-    public enum DrumType
+    public enum DrumPreparseType
     {
         FourLane,
         FourPro,
@@ -20,12 +20,12 @@ namespace YARG.Core.Song.Preparsers
     public class DrumPreparseHandler
     {
         private byte _validations;
-        private DrumType _type;
+        private DrumPreparseType _type;
 
         public byte ValidatedDiffs => _validations;
-        public DrumType Type => _type;
+        public DrumPreparseType Type => _type;
 
-        public DrumPreparseHandler(DrumType type)
+        public DrumPreparseHandler(DrumPreparseType type)
         {
             _type = type;
             _validations = 0;
@@ -36,11 +36,11 @@ namespace YARG.Core.Song.Preparsers
             if (_validations > 0)
                 return;
 
-            if (_type == DrumType.FiveLane)
+            if (_type == DrumPreparseType.FiveLane)
                 _validations = MidiInstrumentPreparser.Parse<Midi_FiveLaneDrum>(reader);
-            else if (_type == DrumType.FourLane || _type == DrumType.FourPro)
+            else if (_type == DrumPreparseType.FourLane || _type == DrumPreparseType.FourPro)
             {
-                var preparser = _type == DrumType.FourPro ? new Midi_ProDrum() : new Midi_FourLaneDrum();
+                var preparser = _type == DrumPreparseType.FourPro ? new Midi_ProDrum() : new Midi_FourLaneDrum();
                 _validations = MidiInstrumentPreparser.Parse(preparser, reader);
                 _type = preparser.Type;
             }
@@ -50,8 +50,8 @@ namespace YARG.Core.Song.Preparsers
                 _validations = MidiInstrumentPreparser.Parse(unknown, reader);
                 _type = unknown.Type switch
                 {
-                    DrumType.UnknownPro => DrumType.FourPro,
-                    DrumType.Unknown => DrumType.FourLane,
+                    DrumPreparseType.UnknownPro => DrumPreparseType.FourPro,
+                    DrumPreparseType.Unknown => DrumPreparseType.FourLane,
                     _ => unknown.Type,
                 };
             }
@@ -67,8 +67,8 @@ namespace YARG.Core.Song.Preparsers
             {
                 skip = _type switch
                 {
-                    DrumType.Unknown => ParseChartUnknown(reader, index, (byte) mask),
-                    DrumType.FourLane => ParseChartFourLane(reader, index, (byte) mask),
+                    DrumPreparseType.Unknown => ParseChartUnknown(reader, index, (byte) mask),
+                    DrumPreparseType.FourLane => ParseChartFourLane(reader, index, (byte) mask),
                     _ => ParseChartCommon(reader, index, (byte) mask),
                 };
             }
@@ -92,11 +92,11 @@ namespace YARG.Core.Song.Preparsers
                         found = true;
 
                         if (lane == 5)
-                            _type = DrumType.FiveLane;
+                            _type = DrumPreparseType.FiveLane;
                     }
                     else if (66 <= lane && lane <= 68)
                     {
-                        _type = DrumType.FourPro;
+                        _type = DrumPreparseType.FourPro;
                     }
                     else if (index == 3 && lane == 32)
                     {
@@ -104,7 +104,7 @@ namespace YARG.Core.Song.Preparsers
                         _validations |= 16;
                     }
 
-                    if (found && _type != DrumType.Unknown && expertPlus)
+                    if (found && _type != DrumPreparseType.Unknown && expertPlus)
                         return true;
                 }
                 reader.NextEvent();
@@ -128,7 +128,7 @@ namespace YARG.Core.Song.Preparsers
                     }
                     else if (66 <= lane && lane <= 68)
                     {
-                        _type = DrumType.FourPro;
+                        _type = DrumPreparseType.FourPro;
                     }
                     else if (index == 3 && lane == 32)
                     {
@@ -136,7 +136,7 @@ namespace YARG.Core.Song.Preparsers
                         _validations |= 16;
                     }
 
-                    if (found && _type == DrumType.FourPro && expertPlus)
+                    if (found && _type == DrumPreparseType.FourPro && expertPlus)
                         return true;
                 }
                 reader.NextEvent();
@@ -148,7 +148,7 @@ namespace YARG.Core.Song.Preparsers
         {
             bool found = false;
             bool expertPlus = index != 3;
-            int numPads = _type == DrumType.FourPro ? 4 : 5;
+            int numPads = _type == DrumPreparseType.FourPro ? 4 : 5;
             while (reader.IsStillCurrentTrack())
             {
                 if (reader.ParseEvent().Item2 == ChartEvent.NOTE)

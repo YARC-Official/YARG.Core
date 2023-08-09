@@ -9,7 +9,7 @@ namespace YARG.Core.Song
         /// Uses the current instrument to institute applicable test parameters.
         /// This does not include drums as those must be handled by a dedicated DrumPreparseHandler object.
         /// </summary>
-        public DrumType ParseChart(YARGChartFileReader reader, DrumType drumType)
+        public DrumPreparseType ParseChart(YARGChartFileReader reader, DrumPreparseType drumType)
         {
             DrumPreparseHandler drums = new(drumType);
             while (reader.IsStartOfTrack())
@@ -22,12 +22,12 @@ namespace YARG.Core.Song
                     drums.ParseChart(reader);
             }
 
-            if (drums.Type == DrumType.FiveLane)
+            if (drums.Type == DrumPreparseType.FiveLane)
                 FiveLaneDrums.subTracks = drums.ValidatedDiffs;
             else
             {
                 FourLaneDrums.subTracks = drums.ValidatedDiffs;
-                if (drums.Type == DrumType.FourPro)
+                if (drums.Type == DrumPreparseType.FourPro)
                     ProDrums.subTracks = drums.ValidatedDiffs;
             }
             return drums.Type;
