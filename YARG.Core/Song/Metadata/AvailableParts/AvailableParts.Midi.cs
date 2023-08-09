@@ -55,12 +55,12 @@ namespace YARG.Core.Song
             }
 
             if (drums.Type == DrumPreparseType.FiveLane)
-                FiveLaneDrums.subTracks = drums.ValidatedDiffs;
+                FiveLaneDrums.subTracks = (byte) drums.ValidatedDiffs;
             else
             {
-                FourLaneDrums.subTracks = drums.ValidatedDiffs;
+                FourLaneDrums.subTracks = (byte) drums.ValidatedDiffs;
                 if (drums.Type == DrumPreparseType.FourPro)
-                    ProDrums.subTracks = drums.ValidatedDiffs;
+                    ProDrums.subTracks = (byte) drums.ValidatedDiffs;
             }
             return drums.Type;
         }

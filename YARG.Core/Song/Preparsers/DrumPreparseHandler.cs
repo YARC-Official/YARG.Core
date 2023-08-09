@@ -19,10 +19,10 @@ namespace YARG.Core.Song.Preparsers
 
     public class DrumPreparseHandler
     {
-        private byte _validations;
+        private DifficultyMask _validations;
         private DrumPreparseType _type;
 
-        public byte ValidatedDiffs => _validations;
+        public DifficultyMask ValidatedDiffs => _validations;
         public DrumPreparseType Type => _type;
 
         public DrumPreparseHandler(DrumPreparseType type)
@@ -37,17 +37,17 @@ namespace YARG.Core.Song.Preparsers
                 return;
 
             if (_type == DrumPreparseType.FiveLane)
-                _validations = MidiInstrumentPreparser.Parse<Midi_FiveLaneDrum>(reader);
+                _validations = (DifficultyMask) MidiInstrumentPreparser.Parse<Midi_FiveLaneDrum>(reader);
             else if (_type == DrumPreparseType.FourLane || _type == DrumPreparseType.FourPro)
             {
                 var preparser = _type == DrumPreparseType.FourPro ? new Midi_ProDrum() : new Midi_FourLaneDrum();
-                _validations = MidiInstrumentPreparser.Parse(preparser, reader);
+                _validations = (DifficultyMask) MidiInstrumentPreparser.Parse(preparser, reader);
                 _type = preparser.Type;
             }
             else
             {
                 Midi_UnknownDrums unknown = new(_type);
-                _validations = MidiInstrumentPreparser.Parse(unknown, reader);
+                _validations = (DifficultyMask) MidiInstrumentPreparser.Parse(unknown, reader);
                 _type = unknown.Type switch
                 {
                     DrumPreparseType.UnknownPro => DrumPreparseType.FourPro,
@@ -59,17 +59,16 @@ namespace YARG.Core.Song.Preparsers
 
         public void ParseChart(YARGChartFileReader reader)
         {
-            int index = reader.Difficulty;
-            int mask = 1 << index;
+            DifficultyMask difficulty = (DifficultyMask)(1 << reader.Difficulty);
 
             bool skip = true;
-            if ((_validations & mask) == 0)
+            if ((_validations & difficulty) == 0)
             {
                 skip = _type switch
                 {
-                    DrumPreparseType.Unknown => ParseChartUnknown(reader, index, (byte) mask),
-                    DrumPreparseType.FourLane => ParseChartFourLane(reader, index, (byte) mask),
-                    _ => ParseChartCommon(reader, index, (byte) mask),
+                    DrumPreparseType.Unknown => ParseChartUnknown(reader, difficulty),
+                    DrumPreparseType.FourLane => ParseChartFourLane(reader, difficulty),
+                    _ => ParseChartCommon(reader, difficulty),
                 };
             }
 
@@ -77,34 +76,40 @@ namespace YARG.Core.Song.Preparsers
                 reader.SkipTrack();
         }
 
-        private bool ParseChartUnknown(YARGChartFileReader reader, int index, byte mask)
+        private const int FOUR_LANE_COUNT = 4;
+        private const int FIVE_LANE_COUNT = 5;
+        private const int YELLOW_CYMBAL = 66;
+        private const int GREEN_CYMBAL = 68;
+        private const int DOUBLE_BASS_MODIFIER = 32;
+
+        private bool ParseChartUnknown(YARGChartFileReader reader, DifficultyMask difficulty)
         {
             bool found = false;
-            bool expertPlus = index != 3;
+            bool checkExpertPlus = difficulty == DifficultyMask.Expert;
             while (reader.IsStillCurrentTrack())
             {
                 if (reader.ParseEvent().Item2 == ChartEvent.NOTE)
                 {
                     int lane = reader.ExtractLaneAndSustain().Item1;
-                    if (lane <= 5)
+                    if (lane <= FIVE_LANE_COUNT)
                     {
-                        _validations |= mask;
+                        _validations |= difficulty;
                         found = true;
 
-                        if (lane == 5)
+                        if (lane == FIVE_LANE_COUNT)
                             _type = DrumPreparseType.FiveLane;
                     }
-                    else if (66 <= lane && lane <= 68)
+                    else if (YELLOW_CYMBAL <= lane && lane <= GREEN_CYMBAL)
                     {
                         _type = DrumPreparseType.FourPro;
                     }
-                    else if (index == 3 && lane == 32)
+                    else if (checkExpertPlus && lane == DOUBLE_BASS_MODIFIER)
                     {
-                        expertPlus = true;
-                        _validations |= 16;
+                        checkExpertPlus = false;
+                        _validations |= DifficultyMask.ExpertPlus;
                     }
 
-                    if (found && _type != DrumPreparseType.Unknown && expertPlus)
+                    if (found && _type != DrumPreparseType.Unknown && !checkExpertPlus)
                         return true;
                 }
                 reader.NextEvent();
@@ -112,31 +117,31 @@ namespace YARG.Core.Song.Preparsers
             return false;
         }
 
-        private bool ParseChartFourLane(YARGChartFileReader reader, int index, byte mask)
+        private bool ParseChartFourLane(YARGChartFileReader reader, DifficultyMask difficulty)
         {
             bool found = false;
-            bool expertPlus = index != 3;
+            bool checkExpertPlus = difficulty == DifficultyMask.Expert;
             while (reader.IsStillCurrentTrack())
             {
                 if (reader.ParseEvent().Item2 == ChartEvent.NOTE)
                 {
                     int lane = reader.ExtractLaneAndSustain().Item1;
-                    if (lane <= 4)
+                    if (lane <= FOUR_LANE_COUNT)
                     {
                         found = true;
-                        _validations |= mask;
+                        _validations |= difficulty;
                     }
-                    else if (66 <= lane && lane <= 68)
+                    else if (YELLOW_CYMBAL <= lane && lane <= GREEN_CYMBAL)
                     {
                         _type = DrumPreparseType.FourPro;
                     }
-                    else if (index == 3 && lane == 32)
+                    else if (checkExpertPlus && lane == DOUBLE_BASS_MODIFIER)
                     {
-                        expertPlus = true;
-                        _validations |= 16;
+                        checkExpertPlus = false;
+                        _validations |= DifficultyMask.ExpertPlus;
                     }
 
-                    if (found && _type == DrumPreparseType.FourPro && expertPlus)
+                    if (found && _type == DrumPreparseType.FourPro && !checkExpertPlus)
                         return true;
                 }
                 reader.NextEvent();
@@ -144,11 +149,11 @@ namespace YARG.Core.Song.Preparsers
             return false;
         }
 
-        private bool ParseChartCommon(YARGChartFileReader reader, int index, byte mask)
+        private bool ParseChartCommon(YARGChartFileReader reader, DifficultyMask difficulty)
         {
             bool found = false;
-            bool expertPlus = index != 3;
-            int numPads = _type == DrumPreparseType.FourPro ? 4 : 5;
+            bool checkExpertPlus = difficulty == DifficultyMask.Expert;
+            int numPads = _type == DrumPreparseType.FourPro ? FOUR_LANE_COUNT : FIVE_LANE_COUNT;
             while (reader.IsStillCurrentTrack())
             {
                 if (reader.ParseEvent().Item2 == ChartEvent.NOTE)
@@ -157,15 +162,15 @@ namespace YARG.Core.Song.Preparsers
                     if (lane <= numPads)
                     {
                         found = true;
-                        _validations |= mask;
+                        _validations |= difficulty;
                     }
-                    else if (index == 3 && lane == 32)
+                    else if (checkExpertPlus && lane == DOUBLE_BASS_MODIFIER)
                     {
-                        expertPlus = true;
-                        _validations |= 16;
+                        checkExpertPlus = false;
+                        _validations |= DifficultyMask.ExpertPlus;
                     }
 
-                    if (found && expertPlus)
+                    if (found && !checkExpertPlus)
                         return true;
                 }
                 reader.NextEvent();
