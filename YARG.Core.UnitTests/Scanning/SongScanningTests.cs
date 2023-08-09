@@ -14,6 +14,7 @@ namespace YARG.Core.UnitTests.Scanning
     public class SongScanningTests
     {
         private List<string> songDirectories = new();
+        private readonly bool MULTITHREADING = false;
 
         [SetUp]
         public void Setup()
@@ -25,7 +26,7 @@ namespace YARG.Core.UnitTests.Scanning
         public void FullScan()
         {
             YargTrace.AddListener(new YargDebugTraceListener());
-            CacheHandler handler = new(Environment.CurrentDirectory, Environment.CurrentDirectory, false, songDirectories.ToArray());
+            CacheHandler handler = new(Environment.CurrentDirectory, Environment.CurrentDirectory, MULTITHREADING, songDirectories.ToArray());
 
             var cache = handler.RunScan(false);
             foreach (object err in handler.errorList)
@@ -36,7 +37,7 @@ namespace YARG.Core.UnitTests.Scanning
         public void QuickScan()
         {
             YargTrace.AddListener(new YargDebugTraceListener());
-            CacheHandler handler = new(Environment.CurrentDirectory, Environment.CurrentDirectory, true, songDirectories.ToArray());
+            CacheHandler handler = new(Environment.CurrentDirectory, Environment.CurrentDirectory, MULTITHREADING, songDirectories.ToArray());
 
             var cache = handler.RunScan(true);
             foreach (object err in handler.errorList)
