@@ -59,10 +59,19 @@ namespace YARG.Core.Song.Cache
             return tasks;
         }
 
+        /// <summary>
+        /// The sum of all "count" variables in a file
+        /// 4 - (version number(4 bytes))
+        /// 64 - (section size(4 bytes) + zero string count(4 bytes)) * # categories(8)
+        /// 24 - (# groups(4 bytes) * # group types(6))
+        /// 
+        /// </summary>
+        private const int MIN_CACHEFILESIZE = 92;
+
         private FileStream? CheckCacheFile()
         {
             FileInfo info = new(cacheLocation);
-            if (!info.Exists || info.Length < 28)
+            if (!info.Exists || info.Length < MIN_CACHEFILESIZE)
                 return null;
 
             FileStream fs = new(cacheLocation, FileMode.Open, FileAccess.Read);
