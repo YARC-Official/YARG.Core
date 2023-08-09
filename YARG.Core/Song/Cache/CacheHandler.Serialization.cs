@@ -13,11 +13,11 @@ namespace YARG.Core.Song.Cache
 
         private FileStream? CheckCacheFile()
         {
-            FileInfo info = new(CACHE_FILE);
+            FileInfo info = new(cacheLocation);
             if (!info.Exists || info.Length < 28)
                 return null;
 
-            FileStream fs = new(CACHE_FILE, FileMode.Open, FileAccess.Read);
+            FileStream fs = new(cacheLocation, FileMode.Open, FileAccess.Read);
             if (fs.ReadInt32() != CACHE_VERSION)
             {
                 fs.Dispose();
@@ -250,7 +250,7 @@ namespace YARG.Core.Song.Cache
         private void Serialize()
         {
             Progress = ScanProgress.WritingCache;
-            using var writer = new BinaryWriter(new FileStream(CACHE_FILE, FileMode.Create, FileAccess.Write));
+            using var writer = new BinaryWriter(new FileStream(cacheLocation, FileMode.Create, FileAccess.Write));
             Dictionary<SongMetadata, CategoryCacheWriteNode> nodes = new();
 
             writer.Write(CACHE_VERSION);

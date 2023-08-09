@@ -18,8 +18,10 @@ namespace YARG.Core.Song.Cache
 
     public sealed partial class CacheHandler
     {
-        public CacheHandler(bool multithreading, string[] baseDirectories)
+        public CacheHandler(string cacheDirectory, string badSongsDirectory, bool multithreading, string[] baseDirectories)
         {
+            cacheLocation = Path.Combine(cacheDirectory, CACHE_FILE);
+            badSongsLocation = Path.Combine(badSongsDirectory, BADSONGS_FILE);
             this.multithreading = multithreading;
             this.baseDirectories = baseDirectories;
             iniGroups = new IniGroup[baseDirectories.Length];
@@ -84,6 +86,8 @@ namespace YARG.Core.Song.Cache
 
         private readonly bool multithreading;
         private readonly string[] baseDirectories = Array.Empty<string>();
+        private readonly string cacheLocation;
+        private readonly string badSongsLocation;
 
         private int GetBaseDirectoryIndex(string path)
         {
@@ -186,7 +190,7 @@ namespace YARG.Core.Song.Cache
         private void WriteBadSongs()
         {
             Progress = ScanProgress.WritingBadSongs;
-            using var stream = new FileStream(BADSONGS_FILE, FileMode.Create, FileAccess.Write);
+            using var stream = new FileStream(badSongsLocation, FileMode.Create, FileAccess.Write);
             using var writer = new StreamWriter(stream);
 
             foreach (var error in badSongs)
