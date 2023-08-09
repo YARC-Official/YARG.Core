@@ -100,8 +100,8 @@ namespace YARG.Core.Song.Cache
                 conTasks.AddRange(CreateParallelTasks(stream, ReadUpgradeCON));
                 Task.WaitAll(conTasks.ToArray());
 
-                conTasks.AddRange(CreateParallelTasks(stream, strings, ReadCONGroup_Parallel));
-                conTasks.AddRange(CreateParallelTasks(stream, strings, ReadExtractedCONGroup_Parallel));
+                entryTasks.AddRange(CreateParallelTasks(stream, strings, ReadCONGroup_Parallel));
+                entryTasks.AddRange(CreateParallelTasks(stream, strings, ReadExtractedCONGroup_Parallel));
 
                 Task.WaitAll(entryTasks.ToArray());
             }
@@ -140,8 +140,8 @@ namespace YARG.Core.Song.Cache
                 conTasks.AddRange(CreateParallelTasks(stream, QuickReadUpgradeCON));
                 Task.WaitAll(conTasks.ToArray());
 
-                conTasks.AddRange(CreateParallelTasks(stream, strings, QuickReadCONGroup_Parallel));
-                conTasks.AddRange(CreateParallelTasks(stream, strings, QuickReadExtractedCONGroup_Parallel));
+                entryTasks.AddRange(CreateParallelTasks(stream, strings, QuickReadCONGroup_Parallel));
+                entryTasks.AddRange(CreateParallelTasks(stream, strings, QuickReadExtractedCONGroup_Parallel));
 
                 Task.WaitAll(entryTasks.ToArray());
             }
