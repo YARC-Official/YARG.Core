@@ -38,16 +38,16 @@ namespace YARG.Core.Song
     {
         private static readonly Dictionary<string, IniModifierCreator> MODIFIER_LIST = new()
         {
-            { "Album",        new("album", ModifierCreatorType.SortString_Chart ) },
-            { "Artist",       new("artist", ModifierCreatorType.SortString_Chart ) },
-            { "Charter",      new("charter", ModifierCreatorType.SortString_Chart ) },
-            { "Difficulty",   new("diff_band", ModifierCreatorType.Int32 ) },
-            { "Genre",        new("genre", ModifierCreatorType.SortString_Chart ) },
-            { "Name",         new("name", ModifierCreatorType.SortString_Chart ) },
-            { "PreviewEnd",   new("previewEnd", ModifierCreatorType.Double ) },
+            { "Album",        new("album",        ModifierCreatorType.SortString_Chart ) },
+            { "Artist",       new("artist",       ModifierCreatorType.SortString_Chart ) },
+            { "Charter",      new("charter",      ModifierCreatorType.SortString_Chart ) },
+            { "Difficulty",   new("diff_band",    ModifierCreatorType.Int32 ) },
+            { "Genre",        new("genre",        ModifierCreatorType.SortString_Chart ) },
+            { "Name",         new("name",         ModifierCreatorType.SortString_Chart ) },
+            { "PreviewEnd",   new("previewEnd",   ModifierCreatorType.Double ) },
             { "PreviewStart", new("previewStart", ModifierCreatorType.Double ) },
-            { "Year",         new("year", ModifierCreatorType.String_Chart ) },
-            { "Offset",       new("offset", ModifierCreatorType.Double ) },
+            { "Year",         new("year_chart",   ModifierCreatorType.String_Chart ) },
+            { "Offset",       new("offset",       ModifierCreatorType.Double ) },
         };
 
         private SongMetadata(IniSection section, IniSubmetadata iniData, AvailableParts parts, DrumType drumType)
@@ -58,13 +58,28 @@ namespace YARG.Core.Song
             _parts = parts;
             _iniData = iniData;
 
-            section.TryGet("name", out _name, DEFAULT_NAME);
-            section.TryGet("artist", out _artist, DEFAULT_ARTIST);
-            section.TryGet("album", out _album, DEFAULT_ALBUM);
-            section.TryGet("genre", out _genre, DEFAULT_GENRE);
-            section.TryGet("charter", out _charter, DEFAULT_CHARTER);
-            section.TryGet("source", out _source, DEFAULT_SOURCE);
+            section.TryGet("name",     out _name,     DEFAULT_NAME);
+            section.TryGet("artist",   out _artist,   DEFAULT_ARTIST);
+            section.TryGet("album",    out _album,    DEFAULT_ALBUM);
+            section.TryGet("genre",    out _genre,    DEFAULT_GENRE);
+            section.TryGet("charter",  out _charter,  DEFAULT_CHARTER);
+            section.TryGet("source",   out _source,   DEFAULT_SOURCE);
             section.TryGet("playlist", out _playlist, Path.GetFileName(Path.GetDirectoryName(_directory)));
+
+            if (section.TryGet("year", out _unmodifiedYear))
+                Year = _unmodifiedYear;
+            else if (section.TryGet("year_chart", out _unmodifiedYear))
+            {
+                if (_unmodifiedYear.StartsWith(", "))
+                    Year = _unmodifiedYear[2..];
+                else if (_unmodifiedYear.StartsWith(','))
+                    Year = _unmodifiedYear[1..];
+                else
+                    Year = _unmodifiedYear;
+            }
+            else
+                _unmodifiedYear = DEFAULT_YEAR;
+           
 
             section.TryGet("loading_phrase", out _loadingPhrase);
             section.TryGet("icon", out _icon);
