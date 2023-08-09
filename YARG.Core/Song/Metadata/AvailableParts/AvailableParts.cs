@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using YARG.Core.Chart;
 using YARG.Core.Song.Deserialization;
 
@@ -183,6 +185,13 @@ namespace YARG.Core.Song
 
                    LeadVocals.subTracks > 0 ||
                    HarmonyVocals.subTracks > 0;
+        }
+
+        private static readonly Instrument[] ALL_INSTRUMENTS = (Instrument[]) Enum.GetValues(typeof(Instrument));
+
+        public List<Instrument> GetInstruments()
+        {
+            return ALL_INSTRUMENTS.Where(instrument => HasInstrument(instrument)).ToList();
         }
 
         public PartValues GetValues(Instrument instrument)
