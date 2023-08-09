@@ -145,18 +145,15 @@ namespace YARG.Core.Song.Deserialization
         }
 
         public FileListing this[int index] { get { return files[index]; } }
-        public FileListing? this[string filename]
+        public FileListing? TryGetListing(string filename)
         {
-            get
+            for (int i = 0; i < files.Count; ++i)
             {
-                for (int i = 0; i < files.Count; ++i)
-                {
-                    var listing = files[i];
-                    if (filename == listing.Filename)
-                        return listing;
-                }
-                return null;
+                var listing = files[i];
+                if (filename == listing.Filename)
+                    return listing;
             }
+            return null;
         }
 
         public int GetMoggVersion(FileListing listing)

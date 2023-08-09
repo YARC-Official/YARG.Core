@@ -300,7 +300,7 @@ namespace YARG.Core.Song.Cache
             while (reader.StartNode())
             {
                 string name = reader.GetNameOfNode();
-                var listing = file[$"songs_upgrades/{name}_plus.mid"];
+                var listing = file.TryGetListing($"songs_upgrades/{name}_plus.mid");
 
                 if (listing != null)
                 {

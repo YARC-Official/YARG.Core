@@ -57,7 +57,7 @@ namespace YARG.Core.Song.Cache
 
         public bool LoadUpgrades(out YARGDTAReader? reader)
         {
-            upgradeDta = file[UPGRADESFILEPATH];
+            upgradeDta = file.TryGetListing(UPGRADESFILEPATH);
             if (upgradeDta == null)
             {
                 reader = null;
@@ -82,7 +82,7 @@ namespace YARG.Core.Song.Cache
 
         public bool SetSongDTA()
         {
-            songDTA = file[SONGSFILEPATH];
+            songDTA = file.TryGetListing(SONGSFILEPATH);
             return songDTA != null;
         }
 

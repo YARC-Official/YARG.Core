@@ -521,7 +521,7 @@ namespace YARG.Core.Song.Cache
                 {
                     string name = reader.ReadLEBString();
                     var lastWrite = DateTime.FromBinary(reader.ReadInt64());
-                    var listing = file[$"songs_upgrades/{name}_plus.mid"];
+                    var listing = file.TryGetListing($"songs_upgrades/{name}_plus.mid");
 
                     IRBProUpgrade upgrade = new PackedRBProUpgrade(file, listing, lastWrite);
                     AddUpgrade(name, null, upgrade);
