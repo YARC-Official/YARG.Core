@@ -22,7 +22,7 @@ namespace YARG.Core.Song
         {
             get
             {
-                if (subTracks >= 5)
+                if (subTrack >= 5)
                     throw new System.Exception("Subtrack index out of range");
                 return ((byte) (1 << subTrack) & subTracks) > 0;
             }
