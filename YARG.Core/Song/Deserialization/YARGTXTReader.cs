@@ -55,6 +55,9 @@ namespace YARG.Core.Song.Deserialization
                 _position++;
                 curr = SkipWhiteSpace();
 
+                if (_position == length)
+                    break;
+
                 if (data[_position] == '{')
                 {
                     _position++;

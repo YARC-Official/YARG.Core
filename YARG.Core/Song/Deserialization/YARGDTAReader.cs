@@ -164,6 +164,9 @@ namespace YARG.Core.Song.Deserialization
 
         public bool StartNode()
         {
+            if (_position >= length)
+                return false;
+
             byte ch = data[_position];
             if (ch != '(')
                 return false;
