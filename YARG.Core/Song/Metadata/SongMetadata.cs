@@ -151,5 +151,7 @@ namespace YARG.Core.Song
         private static readonly Regex s_YearRegex = new(@"(\d{4})");
 
         public SongMetadata() { }
+
+        public override string ToString() { return _artist + " | " + _name; }
     }
 }
