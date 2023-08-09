@@ -43,9 +43,14 @@ namespace YARG.Core.Song.Cache
             return cache;
         }
 
+        /// <summary>
+        /// The date revision of the cache format, relative to UTC.
+        /// Format is YY_MM_DD_RR: Y = year, M = month, D = day, R = revision (reset across dates, only increment
+        /// if multiple cache version changes happen in a single day).
+        /// </summary>
+        public const int CACHE_VERSION = 23_08_08_01;
         public const string CACHE_FILE = "songcache.bin";
         public const string BADSONGS_FILE = "badsongs.txt";
-        public const int CACHE_VERSION = 23_08_08_01;
 
         public readonly List<object> errorList = new();
         public ScanProgress Progress { get; private set; }
