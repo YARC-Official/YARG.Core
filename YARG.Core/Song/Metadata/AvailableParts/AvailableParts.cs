@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using YARG.Core.Chart;
 using YARG.Core.Song.Deserialization;
+using YARG.Core.Song.Preparsers;
 
 namespace YARG.Core.Song
 {
@@ -266,6 +267,18 @@ namespace YARG.Core.Song
                 return DrumsType.FiveLane;
 
             return DrumsType.Unknown;
+        }
+
+        private void SetDrums(DrumPreparseHandler drums)
+        {
+            if (drums.Type == DrumPreparseType.FiveLane)
+                FiveLaneDrums.subTracks = (byte) drums.ValidatedDiffs;
+            else
+            {
+                FourLaneDrums.subTracks = (byte) drums.ValidatedDiffs;
+                if (drums.Type == DrumPreparseType.FourPro)
+                    ProDrums.subTracks = (byte) drums.ValidatedDiffs;
+            }
         }
 
         private void SetVocalsCount()

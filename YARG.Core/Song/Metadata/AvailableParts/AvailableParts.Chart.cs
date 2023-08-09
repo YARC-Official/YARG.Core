@@ -22,14 +22,7 @@ namespace YARG.Core.Song
                     drums.ParseChart(reader);
             }
 
-            if (drums.Type == DrumPreparseType.FiveLane)
-                FiveLaneDrums.subTracks = (byte) drums.ValidatedDiffs;
-            else
-            {
-                FourLaneDrums.subTracks = (byte) drums.ValidatedDiffs;
-                if (drums.Type == DrumPreparseType.FourPro)
-                    ProDrums.subTracks = (byte) drums.ValidatedDiffs;
-            }
+            SetDrums(drums);
             return drums.Type;
 
         }
