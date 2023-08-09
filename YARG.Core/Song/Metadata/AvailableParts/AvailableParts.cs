@@ -11,6 +11,7 @@ namespace YARG.Core.Song
     public sealed partial class AvailableParts
     {
         public sbyte BandDifficulty => _bandDifficulty;
+        public int VocalsCount { get; private set; }
 
         private sbyte _bandDifficulty;
 
@@ -116,6 +117,7 @@ namespace YARG.Core.Song
 
             LeadVocals = DeserializeValues();
             HarmonyVocals = DeserializeValues();
+            SetVocalsCount();
         }
 
         public void Serialize(BinaryWriter writer)
@@ -264,6 +266,22 @@ namespace YARG.Core.Song
                 return DrumsType.FiveLane;
 
             return DrumsType.Unknown;
+        }
+
+        private void SetVocalsCount()
+        {
+            if (HarmonyVocals.subTracks > 0)
+            {
+                int count = 0;
+                for (int i = 1; i < 8; i <<= 1)
+                    if ((HarmonyVocals.subTracks & i) > 0)
+                        ++count;
+                VocalsCount = count;
+            }
+            else if (LeadVocals.subTracks > 0)
+                VocalsCount = 1;
+            else
+                VocalsCount = 0;
         }
     }
 }

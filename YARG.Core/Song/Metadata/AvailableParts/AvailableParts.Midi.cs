@@ -62,6 +62,7 @@ namespace YARG.Core.Song
                 if (drums.Type == DrumPreparseType.FourPro)
                     ProDrums.subTracks = (byte) drums.ValidatedDiffs;
             }
+            SetVocalsCount();
             return drums.Type;
         }
     }
