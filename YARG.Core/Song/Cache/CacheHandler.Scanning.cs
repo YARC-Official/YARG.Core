@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using YARG.Core.Song.Deserialization;
@@ -110,8 +111,9 @@ namespace YARG.Core.Song.Cache
                         else
                             AddToBadSongs(chart, entry.Item1);
                     }
-                    catch
+                    catch (Exception e)
                     {
+                        AddErrors(e);
                         AddToBadSongs(Path.GetDirectoryName(chart), ScanResult.IniEntryCorruption);
                     }
                     return true;
