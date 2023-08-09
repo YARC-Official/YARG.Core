@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using YARG.Core.Song.Cache;
 using YARG.Core.Song.Deserialization;
 using YARG.Core.Song.Preparsers;
 
@@ -244,6 +245,12 @@ namespace YARG.Core.Song
             {
                 this.nodeName = nodeName;
             }
+        }
+
+        private SongMetadata(IRBCONMetadata rbMeta, YARGBinaryReader reader, CategoryCacheStrings strings) : this(reader, strings)
+        {
+            _rbData = rbMeta;
+            _directory = rbMeta.SharedMetadata.Directory;
         }
 
         public ScanResult ParseRBCONMidi()

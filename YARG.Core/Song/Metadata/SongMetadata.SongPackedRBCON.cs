@@ -2,6 +2,7 @@
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
+using YARG.Core.Song.Cache;
 using YARG.Core.Song.Deserialization;
 
 #nullable enable
@@ -241,6 +242,77 @@ namespace YARG.Core.Song
             {
                 return (ScanResult.DTAError, null);
             }
+        }
+
+        public static SongMetadata? PackedRBCONFromCache(CONFile conFile, string nodeName, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings)
+        {
+            var midiListing = conFile[reader.ReadLEBString()];
+            var midiLastWrite = DateTime.FromBinary(reader.ReadInt64());
+            if (midiListing == null || midiListing.lastWrite != midiLastWrite)
+                return null;
+
+            FileListing? moggListing = null;
+            AbridgedFileInfo? moggInfo = null;
+            if (reader.ReadBoolean())
+            {
+                moggListing = conFile[reader.ReadLEBString()];
+                if (moggListing == null || moggListing.lastWrite != DateTime.FromBinary(reader.ReadInt64()))
+                    return null;
+            }
+            else
+            {
+                FileInfo info = new(reader.ReadLEBString());
+                if (!info.Exists || info.LastWriteTime != DateTime.FromBinary(reader.ReadInt64()))
+                    return null;
+                moggInfo = info;
+            }
+
+            AbridgedFileInfo? updateInfo = null;
+            if (reader.ReadBoolean())
+            {
+                FileInfo info = new(reader.ReadLEBString());
+                if (!info.Exists || info.LastWriteTime != DateTime.FromBinary(reader.ReadInt64()))
+                    return null;
+                updateInfo = info;
+            }
+
+            RBPackedCONMetadata packedMeta = new(conFile, nodeName, midiListing, midiLastWrite, moggListing, moggInfo, updateInfo, reader);
+            if (upgrades.TryGetValue(nodeName, out var upgrade))
+                packedMeta.SharedMetadata.Upgrade = upgrade.Item2;
+            return new SongMetadata(packedMeta, reader, strings);
+        }
+
+        public static SongMetadata PackedRBCONFromCache_Quick(CONFile conFile, string nodeName, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings)
+        {
+            var midiListing = conFile[reader.ReadLEBString()];
+            var midiLastWrite = DateTime.FromBinary(reader.ReadInt64());
+
+            FileListing? moggListing = null;
+            AbridgedFileInfo? moggInfo = null;
+            if (reader.ReadBoolean())
+            {
+                moggListing = conFile[reader.ReadLEBString()];
+                reader.Position += 8;
+            }
+            else
+            {
+                string moggName = reader.ReadLEBString();
+                var moggTime = DateTime.FromBinary(reader.ReadInt64());
+                moggInfo = new(moggName, moggTime);
+            }
+
+            AbridgedFileInfo? updateInfo = null;
+            if (reader.ReadBoolean())
+            {
+                string updateName = reader.ReadLEBString();
+                var updateTime = DateTime.FromBinary(reader.ReadInt64());
+                updateInfo = new(updateName, updateTime);
+            }
+
+            RBPackedCONMetadata packedMeta = new(conFile, nodeName, midiListing, midiLastWrite, moggListing, moggInfo, updateInfo, reader);
+            if (upgrades.TryGetValue(nodeName, out var upgrade))
+                packedMeta.SharedMetadata.Upgrade = upgrade.Item2;
+            return new SongMetadata(packedMeta, reader, strings);
         }
     }
 }

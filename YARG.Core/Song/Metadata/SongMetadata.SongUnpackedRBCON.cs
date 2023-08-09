@@ -3,6 +3,7 @@ using System.IO;
 using YARG.Core.Song.Deserialization;
 using System.Buffers.Binary;
 using System.Collections.Generic;
+using YARG.Core.Song.Cache;
 
 #nullable enable
 namespace YARG.Core.Song
@@ -175,6 +176,56 @@ namespace YARG.Core.Song
             {
                 return (ScanResult.DTAError, null);
             }
+        }
+
+        public static SongMetadata? UnpackedRBCONFromCache(AbridgedFileInfo dta, string nodeName, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings)
+        {
+            FileInfo midiInfo = new(reader.ReadLEBString());
+            if (!midiInfo.Exists || midiInfo.LastWriteTime != DateTime.FromBinary(reader.ReadInt64()))
+                return null;
+
+            FileInfo moggInfo = new(reader.ReadLEBString());
+            if (!moggInfo.Exists || moggInfo.LastWriteTime != DateTime.FromBinary(reader.ReadInt64()))
+                return null;
+
+            FileInfo? updateInfo = null;
+            if (reader.ReadBoolean())
+            {
+                updateInfo = new FileInfo(reader.ReadLEBString());
+                if (!updateInfo.Exists || updateInfo.LastWriteTime != DateTime.FromBinary(reader.ReadInt64()))
+                    return null;
+            }
+
+            RBUnpackedCONMetadata packedMeta = new(dta, midiInfo, moggInfo, updateInfo, reader);
+            if (upgrades.TryGetValue(nodeName, out var upgrade))
+                packedMeta.SharedMetadata.Upgrade = upgrade.Item2;
+            return new SongMetadata(packedMeta, reader, strings);
+        }
+
+        public static SongMetadata UnpackedRBCONFromCache_Quick(AbridgedFileInfo dta, string nodeName, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings)
+        {
+            string filename = reader.ReadLEBString();
+            var lastWrite = DateTime.FromBinary(reader.ReadInt64());
+
+            AbridgedFileInfo midiInfo = new(filename, lastWrite);
+
+            filename = reader.ReadLEBString();
+            lastWrite = DateTime.FromBinary(reader.ReadInt64());
+
+            AbridgedFileInfo moggInfo = new(filename, lastWrite);
+
+            AbridgedFileInfo? updateInfo = null;
+            if (reader.ReadBoolean())
+            {
+                filename = reader.ReadLEBString();
+                lastWrite = DateTime.FromBinary(reader.ReadInt64());
+                updateInfo = new(filename, lastWrite);
+            }
+
+            RBUnpackedCONMetadata packedMeta = new(dta, midiInfo, moggInfo, updateInfo, reader);
+            if (upgrades.TryGetValue(nodeName, out var upgrade))
+                packedMeta.SharedMetadata.Upgrade = upgrade.Item2;
+            return new SongMetadata(packedMeta, reader, strings);
         }
     }
 }

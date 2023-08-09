@@ -146,7 +146,7 @@ namespace YARG.Core.Song
         private ParseSettings _parseSettings = ParseSettings.Default;
 
         private readonly IniSubmetadata? _iniData = null;
-        private IRBCONMetadata? _rbData = null;
+        private readonly IRBCONMetadata? _rbData = null;
 
         private static readonly Regex s_YearRegex = new(@"(\d{4})");
 
