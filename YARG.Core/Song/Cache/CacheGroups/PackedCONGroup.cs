@@ -6,7 +6,7 @@ using YARG.Core.Song.Deserialization;
 #nullable enable
 namespace YARG.Core.Song.Cache
 {
-    public class PackedCONGroup : CONGroup
+    public class PackedCONGroup : CONGroup, ICacheGroup, IModificationGroup
     {
         public const string SONGSFILEPATH = "songs/songs.dta";
         public const string UPGRADESFILEPATH = "songs_upgrades/upgrades.dta";
@@ -86,7 +86,7 @@ namespace YARG.Core.Song.Cache
             return songDTA != null;
         }
 
-        public byte[] FormatUpgradesForCache()
+        public byte[] SerializeModifications()
         {
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);
@@ -103,7 +103,7 @@ namespace YARG.Core.Song.Cache
             return ms.ToArray();
         }
 
-        public byte[] FormatEntriesForCache(ref Dictionary<SongMetadata, CategoryCacheWriteNode> nodes)
+        public byte[] SerializeEntries(Dictionary<SongMetadata, CategoryCacheWriteNode> nodes)
         {
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);

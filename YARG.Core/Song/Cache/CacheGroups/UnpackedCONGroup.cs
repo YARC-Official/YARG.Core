@@ -5,7 +5,7 @@ using YARG.Core.Song.Deserialization;
 #nullable enable
 namespace YARG.Core.Song.Cache
 {
-    public class UnpackedCONGroup : CONGroup
+    public class UnpackedCONGroup : CONGroup, ICacheGroup
     {
         public readonly string directory;
         public readonly AbridgedFileInfo dta;
@@ -23,7 +23,7 @@ namespace YARG.Core.Song.Cache
                 AddEntry(nodeName, index, song);
         }
 
-        public byte[] FormatEntriesForCache(ref Dictionary<SongMetadata, CategoryCacheWriteNode> nodes)
+        public byte[] SerializeEntries(Dictionary<SongMetadata, CategoryCacheWriteNode> nodes)
         {
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);

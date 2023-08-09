@@ -3,7 +3,7 @@ using System.IO;
 
 namespace YARG.Core.Song.Cache
 {
-    public class IniGroup
+    public class IniGroup : ICacheGroup
     {
         public readonly string directory;
         public readonly object iniLock = new();
@@ -26,7 +26,7 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        public byte[] Serialize(Dictionary<SongMetadata, CategoryCacheWriteNode> nodes)
+        public byte[] SerializeEntries(Dictionary<SongMetadata, CategoryCacheWriteNode> nodes)
         {
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);

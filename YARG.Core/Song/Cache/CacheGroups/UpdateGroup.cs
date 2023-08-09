@@ -4,7 +4,7 @@ using System.IO;
 
 namespace YARG.Core.Song.Cache
 {
-    public class UpdateGroup
+    public class UpdateGroup : IModificationGroup
     {
         public readonly string directory;
         private readonly DateTime dtaLastWrite;
@@ -16,7 +16,7 @@ namespace YARG.Core.Song.Cache
             this.dtaLastWrite = dtaLastWrite;
         }
 
-        public byte[] Serialize()
+        public byte[] SerializeModifications()
         {
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);

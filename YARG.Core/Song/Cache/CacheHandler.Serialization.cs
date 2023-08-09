@@ -172,30 +172,6 @@ namespace YARG.Core.Song.Cache
             cache.playlists.WriteToCache(writer, ref nodes);
             cache.sources.WriteToCache(writer, ref nodes);
 
-            writer.Write(iniGroups.Length);
-            foreach (var group in iniGroups)
-            {
-                byte[] buffer = group.Serialize(nodes);
-                writer.Write(buffer.Length);
-                writer.Write(buffer);
-            }
-
-            writer.Write(updateGroups.Count);
-            foreach (var group in updateGroups)
-            {
-                byte[] buffer = group.Serialize();
-                writer.Write(buffer.Length);
-                writer.Write(buffer);
-            }
-
-            writer.Write(upgradeGroups.Count);
-            foreach (var group in upgradeGroups)
-            {
-                byte[] buffer = group.Serialize();
-                writer.Write(buffer.Length);
-                writer.Write(buffer);
-            }
-
             List<PackedCONGroup> upgradeCons = new();
             List<PackedCONGroup> entryCons = new();
             foreach (var group in conGroups)
@@ -207,29 +183,12 @@ namespace YARG.Core.Song.Cache
                     entryCons.Add(group);
             }
 
-            writer.Write(upgradeCons.Count);
-            foreach (var group in upgradeCons)
-            {
-                byte[] buffer = group.FormatUpgradesForCache();
-                writer.Write(buffer.Length);
-                writer.Write(buffer);
-            }
-
-            writer.Write(entryCons.Count);
-            foreach (var group in entryCons)
-            {
-                byte[] buffer = group.FormatEntriesForCache(ref nodes);
-                writer.Write(buffer.Length);
-                writer.Write(buffer);
-            }
-
-            writer.Write(extractedConGroups.Count);
-            foreach (var group in extractedConGroups)
-            {
-                byte[] buffer = group.FormatEntriesForCache(ref nodes);
-                writer.Write(buffer.Length);
-                writer.Write(buffer);
-            }
+            ICacheGroup.SerializeGroups(iniGroups, writer, nodes);
+            IModificationGroup.SerializeGroups(updateGroups, writer);
+            IModificationGroup.SerializeGroups(upgradeGroups, writer);
+            IModificationGroup.SerializeGroups(upgradeCons, writer);
+            ICacheGroup.SerializeGroups(entryCons, writer, nodes);
+            ICacheGroup.SerializeGroups(extractedConGroups, writer, nodes);
         }
 
         private void ReadIniEntry(string baseDirectory, int baseIndex, YARGBinaryReader reader, CategoryCacheStrings strings)
