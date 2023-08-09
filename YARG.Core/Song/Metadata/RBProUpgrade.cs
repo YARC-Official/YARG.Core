@@ -4,6 +4,7 @@ using System.IO;
 using System.Text;
 using YARG.Core.Song.Deserialization;
 
+#nullable enable
 namespace YARG.Core.Song
 {
     public interface IRBProUpgrade
@@ -20,7 +21,6 @@ namespace YARG.Core.Song
         private readonly FileListing? _midiListing;
         private readonly DateTime _lastWrite;
 
-        public FileListing MidiListing => _midiListing;
         public DateTime LastWrite => _lastWrite;
 
         public PackedRBProUpgrade(CONFile? conFile, FileListing? listing, DateTime lastWrite)
@@ -44,7 +44,7 @@ namespace YARG.Core.Song
         {
             if (!Validate())
                 return null;
-            return conFile.LoadSubFile(_midiListing);
+            return conFile!.LoadSubFile(_midiListing!);
         }
     }
 
