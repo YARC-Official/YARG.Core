@@ -6,6 +6,7 @@ using YARG.Core.Song.Deserialization;
 
 namespace YARG.Core.Song
 {
+    [Serializable]
     public sealed class RBCONDifficulties
     {
         public short band = -1;
@@ -40,7 +41,7 @@ namespace YARG.Core.Song
             HarmonyVocals = reader.ReadInt16();
         }
 
-        public void WriteToCache(BinaryWriter writer)
+        public void Serialize(BinaryWriter writer)
         {
             writer.Write(band);
             writer.Write(FiveFretGuitar);

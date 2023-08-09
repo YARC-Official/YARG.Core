@@ -1,5 +1,8 @@
-﻿namespace YARG.Core.Song
+﻿using System;
+
+namespace YARG.Core.Song
 {
+    [Serializable]
     public struct PartValues
     {
         public byte subTracks;

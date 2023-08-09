@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using System;
+using System.Text.RegularExpressions;
 using YARG.Core.Chart;
 
 #nullable enable
@@ -33,6 +34,7 @@ namespace YARG.Core.Song
     /// should be created through static methods which parse in a metadata file of a specific type and return an
     /// instance.
     /// </remarks>
+    [Serializable]
     public sealed partial class SongMetadata
     {
         public static readonly SortString DEFAULT_NAME    = "Unknown Name";

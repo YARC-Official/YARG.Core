@@ -15,6 +15,7 @@ namespace YARG.Core.Song
         public byte[]? LoadUpgradeMidi();
     }
 
+    [Serializable]
     public sealed class PackedRBProUpgrade : IRBProUpgrade
     {
         private readonly CONFile? conFile;
@@ -48,6 +49,7 @@ namespace YARG.Core.Song
         }
     }
 
+    [Serializable]
     public sealed class UnpackedRBProUpgrade : IRBProUpgrade
     {
         private AbridgedFileInfo _midiFile;

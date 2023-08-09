@@ -7,6 +7,7 @@ using YARG.Core.Song.Deserialization;
 
 namespace YARG.Core.Song
 {
+    [Serializable]
     public readonly struct HashWrapper : IComparable<HashWrapper>, IEquatable<HashWrapper>
     {
         public static HashAlgorithm Algorithm => SHA1.Create();
