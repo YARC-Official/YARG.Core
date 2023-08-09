@@ -38,7 +38,9 @@ namespace YARG.Core.Song.Cache
                 {
                     int length = stream.ReadInt32LE();
                     byte[] section = stream.ReadBytes(length);
-                    tasks[i] = Task.Run(() => { GetArray(i) = ReadStrings(section); });
+
+                    int strIndex = i;
+                    tasks[i] = Task.Run(() => { GetArray(strIndex) = ReadStrings(section); });
                 }
                 Task.WaitAll(tasks);
             }
