@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using YARG.Core.Extensions;
 
@@ -73,6 +73,14 @@ namespace YARG.Core.Chart
             }
 
             return totalLastTick;
+        }
+
+        public bool IsOccupied()
+        {
+            foreach (var track in Parts)
+                if (track.IsOccupied())
+                    return true;
+            return false;
         }
 
         public VocalsTrack Clone()

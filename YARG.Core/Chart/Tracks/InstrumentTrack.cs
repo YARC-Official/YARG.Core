@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace YARG.Core.Chart
@@ -75,6 +75,14 @@ namespace YARG.Core.Chart
             }
 
             return totalLastTick;
+        }
+		
+        public bool IsOccupied()
+        {
+            foreach (var difficulty in Difficulties.Values)
+                if (difficulty.IsOccupied())
+                    return true;
+            return false;
         }
 
         public InstrumentTrack<TNote> Clone()
