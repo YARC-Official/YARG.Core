@@ -85,7 +85,7 @@ namespace YARG.Core.Song.Cache
                 FileInfo dta = new(Path.Combine(directory, "songs.dta"));
                 if (dta.Exists)
                 {
-                    AddExtractedCONGroup(directory, new(dta));
+                    AddExtractedCONGroup(new(directory, dta));
                     return false;
                 }
             }
@@ -132,15 +132,14 @@ namespace YARG.Core.Song.Cache
                 return;
 
             PackedCONGroup group = new(file, File.GetLastWriteTime(filename));
-            AddCONGroup(filename, group);
+            AddCONGroup(group);
 
             if (group.LoadUpgrades(out var reader))
                 AddCONUpgrades(group, reader!);
         }
 
-        private void ScanCONGroup(KeyValuePair<string, PackedCONGroup> node)
+        private void ScanCONGroup(PackedCONGroup group)
         {
-            var group = node.Value;
             if (group.LoadSongs(out var reader))
             {
                 Dictionary<string, int> indices = new();
@@ -168,7 +167,7 @@ namespace YARG.Core.Song.Cache
                         }
                         else
                         {
-                            AddToBadSongs(node.Key + $" - Node {name}", song.Item1);
+                            AddToBadSongs(group.file.filename + $" - Node {name}", song.Item1);
                         }
                     }
                     reader.EndNode();
@@ -176,41 +175,45 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void ScanExtractedCONGroup(KeyValuePair<string, UnpackedCONGroup> node)
+        private void ScanExtractedCONGroup(UnpackedCONGroup group)
         {
-            string directory = node.Key;
-            var group = node.Value;
-            var reader = group.reader;
-
-            Dictionary<string, int> indices = new();
-            while (reader.StartNode())
+            try
             {
-                string name = reader.GetNameOfNode();
-                int index;
-                if (indices.ContainsKey(name))
-                    index = indices[name]++;
-                else
-                    index = indices[name] = 0;
+                YARGDTAReader reader = new(group.dta.FullName);
+                Dictionary<string, int> indices = new();
+                while (reader.StartNode())
+                {
+                    string name = reader.GetNameOfNode();
+                    int index;
+                    if (indices.ContainsKey(name))
+                        index = indices[name]++;
+                    else
+                        index = indices[name] = 0;
 
-                if (group.TryGetEntry(name, index, out var entry))
-                {
-                    if (!AddEntry(entry!))
-                        group.RemoveEntry(name, index);
-                }
-                else
-                {
-                    var song = SongMetadata.FromUnpackedRBCON(directory, group.dta, name, reader, updates, upgrades);
-                    if (song.Item2 != null)
+                    if (group.TryGetEntry(name, index, out var entry))
                     {
-                        if (AddEntry(song.Item2))
-                            group.AddEntry(name, index, song.Item2);
+                        if (!AddEntry(entry!))
+                            group.RemoveEntry(name, index);
                     }
                     else
                     {
-                        AddToBadSongs(node.Key + $" - Node {name}", song.Item1);
+                        var song = SongMetadata.FromUnpackedRBCON(group.directory, group.dta, name, reader, updates, upgrades);
+                        if (song.Item2 != null)
+                        {
+                            if (AddEntry(song.Item2))
+                                group.AddEntry(name, index, song.Item2);
+                        }
+                        else
+                        {
+                            AddToBadSongs(group.directory + $" - Node {name}", song.Item1);
+                        }
                     }
+                    reader.EndNode();
                 }
-                reader.EndNode();
+            }
+            catch(Exception e)
+            {
+                errorList.Add(e);
             }
         }
 

@@ -86,12 +86,12 @@ namespace YARG.Core.Song.Cache
             return songDTA != null;
         }
 
-        public byte[] FormatUpgradesForCache(string filepath)
+        public byte[] FormatUpgradesForCache()
         {
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);
 
-            writer.Write(filepath);
+            writer.Write(file.filename);
             writer.Write(lastWrite.ToBinary());
             writer.Write(upgradeDta!.lastWrite.ToBinary());
             writer.Write(upgrades.Count);
@@ -103,12 +103,12 @@ namespace YARG.Core.Song.Cache
             return ms.ToArray();
         }
 
-        public byte[] FormatEntriesForCache(string filepath, ref Dictionary<SongMetadata, CategoryCacheWriteNode> nodes)
+        public byte[] FormatEntriesForCache(ref Dictionary<SongMetadata, CategoryCacheWriteNode> nodes)
         {
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);
 
-            writer.Write(filepath);
+            writer.Write(file.filename);
             writer.Write(songDTA!.lastWrite.ToBinary());
             Serialize(writer, ref nodes);
             return ms.ToArray();

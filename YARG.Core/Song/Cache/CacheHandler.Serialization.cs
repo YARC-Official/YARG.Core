@@ -196,21 +196,21 @@ namespace YARG.Core.Song.Cache
                 writer.Write(buffer);
             }
 
-            List<KeyValuePair<string, PackedCONGroup>> upgradeCons = new();
-            List<KeyValuePair<string, PackedCONGroup>> entryCons = new();
+            List<PackedCONGroup> upgradeCons = new();
+            List<PackedCONGroup> entryCons = new();
             foreach (var group in conGroups)
             {
-                if (group.Value.UpgradeCount > 0)
+                if (group.UpgradeCount > 0)
                     upgradeCons.Add(group);
 
-                if (group.Value.EntryCount > 0)
+                if (group.EntryCount > 0)
                     entryCons.Add(group);
             }
 
             writer.Write(upgradeCons.Count);
             foreach (var group in upgradeCons)
             {
-                byte[] buffer = group.Value.FormatUpgradesForCache(group.Key);
+                byte[] buffer = group.FormatUpgradesForCache();
                 writer.Write(buffer.Length);
                 writer.Write(buffer);
             }
@@ -218,7 +218,7 @@ namespace YARG.Core.Song.Cache
             writer.Write(entryCons.Count);
             foreach (var group in entryCons)
             {
-                byte[] buffer = group.Value.FormatEntriesForCache(group.Key, ref nodes);
+                byte[] buffer = group.FormatEntriesForCache(ref nodes);
                 writer.Write(buffer.Length);
                 writer.Write(buffer);
             }
@@ -226,7 +226,7 @@ namespace YARG.Core.Song.Cache
             writer.Write(extractedConGroups.Count);
             foreach (var group in extractedConGroups)
             {
-                byte[] buffer = group.Value.FormatEntriesForCache(group.Key, ref nodes);
+                byte[] buffer = group.FormatEntriesForCache(ref nodes);
                 writer.Write(buffer.Length);
                 writer.Write(buffer);
             }
@@ -310,7 +310,7 @@ namespace YARG.Core.Song.Cache
 
             if (GetBaseDirectoryIndex(filename) >= 0 && CreateCONGroup(filename, out var group))
             {
-                AddCONGroup(filename, group!);
+                AddCONGroup(group!);
                 if (group!.LoadUpgrades(out var reader))
                 {
                     AddCONUpgrades(group, reader!);
@@ -359,7 +359,7 @@ namespace YARG.Core.Song.Cache
                     return null;
 
                 group = new(file, info.LastWriteTime);
-                AddCONGroup(filename, group);
+                AddCONGroup(group);
             }
 
             if (!group!.SetSongDTA() || group.DTALastWrite != dtaLastWrite)
@@ -377,9 +377,9 @@ namespace YARG.Core.Song.Cache
             if (!dtaInfo.Exists)
                 return null;
 
-            UnpackedCONGroup group = new(dtaInfo);
+            UnpackedCONGroup group = new(directory, dtaInfo);
             MarkDirectory(directory);
-            AddExtractedCONGroup(directory, group);
+            AddExtractedCONGroup(group);
 
             if (dtaInfo.LastWriteTime != DateTime.FromBinary(reader.ReadInt64()))
                 return null;
@@ -423,7 +423,7 @@ namespace YARG.Core.Song.Cache
             if (CreateCONGroup(filename, out var group))
             {
                 var file = group!.file;
-                AddCONGroup(filename, group);
+                AddCONGroup(group);
 
                 for (int i = 0; i < count; i++)
                 {
@@ -456,7 +456,7 @@ namespace YARG.Core.Song.Cache
             {
                 if (!CreateCONGroup(filename, out group))
                     return null;
-                AddCONGroup(filename, group!);
+                AddCONGroup(group!);
             }
 
             if (!group!.SetSongDTA() || group.DTALastWrite != dtaLastWrite)
@@ -497,7 +497,18 @@ namespace YARG.Core.Song.Cache
         private bool FindCONGroup(string filename, out PackedCONGroup? group)
         {
             lock (conLock)
-                return conGroups.TryGetValue(filename, out group);
+            {
+                foreach (var con in conGroups)
+                {
+                    if (con.file.filename == filename)
+                    {
+                        group = con;
+                        return true;
+                    }
+                }
+            }
+            group = null;
+            return false;
         }
 
         private void MarkDirectory(string directory)

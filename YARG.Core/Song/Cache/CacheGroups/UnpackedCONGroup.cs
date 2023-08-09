@@ -7,13 +7,13 @@ namespace YARG.Core.Song.Cache
 {
     public class UnpackedCONGroup : CONGroup
     {
+        public readonly string directory;
         public readonly AbridgedFileInfo dta;
-        public readonly YARGDTAReader reader;
 
-        public UnpackedCONGroup(FileInfo dta)
+        public UnpackedCONGroup(string directory, FileInfo dta)
         {
+            this.directory = directory;
             this.dta = dta;
-            reader = new(dta.FullName);
         }
 
         public override void ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings)
@@ -23,7 +23,7 @@ namespace YARG.Core.Song.Cache
                 AddEntry(nodeName, index, song);
         }
 
-        public byte[] FormatEntriesForCache(string directory, ref Dictionary<SongMetadata, CategoryCacheWriteNode> nodes)
+        public byte[] FormatEntriesForCache(ref Dictionary<SongMetadata, CategoryCacheWriteNode> nodes)
         {
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);

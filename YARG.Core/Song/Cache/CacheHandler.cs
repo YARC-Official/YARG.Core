@@ -80,8 +80,8 @@ namespace YARG.Core.Song.Cache
 
         private readonly List<UpdateGroup> updateGroups = new();
         private readonly List<UpgradeGroup> upgradeGroups = new();
-        private readonly Dictionary<string, PackedCONGroup> conGroups = new();
-        private readonly Dictionary<string, UnpackedCONGroup> extractedConGroups = new();
+        private readonly List<PackedCONGroup> conGroups = new();
+        private readonly List<UnpackedCONGroup> extractedConGroups = new();
         private readonly IniGroup[] iniGroups;
         private readonly Dictionary<string, List<(string, YARGDTAReader)>> updates = new();
         private readonly Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades = new();
@@ -342,10 +342,10 @@ namespace YARG.Core.Song.Cache
                 upgrades[name] = new(reader, upgrade);
         }
 
-        private void AddCONGroup(string filename, PackedCONGroup group)
+        private void AddCONGroup(PackedCONGroup group)
         {
             lock (conLock)
-                conGroups.Add(filename, group);
+                conGroups.Add(group);
         }
 
         private void AddUpdateGroup(UpdateGroup group)
@@ -360,10 +360,10 @@ namespace YARG.Core.Song.Cache
                 upgradeGroups.Add(group);
         }
 
-        private void AddExtractedCONGroup(string directory, UnpackedCONGroup group)
+        private void AddExtractedCONGroup(UnpackedCONGroup group)
         {
             lock (extractedLock)
-                extractedConGroups.Add(directory, group);
+                extractedConGroups.Add(group);
         }
 
         private void AddErrors(params object[] errors)
@@ -375,30 +375,25 @@ namespace YARG.Core.Song.Cache
         {
             lock (conLock)
             {
-                List<string> entriesToRemove = new();
-                foreach (var group in conGroups)
+                for (int i = 0; i < conGroups.Count;)
                 {
-                    group.Value.RemoveEntries(shortname);
-                    if (group.Value.EntryCount == 0)
-                        entriesToRemove.Add(group.Key);
+                    conGroups[i].RemoveEntries(shortname);
+                    if (conGroups[i].EntryCount == 0)
+                        conGroups.RemoveAt(i);
+                    else
+                        ++i;
                 }
-
-                for (int i = 0; i < entriesToRemove.Count; i++)
-                    conGroups.Remove(entriesToRemove[i]);
             }
 
             lock (extractedLock)
             {
-                List<string> entriesToRemove = new();
-                foreach (var group in extractedConGroups)
+                for (int i = 0; i < extractedConGroups.Count;)
                 {
-                    group.Value.RemoveEntries(shortname);
-                    if (group.Value.EntryCount == 0)
-                        entriesToRemove.Add(group.Key);
+                    extractedConGroups[i].RemoveEntries(shortname);
+                    if (extractedConGroups[i].EntryCount == 0)
+                        extractedConGroups.RemoveAt(i);
+                    else ++i;
                 }
-
-                for (int i = 0; i < entriesToRemove.Count; i++)
-                    extractedConGroups.Remove(entriesToRemove[i]);
             }
         }
 
@@ -427,7 +422,7 @@ namespace YARG.Core.Song.Cache
             {
                 foreach (var group in conGroups)
                 {
-                    var upgrades = group.Value.upgrades;
+                    var upgrades = group.upgrades;
                     if (upgrades.TryGetValue(shortname, out var currUpgrade))
                     {
                         if (currUpgrade!.LastWrite >= lastWrite)
