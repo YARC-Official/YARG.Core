@@ -174,6 +174,7 @@ namespace YARG.Core.Song
             }
             catch (Exception ex)
             {
+                YargTrace.LogError(ex.Message);
                 return (ScanResult.DTAError, null);
             }
         }
