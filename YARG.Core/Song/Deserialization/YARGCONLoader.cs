@@ -6,26 +6,32 @@ using System.Text;
 
 namespace YARG.Core.Song.Deserialization
 {
-    public sealed class FileListing
+    public enum CONFileListingFlag : byte
+    {
+        Contiguous = 0x40,
+        Directory = 0x80,
+    }
+
+    public sealed class CONFileListing
     {
         public string Filename { get; private set; } = string.Empty;
-        public readonly byte flags;
+        public readonly CONFileListingFlag flags;
         public readonly int numBlocks;
         public readonly int firstBlock;
         public readonly short pathIndex;
         public readonly int size;
         public readonly DateTime lastWrite;
 
-        public FileListing(ReadOnlySpan<byte> data)
+        public CONFileListing(ReadOnlySpan<byte> data)
         {
             Filename = Encoding.UTF8.GetString(data[..0x28]).TrimEnd('\0');
-            flags = data[0x28];
+            flags = (CONFileListingFlag)data[0x28];
 
-            numBlocks = BitConverter.ToInt32(new byte[4] { data[0x29], data[0x2A], data[0x2B], 0x00 });
-            firstBlock = BitConverter.ToInt32(new byte[4] { data[0x2F], data[0x30], data[0x31], 0x00 });
-            pathIndex = BitConverter.ToInt16(new byte[2] { data[0x33], data[0x32] });
-            size = BitConverter.ToInt32(new byte[4] { data[0x37], data[0x36], data[0x35], data[0x34] });
-            lastWrite = FatTimeDT(BitConverter.ToInt32(new byte[4] { data[0x38], data[0x39], data[0x3A], data[0x3B] }));
+            numBlocks =           data[0x29] << 16 | data[0x2A] << 8 | data[0x2B];
+            firstBlock =          data[0x31] << 16 | data[0x30] << 8 | data[0x2F];
+            pathIndex =  (short) (data[0x32] << 8  | data[0x33]);
+            size =                data[0x34] << 24 | data[0x35] << 16 | data[0x36] << 8 | data[0x37];
+            lastWrite = FatTimeDT(data[0x3B] << 24 | data[0x3A] << 16 | data[0x39] << 8 | data[0x38]);
         }
 
         public void SetParentDirectory(string parentDirectory)
@@ -33,11 +39,11 @@ namespace YARG.Core.Song.Deserialization
             Filename = parentDirectory + "/" + Filename;
         }
 
-        public FileListing() { }
+        public CONFileListing() { }
 
         public override string ToString() => $"STFS File Listing: {Filename}";
-        public bool IsDirectory() { return (flags & 0x80) > 0; }
-        public bool IsContiguous() { return (flags & 0x40) > 0; }
+        public bool IsDirectory() { return (flags & CONFileListingFlag.Directory) > 0; }
+        public bool IsContiguous() { return (flags & CONFileListingFlag.Contiguous) > 0; }
 
         public static DateTime FatTimeDT(int fatTime)
         {
@@ -69,39 +75,49 @@ namespace YARG.Core.Song.Deserialization
         public readonly string filename;
         private readonly FileStream stream;
         private readonly byte shift = 0;
-        private readonly List<FileListing> files = new();
+        private readonly List<CONFileListing> files = new();
         private readonly object fileLock = new();
 
+        private const int METADATA_POSITION = 0x340;
+        private const int FILETABLEBLOCKCOUNT_POSITION = 0x37C;
+        private const int FILETABLEFIRSTBLOCK_POSITION = 0x37E;
+        private const int BYTES_32BIT = 4;
+        private const int BYTES_24BIT = 3;
+        private const int BYTES_16BIT = 2;
+
+        private const int BYTES_PER_BLOCK = 0x1000;
 #nullable enable
         public static CONFile? LoadCON(string filename)
         {
-            byte[] buffer = new byte[4];
+            byte[] buffer = new byte[BYTES_32BIT];
             using FileStream stream = new(filename, FileMode.Open, FileAccess.Read, FileShare.Read);
 
-            if (stream.Read(buffer) != 4)
+            if (stream.Read(buffer) != BYTES_32BIT)
                 return null;
 
             string tag = Encoding.Default.GetString(buffer, 0, buffer.Length);
             if (tag != "CON " && tag != "LIVE" && tag != "PIRS")
                 return null;
 
-            stream.Seek(0x0340, SeekOrigin.Begin);
-            if (stream.Read(buffer) != 4)
+            stream.Seek(METADATA_POSITION, SeekOrigin.Begin);
+            if (stream.Read(buffer, 0, BYTES_32BIT) != BYTES_32BIT)
                 return null;
 
             byte shift = 0;
             int entryID = buffer[0] << 24 | buffer[1] << 16 | buffer[2] << 8 | buffer[3];
+
+            // Docs: "If bit 12, 13 and 15 of the Entry ID are on, there are 2 hash tables every 0xAA (170) blocks"
             if ((entryID + 0xFFF & 0xF000) >> 0xC != 0xB)
                 shift = 1;
 
-            stream.Seek(0x37C, SeekOrigin.Begin);
-            if (stream.Read(buffer, 0, 2) != 2)
+            stream.Seek(FILETABLEBLOCKCOUNT_POSITION, SeekOrigin.Begin);
+            if (stream.Read(buffer, 0, BYTES_16BIT) != BYTES_16BIT)
                 return null;
 
-            int length = 0x1000 * (buffer[0] << 8 | buffer[1]);
+            int length = BYTES_PER_BLOCK * (buffer[0] << 8 | buffer[1]);
 
-            stream.Seek(0x37E, SeekOrigin.Begin);
-            if (stream.Read(buffer, 0, 3) != 3)
+            stream.Seek(FILETABLEFIRSTBLOCK_POSITION, SeekOrigin.Begin);
+            if (stream.Read(buffer, 0, BYTES_24BIT) != BYTES_24BIT)
                 return null;
 
             int firstBlock = buffer[0] << 16 | buffer[1] << 8 | buffer[2];
@@ -129,12 +145,14 @@ namespace YARG.Core.Song.Deserialization
             stream.Dispose();
         }
 
+        private const int SIZEOF_FILELISTING = 0x40;
         private void ParseFileList(int firstBlock, int length)
         {
             var fileListingBuffer = ReadContiguousBlocks(firstBlock, length);
-            for (int i = 0; i < length; i += 0x40)
+            for (int i = 0; i < length; i += SIZEOF_FILELISTING)
             {
-                FileListing listing = new(new(fileListingBuffer, i, 0x40));
+                CONFileListing listing = new(new(fileListingBuffer, i, SIZEOF_FILELISTING));
+                // Empty node == End of list
                 if (listing.Filename.Length == 0)
                     break;
 
@@ -144,8 +162,8 @@ namespace YARG.Core.Song.Deserialization
             }
         }
 
-        public FileListing this[int index] { get { return files[index]; } }
-        public FileListing? TryGetListing(string filename)
+        public CONFileListing this[int index] { get { return files[index]; } }
+        public CONFileListing? TryGetListing(string filename)
         {
             for (int i = 0; i < files.Count; ++i)
             {
@@ -156,22 +174,23 @@ namespace YARG.Core.Song.Deserialization
             return null;
         }
 
-        public int GetMoggVersion(FileListing listing)
+        private const int FIRSTBLOCK_OFFSET = 0xC000;
+        public int GetMoggVersion(CONFileListing listing)
         {
             Debug.Assert(!listing.IsDirectory(), "Directory listing cannot be loaded as a file");
 
-            long blockLocation = 0xC000 + (long) CalculateBlockNum(listing.firstBlock) * 0x1000;
-            byte[] version = new byte[4];
+            long blockLocation = FIRSTBLOCK_OFFSET + (long) CalculateBlockNum(listing.firstBlock) * BYTES_PER_BLOCK;
+            byte[] version = new byte[BYTES_32BIT];
             lock (fileLock)
             {
                 stream.Seek(blockLocation, SeekOrigin.Begin);
-                if (stream.Read(version) != 4)
+                if (stream.Read(version, 0, BYTES_32BIT) != BYTES_32BIT)
                     throw new Exception("Seek error in CON-like subfile for Mogg");
             }
             return BitConverter.ToInt32(version);
         }
 
-        public byte[] LoadSubFile(FileListing listing)
+        public byte[] LoadSubFile(CONFileListing listing)
         {
             Debug.Assert(!listing.IsDirectory(), "Directory listing cannot be loaded as a file");
             try
@@ -187,10 +206,9 @@ namespace YARG.Core.Song.Deserialization
             }
         }
 
-        internal const int BYTES_PER_BLOCK = 0x1000;
-        internal const int BLOCKS_PER_SECTION = 170;
-        internal const int BYTES_PER_SECTION = BLOCKS_PER_SECTION * BYTES_PER_BLOCK;
-        internal const int NUM_BLOCKS_SQUARED = BLOCKS_PER_SECTION * BLOCKS_PER_SECTION;
+        private const int BLOCKS_PER_SECTION = 170;
+        private const int BYTES_PER_SECTION = BLOCKS_PER_SECTION * BYTES_PER_BLOCK;
+        private const int NUM_BLOCKS_SQUARED = BLOCKS_PER_SECTION * BLOCKS_PER_SECTION;
 
         private byte[] ReadContiguousBlocks(int blockNum, int fileSize)
         {
@@ -203,7 +221,7 @@ namespace YARG.Core.Song.Deserialization
 
             lock (fileLock)
             {
-                stream.Seek(0xC000 + (long) CalculateBlockNum(blockNum) * BYTES_PER_BLOCK, SeekOrigin.Begin);
+                stream.Seek(FIRSTBLOCK_OFFSET + (long) CalculateBlockNum(blockNum) * BYTES_PER_BLOCK, SeekOrigin.Begin);
                 while (true)
                 {
                     if (readSize > fileSize - offset)
@@ -237,6 +255,8 @@ namespace YARG.Core.Song.Deserialization
             return data;
         }
 
+        private const int HASHBLOCK_OFFSET = 4075;
+        private const int DIST_PER_HASH = 4072;
         private byte[] ReadSplitBlocks(int blockNum, int fileSize)
         {
             byte[] data = new byte[fileSize];
@@ -246,7 +266,7 @@ namespace YARG.Core.Song.Deserialization
             while (true)
             {
                 int block = CalculateBlockNum(blockNum);
-                long blockLocation = 0xC000 + (long) block * BYTES_PER_BLOCK;
+                long blockLocation = FIRSTBLOCK_OFFSET + (long) block * BYTES_PER_BLOCK;
                 int readSize = BYTES_PER_BLOCK;
                 if (readSize > fileSize - offset)
                     readSize = fileSize - offset;
@@ -262,11 +282,11 @@ namespace YARG.Core.Song.Deserialization
                 if (offset == fileSize)
                     break;
 
-                long hashlocation = blockLocation - ((long) (blockNum % BLOCKS_PER_SECTION) * 4072 + 4075);
+                long hashlocation = blockLocation - ((long) (blockNum % BLOCKS_PER_SECTION) * DIST_PER_HASH + HASHBLOCK_OFFSET);
                 lock (fileLock)
                 {
                     stream.Seek(hashlocation, SeekOrigin.Begin);
-                    if (stream.Read(buffer, 0, 3) != 3)
+                    if (stream.Read(buffer, 0, BYTES_24BIT) != BYTES_24BIT)
                         throw new Exception("Post-Read error in CON-like subfile - Type: Split");
                 }
 

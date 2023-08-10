@@ -19,12 +19,12 @@ namespace YARG.Core.Song
     public sealed class PackedRBProUpgrade : IRBProUpgrade
     {
         private readonly CONFile? conFile;
-        private readonly FileListing? _midiListing;
+        private readonly CONFileListing? _midiListing;
         private readonly DateTime _lastWrite;
 
         public DateTime LastWrite => _lastWrite;
 
-        public PackedRBProUpgrade(CONFile? conFile, FileListing? listing, DateTime lastWrite)
+        public PackedRBProUpgrade(CONFile? conFile, CONFileListing? listing, DateTime lastWrite)
         {
             this.conFile = conFile;
             _midiListing = listing;

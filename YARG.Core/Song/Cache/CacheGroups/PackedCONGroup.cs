@@ -19,8 +19,8 @@ namespace YARG.Core.Song.Cache
 
         private readonly object upgradeLock = new();
 
-        private FileListing? songDTA;
-        private FileListing? upgradeDta;
+        private CONFileListing? songDTA;
+        private CONFileListing? upgradeDta;
         public DateTime DTALastWrite
         {
             get

@@ -14,10 +14,10 @@ namespace YARG.Core.Song
         public sealed class RBPackedCONMetadata : IRBCONMetadata
         {
             public readonly CONFile conFile;
-            public readonly FileListing? midiListing;
-            public readonly FileListing? moggListing;
-            public readonly FileListing? miloListing;
-            public readonly FileListing? imgListing;
+            public readonly CONFileListing? midiListing;
+            public readonly CONFileListing? moggListing;
+            public readonly CONFileListing? miloListing;
+            public readonly CONFileListing? imgListing;
             public readonly RBCONSubMetadata _metadata;
             public readonly DateTime _midiLastWrite;
 
@@ -52,7 +52,7 @@ namespace YARG.Core.Song
                 metadata.Directory = Path.Combine(conFile.filename, midiDirectory);
             }
 
-            public RBPackedCONMetadata(CONFile file, string nodeName, FileListing? midi, DateTime midiLastWrite, FileListing? moggListing, AbridgedFileInfo? moggInfo, AbridgedFileInfo? updateInfo, YARGBinaryReader reader)
+            public RBPackedCONMetadata(CONFile file, string nodeName, CONFileListing? midi, DateTime midiLastWrite, CONFileListing? moggListing, AbridgedFileInfo? moggInfo, AbridgedFileInfo? updateInfo, YARGBinaryReader reader)
             {
                 conFile = file;
                 midiListing = midi;
@@ -252,7 +252,7 @@ namespace YARG.Core.Song
             if (midiListing == null || midiListing.lastWrite != midiLastWrite)
                 return null;
 
-            FileListing? moggListing = null;
+            CONFileListing? moggListing = null;
             AbridgedFileInfo? moggInfo = null;
             if (reader.ReadBoolean())
             {
@@ -288,7 +288,7 @@ namespace YARG.Core.Song
             var midiListing = conFile.TryGetListing(reader.ReadLEBString());
             var midiLastWrite = DateTime.FromBinary(reader.ReadInt64());
 
-            FileListing? moggListing = null;
+            CONFileListing? moggListing = null;
             AbridgedFileInfo? moggInfo = null;
             if (reader.ReadBoolean())
             {
