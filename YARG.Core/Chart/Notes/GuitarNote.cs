@@ -44,33 +44,40 @@ namespace YARG.Core.Chart
             Fret = fret;
             Type = noteType;
 
-            _guitarFlags = guitarFlags;
-            GuitarFlags = guitarFlags;
+            GuitarFlags = _guitarFlags = guitarFlags;
 
-            // Resulting shift is 1 too high, shifting down by 1 corrects this.
-            // Reason for not doing (fret - 1) is this breaks open notes.
-            // Shifting down by 1 accounts for open notes and sets the mask to 0.
-            NoteMask = 1 << fret;
-            NoteMask >>= 1;
+            NoteMask = GetNoteMask(Fret);
+            DisjointMask = GetNoteMask(Fret);
+        }
 
-            DisjointMask = 1 << fret;
-            DisjointMask >>= 1;
+        public GuitarNote(GuitarNote other) : base(other)
+        {
+            Fret = other.Fret;
+            Type = other.Type;
+
+            GuitarFlags = _guitarFlags = other._guitarFlags;
+
+            NoteMask = GetNoteMask(Fret);
+            DisjointMask = GetNoteMask(Fret);
         }
 
         public override void AddChildNote(GuitarNote note)
         {
             base.AddChildNote(note);
 
-            NoteMask |= 1 << note.Fret - 1;
+            NoteMask |= GetNoteMask(note.Fret);
         }
 
         public override void ResetNoteState()
         {
             base.ResetNoteState();
             GuitarFlags = _guitarFlags;
-            SustainTicksHeld = Tick;
-
             SustainTicksHeld = 0;
+        }
+
+        public override GuitarNote Clone()
+        {
+            return new(this);
         }
     }
 

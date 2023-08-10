@@ -76,6 +76,13 @@ namespace YARG.Core.Chart
             HarmonyPart = harmonyPart;
         }
 
+        public VocalNote(VocalNote other) : base(other)
+        {
+            Type = other.Type;
+            Pitch = other.Pitch;
+            HarmonyPart = other.HarmonyPart;
+        }
+
         /// <summary>
         /// Gets the pitch of this note and its children at the specified time.
         /// Clamps to the start and end if the time is out of bounds.
@@ -134,6 +141,11 @@ namespace YARG.Core.Chart
             // Track total length
             TotalTimeLength = _childNotes[^1].TimeEnd - Time;
             TotalTickLength = _childNotes[^1].TickEnd - Tick;
+        }
+
+        public override VocalNote Clone()
+        {
+            return new(this);
         }
     }
 

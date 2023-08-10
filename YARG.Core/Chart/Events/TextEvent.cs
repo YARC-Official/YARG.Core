@@ -1,9 +1,11 @@
+using System;
+
 namespace YARG.Core.Chart
 {
     /// <summary>
     /// A text event that occurs in a chart.
     /// </summary>
-    public class TextEvent : ChartEvent
+    public class TextEvent : ChartEvent, ICloneable<TextEvent>
     {
         public string Text { get; }
 
@@ -11,6 +13,16 @@ namespace YARG.Core.Chart
             : base(time, 0, tick, 0)
         {
             Text = text;
+        }
+
+        public TextEvent(TextEvent other) : base(other)
+        {
+            Text = other.Text;
+        }
+
+        public TextEvent Clone()
+        {
+            return new(this);
         }
     }
 }

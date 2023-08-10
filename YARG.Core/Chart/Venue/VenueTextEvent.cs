@@ -1,9 +1,11 @@
+using System;
+
 namespace YARG.Core.Chart
 {
     /// <summary>
     /// A venue text event, for more generic/miscellaneous actions.
     /// </summary>
-    public class VenueTextEvent : VenueEvent
+    public class VenueTextEvent : VenueEvent, ICloneable<VenueTextEvent>
     {
         public string Text { get; }
 
@@ -11,6 +13,16 @@ namespace YARG.Core.Chart
             : base(flags, time, 0, tick, 0)
         {
             Text = text;
+        }
+
+        public VenueTextEvent(VenueTextEvent other) : base(other)
+        {
+            Text = other.Text;
+        }
+
+        public VenueTextEvent Clone()
+        {
+            return new(this);
         }
     }
 

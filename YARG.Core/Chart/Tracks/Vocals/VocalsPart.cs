@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Generic;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.Chart
 {
     /// <summary>
     /// A single part on a vocals track.
     /// </summary>
-    public class VocalsPart
+    public class VocalsPart : ICloneable<VocalsPart>
     {
         public List<VocalsPhrase> NotePhrases { get; } = new();
         public List<Phrase> OtherPhrases { get; } = new();
@@ -17,6 +18,11 @@ namespace YARG.Core.Chart
             NotePhrases = notePhrases;
             OtherPhrases = otherPhrases;
             TextEvents = text;
+        }
+
+        public VocalsPart(VocalsPart other)
+            : this(other.NotePhrases.Duplicate(), other.OtherPhrases.Duplicate(), other.TextEvents.Duplicate())
+        {
         }
 
         public double GetStartTime()
@@ -69,6 +75,11 @@ namespace YARG.Core.Chart
             totalLastTick = Math.Max(TextEvents.GetLastTick(), totalLastTick);
 
             return totalLastTick;
+        }
+
+        public VocalsPart Clone()
+        {
+            return new(this);
         }
     }
 }

@@ -231,7 +231,7 @@ namespace YARG.Core.Chart
             return new VocalsPhrase(type, bounds, phraseFlags, notes, lyrics);
         }
 
-        private ChartEvent GetVocalsPhraseBounds(SpecialPhrase moonPhrase)
+        private Phrase GetVocalsPhraseBounds(SpecialPhrase moonPhrase)
         {
             return new Phrase(PhraseType.LyricPhrase, moonPhrase.time, GetLengthInTime(moonPhrase),
                 moonPhrase.tick, moonPhrase.length);

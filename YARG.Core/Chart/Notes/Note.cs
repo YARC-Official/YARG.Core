@@ -16,7 +16,7 @@ namespace YARG.Core.Chart
         SoloEnd   = 1 << 4,
     }
 
-    public abstract class Note<TNote> : ChartEvent
+    public abstract class Note<TNote> : ChartEvent, ICloneable<TNote>
         where TNote : Note<TNote>
     {
         protected readonly List<TNote> _childNotes = new();
@@ -47,11 +47,18 @@ namespace YARG.Core.Chart
         protected Note(NoteFlags flags, double time, double timeLength, uint tick, uint tickLength)
             : base(time, timeLength, tick, tickLength)
         {
-            _flags = flags;
-            Flags = flags;
+            Flags = _flags = flags;
         }
 
-        public virtual void AddChildNote(TNote note) {
+        protected Note(Note<TNote> other) : base(other)
+        {
+            Flags = _flags = other._flags;
+
+            // Child notes are not added here, since this is called before the inheritor's constructor is
+        }
+
+        public virtual void AddChildNote(TNote note)
+        {
             if (note.Tick != Tick || note.ChildNotes.Count > 0) {
                 return;
             }
@@ -137,5 +144,24 @@ namespace YARG.Core.Chart
                 childNote.ResetNoteState();
             }
         }
+
+        protected static int GetNoteMask(int note)
+        {
+            // Resulting shift is 1 too high, shifting down by 1 corrects this.
+            // Reason for not doing (note - 1) is this breaks open notes. (1 << (0 - 1) == 0x80000000)
+            // Shifting down by 1 accounts for open notes and sets the mask to 0.
+            int mask = 1 << note;
+            mask >>= 1;
+            return mask;
+        }
+
+        /// <summary>
+        /// Creates a copy of this note with the same set of values.
+        /// </summary>
+        /// <remarks>
+        /// NOTE: Next/previous references and changes in state are not preserved,
+        /// notes are re-created from scratch.
+        /// </remarks>
+        public abstract TNote Clone();
     }
 }

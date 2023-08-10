@@ -38,14 +38,27 @@ namespace YARG.Core.Chart
             Fret = proFret;
             Type = type;
 
-            _proFlags = proFlags;
-            ProFlags = proFlags;
+            ProFlags = _proFlags = proFlags;
+        }
+
+        public ProGuitarNote(ProGuitarNote other) : base(other)
+        {
+            String = other.String;
+            Fret = other.Fret;
+            Type = other.Type;
+
+            ProFlags = _proFlags = other._proFlags;
         }
 
         public override void ResetNoteState()
         {
             base.ResetNoteState();
             ProFlags = _proFlags;
+        }
+
+        public override ProGuitarNote Clone()
+        {
+            return new(this);
         }
     }
 

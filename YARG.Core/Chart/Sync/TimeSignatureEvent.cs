@@ -1,6 +1,8 @@
+using System;
+
 namespace YARG.Core.Chart
 {
-    public class TimeSignatureChange : SyncEvent
+    public class TimeSignatureChange : SyncEvent, ICloneable<TimeSignatureChange>
     {
         public uint Numerator   { get; }
         public uint Denominator { get; }
@@ -9,6 +11,11 @@ namespace YARG.Core.Chart
         {
             Numerator = numerator;
             Denominator = denominator;
+        }
+
+        public TimeSignatureChange Clone()
+        {
+            return new(Numerator, Denominator, Time, Tick);
         }
     }
 }

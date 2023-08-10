@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Generic;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.Chart
 {
     /// <summary>
     /// A single difficulty of an instrument track.
     /// </summary>
-    public class InstrumentDifficulty<TNote>
+    public class InstrumentDifficulty<TNote> : ICloneable<InstrumentDifficulty<TNote>>
         where TNote : Note<TNote>
     {
         public Instrument Instrument { get; }
@@ -31,27 +32,10 @@ namespace YARG.Core.Chart
             TextEvents = text;
         }
 
-        public InstrumentDifficulty(Instrument instrument, Difficulty difficulty, List<ChartEvent> events)
-            : this(instrument, difficulty)
+        public InstrumentDifficulty(InstrumentDifficulty<TNote> other)
+            : this(other.Instrument, other.Difficulty, other.Notes.DuplicateNotes(), other.Phrases.Duplicate(),
+                other.TextEvents.Duplicate())
         {
-            foreach (var ev in events)
-            {
-                switch (ev)
-                {
-                    case TNote note:
-                        Notes.Add(note);
-                        break;
-                    case Phrase phrase:
-                        Phrases.Add(phrase);
-                        break;
-                    case TextEvent text:
-                        TextEvents.Add(text);
-                        break;
-                    default:
-                        YargTrace.DebugWarning($"Unrecognized event type {ev.GetType()}!");
-                        continue;
-                }
-            }
         }
 
         public double GetStartTime()
@@ -96,6 +80,11 @@ namespace YARG.Core.Chart
             totalLastTick = Math.Max(TextEvents.GetLastTick(), totalLastTick);
 
             return totalLastTick;
+        }
+
+        public InstrumentDifficulty<TNote> Clone()
+        {
+            return new(this);
         }
     }
 }

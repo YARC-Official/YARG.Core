@@ -1,17 +1,19 @@
+using System;
 using System.Collections.Generic;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.Chart
 {
     /// <summary>
     /// A lyric/percussion phrase on a vocals track.
     /// </summary>
-    public class VocalsPhrase
+    public class VocalsPhrase : ICloneable<VocalsPhrase>
     {
         private readonly VocalsPhraseFlags _flags;
 
         public VocalsPhraseType Type { get; }
 
-        public ChartEvent Bounds { get; }
+        public Phrase Bounds { get; }
 
         public double Time       => Bounds.Time;
         public double TimeLength => Bounds.TimeLength;
@@ -29,7 +31,7 @@ namespace YARG.Core.Chart
 
         public bool IsStarPower => (_flags & VocalsPhraseFlags.StarPower) != 0;
 
-        public VocalsPhrase(VocalsPhraseType type, ChartEvent bounds, VocalsPhraseFlags flags)
+        public VocalsPhrase(VocalsPhraseType type, Phrase bounds, VocalsPhraseFlags flags)
         {
             _flags = flags;
 
@@ -37,12 +39,25 @@ namespace YARG.Core.Chart
             Bounds = bounds;
         }
 
-        public VocalsPhrase(VocalsPhraseType type, ChartEvent bounds, VocalsPhraseFlags flags, List<VocalNote> notes,
+        public VocalsPhrase(VocalsPhraseType type, Phrase bounds, VocalsPhraseFlags flags, List<VocalNote> notes,
             List<TextEvent> lyrics)
             : this(type, bounds, flags)
         {
             Notes = notes;
             Lyrics = lyrics;
+        }
+
+        public VocalsPhrase(VocalsPhrase other)
+            : this(other.Type, other.Bounds.Clone(), other._flags,
+                // NOTE: Does not use DuplicateNotes(), as vocals notes are not currently linked together
+                // TODO: Should we make that happen?
+                other.Notes.Duplicate(), other.Lyrics.Duplicate())
+        {
+        }
+
+        public VocalsPhrase Clone()
+        {
+            return new(this);
         }
     }
 

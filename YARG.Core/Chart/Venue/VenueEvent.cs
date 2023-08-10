@@ -19,6 +19,11 @@ namespace YARG.Core.Chart
             : this(VenueEventFlags.None, time, timeLength, tick, tickLength)
         {
         }
+
+        public VenueEvent(VenueEvent other) : base(other)
+        {
+            _flags = other._flags;
+        }
     }
 
     /// <summary>

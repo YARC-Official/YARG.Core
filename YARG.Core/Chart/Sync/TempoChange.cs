@@ -1,6 +1,8 @@
+using System;
+
 namespace YARG.Core.Chart
 {
-    public class TempoChange : SyncEvent
+    public class TempoChange : SyncEvent, ICloneable<TempoChange>
     {
         private const float SECONDS_PER_MINUTE = 60f;
 
@@ -12,6 +14,11 @@ namespace YARG.Core.Chart
         public TempoChange(float tempo, double time, uint tick) : base(time, tick)
         {
             BeatsPerMinute = tempo;
+        }
+
+        public TempoChange Clone()
+        {
+            return new(BeatsPerMinute, Time, Tick);
         }
     }
 }

@@ -1,9 +1,11 @@
+using System;
+
 namespace YARG.Core.Chart
 {
     /// <summary>
     /// A lighting event for the stage of a venue.
     /// </summary>
-    public class PostProcessingEvent : VenueEvent
+    public class PostProcessingEvent : VenueEvent, ICloneable<PostProcessingEvent>
     {
         public PostProcessingType Type { get; }
 
@@ -11,6 +13,16 @@ namespace YARG.Core.Chart
             : base(time, 0, tick, 0)
         {
             Type = type;
+        }
+
+        public PostProcessingEvent(PostProcessingEvent other) : base(other)
+        {
+            Type = other.Type;
+        }
+
+        public PostProcessingEvent Clone()
+        {
+            return new(this);
         }
     }
 

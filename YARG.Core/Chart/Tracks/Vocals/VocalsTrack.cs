@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Generic;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.Chart
 {
     /// <summary>
     /// A vocals track.
     /// </summary>
-    public class VocalsTrack
+    public class VocalsTrack : ICloneable<VocalsTrack>
     {
         public Instrument Instrument { get; }
 
@@ -21,6 +22,11 @@ namespace YARG.Core.Chart
             : this(instrument)
         {
             Parts = parts;
+        }
+
+        public VocalsTrack(VocalsTrack other)
+            : this(other.Instrument, other.Parts.Duplicate())
+        {
         }
 
         // TODO: Helper methods for getting note info across all parts
@@ -67,6 +73,11 @@ namespace YARG.Core.Chart
             }
 
             return totalLastTick;
+        }
+
+        public VocalsTrack Clone()
+        {
+            return new(this);
         }
     }
 }

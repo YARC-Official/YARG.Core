@@ -6,6 +6,44 @@ namespace YARG.Core.Chart
 {
     public static class ChartEventExtensions
     {
+        public static List<TNote> DuplicateNotes<TNote>(this IList<TNote> notes)
+            where TNote : Note<TNote>
+        {
+            int count = notes.Count;
+            var newNotes = new List<TNote>(count);
+            if (count < 1)
+                return newNotes;
+
+            // Clone first note separately so we can link everything together
+            var previousNote = notes[0].Clone();
+            newNotes.Add(previousNote);
+
+            // Clone the rest
+            foreach (var note in notes)
+            {
+                var newNote = note.Clone();
+                foreach (var child in note.ChildNotes)
+                {
+                    newNote.AddChildNote(child.Clone());
+                }
+
+                // Assign forward/backward references
+                newNote.PreviousNote = previousNote;
+                foreach (var child in newNote.ChildNotes)
+                    child.PreviousNote = previousNote;
+
+                previousNote.NextNote = newNote;
+                foreach (var child in previousNote.ChildNotes)
+                    child.NextNote = newNote;
+
+                // Add note to list
+                newNotes.Add(newNote);
+                previousNote = newNote;
+            }
+
+            return newNotes;
+        }
+
         public static double GetStartTime<TEvent>(this IList<TEvent> events)
             where TEvent : ChartEvent
         {

@@ -20,7 +20,7 @@ namespace YARG.Core.Chart
     /// <summary>
     /// A venue event involving the performers on-stage.
     /// </summary>
-    public class PerformerEvent : VenueEvent
+    public class PerformerEvent : VenueEvent, ICloneable<PerformerEvent>
     {
         public PerformerEventType Type { get; }
         public Performer Performers { get; }
@@ -31,6 +31,17 @@ namespace YARG.Core.Chart
         {
             Type = type;
             Performers = performers;
+        }
+
+        public PerformerEvent(PerformerEvent other) : base(other)
+        {
+            Type = other.Type;
+            Performers = other.Performers;
+        }
+
+        public PerformerEvent Clone()
+        {
+            return new(this);
         }
     }
 

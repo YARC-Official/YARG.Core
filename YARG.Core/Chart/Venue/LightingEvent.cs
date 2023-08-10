@@ -1,9 +1,11 @@
+using System;
+
 namespace YARG.Core.Chart
 {
     /// <summary>
     /// A lighting event for the stage of a venue.
     /// </summary>
-    public class LightingEvent : VenueEvent
+    public class LightingEvent : VenueEvent, ICloneable<LightingEvent>
     {
         public LightingType Type { get; }
 
@@ -11,6 +13,16 @@ namespace YARG.Core.Chart
             : base(time, 0, tick, 0)
         {
             Type = type;
+        }
+
+        public LightingEvent(LightingEvent other) : base(other)
+        {
+            Type = other.Type;
+        }
+
+        public LightingEvent Clone()
+        {
+            return new(this);
         }
     }
 

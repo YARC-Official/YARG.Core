@@ -36,14 +36,26 @@ namespace YARG.Core.Chart
             Pad = pad;
             Type = noteType;
 
-            _drumFlags = drumFlags;
-            DrumFlags = drumFlags;
+            DrumFlags = _drumFlags = drumFlags;
+        }
+
+        public DrumNote(DrumNote other) : base(other)
+        {
+            Pad = other.Pad;
+            Type = other.Type;
+
+            DrumFlags = _drumFlags = other._drumFlags;
         }
 
         public override void ResetNoteState()
         {
             base.ResetNoteState();
             DrumFlags = _drumFlags;
+        }
+
+        public override DrumNote Clone()
+        {
+            return new(this);
         }
     }
 

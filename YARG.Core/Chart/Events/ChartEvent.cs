@@ -20,5 +20,10 @@ namespace YARG.Core.Chart
             Tick = tick;
             TickLength = tickLength;
         }
+
+        public ChartEvent(ChartEvent other)
+            : this(other.Time, other.TimeLength, other.Tick, other.TickLength)
+        {
+        }
     }
 }

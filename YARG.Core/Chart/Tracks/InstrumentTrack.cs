@@ -6,7 +6,7 @@ namespace YARG.Core.Chart
     /// <summary>
     /// An instrument track and all of its difficulties.
     /// </summary>
-    public class InstrumentTrack<TNote>
+    public class InstrumentTrack<TNote> : ICloneable<InstrumentTrack<TNote>>
         where TNote : Note<TNote>
     {
         public Instrument Instrument { get; }
@@ -22,6 +22,15 @@ namespace YARG.Core.Chart
             : this(instrument)
         {
             Difficulties = difficulties;
+        }
+
+        public InstrumentTrack(InstrumentTrack<TNote> other)
+            : this(other.Instrument)
+        {
+            foreach (var (difficulty, diffTrack) in other.Difficulties)
+            {
+                Difficulties.Add(difficulty, diffTrack.Clone());
+            }
         }
 
         public double GetStartTime()
@@ -66,6 +75,11 @@ namespace YARG.Core.Chart
             }
 
             return totalLastTick;
+        }
+
+        public InstrumentTrack<TNote> Clone()
+        {
+            return new(this);
         }
     }
 }
