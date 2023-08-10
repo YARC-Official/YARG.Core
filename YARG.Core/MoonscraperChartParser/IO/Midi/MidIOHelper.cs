@@ -296,11 +296,6 @@ namespace MoonscraperChartEditor.Song.IO
             #endregion
         };
 
-        public static readonly Dictionary<Regex, (Dictionary<string, string> lookup, VenueEvent.Type type, string defaultValue)> VENUE_EVENT_REGEX_TO_LOOKUP = new()
-        {
-            { LightingRegex,    (VENUE_LIGHTING_CONVERSION_LOOKUP, VenueEvent.Type.Lighting, VENUE_LIGHTING_DEFAULT) },
-        };
-
         public static readonly Dictionary<string, string> VENUE_LIGHTING_CONVERSION_LOOKUP = new()
         {
             #region Keyframed
@@ -332,6 +327,11 @@ namespace MoonscraperChartEditor.Song.IO
             { "strobe_slow",      VENUE_LIGHTING_STROBE_SLOW },
             { "sweep",            VENUE_LIGHTING_SWEEP },
             #endregion
+        };
+
+        public static readonly Dictionary<Regex, (Dictionary<string, string> lookup, VenueEvent.Type type, string defaultValue)> VENUE_EVENT_REGEX_TO_LOOKUP = new()
+        {
+            { LightingRegex,    (VENUE_LIGHTING_CONVERSION_LOOKUP, VenueEvent.Type.Lighting, VENUE_LIGHTING_DEFAULT) },
         };
 
         public static float GetHopoThreshold(ParseSettings settings, float resolution)
