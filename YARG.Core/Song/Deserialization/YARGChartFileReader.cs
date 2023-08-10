@@ -191,6 +191,8 @@ namespace YARG.Core.Song.Deserialization
             return true;
         }
 
+        private const int LOWER_CASE_MASK = ~32;
+
         public (long, ChartEvent) ParseEvent()
         {
             int start, length;
@@ -212,7 +214,7 @@ namespace YARG.Core.Song.Deserialization
             start = end;
             while (true)
             {
-                byte curr = (byte) (data[end] & ~32);
+                byte curr = (byte) (data[end] & LOWER_CASE_MASK);
                 if (curr < 'A' || 'Z' < curr)
                     break;
                 ++end;
@@ -253,7 +255,7 @@ namespace YARG.Core.Song.Deserialization
             while (GetDistanceToTrackCharacter(position, out int next))
             {
                 int point = position + next - 1;
-                while (point > position && data[point] <= 32 && data[point] != '\n')
+                while (point > position && YARGTXTReader_Base.IsWhitespace(data[point]) && data[point] != '\n')
                     --point;
 
                 if (data[point] == '\n')

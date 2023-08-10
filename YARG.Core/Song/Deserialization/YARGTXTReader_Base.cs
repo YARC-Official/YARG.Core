@@ -38,6 +38,12 @@ namespace YARG.Core.Song.Deserialization
 
         public abstract byte SkipWhiteSpace();
 
+        private const int SPACE_ASCII = 32;
+        public static bool IsWhitespace(byte b)
+        {
+            return b <= SPACE_ASCII;
+        }
+
         public bool IsEndOfFile()
         {
             return _position >= length;

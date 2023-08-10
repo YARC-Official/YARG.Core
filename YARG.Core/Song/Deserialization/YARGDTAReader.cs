@@ -30,11 +30,11 @@ namespace YARG.Core.Song.Deserialization
             while (_position < length)
             {
                 byte ch = data[_position];
-                if (ch > 32 && ch != ';')
+                if (!IsWhitespace(ch) && ch != ';')
                     return ch;
 
                 ++_position;
-                if (ch > 32)
+                if (!IsWhitespace(ch))
                 {
                     while (_position < length)
                     {
@@ -66,7 +66,7 @@ namespace YARG.Core.Song.Deserialization
             int start = _position;
             while (ch != '\'')
             {
-                if (ch <= 32)
+                if (IsWhitespace(ch))
                 {
                     if (hasApostrophe)
                         throw new Exception("Invalid name format");
@@ -116,7 +116,7 @@ namespace YARG.Core.Song.Deserialization
                     if (!inSquirley && !inQuotes)
                         throw new Exception("Text error - no apostrophes allowed");
                 }
-                else if (ch <= 32)
+                else if (IsWhitespace(ch))
                 {
                     if (inApostrophes)
                         throw new Exception("Text error - no whitespace allowed");
