@@ -9,8 +9,10 @@ namespace YARG.Core.Song.Cache
     public abstract class SongCategory<TKey>
         where TKey : IComparable<TKey>, IEquatable<TKey>
     {
-        protected readonly object elementLock = new();
-        protected readonly SortedDictionary<TKey, List<SongMetadata>> elements = new();
+        private readonly object elementLock = new();
+        private readonly SortedDictionary<TKey, List<SongMetadata>> _elements = new();
+
+        public SortedDictionary<TKey, List<SongMetadata>> Elements { get { return _elements; } }
 
         public abstract void Add(SongMetadata entry);
 
@@ -18,19 +20,17 @@ namespace YARG.Core.Song.Cache
         {
             lock (elementLock)
             {
-                if (!elements.TryGetValue(key, out var node))
+                if (!_elements.TryGetValue(key, out var node))
                 {
                     node = new();
-                    elements.Add(key, node);
+                    _elements.Add(key, node);
                 }
                 int index = node.BinarySearch(entry, comparer);
                 node.Insert(~index, entry);
             }
         }
 
-        public SortedDictionary<TKey, List<SongMetadata>>.Enumerator GetEnumerator() { return elements.GetEnumerator(); }
-
-        public abstract SortedDictionary<TKey, List<SongMetadata>> GetSongSelectionList();
+        public SortedDictionary<TKey, List<SongMetadata>>.Enumerator GetEnumerator() { return _elements.GetEnumerator(); }
     }
 
     [Serializable]
@@ -111,11 +111,6 @@ namespace YARG.Core.Song.Cache
         {
             Add(entry.GetStringAttribute(attribute), entry, comparer);
         }
-
-        public override SortedDictionary<SortString, List<SongMetadata>> GetSongSelectionList()
-        {
-            return elements;
-        }
     }
 
     [Serializable]
@@ -136,14 +131,6 @@ namespace YARG.Core.Song.Cache
             else
                 Add(char.ToUpper(character).ToString(), entry, comparer);
         }
-
-        public override SortedDictionary<string, List<SongMetadata>> GetSongSelectionList()
-        {
-            SortedDictionary<string, List<SongMetadata>> map = new();
-            foreach (var element in this)
-                map.Add(element.Key, element.Value);
-            return map;
-        }
     }
 
     [Serializable]
@@ -158,14 +145,6 @@ namespace YARG.Core.Song.Cache
             else
                 Add(entry.Year, entry, comparer);
         }
-
-        public override SortedDictionary<string, List<SongMetadata>> GetSongSelectionList()
-        {
-            SortedDictionary<string, List<SongMetadata>> map = new();
-            foreach (var element in this)
-                map.Add(element.Key, element.Value);
-            return map;
-        }
     }
 
     public class ArtistAlbumCategory : SongCategory<string>
@@ -175,11 +154,6 @@ namespace YARG.Core.Song.Cache
         {
             string key = $"{entry.Artist.Str} - {entry.Album.Str}";
             Add(key, entry, comparer);
-        }
-
-        public override SortedDictionary<string, List<SongMetadata>> GetSongSelectionList()
-        {
-            return elements;
         }
     }
 
@@ -200,11 +174,6 @@ namespace YARG.Core.Song.Cache
             };
 
             Add(key, entry, comparer);
-        }
-
-        public override SortedDictionary<string, List<SongMetadata>> GetSongSelectionList()
-        {
-            return elements;
         }
     }
 
@@ -281,11 +250,6 @@ namespace YARG.Core.Song.Cache
                     }
                 }
             }
-        }
-
-        public override SortedDictionary<SortString, List<SongMetadata>> GetSongSelectionList()
-        {
-            return elements;
         }
     }
 }
