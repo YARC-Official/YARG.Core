@@ -19,14 +19,14 @@ namespace YARG.Core.Song
 
         protected virtual void ParseText(ReadOnlySpan<byte> str) { }
 
-        public static bool Parse<Preparser>(YARGMidiReader reader)
-            where Preparser : MidiPreparser, new()
+        public static bool Parse<TPreparser>(YARGMidiReader reader)
+            where TPreparser : MidiPreparser, new()
         {
-            return Parse(new Preparser(), reader);
+            return Parse(new TPreparser(), reader);
         }
 
-        protected static bool Parse<Preparser>(Preparser preparser, YARGMidiReader reader)
-            where Preparser : MidiPreparser
+        protected static bool Parse<TPreparser>(TPreparser preparser, YARGMidiReader reader)
+            where TPreparser : MidiPreparser
         {
             bool complete = false;
             while (!complete && reader.TryParseEvent(ref preparser.currEvent))

@@ -9,8 +9,8 @@ namespace YARG.Core.Song.Cache
     {
         public byte[] SerializeEntries(Dictionary<SongMetadata, CategoryCacheWriteNode> nodes);
 
-        public static void SerializeGroups<Group>(List<Group> groups, BinaryWriter writer, Dictionary<SongMetadata, CategoryCacheWriteNode> nodes)
-            where Group : ICacheGroup
+        public static void SerializeGroups<TGroup>(List<TGroup> groups, BinaryWriter writer, Dictionary<SongMetadata, CategoryCacheWriteNode> nodes)
+            where TGroup : ICacheGroup
         {
             writer.Write(groups.Count);
             foreach (var group in groups)

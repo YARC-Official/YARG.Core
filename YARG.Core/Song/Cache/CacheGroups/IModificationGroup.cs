@@ -9,8 +9,8 @@ namespace YARG.Core.Song.Cache
     {
         public byte[] SerializeModifications();
 
-        public static void SerializeGroups<Group>(List<Group> groups, BinaryWriter writer)
-            where Group : IModificationGroup
+        public static void SerializeGroups<TGroup>(List<TGroup> groups, BinaryWriter writer)
+            where TGroup : IModificationGroup
         {
             writer.Write(groups.Count);
             foreach (var group in groups)

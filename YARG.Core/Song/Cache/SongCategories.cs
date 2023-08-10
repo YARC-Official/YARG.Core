@@ -5,15 +5,15 @@ using System.IO;
 
 namespace YARG.Core.Song.Cache
 {
-    public abstract class SongCategory<Key>
-        where Key : IComparable<Key>, IEquatable<Key>
+    public abstract class SongCategory<TKey>
+        where TKey : IComparable<TKey>, IEquatable<TKey>
     {
         protected readonly object elementLock = new();
-        protected readonly SortedDictionary<Key, List<SongMetadata>> elements = new();
+        protected readonly SortedDictionary<TKey, List<SongMetadata>> elements = new();
 
         public abstract void Add(SongMetadata entry);
 
-        protected void Add(Key key, SongMetadata entry, EntryComparer comparer)
+        protected void Add(TKey key, SongMetadata entry, EntryComparer comparer)
         {
             lock (elementLock)
             {
@@ -27,14 +27,14 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        public SortedDictionary<Key, List<SongMetadata>>.Enumerator GetEnumerator() { return elements.GetEnumerator(); }
+        public SortedDictionary<TKey, List<SongMetadata>>.Enumerator GetEnumerator() { return elements.GetEnumerator(); }
 
-        public abstract SortedDictionary<Key, List<SongMetadata>> GetSongSelectionList();
+        public abstract SortedDictionary<TKey, List<SongMetadata>> GetSongSelectionList();
     }
 
     [Serializable]
-    public abstract class SerializableCategory<Key> : SongCategory<Key>
-        where Key : IComparable<Key>, IEquatable<Key>
+    public abstract class SerializableCategory<TKey> : SongCategory<TKey>
+        where TKey : IComparable<TKey>, IEquatable<TKey>
     {
         protected readonly SongAttribute attribute;
         protected readonly EntryComparer comparer;

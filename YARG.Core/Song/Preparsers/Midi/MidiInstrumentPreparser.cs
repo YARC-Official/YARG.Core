@@ -42,15 +42,15 @@ namespace YARG.Core.Song
 
         protected void Validate(int diffIndex) { validations |= 1 << diffIndex; }
 
-        public new static byte Parse<Preparser>(YARGMidiReader reader)
-            where Preparser : MidiInstrumentPreparser, new()
+        public new static byte Parse<TPreparser>(YARGMidiReader reader)
+            where TPreparser : MidiInstrumentPreparser, new()
         {
-            Preparser preparser = new();
+            TPreparser preparser = new();
             return Parse(preparser, reader);
         }
 
-        public new static byte Parse<Preparser>(Preparser preparser, YARGMidiReader reader)
-            where Preparser : MidiInstrumentPreparser
+        public new static byte Parse<TPreparser>(TPreparser preparser, YARGMidiReader reader)
+            where TPreparser : MidiInstrumentPreparser
         {
             MidiPreparser.Parse(preparser, reader);
             return (byte) preparser.validations;
