@@ -28,6 +28,7 @@ namespace YARG.Core.Song.Cache
             iniGroups = new(baseDirectories.Length);
             for (int i = 0; i < baseDirectories.Length; ++i)
                 iniGroups.Add(new(baseDirectories[i]));
+            cache = new(multithreading);
         }
 
         public SongCache RunScan(bool fast)
@@ -76,7 +77,7 @@ namespace YARG.Core.Song.Cache
         static CacheHandler() { }
 
 
-        private readonly SongCache cache = new();
+        private readonly SongCache cache;
         private int _count;
 
         private readonly List<UpdateGroup> updateGroups = new();
@@ -169,6 +170,7 @@ namespace YARG.Core.Song.Cache
                         cache.sources.Add(entry);
                         cache.artistAlbums.Add(entry);
                         cache.songLengths.Add(entry);
+                        cache.instruments.Add(entry);
                     }
                 });
             }
@@ -188,6 +190,7 @@ namespace YARG.Core.Song.Cache
                         cache.sources.Add(entry);
                         cache.artistAlbums.Add(entry);
                         cache.songLengths.Add(entry);
+                        cache.instruments.Add(entry);
                     }
                 }
             }

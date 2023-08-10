@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace YARG.Core.Song.Cache
 {
@@ -202,6 +203,87 @@ namespace YARG.Core.Song.Cache
         }
 
         public override SortedDictionary<string, List<SongMetadata>> GetSongSelectionList()
+        {
+            return elements;
+        }
+    }
+
+    public class InstrumentCategory : SongCategory<SortString>
+    {
+        private static readonly InstrumentComparer FiveFretGuitarComparer   = new(Instrument.FiveFretGuitar);
+        private static readonly InstrumentComparer FiveFretBassComparer     = new(Instrument.FiveFretBass);
+        private static readonly InstrumentComparer FiveFretRhythmComparer   = new(Instrument.FiveFretRhythm);
+        private static readonly InstrumentComparer FiveFretCoopComparer     = new(Instrument.FiveFretCoopGuitar);
+        private static readonly InstrumentComparer SixFretGuitarComparer    = new(Instrument.SixFretGuitar);
+        private static readonly InstrumentComparer SixFretBassComparer      = new(Instrument.SixFretBass);
+        private static readonly InstrumentComparer SixFretRhythmComparer    = new(Instrument.SixFretRhythm);
+        private static readonly InstrumentComparer SixFretCoopComparer      = new(Instrument.SixFretCoopGuitar);
+        private static readonly InstrumentComparer KeysComparer             = new(Instrument.Keys);
+        private static readonly InstrumentComparer FourLaneDrumComparer     = new(Instrument.FourLaneDrums);
+        private static readonly InstrumentComparer ProDrumComparer          = new(Instrument.ProDrums);
+        private static readonly InstrumentComparer FiveLaneDrumComparer     = new(Instrument.FiveLaneDrums);
+        private static readonly InstrumentComparer VocalsComparer           = new(Instrument.Vocals);
+        private static readonly InstrumentComparer HarmonyComparer          = new(Instrument.Harmony);
+        private static readonly InstrumentComparer ProGuitar_17FretComparer = new(Instrument.ProGuitar_17Fret);
+        private static readonly InstrumentComparer ProGuitar_22FretComparer = new(Instrument.ProGuitar_22Fret);
+        private static readonly InstrumentComparer ProBass_17FretComparer   = new(Instrument.ProBass_17Fret);
+        private static readonly InstrumentComparer ProBass_22FretComparer   = new(Instrument.ProBass_22Fret);
+        private static readonly InstrumentComparer ProKeysComparer          = new(Instrument.ProKeys);
+
+        private static readonly InstrumentComparer[] comparers =
+        {
+            FiveFretGuitarComparer,
+            FiveFretBassComparer,
+            FiveFretRhythmComparer,
+            FiveFretCoopComparer,
+            SixFretGuitarComparer,
+            SixFretBassComparer,
+            SixFretRhythmComparer,
+            SixFretCoopComparer,
+            KeysComparer,
+            FourLaneDrumComparer,
+            ProDrumComparer,
+            FiveLaneDrumComparer,
+            VocalsComparer,
+            HarmonyComparer,
+            ProGuitar_17FretComparer,
+            ProGuitar_22FretComparer,
+            ProBass_17FretComparer,
+            ProBass_22FretComparer,
+            ProKeysComparer,
+        };
+
+        private readonly bool multithreading;
+        public InstrumentCategory(bool multithreading)
+        {
+            this.multithreading = multithreading;
+        }
+
+        public override void Add(SongMetadata entry)
+        {
+            if (multithreading)
+            {
+                Parallel.ForEach(comparers, comparer =>
+                {
+                    if (entry.Parts.HasInstrument(comparer.instrument))
+                    {
+                        Add(comparer.instrument.ToString(), entry, comparer);
+                    }
+                });
+            }
+            else
+            {
+                foreach (var comparer in comparers)
+                {
+                    if (entry.Parts.HasInstrument(comparer.instrument))
+                    {
+                        Add(comparer.instrument.ToString(), entry, comparer);
+                    }
+                }
+            }
+        }
+
+        public override SortedDictionary<SortString, List<SongMetadata>> GetSongSelectionList()
         {
             return elements;
         }

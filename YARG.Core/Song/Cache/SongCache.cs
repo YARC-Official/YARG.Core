@@ -16,6 +16,8 @@ namespace YARG.Core.Song.Cache
         public readonly ArtistAlbumCategory artistAlbums = new();
         [NonSerialized]
         public readonly SongLengthCategory songLengths = new();
+        [NonSerialized]
+        public readonly InstrumentCategory instruments;
 
         public readonly NormalCategory artists = new(SongAttribute.Artist);
         public readonly NormalCategory albums = new(SongAttribute.Album);
@@ -23,5 +25,10 @@ namespace YARG.Core.Song.Cache
         public readonly NormalCategory charters = new(SongAttribute.Charter);
         public readonly NormalCategory playlists = new(SongAttribute.Playlist);
         public readonly NormalCategory sources = new(SongAttribute.Source);
+
+        public SongCache(bool multithreading)
+        {
+            instruments = new(multithreading);
+        }
     }
 }

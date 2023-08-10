@@ -16,6 +16,7 @@ namespace YARG.Core.Song
         Playlist,
         Source,
         SongLength,
+        Instrument,
     };
 
     public sealed partial class SongMetadata
@@ -86,6 +87,37 @@ namespace YARG.Core.Song
                 return strCmp < 0;
             else
                 return lhs.Directory.CompareTo(rhs.Directory) < 0;
+        }
+    }
+
+    public class InstrumentComparer : EntryComparer
+    {
+        public readonly Instrument instrument;
+        public InstrumentComparer(Instrument instrument) : base(SongAttribute.Unspecified)
+        {
+            this.instrument = instrument;
+        }
+
+        public new int Compare(SongMetadata lhs, SongMetadata rhs)
+        {
+            var lhsValues = lhs.Parts.GetValues(instrument);
+            var rhsValues = rhs.Parts.GetValues(instrument);
+
+            // This function only gets called if both entries have the instrument
+            // That check is not necessary
+            if (lhsValues.intensity < rhsValues.intensity)
+                return -1;
+
+            if (lhsValues.intensity > rhsValues.intensity)
+                return 1;
+
+            if (lhsValues.subTracks > rhsValues.subTracks)
+                return -1;
+
+            if (lhsValues.subTracks < rhsValues.subTracks)
+                return 1;
+
+            return base.Compare(lhs, rhs);
         }
     }
 }
