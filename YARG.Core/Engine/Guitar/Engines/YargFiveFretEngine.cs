@@ -216,6 +216,12 @@ namespace YARG.Core.Engine.Guitar.Engines
                     return false;
                 }
 
+                // Skipping hopos or taps not allowed if its the first note
+                if ((note.IsHopo || note.IsTap) && State.NoteIndex == 0)
+                {
+                    return false;
+                }
+
                 var next = note.NextNote;
                 while (next is not null)
                 {
