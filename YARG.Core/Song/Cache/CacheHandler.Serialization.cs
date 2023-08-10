@@ -120,7 +120,7 @@ namespace YARG.Core.Song.Cache
         private bool Deserialize_Quick()
         {
             Progress = ScanProgress.LoadingCache;
-            var stream = CheckCacheFile();
+            using var stream = CheckCacheFile();
             if (stream == null)
                 return false;
 
