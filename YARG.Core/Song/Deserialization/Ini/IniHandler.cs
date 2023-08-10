@@ -10,16 +10,24 @@ namespace YARG.Core.Song.Deserialization.Ini
     {
         public static Dictionary<string, IniSection> ReadIniFile(string iniFile, Dictionary<string, Dictionary<string, IniModifierCreator>> sections)
         {
-            YARGIniReader reader = new(iniFile);
-            Dictionary<string, IniSection> modifierMap = new();
-            while (reader.IsStartOfSection())
+            try
             {
-                if (sections.TryGetValue(reader.Section, out var nodes))
-                    modifierMap[reader.Section] = reader.ExtractModifiers(ref nodes);
-                else
-                    reader.SkipSection();
+                YARGIniReader reader = new(iniFile);
+                Dictionary<string, IniSection> modifierMap = new();
+                while (reader.IsStartOfSection())
+                {
+                    if (sections.TryGetValue(reader.Section, out var nodes))
+                        modifierMap[reader.Section] = reader.ExtractModifiers(ref nodes);
+                    else
+                        reader.SkipSection();
+                }
+                return modifierMap;
             }
-            return modifierMap;
+            catch (Exception ex)
+            {
+                YargTrace.LogException(ex, ex.Message);
+                return new();
+            }
         }
 
         private static readonly Dictionary<string, Dictionary<string, IniModifierCreator>> SONG_INI_DICTIONARY = new();

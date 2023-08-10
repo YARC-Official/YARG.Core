@@ -226,7 +226,17 @@ namespace YARG.Core.Song
             var chartType = IniSubmetadata.CHART_FILE_TYPES[chartTypeIndex].Item2;
             DrumPreparseType drumType = default;
             if (chartType == ChartType.Chart)
-                drumType = ParseChart(file, modifiers, parts);
+            {
+                try
+                {
+                    drumType = ParseChart(file, modifiers, parts);
+                }
+                catch(Exception ex)
+                {
+                    YargTrace.LogException(ex, ex.Message);
+                    return (ScanResult.InvalidDotChartEncoding, null);
+                }
+            }
 
             if (!modifiers.Contains("name"))
                 return (ScanResult.NoName, null);

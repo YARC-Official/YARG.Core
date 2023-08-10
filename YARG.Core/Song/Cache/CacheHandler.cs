@@ -210,6 +210,9 @@ namespace YARG.Core.Song.Cache
                     case ScanResult.DirectoryError:
                         writer.WriteLineAsync("Error accessing directory contents");
                         break;
+                    case ScanResult.InvalidDotChartEncoding:
+                        writer.WriteLineAsync(".chart file must utilize UTF-8 encoding");
+                        break;
                     case ScanResult.IniEntryCorruption:
                         writer.WriteLineAsync("Corruption of either the ini file or chart/mid file");
                         break;

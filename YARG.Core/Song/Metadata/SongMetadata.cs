@@ -9,6 +9,7 @@ namespace YARG.Core.Song
     {
         Success,
         DirectoryError,
+        InvalidDotChartEncoding,
         IniEntryCorruption,
         NoName,
         NoNotes,

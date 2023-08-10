@@ -7,14 +7,29 @@ namespace YARG.Core.Song.Deserialization
 {
     public class YARGTXTReader : YARGTXTReader_Base
     {
-        internal static readonly byte[] BOM = { 0xEF, 0xBB, 0xBF };
+        internal static readonly byte[] BOM_UTF8 = { 0xEF, 0xBB, 0xBF };
+        internal static readonly byte[] BOM_OTHER = { 0xFE, 0xFF };
         internal static readonly UTF8Encoding UTF8 = new(true, true);
         static YARGTXTReader() { }
 
 #nullable enable
         public YARGTXTReader(byte[] data) : base(data)
         {
-            if (new ReadOnlySpan<byte>(data, 0, 3).SequenceEqual(BOM))
+            /*
+             * "A protocol SHOULD forbid use of U+FEFF as a signature for those
+             * textual protocol elements that the protocol mandates to be always UTF-8,
+             * the signature function being totally useless in those cases."
+             * https://datatracker.ietf.org/doc/html/rfc3629
+             * 
+             * True reasoning: Other than some text events, the main usecase for .chart is the to hold note information.
+             * That leads to a lot of basic ASCII characters, tabs/spaces, newlines, and especially digits.
+             * Anything other than UTF-8 (or extended ASCII) just needlessly over bloats filesize.
+             * Therefore, we should actively discourage/disallow their usage.
+             */
+            if (data[0] == BOM_OTHER[0] && data[1] == BOM_OTHER[1])
+                throw new Exception("Forbidden encoding");
+
+            if (data[0] == BOM_UTF8[0] && data[1] == BOM_UTF8[1] && data[2] == BOM_UTF8[2])
                 _position += 3;
 
             SkipWhiteSpace();
