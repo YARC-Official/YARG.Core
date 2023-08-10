@@ -29,29 +29,24 @@ namespace YARG.Core.Song
             return false;
         }
 
+        private const int KEYS_MAX = 5;
+        private const int GUITAR_FIVEFRET_MAX = 5;
+        private const int OPEN_NOTE = 7;
+        private const int SIX_FRET_BLACK1 = 8;
+        
         public static bool ValidateKeys(int lane)
         {
-            return lane < 5;
+            return lane < KEYS_MAX;
         }
 
         public static bool ValidateSixFret(int lane)
         {
-            return lane < 5 || lane == 8 || lane == 7;
+            return lane < GUITAR_FIVEFRET_MAX || lane == SIX_FRET_BLACK1 || lane == OPEN_NOTE;
         }
 
         public static bool ValidateFiveFret(int lane)
         {
-            return lane < 5 || lane == 7;
-        }
-
-        public static bool ValidateFiveLaneDrums(int lane)
-        {
-            return lane < 6;
-        }
-
-        public static bool ValidateFourLaneProDrums(int lane)
-        {
-            return lane < 5;
+            return lane < GUITAR_FIVEFRET_MAX || lane == OPEN_NOTE;
         }
     }
 }
