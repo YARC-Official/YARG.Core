@@ -410,16 +410,14 @@ namespace YARG.Core.Engine.Guitar.Engines
                     i--;
                     OnSustainEnd?.Invoke(note, State.CurrentTime);
                 }
-                else
+            }
+
+            if (isStarPowerSustainActive && CurrentInput.GetAction<GuitarAction>() == GuitarAction.Whammy)
+            {
+                EngineStats.StarPowerAmount += (State.CurrentTick - State.LastTick) / (double)State.TicksEveryEightMeasures;
+                if (EngineStats.StarPowerAmount >= 1)
                 {
-                    if (isStarPowerSustainActive && CurrentInput.GetAction<GuitarAction>() == GuitarAction.Whammy)
-                    {
-                        EngineStats.StarPowerAmount += (State.CurrentTick - State.LastTick) / (double)State.TicksEveryEightMeasures;
-                        if (EngineStats.StarPowerAmount >= 1)
-                        {
-                            EngineStats.StarPowerAmount = 1;
-                        }
-                    }
+                    EngineStats.StarPowerAmount = 1;
                 }
             }
         }
