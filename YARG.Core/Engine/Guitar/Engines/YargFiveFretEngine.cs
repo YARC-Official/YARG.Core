@@ -89,45 +89,51 @@ namespace YARG.Core.Engine.Guitar.Engines
                 State.TapButtonMask = 0;
             }
 
-            if (State.NoteIndex >= Notes.Count)
-            {
-                return false;
-            }
-
-            var note = Notes[State.NoteIndex];
-
-            if (isFretInput)
-            {
-                // Check for fret ghosting
-                // We want to run ghost logic regardless of the setting for the ghost counter
-                if (note.PreviousNote is not null && !State.WasNoteGhosted &&
-                    CheckForGhostInput(note))
-                {
-                    if (EngineParameters.AntiGhosting)
-                    {
-                        State.WasNoteGhosted = true;
-                        EngineStats.GhostInputs++;
-                    }
-                }
-            }
-
-            // Update strum leniency if strummed this update
+            // This is up here so overstrumming still works when there are no notes left
             if (State.StrummedThisUpdate)
             {
+                // Strummed while strum leniency active
                 if (IsTimerActive(State.CurrentTime, State.StrumLeniencyStartTime, EngineParameters.StrumLeniency))
                 {
                     Overstrum();
                 }
 
-                //State.StrumLeniencyStartTime = CurrentTime;
-                if (IsNoteInWindow(note))
+                // Use small leniency (in case no notes in window or last note)
+                double diff = Math.Abs(EngineParameters.StrumLeniency - EngineParameters.StrumLeniencySmall);
+                State.StrumLeniencyStartTime = State.CurrentTime - diff;
+            }
+
+            // Quits early if there are no notes left
+            if (State.NoteIndex >= Notes.Count)
+            {
+                UpdateSustains();
+                return false;
+            }
+
+            var note = Notes[State.NoteIndex];
+
+            // Set strum leniency to full leniency time if not is in window
+            if (State.StrummedThisUpdate && IsNoteInWindow(note))
+            {
+                State.StrumLeniencyStartTime = State.CurrentTime;
+            }
+
+            if (isFretInput)
+            {
+                // Check for fret ghosting
+                // We want to run ghost logic regardless of the setting for the ghost counter
+                if (note.PreviousNote is not null)
                 {
-                    State.StrumLeniencyStartTime = State.CurrentTime;
-                }
-                else
-                {
-                    double diff = Math.Abs(EngineParameters.StrumLeniency - EngineParameters.StrumLeniencySmall);
-                    State.StrumLeniencyStartTime = State.CurrentTime - diff;
+                    bool ghosted = CheckForGhostInput(note);
+
+                    // This variable controls hit logic for ghosting
+                    State.WasNoteGhosted = EngineParameters.AntiGhosting && (ghosted || State.WasNoteGhosted);
+
+                    // Add ghost inputs to stats regardless of the setting for anti ghosting
+                    if (ghosted)
+                    {
+                        EngineStats.GhostInputs++;
+                    }
                 }
             }
 

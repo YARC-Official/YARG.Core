@@ -55,6 +55,32 @@ namespace YARG.Core.Engine.Guitar
 
         protected virtual void Overstrum()
         {
+            // Can't overstrum before first note is hit/missed
+            if (State.NoteIndex == 0)
+            {
+                return;
+            }
+
+            // Cancel overstrum if past last note and no active sustains
+            if (State.NoteIndex >= Chart.Notes.Count - 1 && ActiveSustains.Count == 0)
+            {
+                return;
+            }
+
+            // Break all active sustains
+            for (int i = 0; i < ActiveSustains.Count; i++)
+            {
+                var note = ActiveSustains[i];
+                ActiveSustains.Remove(note);
+                i--;
+                OnSustainEnd?.Invoke(note, State.CurrentTime);
+            }
+
+            if (State.NoteIndex < Notes.Count)
+            {
+                StripStarPower(Notes[State.NoteIndex]);
+            }
+
             EngineStats.Combo = 0;
             EngineStats.Overstrums++;
 
@@ -198,6 +224,12 @@ namespace YARG.Core.Engine.Guitar
 
         protected override void StripStarPower(GuitarNote note)
         {
+            note.Flags &= ~NoteFlags.StarPower;
+            foreach (var childNote in note.ChildNotes)
+            {
+                childNote.Flags &= ~NoteFlags.StarPower;
+            }
+
             var prevNote = note.PreviousNote;
             while (prevNote is not null && prevNote.IsStarPower)
             {
@@ -207,7 +239,7 @@ namespace YARG.Core.Engine.Guitar
                     childNote.Flags &= ~NoteFlags.StarPower;
                 }
 
-                if (prevNote.IsStarPowerStart)
+                if (prevNote.IsStarPowerStart || prevNote.IsStarPowerEnd)
                 {
                     break;
                 }
@@ -224,7 +256,7 @@ namespace YARG.Core.Engine.Guitar
                     childNote.Flags &= ~NoteFlags.StarPower;
                 }
 
-                if (nextNote.IsStarPowerEnd)
+                if (nextNote.IsStarPowerStart || nextNote.IsStarPowerEnd)
                 {
                     break;
                 }
