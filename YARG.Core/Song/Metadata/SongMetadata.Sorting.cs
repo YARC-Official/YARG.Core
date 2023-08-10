@@ -44,7 +44,7 @@ namespace YARG.Core.Song
 
         public EntryComparer(SongAttribute attribute) { this.attribute = attribute; }
 
-        public int Compare(SongMetadata lhs, SongMetadata rhs) { return IsLowerOrdered(lhs, rhs) ? -1 : 1; }
+        public virtual int Compare(SongMetadata lhs, SongMetadata rhs) { return IsLowerOrdered(lhs, rhs) ? -1 : 1; }
 
         protected bool IsLowerOrdered(SongMetadata lhs, SongMetadata rhs)
         {
@@ -98,7 +98,7 @@ namespace YARG.Core.Song
             this.instrument = instrument;
         }
 
-        public new int Compare(SongMetadata lhs, SongMetadata rhs)
+        public override int Compare(SongMetadata lhs, SongMetadata rhs)
         {
             var lhsValues = lhs.Parts.GetValues(instrument);
             var rhsValues = rhs.Parts.GetValues(instrument);
