@@ -152,7 +152,7 @@ namespace YARG.Core.Song.Cache
 
         public override void Add(SongMetadata entry)
         {
-            if (entry.YearAsNumber != 0)
+            if (entry.YearAsNumber != int.MaxValue)
                 Add(entry.Year[..3] + "0s", entry, comparer);
             else
                 Add(entry.Year, entry, comparer);
