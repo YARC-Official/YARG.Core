@@ -204,7 +204,7 @@ namespace YARG.Core.Song.Deserialization
 
             long position = reader.ReadInt64();
             if (position < tickPosition)
-                throw new Exception($".Cht/.Chart position out of order (previous: {tickPosition})");
+                throw new Exception($".chart position out of order (previous: {tickPosition})");
 
             tickPosition = position;
 
