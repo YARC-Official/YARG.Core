@@ -105,12 +105,13 @@ namespace YARG.Core.Song
 
             // This function only gets called if both entries have the instrument
             // That check is not necessary
-            if (lhsValues.intensity < rhsValues.intensity)
-                return -1;
-
-            if (lhsValues.intensity > rhsValues.intensity)
+            if (lhsValues.intensity != rhsValues.intensity)
+            {
+                if (lhsValues.intensity != -1 && (rhsValues.intensity == -1 || lhsValues.intensity < rhsValues.intensity))
+                    return -1;
                 return 1;
-
+            }
+            
             if (lhsValues.subTracks > rhsValues.subTracks)
                 return -1;
 
