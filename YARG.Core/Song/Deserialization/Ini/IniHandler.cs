@@ -85,7 +85,7 @@ namespace YARG.Core.Song.Deserialization.Ini
                 { "drum_fallback_blue",                   new("drum_fallback_blue", ModifierCreatorType.Bool) },
 
                 //{ "early_hit_window_size",                new("early_hit_window_size", ModifierCreatorType.String) },
-                { "eighthnote_hopo",                      new("eighthnote_hopo", ModifierCreatorType.UInt32) },
+                { "eighthnote_hopo",                      new("eighthnote_hopo", ModifierCreatorType.Bool) },
                 { "end_events",                           new("end_events", ModifierCreatorType.Bool) },
                 //{ "eof_midi_import_drum_accent_velocity", new("eof_midi_import_drum_accent_velocity", ModifierCreatorType.UInt16) },
                 //{ "eof_midi_import_drum_ghost_velocity",  new("eof_midi_import_drum_ghost_velocity", ModifierCreatorType.UInt16) },
