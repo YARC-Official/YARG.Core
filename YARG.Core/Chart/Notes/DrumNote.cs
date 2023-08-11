@@ -53,7 +53,7 @@ namespace YARG.Core.Chart
             DrumFlags = _drumFlags;
         }
 
-        public override DrumNote Clone()
+        protected override DrumNote CloneNote()
         {
             return new(this);
         }

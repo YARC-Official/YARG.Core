@@ -56,7 +56,7 @@ namespace YARG.Core.Chart
             ProFlags = _proFlags;
         }
 
-        public override ProGuitarNote Clone()
+        protected override ProGuitarNote CloneNote()
         {
             return new(this);
         }

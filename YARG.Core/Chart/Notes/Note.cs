@@ -155,6 +155,8 @@ namespace YARG.Core.Chart
             return mask;
         }
 
+        protected abstract TNote CloneNote();
+
         /// <summary>
         /// Creates a copy of this note with the same set of values.
         /// </summary>
@@ -162,6 +164,15 @@ namespace YARG.Core.Chart
         /// NOTE: Next/previous references and changes in state are not preserved,
         /// notes are re-created from scratch.
         /// </remarks>
-        public abstract TNote Clone();
+        public TNote Clone()
+        {
+            var newNote = CloneNote();
+            foreach (var child in _childNotes)
+            {
+                newNote.AddChildNote(child.CloneNote());
+            }
+
+            return newNote;
+        }
     }
 }

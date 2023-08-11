@@ -75,7 +75,7 @@ namespace YARG.Core.Chart
             SustainTicksHeld = 0;
         }
 
-        public override GuitarNote Clone()
+        protected override GuitarNote CloneNote()
         {
             return new(this);
         }

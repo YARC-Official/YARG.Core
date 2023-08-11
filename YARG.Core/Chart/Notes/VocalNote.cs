@@ -143,7 +143,7 @@ namespace YARG.Core.Chart
             TotalTickLength = _childNotes[^1].TickEnd - Tick;
         }
 
-        public override VocalNote Clone()
+        protected override VocalNote CloneNote()
         {
             return new(this);
         }
