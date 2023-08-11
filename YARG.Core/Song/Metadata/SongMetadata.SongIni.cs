@@ -149,7 +149,7 @@ namespace YARG.Core.Song
 
             section.TryGet("eighthnote_hopo", out bool eighthNoteHopo);
 
-            if (!section.TryGet("hopofreq", out long susCutoffThreshold))
+            if (!section.TryGet("sustain_cutoff_threshold", out long susCutoffThreshold))
                 susCutoffThreshold = -1;
 
             if (!section.TryGet("multiplier_note", out int starPowerNote))
