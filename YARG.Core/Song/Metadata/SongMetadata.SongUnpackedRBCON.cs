@@ -21,14 +21,13 @@ namespace YARG.Core.Song
 
             public DateTime MidiLastWrite => Midi.LastWriteTime;
 
-            public RBUnpackedCONMetadata(string folder, AbridgedFileInfo dta, RBCONSubMetadata metadata, string nodeName, string location, string midiPath)
+            public RBUnpackedCONMetadata(string folder, AbridgedFileInfo dta, RBCONSubMetadata metadata, string nodeName)
             {
                 _metadata = metadata;
                 DTA = dta;
-                string file = Path.Combine(folder, location);
-
-                if (midiPath == string.Empty)
-                    midiPath = file + ".mid";
+                folder = Path.Combine(folder, nodeName);
+                string file = Path.Combine(folder, nodeName);
+                string midiPath = file + ".mid";
 
                 FileInfo midiInfo = new(midiPath);
                 if (!midiInfo.Exists)
@@ -38,10 +37,7 @@ namespace YARG.Core.Song
                 FileInfo mogg = new(file + ".yarg_mogg");
                 metadata.Mogg = mogg.Exists ? mogg : new AbridgedFileInfo(file + ".mogg");
 
-                if (!location.StartsWith($"songs/{nodeName}"))
-                    nodeName = location.Split('/')[1];
-
-                file = Path.Combine(folder, $"songs/{nodeName}/gen/{nodeName}");
+                file = Path.Combine(folder, "gen", nodeName);
                 metadata.Milo = new(file + ".milo_xbox");
                 metadata.Image = new(file + "_keep.png_xbox");
                 metadata.Directory = Path.GetDirectoryName(midiPath)!;
@@ -106,15 +102,10 @@ namespace YARG.Core.Song
 
             public byte[]? LoadMoggFile()
             {
-                //if (Yarg_Mogg != null)
-                //{
-                //    // ReSharper disable once MustUseReturnValue
-                //    return new YARGFile(YargMoggReadStream.DecryptMogg(Yarg_Mogg.FullName));
-                //}
-
-                if (_metadata.Mogg == null || !File.Exists(_metadata.Mogg.FullName))
+                using var stream = _metadata.GetMoggStream();
+                if (stream == null)
                     return null;
-                return File.ReadAllBytes(_metadata.Mogg.FullName);
+                return stream.ReadBytes((int) stream.Length);
             }
 
             public byte[]? LoadMiloFile()
@@ -131,22 +122,14 @@ namespace YARG.Core.Song
                 return File.ReadAllBytes(_metadata.Image.FullName);
             }
 
-            public bool IsMoggUnencrypted()
+            public bool IsMoggValid()
             {
-                //if (Yarg_Mogg != null)
-                //{
-                //    if (!File.Exists(Yarg_Mogg.FullName))
-                //        throw new Exception("YARG Mogg file not present");
-                //    return YargMoggReadStream.GetVersionNumber(Yarg_Mogg.FullName) == 0xF0;
-                //}
-                //else
-                if (_metadata.Mogg == null || !File.Exists(_metadata.Mogg.FullName))
+                using var stream = _metadata.GetMoggStream();
+                if (stream == null)
                     return false;
 
-                using var fs = new FileStream(_metadata.Mogg.FullName, FileMode.Open, FileAccess.Read);
-                byte[] buffer = new byte[4];
-                fs.Read(buffer);
-                return BinaryPrimitives.ReadInt32LittleEndian(buffer) == 0x0A;
+                int version = stream.ReadInt32LE();
+                return version == 0x0A || version == 0xf0;
             }
         }
 
@@ -154,8 +137,8 @@ namespace YARG.Core.Song
         {
             RBCONSubMetadata rbMetadata = new();
 
-            var dtaResults = ParseDTA(nodeName, rbMetadata, reader);
-            _rbData = new RBUnpackedCONMetadata(folder, dta, rbMetadata, nodeName, dtaResults.location, dtaResults.midiPath);
+            ParseDTA(nodeName, rbMetadata, reader);
+            _rbData = new RBUnpackedCONMetadata(folder, dta, rbMetadata, nodeName);
             _directory = rbMetadata.Directory;
         }
 

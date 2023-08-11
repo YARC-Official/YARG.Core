@@ -223,6 +223,16 @@ namespace YARG.Core.Song
                     return null;
                 return File.ReadAllBytes(UpdateMidi.FullName);
             }
+
+            public Stream? GetMoggStream()
+            {
+                if (Mogg == null || !File.Exists(Mogg.FullName))
+                    return null;
+
+                if (Mogg.FullName.EndsWith(".yarg_mogg"))
+                    return new YargMoggReadStream(Mogg.FullName);
+                return new FileStream(Mogg.FullName, FileMode.Open, FileAccess.Read);
+            }
         }
 
         public interface IRBCONMetadata
@@ -233,7 +243,7 @@ namespace YARG.Core.Song
             public byte[]? LoadMoggFile();
             public byte[]? LoadMiloFile();
             public byte[]? LoadImgFile();
-            public bool IsMoggUnencrypted();
+            public bool IsMoggValid();
             public void Serialize(BinaryWriter writer);
         }
 
@@ -264,7 +274,7 @@ namespace YARG.Core.Song
                 return ScanResult.NoName;
             }
 
-            if (!_rbData.IsMoggUnencrypted())
+            if (!_rbData.IsMoggValid())
             {
                 return ScanResult.MoggError;
             }

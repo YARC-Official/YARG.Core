@@ -24,7 +24,6 @@ namespace YARG.Core.Song
             _playlistTrack = reader.ReadInt32();
             _songLength = reader.ReadUInt64();
             _chartOffset = reader.ReadInt64();
-            _icon = reader.ReadLEBString();
             _loadingPhrase = reader.ReadLEBString();
 
             _parseSettings = new()
@@ -59,7 +58,6 @@ namespace YARG.Core.Song
             writer.Write(_playlistTrack);
             writer.Write(_songLength);
             writer.Write(_chartOffset);
-            writer.Write(_icon);
             writer.Write(_loadingPhrase);
 
             writer.Write(_parseSettings.HopoThreshold);

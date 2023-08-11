@@ -125,7 +125,6 @@ namespace YARG.Core.Song
         private string _directory = string.Empty;
 
         private string _loadingPhrase = string.Empty;
-        private string _icon = string.Empty;
 
         private bool _isMaster = true;
 

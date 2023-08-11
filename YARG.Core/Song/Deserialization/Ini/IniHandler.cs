@@ -99,7 +99,7 @@ namespace YARG.Core.Song.Deserialization.Ini
                 { "hopo_frequency",                       new("hopo_frequency", ModifierCreatorType.Int64) },
                 { "hopofreq",                             new("hopofreq", ModifierCreatorType.Int32) },
 
-                { "icon",                                 new("icon", ModifierCreatorType.String) },
+                { "icon",                                 new("icon", ModifierCreatorType.SortString) },
 
                 { "keys_type",                            new("keys_type", ModifierCreatorType.UInt32) },
                 { "kit_type",                             new("kit_type", ModifierCreatorType.UInt32) },
