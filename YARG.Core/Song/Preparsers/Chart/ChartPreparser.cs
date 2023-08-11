@@ -8,7 +8,7 @@ namespace YARG.Core.Song
 {
     public static class ChartPreparser
     {
-        public static bool Preparse(YARGChartFileReader reader, ref PartValues scan, Func<int, bool> func)
+        public static bool Preparse(IYARGChartReader reader, ref PartValues scan, Func<int, bool> func)
         {
             int index = reader.Difficulty;
             if (scan[index])

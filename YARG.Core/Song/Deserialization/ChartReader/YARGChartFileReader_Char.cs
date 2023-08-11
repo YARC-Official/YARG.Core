@@ -1,113 +1,87 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using YARG.Core.Song.Deserialization.Ini;
 
 namespace YARG.Core.Song.Deserialization
 {
-    public enum ChartEvent
+    public sealed class YARGChartFileReader_Char : IYARGChartReader
     {
-        BPM,
-        TIME_SIG,
-        ANCHOR,
-        EVENT,
-        NOTE,
-        SPECIAL,
-        UNKNOWN = 255,
-    }
-
-    public enum NoteTracks_Chart
-    {
-        Single,
-        DoubleGuitar,
-        DoubleBass,
-        DoubleRhythm,
-        Drums,
-        Keys,
-        GHLGuitar,
-        GHLBass,
-        GHLRhythm,
-        GHLCoop,
-        Invalid,
-    };
-
-    public sealed class YARGChartFileReader
-    {
-        internal struct EventCombo
+        private struct EventCombo
         {
-            public byte[] descriptor;
+            public string descriptor;
             public ChartEvent eventType;
-            public EventCombo(byte[] bytes, ChartEvent chartEvent)
+            public EventCombo(string str, ChartEvent chartEvent)
             {
-                descriptor = bytes;
+                descriptor = str;
                 eventType = chartEvent;
             }
         }
 
-        internal static readonly byte[] HEADERTRACK = Encoding.ASCII.GetBytes("[Song]");
-        internal static readonly byte[] SYNCTRACK =   Encoding.ASCII.GetBytes("[SyncTrack]");
-        internal static readonly byte[] EVENTTRACK =  Encoding.ASCII.GetBytes("[Events]");
-        internal static readonly EventCombo TEMPO =   new(Encoding.ASCII.GetBytes("B"), ChartEvent.BPM);
-        internal static readonly EventCombo TIMESIG = new(Encoding.ASCII.GetBytes("TS"), ChartEvent.TIME_SIG);
-        internal static readonly EventCombo ANCHOR =  new(Encoding.ASCII.GetBytes("A"), ChartEvent.ANCHOR);
-        internal static readonly EventCombo TEXT =    new(Encoding.ASCII.GetBytes("E"), ChartEvent.EVENT);
-        internal static readonly EventCombo NOTE =    new(Encoding.ASCII.GetBytes("N"), ChartEvent.NOTE);
-        internal static readonly EventCombo SPECIAL = new(Encoding.ASCII.GetBytes("S"), ChartEvent.SPECIAL);
+        private const string HEADERTRACK = "[Song]";
+        private const string SYNCTRACK = "[SyncTrack]";
+        private const string EVENTTRACK = "[Events]";
+        private static readonly EventCombo TEMPO = new("B", ChartEvent.BPM);
+        private static readonly EventCombo TIMESIG = new("TS", ChartEvent.TIME_SIG);
+        private static readonly EventCombo ANCHOR = new("A", ChartEvent.ANCHOR);
+        private static readonly EventCombo TEXT = new("E", ChartEvent.EVENT);
+        private static readonly EventCombo NOTE = new("N", ChartEvent.NOTE);
+        private static readonly EventCombo SPECIAL = new("S", ChartEvent.SPECIAL);
 
-        internal static readonly byte[][] DIFFICULTIES =
+        private static readonly string[] DIFFICULTIES =
         {
-            Encoding.ASCII.GetBytes("[Easy"),
-            Encoding.ASCII.GetBytes("[Medium"),
-            Encoding.ASCII.GetBytes("[Hard"),
-            Encoding.ASCII.GetBytes("[Expert")
+            "[Easy",
+            "[Medium",
+            "[Hard",
+            "[Expert"
         };
 
-        internal static readonly (byte[], NoteTracks_Chart)[] NOTETRACKS =
+        private static readonly (string, NoteTracks_Chart)[] NOTETRACKS =
         {
-            new(Encoding.ASCII.GetBytes("Single]"),       NoteTracks_Chart.Single ),
-            new(Encoding.ASCII.GetBytes("DoubleGuitar]"), NoteTracks_Chart.DoubleGuitar ),
-            new(Encoding.ASCII.GetBytes("DoubleBass]"),   NoteTracks_Chart.DoubleBass ),
-            new(Encoding.ASCII.GetBytes("DoubleRhythm]"), NoteTracks_Chart.DoubleRhythm ),
-            new(Encoding.ASCII.GetBytes("Drums]"),        NoteTracks_Chart.Drums ),
-            new(Encoding.ASCII.GetBytes("Keyboard]"),     NoteTracks_Chart.Keys ),
-            new(Encoding.ASCII.GetBytes("GHLGuitar]"),    NoteTracks_Chart.GHLGuitar ),
-            new(Encoding.ASCII.GetBytes("GHLBass]"),      NoteTracks_Chart.GHLBass ),
-            new(Encoding.ASCII.GetBytes("GHLRhythm]"),    NoteTracks_Chart.GHLGuitar ),
-            new(Encoding.ASCII.GetBytes("GHLCoop]"),      NoteTracks_Chart.GHLBass ),
+            new("Single]",       NoteTracks_Chart.Single ),
+            new("DoubleGuitar]", NoteTracks_Chart.DoubleGuitar ),
+            new("DoubleBass]",   NoteTracks_Chart.DoubleBass ),
+            new("DoubleRhythm]", NoteTracks_Chart.DoubleRhythm ),
+            new("Drums]",        NoteTracks_Chart.Drums ),
+            new("Keyboard]",     NoteTracks_Chart.Keys ),
+            new("GHLGuitar]",    NoteTracks_Chart.GHLGuitar ),
+            new("GHLBass]",      NoteTracks_Chart.GHLBass ),
+            new("GHLRhythm]",    NoteTracks_Chart.GHLGuitar ),
+            new("GHLCoop]",      NoteTracks_Chart.GHLBass ),
         };
 
-        internal static readonly EventCombo[] EVENTS_SYNC = { TEMPO, TIMESIG, ANCHOR };
-        internal static readonly EventCombo[] EVENTS_EVENTS = { TEXT, };
-        internal static readonly EventCombo[] EVENTS_DIFF = { NOTE, SPECIAL, TEXT, };
+        private static readonly EventCombo[] EVENTS_SYNC = { TEMPO, TIMESIG, ANCHOR };
+        private static readonly EventCombo[] EVENTS_EVENTS = { TEXT, };
+        private static readonly EventCombo[] EVENTS_DIFF = { NOTE, SPECIAL, TEXT, };
 
-        static YARGChartFileReader() { }
+        static YARGChartFileReader_Char() { }
 
-        internal const double TEMPO_FACTOR = 60000000000;
-
-        private readonly YARGTXTReader reader;
-        private readonly byte[] data;
+        private readonly YARGTXTReader_Char reader;
+        private readonly char[] data;
         private readonly int length;
 
         private EventCombo[] eventSet = Array.Empty<EventCombo>();
         private long tickPosition = 0;
-        public NoteTracks_Chart Instrument { get; private set; }
-        public int Difficulty { get; private set; }
+        private NoteTracks_Chart _instrument;
+        private int _difficulty;
 
-        public YARGChartFileReader(YARGTXTReader reader)
+        public NoteTracks_Chart Instrument => _instrument;
+        public int Difficulty => _difficulty;
+
+        public YARGChartFileReader_Char(YARGTXTReader_Char reader)
         {
             this.reader = reader;
             data = reader.Data;
             length = data.Length;
         }
 
-        public YARGChartFileReader(byte[] data) : this(new YARGTXTReader(data)) { }
+        public YARGChartFileReader_Char(char[] data) : this(new YARGTXTReader_Char(data)) { }
 
-        public YARGChartFileReader(string path) : this(new YARGTXTReader(path)) { }
+        public YARGChartFileReader_Char(string path) : this(new YARGTXTReader_Char(path)) { }
 
         public bool IsStartOfTrack()
         {
-            return !reader.IsEndOfFile() && reader.PeekByte() == '[';
+            return !reader.IsEndOfFile() && reader.Peek() == '[';
         }
 
         public bool ValidateHeaderTrack()
@@ -138,7 +112,7 @@ namespace YARG.Core.Song.Deserialization
             for (int diff = 3; diff >= 0; --diff)
                 if (DoesStringMatch(DIFFICULTIES[diff]))
                 {
-                    Difficulty = diff;
+                    _difficulty = diff;
                     eventSet = EVENTS_DIFF;
                     reader.Position += DIFFICULTIES[diff].Length;
                     return true;
@@ -152,14 +126,14 @@ namespace YARG.Core.Song.Deserialization
             {
                 if (ValidateTrack(track.Item1))
                 {
-                    Instrument = track.Item2;
+                    _instrument = track.Item2;
                     return true;
                 }
             }
             return false;
         }
 
-        private bool ValidateTrack(ReadOnlySpan<byte> track)
+        private bool ValidateTrack(string track)
         {
             if (!DoesStringMatch(track))
                 return false;
@@ -169,7 +143,7 @@ namespace YARG.Core.Song.Deserialization
             return true;
         }
 
-        private bool DoesStringMatch(ReadOnlySpan<byte> str)
+        private bool DoesStringMatch(string str)
         {
             if (reader.Next - reader.Position < str.Length)
                 return false;
@@ -196,7 +170,7 @@ namespace YARG.Core.Song.Deserialization
         public (long, ChartEvent) ParseEvent()
         {
             int start, length;
-            bool EqualSequences(byte[] descriptor)
+            bool EqualSequences(string descriptor)
             {
                 if (descriptor.Length != length) return false;
                 for (int i = 0; i < length; ++i)
@@ -255,7 +229,7 @@ namespace YARG.Core.Song.Deserialization
             while (GetDistanceToTrackCharacter(position, out int next))
             {
                 int point = position + next - 1;
-                while (point > position && YARGTXTReader_Base.IsWhitespace(data[point]) && data[point] != '\n')
+                while (point > position && YARGTXTReader_BaseChar.IsWhitespace(data[point]) && data[point] != '\n')
                     --point;
 
                 if (data[point] == '\n')

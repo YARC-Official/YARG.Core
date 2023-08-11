@@ -57,7 +57,7 @@ namespace YARG.Core.Song.Preparsers
             }
         }
 
-        public void ParseChart(YARGChartFileReader reader)
+        public void ParseChart(IYARGChartReader reader)
         {
             DifficultyMask difficulty = (DifficultyMask)(1 << reader.Difficulty);
 
@@ -82,7 +82,7 @@ namespace YARG.Core.Song.Preparsers
         private const int GREEN_CYMBAL = 68;
         private const int DOUBLE_BASS_MODIFIER = 32;
 
-        private bool ParseChartUnknown(YARGChartFileReader reader, DifficultyMask difficulty)
+        private bool ParseChartUnknown(IYARGChartReader reader, DifficultyMask difficulty)
         {
             bool found = false;
             bool checkExpertPlus = difficulty == DifficultyMask.Expert;
@@ -117,7 +117,7 @@ namespace YARG.Core.Song.Preparsers
             return false;
         }
 
-        private bool ParseChartFourLane(YARGChartFileReader reader, DifficultyMask difficulty)
+        private bool ParseChartFourLane(IYARGChartReader reader, DifficultyMask difficulty)
         {
             bool found = false;
             bool checkExpertPlus = difficulty == DifficultyMask.Expert;
@@ -149,7 +149,7 @@ namespace YARG.Core.Song.Preparsers
             return false;
         }
 
-        private bool ParseChartCommon(YARGChartFileReader reader, DifficultyMask difficulty)
+        private bool ParseChartCommon(IYARGChartReader reader, DifficultyMask difficulty)
         {
             bool found = false;
             bool checkExpertPlus = difficulty == DifficultyMask.Expert;

@@ -37,7 +37,7 @@ namespace YARG.Core.Song.Deserialization.Ini
             this.type = type;
         }
 
-        public IniModifier CreateModifier(YARGTXTReader reader)
+        public IniModifier CreateModifier(ITXTReader reader)
         {
             try
             {

@@ -1,35 +1,35 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Text;
-using YARG.Core.Song.Deserialization.Ini;
 
-namespace YARG.Core.Song.Deserialization
+namespace YARG.Core.Song.Deserialization.Ini
 {
-    public sealed class YARGIniReader
+    public sealed class YARGIniReader_Char : IIniReader
     {
-        private readonly YARGTXTReader reader;
-        private readonly byte[] data;
+        private readonly YARGTXTReader_Char reader;
+        private readonly char[] data;
         private readonly int length;
 
         private string sectionName = string.Empty;
         public string Section { get { return sectionName; } }
 
-        public YARGIniReader(YARGTXTReader reader)
+        public YARGIniReader_Char(YARGTXTReader_Char reader)
         {
             this.reader = reader;
             data = reader.Data;
             length = data.Length;
         }
 
-        public YARGIniReader(byte[] data) : this(new YARGTXTReader(data)) { }
+        public YARGIniReader_Char(char[] data) : this(new YARGTXTReader_Char(data)) { }
 
-        public YARGIniReader(string path) : this(new YARGTXTReader(path)) { }
+        public YARGIniReader_Char(string path) : this(new YARGTXTReader_Char(path)) { }
 
         public bool IsStartOfSection()
         {
             if (reader.IsEndOfFile())
                 return false;
 
-            if (reader.PeekByte() != '[')
+            if (reader.Peek() != '[')
             {
                 SkipSection();
                 if (reader.IsEndOfFile())
@@ -37,7 +37,7 @@ namespace YARG.Core.Song.Deserialization
             }
 
             int position = reader.Position;
-            sectionName = Encoding.UTF8.GetString(data, position, reader.Next - position).TrimEnd().ToLower();
+            sectionName = new string(data, position, reader.Next - position).TrimEnd().ToLower();
             return true;
         }
 
@@ -48,7 +48,7 @@ namespace YARG.Core.Song.Deserialization
             while (GetDistanceToTrackCharacter(position, out int next))
             {
                 int point = position + next - 1;
-                while (point > position && YARGTXTReader_Base.IsWhitespace(data[point]) && data[point] != '\n')
+                while (point > position && YARGTXTReader_BaseChar.IsWhitespace(data[point]) && data[point] != '\n')
                     --point;
 
                 if (data[point] == '\n')
@@ -67,7 +67,7 @@ namespace YARG.Core.Song.Deserialization
 
         public bool IsStillCurrentSection()
         {
-            return !reader.IsEndOfFile() && reader.PeekByte() != '[';
+            return !reader.IsEndOfFile() && reader.Peek() != '[';
         }
 
         public IniSection ExtractModifiers(ref Dictionary<string, IniModifierCreator> validNodes)

@@ -173,9 +173,8 @@ namespace YARG.Core.Song
             _iniData = iniData;
         }
 
-        private static DrumPreparseType ParseChart(byte[] file, IniSection modifiers, AvailableParts parts)
+        private static DrumPreparseType ParseChart(IYARGChartReader reader, IniSection modifiers, AvailableParts parts)
         {
-            YARGChartFileReader reader = new(file);
             if (!reader.ValidateHeaderTrack())
                 return DrumPreparseType.Unknown;
 
@@ -229,7 +228,12 @@ namespace YARG.Core.Song
             {
                 try
                 {
-                    drumType = ParseChart(file, modifiers, parts);
+                    drumType = ParseChart(new YARGChartFileReader(file), modifiers, parts);
+                }
+                catch (BadEncodingException)
+                {
+                    YargTrace.LogInfo("UTF-8 preferred for .chart encoding");
+                    drumType = ParseChart(new YARGChartFileReader_Char(chartFile), modifiers, parts);
                 }
                 catch(Exception ex)
                 {

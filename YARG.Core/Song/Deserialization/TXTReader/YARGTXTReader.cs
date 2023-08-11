@@ -5,14 +5,18 @@ using System.Text;
 
 namespace YARG.Core.Song.Deserialization
 {
-    public class YARGTXTReader : YARGTXTReader_Base
+    public class BadEncodingException : Exception
     {
-        internal static readonly byte[] BOM_UTF8 = { 0xEF, 0xBB, 0xBF };
-        internal static readonly byte[] BOM_OTHER = { 0xFE, 0xFF };
-        internal static readonly UTF8Encoding UTF8 = new(true, true);
+        public BadEncodingException() : base("Forbidden encoding") { }
+    }
+
+    public class YARGTXTReader : YARGTXTReader_Base, ITXTReader
+    {
+        private static readonly byte[] BOM_UTF8 = { 0xEF, 0xBB, 0xBF };
+        private static readonly byte[] BOM_OTHER = { 0xFE, 0xFF };
+        private static readonly UTF8Encoding UTF8 = new(true, true);
         static YARGTXTReader() { }
 
-#nullable enable
         public YARGTXTReader(byte[] data) : base(data)
         {
             /*
@@ -27,7 +31,7 @@ namespace YARG.Core.Song.Deserialization
              * Therefore, we should actively discourage/disallow their usage.
              */
             if (data[0] == BOM_OTHER[0] && data[1] == BOM_OTHER[1])
-                throw new Exception("Forbidden encoding");
+                throw new BadEncodingException();
 
             if (data[0] == BOM_UTF8[0] && data[1] == BOM_UTF8[1] && data[2] == BOM_UTF8[2])
                 _position += 3;

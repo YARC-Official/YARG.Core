@@ -9,7 +9,7 @@ namespace YARG.Core.Song
         /// Uses the current instrument to institute applicable test parameters.
         /// This does not include drums as those must be handled by a dedicated DrumPreparseHandler object.
         /// </summary>
-        public DrumPreparseType ParseChart(YARGChartFileReader reader, DrumPreparseType drumType)
+        public DrumPreparseType ParseChart(IYARGChartReader reader, DrumPreparseType drumType)
         {
             DrumPreparseHandler drums = new(drumType);
             while (reader.IsStartOfTrack())
@@ -27,7 +27,7 @@ namespace YARG.Core.Song
 
         }
 
-        private void ParseChartTrack(YARGChartFileReader reader)
+        private void ParseChartTrack(IYARGChartReader reader)
         {
             bool skip = reader.Instrument switch
             {
