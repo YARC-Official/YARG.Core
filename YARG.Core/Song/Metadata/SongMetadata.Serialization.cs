@@ -80,7 +80,7 @@ namespace YARG.Core.Song
 
         private static AbridgedFileInfo? ParseFileInfo(string file, YARGBinaryReader reader)
         {
-            FileInfo midiInfo = new(reader.ReadLEBString());
+            FileInfo midiInfo = new(file);
             if (!midiInfo.Exists || midiInfo.LastWriteTime != DateTime.FromBinary(reader.ReadInt64()))
                 return null;
             return midiInfo;
