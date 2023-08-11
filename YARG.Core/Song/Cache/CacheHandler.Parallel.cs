@@ -11,11 +11,11 @@ namespace YARG.Core.Song.Cache
     {
         private void ScanDirectory_Parallel(string directory, int index)
         {
-            if (!TraversalPreTest(directory))
-                return;
-
             try
             {
+                if (!TraversalPreTest(directory))
+                    return;
+
                 var result = FileCollector.Collect(directory);
                 if (ScanIniEntry(result, index))
                     return;
