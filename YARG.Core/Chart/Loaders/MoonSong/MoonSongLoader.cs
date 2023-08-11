@@ -281,9 +281,21 @@ namespace YARG.Core.Chart
             return GetLengthInTime(phrase.time, phrase.tick, phrase.length - 1);
         }
 
-        private static bool IsEventInPhrase(SongObject note, SpecialPhrase phrase)
+        private static bool IsEventInPhrase(SongObject songObj, SpecialPhrase phrase)
         {
-            return note?.tick >= phrase.tick && note.tick < (phrase.tick + phrase.length);
+            if (songObj == null || phrase == null)
+            {
+                YargTrace.Assert(songObj != null, "IsEventInPhrase: songObj == null");
+                YargTrace.Assert(phrase != null, "IsEventInPhrase: phrase == null");
+                return false;
+            }
+
+            // Ensure 0-length phrases still take effect
+            // (e.g. the SP phrases at the end of ExileLord - Hellidox)
+            if (phrase.length == 0)
+                return songObj.tick == phrase.tick;
+
+            return songObj.tick >= phrase.tick && songObj.tick < (phrase.tick + phrase.length);
         }
 
         private static bool IsNoteClosestToEndOfPhrase(MoonNote note, SpecialPhrase phrase)
