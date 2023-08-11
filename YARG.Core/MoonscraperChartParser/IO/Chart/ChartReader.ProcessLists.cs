@@ -208,38 +208,86 @@ namespace MoonscraperChartEditor.Song.IO
 
         private static void ConvertSoloEvents(in NoteProcessParams noteProcessParams)
         {
-            var chart = noteProcessParams.chart;
-
-            uint? currentStartTick = null;
-            foreach (var text in chart.events)
+            static void AddSolo(MoonChart chart, uint startTick, uint endTick)
             {
-                if (text.eventName == TextEventDefinitions.SOLO_START)
+                chart.Add(new SpecialPhrase(startTick, endTick - startTick, SpecialPhrase.Type.Solo), false);
+            }
+
+            static void ProcessSoloMarkers(MoonChart chart, uint currentTick, ref uint? currentStartTick,
+                ref bool start, ref bool end)
+            {
+                // Four scenarios to handle:
+
+                // - Solo starts on this tick (start = true, end = false)
+                if (start && !end)
                 {
-                    // Remove text event unconditionally
-                    chart.Remove(text, false);
+                    if (currentStartTick == null)
+                        currentStartTick = currentTick;
+                    else
+                        YargTrace.DebugWarning($"Encountered duplicate solo start event on tick {currentTick}!");
+
+                    start = false;
+                }
+
+                // - Solo ends on this tick (start = false, end = true)
+                else if (!start && end)
+                {
                     if (currentStartTick != null)
                     {
-                        YargTrace.DebugWarning($"Encountered duplicate solo start event!");
-                        continue;
+                        AddSolo(chart, currentStartTick.Value, currentTick);
+                        currentStartTick = null;
+                    }
+                    else
+                    {
+                        YargTrace.DebugWarning($"Encountered solo end with no solo start on tick {currentTick}!");
                     }
 
-                    currentStartTick = text.tick;
+                    end = false;
+                }
+
+                // - Solo starts and ends on this tick (start = end = true, currentStartTick = null)
+                // - Solo ends on this tick and a new one starts (start = end = true, currentStartTick != null)
+                else if (start && end)
+                {
+                    currentStartTick ??= currentTick;
+                    AddSolo(chart, currentStartTick.Value, currentTick);
+
+                    start = end = false;
+                    currentStartTick = null;
+                }
+            }
+
+            var chart = noteProcessParams.chart;
+
+            uint currentTick = 0; 
+            uint? currentStartTick = null;
+            bool start = false;
+            bool end = false;
+
+            foreach (var text in chart.events)
+            {
+                // Commit found events on next tick
+                if (text.tick != currentTick)
+                {
+                    ProcessSoloMarkers(chart, currentTick, ref currentStartTick, ref start, ref end);
+                    currentTick = text.tick;
+                }
+
+                // Determine what events are present on the current tick
+                if (text.eventName == TextEventDefinitions.SOLO_START)
+                {
+                    chart.Remove(text, false);
+                    start = true;
                 }
                 else if (text.eventName == TextEventDefinitions.SOLO_END)
                 {
-                    // Remove text event unconditionally
                     chart.Remove(text, false);
-                    if (currentStartTick == null)
-                    {
-                        YargTrace.DebugWarning($"Encountered solo end with no solo start!");
-                        continue;
-                    }
-
-                    uint startTick = currentStartTick.Value;
-                    uint endTick = text.tick;
-                    chart.Add(new SpecialPhrase(startTick, endTick - startTick, SpecialPhrase.Type.Solo), false);
+                    end = true;
                 }
             }
+
+            // Handle final set of events
+            ProcessSoloMarkers(chart, currentTick, ref currentStartTick, ref start, ref end);
 
             chart.UpdateCache();
         }
