@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using System.Threading.Tasks;
 using YARG.Core.Song.Deserialization;
 
@@ -48,7 +49,17 @@ namespace YARG.Core.Song.Cache
             {
                 int length = reader.ReadInt32();
                 var entryReader = new YARGBinaryReader(reader, length);
-                entryTasks.Add(Task.Run(() => ReadIniEntry(directory, baseIndex, entryReader, strings)));
+                entryTasks.Add(Task.Run(() => 
+                { 
+                    try 
+                    {
+                        ReadIniEntry(directory, baseIndex, entryReader, strings);
+                    }
+                    catch (Exception ex)
+                    {
+                        AddErrors(ex);
+                    }
+                }));
             }
             Task.WaitAll(entryTasks.ToArray());
         }
@@ -73,7 +84,17 @@ namespace YARG.Core.Song.Cache
                 }
 
                 var entryReader = new YARGBinaryReader(reader, length);
-                entryTasks.Add(Task.Run(() => group.ReadEntry(name, index, upgrades, entryReader, strings)));
+                entryTasks.Add(Task.Run(() =>
+                {
+                    try
+                    {
+                        group.ReadEntry(name, index, upgrades, entryReader, strings);
+                    }
+                    catch (Exception ex)
+                    {
+                        AddErrors(ex);
+                    }
+                }));
             }
 
             Task.WaitAll(entryTasks.ToArray());
@@ -100,7 +121,17 @@ namespace YARG.Core.Song.Cache
                 }
 
                 var entryReader = new YARGBinaryReader(reader, length);
-                entryTasks.Add(Task.Run(() => group.ReadEntry(name, index, upgrades, entryReader, strings)));
+                entryTasks.Add(Task.Run(() =>
+                {
+                    try
+                    {
+                        group.ReadEntry(name, index, upgrades, entryReader, strings);
+                    }
+                    catch (Exception ex)
+                    {
+                        AddErrors(ex);
+                    }
+                }));
             }
 
             Task.WaitAll(entryTasks.ToArray());
@@ -118,7 +149,17 @@ namespace YARG.Core.Song.Cache
             {
                 int length = reader.ReadInt32();
                 var entryReader = new YARGBinaryReader(reader, length);
-                entryTasks.Add(Task.Run(() => QuickReadIniEntry(directory, entryReader, strings)));
+                entryTasks.Add(Task.Run(() =>
+                {
+                    try
+                    {
+                        QuickReadIniEntry(directory, entryReader, strings);
+                    }
+                    catch (Exception ex)
+                    {
+                        AddErrors(ex);
+                    }
+                }));
             }
             Task.WaitAll(entryTasks.ToArray());
         }
@@ -138,7 +179,17 @@ namespace YARG.Core.Song.Cache
 
                 int length = reader.ReadInt32();
                 var entryReader = new YARGBinaryReader(reader, length);
-                entryTasks.Add(Task.Run(() => AddEntry(SongMetadata.PackedRBCONFromCache_Quick(group.file, name, upgrades, entryReader, strings))));
+                entryTasks.Add(Task.Run(() =>
+                {
+                    try
+                    {
+                        AddEntry(SongMetadata.PackedRBCONFromCache_Quick(group.file, name, upgrades, entryReader, strings));
+                    }
+                    catch (Exception ex)
+                    {
+                        AddErrors(ex);
+                    }
+                }));
             }
 
             Task.WaitAll(entryTasks.ToArray());
@@ -159,7 +210,16 @@ namespace YARG.Core.Song.Cache
 
                 int length = reader.ReadInt32();
                 var entryReader = new YARGBinaryReader(reader, length);
-                entryTasks.Add(Task.Run(() => AddEntry(SongMetadata.UnpackedRBCONFromCache_Quick(dta, name, upgrades, entryReader, strings))));
+                entryTasks.Add(Task.Run(() => {
+                    try
+                    {
+                        AddEntry(SongMetadata.UnpackedRBCONFromCache_Quick(dta, name, upgrades, entryReader, strings));
+                    }
+                    catch (Exception ex)
+                    {
+                        AddErrors(ex);
+                    }
+                }));
             }
 
             Task.WaitAll(entryTasks.ToArray());
