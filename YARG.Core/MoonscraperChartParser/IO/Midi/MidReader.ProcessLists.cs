@@ -131,25 +131,25 @@ namespace MoonscraperChartEditor.Song.IO
         };
 
         // Some post-processing events should always be carried out on certain tracks
-        private static readonly List<EventProcessFn> GuitarInitialPostProcessList = new()
+        private static readonly List<EventProcessFn> GuitarPostProcessList = new()
         {
             FixupStarPowerIfNeeded,
         };
 
-        private static readonly List<EventProcessFn> GhlGuitarInitialPostProcessList = new()
+        private static readonly List<EventProcessFn> GhlGuitarPostProcessList = new()
         {
         };
 
-        private static readonly List<EventProcessFn> ProGuitarInitialPostProcessList = new()
+        private static readonly List<EventProcessFn> ProGuitarPostProcessList = new()
         {
         };
 
-        private static readonly List<EventProcessFn> DrumsInitialPostProcessList = new()
+        private static readonly List<EventProcessFn> DrumsPostProcessList = new()
         {
             DisambiguateDrumsType,
         };
 
-        private static readonly List<EventProcessFn> VocalsInitialPostProcessList = new()
+        private static readonly List<EventProcessFn> VocalsPostProcessList = new()
         {
             CopyDownHarmonyPhrases,
         };
@@ -218,15 +218,15 @@ namespace MoonscraperChartEditor.Song.IO
             };
         }
 
-        private static List<EventProcessFn> GetInitialPostProcessList(MoonChart.GameMode gameMode)
+        private static IReadOnlyList<EventProcessFn> GetPostProcessList(MoonChart.GameMode gameMode)
         {
             return gameMode switch
             {
-                MoonChart.GameMode.Guitar => new(GuitarInitialPostProcessList),
-                MoonChart.GameMode.GHLGuitar => new(GhlGuitarInitialPostProcessList),
-                MoonChart.GameMode.ProGuitar => new(ProGuitarInitialPostProcessList),
-                MoonChart.GameMode.Drums => new(DrumsInitialPostProcessList),
-                MoonChart.GameMode.Vocals => new(VocalsInitialPostProcessList),
+                MoonChart.GameMode.Guitar => GuitarPostProcessList,
+                MoonChart.GameMode.GHLGuitar => GhlGuitarPostProcessList,
+                MoonChart.GameMode.ProGuitar => ProGuitarPostProcessList,
+                MoonChart.GameMode.Drums => DrumsPostProcessList,
+                MoonChart.GameMode.Vocals => VocalsPostProcessList,
                 _ => throw new NotImplementedException($"No process map for game mode {gameMode}!")
             };
         }
