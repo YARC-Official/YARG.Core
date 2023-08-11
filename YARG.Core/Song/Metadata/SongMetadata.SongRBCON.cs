@@ -516,6 +516,10 @@ namespace YARG.Core.Song
                                     authors.Append(", " + str);
                                 }
                             }
+
+                            if (authors.Length == 0)
+                                authors.Append(_charter);
+
                             _charter = authors.ToString();
                         }
                         break;
