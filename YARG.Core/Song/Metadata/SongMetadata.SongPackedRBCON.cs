@@ -249,19 +249,17 @@ namespace YARG.Core.Song
             }
             else
             {
-                FileInfo info = new(reader.ReadLEBString());
-                if (!info.Exists || info.LastWriteTime != DateTime.FromBinary(reader.ReadInt64()))
+                moggInfo = ParseFileInfo(reader);
+                if (moggInfo == null)
                     return null;
-                moggInfo = info;
             }
 
             AbridgedFileInfo? updateInfo = null;
             if (reader.ReadBoolean())
             {
-                FileInfo info = new(reader.ReadLEBString());
-                if (!info.Exists || info.LastWriteTime != DateTime.FromBinary(reader.ReadInt64()))
+                updateInfo = ParseFileInfo(reader);
+                if (updateInfo == null)
                     return null;
-                updateInfo = info;
             }
 
             RBPackedCONMetadata packedMeta = new(conFile, nodeName, midiListing, midiLastWrite, moggListing, moggInfo, updateInfo, reader);

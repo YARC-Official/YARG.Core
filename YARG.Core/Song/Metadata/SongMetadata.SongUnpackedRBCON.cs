@@ -164,19 +164,19 @@ namespace YARG.Core.Song
 
         public static SongMetadata? UnpackedRBCONFromCache(AbridgedFileInfo dta, string nodeName, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings)
         {
-            FileInfo midiInfo = new(reader.ReadLEBString());
-            if (!midiInfo.Exists || midiInfo.LastWriteTime != DateTime.FromBinary(reader.ReadInt64()))
+            var midiInfo = ParseFileInfo(reader);
+            if (midiInfo == null)
                 return null;
 
-            FileInfo moggInfo = new(reader.ReadLEBString());
-            if (!moggInfo.Exists || moggInfo.LastWriteTime != DateTime.FromBinary(reader.ReadInt64()))
+            var moggInfo = ParseFileInfo(reader);
+            if (moggInfo == null)
                 return null;
 
-            FileInfo? updateInfo = null;
+            AbridgedFileInfo? updateInfo = null;
             if (reader.ReadBoolean())
             {
-                updateInfo = new FileInfo(reader.ReadLEBString());
-                if (!updateInfo.Exists || updateInfo.LastWriteTime != DateTime.FromBinary(reader.ReadInt64()))
+                updateInfo = ParseFileInfo(reader);
+                if (moggInfo == null)
                     return null;
             }
 
