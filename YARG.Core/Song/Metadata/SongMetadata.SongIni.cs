@@ -85,7 +85,7 @@ namespace YARG.Core.Song
             section.TryGet("album",    out _album,    DEFAULT_ALBUM);
             section.TryGet("genre",    out _genre,    DEFAULT_GENRE);
             section.TryGet("charter",  out _charter,  DEFAULT_CHARTER);
-            section.TryGet("source",   out _source,   DEFAULT_SOURCE);
+            section.TryGet("icon",     out _source,   DEFAULT_SOURCE);
             section.TryGet("playlist", out _playlist, Path.GetFileName(Path.GetDirectoryName(_directory)));
 
             if (section.TryGet("year", out _unmodifiedYear))
@@ -104,7 +104,6 @@ namespace YARG.Core.Song
            
 
             section.TryGet("loading_phrase", out _loadingPhrase);
-            section.TryGet("icon", out _icon);
 
             if (!section.TryGet("playlist_track", out _playlistTrack))
                 _playlistTrack = -1;
