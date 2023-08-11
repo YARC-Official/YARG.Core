@@ -23,7 +23,7 @@
             HopoFreq_FoF = SETTING_DEFAULT,
             EighthNoteHopo = false,
             SustainCutoffThreshold = SETTING_DEFAULT,
-            NoteSnapThreshold = SETTING_DEFAULT,
+            NoteSnapThreshold = 0,
 
             StarPowerNote = SETTING_DEFAULT,
         };
