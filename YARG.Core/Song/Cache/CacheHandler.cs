@@ -50,7 +50,7 @@ namespace YARG.Core.Song.Cache
         /// Format is YY_MM_DD_RR: Y = year, M = month, D = day, R = revision (reset across dates, only increment
         /// if multiple cache version changes happen in a single day).
         /// </summary>
-        public const int CACHE_VERSION = 23_08_11_02;
+        public const int CACHE_VERSION = 23_08_11_03;
         public const string CACHE_FILE = "songcache.bin";
         public const string BADSONGS_FILE = "badsongs.txt";
 
