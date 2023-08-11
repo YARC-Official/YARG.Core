@@ -235,6 +235,11 @@ namespace YARG.Core.Engine
             {
                 note.ResetNoteState();
             }
+
+            foreach (var solo in Solos)
+            {
+                solo.NotesHit = 0;
+            }
         }
 
         protected abstract bool CheckForNoteHit();
