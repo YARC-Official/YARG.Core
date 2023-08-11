@@ -18,10 +18,10 @@ namespace YARG.Core.Song.Cache
 
     public sealed partial class CacheHandler
     {
-        public CacheHandler(string cacheDirectory, string badSongsDirectory, bool multithreading, string[] baseDirectories)
+        public CacheHandler(string cacheLocation, string badSongsLocation, bool multithreading, string[] baseDirectories)
         {
-            cacheLocation = Path.Combine(cacheDirectory, CACHE_FILE);
-            badSongsLocation = Path.Combine(badSongsDirectory, BADSONGS_FILE);
+            this.cacheLocation = cacheLocation;
+            this.badSongsLocation = badSongsLocation;
             this.multithreading = multithreading;
             this.baseDirectories = baseDirectories;
 
@@ -51,8 +51,6 @@ namespace YARG.Core.Song.Cache
         /// if multiple cache version changes happen in a single day).
         /// </summary>
         public const int CACHE_VERSION = 23_08_11_05;
-        public const string CACHE_FILE = "songcache.bin";
-        public const string BADSONGS_FILE = "badsongs.txt";
 
         public readonly List<object> errorList = new();
         public ScanProgress Progress { get; private set; }
