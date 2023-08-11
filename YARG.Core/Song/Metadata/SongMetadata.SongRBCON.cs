@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using Melanchall.DryWetMidi.Core;
+using YARG.Core.Chart;
+using YARG.Core.Extensions;
 using YARG.Core.Song.Cache;
 using YARG.Core.Song.Deserialization;
 using YARG.Core.Song.Preparsers;
@@ -672,6 +675,47 @@ namespace YARG.Core.Song
                 pending.Remove(index);
             }
             return values;
+        }
+
+        private SongChart LoadCONChart()
+        {
+            // Read base MIDI
+            byte[]? chartFile = RBData!.LoadMidiFile();
+            if (chartFile == null)
+                throw new Exception("Base MIDI file not present");
+
+            MidiFile midi;
+            using (MemoryStream chartStream = new(chartFile))
+            {
+                midi = MidiFile.Read(chartStream);
+            }
+
+            // Merge update MIDI
+            var shared = RBData.SharedMetadata;
+            if (shared.UpdateMidi != null)
+            {
+                chartFile = shared.LoadMidiUpdateFile();
+                if (chartFile == null)
+                    throw new Exception("Scanned update MIDI file not present");
+
+                using MemoryStream updateStream = new(chartFile);
+                var update = MidiFile.Read(updateStream);
+                midi.Merge(update);
+            }
+
+            // Merge upgrade MIDI
+            if (shared.Upgrade != null)
+            {
+                chartFile = shared.Upgrade.LoadUpgradeMidi();
+                if (chartFile == null)
+                    throw new Exception("Scanned upgrade MIDI file not present");
+
+                using MemoryStream upgradeStream = new(chartFile);
+                var upgrade = MidiFile.Read(upgradeStream);
+                midi.Merge(upgrade);
+            }
+
+            return SongChart.FromMidi(_parseSettings, midi);
         }
     }
 }

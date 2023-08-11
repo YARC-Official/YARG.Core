@@ -313,5 +313,12 @@ namespace YARG.Core.Song
                 _directory = directory
             };
         }
+
+        private SongChart LoadIniChart()
+        {
+            string notesFile = IniData!.chartFile.FullName;
+            YargTrace.LogInfo($"Loading chart file {notesFile}");
+            return SongChart.FromFile(_parseSettings, notesFile);
+        }
     }
 }
