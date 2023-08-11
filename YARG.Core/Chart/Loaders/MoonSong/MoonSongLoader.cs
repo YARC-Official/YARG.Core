@@ -22,29 +22,35 @@ namespace YARG.Core.Chart
 
         public void LoadSong(ParseSettings settings, string filePath)
         {
-            _settings = settings;
-
-            if (_settings.NoteSnapThreshold < 0)
-                _settings.NoteSnapThreshold = 0;
-
-            _moonSong = Path.GetExtension(filePath).ToLower() switch
+            var song = Path.GetExtension(filePath).ToLower() switch
             {
-                ".mid" => MidReader.ReadMidi(_settings, filePath),
-                ".chart" => ChartReader.ReadFromFile(_settings, filePath),
+                ".mid" => MidReader.ReadMidi(settings, filePath),
+                ".chart" => ChartReader.ReadFromFile(settings, filePath),
                 _ => throw new ArgumentException($"Unrecognized file extension for chart path '{filePath}'!", nameof(filePath))
             };
+
+            Initialize(song, settings);
         }
 
         public void LoadMidi(ParseSettings settings, MidiFile midi)
         {
-            _settings = settings;
-            _moonSong = MidReader.ReadMidi(_settings, midi);
+            var song = MidReader.ReadMidi(settings, midi);
+            Initialize(song, settings);
         }
 
         public void LoadDotChart(ParseSettings settings, string chartText)
         {
+            var song = ChartReader.ReadFromText(settings, chartText);
+            Initialize(song, settings);
+        }
+
+        private void Initialize(MoonSong song, ParseSettings settings)
+        {
+            if (settings.NoteSnapThreshold < 0)
+                settings.NoteSnapThreshold = 0;
+
+            _moonSong = song;
             _settings = settings;
-            _moonSong = ChartReader.ReadFromText(_settings, chartText);
         }
 
         public List<TextEvent> LoadGlobalEvents()
@@ -234,7 +240,8 @@ namespace YARG.Core.Chart
             var previousParent = notes.Count > 1 ? notes[^2] : null;
 
             // Determine if this is part of a chord
-            if ((note.Tick - currentParent?.Tick) <= _settings.NoteSnapThreshold)
+            if (currentParent != null && (note.Tick == currentParent.Tick ||
+                (note.Tick - currentParent.Tick) <= _settings.NoteSnapThreshold))
             {
                 // Same chord, assign previous and add as child
                 note.PreviousNote = previousParent;
