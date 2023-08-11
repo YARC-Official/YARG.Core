@@ -234,11 +234,6 @@ namespace YARG.Core.Song
                     YargTrace.LogInfo("UTF-8 preferred for .chart encoding");
                     drumType = ParseChart(new YARGChartFileReader_Char(chartFile), modifiers, parts);
                 }
-                catch(Exception ex)
-                {
-                    YargTrace.LogException(ex, ex.Message);
-                    return (ScanResult.InvalidDotChartEncoding, null);
-                }
             }
 
             if (!modifiers.Contains("name"))
