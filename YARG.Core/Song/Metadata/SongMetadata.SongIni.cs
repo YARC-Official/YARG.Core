@@ -119,7 +119,7 @@ namespace YARG.Core.Song
                 if (!section.TryGet("preview_start_time", out _previewStart) && section.TryGet("previewStart", out double previewValue))
                     _previewStart = (ulong)(1000 * previewValue);
 
-                if (!section.TryGet("preview_end_time", out _previewEnd) && section.TryGet("previewStart", out previewValue))
+                if (!section.TryGet("preview_end_time", out _previewEnd) && section.TryGet("previewEnd", out previewValue))
                     _previewEnd = (ulong)(1000 * previewValue);
             }
 
