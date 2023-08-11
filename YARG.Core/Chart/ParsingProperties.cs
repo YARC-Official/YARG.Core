@@ -1,4 +1,4 @@
-namespace YARG.Core.Chart
+﻿namespace YARG.Core.Chart
 {
     /// <summary>
     /// The type of drums contained in the chart.
@@ -20,6 +20,7 @@ namespace YARG.Core.Chart
             DrumsType = DrumsType.Unknown,
 
             HopoThreshold = SETTING_DEFAULT,
+            HopoFreq_FoF = SETTING_DEFAULT,
             EighthNoteHopo = false,
             SustainCutoffThreshold = SETTING_DEFAULT,
             NoteSnapThreshold = SETTING_DEFAULT,
@@ -31,10 +32,11 @@ namespace YARG.Core.Chart
 
         public DrumsType DrumsType;
 
-        public int HopoThreshold;
+        public long HopoThreshold;
+        public int HopoFreq_FoF;
         public bool EighthNoteHopo;
-        public int SustainCutoffThreshold;
-        public int NoteSnapThreshold;
+        public long SustainCutoffThreshold;
+        public long NoteSnapThreshold;
 
         public int StarPowerNote;
     }

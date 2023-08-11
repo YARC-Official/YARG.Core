@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Melanchall.DryWetMidi.Core;
@@ -139,6 +139,63 @@ namespace YARG.Core.Chart
             Harmony = loader.LoadVocalsTrack(Instrument.Harmony);
 
             // Dj = loader.LoadDjTrack(Instrument.Dj);
+        }
+
+        public void Append(SongChart song)
+        {
+            if (song.FiveFretGuitar.IsOccupied())
+                FiveFretGuitar = song.FiveFretGuitar;
+
+            if (song.FiveFretCoop.IsOccupied())
+                FiveFretCoop = song.FiveFretCoop;
+
+            if (song.FiveFretRhythm.IsOccupied())
+                FiveFretRhythm = song.FiveFretRhythm;
+
+            if (song.FiveFretBass.IsOccupied())
+                FiveFretBass = song.FiveFretBass;
+
+            if (song.Keys.IsOccupied())
+                Keys = song.Keys;
+
+            if (song.SixFretGuitar.IsOccupied())
+                SixFretGuitar = song.SixFretGuitar;
+
+            if (song.SixFretCoop.IsOccupied())
+                SixFretCoop = song.SixFretCoop;
+
+            if (song.SixFretRhythm.IsOccupied())
+                SixFretRhythm = song.SixFretRhythm;
+
+            if (song.SixFretBass.IsOccupied())
+                SixFretBass = song.SixFretBass;
+
+            if (song.FourLaneDrums.IsOccupied())
+                FourLaneDrums = song.FourLaneDrums;
+
+            if (song.ProDrums.IsOccupied())
+                ProDrums = song.ProDrums;
+
+            if (song.FiveLaneDrums.IsOccupied())
+                FiveLaneDrums = song.FiveLaneDrums;
+
+            if (song.ProGuitar_17Fret.IsOccupied())
+                ProGuitar_17Fret = song.ProGuitar_17Fret;
+
+            if (song.ProGuitar_22Fret.IsOccupied())
+                ProGuitar_22Fret = song.ProGuitar_22Fret;
+
+            if (song.ProBass_17Fret.IsOccupied())
+                ProBass_17Fret = song.ProBass_17Fret;
+
+            if (song.ProBass_22Fret.IsOccupied())
+                ProBass_22Fret = song.ProBass_22Fret;
+
+            if (song.Vocals.IsOccupied())
+                Vocals = song.Vocals;
+
+            if (song.Harmony.IsOccupied())
+                Harmony = song.Harmony;
         }
 
         public static SongChart FromFile(ParseSettings settings, string filePath)

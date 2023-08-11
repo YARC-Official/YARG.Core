@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using YARG.Core.Extensions;
 
@@ -80,6 +80,11 @@ namespace YARG.Core.Chart
             totalLastTick = Math.Max(TextEvents.GetLastTick(), totalLastTick);
 
             return totalLastTick;
+        }
+        
+        public bool IsOccupied()
+        {
+            return Notes.Count > 0 || Phrases.Count > 0 || TextEvents.Count > 0;
         }
 
         public InstrumentDifficulty<TNote> Clone()

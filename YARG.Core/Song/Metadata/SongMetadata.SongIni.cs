@@ -1,123 +1,166 @@
-using System;
-using EasySharpIni;
-using EasySharpIni.Converters;
-using EasySharpIni.Models;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
 using YARG.Core.Chart;
-using YARG.Core.Ini;
+using YARG.Core.Song.Cache;
+using YARG.Core.Song.Deserialization;
+using YARG.Core.Song.Deserialization.Ini;
+using YARG.Core.Song.Preparsers;
 
 namespace YARG.Core.Song
 {
-    public partial class SongMetadata
+    public sealed partial class SongMetadata
     {
-        private const string INTEGER_GENERAL_DEFAULT = "-1";
-        private const string INTEGER_TIME_DEFAULT = "-1000";
-        private const string BOOLEAN_GENERAL_DEFAULT = "false";
-
-        private static readonly IntConverter IntConverter = new();
-        private static readonly BooleanConverter BooleanConverter = new();
-
-        private static readonly TimeConverter DecimalTimeConverter = new()
+        /// <summary>
+        /// The type of chart file to read.
+        /// </summary>
+        public enum ChartType
         {
-            IntegerScaleFactor = 0.001,
-            AllowTimeSpans = false,
+            Mid,
+            Midi,
+            Chart,
         };
 
-        private static readonly TimeConverter IntegerTimeConverter = new()
+#nullable enable
+        [Serializable]
+        public sealed class IniSubmetadata
         {
-            IntegerScaleFactor = 0.001,
-            AllowTimeSpans = false,
-            AllowDecimals = false,
-        };
-
-        private SongMetadata(IniSection section)
-        {
-            Name = section.GetField("name");
-            Artist = section.GetField("artist");
-            Album = section.GetField("album");
-            Genre = section.GetField("genre");
-            Year = section.GetField("year");
-
-            // .ini songs are assumed to be masters and not covers
-            IsMaster = true;
-
-            Charter = section.GetField("charter");
-            Source = section.GetField("icon");
-
-            LoadingPhrase = section.GetField("loading_phrase");
-
-            PlaylistTrack = section.GetField("playlist_track", INTEGER_GENERAL_DEFAULT).Get(IntConverter);
-            AlbumTrack = section.GetField("album_track", INTEGER_GENERAL_DEFAULT).Get(IntConverter);
-            if (AlbumTrack < 1)
+            public static readonly (string, ChartType)[] CHART_FILE_TYPES =
             {
-                // Legacy tag
-                AlbumTrack = section.GetField("track", INTEGER_GENERAL_DEFAULT).Get(IntConverter);
-            }
-
-            SongLength = section.GetField("song_length", INTEGER_TIME_DEFAULT).Get(IntegerTimeConverter);
-            PreviewStart = section.GetField("preview_start_time", INTEGER_TIME_DEFAULT).Get(IntegerTimeConverter);
-            PreviewEnd = section.GetField("preview_end_time", INTEGER_TIME_DEFAULT).Get(IntegerTimeConverter);
-
-            ChartOffset = section.GetField("delay").Get(DecimalTimeConverter);
-
-            VideoStartTime = section.GetField("video_start_time", "0").Get(IntegerTimeConverter);
-            VideoEndTime = section.GetField("video_end_time", INTEGER_TIME_DEFAULT).Get(IntegerTimeConverter);
-
-            BandDifficulty = section.GetField("diff_band", INTEGER_GENERAL_DEFAULT).Get(IntConverter);
-            PartDifficulties = new()
-            {
-                { Instrument.FiveFretGuitar,        section.GetField("diff_guitar", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },
-                { Instrument.FiveFretCoopGuitar,    section.GetField("diff_guitar_coop", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },
-                { Instrument.FiveFretRhythm,        section.GetField("diff_rhythm", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },
-                { Instrument.FiveFretBass,          section.GetField("diff_bass", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },
-
-                                                    // yes, guitarghl and bassghl have no underscore before "ghl"
-                { Instrument.SixFretGuitar,         section.GetField("diff_guitarghl", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },
-                { Instrument.SixFretCoopGuitar,     section.GetField("diff_guitar_coop_ghl", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },
-                { Instrument.SixFretRhythm,         section.GetField("diff_rhythm_ghl", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },
-                { Instrument.SixFretBass,           section.GetField("diff_bassghl", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },
-
-                { Instrument.ProGuitar_17Fret,      section.GetField("diff_guitar_real", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },
-                { Instrument.ProGuitar_22Fret,      section.GetField("diff_guitar_real_22", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },
-                { Instrument.ProBass_17Fret,        section.GetField("diff_bass_real", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },
-                { Instrument.ProBass_22Fret,        section.GetField("diff_bass_real_22", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },
-
-                { Instrument.FourLaneDrums,         section.GetField("diff_drums", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },
-                { Instrument.FiveLaneDrums,         section.GetField("diff_drums", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },
-                { Instrument.ProDrums,              section.GetField("diff_drums_real", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },
-
-                { Instrument.Keys,                  section.GetField("diff_keys", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },
-                { Instrument.ProKeys,               section.GetField("diff_keys_real", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },
-
-                { Instrument.Vocals,                section.GetField("diff_vocals", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },
-                { Instrument.Harmony,               section.GetField("diff_vocals_harm", INTEGER_GENERAL_DEFAULT).Get(IntConverter) },
+                new("notes.mid",   ChartType.Mid),
+                new("notes.midi",  ChartType.Midi),
+                new("notes.chart", ChartType.Chart),
             };
 
-            var drumsType = DrumsType.Unknown;
-            if (section.GetField("pro_drums", BOOLEAN_GENERAL_DEFAULT).Get(BooleanConverter))
-            {
-                drumsType = DrumsType.FourLane;
-            }
-            else if (section.GetField("five_lane_drums", BOOLEAN_GENERAL_DEFAULT).Get(BooleanConverter))
-            {
-                drumsType = DrumsType.FiveLane;
-            }
+            public readonly ChartType chartType;
+            public readonly AbridgedFileInfo chartFile;
+            public readonly AbridgedFileInfo? iniFile;
 
-            int hopoThreshold = section.GetField("hopo_frequency", INTEGER_GENERAL_DEFAULT).Get(IntConverter);
-            bool eighthNoteHopo = section.GetField("eighthnote_hopo", BOOLEAN_GENERAL_DEFAULT).Get(BooleanConverter);
-            int susCutoffThreshold = section.GetField("sustain_cutoff_threshold", INTEGER_GENERAL_DEFAULT).Get(IntConverter);
-
-            int starPowerNote = section.GetField("multiplier_note", INTEGER_GENERAL_DEFAULT).Get(IntConverter);
-            if (starPowerNote < 0)
+            public IniSubmetadata(ChartType chartType, AbridgedFileInfo chartFile, AbridgedFileInfo? iniFile)
             {
-                // Legacy tag from Phase Shift
-                starPowerNote = section.GetField("star_power_note", INTEGER_GENERAL_DEFAULT).Get(IntConverter);
+                this.chartType = chartType;
+                this.chartFile = chartFile;
+                this.iniFile = iniFile;
             }
 
-            ParseSettings = new()
+            public void Serialize(BinaryWriter writer)
+            {
+                writer.Write((byte) chartType);
+                writer.Write(chartFile.LastWriteTime.ToBinary());
+                if (iniFile != null)
+                {
+                    writer.Write(true);
+                    writer.Write(iniFile.LastWriteTime.ToBinary());
+                }
+                else
+                    writer.Write(false);
+            }
+        }
+
+        private static readonly Dictionary<string, IniModifierCreator> CHART_MODIFIER_LIST = new()
+        {
+            { "Album",        new("album",        ModifierCreatorType.SortString_Chart ) },
+            { "Artist",       new("artist",       ModifierCreatorType.SortString_Chart ) },
+            { "Charter",      new("charter",      ModifierCreatorType.SortString_Chart ) },
+            { "Difficulty",   new("diff_band",    ModifierCreatorType.Int32 ) },
+            { "Genre",        new("genre",        ModifierCreatorType.SortString_Chart ) },
+            { "Name",         new("name",         ModifierCreatorType.SortString_Chart ) },
+            { "PreviewEnd",   new("previewEnd",   ModifierCreatorType.Double ) },
+            { "PreviewStart", new("previewStart", ModifierCreatorType.Double ) },
+            { "Year",         new("year_chart",   ModifierCreatorType.String_Chart ) },
+            { "Offset",       new("offset",       ModifierCreatorType.Double ) },
+        };
+
+        private SongMetadata(IniSection section, IniSubmetadata iniData, AvailableParts parts, DrumPreparseType drumType, HashWrapper hash)
+        {
+            // .ini songs are assumed to be masters and not covers
+            _isMaster = true;
+            _directory = Path.GetDirectoryName(iniData.chartFile.FullName);
+            _parts = parts;
+            _hash = hash;
+            _iniData = iniData;
+
+            section.TryGet("name",     out _name,     DEFAULT_NAME);
+            section.TryGet("artist",   out _artist,   DEFAULT_ARTIST);
+            section.TryGet("album",    out _album,    DEFAULT_ALBUM);
+            section.TryGet("genre",    out _genre,    DEFAULT_GENRE);
+            section.TryGet("charter",  out _charter,  DEFAULT_CHARTER);
+            section.TryGet("source",   out _source,   DEFAULT_SOURCE);
+            section.TryGet("playlist", out _playlist, Path.GetFileName(Path.GetDirectoryName(_directory)));
+
+            if (section.TryGet("year", out _unmodifiedYear))
+                Year = _unmodifiedYear;
+            else if (section.TryGet("year_chart", out _unmodifiedYear))
+            {
+                if (_unmodifiedYear.StartsWith(", "))
+                    Year = _unmodifiedYear[2..];
+                else if (_unmodifiedYear.StartsWith(','))
+                    Year = _unmodifiedYear[1..];
+                else
+                    Year = _unmodifiedYear;
+            }
+            else
+                _unmodifiedYear = DEFAULT_YEAR;
+           
+
+            section.TryGet("loading_phrase", out _loadingPhrase);
+            section.TryGet("icon", out _icon);
+
+            if (!section.TryGet("playlist_track", out _playlistTrack))
+                _playlistTrack = -1;
+
+            if (!section.TryGet("album_track", out _albumTrack))
+                _albumTrack = -1;
+
+            section.TryGet("song_length", out _songLength);
+
+            if (!section.TryGet("preview", out _previewStart, out _previewEnd))
+            {
+                if (!section.TryGet("preview_start_time", out _previewStart) && section.TryGet("previewStart", out double previewValue))
+                    _previewStart = (ulong)(1000 * previewValue);
+
+                if (!section.TryGet("preview_end_time", out _previewEnd) && section.TryGet("previewStart", out previewValue))
+                    _previewEnd = (ulong)(1000 * previewValue);
+            }
+
+            if (!section.TryGet("delay", out _chartOffset))
+            {
+                if (section.TryGet("offset", out double offset))
+                    _chartOffset = (long)(1000 * offset);
+            }
+
+            section.TryGet("video_start_time", out _videoStartTime);
+            if (!section.TryGet("video_end_time", out _videoEndTime))
+                _videoEndTime = -1;
+
+            var drumsType = drumType switch
+            {
+                DrumPreparseType.FourLane or
+                DrumPreparseType.FourPro => DrumsType.FourLane,
+                DrumPreparseType.FiveLane => DrumsType.FiveLane,
+                _ => DrumsType.Unknown
+            };
+
+            if (!section.TryGet("hopo_frequency", out long hopoThreshold))
+                hopoThreshold = -1;
+
+            if (!section.TryGet("hopofreq", out int hopofreq_fof))
+                hopofreq_fof = -1;
+
+            section.TryGet("eighthnote_hopo", out bool eighthNoteHopo);
+
+            if (!section.TryGet("hopofreq", out long susCutoffThreshold))
+                susCutoffThreshold = -1;
+
+            if (!section.TryGet("multiplier_note", out int starPowerNote))
+                susCutoffThreshold = 116;
+
+            _parseSettings = new()
             {
                 DrumsType = drumsType,
 
                 HopoThreshold = hopoThreshold,
+                HopoFreq_FoF = hopofreq_fof,
                 EighthNoteHopo = eighthNoteHopo,
                 SustainCutoffThreshold = susCutoffThreshold,
 
@@ -125,30 +168,150 @@ namespace YARG.Core.Song
             };
         }
 
-        public static SongMetadata FromIni(string filePath)
+        private SongMetadata(IniSubmetadata iniData, YARGBinaryReader reader, CategoryCacheStrings strings) : this(reader, strings)
         {
-            // Had some reports that ini parsing might throw an exception, leaving this in for now
-            // in as I don't know the cause just yet and I want to investigate it further. -Riley
-            IniFile file;
-            try
+            _iniData = iniData;
+        }
+
+        private static DrumPreparseType ParseChart(IYARGChartReader reader, IniSection modifiers, AvailableParts parts)
+        {
+            if (!reader.ValidateHeaderTrack())
+                return DrumPreparseType.Unknown;
+
+            var chartMods = reader.ExtractModifiers(CHART_MODIFIER_LIST);
+            modifiers.Append(chartMods);
+
+            return parts.ParseChart(reader, GetDrumTypeFromModifier(modifiers));
+        }
+
+        private static DrumPreparseType ParseMidi(byte[] file, IniSection modifiers, AvailableParts parts)
+        {
+            var drumType = GetDrumTypeFromModifier(modifiers);
+            bool usePro = !modifiers.TryGet("pro_drums", out bool proDrums) || proDrums;
+            if (drumType == DrumPreparseType.Unknown)
             {
-                file = new IniFile(filePath);
-                file.Parse();
+                if (usePro)
+                    drumType = DrumPreparseType.UnknownPro;
             }
-            catch (Exception ex)
+            else if (drumType == DrumPreparseType.FourLane && usePro)
+                drumType = DrumPreparseType.FourPro;
+
+            return parts.ParseMidi(file, drumType);
+        }
+
+        private static DrumPreparseType GetDrumTypeFromModifier(IniSection modifiers)
+        {
+            if (!modifiers.TryGet("five_lane_drums", out bool fivelane))
+                return DrumPreparseType.Unknown;
+            return fivelane ? DrumPreparseType.FiveLane : DrumPreparseType.FourLane;
+        }
+
+        public static (ScanResult, SongMetadata?) FromIni(byte[] file, string chartFile, string? iniFile, int chartTypeIndex)
+        {
+            AvailableParts parts = new();
+            AbridgedFileInfo? iniInfo;
+            IniSection modifiers;
+            if (iniFile != null)
             {
-                YargTrace.LogException(ex, "Error while parsing song.ini!");
-                return null;
+                modifiers = IniHandler.ReadSongIniFile(iniFile);
+                iniInfo = new AbridgedFileInfo(iniFile);
+            }
+            else
+            {
+                modifiers = new();
+                iniInfo = null;
             }
 
-            // Check for the [song]/[Song] section
-            string sectionName = file.ContainsSection("song") ? "song" : "Song";
-            if (!file.ContainsSection(sectionName))
+            var chartType = IniSubmetadata.CHART_FILE_TYPES[chartTypeIndex].Item2;
+            DrumPreparseType drumType = default;
+            if (chartType == ChartType.Chart)
+            {
+                try
+                {
+                    drumType = ParseChart(new YARGChartFileReader(file), modifiers, parts);
+                }
+                catch (BadEncodingException)
+                {
+                    YargTrace.LogInfo("UTF-8 preferred for .chart encoding");
+                    drumType = ParseChart(new YARGChartFileReader_Char(chartFile), modifiers, parts);
+                }
+                catch(Exception ex)
+                {
+                    YargTrace.LogException(ex, ex.Message);
+                    return (ScanResult.InvalidDotChartEncoding, null);
+                }
+            }
+
+            if (!modifiers.Contains("name"))
+                return (ScanResult.NoName, null);
+
+            if (chartType == ChartType.Mid || chartType == ChartType.Midi)
+                drumType = ParseMidi(file, modifiers, parts);
+
+            if (!parts.CheckScanValidity())
+                return (ScanResult.NoNotes, null);
+
+            IniSubmetadata metadata = new(chartType, new AbridgedFileInfo(chartFile), iniInfo);
+            parts.SetIntensities(modifiers);
+            return (ScanResult.Success, new SongMetadata(modifiers, metadata, parts, drumType, HashWrapper.Create(file)));
+        }
+
+        public static SongMetadata? IniFromCache(string baseDirectory, YARGBinaryReader reader, CategoryCacheStrings strings)
+        {
+            string directory = Path.Combine(baseDirectory, reader.ReadLEBString());
+            byte chartTypeIndex = reader.ReadByte();
+            if (chartTypeIndex >= IniSubmetadata.CHART_FILE_TYPES.Length)
                 return null;
 
-            // Load metadata
-            var section = file.GetSection(sectionName);
-            return new SongMetadata(section);
+            ref var chartType = ref IniSubmetadata.CHART_FILE_TYPES[chartTypeIndex];
+            FileInfo chartFile = new(Path.Combine(directory, chartType.Item1));
+            if (!chartFile.Exists)
+                return null;
+
+            if (chartFile.LastWriteTime != DateTime.FromBinary(reader.ReadInt64()))
+                return null;
+
+            FileInfo? iniFile = null;
+            if (reader.ReadBoolean())
+            {
+                iniFile = new(Path.Combine(directory, "song.ini"));
+                if (!iniFile.Exists)
+                    return null;
+
+                if (iniFile.LastWriteTime != DateTime.FromBinary(reader.ReadInt64()))
+                    return null;
+            }
+
+            IniSubmetadata iniData = new(chartType.Item2, chartFile, iniFile);
+            return new SongMetadata(iniData, reader, strings)
+            {
+                _directory = directory
+            };
+        }
+
+        public static SongMetadata? IniFromCache_Quick(string baseDirectory, YARGBinaryReader reader, CategoryCacheStrings strings)
+        {
+            string directory = Path.Combine(baseDirectory, reader.ReadLEBString());
+            byte chartTypeIndex = reader.ReadByte();
+            if (chartTypeIndex >= IniSubmetadata.CHART_FILE_TYPES.Length)
+                return null;
+
+            ref var chartType = ref IniSubmetadata.CHART_FILE_TYPES[chartTypeIndex];
+            var lastWrite = DateTime.FromBinary(reader.ReadInt64());
+
+            AbridgedFileInfo chartFile = new(Path.Combine(directory, chartType.Item1), lastWrite);
+            AbridgedFileInfo? iniFile = null;
+            if (reader.ReadBoolean())
+            {
+                lastWrite = DateTime.FromBinary(reader.ReadInt64());
+                iniFile = new(Path.Combine(directory, "song.ini"), lastWrite);
+            }
+
+            IniSubmetadata iniData = new(chartType.Item2, chartFile, iniFile);
+            return new SongMetadata(iniData, reader, strings)
+            {
+                _directory = directory
+            };
         }
     }
 }
