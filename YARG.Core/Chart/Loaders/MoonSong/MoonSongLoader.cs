@@ -206,25 +206,28 @@ namespace YARG.Core.Chart
         {
             var flags = NoteFlags.None;
 
+            var previous = moonNote.PreviousSeperateMoonNote;
+            var next = moonNote.PreviousSeperateMoonNote;
+
             // Star power
             if (currentPhrases.TryGetValue(SpecialPhrase.Type.Starpower, out var starPower) && IsEventInPhrase(moonNote, starPower))
             {
                 flags |= NoteFlags.StarPower;
 
-                if (!IsEventInPhrase(moonNote.PreviousSeperateMoonNote, starPower))
+                if (previous == null || !IsEventInPhrase(previous, starPower))
                     flags |= NoteFlags.StarPowerStart;
 
-                if (!IsEventInPhrase(moonNote.NextSeperateMoonNote, starPower))
+                if (next == null || !IsEventInPhrase(next, starPower))
                     flags |= NoteFlags.StarPowerEnd;
             }
 
             // Solos
             if (currentPhrases.TryGetValue(SpecialPhrase.Type.Solo, out var solo) && IsEventInPhrase(moonNote, solo))
             {
-                if (!IsEventInPhrase(moonNote.PreviousSeperateMoonNote, solo))
+                if (previous == null || !IsEventInPhrase(previous, solo))
                     flags |= NoteFlags.SoloStart;
 
-                if (!IsEventInPhrase(moonNote.NextSeperateMoonNote, solo))
+                if (next == null || !IsEventInPhrase(next, solo))
                     flags |= NoteFlags.SoloEnd;
             }
 
