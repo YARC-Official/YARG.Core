@@ -153,7 +153,7 @@ namespace YARG.Core.Song
                 susCutoffThreshold = -1;
 
             if (!section.TryGet("multiplier_note", out int starPowerNote))
-                susCutoffThreshold = 116;
+                starPowerNote = -1;
 
             _parseSettings = new()
             {
