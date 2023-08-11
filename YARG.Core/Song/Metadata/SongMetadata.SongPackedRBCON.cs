@@ -158,14 +158,9 @@ namespace YARG.Core.Song
 
             public byte[]? LoadMoggFile()
             {
-                //if (Yarg_Mogg != null)
-                //{
-                //    // ReSharper disable once MustUseReturnValue
-                //    return new YARGFile(YargMoggReadStream.DecryptMogg(Yarg_Mogg.FullName));
-                //}
-
-                if (_metadata.Mogg != null && File.Exists(_metadata.Mogg.FullName))
-                    return File.ReadAllBytes(_metadata.Mogg.FullName);
+                using var stream = _metadata.GetMoggStream();
+                if (stream != null)
+                    return stream.ReadBytes((int) stream.Length);
 
                 if (moggListing != null)
                     return conFile.LoadSubFile(moggListing);
@@ -194,21 +189,13 @@ namespace YARG.Core.Song
                 return null;
             }
 
-            public bool IsMoggUnencrypted()
+            public bool IsMoggValid()
             {
-                //if (Yarg_Mogg != null)
-                //{
-                //    if (!File.Exists(Yarg_Mogg.FullName))
-                //        throw new Exception("YARG Mogg file not present");
-                //    return YargMoggReadStream.GetVersionNumber(Yarg_Mogg.FullName) == 0xF0;
-                //}
-                //else
-                if (_metadata.Mogg != null && File.Exists(_metadata.Mogg.FullName))
+                using var stream = _metadata.GetMoggStream();
+                if (stream != null)
                 {
-                    using var fs = new FileStream(_metadata.Mogg.FullName, FileMode.Open, FileAccess.Read);
-                    byte[] buffer = new byte[4];
-                    fs.Read(buffer);
-                    return BinaryPrimitives.ReadInt32LittleEndian(buffer) == 0x0A;
+                    int version = stream.ReadInt32LE();
+                    return version == 0x0A || version == 0xf0;
                 }
                 else if (moggListing != null)
                     return conFile.GetMoggVersion(moggListing) == 0x0A;
