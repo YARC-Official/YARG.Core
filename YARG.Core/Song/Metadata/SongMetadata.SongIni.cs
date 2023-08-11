@@ -259,21 +259,15 @@ namespace YARG.Core.Song
                 return null;
 
             ref var chartType = ref IniSubmetadata.CHART_FILE_TYPES[chartTypeIndex];
-            FileInfo chartFile = new(Path.Combine(directory, chartType.Item1));
-            if (!chartFile.Exists)
+            var chartFile = ParseFileInfo(Path.Combine(directory, chartType.Item1), reader);
+            if (chartFile == null)
                 return null;
 
-            if (chartFile.LastWriteTime != DateTime.FromBinary(reader.ReadInt64()))
-                return null;
-
-            FileInfo? iniFile = null;
+            AbridgedFileInfo? iniFile = null;
             if (reader.ReadBoolean())
             {
-                iniFile = new(Path.Combine(directory, "song.ini"));
-                if (!iniFile.Exists)
-                    return null;
-
-                if (iniFile.LastWriteTime != DateTime.FromBinary(reader.ReadInt64()))
+                iniFile = ParseFileInfo(Path.Combine(directory, "song.ini"), reader);
+                if (iniFile == null)
                     return null;
             }
 

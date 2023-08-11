@@ -731,13 +731,5 @@ namespace YARG.Core.Song
 
             return SongChart.FromMidi(_parseSettings, midi);
         }
-
-        private static AbridgedFileInfo? ParseFileInfo(YARGBinaryReader reader)
-        {
-            FileInfo midiInfo = new(reader.ReadLEBString());
-            if (!midiInfo.Exists || midiInfo.LastWriteTime != DateTime.FromBinary(reader.ReadInt64()))
-                return null;
-            return midiInfo;
-        }
     }
 }

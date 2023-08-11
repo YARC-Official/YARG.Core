@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using YARG.Core.Song.Cache;
 using YARG.Core.Song.Deserialization;
 
@@ -69,6 +70,20 @@ namespace YARG.Core.Song
 
             _parts.Serialize(writer);
             _hash.Serialize(writer);
+        }
+
+#nullable enable
+        private static AbridgedFileInfo? ParseFileInfo(YARGBinaryReader reader)
+        {
+            return ParseFileInfo(reader.ReadLEBString(), reader);
+        }
+
+        private static AbridgedFileInfo? ParseFileInfo(string file, YARGBinaryReader reader)
+        {
+            FileInfo midiInfo = new(reader.ReadLEBString());
+            if (!midiInfo.Exists || midiInfo.LastWriteTime != DateTime.FromBinary(reader.ReadInt64()))
+                return null;
+            return midiInfo;
         }
     }
 }
