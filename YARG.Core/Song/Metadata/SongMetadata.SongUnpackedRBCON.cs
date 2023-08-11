@@ -21,14 +21,13 @@ namespace YARG.Core.Song
 
             public DateTime MidiLastWrite => Midi.LastWriteTime;
 
-            public RBUnpackedCONMetadata(string folder, AbridgedFileInfo dta, RBCONSubMetadata metadata, string nodeName, string location, string midiPath)
+            public RBUnpackedCONMetadata(string folder, AbridgedFileInfo dta, RBCONSubMetadata metadata, string nodeName)
             {
                 _metadata = metadata;
                 DTA = dta;
-                string file = Path.Combine(folder, location);
-
-                if (midiPath == string.Empty)
-                    midiPath = file + ".mid";
+                folder = Path.Combine(folder, nodeName);
+                string file = Path.Combine(folder, nodeName);
+                string midiPath = file + ".mid";
 
                 FileInfo midiInfo = new(midiPath);
                 if (!midiInfo.Exists)
@@ -38,10 +37,7 @@ namespace YARG.Core.Song
                 FileInfo mogg = new(file + ".yarg_mogg");
                 metadata.Mogg = mogg.Exists ? mogg : new AbridgedFileInfo(file + ".mogg");
 
-                if (!location.StartsWith($"songs/{nodeName}"))
-                    nodeName = location.Split('/')[1];
-
-                file = Path.Combine(folder, $"songs/{nodeName}/gen/{nodeName}");
+                file = Path.Combine(folder, "gen", nodeName);
                 metadata.Milo = new(file + ".milo_xbox");
                 metadata.Image = new(file + "_keep.png_xbox");
                 metadata.Directory = Path.GetDirectoryName(midiPath)!;
@@ -154,8 +150,8 @@ namespace YARG.Core.Song
         {
             RBCONSubMetadata rbMetadata = new();
 
-            var dtaResults = ParseDTA(nodeName, rbMetadata, reader);
-            _rbData = new RBUnpackedCONMetadata(folder, dta, rbMetadata, nodeName, dtaResults.location, dtaResults.midiPath);
+            ParseDTA(nodeName, rbMetadata, reader);
+            _rbData = new RBUnpackedCONMetadata(folder, dta, rbMetadata, nodeName);
             _directory = rbMetadata.Directory;
         }
 
