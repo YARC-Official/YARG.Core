@@ -50,7 +50,7 @@ namespace YARG.Core.Song.Cache
         /// Format is YY_MM_DD_RR: Y = year, M = month, D = day, R = revision (reset across dates, only increment
         /// if multiple cache version changes happen in a single day).
         /// </summary>
-        public const int CACHE_VERSION = 23_08_11_02;
+        public const int CACHE_VERSION = 23_08_11_03;
         public const string CACHE_FILE = "songcache.bin";
         public const string BADSONGS_FILE = "badsongs.txt";
 
@@ -198,47 +198,50 @@ namespace YARG.Core.Song.Cache
 
         private void WriteBadSongs()
         {
+            if (badSongs.Count == 0)
+            {
+                File.Delete(badSongsLocation);
+                return;
+            }
+
             Progress = ScanProgress.WritingBadSongs;
             using var stream = new FileStream(badSongsLocation, FileMode.Create, FileAccess.Write);
             using var writer = new StreamWriter(stream);
 
             foreach (var error in badSongs)
             {
-                writer.WriteLineAsync(error.Key);
+                writer.WriteLine(error.Key);
                 switch (error.Value)
                 {
                     case ScanResult.DirectoryError:
-                        writer.WriteLineAsync("Error accessing directory contents");
-                        break;
-                    case ScanResult.InvalidDotChartEncoding:
-                        writer.WriteLineAsync(".chart file must utilize UTF-8 encoding");
+                        writer.WriteLine("Error accessing directory contents");
                         break;
                     case ScanResult.IniEntryCorruption:
-                        writer.WriteLineAsync("Corruption of either the ini file or chart/mid file");
+                        writer.WriteLine("Corruption of either the ini file or chart/mid file");
                         break;
                     case ScanResult.NoName:
-                        writer.WriteLineAsync("Name metadata not provided");
+                        writer.WriteLine("Name metadata not provided");
                         break;
                     case ScanResult.NoNotes:
-                        writer.WriteLineAsync("No notes found");
+                        writer.WriteLine("No notes found");
                         break;
                     case ScanResult.DTAError:
-                        writer.WriteLineAsync("Error occured while parsing DTA file node");
+                        writer.WriteLine("Error occured while parsing DTA file node");
                         break;
                     case ScanResult.MoggError:
-                        writer.WriteLineAsync("Required mogg audio file not present or used invalid encryption");
+                        writer.WriteLine("Required mogg audio file not present or used invalid encryption");
                         break;
                     case ScanResult.UnsupportedEncryption:
-                        writer.WriteLineAsync("Mogg file uses unsupported encryption");
+                        writer.WriteLine("Mogg file uses unsupported encryption");
                         break;
                     case ScanResult.MissingMidi:
-                        writer.WriteLineAsync("Midi file queried for found missing");
+                        writer.WriteLine("Midi file queried for found missing");
                         break;
                     case ScanResult.PossibleCorruption:
-                        writer.WriteLineAsync("Possible corruption of a queried midi file");
+                        writer.WriteLine("Possible corruption of a queried midi file");
                         break;
                 }
-                writer.WriteLineAsync();
+                writer.WriteLine();
             }
         }
 

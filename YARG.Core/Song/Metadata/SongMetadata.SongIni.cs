@@ -84,7 +84,8 @@ namespace YARG.Core.Song
             section.TryGet("artist",   out _artist,   DEFAULT_ARTIST);
             section.TryGet("album",    out _album,    DEFAULT_ALBUM);
             section.TryGet("genre",    out _genre,    DEFAULT_GENRE);
-            section.TryGet("charter",  out _charter,  DEFAULT_CHARTER);
+            if (!section.TryGet("charter", out _charter, DEFAULT_CHARTER))
+                section.TryGet("frets",    out _charter, DEFAULT_CHARTER);
             section.TryGet("icon",     out _source,   DEFAULT_SOURCE);
             section.TryGet("playlist", out _playlist, Path.GetFileName(Path.GetDirectoryName(_directory)));
 
@@ -233,11 +234,6 @@ namespace YARG.Core.Song
                 {
                     YargTrace.LogInfo("UTF-8 preferred for .chart encoding");
                     drumType = ParseChart(new YARGChartFileReader_Char(chartFile), modifiers, parts);
-                }
-                catch(Exception ex)
-                {
-                    YargTrace.LogException(ex, ex.Message);
-                    return (ScanResult.InvalidDotChartEncoding, null);
                 }
             }
 
