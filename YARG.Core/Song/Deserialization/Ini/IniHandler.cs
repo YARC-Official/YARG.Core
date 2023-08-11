@@ -91,7 +91,7 @@ namespace YARG.Core.Song.Deserialization.Ini
                 //{ "eof_midi_import_drum_ghost_velocity",  new("eof_midi_import_drum_ghost_velocity", ModifierCreatorType.UInt16) },
 
                 { "five_lane_drums",                      new("five_lane_drums", ModifierCreatorType.Bool) },
-                { "frets",                                new("charter", ModifierCreatorType.SortString) },
+                { "frets",                                new("frets", ModifierCreatorType.SortString) },
 
                 { "genre",                                new("genre", ModifierCreatorType.SortString) },
                 { "guitar_type",                          new("guitar_type", ModifierCreatorType.UInt32) },
