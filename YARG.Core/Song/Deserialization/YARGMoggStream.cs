@@ -34,19 +34,19 @@ namespace YARG.Core.Song.Deserialization
 
             // Get the encryption matrix
             _baseEncryptionMatrix = _fileStream.ReadBytes(16);
-            for (int i = 0; i < 16; i++)
+            for (int i = 0; i < MATRIXSIZE; i++)
             {
                 _baseEncryptionMatrix[i] = (byte) Mod(_baseEncryptionMatrix[i] - i * 12, 255);
             }
 
-            _encryptionMatrix = new byte[16];
+            _encryptionMatrix = new byte[MATRIXSIZE];
             ResetEncryptionMatrix();
         }
 
         private void ResetEncryptionMatrix()
         {
             _currentRow = 0;
-            for (int i = 0; i < 16; i++)
+            for (int i = 0; i < MATRIXSIZE; i++)
             {
                 _encryptionMatrix[i] = _baseEncryptionMatrix[i];
             }
@@ -97,7 +97,7 @@ namespace YARG.Core.Song.Deserialization
             // Skip the encryption matrix
             if (origin == SeekOrigin.Begin)
             {
-                offset += 16;
+                offset += MATRIXSIZE;
             }
 
             long newPos = _fileStream.Seek(offset, origin);
@@ -135,7 +135,7 @@ namespace YARG.Core.Song.Deserialization
             int y = x * x + 1 + phi;
             int z = x * 3 - phi;
             int w = y + z - x;
-            if (w >= 16)
+            if (w >= MATRIXSIZE)
             {
                 w = 15;
             }
