@@ -100,10 +100,14 @@ namespace YARG.Core.Engine.Guitar
                 skipped = true;
 
                 prevNote.SetMissState(true, true);
-                prevNote = prevNote.PreviousNote;
+
                 EngineStats.Combo = 0;
                 EngineStats.NotesMissed++;
+
+                OnNoteMissed?.Invoke(State.NoteIndex, prevNote);
                 State.NoteIndex++;
+
+                prevNote = prevNote.PreviousNote;
             }
 
             if (skipped)
