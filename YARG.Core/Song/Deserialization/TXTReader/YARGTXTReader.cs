@@ -13,7 +13,7 @@ namespace YARG.Core.Song.Deserialization
     public class YARGTXTReader : YARGTXTReader_Base, ITXTReader
     {
         private static readonly byte[] BOM_UTF8 = { 0xEF, 0xBB, 0xBF };
-        private static readonly byte[] BOM_OTHER = { 0xFE, 0xFF };
+        private static readonly byte[] BOM_OTHER = { 0xFF, 0xFE };
         private static readonly UTF8Encoding UTF8 = new(true, true);
         static YARGTXTReader() { }
 
@@ -30,7 +30,8 @@ namespace YARG.Core.Song.Deserialization
              * Anything other than UTF-8 (or extended ASCII) just needlessly over bloats filesize.
              * Therefore, we should actively discourage/disallow their usage.
              */
-            if (data[0] == BOM_OTHER[0] && data[1] == BOM_OTHER[1])
+            if ((data[0] == BOM_OTHER[0] && data[1] == BOM_OTHER[1]) ||
+                (data[0] == BOM_OTHER[1] && data[1] == BOM_OTHER[0]))
                 throw new BadEncodingException();
 
             if (data[0] == BOM_UTF8[0] && data[1] == BOM_UTF8[1] && data[2] == BOM_UTF8[2])
