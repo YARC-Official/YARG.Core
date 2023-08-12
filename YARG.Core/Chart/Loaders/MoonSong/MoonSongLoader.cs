@@ -207,7 +207,7 @@ namespace YARG.Core.Chart
             var flags = NoteFlags.None;
 
             var previous = moonNote.PreviousSeperateMoonNote;
-            var next = moonNote.PreviousSeperateMoonNote;
+            var next = moonNote.NextSeperateMoonNote;
 
             // Star power
             if (currentPhrases.TryGetValue(SpecialPhrase.Type.Starpower, out var starPower) && IsEventInPhrase(moonNote, starPower))
