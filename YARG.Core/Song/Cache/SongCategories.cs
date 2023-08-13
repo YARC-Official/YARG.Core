@@ -198,6 +198,7 @@ namespace YARG.Core.Song.Cache
         private static readonly InstrumentComparer ProBass_17FretComparer   = new(Instrument.ProBass_17Fret);
         private static readonly InstrumentComparer ProBass_22FretComparer   = new(Instrument.ProBass_22Fret);
         private static readonly InstrumentComparer ProKeysComparer          = new(Instrument.ProKeys);
+        private static readonly InstrumentComparer BandComparer             = new(Instrument.Band);
 
         private static readonly InstrumentComparer[] comparers =
         {
@@ -220,6 +221,7 @@ namespace YARG.Core.Song.Cache
             ProBass_17FretComparer,
             ProBass_22FretComparer,
             ProKeysComparer,
+            BandComparer
         };
 
         private readonly bool multithreading;
