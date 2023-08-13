@@ -242,7 +242,7 @@ namespace YARG.Core.Song
         {
             try
             {
-                return GetValues(instrument).subTracks > 0;
+                return instrument != Instrument.Band && GetValues(instrument).subTracks > 0;
             }
             catch
             {
