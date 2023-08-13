@@ -56,16 +56,16 @@ namespace YARG.Core.Song.Cache
         public void WriteToCache(BinaryWriter fileWriter, ref Dictionary<SongMetadata, CategoryCacheWriteNode> nodes)
         {
             List<string> strings = new();
-            int index = -1;
             foreach (var element in this)
             {
                 foreach (var entry in element.Value)
                 {
                     string str = entry.GetStringAttribute(attribute);
-                    if (index == -1 || strings[index] != str)
+                    int index  = strings.IndexOf(str);
+                    if (index == -1)
                     {
+                        index = strings.Count;
                         strings.Add(str);
-                        index++;
                     }
 
                     CategoryCacheWriteNode node;
@@ -90,7 +90,7 @@ namespace YARG.Core.Song.Cache
 
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);
-            writer.Write(index + 1);
+            writer.Write(strings.Count);
             foreach (string str in strings)
                 writer.Write(str);
 
