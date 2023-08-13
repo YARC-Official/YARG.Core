@@ -46,8 +46,8 @@ namespace YARG.Core.Song.Cache
             {
                 Parallel.For(0, baseDirectories.Length, i => ScanDirectory_Parallel(baseDirectories[i], i));
 
-                Task.WaitAll(Task.Run(() => Parallel.ForEach(conGroups, node => ScanCONGroup(node))),
-                             Task.Run(() => Parallel.ForEach(extractedConGroups, ScanExtractedCONGroup)));
+                Task.WaitAll(Task.Run(() => Parallel.ForEach(conGroups, ScanCONGroup_Parallel)),
+                             Task.Run(() => Parallel.ForEach(extractedConGroups, ScanExtractedCONGroup_Parallel)));
             }
             else
             {
@@ -144,85 +144,6 @@ namespace YARG.Core.Song.Cache
 
             if (group.LoadUpgrades(out var reader))
                 AddCONUpgrades(group, reader!);
-        }
-
-        private void ScanCONGroup(PackedCONGroup group)
-        {
-            if (group.LoadSongs(out var reader))
-            {
-                Dictionary<string, int> indices = new();
-                while (reader!.StartNode())
-                {
-                    string name = reader.GetNameOfNode();
-                    int index;
-                    if (indices.ContainsKey(name))
-                        index = ++indices[name];
-                    else
-                        index = indices[name] = 0;
-
-                    if (group.TryGetEntry(name, index, out var entry))
-                    {
-                        if (!AddEntry(entry!))
-                            group.RemoveEntry(name, index);
-                    }
-                    else
-                    {
-                        var song = SongMetadata.FromPackedRBCON(group.file, name, reader, updates, upgrades);
-                        if (song.Item2 != null)
-                        {
-                            if (AddEntry(song.Item2))
-                                group.AddEntry(name, index, song.Item2);
-                        }
-                        else
-                        {
-                            AddToBadSongs(group.file.filename + $" - Node {name}", song.Item1);
-                        }
-                    }
-                    reader.EndNode();
-                }
-            }
-        }
-
-        private void ScanExtractedCONGroup(UnpackedCONGroup group)
-        {
-            try
-            {
-                YARGDTAReader reader = new(group.dta.FullName);
-                Dictionary<string, int> indices = new();
-                while (reader.StartNode())
-                {
-                    string name = reader.GetNameOfNode();
-                    int index;
-                    if (indices.ContainsKey(name))
-                        index = indices[name]++;
-                    else
-                        index = indices[name] = 0;
-
-                    if (group.TryGetEntry(name, index, out var entry))
-                    {
-                        if (!AddEntry(entry!))
-                            group.RemoveEntry(name, index);
-                    }
-                    else
-                    {
-                        var song = SongMetadata.FromUnpackedRBCON(group.directory, group.dta, name, reader, updates, upgrades);
-                        if (song.Item2 != null)
-                        {
-                            if (AddEntry(song.Item2))
-                                group.AddEntry(name, index, song.Item2);
-                        }
-                        else
-                        {
-                            AddToBadSongs(group.directory + $" - Node {name}", song.Item1);
-                        }
-                    }
-                    reader.EndNode();
-                }
-            }
-            catch(Exception e)
-            {
-                errorList.Add(e);
-            }
         }
 
         private bool FindOrMarkDirectory(string directory)

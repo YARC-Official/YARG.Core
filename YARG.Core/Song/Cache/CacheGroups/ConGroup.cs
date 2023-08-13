@@ -32,7 +32,8 @@ namespace YARG.Core.Song.Cache
         public bool TryGetEntry(string name, int index, out SongMetadata? entry)
         {
             entry = null;
-            return entries.TryGetValue(name, out var dict) && dict.TryGetValue(index, out entry);
+            lock (entryLock)
+                return entries.TryGetValue(name, out var dict) && dict.TryGetValue(index, out entry);
         }
 
         protected void Serialize(BinaryWriter writer, ref Dictionary<SongMetadata, CategoryCacheWriteNode> nodes)

@@ -36,6 +36,113 @@ namespace YARG.Core.Song.Cache
             }
         }
 
+        private void ScanCONGroup_Parallel(PackedCONGroup group)
+        {
+            if (!group.LoadSongs(out var reader))
+                return;
+
+            try
+            {
+                Dictionary<string, int> indices = new();
+                object indexLock = new();
+                List<Task> tasks = new();
+                while (reader!.StartNode())
+                {
+                    var node = new YARGDTAReader(reader);
+                    tasks.Add(Task.Run(() =>
+                    {
+                        string name = node.GetNameOfNode();
+                        int index;
+                        lock (indexLock)
+                        {
+                            if (indices.ContainsKey(name))
+                                index = ++indices[name];
+                            else
+                                index = indices[name] = 0;
+                        }
+
+                        if (group.TryGetEntry(name, index, out var entry))
+                        {
+                            if (!AddEntry(entry!))
+                                group.RemoveEntry(name, index);
+                        }
+                        else
+                        {
+                            var song = SongMetadata.FromPackedRBCON(group.file, name, node, updates, upgrades);
+                            if (song.Item2 != null)
+                            {
+                                if (AddEntry(song.Item2))
+                                    group.AddEntry(name, index, song.Item2);
+                            }
+                            else
+                            {
+                                AddToBadSongs(group.file.filename + $" - Node {name}", song.Item1);
+                            }
+                        }
+                    }));
+                    reader.EndNode();
+                }
+
+                Task.WaitAll(tasks.ToArray());
+            }
+            catch (Exception e)
+            {
+                AddErrors(e);
+            }
+        }
+
+        private void ScanExtractedCONGroup_Parallel(UnpackedCONGroup group)
+        {
+            try
+            {
+                YARGDTAReader reader = new(group.dta.FullName);
+                Dictionary<string, int> indices = new();
+                object indexLock = new();
+                List<Task> tasks = new();
+                while (reader.StartNode())
+                {
+                    var node = new YARGDTAReader(reader);
+                    tasks.Add(Task.Run(() =>
+                    {
+                        string name = node.GetNameOfNode();
+                        int index;
+                        lock (indexLock)
+                        {
+                            if (indices.ContainsKey(name))
+                                index = ++indices[name];
+                            else
+                                index = indices[name] = 0;
+                        }
+
+                        if (group.TryGetEntry(name, index, out var entry))
+                        {
+                            if (!AddEntry(entry!))
+                                group.RemoveEntry(name, index);
+                        }
+                        else
+                        {
+                            var song = SongMetadata.FromUnpackedRBCON(group.directory, group.dta, name, node, updates, upgrades);
+                            if (song.Item2 != null)
+                            {
+                                if (AddEntry(song.Item2))
+                                    group.AddEntry(name, index, song.Item2);
+                            }
+                            else
+                            {
+                                AddToBadSongs(group.directory + $" - Node {name}", song.Item1);
+                            }
+                        }
+                    }));
+                    reader.EndNode();
+                }
+                Task.WaitAll(tasks.ToArray());
+            }
+            catch (Exception e)
+            {
+                AddErrors(e);
+            }
+        }
+
         private void ReadIniGroup_Parallel(YARGBinaryReader reader, CategoryCacheStrings strings)
         {
             string directory = reader.ReadLEBString();
