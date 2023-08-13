@@ -76,10 +76,6 @@ namespace YARG.Core.Song.Deserialization
             length = data.Length;
         }
 
-        public YARGChartFileReader(byte[] data) : this(new YARGTXTReader(data)) { }
-
-        public YARGChartFileReader(string path) : this(new YARGTXTReader(path)) { }
-
         public bool IsStartOfTrack()
         {
             return !reader.IsEndOfFile() && reader.Peek() == '[';

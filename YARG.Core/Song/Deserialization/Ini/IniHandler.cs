@@ -12,10 +12,9 @@ namespace YARG.Core.Song.Deserialization.Ini
         {
             try
             {
-                return ProcessIni(new YARGIniReader(iniFile), sections);
-            }
-            catch (BadEncodingException)
-            {
+                var reader = YARGTXTReader.Load(iniFile);
+                if (reader != null)
+                    return ProcessIni(new YARGIniReader(reader), sections);
                 return ProcessIni(new YARGIniReader_Char(iniFile), sections);
             }
             catch (Exception ex)
