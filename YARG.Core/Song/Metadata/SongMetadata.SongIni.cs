@@ -55,6 +55,51 @@ namespace YARG.Core.Song
                 else
                     writer.Write(false);
             }
+
+            private static readonly string[] SupportedFormats =
+            {
+                ".ogg", ".mogg", ".wav", ".mp3", ".aiff", ".opus",
+            };
+
+            private static readonly string[] SupportedStems =
+            {
+                "song",
+                "guitar",
+                "bass",
+                "rhythm",
+                "keys",
+                "vocals",
+                "vocals_1",
+                "vocals_2",
+                "drums",
+                "drums_1",
+                "drums_2",
+                "drums_3",
+                "drums_4",
+                "crowd",
+            };
+
+            public static bool DoesSoloChartHaveAudio(string directory)
+            {
+                foreach (string subFile in System.IO.Directory.EnumerateFileSystemEntries(directory))
+                {
+                    string ext = Path.GetExtension(subFile);
+                    for (int i = 0; i < SupportedFormats.Length; ++i)
+                    {
+                        if (SupportedFormats[i] == ext)
+                        {
+                            string stem = Path.GetFileName(subFile);
+                            for (int j = 0; j < SupportedStems.Length; ++j)
+                            {
+                                if (SupportedStems[j] == stem)
+                                    return true;
+                            }
+                            break;
+                        }
+                    }
+                }
+                return false;
+            }
         }
 
         private static readonly Dictionary<string, IniModifierCreator> CHART_MODIFIER_LIST = new()
@@ -216,11 +261,13 @@ namespace YARG.Core.Song
                 modifiers = IniHandler.ReadSongIniFile(iniFile);
                 iniInfo = new AbridgedFileInfo(iniFile);
             }
-            else
+            else if (IniSubmetadata.DoesSoloChartHaveAudio(Path.GetDirectoryName(chartFile)))
             {
                 modifiers = new();
                 iniInfo = null;
             }
+            else
+                return (ScanResult.LooseChart_NoAudio, null);
 
             var chartType = IniSubmetadata.CHART_FILE_TYPES[chartTypeIndex].Item2;
             DrumPreparseType drumType = default;
@@ -270,6 +317,8 @@ namespace YARG.Core.Song
                 if (iniFile == null)
                     return null;
             }
+            else if (!IniSubmetadata.DoesSoloChartHaveAudio(directory))
+                return null;
 
             IniSubmetadata iniData = new(chartType.Item2, chartFile, iniFile);
             return new SongMetadata(iniData, reader, strings)
