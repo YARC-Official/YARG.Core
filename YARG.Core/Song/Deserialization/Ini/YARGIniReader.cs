@@ -19,10 +19,6 @@ namespace YARG.Core.Song.Deserialization.Ini
             length = data.Length;
         }
 
-        public YARGIniReader(byte[] data) : this(new YARGTXTReader(data)) { }
-
-        public YARGIniReader(string path) : this(new YARGTXTReader(path)) { }
-
         public bool IsStartOfSection()
         {
             if (reader.IsEndOfFile())

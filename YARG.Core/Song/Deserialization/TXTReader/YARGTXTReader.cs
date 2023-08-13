@@ -5,11 +5,7 @@ using System.Text;
 
 namespace YARG.Core.Song.Deserialization
 {
-    public class BadEncodingException : Exception
-    {
-        public BadEncodingException() : base("Forbidden encoding") { }
-    }
-
+#nullable enable
     public class YARGTXTReader : YARGTXTReader_Base, ITXTReader
     {
         private static readonly byte[] BOM_UTF8 = { 0xEF, 0xBB, 0xBF };
@@ -17,33 +13,43 @@ namespace YARG.Core.Song.Deserialization
         private static readonly UTF8Encoding UTF8 = new(true, true);
         static YARGTXTReader() { }
 
-        public YARGTXTReader(byte[] data) : base(data)
+        public static YARGTXTReader? Load(byte[] data)
         {
-            /*
-             * "A protocol SHOULD forbid use of U+FEFF as a signature for those
-             * textual protocol elements that the protocol mandates to be always UTF-8,
-             * the signature function being totally useless in those cases."
-             * https://datatracker.ietf.org/doc/html/rfc3629
-             * 
-             * True reasoning: Other than some text events, the main usecase for .chart is the to hold note information.
-             * That leads to a lot of basic ASCII characters, tabs/spaces, newlines, and especially digits.
-             * Anything other than UTF-8 (or extended ASCII) just needlessly over bloats filesize.
-             * Therefore, we should actively discourage/disallow their usage.
-             */
-            if ((data[0] == BOM_OTHER[0] && data[1] == BOM_OTHER[1]) ||
-                (data[0] == BOM_OTHER[1] && data[1] == BOM_OTHER[0]))
-                throw new BadEncodingException();
+            if (!ValidateBOM(data))
+                return null;
 
-            if (data[0] == BOM_UTF8[0] && data[1] == BOM_UTF8[1] && data[2] == BOM_UTF8[2])
-                _position += 3;
+            int position = data[0] == BOM_UTF8[0] && data[1] == BOM_UTF8[1] && data[2] == BOM_UTF8[2] ? 3 : 0;
+            return new YARGTXTReader(data, position);
+        }
+
+        public static YARGTXTReader? Load(string path)
+        {
+            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read);
+            byte[] bom = fs.ReadBytes(3);
+
+            if (!ValidateBOM(bom))
+                return null;
+
+            int position = bom[0] == BOM_UTF8[0] && bom[1] == BOM_UTF8[1] && bom[2] == BOM_UTF8[2] ? 3 : 0;
+            fs.Position = 0;
+            byte[] data = fs.ReadBytes((int)fs.Length);
+            return new YARGTXTReader(data, position);
+        }
+
+        private static bool ValidateBOM(byte[] bom)
+        {
+            return (bom[0] != BOM_OTHER[0] || bom[1] != BOM_OTHER[1]) && (bom[0] != BOM_OTHER[1] || bom[1] != BOM_OTHER[0]);
+        }
+
+        private YARGTXTReader(byte[] data, int position) : base(data)
+        {
+            _position = position;
 
             SkipWhiteSpace();
             SetNextPointer();
             if (data[_position] == '\n')
                 GotoNextLine();
         }
-
-        public YARGTXTReader(string path) : this(File.ReadAllBytes(path)) { }
 
         public override byte SkipWhiteSpace()
         {

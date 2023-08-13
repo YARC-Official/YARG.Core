@@ -226,15 +226,11 @@ namespace YARG.Core.Song
             DrumPreparseType drumType = default;
             if (chartType == ChartType.Chart)
             {
-                try
-                {
-                    drumType = ParseChart(new YARGChartFileReader(file), modifiers, parts);
-                }
-                catch (BadEncodingException)
-                {
-                    YargTrace.LogInfo("UTF-8 preferred for .chart encoding");
+                var txtReader = YARGTXTReader.Load(file);
+                if (txtReader != null)
+                    drumType = ParseChart(new YARGChartFileReader(txtReader), modifiers, parts);
+                else
                     drumType = ParseChart(new YARGChartFileReader_Char(chartFile), modifiers, parts);
-                }
             }
 
             if (!modifiers.Contains("name"))
