@@ -44,42 +44,14 @@ namespace YARG.Core.Song.Cache
             try
             {
                 Dictionary<string, int> indices = new();
-                object indexLock = new();
                 List<Task> tasks = new();
                 while (reader!.StartNode())
                 {
-                    var node = new YARGDTAReader(reader);
-                    tasks.Add(Task.Run(() =>
-                    {
-                        string name = node.GetNameOfNode();
-                        int index;
-                        lock (indexLock)
-                        {
-                            if (indices.ContainsKey(name))
-                                index = ++indices[name];
-                            else
-                                index = indices[name] = 0;
-                        }
+                    string name = reader.GetNameOfNode();
+                    int index = GetCONIndex(indices, name);
 
-                        if (group.TryGetEntry(name, index, out var entry))
-                        {
-                            if (!AddEntry(entry!))
-                                group.RemoveEntry(name, index);
-                        }
-                        else
-                        {
-                            var song = SongMetadata.FromPackedRBCON(group.file, name, node, updates, upgrades);
-                            if (song.Item2 != null)
-                            {
-                                if (AddEntry(song.Item2))
-                                    group.AddEntry(name, index, song.Item2);
-                            }
-                            else
-                            {
-                                AddToBadSongs(group.file.filename + $" - Node {name}", song.Item1);
-                            }
-                        }
-                    }));
+                    var node = new YARGDTAReader(reader);
+                    tasks.Add(Task.Run(() => ScanPackedCONNode(group, name, index, node)));
                     reader.EndNode();
                 }
 
@@ -97,42 +69,14 @@ namespace YARG.Core.Song.Cache
             {
                 YARGDTAReader reader = new(group.dta.FullName);
                 Dictionary<string, int> indices = new();
-                object indexLock = new();
                 List<Task> tasks = new();
                 while (reader.StartNode())
                 {
-                    var node = new YARGDTAReader(reader);
-                    tasks.Add(Task.Run(() =>
-                    {
-                        string name = node.GetNameOfNode();
-                        int index;
-                        lock (indexLock)
-                        {
-                            if (indices.ContainsKey(name))
-                                index = ++indices[name];
-                            else
-                                index = indices[name] = 0;
-                        }
+                    string name = reader.GetNameOfNode();
+                    int index = GetCONIndex(indices, name);
 
-                        if (group.TryGetEntry(name, index, out var entry))
-                        {
-                            if (!AddEntry(entry!))
-                                group.RemoveEntry(name, index);
-                        }
-                        else
-                        {
-                            var song = SongMetadata.FromUnpackedRBCON(group.directory, group.dta, name, node, updates, upgrades);
-                            if (song.Item2 != null)
-                            {
-                                if (AddEntry(song.Item2))
-                                    group.AddEntry(name, index, song.Item2);
-                            }
-                            else
-                            {
-                                AddToBadSongs(group.directory + $" - Node {name}", song.Item1);
-                            }
-                        }
-                    }));
+                    var node = new YARGDTAReader(reader);
+                    tasks.Add(Task.Run(() => ScanUnpackedCONNode(group, name, index, node)));
                     reader.EndNode();
                 }
                 Task.WaitAll(tasks.ToArray());

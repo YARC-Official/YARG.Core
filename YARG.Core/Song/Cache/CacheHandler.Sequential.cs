@@ -45,30 +45,9 @@ namespace YARG.Core.Song.Cache
                 while (reader!.StartNode())
                 {
                     string name = reader.GetNameOfNode();
-                    int index;
-                    if (indices.ContainsKey(name))
-                        index = ++indices[name];
-                    else
-                        index = indices[name] = 0;
+                    int index = GetCONIndex(indices, name);
 
-                    if (group.TryGetEntry(name, index, out var entry))
-                    {
-                        if (!AddEntry(entry!))
-                            group.RemoveEntry(name, index);
-                    }
-                    else
-                    {
-                        var song = SongMetadata.FromPackedRBCON(group.file, name, reader, updates, upgrades);
-                        if (song.Item2 != null)
-                        {
-                            if (AddEntry(song.Item2))
-                                group.AddEntry(name, index, song.Item2);
-                        }
-                        else
-                        {
-                            AddToBadSongs(group.file.filename + $" - Node {name}", song.Item1);
-                        }
-                    }
+                    ScanPackedCONNode(group, name, index, reader);
                     reader.EndNode();
                 }
             }
@@ -87,30 +66,9 @@ namespace YARG.Core.Song.Cache
                 while (reader.StartNode())
                 {
                     string name = reader.GetNameOfNode();
-                    int index;
-                    if (indices.ContainsKey(name))
-                        index = indices[name]++;
-                    else
-                        index = indices[name] = 0;
+                    int index = GetCONIndex(indices, name);
 
-                    if (group.TryGetEntry(name, index, out var entry))
-                    {
-                        if (!AddEntry(entry!))
-                            group.RemoveEntry(name, index);
-                    }
-                    else
-                    {
-                        var song = SongMetadata.FromUnpackedRBCON(group.directory, group.dta, name, reader, updates, upgrades);
-                        if (song.Item2 != null)
-                        {
-                            if (AddEntry(song.Item2))
-                                group.AddEntry(name, index, song.Item2);
-                        }
-                        else
-                        {
-                            AddToBadSongs(group.directory + $" - Node {name}", song.Item1);
-                        }
-                    }
+                    ScanUnpackedCONNode(group, name, index, reader);
                     reader.EndNode();
                 }
             }

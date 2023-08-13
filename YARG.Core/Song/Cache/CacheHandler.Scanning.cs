@@ -146,6 +146,57 @@ namespace YARG.Core.Song.Cache
                 AddCONUpgrades(group, reader!);
         }
 
+        private int GetCONIndex(Dictionary<string, int> indices, string name)
+        {
+            if (indices.ContainsKey(name))
+                return ++indices[name];
+            return indices[name] = 0;
+        }
+
+        private void ScanPackedCONNode(PackedCONGroup group, string name, int index, YARGDTAReader node)
+        {
+            if (group.TryGetEntry(name, index, out var entry))
+            {
+                if (!AddEntry(entry!))
+                    group.RemoveEntry(name, index);
+            }
+            else
+            {
+                var song = SongMetadata.FromPackedRBCON(group.file, name, node, updates, upgrades);
+                if (song.Item2 != null)
+                {
+                    if (AddEntry(song.Item2))
+                        group.AddEntry(name, index, song.Item2);
+                }
+                else
+                {
+                    AddToBadSongs(group.file.filename + $" - Node {name}", song.Item1);
+                }
+            }
+        }
+
+        private void ScanUnpackedCONNode(UnpackedCONGroup group, string name, int index, YARGDTAReader node)
+        {
+            if (group.TryGetEntry(name, index, out var entry))
+            {
+                if (!AddEntry(entry!))
+                    group.RemoveEntry(name, index);
+            }
+            else
+            {
+                var song = SongMetadata.FromUnpackedRBCON(group.directory, group.dta, name, node, updates, upgrades);
+                if (song.Item2 != null)
+                {
+                    if (AddEntry(song.Item2))
+                        group.AddEntry(name, index, song.Item2);
+                }
+                else
+                {
+                    AddToBadSongs(group.directory + $" - Node {name}", song.Item1);
+                }
+            }
+        }
+
         private bool FindOrMarkDirectory(string directory)
         {
             lock (dirLock)
