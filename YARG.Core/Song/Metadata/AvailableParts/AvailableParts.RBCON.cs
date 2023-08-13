@@ -79,7 +79,8 @@ namespace YARG.Core.Song
                         break;
                     case "band":
                         condiffs.band = (short) diff;
-                        SetRank(ref _bandDifficulty, diff, BandDiffMap);
+                        SetRank(ref _bandDifficulty.intensity, diff, BandDiffMap);
+                        _bandDifficulty.subTracks = 1;
                         break;
                 }
                 reader.EndNode();

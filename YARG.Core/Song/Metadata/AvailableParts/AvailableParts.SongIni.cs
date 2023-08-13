@@ -10,7 +10,11 @@ namespace YARG.Core.Song
         public void SetIntensities(IniSection modifiers)
         {
             if (modifiers.TryGet("diff_band", out int intensity))
-                _bandDifficulty = (sbyte) intensity;
+            {
+                _bandDifficulty.intensity = (sbyte) intensity;
+                if (intensity != -1)
+                    _bandDifficulty.subTracks = 1;
+            }
 
             if (modifiers.TryGet("diff_guitar", out intensity))
                 FiveFretGuitar.intensity = (sbyte) intensity;
