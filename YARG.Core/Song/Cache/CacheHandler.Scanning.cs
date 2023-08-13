@@ -11,13 +11,19 @@ namespace YARG.Core.Song.Cache
     {
         private class FileCollector
         {
+            public readonly string directory;
             public readonly string?[] charts = new string?[3];
             public string? ini = null;
             public readonly List<string> subfiles = new();
 
+            private FileCollector(string directory)
+            {
+                this.directory = directory;
+            }
+
             public static FileCollector Collect(string directory)
             {
-                FileCollector files = new();
+                FileCollector files = new(directory);
                 foreach (string subFile in Directory.EnumerateFileSystemEntries(directory))
                 {
                     switch (Path.GetFileName(subFile).ToLower())
@@ -108,8 +114,10 @@ namespace YARG.Core.Song.Cache
                             if (AddEntry(entry.Item2))
                                 AddIniEntry(entry.Item2, index);
                         }
-                        else
+                        else if (entry.Item1 != ScanResult.LooseChart_NoAudio)
                             AddToBadSongs(chart, entry.Item1);
+                        else
+                            return false;
                     }
                     catch (Exception e)
                     {
