@@ -481,9 +481,6 @@ namespace YARG.Core.Song.Cache
         private AbridgedFileInfo? QuickReadExtractedCONGroupHeader(YARGBinaryReader reader)
         {
             string directory = reader.ReadLEBString();
-            if (GetBaseDirectoryIndex(directory) == -1)
-                return null;
-
             FileInfo dtaInfo = new(Path.Combine(directory, "songs.dta"));
             if (!dtaInfo.Exists || dtaInfo.LastWriteTime != DateTime.FromBinary(reader.ReadInt64()))
             {

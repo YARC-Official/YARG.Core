@@ -160,9 +160,6 @@ namespace YARG.Core.Song.Cache
         private void QuickReadIniGroup_Parallel(YARGBinaryReader reader, CategoryCacheStrings strings)
         {
             string directory = reader.ReadLEBString();
-            if (GetBaseDirectoryIndex(directory) == -1)
-                return;
-
             List<Task> entryTasks = new();
             int count = reader.ReadInt32();
             for (int i = 0; i < count; ++i)
@@ -218,9 +215,6 @@ namespace YARG.Core.Song.Cache
         private void QuickReadExtractedCONGroup_Parallel(YARGBinaryReader reader, CategoryCacheStrings strings)
         {
             var dta = QuickReadExtractedCONGroupHeader(reader);
-            if (dta == null)
-                return;
-
             int count = reader.ReadInt32();
             List<Task> entryTasks = new();
             for (int i = 0; i < count; ++i)

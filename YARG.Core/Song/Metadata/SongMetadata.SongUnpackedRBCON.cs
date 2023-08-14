@@ -43,7 +43,7 @@ namespace YARG.Core.Song
                 metadata.Directory = Path.GetDirectoryName(midiPath)!;
             }
 
-            public RBUnpackedCONMetadata(AbridgedFileInfo dta, AbridgedFileInfo midi, AbridgedFileInfo? moggInfo, AbridgedFileInfo? updateInfo, YARGBinaryReader reader)
+            public RBUnpackedCONMetadata(AbridgedFileInfo? dta, AbridgedFileInfo midi, AbridgedFileInfo? moggInfo, AbridgedFileInfo? updateInfo, YARGBinaryReader reader)
             {
                 DTA = dta;
                 Midi = midi;
@@ -186,7 +186,7 @@ namespace YARG.Core.Song
             return new SongMetadata(packedMeta, reader, strings);
         }
 
-        public static SongMetadata UnpackedRBCONFromCache_Quick(AbridgedFileInfo dta, string nodeName, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings)
+        public static SongMetadata UnpackedRBCONFromCache_Quick(AbridgedFileInfo? dta, string nodeName, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings)
         {
             string filename = reader.ReadLEBString();
             var lastWrite = DateTime.FromBinary(reader.ReadInt64());
