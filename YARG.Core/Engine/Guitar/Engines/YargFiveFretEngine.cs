@@ -165,7 +165,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                     //     State.WasHopoStrummed = true;
                     // }
 
-                    YargTrace.LogInfo("Hopo ate strum input");
+                    //YargTrace.LogInfo("Hopo ate strum input");
 
                     // This eats the strum input
                     ResetTimer(ref State.StrumLeniencyStartTime);
@@ -183,8 +183,8 @@ namespace YARG.Core.Engine.Guitar.Engines
                         }
                         else
                         {
-                            YargTrace.LogInfo($"Hopo leniency: {State.CurrentTime - State.HopoLeniencyStartTime}");
-                            YargTrace.LogInfo("Strum leniency ran out, overstrumming");
+                            //YargTrace.LogInfo($"Hopo leniency: {State.CurrentTime - State.HopoLeniencyStartTime}");
+                            //YargTrace.LogInfo("Strum leniency ran out, overstrumming");
                             Overstrum();
                         }
 
@@ -246,7 +246,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                     {
                         if (HitNote(next))
                         {
-                            YargTrace.LogInfo($"Skipping to hit next note as it is hittable ({State.TapButtonMask})");
+                            //YargTrace.LogInfo($"Skipping to hit next note as it is hittable ({State.TapButtonMask})");
                             return true;
                         }
                     }
@@ -277,7 +277,7 @@ namespace YARG.Core.Engine.Guitar.Engines
 
         protected bool CheckForGhostInput(GuitarNote note)
         {
-            // First note cannot be ghosted, nor can a note be ghosted if a button is unpressed
+            // First note cannot be ghosted, nor can a note be ghosted if a button is unpressed (pulloff)
             if (note.PreviousNote is null || !CurrentInput.Button)
             {
                 return false;
