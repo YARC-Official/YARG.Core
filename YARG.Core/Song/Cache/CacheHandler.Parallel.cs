@@ -33,7 +33,7 @@ namespace YARG.Core.Song.Cache
                     }
                     catch (PathTooLongException)
                     {
-                        AddLog($"Path {file} is too long for Windows OS");
+                        YargTrace.LogInfo($"Path {file} is too long for Windows OS");
                     }
                     catch (Exception e)
                     {
@@ -43,7 +43,7 @@ namespace YARG.Core.Song.Cache
             }
             catch (PathTooLongException)
             {
-                AddLog($"Path {directory} is too long for Windows OS");
+                YargTrace.LogInfo($"Path {directory} is too long for Windows OS");
             }
             catch (Exception e)
             {
@@ -57,7 +57,7 @@ namespace YARG.Core.Song.Cache
             int baseIndex = GetBaseDirectoryIndex(directory);
             if (baseIndex == -1)
             {
-                AddLog($"Ini group outside base directories : {directory}");
+                YargTrace.LogInfo($"Ini group outside base directories : {directory}");
                 return;
             }
 
@@ -107,7 +107,7 @@ namespace YARG.Core.Song.Cache
                     try
                     {
                         if (!group.ReadEntry(name, index, upgrades, entryReader, strings))
-                            AddLog($"CON entry invalid {group.file.filename} | {name}");
+                            YargTrace.LogInfo($"CON entry invalid {group.file.filename} | {name}");
                     }
                     catch (Exception ex)
                     {
@@ -145,7 +145,7 @@ namespace YARG.Core.Song.Cache
                     try
                     {
                         if (!group.ReadEntry(name, index, upgrades, entryReader, strings))
-                            AddLog($"EXCON entry invalid {group.directory} | {name}");
+                            YargTrace.LogInfo($"EXCON entry invalid {group.directory} | {name}");
                     }
                     catch (Exception ex)
                     {
