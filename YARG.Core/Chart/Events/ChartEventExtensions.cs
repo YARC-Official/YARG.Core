@@ -19,9 +19,9 @@ namespace YARG.Core.Chart
             newNotes.Add(previousNote);
 
             // Clone the rest
-            foreach (var note in notes)
+            for (int i = 1; i < notes.Count; i++)
             {
-                var newNote = note.Clone();
+                var newNote = notes[i].Clone();
 
                 // Assign forward/backward references
                 newNote.PreviousNote = previousNote;
