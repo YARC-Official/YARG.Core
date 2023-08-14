@@ -54,7 +54,10 @@ namespace YARG.Core.Song.Cache
             string directory = reader.ReadLEBString();
             int baseIndex = GetBaseDirectoryIndex(directory);
             if (baseIndex == -1)
+            {
+                AddLog($"Ini group outside base directories : {directory}");
                 return;
+            }
 
             int count = reader.ReadInt32();
             for (int i = 0; i < count; ++i)
@@ -82,7 +85,8 @@ namespace YARG.Core.Song.Cache
                     continue;
                 }
 
-                group.ReadEntry(name, index, upgrades, new(reader, length), strings);
+                if (!group.ReadEntry(name, index, upgrades, new(reader, length), strings))
+                    AddLog($"CON entry invalid {group.file.filename} | {name}");
             }
         }
 
@@ -106,7 +110,8 @@ namespace YARG.Core.Song.Cache
                     continue;
                 }
 
-                group.ReadEntry(name, index, upgrades, new(reader, length), strings);
+                if (!group.ReadEntry(name, index, upgrades, new(reader, length), strings))
+                    AddLog($"EXCON entry invalid {group.directory} | {name}");
             }
 
             Task.WaitAll(entryTasks.ToArray());

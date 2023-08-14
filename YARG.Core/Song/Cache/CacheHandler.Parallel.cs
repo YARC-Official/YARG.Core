@@ -56,7 +56,10 @@ namespace YARG.Core.Song.Cache
             string directory = reader.ReadLEBString();
             int baseIndex = GetBaseDirectoryIndex(directory);
             if (baseIndex == -1)
+            {
+                AddLog($"Ini group outside base directories : {directory}");
                 return;
+            }
 
             List<Task> entryTasks = new();
             int count = reader.ReadInt32();
@@ -103,7 +106,8 @@ namespace YARG.Core.Song.Cache
                 {
                     try
                     {
-                        group.ReadEntry(name, index, upgrades, entryReader, strings);
+                        if (!group.ReadEntry(name, index, upgrades, entryReader, strings))
+                            AddLog($"CON entry invalid {group.file.filename} | {name}");
                     }
                     catch (Exception ex)
                     {
@@ -140,7 +144,8 @@ namespace YARG.Core.Song.Cache
                 {
                     try
                     {
-                        group.ReadEntry(name, index, upgrades, entryReader, strings);
+                        if (!group.ReadEntry(name, index, upgrades, entryReader, strings))
+                            AddLog($"EXCON entry invalid {group.directory} | {name}");
                     }
                     catch (Exception ex)
                     {
