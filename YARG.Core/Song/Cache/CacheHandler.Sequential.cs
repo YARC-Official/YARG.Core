@@ -121,6 +121,7 @@ namespace YARG.Core.Song.Cache
             for (int i = 0; i < count; ++i)
             {
                 string name = reader.ReadLEBString();
+                // index
                 reader.Position += 4;
 
                 int length = reader.ReadInt32();
@@ -138,6 +139,7 @@ namespace YARG.Core.Song.Cache
             for (int i = 0; i < count; ++i)
             {
                 string name = reader.ReadLEBString();
+                // index
                 reader.Position += 4;
 
                 int length = reader.ReadInt32();
