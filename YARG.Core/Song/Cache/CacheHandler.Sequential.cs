@@ -21,12 +21,27 @@ namespace YARG.Core.Song.Cache
 
                 foreach (string file in result.subfiles)
                 {
-                    var attributes = File.GetAttributes(file);
-                    if ((attributes & FileAttributes.Directory) != 0)
-                        ScanDirectory(file, index);
-                    else
-                        AddPossibleCON(file);
+                    try
+                    {
+                        var attributes = File.GetAttributes(file);
+                        if ((attributes & FileAttributes.Directory) != 0)
+                            ScanDirectory(file, index);
+                        else
+                            AddPossibleCON(file);
+                    }
+                    catch (PathTooLongException)
+                    {
+                        AddLog($"Path {file} is too long for Windows OS");
+                    }
+                    catch (Exception e)
+                    {
+                        AddErrors(file + ": " + e.Message);
+                    }
                 }
+            }
+            catch (PathTooLongException)
+            {
+                AddLog($"Path {directory} is too long for Windows OS");
             }
             catch (Exception e)
             {
