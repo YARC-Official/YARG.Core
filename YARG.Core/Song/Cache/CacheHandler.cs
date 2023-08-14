@@ -53,6 +53,7 @@ namespace YARG.Core.Song.Cache
         public const int CACHE_VERSION = 23_08_12_01;
 
         public readonly List<object> errorList = new();
+        public readonly List<string> logs = new();
         public ScanProgress Progress { get; private set; }
         public int Count { get { lock (entryLock) return _count; } }
         public int NumScannedDirectories { get { lock (dirLock) return preScannedDirectories.Count; } }
@@ -66,6 +67,7 @@ namespace YARG.Core.Song.Cache
         private static readonly object badsongsLock = new();
         private static readonly object invalidLock = new();
         private static readonly object errorLock = new();
+        private static readonly object logLock = new();
 
         private static readonly object updateGroupLock = new();
         private static readonly object upgradeGroupLock = new();
@@ -377,6 +379,11 @@ namespace YARG.Core.Song.Cache
         private void AddErrors(params object[] errors)
         {
             lock (errorLock) errorList.AddRange(errors);
+        }
+
+        private void AddLog(string message)
+        {
+            lock (logLock) logs.Add(message);
         }
 
         private void RemoveCONEntry(string shortname)

@@ -23,6 +23,9 @@ namespace YARG.Core.UnitTests.Scanning
             var cache = handler.RunScan(false);
             foreach (object err in handler.errorList)
                 YargTrace.LogError(err.ToString());
+
+            foreach (string log in handler.logs)
+                YargTrace.LogInfo(log);
         }
 
         [TestCase]
@@ -34,6 +37,9 @@ namespace YARG.Core.UnitTests.Scanning
             var cache = handler.RunScan(true);
             foreach (object err in handler.errorList)
                 YargTrace.LogError(err.ToString());
+
+            foreach (string log in handler.logs)
+                YargTrace.LogInfo(log);
         }
     }
 }
