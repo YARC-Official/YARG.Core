@@ -386,25 +386,14 @@ namespace YARG.Core.Song.Cache
         {
             lock (conLock)
             {
-                for (int i = 0; i < conGroups.Count;)
-                {
+                for (int i = 0; i < conGroups.Count; ++i)
                     conGroups[i].RemoveEntries(shortname);
-                    if (conGroups[i].EntryCount == 0)
-                        conGroups.RemoveAt(i);
-                    else
-                        ++i;
-                }
             }
 
             lock (extractedLock)
             {
-                for (int i = 0; i < extractedConGroups.Count;)
-                {
+                for (int i = 0; i < extractedConGroups.Count; ++i)
                     extractedConGroups[i].RemoveEntries(shortname);
-                    if (extractedConGroups[i].EntryCount == 0)
-                        extractedConGroups.RemoveAt(i);
-                    else ++i;
-                }
             }
         }
 
