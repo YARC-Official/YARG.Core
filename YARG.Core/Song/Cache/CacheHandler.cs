@@ -254,15 +254,7 @@ namespace YARG.Core.Song.Cache
             {
                 string name = reader.GetNameOfNode();
                 group!.updates.Add(name);
-
-                (string, YARGDTAReader) node = new(directory, new YARGDTAReader(reader));
-                lock (updateLock)
-                {
-                    if (updates.TryGetValue(name, out var list))
-                        list.Add(node);
-                    else
-                        updates[name] = new() { node };
-                }
+                AddUpdate(name, new(directory, new YARGDTAReader(reader)));
 
                 if (removeEntries)
                     RemoveCONEntry(name);
@@ -351,6 +343,17 @@ namespace YARG.Core.Song.Cache
         {
             lock (upgradeLock)
                 upgrades[name] = new(reader, upgrade);
+        }
+
+        private void AddUpdate(string name, (string, YARGDTAReader) node)
+        {
+            lock (updateLock)
+            {
+                if (updates.TryGetValue(name, out var list))
+                    list.Add(node);
+                else
+                    updates[name] = new() { node };
+            }
         }
 
         private void AddCONGroup(PackedCONGroup group)
