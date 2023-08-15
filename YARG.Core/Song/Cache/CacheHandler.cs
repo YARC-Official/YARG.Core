@@ -50,7 +50,7 @@ namespace YARG.Core.Song.Cache
         /// Format is YY_MM_DD_RR: Y = year, M = month, D = day, R = revision (reset across dates, only increment
         /// if multiple cache version changes happen in a single day).
         /// </summary>
-        public const int CACHE_VERSION = 23_08_13_01;
+        public const int CACHE_VERSION = 23_08_15_01;
 
         public readonly List<object> errorList = new();
         public ScanProgress Progress { get; private set; }
@@ -260,15 +260,7 @@ namespace YARG.Core.Song.Cache
             {
                 string name = reader.GetNameOfNode();
                 group!.updates.Add(name);
-
-                (string, YARGDTAReader) node = new(directory, new YARGDTAReader(reader));
-                lock (updateLock)
-                {
-                    if (updates.TryGetValue(name, out var list))
-                        list.Add(node);
-                    else
-                        updates[name] = new() { node };
-                }
+                AddUpdate(name, new(directory, new YARGDTAReader(reader)));
 
                 if (removeEntries)
                     RemoveCONEntry(name);
@@ -359,6 +351,17 @@ namespace YARG.Core.Song.Cache
                 upgrades[name] = new(reader, upgrade);
         }
 
+        private void AddUpdate(string name, (string, YARGDTAReader) node)
+        {
+            lock (updateLock)
+            {
+                if (updates.TryGetValue(name, out var list))
+                    list.Add(node);
+                else
+                    updates[name] = new() { node };
+            }
+        }
+
         private void AddCONGroup(PackedCONGroup group)
         {
             lock (conLock)
@@ -392,25 +395,17 @@ namespace YARG.Core.Song.Cache
         {
             lock (conLock)
             {
-                for (int i = 0; i < conGroups.Count;)
-                {
-                    conGroups[i].RemoveEntries(shortname);
-                    if (conGroups[i].EntryCount == 0)
-                        conGroups.RemoveAt(i);
-                    else
-                        ++i;
-                }
+                for (int i = 0; i < conGroups.Count; ++i)
+                    if (conGroups[i].RemoveEntries(shortname))
+                        YargTrace.DebugInfo($"{conGroups[i].file.filename} - {shortname} pending rescan");
+
             }
 
             lock (extractedLock)
             {
-                for (int i = 0; i < extractedConGroups.Count;)
-                {
-                    extractedConGroups[i].RemoveEntries(shortname);
-                    if (extractedConGroups[i].EntryCount == 0)
-                        extractedConGroups.RemoveAt(i);
-                    else ++i;
-                }
+                for (int i = 0; i < extractedConGroups.Count; ++i)
+                    if (extractedConGroups[i].RemoveEntries(shortname))
+                        YargTrace.DebugInfo($"{conGroups[i].file.filename} - {shortname} pending rescan");
             }
         }
 

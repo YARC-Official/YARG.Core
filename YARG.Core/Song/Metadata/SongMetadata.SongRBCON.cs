@@ -193,7 +193,7 @@ namespace YARG.Core.Song
                             UpdateMidi = info;
                     }
                     else
-                        UpdateMidi ??= info;
+                        YargTrace.LogWarning($"Update midi expected at {path}");
                 }
 
                 info = new(Path.Combine(dir, $"{nodeName}_update.mogg"));

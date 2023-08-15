@@ -73,7 +73,7 @@ namespace YARG.Core.Song.Cache
                 FileInfo dta = new(Path.Combine(directory, "songs_updates.dta"));
                 if (dta.Exists)
                 {
-                    CreateUpdateGroup(directory, dta);
+                    CreateUpdateGroup(directory, dta, true);
                     return false;
                 }
             }
@@ -82,7 +82,7 @@ namespace YARG.Core.Song.Cache
                 FileInfo dta = new(Path.Combine(directory, "upgrades.dta"));
                 if (dta.Exists)
                 {
-                    CreateUpgradeGroup(directory, dta);
+                    CreateUpgradeGroup(directory, dta, true);
                     return false;
                 }
             }
@@ -161,8 +161,8 @@ namespace YARG.Core.Song.Cache
         {
             if (group.TryGetEntry(name, index, out var entry))
             {
-                if (!AddEntry(entry!))
-                    group.RemoveEntry(name, index);
+                if (!AddEntry(entry!) && group.RemoveEntry(name, index))
+                    YargTrace.DebugInfo($"{group.file.filename} - {name} removed as duplicate");
             }
             else
             {
@@ -183,8 +183,8 @@ namespace YARG.Core.Song.Cache
         {
             if (group.TryGetEntry(name, index, out var entry))
             {
-                if (!AddEntry(entry!))
-                    group.RemoveEntry(name, index);
+                if (!AddEntry(entry!) && group.RemoveEntry(name, index))
+                    YargTrace.DebugInfo($"{group.directory} - {name} removed as duplicate");
             }
             else
             {
