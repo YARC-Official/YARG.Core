@@ -10,7 +10,7 @@ namespace YARG.Core.Song.Cache
         protected readonly Dictionary<string, SortedDictionary<int, SongMetadata>> entries = new();
         protected readonly object entryLock = new();
         private int _entryCount;
-        public int EntryCount => _entryCount;
+        public int EntryCount { get { lock (entryLock) return _entryCount; } }
         public abstract bool ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings);
 
         public void AddEntry(string name, int index, SongMetadata entry)
@@ -25,9 +25,27 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        public void RemoveEntries(string name) { lock (entryLock) entries.Remove(name); }
+        public void RemoveEntries(string name)
+        {
+            lock (entryLock)
+            {
+                if (entries.Remove(name, out var dict))
+                    _entryCount -= dict.Count;
+            }
+        }
 
-        public void RemoveEntry(string name, int index) { lock (entryLock) entries[name].Remove(index); }
+        public void RemoveEntry(string name, int index)
+        {
+            lock (entryLock)
+            {
+                if (entries.TryGetValue(name, out var dict) && dict.Remove(index))
+                {
+                    --_entryCount;
+                    if (dict.Count == 0)
+                        entries.Remove(name);
+                }
+            }
+        }
 
         public bool TryGetEntry(string name, int index, out SongMetadata? entry)
         {
