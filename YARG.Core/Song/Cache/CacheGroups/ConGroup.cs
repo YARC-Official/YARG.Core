@@ -25,26 +25,30 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        public void RemoveEntries(string name)
+        public bool RemoveEntries(string name)
         {
             lock (entryLock)
             {
-                if (entries.Remove(name, out var dict))
-                    _entryCount -= dict.Count;
+                if (!entries.Remove(name, out var dict))
+                    return false;
+
+                _entryCount -= dict.Count;
             }
+            return true;
         }
 
-        public void RemoveEntry(string name, int index)
+        public bool RemoveEntry(string name, int index)
         {
             lock (entryLock)
             {
-                if (entries.TryGetValue(name, out var dict) && dict.Remove(index))
-                {
-                    --_entryCount;
-                    if (dict.Count == 0)
-                        entries.Remove(name);
-                }
+                if (!entries.TryGetValue(name, out var dict) || !dict.Remove(index))
+                    return false;
+
+                --_entryCount;
+                if (dict.Count == 0)
+                    entries.Remove(name);
             }
+            return true;
         }
 
         public bool TryGetEntry(string name, int index, out SongMetadata? entry)

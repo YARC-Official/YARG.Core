@@ -390,13 +390,16 @@ namespace YARG.Core.Song.Cache
             lock (conLock)
             {
                 for (int i = 0; i < conGroups.Count; ++i)
-                    conGroups[i].RemoveEntries(shortname);
+                    if (conGroups[i].RemoveEntries(shortname))
+                        YargTrace.DebugInfo($"{conGroups[i].file.filename} - {shortname} pending rescan");
+
             }
 
             lock (extractedLock)
             {
                 for (int i = 0; i < extractedConGroups.Count; ++i)
-                    extractedConGroups[i].RemoveEntries(shortname);
+                    if (extractedConGroups[i].RemoveEntries(shortname))
+                        YargTrace.DebugInfo($"{conGroups[i].file.filename} - {shortname} pending rescan");
             }
         }
 

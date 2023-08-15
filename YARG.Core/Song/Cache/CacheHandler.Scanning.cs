@@ -161,8 +161,8 @@ namespace YARG.Core.Song.Cache
         {
             if (group.TryGetEntry(name, index, out var entry))
             {
-                if (!AddEntry(entry!))
-                    group.RemoveEntry(name, index);
+                if (!AddEntry(entry!) && group.RemoveEntry(name, index))
+                    YargTrace.DebugInfo($"{group.file.filename} - {name} removed as duplicate");
             }
             else
             {
@@ -183,8 +183,8 @@ namespace YARG.Core.Song.Cache
         {
             if (group.TryGetEntry(name, index, out var entry))
             {
-                if (!AddEntry(entry!))
-                    group.RemoveEntry(name, index);
+                if (!AddEntry(entry!) && group.RemoveEntry(name, index))
+                    YargTrace.DebugInfo($"{group.directory} - {name} removed as duplicate");
             }
             else
             {
