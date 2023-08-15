@@ -5,20 +5,27 @@ namespace YARG.Core.UnitTests.Scanning
 {
     public class SongScanningTests
     {
-        private List<string> songDirectories = new();
-        private readonly bool MULTITHREADING = false;
+        private string[] songDirectories;
+        private readonly bool MULTITHREADING = true;
+        private static readonly string SongCachePath = Path.Combine(Environment.CurrentDirectory, "songcache.bin");
+        private static readonly string BadSongsPath = Path.Combine(Environment.CurrentDirectory, "badsongs.txt");
 
         [SetUp]
         public void Setup()
         {
-            Assert.That(songDirectories, Is.Not.Empty, "Add directories to scan for the test");
+            List<string> directories = new()
+            {
+                "E:\\Documents\\My Games\\Clone Hero\\CH Songs"
+            };       
+            Assert.That(directories, Is.Not.Empty, "Add directories to scan for the test");
+            songDirectories = directories.ToArray();
         }
 
         [TestCase]
         public void FullScan()
         {
             YargTrace.AddListener(new YargDebugTraceListener());
-            CacheHandler handler = new(Environment.CurrentDirectory, Environment.CurrentDirectory, MULTITHREADING, songDirectories.ToArray());
+            CacheHandler handler = new(SongCachePath, BadSongsPath, MULTITHREADING, songDirectories);
 
             var cache = handler.RunScan(false);
             foreach (object err in handler.errorList)
@@ -29,7 +36,7 @@ namespace YARG.Core.UnitTests.Scanning
         public void QuickScan()
         {
             YargTrace.AddListener(new YargDebugTraceListener());
-            CacheHandler handler = new(Environment.CurrentDirectory, Environment.CurrentDirectory, MULTITHREADING, songDirectories.ToArray());
+            CacheHandler handler = new(SongCachePath, BadSongsPath, MULTITHREADING, songDirectories);
 
             var cache = handler.RunScan(true);
             foreach (object err in handler.errorList)
