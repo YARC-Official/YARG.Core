@@ -16,6 +16,8 @@ namespace YARG.Core.Song
         MoggError,
         UnsupportedEncryption,
         MissingMidi,
+        MissingUpdateMidi,
+        MissingUpgradeMidi,
         PossibleCorruption,
 
         LooseChart_NoAudio,

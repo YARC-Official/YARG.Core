@@ -288,7 +288,7 @@ namespace YARG.Core.Song
                 if (sharedMetadata.UpdateMidi != null)
                 {
                     if (updateFile == null)
-                        return ScanResult.MissingMidi;
+                        return ScanResult.MissingUpdateMidi;
 
                     _parts.ParseMidi(updateFile, DrumPreparseType.FourPro);
                     bufLength += updateFile.Length;
@@ -297,7 +297,7 @@ namespace YARG.Core.Song
                 if (sharedMetadata.Upgrade != null)
                 {
                     if (upgradeFile == null)
-                        return ScanResult.MissingMidi;
+                        return ScanResult.MissingUpgradeMidi;
 
                     _parts.ParseMidi(upgradeFile, DrumPreparseType.FourPro);
                     bufLength += upgradeFile.Length;
