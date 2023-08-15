@@ -84,78 +84,86 @@ namespace YARG.Core.Song.Deserialization
         {
             return ReadByte() > 0;
         }
+
         public short ReadInt16(Endianness endianness = Endianness.LittleEndian)
         {
             short value;
-            var span = memory.Span.Slice(_position, 2);
+            var span = memory.Span.Slice(_position, sizeof(short));
             if (endianness == Endianness.LittleEndian)
                 value = BinaryPrimitives.ReadInt16LittleEndian(span);
             else
                 value = BinaryPrimitives.ReadInt16BigEndian(span);
-            _position += 2;
+            _position += sizeof(short);
             return value;
         }
+
         public ushort ReadUInt16(Endianness endianness = Endianness.LittleEndian)
         {
             ushort value;
-            var span = memory.Span.Slice(_position, 2);
+            var span = memory.Span.Slice(_position, sizeof(ushort));
             if (endianness == Endianness.LittleEndian)
                 value = BinaryPrimitives.ReadUInt16LittleEndian(span);
             else
                 value = BinaryPrimitives.ReadUInt16BigEndian(span);
-            _position += 2;
+            _position += sizeof(ushort);
             return value;
         }
+
         public int ReadInt32(Endianness endianness = Endianness.LittleEndian)
         {
             int value;
-            var span = memory.Span.Slice(_position, 4);
+            var span = memory.Span.Slice(_position, sizeof(int));
             if (endianness == Endianness.LittleEndian)
                 value = BinaryPrimitives.ReadInt32LittleEndian(span);
             else
                 value = BinaryPrimitives.ReadInt32BigEndian(span);
-            _position += 4;
+            _position += sizeof(int);
             return value;
         }
+
         public uint ReadUInt32(Endianness endianness = Endianness.LittleEndian)
         {
             uint value;
-            var span = memory.Span.Slice(_position, 4);
+            var span = memory.Span.Slice(_position, sizeof(uint));
             if (endianness == Endianness.LittleEndian)
                 value = BinaryPrimitives.ReadUInt32LittleEndian(span);
             else
                 value = BinaryPrimitives.ReadUInt32BigEndian(span);
-            _position += 4;
+            _position += sizeof(uint);
             return value;
         }
+
         public long ReadInt64(Endianness endianness = Endianness.LittleEndian)
         {
             long value;
-            var span = memory.Span.Slice(_position, 8);
+            var span = memory.Span.Slice(_position, sizeof(long));
             if (endianness == Endianness.LittleEndian)
                 value = BinaryPrimitives.ReadInt64LittleEndian(span);
             else
                 value = BinaryPrimitives.ReadInt64BigEndian(span);
-            Position += 8;
+            Position += sizeof(long);
             return value;
         }
+
         public ulong ReadUInt64(Endianness endianness = Endianness.LittleEndian)
         {
             ulong value;
-            var span = memory.Span.Slice(_position, 8);
+            var span = memory.Span.Slice(_position, sizeof(ulong));
             if (endianness == Endianness.LittleEndian)
                 value = BinaryPrimitives.ReadUInt64LittleEndian(span);
             else
                 value = BinaryPrimitives.ReadUInt64BigEndian(span);
-            _position += 8;
+            _position += sizeof(ulong);
             return value;
         }
-        public float ReadFloat()
+
+        public float ReadFloat(Endianness endianness = Endianness.LittleEndian)
         {
-            float value = BitConverter.ToSingle(memory.Span.Slice(_position, 4));
-            _position += 4;
+            uint memory = ReadUInt32(endianness);
+            float value = Unsafe.As<uint, float>(ref memory);
             return value;
         }
+
         public bool ReadBytes(byte[] bytes)
         {
             int endPos = _position + bytes.Length;
