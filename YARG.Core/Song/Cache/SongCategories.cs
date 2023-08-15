@@ -61,8 +61,8 @@ namespace YARG.Core.Song.Cache
                 foreach (var entry in element.Value)
                 {
                     string str = entry.GetStringAttribute(attribute);
-                    int index  = strings.IndexOf(str);
-                    if (index == -1)
+                    int index  = strings.BinarySearch(str);
+                    if (index < 0)
                     {
                         index = strings.Count;
                         strings.Add(str);
