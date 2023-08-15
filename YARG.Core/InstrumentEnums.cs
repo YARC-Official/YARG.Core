@@ -56,6 +56,7 @@ namespace YARG.Core
         Harmony,
 
         // Dj,
+        Band,
     }
 
     /// <summary>

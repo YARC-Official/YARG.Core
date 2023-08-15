@@ -11,10 +11,10 @@ namespace YARG.Core.Song
     [Serializable]
     public sealed partial class AvailableParts
     {
-        public sbyte BandDifficulty => _bandDifficulty;
+        public sbyte BandDifficulty => _bandDifficulty.intensity;
         public int VocalsCount { get; private set; }
 
-        private sbyte _bandDifficulty;
+        private PartValues _bandDifficulty;
 
         private PartValues FiveFretGuitar;
         private PartValues FiveFretBass;
@@ -47,7 +47,7 @@ namespace YARG.Core.Song
 
         public AvailableParts()
         {
-            _bandDifficulty = -1;
+            _bandDifficulty = new(-1);
             FiveFretGuitar = new(-1);
             FiveFretBass = new(-1);
             FiveFretRhythm = new(-1);
@@ -89,7 +89,10 @@ namespace YARG.Core.Song
                 };
             }
 
-            _bandDifficulty = reader.ReadSByte();
+            _bandDifficulty.intensity = reader.ReadSByte();
+            if (_bandDifficulty.intensity != -1)
+                _bandDifficulty.subTracks = 1;
+
             FiveFretGuitar = DeserializeValues();
             FiveFretBass = DeserializeValues();
             FiveFretRhythm = DeserializeValues();
@@ -129,7 +132,7 @@ namespace YARG.Core.Song
                 writer.Write(values.intensity);
             }
 
-            writer.Write(BandDifficulty);
+            writer.Write(_bandDifficulty.intensity);
             SerializeValues(ref FiveFretGuitar);
             SerializeValues(ref FiveFretBass);
             SerializeValues(ref FiveFretRhythm);
@@ -229,6 +232,7 @@ namespace YARG.Core.Song
 
                 Instrument.Vocals => LeadVocals,
                 Instrument.Harmony => HarmonyVocals,
+                Instrument.Band => _bandDifficulty,
 
                 _ => throw new NotImplementedException($"Unhandled instrument {instrument}!")
             };
@@ -238,7 +242,7 @@ namespace YARG.Core.Song
         {
             try
             {
-                return GetValues(instrument).subTracks > 0;
+                return instrument != Instrument.Band && GetValues(instrument).subTracks > 0;
             }
             catch
             {
