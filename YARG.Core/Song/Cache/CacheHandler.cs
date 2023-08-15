@@ -235,6 +235,12 @@ namespace YARG.Core.Song.Cache
                     case ScanResult.MissingMidi:
                         writer.WriteLine("Midi file queried for found missing");
                         break;
+                    case ScanResult.MissingUpdateMidi:
+                        writer.WriteLine("Update Midi file queried for found missing");
+                        break;
+                    case ScanResult.MissingUpgradeMidi:
+                        writer.WriteLine("Upgrade Midi file queried for found missing");
+                        break;
                     case ScanResult.PossibleCorruption:
                         writer.WriteLine("Possible corruption of a queried midi file");
                         break;
