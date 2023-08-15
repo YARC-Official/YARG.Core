@@ -210,6 +210,9 @@ namespace YARG.Core.Song
             var dtaResults = ParseDTA(nodeName, rbMetadata, reader);
             _rbData = new RBPackedCONMetadata(conFile, rbMetadata, nodeName, dtaResults.location, dtaResults.midiPath);
             _directory = rbMetadata.Directory;
+
+            if (_playlist.Length == 0)
+                _playlist = Path.GetFileName(conFile.filename);
         }
 
         public static (ScanResult, SongMetadata?) FromPackedRBCON(CONFile conFile, string nodeName, YARGDTAReader reader, Dictionary<string, List<(string, YARGDTAReader)>> updates, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades)

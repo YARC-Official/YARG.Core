@@ -49,6 +49,50 @@ namespace YARG.Core.Song.Cache
             }
         }
 
+        private void ScanCONGroup(PackedCONGroup group)
+        {
+            if (!group.LoadSongs(out var reader))
+                return;
+
+            try
+            {
+                Dictionary<string, int> indices = new();
+                while (reader!.StartNode())
+                {
+                    string name = reader.GetNameOfNode();
+                    int index = GetCONIndex(indices, name);
+
+                    ScanPackedCONNode(group, name, index, reader);
+                    reader.EndNode();
+                }
+            }
+            catch (Exception e)
+            {
+                AddErrors(e);
+            }
+        }
+
+        private void ScanExtractedCONGroup(UnpackedCONGroup group)
+        {
+            try
+            {
+                YARGDTAReader reader = new(group.dta.FullName);
+                Dictionary<string, int> indices = new();
+                while (reader.StartNode())
+                {
+                    string name = reader.GetNameOfNode();
+                    int index = GetCONIndex(indices, name);
+
+                    ScanUnpackedCONNode(group, name, index, reader);
+                    reader.EndNode();
+                }
+            }
+            catch (Exception e)
+            {
+                AddErrors(e);
+            }
+        }
+
         private void ReadIniGroup(YARGBinaryReader reader, CategoryCacheStrings strings)
         {
             string directory = reader.ReadLEBString();
@@ -63,7 +107,8 @@ namespace YARG.Core.Song.Cache
             for (int i = 0; i < count; ++i)
             {
                 int length = reader.ReadInt32();
-                ReadIniEntry(directory, baseIndex, new(reader, length), strings);
+                var entryReader = new YARGBinaryReader(reader, length);
+                ReadIniEntry(directory, baseIndex, entryReader, strings);
             }
         }
 
@@ -85,7 +130,9 @@ namespace YARG.Core.Song.Cache
                     continue;
                 }
 
-                if (!group.ReadEntry(name, index, upgrades, new(reader, length), strings))
+                var entryReader = new YARGBinaryReader(reader, length);
+              
+                if (!group.ReadEntry(name, index, upgrades, entryReader, strings))
                     YargTrace.DebugInfo($"CON entry invalid {group.file.filename} | {name}");
             }
         }
@@ -97,7 +144,6 @@ namespace YARG.Core.Song.Cache
                 return;
 
             int count = reader.ReadInt32();
-            List<Task> entryTasks = new();
             for (int i = 0; i < count; ++i)
             {
                 string name = reader.ReadLEBString();
@@ -110,11 +156,11 @@ namespace YARG.Core.Song.Cache
                     continue;
                 }
 
-                if (!group.ReadEntry(name, index, upgrades, new(reader, length), strings))
+                var entryReader = new YARGBinaryReader(reader, length);
+              
+                if (!group.ReadEntry(name, index, upgrades, entryReader, strings))
                     YargTrace.DebugInfo($"EXCON entry invalid {group.directory} | {name}");
             }
-
-            Task.WaitAll(entryTasks.ToArray());
         }
 
         private void QuickReadIniGroup(YARGBinaryReader reader, CategoryCacheStrings strings)
@@ -124,7 +170,8 @@ namespace YARG.Core.Song.Cache
             for (int i = 0; i < count; ++i)
             {
                 int length = reader.ReadInt32();
-                QuickReadIniEntry(directory, new(reader, length), strings);
+                var entryReader = new YARGBinaryReader(reader, length);
+                QuickReadIniEntry(directory, entryReader, strings);
             }
         }
 
@@ -142,7 +189,8 @@ namespace YARG.Core.Song.Cache
                 reader.Position += 4;
 
                 int length = reader.ReadInt32();
-                AddEntry(SongMetadata.PackedRBCONFromCache_Quick(group.file, name, upgrades, new(reader, length), strings));
+                var entryReader = new YARGBinaryReader(reader, length);
+                AddEntry(SongMetadata.PackedRBCONFromCache_Quick(group.file, name, upgrades, entryReader, strings));
             }
         }
 
@@ -157,7 +205,8 @@ namespace YARG.Core.Song.Cache
                 reader.Position += 4;
 
                 int length = reader.ReadInt32();
-                AddEntry(SongMetadata.UnpackedRBCONFromCache_Quick(dta, name, upgrades, new(reader, length), strings));
+                var entryReader = new YARGBinaryReader(reader, length);
+                AddEntry(SongMetadata.UnpackedRBCONFromCache_Quick(dta, name, upgrades, entryReader, strings));
             }
         }
     }

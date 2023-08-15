@@ -50,7 +50,7 @@ namespace YARG.Core.Song.Cache
         /// Format is YY_MM_DD_RR: Y = year, M = month, D = day, R = revision (reset across dates, only increment
         /// if multiple cache version changes happen in a single day).
         /// </summary>
-        public const int CACHE_VERSION = 23_08_12_01;
+        public const int CACHE_VERSION = 23_08_13_01;
 
         public readonly List<object> errorList = new();
         public ScanProgress Progress { get; private set; }

@@ -51,6 +51,57 @@ namespace YARG.Core.Song.Cache
             }
         }
 
+        private void ScanCONGroup_Parallel(PackedCONGroup group)
+        {
+            if (!group.LoadSongs(out var reader))
+                return;
+
+            try
+            {
+                Dictionary<string, int> indices = new();
+                List<Task> tasks = new();
+                while (reader!.StartNode())
+                {
+                    string name = reader.GetNameOfNode();
+                    int index = GetCONIndex(indices, name);
+
+                    var node = new YARGDTAReader(reader);
+                    tasks.Add(Task.Run(() => ScanPackedCONNode(group, name, index, node)));
+                    reader.EndNode();
+                }
+
+                Task.WaitAll(tasks.ToArray());
+            }
+            catch (Exception e)
+            {
+                AddErrors(e);
+            }
+        }
+
+        private void ScanExtractedCONGroup_Parallel(UnpackedCONGroup group)
+        {
+            try
+            {
+                YARGDTAReader reader = new(group.dta.FullName);
+                Dictionary<string, int> indices = new();
+                List<Task> tasks = new();
+                while (reader.StartNode())
+                {
+                    string name = reader.GetNameOfNode();
+                    int index = GetCONIndex(indices, name);
+
+                    var node = new YARGDTAReader(reader);
+                    tasks.Add(Task.Run(() => ScanUnpackedCONNode(group, name, index, node)));
+                    reader.EndNode();
+                }
+                Task.WaitAll(tasks.ToArray());
+            }
+            catch (Exception e)
+            {
+                AddErrors(e);
+            }
+        }
+
         private void ReadIniGroup_Parallel(YARGBinaryReader reader, CategoryCacheStrings strings)
         {
             string directory = reader.ReadLEBString();

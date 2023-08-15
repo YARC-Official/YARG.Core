@@ -32,7 +32,9 @@ namespace YARG.Core.Song
                 FileInfo midiInfo = new(midiPath);
                 if (!midiInfo.Exists)
                     throw new Exception($"Required midi file '{midiPath}' was not located");
+
                 Midi = midiInfo;
+                metadata.Directory = folder;
 
                 FileInfo mogg = new(file + ".yarg_mogg");
                 metadata.Mogg = mogg.Exists ? mogg : new AbridgedFileInfo(file + ".mogg");
@@ -40,7 +42,6 @@ namespace YARG.Core.Song
                 file = Path.Combine(folder, "gen", nodeName);
                 metadata.Milo = new(file + ".milo_xbox");
                 metadata.Image = new(file + "_keep.png_xbox");
-                metadata.Directory = Path.GetDirectoryName(midiPath)!;
             }
 
             public RBUnpackedCONMetadata(AbridgedFileInfo? dta, AbridgedFileInfo midi, AbridgedFileInfo? moggInfo, AbridgedFileInfo? updateInfo, YARGBinaryReader reader)
@@ -140,6 +141,9 @@ namespace YARG.Core.Song
             ParseDTA(nodeName, rbMetadata, reader);
             _rbData = new RBUnpackedCONMetadata(folder, dta, rbMetadata, nodeName);
             _directory = rbMetadata.Directory;
+
+            if (_playlist.Length == 0)
+                _playlist = Path.GetFileName(folder);
         }
 
         public static (ScanResult, SongMetadata?) FromUnpackedRBCON(string folder, AbridgedFileInfo dta, string nodeName, YARGDTAReader reader, Dictionary<string, List<(string, YARGDTAReader)>> updates, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades)
