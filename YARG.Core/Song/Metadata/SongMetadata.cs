@@ -43,6 +43,7 @@ namespace YARG.Core.Song
     public sealed partial class SongMetadata
     {
         public const int SIZEOF_DATETIME = 8;
+        public const double MILLISECOND_FACTOR = 1000.0;
 
         public const string DEFAULT_YEAR = "Unknown Year";
 
@@ -76,14 +77,14 @@ namespace YARG.Core.Song
 
         private string _loadingPhrase = string.Empty;
 
-        private ulong _songLength = 0;
-        private long _songOffset = 0;
+        private double _songLength = 0;
+        private double _songOffset = 0;
 
-        private ulong _previewStart = 0;
-        private ulong _previewEnd = 0;
+        private double _previewStart = 0;
+        private double _previewEnd = 0;
 
-        private long _videoStartTime = 0;
-        private long _videoEndTime = -1;
+        private double _videoStartTime = 0;
+        private double _videoEndTime = -1;
 
         private HashWrapper _hash = default;
 
@@ -140,14 +141,23 @@ namespace YARG.Core.Song
 
         public string LoadingPhrase => _loadingPhrase;
 
-        public ulong SongLength => _songLength;
-        public long SongOffset => _songOffset;
+        public double SongLength => _songLength;
+        public double SongOffset => _songOffset;
 
-        public ulong PreviewStart => _previewStart;
-        public ulong PreviewEnd => _previewEnd;
+        public ulong SongLengthMilliseconds => (ulong) (SongLength * MILLISECOND_FACTOR);
+        public long SongOffsetMilliseconds => (long) (SongOffset * MILLISECOND_FACTOR);
 
-        public long VideoStartTime => _videoStartTime;
-        public long VideoEndTime => _videoEndTime;
+        public double PreviewStart => _previewStart;
+        public double PreviewEnd => _previewEnd;
+
+        public ulong PreviewStartMilliseconds => (ulong) (PreviewStart * MILLISECOND_FACTOR);
+        public ulong PreviewEndMilliseconds => (ulong) (PreviewEnd * MILLISECOND_FACTOR);
+
+        public double VideoStartTime => _videoStartTime;
+        public double VideoEndTime => _videoEndTime;
+
+        public long VideoStartTimeMilliseconds => (long) (VideoStartTime * MILLISECOND_FACTOR);
+        public long VideoEndTimeMilliseconds => (long) (VideoEndTime * MILLISECOND_FACTOR);
 
         public HashWrapper Hash => _hash;
 

@@ -164,6 +164,13 @@ namespace YARG.Core.Song.Deserialization
             return value;
         }
 
+        public double ReadDouble(Endianness endianness = Endianness.LittleEndian)
+        {
+            ulong memory = ReadUInt64(endianness);
+            double value = Unsafe.As<ulong, double>(ref memory);
+            return value;
+        }
+
         public bool ReadBytes(byte[] bytes)
         {
             int endPos = _position + bytes.Length;

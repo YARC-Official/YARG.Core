@@ -19,12 +19,19 @@ namespace YARG.Core.Song
             _source.Str = strings.sources[reader.ReadInt32()];
 
             _isMaster = reader.ReadBoolean();
-            _previewStart = reader.ReadUInt64();
-            _previewEnd = reader.ReadUInt64();
+
             _albumTrack = reader.ReadInt32();
             _playlistTrack = reader.ReadInt32();
-            _songLength = reader.ReadUInt64();
-            _songOffset = reader.ReadInt64();
+
+            _songLength = reader.ReadDouble();
+            _songOffset = reader.ReadDouble();
+
+            _previewStart = reader.ReadDouble();
+            _previewEnd = reader.ReadDouble();
+
+            _videoStartTime = reader.ReadDouble();
+            _videoEndTime = reader.ReadDouble();
+
             _loadingPhrase = reader.ReadLEBString();
 
             _parseSettings = new()
@@ -53,12 +60,19 @@ namespace YARG.Core.Song
             writer.Write(node.source);
 
             writer.Write(_isMaster);
-            writer.Write(_previewStart);
-            writer.Write(_previewEnd);
+
             writer.Write(_albumTrack);
             writer.Write(_playlistTrack);
+
             writer.Write(_songLength);
             writer.Write(_songOffset);
+
+            writer.Write(_previewStart);
+            writer.Write(_previewEnd);
+
+            writer.Write(_videoStartTime);
+            writer.Write(_videoEndTime);
+
             writer.Write(_loadingPhrase);
 
             writer.Write(_parseSettings.HopoThreshold);

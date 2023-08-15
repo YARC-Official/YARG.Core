@@ -162,7 +162,7 @@ namespace YARG.Core.Song.Cache
         private static readonly EntryComparer comparer = new(SongAttribute.SongLength);
         public override void Add(SongMetadata entry)
         {
-            string key = TimeSpan.FromMilliseconds(entry.SongLength).TotalMinutes switch
+            string key = TimeSpan.FromSeconds(entry.SongLength).TotalMinutes switch
             {
                 <= 0.00 => "-",
                 <= 2.00 => "00:00 - 02:00",
