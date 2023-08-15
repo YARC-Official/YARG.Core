@@ -73,7 +73,7 @@ namespace YARG.Core.Song.Cache
                 FileInfo dta = new(Path.Combine(directory, "songs_updates.dta"));
                 if (dta.Exists)
                 {
-                    CreateUpdateGroup(directory, dta);
+                    CreateUpdateGroup(directory, dta, true);
                     return false;
                 }
             }
@@ -82,7 +82,7 @@ namespace YARG.Core.Song.Cache
                 FileInfo dta = new(Path.Combine(directory, "upgrades.dta"));
                 if (dta.Exists)
                 {
-                    CreateUpgradeGroup(directory, dta);
+                    CreateUpgradeGroup(directory, dta, true);
                     return false;
                 }
             }
