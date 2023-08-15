@@ -253,7 +253,6 @@ namespace YARG.Core.Song
             public bool alternatePath = false;
             public bool discUpdate = false;
             public string location = string.Empty;
-            public string midiPath = string.Empty;
             public DTAResult(string nodeName)
             {
                 this.nodeName = nodeName;
@@ -572,7 +571,6 @@ namespace YARG.Core.Song
                             core = new[] { reader.ReadFloat() };
                         break;
                     case "hopo_threshold": _parseSettings.HopoThreshold = reader.ReadInt64(); break;
-                    case "midi_file": result.midiPath = reader.ExtractText(); break;
                 }
                 reader.EndNode();
             }
