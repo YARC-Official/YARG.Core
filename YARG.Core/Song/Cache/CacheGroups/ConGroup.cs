@@ -11,7 +11,7 @@ namespace YARG.Core.Song.Cache
         protected readonly object entryLock = new();
         private int _entryCount;
         public int EntryCount => _entryCount;
-        public abstract void ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings);
+        public abstract bool ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings);
 
         public void AddEntry(string name, int index, SongMetadata entry)
         {

@@ -18,7 +18,8 @@ namespace YARG.Core.Song
         MissingMidi,
         PossibleCorruption,
 
-        LooseChart_NoAudio
+        LooseChart_NoAudio,
+        PathTooLong
     }
 
     /// <summary>

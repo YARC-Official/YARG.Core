@@ -238,6 +238,9 @@ namespace YARG.Core.Song.Cache
                     case ScanResult.PossibleCorruption:
                         writer.WriteLine("Possible corruption of a queried midi file");
                         break;
+                    case ScanResult.PathTooLong:
+                        writer.WriteLine("Path too long for the Windows Filesystem (path limitation can be changed in registry settings if you so wish)");
+                        break;
                 }
                 writer.WriteLine();
             }

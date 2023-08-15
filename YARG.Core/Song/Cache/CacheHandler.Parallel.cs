@@ -23,12 +23,27 @@ namespace YARG.Core.Song.Cache
 
                 Parallel.ForEach(result.subfiles, file =>
                 {
-                    var attributes = File.GetAttributes(file);
-                    if ((attributes & FileAttributes.Directory) != 0)
-                        ScanDirectory_Parallel(file, index);
-                    else
-                        AddPossibleCON(file);
+                    try
+                    {
+                        var attributes = File.GetAttributes(file);
+                        if ((attributes & FileAttributes.Directory) != 0)
+                            ScanDirectory_Parallel(file, index);
+                        else
+                            AddPossibleCON(file);
+                    }
+                    catch (PathTooLongException)
+                    {
+                        YargTrace.LogWarning($"Path {file} is too long for Windows OS");
+                    }
+                    catch (Exception e)
+                    {
+                        AddErrors(file + ": " + e.Message);
+                    }
                 });
+            }
+            catch (PathTooLongException)
+            {
+                YargTrace.LogWarning($"Path {directory} is too long for Windows OS");
             }
             catch (Exception e)
             {
@@ -41,7 +56,10 @@ namespace YARG.Core.Song.Cache
             string directory = reader.ReadLEBString();
             int baseIndex = GetBaseDirectoryIndex(directory);
             if (baseIndex == -1)
+            {
+                YargTrace.DebugInfo($"Ini group outside base directories : {directory}");
                 return;
+            }
 
             List<Task> entryTasks = new();
             int count = reader.ReadInt32();
@@ -88,7 +106,8 @@ namespace YARG.Core.Song.Cache
                 {
                     try
                     {
-                        group.ReadEntry(name, index, upgrades, entryReader, strings);
+                        if (!group.ReadEntry(name, index, upgrades, entryReader, strings))
+                            YargTrace.DebugInfo($"CON entry invalid {group.file.filename} | {name}");
                     }
                     catch (Exception ex)
                     {
@@ -125,7 +144,8 @@ namespace YARG.Core.Song.Cache
                 {
                     try
                     {
-                        group.ReadEntry(name, index, upgrades, entryReader, strings);
+                        if (!group.ReadEntry(name, index, upgrades, entryReader, strings))
+                            YargTrace.DebugInfo($"EXCON entry invalid {group.directory} | {name}");
                     }
                     catch (Exception ex)
                     {
@@ -140,9 +160,6 @@ namespace YARG.Core.Song.Cache
         private void QuickReadIniGroup_Parallel(YARGBinaryReader reader, CategoryCacheStrings strings)
         {
             string directory = reader.ReadLEBString();
-            if (GetBaseDirectoryIndex(directory) == -1)
-                return;
-
             List<Task> entryTasks = new();
             int count = reader.ReadInt32();
             for (int i = 0; i < count; ++i)
@@ -199,9 +216,6 @@ namespace YARG.Core.Song.Cache
         private void QuickReadExtractedCONGroup_Parallel(YARGBinaryReader reader, CategoryCacheStrings strings)
         {
             var dta = QuickReadExtractedCONGroupHeader(reader);
-            if (dta == null)
-                return;
-
             int count = reader.ReadInt32();
             List<Task> entryTasks = new();
             for (int i = 0; i < count; ++i)
