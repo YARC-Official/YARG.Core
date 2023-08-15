@@ -178,7 +178,7 @@ namespace YARG.Core.Song
             if (!section.TryGet("video_end_time", out _videoEndTime))
                 _videoEndTime = -1;
 
-            var drumsType = drumType switch
+            _parseSettings.DrumsType = drumType switch
             {
                 DrumPreparseType.FourLane or
                 DrumPreparseType.FourPro => DrumsType.FourLane,
@@ -186,31 +186,19 @@ namespace YARG.Core.Song
                 _ => DrumsType.Unknown
             };
 
-            if (!section.TryGet("hopo_frequency", out long hopoThreshold))
-                hopoThreshold = -1;
+            if (!section.TryGet("hopo_frequency", out _parseSettings.HopoThreshold))
+                _parseSettings.HopoThreshold = -1;
 
-            if (!section.TryGet("hopofreq", out int hopofreq_fof))
-                hopofreq_fof = -1;
+            if (!section.TryGet("hopofreq", out _parseSettings.HopoFreq_FoF))
+                _parseSettings.HopoFreq_FoF = -1;
 
-            section.TryGet("eighthnote_hopo", out bool eighthNoteHopo);
+            section.TryGet("eighthnote_hopo", out _parseSettings.EighthNoteHopo);
 
-            if (!section.TryGet("sustain_cutoff_threshold", out long susCutoffThreshold))
-                susCutoffThreshold = -1;
+            if (!section.TryGet("sustain_cutoff_threshold", out _parseSettings.SustainCutoffThreshold))
+                _parseSettings.SustainCutoffThreshold = -1;
 
-            if (!section.TryGet("multiplier_note", out int starPowerNote))
-                starPowerNote = -1;
-
-            _parseSettings = new()
-            {
-                DrumsType = drumsType,
-
-                HopoThreshold = hopoThreshold,
-                HopoFreq_FoF = hopofreq_fof,
-                EighthNoteHopo = eighthNoteHopo,
-                SustainCutoffThreshold = susCutoffThreshold,
-
-                StarPowerNote = starPowerNote,
-            };
+            if (!section.TryGet("multiplier_note", out _parseSettings.StarPowerNote))
+                _parseSettings.StarPowerNote = -1;
         }
 
         private SongMetadata(IniSubmetadata iniData, YARGBinaryReader reader, CategoryCacheStrings strings) : this(reader, strings)

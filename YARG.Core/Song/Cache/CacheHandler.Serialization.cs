@@ -72,11 +72,15 @@ namespace YARG.Core.Song.Cache
         {
             FileInfo info = new(cacheLocation);
             if (!info.Exists || info.Length < MIN_CACHEFILESIZE)
+            {
+                YargTrace.DebugInfo($"Cache invalid or not found");
                 return null;
+            }
 
             FileStream fs = new(cacheLocation, FileMode.Open, FileAccess.Read);
             if (fs.ReadInt32LE() != CACHE_VERSION)
             {
+                YargTrace.DebugInfo($"Cache outdated");
                 fs.Dispose();
                 return null;
             }
@@ -90,6 +94,7 @@ namespace YARG.Core.Song.Cache
             if (stream == null)
                 return false;
 
+            YargTrace.DebugInfo("Full Read start");
             CategoryCacheStrings strings = new(stream, multithreading);
             if (multithreading)
             {
@@ -114,6 +119,7 @@ namespace YARG.Core.Song.Cache
                 RunTasks(stream, strings, ReadCONGroup);
                 RunTasks(stream, strings, ReadExtractedCONGroup);
             }
+            YargTrace.DebugInfo($"Ini Entries read: {_count}");
             return true;
         }
 
@@ -124,6 +130,7 @@ namespace YARG.Core.Song.Cache
             if (stream == null)
                 return false;
 
+            YargTrace.DebugInfo("Quick Read start");
             CategoryCacheStrings strings = new(stream, multithreading);
             if (multithreading)
             {
@@ -133,7 +140,7 @@ namespace YARG.Core.Song.Cache
                 for (int i = 0; i < count; ++i)
                 {
                     int length = stream.ReadInt32LE();
-                    stream!.Position += length;
+                    stream.Position += length;
                 }
 
                 var conTasks = CreateParallelTasks(stream, QuickReadUpgradeDirectory);
@@ -148,12 +155,13 @@ namespace YARG.Core.Song.Cache
             else
             {
                 RunTasks(stream, strings, QuickReadIniGroup);
+                YargTrace.DebugInfo($"Ini Entries quick read: {_count}");
 
                 int count = stream.ReadInt32LE();
                 for (int i = 0; i < count; ++i)
                 {
                     int length = stream.ReadInt32LE();
-                    stream!.Position += length;
+                    stream.Position += length;
                 }
 
                 RunTasks(stream, QuickReadUpgradeDirectory);
@@ -161,6 +169,7 @@ namespace YARG.Core.Song.Cache
                 RunTasks(stream, strings, QuickReadCONGroup);
                 RunTasks(stream, strings, QuickReadExtractedCONGroup);
             }
+            YargTrace.DebugInfo($"Total Entries: {_count}");
             return true;
         }
 
@@ -204,7 +213,10 @@ namespace YARG.Core.Song.Cache
         {
             var entry = SongMetadata.IniFromCache(baseDirectory, reader, strings);
             if (entry == null)
+            {
+                YargTrace.DebugInfo($"Ini entry invalid {baseDirectory}");
                 return;
+            }
 
             MarkDirectory(entry.Directory);
             AddEntry(entry);
@@ -222,6 +234,7 @@ namespace YARG.Core.Song.Cache
                 FileInfo dta = new(Path.Combine(directory, "songs_updates.dta"));
                 if (dta.Exists)
                 {
+                    YargTrace.DebugInfo($"Update Directory added {directory}");
                     MarkDirectory(directory);
                     CreateUpdateGroup(directory, dta);
 
@@ -245,6 +258,7 @@ namespace YARG.Core.Song.Cache
                 FileInfo dta = new(Path.Combine(directory, "upgrades.dta"));
                 if (dta.Exists)
                 {
+                    YargTrace.DebugInfo($"Upgrade Directory added {directory}");
                     MarkDirectory(directory);
                     var group = CreateUpgradeGroup(directory, dta);
 
@@ -265,7 +279,7 @@ namespace YARG.Core.Song.Cache
             for (int i = 0; i < count; i++)
             {
                 AddInvalidSong(reader.ReadLEBString());
-                reader.Position += 8;
+                reader.Position += SongMetadata.SIZEOF_DATETIME;
             }
         }
 
@@ -278,6 +292,7 @@ namespace YARG.Core.Song.Cache
 
             if (GetBaseDirectoryIndex(filename) >= 0 && CreateCONGroup(filename, out var group))
             {
+                YargTrace.DebugInfo($"CON added in upgrade loop {filename}");
                 AddCONGroup(group!);
                 if (group!.LoadUpgrades(out var reader))
                 {
@@ -303,7 +318,7 @@ namespace YARG.Core.Song.Cache
             for (int i = 0; i < count; i++)
             {
                 AddInvalidSong(cacheReader.ReadLEBString());
-                cacheReader.Position += 8;
+                cacheReader.Position += SongMetadata.SIZEOF_DATETIME;
             }
         }
 
@@ -311,27 +326,40 @@ namespace YARG.Core.Song.Cache
         {
             string filename = reader.ReadLEBString();
             if (GetBaseDirectoryIndex(filename) == -1)
+            {
+                YargTrace.DebugInfo($"CON outside base directories : {filename}");
                 return null;
+            }
 
             var dtaLastWrite = DateTime.FromBinary(reader.ReadInt64());
             if (!FindCONGroup(filename, out var group))
             {
                 FileInfo info = new(filename);
                 if (!info.Exists)
+                {
+                    YargTrace.DebugInfo($"CON no longer found: {filename}");
                     return null;
+                }
 
                 MarkFile(filename);
 
                 var file = CONFile.LoadCON(info.FullName);
                 if (file == null)
+                {
+                    YargTrace.DebugInfo($"CON could not be loaded: {filename}");
                     return null;
+                }
 
                 group = new(file, info.LastWriteTime);
+                YargTrace.DebugInfo($"CON added in main loop {filename}");
                 AddCONGroup(group);
             }
 
             if (!group!.SetSongDTA() || group.DTALastWrite != dtaLastWrite)
+            {
+                YargTrace.DebugInfo($"CON songs.dta was missing or updated");
                 return null;
+            }
             return group;
         }
 
@@ -339,18 +367,28 @@ namespace YARG.Core.Song.Cache
         {
             string directory = reader.ReadLEBString();
             if (GetBaseDirectoryIndex(directory) == -1)
+            {
+                YargTrace.DebugInfo($"EXCON outside base directories : {directory}");
                 return null;
+            }
 
             FileInfo dtaInfo = new(Path.Combine(directory, "songs.dta"));
             if (!dtaInfo.Exists)
+            {
+                YargTrace.DebugInfo($"EXCON dta missing");
                 return null;
+            }
 
             UnpackedCONGroup group = new(directory, dtaInfo);
+            YargTrace.DebugInfo($"EXCON added in main loop {directory}");
             MarkDirectory(directory);
             AddExtractedCONGroup(group);
 
             if (dtaInfo.LastWriteTime != DateTime.FromBinary(reader.ReadInt64()))
+            {
+                YargTrace.DebugInfo($"EXCON dta updated, needs rescan");
                 return null;
+            }
             return group;
         }
 
@@ -359,6 +397,8 @@ namespace YARG.Core.Song.Cache
             var entry = SongMetadata.IniFromCache_Quick(baseDirectory, reader, strings);
             if (entry != null)
                 AddEntry(entry);
+            else
+                YargTrace.DebugInfo($"Cache file was modified externally with a bad CHART_TYPE enum value... or bigger error");
         }
 
         private void QuickReadUpgradeDirectory(YARGBinaryReader reader)
@@ -385,7 +425,7 @@ namespace YARG.Core.Song.Cache
         private void QuickReadUpgradeCON(YARGBinaryReader reader)
         {
             string filename = reader.ReadLEBString();
-            reader.Position += 12;
+            reader.Position += 2 * SongMetadata.SIZEOF_DATETIME;
             int count = reader.ReadInt32();
 
             if (CreateCONGroup(filename, out var group))
@@ -423,24 +463,30 @@ namespace YARG.Core.Song.Cache
             if (!FindCONGroup(filename, out var group))
             {
                 if (!CreateCONGroup(filename, out group))
+                {
+                    YargTrace.DebugInfo($"CON was not found: {filename}");
                     return null;
+                }
                 AddCONGroup(group!);
             }
 
             if (!group!.SetSongDTA() || group.DTALastWrite != dtaLastWrite)
+            {
+                YargTrace.DebugInfo($"Con songs.dta missing or needs rescan: {filename}");
                 return null;
+            }
             return group;
         }
 
         private AbridgedFileInfo? QuickReadExtractedCONGroupHeader(YARGBinaryReader reader)
         {
             string directory = reader.ReadLEBString();
-            if (GetBaseDirectoryIndex(directory) == -1)
-                return null;
-
             FileInfo dtaInfo = new(Path.Combine(directory, "songs.dta"));
             if (!dtaInfo.Exists || dtaInfo.LastWriteTime != DateTime.FromBinary(reader.ReadInt64()))
+            {
+                YargTrace.DebugInfo($"EXCON dta missing");
                 return null;
+            }
             return new(dtaInfo);
         }
 
@@ -486,11 +532,13 @@ namespace YARG.Core.Song.Cache
 
         private void MarkFile(string file)
         {
+            YargTrace.DebugInfo($"Marked CON {file}");
             lock (fileLock) preScannedFiles.Add(file);
         }
 
         private void AddInvalidSong(string name)
         {
+            YargTrace.DebugInfo($"Invalidated {name}");
             lock (invalidLock) invalidSongsInCache.Add(name);
         }
     }

@@ -281,7 +281,7 @@ namespace YARG.Core.Song
             if (reader.ReadBoolean())
             {
                 moggListing = conFile.TryGetListing(reader.ReadLEBString());
-                reader.Position += 8;
+                reader.Position += SIZEOF_DATETIME;
             }
             else
             {

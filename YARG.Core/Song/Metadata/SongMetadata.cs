@@ -18,7 +18,8 @@ namespace YARG.Core.Song
         MissingMidi,
         PossibleCorruption,
 
-        LooseChart_NoAudio
+        LooseChart_NoAudio,
+        PathTooLong
     }
 
     /// <summary>
@@ -39,6 +40,7 @@ namespace YARG.Core.Song
     [Serializable]
     public sealed partial class SongMetadata
     {
+        public const int SIZEOF_DATETIME = 8;
         public static readonly SortString DEFAULT_NAME    = "Unknown Name";
         public static readonly SortString DEFAULT_ARTIST  = "Unknown Artist";
         public static readonly SortString DEFAULT_ALBUM   = "Unknown Album";

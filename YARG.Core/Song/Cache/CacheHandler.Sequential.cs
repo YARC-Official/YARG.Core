@@ -21,12 +21,27 @@ namespace YARG.Core.Song.Cache
 
                 foreach (string file in result.subfiles)
                 {
-                    var attributes = File.GetAttributes(file);
-                    if ((attributes & FileAttributes.Directory) != 0)
-                        ScanDirectory(file, index);
-                    else
-                        AddPossibleCON(file);
+                    try
+                    {
+                        var attributes = File.GetAttributes(file);
+                        if ((attributes & FileAttributes.Directory) != 0)
+                            ScanDirectory(file, index);
+                        else
+                            AddPossibleCON(file);
+                    }
+                    catch (PathTooLongException)
+                    {
+                        YargTrace.LogWarning($"Path {file} is too long for Windows OS");
+                    }
+                    catch (Exception e)
+                    {
+                        AddErrors(file + ": " + e.Message);
+                    }
                 }
+            }
+            catch (PathTooLongException)
+            {
+                YargTrace.LogWarning($"Path {directory} is too long for Windows OS");
             }
             catch (Exception e)
             {
@@ -83,7 +98,10 @@ namespace YARG.Core.Song.Cache
             string directory = reader.ReadLEBString();
             int baseIndex = GetBaseDirectoryIndex(directory);
             if (baseIndex == -1)
+            {
+                YargTrace.DebugInfo($"Ini group outside base directories : {directory}");
                 return;
+            }
 
             int count = reader.ReadInt32();
             for (int i = 0; i < count; ++i)
@@ -113,7 +131,9 @@ namespace YARG.Core.Song.Cache
                 }
 
                 var entryReader = new YARGBinaryReader(reader, length);
-                group.ReadEntry(name, index, upgrades, entryReader, strings);
+              
+                if (!group.ReadEntry(name, index, upgrades, entryReader, strings))
+                    YargTrace.DebugInfo($"CON entry invalid {group.file.filename} | {name}");
             }
         }
 
@@ -137,16 +157,15 @@ namespace YARG.Core.Song.Cache
                 }
 
                 var entryReader = new YARGBinaryReader(reader, length);
-                group.ReadEntry(name, index, upgrades, entryReader, strings);
+              
+                if (!group.ReadEntry(name, index, upgrades, entryReader, strings))
+                    YargTrace.DebugInfo($"EXCON entry invalid {group.directory} | {name}");
             }
         }
 
         private void QuickReadIniGroup(YARGBinaryReader reader, CategoryCacheStrings strings)
         {
             string directory = reader.ReadLEBString();
-            if (GetBaseDirectoryIndex(directory) == -1)
-                return;
-
             int count = reader.ReadInt32();
             for (int i = 0; i < count; ++i)
             {
@@ -166,6 +185,7 @@ namespace YARG.Core.Song.Cache
             for (int i = 0; i < count; ++i)
             {
                 string name = reader.ReadLEBString();
+                // index
                 reader.Position += 4;
 
                 int length = reader.ReadInt32();
@@ -177,13 +197,11 @@ namespace YARG.Core.Song.Cache
         private void QuickReadExtractedCONGroup(YARGBinaryReader reader, CategoryCacheStrings strings)
         {
             var dta = QuickReadExtractedCONGroupHeader(reader);
-            if (dta == null)
-                return;
-
             int count = reader.ReadInt32();
             for (int i = 0; i < count; ++i)
             {
                 string name = reader.ReadLEBString();
+                // index
                 reader.Position += 4;
 
                 int length = reader.ReadInt32();

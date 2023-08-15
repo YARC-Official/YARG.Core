@@ -119,6 +119,10 @@ namespace YARG.Core.Song.Cache
                         else
                             return false;
                     }
+                    catch (PathTooLongException)
+                    {
+                        AddToBadSongs(chart, ScanResult.PathTooLong);
+                    }
                     catch (Exception e)
                     {
                         AddErrors(e);

@@ -46,11 +46,14 @@ namespace YARG.Core.Song.Cache
             this.lastWrite = lastWrite;
         }
 
-        public override void ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings)
+        public override bool ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings)
         {
             var song = SongMetadata.PackedRBCONFromCache(file, nodeName, upgrades, reader, strings);
-            if (song != null)
-                AddEntry(nodeName, index, song);
+            if (song == null)
+                return false;
+
+            AddEntry(nodeName, index, song);
+            return true;
         }
 
         public void AddUpgrade(string name, IRBProUpgrade upgrade) { lock (upgradeLock) upgrades[name] = upgrade; }
