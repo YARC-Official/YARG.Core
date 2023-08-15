@@ -43,13 +43,58 @@ namespace YARG.Core.Song
     public sealed partial class SongMetadata
     {
         public const int SIZEOF_DATETIME = 8;
+
+        public const string DEFAULT_YEAR = "Unknown Year";
+
         public static readonly SortString DEFAULT_NAME    = "Unknown Name";
         public static readonly SortString DEFAULT_ARTIST  = "Unknown Artist";
         public static readonly SortString DEFAULT_ALBUM   = "Unknown Album";
         public static readonly SortString DEFAULT_GENRE   = "Unknown Genre";
         public static readonly SortString DEFAULT_CHARTER = "Unknown Charter";
         public static readonly SortString DEFAULT_SOURCE  = "Unknown Source";
-        public const string DEFAULT_YEAR = "Unknown Year";
+
+        private static readonly Regex s_YearRegex = new(@"(\d{4})");
+
+        private string _directory = string.Empty;
+
+        private SortString _name = string.Empty;
+        private SortString _artist = DEFAULT_ARTIST;
+        private SortString _album = DEFAULT_ALBUM;
+        private SortString _genre = DEFAULT_GENRE;
+        private SortString _charter = DEFAULT_CHARTER;
+        private SortString _source = DEFAULT_SOURCE;
+        private SortString _playlist = string.Empty;
+
+        private string _unmodifiedYear = DEFAULT_YEAR;
+        private string _parsedYear = DEFAULT_YEAR;
+        private int _intYear = int.MaxValue;
+
+        private bool _isMaster = true;
+
+        private int _albumTrack = 0;
+        private int _playlistTrack = 0;
+
+        private string _loadingPhrase = string.Empty;
+
+        private ulong _songLength = 0;
+        private long _songOffset = 0;
+
+        private ulong _previewStart = 0;
+        private ulong _previewEnd = 0;
+
+        private long _videoStartTime = 0;
+        private long _videoEndTime = -1;
+
+        private HashWrapper _hash = default;
+
+        private AvailableParts _parts = new();
+
+        private ParseSettings _parseSettings = ParseSettings.Default;
+
+        private readonly IniSubmetadata? _iniData = null;
+        private readonly IRBCONMetadata? _rbData = null;
+
+        public string Directory => _directory;
 
         public SortString Name => _name;
         public SortString Artist => _artist;
@@ -61,7 +106,7 @@ namespace YARG.Core.Song
 
         public string Year
         {
-            get { return _parsedYear; }
+            get => _parsedYear;
             private set
             {
                 _unmodifiedYear = value;
@@ -80,7 +125,7 @@ namespace YARG.Core.Song
 
         public int YearAsNumber
         {
-            get { return _intYear; }
+            get => _intYear;
             private set
             {
                 _intYear = value;
@@ -88,18 +133,15 @@ namespace YARG.Core.Song
             }
         }
 
-        public string Directory => _directory;
-
         public bool IsMaster => _isMaster;
-
-        public string LoadingPhrase => _loadingPhrase;
 
         public int AlbumTrack => _albumTrack;
         public int PlaylistTrack => _playlistTrack;
 
-        public ulong SongLength => _songLength;
+        public string LoadingPhrase => _loadingPhrase;
 
-        public long ChartOffset => _chartOffset;
+        public ulong SongLength => _songLength;
+        public long SongOffset => _songOffset;
 
         public ulong PreviewStart => _previewStart;
         public ulong PreviewEnd => _previewEnd;
@@ -115,45 +157,6 @@ namespace YARG.Core.Song
 
         public IniSubmetadata? IniData => _iniData;
         public IRBCONMetadata? RBData => _rbData;
-
-        private SortString _name = string.Empty;
-        private SortString _artist = DEFAULT_ARTIST;
-        private SortString _album = DEFAULT_ALBUM;
-        private SortString _genre = DEFAULT_GENRE;
-        private SortString _charter = DEFAULT_CHARTER;
-        private SortString _source = DEFAULT_SOURCE;
-        private SortString _playlist = string.Empty;
-
-        private string _unmodifiedYear = DEFAULT_YEAR;
-        private string _parsedYear = DEFAULT_YEAR;
-        private int _intYear = int.MaxValue;
-
-        private string _directory = string.Empty;
-
-        private string _loadingPhrase = string.Empty;
-
-        private bool _isMaster = true;
-
-        private int _albumTrack = 0;
-        private int _playlistTrack = 0;
-
-        private long _chartOffset = 0;
-
-        private ulong _songLength = 0;
-        private ulong _previewStart = 0;
-        private ulong _previewEnd = 0;
-        private long _videoStartTime = 0;
-        private long _videoEndTime = -1;
-
-        private AvailableParts _parts = new();
-        private HashWrapper _hash = default;
-
-        private ParseSettings _parseSettings = ParseSettings.Default;
-
-        private readonly IniSubmetadata? _iniData = null;
-        private readonly IRBCONMetadata? _rbData = null;
-
-        private static readonly Regex s_YearRegex = new(@"(\d{4})");
 
         public SongMetadata() { }
 

@@ -168,10 +168,10 @@ namespace YARG.Core.Song
                     _previewEnd = (ulong)(1000 * previewValue);
             }
 
-            if (!section.TryGet("delay", out _chartOffset))
+            if (!section.TryGet("delay", out _songOffset))
             {
                 if (section.TryGet("offset", out double offset))
-                    _chartOffset = (long)(1000 * offset);
+                    _songOffset = (long)(1000 * offset);
             }
 
             section.TryGet("video_start_time", out _videoStartTime);

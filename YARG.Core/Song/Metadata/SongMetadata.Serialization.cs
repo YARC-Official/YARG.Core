@@ -24,7 +24,7 @@ namespace YARG.Core.Song
             _albumTrack = reader.ReadInt32();
             _playlistTrack = reader.ReadInt32();
             _songLength = reader.ReadUInt64();
-            _chartOffset = reader.ReadInt64();
+            _songOffset = reader.ReadInt64();
             _loadingPhrase = reader.ReadLEBString();
 
             _parseSettings = new()
@@ -58,7 +58,7 @@ namespace YARG.Core.Song
             writer.Write(_albumTrack);
             writer.Write(_playlistTrack);
             writer.Write(_songLength);
-            writer.Write(_chartOffset);
+            writer.Write(_songOffset);
             writer.Write(_loadingPhrase);
 
             writer.Write(_parseSettings.HopoThreshold);
