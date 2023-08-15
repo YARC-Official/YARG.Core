@@ -233,24 +233,23 @@ namespace YARG.Core.Song.Cache
         public override void Add(SongMetadata entry)
         {
             if (multithreading)
-            {
-                Parallel.ForEach(comparers, comparer =>
-                {
-                    if (entry.Parts.HasInstrument(comparer.instrument))
-                    {
-                        Add(comparer.instrument.ToString(), entry, comparer);
-                    }
-                });
-            }
+                Parallel.ForEach(comparers, comparer => AddToInstrument(entry, comparer));
             else
-            {
                 foreach (var comparer in comparers)
-                {
-                    if (entry.Parts.HasInstrument(comparer.instrument))
-                    {
-                        Add(comparer.instrument.ToString(), entry, comparer);
-                    }
-                }
+                    AddToInstrument(entry, comparer);
+        }
+
+        private void AddToInstrument(SongMetadata entry, InstrumentComparer comparer)
+        {
+            if (comparer.instrument == Instrument.Band)
+            {
+                var values = entry.Parts.GetValues(Instrument.Band);
+                if (values.intensity >= 0)
+                    Add("Band", entry, comparer);
+            }
+            else if (entry.Parts.HasInstrument(comparer.instrument))
+            {
+                Add(comparer.instrument.ToString(), entry, comparer);
             }
         }
     }
