@@ -25,14 +25,12 @@ namespace YARG.Core.Song
 
             public DateTime MidiLastWrite => _midiLastWrite;
 
-            public RBPackedCONMetadata(CONFile conFile, RBCONSubMetadata metadata, string nodeName, string location, string midiPath)
+            public RBPackedCONMetadata(CONFile conFile, RBCONSubMetadata metadata, string nodeName, string location)
             {
                 this.conFile = conFile;
                 _metadata = metadata;
 
-                if (midiPath == string.Empty)
-                    midiPath = location + ".mid";
-
+                string midiPath = location + ".mid";
                 midiListing = conFile.TryGetListing(midiPath);
                 if (midiListing == null)
                     throw new Exception($"Required midi file '{midiPath}' was not located");
@@ -208,7 +206,7 @@ namespace YARG.Core.Song
             RBCONSubMetadata rbMetadata = new();
 
             var dtaResults = ParseDTA(nodeName, rbMetadata, reader);
-            _rbData = new RBPackedCONMetadata(conFile, rbMetadata, nodeName, dtaResults.location, dtaResults.midiPath);
+            _rbData = new RBPackedCONMetadata(conFile, rbMetadata, nodeName, dtaResults.location);
             _directory = rbMetadata.Directory;
 
             if (_playlist.Length == 0)
