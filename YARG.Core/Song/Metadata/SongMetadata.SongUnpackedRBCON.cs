@@ -21,10 +21,14 @@ namespace YARG.Core.Song
 
             public DateTime MidiLastWrite => Midi.LastWriteTime;
 
-            public RBUnpackedCONMetadata(string folder, AbridgedFileInfo dta, RBCONSubMetadata metadata, string nodeName)
+            public RBUnpackedCONMetadata(string folder, AbridgedFileInfo dta, RBCONSubMetadata metadata, string nodeName, string location)
             {
                 _metadata = metadata;
                 DTA = dta;
+
+                if (!location.StartsWith($"songs/{nodeName}"))
+                    nodeName = location.Split('/')[1];
+
                 folder = Path.Combine(folder, nodeName);
                 string file = Path.Combine(folder, nodeName);
                 string midiPath = file + ".mid";
@@ -138,8 +142,8 @@ namespace YARG.Core.Song
         {
             RBCONSubMetadata rbMetadata = new();
 
-            ParseDTA(nodeName, rbMetadata, reader);
-            _rbData = new RBUnpackedCONMetadata(folder, dta, rbMetadata, nodeName);
+            var results = ParseDTA(nodeName, rbMetadata, reader);
+            _rbData = new RBUnpackedCONMetadata(folder, dta, rbMetadata, nodeName, results.location);
             _directory = rbMetadata.Directory;
 
             if (_playlist.Length == 0)
