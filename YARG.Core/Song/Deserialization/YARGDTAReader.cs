@@ -7,12 +7,37 @@ namespace YARG.Core.Song.Deserialization
 {
     public class YARGDTAReader : YARGTXTReader_Base
     {
+        private static readonly byte[] BOM_UTF8 = { 0xEF, 0xBB, 0xBF };
+        private static readonly byte[] BOM_OTHER = { 0xFF, 0xFE };
+
         private readonly List<int> nodeEnds = new();
+        private readonly Encoding encoding = Encoding.UTF8;
         //private static readonly Encoding Western = Encoding.GetEncoding(1252);
         
 
         public YARGDTAReader(byte[] data) : base(data)
         {
+            if (data[0] == BOM_UTF8[0] && data[1] == BOM_UTF8[1] && data[2] == BOM_UTF8[2])
+                _position += 3;
+            else if (data[0] == BOM_OTHER[0] && data[1] == BOM_OTHER[1])
+            {
+                if (data[2] == 0)
+                {
+                    encoding = Encoding.UTF32;
+                    _position += 3;
+                }
+                else
+                {
+                    encoding = Encoding.Unicode;
+                    _position += 2;
+                }
+            }
+            else if (data[0] == BOM_OTHER[1] && data[1] == BOM_OTHER[0])
+            {
+                encoding = Encoding.BigEndianUnicode;
+                _position += 2;
+            }
+
             SkipWhiteSpace();
         }
 
@@ -135,7 +160,7 @@ namespace YARG.Core.Song.Deserialization
             else if (inSquirley || inQuotes || inApostrophes)
                 throw new Exception("Improper end to text");
 
-            return Encoding.UTF8.GetString(new ReadOnlySpan<byte>(data, start, end - start)).Replace("\\q", "\"");
+            return encoding.GetString(new ReadOnlySpan<byte>(data, start, end - start)).Replace("\\q", "\"");
         }
 
         public List<int> ExtractList_Int()
