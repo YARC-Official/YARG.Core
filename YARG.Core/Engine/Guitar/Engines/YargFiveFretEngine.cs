@@ -439,9 +439,11 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                 // Disallow hitting if front end timer is not in range of note time and didn't strum
                 // (tried to hit as a hammeron/pulloff)
-                if (!EngineParameters.InfiniteFrontEnd &&
-                    HasTimerExpired(note.Time, State.FrontEndStartTime, Math.Abs(EngineParameters.FrontEnd)) &&
-                    !strumLeniencyActive)
+                // Also allows first note to be hit without infinite front end
+
+                double frontEndAbs = Math.Abs(EngineParameters.FrontEnd);
+                bool frontEndExpired = HasTimerExpired(note.Time, State.FrontEndStartTime, frontEndAbs);
+                if (!EngineParameters.InfiniteFrontEnd && frontEndExpired && !strumLeniencyActive && State.NoteIndex > 0)
                 {
                     return false;
                 }
