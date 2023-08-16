@@ -96,7 +96,7 @@ namespace YARG.Core.Chart
 
             // Extended sustains
             var nextNote = moonNote.NextSeperateMoonNote;
-            if (nextNote is not null && (moonNote.tick + moonNote.length) >= nextNote.tick)
+            if (nextNote is not null && (moonNote.tick + moonNote.length) > nextNote.tick)
             {
                 flags |= GuitarNoteFlags.ExtendedSustain;
             }
