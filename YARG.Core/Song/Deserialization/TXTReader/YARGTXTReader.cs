@@ -149,7 +149,7 @@ namespace YARG.Core.Song.Deserialization
         public string ExtractModifierName()
         {
             int curr = _position;
-            while (true)
+            while (curr < length)
             {
                 byte b = data[curr];
                 if (IsWhitespace(b) || b == '=')
