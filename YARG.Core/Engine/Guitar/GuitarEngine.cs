@@ -78,7 +78,11 @@ namespace YARG.Core.Engine.Guitar
 
             if (State.NoteIndex < Notes.Count)
             {
-                StripStarPower(Notes[State.NoteIndex]);
+                // Don't remove the phrase if the current note being overstrummed is the start of a phrase
+                if (!Notes[State.NoteIndex].IsStarPowerStart)
+                {
+                    StripStarPower(Notes[State.NoteIndex]);
+                }
             }
 
             EngineStats.Combo = 0;
@@ -113,7 +117,6 @@ namespace YARG.Core.Engine.Guitar
             if (skipped)
             {
                 StripStarPower(note.PreviousNote);
-                EngineStats.PhrasesMissed++;
             }
 
             if (note.IsStarPower && note.IsStarPowerEnd)
@@ -228,12 +231,21 @@ namespace YARG.Core.Engine.Guitar
 
         protected override void StripStarPower(GuitarNote note)
         {
+            if (!note.IsStarPower)
+            {
+                return;
+            }
+
+            EngineStats.PhrasesMissed++;
+
+            // Strip star power from the note and all its children
             note.Flags &= ~NoteFlags.StarPower;
             foreach (var childNote in note.ChildNotes)
             {
                 childNote.Flags &= ~NoteFlags.StarPower;
             }
 
+            // Look back until finding the start of the phrase
             var prevNote = note.PreviousNote;
             while (prevNote is not null && prevNote.IsStarPower)
             {
@@ -243,7 +255,7 @@ namespace YARG.Core.Engine.Guitar
                     childNote.Flags &= ~NoteFlags.StarPower;
                 }
 
-                if (prevNote.IsStarPowerStart || prevNote.IsStarPowerEnd)
+                if (prevNote.IsStarPowerStart)
                 {
                     break;
                 }
@@ -251,6 +263,10 @@ namespace YARG.Core.Engine.Guitar
                 prevNote = prevNote.PreviousNote;
             }
 
+            // Do this to warn of a null reference if its used below
+            prevNote = null;
+
+            // Look forward until finding the end of the phrase
             var nextNote = note.NextNote;
             while (nextNote is not null && nextNote.IsStarPower)
             {
@@ -260,7 +276,7 @@ namespace YARG.Core.Engine.Guitar
                     childNote.Flags &= ~NoteFlags.StarPower;
                 }
 
-                if (nextNote.IsStarPowerStart || nextNote.IsStarPowerEnd)
+                if (nextNote.IsStarPowerEnd)
                 {
                     break;
                 }
