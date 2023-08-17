@@ -220,7 +220,7 @@ namespace YARG.Core.Engine
 
             var currentTimeSig = timeSigs[State.CurrentTimeSigIndex];
 
-            State.TicksEveryEightMeasures = Resolution * (4 / currentTimeSig.Denominator) * currentTimeSig.Numerator * 8;
+            State.TicksEveryEightMeasures = (uint)(Resolution * ((double)4 / currentTimeSig.Denominator) * currentTimeSig.Numerator * 8);
         }
 
         public override void Reset(bool keepCurrentButtons = false)
