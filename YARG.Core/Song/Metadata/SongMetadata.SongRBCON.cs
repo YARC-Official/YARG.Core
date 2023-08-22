@@ -253,6 +253,10 @@ namespace YARG.Core.Song
             public bool alternatePath = false;
             public bool discUpdate = false;
             public string location = string.Empty;
+            public float[] pans = Array.Empty<float>();
+            public float[] volumes = Array.Empty<float>();
+            public float[] cores = Array.Empty<float>();
+
             public DTAResult(string nodeName)
             {
                 this.nodeName = nodeName;
@@ -531,9 +535,6 @@ namespace YARG.Core.Song
 
         private void SongLoop(RBCONSubMetadata rbConMetadata, DTAResult result, YARGDTAReader reader)
         {
-            float[]? pan = null;
-            float[]? volume = null;
-            float[]? core = null;
             while (reader.StartNode())
             {
                 string descriptor = reader.GetNameOfNode();
@@ -546,61 +547,33 @@ namespace YARG.Core.Song
                     case "pans":
                         if (reader.StartNode())
                         {
-                            pan = reader.ExtractList_Float().ToArray();
+                            result.pans = reader.ExtractList_Float().ToArray();
                             reader.EndNode();
                         }
                         else
-                            pan = new[] { reader.ReadFloat() };
+                            result.pans = new[] { reader.ReadFloat() };
                         break;
                     case "vols":
                         if (reader.StartNode())
                         {
-                            volume = reader.ExtractList_Float().ToArray();
+                            result.volumes = reader.ExtractList_Float().ToArray();
                             reader.EndNode();
                         }
                         else
-                            volume = new[] { reader.ReadFloat() };
+                            result.volumes = new[] { reader.ReadFloat() };
                         break;
                     case "cores":
                         if (reader.StartNode())
                         {
-                            core = reader.ExtractList_Float().ToArray();
+                            result.cores = reader.ExtractList_Float().ToArray();
                             reader.EndNode();
                         }
                         else
-                            core = new[] { reader.ReadFloat() };
+                            result.cores = new[] { reader.ReadFloat() };
                         break;
                     case "hopo_threshold": _parseSettings.HopoThreshold = reader.ReadInt64(); break;
                 }
                 reader.EndNode();
-            }
-
-            if (pan != null && volume != null)
-            {
-                HashSet<int> pending = new();
-                for (int i = 0; i < pan.Length; i++)
-                    pending.Add(i);
-
-                if (rbConMetadata.DrumIndices != Array.Empty<int>())
-                    rbConMetadata.DrumStemValues = CalculateStemValues(rbConMetadata.DrumIndices, pan, volume, pending);
-
-                if (rbConMetadata.BassIndices != Array.Empty<int>())
-                    rbConMetadata.BassStemValues = CalculateStemValues(rbConMetadata.BassIndices, pan, volume, pending);
-
-                if (rbConMetadata.GuitarIndices != Array.Empty<int>())
-                    rbConMetadata.GuitarStemValues = CalculateStemValues(rbConMetadata.GuitarIndices, pan, volume, pending);
-
-                if (rbConMetadata.KeysIndices != Array.Empty<int>())
-                    rbConMetadata.KeysStemValues = CalculateStemValues(rbConMetadata.KeysIndices, pan, volume, pending);
-
-                if (rbConMetadata.VocalsIndices != Array.Empty<int>())
-                    rbConMetadata.VocalsStemValues = CalculateStemValues(rbConMetadata.VocalsIndices, pan, volume, pending);
-
-                if (rbConMetadata.CrowdIndices != Array.Empty<int>())
-                    rbConMetadata.CrowdStemValues = CalculateStemValues(rbConMetadata.CrowdIndices, pan, volume, pending);
-
-                rbConMetadata.TrackIndices = pending.ToArray();
-                rbConMetadata.TrackStemValues = CalculateStemValues(rbConMetadata.TrackIndices, pan, volume, pending);
             }
         }
 
@@ -674,19 +647,47 @@ namespace YARG.Core.Song
             }
         }
 
-        private static float[] CalculateStemValues(int[] indices, float[] pan, float[] volume, HashSet<int> pending)
+        private void FinalizeRBCONAudioValues(RBCONSubMetadata rbConMetadata, float[] pans, float[] volumes, float[] cores)
         {
-            float[] values = new float[2 * indices.Length];
-            for (int i = 0; i < indices.Length; i++)
+            HashSet<int> pending = new();
+            for (int i = 0; i < pans.Length; i++)
+                pending.Add(i);
+
+            if (rbConMetadata.DrumIndices != Array.Empty<int>())
+                rbConMetadata.DrumStemValues = CalculateStemValues(rbConMetadata.DrumIndices);
+
+            if (rbConMetadata.BassIndices != Array.Empty<int>())
+                rbConMetadata.BassStemValues = CalculateStemValues(rbConMetadata.BassIndices);
+
+            if (rbConMetadata.GuitarIndices != Array.Empty<int>())
+                rbConMetadata.GuitarStemValues = CalculateStemValues(rbConMetadata.GuitarIndices);
+
+            if (rbConMetadata.KeysIndices != Array.Empty<int>())
+                rbConMetadata.KeysStemValues = CalculateStemValues(rbConMetadata.KeysIndices);
+
+            if (rbConMetadata.VocalsIndices != Array.Empty<int>())
+                rbConMetadata.VocalsStemValues = CalculateStemValues(rbConMetadata.VocalsIndices);
+
+            if (rbConMetadata.CrowdIndices != Array.Empty<int>())
+                rbConMetadata.CrowdStemValues = CalculateStemValues(rbConMetadata.CrowdIndices);
+
+            rbConMetadata.TrackIndices = pending.ToArray();
+            rbConMetadata.TrackStemValues = CalculateStemValues(rbConMetadata.TrackIndices);
+
+            float[] CalculateStemValues(int[] indices)
             {
-                int index = indices[i];
-                float theta = (pan[index] + 1) * ((float) Math.PI / 4);
-                float volRatio = (float) Math.Pow(10, volume[index] / 20);
-                values[2 * i] = volRatio * (float) Math.Cos(theta);
-                values[2 * i + 1] = volRatio * (float) Math.Sin(theta);
-                pending.Remove(index);
+                float[] values = new float[2 * indices.Length];
+                for (int i = 0; i < indices.Length; i++)
+                {
+                    int index = indices[i];
+                    float theta = (pans[index] + 1) * ((float) Math.PI / 4);
+                    float volRatio = (float) Math.Pow(10, volumes[index] / 20);
+                    values[2 * i] = volRatio * (float) Math.Cos(theta);
+                    values[2 * i + 1] = volRatio * (float) Math.Sin(theta);
+                    pending.Remove(index);
+                }
+                return values;
             }
-            return values;
         }
 
         private SongChart LoadCONChart()
