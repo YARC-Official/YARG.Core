@@ -34,15 +34,12 @@ namespace YARG.Core.Song
 
             _loadingPhrase = reader.ReadLEBString();
 
-            _parseSettings = new()
-            {
-                HopoThreshold = reader.ReadInt64(),
-                HopoFreq_FoF = reader.ReadInt32(),
-                EighthNoteHopo = reader.ReadBoolean(),
-                SustainCutoffThreshold = reader.ReadInt64(),
-                NoteSnapThreshold = reader.ReadInt64(),
-                StarPowerNote = reader.ReadInt32()
-            };
+            _parseSettings.HopoThreshold = reader.ReadInt64();
+            _parseSettings.HopoFreq_FoF = reader.ReadInt32();
+            _parseSettings.EighthNoteHopo = reader.ReadBoolean();
+            _parseSettings.SustainCutoffThreshold = reader.ReadInt64();
+            _parseSettings.NoteSnapThreshold = reader.ReadInt64();
+            _parseSettings.StarPowerNote = reader.ReadInt32();
 
             _parts = new(reader);
             _hash = new(reader);
