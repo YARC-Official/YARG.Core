@@ -42,6 +42,6 @@ namespace YARG.Core.Song.Deserialization
 
         public double ReadDouble();
 
-        public string ExtractEncodedString(bool checkForQuotes = true);
+        public string ExtractText(bool checkForQuotes = true);
     }
 }
