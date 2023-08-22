@@ -59,14 +59,14 @@ namespace YARG.Core.Song.Deserialization
                 if (IsWhitespace(ch))
                 {
                     if (ch == '\n')
-                        break;
+                        return ch;
                 }
                 else if (ch != '=')
-                    break;
+                    return ch;
                 ++_position;
             }
 
-            return _position < length ? data[_position] : (byte) 0;
+            return 0;
         }
 
         public void GotoNextLine()
