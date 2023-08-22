@@ -1,22 +1,23 @@
-﻿using YARG.Core.Song.Preparsers;
+﻿using YARG.Core.Chart;
+using YARG.Core.Song.Preparsers;
 
 namespace YARG.Core.Song
 {
     public class Midi_FourLaneDrum : Midi_Drum
     {
         private const int NUM_LANES = MAX_NUMPADS - 1;
-        private DrumPreparseType _type;
-        public DrumPreparseType Type => _type;
-        protected Midi_FourLaneDrum(DrumPreparseType type)
+        private DrumsType _type;
+        public DrumsType Type => _type;
+        protected Midi_FourLaneDrum(DrumsType type)
         {
             _type = type;
         }
 
-        public Midi_FourLaneDrum() : this(DrumPreparseType.FourLane) { }
+        public Midi_FourLaneDrum() : this(DrumsType.FourLane) { }
 
         protected override bool IsNote() { return DEFAULT_MIN <= note.value && note.value <= 100; }
 
-        protected override bool IsFullyScanned() { return validations == FULL_VALIDATION && _type == DrumPreparseType.FourPro; }
+        protected override bool IsFullyScanned() { return validations == FULL_VALIDATION && _type == DrumsType.ProDrums; }
 
         protected override bool ParseLaneColor()
         {
@@ -52,7 +53,7 @@ namespace YARG.Core.Song
         {
             if (YELLOW_FLAG <= note.value && note.value <= GREEN_FLAG)
             {
-                _type = DrumPreparseType.FourPro;
+                _type = DrumsType.ProDrums;
                 return IsFullyScanned();
             }
             return false;
@@ -61,6 +62,6 @@ namespace YARG.Core.Song
 
     public class Midi_ProDrum : Midi_FourLaneDrum
     {
-        public Midi_ProDrum() : base(DrumPreparseType.FourPro) { }
+        public Midi_ProDrum() : base(DrumsType.ProDrums) { }
     }
 }

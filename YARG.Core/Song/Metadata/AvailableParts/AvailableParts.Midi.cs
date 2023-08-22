@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using YARG.Core.Chart;
 using YARG.Core.Song.Deserialization;
 using YARG.Core.Song.Preparsers;
 
@@ -9,7 +10,7 @@ namespace YARG.Core.Song
         /// <summary>
         /// This not include drums as those must be handled by a dedicated DrumPreparseHandler object.
         /// </summary>
-        public DrumPreparseType ParseMidi(byte[] file, DrumPreparseType drumType)
+        public DrumsType ParseMidi(byte[] file, DrumsType drumType)
         {
             YARGMidiReader reader = new(file);
             DrumPreparseHandler drums = new(drumType);

@@ -1,4 +1,5 @@
-﻿using YARG.Core.Song.Preparsers;
+﻿using YARG.Core.Chart;
+using YARG.Core.Song.Preparsers;
 
 namespace YARG.Core.Song
 {
@@ -6,15 +7,15 @@ namespace YARG.Core.Song
     {
         private const int NUM_LANES = MAX_NUMPADS;
         private const int FIVE_LANE_DRUM = 6;
-        private DrumPreparseType _type = DrumPreparseType.FourLane;
-        public DrumPreparseType Type { get { return _type; } }
+        private DrumsType _type = DrumsType.FourLane;
+        public DrumsType Type { get { return _type; } }
 
-        public Midi_UnknownDrums(DrumPreparseType type)
+        public Midi_UnknownDrums(DrumsType type)
         {
             _type = type;
         }
 
-        protected override bool IsFullyScanned() { return validations == FULL_VALIDATION && _type != DrumPreparseType.FourLane; }
+        protected override bool IsFullyScanned() { return validations == FULL_VALIDATION && _type != DrumsType.FourLane; }
         protected override bool IsNote() { return DEFAULT_MIN <= note.value && note.value <= FIVELANE_MAX; }
 
         protected override bool ParseLaneColor()
@@ -26,7 +27,7 @@ namespace YARG.Core.Song
                 statuses[DIFFVALUES[noteValue], laneIndex] = true;
                 if (laneIndex == FIVE_LANE_DRUM)
                 {
-                    _type = DrumPreparseType.FiveLane;
+                    _type = DrumsType.FiveLane;
                     return IsFullyScanned();
                 }
             }
@@ -54,7 +55,7 @@ namespace YARG.Core.Song
         {
             if (YELLOW_FLAG <= note.value && note.value <= GREEN_FLAG)
             {
-                _type = DrumPreparseType.FourPro;
+                _type = DrumsType.ProDrums;
                 return IsFullyScanned();
             }
             return false;

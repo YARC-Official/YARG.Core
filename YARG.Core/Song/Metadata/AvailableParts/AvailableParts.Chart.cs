@@ -1,4 +1,5 @@
-﻿using YARG.Core.Song.Deserialization;
+﻿using YARG.Core.Chart;
+using YARG.Core.Song.Deserialization;
 using YARG.Core.Song.Preparsers;
 
 namespace YARG.Core.Song
@@ -9,7 +10,7 @@ namespace YARG.Core.Song
         /// Uses the current instrument to institute applicable test parameters.
         /// This does not include drums as those must be handled by a dedicated DrumPreparseHandler object.
         /// </summary>
-        public DrumPreparseType ParseChart(IYARGChartReader reader, DrumPreparseType drumType)
+        public DrumsType ParseChart(IYARGChartReader reader, DrumsType drumType)
         {
             DrumPreparseHandler drums = new(drumType);
             while (reader.IsStartOfTrack())
