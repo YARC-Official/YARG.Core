@@ -1,4 +1,6 @@
-﻿namespace YARG.Core.Song
+﻿using YARG.Core.Song.Deserialization;
+
+namespace YARG.Core.Song
 {
     public class Midi_Keys : MidiInstrument_Common
     {
@@ -11,6 +13,15 @@
         };
 
         private readonly bool[,] statuses = new bool[NUM_DIFFICULTIES, NUM_LANES];
+
+        private Midi_Keys() { }
+
+        public static byte Parse(YARGMidiReader reader)
+        {
+            Midi_Keys preparser = new();
+            preparser.Process(reader);
+            return (byte) preparser.validations;
+        }
 
         protected override bool ParseLaneColor()
         {

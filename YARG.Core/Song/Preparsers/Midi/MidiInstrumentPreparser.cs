@@ -1,8 +1,4 @@
-﻿using System;
-using System.Text;
-using YARG.Core.Song.Deserialization;
-
-namespace YARG.Core.Song
+﻿namespace YARG.Core.Song
 {
     public abstract class MidiInstrumentPreparser : MidiPreparser
     {
@@ -11,6 +7,9 @@ namespace YARG.Core.Song
         protected const int DEFAULT_MAX = 100;
         protected const int NUM_DIFFICULTIES = 4;
         protected int validations;
+
+        protected MidiInstrumentPreparser() { }
+
         protected override bool ParseNote()
         {
             if (ProcessSpecialNote())
@@ -41,20 +40,6 @@ namespace YARG.Core.Song
         protected virtual bool ToggleExtraValues() { return false; }
 
         protected void Validate(int diffIndex) { validations |= 1 << diffIndex; }
-
-        public new static byte Parse<TPreparser>(YARGMidiReader reader)
-            where TPreparser : MidiInstrumentPreparser, new()
-        {
-            TPreparser preparser = new();
-            return Parse(preparser, reader);
-        }
-
-        public new static byte Parse<TPreparser>(TPreparser preparser, YARGMidiReader reader)
-            where TPreparser : MidiInstrumentPreparser
-        {
-            MidiPreparser.Parse(preparser, reader);
-            return (byte) preparser.validations;
-        }
     }
 
     public abstract class MidiInstrument_Common : MidiInstrumentPreparser

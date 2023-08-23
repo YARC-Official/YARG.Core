@@ -12,6 +12,7 @@
         protected const int GREEN_FLAG = 112;
         protected const int FULL_VALIDATION = 31;
 
+        protected Midi_Drum() { }
 
         protected static readonly int[] LANEINDICES = new int[] {
             0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,

@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using YARG.Core.Chart;
+﻿using YARG.Core.Chart;
 using YARG.Core.Song.Deserialization;
 
 namespace YARG.Core.Song.Preparsers
@@ -26,23 +23,18 @@ namespace YARG.Core.Song.Preparsers
                 return;
 
             if (_type == DrumsType.FiveLane)
-                _validations = (DifficultyMask) MidiInstrumentPreparser.Parse<Midi_FiveLaneDrum>(reader);
-            else if (_type == DrumsType.FourLane || _type == DrumsType.ProDrums)
-            {
-                var preparser = _type == DrumsType.ProDrums ? new Midi_ProDrum() : new Midi_FourLaneDrum();
-                _validations = (DifficultyMask) MidiInstrumentPreparser.Parse(preparser, reader);
-                _type = preparser.Type;
-            }
+                _validations = Midi_FiveLaneDrum.Parse(reader);
+            else if (_type == DrumsType.ProDrums)
+                _validations = Midi_FourLaneDrum.ParseProDrums(reader);
+            else if (_type == DrumsType.FourLane)
+                (_validations, _type) = Midi_FourLaneDrum.ParseFourLane(reader);
             else
             {
-                Midi_UnknownDrums unknown = new(_type);
-                _validations = (DifficultyMask) MidiInstrumentPreparser.Parse(unknown, reader);
-                _type = unknown.Type switch
-                {
-                    DrumsType.UnknownPro => DrumsType.ProDrums,
-                    DrumsType.Unknown => DrumsType.FourLane,
-                    _ => unknown.Type,
-                };
+                (_validations, _type) = Midi_UnknownDrums.Parse(reader, _type);
+                if (_type == DrumsType.UnknownPro)
+                    _type = DrumsType.ProDrums;
+                else if (_type == DrumsType.Unknown)
+                    _type = DrumsType.FourLane;
             }
         }
 

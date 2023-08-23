@@ -1,5 +1,5 @@
 ﻿using YARG.Core.Chart;
-using YARG.Core.Song.Preparsers;
+using YARG.Core.Song.Deserialization;
 
 namespace YARG.Core.Song
 {
@@ -7,13 +7,24 @@ namespace YARG.Core.Song
     {
         private const int NUM_LANES = MAX_NUMPADS - 1;
         private DrumsType _type;
-        public DrumsType Type => _type;
-        protected Midi_FourLaneDrum(DrumsType type)
+        private Midi_FourLaneDrum(DrumsType type)
         {
             _type = type;
         }
 
-        public Midi_FourLaneDrum() : this(DrumsType.FourLane) { }
+        public static (DifficultyMask, DrumsType) ParseFourLane(YARGMidiReader reader)
+        {
+            Midi_FourLaneDrum preparser = new(DrumsType.FourLane);
+            preparser.Process(reader);
+            return ((DifficultyMask) preparser.validations, preparser._type);
+        }
+
+        public static DifficultyMask ParseProDrums(YARGMidiReader reader)
+        {
+            Midi_FourLaneDrum preparser = new(DrumsType.ProDrums);
+            preparser.Process(reader);
+            return (DifficultyMask) preparser.validations;
+        }
 
         protected override bool IsNote() { return DEFAULT_MIN <= note.value && note.value <= 100; }
 
@@ -58,10 +69,5 @@ namespace YARG.Core.Song
             }
             return false;
         }
-    }
-
-    public class Midi_ProDrum : Midi_FourLaneDrum
-    {
-        public Midi_ProDrum() : base(DrumsType.ProDrums) { }
     }
 }
