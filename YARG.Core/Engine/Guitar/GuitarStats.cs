@@ -1,4 +1,6 @@
-﻿namespace YARG.Core.Engine.Guitar
+﻿using System.IO;
+
+namespace YARG.Core.Engine.Guitar
 {
     public class GuitarStats : BaseStats
     {
@@ -34,6 +36,24 @@
             Overstrums = 0;
             HoposStrummed = 0;
             GhostInputs = 0;
+        }
+
+        public override void Serialize(BinaryWriter writer)
+        {
+            base.Serialize(writer);
+
+            writer.Write(Overstrums);
+            writer.Write(HoposStrummed);
+            writer.Write(GhostInputs);
+        }
+
+        public override void Deserialize(BinaryReader reader, int version = 0)
+        {
+            base.Deserialize(reader, version);
+
+            Overstrums = reader.ReadInt32();
+            HoposStrummed = reader.ReadInt32();
+            GhostInputs = reader.ReadInt32();
         }
     }
 }

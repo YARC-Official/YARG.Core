@@ -1,6 +1,9 @@
-﻿namespace YARG.Core.Engine
+﻿using System.IO;
+using YARG.Core.Utility;
+
+namespace YARG.Core.Engine
 {
-    public abstract class BaseStats
+    public abstract class BaseStats : IBinarySerializable
     {
         /// <summary>
         /// The accumulated score (e.g from notes hit and sustains)
@@ -90,6 +93,34 @@
             PhrasesHit = 0;
             PhrasesMissed = 0;
             Stars = 0;
+        }
+
+        public virtual void Serialize(BinaryWriter writer)
+        {
+            writer.Write(Score);
+            writer.Write(Combo);
+            writer.Write(MaxCombo);
+            writer.Write(ScoreMultiplier);
+            writer.Write(NotesHit);
+            writer.Write(NotesMissed);
+            writer.Write(StarPowerAmount);
+            writer.Write(IsStarPowerActive);
+            writer.Write(PhrasesHit);
+            writer.Write(PhrasesMissed);
+        }
+
+        public virtual void Deserialize(BinaryReader reader, int version = 0)
+        {
+            Score = reader.ReadInt32();
+            Combo = reader.ReadInt32();
+            MaxCombo = reader.ReadInt32();
+            ScoreMultiplier = reader.ReadInt32();
+            NotesHit = reader.ReadInt32();
+            NotesMissed = reader.ReadInt32();
+            StarPowerAmount = reader.ReadDouble();
+            IsStarPowerActive = reader.ReadBoolean();
+            PhrasesHit = reader.ReadInt32();
+            PhrasesMissed = reader.ReadInt32();
         }
     }
 }
