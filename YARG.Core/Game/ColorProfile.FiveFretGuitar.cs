@@ -4,7 +4,7 @@ namespace YARG.Core.Game
 {
     public partial class ColorProfile
     {
-        public class FiveFretGuitarColors
+        public class FiveFretGuitarColors : IFretColorProvider
         {
             #region Frets
 

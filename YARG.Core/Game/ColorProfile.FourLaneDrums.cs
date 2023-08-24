@@ -4,7 +4,7 @@ namespace YARG.Core.Game
 {
     public partial class ColorProfile
     {
-        public class FourLaneDrumsColors
+        public class FourLaneDrumsColors : IFretColorProvider
         {
             #region Frets
 
@@ -64,7 +64,7 @@ namespace YARG.Core.Game
             /// Gets the particle color for a specific note index.
             /// 0 = kick note, 1 = red, 4 = green.
             /// </summary>
-            public Color GetNoteParticleColor(int index)
+            public Color GetParticleColor(int index)
             {
                 return index switch
                 {

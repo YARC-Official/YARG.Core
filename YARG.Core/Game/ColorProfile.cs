@@ -5,6 +5,17 @@ namespace YARG.Core.Game
 {
     public partial class ColorProfile
     {
+        /// <summary>
+        /// Interface that has methods that allows for generic fret color retrieval.
+        /// Not all instruments have frets, so it's an interface.
+        /// </summary>
+        public interface IFretColorProvider
+        {
+            public Color GetFretColor(int index);
+            public Color GetFretInnerColor(int index);
+            public Color GetParticleColor(int index);
+        }
+
         #region Default Colors
 
         private static readonly Color DefaultPurpleFret = Color.FromArgb(0xFF, 0xC8, 0x00, 0xFF); // #c800ff
