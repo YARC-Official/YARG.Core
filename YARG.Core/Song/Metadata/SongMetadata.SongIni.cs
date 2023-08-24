@@ -191,13 +191,10 @@ namespace YARG.Core.Song
             else
                 _videoEndTime = -1;
 
-            _parseSettings.DrumsType = drumType switch
-            {
-                DrumsType.FourLane or
-                DrumsType.ProDrums => DrumsType.FourLane,
-                DrumsType.FiveLane => DrumsType.FiveLane,
-                _ => DrumsType.Unknown
-            };
+            if (_parseSettings.DrumsType == DrumsType.ProDrums)
+                _parseSettings.DrumsType = DrumsType.FourLane;
+            else if (_parseSettings.DrumsType == DrumsType.UnknownPro)
+                _parseSettings.DrumsType = DrumsType.Unknown;
 
             if (!section.TryGet("hopo_frequency", out _parseSettings.HopoThreshold))
                 _parseSettings.HopoThreshold = -1;
