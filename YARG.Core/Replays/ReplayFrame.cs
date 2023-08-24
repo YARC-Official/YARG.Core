@@ -50,7 +50,7 @@ namespace YARG.Core.Replays
                     break;
                 case GameMode.FourLaneDrums:
                 case GameMode.FiveLaneDrums:
-                    Stats = new DrumStats();
+                    Stats = new DrumsStats();
                     break;
                 case GameMode.ProGuitar:
                 case GameMode.ProKeys:

@@ -26,7 +26,8 @@ namespace YARG.Core.Engine.Guitar
         protected sealed override float[] StarScoreThresholds { get; }
 
         protected GuitarEngine(InstrumentDifficulty<GuitarNote> chart, SyncTrack syncTrack,
-            GuitarEngineParameters engineParameters) : base(chart, syncTrack, engineParameters)
+            GuitarEngineParameters engineParameters)
+            : base(chart, syncTrack, engineParameters)
         {
             BaseScore = CalculateBaseScore();
             ActiveSustains = new List<GuitarNote>();
