@@ -16,7 +16,7 @@ namespace YARG.Core.Song
             DrumPreparseHandler drums = new(drumType);
             while (reader.StartTrack())
             {
-                if (reader.GetTrackNumber() == 1 || reader.GetEvent().type != MidiEventType.Text_TrackName)
+                if (reader.GetTrackNumber() == 1 || reader.GetEventType() != MidiEventType.Text_TrackName)
                     continue;
 
                 string name = Encoding.ASCII.GetString(reader.ExtractTextOrSysEx());

@@ -267,9 +267,8 @@ namespace YARG.Core.Song.Deserialization
             return true;
         }
 
-        public ref MidiParseEvent GetParsedEvent() { return ref currentEvent; }
         public ushort GetTrackNumber() { return trackCount; }
-        public MidiParseEvent GetEvent() { return currentEvent; }
+        public MidiEventType GetEventType() { return currentEvent.type; }
 
         public ReadOnlySpan<byte> ExtractTextOrSysEx()
         {
