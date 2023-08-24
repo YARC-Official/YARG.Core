@@ -38,6 +38,18 @@ namespace YARG.Core.Song.Deserialization
 
         public abstract byte SkipWhiteSpace();
 
+        private void SkipDigitsAndWhiteSpace()
+        {
+            while (_position < _next)
+            {
+                byte b = data[_position];
+                if (b < '0' || '9' < b)
+                    break;
+                ++_position;
+            }
+            SkipWhiteSpace();
+        }
+
         private const int SPACE_ASCII = 32;
         public static bool IsWhitespace(byte b)
         {
@@ -64,96 +76,63 @@ namespace YARG.Core.Song.Deserialization
             return true;
         }
 
+
+        private const char LAST_DIGIT_SIGNED = '7';
+        private const char LAST_DIGIT_UNSIGNED = '5';
+        private const short SHORT_MAX = short.MaxValue / 10;
         public bool ReadInt16(ref short value)
         {
             if (_position >= _next)
                 return false;
 
             byte b = data[_position];
-            if (b != '-')
-            {
-                if (b == '+')
-                {
-                    ++_position;
-                    if (_position == _next)
-                        return false;
-                    b = data[_position];
-                }
-
-                if (b < '0' || b > '9')
-                    return false;
-
-                value = 0;
-                while (true)
-                {
-                    _position++;
-                    short val = (short) (value + b - '0');
-                    if (val >= value)
-                    {
-                        value = val;
-                        if (_position == _next)
-                            break;
-
-                        b = data[_position];
-                        if (b < '0' || b > '9')
-                            break;
-
-                        val *= 10;
-                        if (val >= value)
-                            value = val;
-                        else
-                            value = short.MaxValue;
-                    }
-                    else
-                        value = short.MaxValue;
-                }
-            }
-            else
+            short sign = b == '-' ? (short) -1 : (short)1;
+            if (b == '-' || b == '+')
             {
                 ++_position;
                 if (_position == _next)
                     return false;
-
                 b = data[_position];
-                if (b < '0' || b > '9')
-                    return false;
-
-                value = 0;
-                while (true)
-                {
-                    _position++;
-                    short val = (short) (value - (b - '0'));
-                    if (val <= value)
-                    {
-                        value = val;
-                        if (_position == _next)
-                            break;
-
-                        b = data[_position];
-                        if (b < '0' || b > '9')
-                            break;
-
-                        val *= 10;
-                        if (val <= value)
-                            value = val;
-                        else
-                            value = short.MinValue;
-                    }
-                    else
-                        value = short.MinValue;
-                }
             }
 
+            if (b < '0' || '9' < b)
+                return false;
+
+            value = 0;
+            while (true)
+            {
+                if (value > SHORT_MAX || (value == SHORT_MAX && b > LAST_DIGIT_SIGNED))
+                {
+                    value = sign == -1 ? short.MinValue : short.MaxValue;
+                    SkipDigitsAndWhiteSpace();
+                    return true;
+                }
+
+                value += (short) (b - '0');
+
+                ++_position;
+                if (_position == _next)
+                    break;
+
+                b = data[_position];
+                if (b < '0' || '9' < b)
+                    break;
+
+                value *= 10;
+            }
+
+            value *= sign;
             SkipWhiteSpace();
             return true;
         }
 
+        private const ushort USHORT_MAX = ushort.MaxValue / 10;
         public bool ReadUInt16(ref ushort value)
         {
             if (_position >= _next)
                 return false;
 
-            ushort b = data[_position];
+            byte b = data[_position];
             if (b == '+')
             {
                 ++_position;
@@ -162,126 +141,88 @@ namespace YARG.Core.Song.Deserialization
                 b = data[_position];
             }
 
-            if (b < '0' || b > '9')
+            if (b < '0' || '9' < b)
                 return false;
 
             value = 0;
             while (true)
             {
-                _position++;
-                ushort val = (ushort) (value + b - '0');
-                if (val >= value)
+                if (value > USHORT_MAX || (value == USHORT_MAX && b > LAST_DIGIT_UNSIGNED))
                 {
-                    value = val;
-                    if (_position == _next)
-                        break;
-
-                    b = data[_position];
-                    if (b < '0' || b > '9')
-                        break;
-
-                    val *= 10;
-                    if (val >= value)
-                        value = val;
-                    else
-                        value = ushort.MaxValue;
-                }
-                else
                     value = ushort.MaxValue;
+                    SkipDigitsAndWhiteSpace();
+                    return true;
+                }
+
+                value += (ushort) (b - '0');
+
+                ++_position;
+                if (_position == _next)
+                    break;
+
+                b = data[_position];
+                if (b < '0' || '9' < b)
+                    break;
+                value *= 10;
             }
+
             SkipWhiteSpace();
             return true;
         }
 
+        private const int INT_MAX = int.MaxValue / 10;
         public bool ReadInt32(ref int value)
         {
             if (_position >= _next)
                 return false;
 
-            int b = data[_position];
-            if (b != '-')
-            {
-                if (b == '+')
-                {
-                    ++_position;
-                    if (_position == _next)
-                        return false;
-                    b = data[_position];
-                }
-
-                if (b < '0' || b > '9')
-                    return false;
-
-                value = 0;
-                while (true)
-                {
-                    _position++;
-                    int val = value + b - '0';
-                    if (val >= value)
-                    {
-                        value = val;
-                        if (_position == _next)
-                            break;
-
-                        b = data[_position];
-                        if (b < '0' || b > '9')
-                            break;
-
-                        val *= 10;
-                        if (val >= value)
-                            value = val;
-                        else
-                            value = int.MaxValue;
-                    }
-                    else
-                        value = int.MaxValue;
-                }
-            }
-            else
+            byte b = data[_position];
+            int sign = b == '-' ? -1 : 1;
+            if (b == '-' || b == '+')
             {
                 ++_position;
                 if (_position == _next)
                     return false;
+                b = data[_position];
+            }
+
+            if (b < '0' || '9' < b)
+                return false;
+
+            value = 0;
+            while (true)
+            {
+                if (value > INT_MAX || (value == INT_MAX && b > LAST_DIGIT_SIGNED))
+                {
+                    value = sign == -1 ? int.MinValue : int.MaxValue;
+                    SkipDigitsAndWhiteSpace();
+                    return true;
+                }
+
+                value +=  b - '0';
+
+                ++_position;
+                if (_position == _next)
+                    break;
 
                 b = data[_position];
-                if (b < '0' || b > '9')
-                    return false;
-
-                value = 0;
-                while (true)
-                {
-                    _position++;
-                    int val = value - (b - '0');
-                    if (val <= value)
-                    {
-                        value = val;
-                        if (_position == _next)
-                            break;
-
-                        b = data[_position];
-                        if (b < '0' || b > '9')
-                            break;
-
-                        val *= 10;
-                        if (val <= value)
-                            value = val;
-                        else
-                            value = int.MinValue;
-                    }
-                    else
-                        value = int.MinValue;
-                }
+                if (b < '0' || '9' < b)
+                    break;
+                value *= 10;
             }
+
+            value *= sign;
             SkipWhiteSpace();
             return true;
         }
 
+        private const uint UINT_MAX = uint.MaxValue / 10;
         public bool ReadUInt32(ref uint value)
         {
             if (_position >= _next)
                 return false;
 
-            uint b = data[_position];
+            byte b = data[_position];
             if (b == '+')
             {
                 ++_position;
@@ -290,126 +231,88 @@ namespace YARG.Core.Song.Deserialization
                 b = data[_position];
             }
 
-            if (b < '0' || b > '9')
+            if (b < '0' || '9' < b)
                 return false;
 
             value = 0;
             while (true)
             {
-                _position++;
-                uint val = value + b - '0';
-                if (val >= value)
+                if (value > UINT_MAX || (value == UINT_MAX && b > LAST_DIGIT_UNSIGNED))
                 {
-                    value = val;
-                    if (_position == _next)
-                        break;
-
-                    b = data[_position];
-                    if (b < '0' || b > '9')
-                        break;
-
-                    val *= 10;
-                    if (val >= value)
-                        value = val;
-                    else
-                        value = uint.MaxValue;
-                }
-                else
                     value = uint.MaxValue;
+                    SkipDigitsAndWhiteSpace();
+                    return true;
+                }
+
+                value += (uint) (b - '0');
+
+                ++_position;
+                if (_position == _next)
+                    break;
+
+                b = data[_position];
+                if (b < '0' || '9' < b)
+                    break;
+                value *= 10;
             }
+
             SkipWhiteSpace();
             return true;
         }
 
+        private const long LONG_MAX = long.MaxValue / 10;
         public bool ReadInt64(ref long value)
         {
             if (_position >= _next)
                 return false;
 
-            long b = data[_position];
-            if (b != '-')
-            {
-                if (b == '+')
-                {
-                    ++_position;
-                    if (_position == _next)
-                        return false;
-                    b = data[_position];
-                }
-
-                if (b < '0' || b > '9')
-                    return false;
-
-                value = 0;
-                while (true)
-                {
-                    _position++;
-                    long val = value + b - '0';
-                    if (val >= value)
-                    {
-                        value = val;
-                        if (_position == _next)
-                            break;
-
-                        b = data[_position];
-                        if (b < '0' || b > '9')
-                            break;
-
-                        val *= 10;
-                        if (val >= value)
-                            value = val;
-                        else
-                            value = long.MaxValue;
-                    }
-                    else
-                        value = long.MaxValue;
-                }
-            }
-            else
+            byte b = data[_position];
+            long sign = b == '-' ? -1 : 1;
+            if (b == '-' || b == '+')
             {
                 ++_position;
                 if (_position == _next)
                     return false;
+                b = data[_position];
+            }
+
+            if (b < '0' || '9' < b)
+                return false;
+
+            value = 0;
+            while (true)
+            {
+                if (value > LONG_MAX || (value == LONG_MAX && b > LAST_DIGIT_SIGNED))
+                {
+                    value = sign == -1 ? long.MinValue : long.MaxValue;
+                    SkipDigitsAndWhiteSpace();
+                    return true;
+                }
+
+                value += b - '0';
+
+                ++_position;
+                if (_position == _next)
+                    break;
 
                 b = data[_position];
-                if (b < '0' || b > '9')
-                    return false;
-
-                value = 0;
-                while (true)
-                {
-                    _position++;
-                    long val = value - (b - '0');
-                    if (val <= value)
-                    {
-                        value = val;
-                        if (_position == _next)
-                            break;
-
-                        b = data[_position];
-                        if (b < '0' || b > '9')
-                            break;
-
-                        val *= 10;
-                        if (val <= value)
-                            value = val;
-                        else
-                            value = long.MinValue;
-                    }
-                    else
-                        value = long.MinValue;
-                }
+                if (b < '0' || '9' < b)
+                    break;
+                value *= 10;
             }
+
+            value *= sign;
             SkipWhiteSpace();
             return true;
         }
 
+        private const ulong ULONG_MAX = ulong.MaxValue / 10;
         public bool ReadUInt64(ref ulong value)
         {
             if (_position >= _next)
                 return false;
 
-            ulong b = data[_position];
+            byte b = data[_position];
             if (b == '+')
             {
                 ++_position;
@@ -418,33 +321,31 @@ namespace YARG.Core.Song.Deserialization
                 b = data[_position];
             }
 
-            if (b < '0' || b > '9')
+            if (b < '0' || '9' < b)
                 return false;
 
             value = 0;
             while (true)
             {
-                _position++;
-                ulong val = value + b - '0';
-                if (val >= value)
+                if (value > ULONG_MAX || (value == ULONG_MAX && b > LAST_DIGIT_UNSIGNED))
                 {
-                    value = val;
-                    if (_position == _next)
-                        break;
-
-                    b = data[_position];
-                    if (b < '0' || b > '9')
-                        break;
-
-                    val *= 10;
-                    if (val >= value)
-                        value = val;
-                    else
-                        value = ulong.MaxValue;
-                }
-                else
                     value = ulong.MaxValue;
+                    SkipDigitsAndWhiteSpace();
+                    return true;
+                }
+
+                value += (ulong) (b - '0');
+
+                ++_position;
+                if (_position == _next)
+                    break;
+
+                b = data[_position];
+                if (b < '0' || '9' < b)
+                    break;
+                value *= 10;
             }
+
             SkipWhiteSpace();
             return true;
         }
@@ -473,10 +374,7 @@ namespace YARG.Core.Song.Deserialization
                 isNegative = true;
             }
 
-            if (b > '9')
-                return false;
-
-            if (b < '0' && b != '.')
+            if (b > '9' || (b < '0' && b != '.'))
                 return false;
 
             value = 0;
