@@ -14,25 +14,26 @@ namespace YARG.Core.Song
 
         protected bool Process(YARGMidiReader reader)
         {
-            bool complete = false;
-            while (!complete && reader.TryParseEvent(ref currEvent))
+            while (reader.TryParseEvent(ref currEvent))
             {
                 if (currEvent.type == MidiEventType.Note_On)
                 {
                     reader.ExtractMidiNote(ref note);
-                    complete = note.velocity > 0 ? ParseNote() : ParseNote_Off();
+                    if (note.velocity > 0 ? ParseNote() : ParseNote_Off())
+                        return true;
                 }
                 else if (currEvent.type == MidiEventType.Note_Off)
                 {
                     reader.ExtractMidiNote(ref note);
-                    complete = ParseNote_Off();
+                    if (ParseNote_Off())
+                        return true;
                 }
                 else if (currEvent.type == MidiEventType.SysEx || currEvent.type == MidiEventType.SysEx_End)
                     ParseSysEx(reader.ExtractTextOrSysEx());
                 else if (currEvent.type <= MidiEventType.Text_EnumLimit)
                     ParseText(reader.ExtractTextOrSysEx());
             }
-            return complete;
+            return false;
         }
 
         protected abstract bool ParseNote();
