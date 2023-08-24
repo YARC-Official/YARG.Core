@@ -31,7 +31,7 @@ namespace YARG.Core.Song
             return preparser.Process(reader);
         }
 
-        protected override bool ParseNote()
+        protected override bool ParseNote_ON()
         {
             if (VOACAL_MIN <= note.value && note.value <= VOCAL_MAX)
             {

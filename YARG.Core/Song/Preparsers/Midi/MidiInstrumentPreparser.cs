@@ -10,13 +10,13 @@
 
         protected MidiInstrumentPreparser() { }
 
-        protected override bool ParseNote()
+        protected override bool ParseNote_ON()
         {
-            if (ProcessSpecialNote())
+            if (ProcessSpecialNote_ON())
                 return false;
 
             if (IsNote())
-                return ParseLaneColor();
+                return ParseLaneColor_ON();
             return ToggleExtraValues();
         }
 
@@ -25,7 +25,7 @@
             return ProcessSpecialNote_Off() || (IsNote() && ParseLaneColor_Off());
         }
 
-        protected abstract bool ParseLaneColor();
+        protected abstract bool ParseLaneColor_ON();
 
         protected abstract bool ParseLaneColor_Off();
 
@@ -33,7 +33,7 @@
 
         protected virtual bool IsNote() { return DEFAULT_MIN <= note.value && note.value <= DEFAULT_MAX; }
 
-        protected virtual bool ProcessSpecialNote() { return false; }
+        protected virtual bool ProcessSpecialNote_ON() { return false; }
 
         protected virtual bool ProcessSpecialNote_Off() { return false; }
 

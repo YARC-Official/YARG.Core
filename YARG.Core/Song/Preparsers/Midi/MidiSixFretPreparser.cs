@@ -26,7 +26,7 @@ namespace YARG.Core.Song
 
         protected override bool IsNote() { return 58 <= note.value && note.value <= 103; }
 
-        protected override bool ParseLaneColor()
+        protected override bool ParseLaneColor_ON()
         {
             int noteValue = note.value - 58;
             int diffIndex = DIFFVALUES[noteValue];

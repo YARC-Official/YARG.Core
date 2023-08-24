@@ -30,7 +30,7 @@ namespace YARG.Core.Song
 
         protected override bool IsNote() { return FIVEFRET_MIN <= note.value && note.value <= DEFAULT_MAX; }
 
-        protected override bool ParseLaneColor()
+        protected override bool ParseLaneColor_ON()
         {
             int noteValue = note.value - FIVEFRET_MIN;
             int diffIndex = DIFFVALUES[noteValue];

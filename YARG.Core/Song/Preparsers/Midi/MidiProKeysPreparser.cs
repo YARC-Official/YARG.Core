@@ -20,7 +20,7 @@ namespace YARG.Core.Song
 
         protected override bool IsNote() { return PROKEYS_MIN <= note.value && note.value <= PROKEYS_MAX; }
 
-        protected override bool ParseLaneColor()
+        protected override bool ParseLaneColor_ON()
         {
             statuses[note.value - PROKEYS_MIN] = true;
             return false;

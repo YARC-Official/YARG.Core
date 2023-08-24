@@ -19,7 +19,7 @@ namespace YARG.Core.Song
                 if (currEvent.type == MidiEventType.Note_On)
                 {
                     reader.ExtractMidiNote(ref note);
-                    if (note.velocity > 0 ? ParseNote() : ParseNote_Off())
+                    if (note.velocity > 0 ? ParseNote_ON() : ParseNote_Off())
                         return true;
                 }
                 else if (currEvent.type == MidiEventType.Note_Off)
@@ -36,7 +36,7 @@ namespace YARG.Core.Song
             return false;
         }
 
-        protected abstract bool ParseNote();
+        protected abstract bool ParseNote_ON();
 
         protected abstract bool ParseNote_Off();
 

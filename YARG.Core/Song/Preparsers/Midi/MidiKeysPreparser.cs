@@ -23,7 +23,7 @@ namespace YARG.Core.Song
             return (byte) preparser.validations;
         }
 
-        protected override bool ParseLaneColor()
+        protected override bool ParseLaneColor_ON()
         {
             int noteValue = note.value - DEFAULT_MIN;
             int diffIndex = DIFFVALUES[noteValue];

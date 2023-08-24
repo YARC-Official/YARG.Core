@@ -23,7 +23,7 @@
 
         protected readonly bool[,] statuses = new bool[NUM_DIFFICULTIES, MAX_NUMPADS];
 
-        protected override bool ProcessSpecialNote()
+        protected override bool ProcessSpecialNote_ON()
         {
             if (note.value != DOUBLE_BASS_NOTE)
                 return false;

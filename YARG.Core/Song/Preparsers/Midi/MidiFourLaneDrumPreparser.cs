@@ -30,7 +30,7 @@ namespace YARG.Core.Song
 
         protected override bool IsFullyScanned() { return validations == FULL_VALIDATION && _type == DrumsType.ProDrums; }
 
-        protected override bool ParseLaneColor()
+        protected override bool ParseLaneColor_ON()
         {
             int noteValue = note.value - DEFAULT_MIN;
             int diffIndex = DIFFVALUES[noteValue];

@@ -24,7 +24,7 @@ namespace YARG.Core.Song
         protected override bool IsFullyScanned() { return validations == FULL_VALIDATION && type != DrumsType.FourLane; }
         protected override bool IsNote() { return DEFAULT_MIN <= note.value && note.value <= FIVELANE_MAX; }
 
-        protected override bool ParseLaneColor()
+        protected override bool ParseLaneColor_ON()
         {
             int noteValue = note.value - DEFAULT_MIN;
             int laneIndex = LANEINDICES[noteValue];
