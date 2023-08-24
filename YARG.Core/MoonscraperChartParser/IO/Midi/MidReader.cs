@@ -430,15 +430,15 @@ namespace MoonscraperChartEditor.Song.IO
                 song.GetChart(instrument, diff).UpdateCache();
             }
 
-            // Apply forcing events
-            foreach (var process in processParams.forcingProcessList)
+            // Apply SysEx events first
+            // These are separate to prevent forcing issues on open notes marked via SysEx
+            foreach (var process in processParams.sysexProcessList)
             {
                 process(processParams);
             }
 
-            // Apply SysEx events
-            // These are separate to prevent consecutive forced open notes from being incorrectly forced
-            foreach (var process in processParams.sysexProcessList)
+            // Apply forcing events
+            foreach (var process in processParams.forcingProcessList)
             {
                 process(processParams);
             }
