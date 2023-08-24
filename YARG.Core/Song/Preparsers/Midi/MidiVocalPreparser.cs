@@ -3,7 +3,7 @@ using YARG.Core.Song.Deserialization;
 
 namespace YARG.Core.Song
 {
-    public class Midi_Vocal : MidiPreparser
+    public class Midi_Vocal_Preparser : Midi_Preparser
     {
         private const int VOACAL_MIN = 36;
         private const int VOCAL_MAX = 84;
@@ -14,20 +14,20 @@ namespace YARG.Core.Song
         private bool percussion = false;
         private bool checkForPercussion;
 
-        private Midi_Vocal(bool checkForPercussion)
+        private Midi_Vocal_Preparser(bool checkForPercussion)
         {
             this.checkForPercussion = checkForPercussion;
         }
 
         public static bool ParseLeadTrack(YARGMidiReader reader)
         {
-            Midi_Vocal preparser = new(true);
+            Midi_Vocal_Preparser preparser = new(true);
             return preparser.Process(reader);
         }
 
         public static bool ParseHarmonyTrack(YARGMidiReader reader)
         {
-            Midi_Vocal preparser = new(false);
+            Midi_Vocal_Preparser preparser = new(false);
             return preparser.Process(reader);
         }
 

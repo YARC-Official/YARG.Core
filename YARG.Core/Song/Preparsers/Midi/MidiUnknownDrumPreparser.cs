@@ -3,20 +3,20 @@ using YARG.Core.Song.Deserialization;
 
 namespace YARG.Core.Song
 {
-    public class Midi_UnknownDrums : Midi_Drum
+    public class Midi_UnknownDrums_Preparser : Midi_Drum_Preparser_Base
     {
         private const int NUM_LANES = MAX_NUMPADS;
         private const int FIVE_LANE_DRUM = 6;
         private DrumsType type = DrumsType.FourLane;
 
-        private Midi_UnknownDrums(DrumsType type)
+        private Midi_UnknownDrums_Preparser(DrumsType type)
         {
             this.type = type;
         }
 
         public static (DifficultyMask, DrumsType) Parse(YARGMidiReader reader, DrumsType type)
         {
-            Midi_UnknownDrums preparser = new(type);
+            Midi_UnknownDrums_Preparser preparser = new(type);
             preparser.Process(reader);
             return ((DifficultyMask) preparser.validations, preparser.type);
         }

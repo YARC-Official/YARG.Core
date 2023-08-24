@@ -2,7 +2,7 @@
 
 namespace YARG.Core.Song
 {
-    public class Midi_SixFret : MidiInstrument_Common
+    public class Midi_SixFret_Preparser : MidiInstrument_Common
     {
         // Open note included
         private const int NUM_LANES = 7;
@@ -15,11 +15,11 @@ namespace YARG.Core.Song
 
         private readonly bool[,] statuses = new bool[NUM_DIFFICULTIES, NUM_LANES];
 
-        private Midi_SixFret() { }
+        private Midi_SixFret_Preparser() { }
 
         public static byte Parse(YARGMidiReader reader)
         {
-            Midi_SixFret preparser = new();
+            Midi_SixFret_Preparser preparser = new();
             preparser.Process(reader);
             return (byte) preparser.validations;
         }

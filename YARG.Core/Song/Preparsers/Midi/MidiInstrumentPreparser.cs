@@ -1,6 +1,6 @@
 ﻿namespace YARG.Core.Song
 {
-    public abstract class MidiInstrumentPreparser : MidiPreparser
+    public abstract class Midi_Instrument_Preparser : Midi_Preparser
     {
         private const int ALL_DIFFICULTIES = 15;
         protected const int DEFAULT_MIN = 60;
@@ -8,7 +8,7 @@
         protected const int NUM_DIFFICULTIES = 4;
         protected int validations;
 
-        protected MidiInstrumentPreparser() { }
+        protected Midi_Instrument_Preparser() { }
 
         protected override bool ParseNote_ON()
         {
@@ -42,7 +42,7 @@
         protected void Validate(int diffIndex) { validations |= 1 << diffIndex; }
     }
 
-    public abstract class MidiInstrument_Common : MidiInstrumentPreparser
+    public abstract class MidiInstrument_Common : Midi_Instrument_Preparser
     {
         protected const int NOTES_PER_DIFFICULTY = 12;
         protected static readonly int[] DIFFVALUES = new int[NUM_DIFFICULTIES * NOTES_PER_DIFFICULTY] {

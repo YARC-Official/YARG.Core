@@ -4,7 +4,7 @@ using YARG.Core.Song.Deserialization;
 
 namespace YARG.Core.Song
 {
-    public unsafe class Midi_FiveFret : MidiInstrument_Common
+    public unsafe class Midi_FiveFret_Preparser : MidiInstrument_Common
     {
         private const int FIVEFRET_MIN = 59;
         // Open note included
@@ -19,11 +19,11 @@ namespace YARG.Core.Song
             13, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
         };
 
-        private Midi_FiveFret() { }
+        private Midi_FiveFret_Preparser() { }
 
         public static byte Parse(YARGMidiReader reader)
         {
-            Midi_FiveFret preparser = new();
+            Midi_FiveFret_Preparser preparser = new();
             preparser.Process(reader);
             return (byte) preparser.validations;
         }

@@ -4,13 +4,13 @@ using YARG.Core.Song.Deserialization;
 
 namespace YARG.Core.Song
 {
-    public abstract class MidiPreparser
+    public abstract class Midi_Preparser
     {
         protected static readonly byte[] SYSEXTAG = Encoding.ASCII.GetBytes("PS");
         protected MidiParseEvent currEvent;
         protected MidiNote note;
 
-        protected MidiPreparser() { }
+        protected Midi_Preparser() { }
 
         protected bool Process(YARGMidiReader reader)
         {

@@ -3,25 +3,25 @@ using YARG.Core.Song.Deserialization;
 
 namespace YARG.Core.Song
 {
-    public class Midi_FourLaneDrum : Midi_Drum
+    public class Midi_FourLane_Preparser : Midi_Drum_Preparser_Base
     {
         private const int NUM_LANES = MAX_NUMPADS - 1;
         private DrumsType _type;
-        private Midi_FourLaneDrum(DrumsType type)
+        private Midi_FourLane_Preparser(DrumsType type)
         {
             _type = type;
         }
 
         public static (DifficultyMask, DrumsType) ParseFourLane(YARGMidiReader reader)
         {
-            Midi_FourLaneDrum preparser = new(DrumsType.FourLane);
+            Midi_FourLane_Preparser preparser = new(DrumsType.FourLane);
             preparser.Process(reader);
             return ((DifficultyMask) preparser.validations, preparser._type);
         }
 
         public static DifficultyMask ParseProDrums(YARGMidiReader reader)
         {
-            Midi_FourLaneDrum preparser = new(DrumsType.ProDrums);
+            Midi_FourLane_Preparser preparser = new(DrumsType.ProDrums);
             preparser.Process(reader);
             return (DifficultyMask) preparser.validations;
         }

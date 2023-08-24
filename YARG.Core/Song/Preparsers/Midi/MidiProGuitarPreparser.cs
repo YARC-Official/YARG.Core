@@ -2,7 +2,7 @@
 
 namespace YARG.Core.Song
 {
-    public class Midi_ProGuitar : MidiInstrumentPreparser
+    public class Midi_ProGuitar_Preparser : Midi_Instrument_Preparser
     {
         private const int NOTES_PER_DIFFICULTY = 24;
         private const int PROGUITAR_MAX = PROGUITAR_MIN + NUM_DIFFICULTIES * NOTES_PER_DIFFICULTY;
@@ -27,21 +27,21 @@ namespace YARG.Core.Song
         private readonly bool[,] statuses = new bool[NUM_DIFFICULTIES, NUM_STRINGS];
         private readonly int maxVelocity;
 
-        private Midi_ProGuitar(int maxVelocity)
+        private Midi_ProGuitar_Preparser(int maxVelocity)
         {
             this.maxVelocity = maxVelocity;
         }
 
         public static byte Parse_17Fret(YARGMidiReader reader)
         {
-            Midi_ProGuitar preparser = new(117);
+            Midi_ProGuitar_Preparser preparser = new(117);
             preparser.Process(reader);
             return (byte) preparser.validations;
         }
 
         public static byte Parse_22Fret(YARGMidiReader reader)
         {
-            Midi_ProGuitar preparser = new(122);
+            Midi_ProGuitar_Preparser preparser = new(122);
             preparser.Process(reader);
             return (byte) preparser.validations;
         }

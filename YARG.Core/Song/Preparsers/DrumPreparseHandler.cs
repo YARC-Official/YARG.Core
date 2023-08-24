@@ -23,14 +23,14 @@ namespace YARG.Core.Song.Preparsers
                 return;
 
             if (_type == DrumsType.FiveLane)
-                _validations = Midi_FiveLaneDrum.Parse(reader);
+                _validations = Midi_FiveLane_Preparser.Parse(reader);
             else if (_type == DrumsType.ProDrums)
-                _validations = Midi_FourLaneDrum.ParseProDrums(reader);
+                _validations = Midi_FourLane_Preparser.ParseProDrums(reader);
             else if (_type == DrumsType.FourLane)
-                (_validations, _type) = Midi_FourLaneDrum.ParseFourLane(reader);
+                (_validations, _type) = Midi_FourLane_Preparser.ParseFourLane(reader);
             else
             {
-                (_validations, _type) = Midi_UnknownDrums.Parse(reader, _type);
+                (_validations, _type) = Midi_UnknownDrums_Preparser.Parse(reader, _type);
                 if (_type == DrumsType.UnknownPro)
                     _type = DrumsType.ProDrums;
                 else if (_type == DrumsType.Unknown)
