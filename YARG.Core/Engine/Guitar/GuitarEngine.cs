@@ -319,5 +319,29 @@ namespace YARG.Core.Engine.Guitar
         {
             return (State.ButtonMask & (1 << (int) fret)) != 0;
         }
+
+        protected static bool IsFretInput(GameInput input)
+        {
+            return input.GetAction<GuitarAction>() switch
+            {
+                GuitarAction.GreenFret or
+                    GuitarAction.RedFret or
+                    GuitarAction.YellowFret or
+                    GuitarAction.BlueFret or
+                    GuitarAction.OrangeFret or
+                    GuitarAction.White3Fret => true,
+                _ => false,
+            };
+        }
+
+        protected static bool IsStrumInput(GameInput input)
+        {
+            return input.GetAction<GuitarAction>() switch
+            {
+                GuitarAction.StrumUp or
+                    GuitarAction.StrumDown => true,
+                _ => false,
+            };
+        }
     }
 }

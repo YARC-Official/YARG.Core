@@ -485,29 +485,6 @@ namespace YARG.Core.Engine.Guitar.Engines
             base.MissNote(note);
         }
 
-        protected bool IsFretInput(GameInput input)
-        {
-            return input.GetAction<GuitarAction>() switch
-            {
-                GuitarAction.GreenFret or
-                GuitarAction.RedFret or
-                GuitarAction.YellowFret or
-                GuitarAction.BlueFret or
-                GuitarAction.OrangeFret => true,
-                _ => false,
-            };
-        }
-
-        protected bool IsStrumInput(GameInput input)
-        {
-            return input.GetAction<GuitarAction>() switch
-            {
-                GuitarAction.StrumUp or
-                    GuitarAction.StrumDown => true,
-                _ => false,
-            };
-        }
-
         private int GetMostSignificantBit(int mask)
         {
             // Gets the most significant bit of the mask
