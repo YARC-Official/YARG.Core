@@ -27,14 +27,14 @@ namespace YARG.Core.Song.Deserialization
                 if (IsWhitespace(ch))
                 {
                     if (ch == '\n')
-                        break;
+                        return ch;
                 }
                 else if (ch != '=')
-                    break;
+                    return ch;
                 ++_position;
             }
 
-            return _position < length ? data[_position] : (char) 0;
+            return (char) 0;
         }
 
         public void GotoNextLine()
@@ -69,7 +69,7 @@ namespace YARG.Core.Song.Deserialization
                 ++_next;
         }
 
-        public ReadOnlySpan<char> ExtractTextSpan(bool checkForQuotes = true)
+        public string ExtractText(bool checkForQuotes = true)
         {
             (int, int) boundaries = new(_position, _next);
             if (boundaries.Item2 == length)
@@ -89,29 +89,13 @@ namespace YARG.Core.Song.Deserialization
             }
 
             if (boundaries.Item2 < boundaries.Item1)
-                return new();
+                return string.Empty;
 
             while (boundaries.Item2 > boundaries.Item1 && IsWhitespace(data[boundaries.Item2 - 1]))
                 --boundaries.Item2;
 
             _position = _next;
-            return new(data, boundaries.Item1, boundaries.Item2 - boundaries.Item1);
-        }
-
-        public string ExtractEncodedString(bool checkForQuotes = true)
-        {
-            var span = ExtractTextSpan(checkForQuotes);
-            try
-            {
-                return new string(span);
-            }
-            catch
-            {
-                char[] str = new char[span.Length];
-                for (int i = 0; i < span.Length; ++i)
-                    str[i] = (char) span[i];
-                return new(str);
-            }
+            return new string(data, boundaries.Item1, boundaries.Item2 - boundaries.Item1);
         }
 
         public string ExtractModifierName()

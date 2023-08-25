@@ -1,6 +1,8 @@
-﻿namespace YARG.Core.Song
+﻿using YARG.Core.Song.Deserialization;
+
+namespace YARG.Core.Song
 {
-    public class Midi_Keys : MidiInstrument_Common
+    public class Midi_Keys_Preparser : MidiInstrument_Common
     {
         private const int NUM_LANES = 5;
         private static readonly int[] LANEINDICES = new int[NUM_DIFFICULTIES * NOTES_PER_DIFFICULTY] {
@@ -12,7 +14,16 @@
 
         private readonly bool[,] statuses = new bool[NUM_DIFFICULTIES, NUM_LANES];
 
-        protected override bool ParseLaneColor()
+        private Midi_Keys_Preparser() { }
+
+        public static byte Parse(YARGMidiReader reader)
+        {
+            Midi_Keys_Preparser preparser = new();
+            preparser.Process(reader);
+            return (byte) preparser.validations;
+        }
+
+        protected override bool ParseLaneColor_ON()
         {
             int noteValue = note.value - DEFAULT_MIN;
             int diffIndex = DIFFVALUES[noteValue];

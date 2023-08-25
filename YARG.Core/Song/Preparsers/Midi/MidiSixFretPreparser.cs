@@ -1,6 +1,8 @@
-﻿namespace YARG.Core.Song
+﻿using YARG.Core.Song.Deserialization;
+
+namespace YARG.Core.Song
 {
-    public class Midi_SixFret : MidiInstrument_Common
+    public class Midi_SixFret_Preparser : MidiInstrument_Common
     {
         // Open note included
         private const int NUM_LANES = 7;
@@ -13,9 +15,18 @@
 
         private readonly bool[,] statuses = new bool[NUM_DIFFICULTIES, NUM_LANES];
 
+        private Midi_SixFret_Preparser() { }
+
+        public static byte Parse(YARGMidiReader reader)
+        {
+            Midi_SixFret_Preparser preparser = new();
+            preparser.Process(reader);
+            return (byte) preparser.validations;
+        }
+
         protected override bool IsNote() { return 58 <= note.value && note.value <= 103; }
 
-        protected override bool ParseLaneColor()
+        protected override bool ParseLaneColor_ON()
         {
             int noteValue = note.value - 58;
             int diffIndex = DIFFVALUES[noteValue];

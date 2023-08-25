@@ -16,7 +16,7 @@ namespace YARG.Core.Song
 
             while (reader.IsStillCurrentTrack())
             {
-                if (reader.ParseEvent().Item2 == ChartEvent.NOTE)
+                if (reader.ParseEvent().Item2 == ChartEvent_FW.NOTE)
                 {
                     if (func(reader.ExtractLaneAndSustain().Item1))
                     {

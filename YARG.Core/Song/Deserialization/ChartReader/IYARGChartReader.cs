@@ -5,7 +5,7 @@ using YARG.Core.Song.Deserialization.Ini;
 
 namespace YARG.Core.Song.Deserialization
 {
-    public enum ChartEvent
+    public enum ChartEvent_FW
     {
         BPM,
         TIME_SIG,
@@ -42,7 +42,7 @@ namespace YARG.Core.Song.Deserialization
         public bool ValidateDifficulty();
         public bool ValidateInstrument();
         public bool IsStillCurrentTrack();
-        public (long, ChartEvent) ParseEvent();
+        public (long, ChartEvent_FW) ParseEvent();
         public void SkipEvent();
         public void NextEvent();
         public (int, long) ExtractLaneAndSustain();

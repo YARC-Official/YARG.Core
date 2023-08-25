@@ -1,23 +1,30 @@
-﻿using YARG.Core.Song.Preparsers;
+﻿using YARG.Core.Chart;
+using YARG.Core.Song.Deserialization;
 
 namespace YARG.Core.Song
 {
-    public class Midi_UnknownDrums : Midi_Drum
+    public class Midi_UnknownDrums_Preparser : Midi_Drum_Preparser_Base
     {
         private const int NUM_LANES = MAX_NUMPADS;
         private const int FIVE_LANE_DRUM = 6;
-        private DrumPreparseType _type = DrumPreparseType.FourLane;
-        public DrumPreparseType Type { get { return _type; } }
+        private DrumsType type = DrumsType.FourLane;
 
-        public Midi_UnknownDrums(DrumPreparseType type)
+        private Midi_UnknownDrums_Preparser(DrumsType type)
         {
-            _type = type;
+            this.type = type;
         }
 
-        protected override bool IsFullyScanned() { return validations == FULL_VALIDATION && _type != DrumPreparseType.FourLane; }
+        public static (DifficultyMask, DrumsType) Parse(YARGMidiReader reader, DrumsType type)
+        {
+            Midi_UnknownDrums_Preparser preparser = new(type);
+            preparser.Process(reader);
+            return ((DifficultyMask) preparser.validations, preparser.type);
+        }
+
+        protected override bool IsFullyScanned() { return validations == FULL_VALIDATION && type != DrumsType.FourLane; }
         protected override bool IsNote() { return DEFAULT_MIN <= note.value && note.value <= FIVELANE_MAX; }
 
-        protected override bool ParseLaneColor()
+        protected override bool ParseLaneColor_ON()
         {
             int noteValue = note.value - DEFAULT_MIN;
             int laneIndex = LANEINDICES[noteValue];
@@ -26,7 +33,7 @@ namespace YARG.Core.Song
                 statuses[DIFFVALUES[noteValue], laneIndex] = true;
                 if (laneIndex == FIVE_LANE_DRUM)
                 {
-                    _type = DrumPreparseType.FiveLane;
+                    type = DrumsType.FiveLane;
                     return IsFullyScanned();
                 }
             }
@@ -54,7 +61,7 @@ namespace YARG.Core.Song
         {
             if (YELLOW_FLAG <= note.value && note.value <= GREEN_FLAG)
             {
-                _type = DrumPreparseType.FourPro;
+                type = DrumsType.ProDrums;
                 return IsFullyScanned();
             }
             return false;

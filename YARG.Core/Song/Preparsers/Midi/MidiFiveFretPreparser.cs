@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Text;
+using YARG.Core.Song.Deserialization;
 
 namespace YARG.Core.Song
 {
-    public unsafe class Midi_FiveFret : MidiInstrument_Common
+    public unsafe class Midi_FiveFret_Preparser : MidiInstrument_Common
     {
         private const int FIVEFRET_MIN = 59;
         // Open note included
@@ -18,9 +19,18 @@ namespace YARG.Core.Song
             13, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
         };
 
+        private Midi_FiveFret_Preparser() { }
+
+        public static byte Parse(YARGMidiReader reader)
+        {
+            Midi_FiveFret_Preparser preparser = new();
+            preparser.Process(reader);
+            return (byte) preparser.validations;
+        }
+
         protected override bool IsNote() { return FIVEFRET_MIN <= note.value && note.value <= DEFAULT_MAX; }
 
-        protected override bool ParseLaneColor()
+        protected override bool ParseLaneColor_ON()
         {
             int noteValue = note.value - FIVEFRET_MIN;
             int diffIndex = DIFFVALUES[noteValue];

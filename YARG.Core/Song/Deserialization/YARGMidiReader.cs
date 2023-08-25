@@ -85,10 +85,10 @@ namespace YARG.Core.Song.Deserialization
         Pro_Guitar_22,
         Pro_Bass_17,
         Pro_Bass_22,
-        Pro_Keys_X,
-        Pro_Keys_H,
-        Pro_Keys_M,
         Pro_Keys_E,
+        Pro_Keys_M,
+        Pro_Keys_H,
+        Pro_Keys_X,
         Beat,
         Unknown
     }
@@ -267,9 +267,8 @@ namespace YARG.Core.Song.Deserialization
             return true;
         }
 
-        public ref MidiParseEvent GetParsedEvent() { return ref currentEvent; }
         public ushort GetTrackNumber() { return trackCount; }
-        public MidiParseEvent GetEvent() { return currentEvent; }
+        public MidiEventType GetEventType() { return currentEvent.type; }
 
         public ReadOnlySpan<byte> ExtractTextOrSysEx()
         {

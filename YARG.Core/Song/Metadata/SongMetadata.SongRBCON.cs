@@ -294,7 +294,7 @@ namespace YARG.Core.Song
                     if (updateFile == null)
                         return ScanResult.MissingUpdateMidi;
 
-                    _parts.ParseMidi(updateFile, DrumPreparseType.FourPro);
+                    _parts.ParseMidi(updateFile, DrumsType.ProDrums);
                     bufLength += updateFile.Length;
                 }
 
@@ -303,14 +303,14 @@ namespace YARG.Core.Song
                     if (upgradeFile == null)
                         return ScanResult.MissingUpgradeMidi;
 
-                    _parts.ParseMidi(upgradeFile, DrumPreparseType.FourPro);
+                    _parts.ParseMidi(upgradeFile, DrumsType.ProDrums);
                     bufLength += upgradeFile.Length;
                 }
 
                 if (chartFile == null)
                     return ScanResult.MissingMidi;
 
-                _parts.ParseMidi(chartFile, DrumPreparseType.FourPro);
+                _parts.ParseMidi(chartFile, DrumsType.ProDrums);
                 bufLength += chartFile.Length;
 
                 if (!_parts.CheckScanValidity())

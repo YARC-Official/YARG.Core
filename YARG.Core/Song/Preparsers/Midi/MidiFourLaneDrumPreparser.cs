@@ -1,24 +1,36 @@
-﻿using YARG.Core.Song.Preparsers;
+﻿using YARG.Core.Chart;
+using YARG.Core.Song.Deserialization;
 
 namespace YARG.Core.Song
 {
-    public class Midi_FourLaneDrum : Midi_Drum
+    public class Midi_FourLane_Preparser : Midi_Drum_Preparser_Base
     {
         private const int NUM_LANES = MAX_NUMPADS - 1;
-        private DrumPreparseType _type;
-        public DrumPreparseType Type => _type;
-        protected Midi_FourLaneDrum(DrumPreparseType type)
+        private DrumsType _type;
+        private Midi_FourLane_Preparser(DrumsType type)
         {
             _type = type;
         }
 
-        public Midi_FourLaneDrum() : this(DrumPreparseType.FourLane) { }
+        public static (DifficultyMask, DrumsType) ParseFourLane(YARGMidiReader reader)
+        {
+            Midi_FourLane_Preparser preparser = new(DrumsType.FourLane);
+            preparser.Process(reader);
+            return ((DifficultyMask) preparser.validations, preparser._type);
+        }
+
+        public static DifficultyMask ParseProDrums(YARGMidiReader reader)
+        {
+            Midi_FourLane_Preparser preparser = new(DrumsType.ProDrums);
+            preparser.Process(reader);
+            return (DifficultyMask) preparser.validations;
+        }
 
         protected override bool IsNote() { return DEFAULT_MIN <= note.value && note.value <= 100; }
 
-        protected override bool IsFullyScanned() { return validations == FULL_VALIDATION && _type == DrumPreparseType.FourPro; }
+        protected override bool IsFullyScanned() { return validations == FULL_VALIDATION && _type == DrumsType.ProDrums; }
 
-        protected override bool ParseLaneColor()
+        protected override bool ParseLaneColor_ON()
         {
             int noteValue = note.value - DEFAULT_MIN;
             int diffIndex = DIFFVALUES[noteValue];
@@ -52,15 +64,10 @@ namespace YARG.Core.Song
         {
             if (YELLOW_FLAG <= note.value && note.value <= GREEN_FLAG)
             {
-                _type = DrumPreparseType.FourPro;
+                _type = DrumsType.ProDrums;
                 return IsFullyScanned();
             }
             return false;
         }
-    }
-
-    public class Midi_ProDrum : Midi_FourLaneDrum
-    {
-        public Midi_ProDrum() : base(DrumPreparseType.FourPro) { }
     }
 }

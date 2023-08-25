@@ -59,14 +59,14 @@ namespace YARG.Core.Song.Deserialization
                 if (IsWhitespace(ch))
                 {
                     if (ch == '\n')
-                        break;
+                        return ch;
                 }
                 else if (ch != '=')
-                    break;
+                    return ch;
                 ++_position;
             }
 
-            return _position < length ? data[_position] : (byte) 0;
+            return 0;
         }
 
         public void GotoNextLine()
@@ -101,7 +101,7 @@ namespace YARG.Core.Song.Deserialization
                 ++_next;
         }
 
-        public ReadOnlySpan<byte> ExtractTextSpan(bool checkForQuotes = true)
+        private ReadOnlySpan<byte> InternalExtractTextSpan(bool checkForQuotes = true)
         {
             (int, int) boundaries = new(_position, _next);
             if (boundaries.Item2 == length)
@@ -130,9 +130,9 @@ namespace YARG.Core.Song.Deserialization
             return new(data, boundaries.Item1, boundaries.Item2 - boundaries.Item1);
         }
 
-        public string ExtractEncodedString(bool checkForQuotes = true)
+        public string ExtractText(bool checkForQuotes = true)
         {
-            var span = ExtractTextSpan(checkForQuotes);
+            var span = InternalExtractTextSpan(checkForQuotes);
             try
             {
                 return UTF8.GetString(span);

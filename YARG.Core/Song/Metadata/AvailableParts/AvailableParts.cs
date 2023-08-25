@@ -31,7 +31,7 @@ namespace YARG.Core.Song
         private PartValues ProDrums;
         private PartValues FiveLaneDrums;
 
-        // puprivateblic PartValues TrueDrums;
+        // private PartValues TrueDrums;
 
         private PartValues ProGuitar_17Fret;
         private PartValues ProGuitar_22Fret;
@@ -275,12 +275,12 @@ namespace YARG.Core.Song
 
         private void SetDrums(DrumPreparseHandler drums)
         {
-            if (drums.Type == DrumPreparseType.FiveLane)
+            if (drums.Type == DrumsType.FiveLane)
                 FiveLaneDrums.subTracks = (byte) drums.ValidatedDiffs;
             else
             {
                 FourLaneDrums.subTracks = (byte) drums.ValidatedDiffs;
-                if (drums.Type == DrumPreparseType.FourPro)
+                if (drums.Type == DrumsType.ProDrums)
                     ProDrums.subTracks = (byte) drums.ValidatedDiffs;
             }
         }

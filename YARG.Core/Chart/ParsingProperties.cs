@@ -6,8 +6,10 @@
     public enum DrumsType
     {
         FourLane,
+        ProDrums,
         FiveLane,
-        Unknown
+        Unknown,
+        UnknownPro,
     }
 
     /// <summary>

@@ -43,10 +43,10 @@ namespace YARG.Core.Song.Deserialization.Ini
             {
                 switch (type)
                 {
-                    case ModifierCreatorType.SortString: return new(new SortString(reader.ExtractEncodedString(false)));
-                    case ModifierCreatorType.SortString_Chart: return new(new SortString(reader.ExtractEncodedString(true)));
-                    case ModifierCreatorType.String: return new(reader.ExtractEncodedString(false));
-                    case ModifierCreatorType.String_Chart: return new(reader.ExtractEncodedString(true));
+                    case ModifierCreatorType.SortString: return new(new SortString(reader.ExtractText(false)));
+                    case ModifierCreatorType.SortString_Chart: return new(new SortString(reader.ExtractText(true)));
+                    case ModifierCreatorType.String: return new(reader.ExtractText(false));
+                    case ModifierCreatorType.String_Chart: return new(reader.ExtractText(true));
                     case ModifierCreatorType.UInt64: return new(reader.ReadUInt64());
                     case ModifierCreatorType.Int64: return new(reader.ReadInt64());
                     case ModifierCreatorType.UInt32: return new(reader.ReadUInt32());
