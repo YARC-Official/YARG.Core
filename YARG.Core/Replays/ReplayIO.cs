@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 
-namespace YARG.Core.Replays.IO
+namespace YARG.Core.Replays
 {
     public enum ReplayReadResult
     {

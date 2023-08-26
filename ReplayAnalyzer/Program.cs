@@ -1,7 +1,7 @@
 ﻿using ReplayAnalyzer;
 using YARG.Core;
 using YARG.Core.Chart;
-using YARG.Core.Replays.IO;
+using YARG.Core.Replays;
 
 YargTrace.AddListener(new YargDebugTraceListener());
 
