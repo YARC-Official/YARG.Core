@@ -23,14 +23,14 @@ namespace YARG.Core.Song
             _albumTrack = reader.ReadInt32();
             _playlistTrack = reader.ReadInt32();
 
-            _songLength = reader.ReadDouble();
-            _songOffset = reader.ReadDouble();
+            SongLength = reader.ReadUInt64();
+            SongOffset = reader.ReadInt64();
 
-            _previewStart = reader.ReadDouble();
-            _previewEnd = reader.ReadDouble();
+            PreviewStart = reader.ReadUInt64();
+            PreviewEnd = reader.ReadUInt64();
 
-            _videoStartTime = reader.ReadDouble();
-            _videoEndTime = reader.ReadDouble();
+            _videoStartTimeInSeconds = reader.ReadDouble();
+            _videoEndTimeInSeconds = reader.ReadDouble();
 
             _loadingPhrase = reader.ReadLEBString();
 
@@ -67,8 +67,8 @@ namespace YARG.Core.Song
             writer.Write(_previewStart);
             writer.Write(_previewEnd);
 
-            writer.Write(_videoStartTime);
-            writer.Write(_videoEndTime);
+            writer.Write(_videoStartTimeInSeconds);
+            writer.Write(_videoEndTimeInSeconds);
 
             writer.Write(_loadingPhrase);
 
