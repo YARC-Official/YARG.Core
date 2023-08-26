@@ -138,26 +138,27 @@ namespace YARG.Core.Song
             }
         }
 
-        private SongMetadata(string folder, AbridgedFileInfo dta, string nodeName, YARGDTAReader reader)
+        private SongMetadata(string folder, AbridgedFileInfo dta, string nodeName, YARGDTAReader reader, Dictionary<string, List<(string, YARGDTAReader)>> updates, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades)
         {
             RBCONSubMetadata rbMetadata = new();
 
-            var results = ParseDTA(nodeName, rbMetadata, reader);
-            _rbData = new RBUnpackedCONMetadata(folder, dta, rbMetadata, nodeName, results.location);
+            var dtaResults = ParseDTA(nodeName, rbMetadata, reader);
+            _rbData = new RBUnpackedCONMetadata(folder, dta, rbMetadata, nodeName, dtaResults.location);
             _directory = rbMetadata.Directory;
 
             if (_playlist.Length == 0)
                 _playlist = Path.GetFileName(folder);
+
+            ApplyRBCONUpdates(nodeName, updates);
+            ApplyRBProUpgrade(nodeName, upgrades);
+            FinalizeRBCONAudioValues(rbMetadata, dtaResults.pans, dtaResults.volumes, dtaResults.cores);
         }
 
         public static (ScanResult, SongMetadata?) FromUnpackedRBCON(string folder, AbridgedFileInfo dta, string nodeName, YARGDTAReader reader, Dictionary<string, List<(string, YARGDTAReader)>> updates, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades)
         {
             try
             {
-                SongMetadata song = new(folder, dta, nodeName, reader);
-                song.ApplyRBCONUpdates(nodeName, updates);
-                song.ApplyRBProUpgrade(nodeName, upgrades);
-
+                SongMetadata song = new(folder, dta, nodeName, reader, updates, upgrades);
                 var result = song.ParseRBCONMidi();
                 if (result != ScanResult.Success)
                     return (result, null);
