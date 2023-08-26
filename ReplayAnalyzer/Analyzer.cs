@@ -19,9 +19,6 @@ public class Analyzer
 
     public IReadOnlyList<int> BandScores => _bandScores;
 
-    // TODO: This should be consistent in YARG and here
-    private readonly GuitarEngineParameters _engineParams = new(0.15, 1, 0.08, 0.06, 0.025, false, true);
-
     public Analyzer(SongChart chart, Replay replay)
     {
         _chart = chart;
@@ -94,7 +91,7 @@ public class Analyzer
         }
 
         // Create engine
-        var engine = new YargFiveFretEngine(notes, _chart.SyncTrack, _engineParams);
+        var engine = new YargFiveFretEngine(notes, _chart.SyncTrack, replayFrame.EngineParameters as GuitarEngineParameters);
 
         if (frameUpdates is null)
         {
