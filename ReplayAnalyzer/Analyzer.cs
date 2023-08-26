@@ -20,7 +20,7 @@ public class Analyzer
     public IReadOnlyList<int> BandScores => _bandScores;
 
     // TODO: This should be consistent in YARG and here
-    private readonly GuitarEngineParameters _engineParams = new(0.16, 1, 0.08, 0.07, 0.035, false, true);
+    private readonly GuitarEngineParameters _engineParams = new(0.15, 1, 0.08, 0.06, 0.025, false, true);
 
     public Analyzer(SongChart chart, Replay replay)
     {
