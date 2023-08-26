@@ -14,7 +14,7 @@ namespace YARG.Core.Replays.IO
     public static class ReplayIO
     {
         public const long REPLAY_MAGIC_HEADER = 0x59414C5047524159;
-        public const int  REPLAY_VERSION      = 2;
+        public const int  REPLAY_VERSION      = 3;
 
         public static ReplayReadResult ReadReplay(string path, out ReplayFile replayFile)
         {

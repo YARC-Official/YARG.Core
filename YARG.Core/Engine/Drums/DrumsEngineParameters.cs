@@ -2,6 +2,10 @@
 {
     public class DrumsEngineParameters : BaseEngineParameters
     {
+        public DrumsEngineParameters()
+        {
+        }
+
         public DrumsEngineParameters(double hitWindow, double frontBackRatio) : base(hitWindow, frontBackRatio)
         {
         }

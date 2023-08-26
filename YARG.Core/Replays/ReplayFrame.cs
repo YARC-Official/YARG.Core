@@ -9,15 +9,16 @@ namespace YARG.Core.Replays
 {
     public class ReplayFrame : IBinarySerializable
     {
-        public int         PlayerId;
-        public string      PlayerName;
-        public Instrument  Instrument;
-        public Difficulty  Difficulty;
-        public int         InputCount;
-        public GameInput[] Inputs;
-        public BaseStats   Stats;
+        public int                  PlayerId;
+        public string               PlayerName;
+        public Instrument           Instrument;
+        public Difficulty           Difficulty;
+        public BaseEngineParameters EngineParameters;
+        public BaseStats            Stats;
+        public int                  InputCount;
+        public GameInput[]          Inputs;
 
-        public virtual void Serialize(BinaryWriter writer)
+        public void Serialize(BinaryWriter writer)
         {
             writer.Write(PlayerId);
             writer.Write(PlayerName);
@@ -35,7 +36,7 @@ namespace YARG.Core.Replays
             }
         }
 
-        public virtual void Deserialize(BinaryReader reader, int version = 0)
+        public void Deserialize(BinaryReader reader, int version = 0)
         {
             PlayerId = reader.ReadInt32();
             PlayerName = reader.ReadString();
@@ -47,19 +48,23 @@ namespace YARG.Core.Replays
                 case GameMode.FiveFretGuitar:
                 case GameMode.SixFretGuitar:
                     Stats = new GuitarStats();
+                    EngineParameters = new GuitarEngineParameters();
                     break;
                 case GameMode.FourLaneDrums:
                 case GameMode.FiveLaneDrums:
                     Stats = new DrumsStats();
+                    EngineParameters = new DrumsEngineParameters();
                     break;
                 case GameMode.ProGuitar:
                 case GameMode.ProKeys:
                 case GameMode.Vocals:
                 default:
                     Stats = new GuitarStats();
+                    EngineParameters = new GuitarEngineParameters();
                     break;
             }
 
+            EngineParameters.Deserialize(reader, version);
             Stats.Deserialize(reader, version);
 
             InputCount = reader.ReadInt32();
