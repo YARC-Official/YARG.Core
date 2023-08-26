@@ -228,5 +228,10 @@ namespace YARG.Core.Engine.Drums
         {
             return input.GetAction<DrumsAction>() == DrumsAction.Kick;
         }
+
+        protected static bool IsNoteInput(GameInput input)
+        {
+            return IsTomInput(input) || IsCymbalInput(input) || IsKickInput(input);
+        }
     }
 }

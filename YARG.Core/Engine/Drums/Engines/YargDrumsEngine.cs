@@ -46,7 +46,15 @@ namespace YARG.Core.Engine.Drums.Engines
             // Quit early if there are no notes left
             if (State.NoteIndex >= Notes.Count) return false;
 
-            return CheckForNoteHit();
+            bool isNoteHit = CheckForNoteHit();
+
+            // Check for over hits
+            if (!isNoteHit && IsNoteInput(CurrentInput) && CurrentInput.Button)
+            {
+                Overhit();
+            }
+
+            return isNoteHit;
         }
 
         protected override bool CheckForNoteHit()
