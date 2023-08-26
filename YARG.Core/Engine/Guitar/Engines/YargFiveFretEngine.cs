@@ -43,7 +43,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                     }
                 }
 
-                if (!UpdateHitLogic(note.Time))
+                if (!UpdateEngineInput(note.Time))
                 {
                     break;
                 }
@@ -55,27 +55,57 @@ namespace YARG.Core.Engine.Guitar.Engines
 
             if (updateToSongTime)
             {
-                UpdateHitLogic(songTime);
+                UpdateEngineState(songTime);
             }
         }
 
-        protected override bool UpdateHitLogic(double time)
+        protected override bool UpdateEngineState(double time)
         {
             UpdateTimeVariables(time);
             UpdateTimers();
 
-            if (IsInputUpdate && CurrentInput.GetAction<GuitarAction>() == GuitarAction.StarPower &&
+            DepleteStarPower(GetUsedStarPower());
+
+            // Quit early if there are no notes left
+            if (State.NoteIndex >= Notes.Count)
+            {
+                return false;
+            }
+
+            bool isNoteMissed = CheckForNoteMiss();
+            return isNoteMissed;
+        }
+
+        protected override bool CheckForNoteMiss()
+        {
+            var note = Notes[State.NoteIndex];
+
+            if (note.WasHit || note.WasMissed)
+            {
+                return false;
+            }
+
+            if (State.CurrentTime > note.Time + EngineParameters.BackEnd && !note.WasHit)
+            {
+                MissNote(note);
+                return true;
+            }
+
+            return false;
+        }
+
+        protected override bool UpdateEngineInput(double time)
+        {
+            if (CurrentInput.GetAction<GuitarAction>() == GuitarAction.StarPower &&
                 EngineStats.StarPowerAmount >= 0.5)
             {
                 ActivateStarPower();
             }
 
-            DepleteStarPower(GetUsedStarPower());
-
-            State.StrummedThisUpdate = (IsInputUpdate && IsStrumInput(CurrentInput) && CurrentInput.Button)
+            // Check for strum or fret
+            State.StrummedThisUpdate = (IsStrumInput(CurrentInput) && CurrentInput.Button)
                 || (State.StrummedThisUpdate && IsBotUpdate);
-
-            bool isFretInput = IsInputUpdate && IsFretInput(CurrentInput);
+            bool isFretInput = IsFretInput(CurrentInput);
 
             if (isFretInput)
             {
@@ -103,7 +133,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 State.StrumLeniencyStartTime = State.CurrentTime - diff;
             }
 
-            // Quits early if there are no notes left
+            // Quit early if there are no notes left
             if (State.NoteIndex >= Notes.Count)
             {
                 UpdateSustains();
@@ -143,57 +173,6 @@ namespace YARG.Core.Engine.Guitar.Engines
             return isNoteHit;
         }
 
-        protected void UpdateTimers()
-        {
-            // We need to check if the strum leniency was active prior to this update
-            // Then further down, we check if it expires on THIS update (if it does, we overstrum)
-            if (IsTimerActive(State.LastUpdateTime, State.StrumLeniencyStartTime, EngineParameters.StrumLeniency))
-            {
-                // A hopo was strummed recently
-                if (IsTimerActive(State.CurrentTime, State.HopoLeniencyStartTime, EngineParameters.HopoLeniency))
-                {
-                    // // Hopo was double strummed, overstrum
-                    // if (State.WasHopoStrummed)
-                    // {
-                    //     YargTrace.LogInfo("Hopo was double strummed. Overstrumming.");
-                    //     Overstrum();
-                    //     State.WasHopoStrummed = false;
-                    // }
-                    // else
-                    // {
-                    //     YargTrace.LogInfo("Hopo/tap was strummed");
-                    //     State.WasHopoStrummed = true;
-                    // }
-
-                    //YargTrace.LogInfo("Hopo ate strum input");
-
-                    // This eats the strum input
-                    ResetTimer(ref State.StrumLeniencyStartTime);
-                    ResetTimer(ref State.HopoLeniencyStartTime);
-                }
-                else
-                {
-                    // Strum leniency expires on this update, overstrum
-                    if (HasTimerExpired(State.CurrentTime, State.StrumLeniencyStartTime,
-                        EngineParameters.StrumLeniency))
-                    {
-                        if (State.WasHopoStrummed)
-                        {
-                            ResetTimer(ref State.StrumLeniencyStartTime);
-                        }
-                        else
-                        {
-                            //YargTrace.LogInfo($"Hopo leniency: {State.CurrentTime - State.HopoLeniencyStartTime}");
-                            //YargTrace.LogInfo("Strum leniency ran out, overstrumming");
-                            Overstrum();
-                        }
-
-                        State.WasHopoStrummed = false;
-                    }
-                }
-            }
-        }
-
         protected override bool CheckForNoteHit()
         {
             var note = Notes[State.NoteIndex];
@@ -206,12 +185,6 @@ namespace YARG.Core.Engine.Guitar.Engines
             if (State.CurrentTime < note.Time + EngineParameters.FrontEnd)
             {
                 return false;
-            }
-
-            if (State.CurrentTime > note.Time + EngineParameters.BackEnd && !note.WasHit)
-            {
-                MissNote(note);
-                return true;
             }
 
             // Note skipping, useful for combo regain
@@ -273,6 +246,57 @@ namespace YARG.Core.Engine.Guitar.Engines
             }
 
             return false;
+        }
+
+        protected void UpdateTimers()
+        {
+            // We need to check if the strum leniency was active prior to this update
+            // Then further down, we check if it expires on THIS update (if it does, we overstrum)
+            if (IsTimerActive(State.LastUpdateTime, State.StrumLeniencyStartTime, EngineParameters.StrumLeniency))
+            {
+                // A hopo was strummed recently
+                if (IsTimerActive(State.CurrentTime, State.HopoLeniencyStartTime, EngineParameters.HopoLeniency))
+                {
+                    // // Hopo was double strummed, overstrum
+                    // if (State.WasHopoStrummed)
+                    // {
+                    //     YargTrace.LogInfo("Hopo was double strummed. Overstrumming.");
+                    //     Overstrum();
+                    //     State.WasHopoStrummed = false;
+                    // }
+                    // else
+                    // {
+                    //     YargTrace.LogInfo("Hopo/tap was strummed");
+                    //     State.WasHopoStrummed = true;
+                    // }
+
+                    //YargTrace.LogInfo("Hopo ate strum input");
+
+                    // This eats the strum input
+                    ResetTimer(ref State.StrumLeniencyStartTime);
+                    ResetTimer(ref State.HopoLeniencyStartTime);
+                }
+                else
+                {
+                    // Strum leniency expires on this update, overstrum
+                    if (HasTimerExpired(State.CurrentTime, State.StrumLeniencyStartTime,
+                        EngineParameters.StrumLeniency))
+                    {
+                        if (State.WasHopoStrummed)
+                        {
+                            ResetTimer(ref State.StrumLeniencyStartTime);
+                        }
+                        else
+                        {
+                            //YargTrace.LogInfo($"Hopo leniency: {State.CurrentTime - State.HopoLeniencyStartTime}");
+                            //YargTrace.LogInfo("Strum leniency ran out, overstrumming");
+                            Overstrum();
+                        }
+
+                        State.WasHopoStrummed = false;
+                    }
+                }
+            }
         }
 
         protected bool CheckForGhostInput(GuitarNote note)

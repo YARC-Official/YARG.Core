@@ -9,22 +9,28 @@ namespace YARG.Core.Engine.Drums.Engines
         {
         }
 
-        protected override bool UpdateHitLogic(double time)
-        {
-            UpdateTimeVariables(time);
+        // protected override bool UpdateHitLogic(double time)
+        // {
+        //     UpdateTimeVariables(time);
+        //
+        //     DepleteStarPower(GetUsedStarPower());
+        //
+        //     // Quits early if there are no notes left
+        //     if (State.NoteIndex >= Notes.Count)
+        //     {
+        //         return false;
+        //     }
+        //
+        //     var note = Notes[State.NoteIndex];
+        //
+        //     return CheckForNoteHit();
+        // }
 
-            DepleteStarPower(GetUsedStarPower());
+        protected override bool UpdateEngineState(double time) => throw new System.NotImplementedException();
 
-            // Quits early if there are no notes left
-            if (State.NoteIndex >= Notes.Count)
-            {
-                return false;
-            }
+        protected override bool CheckForNoteMiss() => throw new System.NotImplementedException();
 
-            var note = Notes[State.NoteIndex];
-
-            return CheckForNoteHit();
-        }
+        protected override bool UpdateEngineInput(double time) => throw new System.NotImplementedException();
 
         protected override bool CheckForNoteHit()
         {
