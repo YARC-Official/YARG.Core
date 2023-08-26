@@ -98,6 +98,7 @@ namespace YARG.Core.Engine.Guitar
         {
             note.SetHitState(true, true);
 
+            // Detect if the last note(s) were skipped
             bool skipped = false;
             var prevNote = note.PreviousNote;
             while (prevNote is not null && !prevNote.WasHit && !prevNote.WasMissed)
@@ -228,64 +229,6 @@ namespace YARG.Core.Engine.Guitar
             {
                 EngineStats.ScoreMultiplier *= 2;
             }
-        }
-
-        protected override void StripStarPower(GuitarNote note)
-        {
-            if (!note.IsStarPower)
-            {
-                return;
-            }
-
-            EngineStats.PhrasesMissed++;
-
-            // Strip star power from the note and all its children
-            note.Flags &= ~NoteFlags.StarPower;
-            foreach (var childNote in note.ChildNotes)
-            {
-                childNote.Flags &= ~NoteFlags.StarPower;
-            }
-
-            // Look back until finding the start of the phrase
-            var prevNote = note.PreviousNote;
-            while (prevNote is not null && prevNote.IsStarPower)
-            {
-                prevNote.Flags &= ~NoteFlags.StarPower;
-                foreach (var childNote in prevNote.ChildNotes)
-                {
-                    childNote.Flags &= ~NoteFlags.StarPower;
-                }
-
-                if (prevNote.IsStarPowerStart)
-                {
-                    break;
-                }
-
-                prevNote = prevNote.PreviousNote;
-            }
-
-            // Do this to warn of a null reference if its used below
-            prevNote = null;
-
-            // Look forward until finding the end of the phrase
-            var nextNote = note.NextNote;
-            while (nextNote is not null && nextNote.IsStarPower)
-            {
-                nextNote.Flags &= ~NoteFlags.StarPower;
-                foreach (var childNote in nextNote.ChildNotes)
-                {
-                    childNote.Flags &= ~NoteFlags.StarPower;
-                }
-
-                if (nextNote.IsStarPowerEnd)
-                {
-                    break;
-                }
-
-                nextNote = nextNote.NextNote;
-            }
-
-            base.StripStarPower(note);
         }
 
         protected sealed override int CalculateBaseScore()

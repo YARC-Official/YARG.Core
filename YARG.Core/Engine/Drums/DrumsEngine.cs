@@ -19,6 +19,13 @@ namespace YARG.Core.Engine.Drums
             DrumsEngineParameters engineParameters)
             : base(chart, syncTrack, engineParameters)
         {
+            BaseScore = CalculateBaseScore();
+
+            StarScoreThresholds = new float[StarMultiplierThresholds.Length];
+            for (int i = 0; i < StarMultiplierThresholds.Length; i++)
+            {
+                StarScoreThresholds[i] = BaseScore * StarMultiplierThresholds[i];
+            }
         }
 
         public override void Reset(bool keepCurrentButtons = false)
@@ -39,13 +46,106 @@ namespace YARG.Core.Engine.Drums
             {
                 return;
             }
+
+            EngineStats.Combo = 0;
+            EngineStats.Overhits++;
+
+            UpdateMultiplier();
+
+            OnOverhit?.Invoke();
         }
 
-        protected override bool HitNote(DrumNote note) => throw new System.NotImplementedException();
+        protected override bool HitNote(DrumNote note)
+        {
+            note.SetHitState(true, true);
+
+            // Detect if the last note(s) were skipped
+            bool skipped = false;
+            var prevNote = note.PreviousNote;
+            while (prevNote is not null && !prevNote.WasHit && !prevNote.WasMissed)
+            {
+                skipped = true;
+
+                prevNote.SetMissState(true, true);
+
+                EngineStats.Combo = 0;
+                EngineStats.NotesMissed++;
+
+                OnNoteMissed?.Invoke(State.NoteIndex, prevNote);
+                State.NoteIndex++;
+
+                prevNote = prevNote.PreviousNote;
+            }
+
+            if (skipped)
+            {
+                StripStarPower(note.PreviousNote);
+            }
+
+            if (note.IsStarPower && note.IsStarPowerEnd)
+            {
+                AwardStarPower(note);
+                EngineStats.PhrasesHit++;
+            }
+
+            if (note.IsSoloStart)
+            {
+                StartSolo();
+            }
+
+            if (State.IsSoloActive)
+            {
+                Solos[State.CurrentSoloIndex].NotesHit++;
+            }
+
+            if (note.IsSoloEnd)
+            {
+                EndSolo();
+            }
+
+            EngineStats.Combo++;
+
+            if (EngineStats.Combo > EngineStats.MaxCombo)
+            {
+                EngineStats.MaxCombo = EngineStats.Combo;
+            }
+
+            EngineStats.NotesHit++;
+
+            UpdateMultiplier();
+
+            AddScore(note);
+
+            OnNoteHit?.Invoke(State.NoteIndex, note);
+            State.NoteIndex++;
+            return true;
+        }
 
         protected override void MissNote(DrumNote note)
         {
-            throw new System.NotImplementedException();
+            note.SetMissState(true, true);
+
+            if (note.IsStarPower)
+            {
+                StripStarPower(note);
+            }
+
+            if (note.IsSoloEnd)
+            {
+                EndSolo();
+            }
+            if (note.IsSoloStart)
+            {
+                StartSolo();
+            }
+
+            EngineStats.Combo = 0;
+            EngineStats.NotesMissed++;
+
+            UpdateMultiplier();
+
+            OnNoteMissed?.Invoke(State.NoteIndex, note);
+            State.NoteIndex++;
         }
 
         protected override void AddScore(DrumNote note)
