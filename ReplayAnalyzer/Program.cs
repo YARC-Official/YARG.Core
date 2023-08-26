@@ -23,26 +23,31 @@ while (true)
     ClearAndPrintHeader();
 
     // Show the options
+
     Console.WriteLine("Choose on of the options below:");
     Console.WriteLine("1. Verify replay");
     Console.WriteLine("2. Simulate randomized frame updates");
 
     // Prompt the user to select an option
+
     Console.Write("Enter option: ");
     string input = Console.ReadLine();
-    int selectedOption;
-    if (!int.TryParse(input, out selectedOption))
+
+    if (!int.TryParse(input, out int selectedOption))
     {
         continue;
     }
+
     if (selectedOption is < 1 or > 2)
     {
         continue;
     }
 
     // Prompt for a replay path (regardless of option)
+
     ClearAndPrintHeader();
     Console.Write("Enter a valid replay path: ");
+
     string replayPath = Console.ReadLine();
     if (!File.Exists(replayPath))
     {
@@ -52,7 +57,9 @@ while (true)
     }
 
     // Prompt for a song folder (regardless of option)
+
     Console.Write("Enter a valid song folder: ");
+
     string songFolder = Console.ReadLine();
     if (!Directory.Exists(songFolder))
     {
@@ -62,6 +69,7 @@ while (true)
     }
 
     // Look for song.ini and notes file
+
     string songIni = Path.Combine(songFolder, "song.ini");
     string notesMid = Path.Combine(songFolder, "notes.mid");
     string notesChart = Path.Combine(songFolder, "notes.chart");
@@ -72,8 +80,10 @@ while (true)
     }
 
     // Load song
+
     ClearAndPrintHeader();
     Console.WriteLine("Loading song...");
+
     SongChart chart;
     try
     {
@@ -91,11 +101,15 @@ while (true)
         Console.ReadKey(true);
         continue;
     }
+
     Console.WriteLine("Done!");
 
     // Load replay
+
     Console.WriteLine("Loading replay...");
-    var result = ReplayIO.ReadReplay(replayPath, out var replay);
+    var result = ReplayIO.ReadReplay(replayPath, out var replayFile);
+    var replay = replayFile.Replay;
+
     if (result != ReplayReadResult.Valid)
     {
         Console.WriteLine($"ERROR: Replay result is {result}! Press any key to continue.");
@@ -105,6 +119,7 @@ while (true)
     Console.WriteLine("Done!\n");
 
     // Load players
+
     Console.WriteLine($"Players ({replay.PlayerCount}):");
     foreach (var frame in replay.Frames)
     {
@@ -113,6 +128,7 @@ while (true)
     Console.WriteLine($"Band score: {replay.BandScore} (as per metadata)\n");
 
     // Analyze replay
+
     Console.WriteLine("Analyzing replay...");
     var analyzer = new Analyzer(chart, replay);
     if (selectedOption == 1)
@@ -126,6 +142,7 @@ while (true)
     Console.WriteLine("Done!\n");
 
     // Results
+
     if (selectedOption == 1)
     {
         var bandScore = analyzer.BandScores[0];
