@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace YARG.Core.Chart
 {
@@ -30,9 +31,14 @@ namespace YARG.Core.Chart
         public TNote PreviousNote;
         public TNote NextNote;
 
+        public TNote Parent { get; private set; }
         public IReadOnlyList<TNote> ChildNotes => _childNotes;
 
-        public bool IsChord => _childNotes.Count > 0;
+        /// <summary>
+        /// Returns this note's parent, and if it's null, returns itself instead.
+        /// </summary>
+        public TNote ParentOrSelf => Parent ?? (TNote) this;
+        public bool  IsChord      => _childNotes.Count > 0;
 
         public bool IsStarPower      => (Flags & NoteFlags.StarPower) != 0;
         public bool IsStarPowerStart => (Flags & NoteFlags.StarPowerStart) != 0;
@@ -63,6 +69,7 @@ namespace YARG.Core.Chart
                 return;
             }
 
+            note.Parent = (TNote) this;
             _childNotes.Add(note);
         }
 
@@ -77,7 +84,7 @@ namespace YARG.Core.Chart
 
         public void SetHitState(bool hit, bool includeChildren)
         {
-            WasHit = true;
+            WasHit = hit;
             if (!includeChildren) return;
 
             foreach (var childNote in _childNotes)
@@ -88,13 +95,31 @@ namespace YARG.Core.Chart
 
         public void SetMissState(bool miss, bool includeChildren)
         {
-            WasMissed = true;
+            WasMissed = miss;
             if (!includeChildren) return;
 
             foreach (var childNote in _childNotes)
             {
                 childNote.SetMissState(miss, true);
             }
+        }
+
+        public bool WasFullyHit()
+        {
+            if (!WasHit) return false;
+            return _childNotes.All(childNote => childNote.WasFullyHit());
+        }
+
+        public bool WasFullyMissed()
+        {
+            if (!WasMissed) return false;
+            return _childNotes.All(childNote => childNote.WasFullyMissed());
+        }
+
+        public bool WasFullyHitOrMissed()
+        {
+            if (!WasMissed && !WasHit) return false;
+            return _childNotes.All(childNote => childNote.WasFullyHitOrMissed());
         }
 
         public void OverridePreviousNote()

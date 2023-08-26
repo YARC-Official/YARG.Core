@@ -1,4 +1,6 @@
-﻿using YARG.Core.Chart;
+﻿using System;
+using System.Diagnostics;
+using YARG.Core.Chart;
 using YARG.Core.Input;
 
 namespace YARG.Core.Engine.Drums
@@ -57,30 +59,38 @@ namespace YARG.Core.Engine.Drums
 
         protected override bool HitNote(DrumNote note)
         {
-            note.SetHitState(true, true);
+            note.SetHitState(true, false);
 
             // Detect if the last note(s) were skipped
-            bool skipped = false;
-            var prevNote = note.PreviousNote;
-            while (prevNote is not null && !prevNote.WasHit && !prevNote.WasMissed)
-            {
-                skipped = true;
-
-                prevNote.SetMissState(true, true);
-
-                EngineStats.Combo = 0;
-                EngineStats.NotesMissed++;
-
-                OnNoteMissed?.Invoke(State.NoteIndex, prevNote);
-                State.NoteIndex++;
-
-                prevNote = prevNote.PreviousNote;
-            }
-
-            if (skipped)
-            {
-                StripStarPower(note.PreviousNote);
-            }
+            // bool skipped = false;
+            // var prevNote = note.PreviousNote;
+            // while (prevNote is not null && !prevNote.WasFullyHitOrMissed())
+            // {
+            //     YargTrace.LogInfo("BAD");
+            //
+            //     skipped = true;
+            //     EngineStats.Combo = 0;
+            //
+            //     foreach (var chordNote in prevNote.ChordEnumerator())
+            //     {
+            //         if (chordNote.WasMissed || chordNote.WasHit)
+            //         {
+            //             continue;
+            //         }
+            //
+            //         chordNote.SetMissState(true, false);
+            //         EngineStats.NotesMissed++;
+            //         OnNoteMissed?.Invoke(State.NoteIndex, prevNote);
+            //     }
+            //
+            //     State.NoteIndex++;
+            //     prevNote = prevNote.PreviousNote;
+            // }
+            //
+            // if (skipped)
+            // {
+            //     StripStarPower(note.PreviousNote);
+            // }
 
             if (note.IsStarPower && note.IsStarPowerEnd)
             {
@@ -117,27 +127,33 @@ namespace YARG.Core.Engine.Drums
             AddScore(note);
 
             OnNoteHit?.Invoke(State.NoteIndex, note);
-            State.NoteIndex++;
+
+            if (note.ParentOrSelf.WasFullyHitOrMissed())
+            {
+                State.NoteIndex++;
+            }
+
             return true;
         }
 
         protected override void MissNote(DrumNote note)
         {
-            note.SetMissState(true, true);
+            YargTrace.LogInfo($"Missed note at tick {note.Tick}");
+            note.SetMissState(true, false);
 
-            if (note.IsStarPower)
-            {
-                StripStarPower(note);
-            }
-
-            if (note.IsSoloEnd)
-            {
-                EndSolo();
-            }
-            if (note.IsSoloStart)
-            {
-                StartSolo();
-            }
+            // if (note.IsStarPower)
+            // {
+            //     StripStarPower(note);
+            // }
+            //
+            // if (note.IsSoloEnd)
+            // {
+            //     EndSolo();
+            // }
+            // if (note.IsSoloStart)
+            // {
+            //     StartSolo();
+            // }
 
             EngineStats.Combo = 0;
             EngineStats.NotesMissed++;
@@ -145,7 +161,11 @@ namespace YARG.Core.Engine.Drums
             UpdateMultiplier();
 
             OnNoteMissed?.Invoke(State.NoteIndex, note);
-            State.NoteIndex++;
+
+            if (note.ParentOrSelf.WasFullyHitOrMissed())
+            {
+                State.NoteIndex++;
+            }
         }
 
         protected override void AddScore(DrumNote note)

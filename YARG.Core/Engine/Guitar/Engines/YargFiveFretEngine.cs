@@ -67,13 +67,9 @@ namespace YARG.Core.Engine.Guitar.Engines
             DepleteStarPower(GetUsedStarPower());
 
             // Quit early if there are no notes left
-            if (State.NoteIndex >= Notes.Count)
-            {
-                return false;
-            }
+            if (State.NoteIndex >= Notes.Count) return false;
 
-            bool isNoteMissed = CheckForNoteMiss();
-            return isNoteMissed;
+            return CheckForNoteMiss();
         }
 
         protected override bool CheckForNoteMiss()

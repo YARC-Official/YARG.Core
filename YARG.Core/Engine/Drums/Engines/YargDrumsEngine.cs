@@ -9,48 +9,103 @@ namespace YARG.Core.Engine.Drums.Engines
         {
         }
 
-        // protected override bool UpdateHitLogic(double time)
-        // {
-        //     UpdateTimeVariables(time);
-        //
-        //     DepleteStarPower(GetUsedStarPower());
-        //
-        //     // Quits early if there are no notes left
-        //     if (State.NoteIndex >= Notes.Count)
-        //     {
-        //         return false;
-        //     }
-        //
-        //     var note = Notes[State.NoteIndex];
-        //
-        //     return CheckForNoteHit();
-        // }
+        protected override bool UpdateEngineState(double time)
+        {
+            UpdateTimeVariables(time);
 
-        protected override bool UpdateEngineState(double time) => throw new System.NotImplementedException();
+            DepleteStarPower(GetUsedStarPower());
 
-        protected override bool CheckForNoteMiss() => throw new System.NotImplementedException();
+            // Quit early if there are no notes left
+            if (State.NoteIndex >= Notes.Count) return false;
 
-        protected override bool UpdateEngineInput(double time) => throw new System.NotImplementedException();
+            return CheckForNoteMiss();
+        }
 
-        protected override bool CheckForNoteHit()
+        protected override bool CheckForNoteMiss()
         {
             var note = Notes[State.NoteIndex];
 
-            // Note not in front end
-            if (State.CurrentTime < note.Time + EngineParameters.FrontEnd)
-            {
-                return false;
-            }
-
             if (State.CurrentTime > note.Time + EngineParameters.BackEnd)
             {
-                MissNote(note);
-                return true;
+                foreach (var chordNote in note.ChordEnumerator())
+                {
+                    if (chordNote.WasHit || chordNote.WasMissed)
+                    {
+                        continue;
+                    }
+
+                    MissNote(chordNote);
+                }
             }
 
             return false;
         }
 
-        protected override bool CanNoteBeHit(DrumNote note) => throw new System.NotImplementedException();
+        protected override bool UpdateEngineInput(double time)
+        {
+            // Quit early if there are no notes left
+            if (State.NoteIndex >= Notes.Count) return false;
+
+            return CheckForNoteHit();
+        }
+
+        protected override bool CheckForNoteHit()
+        {
+            var note = Notes[State.NoteIndex];
+
+            if (State.CurrentTime < note.Time + EngineParameters.FrontEnd)
+            {
+                return false;
+            }
+
+            // Remember that while playing drums, all notes of a chord don't have to be hit.
+            // Treat all notes separately.
+            foreach (var chordNote in note.ChordEnumerator())
+            {
+                if (chordNote.WasHit || chordNote.WasMissed)
+                {
+                    continue;
+                }
+
+                if (CanNoteBeHit(chordNote))
+                {
+                    HitNote(chordNote);
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        protected override bool CanNoteBeHit(DrumNote note)
+        {
+            if (!CurrentInput.Button)
+            {
+                return false;
+            }
+
+            int padFromAction = CurrentInput.GetAction<DrumsAction>() switch
+            {
+                DrumsAction.Kick => (int) FourLaneDrumPad.Kick,
+
+                DrumsAction.Drum1 => (int) FourLaneDrumPad.RedDrum,
+                DrumsAction.Drum2 => (int) FourLaneDrumPad.YellowDrum,
+                DrumsAction.Drum3 => (int) FourLaneDrumPad.BlueDrum,
+                DrumsAction.Drum4 => (int) FourLaneDrumPad.GreenDrum,
+
+                DrumsAction.Cymbal1 => (int) FourLaneDrumPad.YellowCymbal,
+                DrumsAction.Cymbal2 => (int) FourLaneDrumPad.BlueCymbal,
+                DrumsAction.Cymbal3 => (int) FourLaneDrumPad.GreenCymbal,
+
+                _ => -1
+            };
+
+            if (note.Pad == padFromAction)
+            {
+                return true;
+            }
+
+            return false;
+        }
     }
 }
