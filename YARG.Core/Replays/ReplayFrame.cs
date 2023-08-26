@@ -68,7 +68,7 @@ namespace YARG.Core.Replays
             for (int i = 0; i < InputCount; i++)
             {
                 double time = reader.ReadDouble();
-                byte action = reader.ReadByte();
+                int action = reader.ReadInt32();
                 int value = reader.ReadInt32();
 
                 Inputs[i] = new GameInput(time, action, value);
