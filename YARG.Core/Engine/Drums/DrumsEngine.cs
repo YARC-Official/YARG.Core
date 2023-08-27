@@ -138,7 +138,6 @@ namespace YARG.Core.Engine.Drums
 
         protected override void MissNote(DrumNote note)
         {
-            YargTrace.LogInfo($"Missed note at tick {note.Tick}");
             note.SetMissState(true, false);
 
             // if (note.IsStarPower)
