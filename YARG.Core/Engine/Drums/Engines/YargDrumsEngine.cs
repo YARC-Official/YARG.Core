@@ -46,6 +46,12 @@ namespace YARG.Core.Engine.Drums.Engines
             // Quit early if there are no notes left
             if (State.NoteIndex >= Notes.Count) return false;
 
+            // Call pad hit event
+            if (IsNoteInput(CurrentInput) && CurrentInput.Button)
+            {
+                OnPadHit?.Invoke(CurrentInput.GetAction<DrumsAction>());
+            }
+
             bool isNoteHit = CheckForNoteHit();
 
             // Check for over hits

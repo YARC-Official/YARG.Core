@@ -10,7 +10,10 @@ namespace YARG.Core.Engine.Drums
     {
         public delegate void OverhitEvent();
 
+        public delegate void PadHitEvent(DrumsAction action);
+
         public OverhitEvent OnOverhit;
+        public PadHitEvent  OnPadHit;
 
         protected sealed override float[] StarMultiplierThresholds { get; } =
             { 0.21f, 0.46f, 0.77f, 1.85f, 3.08f, 4.29f };
@@ -140,19 +143,19 @@ namespace YARG.Core.Engine.Drums
         {
             note.SetMissState(true, false);
 
-            // if (note.IsStarPower)
-            // {
-            //     StripStarPower(note);
-            // }
-            //
-            // if (note.IsSoloEnd)
-            // {
-            //     EndSolo();
-            // }
-            // if (note.IsSoloStart)
-            // {
-            //     StartSolo();
-            // }
+            if (note.IsStarPower)
+            {
+                StripStarPower(note);
+            }
+
+            if (note.IsSoloEnd)
+            {
+                EndSolo();
+            }
+            if (note.IsSoloStart)
+            {
+                StartSolo();
+            }
 
             EngineStats.Combo = 0;
             EngineStats.NotesMissed++;
