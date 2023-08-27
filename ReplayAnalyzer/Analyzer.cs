@@ -1,5 +1,8 @@
 using YARG.Core;
 using YARG.Core.Chart;
+using YARG.Core.Engine;
+using YARG.Core.Engine.Drums;
+using YARG.Core.Engine.Drums.Engines;
 using YARG.Core.Engine.Guitar;
 using YARG.Core.Engine.Guitar.Engines;
 using YARG.Core.Input;
@@ -70,28 +73,9 @@ public class Analyzer
 
     private void RunFrame(ReplayFrame replayFrame, IReadOnlyList<double> frameUpdates)
     {
-        var gameMode = replayFrame.Instrument.ToGameMode();
-
-        // TODO: Make this work for other instruments
-        if (gameMode != GameMode.FiveFretGuitar)
-        {
-            return;
-        }
+        var engine = CreateEngine(replayFrame);
 
         Console.WriteLine($"> Running for {replayFrame.PlayerName}...");
-
-        // Reset the notes
-        var notes = _chart.GetFiveFretTrack(replayFrame.Instrument).Difficulties[replayFrame.Difficulty];
-        foreach (var note in notes.Notes)
-        {
-            foreach (var subNote in note.ChordEnumerator())
-            {
-                subNote.ResetNoteState();
-            }
-        }
-
-        // Create engine
-        var engine = new YargFiveFretEngine(notes, _chart.SyncTrack, replayFrame.EngineParameters as GuitarEngineParameters);
 
         if (frameUpdates is null)
         {
@@ -131,7 +115,69 @@ public class Analyzer
         }
 
         // Done!
-        Console.WriteLine($"> Done running for {replayFrame.PlayerName}, final score: {engine.EngineStats.Score}");
-        _currentBandScore += engine.EngineStats.Score;
+        int score = GetScore(engine, replayFrame);
+        Console.WriteLine($"> Done running for {replayFrame.PlayerName}, final score: {score}");
+        _currentBandScore += score;
+    }
+
+    private BaseEngine CreateEngine(ReplayFrame replayFrame)
+    {
+        Console.WriteLine($"> Creating engine for {replayFrame.PlayerName}...");
+
+        var gameMode = replayFrame.Instrument.ToGameMode();
+
+        switch (gameMode)
+        {
+            case GameMode.FiveFretGuitar:
+            {
+                // Reset the notes
+                var notes = _chart.GetFiveFretTrack(replayFrame.Instrument).Difficulties[replayFrame.Difficulty];
+                foreach (var note in notes.Notes)
+                {
+                    foreach (var subNote in note.ChordEnumerator())
+                    {
+                        subNote.ResetNoteState();
+                    }
+                }
+
+                // Create engine
+                return new YargFiveFretEngine(
+                    notes,
+                    _chart.SyncTrack,
+                    replayFrame.EngineParameters as GuitarEngineParameters);
+            }
+            case GameMode.FourLaneDrums:
+            {
+                // Reset the notes
+                var notes = _chart.GetDrumsTrack(replayFrame.Instrument).Difficulties[replayFrame.Difficulty];
+                foreach (var note in notes.Notes)
+                {
+                    foreach (var subNote in note.ChordEnumerator())
+                    {
+                        subNote.ResetNoteState();
+                    }
+                }
+
+                // Create engine
+                return new YargDrumsEngine(
+                    notes,
+                    _chart.SyncTrack,
+                    replayFrame.EngineParameters as DrumsEngineParameters);
+            }
+            default:
+                throw new InvalidOperationException("Game mode not configured!");
+        }
+    }
+
+    private int GetScore(BaseEngine engine, ReplayFrame replayFrame)
+    {
+        var gameMode = replayFrame.Instrument.ToGameMode();
+
+        return gameMode switch
+        {
+            GameMode.FiveFretGuitar => ((GuitarEngine) engine).EngineStats.Score,
+            GameMode.FourLaneDrums  => ((DrumsEngine) engine).EngineStats.Score,
+            _                       => throw new InvalidOperationException("Game mode not configured!")
+        };
     }
 }
