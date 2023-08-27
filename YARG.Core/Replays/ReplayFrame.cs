@@ -25,6 +25,7 @@ namespace YARG.Core.Replays
             writer.Write((byte) Instrument);
             writer.Write((byte) Difficulty);
 
+            EngineParameters.Serialize(writer);
             Stats.Serialize(writer);
 
             writer.Write(InputCount);
