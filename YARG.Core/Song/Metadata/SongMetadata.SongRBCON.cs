@@ -17,7 +17,6 @@ namespace YARG.Core.Song
     {
         public sealed class RBCONSubMetadata
         {
-            public static readonly Encoding Latin1 = Encoding.GetEncoding("ISO-8859-1");
             public string Directory = string.Empty;
 
             public string SongID = string.Empty;
@@ -33,8 +32,6 @@ namespace YARG.Core.Song
             public bool SongTonality; // 0 = major, 1 = minor
             public int TuningOffsetCents;
             public uint VenueVersion;
-
-            public Encoding MidiEncoding = Latin1;
 
             public AbridgedFileInfo? UpdateMidi = null;
             public AbridgedFileInfo? Mogg = null;
@@ -460,13 +457,45 @@ namespace YARG.Core.Song
                     case "author": _charter = reader.ExtractText(); break;
                     case "guide_pitch_volume": /*GuidePitchVolume = reader.ReadFloat();*/ break;
                     case "encoding":
-                        rbConMetadata.MidiEncoding = reader.ExtractText() switch
+                        var encoding = reader.ExtractText().ToLower() switch
                         {
                             "latin1" => YARGTXTReader_Base.Latin1,
                             "utf-8" or
                             "utf8" => Encoding.UTF8,
                             _ => reader.encoding
                         };
+
+                        if (reader.encoding != encoding)
+                        {
+                            string Convert(string str)
+                            {
+                                byte[] bytes = reader.encoding.GetBytes(str);
+                                return encoding.GetString(bytes);
+                            }
+
+                            if (_name != DEFAULT_NAME)
+                                _name = Convert(_name);
+
+                            if (_artist != DEFAULT_ARTIST)
+                                _artist = Convert(_artist);
+
+                            if (_album != DEFAULT_ALBUM)
+                                _album = Convert(_album);
+
+                            if (_genre != DEFAULT_GENRE)
+                                _genre = Convert(_genre);
+
+                            if (_charter != DEFAULT_CHARTER)
+                                _charter = Convert(_charter);
+
+                            if (_source != DEFAULT_SOURCE)
+                                _source = Convert(_source);
+
+                            if (_playlist.Str.Length != 0)
+                                _playlist = Convert(_playlist);
+                            reader.encoding = encoding;
+                        }
+
                         break;
                     case "vocal_tonic_note": rbConMetadata.VocalTonicNote = reader.ReadUInt32(); break;
                     case "song_tonality": rbConMetadata.SongTonality = reader.ReadBoolean(); break;
