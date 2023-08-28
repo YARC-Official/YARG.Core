@@ -11,14 +11,17 @@ namespace YARG.Core.Song.Deserialization
         private static readonly byte[] BOM_OTHER = { 0xFF, 0xFE };
 
         private readonly List<int> nodeEnds = new();
-        private readonly Encoding encoding = Encoding.UTF8;
+        private readonly Encoding encoding;
         //private static readonly Encoding Western = Encoding.GetEncoding(1252);
         
 
         public YARGDTAReader(byte[] data) : base(data)
         {
             if (data[0] == BOM_UTF8[0] && data[1] == BOM_UTF8[1] && data[2] == BOM_UTF8[2])
+            {
+                encoding = Encoding.UTF8;
                 _position += 3;
+            }
             else if (data[0] == BOM_OTHER[0] && data[1] == BOM_OTHER[1])
             {
                 if (data[2] == 0)
@@ -37,6 +40,8 @@ namespace YARG.Core.Song.Deserialization
                 encoding = Encoding.BigEndianUnicode;
                 _position += 2;
             }
+            else
+                encoding = ANSI;
 
             SkipWhiteSpace();
         }
@@ -47,6 +52,7 @@ namespace YARG.Core.Song.Deserialization
         {
             _position = reader._position;
             _next = reader._next;
+            encoding = reader.encoding;
             nodeEnds.Add(reader.nodeEnds[0]);
         }
 
