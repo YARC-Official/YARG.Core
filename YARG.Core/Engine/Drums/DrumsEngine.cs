@@ -10,7 +10,7 @@ namespace YARG.Core.Engine.Drums
     {
         public delegate void OverhitEvent();
 
-        public delegate void PadHitEvent(DrumsAction action);
+        public delegate void PadHitEvent(DrumsAction action, bool noteWasHit);
 
         public OverhitEvent OnOverhit;
         public PadHitEvent  OnPadHit;
