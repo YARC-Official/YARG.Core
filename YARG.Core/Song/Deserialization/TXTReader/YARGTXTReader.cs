@@ -41,6 +41,8 @@ namespace YARG.Core.Song.Deserialization
             return (bom[0] != BOM_OTHER[0] || bom[1] != BOM_OTHER[1]) && (bom[0] != BOM_OTHER[1] || bom[1] != BOM_OTHER[0]);
         }
 
+        private Encoding encoding = Encoding.UTF8;
+
         private YARGTXTReader(byte[] data, int position) : base(data)
         {
             _position = position;
@@ -135,11 +137,12 @@ namespace YARG.Core.Song.Deserialization
             var span = InternalExtractTextSpan(checkForQuotes);
             try
             {
-                return UTF8.GetString(span);
+                return encoding.GetString(span);
             }
             catch
             {
-                return ANSI.GetString(span);
+                encoding = ANSI;
+                return encoding.GetString(span);
             }
         }
 
@@ -157,7 +160,7 @@ namespace YARG.Core.Song.Deserialization
             ReadOnlySpan<byte> name = new(data, _position, curr - _position);
             _position = curr;
             SkipWhiteSpace();
-            return Encoding.UTF8.GetString(name);
+            return encoding.GetString(name);
         }
     }
 }
