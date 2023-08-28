@@ -141,7 +141,7 @@ namespace YARG.Core.Song.Deserialization
             }
             catch
             {
-                encoding = ANSI;
+                encoding = Latin1;
                 return encoding.GetString(span);
             }
         }

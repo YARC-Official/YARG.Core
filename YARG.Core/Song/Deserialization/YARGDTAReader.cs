@@ -11,8 +11,7 @@ namespace YARG.Core.Song.Deserialization
         private static readonly byte[] BOM_OTHER = { 0xFF, 0xFE };
 
         private readonly List<int> nodeEnds = new();
-        private readonly Encoding encoding;
-        //private static readonly Encoding Western = Encoding.GetEncoding(1252);
+        public Encoding encoding;
         
 
         public YARGDTAReader(byte[] data) : base(data)
@@ -41,7 +40,7 @@ namespace YARG.Core.Song.Deserialization
                 _position += 2;
             }
             else
-                encoding = ANSI;
+                encoding = Latin1;
 
             SkipWhiteSpace();
         }

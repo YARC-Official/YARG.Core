@@ -462,9 +462,10 @@ namespace YARG.Core.Song
                     case "encoding":
                         rbConMetadata.MidiEncoding = reader.ExtractText() switch
                         {
-                            "Latin1" => RBCONSubMetadata.Latin1,
-                            "UTF8" => Encoding.UTF8,
-                            _ => rbConMetadata.MidiEncoding
+                            "latin1" => YARGTXTReader_Base.Latin1,
+                            "utf-8" or
+                            "utf8" => Encoding.UTF8,
+                            _ => reader.encoding
                         };
                         break;
                     case "vocal_tonic_note": rbConMetadata.VocalTonicNote = reader.ReadUInt32(); break;
