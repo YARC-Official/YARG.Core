@@ -5,7 +5,7 @@ namespace YARG.Core.Song.Deserialization
 {
     public abstract class YARGTXTReader_Base
     {
-        protected static readonly Encoding ANSI = CodePagesEncodingProvider.Instance.GetEncoding(1252);
+        public static readonly Encoding Latin1 = Encoding.GetEncoding(28591);
         protected readonly byte[] data;
         protected readonly int length;
         protected int _position;
