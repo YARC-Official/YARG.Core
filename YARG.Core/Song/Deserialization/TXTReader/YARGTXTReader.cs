@@ -139,10 +139,7 @@ namespace YARG.Core.Song.Deserialization
             }
             catch
             {
-                char[] str = new char[span.Length];
-                for (int i = 0; i < span.Length; ++i)
-                    str[i] = (char) span[i];
-                return new(str);
+                return ANSI.GetString(span);
             }
         }
 
