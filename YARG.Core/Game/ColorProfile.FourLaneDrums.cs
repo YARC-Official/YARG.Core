@@ -54,7 +54,7 @@ namespace YARG.Core.Game
                 };
             }
 
-            public Color KickParticles   = DefaultOrangeParticles;
+            public Color KickParticles   = Color.FromArgb(0xFF, 0xFF, 0xB6, 0x00); // #ffb600
             public Color RedParticles    = DefaultRedParticles;
             public Color YellowParticles = DefaultYellowParticles;
             public Color BlueParticles   = DefaultBlueParticles;
