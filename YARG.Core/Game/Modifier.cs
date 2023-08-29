@@ -5,11 +5,11 @@ namespace YARG.Core.Game
     [Flags]
     public enum Modifier
     {
-        None,
-        AllStrums   = 1,
-        AllHopos    = 2,
-        AllTaps     = 4,
-        HoposToTaps = 8,
-        NoteShuffle = 16,
+        None        = 0,
+        AllStrums   = 1 << 0,
+        AllHopos    = 1 << 1,
+        AllTaps     = 1 << 2,
+        HoposToTaps = 1 << 3,
+        NoteShuffle = 1 << 4,
     }
 }

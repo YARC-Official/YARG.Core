@@ -59,6 +59,9 @@ namespace YARG.Core.Game
                 case Modifier.AllTaps:
                     RemoveModifiers(Modifier.AllStrums | Modifier.AllHopos);
                     break;
+                case Modifier.HoposToTaps:
+                    RemoveModifiers(Modifier.AllStrums | Modifier.AllHopos | Modifier.AllTaps);
+                    break;
             }
 
             _modifiers |= modifier;
