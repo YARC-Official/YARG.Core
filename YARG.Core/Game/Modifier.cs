@@ -3,7 +3,7 @@ using System;
 namespace YARG.Core.Game
 {
     [Flags]
-    public enum Modifier
+    public enum Modifier : ulong
     {
         None        = 0,
         AllStrums   = 1 << 0,

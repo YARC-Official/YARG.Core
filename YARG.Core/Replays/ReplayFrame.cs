@@ -2,6 +2,7 @@ using System.IO;
 using YARG.Core.Engine;
 using YARG.Core.Engine.Drums;
 using YARG.Core.Engine.Guitar;
+using YARG.Core.Game;
 using YARG.Core.Input;
 using YARG.Core.Utility;
 
@@ -13,6 +14,7 @@ namespace YARG.Core.Replays
         public string               PlayerName;
         public Instrument           Instrument;
         public Difficulty           Difficulty;
+        public Modifier             Modifiers;
         public BaseEngineParameters EngineParameters;
         public BaseStats            Stats;
         public int                  InputCount;
@@ -24,6 +26,8 @@ namespace YARG.Core.Replays
             writer.Write(PlayerName);
             writer.Write((byte) Instrument);
             writer.Write((byte) Difficulty);
+
+            writer.Write((ulong)Modifiers);
 
             EngineParameters.Serialize(writer);
             Stats.Serialize(writer);
@@ -43,6 +47,8 @@ namespace YARG.Core.Replays
             PlayerName = reader.ReadString();
             Instrument = (Instrument) reader.ReadByte();
             Difficulty = (Difficulty) reader.ReadByte();
+
+            Modifiers = (Modifier) reader.ReadUInt64();
 
             switch (Instrument.ToGameMode())
             {
