@@ -24,7 +24,7 @@ namespace YARG.Core.Game
 
         public bool IsBot;
 
-        private Modifier _modifiers;
+        public Modifier Modifiers { get; private set; }
 
         public YargProfile()
         {
@@ -37,7 +37,7 @@ namespace YARG.Core.Game
             HighwayLength = 1;
             LeftyFlip = false;
 
-            _modifiers = Modifier.None;
+            Modifiers = Modifier.None;
         }
 
         public YargProfile(Guid id) : this()
@@ -64,17 +64,17 @@ namespace YARG.Core.Game
                     break;
             }
 
-            _modifiers |= modifier;
+            Modifiers |= modifier;
         }
 
         public void RemoveModifiers(Modifier modifier)
         {
-            _modifiers &= ~modifier;
+            Modifiers &= ~modifier;
         }
 
         public bool IsModifierActive(Modifier modifier)
         {
-            return (_modifiers & modifier) == modifier;
+            return (Modifiers & modifier) == modifier;
         }
     }
 }
