@@ -13,6 +13,7 @@ namespace YARG.Core.Engine
 
         public int BaseScore { get; protected set; }
 
+        protected bool IsInputUpdate { get; private set; }
         protected bool IsBotUpdate   { get; private set; }
 
         protected abstract float[] StarMultiplierThresholds { get; }
@@ -59,6 +60,7 @@ namespace YARG.Core.Engine
                 return;
             }
 
+            IsInputUpdate = true;
             ProcessInputs();
         }
 
@@ -68,10 +70,11 @@ namespace YARG.Core.Engine
         /// <param name="time">The time to simulate hit logic at.</param>
         public void UpdateEngine(double time)
         {
+            IsInputUpdate = false;
             bool noteUpdated;
             do
             {
-                noteUpdated = UpdateEngineState(time);
+                noteUpdated = UpdateHitLogic(time);
             } while (noteUpdated);
         }
 
@@ -80,28 +83,21 @@ namespace YARG.Core.Engine
         /// </summary>
         protected void ProcessInputs()
         {
+
             // Start to process inputs in queue.
             while (InputQueue.TryDequeue(out var input))
             {
-                // Execute a non-input update using the input's time.
+                // Execute a non-input update using the input 's time.
                 // This will update the engine to the time of the first input, missing notes before the input is processed
                 UpdateEngine(input.Time);
 
                 CurrentInput = input;
-                bool isInputUpdate = true;
+                IsInputUpdate = true;
                 bool noteUpdated;
                 do
                 {
-                    if (isInputUpdate)
-                    {
-                        // We only need to update hit logic once per input.
-                        noteUpdated = UpdateEngineInput(input.Time);
-                        isInputUpdate = false;
-                    }
-                    else
-                    {
-                        noteUpdated = UpdateEngineState(input.Time);
-                    }
+                    noteUpdated = UpdateHitLogic(input.Time);
+                    IsInputUpdate = false;
                 } while (noteUpdated);
             }
         }
@@ -113,28 +109,18 @@ namespace YARG.Core.Engine
 
         public virtual void UpdateBot(double songTime)
         {
+            IsInputUpdate = false;
             IsBotUpdate = true;
         }
 
         public abstract void Reset(bool keepCurrentButtons = false);
 
         /// <summary>
-        /// Executes the engine state logic with respect to the given time.
-        /// Here, things that don't require inputs should be processed such as note missing,
-        /// starpower depletion, etc.
+        /// Executes engine logic with respect to the given time.
         /// </summary>
         /// <param name="time">The time in which to simulate hit logic at.</param>
         /// <returns>True if a note was updated (hit or missed). False if no changes.</returns>
-        protected abstract bool UpdateEngineState(double time);
-
-        /// <summary>
-        /// Executes the engine input logic with respect to the given time.
-        /// Here, things that do require inputs should be processed such as note hitting,
-        /// starpower activation, etc.
-        /// </summary>
-        /// <param name="time">The time in which to simulate hit logic at.</param>
-        /// <returns>True if a note was updated (hit or missed). False if no changes.</returns>
-        protected abstract bool UpdateEngineInput(double time);
+        protected abstract bool UpdateHitLogic(double time);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected static void ResetTimer(ref double timer)
@@ -256,7 +242,6 @@ namespace YARG.Core.Engine
             }
         }
 
-        protected abstract bool CheckForNoteMiss();
         protected abstract bool CheckForNoteHit();
 
         /// <summary>

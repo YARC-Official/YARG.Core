@@ -9,20 +9,18 @@ namespace YARG.Core.Engine.Drums.Engines
         {
         }
 
-        protected override bool UpdateEngineState(double time)
+        protected override bool UpdateHitLogic(double time)
         {
             UpdateTimeVariables(time);
 
             DepleteStarPower(GetUsedStarPower());
 
-            // Quit early if there are no notes left
-            if (State.NoteIndex >= Notes.Count) return false;
+            // Quits early if there are no notes left
+            if (State.NoteIndex >= Notes.Count)
+            {
+                return false;
+            }
 
-            return CheckForNoteMiss();
-        }
-
-        protected override bool CheckForNoteMiss()
-        {
             var note = Notes[State.NoteIndex];
 
             if (State.CurrentTime > note.Time + EngineParameters.BackEnd)
@@ -37,14 +35,6 @@ namespace YARG.Core.Engine.Drums.Engines
                     MissNote(chordNote);
                 }
             }
-
-            return false;
-        }
-
-        protected override bool UpdateEngineInput(double time)
-        {
-            // Quit early if there are no notes left
-            if (State.NoteIndex >= Notes.Count) return false;
 
             bool isNoteHit = CheckForNoteHit();
 
