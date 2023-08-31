@@ -56,7 +56,11 @@ namespace YARG.Core.Engine.Drums.Engines
         protected override bool CheckForNoteHit()
         {
             var note = Notes[State.NoteIndex];
+            return CheckForNoteHit(note);
+        }
 
+        protected bool CheckForNoteHit(DrumNote note)
+        {
             if (State.CurrentTime < note.Time + EngineParameters.FrontEnd)
             {
                 return false;
@@ -76,6 +80,14 @@ namespace YARG.Core.Engine.Drums.Engines
                     HitNote(chordNote);
                     return true;
                 }
+            }
+
+            // If that fails, attempt to hit any of the other notes ahead of this one (in the hit window)
+            // This helps a lot with combo regain, especially with fast double bass
+            // Please note that this is recursive, so a loop is not required
+            if (note.NextNote is not null && CheckForNoteHit(note.NextNote))
+            {
+                return true;
             }
 
             return false;
