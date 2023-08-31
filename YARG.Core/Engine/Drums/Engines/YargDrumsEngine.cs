@@ -23,6 +23,7 @@ namespace YARG.Core.Engine.Drums.Engines
 
             var note = Notes[State.NoteIndex];
 
+            // Miss notes (back end)
             if (State.CurrentTime > note.Time + EngineParameters.BackEnd)
             {
                 foreach (var chordNote in note.ChordEnumerator())
@@ -39,7 +40,7 @@ namespace YARG.Core.Engine.Drums.Engines
             bool isNoteHit = CheckForNoteHit();
 
             // Check for over hits
-            if (IsNoteInput(CurrentInput) && CurrentInput.Button)
+            if (IsInputUpdate && IsNoteInput(CurrentInput) && CurrentInput.Button)
             {
                 if (!isNoteHit)
                 {
@@ -82,7 +83,7 @@ namespace YARG.Core.Engine.Drums.Engines
 
         protected override bool CanNoteBeHit(DrumNote note)
         {
-            if (!CurrentInput.Button)
+            if (!IsInputUpdate || !CurrentInput.Button)
             {
                 return false;
             }
