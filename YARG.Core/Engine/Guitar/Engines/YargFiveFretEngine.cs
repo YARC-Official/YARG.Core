@@ -369,9 +369,9 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                 // Gets the lowest fret of the chord.
                 var fretMask = 0;
-                for (var fret = GuitarAction.GreenFret + 1; fret <= GuitarAction.OrangeFret; fret++)
+                for (var fret = GuitarAction.GreenFret; fret <= GuitarAction.OrangeFret; fret++)
                 {
-                    fretMask = (int) fret << 1;
+                    fretMask = 1 << (int)fret;
 
                     // If the current fret mask is part of the chord, break
                     if ((fretMask & note.NoteMask) == fretMask)
