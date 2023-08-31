@@ -65,35 +65,33 @@ namespace YARG.Core.Engine.Drums
             note.SetHitState(true, false);
 
             // Detect if the last note(s) were skipped
-            // bool skipped = false;
-            // var prevNote = note.PreviousNote;
-            // while (prevNote is not null && !prevNote.WasFullyHitOrMissed())
-            // {
-            //     YargTrace.LogInfo("BAD");
-            //
-            //     skipped = true;
-            //     EngineStats.Combo = 0;
-            //
-            //     foreach (var chordNote in prevNote.ChordEnumerator())
-            //     {
-            //         if (chordNote.WasMissed || chordNote.WasHit)
-            //         {
-            //             continue;
-            //         }
-            //
-            //         chordNote.SetMissState(true, false);
-            //         EngineStats.NotesMissed++;
-            //         OnNoteMissed?.Invoke(State.NoteIndex, prevNote);
-            //     }
-            //
-            //     State.NoteIndex++;
-            //     prevNote = prevNote.PreviousNote;
-            // }
-            //
-            // if (skipped)
-            // {
-            //     StripStarPower(note.PreviousNote);
-            // }
+            bool skipped = false;
+            var prevNote = note.ParentOrSelf.PreviousNote;
+            while (prevNote is not null && !prevNote.WasFullyHitOrMissed())
+            {
+                skipped = true;
+                EngineStats.Combo = 0;
+
+                foreach (var chordNote in prevNote.ChordEnumerator())
+                {
+                    if (chordNote.WasMissed || chordNote.WasHit)
+                    {
+                        continue;
+                    }
+
+                    chordNote.SetMissState(true, false);
+                    EngineStats.NotesMissed++;
+                    OnNoteMissed?.Invoke(State.NoteIndex, prevNote);
+                }
+
+                State.NoteIndex++;
+                prevNote = prevNote.PreviousNote;
+            }
+
+            if (skipped)
+            {
+                StripStarPower(note.ParentOrSelf.PreviousNote);
+            }
 
             if (note.IsStarPower && note.IsStarPowerEnd)
             {
