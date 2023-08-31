@@ -157,39 +157,38 @@ namespace YARG.Core.Song
             if (!section.TryGet("album_track", out _albumTrack))
                 _albumTrack = -1;
 
-            section.TryGet("song_length", out ulong songLength);
-            _songLength = songLength / MILLISECOND_FACTOR;
+            if (section.TryGet("song_length", out _songLength))
+                SongLength = _songLength;
 
-            if (section.TryGet("preview", out ulong previewStart, out ulong previewEnd))
+            if (section.TryGet("preview", out _previewStart, out _previewEnd))
             {
-                _previewStart = previewStart / MILLISECOND_FACTOR;
-                _previewEnd = previewEnd / MILLISECOND_FACTOR;
+                PreviewStart = _previewStart;
+                PreviewEnd = _previewEnd;
             }
             else
             {
-                if (section.TryGet("preview_start_time", out previewStart))
-                    _previewStart = previewStart / MILLISECOND_FACTOR;
-                else
-                    section.TryGet("previewStart", out _previewStart);
+                if (section.TryGet("preview_start_time", out _previewStart))
+                    PreviewStart = _previewStart;
+                else if (section.TryGet("previewStart", out _previewStartInSeconds))
+                    PreviewStartInSeconds = _previewStartInSeconds;
 
-                if (section.TryGet("preview_end_time", out previewEnd))
-                    _previewEnd = previewEnd / MILLISECOND_FACTOR;
-                else
-                    section.TryGet("previewEnd", out _previewEnd);
+                if (section.TryGet("preview_end_time", out _previewEnd))
+                    PreviewEnd = _previewEnd;
+                else if (section.TryGet("previewEnd", out _previewEndInSeconds))
+                    PreviewEndInSeconds = _previewEndInSeconds;
             }
+            
 
-            if (section.TryGet("delay", out long songOffset))
-                _songOffset = songOffset / MILLISECOND_FACTOR;
-            else
-                section.TryGet("offset", out _songOffset);
+            if (section.TryGet("delay", out _songOffset))
+                SongOffset = _songOffset;
+            else if (section.TryGet("offset", out _songOffsetInSeconds))
+                SongOffsetInSeconds = _songOffsetInSeconds;
+                
 
-            section.TryGet("video_start_time", out long videoStartTime);
-            _videoStartTime = videoStartTime / MILLISECOND_FACTOR;
+            if (section.TryGet("video_start_time", out long videoStartTime))
+                _videoStartTimeInSeconds = videoStartTime / MILLISECOND_FACTOR;
 
-            if (section.TryGet("video_end_time", out long videoEndTime))
-                _videoEndTime = videoEndTime / MILLISECOND_FACTOR;
-            else
-                _videoEndTime = -1;
+            _videoEndTimeInSeconds = section.TryGet("video_end_time", out long videoEndTime) ? videoEndTime / MILLISECOND_FACTOR : -1;
 
             if (_parseSettings.DrumsType == DrumsType.ProDrums)
                 _parseSettings.DrumsType = DrumsType.FourLane;

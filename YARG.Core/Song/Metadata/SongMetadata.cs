@@ -77,14 +77,20 @@ namespace YARG.Core.Song
 
         private string _loadingPhrase = string.Empty;
 
-        private double _songLength = 0;
-        private double _songOffset = 0;
+        private ulong _songLength = 0;
+        private long _songOffset = 0;
 
-        private double _previewStart = 0;
-        private double _previewEnd = 0;
+        private double _songLengthInSeconds = 0;
+        private double _songOffsetInSeconds = 0;
 
-        private double _videoStartTime = 0;
-        private double _videoEndTime = -1;
+        private ulong _previewStart = 0;
+        private ulong _previewEnd = 0;
+
+        private double _previewStartInSeconds = 0;
+        private double _previewEndInSeconds = 0;
+
+        private double _videoStartTimeInSeconds = 0;
+        private double _videoEndTimeInSeconds = -1;
 
         private HashWrapper _hash = default;
 
@@ -141,23 +147,89 @@ namespace YARG.Core.Song
 
         public string LoadingPhrase => _loadingPhrase;
 
-        public double SongLength => _songLength;
-        public double SongOffset => _songOffset;
+        public ulong SongLength
+        {
+            get => _songLength;
+            private set
+            {
+                _songLength = value;
+                _songLengthInSeconds = value / MILLISECOND_FACTOR;
+            }
+        }
 
-        public ulong SongLengthMilliseconds => (ulong) (SongLength * MILLISECOND_FACTOR);
-        public long SongOffsetMilliseconds => (long) (SongOffset * MILLISECOND_FACTOR);
+        public long SongOffset
+        {
+            get => _songOffset;
+            private set
+            {
+                _songOffset = value;
+                _songOffsetInSeconds = value / MILLISECOND_FACTOR;
+            }
+        }
 
-        public double PreviewStart => _previewStart;
-        public double PreviewEnd => _previewEnd;
+        public double SongLengthInSeconds
+        {
+            get => _songLengthInSeconds;
+            private set
+            {
+                _songLengthInSeconds = value;
+                _songLength = (ulong)(value * MILLISECOND_FACTOR);
+            }
+        }
 
-        public ulong PreviewStartMilliseconds => (ulong) (PreviewStart * MILLISECOND_FACTOR);
-        public ulong PreviewEndMilliseconds => (ulong) (PreviewEnd * MILLISECOND_FACTOR);
+        public double SongOffsetInSeconds
+        {
+            get => _songOffsetInSeconds;
+            private set
+            {
+                _songOffsetInSeconds = value;
+                _songOffset = (long) (value * MILLISECOND_FACTOR);
+            }
+        }
 
-        public double VideoStartTime => _videoStartTime;
-        public double VideoEndTime => _videoEndTime;
+        public ulong PreviewStart
+        {
+            get => _previewStart;
+            private set
+            {
+                _previewStart = value;
+                _previewStartInSeconds = value / MILLISECOND_FACTOR;
+            }
+        }
 
-        public long VideoStartTimeMilliseconds => (long) (VideoStartTime * MILLISECOND_FACTOR);
-        public long VideoEndTimeMilliseconds => (long) (VideoEndTime * MILLISECOND_FACTOR);
+        public ulong PreviewEnd
+        {
+            get => _previewEnd;
+            private set
+            {
+                _previewEnd = value;
+                _previewEndInSeconds = value / MILLISECOND_FACTOR;
+            }
+        }
+
+        public double PreviewStartInSeconds
+        {
+            get => _previewStartInSeconds;
+            private set
+            {
+                _previewStartInSeconds = value;
+                _previewStart = (ulong) (value * MILLISECOND_FACTOR);
+            }
+        }
+
+        public double PreviewEndInSeconds
+        {
+            get => _previewEndInSeconds;
+            private set
+            {
+                _previewEndInSeconds = value;
+                _previewEnd = (ulong) (value * MILLISECOND_FACTOR);
+            }
+        }
+
+        public double VideoStartTimeInSeconds => _videoStartTimeInSeconds;
+
+        public double VideoEndTimeInSeconds => _videoEndTimeInSeconds;
 
         public HashWrapper Hash => _hash;
 

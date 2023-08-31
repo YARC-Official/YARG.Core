@@ -159,17 +159,17 @@ namespace YARG.Core.Song.Cache
 
     public class SongLengthCategory : SongCategory<string>
     {
+        private const int MILLISECONDS_PER_MINUTE = 60 * 1000;
         private static readonly EntryComparer comparer = new(SongAttribute.SongLength);
         public override void Add(SongMetadata entry)
         {
-            string key = TimeSpan.FromSeconds(entry.SongLength).TotalMinutes switch
+            string key = (entry.SongLength / MILLISECONDS_PER_MINUTE) switch
             {
-                <= 0.00 => "-",
-                <= 2.00 => "00:00 - 02:00",
-                <= 5.00 => "02:00 - 05:00",
-                <= 10.00 => "05:00 - 10:00",
-                <= 15.00 => "10:00 - 15:00",
-                <= 20.00 => "15:00 - 20:00",
+                < 2 => "00:00 - 02:00",
+                < 5 => "02:00 - 05:00",
+                < 10 => "05:00 - 10:00",
+                < 15 => "10:00 - 15:00",
+                < 20 => "15:00 - 20:00",
                 _ => "20:00+",
             };
 
