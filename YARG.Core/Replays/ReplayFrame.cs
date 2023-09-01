@@ -2,7 +2,6 @@ using System.IO;
 using YARG.Core.Engine;
 using YARG.Core.Engine.Drums;
 using YARG.Core.Engine.Guitar;
-using YARG.Core.Game;
 using YARG.Core.Input;
 using YARG.Core.Utility;
 
@@ -10,11 +9,7 @@ namespace YARG.Core.Replays
 {
     public class ReplayFrame : IBinarySerializable
     {
-        public int                  PlayerId;
-        public string               PlayerName;
-        public Instrument           Instrument;
-        public Difficulty           Difficulty;
-        public Modifier             Modifiers;
+        public ReplayPlayerInfo     PlayerInfo;
         public BaseEngineParameters EngineParameters;
         public BaseStats            Stats;
         public int                  InputCount;
@@ -22,13 +17,7 @@ namespace YARG.Core.Replays
 
         public void Serialize(BinaryWriter writer)
         {
-            writer.Write(PlayerId);
-            writer.Write(PlayerName);
-            writer.Write((byte) Instrument);
-            writer.Write((byte) Difficulty);
-
-            writer.Write((ulong)Modifiers);
-
+            PlayerInfo.Serialize(writer);
             EngineParameters.Serialize(writer);
             Stats.Serialize(writer);
 
@@ -43,14 +32,10 @@ namespace YARG.Core.Replays
 
         public void Deserialize(BinaryReader reader, int version = 0)
         {
-            PlayerId = reader.ReadInt32();
-            PlayerName = reader.ReadString();
-            Instrument = (Instrument) reader.ReadByte();
-            Difficulty = (Difficulty) reader.ReadByte();
+            PlayerInfo = new ReplayPlayerInfo();
+            PlayerInfo.Deserialize(reader, version);
 
-            Modifiers = (Modifier) reader.ReadUInt64();
-
-            switch (Instrument.ToGameMode())
+            switch (PlayerInfo.Profile.Instrument.ToGameMode())
             {
                 case GameMode.FiveFretGuitar:
                 case GameMode.SixFretGuitar:

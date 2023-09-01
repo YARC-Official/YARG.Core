@@ -123,7 +123,7 @@ while (true)
     Console.WriteLine($"Players ({replay.PlayerCount}):");
     foreach (var frame in replay.Frames)
     {
-        Console.WriteLine($" - {frame.PlayerName}, {frame.Instrument} ({frame.Difficulty})");
+        Console.WriteLine($" - {frame.PlayerInfo.Profile.Name}, {frame.PlayerInfo.Profile.Instrument} ({frame.PlayerInfo.Profile.Difficulty})");
     }
     Console.WriteLine($"Band score: {replay.BandScore} (as per metadata)\n");
 

@@ -1,10 +1,13 @@
-using System;
 using System.Drawing;
+using System.IO;
+using YARG.Core.Utility;
 
 namespace YARG.Core.Game
 {
-    public partial class ColorProfile
+    public partial class ColorProfile : IBinarySerializable
     {
+        private const int COLOR_PROFILE_VERSION = 1;
+
         /// <summary>
         /// Interface that has methods that allows for generic fret color retrieval.
         /// Not all instruments have frets, so it's an interface.
@@ -52,6 +55,8 @@ namespace YARG.Core.Game
 
         public static ColorProfile Default = new("Default");
 
+        public int Version = COLOR_PROFILE_VERSION;
+
         public string Name;
 
         public FiveFretGuitarColors FiveFretGuitar;
@@ -63,6 +68,25 @@ namespace YARG.Core.Game
 
             FiveFretGuitar = new FiveFretGuitarColors();
             FourLaneDrums = new FourLaneDrumsColors();
+        }
+
+        public void Serialize(BinaryWriter writer)
+        {
+            writer.Write(Version);
+            writer.Write(Name);
+
+            FiveFretGuitar.Serialize(writer);
+            FourLaneDrums.Serialize(writer);
+        }
+
+        public void Deserialize(BinaryReader reader, int version = 0)
+        {
+            version = reader.ReadInt32();
+
+            Name = reader.ReadString();
+
+            FiveFretGuitar.Deserialize(reader, version);
+            FourLaneDrums.Deserialize(reader, version);
         }
     }
 }

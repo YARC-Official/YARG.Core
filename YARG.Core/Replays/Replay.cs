@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using YARG.Core.Game;
 using YARG.Core.Song;
 using YARG.Core.Utility;
 
@@ -32,14 +33,18 @@ namespace YARG.Core.Replays
 
     public class Replay : IBinarySerializable
     {
-        public string       SongName;
-        public string       ArtistName;
-        public string       CharterName;
-        public int          BandScore;
-        public DateTime     Date;
-        public HashWrapper  SongChecksum;
-        public int          PlayerCount;
-        public string[]     PlayerNames;
+        public string         SongName;
+        public string         ArtistName;
+        public string         CharterName;
+        public int            BandScore;
+        public DateTime       Date;
+        public HashWrapper    SongChecksum;
+
+        public int            ColorProfileCount;
+        public ColorProfile[] ColorProfiles;
+
+        public int            PlayerCount;
+        public string[]       PlayerNames;
 
         public ReplayFrame[] Frames;
 
@@ -52,6 +57,12 @@ namespace YARG.Core.Replays
             writer.Write(Date.ToBinary());
 
             SongChecksum.Serialize(writer);
+
+            writer.Write(ColorProfileCount);
+            for (int i = 0; i < ColorProfileCount; i++)
+            {
+                ColorProfiles[i].Serialize(writer);
+            }
 
             writer.Write(PlayerCount);
             for (int i = 0; i < PlayerCount; i++)
@@ -72,9 +83,19 @@ namespace YARG.Core.Replays
             BandScore = reader.ReadInt32();
             Date = DateTime.FromBinary(reader.ReadInt64());
             SongChecksum = new HashWrapper(reader);
-            PlayerCount = reader.ReadInt32();
 
+            ColorProfileCount = reader.ReadInt32();
+            ColorProfiles = new ColorProfile[ColorProfileCount];
+
+            for (int i = 0; i < ColorProfileCount; i++)
+            {
+                ColorProfiles[i] = new ColorProfile("");
+                ColorProfiles[i].Deserialize(reader, version);
+            }
+
+            PlayerCount = reader.ReadInt32();
             PlayerNames = new string[PlayerCount];
+
             Frames = new ReplayFrame[PlayerCount];
             for (int i = 0; i < PlayerCount; i++)
             {

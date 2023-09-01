@@ -1,10 +1,14 @@
 ﻿using System;
+using System.IO;
 using Newtonsoft.Json;
+using YARG.Core.Utility;
 
 namespace YARG.Core.Game
 {
-    public class YargProfile
+    public class YargProfile : IBinarySerializable
     {
+        private const int PROFILE_VERSION = 1;
+
         public Guid Id;
 
         public string Name;
@@ -75,6 +79,32 @@ namespace YARG.Core.Game
         public bool IsModifierActive(Modifier modifier)
         {
             return (Modifiers & modifier) == modifier;
+        }
+
+        public void Serialize(BinaryWriter writer)
+        {
+            writer.Write(PROFILE_VERSION);
+
+            writer.Write(Name);
+            writer.Write((byte) Instrument);
+            writer.Write((byte) Difficulty);
+            writer.Write(NoteSpeed);
+            writer.Write(HighwayLength);
+            writer.Write(LeftyFlip);
+        }
+
+        public void Deserialize(BinaryReader reader, int version = 0)
+        {
+            version = reader.ReadInt32();
+
+            Name = reader.ReadString();
+            Instrument = (Instrument) reader.ReadByte();
+            Difficulty = (Difficulty) reader.ReadByte();
+            NoteSpeed = reader.ReadSingle();
+            HighwayLength = reader.ReadSingle();
+            LeftyFlip = reader.ReadBoolean();
+
+            GameMode = Instrument.ToGameMode();
         }
     }
 }

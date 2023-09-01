@@ -75,7 +75,7 @@ public class Analyzer
     {
         var engine = CreateEngine(replayFrame);
 
-        Console.WriteLine($"> Running for {replayFrame.PlayerName}...");
+        Console.WriteLine($"> Running for {replayFrame.PlayerInfo.Profile.Name}...");
 
         if (frameUpdates is null)
         {
@@ -116,22 +116,23 @@ public class Analyzer
 
         // Done!
         int score = GetScore(engine, replayFrame);
-        Console.WriteLine($"> Done running for {replayFrame.PlayerName}, final score: {score}");
+        Console.WriteLine($"> Done running for {replayFrame.PlayerInfo.Profile.Name}, final score: {score}");
         _currentBandScore += score;
     }
 
     private BaseEngine CreateEngine(ReplayFrame replayFrame)
     {
-        Console.WriteLine($"> Creating engine for {replayFrame.PlayerName}...");
+        var profile = replayFrame.PlayerInfo.Profile;
+        Console.WriteLine($"> Creating engine for {profile.Name}...");
 
-        var gameMode = replayFrame.Instrument.ToGameMode();
+        var gameMode = profile.GameMode;
 
         switch (gameMode)
         {
             case GameMode.FiveFretGuitar:
             {
                 // Reset the notes
-                var notes = _chart.GetFiveFretTrack(replayFrame.Instrument).Difficulties[replayFrame.Difficulty];
+                var notes = _chart.GetFiveFretTrack(profile.Instrument).Difficulties[profile.Difficulty];
                 foreach (var note in notes.Notes)
                 {
                     foreach (var subNote in note.ChordEnumerator())
@@ -149,7 +150,7 @@ public class Analyzer
             case GameMode.FourLaneDrums:
             {
                 // Reset the notes
-                var notes = _chart.GetDrumsTrack(replayFrame.Instrument).Difficulties[replayFrame.Difficulty];
+                var notes = _chart.GetDrumsTrack(profile.Instrument).Difficulties[profile.Difficulty];
                 foreach (var note in notes.Notes)
                 {
                     foreach (var subNote in note.ChordEnumerator())
@@ -171,7 +172,7 @@ public class Analyzer
 
     private int GetScore(BaseEngine engine, ReplayFrame replayFrame)
     {
-        var gameMode = replayFrame.Instrument.ToGameMode();
+        var gameMode = replayFrame.PlayerInfo.Profile.GameMode;
 
         return gameMode switch
         {

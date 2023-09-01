@@ -1,10 +1,13 @@
 using System.Drawing;
+using System.IO;
+using YARG.Core.Extensions;
+using YARG.Core.Utility;
 
 namespace YARG.Core.Game
 {
     public partial class ColorProfile
     {
-        public class FourLaneDrumsColors : IFretColorProvider
+        public class FourLaneDrumsColors : IFretColorProvider, IBinarySerializable
         {
             #region Frets
 
@@ -81,7 +84,7 @@ namespace YARG.Core.Game
 
             #region Notes
 
-            public Color KickNote   = DefaultOrangeNote;
+            public Color KickNote = DefaultOrangeNote;
 
             public Color RedDrum    = DefaultRedNote;
             public Color YellowDrum = DefaultYellowNote;
@@ -147,6 +150,92 @@ namespace YARG.Core.Game
 
                     _ => default
                 };
+            }
+
+            #endregion
+
+            #region Serialization
+
+            public void Serialize(BinaryWriter writer)
+            {
+                writer.Write(KickFret);
+                writer.Write(RedFret);
+                writer.Write(YellowFret);
+                writer.Write(BlueFret);
+                writer.Write(GreenFret);
+
+                writer.Write(KickFretInner);
+                writer.Write(RedFretInner);
+                writer.Write(YellowFretInner);
+                writer.Write(BlueFretInner);
+                writer.Write(GreenFretInner);
+
+                writer.Write(KickParticles);
+                writer.Write(RedParticles);
+                writer.Write(YellowParticles);
+                writer.Write(BlueParticles);
+                writer.Write(GreenParticles);
+
+                writer.Write(KickNote);
+                writer.Write(RedDrum);
+                writer.Write(YellowDrum);
+                writer.Write(BlueDrum);
+                writer.Write(GreenDrum);
+
+                writer.Write(YellowCymbal);
+                writer.Write(BlueCymbal);
+                writer.Write(GreenCymbal);
+
+                writer.Write(KickStarpower);
+                writer.Write(RedDrumStarpower);
+                writer.Write(YellowDrumStarpower);
+                writer.Write(BlueDrumStarpower);
+                writer.Write(GreenDrumStarpower);
+
+                writer.Write(YellowCymbalStarpower);
+                writer.Write(BlueCymbalStarpower);
+                writer.Write(GreenCymbalStarpower);
+            }
+
+            public void Deserialize(BinaryReader reader, int version = 0)
+            {
+                KickFret = reader.ReadColor();
+                RedFret = reader.ReadColor();
+                YellowFret = reader.ReadColor();
+                BlueFret = reader.ReadColor();
+                GreenFret = reader.ReadColor();
+
+                KickFretInner = reader.ReadColor();
+                RedFretInner = reader.ReadColor();
+                YellowFretInner = reader.ReadColor();
+                BlueFretInner = reader.ReadColor();
+                GreenFretInner = reader.ReadColor();
+
+                KickParticles = reader.ReadColor();
+                RedParticles = reader.ReadColor();
+                YellowParticles = reader.ReadColor();
+                BlueParticles = reader.ReadColor();
+                GreenParticles = reader.ReadColor();
+
+                KickNote = reader.ReadColor();
+                RedDrum = reader.ReadColor();
+                YellowDrum = reader.ReadColor();
+                BlueDrum = reader.ReadColor();
+                GreenDrum = reader.ReadColor();
+
+                YellowCymbal = reader.ReadColor();
+                BlueCymbal = reader.ReadColor();
+                GreenCymbal = reader.ReadColor();
+
+                KickStarpower = reader.ReadColor();
+                RedDrumStarpower = reader.ReadColor();
+                YellowDrumStarpower = reader.ReadColor();
+                BlueDrumStarpower = reader.ReadColor();
+                GreenDrumStarpower = reader.ReadColor();
+
+                YellowCymbalStarpower = reader.ReadColor();
+                BlueCymbalStarpower = reader.ReadColor();
+                GreenCymbalStarpower = reader.ReadColor();
             }
 
             #endregion
