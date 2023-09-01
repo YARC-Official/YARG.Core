@@ -152,6 +152,8 @@ namespace YARG.Core.Game
                 };
             }
 
+            public Color ActivationNote = DefaultPurpleNote;
+
             #endregion
 
             #region Serialization
