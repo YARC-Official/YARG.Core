@@ -41,7 +41,7 @@ public class Analyzer
             var randomValues = new List<double>();
 
             // Populate with a fps
-            int fps = random.Next(30, 240);
+            int fps = i * 2 + 1;
             double secondsPerFrame = 1.0 / fps;
             double endTime = _chart.GetEndTime();
             for (double time = 0; time < endTime; time += secondsPerFrame)
