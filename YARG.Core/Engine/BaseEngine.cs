@@ -395,8 +395,7 @@ namespace YARG.Core.Engine
 
             foreach (var note in Notes)
             {
-                note.SetHitState(false, true);
-                note.SetMissState(false, true);
+                note.ResetNoteState();
             }
 
             var inputIndex = 0;
