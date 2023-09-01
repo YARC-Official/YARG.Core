@@ -197,6 +197,8 @@ namespace YARG.Core.Game
                 writer.Write(YellowCymbalStarpower);
                 writer.Write(BlueCymbalStarpower);
                 writer.Write(GreenCymbalStarpower);
+
+                writer.Write(ActivationNote);
             }
 
             public void Deserialize(BinaryReader reader, int version = 0)
@@ -238,6 +240,8 @@ namespace YARG.Core.Game
                 YellowCymbalStarpower = reader.ReadColor();
                 BlueCymbalStarpower = reader.ReadColor();
                 GreenCymbalStarpower = reader.ReadColor();
+
+                ActivationNote = reader.ReadColor();
             }
 
             #endregion
