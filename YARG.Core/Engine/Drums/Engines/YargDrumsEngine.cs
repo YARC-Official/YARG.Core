@@ -9,11 +9,77 @@ namespace YARG.Core.Engine.Drums.Engines
         {
         }
 
+        public override void UpdateBot(double songTime)
+        {
+            base.UpdateBot(songTime);
+
+            // Skip if there are no notes left
+            if (State.NoteIndex >= Notes.Count)
+            {
+                return;
+            }
+
+            var note = Notes[State.NoteIndex];
+
+            bool updateToSongTime = true;
+            while (note is not null && songTime >= note.Time)
+            {
+                updateToSongTime = false;
+
+                // Make sure to hit each note in the "chord" individually
+                bool hit = true;
+                foreach (var chordNote in note.ChordEnumerator())
+                {
+                    State.PadHitThisUpdate = chordNote.Pad;
+
+                    if (!UpdateHitLogic(chordNote.Time))
+                    {
+                        hit = false;
+                    }
+                }
+
+                if (!hit) break;
+
+                note = note.NextNote;
+            }
+
+            State.PadHitThisUpdate = -1;
+
+            if (updateToSongTime)
+            {
+                UpdateHitLogic(songTime);
+            }
+        }
+
         protected override bool UpdateHitLogic(double time)
         {
             UpdateTimeVariables(time);
 
             DepleteStarPower(GetUsedStarPower());
+
+            // Get the pad hit this update
+            if (IsInputUpdate && CurrentInput.Button)
+            {
+                State.PadHitThisUpdate = CurrentInput.GetAction<DrumsAction>() switch
+                {
+                    DrumsAction.Kick => (int) FourLaneDrumPad.Kick,
+
+                    DrumsAction.Drum1 => (int) FourLaneDrumPad.RedDrum,
+                    DrumsAction.Drum2 => (int) FourLaneDrumPad.YellowDrum,
+                    DrumsAction.Drum3 => (int) FourLaneDrumPad.BlueDrum,
+                    DrumsAction.Drum4 => (int) FourLaneDrumPad.GreenDrum,
+
+                    DrumsAction.Cymbal1 => (int) FourLaneDrumPad.YellowCymbal,
+                    DrumsAction.Cymbal2 => (int) FourLaneDrumPad.BlueCymbal,
+                    DrumsAction.Cymbal3 => (int) FourLaneDrumPad.GreenCymbal,
+
+                    _ => -1
+                };
+            }
+            else if (!IsBotUpdate)
+            {
+                State.PadHitThisUpdate = -1;
+            }
 
             // Quits early if there are no notes left
             if (State.NoteIndex >= Notes.Count)
@@ -42,7 +108,7 @@ namespace YARG.Core.Engine.Drums.Engines
             bool isNoteHit = CheckForNoteHit();
 
             // Check for over hits
-            if (IsInputUpdate && IsNoteInput(CurrentInput) && CurrentInput.Button)
+            if (State.PadHitThisUpdate != -1)
             {
                 if (!isNoteHit)
                 {
@@ -97,33 +163,7 @@ namespace YARG.Core.Engine.Drums.Engines
 
         protected override bool CanNoteBeHit(DrumNote note)
         {
-            if (!IsInputUpdate || !CurrentInput.Button)
-            {
-                return false;
-            }
-
-            int padFromAction = CurrentInput.GetAction<DrumsAction>() switch
-            {
-                DrumsAction.Kick => (int) FourLaneDrumPad.Kick,
-
-                DrumsAction.Drum1 => (int) FourLaneDrumPad.RedDrum,
-                DrumsAction.Drum2 => (int) FourLaneDrumPad.YellowDrum,
-                DrumsAction.Drum3 => (int) FourLaneDrumPad.BlueDrum,
-                DrumsAction.Drum4 => (int) FourLaneDrumPad.GreenDrum,
-
-                DrumsAction.Cymbal1 => (int) FourLaneDrumPad.YellowCymbal,
-                DrumsAction.Cymbal2 => (int) FourLaneDrumPad.BlueCymbal,
-                DrumsAction.Cymbal3 => (int) FourLaneDrumPad.GreenCymbal,
-
-                _ => -1
-            };
-
-            if (note.Pad == padFromAction)
-            {
-                return true;
-            }
-
-            return false;
+            return note.Pad == State.PadHitThisUpdate;
         }
     }
 }
