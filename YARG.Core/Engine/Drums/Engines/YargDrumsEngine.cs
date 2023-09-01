@@ -35,6 +35,8 @@ namespace YARG.Core.Engine.Drums.Engines
 
                     MissNote(chordNote);
                 }
+
+                return true;
             }
 
             bool isNoteHit = CheckForNoteHit();
