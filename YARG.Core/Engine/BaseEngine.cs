@@ -122,6 +122,22 @@ namespace YARG.Core.Engine
         /// <returns>True if a note was updated (hit or missed). False if no changes.</returns>
         protected abstract bool UpdateHitLogic(double time);
 
+        /// <summary>
+        /// Resets the engine's state back to default and then processes the list of inputs up to the given time.
+        /// </summary>
+        /// <param name="time">Time to process up to.</param>
+        /// <param name="inputs">List of inputs to execute against.</param>
+        /// <returns>The input index that was processed up to.</returns>
+        public abstract int ProcessUpToTime(double time, IEnumerable<GameInput> inputs);
+
+        /// <summary>
+        /// Processes the list of inputs from the given start time to the given end time. Does not reset the engine's state.
+        /// </summary>
+        /// <param name="startTime">Time to begin processing from.</param>
+        /// <param name="endTime">Time to process up to.</param>
+        /// <param name="inputs">List of inputs to execute against.</param>
+        public abstract void ProcessFromTimeToTime(double startTime, double endTime, IEnumerable<GameInput> inputs);
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected static void ResetTimer(ref double timer)
         {
@@ -383,25 +399,19 @@ namespace YARG.Core.Engine
             State.CurrentSoloIndex++;
         }
 
-        /// <summary>
-        /// Resets the engine's state back to default and then processes the list of inputs up to the given time.
-        /// </summary>
-        /// <param name="time">Time to process up to.</param>
-        /// <param name="inputs">List of inputs to execute against.</param>
-        /// <returns>The input index that was processed up to.</returns>
-        public virtual int ProcessUpToTime(double time, IList<GameInput> inputs)
+        public override int ProcessUpToTime(double time, IEnumerable<GameInput> inputs)
         {
-            State.Reset();
-
-            foreach (var note in Notes)
-            {
-                note.ResetNoteState();
-            }
+            Reset();
 
             var inputIndex = 0;
-            while (inputIndex < inputs.Count && inputs[inputIndex].Time <= time)
+            foreach(var input in inputs)
             {
-                InputQueue.Enqueue(inputs[inputIndex]);
+                if (input.Time > time)
+                {
+                    break;
+                }
+
+                InputQueue.Enqueue(input);
                 inputIndex++;
             }
 
@@ -410,13 +420,7 @@ namespace YARG.Core.Engine
             return inputIndex;
         }
 
-        /// <summary>
-        /// Processes the list of inputs from the given start time to the given end time. Does not reset the engine's state.
-        /// </summary>
-        /// <param name="startTime">Time to begin processing from.</param>
-        /// <param name="endTime">Time to process up to.</param>
-        /// <param name="inputs">List of inputs to execute against.</param>
-        public virtual void ProcessFromTimeToTime(double startTime, double endTime, IList<GameInput> inputs)
+        public override void ProcessFromTimeToTime(double startTime, double endTime, IEnumerable<GameInput> inputs)
         {
             throw new NotImplementedException();
         }
