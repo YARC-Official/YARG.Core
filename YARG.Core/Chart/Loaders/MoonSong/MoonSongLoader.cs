@@ -334,7 +334,7 @@ namespace YARG.Core.Chart
                         float tickThreshold = note.song.resolution / 3; // 1/12th note
                         return Math.Abs((int) note.tick - endTick) < tickThreshold;
                     }
-                    else if (note.tick > endTick && previousNote.tick < endTick)
+                    else if (note.tick >= endTick && previousNote.tick < endTick)
                     {
                         // The phrase ends between the previous note and the given note
                         // IsEventInPhrase() is not used here since cases such as drum activations at the end of breaks
