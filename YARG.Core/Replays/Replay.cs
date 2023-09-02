@@ -33,18 +33,19 @@ namespace YARG.Core.Replays
 
     public class Replay : IBinarySerializable
     {
-        public string         SongName;
-        public string         ArtistName;
-        public string         CharterName;
-        public int            BandScore;
-        public DateTime       Date;
-        public HashWrapper    SongChecksum;
+        public string      SongName;
+        public string      ArtistName;
+        public string      CharterName;
+        public int         BandScore;
+        public double      ReplayLength;
+        public DateTime    Date;
+        public HashWrapper SongChecksum;
 
         public int            ColorProfileCount;
         public ColorProfile[] ColorProfiles;
 
-        public int            PlayerCount;
-        public string[]       PlayerNames;
+        public int      PlayerCount;
+        public string[] PlayerNames;
 
         public ReplayFrame[] Frames;
 
@@ -54,6 +55,7 @@ namespace YARG.Core.Replays
             writer.Write(ArtistName);
             writer.Write(CharterName);
             writer.Write(BandScore);
+            writer.Write(ReplayLength);
             writer.Write(Date.ToBinary());
 
             SongChecksum.Serialize(writer);
@@ -69,6 +71,7 @@ namespace YARG.Core.Replays
             {
                 writer.Write(PlayerNames[i]);
             }
+
             for (int i = 0; i < PlayerCount; i++)
             {
                 Frames[i].Serialize(writer);
@@ -81,6 +84,7 @@ namespace YARG.Core.Replays
             ArtistName = reader.ReadString();
             CharterName = reader.ReadString();
             BandScore = reader.ReadInt32();
+            ReplayLength = reader.ReadDouble();
             Date = DateTime.FromBinary(reader.ReadInt64());
             SongChecksum = new HashWrapper(reader);
 
@@ -101,6 +105,7 @@ namespace YARG.Core.Replays
             {
                 PlayerNames[i] = reader.ReadString();
             }
+
             for (int i = 0; i < PlayerCount; i++)
             {
                 Frames[i] = new ReplayFrame();
