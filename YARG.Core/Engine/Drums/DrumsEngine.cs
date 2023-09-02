@@ -93,7 +93,9 @@ namespace YARG.Core.Engine.Drums
                 StripStarPower(note.ParentOrSelf.PreviousNote);
             }
 
-            if (note.IsStarPower && note.IsStarPowerEnd)
+            // Make sure that the parent is the one that awards the starpower,
+            // so each note in the chord doesn't award it.
+            if (note.IsStarPower && note.IsStarPowerEnd && note.Parent == null)
             {
                 AwardStarPower(note);
                 EngineStats.PhrasesHit++;
@@ -112,6 +114,11 @@ namespace YARG.Core.Engine.Drums
             if (note.IsSoloEnd)
             {
                 EndSolo();
+            }
+
+            if (note.IsStarPowerActivator && EngineStats.StarPowerAmount >= 0.5)
+            {
+                ActivateStarPower();
             }
 
             EngineStats.Combo++;
