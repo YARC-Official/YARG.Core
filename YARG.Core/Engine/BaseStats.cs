@@ -41,6 +41,11 @@ namespace YARG.Core.Engine
         public double StarPowerAmount;
 
         /// <summary>
+        /// Whether or not Star Power/Overdrive can be activated.
+        /// </summary>
+        public bool CanStarPowerActivate => StarPowerAmount >= 0.5;
+
+        /// <summary>
         /// True if the player currently has Star Power/Overdrive active.
         /// </summary>
         public bool IsStarPowerActive;

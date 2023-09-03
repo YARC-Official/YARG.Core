@@ -99,6 +99,15 @@ namespace YARG.Core.Engine.Drums.Engines
                         continue;
                     }
 
+                    // Check for activation notes that weren't hit, and auto-hit them.
+                    // This may seem weird, but it prevents issues from arising when scoring
+                    // activation notes.
+                    if (chordNote.IsStarPowerActivator && EngineStats.CanStarPowerActivate)
+                    {
+                        HitNote(chordNote, true);
+                        continue;
+                    }
+
                     MissNote(chordNote);
                 }
 

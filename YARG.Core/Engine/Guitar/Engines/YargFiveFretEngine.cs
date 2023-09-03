@@ -65,7 +65,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             UpdateTimers();
 
             if (IsInputUpdate && CurrentInput.GetAction<GuitarAction>() == GuitarAction.StarPower &&
-                EngineStats.StarPowerAmount >= 0.5)
+                EngineStats.CanStarPowerActivate)
             {
                 ActivateStarPower();
             }

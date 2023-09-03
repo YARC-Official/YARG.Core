@@ -62,6 +62,11 @@ namespace YARG.Core.Engine.Drums
 
         protected override bool HitNote(DrumNote note)
         {
+            return HitNote(note, false);
+        }
+
+        protected bool HitNote(DrumNote note, bool activationAutoHit)
+        {
             note.SetHitState(true, false);
 
             // Detect if the last note(s) were skipped
@@ -115,7 +120,7 @@ namespace YARG.Core.Engine.Drums
                 EndSolo();
             }
 
-            if (note.IsStarPowerActivator && EngineStats.StarPowerAmount >= 0.5)
+            if (!activationAutoHit && note.IsStarPowerActivator && EngineStats.CanStarPowerActivate)
             {
                 ActivateStarPower();
             }
@@ -133,7 +138,12 @@ namespace YARG.Core.Engine.Drums
 
             AddScore(note);
 
-            OnNoteHit?.Invoke(State.NoteIndex, note);
+            // If it's an auto hit, act as if it *wasn't* hit visually.
+            // Score and such is accounted for above.
+            if (!activationAutoHit)
+            {
+                OnNoteHit?.Invoke(State.NoteIndex, note);
+            }
 
             if (note.ParentOrSelf.WasFullyHitOrMissed())
             {
