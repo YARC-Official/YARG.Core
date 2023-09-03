@@ -1,5 +1,6 @@
 using System.Drawing;
 using System.IO;
+using Newtonsoft.Json;
 using YARG.Core.Utility;
 
 namespace YARG.Core.Game
@@ -55,6 +56,7 @@ namespace YARG.Core.Game
 
         public static ColorProfile Default = new("Default");
 
+        [JsonIgnore]
         public int Version = COLOR_PROFILE_VERSION;
 
         public string Name;
