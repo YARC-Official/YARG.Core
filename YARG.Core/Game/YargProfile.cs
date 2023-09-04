@@ -27,6 +27,8 @@ namespace YARG.Core.Game
 
         public bool LeftyFlip;
 
+        public string ColorProfile;
+
         public bool IsBot;
 
         [JsonIgnore]
@@ -42,6 +44,7 @@ namespace YARG.Core.Game
             NoteSpeed = 6;
             HighwayLength = 1;
             LeftyFlip = false;
+            ColorProfile = "Default";
 
             Modifiers = Modifier.None;
         }
