@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using Newtonsoft.Json;
+using YARG.Core.Chart;
 using YARG.Core.Utility;
 
 namespace YARG.Core.Game
@@ -50,7 +51,7 @@ namespace YARG.Core.Game
             Id = id;
         }
 
-        public void ApplyModifiers(Modifier modifier)
+        public void AddModifiers(Modifier modifier)
         {
             // These modifiers conflict so we need to remove the conflicting modifiers if one is applied
             switch (modifier)
@@ -80,6 +81,20 @@ namespace YARG.Core.Game
         public bool IsModifierActive(Modifier modifier)
         {
             return (Modifiers & modifier) == modifier;
+        }
+
+        public void ApplyModifiers<TNote>(InstrumentDifficulty<TNote> track) where TNote : Note<TNote>
+        {
+            switch (Instrument.ToGameMode())
+            {
+                case GameMode.FiveFretGuitar:
+                    var guitarTrack = track as InstrumentDifficulty<GuitarNote>;
+                    if(IsModifierActive(Modifier.AllStrums)) guitarTrack.ConvertToGuitarType(GuitarNoteType.Strum);
+                    else if(IsModifierActive(Modifier.AllHopos)) guitarTrack.ConvertToGuitarType(GuitarNoteType.Hopo);
+                    else if(IsModifierActive(Modifier.AllTaps)) guitarTrack.ConvertToGuitarType(GuitarNoteType.Tap);
+                    else if(IsModifierActive(Modifier.HoposToTaps)) guitarTrack.ConvertHoposToTaps();
+                    break;
+            }
         }
 
         public void Serialize(BinaryWriter writer)
