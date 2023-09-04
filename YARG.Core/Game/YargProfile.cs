@@ -28,6 +28,7 @@ namespace YARG.Core.Game
 
         public bool IsBot;
 
+        [JsonIgnore]
         public Modifier Modifiers { get; private set; }
 
         public YargProfile()
