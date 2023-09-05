@@ -6,7 +6,7 @@ using System.Text;
 namespace YARG.Core.Song.Deserialization
 {
 #nullable enable
-    public class YARGTXTReader : YARGTXTReader_Base, ITXTReader
+    public class YARGTXTReader : YARGTXTReader_Base<byte>, ITXTReader
     {
         private static readonly byte[] BOM_UTF8 = { 0xEF, 0xBB, 0xBF };
         private static readonly byte[] BOM_OTHER = { 0xFF, 0xFE };
@@ -141,7 +141,7 @@ namespace YARG.Core.Song.Deserialization
             }
             catch
             {
-                encoding = Latin1;
+                encoding = ITXTReader.Latin1;
                 return encoding.GetString(span);
             }
         }

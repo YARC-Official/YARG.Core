@@ -5,7 +5,7 @@ using System.Text;
 
 namespace YARG.Core.Song.Deserialization
 {
-    public class YARGTXTReader_Char : YARGTXTReader_BaseChar, ITXTReader
+    public class YARGTXTReader_Char : YARGTXTReader_Base<char>, ITXTReader
     {
         static YARGTXTReader_Char() { }
 

@@ -5,14 +5,13 @@ using System.Text;
 
 namespace YARG.Core.Song.Deserialization
 {
-    public class YARGDTAReader : YARGTXTReader_Base
+    public class YARGDTAReader : YARGTXTReader_Base<byte>
     {
         private static readonly byte[] BOM_UTF8 = { 0xEF, 0xBB, 0xBF };
         private static readonly byte[] BOM_OTHER = { 0xFF, 0xFE };
 
         private readonly List<int> nodeEnds = new();
         public Encoding encoding;
-        
 
         public YARGDTAReader(byte[] data) : base(data)
         {
@@ -40,7 +39,7 @@ namespace YARG.Core.Song.Deserialization
                 _position += 2;
             }
             else
-                encoding = Latin1;
+                encoding = ITXTReader.Latin1;
 
             SkipWhiteSpace();
         }
