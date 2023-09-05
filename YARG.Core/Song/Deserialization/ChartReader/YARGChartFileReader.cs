@@ -185,7 +185,7 @@ namespace YARG.Core.Song.Deserialization
             start = end;
             while (true)
             {
-                byte curr = (byte) (data[end] & LOWER_CASE_MASK);
+                char curr = (char) (data[end] & LOWER_CASE_MASK);
                 if (curr < 'A' || 'Z' < curr)
                     break;
                 ++end;
@@ -226,10 +226,15 @@ namespace YARG.Core.Song.Deserialization
             while (GetDistanceToTrackCharacter(position, out int next))
             {
                 int point = position + next - 1;
-                while (point > position && YARGTXTReader_Base.IsWhitespace(data[point]) && data[point] != '\n')
+                while (point > position)
+                {
+                    char character = (char)data[point];
+                    if (!ITXTReader.IsWhitespace(character) || character == '\n')
+                        break;
                     --point;
+                }
 
-                if (data[point] == '\n')
+                if (data[point] == (byte)'\n')
                 {
                     reader.Position = position + next;
                     reader.SetNextPointer();
@@ -250,7 +255,7 @@ namespace YARG.Core.Song.Deserialization
             i = 0;
             while (i < distanceToEnd)
             {
-                if (data[position + i] == '}')
+                if (data[position + i] == (byte) '}')
                     return true;
                 ++i;
             }

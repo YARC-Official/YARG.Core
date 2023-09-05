@@ -459,7 +459,7 @@ namespace YARG.Core.Song
                     case "encoding":
                         var encoding = reader.ExtractText().ToLower() switch
                         {
-                            "latin1" => YARGTXTReader_Base.Latin1,
+                            "latin1" => ITXTReader.Latin1,
                             "utf-8" or
                             "utf8" => Encoding.UTF8,
                             _ => reader.encoding

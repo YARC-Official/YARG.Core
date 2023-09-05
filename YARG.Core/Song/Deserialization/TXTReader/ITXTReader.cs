@@ -6,6 +6,7 @@ namespace YARG.Core.Song.Deserialization
 {
     public interface ITXTReader
     {
+        public static readonly Encoding Latin1 = Encoding.GetEncoding(28591);
         public bool ReadBoolean(ref bool value);
 
         public bool ReadInt16(ref short value);
@@ -43,5 +44,11 @@ namespace YARG.Core.Song.Deserialization
         public double ReadDouble();
 
         public string ExtractText(bool checkForQuotes = true);
+
+        public const char SPACE_ASCII = (char) 32;
+        public static bool IsWhitespace(char character)
+        {
+            return character <= SPACE_ASCII;
+        }
     }
 }
