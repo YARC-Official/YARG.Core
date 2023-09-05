@@ -24,7 +24,7 @@ namespace YARG.Core.Song.Deserialization
             while (_position < length)
             {
                 char ch = data[_position];
-                if (IsWhitespace(ch))
+                if (ITXTReader.IsWhitespace(ch))
                 {
                     if (ch == '\n')
                         return ch;
@@ -78,7 +78,7 @@ namespace YARG.Core.Song.Deserialization
             if (checkForQuotes && data[_position] == '\"')
             {
                 int end = boundaries.Item2 - 1;
-                while (_position + 1 < end && IsWhitespace(data[end]))
+                while (_position + 1 < end && ITXTReader.IsWhitespace(data[end]))
                     --end;
 
                 if (_position < end && data[end] == '\"' && data[end - 1] != '\\')
@@ -91,7 +91,7 @@ namespace YARG.Core.Song.Deserialization
             if (boundaries.Item2 < boundaries.Item1)
                 return string.Empty;
 
-            while (boundaries.Item2 > boundaries.Item1 && IsWhitespace(data[boundaries.Item2 - 1]))
+            while (boundaries.Item2 > boundaries.Item1 && ITXTReader.IsWhitespace(data[boundaries.Item2 - 1]))
                 --boundaries.Item2;
 
             _position = _next;
@@ -103,8 +103,8 @@ namespace YARG.Core.Song.Deserialization
             int curr = _position;
             while (curr < length)
             {
-                char b = data[curr];
-                if (IsWhitespace(b) || b == '=')
+                char ch = data[curr];
+                if (ITXTReader.IsWhitespace(ch) || ch == '=')
                     break;
                 ++curr;
             }

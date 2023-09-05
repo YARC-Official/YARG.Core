@@ -43,8 +43,13 @@ namespace YARG.Core.Song.Deserialization.Ini
             while (GetDistanceToTrackCharacter(position, out int next))
             {
                 int point = position + next - 1;
-                while (point > position && YARGTXTReader_Base<byte>.IsWhitespace(data[point]) && data[point] != '\n')
+                while (point > position)
+                {
+                    char character = (char) data[point];
+                    if (!ITXTReader.IsWhitespace(character) || character == '\n')
+                        break;
                     --point;
+                }
 
                 if (data[point] == '\n')
                 {

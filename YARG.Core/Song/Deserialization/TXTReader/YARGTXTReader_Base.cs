@@ -38,7 +38,7 @@ namespace YARG.Core.Song.Deserialization
             this.length = data.Length;
         }
 
-        public abstract T SkipWhiteSpace();
+        public abstract char SkipWhiteSpace();
 
         private void SkipDigitsAndWhiteSpace()
         {
@@ -50,12 +50,6 @@ namespace YARG.Core.Song.Deserialization
                 ++_position;
             }
             SkipWhiteSpace();
-        }
-
-        private const int SPACE_ASCII = 32;
-        public static bool IsWhitespace(T b)
-        {
-            return b.ToInt32(null) <= SPACE_ASCII;
         }
 
         public bool IsEndOfFile()

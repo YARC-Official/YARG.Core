@@ -53,12 +53,12 @@ namespace YARG.Core.Song.Deserialization
                 GotoNextLine();
         }
 
-        public override byte SkipWhiteSpace()
+        public override char SkipWhiteSpace()
         {
             while (_position < length)
             {
-                byte ch = data[_position];
-                if (IsWhitespace(ch))
+                char ch = (char)data[_position];
+                if (ITXTReader.IsWhitespace(ch))
                 {
                     if (ch == '\n')
                         return ch;
@@ -68,12 +68,12 @@ namespace YARG.Core.Song.Deserialization
                 ++_position;
             }
 
-            return 0;
+            return (char)0;
         }
 
         public void GotoNextLine()
         {
-            byte curr;
+            char curr;
             do
             {
                 _position = _next;
@@ -112,7 +112,7 @@ namespace YARG.Core.Song.Deserialization
             if (checkForQuotes && data[_position] == '\"')
             {
                 int end = boundaries.Item2 - 1;
-                while (_position + 1 < end && IsWhitespace(data[end]))
+                while (_position + 1 < end && ITXTReader.IsWhitespace((char)data[end]))
                     --end;
 
                 if (_position < end && data[end] == '\"' && data[end - 1] != '\\')
@@ -125,7 +125,7 @@ namespace YARG.Core.Song.Deserialization
             if (boundaries.Item2 < boundaries.Item1)
                 return new();
 
-            while (boundaries.Item2 > boundaries.Item1 && IsWhitespace(data[boundaries.Item2 - 1]))
+            while (boundaries.Item2 > boundaries.Item1 && ITXTReader.IsWhitespace((char)data[boundaries.Item2 - 1]))
                 --boundaries.Item2;
 
             _position = _next;
@@ -151,8 +151,8 @@ namespace YARG.Core.Song.Deserialization
             int curr = _position;
             while (curr < length)
             {
-                byte b = data[curr];
-                if (IsWhitespace(b) || b == '=')
+                char b = (char)data[curr];
+                if (ITXTReader.IsWhitespace(b) || b == '=')
                     break;
                 ++curr;
             }
