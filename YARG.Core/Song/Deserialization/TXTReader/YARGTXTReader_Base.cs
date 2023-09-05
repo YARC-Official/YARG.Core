@@ -44,8 +44,8 @@ namespace YARG.Core.Song.Deserialization
         {
             while (_position < _next)
             {
-                char b = data[_position].ToChar(null);
-                if (b < '0' || '9' < b)
+                char ch = data[_position].ToChar(null);
+                if (ch < '0' || '9' < ch)
                     break;
                 ++_position;
             }
@@ -81,38 +81,38 @@ namespace YARG.Core.Song.Deserialization
             if (_position >= _next)
                 return false;
 
-            char b = data[_position].ToChar(null);
-            short sign = b == '-' ? (short) -1 : (short)1;
+            char ch = data[_position].ToChar(null);
+            short sign = ch == '-' ? (short) -1 : (short)1;
 
-            if (b == '-' || b == '+')
+            if (ch == '-' || ch == '+')
             {
                 ++_position;
                 if (_position == _next)
                     return false;
-                b = data[_position].ToChar(null);
+                ch = data[_position].ToChar(null);
             }
 
-            if (b < '0' || '9' < b)
+            if (ch < '0' || '9' < ch)
                 return false;
 
             value = 0;
             while (true)
             {
-                if (value > SHORT_MAX || (value == SHORT_MAX && b > LAST_DIGIT_SIGNED))
+                if (value > SHORT_MAX || (value == SHORT_MAX && ch > LAST_DIGIT_SIGNED))
                 {
                     value = sign == -1 ? short.MinValue : short.MaxValue;
                     SkipDigitsAndWhiteSpace();
                     return true;
                 }
 
-                value += (short) (b - '0');
+                value += (short) (ch - '0');
 
                 ++_position;
                 if (_position == _next)
                     break;
 
-                b = data[_position].ToChar(null);
-                if (b < '0' || '9' < b)
+                ch = data[_position].ToChar(null);
+                if (ch < '0' || '9' < ch)
                     break;
 
                 value *= 10;
@@ -129,37 +129,37 @@ namespace YARG.Core.Song.Deserialization
             if (_position >= _next)
                 return false;
 
-            char b = data[_position].ToChar(null);
+            char ch = data[_position].ToChar(null);
 
-            if (b == '+')
+            if (ch == '+')
             {
                 ++_position;
                 if (_position == _next)
                     return false;
-                b = data[_position].ToChar(null);
+                ch = data[_position].ToChar(null);
             }
 
-            if (b < '0' || '9' < b)
+            if (ch < '0' || '9' < ch)
                 return false;
 
             value = 0;
             while (true)
             {
-                if (value > USHORT_MAX || (value == USHORT_MAX && b > LAST_DIGIT_UNSIGNED))
+                if (value > USHORT_MAX || (value == USHORT_MAX && ch > LAST_DIGIT_UNSIGNED))
                 {
                     value = ushort.MaxValue;
                     SkipDigitsAndWhiteSpace();
                     return true;
                 }
 
-                value += (ushort) (b - '0');
+                value += (ushort) (ch - '0');
 
                 ++_position;
                 if (_position == _next)
                     break;
 
-                b = data[_position].ToChar(null);
-                if (b < '0' || '9' < b)
+                ch = data[_position].ToChar(null);
+                if (ch < '0' || '9' < ch)
                     break;
                 value *= 10;
             }
@@ -174,38 +174,38 @@ namespace YARG.Core.Song.Deserialization
             if (_position >= _next)
                 return false;
 
-            char b = data[_position].ToChar(null);
-            int sign = b == '-' ? -1 : 1;
+            char ch = data[_position].ToChar(null);
+            int sign = ch == '-' ? -1 : 1;
 
-            if (b == '-' || b == '+')
+            if (ch == '-' || ch == '+')
             {
                 ++_position;
                 if (_position == _next)
                     return false;
-                b = data[_position].ToChar(null);
+                ch = data[_position].ToChar(null);
             }
 
-            if (b < '0' || '9' < b)
+            if (ch < '0' || '9' < ch)
                 return false;
 
             value = 0;
             while (true)
             {
-                if (value > INT_MAX || (value == INT_MAX && b > LAST_DIGIT_SIGNED))
+                if (value > INT_MAX || (value == INT_MAX && ch > LAST_DIGIT_SIGNED))
                 {
                     value = sign == -1 ? int.MinValue : int.MaxValue;
                     SkipDigitsAndWhiteSpace();
                     return true;
                 }
 
-                value +=  b - '0';
+                value +=  ch - '0';
 
                 ++_position;
                 if (_position == _next)
                     break;
 
-                b = data[_position].ToChar(null);
-                if (b < '0' || '9' < b)
+                ch = data[_position].ToChar(null);
+                if (ch < '0' || '9' < ch)
                     break;
                 value *= 10;
             }
@@ -221,37 +221,37 @@ namespace YARG.Core.Song.Deserialization
             if (_position >= _next)
                 return false;
 
-            char b = data[_position].ToChar(null);
+            char ch = data[_position].ToChar(null);
 
-            if (b == '+')
+            if (ch == '+')
             {
                 ++_position;
                 if (_position == _next)
                     return false;
-                b = data[_position].ToChar(null);
+                ch = data[_position].ToChar(null);
             }
 
-            if (b < '0' || '9' < b)
+            if (ch < '0' || '9' < ch)
                 return false;
 
             value = 0;
             while (true)
             {
-                if (value > UINT_MAX || (value == UINT_MAX && b > LAST_DIGIT_UNSIGNED))
+                if (value > UINT_MAX || (value == UINT_MAX && ch > LAST_DIGIT_UNSIGNED))
                 {
                     value = uint.MaxValue;
                     SkipDigitsAndWhiteSpace();
                     return true;
                 }
 
-                value += (uint) (b - '0');
+                value += (uint) (ch - '0');
 
                 ++_position;
                 if (_position == _next)
                     break;
 
-                b = data[_position].ToChar(null);
-                if (b < '0' || '9' < b)
+                ch = data[_position].ToChar(null);
+                if (ch < '0' || '9' < ch)
                     break;
                 value *= 10;
             }
@@ -266,38 +266,38 @@ namespace YARG.Core.Song.Deserialization
             if (_position >= _next)
                 return false;
 
-            char b = data[_position].ToChar(null);
-            long sign = b == '-' ? -1 : 1;
+            char ch = data[_position].ToChar(null);
+            long sign = ch == '-' ? -1 : 1;
 
-            if (b == '-' || b == '+')
+            if (ch == '-' || ch == '+')
             {
                 ++_position;
                 if (_position == _next)
                     return false;
-                b = data[_position].ToChar(null);
+                ch = data[_position].ToChar(null);
             }
 
-            if (b < '0' || '9' < b)
+            if (ch < '0' || '9' < ch)
                 return false;
 
             value = 0;
             while (true)
             {
-                if (value > LONG_MAX || (value == LONG_MAX && b > LAST_DIGIT_SIGNED))
+                if (value > LONG_MAX || (value == LONG_MAX && ch > LAST_DIGIT_SIGNED))
                 {
                     value = sign == -1 ? long.MinValue : long.MaxValue;
                     SkipDigitsAndWhiteSpace();
                     return true;
                 }
 
-                value += b - '0';
+                value += ch - '0';
 
                 ++_position;
                 if (_position == _next)
                     break;
 
-                b = data[_position].ToChar(null);
-                if (b < '0' || '9' < b)
+                ch = data[_position].ToChar(null);
+                if (ch < '0' || '9' < ch)
                     break;
                 value *= 10;
             }
@@ -313,36 +313,36 @@ namespace YARG.Core.Song.Deserialization
             if (_position >= _next)
                 return false;
 
-            char b = data[_position].ToChar(null);
-            if (b == '+')
+            char ch = data[_position].ToChar(null);
+            if (ch == '+')
             {
                 ++_position;
                 if (_position == _next)
                     return false;
-                b = data[_position].ToChar(null);
+                ch = data[_position].ToChar(null);
             }
 
-            if (b < '0' || '9' < b)
+            if (ch < '0' || '9' < ch)
                 return false;
 
             value = 0;
             while (true)
             {
-                if (value > ULONG_MAX || (value == ULONG_MAX && b > LAST_DIGIT_UNSIGNED))
+                if (value > ULONG_MAX || (value == ULONG_MAX && ch > LAST_DIGIT_UNSIGNED))
                 {
                     value = ulong.MaxValue;
                     SkipDigitsAndWhiteSpace();
                     return true;
                 }
 
-                value += (ulong) (b - '0');
+                value += (ulong) (ch - '0');
 
                 ++_position;
                 if (_position == _next)
                     break;
 
-                b = data[_position].ToChar(null);
-                if (b < '0' || '9' < b)
+                ch = data[_position].ToChar(null);
+                if (ch < '0' || '9' < ch)
                     break;
                 value *= 10;
             }
@@ -356,39 +356,39 @@ namespace YARG.Core.Song.Deserialization
             if (_position >= _next)
                 return false;
 
-            char b = data[_position].ToChar(null);
-            float sign = b == '-' ? -1 : 1;
+            char ch = data[_position].ToChar(null);
+            float sign = ch == '-' ? -1 : 1;
 
-            if (b == '-' || b == '+')
+            if (ch == '-' || ch == '+')
             {
                 ++_position;
                 if (_position == _next)
                     return false;
-                b = data[_position].ToChar(null);
+                ch = data[_position].ToChar(null);
             }
 
-            if (b > '9' || (b < '0' && b != '.'))
+            if (ch > '9' || (ch < '0' && ch != '.'))
                 return false;
 
             value = 0;
-            if (b != '.')
+            if (ch != '.')
             {
                 while (true)
                 {
-                    value += b - '0';
+                    value += ch - '0';
                     ++_position;
                     if (_position == _next)
                         break;
 
-                    b = data[_position].ToChar(null);
-                    if (b < '0' || b > '9')
+                    ch = data[_position].ToChar(null);
+                    if (ch < '0' || ch > '9')
                         break;
 
                     value *= 10;
                 }
             }
 
-            if (b == '.')
+            if (ch == '.')
             {
                 ++_position;
 
@@ -396,19 +396,19 @@ namespace YARG.Core.Song.Deserialization
                 int count = 0;
                 if (_position < _next)
                 {
-                    b = data[_position].ToChar(null);
-                    if ('0' <= b && b <= '9')
+                    ch = data[_position].ToChar(null);
+                    if ('0' <= ch && ch <= '9')
                     {
                         ++count;
                         while (true)
                         {
-                            dec += b - '0';
+                            dec += ch - '0';
                             ++_position;
                             if (_position == _next)
                                 break;
 
-                            b = data[_position].ToChar(null);
-                            if (b < '0' || b > '9')
+                            ch = data[_position].ToChar(null);
+                            if (ch < '0' || ch > '9')
                                 break;
                             dec *= 10;
                             ++count;
@@ -433,39 +433,39 @@ namespace YARG.Core.Song.Deserialization
             if (_position >= _next)
                 return false;
 
-            char b = data[_position].ToChar(null);
-            double sign = b == '-' ? -1 : 1;
+            char ch = data[_position].ToChar(null);
+            double sign = ch == '-' ? -1 : 1;
 
-            if (b == '-' || b == '+')
+            if (ch == '-' || ch == '+')
             {
                 ++_position;
                 if (_position == _next)
                     return false;
-                b = data[_position].ToChar(null);
+                ch = data[_position].ToChar(null);
             }
 
-            if (b > '9' || (b < '0' && b != '.'))
+            if (ch > '9' || (ch < '0' && ch != '.'))
                 return false;
 
             value = 0;
-            if (b != '.')
+            if (ch != '.')
             {
                 while (true)
                 {
                     ++_position;
-                    value += b - '0';
+                    value += ch - '0';
                     if (_position == _next)
                         break;
 
-                    b = data[_position].ToChar(null);
-                    if (b < '0' || b > '9')
+                    ch = data[_position].ToChar(null);
+                    if (ch < '0' || ch > '9')
                         break;
 
                     value *= 10;
                 }
             }
 
-            if (b == '.')
+            if (ch == '.')
             {
                 ++_position;
 
@@ -473,19 +473,19 @@ namespace YARG.Core.Song.Deserialization
                 int count = 0;
                 if (_position < _next)
                 {
-                    b = data[_position].ToChar(null);
-                    if ('0' <= b && b <= '9')
+                    ch = data[_position].ToChar(null);
+                    if ('0' <= ch && ch <= '9')
                     {
                         ++count;
                         while (true)
                         {
-                            dec += b - '0';
+                            dec += ch - '0';
                             ++_position;
                             if (_position == _next)
                                 break;
 
-                            b = data[_position].ToChar(null);
-                            if (b < '0' || b > '9')
+                            ch = data[_position].ToChar(null);
+                            if (ch < '0' || ch > '9')
                                 break;
                             dec *= 10;
                             ++count;
