@@ -16,9 +16,9 @@ namespace YARG.Core.Engine.Guitar
         {
         }
 
-        public GuitarEngineParameters(double hitWindow, double frontBackRatio, double hopoLeniency,
+        public GuitarEngineParameters(double hitWindow, double frontBackRatio, float[] starMultiplierThresholds, double hopoLeniency,
             double strumLeniency, double strumLeniencySmall, bool infiniteFrontEnd, bool antiGhosting)
-            : base(hitWindow, frontBackRatio)
+            : base(hitWindow, frontBackRatio, starMultiplierThresholds)
         {
             HopoLeniency = hopoLeniency;
 

@@ -20,14 +20,17 @@ namespace YARG.Core.Engine
         /// </summary>
         public double BackEnd { get; private set; }
 
+        public float[] StarMultiplierThresholds { get; private set; }
+
         protected BaseEngineParameters()
         {
         }
 
-        protected BaseEngineParameters(double hitWindow, double frontBackRatio)
+        protected BaseEngineParameters(double hitWindow, double frontBackRatio, float[] starMultiplierThresholds)
         {
             HitWindow = hitWindow;
             FrontToBackRatio = frontBackRatio;
+            StarMultiplierThresholds = starMultiplierThresholds;
 
             FrontEnd = -(Math.Abs(HitWindow / 2) * FrontToBackRatio);
             BackEnd = Math.Abs(HitWindow / 2) * (2 - FrontToBackRatio);

@@ -15,6 +15,7 @@
         public int NextTimeSigIndex;
 
         public int CurrentSoloIndex;
+        public int CurrentStarIndex;
 
         public bool IsSoloActive;
 
@@ -34,6 +35,7 @@
             NextTimeSigIndex = 1;
 
             CurrentSoloIndex = 0;
+            CurrentStarIndex = 0;
 
             IsSoloActive = false;
 

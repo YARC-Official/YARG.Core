@@ -13,11 +13,10 @@ namespace YARG.Core.Engine
 
         public int BaseScore { get; protected set; }
 
+        public int[] StarScoreThresholds { get; protected set; }
+
         protected bool IsInputUpdate { get; private set; }
         protected bool IsBotUpdate   { get; private set; }
-
-        protected abstract float[] StarMultiplierThresholds { get; }
-        protected abstract float[] StarScoreThresholds      { get; }
 
         protected readonly SyncTrack SyncTrack;
 
@@ -83,7 +82,6 @@ namespace YARG.Core.Engine
         /// </summary>
         protected void ProcessInputs()
         {
-
             // Start to process inputs in queue.
             while (InputQueue.TryDequeue(out var input))
             {
@@ -191,7 +189,7 @@ namespace YARG.Core.Engine
         public StarPowerStatusEvent     OnStarPowerStatus;
 
         public SoloStartEvent OnSoloStart;
-        public SoloEndEvent OnSoloEnd;
+        public SoloEndEvent   OnSoloEnd;
 
         public readonly TEngineStats EngineStats;
 
@@ -236,7 +234,8 @@ namespace YARG.Core.Engine
 
             var currentTimeSig = timeSigs[State.CurrentTimeSigIndex];
 
-            State.TicksEveryEightMeasures = (uint)(Resolution * ((double)4 / currentTimeSig.Denominator) * currentTimeSig.Numerator * 8);
+            State.TicksEveryEightMeasures =
+                (uint) (Resolution * ((double) 4 / currentTimeSig.Denominator) * currentTimeSig.Numerator * 8);
         }
 
         public override void Reset(bool keepCurrentButtons = false)
@@ -274,6 +273,20 @@ namespace YARG.Core.Engine
         protected abstract void AddScore(TNoteType note);
 
         protected abstract void UpdateMultiplier();
+
+        protected void UpdateStars()
+        {
+            if (State.CurrentStarIndex >= StarScoreThresholds.Length || StarScoreThresholds[0] == 0)
+            {
+                return;
+            }
+
+            if (EngineStats.Score >= StarScoreThresholds[State.CurrentStarIndex])
+            {
+                EngineStats.Stars++;
+                State.CurrentStarIndex++;
+            }
+        }
 
         protected virtual void StripStarPower(TNoteType note)
         {
@@ -373,12 +386,12 @@ namespace YARG.Core.Engine
 
         protected double GetUsedStarPower()
         {
-            return (State.CurrentTick - State.LastTick) / (double)State.TicksEveryEightMeasures;
+            return (State.CurrentTick - State.LastTick) / (double) State.TicksEveryEightMeasures;
         }
 
         protected void StartSolo()
         {
-            if(State.CurrentSoloIndex >= Solos.Count)
+            if (State.CurrentSoloIndex >= Solos.Count)
             {
                 return;
             }
@@ -404,7 +417,7 @@ namespace YARG.Core.Engine
             Reset();
 
             var inputIndex = 0;
-            foreach(var input in inputs)
+            foreach (var input in inputs)
             {
                 if (input.Time > time)
                 {

@@ -1,6 +1,4 @@
-﻿using System;
-using System.Diagnostics;
-using YARG.Core.Chart;
+﻿using YARG.Core.Chart;
 using YARG.Core.Input;
 
 namespace YARG.Core.Engine.Drums
@@ -15,21 +13,18 @@ namespace YARG.Core.Engine.Drums
         public OverhitEvent OnOverhit;
         public PadHitEvent  OnPadHit;
 
-        protected sealed override float[] StarMultiplierThresholds { get; } =
-            { 0.21f, 0.46f, 0.77f, 1.85f, 3.08f, 4.29f };
-
-        protected sealed override float[] StarScoreThresholds { get; }
-
         protected DrumsEngine(InstrumentDifficulty<DrumNote> chart, SyncTrack syncTrack,
             DrumsEngineParameters engineParameters)
             : base(chart, syncTrack, engineParameters)
         {
             BaseScore = CalculateBaseScore();
 
-            StarScoreThresholds = new float[StarMultiplierThresholds.Length];
-            for (int i = 0; i < StarMultiplierThresholds.Length; i++)
+            float[] multiplierThresholds = engineParameters.StarMultiplierThresholds;
+
+            StarScoreThresholds = new int[multiplierThresholds.Length];
+            for (int i = 0; i < multiplierThresholds.Length; i++)
             {
-                StarScoreThresholds[i] = BaseScore * StarMultiplierThresholds[i];
+                StarScoreThresholds[i] = (int)(BaseScore * multiplierThresholds[i]);
             }
         }
 
@@ -187,6 +182,7 @@ namespace YARG.Core.Engine.Drums
         protected override void AddScore(DrumNote note)
         {
             EngineStats.Score += POINTS_PER_NOTE * EngineStats.ScoreMultiplier;
+            UpdateStars();
         }
 
         protected override void UpdateMultiplier()

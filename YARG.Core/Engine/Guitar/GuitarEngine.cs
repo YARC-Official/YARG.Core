@@ -20,11 +20,6 @@ namespace YARG.Core.Engine.Guitar
 
         protected List<GuitarNote> ActiveSustains;
 
-        protected sealed override float[] StarMultiplierThresholds { get; } =
-            { 0.21f, 0.46f, 0.77f, 1.85f, 3.08f, 4.52f };
-
-        protected sealed override float[] StarScoreThresholds { get; }
-
         protected GuitarEngine(InstrumentDifficulty<GuitarNote> chart, SyncTrack syncTrack,
             GuitarEngineParameters engineParameters)
             : base(chart, syncTrack, engineParameters)
@@ -32,10 +27,12 @@ namespace YARG.Core.Engine.Guitar
             BaseScore = CalculateBaseScore();
             ActiveSustains = new List<GuitarNote>();
 
-            StarScoreThresholds = new float[StarMultiplierThresholds.Length];
-            for (int i = 0; i < StarMultiplierThresholds.Length; i++)
+            float[] multiplierThresholds = engineParameters.StarMultiplierThresholds;
+
+            StarScoreThresholds = new int[multiplierThresholds.Length];
+            for (int i = 0; i < multiplierThresholds.Length; i++)
             {
-                StarScoreThresholds[i] = BaseScore * StarMultiplierThresholds[i];
+                StarScoreThresholds[i] = (int)(BaseScore * multiplierThresholds[i]);
             }
         }
 
@@ -213,6 +210,7 @@ namespace YARG.Core.Engine.Guitar
         protected override void AddScore(GuitarNote note)
         {
             EngineStats.Score += POINTS_PER_NOTE * (1 + note.ChildNotes.Count) * EngineStats.ScoreMultiplier;
+            UpdateStars();
         }
 
         protected override void UpdateMultiplier()
