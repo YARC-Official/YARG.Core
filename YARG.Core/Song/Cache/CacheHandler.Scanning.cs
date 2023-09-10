@@ -146,8 +146,9 @@ namespace YARG.Core.Song.Cache
             PackedCONGroup group = new(file, File.GetLastWriteTime(filename));
             AddCONGroup(group);
 
-            if (group.LoadUpgrades(out var reader))
-                AddCONUpgrades(group, reader!);
+            var reader = group.LoadUpgrades();
+            if (reader != null)
+                AddCONUpgrades(group, reader);
         }
 
         private int GetCONIndex(Dictionary<string, int> indices, string name)

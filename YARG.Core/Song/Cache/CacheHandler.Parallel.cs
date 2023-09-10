@@ -53,7 +53,8 @@ namespace YARG.Core.Song.Cache
 
         private void ScanCONGroup_Parallel(PackedCONGroup group)
         {
-            if (!group.LoadSongs(out var reader))
+            var reader = group.LoadSongs();
+            if (reader == null)
                 return;
 
             try
