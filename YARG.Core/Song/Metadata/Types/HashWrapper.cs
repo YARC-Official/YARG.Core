@@ -19,6 +19,12 @@ namespace YARG.Core.Song
             return new HashWrapper(Algorithm.ComputeHash(buffer));
         }
 
+        public static HashWrapper Create(Stream stream)
+        {
+            stream.Position = 0;
+            return new HashWrapper(Algorithm.ComputeHash(stream));
+        }
+
         private readonly byte[] _hash;
         private readonly int _hashcode;
 
