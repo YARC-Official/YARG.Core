@@ -158,6 +158,12 @@ namespace YARG.Core.Game
 
             #region Serialization
 
+            public FourLaneDrumsColors Copy()
+            {
+                // Kinda yucky, but it's easier to maintain
+                return (FourLaneDrumsColors) MemberwiseClone();
+            }
+
             public void Serialize(BinaryWriter writer)
             {
                 writer.Write(KickFret);

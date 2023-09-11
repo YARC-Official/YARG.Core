@@ -144,6 +144,12 @@ namespace YARG.Core.Game
 
             #region Serialization
 
+            public FiveFretGuitarColors Copy()
+            {
+                // Kinda yucky, but it's easier to maintain
+                return (FiveFretGuitarColors) MemberwiseClone();
+            }
+
             public void Serialize(BinaryWriter writer)
             {
                 writer.Write(OpenFret);

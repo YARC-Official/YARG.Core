@@ -5,9 +5,10 @@ using YARG.Core.Utility;
 
 namespace YARG.Core.Game
 {
-    public partial class ColorProfile : IBinarySerializable
+    public partial class ColorProfile : BasePreset, IBinarySerializable
     {
         private const int COLOR_PROFILE_VERSION = 1;
+
 
         /// <summary>
         /// Interface that has methods that allows for generic fret color retrieval.
@@ -54,22 +55,28 @@ namespace YARG.Core.Game
 
         #endregion
 
+        // This MUST be after the "Default Colors" region
         public static ColorProfile Default = new("Default");
 
         [JsonIgnore]
         public int Version = COLOR_PROFILE_VERSION;
 
-        public string Name;
-
         public FiveFretGuitarColors FiveFretGuitar;
         public FourLaneDrumsColors  FourLaneDrums;
 
-        public ColorProfile(string name)
+        public ColorProfile(string name, bool defaultPreset = false) : base(name, defaultPreset)
         {
-            Name = name;
-
             FiveFretGuitar = new FiveFretGuitarColors();
             FourLaneDrums = new FourLaneDrumsColors();
+        }
+
+        public override BasePreset CopyWithNewName(string name)
+        {
+            return new ColorProfile(name)
+            {
+                FiveFretGuitar = FiveFretGuitar.Copy(),
+                FourLaneDrums = FourLaneDrums.Copy()
+            };
         }
 
         public void Serialize(BinaryWriter writer)
@@ -84,7 +91,6 @@ namespace YARG.Core.Game
         public void Deserialize(BinaryReader reader, int version = 0)
         {
             version = reader.ReadInt32();
-
             Name = reader.ReadString();
 
             FiveFretGuitar.Deserialize(reader, version);

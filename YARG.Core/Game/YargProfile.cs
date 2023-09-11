@@ -11,25 +11,25 @@ namespace YARG.Core.Game
         private const int PROFILE_VERSION = 1;
 
         public Guid Id;
-
         public string Name;
 
+        public bool IsBot;
+
         public GameMode GameMode;
-
-        [JsonIgnore]
-        public Instrument Instrument;
-
-        [JsonIgnore]
-        public Difficulty Difficulty;
 
         public float NoteSpeed;
         public float HighwayLength;
 
         public bool LeftyFlip;
 
-        public string ColorProfile;
+        public Guid ColorProfile;
+        public Guid CameraPreset;
 
-        public bool IsBot;
+        [JsonIgnore]
+        public Instrument Instrument;
+
+        [JsonIgnore]
+        public Difficulty Difficulty;
 
         [JsonIgnore]
         public Modifier Modifiers { get; private set; }
@@ -44,7 +44,10 @@ namespace YARG.Core.Game
             NoteSpeed = 6;
             HighwayLength = 1;
             LeftyFlip = false;
-            ColorProfile = "Default";
+
+            // Set preset IDs to default
+            ColorProfile = Game.ColorProfile.Default.Id;
+            CameraPreset = Game.CameraPreset.Default.Id;
 
             Modifiers = Modifier.None;
         }
