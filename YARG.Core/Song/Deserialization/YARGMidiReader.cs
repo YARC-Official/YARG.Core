@@ -157,7 +157,7 @@ namespace YARG.Core.Song.Deserialization
 
         public YARGMidiReader(byte[] data) : this(new MemoryStream(data)) { }
 
-        public YARGMidiReader(string path) : this(new FileStream(path, FileMode.Open)) { }
+        public YARGMidiReader(string path) : this(new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read)) { }
 
         private bool LoadTrack(byte[] tag)
         {
