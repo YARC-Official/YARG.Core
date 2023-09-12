@@ -58,29 +58,21 @@ namespace YARG.Core.Song.Cache
 
         public void AddUpgrade(string name, IRBProUpgrade upgrade) { lock (upgradeLock) upgrades[name] = upgrade; }
 
-        public bool LoadUpgrades(out YARGDTAReader? reader)
+        public YARGDTAReader? LoadUpgrades()
         {
             upgradeDta = file.TryGetListing(UPGRADESFILEPATH);
             if (upgradeDta == null)
-            {
-                reader = null;
-                return false;
-            }
+                return null;
 
-            reader = new(file.LoadSubFile(upgradeDta));
-            return true;
+            return new YARGDTAReader(file.LoadSubFile(upgradeDta));
         }
 
-        public bool LoadSongs(out YARGDTAReader? reader)
+        public YARGDTAReader? LoadSongs()
         {
             if (songDTA == null && !SetSongDTA())
-            {
-                reader = null;
-                return false;
-            }
+                return null;
 
-            reader = new(file.LoadSubFile(songDTA!));
-            return true;
+            return new YARGDTAReader(file.LoadSubFile(songDTA!));
         }
 
         public bool SetSongDTA()

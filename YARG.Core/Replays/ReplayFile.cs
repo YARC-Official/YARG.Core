@@ -51,13 +51,10 @@ namespace YARG.Core.Replays
             using var dataWriter = new NullStringBinaryWriter(dataStream);
 
             Replay.Serialize(dataWriter);
-
-            // Make new constructor for HashWrapper which takes a stream?
-            byte[] data = dataStream.ToArray();
-            Header.ReplayChecksum = HashWrapper.Create(data);
+            Header.ReplayChecksum = HashWrapper.Create(dataStream);
 
             Header.Serialize(writer);
-            writer.Write(data);
+            dataStream.CopyTo(writer.BaseStream);
         }
 
         public void Deserialize(BinaryReader reader, int version = 0)

@@ -294,9 +294,11 @@ namespace YARG.Core.Song.Cache
             {
                 YargTrace.DebugInfo($"CON added in upgrade loop {filename}");
                 AddCONGroup(group!);
-                if (group!.LoadUpgrades(out var reader))
+
+                var reader = group!.LoadUpgrades();
+                if (reader != null)
                 {
-                    AddCONUpgrades(group, reader!);
+                    AddCONUpgrades(group, reader);
 
                     if (group.UpgradeDTALastWrite == dtaLastWrite)
                     {

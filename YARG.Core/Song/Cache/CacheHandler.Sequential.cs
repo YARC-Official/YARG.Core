@@ -51,13 +51,14 @@ namespace YARG.Core.Song.Cache
 
         private void ScanCONGroup(PackedCONGroup group)
         {
-            if (!group.LoadSongs(out var reader))
+            var reader = group.LoadSongs();
+            if (reader == null)
                 return;
 
             try
             {
                 Dictionary<string, int> indices = new();
-                while (reader!.StartNode())
+                while (reader.StartNode())
                 {
                     string name = reader.GetNameOfNode();
                     int index = GetCONIndex(indices, name);
