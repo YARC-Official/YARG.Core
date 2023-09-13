@@ -19,6 +19,8 @@ using YARG.Core.Utility;
 
 namespace MoonscraperChartEditor.Song.IO
 {
+    using TrimSplitter = SpanSplitter<char, TrimSplitProcessor>;
+
     internal static partial class ChartReader
     {
         private struct Anchor

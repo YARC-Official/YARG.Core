@@ -2,15 +2,20 @@ using System;
 
 namespace YARG.Core.Utility
 {
+    using TrimSplitter = SpanSplitter<char, TrimSplitProcessor>;
+
     /// <summary>
-    /// Enumerates a <see cref="ReadOnlySpan{T}"/>, splitting based on a specific value of <typeparamref name="T"/>.
+    /// Enumerates a <see cref="ReadOnlySpan{T}"/>, splitting based on a specific value of <typeparamref name="T"/>
+    /// and using <typeparamref name="TSplitter"/> to refine the resulting split value.
     /// </summary>
-    public ref struct SpanSplitter<T>
+    public ref struct SpanSplitter<T, TSplitter>
         where T : IEquatable<T>
+        where TSplitter : ISplitProcessor<T>, new()
     {
         private readonly ReadOnlySpan<T> _original;
         private ReadOnlySpan<T> _remaining;
         private readonly T _split;
+        private readonly TSplitter _splitter;
 
         public ReadOnlySpan<T> Current { get; private set; }
 
@@ -23,10 +28,11 @@ namespace YARG.Core.Utility
             _original = buffer;
             _remaining = buffer;
             _split = split;
+            _splitter = new();
             Current = ReadOnlySpan<T>.Empty;
         }
 
-        public readonly SpanSplitter<T> GetEnumerator() => this;
+        public readonly SpanSplitter<T, TSplitter> GetEnumerator() => this;
 
         public ReadOnlySpan<T> GetNext() => MoveNext() ? Current : ReadOnlySpan<T>.Empty;
 
@@ -35,7 +41,7 @@ namespace YARG.Core.Utility
             if (_remaining.IsEmpty)
                 return false;
 
-            Current = _remaining.SplitOnce(_split, out _remaining);
+            Current = _remaining.SplitOnce(_split, _splitter, out _remaining);
             return !Current.IsEmpty;
         }
 
@@ -46,94 +52,40 @@ namespace YARG.Core.Utility
         }
     }
 
-    /// <summary>
-    /// A specialized version of <see cref="SpanSplitter{T}"/> that splits <see cref="ReadOnlySpan{char}"/>s,
-    /// trimming any leading/trailing whitespace out of the results.
-    /// </summary>
-    public ref struct TrimSplitter
+    public interface ISplitProcessor<T>
+        where T : IEquatable<T>
     {
-        private readonly ReadOnlySpan<char> _original;
-        private ReadOnlySpan<char> _remaining;
-        private readonly char _split;
+        ReadOnlySpan<T> GetSegment(ReadOnlySpan<T> buffer, int splitIndex);
+        ReadOnlySpan<T> GetRemaining(ReadOnlySpan<T> buffer, int splitIndex);
+    }
 
-        public ReadOnlySpan<char> Current { get; private set; }
+    public readonly struct SpanSplitProcessor<T> : ISplitProcessor<T>
+        where T : IEquatable<T>
+    {
+        public readonly ReadOnlySpan<T> GetSegment(ReadOnlySpan<T> buffer, int splitIndex)
+            => buffer[..splitIndex];
+        public readonly ReadOnlySpan<T> GetRemaining(ReadOnlySpan<T> buffer, int splitIndex)
+            => buffer[splitIndex..];
+    }
 
-        public readonly ReadOnlySpan<char> Original => _original;
-        public readonly ReadOnlySpan<char> Remaining => _remaining;
-        public readonly char Split => _split;
-
-        public TrimSplitter(ReadOnlySpan<char> buffer, char split)
-        {
-            _original = buffer;
-            _remaining = buffer;
-            _split = split;
-            Current = ReadOnlySpan<char>.Empty;
-        }
-
-        public readonly TrimSplitter GetEnumerator() => this;
-
-        public ReadOnlySpan<char> GetNext() => MoveNext() ? Current : ReadOnlySpan<char>.Empty;
-
-        public bool MoveNext()
-        {
-            if (_remaining.IsEmpty)
-                return false;
-
-            Current = _remaining.SplitOnceTrimmed(_split, out _remaining);
-            return !Current.IsEmpty;
-        }
-
-        public void Reset()
-        {
-            Current = ReadOnlySpan<char>.Empty;
-            _remaining = _original;
-        }
-
-        public static implicit operator TrimSplitter(SpanSplitter<char> splitter)
-        {
-            return new(splitter.Original, splitter.Split);
-        }
-
-        public static implicit operator SpanSplitter<char>(TrimSplitter splitter)
-        {
-            return new(splitter.Original, splitter.Split);
-        }
+    public readonly struct TrimSplitProcessor : ISplitProcessor<char>
+    {
+        public readonly ReadOnlySpan<char> GetSegment(ReadOnlySpan<char> buffer, int splitIndex)
+            => buffer[..splitIndex].Trim();
+        public readonly ReadOnlySpan<char> GetRemaining(ReadOnlySpan<char> buffer, int splitIndex)
+            => buffer[splitIndex..].Trim();
     }
 
     public static class SpanSplitterExtensions
     {
-        private interface ISplitGetter<T>
-            where T : IEquatable<T>
-        {
-            ReadOnlySpan<T> GetSegment(ReadOnlySpan<T> buffer, int splitIndex);
-            ReadOnlySpan<T> GetRemaining(ReadOnlySpan<T> buffer, int splitIndex);
-        }
-
-        private readonly struct SpanSplitGetter<T> : ISplitGetter<T>
-            where T : IEquatable<T>
-        {
-            public readonly ReadOnlySpan<T> GetSegment(ReadOnlySpan<T> buffer, int splitIndex)
-                => buffer[..splitIndex];
-            public readonly ReadOnlySpan<T> GetRemaining(ReadOnlySpan<T> buffer, int splitIndex)
-                => buffer[splitIndex..];
-        }
-
-        private readonly struct TrimSplitGetter : ISplitGetter<char>
-        {
-            public readonly ReadOnlySpan<char> GetSegment(ReadOnlySpan<char> buffer, int splitIndex)
-                => buffer[..splitIndex].Trim();
-            public readonly ReadOnlySpan<char> GetRemaining(ReadOnlySpan<char> buffer, int splitIndex)
-                => buffer[splitIndex..].Trim();
-        }
-
-        public static SpanSplitter<char> SplitAsSpan(this string buffer, char split)
+        public static SpanSplitter<char, SpanSplitProcessor<char>> SplitAsSpan(this string buffer, char split)
             => new(buffer, split);
 
-        public static SpanSplitter<T> Split<T>(this Span<T> buffer, T split)
+        public static SpanSplitter<T, SpanSplitProcessor<T>> Split<T>(this Span<T> buffer, T split)
             where T : IEquatable<T>
             => new(buffer, split);
 
-        public static SpanSplitter<T> Split<T>(this ReadOnlySpan<T> buffer, T split)
+        public static SpanSplitter<T, SpanSplitProcessor<T>> Split<T>(this ReadOnlySpan<T> buffer, T split)
             where T : IEquatable<T>
             => new(buffer, split);
 
@@ -142,9 +94,6 @@ namespace YARG.Core.Utility
 
         public static TrimSplitter SplitTrimmed(this ReadOnlySpan<char> buffer, char split)
             => new(buffer, split);
-
-        public static TrimSplitter SplitTrimmed(this SpanSplitter<char> splitter)
-            => splitter;
 
         public static ReadOnlySpan<char> SplitOnce(this string buffer, char split, out ReadOnlySpan<char> remaining)
             => SplitOnce(buffer.AsSpan(), split, out remaining);
@@ -155,18 +104,18 @@ namespace YARG.Core.Utility
 
         public static ReadOnlySpan<T> SplitOnce<T>(this ReadOnlySpan<T> buffer, T split, out ReadOnlySpan<T> remaining)
             where T : IEquatable<T>
-            => buffer.SplitOnce(split, new SpanSplitGetter<T>(), out remaining);
+            => buffer.SplitOnce(split, new SpanSplitProcessor<T>(), out remaining);
 
         public static ReadOnlySpan<char> SplitOnceTrimmed(this string buffer, char split, out ReadOnlySpan<char> remaining)
             => SplitOnceTrimmed(buffer.AsSpan(), split, out remaining);
 
         public static ReadOnlySpan<char> SplitOnceTrimmed(this ReadOnlySpan<char> buffer, char split, out ReadOnlySpan<char> remaining)
-            => buffer.SplitOnce(split, new TrimSplitGetter(), out remaining);
+            => buffer.SplitOnce(split, new TrimSplitProcessor(), out remaining);
 
-        private static ReadOnlySpan<T> SplitOnce<T, TSplit>(this ReadOnlySpan<T> buffer, T split, TSplit splitGetter,
+        public static ReadOnlySpan<T> SplitOnce<T, TSplitter>(this ReadOnlySpan<T> buffer, T split, TSplitter splitter,
             out ReadOnlySpan<T> remaining)
             where T : IEquatable<T>
-            where TSplit : ISplitGetter<T>
+            where TSplitter : ISplitProcessor<T>
         {
             remaining = buffer;
             var result = ReadOnlySpan<T>.Empty;
@@ -179,13 +128,13 @@ namespace YARG.Core.Utility
                     splitIndex = remaining.Length;
 
                 // Split on the value
-                result = splitGetter.GetSegment(remaining, splitIndex);
+                result = splitter.GetSegment(remaining, splitIndex);
 
                 // Skip the split value and ignore consecutive split values
                 while (splitIndex < remaining.Length && remaining[splitIndex].Equals(split))
                     splitIndex++;
 
-                remaining = splitGetter.GetRemaining(remaining, splitIndex);
+                remaining = splitter.GetRemaining(remaining, splitIndex);
             }
 
             return result;

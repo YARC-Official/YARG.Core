@@ -4,6 +4,8 @@ using YARG.Core.Utility;
 
 namespace YARG.Core.Parsing
 {
+    using TrimSplitter = SpanSplitter<char, TrimSplitProcessor>;
+
     /// <summary>
     /// A .chart file, containing any number of sections.
     /// </summary>

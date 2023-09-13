@@ -8,6 +8,8 @@ using YARG.Core.Utility;
 
 namespace MoonscraperChartEditor.Song.IO
 {
+    using TrimSplitter = SpanSplitter<char, TrimSplitProcessor>;
+
     internal static class ChartMetadata
     {
         // .chart only allows floating point values that use periods for decimal points
