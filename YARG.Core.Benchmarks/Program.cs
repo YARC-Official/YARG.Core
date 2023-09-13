@@ -1,14 +1,13 @@
 using System;
 using System.IO;
-using BenchmarkDotNet.Configs;
-using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Running;
-using BenchmarkDotNet.Toolchains.InProcess.NoEmit;
 
 namespace YARG.Core.Benchmarks
 {
     public static class Program
     {
+        public const string CHART_PATH_VAR = "TEST_CHART_PATH";
+
         public static void Main()
         {
             ConsoleUtilities.WriteMenuHeader("YARG.Core Benchmarks", false);
@@ -46,11 +45,8 @@ namespace YARG.Core.Benchmarks
                 return null;
             });
 
+            Environment.SetEnvironmentVariable(CHART_PATH_VAR, chartPath);
             Console.WriteLine();
-
-            // Configure to run in-process, so that chart path can be passed in
-            var config = DefaultConfig.Instance
-                .AddJob(Job.Default.WithToolchain(InProcessNoEmitToolchain.Instance));
 
             // A little unnecessary to split the file types into different tests, I suppose,
             // but why determine chart type repeatedly in the benchmark when you could do it once instead?
@@ -58,12 +54,10 @@ namespace YARG.Core.Benchmarks
             switch (extension)
             {
                 case ".chart":
-                    DotChartParsingBenchmarks.ChartPath = chartPath;
-                    BenchmarkRunner.Run<DotChartParsingBenchmarks>(config);
+                    BenchmarkRunner.Run<DotChartParsingBenchmarks>();
                     break;
                 case ".mid":
-                    MidiParsingBenchmarks.ChartPath = chartPath;
-                    BenchmarkRunner.Run<MidiParsingBenchmarks>(config);
+                    BenchmarkRunner.Run<MidiParsingBenchmarks>();
                     break;
             }
 

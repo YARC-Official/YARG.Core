@@ -1,16 +1,14 @@
-﻿using System.IO;
+﻿using System;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Engines;
 using Melanchall.DryWetMidi.Core;
 using YARG.Core.Chart;
-using YARG.Core.Song;
 
 namespace YARG.Core.Benchmarks
 {
     // [SimpleJob(RunStrategy.ColdStart, targetCount: 25, invocationCount: 1)]
     public class MidiParsingBenchmarks
     {
-        public static string ChartPath { get; set; }
 
         private ParseSettings settings = ParseSettings.Default;
         private MidiFile midi;
@@ -18,7 +16,11 @@ namespace YARG.Core.Benchmarks
         [GlobalSetup]
         public void Initialize()
         {
-            midi = MidiFile.Read(ChartPath);
+            string chartPath = Environment.GetEnvironmentVariable(Program.CHART_PATH_VAR);
+            if (chartPath == null)
+                throw new Exception("Could not find chart path environment variable!");
+
+            midi = MidiFile.Read(chartPath);
         }
 
         [Benchmark]
