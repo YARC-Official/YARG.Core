@@ -169,33 +169,26 @@ namespace YARG.Core.Utility
             where TSplit : ISplitGetter<T>
         {
             remaining = buffer;
+            var result = ReadOnlySpan<T>.Empty;
 
-            // `while` to ignore splits that consist of only the split value
-            while (!remaining.IsEmpty)
+            // For ignoring empty splits
+            while (result.IsEmpty && !remaining.IsEmpty)
             {
                 int splitIndex = remaining.IndexOf(split);
                 if (splitIndex < 0)
-                {
-                    // No result, use the rest of the buffer
-                    var finalResult = remaining;
-                    remaining = ReadOnlySpan<T>.Empty;
-                    return finalResult;
-                }
+                    splitIndex = remaining.Length;
 
                 // Split on the value
-                var result = splitGetter.GetSegment(remaining, splitIndex);
+                result = splitGetter.GetSegment(remaining, splitIndex);
 
-                // Skip the split value
-                if (splitIndex < remaining.Length)
+                // Skip the split value and ignore consecutive split values
+                while (splitIndex < remaining.Length && remaining[splitIndex].Equals(split))
                     splitIndex++;
-                remaining = splitGetter.GetRemaining(remaining, splitIndex);
 
-                // Ignore empty splits
-                if (!result.IsEmpty)
-                    return result;
+                remaining = splitGetter.GetRemaining(remaining, splitIndex);
             }
 
-            return ReadOnlySpan<T>.Empty;
+            return result;
         }
     }
 }
