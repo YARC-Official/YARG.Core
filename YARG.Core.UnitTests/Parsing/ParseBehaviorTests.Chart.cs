@@ -225,6 +225,12 @@ namespace YARG.Core.UnitTests.Parsing
             return chartBuilder.ToString();
         }
 
+        public static string GenerateChartFile()
+        {
+            var song = GenerateSong();
+            return GenerateChartFile(song);
+        }
+
         [TestCase]
         public void GenerateAndParseChartFile()
         {
