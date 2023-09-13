@@ -126,6 +126,9 @@ namespace YARG.Core.Utility
                 => buffer[splitIndex..].Trim();
         }
 
+        public static SpanSplitter<char> SplitAsSpan(this string buffer, char split)
+            => new(buffer, split);
+
         public static SpanSplitter<T> Split<T>(this Span<T> buffer, T split)
             where T : IEquatable<T>
             => new(buffer, split);
@@ -134,19 +137,28 @@ namespace YARG.Core.Utility
             where T : IEquatable<T>
             => new(buffer, split);
 
+        public static TrimSplitter SplitTrimmed(this string buffer, char split)
+            => new(buffer, split);
+
         public static TrimSplitter SplitTrimmed(this ReadOnlySpan<char> buffer, char split)
             => new(buffer, split);
 
         public static TrimSplitter SplitTrimmed(this SpanSplitter<char> splitter)
             => splitter;
 
+        public static ReadOnlySpan<char> SplitOnce(this string buffer, char split, out ReadOnlySpan<char> remaining)
+            => SplitOnce(buffer.AsSpan(), split, out remaining);
+
         public static ReadOnlySpan<T> SplitOnce<T>(this Span<T> buffer, T split, out ReadOnlySpan<T> remaining)
             where T : IEquatable<T>
-            => SplitOnce((ReadOnlySpan<T>)buffer, split, out remaining);
+            => SplitOnce((ReadOnlySpan<T>) buffer, split, out remaining);
 
         public static ReadOnlySpan<T> SplitOnce<T>(this ReadOnlySpan<T> buffer, T split, out ReadOnlySpan<T> remaining)
             where T : IEquatable<T>
             => buffer.SplitOnce(split, new SpanSplitGetter<T>(), out remaining);
+
+        public static ReadOnlySpan<char> SplitOnceTrimmed(this string buffer, char split, out ReadOnlySpan<char> remaining)
+            => SplitOnceTrimmed(buffer.AsSpan(), split, out remaining);
 
         public static ReadOnlySpan<char> SplitOnceTrimmed(this ReadOnlySpan<char> buffer, char split, out ReadOnlySpan<char> remaining)
             => buffer.SplitOnce(split, new TrimSplitGetter(), out remaining);
