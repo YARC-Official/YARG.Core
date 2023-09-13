@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Threading.Tasks;
+using YARG.Core.Extensions;
 using YARG.Core.Song.Deserialization;
 
 namespace YARG.Core.Song.Cache

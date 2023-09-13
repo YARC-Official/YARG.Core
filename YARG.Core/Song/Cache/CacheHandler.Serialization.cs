@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
+using YARG.Core.Extensions;
 using YARG.Core.Song.Deserialization;
 
 #nullable enable

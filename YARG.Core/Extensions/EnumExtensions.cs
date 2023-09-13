@@ -1,7 +1,7 @@
 using System;
 using System.Runtime.CompilerServices;
 
-namespace YARG.Core
+namespace YARG.Core.Extensions
 {
     public static class EnumExtensions<TEnum>
         where TEnum : Enum

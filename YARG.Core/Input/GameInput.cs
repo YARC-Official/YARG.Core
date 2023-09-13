@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.Input
 {

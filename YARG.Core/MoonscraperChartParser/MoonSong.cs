@@ -6,7 +6,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using YARG.Core;
+using YARG.Core.Extensions;
 
 namespace MoonscraperChartEditor.Song
 {

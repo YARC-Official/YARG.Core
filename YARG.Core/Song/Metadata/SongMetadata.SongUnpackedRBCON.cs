@@ -1,9 +1,10 @@
 ﻿using System;
 using System.IO;
-using YARG.Core.Song.Deserialization;
 using System.Buffers.Binary;
 using System.Collections.Generic;
+using YARG.Core.Extensions;
 using YARG.Core.Song.Cache;
+using YARG.Core.Song.Deserialization;
 
 #nullable enable
 namespace YARG.Core.Song

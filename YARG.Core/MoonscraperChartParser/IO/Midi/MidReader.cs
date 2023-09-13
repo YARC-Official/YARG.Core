@@ -9,6 +9,7 @@ using Melanchall.DryWetMidi.Interaction;
 using YARG.Core;
 using YARG.Core.Chart;
 using YARG.Core.Song;
+using YARG.Core.Extensions;
 
 namespace MoonscraperChartEditor.Song.IO
 {

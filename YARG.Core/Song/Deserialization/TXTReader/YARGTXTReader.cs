@@ -2,6 +2,7 @@
 using System.IO;
 using System.Linq;
 using System.Text;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.Song.Deserialization
 {

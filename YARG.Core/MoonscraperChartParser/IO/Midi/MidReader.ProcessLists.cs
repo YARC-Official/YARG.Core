@@ -8,6 +8,7 @@ using System.Linq;
 using Melanchall.DryWetMidi.Core;
 using YARG.Core;
 using YARG.Core.Chart;
+using YARG.Core.Extensions;
 
 namespace MoonscraperChartEditor.Song.IO
 {
