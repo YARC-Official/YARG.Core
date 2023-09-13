@@ -31,6 +31,28 @@ namespace YARG.Core.UnitTests.Utility
         }
 
         [TestCase]
+        public void SplitTrimmedAsciiBehaviorTest()
+        {
+            string searchString = "abcd \n efgh \n ijkl";
+            var splitter = searchString.SplitTrimmedAscii(' ');
+            Assert.That(splitter.GetNext().ToString(), Is.EqualTo("abcd"));
+            Assert.That(splitter.GetNext().ToString(), Is.EqualTo("efgh"));
+            Assert.That(splitter.GetNext().ToString(), Is.EqualTo("ijkl"));
+            Assert.That(splitter.GetNext().ToString(), Is.Empty);
+        }
+
+        [TestCase]
+        public void SplitTrimmedLatin1BehaviorTest()
+        {
+            string searchString = "abcd \n efgh \n ijkl";
+            var splitter = searchString.SplitTrimmedLatin1(' ');
+            Assert.That(splitter.GetNext().ToString(), Is.EqualTo("abcd"));
+            Assert.That(splitter.GetNext().ToString(), Is.EqualTo("efgh"));
+            Assert.That(splitter.GetNext().ToString(), Is.EqualTo("ijkl"));
+            Assert.That(splitter.GetNext().ToString(), Is.Empty);
+        }
+
+        [TestCase]
         public void SplitChartTest()
         {
             string searchString = ChartParseBehaviorTests.GenerateChartFile();

@@ -1,8 +1,11 @@
 using System;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.Utility
 {
     using TrimSplitter = SpanSplitter<char, TrimSplitProcessor>;
+    using AsciiTrimSplitter = SpanSplitter<char, AsciiTrimSplitProcessor>;
+    using Latin1TrimSplitter = SpanSplitter<char, Latin1TrimSplitProcessor>;
 
     /// <summary>
     /// Enumerates a <see cref="ReadOnlySpan{T}"/>, splitting based on a specific value of <typeparamref name="T"/>
@@ -76,6 +79,22 @@ namespace YARG.Core.Utility
             => buffer[splitIndex..].Trim();
     }
 
+    public readonly struct AsciiTrimSplitProcessor : ISplitProcessor<char>
+    {
+        public readonly ReadOnlySpan<char> GetSegment(ReadOnlySpan<char> buffer, int splitIndex)
+            => buffer[..splitIndex].TrimAscii();
+        public readonly ReadOnlySpan<char> GetRemaining(ReadOnlySpan<char> buffer, int splitIndex)
+            => buffer[splitIndex..].TrimAscii();
+    }
+
+    public readonly struct Latin1TrimSplitProcessor : ISplitProcessor<char>
+    {
+        public readonly ReadOnlySpan<char> GetSegment(ReadOnlySpan<char> buffer, int splitIndex)
+            => buffer[..splitIndex].TrimLatin1();
+        public readonly ReadOnlySpan<char> GetRemaining(ReadOnlySpan<char> buffer, int splitIndex)
+            => buffer[splitIndex..].TrimLatin1();
+    }
+
     public static class SpanSplitterExtensions
     {
         public static SpanSplitter<char, SpanSplitProcessor<char>> SplitAsSpan(this string buffer, char split)
@@ -95,6 +114,18 @@ namespace YARG.Core.Utility
         public static TrimSplitter SplitTrimmed(this ReadOnlySpan<char> buffer, char split)
             => new(buffer, split);
 
+        public static AsciiTrimSplitter SplitTrimmedAscii(this string buffer, char split)
+            => new(buffer, split);
+
+        public static AsciiTrimSplitter SplitTrimmedAscii(this ReadOnlySpan<char> buffer, char split)
+            => new(buffer, split);
+
+        public static Latin1TrimSplitter SplitTrimmedLatin1(this string buffer, char split)
+            => new(buffer, split);
+
+        public static Latin1TrimSplitter SplitTrimmedLatin1(this ReadOnlySpan<char> buffer, char split)
+            => new(buffer, split);
+
         public static ReadOnlySpan<char> SplitOnce(this string buffer, char split, out ReadOnlySpan<char> remaining)
             => SplitOnce(buffer.AsSpan(), split, out remaining);
 
@@ -111,6 +142,18 @@ namespace YARG.Core.Utility
 
         public static ReadOnlySpan<char> SplitOnceTrimmed(this ReadOnlySpan<char> buffer, char split, out ReadOnlySpan<char> remaining)
             => buffer.SplitOnce(split, new TrimSplitProcessor(), out remaining);
+
+        public static ReadOnlySpan<char> SplitOnceTrimmedAscii(this string buffer, char split, out ReadOnlySpan<char> remaining)
+            => SplitOnceTrimmedAscii(buffer.AsSpan(), split, out remaining);
+
+        public static ReadOnlySpan<char> SplitOnceTrimmedAscii(this ReadOnlySpan<char> buffer, char split, out ReadOnlySpan<char> remaining)
+            => buffer.SplitOnce(split, new AsciiTrimSplitProcessor(), out remaining);
+
+        public static ReadOnlySpan<char> SplitOnceTrimmedLatin1(this string buffer, char split, out ReadOnlySpan<char> remaining)
+            => SplitOnceTrimmedLatin1(buffer.AsSpan(), split, out remaining);
+
+        public static ReadOnlySpan<char> SplitOnceTrimmedLatin1(this ReadOnlySpan<char> buffer, char split, out ReadOnlySpan<char> remaining)
+            => buffer.SplitOnce(split, new Latin1TrimSplitProcessor(), out remaining);
 
         public static ReadOnlySpan<T> SplitOnce<T, TSplitter>(this ReadOnlySpan<T> buffer, T split, TSplitter splitter,
             out ReadOnlySpan<T> remaining)

@@ -40,5 +40,31 @@ namespace YARG.Core.Benchmarks
             Debug.Assert(splitCount > 0);
             return splitCount;
         }
+
+        [Benchmark]
+        [Arguments('\n')]
+        [Arguments(' ')]
+        public int SplitTrimmedAscii(char searchChar)
+        {
+            int splitCount = 0;
+            foreach (var _ in searchString.SplitTrimmedAscii(searchChar))
+                splitCount++;
+
+            Debug.Assert(splitCount > 0);
+            return splitCount;
+        }
+
+        [Benchmark]
+        [Arguments('\n')]
+        [Arguments(' ')]
+        public int SplitTrimmedLatin1(char searchChar)
+        {
+            int splitCount = 0;
+            foreach (var _ in searchString.SplitTrimmedLatin1(searchChar))
+                splitCount++;
+
+            Debug.Assert(splitCount > 0);
+            return splitCount;
+        }
     }
 }
