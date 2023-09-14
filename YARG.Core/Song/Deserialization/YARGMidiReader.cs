@@ -155,7 +155,7 @@ namespace YARG.Core.Song.Deserialization
             ProcessHeaderChunk();
         }
 
-        public YARGMidiReader(byte[] data) : this(new MemoryStream(data)) { }
+        public YARGMidiReader(byte[] data) : this(new MemoryStream(data, 0, data.Length, false, true)) { }
 
         public YARGMidiReader(string path) : this(new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read)) { }
 
@@ -166,7 +166,7 @@ namespace YARG.Core.Song.Deserialization
             if (!tagBuffer.SequenceEqual(tag))
                 return false;
 
-            trackReader = new YARGBinaryReader(stream.ReadBytes(stream.ReadInt32BE()));
+            trackReader = new YARGBinaryReader(stream, stream.ReadInt32BE());
             return true;
         }
 
