@@ -56,22 +56,6 @@ namespace YARG.Core.Song.Deserialization
             return _position >= length;
         }
 
-        public bool ReadBoolean(ref bool value)
-        {
-            value = data[_position].ToChar(null) switch
-            {
-                '0' => false,
-                '1' => true,
-                _ => _position + 4 <= _next &&
-                    (data[_position    ].ToChar(null) == 't' || data[_position    ].ToChar(null) == 'T') &&
-                    (data[_position + 1].ToChar(null) == 'r' || data[_position + 1].ToChar(null) == 'R') &&
-                    (data[_position + 2].ToChar(null) == 'u' || data[_position + 2].ToChar(null) == 'U') &&
-                    (data[_position + 3].ToChar(null) == 'e' || data[_position + 3].ToChar(null) == 'E'),
-            };
-            return true;
-        }
-
-
         private const char LAST_DIGIT_SIGNED = '7';
         private const char LAST_DIGIT_UNSIGNED = '5';
 
@@ -306,10 +290,16 @@ namespace YARG.Core.Song.Deserialization
 
         public bool ReadBoolean()
         {
-            bool value = default;
-            if (!ReadBoolean(ref value))
-                throw new Exception("Failed to parse data");
-            return value;
+            return data[_position].ToChar(null) switch
+            {
+                '0' => false,
+                '1' => true,
+                _ => _position + 4 <= _next &&
+                    (data[_position].ToChar(null) == 't' || data[_position].ToChar(null) == 'T') &&
+                    (data[_position + 1].ToChar(null) == 'r' || data[_position + 1].ToChar(null) == 'R') &&
+                    (data[_position + 2].ToChar(null) == 'u' || data[_position + 2].ToChar(null) == 'U') &&
+                    (data[_position + 3].ToChar(null) == 'e' || data[_position + 3].ToChar(null) == 'E'),
+            };
         }
 
         public short ReadInt16()
