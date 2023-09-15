@@ -16,11 +16,11 @@ namespace YARG.Core.Song
 
         private Midi_Keys_Preparser() { }
 
-        public static byte Parse(YARGMidiReader reader)
+        public static DifficultyMask Parse(YARGMidiReader reader)
         {
             Midi_Keys_Preparser preparser = new();
             preparser.Process(reader);
-            return (byte) preparser.validations;
+            return preparser.validations;
         }
 
         protected override bool ParseLaneColor_ON()

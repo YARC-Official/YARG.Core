@@ -29,12 +29,12 @@ namespace YARG.Core.Song.Deserialization
         private static readonly EventCombo NOTE =    new(Encoding.ASCII.GetBytes("N"),  ChartEvent_FW.NOTE);
         private static readonly EventCombo SPECIAL = new(Encoding.ASCII.GetBytes("S"),  ChartEvent_FW.SPECIAL);
 
-        private static readonly byte[][] DIFFICULTIES =
+        private static readonly (byte[] name, Difficulty difficulty)[] DIFFICULTIES =
         {
-            Encoding.ASCII.GetBytes("[Easy"),
-            Encoding.ASCII.GetBytes("[Medium"),
-            Encoding.ASCII.GetBytes("[Hard"),
-            Encoding.ASCII.GetBytes("[Expert")
+            (Encoding.ASCII.GetBytes("[Easy"), Difficulty.Easy),
+            (Encoding.ASCII.GetBytes("[Medium"), Difficulty.Medium),
+            (Encoding.ASCII.GetBytes("[Hard"), Difficulty.Hard),
+            (Encoding.ASCII.GetBytes("[Expert"), Difficulty.Expert),
         };
 
         private static readonly (byte[], NoteTracks_Chart)[] NOTETRACKS =
@@ -64,10 +64,10 @@ namespace YARG.Core.Song.Deserialization
         private EventCombo[] eventSet = Array.Empty<EventCombo>();
         private long tickPosition = 0;
         private NoteTracks_Chart _instrument;
-        private int _difficulty;
+        private Difficulty _difficulty;
 
         public NoteTracks_Chart Instrument => _instrument;
-        public int Difficulty => _difficulty;
+        public Difficulty Difficulty => _difficulty;
 
         public YARGChartFileReader(YARGTXTReader reader)
         {
@@ -107,13 +107,16 @@ namespace YARG.Core.Song.Deserialization
         public bool ValidateDifficulty()
         {
             for (int diff = 3; diff >= 0; --diff)
-                if (DoesStringMatch(DIFFICULTIES[diff]))
+            {
+                var (name, difficulty) = DIFFICULTIES[diff];
+                if (DoesStringMatch(name))
                 {
-                    _difficulty = diff;
+                    _difficulty = difficulty;
                     eventSet = EVENTS_DIFF;
-                    reader.Position += DIFFICULTIES[diff].Length;
+                    reader.Position += name.Length;
                     return true;
                 }
+            }
             return false;
         }
 
