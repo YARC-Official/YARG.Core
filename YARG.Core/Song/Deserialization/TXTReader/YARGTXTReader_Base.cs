@@ -306,7 +306,7 @@ namespace YARG.Core.Song.Deserialization
         {
             short value = default;
             if (!ReadInt16(ref value))
-                throw new Exception("Failed to parse data");
+                throw new Exception("Data for Int16 not present");
             return value;
         }
 
@@ -314,7 +314,7 @@ namespace YARG.Core.Song.Deserialization
         {
             ushort value = default;
             if (!ReadUInt16(ref value))
-                throw new Exception("Failed to parse data");
+                throw new Exception("Data for UInt16 not present");
             return value;
         }
 
@@ -322,7 +322,7 @@ namespace YARG.Core.Song.Deserialization
         {
             int value = default;
             if (!ReadInt32(ref value))
-                throw new Exception("Failed to parse data");
+                throw new Exception("Data for Int32 not present");
             return value;
         }
 
@@ -330,7 +330,7 @@ namespace YARG.Core.Song.Deserialization
         {
             uint value = default;
             if (!ReadUInt32(ref value))
-                throw new Exception("Failed to parse data");
+                throw new Exception("Data for UInt32 not present");
             return value;
         }
 
@@ -338,7 +338,7 @@ namespace YARG.Core.Song.Deserialization
         {
             long value = default;
             if (!ReadInt64(ref value))
-                throw new Exception("Failed to parse data");
+                throw new Exception("Data for Int64 not present");
             return value;
         }
 
@@ -346,7 +346,7 @@ namespace YARG.Core.Song.Deserialization
         {
             ulong value = default;
             if (!ReadUInt64(ref value))
-                throw new Exception("Failed to parse data");
+                throw new Exception("Data for UInt64 not present");
             return value;
         }
 
@@ -354,7 +354,7 @@ namespace YARG.Core.Song.Deserialization
         {
             float value = default;
             if (!ReadFloat(ref value))
-                throw new Exception("Failed to parse data");
+                throw new Exception("Data for Float not present");
             return value;
         }
 
@@ -362,7 +362,7 @@ namespace YARG.Core.Song.Deserialization
         {
             double value = default;
             if (!ReadDouble(ref value))
-                throw new Exception("Failed to parse data");
+                throw new Exception("Data for Double not present");
             return value;
         }
 
