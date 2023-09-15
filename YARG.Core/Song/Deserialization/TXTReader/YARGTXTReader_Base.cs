@@ -40,7 +40,7 @@ namespace YARG.Core.Song.Deserialization
 
         public abstract char SkipWhiteSpace();
 
-        private void SkipDigitsAndWhiteSpace()
+        private void SkipDigits()
         {
             while (_position < _next)
             {
@@ -49,7 +49,6 @@ namespace YARG.Core.Song.Deserialization
                     break;
                 ++_position;
             }
-            SkipWhiteSpace();
         }
 
         public bool IsEndOfFile()
@@ -176,8 +175,10 @@ namespace YARG.Core.Song.Deserialization
                             value *= 10;
                             continue;
                         }
+
                         value = sign == -1 ? hardMin : hardMax;
-                        SkipDigitsAndWhiteSpace();
+                        SkipDigits();
+                        SkipWhiteSpace();
                         return true;
                     }
                 }
@@ -223,7 +224,8 @@ namespace YARG.Core.Song.Deserialization
                         }
 
                         value = hardMax;
-                        SkipDigitsAndWhiteSpace();
+                        SkipDigits();
+                        SkipWhiteSpace();
                         return true;
                     }
                 }
