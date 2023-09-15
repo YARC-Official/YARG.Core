@@ -119,106 +119,6 @@ namespace YARG.Core.Song.Deserialization
             return InternalReadUnsigned(ref value, ulong.MaxValue, ULONG_MAX);
         }
 
-        private bool InternalReadSigned(ref long value, long hardMax, long hardMin, long softMax)
-        {
-            if (_position >= _next)
-                return false;
-
-            char ch = data[_position].ToChar(null);
-            long sign = 1;
-
-            switch (ch)
-            {
-                case '-':
-                    sign = -1;
-                    goto case '+';
-                case '+':
-                    ++_position;
-                    if (_position == _next)
-                        return false;
-                    ch = data[_position].ToChar(null);
-                    break;
-            }
-
-            if (ch < '0' || '9' < ch)
-                return false;
-
-            value = 0;
-            while (true)
-            {
-                value += ch - '0';
-
-                ++_position;
-                if (_position < _next)
-                {
-                    ch = data[_position].ToChar(null);
-                    if ('0' <= ch && ch <= '9')
-                    {
-                        if (value < softMax || value == softMax && ch <= LAST_DIGIT_SIGNED)
-                        {
-                            value *= 10;
-                            continue;
-                        }
-
-                        value = sign == -1 ? hardMin : hardMax;
-                        SkipDigits();
-                        SkipWhiteSpace();
-                        return true;
-                    }
-                }
-
-                value *= sign;
-                SkipWhiteSpace();
-                return true;
-            }
-        }
-
-        private bool InternalReadUnsigned(ref ulong value, ulong hardMax, ulong softMax)
-        {
-            if (_position >= _next)
-                return false;
-
-            char ch = data[_position].ToChar(null);
-            if (ch == '+')
-            {
-                ++_position;
-                if (_position == _next)
-                    return false;
-                ch = data[_position].ToChar(null);
-            }
-
-            if (ch < '0' || '9' < ch)
-                return false;
-
-            value = 0;
-            while (true)
-            {
-                value += (ulong) (ch - '0');
-
-                ++_position;
-                if (_position < _next)
-                {
-                    ch = data[_position].ToChar(null);
-                    if ('0' <= ch && ch <= '9')
-                    {
-                        if (value < softMax || value == softMax && ch <= LAST_DIGIT_UNSIGNED)
-                        {
-                            value *= 10;
-                            continue;
-                        }
-
-                        value = hardMax;
-                        SkipDigits();
-                        SkipWhiteSpace();
-                        return true;
-                    }
-                }
-
-                SkipWhiteSpace();
-                return true;
-            }
-        }
-
         public bool ReadFloat(ref float value)
         {
             double tmp = default;
@@ -369,6 +269,106 @@ namespace YARG.Core.Song.Deserialization
         public ReadOnlySpan<T> ExtractBasicSpan(int length)
         {
             return new ReadOnlySpan<T>(data, _position, length);
+        }
+
+        private bool InternalReadSigned(ref long value, long hardMax, long hardMin, long softMax)
+        {
+            if (_position >= _next)
+                return false;
+
+            char ch = data[_position].ToChar(null);
+            long sign = 1;
+
+            switch (ch)
+            {
+                case '-':
+                    sign = -1;
+                    goto case '+';
+                case '+':
+                    ++_position;
+                    if (_position == _next)
+                        return false;
+                    ch = data[_position].ToChar(null);
+                    break;
+            }
+
+            if (ch < '0' || '9' < ch)
+                return false;
+
+            value = 0;
+            while (true)
+            {
+                value += ch - '0';
+
+                ++_position;
+                if (_position < _next)
+                {
+                    ch = data[_position].ToChar(null);
+                    if ('0' <= ch && ch <= '9')
+                    {
+                        if (value < softMax || value == softMax && ch <= LAST_DIGIT_SIGNED)
+                        {
+                            value *= 10;
+                            continue;
+                        }
+
+                        value = sign == -1 ? hardMin : hardMax;
+                        SkipDigits();
+                        SkipWhiteSpace();
+                        return true;
+                    }
+                }
+
+                value *= sign;
+                SkipWhiteSpace();
+                return true;
+            }
+        }
+
+        private bool InternalReadUnsigned(ref ulong value, ulong hardMax, ulong softMax)
+        {
+            if (_position >= _next)
+                return false;
+
+            char ch = data[_position].ToChar(null);
+            if (ch == '+')
+            {
+                ++_position;
+                if (_position == _next)
+                    return false;
+                ch = data[_position].ToChar(null);
+            }
+
+            if (ch < '0' || '9' < ch)
+                return false;
+
+            value = 0;
+            while (true)
+            {
+                value += (ulong) (ch - '0');
+
+                ++_position;
+                if (_position < _next)
+                {
+                    ch = data[_position].ToChar(null);
+                    if ('0' <= ch && ch <= '9')
+                    {
+                        if (value < softMax || value == softMax && ch <= LAST_DIGIT_UNSIGNED)
+                        {
+                            value *= 10;
+                            continue;
+                        }
+
+                        value = hardMax;
+                        SkipDigits();
+                        SkipWhiteSpace();
+                        return true;
+                    }
+                }
+
+                SkipWhiteSpace();
+                return true;
+            }
         }
     }
 }
