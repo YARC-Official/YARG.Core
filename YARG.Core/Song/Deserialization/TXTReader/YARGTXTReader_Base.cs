@@ -264,55 +264,36 @@ namespace YARG.Core.Song.Deserialization
                 return false;
 
             value = 0;
-            if (ch != '.')
+            while ('0' <= ch && ch <= '9')
             {
-                while (true)
-                {
-                    ++_position;
-                    value += ch - '0';
-                    if (_position == _next)
-                        break;
-
+                value *= 10;
+                value += ch - '0';
+                ++_position;
+                if (_position < _next)
                     ch = data[_position].ToChar(null);
-                    if (ch < '0' || ch > '9')
-                        break;
-
-                    value *= 10;
-                }
+                else
+                    break;
             }
 
             if (ch == '.')
             {
                 ++_position;
-
-                double dec = 0;
-                int count = 0;
                 if (_position < _next)
                 {
+                    double divisor = 1;
                     ch = data[_position].ToChar(null);
-                    if ('0' <= ch && ch <= '9')
+                    while ('0' <= ch && ch <= '9')
                     {
-                        ++count;
-                        while (true)
-                        {
-                            dec += ch - '0';
-                            ++_position;
-                            if (_position == _next)
-                                break;
+                        divisor *= 10;
+                        value += (ch - '0') / divisor;
 
+                        ++_position;
+                        if (_position < _next)
                             ch = data[_position].ToChar(null);
-                            if (ch < '0' || ch > '9')
-                                break;
-                            dec *= 10;
-                            ++count;
-                        }
+                        else
+                            break;
                     }
                 }
-
-                for (int i = 0; i < count; ++i)
-                    dec /= 10;
-
-                value += dec;
             }
 
             value *= sign;
