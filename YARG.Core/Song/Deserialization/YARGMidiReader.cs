@@ -146,7 +146,6 @@ namespace YARG.Core.Song.Deserialization
         private int runningOffset;
 
         private readonly Stream stream;
-        private readonly byte[] tagBuffer = new byte[4];
         private YARGBinaryReader trackReader;
         private int nextEvent;
 
@@ -160,13 +159,11 @@ namespace YARG.Core.Song.Deserialization
 
         public YARGMidiReader(string path) : this(new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read)) { }
 
-        private bool LoadTrack(byte[] tag)
+        private bool LoadTrack(Span<byte> tag)
         {
+            Span<byte> tagBuffer = stackalloc byte[4];
             stream.Read(tagBuffer);
-            if (tagBuffer[0] != tag[0] ||
-                tagBuffer[1] != tag[1] ||
-                tagBuffer[2] != tag[2] ||
-                tagBuffer[3] != tag[3])
+            if (!tagBuffer.SequenceEqual(tag))
                 return false;
 
             trackReader = new YARGBinaryReader(stream.ReadBytes(stream.ReadInt32BE()));
@@ -175,7 +172,7 @@ namespace YARG.Core.Song.Deserialization
 
         public bool StartTrack()
         {
-            if (trackCount == header.numTracks)
+            if (trackCount == header.numTracks || stream.Position == stream.Length)
                 return false;
 
             trackCount++;
