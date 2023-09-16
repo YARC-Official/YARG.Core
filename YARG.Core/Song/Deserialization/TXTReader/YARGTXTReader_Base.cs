@@ -60,78 +60,79 @@ namespace YARG.Core.Song.Deserialization
         private const char LAST_DIGIT_UNSIGNED = '5';
 
         private const short SHORT_MAX = short.MaxValue / 10;
-        public bool ReadInt16(ref short value)
+        public bool ReadInt16(out short value)
         {
-            long tmp = default;
-            if (InternalReadSigned(ref tmp, short.MaxValue, short.MinValue, SHORT_MAX))
+            if (InternalReadSigned(out long tmp, short.MaxValue, short.MinValue, SHORT_MAX))
             {
                 value = (short) tmp;
                 return true;
             }
+            value = default;
             return false;
         }
 
         private const int INT_MAX = int.MaxValue / 10;
-        public bool ReadInt32(ref int value)
+        public bool ReadInt32(out int value)
         {
-            long tmp = default;
-            if (InternalReadSigned(ref tmp, int.MaxValue, int.MinValue, INT_MAX))
+            if (InternalReadSigned(out long tmp, int.MaxValue, int.MinValue, INT_MAX))
             {
                 value = (int) tmp;
                 return true;
             }
+            value = default;
             return false;
         }
 
         private const long LONG_MAX = long.MaxValue / 10;
-        public bool ReadInt64(ref long value)
+        public bool ReadInt64(out long value)
         {
-            return InternalReadSigned(ref value, long.MaxValue, long.MinValue, LONG_MAX);
+            return InternalReadSigned(out value, long.MaxValue, long.MinValue, LONG_MAX);
         }
 
         private const ushort USHORT_MAX = ushort.MaxValue / 10;
-        public bool ReadUInt16(ref ushort value)
+        public bool ReadUInt16(out ushort value)
         {
-            ulong tmp = default;
-            if (InternalReadUnsigned(ref tmp, ushort.MaxValue, USHORT_MAX))
+            if (InternalReadUnsigned(out ulong tmp, ushort.MaxValue, USHORT_MAX))
             {
                 value = (ushort) tmp;
                 return true;
             }
+            value = default;
             return false;
         }
 
         private const uint UINT_MAX = uint.MaxValue / 10;
-        public bool ReadUInt32(ref uint value)
+        public bool ReadUInt32(out uint value)
         {
-            ulong tmp = default;
-            if (InternalReadUnsigned(ref tmp, uint.MaxValue, UINT_MAX))
+            if (InternalReadUnsigned(out ulong tmp, uint.MaxValue, UINT_MAX))
             {
                 value = (uint) tmp;
                 return true;
             }
+            value = default;
             return false;
         }
 
         private const ulong ULONG_MAX = ulong.MaxValue / 10;
-        public bool ReadUInt64(ref ulong value)
+        public bool ReadUInt64(out ulong value)
         {
-            return InternalReadUnsigned(ref value, ulong.MaxValue, ULONG_MAX);
+            return InternalReadUnsigned(out value, ulong.MaxValue, ULONG_MAX);
         }
 
-        public bool ReadFloat(ref float value)
+        public bool ReadFloat(out float value)
         {
-            double tmp = default;
-            if (ReadDouble(ref tmp))
+            if (ReadDouble(out double tmp))
             {
                 value = (float) tmp;
                 return true;
             }
+            value = default;
             return false;
         }
 
-        public bool ReadDouble(ref double value)
+        public bool ReadDouble(out double value)
         {
+            value = 0;
             if (_position >= _next)
                 return false;
 
@@ -149,7 +150,6 @@ namespace YARG.Core.Song.Deserialization
             if (ch > '9' || (ch < '0' && ch != '.'))
                 return false;
 
-            value = 0;
             while ('0' <= ch && ch <= '9')
             {
                 value *= 10;
@@ -204,66 +204,58 @@ namespace YARG.Core.Song.Deserialization
 
         public short ReadInt16()
         {
-            short value = default;
-            if (!ReadInt16(ref value))
-                throw new Exception("Data for Int16 not present");
-            return value;
+            if (ReadInt16(out short value))
+                return value;
+            throw new Exception("Data for Int16 not present");
         }
 
         public ushort ReadUInt16()
         {
-            ushort value = default;
-            if (!ReadUInt16(ref value))
-                throw new Exception("Data for UInt16 not present");
-            return value;
+            if (ReadUInt16(out ushort value))
+                return value;
+            throw new Exception("Data for UInt16 not present");
         }
 
         public int ReadInt32()
         {
-            int value = default;
-            if (!ReadInt32(ref value))
-                throw new Exception("Data for Int32 not present");
-            return value;
+            if (ReadInt32(out int value))
+                return value;
+            throw new Exception("Data for Int32 not present");
         }
 
         public uint ReadUInt32()
         {
-            uint value = default;
-            if (!ReadUInt32(ref value))
-                throw new Exception("Data for UInt32 not present");
-            return value;
+            if (ReadUInt32(out uint value))
+                return value;
+            throw new Exception("Data for UInt32 not present");
         }
 
         public long ReadInt64()
         {
-            long value = default;
-            if (!ReadInt64(ref value))
-                throw new Exception("Data for Int64 not present");
-            return value;
+            if (ReadInt64(out long value))
+                return value;
+            throw new Exception("Data for Int64 not present");
         }
 
         public ulong ReadUInt64()
         {
-            ulong value = default;
-            if (!ReadUInt64(ref value))
-                throw new Exception("Data for UInt64 not present");
-            return value;
+            if (ReadUInt64(out ulong value))
+                return value;
+            throw new Exception("Data for UInt64 not present");
         }
 
         public float ReadFloat()
         {
-            float value = default;
-            if (!ReadFloat(ref value))
-                throw new Exception("Data for Float not present");
-            return value;
+            if (ReadFloat(out float value))
+                return value;
+            throw new Exception("Data for Float not present");
         }
 
         public double ReadDouble()
         {
-            double value = default;
-            if (!ReadDouble(ref value))
-                throw new Exception("Data for Double not present");
-            return value;
+            if (ReadDouble(out double value))
+                return value;
+            throw new Exception("Data for Double not present");
         }
 
         public ReadOnlySpan<T> ExtractBasicSpan(int length)
@@ -271,8 +263,9 @@ namespace YARG.Core.Song.Deserialization
             return new ReadOnlySpan<T>(data, _position, length);
         }
 
-        private bool InternalReadSigned(ref long value, long hardMax, long hardMin, long softMax)
+        private bool InternalReadSigned(out long value, long hardMax, long hardMin, long softMax)
         {
+            value = 0;
             if (_position >= _next)
                 return false;
 
@@ -295,7 +288,6 @@ namespace YARG.Core.Song.Deserialization
             if (ch < '0' || '9' < ch)
                 return false;
 
-            value = 0;
             while (true)
             {
                 value += ch - '0';
@@ -325,8 +317,9 @@ namespace YARG.Core.Song.Deserialization
             }
         }
 
-        private bool InternalReadUnsigned(ref ulong value, ulong hardMax, ulong softMax)
+        private bool InternalReadUnsigned(out ulong value, ulong hardMax, ulong softMax)
         {
+            value = 0;
             if (_position >= _next)
                 return false;
 
@@ -342,7 +335,6 @@ namespace YARG.Core.Song.Deserialization
             if (ch < '0' || '9' < ch)
                 return false;
 
-            value = 0;
             while (true)
             {
                 value += (ulong) (ch - '0');
