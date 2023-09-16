@@ -34,7 +34,7 @@ namespace YARG.Core.Song.Deserialization
     public interface IYARGChartReader
     {
         public NoteTracks_Chart Instrument { get; }
-        public int Difficulty { get; }
+        public Difficulty Difficulty { get; }
         public bool IsStartOfTrack();
         public bool ValidateHeaderTrack();
         public bool ValidateSyncTrack();

@@ -21,11 +21,11 @@ namespace YARG.Core.Song
 
         private Midi_FiveFret_Preparser() { }
 
-        public static byte Parse(YARGMidiReader reader)
+        public static DifficultyMask Parse(YARGMidiReader reader)
         {
             Midi_FiveFret_Preparser preparser = new();
             preparser.Process(reader);
-            return (byte) preparser.validations;
+            return preparser.validations;
         }
 
         protected override bool IsNote() { return FIVEFRET_MIN <= note.value && note.value <= DEFAULT_MAX; }

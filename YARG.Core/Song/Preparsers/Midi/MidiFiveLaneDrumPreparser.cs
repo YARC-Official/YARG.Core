@@ -7,7 +7,7 @@ namespace YARG.Core.Song
         private const int NUM_LANES = MAX_NUMPADS;
         protected override bool IsNote() { return DEFAULT_MIN <= note.value && note.value <= FIVELANE_MAX; }
 
-        protected override bool IsFullyScanned() { return validations == FULL_VALIDATION; }
+        protected override bool IsFullyScanned() { return validations == ALL_DIFFICULTIES_PLUS; }
 
         private Midi_FiveLane_Preparser() { }
 
@@ -15,7 +15,7 @@ namespace YARG.Core.Song
         {
             Midi_FiveLane_Preparser preparser = new();
             preparser.Process(reader);
-            return (DifficultyMask) preparser.validations;
+            return preparser.validations;
         }
 
         protected override bool ParseLaneColor_ON()

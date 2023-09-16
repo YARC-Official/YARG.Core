@@ -5,12 +5,10 @@
         private const int DOUBLE_BASS_NOTE = 95;
         private const int DOUBLE_BASS_INDEX = 1;
         private const int EXPERT_INDEX = 3;
-        private const int EXPERT_AND_EXPERT_PLUS = 24;
         protected const int FIVELANE_MAX = 101;
         protected const int MAX_NUMPADS = 7;
         protected const int YELLOW_FLAG = 110;
         protected const int GREEN_FLAG = 112;
-        protected const int FULL_VALIDATION = 31;
 
         protected Midi_Drum_Preparser_Base() { }
 
@@ -38,7 +36,7 @@
                 return false;
 
             if (statuses[EXPERT_INDEX, DOUBLE_BASS_INDEX])
-                validations |= EXPERT_AND_EXPERT_PLUS;
+                validations |= DifficultyMask.Expert | DifficultyMask.ExpertPlus;
             return true;
         }
     }

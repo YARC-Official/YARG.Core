@@ -32,18 +32,18 @@ namespace YARG.Core.Song
             this.maxVelocity = maxVelocity;
         }
 
-        public static byte Parse_17Fret(YARGMidiReader reader)
+        public static DifficultyMask Parse_17Fret(YARGMidiReader reader)
         {
             Midi_ProGuitar_Preparser preparser = new(117);
             preparser.Process(reader);
-            return (byte) preparser.validations;
+            return preparser.validations;
         }
 
-        public static byte Parse_22Fret(YARGMidiReader reader)
+        public static DifficultyMask Parse_22Fret(YARGMidiReader reader)
         {
             Midi_ProGuitar_Preparser preparser = new(122);
             preparser.Process(reader);
-            return (byte) preparser.validations;
+            return preparser.validations;
         }
 
         protected override bool IsNote() { return PROGUITAR_MIN <= note.value && note.value <= PROGUITAR_MAX; }

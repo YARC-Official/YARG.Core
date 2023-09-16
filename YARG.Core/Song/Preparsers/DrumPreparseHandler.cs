@@ -40,7 +40,7 @@ namespace YARG.Core.Song.Preparsers
 
         public void ParseChart(IYARGChartReader reader)
         {
-            var difficulty = (DifficultyMask)(1 << reader.Difficulty);
+            var difficulty = reader.Difficulty.ToDifficultyMask();
 
             bool skip = true;
             if ((_validations & difficulty) == 0)

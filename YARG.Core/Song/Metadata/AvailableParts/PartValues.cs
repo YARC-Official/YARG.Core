@@ -13,11 +13,6 @@ namespace YARG.Core.Song
             intensity = baseIntensity;
         }
 
-        public void Set(int subTrack)
-        {
-            subTracks |= (byte) (1 << subTrack);
-        }
-
         public bool this[int subTrack]
         {
             get
@@ -27,6 +22,22 @@ namespace YARG.Core.Song
                 return ((byte) (1 << subTrack) & subTracks) > 0;
             }
         }
+
+        public bool this[Difficulty difficulty] => this[(int) difficulty];
+
+        public DifficultyMask Difficulties
+        {
+            get => (DifficultyMask) subTracks;
+            set => subTracks = (byte) value;
+        }
+
+        public void SetSubtrack(int subTrack)
+        {
+            subTracks |= (byte) (1 << subTrack);
+        }
+
+        public void SetDifficulty(Difficulty difficulty)
+            => SetSubtrack((int) difficulty);
 
         public bool WasParsed() { return subTracks > 0; }
 

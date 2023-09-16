@@ -17,11 +17,11 @@ namespace YARG.Core.Song
 
         private Midi_SixFret_Preparser() { }
 
-        public static byte Parse(YARGMidiReader reader)
+        public static DifficultyMask Parse(YARGMidiReader reader)
         {
             Midi_SixFret_Preparser preparser = new();
             preparser.Process(reader);
-            return (byte) preparser.validations;
+            return preparser.validations;
         }
 
         protected override bool IsNote() { return 58 <= note.value && note.value <= 103; }

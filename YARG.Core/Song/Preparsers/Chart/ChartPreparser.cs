@@ -10,8 +10,8 @@ namespace YARG.Core.Song
     {
         public static bool Preparse(IYARGChartReader reader, ref PartValues scan, Func<int, bool> func)
         {
-            int index = reader.Difficulty;
-            if (scan[index])
+            var difficulty = reader.Difficulty;
+            if (scan[difficulty])
                 return true;
 
             while (reader.IsStillCurrentTrack())
@@ -20,7 +20,7 @@ namespace YARG.Core.Song
                 {
                     if (func(reader.ExtractLaneAndSustain().Item1))
                     {
-                        scan.Set(index);
+                        scan.SetDifficulty(difficulty);
                         return true;
                     }
                 }

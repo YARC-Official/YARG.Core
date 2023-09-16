@@ -1,74 +1,95 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 
 namespace YARG.Core
 {
+    // !DO NOT MODIFY THE VALUES OR ORDER OF THESE ENUMS!
+    // Since they are serialized in replays, they *must* remain the same across changes.
+    // Add new values in the gaps between reserved ranges, or reserve a new range at the end of the enum.
+
     /// <summary>
     /// Available game modes.
     /// </summary>
-    public enum GameMode
+    public enum GameMode : byte
     {
-        FiveFretGuitar,
-        SixFretGuitar,
+        // Game modes are reserved in multiples of 5
+        // 0-4: Guitar
+        FiveFretGuitar = 0,
+        SixFretGuitar = 1,
 
-        FourLaneDrums,
-        FiveLaneDrums,
-        // TrueDrums,
+        // 5-9: Drums
+        FourLaneDrums = 5,
+        FiveLaneDrums = 6,
+        // TrueDrums = 7,
 
-        ProGuitar,
-        ProKeys,
+        // 10-14: Pro instruments
+        ProGuitar = 10,
+        ProKeys = 11,
 
-        Vocals,
+        // 15-19: Vocals
+        Vocals = 15,
 
-        // Dj,
+        // 20-24: Other
+        // Dj = 20,
     }
 
     /// <summary>
     /// Available instruments.
     /// </summary>
-    public enum Instrument
+    public enum Instrument : byte
     {
-        FiveFretGuitar,
-        FiveFretBass,
-        FiveFretRhythm,
-        FiveFretCoopGuitar,
-        Keys,
+        // Instruments are reserved in multiples of 10
+        // 0-9: 5-fret guitar
+        FiveFretGuitar = 0,
+        FiveFretBass = 1,
+        FiveFretRhythm = 2,
+        FiveFretCoopGuitar = 3,
+        Keys = 4,
 
-        SixFretGuitar,
-        SixFretBass,
-        SixFretRhythm,
-        SixFretCoopGuitar,
+        // 10-19: 6-fret guitar
+        SixFretGuitar = 10,
+        SixFretBass = 11,
+        SixFretRhythm = 12,
+        SixFretCoopGuitar = 13,
 
-        FourLaneDrums,
-        ProDrums,
+        // 20-29: Drums
+        FourLaneDrums = 20,
+        ProDrums = 21,
 
-        FiveLaneDrums,
+        FiveLaneDrums = 22,
 
-        // TrueDrums,
+        // TrueDrums = 23,
 
-        ProGuitar_17Fret,
-        ProGuitar_22Fret,
-        ProBass_17Fret,
-        ProBass_22Fret,
+        // 30-39: Pro instruments
+        ProGuitar_17Fret = 30,
+        ProGuitar_22Fret = 31,
+        ProBass_17Fret = 32,
+        ProBass_22Fret = 33,
 
-        ProKeys,
+        ProKeys = 34,
 
-        Vocals,
-        Harmony,
+        // 40-49: Vocals
+        Vocals = 40,
+        Harmony = 41,
 
-        // Dj,
-        Band,
+        // 50-59: DJ
+        // DjSingle = 50,
+        // DjDouble = 51,
+
+        Band = byte.MaxValue
     }
 
     /// <summary>
     /// Available difficulty levels.
     /// </summary>
-    public enum Difficulty
+    public enum Difficulty : byte
     {
-        Easy,
-        Medium,
-        Hard,
-        Expert,
-        ExpertPlus,
+        Beginner = 0,
+        Easy = 1,
+        Medium = 2,
+        Hard = 3,
+        Expert = 4,
+        ExpertPlus = 5,
     }
 
     /// <summary>
@@ -79,13 +100,14 @@ namespace YARG.Core
     {
         None = 0,
 
-        Easy   = 1 << 0,
-        Medium = 1 << 1,
-        Hard   = 1 << 2,
-        Expert = 1 << 3,
-        ExpertPlus = 1 << 4,
+        Beginner   = 1 << Difficulty.Beginner,
+        Easy       = 1 << Difficulty.Easy,
+        Medium     = 1 << Difficulty.Medium,
+        Hard       = 1 << Difficulty.Hard,
+        Expert     = 1 << Difficulty.Expert,
+        ExpertPlus = 1 << Difficulty.ExpertPlus,
 
-        All = Easy | Medium | Hard | Expert | ExpertPlus,
+        All = Beginner | Easy | Medium | Hard | Expert | ExpertPlus,
     }
 
     public static class ChartEnumExtensions
@@ -122,7 +144,8 @@ namespace YARG.Core
                 Instrument.Vocals or
                 Instrument.Harmony => GameMode.Vocals,
 
-                // Instrument.Dj => GameMode.Dj,
+                // Instrument.DjSingle => GameMode.Dj,
+                // Instrument.DjDouble => GameMode.Dj,
 
                 _ => throw new NotImplementedException($"Unhandled instrument {instrument}!")
             };
@@ -156,10 +179,16 @@ namespace YARG.Core
                 {
                     Instrument.FiveLaneDrums
                 },
+                // GameMode.TrueDrums      => new[]
+                // {
+                //     Instrument.TrueDrums,
+                // },
                 GameMode.ProGuitar      => new[]
                 {
                     Instrument.ProGuitar_17Fret,
+                    Instrument.ProGuitar_22Fret,
                     Instrument.ProBass_17Fret,
+                    Instrument.ProBass_22Fret,
                 },
                 GameMode.ProKeys        => new[]
                 {
@@ -170,30 +199,29 @@ namespace YARG.Core
                     Instrument.Vocals,
                     Instrument.Harmony
                 },
+                // GameMode.Dj             => new[]
+                // {
+                //     Instrument.DjSingle,
+                //     Instrument.DjDouble,
+                // },
                 _  => throw new NotImplementedException($"Unhandled game mode {gameMode}!")
             };
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static DifficultyMask ToDifficultyMask(this Difficulty difficulty)
         {
-            return difficulty switch
-            {
-                Difficulty.Easy       => DifficultyMask.Easy,
-                Difficulty.Medium     => DifficultyMask.Easy,
-                Difficulty.Hard       => DifficultyMask.Easy,
-                Difficulty.Expert     => DifficultyMask.Expert,
-                Difficulty.ExpertPlus => DifficultyMask.ExpertPlus,
-                _ => throw new ArgumentException($"Invalid difficulty {difficulty}!")
-            };
+            return (DifficultyMask) (1 << (int) difficulty);
         }
 
         public static Difficulty ToDifficulty(this DifficultyMask difficulty)
         {
             return difficulty switch
             {
+                DifficultyMask.Beginner   => Difficulty.Beginner,
                 DifficultyMask.Easy       => Difficulty.Easy,
-                DifficultyMask.Medium     => Difficulty.Easy,
-                DifficultyMask.Hard       => Difficulty.Easy,
+                DifficultyMask.Medium     => Difficulty.Medium,
+                DifficultyMask.Hard       => Difficulty.Hard,
                 DifficultyMask.Expert     => Difficulty.Expert,
                 DifficultyMask.ExpertPlus => Difficulty.ExpertPlus,
                 _ => throw new ArgumentException($"Cannot convert difficulty mask {difficulty} into a single difficulty!")

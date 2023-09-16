@@ -18,10 +18,10 @@ namespace YARG.Core.Song
         {
             Midi_UnknownDrums_Preparser preparser = new(type);
             preparser.Process(reader);
-            return ((DifficultyMask) preparser.validations, preparser.type);
+            return (preparser.validations, preparser.type);
         }
 
-        protected override bool IsFullyScanned() { return validations == FULL_VALIDATION && type != DrumsType.FourLane; }
+        protected override bool IsFullyScanned() { return validations == ALL_DIFFICULTIES_PLUS && type != DrumsType.FourLane; }
         protected override bool IsNote() { return DEFAULT_MIN <= note.value && note.value <= FIVELANE_MAX; }
 
         protected override bool ParseLaneColor_ON()

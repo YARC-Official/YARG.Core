@@ -16,19 +16,19 @@ namespace YARG.Core.Song
         {
             Midi_FourLane_Preparser preparser = new(DrumsType.FourLane);
             preparser.Process(reader);
-            return ((DifficultyMask) preparser.validations, preparser._type);
+            return (preparser.validations, preparser._type);
         }
 
         public static DifficultyMask ParseProDrums(YARGMidiReader reader)
         {
             Midi_FourLane_Preparser preparser = new(DrumsType.ProDrums);
             preparser.Process(reader);
-            return (DifficultyMask) preparser.validations;
+            return preparser.validations;
         }
 
         protected override bool IsNote() { return DEFAULT_MIN <= note.value && note.value <= 100; }
 
-        protected override bool IsFullyScanned() { return validations == FULL_VALIDATION && _type == DrumsType.ProDrums; }
+        protected override bool IsFullyScanned() { return validations == ALL_DIFFICULTIES_PLUS && _type == DrumsType.ProDrums; }
 
         protected override bool ParseLaneColor_ON()
         {

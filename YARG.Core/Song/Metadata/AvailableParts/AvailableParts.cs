@@ -250,6 +250,18 @@ namespace YARG.Core.Song
             }
         }
 
+        public bool HasDifficulty(Instrument instrument, Difficulty difficulty)
+        {
+            try
+            {
+                return GetValues(instrument)[difficulty];
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         public bool HasPart(Instrument instrument, int subtrack)
         {
             try
@@ -276,12 +288,12 @@ namespace YARG.Core.Song
         private void SetDrums(DrumPreparseHandler drums)
         {
             if (drums.Type == DrumsType.FiveLane)
-                FiveLaneDrums.subTracks = (byte) drums.ValidatedDiffs;
+                FiveLaneDrums.Difficulties = drums.ValidatedDiffs;
             else
             {
-                FourLaneDrums.subTracks = (byte) drums.ValidatedDiffs;
+                FourLaneDrums.Difficulties = drums.ValidatedDiffs;
                 if (drums.Type == DrumsType.ProDrums)
-                    ProDrums.subTracks = (byte) drums.ValidatedDiffs;
+                    ProDrums.Difficulties = drums.ValidatedDiffs;
             }
         }
 
