@@ -33,11 +33,12 @@ namespace YARG.Core.Song
         private const int GUITAR_FIVEFRET_MAX = 5;
         private const int OPEN_NOTE = 7;
         private const int SIX_FRET_BLACK1 = 8;
-        
-        public static bool ValidateKeys(int lane)
-        {
-            return lane < KEYS_MAX;
-        }
+
+        // Uses FiveFret parsing rules, but leaving this here just in case.
+        //public static bool ValidateKeys(int lane)
+        //{
+        //    return lane < KEYS_MAX;
+        //}
 
         public static bool ValidateSixFret(int lane)
         {
