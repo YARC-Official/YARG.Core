@@ -38,7 +38,7 @@ namespace YARG.Core.Song
                             case MidiTrackType.Pro_Guitar_22: if (!ProGuitar_22Fret.WasParsed())   ProGuitar_22Fret.Difficulties    = Midi_ProGuitar_Preparser.Parse_22Fret(reader); break;
                             case MidiTrackType.Pro_Bass_17:   if (!ProBass_17Fret.WasParsed())     ProBass_17Fret.Difficulties      = Midi_ProGuitar_Preparser.Parse_17Fret(reader); break;
                             case MidiTrackType.Pro_Bass_22:   if (!ProBass_22Fret.WasParsed())     ProBass_22Fret.Difficulties      = Midi_ProGuitar_Preparser.Parse_22Fret(reader); break;
-                            case MidiTrackType.Keys:          if (!Keys.WasParsed())               Keys.Difficulties                = Midi_Keys_Preparser.Parse(reader); break;
+                            case MidiTrackType.Keys:          if (!Keys.WasParsed())               Keys.Difficulties                = Midi_FiveFret_Preparser.Parse(reader); break;
 
                             case MidiTrackType.Pro_Keys_E: if (!ProKeys[Difficulty.Easy]   && Midi_ProKeys_Preparser.Parse(reader)) ProKeys.SetDifficulty(Difficulty.Easy); break;
                             case MidiTrackType.Pro_Keys_M: if (!ProKeys[Difficulty.Medium] && Midi_ProKeys_Preparser.Parse(reader)) ProKeys.SetDifficulty(Difficulty.Medium); break;
