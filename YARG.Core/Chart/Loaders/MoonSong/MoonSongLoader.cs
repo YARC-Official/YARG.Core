@@ -5,6 +5,8 @@ using Melanchall.DryWetMidi.Core;
 using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
 
+using MoonChartEvent = MoonscraperChartEditor.Song.ChartEvent;
+
 namespace YARG.Core.Chart
 {
     using CurrentPhrases = Dictionary<SpecialPhrase.Type, SpecialPhrase>;
@@ -16,9 +18,13 @@ namespace YARG.Core.Chart
     {
         private delegate TNote CreateNoteDelegate<TNote>(MoonNote moonNote, CurrentPhrases currentPhrases)
             where TNote : Note<TNote>;
+        private delegate void ProcessTextDelegate(MoonChartEvent text);
 
         private MoonSong _moonSong;
         private ParseSettings _settings;
+
+        private Instrument _currentInstrument;
+        private Difficulty _currentDifficulty;
 
         public void LoadSong(ParseSettings settings, string filePath)
         {
@@ -119,22 +125,28 @@ namespace YARG.Core.Chart
         }
 
         private InstrumentDifficulty<TNote> LoadDifficulty<TNote>(Instrument instrument, Difficulty difficulty,
-            CreateNoteDelegate<TNote> createNote)
+            CreateNoteDelegate<TNote> createNote, ProcessTextDelegate processText = null)
             where TNote : Note<TNote>
         {
+            _currentInstrument = instrument;
+            _currentDifficulty = difficulty;
+
             var moonChart = GetMoonChart(instrument, difficulty);
-            var notes = GetNotes(moonChart, difficulty, createNote);
+            var notes = GetNotes(moonChart, difficulty, createNote, processText);
             var phrases = GetPhrases(moonChart);
             var textEvents = GetTextEvents(moonChart);
             return new(instrument, difficulty, notes, phrases, textEvents);
         }
 
-        private List<TNote> GetNotes<TNote>(MoonChart moonChart, Difficulty difficulty, CreateNoteDelegate<TNote> createNote)
+        private List<TNote> GetNotes<TNote>(MoonChart moonChart, Difficulty difficulty,
+            CreateNoteDelegate<TNote> createNote, ProcessTextDelegate processText = null)
             where TNote : Note<TNote>
         {
             var notes = new List<TNote>(moonChart.notes.Count);
 
             int moonPhraseIndex = 0;
+            int moonTextIndex = 0;
+
             // Phrases stored here are *not* guaranteed to be active, as it's simpler that way
             // We need to check the phrase bounds anyways, which is very simple to do
             var currentPhrases = new CurrentPhrases();
@@ -150,6 +162,20 @@ namespace YARG.Core.Chart
 
                     currentPhrases[moonPhrase.type] = moonPhrase;
                     moonPhraseIndex++;
+                }
+
+                // Send through text events, if requested
+                if (processText != null)
+                {
+                    while (moonTextIndex < moonChart.events.Count)
+                    {
+                        var moonText = moonChart.events[moonTextIndex];
+                        if (moonText.tick > moonNote.tick)
+                            break;
+
+                        processText(moonText);
+                        moonTextIndex++;
+                    }
                 }
 
                 // Skip Expert+ notes if not on Expert+

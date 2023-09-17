@@ -1,18 +1,24 @@
 using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using MoonscraperChartEditor.Song;
 
-// TODO: Disco flip
+using MoonChartEvent = MoonscraperChartEditor.Song.ChartEvent;
 
 namespace YARG.Core.Chart
 {
     internal partial class MoonSongLoader : ISongLoader
     {
+        private static Regex _discoFlipEventRegex = new(@"mix\s+(\d)\s+drums\d(\w*)", RegexOptions.Compiled);
+
+        private bool _discoFlip = false;
+
         public InstrumentTrack<DrumNote> LoadDrumsTrack(Instrument instrument)
         {
+            _discoFlip = false;
             return instrument.ToGameMode() switch
             {
-                GameMode.FourLaneDrums => LoadDrumsTrack(instrument, (note, phrases) => CreateFourLaneDrumNote(instrument, note, phrases)),
+                GameMode.FourLaneDrums => LoadDrumsTrack(instrument, CreateFourLaneDrumNote),
                 GameMode.FiveLaneDrums => LoadDrumsTrack(instrument, CreateFiveLaneDrumNote),
                 _ => throw new ArgumentException($"Instrument {instrument} is not a drums instrument!", nameof(instrument))
             };
@@ -22,19 +28,18 @@ namespace YARG.Core.Chart
         {
             var difficulties = new Dictionary<Difficulty, InstrumentDifficulty<DrumNote>>()
             {
-                { Difficulty.Easy, LoadDifficulty(instrument, Difficulty.Easy, createNote) },
-                { Difficulty.Medium, LoadDifficulty(instrument, Difficulty.Medium, createNote) },
-                { Difficulty.Hard, LoadDifficulty(instrument, Difficulty.Hard, createNote) },
-                { Difficulty.Expert, LoadDifficulty(instrument, Difficulty.Expert, createNote) },
-                { Difficulty.ExpertPlus, LoadDifficulty(instrument, Difficulty.ExpertPlus, createNote) },
+                { Difficulty.Easy, LoadDifficulty(instrument, Difficulty.Easy, createNote, HandleTextEvent) },
+                { Difficulty.Medium, LoadDifficulty(instrument, Difficulty.Medium, createNote, HandleTextEvent) },
+                { Difficulty.Hard, LoadDifficulty(instrument, Difficulty.Hard, createNote, HandleTextEvent) },
+                { Difficulty.Expert, LoadDifficulty(instrument, Difficulty.Expert, createNote, HandleTextEvent) },
+                { Difficulty.ExpertPlus, LoadDifficulty(instrument, Difficulty.ExpertPlus, createNote, HandleTextEvent) },
             };
             return new(instrument, difficulties);
         }
 
-        private DrumNote CreateFourLaneDrumNote(Instrument instrument, MoonNote moonNote,
-            Dictionary<SpecialPhrase.Type, SpecialPhrase> currentPhrases)
+        private DrumNote CreateFourLaneDrumNote(MoonNote moonNote, Dictionary<SpecialPhrase.Type, SpecialPhrase> currentPhrases)
         {
-            var pad = GetFourLaneDrumPad(instrument, moonNote);
+            var pad = GetFourLaneDrumPad(moonNote);
             var noteType = GetDrumNoteType(moonNote);
             var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
             var drumFlags = GetDrumNoteFlags(moonNote, currentPhrases);
@@ -54,73 +59,98 @@ namespace YARG.Core.Chart
                 moonNote.time, moonNote.tick);
         }
 
-        private FourLaneDrumPad GetFourLaneDrumPad(Instrument instrument, MoonNote moonNote)
+        private void HandleTextEvent(MoonChartEvent text)
+        {
+            // Ignore on 5-lane or standard Drums
+            if (_settings.DrumsType != DrumsType.FourLane && _currentInstrument is Instrument.FourLaneDrums)
+                return;
+
+            // Parse out event data
+            if (_discoFlipEventRegex.Match(text.eventName) is not { Success: true } match)
+                return;
+
+            char difficultyChar = match.Groups[1].Value[0];
+            string flag = match.Groups[2].Value;
+
+            var difficulty = difficultyChar switch
+            {
+                '0' => Difficulty.Easy,
+                '1' => Difficulty.Medium,
+                '2' => Difficulty.Hard,
+                '3' => Difficulty.Expert,
+                _ => throw new InvalidOperationException($"Unexpected difficulty number {difficultyChar}!")
+            };
+
+            // Ignore if event is not for the given difficulty
+            var currentDiff = _currentDifficulty;
+            if (currentDiff == Difficulty.ExpertPlus)
+                currentDiff = Difficulty.Expert;
+            if (difficulty != currentDiff)
+                return;
+
+            // Process flag value
+            _discoFlip = flag switch
+            {
+                "d" => true,
+                _ => false
+            };
+        }
+
+        private FourLaneDrumPad GetFourLaneDrumPad(MoonNote moonNote)
         {
             var pad = _settings.DrumsType switch
             {
                 DrumsType.FourLane => MoonNoteToFourLane(moonNote),
-                DrumsType.FiveLane => FromFiveLane(moonNote),
+                DrumsType.FiveLane => GetFourLaneFromFiveLane(moonNote),
                 _ => throw new InvalidOperationException($"Unexpected drums type {_settings.DrumsType}! (Drums type should have been calculated by now)")
             };
 
-            // Un-mark cymbals on standard
-            if (instrument != Instrument.ProDrums)
+            return pad;
+        }
+
+        private FourLaneDrumPad GetFourLaneFromFiveLane(MoonNote moonNote)
+        {
+            // Conversion table:
+            // | 5-lane | 4-lane Pro    |
+            // | :----- | :---------    |
+            // | Red    | Red           |
+            // | Yellow | Yellow cymbal |
+            // | Blue   | Blue tom      |
+            // | Orange | Green cymbal  |
+            // | Green  | Green tom     |
+            // | O + G  | G cym + B tom |
+
+            var fiveLanePad = MoonNoteToFiveLane(moonNote);
+            var pad = fiveLanePad switch
             {
-                pad = pad switch
+                FiveLaneDrumPad.Kick   => FourLaneDrumPad.Kick,
+                FiveLaneDrumPad.Red    => FourLaneDrumPad.RedDrum,
+                FiveLaneDrumPad.Yellow => FourLaneDrumPad.YellowCymbal,
+                FiveLaneDrumPad.Blue   => FourLaneDrumPad.BlueDrum,
+                FiveLaneDrumPad.Orange => FourLaneDrumPad.GreenCymbal,
+                FiveLaneDrumPad.Green  => FourLaneDrumPad.GreenDrum,
+                _ => throw new InvalidOperationException($"Invalid five lane drum pad {fiveLanePad}!")
+            };
+
+            // Handle potential overlaps
+            if (pad is FourLaneDrumPad.GreenCymbal)
+            {
+                foreach (var note in moonNote.chord)
                 {
-                    FourLaneDrumPad.YellowCymbal => FourLaneDrumPad.YellowDrum,
-                    FourLaneDrumPad.BlueCymbal   => FourLaneDrumPad.BlueDrum,
-                    FourLaneDrumPad.GreenCymbal  => FourLaneDrumPad.GreenDrum,
-                    _ => pad
-                };
+                    if (note == moonNote)
+                        continue;
+
+                    var otherPad = MoonNoteToFiveLane(note);
+                    pad = (pad, otherPad) switch
+                    {
+                        // (Calculated pad, other note in chord) => corrected pad to prevent same-color overlapping
+                        (FourLaneDrumPad.GreenCymbal, FiveLaneDrumPad.Green) => FourLaneDrumPad.BlueCymbal,
+                        _ => pad
+                    };
+                }
             }
 
             return pad;
-
-            static FourLaneDrumPad FromFiveLane(MoonNote moonNote)
-            {
-                // Conversion table:
-                // | 5-lane | 4-lane Pro    |
-                // | :----- | :---------    |
-                // | Red    | Red           |
-                // | Yellow | Yellow cymbal |
-                // | Blue   | Blue tom      |
-                // | Orange | Green cymbal  |
-                // | Green  | Green tom     |
-                // | O + G  | G cym + B tom |
-
-                var fiveLanePad = MoonNoteToFiveLane(moonNote);
-                var pad = fiveLanePad switch
-                {
-                    FiveLaneDrumPad.Kick   => FourLaneDrumPad.Kick,
-                    FiveLaneDrumPad.Red    => FourLaneDrumPad.RedDrum,
-                    FiveLaneDrumPad.Yellow => FourLaneDrumPad.YellowCymbal,
-                    FiveLaneDrumPad.Blue   => FourLaneDrumPad.BlueDrum,
-                    FiveLaneDrumPad.Orange => FourLaneDrumPad.GreenCymbal,
-                    FiveLaneDrumPad.Green  => FourLaneDrumPad.GreenDrum,
-                    _ => throw new InvalidOperationException($"Invalid five lane drum pad {fiveLanePad}!")
-                };
-
-                // Handle potential overlaps
-                if (pad is FourLaneDrumPad.GreenCymbal)
-                {
-                    foreach (var note in moonNote.chord)
-                    {
-                        if (note == moonNote)
-                            continue;
-
-                        var otherPad = MoonNoteToFiveLane(note);
-                        pad = (pad, otherPad) switch
-                        {
-                            // (Calculated pad, other note in chord) => corrected pad to prevent same-color overlapping
-                            (FourLaneDrumPad.GreenCymbal, FiveLaneDrumPad.Green) => FourLaneDrumPad.BlueCymbal,
-                            _ => pad
-                        };
-                    }
-                }
-
-                return pad;
-            }
         }
 
         private FiveLaneDrumPad GetFiveLaneDrumPad(MoonNote moonNote)
@@ -128,63 +158,63 @@ namespace YARG.Core.Chart
             return _settings.DrumsType switch
             {
                 DrumsType.FiveLane => MoonNoteToFiveLane(moonNote),
-                DrumsType.FourLane => FromFourLane(moonNote),
+                DrumsType.FourLane => GetFiveLaneFromFourLane(moonNote),
                 _ => throw new InvalidOperationException($"Unexpected drums type {_settings.DrumsType}! (Drums type should have been calculated by now)")
             };
-
-            static FiveLaneDrumPad FromFourLane(MoonNote moonNote)
-            {
-                // Conversion table:
-                // | 4-lane Pro    | 5-lane |
-                // | :---------    | :----- |
-                // | Red           | Red    |
-                // | Yellow cymbal | Yellow |
-                // | Yellow tom    | Blue   |
-                // | Blue cymbal   | Orange |
-                // | Blue tom      | Blue   |
-                // | Green cymbal  | Orange |
-                // | Green tom     | Green  |
-                // | Y tom + B tom | R + B  |
-                // | B cym + G cym | Y + O  |
-
-                var fourLanePad = MoonNoteToFourLane(moonNote);
-                var pad = fourLanePad switch
-                {
-                    FourLaneDrumPad.Kick         => FiveLaneDrumPad.Kick,
-                    FourLaneDrumPad.RedDrum      => FiveLaneDrumPad.Red,
-                    FourLaneDrumPad.YellowCymbal => FiveLaneDrumPad.Yellow,
-                    FourLaneDrumPad.YellowDrum   => FiveLaneDrumPad.Blue,
-                    FourLaneDrumPad.BlueCymbal   => FiveLaneDrumPad.Orange,
-                    FourLaneDrumPad.BlueDrum     => FiveLaneDrumPad.Blue,
-                    FourLaneDrumPad.GreenCymbal  => FiveLaneDrumPad.Orange,
-                    FourLaneDrumPad.GreenDrum    => FiveLaneDrumPad.Green,
-                    _ => throw new InvalidOperationException($"Invalid four lane drum pad {fourLanePad}!")
-                };
-
-                // Handle special cases
-                if (pad is FiveLaneDrumPad.Blue or FiveLaneDrumPad.Orange)
-                {
-                    foreach (var note in moonNote.chord)
-                    {
-                        if (note == moonNote)
-                            continue;
-
-                        var otherPad = MoonNoteToFourLane(note);
-                        pad = (pad, otherPad) switch
-                        {
-                            // (Calculated pad, other note in chord) => corrected pad to prevent same-color overlapping
-                            (FiveLaneDrumPad.Blue, FourLaneDrumPad.BlueDrum) => FiveLaneDrumPad.Red,
-                            (FiveLaneDrumPad.Orange, FourLaneDrumPad.GreenCymbal) => FiveLaneDrumPad.Yellow,
-                            _ => pad
-                        };
-                    }
-                }
-
-                return pad;
-            }
         }
 
-        private static FourLaneDrumPad MoonNoteToFourLane(MoonNote moonNote)
+        private FiveLaneDrumPad GetFiveLaneFromFourLane(MoonNote moonNote)
+        {
+            // Conversion table:
+            // | 4-lane Pro    | 5-lane |
+            // | :---------    | :----- |
+            // | Red           | Red    |
+            // | Yellow cymbal | Yellow |
+            // | Yellow tom    | Blue   |
+            // | Blue cymbal   | Orange |
+            // | Blue tom      | Blue   |
+            // | Green cymbal  | Orange |
+            // | Green tom     | Green  |
+            // | Y tom + B tom | R + B  |
+            // | B cym + G cym | Y + O  |
+
+            var fourLanePad = MoonNoteToFourLane(moonNote);
+            var pad = fourLanePad switch
+            {
+                FourLaneDrumPad.Kick         => FiveLaneDrumPad.Kick,
+                FourLaneDrumPad.RedDrum      => FiveLaneDrumPad.Red,
+                FourLaneDrumPad.YellowCymbal => FiveLaneDrumPad.Yellow,
+                FourLaneDrumPad.YellowDrum   => FiveLaneDrumPad.Blue,
+                FourLaneDrumPad.BlueCymbal   => FiveLaneDrumPad.Orange,
+                FourLaneDrumPad.BlueDrum     => FiveLaneDrumPad.Blue,
+                FourLaneDrumPad.GreenCymbal  => FiveLaneDrumPad.Orange,
+                FourLaneDrumPad.GreenDrum    => FiveLaneDrumPad.Green,
+                _ => throw new InvalidOperationException($"Invalid four lane drum pad {fourLanePad}!")
+            };
+
+            // Handle special cases
+            if (pad is FiveLaneDrumPad.Blue or FiveLaneDrumPad.Orange)
+            {
+                foreach (var note in moonNote.chord)
+                {
+                    if (note == moonNote)
+                        continue;
+
+                    var otherPad = MoonNoteToFourLane(note);
+                    pad = (pad, otherPad) switch
+                    {
+                        // (Calculated pad, other note in chord) => corrected pad to prevent same-color overlapping
+                        (FiveLaneDrumPad.Blue, FourLaneDrumPad.BlueDrum) => FiveLaneDrumPad.Red,
+                        (FiveLaneDrumPad.Orange, FourLaneDrumPad.GreenCymbal) => FiveLaneDrumPad.Yellow,
+                        _ => pad
+                    };
+                }
+            }
+
+            return pad;
+        }
+
+        private FourLaneDrumPad MoonNoteToFourLane(MoonNote moonNote)
         {
             var pad = moonNote.drumPad switch
             {
@@ -197,22 +227,42 @@ namespace YARG.Core.Chart
                 _ => throw new ArgumentException($"Invalid Moonscraper drum pad {moonNote.drumPad}!", nameof(moonNote))
             };
 
-            // Cymbal marking
-            if ((moonNote.flags & MoonNote.Flags.ProDrums_Cymbal) != 0)
+            if (_currentInstrument is not Instrument.FourLaneDrums)
             {
-                pad = pad switch
+                // Disco flip
+                if (_discoFlip)
                 {
-                    FourLaneDrumPad.YellowDrum => FourLaneDrumPad.YellowCymbal,
-                    FourLaneDrumPad.BlueDrum   => FourLaneDrumPad.BlueCymbal,
-                    FourLaneDrumPad.GreenDrum  => FourLaneDrumPad.GreenCymbal,
-                    _ => throw new InvalidOperationException($"Cannot mark pad {pad} as a cymbal!")
-                };
+                    if (pad == FourLaneDrumPad.RedDrum)
+                    {
+                        // Red drums in disco flip are turned into yellow cymbals
+                        pad = FourLaneDrumPad.YellowDrum;
+                        moonNote.flags |= MoonNote.Flags.ProDrums_Cymbal;
+                    }
+                    else if (pad == FourLaneDrumPad.YellowDrum)
+                    {
+                        // Both yellow cymbals and yellow drums are turned into red drums in disco flip
+                        pad = FourLaneDrumPad.RedDrum;
+                        moonNote.flags &= ~MoonNote.Flags.ProDrums_Cymbal;
+                    }
+                }
+
+                // Cymbal marking
+                if ((moonNote.flags & MoonNote.Flags.ProDrums_Cymbal) != 0)
+                {
+                    pad = pad switch
+                    {
+                        FourLaneDrumPad.YellowDrum => FourLaneDrumPad.YellowCymbal,
+                        FourLaneDrumPad.BlueDrum   => FourLaneDrumPad.BlueCymbal,
+                        FourLaneDrumPad.GreenDrum  => FourLaneDrumPad.GreenCymbal,
+                        _ => throw new InvalidOperationException($"Cannot mark pad {pad} as a cymbal!")
+                    };
+                }
             }
 
             return pad;
         }
 
-        private static FiveLaneDrumPad MoonNoteToFiveLane(MoonNote moonNote)
+        private FiveLaneDrumPad MoonNoteToFiveLane(MoonNote moonNote)
         {
             var pad = moonNote.drumPad switch
             {
