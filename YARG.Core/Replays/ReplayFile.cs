@@ -54,6 +54,7 @@ namespace YARG.Core.Replays
             Header.ReplayChecksum = HashWrapper.Create(dataStream);
 
             Header.Serialize(writer);
+            dataStream.Position = 0;
             dataStream.CopyTo(writer.BaseStream);
         }
 
