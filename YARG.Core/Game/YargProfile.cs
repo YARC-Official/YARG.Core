@@ -63,13 +63,13 @@ namespace YARG.Core.Game
             switch (modifier)
             {
                 case Modifier.AllStrums:
-                    RemoveModifiers(Modifier.AllHopos | Modifier.AllTaps);
+                    RemoveModifiers(Modifier.AllHopos | Modifier.AllTaps | Modifier.HoposToTaps);
                     break;
                 case Modifier.AllHopos:
-                    RemoveModifiers(Modifier.AllStrums | Modifier.AllTaps);
+                    RemoveModifiers(Modifier.AllStrums | Modifier.AllTaps | Modifier.HoposToTaps);
                     break;
                 case Modifier.AllTaps:
-                    RemoveModifiers(Modifier.AllStrums | Modifier.AllHopos);
+                    RemoveModifiers(Modifier.AllStrums | Modifier.AllHopos | Modifier.HoposToTaps);
                     break;
                 case Modifier.HoposToTaps:
                     RemoveModifiers(Modifier.AllStrums | Modifier.AllHopos | Modifier.AllTaps);
