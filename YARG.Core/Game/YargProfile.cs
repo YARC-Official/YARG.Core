@@ -113,6 +113,7 @@ namespace YARG.Core.Game
             writer.Write(NoteSpeed);
             writer.Write(HighwayLength);
             writer.Write(LeftyFlip);
+            writer.Write((ulong)Modifiers);
         }
 
         public void Deserialize(BinaryReader reader, int version = 0)
@@ -125,6 +126,7 @@ namespace YARG.Core.Game
             NoteSpeed = reader.ReadSingle();
             HighwayLength = reader.ReadSingle();
             LeftyFlip = reader.ReadBoolean();
+            Modifiers = (Modifier)reader.ReadUInt64();
 
             GameMode = Instrument.ToGameMode();
         }
