@@ -10,8 +10,8 @@ namespace YARG.Core.Song.Deserialization
         private struct EventCombo
         {
             public string descriptor;
-            public ChartEvent_FW eventType;
-            public EventCombo(string str, ChartEvent_FW chartEvent)
+            public ChartEventType eventType;
+            public EventCombo(string str, ChartEventType chartEvent)
             {
                 descriptor = str;
                 eventType = chartEvent;
@@ -21,12 +21,12 @@ namespace YARG.Core.Song.Deserialization
         private const string HEADERTRACK = "[Song]";
         private const string SYNCTRACK =   "[SyncTrack]";
         private const string EVENTTRACK =  "[Events]";
-        private static readonly EventCombo TEMPO =   new("B",  ChartEvent_FW.BPM);
-        private static readonly EventCombo TIMESIG = new("TS", ChartEvent_FW.TIME_SIG);
-        private static readonly EventCombo ANCHOR =  new("A",  ChartEvent_FW.ANCHOR);
-        private static readonly EventCombo TEXT =    new("E",  ChartEvent_FW.EVENT);
-        private static readonly EventCombo NOTE =    new("N",  ChartEvent_FW.NOTE);
-        private static readonly EventCombo SPECIAL = new("S",  ChartEvent_FW.SPECIAL);
+        private static readonly EventCombo TEMPO =   new("B",  ChartEventType.Bpm);
+        private static readonly EventCombo TIMESIG = new("TS", ChartEventType.Time_Sig);
+        private static readonly EventCombo ANCHOR =  new("A",  ChartEventType.Anchor);
+        private static readonly EventCombo TEXT =    new("E",  ChartEventType.Text);
+        private static readonly EventCombo NOTE =    new("N",  ChartEventType.Note);
+        private static readonly EventCombo SPECIAL = new("S",  ChartEventType.Special);
 
         private static readonly (string name, Difficulty difficulty)[] DIFFICULTIES =
         {
@@ -170,7 +170,7 @@ namespace YARG.Core.Song.Deserialization
 
         private const int LOWER_CASE_MASK = ~32;
 
-        public (long, ChartEvent_FW) ParseEvent()
+        public (long, ChartEventType) ParseEvent()
         {
             int start, length;
             bool EqualSequences(string descriptor)
@@ -205,7 +205,7 @@ namespace YARG.Core.Song.Deserialization
                     reader.SkipWhiteSpace();
                     return new(position, combo.eventType);
                 }
-            return new(position, ChartEvent_FW.UNKNOWN);
+            return new(position, ChartEventType.Unknown);
         }
 
         public void SkipEvent()

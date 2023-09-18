@@ -11,8 +11,8 @@ namespace YARG.Core.Song.Deserialization
         private struct EventCombo
         {
             public byte[] descriptor;
-            public ChartEvent_FW eventType;
-            public EventCombo(byte[] bytes, ChartEvent_FW chartEvent)
+            public ChartEventType eventType;
+            public EventCombo(byte[] bytes, ChartEventType chartEvent)
             {
                 descriptor = bytes;
                 eventType = chartEvent;
@@ -22,12 +22,12 @@ namespace YARG.Core.Song.Deserialization
         private static readonly byte[] HEADERTRACK = Encoding.ASCII.GetBytes("[Song]");
         private static readonly byte[] SYNCTRACK =   Encoding.ASCII.GetBytes("[SyncTrack]");
         private static readonly byte[] EVENTTRACK =  Encoding.ASCII.GetBytes("[Events]");
-        private static readonly EventCombo TEMPO =   new(Encoding.ASCII.GetBytes("B"),  ChartEvent_FW.BPM);
-        private static readonly EventCombo TIMESIG = new(Encoding.ASCII.GetBytes("TS"), ChartEvent_FW.TIME_SIG);
-        private static readonly EventCombo ANCHOR =  new(Encoding.ASCII.GetBytes("A"),  ChartEvent_FW.ANCHOR);
-        private static readonly EventCombo TEXT =    new(Encoding.ASCII.GetBytes("E"),  ChartEvent_FW.EVENT);
-        private static readonly EventCombo NOTE =    new(Encoding.ASCII.GetBytes("N"),  ChartEvent_FW.NOTE);
-        private static readonly EventCombo SPECIAL = new(Encoding.ASCII.GetBytes("S"),  ChartEvent_FW.SPECIAL);
+        private static readonly EventCombo TEMPO =   new(Encoding.ASCII.GetBytes("B"),  ChartEventType.Bpm);
+        private static readonly EventCombo TIMESIG = new(Encoding.ASCII.GetBytes("TS"), ChartEventType.Time_Sig);
+        private static readonly EventCombo ANCHOR =  new(Encoding.ASCII.GetBytes("A"),  ChartEventType.Anchor);
+        private static readonly EventCombo TEXT =    new(Encoding.ASCII.GetBytes("E"),  ChartEventType.Text);
+        private static readonly EventCombo NOTE =    new(Encoding.ASCII.GetBytes("N"),  ChartEventType.Note);
+        private static readonly EventCombo SPECIAL = new(Encoding.ASCII.GetBytes("S"),  ChartEventType.Special);
 
         private static readonly (byte[] name, Difficulty difficulty)[] DIFFICULTIES =
         {
@@ -167,7 +167,7 @@ namespace YARG.Core.Song.Deserialization
 
         private const int LOWER_CASE_MASK = ~32;
 
-        public (long, ChartEvent_FW) ParseEvent()
+        public (long, ChartEventType) ParseEvent()
         {
             int start, length;
             bool EqualSequences(byte[] descriptor)
@@ -202,7 +202,7 @@ namespace YARG.Core.Song.Deserialization
                     reader.SkipWhiteSpace();
                     return new(position, combo.eventType);
                 }
-            return new(position, ChartEvent_FW.UNKNOWN);
+            return new(position, ChartEventType.Unknown);
         }
 
         public void SkipEvent()

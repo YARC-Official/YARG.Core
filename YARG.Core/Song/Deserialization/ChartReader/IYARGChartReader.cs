@@ -5,15 +5,15 @@ using YARG.Core.Song.Deserialization.Ini;
 
 namespace YARG.Core.Song.Deserialization
 {
-    public enum ChartEvent_FW
+    public enum ChartEventType
     {
-        BPM,
-        TIME_SIG,
-        ANCHOR,
-        EVENT,
-        NOTE,
-        SPECIAL,
-        UNKNOWN = 255,
+        Bpm,
+        Time_Sig,
+        Anchor,
+        Text,
+        Note,
+        Special,
+        Unknown = 255,
     }
 
     public enum NoteTracks_Chart
@@ -42,7 +42,7 @@ namespace YARG.Core.Song.Deserialization
         public bool ValidateDifficulty();
         public bool ValidateInstrument();
         public bool IsStillCurrentTrack();
-        public (long, ChartEvent_FW) ParseEvent();
+        public (long, ChartEventType) ParseEvent();
         public void SkipEvent();
         public void NextEvent();
         public (int, long) ExtractLaneAndSustain();

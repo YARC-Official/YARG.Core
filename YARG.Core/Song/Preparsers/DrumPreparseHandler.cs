@@ -69,7 +69,7 @@ namespace YARG.Core.Song.Preparsers
             bool checkExpertPlus = difficulty == DifficultyMask.Expert;
             while (reader.IsStillCurrentTrack())
             {
-                if (reader.ParseEvent().Item2 == ChartEvent_FW.NOTE)
+                if (reader.ParseEvent().Item2 == ChartEventType.Note)
                 {
                     int lane = reader.ExtractLaneAndSustain().Item1;
                     if (lane <= FIVE_LANE_COUNT)
@@ -104,7 +104,7 @@ namespace YARG.Core.Song.Preparsers
             bool checkExpertPlus = difficulty == DifficultyMask.Expert;
             while (reader.IsStillCurrentTrack())
             {
-                if (reader.ParseEvent().Item2 == ChartEvent_FW.NOTE)
+                if (reader.ParseEvent().Item2 == ChartEventType.Note)
                 {
                     int lane = reader.ExtractLaneAndSustain().Item1;
                     if (lane <= FOUR_LANE_COUNT)
@@ -137,7 +137,7 @@ namespace YARG.Core.Song.Preparsers
             int numPads = _type == DrumsType.ProDrums ? FOUR_LANE_COUNT : FIVE_LANE_COUNT;
             while (reader.IsStillCurrentTrack())
             {
-                if (reader.ParseEvent().Item2 == ChartEvent_FW.NOTE)
+                if (reader.ParseEvent().Item2 == ChartEventType.Note)
                 {
                     int lane = reader.ExtractLaneAndSustain().Item1;
                     if (lane <= numPads)
