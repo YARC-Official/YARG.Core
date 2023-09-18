@@ -7,26 +7,15 @@ namespace YARG.Core.Song.Deserialization
 {
     public sealed class YARGChartFileReader_Char : IYARGChartReader
     {
-        private struct EventCombo
-        {
-            public string descriptor;
-            public ChartEventType eventType;
-            public EventCombo(string str, ChartEventType chartEvent)
-            {
-                descriptor = str;
-                eventType = chartEvent;
-            }
-        }
-
         private const string HEADERTRACK = "[Song]";
         private const string SYNCTRACK =   "[SyncTrack]";
         private const string EVENTTRACK =  "[Events]";
-        private static readonly EventCombo TEMPO =   new("B",  ChartEventType.Bpm);
-        private static readonly EventCombo TIMESIG = new("TS", ChartEventType.Time_Sig);
-        private static readonly EventCombo ANCHOR =  new("A",  ChartEventType.Anchor);
-        private static readonly EventCombo TEXT =    new("E",  ChartEventType.Text);
-        private static readonly EventCombo NOTE =    new("N",  ChartEventType.Note);
-        private static readonly EventCombo SPECIAL = new("S",  ChartEventType.Special);
+        private static readonly DotChartEventCombo<char> TEMPO =   new("B".ToCharArray(),  ChartEventType.Bpm);
+        private static readonly DotChartEventCombo<char> TIMESIG = new("TS".ToCharArray(), ChartEventType.Time_Sig);
+        private static readonly DotChartEventCombo<char> ANCHOR =  new("A".ToCharArray(),  ChartEventType.Anchor);
+        private static readonly DotChartEventCombo<char> TEXT =    new("E".ToCharArray(),  ChartEventType.Text);
+        private static readonly DotChartEventCombo<char> NOTE =    new("N".ToCharArray(),  ChartEventType.Note);
+        private static readonly DotChartEventCombo<char> SPECIAL = new("S".ToCharArray(),  ChartEventType.Special);
 
         private static readonly (string name, Difficulty difficulty)[] DIFFICULTIES =
         {
@@ -50,9 +39,9 @@ namespace YARG.Core.Song.Deserialization
             new("GHLCoop]",      NoteTracks_Chart.GHLBass ),
         };
 
-        private static readonly EventCombo[] EVENTS_SYNC = { TEMPO, TIMESIG, ANCHOR };
-        private static readonly EventCombo[] EVENTS_EVENTS = { TEXT, };
-        private static readonly EventCombo[] EVENTS_DIFF = { NOTE, SPECIAL, TEXT, };
+        private static readonly DotChartEventCombo<char>[] EVENTS_SYNC = { TEMPO, TIMESIG, ANCHOR };
+        private static readonly DotChartEventCombo<char>[] EVENTS_EVENTS = { TEXT, };
+        private static readonly DotChartEventCombo<char>[] EVENTS_DIFF = { NOTE, SPECIAL, TEXT, };
 
         static YARGChartFileReader_Char() { }
 
@@ -60,7 +49,7 @@ namespace YARG.Core.Song.Deserialization
         private readonly char[] data;
         private readonly int length;
 
-        private EventCombo[] eventSet = Array.Empty<EventCombo>();
+        private DotChartEventCombo<char>[] eventSet = Array.Empty<DotChartEventCombo<char>>();
         private NoteTracks_Chart _instrument;
         private Difficulty _difficulty;
 
@@ -135,7 +124,7 @@ namespace YARG.Core.Song.Deserialization
             return false;
         }
 
-        private bool ValidateTrack(string track)
+        private bool ValidateTrack(ReadOnlySpan<char> track)
         {
             if (!DoesStringMatch(track))
                 return false;
@@ -144,7 +133,7 @@ namespace YARG.Core.Song.Deserialization
             return true;
         }
 
-        private bool DoesStringMatch(string str)
+        private bool DoesStringMatch(ReadOnlySpan<char> str)
         {
             if (reader.Next - reader.Position < str.Length)
                 return false;
@@ -173,36 +162,29 @@ namespace YARG.Core.Song.Deserialization
             if (!IsStillCurrentTrack())
                 return false;
 
-            int start, length;
-            bool EqualSequences(string descriptor)
-            {
-                if (descriptor.Length != length) return false;
-                for (int i = 0; i < length; ++i)
-                    if (descriptor[i] != data[start + i]) return false;
-                return true;
-            }
-
             ev.Position = reader.ReadInt64();
 
-            int end = reader.Position;
-            start = end;
+            int start = reader.Position;
+            int end = start;
             while (true)
             {
-                byte curr = (byte) (data[end] & LOWER_CASE_MASK);
+                char curr = (char) (data[end] & LOWER_CASE_MASK);
                 if (curr < 'A' || 'Z' < curr)
                     break;
                 ++end;
             }
-
-            length = end - start;
             reader.Position = end;
+
+            ReadOnlySpan<char> span = new(data, start, end - start);
             foreach (var combo in eventSet)
-                if (EqualSequences(combo.descriptor))
+            {
+                if (combo.DoesEventMatch(span))
                 {
                     reader.SkipWhiteSpace();
                     ev.Type = combo.eventType;
                     return true;
                 }
+            }
 
             ev.Type = ChartEventType.Unknown;
             return true;
@@ -267,7 +249,7 @@ namespace YARG.Core.Song.Deserialization
             Dictionary<string, List<IniModifier>> modifiers = new();
             while (IsStillCurrentTrack())
             {
-                var name = reader.ExtractModifierName();
+                string name = reader.ExtractModifierName();
                 if (validNodes.TryGetValue(name, out var node))
                 {
                     var mod = node.CreateModifier(reader);

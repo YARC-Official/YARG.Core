@@ -55,6 +55,29 @@ namespace YARG.Core.Song.Deserialization
         public long Duration;
     }
 
+    public readonly struct DotChartEventCombo<T>
+        where T : unmanaged, IEquatable<T>
+    {
+        public readonly T[] descriptor;
+        public readonly ChartEventType eventType;
+        public DotChartEventCombo(T[] descriptor, ChartEventType eventType)
+        {
+            this.descriptor = descriptor;
+            this.eventType = eventType;
+        }
+
+        public bool DoesEventMatch(ReadOnlySpan<T> span)
+        {
+            if (span.Length != descriptor.Length)
+                return false;
+
+            for (int i = 0; i < descriptor.Length; i++)
+                if (!span[i].Equals(descriptor[i]))
+                    return false;
+            return true;
+        }
+    }
+
     public interface IYARGChartReader
     {
         public NoteTracks_Chart Instrument { get; }
