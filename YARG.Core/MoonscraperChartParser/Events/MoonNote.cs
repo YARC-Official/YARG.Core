@@ -144,11 +144,11 @@ namespace MoonscraperChartEditor.Song
         /// <summary>
         /// The previous note in the linked-list.
         /// </summary>
-        public MoonNote previous;
+        public MoonNote? previous;
         /// <summary>
         /// The next note in the linked-list.
         /// </summary>
-        public MoonNote next;
+        public MoonNote? next;
 
         public Chord chord => new(this);
 
@@ -182,7 +182,7 @@ namespace MoonscraperChartEditor.Song
         /// <summary>
         /// Gets the next note in the linked-list that's not part of this note's chord.
         /// </summary>
-        public MoonNote NextSeperateMoonNote
+        public MoonNote? NextSeperateMoonNote
         {
             get
             {
@@ -196,7 +196,7 @@ namespace MoonscraperChartEditor.Song
         /// <summary>
         /// Gets the previous note in the linked-list that's not part of this note's chord.
         /// </summary>
-        public MoonNote PreviousSeperateMoonNote
+        public MoonNote? PreviousSeperateMoonNote
         {
             get
             {
@@ -211,7 +211,7 @@ namespace MoonscraperChartEditor.Song
         {
             if (b.GetType() == typeof(MoonNote))
             {
-                var realB = b as MoonNote;
+                var realB = (MoonNote) b;
                 if (tick == realB.tick && rawNote == realB.rawNote)
                     return true;
                 else
@@ -225,7 +225,7 @@ namespace MoonscraperChartEditor.Song
         {
             if (b.GetType() == typeof(MoonNote))
             {
-                var realB = b as MoonNote;
+                var realB = (MoonNote) b;
                 if (tick < b.tick)
                     return true;
                 else if (tick == b.tick)

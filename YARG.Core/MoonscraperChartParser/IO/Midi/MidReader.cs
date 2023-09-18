@@ -10,6 +10,7 @@ using YARG.Core;
 using YARG.Core.Chart;
 using YARG.Core.Song;
 using YARG.Core.Extensions;
+using System.Diagnostics.CodeAnalysis;
 
 namespace MoonscraperChartEditor.Song.IO
 {
@@ -562,7 +563,7 @@ namespace MoonscraperChartEditor.Song.IO
         }
 
         private static bool TryFindMatchingNote(NoteEventQueue unpairedNotes, NoteEvent noteToMatch,
-            out NoteEvent matchingNote, out long matchTick, out int matchIndex)
+            [NotNullWhen(true)] out NoteEvent? matchingNote, out long matchTick, out int matchIndex)
         {
             for (int i = 0; i < unpairedNotes.Count; i++)
             {
@@ -582,7 +583,7 @@ namespace MoonscraperChartEditor.Song.IO
         }
 
         private static bool TryFindMatchingSysEx(SysExEventQueue unpairedSysex, PhaseShiftSysEx sysexToMatch,
-            out PhaseShiftSysEx matchingSysex, out long matchTick, out int matchIndex)
+            [NotNullWhen(true)] out PhaseShiftSysEx? matchingSysex, out long matchTick, out int matchIndex)
         {
             for (int i = 0; i < unpairedSysex.Count; i++)
             {
@@ -773,8 +774,11 @@ namespace MoonscraperChartEditor.Song.IO
         private static void ProcessSysExEventPairAsForcedType(in EventProcessParams eventProcessParams, MoonNote.MoonNoteType noteType)
         {
             var timedEvent = eventProcessParams.timedEvent;
-            var startEvent = eventProcessParams.timedEvent.midiEvent as PhaseShiftSysEx;
-            YargTrace.Assert(startEvent != null, $"Wrong note event type passed to {nameof(ProcessSysExEventPairAsForcedType)}. Expected: {typeof(PhaseShiftSysEx)}, Actual: {eventProcessParams.timedEvent.midiEvent.GetType()}");
+            if (eventProcessParams.timedEvent.midiEvent is not PhaseShiftSysEx startEvent)
+            {
+                YargTrace.Fail($"Wrong note event type passed to {nameof(ProcessSysExEventPairAsForcedType)}. Expected: {typeof(PhaseShiftSysEx)}, Actual: {eventProcessParams.timedEvent.midiEvent.GetType()}");
+                return;
+            }
 
             uint startTick = (uint)timedEvent.startTick;
             uint endTick = (uint)timedEvent.endTick;
@@ -805,8 +809,11 @@ namespace MoonscraperChartEditor.Song.IO
         private static void ProcessSysExEventPairAsOpenNoteModifier(in EventProcessParams eventProcessParams)
         {
             var timedEvent = eventProcessParams.timedEvent;
-            var startEvent = timedEvent.midiEvent as PhaseShiftSysEx;
-            YargTrace.Assert(startEvent != null, $"Wrong note event type passed to {nameof(ProcessSysExEventPairAsOpenNoteModifier)}. Expected: {typeof(PhaseShiftSysEx)}, Actual: {eventProcessParams.timedEvent.midiEvent.GetType()}");
+            if (eventProcessParams.timedEvent.midiEvent is not PhaseShiftSysEx startEvent)
+            {
+                YargTrace.Fail($"Wrong note event type passed to {nameof(ProcessSysExEventPairAsOpenNoteModifier)}. Expected: {typeof(PhaseShiftSysEx)}, Actual: {eventProcessParams.timedEvent.midiEvent.GetType()}");
+                return;
+            }
 
             uint startTick = (uint)timedEvent.startTick;
             uint endTick = (uint)timedEvent.endTick;
