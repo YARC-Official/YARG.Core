@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace YARG.Core.Song.Deserialization.Ini
 {
@@ -12,10 +11,9 @@ namespace YARG.Core.Song.Deserialization.Ini
         {
             try
             {
-                var reader = YARGTXTReader.Load(iniFile);
-                if (reader != null)
-                    return ProcessIni(new YARGIniReader(reader), sections);
-                return ProcessIni(new YARGIniReader_Char(iniFile), sections);
+                if (ITXTReader.Load(File.ReadAllBytes(iniFile), out var reader))
+                    return ProcessIni<byte, ByteStringDecoder>(reader, sections);
+                return ProcessIni<char, CharStringDecoder>(reader, sections);
             }
             catch (Exception ex)
             {
@@ -24,15 +22,19 @@ namespace YARG.Core.Song.Deserialization.Ini
             }
         }
 
-        private static Dictionary<string, IniSection> ProcessIni(IIniReader reader, Dictionary<string, Dictionary<string, IniModifierCreator>> sections)
+        private static Dictionary<string, IniSection> ProcessIni<TType, TDecoder>(ITXTReader txtReader, Dictionary<string, Dictionary<string, IniModifierCreator>> sections)
+            where TType : unmanaged, IEquatable<TType>, IConvertible
+            where TDecoder : IStringDecoder<TType>, new()
         {
             Dictionary<string, IniSection> modifierMap = new();
-            while (reader.IsStartOfSection())
+
+            YARGIniReader<TType, TDecoder> iniReader = new(txtReader);
+            while (iniReader.TrySection(out string section))
             {
-                if (sections.TryGetValue(reader.Section, out var nodes))
-                    modifierMap[reader.Section] = reader.ExtractModifiers(ref nodes);
+                if (sections.TryGetValue(section, out var nodes))
+                    modifierMap[section] = iniReader.ExtractModifiers(ref nodes);
                 else
-                    reader.SkipSection();
+                    iniReader.SkipSection();
             }
             return modifierMap;
         }

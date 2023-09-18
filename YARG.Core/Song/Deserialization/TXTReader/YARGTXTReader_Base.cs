@@ -24,9 +24,9 @@ namespace YARG.Core.Song.Deserialization
         protected int _next;
         public int Next { get { return _next; } }
 
-        public T Peek()
+        public bool IsCurrentCharacter(char cmp)
         {
-            return Data[_position];
+            return Data[_position].ToChar(null).Equals(cmp);
         }
 
         protected YARGTXTReader_Base(T[] data)
