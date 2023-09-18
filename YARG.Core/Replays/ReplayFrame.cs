@@ -1,3 +1,5 @@
+using System;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using YARG.Core.Engine;
 using YARG.Core.Engine.Drums;
@@ -15,6 +17,18 @@ namespace YARG.Core.Replays
         public int                  InputCount;
         public GameInput[]          Inputs;
 
+        public ReplayFrame()
+        {
+            EngineParameters = new GuitarEngineParameters();
+            Stats = new GuitarStats();
+            Inputs = Array.Empty<GameInput>();
+        }
+
+        public ReplayFrame(BinaryReader reader, int version = 0)
+        {
+            Deserialize(reader, version);
+        }
+
         public void Serialize(BinaryWriter writer)
         {
             PlayerInfo.Serialize(writer);
@@ -30,10 +44,12 @@ namespace YARG.Core.Replays
             }
         }
 
+        [MemberNotNull(nameof(EngineParameters))]
+        [MemberNotNull(nameof(Stats))]
+        [MemberNotNull(nameof(Inputs))]
         public void Deserialize(BinaryReader reader, int version = 0)
         {
-            PlayerInfo = new ReplayPlayerInfo();
-            PlayerInfo.Deserialize(reader, version);
+            PlayerInfo = new ReplayPlayerInfo(reader, version);
 
             switch (PlayerInfo.Profile.Instrument.ToGameMode())
             {

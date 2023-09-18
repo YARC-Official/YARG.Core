@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 
@@ -20,7 +21,9 @@ namespace YARG.Core.Replays
         // Some versions may be invalidated (such as significant format changes)
         private static readonly int[] InvalidVersions = { 0, 1, 2 };
 
-        public static ReplayReadResult ReadReplay(string path, out ReplayFile replayFile)
+        // note: [NotNullWhen(ReplayReadResult.Valid)] is not a valid form of [NotNullWhen],
+        // so replayFile will always be indicated as possibly being null
+        public static ReplayReadResult ReadReplay(string path, out ReplayFile? replayFile)
         {
             using var stream = File.OpenRead(path);
             using var reader = new BinaryReader(stream);
