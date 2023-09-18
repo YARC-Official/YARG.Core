@@ -2,7 +2,6 @@
 using System.IO;
 using YARG.Core.Song.Deserialization;
 
-#nullable enable
 namespace YARG.Core.Song.Cache
 {
     public abstract class CONGroup

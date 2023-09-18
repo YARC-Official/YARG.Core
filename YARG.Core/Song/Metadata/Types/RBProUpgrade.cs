@@ -4,7 +4,6 @@ using System.IO;
 using System.Text;
 using YARG.Core.Song.Deserialization;
 
-#nullable enable
 namespace YARG.Core.Song
 {
     public interface IRBProUpgrade

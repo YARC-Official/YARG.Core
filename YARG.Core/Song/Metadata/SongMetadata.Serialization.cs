@@ -83,7 +83,6 @@ namespace YARG.Core.Song
             _hash.Serialize(writer);
         }
 
-#nullable enable
         private static AbridgedFileInfo? ParseFileInfo(YARGBinaryReader reader)
         {
             return ParseFileInfo(reader.ReadLEBString(), reader);

@@ -15,7 +15,6 @@ namespace YARG.Core.Song.Deserialization
         BigEndian = 1,
     };
 
-#nullable enable
     public sealed class YARGBinaryReader
     {
         private readonly byte[] data;

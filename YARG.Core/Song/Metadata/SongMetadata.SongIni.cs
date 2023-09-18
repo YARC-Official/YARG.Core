@@ -21,7 +21,6 @@ namespace YARG.Core.Song
             Chart,
         };
 
-#nullable enable
         [Serializable]
         public sealed class IniSubmetadata
         {

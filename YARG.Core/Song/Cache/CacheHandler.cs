@@ -4,7 +4,6 @@ using System.IO;
 using System.Threading.Tasks;
 using YARG.Core.Song.Deserialization;
 
-#nullable enable
 namespace YARG.Core.Song.Cache
 {
     public enum ScanProgress

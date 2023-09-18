@@ -5,6 +5,7 @@
     <LangVersion>9</LangVersion>
     <PublishRelease>true</PublishRelease>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
