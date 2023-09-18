@@ -2,11 +2,35 @@
     "version": "2.0.0",
     "tasks": [
         {
+            "label": "buildAll",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "build",
+                "${workspaceFolder}/YARG.Core.sln",
+                "/property:GenerateFullPaths=true",
+                "/consoleloggerparameters:NoSummary"
+            ],
+            "problemMatcher": "$msCompile"
+        },
+        {
             "label": "buildCore",
             "command": "dotnet",
             "type": "process",
             "args": [
                 "build",
+                "${workspaceFolder}/YARG.Core/YARG.Core.csproj",
+                "/property:GenerateFullPaths=true",
+                "/consoleloggerparameters:NoSummary"
+            ],
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "publishCore",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "publish",
                 "${workspaceFolder}/YARG.Core/YARG.Core.csproj",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
@@ -26,42 +50,14 @@
             "problemMatcher": "$msCompile"
         },
         {
-            "label": "buildBenchmarks",
-            "command": "dotnet",
-            "type": "process",
-            "args": [
-                "build",
-                "${workspaceFolder}/YARG.Core.Benchmarks/YARG.Core.Benchmarks.csproj",
-                "/property:GenerateFullPaths=true",
-                "/property:Configuration=Release",
-                "/consoleloggerparameters:NoSummary"
-            ],
-            "problemMatcher": "$msCompile"
-        },
-        {
-            "label": "buildAndRunBenchmarks",
-            "dependsOn": "buildBenchmarks",
-            "command": "${workspaceFolder}/YARG.Core.Benchmarks/bin/Release/net7.0/YARG.Core.Benchmarks.exe",
-            "type": "process",
-            "args": [],
-            "problemMatcher": "$msCompile"
-        },
-        {
             "label": "runBenchmarks",
-            "command": "${workspaceFolder}/YARG.Core.Benchmarks/bin/Release/net7.0/YARG.Core.Benchmarks.exe",
-            "type": "process",
-            "args": [],
-            "problemMatcher": "$msCompile"
-        },
-        {
-            "label": "watch",
             "command": "dotnet",
             "type": "process",
             "args": [
-                "watch",
                 "run",
-                "--project",
-                "${workspaceFolder}/TestConsole/TestConsole.csproj"
+                "--project", "${workspaceFolder}/YARG.Core.Benchmarks/YARG.Core.Benchmarks.csproj",
+                "--configuration", "Release",
+                "--property", "GenerateFullPaths=true",
             ],
             "problemMatcher": "$msCompile"
         }
