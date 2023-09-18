@@ -67,24 +67,27 @@ namespace YARG.Core.Song.Preparsers
         {
             bool found = false;
             bool checkExpertPlus = difficulty == DifficultyMask.Expert;
-            while (reader.IsStillCurrentTrack())
+
+            DotChartEvent ev = default;
+            DotChartNote note = default;
+            while (reader.TryParseEvent(ref ev))
             {
-                if (reader.ParseEvent().Item2 == ChartEventType.Note)
+                if (ev.Type == ChartEventType.Note)
                 {
-                    int lane = reader.ExtractLaneAndSustain().Item1;
-                    if (lane <= FIVE_LANE_COUNT)
+                    reader.ExtractLaneAndSustain(ref note);
+                    if (note.Lane <= FIVE_LANE_COUNT)
                     {
                         _validations |= difficulty;
                         found = true;
 
-                        if (lane == FIVE_LANE_COUNT)
+                        if (note.Lane == FIVE_LANE_COUNT)
                             _type = DrumsType.FiveLane;
                     }
-                    else if (YELLOW_CYMBAL <= lane && lane <= GREEN_CYMBAL)
+                    else if (YELLOW_CYMBAL <= note.Lane && note.Lane <= GREEN_CYMBAL)
                     {
                         _type = DrumsType.ProDrums;
                     }
-                    else if (checkExpertPlus && lane == DOUBLE_BASS_MODIFIER)
+                    else if (checkExpertPlus && note.Lane == DOUBLE_BASS_MODIFIER)
                     {
                         checkExpertPlus = false;
                         _validations |= DifficultyMask.ExpertPlus;
@@ -102,21 +105,24 @@ namespace YARG.Core.Song.Preparsers
         {
             bool found = false;
             bool checkExpertPlus = difficulty == DifficultyMask.Expert;
-            while (reader.IsStillCurrentTrack())
+
+            DotChartEvent ev = default;
+            DotChartNote note = default;
+            while (reader.TryParseEvent(ref ev))
             {
-                if (reader.ParseEvent().Item2 == ChartEventType.Note)
+                if (ev.Type == ChartEventType.Note)
                 {
-                    int lane = reader.ExtractLaneAndSustain().Item1;
-                    if (lane <= FOUR_LANE_COUNT)
+                    reader.ExtractLaneAndSustain(ref note);
+                    if (note.Lane <= FOUR_LANE_COUNT)
                     {
                         found = true;
                         _validations |= difficulty;
                     }
-                    else if (YELLOW_CYMBAL <= lane && lane <= GREEN_CYMBAL)
+                    else if (YELLOW_CYMBAL <= note.Lane && note.Lane <= GREEN_CYMBAL)
                     {
                         _type = DrumsType.ProDrums;
                     }
-                    else if (checkExpertPlus && lane == DOUBLE_BASS_MODIFIER)
+                    else if (checkExpertPlus && note.Lane == DOUBLE_BASS_MODIFIER)
                     {
                         checkExpertPlus = false;
                         _validations |= DifficultyMask.ExpertPlus;
@@ -135,17 +141,20 @@ namespace YARG.Core.Song.Preparsers
             bool found = false;
             bool checkExpertPlus = difficulty == DifficultyMask.Expert;
             int numPads = _type == DrumsType.ProDrums ? FOUR_LANE_COUNT : FIVE_LANE_COUNT;
-            while (reader.IsStillCurrentTrack())
+
+            DotChartEvent ev = default;
+            DotChartNote note = default;
+            while (reader.TryParseEvent(ref ev))
             {
-                if (reader.ParseEvent().Item2 == ChartEventType.Note)
+                if (ev.Type == ChartEventType.Note)
                 {
-                    int lane = reader.ExtractLaneAndSustain().Item1;
-                    if (lane <= numPads)
+                    reader.ExtractLaneAndSustain(ref note);
+                    if (note.Lane <= numPads)
                     {
                         found = true;
                         _validations |= difficulty;
                     }
-                    else if (checkExpertPlus && lane == DOUBLE_BASS_MODIFIER)
+                    else if (checkExpertPlus && note.Lane == DOUBLE_BASS_MODIFIER)
                     {
                         checkExpertPlus = false;
                         _validations |= DifficultyMask.ExpertPlus;

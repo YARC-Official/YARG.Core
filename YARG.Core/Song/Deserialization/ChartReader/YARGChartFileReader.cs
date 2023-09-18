@@ -62,7 +62,6 @@ namespace YARG.Core.Song.Deserialization
         private readonly int length;
 
         private EventCombo[] eventSet = Array.Empty<EventCombo>();
-        private long tickPosition = 0;
         private NoteTracks_Chart _instrument;
         private Difficulty _difficulty;
 
@@ -139,7 +138,6 @@ namespace YARG.Core.Song.Deserialization
                 return false;
 
             reader.GotoNextLine();
-            tickPosition = 0;
             return true;
         }
 
@@ -167,8 +165,11 @@ namespace YARG.Core.Song.Deserialization
 
         private const int LOWER_CASE_MASK = ~32;
 
-        public (long, ChartEventType) ParseEvent()
+        public bool TryParseEvent(ref DotChartEvent ev)
         {
+            if (!IsStillCurrentTrack())
+                return false;
+
             int start, length;
             bool EqualSequences(byte[] descriptor)
             {
@@ -178,11 +179,7 @@ namespace YARG.Core.Song.Deserialization
                 return true;
             }
 
-            long position = reader.ReadInt64();
-            if (position < tickPosition)
-                throw new Exception($".chart position out of order (previous: {tickPosition})");
-
-            tickPosition = position;
+            ev.Position = reader.ReadInt64();
 
             int end = reader.Position;
             start = end;
@@ -200,9 +197,12 @@ namespace YARG.Core.Song.Deserialization
                 if (EqualSequences(combo.descriptor))
                 {
                     reader.SkipWhiteSpace();
-                    return new(position, combo.eventType);
+                    ev.Type = combo.eventType;
+                    return true;
                 }
-            return new(position, ChartEventType.Unknown);
+
+            ev.Type = ChartEventType.Unknown;
+            return true;
         }
 
         public void SkipEvent()
@@ -215,11 +215,10 @@ namespace YARG.Core.Song.Deserialization
             reader.GotoNextLine();
         }
 
-        public (int, long) ExtractLaneAndSustain()
+        public void ExtractLaneAndSustain(ref DotChartNote note)
         {
-            int lane = reader.ReadInt32();
-            long sustain = reader.ReadInt64();
-            return new(lane, sustain);
+            note.Lane = reader.ReadInt32();
+            note.Duration = reader.ReadInt64();
         }
 
         public void SkipTrack()
