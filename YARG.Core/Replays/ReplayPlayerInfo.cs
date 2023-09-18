@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using YARG.Core.Game;
 using YARG.Core.Utility;
@@ -10,6 +11,11 @@ namespace YARG.Core.Replays
         public int         ColorProfileId;
         public YargProfile Profile;
 
+        public ReplayPlayerInfo(BinaryReader reader, int version = 0) : this()
+        {
+            Deserialize(reader, version);
+        }
+
         public void Serialize(BinaryWriter writer)
         {
             writer.Write(PlayerId);
@@ -18,6 +24,7 @@ namespace YARG.Core.Replays
             Profile.Serialize(writer);
         }
 
+        [MemberNotNull(nameof(Profile))]
         public void Deserialize(BinaryReader reader, int version = 0)
         {
             PlayerId = reader.ReadInt32();

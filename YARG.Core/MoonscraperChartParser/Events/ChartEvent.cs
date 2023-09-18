@@ -22,7 +22,7 @@ namespace MoonscraperChartEditor.Song
         {
             if (b.GetType() == typeof(ChartEvent))
             {
-                var realB = b as ChartEvent;
+                var realB = (ChartEvent) b;
                 return tick == realB.tick && eventName == realB.eventName;
             }
             else
@@ -33,7 +33,7 @@ namespace MoonscraperChartEditor.Song
         {
             if (b.GetType() == typeof(ChartEvent))
             {
-                var realB = b as ChartEvent;
+                var realB = (ChartEvent) b;
                 if (tick < b.tick)
                     return true;
                 else if (tick == b.tick)

@@ -103,12 +103,6 @@ namespace MoonscraperChartEditor.Song
         {
             bool success = SongObjectHelper.Remove(chartObject, _chartObjects);
 
-            if (success)
-            {
-                chartObject.chart = null;
-                chartObject.song = null;
-            }
-
             if (update)
                 UpdateCache();
 

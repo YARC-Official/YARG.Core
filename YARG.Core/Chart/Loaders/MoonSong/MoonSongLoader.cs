@@ -26,7 +26,16 @@ namespace YARG.Core.Chart
         private Instrument _currentInstrument;
         private Difficulty _currentDifficulty;
 
-        public void LoadSong(ParseSettings settings, string filePath)
+        private MoonSongLoader(MoonSong song, ParseSettings settings)
+        {
+            if (settings.NoteSnapThreshold < 0)
+                settings.NoteSnapThreshold = 0;
+
+            _moonSong = song;
+            _settings = settings;
+        }
+
+        public static MoonSongLoader LoadSong(ParseSettings settings, string filePath)
         {
             var song = Path.GetExtension(filePath).ToLower() switch
             {
@@ -35,28 +44,19 @@ namespace YARG.Core.Chart
                 _ => throw new ArgumentException($"Unrecognized file extension for chart path '{filePath}'!", nameof(filePath))
             };
 
-            Initialize(song, settings);
+            return new(song, settings);
         }
 
-        public void LoadMidi(ParseSettings settings, MidiFile midi)
+        public static MoonSongLoader LoadMidi(ParseSettings settings, MidiFile midi)
         {
             var song = MidReader.ReadMidi(settings, midi);
-            Initialize(song, settings);
+            return new(song, settings);
         }
 
-        public void LoadDotChart(ParseSettings settings, string chartText)
+        public static MoonSongLoader LoadDotChart(ParseSettings settings, string chartText)
         {
             var song = ChartReader.ReadFromText(settings, chartText);
-            Initialize(song, settings);
-        }
-
-        private void Initialize(MoonSong song, ParseSettings settings)
-        {
-            if (settings.NoteSnapThreshold < 0)
-                settings.NoteSnapThreshold = 0;
-
-            _moonSong = song;
-            _settings = settings;
+            return new(song, settings);
         }
 
         public List<TextEvent> LoadGlobalEvents()
@@ -125,7 +125,7 @@ namespace YARG.Core.Chart
         }
 
         private InstrumentDifficulty<TNote> LoadDifficulty<TNote>(Instrument instrument, Difficulty difficulty,
-            CreateNoteDelegate<TNote> createNote, ProcessTextDelegate processText = null)
+            CreateNoteDelegate<TNote> createNote, ProcessTextDelegate? processText = null)
             where TNote : Note<TNote>
         {
             _currentInstrument = instrument;
@@ -139,7 +139,7 @@ namespace YARG.Core.Chart
         }
 
         private List<TNote> GetNotes<TNote>(MoonChart moonChart, Difficulty difficulty,
-            CreateNoteDelegate<TNote> createNote, ProcessTextDelegate processText = null)
+            CreateNoteDelegate<TNote> createNote, ProcessTextDelegate? processText = null)
             where TNote : Note<TNote>
         {
             var notes = new List<TNote>(moonChart.notes.Count);

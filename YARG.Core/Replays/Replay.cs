@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using YARG.Core.Game;
 using YARG.Core.Song;
@@ -49,6 +50,22 @@ namespace YARG.Core.Replays
 
         public ReplayFrame[] Frames;
 
+        public Replay()
+        {
+            SongName = string.Empty;
+            ArtistName = string.Empty;
+            CharterName = string.Empty;
+
+            ColorProfiles = Array.Empty<ColorProfile>();
+            PlayerNames = Array.Empty<string>();
+            Frames = Array.Empty<ReplayFrame>();
+        }
+
+        public Replay(BinaryReader reader, int version = 0)
+        {
+            Deserialize(reader, version);
+        }
+
         public void Serialize(BinaryWriter writer)
         {
             writer.Write(SongName);
@@ -78,6 +95,12 @@ namespace YARG.Core.Replays
             }
         }
 
+        [MemberNotNull(nameof(SongName))]
+        [MemberNotNull(nameof(ArtistName))]
+        [MemberNotNull(nameof(CharterName))]
+        [MemberNotNull(nameof(ColorProfiles))]
+        [MemberNotNull(nameof(PlayerNames))]
+        [MemberNotNull(nameof(Frames))]
         public void Deserialize(BinaryReader reader, int version = 0)
         {
             SongName = reader.ReadString();

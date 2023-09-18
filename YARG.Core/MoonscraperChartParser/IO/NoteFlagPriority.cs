@@ -2,6 +2,7 @@
 // See LICENSE in project root for license information.
 
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 namespace MoonscraperChartEditor.Song.IO
@@ -104,7 +105,7 @@ namespace MoonscraperChartEditor.Song.IO
             return true;
         }
 
-        public static bool AreFlagsValidForAll(MoonNote.Flags flags, out NoteFlagPriority invalidPriority)
+        public static bool AreFlagsValidForAll(MoonNote.Flags flags, [NotNullWhen(false)] out NoteFlagPriority? invalidPriority)
         {
             foreach (var priority in priorities)
             {

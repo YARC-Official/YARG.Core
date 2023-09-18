@@ -6,7 +6,6 @@ using YARG.Core.Extensions;
 
 namespace YARG.Core.Song.Deserialization
 {
-#nullable enable
     public class YARGTXTReader : YARGTXTReader_Base<byte>, ITXTReader
     {
         private static readonly byte[] BOM_UTF8 = { 0xEF, 0xBB, 0xBF };

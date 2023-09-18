@@ -86,7 +86,7 @@ namespace YARG.Core.Song.Deserialization
         private const int BYTES_16BIT = 2;
 
         private const int BYTES_PER_BLOCK = 0x1000;
-#nullable enable
+
         public static CONFile? LoadCON(string filename)
         {
             byte[] buffer = new byte[BYTES_32BIT];

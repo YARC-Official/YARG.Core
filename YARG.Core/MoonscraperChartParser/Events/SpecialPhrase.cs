@@ -43,7 +43,7 @@ namespace MoonscraperChartEditor.Song
         {
             if (b.GetType() == typeof(SpecialPhrase))
             {
-                var realB = b as SpecialPhrase;
+                var realB = (SpecialPhrase) b;
                 if (tick == realB.tick && type == realB.type)
                     return true;
                 else
@@ -57,7 +57,7 @@ namespace MoonscraperChartEditor.Song
         {
             if (b.GetType() == typeof(SpecialPhrase))
             {
-                var realB = b as SpecialPhrase;
+                var realB = (SpecialPhrase) b;
                 if (tick < b.tick)
                     return true;
                 else if (tick == b.tick)
@@ -80,7 +80,7 @@ namespace MoonscraperChartEditor.Song
             else
                 newLength = 0;
 
-            SpecialPhrase nextSp = null;
+            SpecialPhrase? nextSp = null;
             if (song != null && chart != null)
             {
                 int arrayPos = SongObjectHelper.FindClosestPosition(this, chart.specialPhrases);

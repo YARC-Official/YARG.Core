@@ -14,26 +14,17 @@ namespace YARG.Core.Engine.Guitar
 
         public delegate void SustainEndEvent(GuitarNote note, double timeEnded);
 
-        public OverstrumEvent    OnOverstrum;
-        public SustainStartEvent OnSustainStart;
-        public SustainEndEvent   OnSustainEnd;
+        public OverstrumEvent?    OnOverstrum;
+        public SustainStartEvent? OnSustainStart;
+        public SustainEndEvent?   OnSustainEnd;
 
-        protected List<GuitarNote> ActiveSustains;
+        protected List<GuitarNote> ActiveSustains = new();
 
         protected GuitarEngine(InstrumentDifficulty<GuitarNote> chart, SyncTrack syncTrack,
             GuitarEngineParameters engineParameters)
             : base(chart, syncTrack, engineParameters)
         {
             BaseScore = CalculateBaseScore();
-            ActiveSustains = new List<GuitarNote>();
-
-            float[] multiplierThresholds = engineParameters.StarMultiplierThresholds;
-
-            StarScoreThresholds = new int[multiplierThresholds.Length];
-            for (int i = 0; i < multiplierThresholds.Length; i++)
-            {
-                StarScoreThresholds[i] = (int)(BaseScore * multiplierThresholds[i]);
-            }
         }
 
         public override void Reset(bool keepCurrentButtons = false)

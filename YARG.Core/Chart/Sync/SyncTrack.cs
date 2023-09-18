@@ -191,6 +191,9 @@ namespace YARG.Core.Chart
         {
             // Find the current tempo marker at the given tick
             var currentTempo = Tempos.GetPrevious(tick);
+            if (currentTempo is null)
+                return 0;
+
             return TickToTime(tick, currentTempo);
 
             // Fun little tidbit: if you're between two tempo markers, you can just lerp
@@ -206,6 +209,9 @@ namespace YARG.Core.Chart
 
             // Find the current tempo marker at the given time
             var currentTempo = Tempos.GetPrevious(time);
+            if (currentTempo is null)
+                return 0;
+
             return TimeToTick(time, currentTempo);
         }
 

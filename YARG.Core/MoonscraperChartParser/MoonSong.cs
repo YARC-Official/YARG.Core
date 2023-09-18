@@ -144,7 +144,7 @@ namespace MoonscraperChartEditor.Song
         /// </summary>
         /// <param name="position">The tick position</param>
         /// <returns>Returns the value of the bpm that was found.</returns>
-        public BPM GetPrevBPM(uint position)
+        public BPM? GetPrevBPM(uint position)
         {
             return SongObjectHelper.GetPrevious(bpms, position);
         }
@@ -154,12 +154,12 @@ namespace MoonscraperChartEditor.Song
         /// </summary>
         /// <param name="position">The tick position</param>
         /// <returns>Returns the value of the time signature that was found.</returns>
-        public TimeSignature GetPrevTS(uint position)
+        public TimeSignature? GetPrevTS(uint position)
         {
             return SongObjectHelper.GetPrevious(timeSignatures, position);
         }
 
-        public Section GetPrevSection(uint position)
+        public Section? GetPrevSection(uint position)
         {
             return SongObjectHelper.GetPrevious(sections, position);
         }
@@ -223,11 +223,6 @@ namespace MoonscraperChartEditor.Song
                 success = SongObjectHelper.Remove(syncTrackObject, _syncTrack);
             }
 
-            if (success)
-            {
-                syncTrackObject.song = null;
-            }
-
             if (autoUpdate)
                 UpdateCache();
 
@@ -259,11 +254,6 @@ namespace MoonscraperChartEditor.Song
         {
             bool success = SongObjectHelper.Remove(eventObject, _events);
 
-            if (success)
-            {
-                eventObject.song = null;
-            }
-
             if (autoUpdate)
                 UpdateCache();
 
@@ -281,7 +271,7 @@ namespace MoonscraperChartEditor.Song
             {
                 if (objectToCache.GetType() == typeof(T))
                 {
-                    cacheObjectList.Add(objectToCache as T);
+                    cacheObjectList.Add((T) objectToCache);
                 }
             }
         }

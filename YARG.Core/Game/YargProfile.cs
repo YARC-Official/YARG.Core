@@ -94,7 +94,9 @@ namespace YARG.Core.Game
             switch (Instrument.ToGameMode())
             {
                 case GameMode.FiveFretGuitar:
-                    var guitarTrack = track as InstrumentDifficulty<GuitarNote>;
+                    if (track is not InstrumentDifficulty<GuitarNote> guitarTrack)
+                        throw new InvalidOperationException($"Cannot apply guitar modifiers to non-guitar track with notes of {typeof(TNote)}!");
+
                     if(IsModifierActive(Modifier.AllStrums)) guitarTrack.ConvertToGuitarType(GuitarNoteType.Strum);
                     else if(IsModifierActive(Modifier.AllHopos)) guitarTrack.ConvertToGuitarType(GuitarNoteType.Hopo);
                     else if(IsModifierActive(Modifier.AllTaps)) guitarTrack.ConvertToGuitarType(GuitarNoteType.Tap);
