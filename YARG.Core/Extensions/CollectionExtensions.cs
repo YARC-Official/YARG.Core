@@ -55,7 +55,7 @@ namespace YARG.Core.Extensions
         /// The item from the list, or default if the list contains no elements.<br/>
         /// If no exact match was found, the item returned is the one that matches the most closely.
         /// </returns>
-        public static TItem BinarySearch<TItem, TSearch>(this IList<TItem> list, TSearch searchObject,
+        public static TItem? BinarySearch<TItem, TSearch>(this IList<TItem> list, TSearch searchObject,
             Func<TItem, TSearch, int> comparer)
         {
             int index = list.BinarySearchIndex(searchObject, comparer);
@@ -112,7 +112,7 @@ namespace YARG.Core.Extensions
         /// <returns>
         /// The peeked value, if available; otherwise the default value of <typeparamref name="T"/>.
         /// </returns>
-        public static T PeekOrDefault<T>(this Queue<T> queue)
+        public static T? PeekOrDefault<T>(this Queue<T> queue)
         {
             if (queue.TryPeek(out var o))
             {
@@ -128,7 +128,7 @@ namespace YARG.Core.Extensions
         /// <returns>
         /// The peeked value, if available; otherwise the default value of <typeparamref name="T"/>.
         /// </returns>
-        public static T DequeueOrDefault<T>(this Queue<T> queue)
+        public static T? DequeueOrDefault<T>(this Queue<T> queue)
         {
             if (queue.TryDequeue(out var o))
             {

@@ -25,13 +25,13 @@ namespace YARG.Core.Chart
 
         public NoteFlags Flags;
 
-        private TNote _originalPreviousNote;
-        private TNote _originalNextNote;
+        private TNote? _originalPreviousNote;
+        private TNote? _originalNextNote;
 
-        public TNote PreviousNote;
-        public TNote NextNote;
+        public TNote? PreviousNote;
+        public TNote? NextNote;
 
-        public TNote Parent { get; private set; }
+        public TNote? Parent { get; private set; }
         public IReadOnlyList<TNote> ChildNotes => _childNotes;
 
         /// <summary>

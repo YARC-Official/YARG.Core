@@ -20,10 +20,14 @@ namespace MoonscraperChartEditor.Song
 
         public abstract int classID { get; }
 
+// Non-nullable field 'song' must contain a non-null value when exiting constructor
+// 'song' is assigned externally as part of this object being added to a song
+#pragma warning disable 8618
         public SongObject(uint _tick)
         {
             tick = _tick;
         }
+#pragma warning restore 8618
 
         /// <summary>
         /// Automatically converts the object's tick position into the time it will appear in the song.
@@ -34,15 +38,15 @@ namespace MoonscraperChartEditor.Song
         protected abstract SongObject SongClone();
         public SongObject Clone() => SongClone();
 
-        public static bool operator ==(SongObject a, SongObject b)
+        public static bool operator ==(SongObject? a, SongObject? b)
         {
-            bool aIsNull = a is null;
-            bool bIsNull = b is null;
+            if (ReferenceEquals(a, b))
+                return true;
 
-            if (aIsNull || bIsNull)
-                return aIsNull == bIsNull;
-            else
-                return a.Equals(b);
+            if (a is null || b is null)
+                return false;
+
+            return a.Equals(b);
         }
 
         protected virtual bool Equals(SongObject b)
@@ -50,7 +54,7 @@ namespace MoonscraperChartEditor.Song
             return tick == b.tick && classID == b.classID;
         }
 
-        public static bool operator !=(SongObject a, SongObject b)
+        public static bool operator !=(SongObject? a, SongObject? b)
         {
             return !(a == b);
         }
@@ -85,7 +89,7 @@ namespace MoonscraperChartEditor.Song
 
         public override bool Equals(object obj)
         {
-            return base.Equals(obj);
+            return obj is SongObject songObj && this == songObj;
         }
 
         public override int GetHashCode()

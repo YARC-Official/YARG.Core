@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using YARG.Core.Extensions;
 using YARG.Core.Song.Deserialization;
 
-#nullable enable
 namespace YARG.Core.Song.Cache
 {
     public sealed partial class CacheHandler

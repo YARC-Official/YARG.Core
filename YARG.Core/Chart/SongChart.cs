@@ -200,23 +200,20 @@ namespace YARG.Core.Chart
 
         public static SongChart FromFile(ParseSettings settings, string filePath)
         {
-            ISongLoader loader = new MoonSongLoader();
-            loader.LoadSong(settings, filePath);
-            return new SongChart(loader);
+            var loader = MoonSongLoader.LoadSong(settings, filePath);
+            return new(loader);
         }
 
         public static SongChart FromMidi(ParseSettings settings, MidiFile midi)
         {
-            ISongLoader loader = new MoonSongLoader();
-            loader.LoadMidi(settings, midi);
-            return new SongChart(loader);
+            var loader = MoonSongLoader.LoadMidi(settings, midi);
+            return new(loader);
         }
 
         public static SongChart FromDotChart(ParseSettings settings, string chartText)
         {
-            ISongLoader loader = new MoonSongLoader();
-            loader.LoadDotChart(settings, chartText);
-            return new SongChart(loader);
+            var loader = MoonSongLoader.LoadDotChart(settings, chartText);
+            return new(loader);
         }
 
         public InstrumentTrack<GuitarNote> GetFiveFretTrack(Instrument instrument)

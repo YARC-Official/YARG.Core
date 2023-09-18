@@ -6,7 +6,6 @@ using YARG.Core.Extensions;
 using YARG.Core.Song.Cache;
 using YARG.Core.Song.Deserialization;
 
-#nullable enable
 namespace YARG.Core.Song
 {
     public sealed partial class SongMetadata

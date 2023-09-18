@@ -194,7 +194,7 @@ namespace MoonscraperChartEditor.Song
             }
         }
 
-        private static T FindPreviousOfType<T>(System.Type type, int startPosition, IList<T> list) where T : SongObject
+        private static T? FindPreviousOfType<T>(System.Type type, int startPosition, IList<T> list) where T : SongObject
         {
             int pos = FindPreviousPosition(type, startPosition, list);
 
@@ -224,7 +224,7 @@ namespace MoonscraperChartEditor.Song
             }
         }
 
-        private static T FindNextOfType<T>(System.Type type, int startPosition, IList<T> list) where T : SongObject
+        private static T? FindNextOfType<T>(System.Type type, int startPosition, IList<T> list) where T : SongObject
         {
             int pos = FindNextPosition(type, startPosition, list);
             if (pos == NOTFOUND)
@@ -299,11 +299,9 @@ namespace MoonscraperChartEditor.Song
                 insertionPos = list.Count - 1;
             }
 
-            if ((SongObject.ID)item.classID == SongObject.ID.Note)
+            if ((SongObject.ID)item.classID == SongObject.ID.Note && list[insertionPos] is MoonNote current)
             {
                 // Update linked list
-                var current = list[insertionPos] as MoonNote;
-
                 var previous = FindPreviousOfType(typeof(MoonNote), insertionPos, list) as MoonNote;
                 var next = FindNextOfType(typeof(MoonNote), insertionPos, list) as MoonNote;
 
@@ -535,7 +533,7 @@ namespace MoonscraperChartEditor.Song
             return closestPos;
         }
 
-        public static T GetPrevious<T>(IList<T> songObjects, uint position) where T : SongObject
+        public static T? GetPrevious<T>(IList<T> songObjects, uint position) where T : SongObject
         {
             int pos = GetIndexOfPrevious(songObjects, position);
             if (pos != NOTFOUND)
@@ -544,7 +542,7 @@ namespace MoonscraperChartEditor.Song
                 return null;
         }
 
-        public static T GetPreviousNonInclusive<T>(IList<T> songObjects, uint position) where T : SongObject
+        public static T? GetPreviousNonInclusive<T>(IList<T> songObjects, uint position) where T : SongObject
         {
             int pos = GetIndexOfPrevious(songObjects, position);
             if (pos != NOTFOUND)
@@ -558,7 +556,7 @@ namespace MoonscraperChartEditor.Song
                 return null;
         }
 
-        public static T GetNextNonInclusive<T>(IList<T> songObjects, uint position) where T : SongObject
+        public static T? GetNextNonInclusive<T>(IList<T> songObjects, uint position) where T : SongObject
         {
             int pos = GetIndexOfNext(songObjects, position);
             if (pos != NOTFOUND)

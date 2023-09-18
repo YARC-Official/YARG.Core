@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using Melanchall.DryWetMidi.Core;
 
 namespace YARG.Core.Chart
 {
@@ -8,10 +7,6 @@ namespace YARG.Core.Chart
     /// </summary>
     internal interface ISongLoader
     {
-        void LoadSong(ParseSettings settings, string filePath);
-        void LoadMidi(ParseSettings settings, MidiFile midi);
-        void LoadDotChart(ParseSettings settings, string chartText);
-
         List<TextEvent> LoadGlobalEvents();
         SyncTrack LoadSyncTrack();
         VenueTrack LoadVenueTrack();

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text;
 using YARG.Core.Extensions;
@@ -159,6 +160,7 @@ namespace YARG.Core.Song.Deserialization
 
         public YARGMidiReader(string path) : this(new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read)) { }
 
+        [MemberNotNullWhen(true, nameof(trackReader))]
         private bool LoadTrack(Span<byte> tag)
         {
             Span<byte> tagBuffer = stackalloc byte[4];
@@ -279,6 +281,7 @@ namespace YARG.Core.Song.Deserialization
             note.velocity = trackReader.ReadByte();
         }
 
+        [MemberNotNull(nameof(trackReader))]
         private void ProcessHeaderChunk()
         {
             if (!LoadTrack(TRACKTAGS[0]))

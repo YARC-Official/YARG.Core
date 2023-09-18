@@ -2,7 +2,6 @@
 using System.Text.RegularExpressions;
 using YARG.Core.Chart;
 
-#nullable enable
 namespace YARG.Core.Song
 {
     public enum ScanResult

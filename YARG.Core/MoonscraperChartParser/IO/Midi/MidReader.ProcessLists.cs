@@ -515,8 +515,11 @@ namespace MoonscraperChartEditor.Song.IO
                     int key = (int)proString + difficultyStartRange;
                     processFnDict.Add(key, (in EventProcessParams eventProcessParams) =>
                     {
-                        var noteEvent = eventProcessParams.timedEvent.midiEvent as NoteEvent;
-                        YargTrace.Assert(noteEvent != null, $"Wrong note event type passed to Pro Guitar note process. Expected: {typeof(NoteEvent)}, Actual: {eventProcessParams.timedEvent.midiEvent.GetType()}");
+                        if (eventProcessParams.timedEvent.midiEvent is not NoteEvent noteEvent)
+                        {
+                            YargTrace.Fail($"Wrong note event type passed to Pro Guitar note process. Expected: {typeof(NoteEvent)}, Actual: {eventProcessParams.timedEvent.midiEvent.GetType()}");
+                            return;
+                        }
 
                         if (noteEvent.Velocity < 100)
                         {
@@ -597,8 +600,11 @@ namespace MoonscraperChartEditor.Song.IO
                         {
                             processFnDict.Add(key, (in EventProcessParams eventProcessParams) =>
                             {
-                                var noteEvent = eventProcessParams.timedEvent.midiEvent as NoteEvent;
-                                YargTrace.Assert(noteEvent != null, $"Wrong note event type passed to drums note process. Expected: {typeof(NoteEvent)}, Actual: {eventProcessParams.timedEvent.midiEvent.GetType()}");
+                                if (eventProcessParams.timedEvent.midiEvent is not NoteEvent noteEvent)
+                                {
+                                    YargTrace.Fail($"Wrong note event type passed to drums note process. Expected: {typeof(NoteEvent)}, Actual: {eventProcessParams.timedEvent.midiEvent.GetType()}");
+                                    return;
+                                }
 
                                 var flags = defaultFlags;
                                 switch (noteEvent.Velocity)

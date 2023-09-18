@@ -6,7 +6,6 @@ using YARG.Core.Extensions;
 
 namespace YARG.Core.Song.Deserialization
 {
-#nullable enable
     public interface IStringDecoder<TType>
         where TType : unmanaged
     {

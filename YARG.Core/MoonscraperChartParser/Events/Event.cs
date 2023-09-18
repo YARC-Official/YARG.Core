@@ -22,7 +22,7 @@ namespace MoonscraperChartEditor.Song
         {
             if (base.Equals(b))
             {
-                var realB = b as Event;
+                var realB = (Event) b;
                 return realB != null && tick == realB.tick && title == realB.title;
             }
 
@@ -33,7 +33,7 @@ namespace MoonscraperChartEditor.Song
         {
             if (classID == b.classID)
             {
-                var realB = b as Event;
+                var realB = (Event) b;
                 if (tick < b.tick)
                     return true;
                 else if (tick == b.tick)

@@ -24,6 +24,7 @@ namespace YARG.Core.Engine
 
         protected BaseEngineParameters()
         {
+            StarMultiplierThresholds = Array.Empty<float>();
         }
 
         protected BaseEngineParameters(double hitWindow, double frontBackRatio, float[] starMultiplierThresholds)
