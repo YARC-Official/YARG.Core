@@ -214,15 +214,19 @@ namespace YARG.Core.Song
             _iniData = iniData;
         }
 
-        private static DrumsType ParseChart(IYARGChartReader reader, IniSection modifiers, AvailableParts parts)
+        private static DrumsType ParseChart<TType, TBase, TDecoder>(ITXTReader txtReader, IniSection modifiers, AvailableParts parts)
+            where TType : unmanaged, IEquatable<TType>, IConvertible
+            where TBase : unmanaged, IDotChartBases<TType>
+            where TDecoder : IStringDecoder<TType>, new()
         {
-            if (!reader.ValidateHeaderTrack())
+            YARGChartFileReader<TType, TBase, TDecoder> chartReader = new(txtReader);
+            if (!chartReader.ValidateHeaderTrack())
                 return DrumsType.Unknown;
 
-            var chartMods = reader.ExtractModifiers(CHART_MODIFIER_LIST);
+            var chartMods = chartReader.ExtractModifiers(CHART_MODIFIER_LIST);
             modifiers.Append(chartMods);
 
-            return parts.ParseChart(reader, GetDrumTypeFromModifier(modifiers));
+            return parts.ParseChart(chartReader, GetDrumTypeFromModifier(modifiers));
         }
 
         private static DrumsType ParseMidi(byte[] file, IniSection modifiers, AvailableParts parts)
@@ -269,11 +273,10 @@ namespace YARG.Core.Song
             DrumsType drumType = default;
             if (chartType == ChartType.Chart)
             {
-                var txtReader = YARGTXTReader.Load(file);
-                if (txtReader != null)
-                    drumType = ParseChart(new YARGChartFileReader(txtReader), modifiers, parts);
+                if (ITXTReader.Load(file, out var reader))
+                    drumType = ParseChart<byte, DotChartByte, ByteStringDecoder>(reader, modifiers, parts);
                 else
-                    drumType = ParseChart(new YARGChartFileReader_Char(chartFile), modifiers, parts);
+                    drumType = ParseChart<char, DotChartChar, CharStringDecoder>(reader, modifiers, parts);
             }
 
             if (!modifiers.Contains("name"))

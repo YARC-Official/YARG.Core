@@ -1,12 +1,43 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Text;
 
 namespace YARG.Core.Song.Deserialization
 {
     public interface ITXTReader
     {
         public static readonly Encoding Latin1 = Encoding.GetEncoding(28591);
+        public const char SPACE_ASCII = (char) 32;
+        public static bool IsWhitespace(char character)
+        {
+            return character <= SPACE_ASCII;
+        }
+
+        private static readonly UTF32Encoding UTF32BE = new(true, false);
+
+        public static bool Load(byte[] data, out ITXTReader reader)
+        {
+            if (data[0] == 0xFF && data[1] == 0xFE)
+            {
+                if (data[2] != 0)
+                    reader = new YARGTXTReader<char, CharStringDecoder>(Encoding.Unicode.GetChars(data, 2, data.Length - 2), 0);
+                else
+                    reader = new YARGTXTReader<char, CharStringDecoder>(Encoding.UTF32.GetChars(data, 3, data.Length - 3), 0);
+                return false;
+            }
+
+            if (data[0] == 0xFE && data[1] == 0xFF)
+            {
+                if (data[2] != 0)
+                    reader = new YARGTXTReader<char, CharStringDecoder>(Encoding.BigEndianUnicode.GetChars(data, 2, data.Length - 2), 0);
+                else
+                    reader = new YARGTXTReader<char, CharStringDecoder>(UTF32BE.GetChars(data, 3, data.Length - 3), 0);
+                return false;
+            }
+
+            int position = data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF ? 3 : 0;
+            reader = new YARGTXTReader<byte, ByteStringDecoder>(data, position);
+            return true;
+        }
+
         public bool ReadInt16(out short value);
 
         public bool ReadUInt16(out ushort value);
@@ -42,11 +73,5 @@ namespace YARG.Core.Song.Deserialization
         public double ReadDouble();
 
         public string ExtractText(bool checkForQuotes = true);
-
-        public const char SPACE_ASCII = (char) 32;
-        public static bool IsWhitespace(char character)
-        {
-            return character <= SPACE_ASCII;
-        }
     }
 }

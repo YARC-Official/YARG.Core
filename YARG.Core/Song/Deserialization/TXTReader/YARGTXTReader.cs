@@ -6,58 +6,63 @@ using YARG.Core.Extensions;
 
 namespace YARG.Core.Song.Deserialization
 {
-    public class YARGTXTReader : YARGTXTReader_Base<byte>, ITXTReader
+    public interface IStringDecoder<TType>
+        where TType : unmanaged
     {
-        private static readonly byte[] BOM_UTF8 = { 0xEF, 0xBB, 0xBF };
-        private static readonly byte[] BOM_OTHER = { 0xFF, 0xFE };
-        private static readonly UTF8Encoding UTF8 = new(true, true);
-        static YARGTXTReader() { }
+        public void SetEncoding(Encoding encoding);
 
-        public static YARGTXTReader? Load(byte[] data)
+        public string Decode(ReadOnlySpan<TType> span);
+    }
+
+    public class ByteStringDecoder : IStringDecoder<byte>
+    {
+        protected static readonly UTF8Encoding UTF8 = new(true, true);
+        private Encoding encoding = UTF8;
+        public void SetEncoding(Encoding encoding)
         {
-            if (!ValidateBOM(data))
-                return null;
-
-            int position = data[0] == BOM_UTF8[0] && data[1] == BOM_UTF8[1] && data[2] == BOM_UTF8[2] ? 3 : 0;
-            return new YARGTXTReader(data, position);
+            this.encoding = encoding;
         }
 
-        public static YARGTXTReader? Load(string path)
+        public string Decode(ReadOnlySpan<byte> span)
         {
-            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read);
-            byte[] bom = fs.ReadBytes(3);
+            return encoding.GetString(span);
+        }
+    }
 
-            if (!ValidateBOM(bom))
-                return null;
-
-            int position = bom[0] == BOM_UTF8[0] && bom[1] == BOM_UTF8[1] && bom[2] == BOM_UTF8[2] ? 3 : 0;
-            fs.Position = 0;
-            byte[] data = fs.ReadBytes((int)fs.Length);
-            return new YARGTXTReader(data, position);
+    public struct CharStringDecoder : IStringDecoder<char>
+    {
+        public void SetEncoding(Encoding encoding)
+        {
+            throw new NotImplementedException();
         }
 
-        private static bool ValidateBOM(byte[] bom)
+        public string Decode(ReadOnlySpan<char> span)
         {
-            return (bom[0] != BOM_OTHER[0] || bom[1] != BOM_OTHER[1]) && (bom[0] != BOM_OTHER[1] || bom[1] != BOM_OTHER[0]);
+            return span.ToString();
         }
+    }
 
-        private Encoding encoding = Encoding.UTF8;
+    public class YARGTXTReader<TType, TDecoder> : YARGTXTReader_Base<TType>, ITXTReader
+        where TType : unmanaged, IConvertible
+        where TDecoder : IStringDecoder<TType>, new()
+    {
+        private TDecoder Decoder = new();
 
-        private YARGTXTReader(byte[] data, int position) : base(data)
+        public YARGTXTReader(TType[] data, int position) : base(data)
         {
             _position = position;
 
             SkipWhiteSpace();
             SetNextPointer();
-            if (data[_position] == '\n')
+            if (data[_position].ToChar(null) == '\n')
                 GotoNextLine();
         }
 
         public override char SkipWhiteSpace()
         {
-            while (_position < length)
+            while (_position < Length)
             {
-                char ch = (char)data[_position];
+                char ch = Data[_position].ToChar(null);
                 if (ITXTReader.IsWhitespace(ch))
                 {
                     if (ch == '\n')
@@ -68,7 +73,7 @@ namespace YARG.Core.Song.Deserialization
                 ++_position;
             }
 
-            return (char)0;
+            return (char) 0;
         }
 
         public void GotoNextLine()
@@ -77,45 +82,45 @@ namespace YARG.Core.Song.Deserialization
             do
             {
                 _position = _next;
-                if (_position >= length)
+                if (_position >= Length)
                     break;
 
                 _position++;
                 curr = SkipWhiteSpace();
 
-                if (_position == length)
+                if (_position == Length)
                     break;
 
-                if (data[_position] == '{')
+                if (Data[_position].ToChar(null) == '{')
                 {
                     _position++;
                     curr = SkipWhiteSpace();
                 }
 
                 SetNextPointer();
-            } while (curr == '\n' || curr == '/' && data[_position + 1] == '/');
+            } while (curr == '\n' || curr == '/' && Data[_position + 1].ToChar(null) == '/');
         }
 
         public void SetNextPointer()
         {
             _next = _position;
-            while (_next < length && data[_next] != '\n')
+            while (_next < Length && Data[_next].ToChar(null) != '\n')
                 ++_next;
         }
 
-        private ReadOnlySpan<byte> InternalExtractTextSpan(bool checkForQuotes = true)
+        private ReadOnlySpan<TType> InternalExtractTextSpan(bool checkForQuotes = true)
         {
             (int, int) boundaries = new(_position, _next);
-            if (boundaries.Item2 == length)
+            if (boundaries.Item2 == Length)
                 --boundaries.Item2;
 
-            if (checkForQuotes && data[_position] == '\"')
+            if (checkForQuotes && Data[_position].ToChar(null) == '\"')
             {
                 int end = boundaries.Item2 - 1;
-                while (_position + 1 < end && ITXTReader.IsWhitespace((char)data[end]))
+                while (_position + 1 < end && ITXTReader.IsWhitespace(Data[end].ToChar(null)))
                     --end;
 
-                if (_position < end && data[end] == '\"' && data[end - 1] != '\\')
+                if (_position < end && Data[end].ToChar(null) == '\"' && Data[end - 1].ToChar(null) != '\\')
                 {
                     ++boundaries.Item1;
                     boundaries.Item2 = end;
@@ -125,11 +130,11 @@ namespace YARG.Core.Song.Deserialization
             if (boundaries.Item2 < boundaries.Item1)
                 return new();
 
-            while (boundaries.Item2 > boundaries.Item1 && ITXTReader.IsWhitespace((char)data[boundaries.Item2 - 1]))
+            while (boundaries.Item2 > boundaries.Item1 && ITXTReader.IsWhitespace(Data[boundaries.Item2 - 1].ToChar(null)))
                 --boundaries.Item2;
 
             _position = _next;
-            return new(data, boundaries.Item1, boundaries.Item2 - boundaries.Item1);
+            return new(Data, boundaries.Item1, boundaries.Item2 - boundaries.Item1);
         }
 
         public string ExtractText(bool checkForQuotes = true)
@@ -137,30 +142,35 @@ namespace YARG.Core.Song.Deserialization
             var span = InternalExtractTextSpan(checkForQuotes);
             try
             {
-                return encoding.GetString(span);
+                return Decode(span);
             }
             catch
             {
-                encoding = ITXTReader.Latin1;
-                return encoding.GetString(span);
+                Decoder.SetEncoding(ITXTReader.Latin1);
+                return Decode(span);
             }
         }
 
         public string ExtractModifierName()
         {
             int curr = _position;
-            while (curr < length)
+            while (curr < Length)
             {
-                char b = (char)data[curr];
+                char b = Data[curr].ToChar(null);
                 if (ITXTReader.IsWhitespace(b) || b == '=')
                     break;
                 ++curr;
             }
 
-            ReadOnlySpan<byte> name = new(data, _position, curr - _position);
+            ReadOnlySpan<TType> name = new(Data, _position, curr - _position);
             _position = curr;
             SkipWhiteSpace();
-            return encoding.GetString(name);
+            return Decode(name);
+        }
+
+        public string Decode(ReadOnlySpan<TType> span)
+        {
+            return Decoder.Decode(span);
         }
     }
 }
