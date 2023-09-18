@@ -47,8 +47,6 @@ namespace YARG.Core.Song.Deserialization
         static YARGChartFileReader() { }
 
         private readonly YARGTXTReader reader;
-        private readonly byte[] data;
-        private readonly int length;
 
         private DotChartEventCombo<byte>[] eventSet = Array.Empty<DotChartEventCombo<byte>>();
         private NoteTracks_Chart _instrument;
@@ -60,8 +58,6 @@ namespace YARG.Core.Song.Deserialization
         public YARGChartFileReader(YARGTXTReader reader)
         {
             this.reader = reader;
-            data = reader.Data;
-            length = data.Length;
         }
 
         public bool IsStartOfTrack()
@@ -140,10 +136,10 @@ namespace YARG.Core.Song.Deserialization
         public bool IsStillCurrentTrack()
         {
             int position = reader.Position;
-            if (position == length)
+            if (position == reader.Length)
                 return false;
 
-            if (data[position] == '}')
+            if (reader.Data[position] == '}')
             {
                 reader.GotoNextLine();
                 return false;
@@ -165,14 +161,14 @@ namespace YARG.Core.Song.Deserialization
             int end = start;
             while (true)
             {
-                char curr = (char) (data[end] & LOWER_CASE_MASK);
+                char curr = (char) (reader.Data[end] & LOWER_CASE_MASK);
                 if (curr < 'A' || 'Z' < curr)
                     break;
                 ++end;
             }
             reader.Position = end;
 
-            ReadOnlySpan<byte> span = new(data, start, end - start);
+            ReadOnlySpan<byte> span = new(reader.Data, start, end - start);
             foreach (var combo in eventSet)
             {
                 if (combo.DoesEventMatch(span))
@@ -212,13 +208,13 @@ namespace YARG.Core.Song.Deserialization
                 int point = position + next - 1;
                 while (point > position)
                 {
-                    char character = (char)data[point];
+                    char character = (char)reader.Data[point];
                     if (!ITXTReader.IsWhitespace(character) || character == '\n')
                         break;
                     --point;
                 }
 
-                if (data[point] == (byte)'\n')
+                if (reader.Data[point] == (byte)'\n')
                 {
                     reader.Position = position + next;
                     reader.SetNextPointer();
@@ -229,17 +225,17 @@ namespace YARG.Core.Song.Deserialization
                 position += next + 1;
             }
 
-            reader.Position = length;
+            reader.Position = reader.Length;
             reader.SetNextPointer();
         }
 
         private bool GetDistanceToTrackCharacter(int position, out int i)
         {
-            int distanceToEnd = length - position;
+            int distanceToEnd = reader.Length - position;
             i = 0;
             while (i < distanceToEnd)
             {
-                if (data[position + i] == (byte) '}')
+                if (reader.Data[position + i] == (byte) '}')
                     return true;
                 ++i;
             }

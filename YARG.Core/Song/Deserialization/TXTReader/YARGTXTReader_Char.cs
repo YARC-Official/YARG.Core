@@ -21,9 +21,9 @@ namespace YARG.Core.Song.Deserialization
 
         public override char SkipWhiteSpace()
         {
-            while (_position < length)
+            while (_position < Length)
             {
-                char ch = data[_position];
+                char ch = Data[_position];
                 if (ITXTReader.IsWhitespace(ch))
                 {
                     if (ch == '\n')
@@ -43,45 +43,45 @@ namespace YARG.Core.Song.Deserialization
             do
             {
                 _position = _next;
-                if (_position >= length)
+                if (_position >= Length)
                     break;
 
                 _position++;
                 curr = SkipWhiteSpace();
 
-                if (_position == length)
+                if (_position == Length)
                     break;
 
-                if (data[_position] == '{')
+                if (Data[_position] == '{')
                 {
                     _position++;
                     curr = SkipWhiteSpace();
                 }
 
                 SetNextPointer();
-            } while (curr == '\n' || curr == '/' && data[_position + 1] == '/');
+            } while (curr == '\n' || curr == '/' && Data[_position + 1] == '/');
         }
 
         public void SetNextPointer()
         {
             _next = _position;
-            while (_next < length && data[_next] != '\n')
+            while (_next < Length && Data[_next] != '\n')
                 ++_next;
         }
 
         public string ExtractText(bool checkForQuotes = true)
         {
             (int, int) boundaries = new(_position, _next);
-            if (boundaries.Item2 == length)
+            if (boundaries.Item2 == Length)
                 --boundaries.Item2;
 
-            if (checkForQuotes && data[_position] == '\"')
+            if (checkForQuotes && Data[_position] == '\"')
             {
                 int end = boundaries.Item2 - 1;
-                while (_position + 1 < end && ITXTReader.IsWhitespace(data[end]))
+                while (_position + 1 < end && ITXTReader.IsWhitespace(Data[end]))
                     --end;
 
-                if (_position < end && data[end] == '\"' && data[end - 1] != '\\')
+                if (_position < end && Data[end] == '\"' && Data[end - 1] != '\\')
                 {
                     ++boundaries.Item1;
                     boundaries.Item2 = end;
@@ -91,25 +91,25 @@ namespace YARG.Core.Song.Deserialization
             if (boundaries.Item2 < boundaries.Item1)
                 return string.Empty;
 
-            while (boundaries.Item2 > boundaries.Item1 && ITXTReader.IsWhitespace(data[boundaries.Item2 - 1]))
+            while (boundaries.Item2 > boundaries.Item1 && ITXTReader.IsWhitespace(Data[boundaries.Item2 - 1]))
                 --boundaries.Item2;
 
             _position = _next;
-            return new string(data, boundaries.Item1, boundaries.Item2 - boundaries.Item1);
+            return new string(Data, boundaries.Item1, boundaries.Item2 - boundaries.Item1);
         }
 
         public string ExtractModifierName()
         {
             int curr = _position;
-            while (curr < length)
+            while (curr < Length)
             {
-                char ch = data[curr];
+                char ch = Data[curr];
                 if (ITXTReader.IsWhitespace(ch) || ch == '=')
                     break;
                 ++curr;
             }
 
-            string name = new(data, _position, curr - _position);
+            string name = new(Data, _position, curr - _position);
             _position = curr;
             SkipWhiteSpace();
             return name;

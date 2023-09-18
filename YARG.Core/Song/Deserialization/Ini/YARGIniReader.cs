@@ -6,8 +6,6 @@ namespace YARG.Core.Song.Deserialization.Ini
     public sealed class YARGIniReader : IIniReader
     {
         private readonly YARGTXTReader reader;
-        private readonly byte[] data;
-        private readonly int length;
 
         private string sectionName = string.Empty;
         public string Section { get { return sectionName; } }
@@ -15,8 +13,6 @@ namespace YARG.Core.Song.Deserialization.Ini
         public YARGIniReader(YARGTXTReader reader)
         {
             this.reader = reader;
-            data = reader.Data;
-            length = data.Length;
         }
 
         public bool IsStartOfSection()
@@ -32,7 +28,7 @@ namespace YARG.Core.Song.Deserialization.Ini
             }
 
             int position = reader.Position;
-            sectionName = Encoding.UTF8.GetString(data, position, reader.Next - position).TrimEnd().ToLower();
+            sectionName = Encoding.UTF8.GetString(reader.Data, position, reader.Next - position).TrimEnd().ToLower();
             return true;
         }
 
@@ -45,13 +41,13 @@ namespace YARG.Core.Song.Deserialization.Ini
                 int point = position + next - 1;
                 while (point > position)
                 {
-                    char character = (char) data[point];
+                    char character = (char) reader.Data[point];
                     if (!ITXTReader.IsWhitespace(character) || character == '\n')
                         break;
                     --point;
                 }
 
-                if (data[point] == '\n')
+                if (reader.Data[point] == '\n')
                 {
                     reader.Position = position + next;
                     reader.SetNextPointer();
@@ -61,7 +57,7 @@ namespace YARG.Core.Song.Deserialization.Ini
                 position += next + 1;
             }
 
-            reader.Position = length;
+            reader.Position = reader.Length;
             reader.SetNextPointer();
         }
 
@@ -92,11 +88,11 @@ namespace YARG.Core.Song.Deserialization.Ini
 
         private bool GetDistanceToTrackCharacter(int position, out int i)
         {
-            int distanceToEnd = length - position;
+            int distanceToEnd = reader.Length - position;
             i = 0;
             while (i < distanceToEnd)
             {
-                if (data[position + i] == '[')
+                if (reader.Data[position + i] == '[')
                     return true;
                 ++i;
             }
