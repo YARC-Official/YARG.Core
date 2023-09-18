@@ -117,8 +117,8 @@ namespace YARG.Core.Chart
             var otherEvents = new List<VenueTextEvent>(venueCount / 20);
 
             // For merging spotlights/singalongs into a single event
-            MoonVenueEvent spotlightCurrentEvent = null;
-            MoonVenueEvent singalongCurrentEvent = null;
+            MoonVenueEvent? spotlightCurrentEvent = null;
+            MoonVenueEvent? singalongCurrentEvent = null;
             var spotlightPerformers = Performer.None;
             var singalongPerformers = Performer.None;
 
@@ -192,7 +192,7 @@ namespace YARG.Core.Chart
         }
 
         private void HandlePerformerEvent(List<PerformerEvent> events, PerformerEventType type, MoonVenueEvent moonEvent,
-            ref MoonVenueEvent currentEvent, ref Performer performers)
+            ref MoonVenueEvent? currentEvent, ref Performer performers)
         {
             // First event
             if (currentEvent == null)

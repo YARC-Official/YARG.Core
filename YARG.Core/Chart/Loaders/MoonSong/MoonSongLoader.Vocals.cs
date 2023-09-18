@@ -117,7 +117,7 @@ namespace YARG.Core.Chart
                 // Go through each note and lyric in the phrase
                 var notes = new List<VocalNote>();
                 var lyrics = new List<TextEvent>();
-                VocalNote previousNote = null;
+                VocalNote? previousNote = null;
                 while (moonNoteIndex < moonChart.notes.Count)
                 {
                     var moonNote = moonChart.notes[moonNoteIndex];
