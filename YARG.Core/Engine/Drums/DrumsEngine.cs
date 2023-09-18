@@ -10,22 +10,14 @@ namespace YARG.Core.Engine.Drums
 
         public delegate void PadHitEvent(DrumsAction action, bool noteWasHit);
 
-        public OverhitEvent OnOverhit;
-        public PadHitEvent  OnPadHit;
+        public OverhitEvent? OnOverhit;
+        public PadHitEvent?  OnPadHit;
 
         protected DrumsEngine(InstrumentDifficulty<DrumNote> chart, SyncTrack syncTrack,
             DrumsEngineParameters engineParameters)
             : base(chart, syncTrack, engineParameters)
         {
             BaseScore = CalculateBaseScore();
-
-            float[] multiplierThresholds = engineParameters.StarMultiplierThresholds;
-
-            StarScoreThresholds = new int[multiplierThresholds.Length];
-            for (int i = 0; i < multiplierThresholds.Length; i++)
-            {
-                StarScoreThresholds[i] = (int)(BaseScore * multiplierThresholds[i]);
-            }
         }
 
         public override void Reset(bool keepCurrentButtons = false)

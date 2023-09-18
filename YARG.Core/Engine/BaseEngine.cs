@@ -27,14 +27,21 @@ namespace YARG.Core.Engine
 
         protected GameInput CurrentInput;
 
-        protected List<SoloSection> Solos;
+        protected List<SoloSection> Solos = new();
 
-        protected BaseEngine(SyncTrack syncTrack)
+        protected BaseEngine(BaseEngineParameters parameters, SyncTrack syncTrack)
         {
             SyncTrack = syncTrack;
             Resolution = syncTrack.Resolution;
 
             TicksPerSustainPoint = Resolution / 25;
+
+            float[] multiplierThresholds = parameters.StarMultiplierThresholds;
+            StarScoreThresholds = new int[multiplierThresholds.Length];
+            for (int i = 0; i < multiplierThresholds.Length; i++)
+            {
+                StarScoreThresholds[i] = (int)(BaseScore * multiplierThresholds[i]);
+            }
 
             InputQueue = new Queue<GameInput>();
             CurrentInput = new GameInput(-9999, -9999, -9999);
@@ -181,15 +188,15 @@ namespace YARG.Core.Engine
 
         public delegate void SoloEndEvent(SoloSection soloSection);
 
-        public NoteHitEvent    OnNoteHit;
-        public NoteMissedEvent OnNoteMissed;
+        public NoteHitEvent?    OnNoteHit;
+        public NoteMissedEvent? OnNoteMissed;
 
-        public StarPowerPhraseHitEvent  OnStarPowerPhraseHit;
-        public StarPowerPhraseMissEvent OnStarPowerPhraseMissed;
-        public StarPowerStatusEvent     OnStarPowerStatus;
+        public StarPowerPhraseHitEvent?  OnStarPowerPhraseHit;
+        public StarPowerPhraseMissEvent? OnStarPowerPhraseMissed;
+        public StarPowerStatusEvent?     OnStarPowerStatus;
 
-        public SoloStartEvent OnSoloStart;
-        public SoloEndEvent   OnSoloEnd;
+        public SoloStartEvent? OnSoloStart;
+        public SoloEndEvent?   OnSoloEnd;
 
         public readonly TEngineStats EngineStats;
 
@@ -201,7 +208,7 @@ namespace YARG.Core.Engine
         public TEngineState State;
 
         protected BaseEngine(InstrumentDifficulty<TNoteType> chart, SyncTrack syncTrack,
-            TEngineParams engineParameters) : base(syncTrack)
+            TEngineParams engineParameters) : base(engineParameters, syncTrack)
         {
             Chart = chart;
             Notes = Chart.Notes;
@@ -288,9 +295,9 @@ namespace YARG.Core.Engine
             }
         }
 
-        protected virtual void StripStarPower(TNoteType note)
+        protected virtual void StripStarPower(TNoteType? note)
         {
-            if (!note.IsStarPower)
+            if (note is null || !note.IsStarPower)
             {
                 return;
             }
