@@ -40,7 +40,7 @@ namespace YARG.Core.Song.Deserialization
 
         public abstract char SkipWhiteSpace();
 
-        private void SkipDigitsAndWhiteSpace()
+        private void SkipDigits()
         {
             while (_position < _next)
             {
@@ -49,7 +49,6 @@ namespace YARG.Core.Song.Deserialization
                     break;
                 ++_position;
             }
-            SkipWhiteSpace();
         }
 
         public bool IsEndOfFile()
@@ -57,379 +56,83 @@ namespace YARG.Core.Song.Deserialization
             return _position >= length;
         }
 
-        public bool ReadBoolean(ref bool value)
-        {
-            value = data[_position].ToChar(null) switch
-            {
-                '0' => false,
-                '1' => true,
-                _ => _position + 4 <= _next &&
-                    (data[_position    ].ToChar(null) == 't' || data[_position    ].ToChar(null) == 'T') &&
-                    (data[_position + 1].ToChar(null) == 'r' || data[_position + 1].ToChar(null) == 'R') &&
-                    (data[_position + 2].ToChar(null) == 'u' || data[_position + 2].ToChar(null) == 'U') &&
-                    (data[_position + 3].ToChar(null) == 'e' || data[_position + 3].ToChar(null) == 'E'),
-            };
-            return true;
-        }
-
-
         private const char LAST_DIGIT_SIGNED = '7';
         private const char LAST_DIGIT_UNSIGNED = '5';
+
         private const short SHORT_MAX = short.MaxValue / 10;
-        public bool ReadInt16(ref short value)
+        public bool ReadInt16(out short value)
         {
-            if (_position >= _next)
-                return false;
-
-            char ch = data[_position].ToChar(null);
-            short sign = ch == '-' ? (short) -1 : (short)1;
-
-            if (ch == '-' || ch == '+')
+            if (InternalReadSigned(out long tmp, short.MaxValue, short.MinValue, SHORT_MAX))
             {
-                ++_position;
-                if (_position == _next)
-                    return false;
-                ch = data[_position].ToChar(null);
+                value = (short) tmp;
+                return true;
             }
-
-            if (ch < '0' || '9' < ch)
-                return false;
-
-            value = 0;
-            while (true)
-            {
-                if (value > SHORT_MAX || (value == SHORT_MAX && ch > LAST_DIGIT_SIGNED))
-                {
-                    value = sign == -1 ? short.MinValue : short.MaxValue;
-                    SkipDigitsAndWhiteSpace();
-                    return true;
-                }
-
-                value += (short) (ch - '0');
-
-                ++_position;
-                if (_position == _next)
-                    break;
-
-                ch = data[_position].ToChar(null);
-                if (ch < '0' || '9' < ch)
-                    break;
-
-                value *= 10;
-            }
-
-            value *= sign;
-            SkipWhiteSpace();
-            return true;
-        }
-
-        private const ushort USHORT_MAX = ushort.MaxValue / 10;
-        public bool ReadUInt16(ref ushort value)
-        {
-            if (_position >= _next)
-                return false;
-
-            char ch = data[_position].ToChar(null);
-
-            if (ch == '+')
-            {
-                ++_position;
-                if (_position == _next)
-                    return false;
-                ch = data[_position].ToChar(null);
-            }
-
-            if (ch < '0' || '9' < ch)
-                return false;
-
-            value = 0;
-            while (true)
-            {
-                if (value > USHORT_MAX || (value == USHORT_MAX && ch > LAST_DIGIT_UNSIGNED))
-                {
-                    value = ushort.MaxValue;
-                    SkipDigitsAndWhiteSpace();
-                    return true;
-                }
-
-                value += (ushort) (ch - '0');
-
-                ++_position;
-                if (_position == _next)
-                    break;
-
-                ch = data[_position].ToChar(null);
-                if (ch < '0' || '9' < ch)
-                    break;
-                value *= 10;
-            }
-
-            SkipWhiteSpace();
-            return true;
+            value = default;
+            return false;
         }
 
         private const int INT_MAX = int.MaxValue / 10;
-        public bool ReadInt32(ref int value)
+        public bool ReadInt32(out int value)
         {
-            if (_position >= _next)
-                return false;
-
-            char ch = data[_position].ToChar(null);
-            int sign = ch == '-' ? -1 : 1;
-
-            if (ch == '-' || ch == '+')
+            if (InternalReadSigned(out long tmp, int.MaxValue, int.MinValue, INT_MAX))
             {
-                ++_position;
-                if (_position == _next)
-                    return false;
-                ch = data[_position].ToChar(null);
+                value = (int) tmp;
+                return true;
             }
-
-            if (ch < '0' || '9' < ch)
-                return false;
-
-            value = 0;
-            while (true)
-            {
-                if (value > INT_MAX || (value == INT_MAX && ch > LAST_DIGIT_SIGNED))
-                {
-                    value = sign == -1 ? int.MinValue : int.MaxValue;
-                    SkipDigitsAndWhiteSpace();
-                    return true;
-                }
-
-                value +=  ch - '0';
-
-                ++_position;
-                if (_position == _next)
-                    break;
-
-                ch = data[_position].ToChar(null);
-                if (ch < '0' || '9' < ch)
-                    break;
-                value *= 10;
-            }
-
-            value *= sign;
-            SkipWhiteSpace();
-            return true;
-        }
-
-        private const uint UINT_MAX = uint.MaxValue / 10;
-        public bool ReadUInt32(ref uint value)
-        {
-            if (_position >= _next)
-                return false;
-
-            char ch = data[_position].ToChar(null);
-
-            if (ch == '+')
-            {
-                ++_position;
-                if (_position == _next)
-                    return false;
-                ch = data[_position].ToChar(null);
-            }
-
-            if (ch < '0' || '9' < ch)
-                return false;
-
-            value = 0;
-            while (true)
-            {
-                if (value > UINT_MAX || (value == UINT_MAX && ch > LAST_DIGIT_UNSIGNED))
-                {
-                    value = uint.MaxValue;
-                    SkipDigitsAndWhiteSpace();
-                    return true;
-                }
-
-                value += (uint) (ch - '0');
-
-                ++_position;
-                if (_position == _next)
-                    break;
-
-                ch = data[_position].ToChar(null);
-                if (ch < '0' || '9' < ch)
-                    break;
-                value *= 10;
-            }
-
-            SkipWhiteSpace();
-            return true;
+            value = default;
+            return false;
         }
 
         private const long LONG_MAX = long.MaxValue / 10;
-        public bool ReadInt64(ref long value)
+        public bool ReadInt64(out long value)
         {
-            if (_position >= _next)
-                return false;
+            return InternalReadSigned(out value, long.MaxValue, long.MinValue, LONG_MAX);
+        }
 
-            char ch = data[_position].ToChar(null);
-            long sign = ch == '-' ? -1 : 1;
-
-            if (ch == '-' || ch == '+')
+        private const ushort USHORT_MAX = ushort.MaxValue / 10;
+        public bool ReadUInt16(out ushort value)
+        {
+            if (InternalReadUnsigned(out ulong tmp, ushort.MaxValue, USHORT_MAX))
             {
-                ++_position;
-                if (_position == _next)
-                    return false;
-                ch = data[_position].ToChar(null);
+                value = (ushort) tmp;
+                return true;
             }
+            value = default;
+            return false;
+        }
 
-            if (ch < '0' || '9' < ch)
-                return false;
-
-            value = 0;
-            while (true)
+        private const uint UINT_MAX = uint.MaxValue / 10;
+        public bool ReadUInt32(out uint value)
+        {
+            if (InternalReadUnsigned(out ulong tmp, uint.MaxValue, UINT_MAX))
             {
-                if (value > LONG_MAX || (value == LONG_MAX && ch > LAST_DIGIT_SIGNED))
-                {
-                    value = sign == -1 ? long.MinValue : long.MaxValue;
-                    SkipDigitsAndWhiteSpace();
-                    return true;
-                }
-
-                value += ch - '0';
-
-                ++_position;
-                if (_position == _next)
-                    break;
-
-                ch = data[_position].ToChar(null);
-                if (ch < '0' || '9' < ch)
-                    break;
-                value *= 10;
+                value = (uint) tmp;
+                return true;
             }
-
-            value *= sign;
-            SkipWhiteSpace();
-            return true;
+            value = default;
+            return false;
         }
 
         private const ulong ULONG_MAX = ulong.MaxValue / 10;
-        public bool ReadUInt64(ref ulong value)
+        public bool ReadUInt64(out ulong value)
         {
-            if (_position >= _next)
-                return false;
-
-            char ch = data[_position].ToChar(null);
-            if (ch == '+')
-            {
-                ++_position;
-                if (_position == _next)
-                    return false;
-                ch = data[_position].ToChar(null);
-            }
-
-            if (ch < '0' || '9' < ch)
-                return false;
-
-            value = 0;
-            while (true)
-            {
-                if (value > ULONG_MAX || (value == ULONG_MAX && ch > LAST_DIGIT_UNSIGNED))
-                {
-                    value = ulong.MaxValue;
-                    SkipDigitsAndWhiteSpace();
-                    return true;
-                }
-
-                value += (ulong) (ch - '0');
-
-                ++_position;
-                if (_position == _next)
-                    break;
-
-                ch = data[_position].ToChar(null);
-                if (ch < '0' || '9' < ch)
-                    break;
-                value *= 10;
-            }
-
-            SkipWhiteSpace();
-            return true;
+            return InternalReadUnsigned(out value, ulong.MaxValue, ULONG_MAX);
         }
 
-        public bool ReadFloat(ref float value)
+        public bool ReadFloat(out float value)
         {
-            if (_position >= _next)
-                return false;
-
-            char ch = data[_position].ToChar(null);
-            float sign = ch == '-' ? -1 : 1;
-
-            if (ch == '-' || ch == '+')
+            if (ReadDouble(out double tmp))
             {
-                ++_position;
-                if (_position == _next)
-                    return false;
-                ch = data[_position].ToChar(null);
+                value = (float) tmp;
+                return true;
             }
-
-            if (ch > '9' || (ch < '0' && ch != '.'))
-                return false;
-
-            value = 0;
-            if (ch != '.')
-            {
-                while (true)
-                {
-                    value += ch - '0';
-                    ++_position;
-                    if (_position == _next)
-                        break;
-
-                    ch = data[_position].ToChar(null);
-                    if (ch < '0' || ch > '9')
-                        break;
-
-                    value *= 10;
-                }
-            }
-
-            if (ch == '.')
-            {
-                ++_position;
-
-                float dec = 0;
-                int count = 0;
-                if (_position < _next)
-                {
-                    ch = data[_position].ToChar(null);
-                    if ('0' <= ch && ch <= '9')
-                    {
-                        ++count;
-                        while (true)
-                        {
-                            dec += ch - '0';
-                            ++_position;
-                            if (_position == _next)
-                                break;
-
-                            ch = data[_position].ToChar(null);
-                            if (ch < '0' || ch > '9')
-                                break;
-                            dec *= 10;
-                            ++count;
-                        }
-                    }
-                }
-
-                for (int i = 0; i < count; ++i)
-                    dec /= 10;
-
-                value += dec;
-            }
-
-            value *= sign;
-
-            SkipWhiteSpace();
-            return true;
+            value = default;
+            return false;
         }
 
-        public bool ReadDouble(ref double value)
+        public bool ReadDouble(out double value)
         {
+            value = 0;
             if (_position >= _next)
                 return false;
 
@@ -447,56 +150,36 @@ namespace YARG.Core.Song.Deserialization
             if (ch > '9' || (ch < '0' && ch != '.'))
                 return false;
 
-            value = 0;
-            if (ch != '.')
+            while ('0' <= ch && ch <= '9')
             {
-                while (true)
-                {
-                    ++_position;
-                    value += ch - '0';
-                    if (_position == _next)
-                        break;
-
+                value *= 10;
+                value += ch - '0';
+                ++_position;
+                if (_position < _next)
                     ch = data[_position].ToChar(null);
-                    if (ch < '0' || ch > '9')
-                        break;
-
-                    value *= 10;
-                }
+                else
+                    break;
             }
 
             if (ch == '.')
             {
                 ++_position;
-
-                double dec = 0;
-                int count = 0;
                 if (_position < _next)
                 {
+                    double divisor = 1;
                     ch = data[_position].ToChar(null);
-                    if ('0' <= ch && ch <= '9')
+                    while ('0' <= ch && ch <= '9')
                     {
-                        ++count;
-                        while (true)
-                        {
-                            dec += ch - '0';
-                            ++_position;
-                            if (_position == _next)
-                                break;
+                        divisor *= 10;
+                        value += (ch - '0') / divisor;
 
+                        ++_position;
+                        if (_position < _next)
                             ch = data[_position].ToChar(null);
-                            if (ch < '0' || ch > '9')
-                                break;
-                            dec *= 10;
-                            ++count;
-                        }
+                        else
+                            break;
                     }
                 }
-
-                for (int i = 0; i < count; ++i)
-                    dec /= 10;
-
-                value += dec;
             }
 
             value *= sign;
@@ -507,79 +190,177 @@ namespace YARG.Core.Song.Deserialization
 
         public bool ReadBoolean()
         {
-            bool value = default;
-            if (!ReadBoolean(ref value))
-                throw new Exception("Failed to parse data");
-            return value;
+            return data[_position].ToChar(null) switch
+            {
+                '0' => false,
+                '1' => true,
+                _ => _position + 4 <= _next &&
+                    (data[_position].ToChar(null) == 't' || data[_position].ToChar(null) == 'T') &&
+                    (data[_position + 1].ToChar(null) == 'r' || data[_position + 1].ToChar(null) == 'R') &&
+                    (data[_position + 2].ToChar(null) == 'u' || data[_position + 2].ToChar(null) == 'U') &&
+                    (data[_position + 3].ToChar(null) == 'e' || data[_position + 3].ToChar(null) == 'E'),
+            };
         }
 
         public short ReadInt16()
         {
-            short value = default;
-            if (!ReadInt16(ref value))
-                throw new Exception("Failed to parse data");
-            return value;
+            if (ReadInt16(out short value))
+                return value;
+            throw new Exception("Data for Int16 not present");
         }
 
         public ushort ReadUInt16()
         {
-            ushort value = default;
-            if (!ReadUInt16(ref value))
-                throw new Exception("Failed to parse data");
-            return value;
+            if (ReadUInt16(out ushort value))
+                return value;
+            throw new Exception("Data for UInt16 not present");
         }
 
         public int ReadInt32()
         {
-            int value = default;
-            if (!ReadInt32(ref value))
-                throw new Exception("Failed to parse data");
-            return value;
+            if (ReadInt32(out int value))
+                return value;
+            throw new Exception("Data for Int32 not present");
         }
 
         public uint ReadUInt32()
         {
-            uint value = default;
-            if (!ReadUInt32(ref value))
-                throw new Exception("Failed to parse data");
-            return value;
+            if (ReadUInt32(out uint value))
+                return value;
+            throw new Exception("Data for UInt32 not present");
         }
 
         public long ReadInt64()
         {
-            long value = default;
-            if (!ReadInt64(ref value))
-                throw new Exception("Failed to parse data");
-            return value;
+            if (ReadInt64(out long value))
+                return value;
+            throw new Exception("Data for Int64 not present");
         }
 
         public ulong ReadUInt64()
         {
-            ulong value = default;
-            if (!ReadUInt64(ref value))
-                throw new Exception("Failed to parse data");
-            return value;
+            if (ReadUInt64(out ulong value))
+                return value;
+            throw new Exception("Data for UInt64 not present");
         }
 
         public float ReadFloat()
         {
-            float value = default;
-            if (!ReadFloat(ref value))
-                throw new Exception("Failed to parse data");
-            return value;
+            if (ReadFloat(out float value))
+                return value;
+            throw new Exception("Data for Float not present");
         }
 
         public double ReadDouble()
         {
-            double value = default;
-            if (!ReadDouble(ref value))
-                throw new Exception("Failed to parse data");
-            return value;
+            if (ReadDouble(out double value))
+                return value;
+            throw new Exception("Data for Double not present");
         }
 
         public ReadOnlySpan<T> ExtractBasicSpan(int length)
         {
             return new ReadOnlySpan<T>(data, _position, length);
+        }
+
+        private bool InternalReadSigned(out long value, long hardMax, long hardMin, long softMax)
+        {
+            value = 0;
+            if (_position >= _next)
+                return false;
+
+            char ch = data[_position].ToChar(null);
+            long sign = 1;
+
+            switch (ch)
+            {
+                case '-':
+                    sign = -1;
+                    goto case '+';
+                case '+':
+                    ++_position;
+                    if (_position == _next)
+                        return false;
+                    ch = data[_position].ToChar(null);
+                    break;
+            }
+
+            if (ch < '0' || '9' < ch)
+                return false;
+
+            while (true)
+            {
+                value += ch - '0';
+
+                ++_position;
+                if (_position < _next)
+                {
+                    ch = data[_position].ToChar(null);
+                    if ('0' <= ch && ch <= '9')
+                    {
+                        if (value < softMax || value == softMax && ch <= LAST_DIGIT_SIGNED)
+                        {
+                            value *= 10;
+                            continue;
+                        }
+
+                        value = sign == -1 ? hardMin : hardMax;
+                        SkipDigits();
+                        SkipWhiteSpace();
+                        return true;
+                    }
+                }
+
+                value *= sign;
+                SkipWhiteSpace();
+                return true;
+            }
+        }
+
+        private bool InternalReadUnsigned(out ulong value, ulong hardMax, ulong softMax)
+        {
+            value = 0;
+            if (_position >= _next)
+                return false;
+
+            char ch = data[_position].ToChar(null);
+            if (ch == '+')
+            {
+                ++_position;
+                if (_position == _next)
+                    return false;
+                ch = data[_position].ToChar(null);
+            }
+
+            if (ch < '0' || '9' < ch)
+                return false;
+
+            while (true)
+            {
+                value += (ulong) (ch - '0');
+
+                ++_position;
+                if (_position < _next)
+                {
+                    ch = data[_position].ToChar(null);
+                    if ('0' <= ch && ch <= '9')
+                    {
+                        if (value < softMax || value == softMax && ch <= LAST_DIGIT_UNSIGNED)
+                        {
+                            value *= 10;
+                            continue;
+                        }
+
+                        value = hardMax;
+                        SkipDigits();
+                        SkipWhiteSpace();
+                        return true;
+                    }
+                }
+
+                SkipWhiteSpace();
+                return true;
+            }
         }
     }
 }

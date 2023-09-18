@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Buffers.Binary;
 using System.Diagnostics;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.Song.Deserialization
 {
@@ -37,6 +39,21 @@ namespace YARG.Core.Song.Deserialization
         {
             this.data = data;
             memory = data;
+        }
+
+        public YARGBinaryReader(Stream stream, int count)
+        {
+            if (stream is MemoryStream mem)
+            {
+                data = Array.Empty<byte>();
+                memory = new ReadOnlyMemory<byte>(mem.GetBuffer(), (int) mem.Position, count);
+                mem.Position += count;
+            }
+            else
+            {
+                data = stream.ReadBytes(count);
+                memory = data;
+            }
         }
 
         public YARGBinaryReader(YARGBinaryReader baseReader, int length)

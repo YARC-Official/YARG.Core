@@ -7,23 +7,21 @@ namespace YARG.Core.Song.Deserialization
     public interface ITXTReader
     {
         public static readonly Encoding Latin1 = Encoding.GetEncoding(28591);
-        public bool ReadBoolean(ref bool value);
+        public bool ReadInt16(out short value);
 
-        public bool ReadInt16(ref short value);
+        public bool ReadUInt16(out ushort value);
 
-        public bool ReadUInt16(ref ushort value);
+        public bool ReadInt32(out int value);
 
-        public bool ReadInt32(ref int value);
+        public bool ReadUInt32(out uint value);
 
-        public bool ReadUInt32(ref uint value);
+        public bool ReadInt64(out long value);
 
-        public bool ReadInt64(ref long value);
+        public bool ReadUInt64(out ulong value);
 
-        public bool ReadUInt64(ref ulong value);
+        public bool ReadFloat(out float value);
 
-        public bool ReadFloat(ref float value);
-
-        public bool ReadDouble(ref double value);
+        public bool ReadDouble(out double value);
 
         public bool ReadBoolean();
 

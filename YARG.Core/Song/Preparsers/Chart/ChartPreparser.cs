@@ -14,11 +14,14 @@ namespace YARG.Core.Song
             if (scan[difficulty])
                 return true;
 
-            while (reader.IsStillCurrentTrack())
+            DotChartEvent ev = default;
+            DotChartNote note = default;
+            while (reader.TryParseEvent(ref ev))
             {
-                if (reader.ParseEvent().Item2 == ChartEvent_FW.NOTE)
+                if (ev.Type == ChartEventType.Note)
                 {
-                    if (func(reader.ExtractLaneAndSustain().Item1))
+                    reader.ExtractLaneAndSustain(ref note);
+                    if (func(note.Lane))
                     {
                         scan.SetDifficulty(difficulty);
                         return true;
