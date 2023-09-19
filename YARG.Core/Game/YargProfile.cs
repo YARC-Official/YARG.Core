@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using Newtonsoft.Json;
 using YARG.Core.Chart;
@@ -9,6 +9,8 @@ namespace YARG.Core.Game
     public class YargProfile : IBinarySerializable
     {
         private const int PROFILE_VERSION = 1;
+
+        public int Version = PROFILE_VERSION;
 
         public Guid Id;
         public string Name;
@@ -110,9 +112,10 @@ namespace YARG.Core.Game
             }
         }
 
+        // For replay serialization
         public void Serialize(BinaryWriter writer)
         {
-            writer.Write(PROFILE_VERSION);
+            writer.Write(Version);
 
             writer.Write(Name);
             writer.Write((byte) CurrentInstrument);
@@ -125,7 +128,9 @@ namespace YARG.Core.Game
 
         public void Deserialize(BinaryReader reader, int version = 0)
         {
-            version = reader.ReadInt32();
+            Version = reader.ReadInt32();
+            if (Version != PROFILE_VERSION)
+                throw new InvalidDataException($"Wrong profile version read! Expected {PROFILE_VERSION}, got {Version}");
 
             Name = reader.ReadString();
             CurrentInstrument = (Instrument) reader.ReadByte();
