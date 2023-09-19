@@ -56,7 +56,7 @@ namespace YARG.Core.Game
         #endregion
 
         // This MUST be after the "Default Colors" region
-        public static ColorProfile Default = new("Default");
+        public static ColorProfile Default = new("Default", true);
 
         [JsonIgnore]
         public int Version = COLOR_PROFILE_VERSION;
