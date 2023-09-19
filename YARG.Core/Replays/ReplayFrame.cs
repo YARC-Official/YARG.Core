@@ -51,7 +51,7 @@ namespace YARG.Core.Replays
         {
             PlayerInfo = new ReplayPlayerInfo(reader, version);
 
-            switch (PlayerInfo.Profile.Instrument.ToGameMode())
+            switch (PlayerInfo.Profile.CurrentInstrument.ToGameMode())
             {
                 case GameMode.FiveFretGuitar:
                 case GameMode.SixFretGuitar:

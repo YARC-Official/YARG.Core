@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using Newtonsoft.Json;
 using YARG.Core.Chart;
@@ -22,25 +22,30 @@ namespace YARG.Core.Game
 
         public bool LeftyFlip;
 
+        public Instrument PreferredInstrument;
+        public Difficulty PreferredDifficulty;
+
+        public Modifier PreferredModifiers { get; private set; }
+
         public Guid ColorProfile;
         public Guid CameraPreset;
 
         [JsonIgnore]
-        public Instrument Instrument;
+        public Instrument CurrentInstrument;
 
         [JsonIgnore]
-        public Difficulty Difficulty;
+        public Difficulty CurrentDifficulty;
 
         [JsonIgnore]
-        public Modifier Modifiers { get; private set; }
+        public Modifier CurrentModifiers { get; private set; }
 
         public YargProfile()
         {
             Id = Guid.NewGuid();
             Name = "Default";
             GameMode = GameMode.FiveFretGuitar;
-            Instrument = Instrument.FiveFretGuitar;
-            Difficulty = Difficulty.Expert;
+            PreferredInstrument = Instrument.FiveFretGuitar;
+            PreferredDifficulty = Difficulty.Expert;
             NoteSpeed = 6;
             HighwayLength = 1;
             LeftyFlip = false;
@@ -49,7 +54,7 @@ namespace YARG.Core.Game
             ColorProfile = Game.ColorProfile.Default.Id;
             CameraPreset = Game.CameraPreset.Default.Id;
 
-            Modifiers = Modifier.None;
+            CurrentModifiers = Modifier.None;
         }
 
         public YargProfile(Guid id) : this()
@@ -76,22 +81,22 @@ namespace YARG.Core.Game
                     break;
             }
 
-            Modifiers |= modifier;
+            CurrentModifiers |= modifier;
         }
 
         public void RemoveModifiers(Modifier modifier)
         {
-            Modifiers &= ~modifier;
+            CurrentModifiers &= ~modifier;
         }
 
         public bool IsModifierActive(Modifier modifier)
         {
-            return (Modifiers & modifier) == modifier;
+            return (CurrentModifiers & modifier) == modifier;
         }
 
         public void ApplyModifiers<TNote>(InstrumentDifficulty<TNote> track) where TNote : Note<TNote>
         {
-            switch (Instrument.ToGameMode())
+            switch (CurrentInstrument.ToGameMode())
             {
                 case GameMode.FiveFretGuitar:
                     if (track is not InstrumentDifficulty<GuitarNote> guitarTrack)
@@ -110,12 +115,12 @@ namespace YARG.Core.Game
             writer.Write(PROFILE_VERSION);
 
             writer.Write(Name);
-            writer.Write((byte) Instrument);
-            writer.Write((byte) Difficulty);
+            writer.Write((byte) CurrentInstrument);
+            writer.Write((byte) CurrentDifficulty);
             writer.Write(NoteSpeed);
             writer.Write(HighwayLength);
             writer.Write(LeftyFlip);
-            writer.Write((ulong)Modifiers);
+            writer.Write((ulong) CurrentModifiers);
         }
 
         public void Deserialize(BinaryReader reader, int version = 0)
@@ -123,14 +128,14 @@ namespace YARG.Core.Game
             version = reader.ReadInt32();
 
             Name = reader.ReadString();
-            Instrument = (Instrument) reader.ReadByte();
-            Difficulty = (Difficulty) reader.ReadByte();
+            CurrentInstrument = (Instrument) reader.ReadByte();
+            CurrentDifficulty = (Difficulty) reader.ReadByte();
             NoteSpeed = reader.ReadSingle();
             HighwayLength = reader.ReadSingle();
             LeftyFlip = reader.ReadBoolean();
-            Modifiers = (Modifier)reader.ReadUInt64();
+            CurrentModifiers = (Modifier) reader.ReadUInt64();
 
-            GameMode = Instrument.ToGameMode();
+            GameMode = CurrentInstrument.ToGameMode();
         }
     }
 }
