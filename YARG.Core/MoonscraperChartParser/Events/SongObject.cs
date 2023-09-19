@@ -64,25 +64,22 @@ namespace MoonscraperChartEditor.Song
             return tick < b.tick || (tick == b.tick && classID < b.classID);
         }
 
-        public static bool operator <(SongObject a, SongObject b)
+        public static bool operator <(SongObject? a, SongObject? b)
         {
-            return a.LessThan(b);
+            return a is not null && b is not null && a.LessThan(b);
         }
 
-        public static bool operator >(SongObject a, SongObject b)
+        public static bool operator >(SongObject? a, SongObject? b)
         {
-            if (a != b)
-                return !(a < b);
-            else
-                return false;
+            return a != b && !(a < b);
         }
 
-        public static bool operator <=(SongObject a, SongObject b)
+        public static bool operator <=(SongObject? a, SongObject? b)
         {
             return a < b || a == b;
         }
 
-        public static bool operator >=(SongObject a, SongObject b)
+        public static bool operator >=(SongObject? a, SongObject? b)
         {
             return a > b || a == b;
         }
