@@ -18,7 +18,7 @@ namespace YARG.Core.Utility
             argb <<= 8;
             argb |= a;
 
-            writer.WriteValue(argb.ToString("X"));
+            writer.WriteValue(argb.ToString("X8"));
         }
 
         public override Color ReadJson(JsonReader reader, Type objectType, Color existingValue, bool hasExistingValue,
