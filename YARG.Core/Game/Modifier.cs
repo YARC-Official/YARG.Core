@@ -15,17 +15,15 @@ namespace YARG.Core.Game
 
     public static class ModifierExtensions
     {
-        public static Modifier[] PossibleModifiers(this GameMode gameMode)
+        public static Modifier PossibleModifiers(this GameMode gameMode)
         {
             return gameMode switch
             {
-                GameMode.FiveFretGuitar => new[]
-                {
-                    Modifier.AllStrums,
-                    Modifier.AllHopos,
-                    Modifier.AllTaps,
-                    Modifier.HoposToTaps
-                },
+                GameMode.FiveFretGuitar =>
+                    Modifier.AllStrums |
+                    Modifier.AllHopos  |
+                    Modifier.AllTaps   |
+                    Modifier.HoposToTaps,
                 GameMode.SixFretGuitar or
                 GameMode.FourLaneDrums or
                 GameMode.FiveLaneDrums or
@@ -33,7 +31,7 @@ namespace YARG.Core.Game
                 GameMode.ProGuitar     or
                 GameMode.ProKeys       or
             //  GameMode.Dj            or
-                GameMode.Vocals        => Array.Empty<Modifier>(),
+                GameMode.Vocals        => Modifier.None,
                 _  => throw new NotImplementedException($"Unhandled game mode {gameMode}!")
             };
         }
