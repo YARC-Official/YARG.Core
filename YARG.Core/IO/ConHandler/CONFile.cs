@@ -6,75 +6,12 @@ using System.Text;
 
 namespace YARG.Core.IO
 {
-    public enum CONFileListingFlag : byte
-    {
-        Contiguous = 0x40,
-        Directory = 0x80,
-    }
-
-    public sealed class CONFileListing
-    {
-        public string Filename { get; private set; } = string.Empty;
-        public readonly CONFileListingFlag flags;
-        public readonly int numBlocks;
-        public readonly int firstBlock;
-        public readonly short pathIndex;
-        public readonly int size;
-        public readonly DateTime lastWrite;
-
-        public CONFileListing(ReadOnlySpan<byte> data)
-        {
-            Filename = Encoding.UTF8.GetString(data[..0x28]).TrimEnd('\0');
-            flags = (CONFileListingFlag)data[0x28];
-
-            numBlocks =           data[0x29] << 16 | data[0x2A] << 8 | data[0x2B];
-            firstBlock =          data[0x31] << 16 | data[0x30] << 8 | data[0x2F];
-            pathIndex =  (short) (data[0x32] << 8  | data[0x33]);
-            size =                data[0x34] << 24 | data[0x35] << 16 | data[0x36] << 8 | data[0x37];
-            lastWrite = FatTimeDT(data[0x3B] << 24 | data[0x3A] << 16 | data[0x39] << 8 | data[0x38]);
-        }
-
-        public void SetParentDirectory(string parentDirectory)
-        {
-            Filename = parentDirectory + "/" + Filename;
-        }
-
-        public CONFileListing() { }
-
-        public override string ToString() => $"STFS File Listing: {Filename}";
-        public bool IsDirectory() { return (flags & CONFileListingFlag.Directory) > 0; }
-        public bool IsContiguous() { return (flags & CONFileListingFlag.Contiguous) > 0; }
-
-        public static DateTime FatTimeDT(int fatTime)
-        {
-            int time = fatTime & 0xFFFF;
-            int date = fatTime >> 16;
-            if (date == 0 && time == 0)
-                return DateTime.Now;
-
-            int seconds = time & 0b11111;
-            int minutes = (time >> 5) & 0b111111;
-            int hour = (time >> 11) & 0b11111;
-
-            int day = date & 0b11111;
-            int month = (date >> 5) & 0b1111;
-            int year = (date >> 9) & 0b1111111;
-
-            if (day == 0)
-                day = 1;
-
-            if (month == 0)
-                month = 1;
-
-            return new DateTime(year + 1980, month, day, hour, minutes, 2 * seconds);
-        }
-    }
-
     public sealed class CONFile
     {
         public readonly string filename;
+        public readonly byte shift = 0;
+
         private readonly FileStream stream;
-        private readonly byte shift = 0;
         private readonly List<CONFileListing> files = new();
         private readonly object fileLock = new();
 
@@ -265,8 +202,7 @@ namespace YARG.Core.IO
             int offset = 0;
             while (true)
             {
-                int block = CalculateBlockNum(blockNum);
-                long blockLocation = FIRSTBLOCK_OFFSET + (long) block * BYTES_PER_BLOCK;
+                long blockLocation = FIRSTBLOCK_OFFSET + (long) CalculateBlockNum(blockNum) * BYTES_PER_BLOCK;
                 int readSize = BYTES_PER_BLOCK;
                 if (readSize > fileSize - offset)
                     readSize = fileSize - offset;
