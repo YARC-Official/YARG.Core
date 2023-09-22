@@ -182,6 +182,7 @@ namespace YARG.Core.IO
                 if (_position == fileSize || bufferPosition < BYTES_PER_SECTION)
                     break;
 
+                offset += readCount;
                 fileLeft -= readCount;
                 
                 bufferPosition = 0;
@@ -192,7 +193,7 @@ namespace YARG.Core.IO
                 if (readCount > fileLeft)
                     readCount = fileLeft;
 
-                _filestream.Read(buffer, 0, readCount);
+                _filestream.Read(sectionBuffer, 0, readCount);
                 leftoverBytes = readCount;
             }
             return read;
@@ -294,6 +295,7 @@ namespace YARG.Core.IO
                 if (_position == fileSize || bufferPosition < BYTES_PER_BLOCK)
                     break;
 
+                offset += readCount;
                 fileLeft -= readCount;
                 UpdateBuffer();
 
@@ -309,13 +311,13 @@ namespace YARG.Core.IO
             long blockLocation = FIRSTBLOCK_OFFSET + (long) CalculateBlockNum(currentBlock) * BYTES_PER_BLOCK;
             long readSize = BYTES_PER_BLOCK;
             if (readSize > fileSize - _position)
-                readSize = firstblock - _position;
+                readSize = fileSize - _position;
 
             _filestream.Seek(blockLocation, SeekOrigin.Begin);
             if (_filestream.Read(blockBuffer, 0, (int)readSize) != readSize)
                 throw new Exception("Pre-Read error in CON-like subfile - Type: Split");
 
-            if (_position + readSize < fileSize)
+            if (readSize == BYTES_PER_BLOCK)
             {
                 Span<byte> buffer = stackalloc byte[3];
                 long hashlocation = blockLocation - ((long) (currentBlock % BLOCKS_PER_SECTION) * DIST_PER_HASH + HASHBLOCK_OFFSET);
