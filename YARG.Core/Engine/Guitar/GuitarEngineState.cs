@@ -11,10 +11,16 @@
         public bool WasHopoStrummed;
         public bool WasNoteGhosted;
 
-        public double StrumLeniencyStartTime;
-        public double HopoLeniencyStartTime;
+        public EngineTimer StrumLeniencyTimer;
+        public EngineTimer HopoLeniencyTimer;
 
         public double FrontEndStartTime;
+
+        public void Initialize(GuitarEngineParameters parameters)
+        {
+            StrumLeniencyTimer = new(parameters.StrumLeniency);
+            HopoLeniencyTimer = new(parameters.HopoLeniency);
+        }
 
         public override void Reset()
         {
@@ -28,8 +34,8 @@
             WasHopoStrummed = false;
             WasNoteGhosted = false;
 
-            StrumLeniencyStartTime = double.MaxValue;
-            HopoLeniencyStartTime = double.MaxValue;
+            StrumLeniencyTimer.Reset();
+            HopoLeniencyTimer.Reset();
 
             FrontEndStartTime = 0;
         }

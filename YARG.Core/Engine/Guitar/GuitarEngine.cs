@@ -25,6 +25,7 @@ namespace YARG.Core.Engine.Guitar
             : base(chart, syncTrack, engineParameters)
         {
             BaseScore = CalculateBaseScore();
+            State.Initialize(engineParameters);
         }
 
         public override void Reset(bool keepCurrentButtons = false)

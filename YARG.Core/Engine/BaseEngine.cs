@@ -142,24 +142,6 @@ namespace YARG.Core.Engine
         /// <param name="endTime">Time to process up to.</param>
         /// <param name="inputs">List of inputs to execute against.</param>
         public abstract void ProcessFromTimeToTime(double startTime, double endTime, IEnumerable<GameInput> inputs);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected static void ResetTimer(ref double timer)
-        {
-            timer = double.MaxValue;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected static bool IsTimerActive(double currentTime, double startTime, double timeThreshold)
-        {
-            return currentTime - startTime < timeThreshold && currentTime - startTime >= 0;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected static bool HasTimerExpired(double currentTime, double startTime, double timeThreshold)
-        {
-            return currentTime - startTime >= timeThreshold;
-        }
     }
 
     public abstract class BaseEngine<TNoteType, TActionType, TEngineParams, TEngineStats, TEngineState> : BaseEngine
@@ -486,13 +468,6 @@ namespace YARG.Core.Engine
             }
 
             return soloSections;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected void SetTimer(ref double timer, double maxTime, double negation = 0)
-        {
-            double diff = Math.Abs(maxTime - negation);
-            timer = State.CurrentTime - diff;
         }
     }
 }
