@@ -105,14 +105,6 @@ namespace YARG.Core.Song
                 return File.ReadAllBytes(Midi.FullName);
             }
 
-            public byte[]? LoadMoggFile()
-            {
-                using var stream = _metadata.GetMoggStream();
-                if (stream == null)
-                    return null;
-                return stream.ReadBytes((int) stream.Length);
-            }
-
             public byte[]? LoadMiloFile()
             {
                 if (_metadata.Milo == null || !File.Exists(_metadata.Milo.FullName))
@@ -125,6 +117,11 @@ namespace YARG.Core.Song
                 if (_metadata.Image == null || !File.Exists(_metadata.Image.FullName))
                     return null;
                 return File.ReadAllBytes(_metadata.Image.FullName);
+            }
+
+            public Stream? GetMoggStream()
+            {
+                return _metadata.GetMoggStream();
             }
 
             public bool IsMoggValid()

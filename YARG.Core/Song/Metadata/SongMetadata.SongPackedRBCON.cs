@@ -154,17 +154,6 @@ namespace YARG.Core.Song
                 return conFile.LoadSubFile(midiListing);
             }
 
-            public byte[]? LoadMoggFile()
-            {
-                using var stream = _metadata.GetMoggStream();
-                if (stream != null)
-                    return stream.ReadBytes((int) stream.Length);
-
-                if (moggListing != null)
-                    return conFile.LoadSubFile(moggListing);
-                return null;
-            }
-
             public byte[]? LoadMiloFile()
             {
                 if (_metadata.Milo != null && File.Exists(_metadata.Milo.FullName))
@@ -184,6 +173,17 @@ namespace YARG.Core.Song
                 if (imgListing != null)
                     return conFile.LoadSubFile(imgListing);
 
+                return null;
+            }
+
+            public Stream? GetMoggStream()
+            {
+                var stream = _metadata.GetMoggStream();
+                if (stream != null)
+                    return stream;
+
+                if (moggListing != null)
+                    return conFile.CreateStream(moggListing);
                 return null;
             }
 

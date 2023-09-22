@@ -235,9 +235,9 @@ namespace YARG.Core.Song
             public RBCONSubMetadata SharedMetadata { get; }
             public DateTime MidiLastWrite { get; }
             public byte[]? LoadMidiFile();
-            public byte[]? LoadMoggFile();
             public byte[]? LoadMiloFile();
             public byte[]? LoadImgFile();
+            public Stream? GetMoggStream();
             public bool IsMoggValid();
             public void Serialize(BinaryWriter writer);
         }
