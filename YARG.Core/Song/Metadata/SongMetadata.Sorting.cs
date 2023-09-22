@@ -74,8 +74,8 @@ namespace YARG.Core.Song
                         return lhs.Parts.BandDifficulty < rhs.Parts.BandDifficulty;
                     break;
                 case SongAttribute.SongLength:
-                    if (lhs.SongLength != rhs.SongLength)
-                        return lhs.SongLength < rhs.SongLength;
+                    if (lhs.SongLengthMilliseconds != rhs.SongLengthMilliseconds)
+                        return lhs.SongLengthMilliseconds < rhs.SongLengthMilliseconds;
                     break;
             }
 

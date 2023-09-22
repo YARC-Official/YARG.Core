@@ -405,8 +405,8 @@ namespace YARG.Core.Song
                             break;
                         }
                     case "preview":
-                        PreviewStart = reader.ReadUInt64();
-                        PreviewEnd = reader.ReadUInt64();
+                        _previewStart = reader.ReadUInt64();
+                        _previewEnd = reader.ReadUInt64();
                         break;
                     case "rank": _parts.SetIntensities(rbConMetadata.RBDifficulties, reader); break;
                     case "solo": rbConMetadata.Soloes = reader.ExtractList_String().ToArray(); break;
@@ -451,7 +451,7 @@ namespace YARG.Core.Song
                     case "base_points": /*BasePoints = reader.ReadUInt32();*/ break;
                     case "band_fail_cue": /*BandFailCue = reader.ExtractText();*/ break;
                     case "drum_bank": rbConMetadata.DrumBank = reader.ExtractText(); break;
-                    case "song_length": SongLength = reader.ReadUInt64(); break;
+                    case "song_length": _songLength = reader.ReadUInt64(); break;
                     case "sub_genre": /*Subgenre = reader.ExtractText();*/ break;
                     case "author": _charter = reader.ExtractText(); break;
                     case "guide_pitch_volume": /*GuidePitchVolume = reader.ReadFloat();*/ break;
