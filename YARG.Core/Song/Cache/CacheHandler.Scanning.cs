@@ -120,11 +120,12 @@ namespace YARG.Core.Song.Cache
                     }
                     catch (PathTooLongException)
                     {
+                        YargTrace.LogWarning($"Path {chart} is too long for the file system!");
                         AddToBadSongs(chart, ScanResult.PathTooLong);
                     }
                     catch (Exception e)
                     {
-                        AddErrors(e);
+                        YargTrace.LogException(e, $"Error while scanning chart file {chart}!");
                         AddToBadSongs(Path.GetDirectoryName(chart), ScanResult.IniEntryCorruption);
                     }
                     return true;

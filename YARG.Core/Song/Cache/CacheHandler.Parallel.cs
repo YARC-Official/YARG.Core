@@ -32,21 +32,21 @@ namespace YARG.Core.Song.Cache
                     }
                     catch (PathTooLongException)
                     {
-                        YargTrace.LogWarning($"Path {file} is too long for Windows OS");
+                        YargTrace.LogWarning($"Path {file} is too long for the file system!");
                     }
                     catch (Exception e)
                     {
-                        AddErrors(file + ": " + e.Message);
+                        YargTrace.LogException(e, $"Error while scanning file {file}!");
                     }
                 });
             }
             catch (PathTooLongException)
             {
-                YargTrace.LogWarning($"Path {directory} is too long for Windows OS");
+                YargTrace.LogWarning($"Path {directory} is too long for the file system!");
             }
             catch (Exception e)
             {
-                AddErrors(directory + ": " + e.Message);
+                YargTrace.LogException(e, $"Error while scanning directory {directory}!");
             }
         }
 
@@ -74,7 +74,7 @@ namespace YARG.Core.Song.Cache
             }
             catch (Exception e)
             {
-                AddErrors(e);
+                YargTrace.LogException(e, $"Error while scanning packed CON group {group.file.filename}!");
             }
         }
 
@@ -98,7 +98,7 @@ namespace YARG.Core.Song.Cache
             }
             catch (Exception e)
             {
-                AddErrors(e);
+                YargTrace.LogException(e, $"Error while scanning extracted CON group {group.directory}!");
             }
         }
 
@@ -108,7 +108,7 @@ namespace YARG.Core.Song.Cache
             int baseIndex = GetBaseDirectoryIndex(directory);
             if (baseIndex == -1)
             {
-                YargTrace.DebugInfo($"Ini group outside base directories : {directory}");
+                YargTrace.DebugInfo($"INI group outside base directories: {directory}");
                 return;
             }
 
@@ -126,7 +126,7 @@ namespace YARG.Core.Song.Cache
                     }
                     catch (Exception ex)
                     {
-                        AddErrors(ex);
+                        YargTrace.LogException(ex, $"Error while reading INI entry {directory}!");
                     }
                 }));
             }
@@ -158,11 +158,11 @@ namespace YARG.Core.Song.Cache
                     try
                     {
                         if (!group.ReadEntry(name, index, upgrades, entryReader, strings))
-                            YargTrace.DebugInfo($"CON entry invalid {group.file.filename} | {name}");
+                            YargTrace.DebugError($"CON entry {name} in group {group.file.filename} is invalid!");
                     }
                     catch (Exception ex)
                     {
-                        AddErrors(ex);
+                        YargTrace.LogException(ex, $"Error while reading packed CON entry {name} in group {group.file.filename}!");
                     }
                 }));
             }
@@ -196,11 +196,11 @@ namespace YARG.Core.Song.Cache
                     try
                     {
                         if (!group.ReadEntry(name, index, upgrades, entryReader, strings))
-                            YargTrace.DebugInfo($"EXCON entry invalid {group.directory} | {name}");
+                            YargTrace.DebugError($"Extracted CON entry {name} in group {group.directory} is invalid!");
                     }
                     catch (Exception ex)
                     {
-                        AddErrors(ex);
+                        YargTrace.LogException(ex, $"Error while reading extracted CON entry {name} in group {group.directory}!");
                     }
                 }));
             }
@@ -225,7 +225,7 @@ namespace YARG.Core.Song.Cache
                     }
                     catch (Exception ex)
                     {
-                        AddErrors(ex);
+                        YargTrace.LogException(ex, $"Error while reading INI entry {directory}!");
                     }
                 }));
             }
@@ -256,7 +256,7 @@ namespace YARG.Core.Song.Cache
                     }
                     catch (Exception ex)
                     {
-                        AddErrors(ex);
+                        YargTrace.LogException(ex, $"Error while reading packed CON entry {name} in group {group.file.filename}!");
                     }
                 }));
             }
@@ -267,6 +267,9 @@ namespace YARG.Core.Song.Cache
         private void QuickReadExtractedCONGroup_Parallel(YARGBinaryReader reader, CategoryCacheStrings strings)
         {
             var dta = QuickReadExtractedCONGroupHeader(reader);
+            if (dta == null)
+                return;
+
             int count = reader.ReadInt32();
             List<Task> entryTasks = new();
             for (int i = 0; i < count; ++i)
@@ -277,14 +280,16 @@ namespace YARG.Core.Song.Cache
 
                 int length = reader.ReadInt32();
                 var entryReader = new YARGBinaryReader(reader, length);
-                entryTasks.Add(Task.Run(() => {
+                entryTasks.Add(Task.Run(() =>
+                {
                     try
                     {
                         AddEntry(SongMetadata.UnpackedRBCONFromCache_Quick(dta, name, upgrades, entryReader, strings));
                     }
                     catch (Exception ex)
                     {
-                        AddErrors(ex);
+                        string directory = Path.GetDirectoryName(dta.FullName);
+                        YargTrace.LogException(ex, $"Error while reading extracted CON entry {name} in group {directory}!");
                     }
                 }));
             }

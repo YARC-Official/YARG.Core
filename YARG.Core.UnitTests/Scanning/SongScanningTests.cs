@@ -28,8 +28,8 @@ namespace YARG.Core.UnitTests.Scanning
             CacheHandler handler = new(SongCachePath, BadSongsPath, MULTITHREADING, songDirectories);
 
             var cache = handler.RunScan(false);
-            foreach (object err in handler.errorList)
-                YargTrace.LogError(err.ToString());
+            // TODO: Any cache properties we want to check here?
+            // Currently the only fail condition would be an unhandled exception
         }
 
         [TestCase]
@@ -39,8 +39,7 @@ namespace YARG.Core.UnitTests.Scanning
             CacheHandler handler = new(SongCachePath, BadSongsPath, MULTITHREADING, songDirectories);
 
             var cache = handler.RunScan(true);
-            foreach (object err in handler.errorList)
-                YargTrace.LogError(err.ToString());
+            // TODO: see above
         }
     }
 }
