@@ -151,6 +151,11 @@ namespace YARG.Core.IO
             currentBlock -= offsetBlocks;
         }
 
+        public ContiguousCONFileStream(string filename, int fileSize, int firstBlock, int shift)
+            : this(new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read), fileSize, firstBlock, shift)
+        {
+        }
+
         public override int Read(byte[] buffer, int offset, int count)
         {
             if (_position == fileSize)
@@ -257,8 +262,8 @@ namespace YARG.Core.IO
             }
         }
 
-        public SplitCONFileStream(FileStream filestream, int fileSize, int firstBlock, int shift)
-            : base(filestream, fileSize, firstBlock, shift)
+        public SplitCONFileStream(string filename, int fileSize, int firstBlock, int shift)
+            : base(new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read), fileSize, firstBlock, shift)
         {
             UpdateBuffer();
         }
