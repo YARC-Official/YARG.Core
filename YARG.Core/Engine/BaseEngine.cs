@@ -29,6 +29,13 @@ namespace YARG.Core.Engine
 
         protected List<SoloSection> Solos = new();
 
+        /// <summary>
+        /// Whether or not the specified engine should treat a note as a chord, or separately.
+        /// For example, guitars would treat each note as a chord, where as drums would treat them
+        /// as singular pieces.
+        /// </summary>
+        public abstract bool TreatChordAsSeparate { get; }
+
         protected BaseEngine(BaseEngineParameters parameters, SyncTrack syncTrack)
         {
             SyncTrack = syncTrack;
@@ -45,6 +52,15 @@ namespace YARG.Core.Engine
 
             InputQueue = new Queue<GameInput>();
             CurrentInput = new GameInput(-9999, -9999, -9999);
+        }
+
+        /// <summary>
+        /// Gets the number of notes the engine recognizes in a specific note parent.
+        /// This number is determined by <see cref="TreatChordAsSeparate"/>.
+        /// </summary>
+        public int GetNumberOfNotes<T>(T type) where T : Note<T>
+        {
+            return TreatChordAsSeparate ? type.ChildNotes.Count + 1 : 1;
         }
 
         /// <summary>
@@ -449,15 +465,14 @@ namespace YARG.Core.Engine
                 // note is a SoloStart
 
                 // Try to find a solo end
-                var soloNoteCount = 1;
+                int soloNoteCount = GetNumberOfNotes(start);
                 for (int j = i + 1; j < Notes.Count; j++)
                 {
-                    soloNoteCount++;
                     var end = Notes[j];
-                    if (!end.IsSoloEnd)
-                    {
-                        continue;
-                    }
+
+                    soloNoteCount += GetNumberOfNotes(end);
+
+                    if (!end.IsSoloEnd) continue;
 
                     soloSections.Add(new SoloSection(soloNoteCount));
 
