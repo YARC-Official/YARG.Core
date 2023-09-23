@@ -44,7 +44,8 @@ namespace YARG.Core.Game
                     Modifier.TapsToHopos,
 
                 GameMode.FourLaneDrums =>
-                    Modifier.NoKicks,
+                    Modifier.None,
+                    // Modifier.NoKicks,
 
                 GameMode.SixFretGuitar or
                 GameMode.FiveLaneDrums or

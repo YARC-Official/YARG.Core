@@ -2,7 +2,6 @@ namespace YARG.Core.Chart
 {
     public static class InstrumentDifficultyExtensions
     {
-
         public static void ConvertToGuitarType(this InstrumentDifficulty<GuitarNote> difficulty, GuitarNoteType type)
         {
             foreach (var note in difficulty.Notes)
@@ -15,22 +14,22 @@ namespace YARG.Core.Chart
             }
         }
 
-        public static void ConvertHoposToTaps(this InstrumentDifficulty<GuitarNote> difficulty)
+        public static void ConvertFromTypeToType(this InstrumentDifficulty<GuitarNote> difficulty,
+            GuitarNoteType from, GuitarNoteType to)
         {
             foreach (var note in difficulty.Notes)
             {
-                if (note.Type != GuitarNoteType.Hopo)
+                if (note.Type != from)
                 {
                     continue;
                 }
 
-                note.Type = GuitarNoteType.Tap;
+                note.Type = to;
                 foreach (var child in note.ChildNotes)
                 {
-                    child.Type = GuitarNoteType.Tap;
+                    child.Type = to;
                 }
             }
         }
-
     }
 }

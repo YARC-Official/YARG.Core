@@ -87,12 +87,45 @@ namespace YARG.Core.Game
             {
                 case GameMode.FiveFretGuitar:
                     if (track is not InstrumentDifficulty<GuitarNote> guitarTrack)
-                        throw new InvalidOperationException($"Cannot apply guitar modifiers to non-guitar track with notes of {typeof(TNote)}!");
+                    {
+                        throw new InvalidOperationException($"Cannot apply guitar modifiers to non-guitar track " +
+                            $"with notes of {typeof(TNote)}!");
+                    }
 
-                    if(IsModifierActive(Modifier.AllStrums)) guitarTrack.ConvertToGuitarType(GuitarNoteType.Strum);
-                    else if(IsModifierActive(Modifier.AllHopos)) guitarTrack.ConvertToGuitarType(GuitarNoteType.Hopo);
-                    else if(IsModifierActive(Modifier.AllTaps)) guitarTrack.ConvertToGuitarType(GuitarNoteType.Tap);
-                    else if(IsModifierActive(Modifier.HoposToTaps)) guitarTrack.ConvertHoposToTaps();
+                    if (IsModifierActive(Modifier.AllStrums))
+                    {
+                        guitarTrack.ConvertToGuitarType(GuitarNoteType.Strum);
+                    }
+                    else if (IsModifierActive(Modifier.AllHopos))
+                    {
+                        guitarTrack.ConvertToGuitarType(GuitarNoteType.Hopo);
+                    }
+                    else if (IsModifierActive(Modifier.AllTaps))
+                    {
+                        guitarTrack.ConvertToGuitarType(GuitarNoteType.Tap);
+                    }
+                    else if (IsModifierActive(Modifier.HoposToTaps))
+                    {
+                        guitarTrack.ConvertFromTypeToType(GuitarNoteType.Hopo, GuitarNoteType.Tap);
+                    }
+                    else if (IsModifierActive(Modifier.TapsToHopos))
+                    {
+                        guitarTrack.ConvertFromTypeToType(GuitarNoteType.Tap, GuitarNoteType.Hopo);
+                    }
+
+                    break;
+                case GameMode.FourLaneDrums:
+                    if (track is not InstrumentDifficulty<DrumNote> drumsTrack)
+                    {
+                        throw new InvalidOperationException($"Cannot apply guitar modifiers to non-drums track " +
+                            $"with notes of {typeof(TNote)}!");
+                    }
+
+                    if (IsModifierActive(Modifier.NoKicks))
+                    {
+                        // TODO
+                    }
+
                     break;
             }
         }
