@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace YARG.Core.Game
 {
@@ -10,30 +11,69 @@ namespace YARG.Core.Game
         AllHopos    = 1 << 1,
         AllTaps     = 1 << 2,
         HoposToTaps = 1 << 3,
-        NoteShuffle = 1 << 4,
+        TapsToHopos = 1 << 4,
+        NoteShuffle = 1 << 5,
+        NoKicks     = 1 << 6,
     }
 
-    public static class ModifierExtensions
+    public static class ModifierConflicts
     {
+        // We can essentially treat a set of conflicting modifiers as a group, since they
+        // conflict in both ways (i.e. all strums conflicts with all HOPOs, and vice versa).
+        // Returning a list of the conflicting modifiers, and simply removing them, takes
+        // care of all of the possibilities. A modifier can be a part of multiple groups,
+        // which is why we use a list here.
+        private static readonly List<Modifier> _conflictingModifiers = new()
+        {
+            Modifier.AllStrums   |
+            Modifier.AllHopos    |
+            Modifier.AllTaps     |
+            Modifier.HoposToTaps |
+            Modifier.TapsToHopos,
+        };
+
         public static Modifier PossibleModifiers(this GameMode gameMode)
         {
             return gameMode switch
             {
                 GameMode.FiveFretGuitar =>
-                    Modifier.AllStrums |
-                    Modifier.AllHopos  |
-                    Modifier.AllTaps   |
-                    Modifier.HoposToTaps,
+                    Modifier.AllStrums   |
+                    Modifier.AllHopos    |
+                    Modifier.AllTaps     |
+                    Modifier.HoposToTaps |
+                    Modifier.TapsToHopos,
+
+                GameMode.FourLaneDrums =>
+                    Modifier.NoKicks,
+
                 GameMode.SixFretGuitar or
-                GameMode.FourLaneDrums or
                 GameMode.FiveLaneDrums or
             //  GameMode.TrueDrums     or
                 GameMode.ProGuitar     or
                 GameMode.ProKeys       or
             //  GameMode.Dj            or
                 GameMode.Vocals        => Modifier.None,
+
                 _  => throw new NotImplementedException($"Unhandled game mode {gameMode}!")
             };
+        }
+
+        public static Modifier FromSingleModifier(Modifier modifier)
+        {
+            var output = Modifier.None;
+
+            foreach (var conflictSet in _conflictingModifiers)
+            {
+                if ((conflictSet & modifier) == 0) continue;
+
+                // Set conflicts
+                output |= conflictSet;
+
+                // Make sure to get rid of the modifier itself
+                output &= ~modifier;
+            }
+
+            return output;
         }
     }
 }

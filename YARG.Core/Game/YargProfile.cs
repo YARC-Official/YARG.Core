@@ -64,25 +64,10 @@ namespace YARG.Core.Game
             Id = id;
         }
 
-        public void AddModifiers(Modifier modifier)
+        public void AddSingleModifier(Modifier modifier)
         {
-            // These modifiers conflict so we need to remove the conflicting modifiers if one is applied
-            switch (modifier)
-            {
-                case Modifier.AllStrums:
-                    RemoveModifiers(Modifier.AllHopos | Modifier.AllTaps | Modifier.HoposToTaps);
-                    break;
-                case Modifier.AllHopos:
-                    RemoveModifiers(Modifier.AllStrums | Modifier.AllTaps | Modifier.HoposToTaps);
-                    break;
-                case Modifier.AllTaps:
-                    RemoveModifiers(Modifier.AllStrums | Modifier.AllHopos | Modifier.HoposToTaps);
-                    break;
-                case Modifier.HoposToTaps:
-                    RemoveModifiers(Modifier.AllStrums | Modifier.AllHopos | Modifier.AllTaps);
-                    break;
-            }
-
+            // Remove conflicting modifiers first
+            RemoveModifiers(ModifierConflicts.FromSingleModifier(modifier));
             CurrentModifiers |= modifier;
         }
 
