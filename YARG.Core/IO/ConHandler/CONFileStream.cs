@@ -108,7 +108,11 @@ namespace YARG.Core.IO
                 long seekPosition = FIRSTBLOCK_OFFSET + (long) CalculateBlockNum(currentBlock) * BYTES_PER_BLOCK;
                 int positionLeft = (int) value;
 
-                int moveAmount = BYTES_PER_SECTION - BYTES_PER_BLOCK * (currentBlock % BLOCKS_PER_SECTION);
+                int offsetBlocks = currentBlock % BLOCKS_PER_SECTION;
+                bufferPosition = BYTES_PER_BLOCK * offsetBlocks;
+                currentBlock -= offsetBlocks;
+
+                int moveAmount = BYTES_PER_SECTION - bufferPosition;
                 int skipCount = 0;
                 while (positionLeft >= moveAmount)
                 {
@@ -116,16 +120,19 @@ namespace YARG.Core.IO
                     positionLeft -= moveAmount;
                     skipCount += CalcSkipCount();
                     moveAmount = BYTES_PER_SECTION;
+
+                    bufferPosition = 0;
+                    currentBlock += BLOCKS_PER_SECTION;
                 }
 
                 _filestream.Seek(seekPosition + skipCount * skipVal + positionLeft, SeekOrigin.Begin);
 
-                long readCount = BYTES_PER_SECTION - positionLeft;
+                bufferPosition += positionLeft;
+                long readCount = BYTES_PER_SECTION - bufferPosition;
                 if (readCount > fileSize - value)
                     readCount = fileSize - value;
 
-                _filestream.Read(sectionBuffer, positionLeft, (int)readCount);
-                bufferPosition = positionLeft;
+                _filestream.Read(sectionBuffer, bufferPosition, (int)readCount);
                 _position = value;
             }
         }
@@ -234,13 +241,20 @@ namespace YARG.Core.IO
                 
                 Span<byte> buffer = stackalloc byte[3];
 
-                long blockLocation;
-                int positionLeft = (int) value;
+                bufferPosition = (int) value;
                 while (true)
                 {
-                    blockLocation = FIRSTBLOCK_OFFSET + (long) CalculateBlockNum(currentBlock) * BYTES_PER_BLOCK;
-                    if (positionLeft < BYTES_PER_BLOCK)
-                        break;
+                    long blockLocation = FIRSTBLOCK_OFFSET + (long) CalculateBlockNum(currentBlock) * BYTES_PER_BLOCK;
+                    if (bufferPosition < BYTES_PER_BLOCK)
+                    {
+                        long readCount = BYTES_PER_BLOCK - bufferPosition;
+                        if (readCount > fileSize - value)
+                            readCount = fileSize - value;
+
+                        _filestream.Seek(blockLocation + bufferPosition, SeekOrigin.Begin);
+                        if (_filestream.Read(blockBuffer, bufferPosition, (int) readCount) != readCount)
+                            throw new Exception("Pre-Read error in CON-like subfile - Type: Split");
+                    }
 
                     long hashlocation = blockLocation - ((long) (currentBlock % BLOCKS_PER_SECTION) * DIST_PER_HASH + HASHBLOCK_OFFSET);
                     _filestream.Seek(hashlocation, SeekOrigin.Begin);
@@ -248,17 +262,12 @@ namespace YARG.Core.IO
                         throw new Exception("Post-Read error in CON-like subfile - Type: Split");
 
                     currentBlock = buffer[0] << 16 | buffer[1] << 8 | buffer[2];
-                    positionLeft -= BYTES_PER_BLOCK;
+                    if (bufferPosition < BYTES_PER_BLOCK)
+                        break;
+                        
+                    bufferPosition -= BYTES_PER_BLOCK;
                 }
 
-                _filestream.Seek(blockLocation, SeekOrigin.Begin);
-
-                long readCount = BYTES_PER_BLOCK - positionLeft;
-                if (readCount > fileSize - value)
-                    readCount = fileSize - value;
-
-                _filestream.Read(blockBuffer, positionLeft, (int) readCount);
-                bufferPosition = positionLeft;
                 _position = value;
             }
         }
@@ -292,7 +301,7 @@ namespace YARG.Core.IO
                 _position += readCount;
                 bufferPosition += readCount;
 
-                if (_position == fileSize || bufferPosition < BYTES_PER_BLOCK)
+                if (bufferPosition < BYTES_PER_BLOCK || _position == fileSize)
                     break;
 
                 offset += readCount;
