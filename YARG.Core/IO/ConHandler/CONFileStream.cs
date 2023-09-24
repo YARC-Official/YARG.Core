@@ -127,12 +127,12 @@ namespace YARG.Core.IO
 
                 _filestream.Seek(seekPosition + skipCount * skipVal + positionLeft, SeekOrigin.Begin);
 
-                bufferPosition += positionLeft;
                 long readCount = BYTES_PER_SECTION - bufferPosition;
                 if (readCount > fileSize - value)
                     readCount = fileSize - value;
 
                 _filestream.Read(sectionBuffer, bufferPosition, (int)readCount);
+                bufferPosition += positionLeft;
                 _position = value;
             }
         }
@@ -159,7 +159,7 @@ namespace YARG.Core.IO
         }
 
         public ContiguousCONFileStream(string filename, int fileSize, int firstBlock, int shift)
-            : this(new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read), fileSize, firstBlock, shift)
+            : this(new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read, 1), fileSize, firstBlock, shift)
         {
         }
 
@@ -247,12 +247,12 @@ namespace YARG.Core.IO
                     long blockLocation = FIRSTBLOCK_OFFSET + (long) CalculateBlockNum(currentBlock) * BYTES_PER_BLOCK;
                     if (bufferPosition < BYTES_PER_BLOCK)
                     {
-                        long readCount = BYTES_PER_BLOCK - bufferPosition;
+                        long readCount = BYTES_PER_BLOCK;
                         if (readCount > fileSize - value)
                             readCount = fileSize - value;
 
-                        _filestream.Seek(blockLocation + bufferPosition, SeekOrigin.Begin);
-                        if (_filestream.Read(blockBuffer, bufferPosition, (int) readCount) != readCount)
+                        _filestream.Seek(blockLocation, SeekOrigin.Begin);
+                        if (_filestream.Read(blockBuffer, 0, (int) readCount) != readCount)
                             throw new Exception("Pre-Read error in CON-like subfile - Type: Split");
                     }
 
@@ -273,7 +273,7 @@ namespace YARG.Core.IO
         }
 
         public SplitCONFileStream(string filename, int fileSize, int firstBlock, int shift)
-            : base(new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read), fileSize, firstBlock, shift)
+            : base(new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read, 1), fileSize, firstBlock, shift)
         {
             UpdateBuffer();
         }
