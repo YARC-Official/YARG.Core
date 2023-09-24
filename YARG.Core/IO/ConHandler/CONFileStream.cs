@@ -162,16 +162,16 @@ namespace YARG.Core.IO
                 return 0;
 
             int read = 0;
-            int leftoverBytes = BYTES_PER_SECTION - bufferPosition;
+            int bytesLeftInSection = BYTES_PER_SECTION - bufferPosition;
             int fileLeft = fileSize - (int)_position;
-            if (leftoverBytes > fileLeft)
-                leftoverBytes = fileLeft;
+            if (bytesLeftInSection > fileLeft)
+                bytesLeftInSection = fileLeft;
 
             while (true)
             {
                 int readCount = count - read;
-                if (readCount > leftoverBytes)
-                    readCount = leftoverBytes;
+                if (readCount > bytesLeftInSection)
+                    readCount = bytesLeftInSection;
 
                 Unsafe.CopyBlock(ref buffer[offset], ref sectionBuffer[bufferPosition], (uint) readCount);
 
@@ -179,7 +179,7 @@ namespace YARG.Core.IO
                 _position += readCount;
                 bufferPosition += readCount;
 
-                if (_position == fileSize || bufferPosition < BYTES_PER_SECTION)
+                if (bufferPosition < BYTES_PER_SECTION || _position == fileSize)
                     break;
 
                 offset += readCount;
@@ -194,7 +194,7 @@ namespace YARG.Core.IO
                     readCount = fileLeft;
 
                 _filestream.Read(sectionBuffer, 0, readCount);
-                leftoverBytes = readCount;
+                bytesLeftInSection = readCount;
             }
             return read;
         }
