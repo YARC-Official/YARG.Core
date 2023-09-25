@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace YARG.Core.IO
 {
@@ -17,7 +18,8 @@ namespace YARG.Core.IO
 
         private readonly FileStream _filestream;
         private readonly int fileSize;
-        private readonly byte[] dataBuffer;
+        private unsafe readonly byte* dataBuffer;
+        private readonly int bufferSize;
         private readonly long[] blockLocations;
         private readonly int initialOffset;
 
@@ -39,21 +41,25 @@ namespace YARG.Core.IO
                 if (value < 0 || value > fileSize) throw new ArgumentOutOfRangeException();
 
                 _position = value;
-                blockIndex = (int) (value / dataBuffer.Length);
+                blockIndex = (int) (value / bufferSize);
 
                 int offset = blockIndex == 0 ? initialOffset : 0;
-                bufferPosition = (int) (value % dataBuffer.Length) + offset;
+                bufferPosition = (int) (value % bufferSize) + offset;
                 
-                long readPosition = value - bufferPosition;
-                long readSize = dataBuffer.LongLength - offset;
+                int readPosition = (int)value - bufferPosition;
+                int readSize = bufferSize - offset;
                 if (readSize > fileSize - readPosition)
                     readSize = fileSize - readPosition;
 
                 if (blockIndex < blockLocations.Length)
                 {
                     _filestream.Seek(blockLocations[blockIndex++], SeekOrigin.Begin);
-                    if (_filestream.Read(dataBuffer, offset, (int) readSize) != readSize)
-                        throw new Exception("Read error in CON subfile");
+                    unsafe
+                    {
+                        Span<byte> buffer = new(dataBuffer + offset, readSize);
+                        if (_filestream.Read(buffer) != readSize)
+                            throw new Exception("Seek error in CON subfile");
+                    }
                 }
             }
         }
@@ -66,7 +72,11 @@ namespace YARG.Core.IO
             int block = firstBlock;
             if (isContinguous)
             {
-                dataBuffer = new byte[BYTES_PER_SECTION];
+                bufferSize = BYTES_PER_SECTION;
+                unsafe
+                {
+                    dataBuffer = (byte*)Marshal.AllocHGlobal(BYTES_PER_SECTION);
+                }
 
                 int blockOffset = firstBlock % BLOCKS_PER_SECTION;
                 initialOffset = blockOffset * BYTES_PER_BLOCK;
@@ -105,7 +115,11 @@ namespace YARG.Core.IO
             }
             else
             {
-                dataBuffer = new byte[BYTES_PER_BLOCK];
+                bufferSize = BYTES_PER_BLOCK;
+                unsafe
+                {
+                    dataBuffer = (byte*) Marshal.AllocHGlobal(BYTES_PER_BLOCK);
+                }
 
                 int numBlocks = fileSize % BYTES_PER_BLOCK == 0 ? fileSize / BYTES_PER_BLOCK : fileSize / BYTES_PER_BLOCK + 1;
                 blockLocations = new long[numBlocks];
@@ -150,7 +164,7 @@ namespace YARG.Core.IO
                 return 0;
 
             int read = 0;
-            int bytesLeftInSection = dataBuffer.Length - bufferPosition;
+            int bytesLeftInSection = bufferSize - bufferPosition;
             if (bytesLeftInSection > fileSize - (int) _position)
                 bytesLeftInSection = fileSize - (int) _position;
 
@@ -159,14 +173,19 @@ namespace YARG.Core.IO
                 int readCount = count - read;
                 if (readCount > bytesLeftInSection)
                     readCount = bytesLeftInSection;
-
-                Unsafe.CopyBlock(ref buffer[offset], ref dataBuffer[bufferPosition], (uint) readCount);
+                unsafe
+                {
+                    fixed (byte* dst = buffer)
+                    {
+                        Unsafe.CopyBlock(dst + offset, dataBuffer + bufferPosition, (uint) readCount);
+                    }
+                }
 
                 read += readCount;
                 _position += readCount;
                 bufferPosition += readCount;
 
-                if (bufferPosition < dataBuffer.Length || _position == fileSize)
+                if (bufferPosition < bufferSize || _position == fileSize)
                     break;
 
                 offset += readCount;
@@ -203,6 +222,11 @@ namespace YARG.Core.IO
             {
                 if (disposing)
                     _filestream.Dispose();
+
+                unsafe
+                {
+                    Marshal.FreeHGlobal((IntPtr)dataBuffer);
+                }
                 disposedStream = true;
             }
         }
@@ -210,14 +234,18 @@ namespace YARG.Core.IO
         private int UpdateBuffer()
         {
             bufferPosition = blockIndex == 0 ? initialOffset : 0;
-            long readSize = dataBuffer.Length - bufferPosition;
+            int readSize = bufferSize - bufferPosition;
             if (readSize > fileSize - _position)
-                readSize = fileSize - _position;
+                readSize = fileSize - (int)_position;
 
             _filestream.Seek(blockLocations[blockIndex++], SeekOrigin.Begin);
-            if (_filestream.Read(dataBuffer, bufferPosition, (int) readSize) != readSize)
-                throw new Exception("Read error in CON subfile");
-            return (int) readSize;
+            unsafe
+            {
+                Span<byte> buffer = new(dataBuffer + bufferPosition, readSize);
+                if (_filestream.Read(buffer) != readSize)
+                    throw new Exception("Read error in CON subfile");
+            }
+            return readSize;
         }
 
         private static int CalculateBlockNum(int blockNum, int shift)
