@@ -105,7 +105,8 @@ namespace YARG.Core.IO
         public int GetMoggVersion(CONFileListing listing)
         {
             Debug.Assert(!listing.IsDirectory(), "Directory listing cannot be loaded as a file");
-            using var conStream = CreateStream(listing);
+            var fs = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+            using var conStream = new CONFileStream(fs, false, 4, listing.firstBlock, shift);
             return conStream.ReadInt32LE();
         }
 
