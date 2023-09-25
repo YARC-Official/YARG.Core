@@ -71,7 +71,7 @@ namespace YARG.Core.IO
         private const int SIZEOF_FILELISTING = 0x40;
         private CONFile(FileStream stream, byte shift, int firstBlock, int length)
         {
-            using var conStream = new ContiguousCONFileStream(stream, length, firstBlock, shift);
+            using var conStream = new CONFileStream(stream, true, length, firstBlock, shift);
             Span<byte> buffer = stackalloc byte[SIZEOF_FILELISTING];
             for (int i = 0; i < length; i += SIZEOF_FILELISTING)
             {
@@ -112,9 +112,8 @@ namespace YARG.Core.IO
         public CONFileStream CreateStream(CONFileListing listing)
         {
             Debug.Assert(!listing.IsDirectory(), "Directory listing cannot be loaded as a file");
-            return listing.IsContiguous() ?
-                new ContiguousCONFileStream(filename, listing.size, listing.firstBlock, shift) :
-                new SplitCONFileStream     (filename, listing.size, listing.firstBlock, shift);
+            var fs = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+            return new CONFileStream(fs, listing, shift);
         }
 
         public byte[] LoadSubFile(CONFileListing listing)
