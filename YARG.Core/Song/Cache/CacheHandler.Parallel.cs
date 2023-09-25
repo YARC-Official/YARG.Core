@@ -9,6 +9,29 @@ namespace YARG.Core.Song.Cache
 {
     public sealed partial class CacheHandler
     {
+        private class ParallelExceptionTracker
+        {
+            private readonly object _lock = new object();
+            private Exception? _exception = null;
+
+            public bool IsSet()
+            {
+                lock (_lock)
+                    return _exception != null;
+            }
+
+            /// <summary>
+            /// Once set, the exception can not be swapped.
+            /// </summary>
+            public void Set(Exception exception)
+            {
+                lock (_lock)
+                    _exception ??= exception;
+            }
+
+            public Exception? Exception => _exception;
+        }
+
         private void ScanDirectory_Parallel(string directory, int index)
         {
             try
@@ -102,7 +125,7 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void ReadIniGroup_Parallel(YARGBinaryReader reader, CategoryCacheStrings strings)
+        private void ReadIniGroup_Parallel(YARGBinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
         {
             string directory = reader.ReadLEBString();
             int baseIndex = GetBaseDirectoryIndex(directory);
@@ -112,36 +135,34 @@ namespace YARG.Core.Song.Cache
                 return;
             }
 
-            List<Task> entryTasks = new();
             int count = reader.ReadInt32();
-            for (int i = 0; i < count; ++i)
+            for (int i = 0; i < count && !tracker.IsSet(); ++i)
             {
                 int length = reader.ReadInt32();
                 var entryReader = new YARGBinaryReader(reader, length);
-                entryTasks.Add(Task.Run(() => 
-                { 
-                    try 
+                entryTasks.Add(Task.Run(() =>
+                {
+                    // Error catching must be done per-thread
+                    try
                     {
                         ReadIniEntry(directory, baseIndex, entryReader, strings);
                     }
                     catch (Exception ex)
                     {
-                        YargTrace.LogException(ex, $"Error while reading INI entry {directory}!");
+                        tracker.Set(ex);
                     }
                 }));
             }
-            Task.WaitAll(entryTasks.ToArray());
         }
 
-        private void ReadCONGroup_Parallel(YARGBinaryReader reader, CategoryCacheStrings strings)
+        private void ReadCONGroup_Parallel(YARGBinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
         {
             var group = ReadCONGroupHeader(reader);
             if (group == null)
                 return;
 
-            List<Task> entryTasks = new();
             int count = reader.ReadInt32();
-            for (int i = 0; i < count; ++i)
+            for (int i = 0; i < count && !tracker.IsSet(); ++i)
             {
                 string name = reader.ReadLEBString();
                 int index = reader.ReadInt32();
@@ -155,6 +176,7 @@ namespace YARG.Core.Song.Cache
                 var entryReader = new YARGBinaryReader(reader, length);
                 entryTasks.Add(Task.Run(() =>
                 {
+                    // Error catching must be done per-thread
                     try
                     {
                         if (!group.ReadEntry(name, index, upgrades, entryReader, strings))
@@ -162,23 +184,20 @@ namespace YARG.Core.Song.Cache
                     }
                     catch (Exception ex)
                     {
-                        YargTrace.LogException(ex, $"Error while reading packed CON entry {name} in group {group.file.filename}!");
+                        tracker.Set(ex);
                     }
                 }));
             }
-
-            Task.WaitAll(entryTasks.ToArray());
         }
 
-        private void ReadExtractedCONGroup_Parallel(YARGBinaryReader reader, CategoryCacheStrings strings)
+        private void ReadExtractedCONGroup_Parallel(YARGBinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
         {
             var group = ReadExtractedCONGroupHeader(reader);
             if (group == null)
                 return;
 
             int count = reader.ReadInt32();
-            List<Task> entryTasks = new();
-            for (int i = 0; i < count; ++i)
+            for (int i = 0; i < count && !tracker.IsSet(); ++i)
             {
                 string name = reader.ReadLEBString();
                 int index = reader.ReadInt32();
@@ -193,6 +212,7 @@ namespace YARG.Core.Song.Cache
                 var entryReader = new YARGBinaryReader(reader, length);
                 entryTasks.Add(Task.Run(() =>
                 {
+                    // Error catching must be done per-thread
                     try
                     {
                         if (!group.ReadEntry(name, index, upgrades, entryReader, strings))
@@ -200,47 +220,43 @@ namespace YARG.Core.Song.Cache
                     }
                     catch (Exception ex)
                     {
-                        YargTrace.LogException(ex, $"Error while reading extracted CON entry {name} in group {group.directory}!");
+                        tracker.Set(ex);
                     }
                 }));
             }
-
-            Task.WaitAll(entryTasks.ToArray());
         }
 
-        private void QuickReadIniGroup_Parallel(YARGBinaryReader reader, CategoryCacheStrings strings)
+        private void QuickReadIniGroup_Parallel(YARGBinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
         {
             string directory = reader.ReadLEBString();
-            List<Task> entryTasks = new();
             int count = reader.ReadInt32();
-            for (int i = 0; i < count; ++i)
+            for (int i = 0; i < count && !tracker.IsSet(); ++i)
             {
                 int length = reader.ReadInt32();
                 var entryReader = new YARGBinaryReader(reader, length);
                 entryTasks.Add(Task.Run(() =>
                 {
+                    // Error catching must be done per-thread
                     try
                     {
                         QuickReadIniEntry(directory, entryReader, strings);
                     }
                     catch (Exception ex)
                     {
-                        YargTrace.LogException(ex, $"Error while reading INI entry {directory}!");
+                        tracker.Set(ex);
                     }
                 }));
             }
-            Task.WaitAll(entryTasks.ToArray());
         }
 
-        private void QuickReadCONGroup_Parallel(YARGBinaryReader reader, CategoryCacheStrings strings)
+        private void QuickReadCONGroup_Parallel(YARGBinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
         {
             var group = QuickReadCONGroupHeader(reader);
             if (group == null)
                 return;
 
             int count = reader.ReadInt32();
-            List<Task> entryTasks = new();
-            for (int i = 0; i < count; ++i)
+            for (int i = 0; i < count && !tracker.IsSet(); ++i)
             {
                 string name = reader.ReadLEBString();
                 // index
@@ -250,29 +266,25 @@ namespace YARG.Core.Song.Cache
                 var entryReader = new YARGBinaryReader(reader, length);
                 entryTasks.Add(Task.Run(() =>
                 {
+                    // Error catching must be done per-thread
                     try
                     {
                         AddEntry(SongMetadata.PackedRBCONFromCache_Quick(group.file, name, upgrades, entryReader, strings));
                     }
                     catch (Exception ex)
                     {
-                        YargTrace.LogException(ex, $"Error while reading packed CON entry {name} in group {group.file.filename}!");
+                        tracker.Set(ex);
                     }
                 }));
             }
-
-            Task.WaitAll(entryTasks.ToArray());
         }
 
-        private void QuickReadExtractedCONGroup_Parallel(YARGBinaryReader reader, CategoryCacheStrings strings)
+        private void QuickReadExtractedCONGroup_Parallel(YARGBinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
         {
             var dta = QuickReadExtractedCONGroupHeader(reader);
-            if (dta == null)
-                return;
 
             int count = reader.ReadInt32();
-            List<Task> entryTasks = new();
-            for (int i = 0; i < count; ++i)
+            for (int i = 0; i < count && !tracker.IsSet(); ++i)
             {
                 string name = reader.ReadLEBString();
                 // index
@@ -282,19 +294,17 @@ namespace YARG.Core.Song.Cache
                 var entryReader = new YARGBinaryReader(reader, length);
                 entryTasks.Add(Task.Run(() =>
                 {
+                    // Error catching must be done per-thread
                     try
                     {
                         AddEntry(SongMetadata.UnpackedRBCONFromCache_Quick(dta, name, upgrades, entryReader, strings));
                     }
                     catch (Exception ex)
                     {
-                        string directory = Path.GetDirectoryName(dta.FullName);
-                        YargTrace.LogException(ex, $"Error while reading extracted CON entry {name} in group {directory}!");
+                        tracker.Set(ex);
                     }
                 }));
             }
-
-            Task.WaitAll(entryTasks.ToArray());
         }
     }
 }

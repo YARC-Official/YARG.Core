@@ -101,10 +101,17 @@ namespace YARG.Core.Song.Cache
 
         private bool QuickScan()
         {
-            if (!Deserialize_Quick())
+            try
             {
-                //ToastManager.ToastWarning("Song cache is not present or outdated - performing rescan");
-                return false;
+                if (!Deserialize_Quick())
+                {
+                    //ToastManager.ToastWarning("Song cache is not present or outdated - performing rescan");
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                YargTrace.LogException(ex, "Error occurred during quick cache file read!");
             }
 
             if (Count == 0)
@@ -121,7 +128,14 @@ namespace YARG.Core.Song.Cache
         {
             if (loadCache)
             {
-                Deserialize();
+                try
+                {
+                    Deserialize();
+                }
+                catch (Exception ex)
+                {
+                    YargTrace.LogException(ex, "Error occurred during full cache file read!");
+                }
             }
 
             FindNewEntries();
