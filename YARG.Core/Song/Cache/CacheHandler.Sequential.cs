@@ -109,14 +109,7 @@ namespace YARG.Core.Song.Cache
             {
                 int length = reader.ReadInt32();
                 var entryReader = new YARGBinaryReader(reader, length);
-                try 
-                {
-                    ReadIniEntry(directory, baseIndex, entryReader, strings);
-                }
-                catch (Exception ex)
-                {
-                    YargTrace.LogException(ex, $"Error while reading INI entry {directory}!");
-                }
+                ReadIniEntry(directory, baseIndex, entryReader, strings);
             }
         }
 
@@ -139,16 +132,8 @@ namespace YARG.Core.Song.Cache
                 }
 
                 var entryReader = new YARGBinaryReader(reader, length);
-              
-                try
-                {
-                    if (!group.ReadEntry(name, index, upgrades, entryReader, strings))
-                        YargTrace.DebugError($"CON entry {name} in group {group.file.filename} is invalid!");
-                }
-                catch (Exception ex)
-                {
-                    YargTrace.LogException(ex, $"Error while reading packed CON entry {name} in group {group.file.filename}!");
-                }
+                if (!group.ReadEntry(name, index, upgrades, entryReader, strings))
+                    YargTrace.DebugError($"CON entry {name} in group {group.file.filename} is invalid!");
             }
         }
 
@@ -172,16 +157,8 @@ namespace YARG.Core.Song.Cache
                 }
 
                 var entryReader = new YARGBinaryReader(reader, length);
-              
-                try
-                {
-                    if (!group.ReadEntry(name, index, upgrades, entryReader, strings))
-                        YargTrace.DebugError($"Extracted CON entry {name} in group {group.directory} is invalid!");
-                }
-                catch (Exception ex)
-                {
-                    YargTrace.LogException(ex, $"Error while reading extracted CON entry {name} in group {group.directory}!");
-                }
+                if (!group.ReadEntry(name, index, upgrades, entryReader, strings))
+                    YargTrace.DebugError($"Extracted CON entry {name} in group {group.directory} is invalid!");
             }
         }
 
@@ -193,14 +170,7 @@ namespace YARG.Core.Song.Cache
             {
                 int length = reader.ReadInt32();
                 var entryReader = new YARGBinaryReader(reader, length);
-                try
-                {
-                    QuickReadIniEntry(directory, entryReader, strings);
-                }
-                catch (Exception ex)
-                {
-                    YargTrace.LogException(ex, $"Error while reading INI entry {directory}!");
-                }
+                QuickReadIniEntry(directory, entryReader, strings);
             }
         }
 
@@ -219,22 +189,14 @@ namespace YARG.Core.Song.Cache
 
                 int length = reader.ReadInt32();
                 var entryReader = new YARGBinaryReader(reader, length);
-                try
-                {
-                    AddEntry(SongMetadata.PackedRBCONFromCache_Quick(group.file, name, upgrades, entryReader, strings));
-                }
-                catch (Exception ex)
-                {
-                    YargTrace.LogException(ex, $"Error while reading packed CON entry {name} in group {group.file.filename}!");
-                }
+                AddEntry(SongMetadata.PackedRBCONFromCache_Quick(group.file, name, upgrades, entryReader, strings));
             }
         }
 
         private void QuickReadExtractedCONGroup(YARGBinaryReader reader, CategoryCacheStrings strings)
         {
             var dta = QuickReadExtractedCONGroupHeader(reader);
-            if (dta == null)
-                return;
+            // Lack of null check by design
 
             int count = reader.ReadInt32();
             for (int i = 0; i < count; ++i)
@@ -245,15 +207,7 @@ namespace YARG.Core.Song.Cache
 
                 int length = reader.ReadInt32();
                 var entryReader = new YARGBinaryReader(reader, length);
-                try
-                {
-                    AddEntry(SongMetadata.UnpackedRBCONFromCache_Quick(dta, name, upgrades, entryReader, strings));
-                }
-                catch (Exception ex)
-                {
-                    string directory = Path.GetDirectoryName(dta.FullName);
-                    YargTrace.LogException(ex, $"Error while reading extracted CON entry {name} in group {directory}!");
-                }
+                AddEntry(SongMetadata.UnpackedRBCONFromCache_Quick(dta, name, upgrades, entryReader, strings));
             }
         }
     }
