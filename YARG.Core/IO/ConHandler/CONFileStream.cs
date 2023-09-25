@@ -229,6 +229,8 @@ namespace YARG.Core.IO
         private const int DIST_PER_HASH = 4072;
 
         private readonly byte[] blockBuffer = new byte[BYTES_PER_BLOCK];
+        private readonly long[] blockLocations;
+        private int blockIndex = 0;
 
         public override long Position
         {
@@ -237,44 +239,45 @@ namespace YARG.Core.IO
             {
                 if (value < 0 || value > fileSize) throw new ArgumentOutOfRangeException();
 
-                currentBlock = firstblock;
-                
-                Span<byte> buffer = stackalloc byte[3];
-
-                bufferPosition = (int) value;
-                while (true)
-                {
-                    long blockLocation = FIRSTBLOCK_OFFSET + (long) CalculateBlockNum(currentBlock) * BYTES_PER_BLOCK;
-                    if (bufferPosition < BYTES_PER_BLOCK)
-                    {
-                        long readCount = BYTES_PER_BLOCK;
-                        if (readCount > fileSize - value)
-                            readCount = fileSize - value;
-
-                        _filestream.Seek(blockLocation, SeekOrigin.Begin);
-                        if (_filestream.Read(blockBuffer, 0, (int) readCount) != readCount)
-                            throw new Exception("Pre-Read error in CON-like subfile - Type: Split");
-                    }
-
-                    long hashlocation = blockLocation - ((long) (currentBlock % BLOCKS_PER_SECTION) * DIST_PER_HASH + HASHBLOCK_OFFSET);
-                    _filestream.Seek(hashlocation, SeekOrigin.Begin);
-                    if (_filestream.Read(buffer) != 3)
-                        throw new Exception("Post-Read error in CON-like subfile - Type: Split");
-
-                    currentBlock = buffer[0] << 16 | buffer[1] << 8 | buffer[2];
-                    if (bufferPosition < BYTES_PER_BLOCK)
-                        break;
-                        
-                    bufferPosition -= BYTES_PER_BLOCK;
-                }
-
+                blockIndex = (int) (value / BYTES_PER_BLOCK);
+                bufferPosition = (int) (value % BYTES_PER_BLOCK);
                 _position = value;
+
+                long readPosition = value - bufferPosition;
+                long readSize = BYTES_PER_BLOCK;
+                if (readSize > fileSize - readPosition)
+                    readSize = fileSize - readPosition;
+
+                _filestream.Seek(blockLocations[blockIndex++], SeekOrigin.Begin);
+                if (_filestream.Read(blockBuffer, 0, (int) readSize) != readSize)
+                    throw new Exception("Pre-Read error in CON-like subfile - Type: Split");
             }
         }
 
         public SplitCONFileStream(string filename, int fileSize, int firstBlock, int shift)
             : base(new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read, 1), fileSize, firstBlock, shift)
         {
+            int numBlocks = fileSize % BYTES_PER_BLOCK == 0 ? fileSize / BYTES_PER_BLOCK : fileSize / BYTES_PER_BLOCK + 1;
+            blockLocations = new long[numBlocks];
+
+            int block = firstBlock;
+            for (int i = 0; i < numBlocks; i++)
+            {
+                long location = FIRSTBLOCK_OFFSET + (long) CalculateBlockNum(block) * BYTES_PER_BLOCK; ;
+                blockLocations[i] = location;
+
+                if (i < numBlocks - 1)
+                {
+                    long hashlocation = location - ((long) (block % BLOCKS_PER_SECTION) * DIST_PER_HASH + HASHBLOCK_OFFSET);
+                    Span<byte> buffer = stackalloc byte[3];
+                    _filestream.Seek(hashlocation, SeekOrigin.Begin);
+                    if (_filestream.Read(buffer) != 3)
+                        throw new Exception("Post-Read error in CON-like subfile - Type: Split");
+
+                    block = buffer[0] << 16 | buffer[1] << 8 | buffer[2];
+                }
+            }
+
             UpdateBuffer();
         }
 
@@ -316,26 +319,14 @@ namespace YARG.Core.IO
 
         private void UpdateBuffer()
         {
-            bufferPosition = 0;
-            long blockLocation = FIRSTBLOCK_OFFSET + (long) CalculateBlockNum(currentBlock) * BYTES_PER_BLOCK;
             long readSize = BYTES_PER_BLOCK;
             if (readSize > fileSize - _position)
                 readSize = fileSize - _position;
 
-            _filestream.Seek(blockLocation, SeekOrigin.Begin);
+            _filestream.Seek(blockLocations[blockIndex++], SeekOrigin.Begin);
             if (_filestream.Read(blockBuffer, 0, (int)readSize) != readSize)
                 throw new Exception("Pre-Read error in CON-like subfile - Type: Split");
-
-            if (readSize == BYTES_PER_BLOCK)
-            {
-                Span<byte> buffer = stackalloc byte[3];
-                long hashlocation = blockLocation - ((long) (currentBlock % BLOCKS_PER_SECTION) * DIST_PER_HASH + HASHBLOCK_OFFSET);
-                _filestream.Seek(hashlocation, SeekOrigin.Begin);
-                if (_filestream.Read(buffer) != 3)
-                    throw new Exception("Post-Read error in CON-like subfile - Type: Split");
-
-                currentBlock = buffer[0] << 16 | buffer[1] << 8 | buffer[2];
-            } 
+            bufferPosition = 0;
         }
     }
 }
