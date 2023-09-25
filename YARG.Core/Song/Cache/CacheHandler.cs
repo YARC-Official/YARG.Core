@@ -49,7 +49,7 @@ namespace YARG.Core.Song.Cache
         /// Format is YY_MM_DD_RR: Y = year, M = month, D = day, R = revision (reset across dates, only increment
         /// if multiple cache version changes happen in a single day).
         /// </summary>
-        public const int CACHE_VERSION = 23_09_15_03;
+        public const int CACHE_VERSION = 23_09_25_01;
 
         public ScanProgress Progress { get; private set; }
         public int Count { get { lock (entryLock) return _count; } }
@@ -94,7 +94,11 @@ namespace YARG.Core.Song.Cache
         private int GetBaseDirectoryIndex(string path)
         {
             for (int i = 0; i != baseDirectories.Length; ++i)
-                if (path.StartsWith(baseDirectories[i]))
+                if (path.StartsWith(baseDirectories[i]) &&
+                    // Ensures directories with similar names (previously separate bases)
+                    // that are consolidated in-gamne to a single base directory
+                    // don't have conflicting "relative path" issues
+                    (path.Length == baseDirectories[i].Length || path[baseDirectories[i].Length] == Path.DirectorySeparatorChar))
                     return i;
             return -1;
         }
