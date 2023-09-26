@@ -146,7 +146,9 @@ namespace YARG.Core.Song
 
             public byte[]? LoadMidiFile()
             {
-                return midiListing?.LoadAllBytes();
+                if (midiListing == null || !midiListing.IsStillValid())
+                    return null;
+                return midiListing.LoadAllBytes();
             }
 
             public byte[]? LoadMiloFile()
