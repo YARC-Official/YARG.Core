@@ -41,6 +41,9 @@ namespace YARG.Core.IO
                 if (value < 0 || value > fileSize) throw new ArgumentOutOfRangeException();
 
                 _position = value;
+                if (value == fileSize)
+                    return;
+
                 blockIndex = (int) (value / bufferSize);
 
                 int offset = blockIndex == 0 ? initialOffset : 0;
