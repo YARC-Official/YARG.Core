@@ -100,14 +100,14 @@ namespace YARG.Core.Song
 
             public Stream? GetMidiStream()
             {
-                if (!Midi.IsStillValid())
+                if (DTA == null || !DTA.IsStillValid() || !Midi.IsStillValid())
                     return null;
                 return new FileStream(Midi.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
             }
 
             public byte[]? LoadMidiFile()
             {
-                if (!Midi.IsStillValid())
+                if (DTA == null || !DTA.IsStillValid() || !Midi.IsStillValid())
                     return null;
                 return File.ReadAllBytes(Midi.FullName);
             }
