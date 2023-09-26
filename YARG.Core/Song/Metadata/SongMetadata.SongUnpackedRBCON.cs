@@ -98,6 +98,13 @@ namespace YARG.Core.Song
                 _metadata.Serialize(writer);
             }
 
+            public Stream? GetMidiStream()
+            {
+                if (!Midi.IsStillValid())
+                    return null;
+                return new FileStream(Midi.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
+            }
+
             public byte[]? LoadMidiFile()
             {
                 if (!Midi.IsStillValid())

@@ -234,6 +234,7 @@ namespace YARG.Core.Song
         {
             public RBCONSubMetadata SharedMetadata { get; }
             public DateTime MidiLastWrite { get; }
+            public Stream? GetMidiStream();
             public byte[]? LoadMidiFile();
             public byte[]? LoadMiloFile();
             public byte[]? LoadImgFile();

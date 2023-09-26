@@ -144,6 +144,13 @@ namespace YARG.Core.Song
                 _metadata.Serialize(writer);
             }
 
+            public Stream? GetMidiStream()
+            {
+                if (midiListing == null || !midiListing.IsStillValid())
+                    return null;
+                return midiListing.CreateStream();
+            }
+
             public byte[]? LoadMidiFile()
             {
                 if (midiListing == null || !midiListing.IsStillValid())
