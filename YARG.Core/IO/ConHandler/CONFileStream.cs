@@ -148,9 +148,6 @@ namespace YARG.Core.IO
             UpdateBuffer();
         }
 
-        public CONFileStream(FileStream filestream, CONFileListing listing, int shift)
-            : this(filestream, listing.IsContiguous(), listing.size, listing.firstBlock, shift) { }
-
         public override void Flush()
         {
             _filestream.Flush();

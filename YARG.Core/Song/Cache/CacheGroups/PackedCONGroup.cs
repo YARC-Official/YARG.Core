@@ -10,11 +10,10 @@ namespace YARG.Core.Song.Cache
         public const string SONGSFILEPATH = "songs/songs.dta";
         public const string UPGRADESFILEPATH = "songs_upgrades/upgrades.dta";
 
-        public readonly CONFile file;
-        public readonly DateTime lastWrite;
-        public readonly Dictionary<string, IRBProUpgrade> upgrades = new();
-
-        public int UpgradeCount => upgrades.Count;
+        public readonly string Filename;
+        public readonly List<CONFileListing> Files;
+        public readonly DateTime LastWrite;
+        public readonly Dictionary<string, IRBProUpgrade> Upgrades = new();
 
         private readonly object upgradeLock = new();
 
@@ -39,15 +38,16 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        public PackedCONGroup(CONFile file, DateTime lastWrite)
+        public PackedCONGroup(string filename, List<CONFileListing> files, DateTime lastWrite)
         {
-            this.file = file;
-            this.lastWrite = lastWrite;
+            Filename = filename;
+            this.Files = files;
+            this.LastWrite = lastWrite;
         }
 
         public override bool ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings)
         {
-            var song = SongMetadata.PackedRBCONFromCache(file, nodeName, upgrades, reader, strings);
+            var song = SongMetadata.PackedRBCONFromCache(Files, nodeName, upgrades, reader, strings);
             if (song == null)
                 return false;
 
@@ -55,15 +55,15 @@ namespace YARG.Core.Song.Cache
             return true;
         }
 
-        public void AddUpgrade(string name, IRBProUpgrade upgrade) { lock (upgradeLock) upgrades[name] = upgrade; }
+        public void AddUpgrade(string name, IRBProUpgrade upgrade) { lock (upgradeLock) Upgrades[name] = upgrade; }
 
         public YARGDTAReader? LoadUpgrades()
         {
-            upgradeDta = file.TryGetListing(UPGRADESFILEPATH);
+            upgradeDta = CONFileHandler.TryGetListing(Files, UPGRADESFILEPATH);
             if (upgradeDta == null)
                 return null;
 
-            return new YARGDTAReader(file.LoadSubFile(upgradeDta));
+            return new YARGDTAReader(upgradeDta.LoadAllBytes());
         }
 
         public YARGDTAReader? LoadSongs()
@@ -71,12 +71,12 @@ namespace YARG.Core.Song.Cache
             if (songDTA == null && !SetSongDTA())
                 return null;
 
-            return new YARGDTAReader(file.LoadSubFile(songDTA!));
+            return new YARGDTAReader(songDTA!.LoadAllBytes());
         }
 
         public bool SetSongDTA()
         {
-            songDTA = file.TryGetListing(SONGSFILEPATH);
+            songDTA = CONFileHandler.TryGetListing(Files, SONGSFILEPATH);
             return songDTA != null;
         }
 
@@ -85,11 +85,11 @@ namespace YARG.Core.Song.Cache
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);
 
-            writer.Write(file.filename);
-            writer.Write(lastWrite.ToBinary());
-            writer.Write(upgradeDta!.lastWrite.ToBinary());
-            writer.Write(upgrades.Count);
-            foreach (var upgrade in upgrades)
+            writer.Write(upgradeDta!.ConFile.FullName);
+            writer.Write(LastWrite.ToBinary());
+            writer.Write(upgradeDta.lastWrite.ToBinary());
+            writer.Write(Upgrades.Count);
+            foreach (var upgrade in Upgrades)
             {
                 writer.Write(upgrade.Key);
                 upgrade.Value.WriteToCache(writer);
@@ -102,7 +102,7 @@ namespace YARG.Core.Song.Cache
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);
 
-            writer.Write(file.filename);
+            writer.Write(songDTA!.ConFile.FullName);
             writer.Write(songDTA!.lastWrite.ToBinary());
             Serialize(writer, ref nodes);
             return ms.ToArray();

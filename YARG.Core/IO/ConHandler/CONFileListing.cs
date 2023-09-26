@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Diagnostics;
+using System.IO;
 using System.Text;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.IO
 {
@@ -11,6 +14,9 @@ namespace YARG.Core.IO
             Directory = 0x80,
         }
 
+        public readonly AbridgedFileInfo ConFile;
+        private readonly int shift;
+
         public string Filename { get; private set; } = string.Empty;
         public readonly CONFileListingFlag flags;
         public readonly int numBlocks;
@@ -19,8 +25,11 @@ namespace YARG.Core.IO
         public readonly int size;
         public readonly DateTime lastWrite;
 
-        public CONFileListing(ReadOnlySpan<byte> data)
+        public CONFileListing(AbridgedFileInfo conFile, int shift, ReadOnlySpan<byte> data)
         {
+            ConFile = conFile;
+            this.shift = shift;
+
             Filename = Encoding.UTF8.GetString(data[..0x28]).TrimEnd('\0');
             flags = (CONFileListingFlag) data[0x28];
 
@@ -36,11 +45,30 @@ namespace YARG.Core.IO
             Filename = parentDirectory + "/" + Filename;
         }
 
-        public CONFileListing() { }
-
         public override string ToString() => $"STFS File Listing: {Filename}";
         public bool IsDirectory() { return (flags & CONFileListingFlag.Directory) > 0; }
         public bool IsContiguous() { return (flags & CONFileListingFlag.Contiguous) > 0; }
+
+        public CONFileStream CreateStream()
+        {
+            Debug.Assert(!IsDirectory(), "Directory listing cannot be loaded as a file");
+            var fs = new FileStream(ConFile.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+            return new CONFileStream(fs, IsContiguous(), size, firstBlock, shift);
+        }
+
+        public byte[] LoadAllBytes()
+        {
+            using var conStream = CreateStream();
+            return conStream.ReadBytes(size);
+        }
+
+        public static int GetMoggVersion(CONFileListing listing)
+        {
+            Debug.Assert(!listing.IsDirectory(), "Directory listing cannot be loaded as a file");
+            var fs = new FileStream(listing.ConFile.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+            using var conStream = new CONFileStream(fs, false, 4, listing.firstBlock, listing.shift);
+            return conStream.ReadInt32LE();
+        }
 
         public static DateTime FatTimeDT(int fatTime)
         {

@@ -320,18 +320,17 @@ namespace YARG.Core.Song.Cache
 
         private void AddCONUpgrades(PackedCONGroup group, YARGDTAReader reader)
         {
-            var file = group.file;
             while (reader.StartNode())
             {
                 string name = reader.GetNameOfNode();
-                var listing = file.TryGetListing($"songs_upgrades/{name}_plus.mid");
+                var listing = CONFileHandler.TryGetListing(group.Files, $"songs_upgrades/{name}_plus.mid");
 
                 if (listing != null)
                 {
                     if (CanAddUpgrade_CONInclusive(name, listing.lastWrite))
                     {
-                        IRBProUpgrade upgrade = new PackedRBProUpgrade(file, listing, listing.lastWrite);
-                        group.upgrades[name] = upgrade;
+                        IRBProUpgrade upgrade = new PackedRBProUpgrade(listing, listing.lastWrite);
+                        group.Upgrades[name] = upgrade;
                         AddUpgrade(name, new YARGDTAReader(reader), upgrade);
                         RemoveCONEntry(name);
                     }
@@ -407,7 +406,7 @@ namespace YARG.Core.Song.Cache
             {
                 for (int i = 0; i < conGroups.Count; ++i)
                     if (conGroups[i].RemoveEntries(shortname))
-                        YargTrace.DebugInfo($"{conGroups[i].file.filename} - {shortname} pending rescan");
+                        YargTrace.DebugInfo($"{conGroups[i].Files[0].ConFile} - {shortname} pending rescan");
 
             }
 
@@ -415,7 +414,7 @@ namespace YARG.Core.Song.Cache
             {
                 for (int i = 0; i < extractedConGroups.Count; ++i)
                     if (extractedConGroups[i].RemoveEntries(shortname))
-                        YargTrace.DebugInfo($"{conGroups[i].file.filename} - {shortname} pending rescan");
+                        YargTrace.DebugInfo($"{conGroups[i].Files[0].ConFile} - {shortname} pending rescan");
             }
         }
 
@@ -444,7 +443,7 @@ namespace YARG.Core.Song.Cache
             {
                 foreach (var group in conGroups)
                 {
-                    var upgrades = group.upgrades;
+                    var upgrades = group.Upgrades;
                     if (upgrades.TryGetValue(shortname, out var currUpgrade))
                     {
                         if (currUpgrade!.LastWrite >= lastWrite)
