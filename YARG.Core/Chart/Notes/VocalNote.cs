@@ -30,7 +30,7 @@ namespace YARG.Core.Chart
         /// The octave of the vocal pitch.
         /// Octaves start at -1 in MIDI: note 60 is C4, note 12 is C0, note 0 is C-1.
         /// </summary>
-        public int Octave => (int) (Pitch / 12) - 1; 
+        public int Octave => (int) (Pitch / 12) - 1;
         /// <summary>
         /// The pitch of the note wrapped relative to an octave (0-11).
         /// C is 0, B is 11. -1 means the note is unpitched.
@@ -74,6 +74,9 @@ namespace YARG.Core.Chart
             Type = type;
             Pitch = pitch;
             HarmonyPart = harmonyPart;
+
+            TotalTimeLength = timeLength;
+            TotalTickLength = tickLength;
         }
 
         public VocalNote(VocalNote other) : base(other)
@@ -81,6 +84,9 @@ namespace YARG.Core.Chart
             Type = other.Type;
             Pitch = other.Pitch;
             HarmonyPart = other.HarmonyPart;
+
+            TotalTimeLength = other.TotalTickLength;
+            TotalTickLength = other.TotalTickLength;
         }
 
         /// <summary>
