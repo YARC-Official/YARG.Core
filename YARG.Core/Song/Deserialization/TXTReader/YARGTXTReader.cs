@@ -111,7 +111,7 @@ namespace YARG.Core.Song.Deserialization
         private ReadOnlySpan<TType> InternalExtractTextSpan(bool checkForQuotes = true)
         {
             (int, int) boundaries = new(_position, _next);
-            if (boundaries.Item2 == Length)
+            if (Data[boundaries.Item2 - 1].ToChar(null) == '\r')
                 --boundaries.Item2;
 
             if (checkForQuotes && Data[_position].ToChar(null) == '\"')
