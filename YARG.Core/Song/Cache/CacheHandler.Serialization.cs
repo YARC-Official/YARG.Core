@@ -11,7 +11,7 @@ namespace YARG.Core.Song.Cache
     {
         private readonly HashSet<string> invalidSongsInCache = new();
 
-        private static void RunTasks(FileStream stream, Action<YARGBinaryReader> func)
+        private static void RunCONTasks(FileStream stream, Action<YARGBinaryReader> func)
         {
             int count = stream.ReadInt32LE();
             for (int i = 0; i < count; ++i)
@@ -22,7 +22,7 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private static void RunTasks(FileStream stream, CategoryCacheStrings strings, Action<YARGBinaryReader, CategoryCacheStrings> func)
+        private static void RunEntryTasks(FileStream stream, CategoryCacheStrings strings, Action<YARGBinaryReader, CategoryCacheStrings> func)
         {
             int count = stream.ReadInt32LE();
             for (int i = 0; i < count; ++i)
@@ -33,30 +33,47 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private static List<Task> CreateParallelTasks(FileStream stream, Action<YARGBinaryReader> func)
+        private static void AddParallelCONTasks(FileStream stream, ref List<Task> conTasks, Action<YARGBinaryReader> func, ParallelExceptionTracker tracker)
         {
-            List<Task> tasks = new();
             int count = stream.ReadInt32LE();
-            for (int i = 0; i < count; ++i)
+            for (int i = 0; i < count && !tracker.IsSet(); ++i)
             {
                 int length = stream.ReadInt32LE();
                 YARGBinaryReader reader = new(stream.ReadBytes(length));
-                tasks.Add(Task.Run(() => func(reader)));
+                conTasks.Add(Task.Run(() =>
+                {
+                    try
+                    {
+                        func(reader);
+                    }
+                    catch (Exception ex)
+                    {
+                        tracker.Set(ex);
+                    }
+                }));
             }
-            return tasks;
         }
 
-        private static List<Task> CreateParallelTasks(FileStream stream, CategoryCacheStrings strings, Action<YARGBinaryReader, CategoryCacheStrings> func)
+        private static void AddParallelEntryTasks(FileStream stream, ref List<Task> entryTasks, CategoryCacheStrings strings, Action<YARGBinaryReader, List<Task>, CategoryCacheStrings, ParallelExceptionTracker> func, ParallelExceptionTracker tracker)
         {
-            List<Task> tasks = new();
             int count = stream.ReadInt32LE();
-            for (int i = 0; i < count; ++i)
+            for (int i = 0; i < count && !tracker.IsSet(); ++i)
             {
                 int length = stream.ReadInt32LE();
                 YARGBinaryReader reader = new(stream.ReadBytes(length));
-                tasks.Add(Task.Run(() => func(reader, strings)));
+                entryTasks.Add(Task.Run(() => {
+                    List<Task> tasks = new();
+                    try
+                    {
+                        func(reader, tasks, strings, tracker);
+                    }
+                    catch (Exception ex)
+                    {
+                        tracker.Set(ex);
+                    }
+                    Task.WaitAll(tasks.ToArray());
+                }));
             }
-            return tasks;
         }
 
         /// <summary>
@@ -87,40 +104,54 @@ namespace YARG.Core.Song.Cache
             return fs;
         }
 
-        private bool Deserialize()
+        private void Deserialize()
         {
             Progress = ScanProgress.LoadingCache;
             using var stream = CheckCacheFile();
             if (stream == null)
-                return false;
+                return;
 
             YargTrace.DebugInfo("Full Read start");
             CategoryCacheStrings strings = new(stream, multithreading);
             if (multithreading)
             {
-                var entryTasks = CreateParallelTasks(stream, strings, ReadIniGroup_Parallel);
+                List<Task> entryTasks = new();
+                List<Task> conTasks = new();
+                ParallelExceptionTracker tracker = new();
 
-                var conTasks = CreateParallelTasks(stream, ReadUpdateDirectory);
-                conTasks.AddRange(CreateParallelTasks(stream, ReadUpgradeDirectory));
-                conTasks.AddRange(CreateParallelTasks(stream, ReadUpgradeCON));
-                Task.WaitAll(conTasks.ToArray());
+                try
+                {
+                    AddParallelEntryTasks(stream, ref entryTasks, strings, ReadIniGroup_Parallel, tracker);
+                    AddParallelCONTasks(stream, ref conTasks, ReadUpdateDirectory, tracker);
+                    AddParallelCONTasks(stream, ref conTasks, ReadUpgradeDirectory, tracker);
+                    AddParallelCONTasks(stream, ref conTasks, ReadUpgradeCON, tracker);
+                    Task.WaitAll(conTasks.ToArray());
 
-                entryTasks.AddRange(CreateParallelTasks(stream, strings, ReadCONGroup_Parallel));
-                entryTasks.AddRange(CreateParallelTasks(stream, strings, ReadExtractedCONGroup_Parallel));
+                    AddParallelEntryTasks(stream, ref entryTasks, strings, ReadCONGroup_Parallel, tracker);
+                    AddParallelEntryTasks(stream, ref entryTasks, strings, ReadExtractedCONGroup_Parallel, tracker);
+                    Task.WaitAll(entryTasks.ToArray());
+                }
+                catch (Exception ex)
+                {
+                    tracker.Set(ex);
+                    // Must ensure task completion
+                    Task.WaitAll(conTasks.ToArray());
+                    Task.WaitAll(entryTasks.ToArray());
+                }
 
-                Task.WaitAll(entryTasks.ToArray());
+                if (tracker.IsSet())
+                    throw tracker.Exception!;
             }
             else
             {
-                RunTasks(stream, strings, ReadIniGroup);
-                RunTasks(stream, ReadUpdateDirectory);
-                RunTasks(stream, ReadUpgradeDirectory);
-                RunTasks(stream, ReadUpgradeCON);
-                RunTasks(stream, strings, ReadCONGroup);
-                RunTasks(stream, strings, ReadExtractedCONGroup);
+                RunEntryTasks(stream, strings, ReadIniGroup);
+                RunCONTasks(stream, ReadUpdateDirectory);
+                RunCONTasks(stream, ReadUpgradeDirectory);
+                RunCONTasks(stream, ReadUpgradeCON);
+                RunEntryTasks(stream, strings, ReadCONGroup);
+                RunEntryTasks(stream, strings, ReadExtractedCONGroup);
             }
             YargTrace.DebugInfo($"Ini Entries read: {_count}");
-            return true;
         }
 
         private bool Deserialize_Quick()
@@ -134,27 +165,38 @@ namespace YARG.Core.Song.Cache
             CategoryCacheStrings strings = new(stream, multithreading);
             if (multithreading)
             {
-                var entryTasks = CreateParallelTasks(stream, strings, QuickReadIniGroup_Parallel);
+                List<Task> entryTasks = new();
+                List<Task> conTasks = new();
+                ParallelExceptionTracker tracker = new();
 
-                int count = stream.ReadInt32LE();
-                for (int i = 0; i < count; ++i)
+                try
                 {
-                    int length = stream.ReadInt32LE();
-                    stream.Position += length;
+                    AddParallelEntryTasks(stream, ref entryTasks, strings, QuickReadIniGroup_Parallel, tracker);
+
+                    int count = stream.ReadInt32LE();
+                    for (int i = 0; i < count; ++i)
+                    {
+                        int length = stream.ReadInt32LE();
+                        stream.Position += length;
+                    }
+
+                    AddParallelCONTasks(stream, ref conTasks, QuickReadUpgradeDirectory, tracker);
+                    AddParallelCONTasks(stream, ref conTasks, QuickReadUpgradeCON, tracker);
+                    Task.WaitAll(conTasks.ToArray());
+
+                    AddParallelEntryTasks(stream, ref entryTasks, strings, QuickReadCONGroup_Parallel, tracker);
+                    AddParallelEntryTasks(stream, ref entryTasks, strings, QuickReadExtractedCONGroup_Parallel, tracker);
                 }
-
-                var conTasks = CreateParallelTasks(stream, QuickReadUpgradeDirectory);
-                conTasks.AddRange(CreateParallelTasks(stream, QuickReadUpgradeCON));
-                Task.WaitAll(conTasks.ToArray());
-
-                entryTasks.AddRange(CreateParallelTasks(stream, strings, QuickReadCONGroup_Parallel));
-                entryTasks.AddRange(CreateParallelTasks(stream, strings, QuickReadExtractedCONGroup_Parallel));
-
+                catch (Exception ex)
+                {
+                    tracker.Set(ex);
+                    Task.WaitAll(conTasks.ToArray());
+                }
                 Task.WaitAll(entryTasks.ToArray());
             }
             else
             {
-                RunTasks(stream, strings, QuickReadIniGroup);
+                RunEntryTasks(stream, strings, QuickReadIniGroup);
                 YargTrace.DebugInfo($"Ini Entries quick read: {_count}");
 
                 int count = stream.ReadInt32LE();
@@ -164,10 +206,10 @@ namespace YARG.Core.Song.Cache
                     stream.Position += length;
                 }
 
-                RunTasks(stream, QuickReadUpgradeDirectory);
-                RunTasks(stream, QuickReadUpgradeCON);
-                RunTasks(stream, strings, QuickReadCONGroup);
-                RunTasks(stream, strings, QuickReadExtractedCONGroup);
+                RunCONTasks(stream, QuickReadUpgradeDirectory);
+                RunCONTasks(stream, QuickReadUpgradeCON);
+                RunEntryTasks(stream, strings, QuickReadCONGroup);
+                RunEntryTasks(stream, strings, QuickReadExtractedCONGroup);
             }
             YargTrace.DebugInfo($"Total Entries: {_count}");
             return true;
