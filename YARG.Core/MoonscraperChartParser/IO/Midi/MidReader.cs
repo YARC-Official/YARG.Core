@@ -366,6 +366,8 @@ namespace MoonscraperChartEditor.Song.IO
                     }
                 }
             }
+
+            song.UpdateCache();
         }
 
         private static void ReadNotes(ParseSettings settings, TrackChunk track, MoonSong song,
