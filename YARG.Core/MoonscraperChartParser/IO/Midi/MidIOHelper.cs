@@ -288,11 +288,11 @@ namespace MoonscraperChartEditor.Song.IO
             { "video_trails.pp",                 (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_TRAILS_LONG) },
             #endregion
 
-            #region Miscellaneous
-            { "bonusfx",          (VenueEvent.Type.Miscellaneous, VENUE_MISC_BONUS_FX) },
-            { "bonusfx_optional", (VenueEvent.Type.Miscellaneous, VENUE_OPTIONAL_EVENT_PREFIX_WITH_SPACE + VENUE_MISC_BONUS_FX) },
-            { "FogOn",            (VenueEvent.Type.Miscellaneous, VENUE_MISC_FOG_ON) },
-            { "FogOff",           (VenueEvent.Type.Miscellaneous, VENUE_MISC_FOG_OFF) },
+            #region Stage effects
+            { "bonusfx",          (VenueEvent.Type.StageEffect, VENUE_STAGE_BONUS_FX) },
+            { "bonusfx_optional", (VenueEvent.Type.StageEffect, VENUE_OPTIONAL_EVENT_PREFIX_WITH_SPACE + VENUE_STAGE_BONUS_FX) },
+            { "FogOn",            (VenueEvent.Type.StageEffect, VENUE_STAGE_FOG_ON) },
+            { "FogOff",           (VenueEvent.Type.StageEffect, VENUE_STAGE_FOG_OFF) },
             #endregion
         };
 

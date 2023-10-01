@@ -105,6 +105,13 @@ namespace YARG.Core.Chart
             { VENUE_POSTPROCESS_TRAILS_FLICKERY,    PostProcessingType.Trails_Flickery },
             { VENUE_POSTPROCESS_TRAILS_SPACEY,      PostProcessingType.Trails_Spacey },
         };
+
+        private static readonly Dictionary<string, StageEffect> StageEffectLookup = new()
+        {
+            { VENUE_STAGE_BONUS_FX, StageEffect.BonusFx },
+            { VENUE_STAGE_FOG_ON,   StageEffect.FogOn },
+            { VENUE_STAGE_FOG_OFF,  StageEffect.FogOff },
+        };
         #endregion
 
         public VenueTrack LoadVenueTrack()
@@ -112,7 +119,7 @@ namespace YARG.Core.Chart
             var lightingEvents = new List<LightingEvent>();
             var postProcessingEvents = new List<PostProcessingEvent>();
             var performerEvents = new List<PerformerEvent>();
-            var otherEvents = new List<VenueTextEvent>();
+            var stageEvents = new List<StageEffectEvent>();
 
             // For merging spotlights/singalongs into a single event
             MoonVenueEvent? spotlightCurrentEvent = null;
@@ -171,11 +178,18 @@ namespace YARG.Core.Chart
                         break;
                     }
 
-                    case MoonVenueEvent.Type.Miscellaneous:
+                    case MoonVenueEvent.Type.StageEffect:
+                    {
+                        if (!StageEffectLookup.TryGetValue(text, out var type))
+                            continue;
+                        stageEvents.Add(new(type, flags, moonVenue.time, moonVenue.tick));
+                        break;
+                    }
+
                     default:
                     {
-                        otherEvents.Add(new(text, flags, moonVenue.time, moonVenue.tick));
-                        break;
+                        YargTrace.DebugWarning($"Unrecognized venue text event '{text}'!");
+                        continue;
                     }
                 }
             }
@@ -183,9 +197,9 @@ namespace YARG.Core.Chart
             lightingEvents.TrimExcess();
             postProcessingEvents.TrimExcess();
             performerEvents.TrimExcess();
-            otherEvents.TrimExcess();
+            stageEvents.TrimExcess();
 
-            return new(lightingEvents, postProcessingEvents, performerEvents, otherEvents);
+            return new(lightingEvents, postProcessingEvents, performerEvents, stageEvents);
         }
 
         private void HandlePerformerEvent(List<PerformerEvent> events, PerformerEventType type, MoonVenueEvent moonEvent,

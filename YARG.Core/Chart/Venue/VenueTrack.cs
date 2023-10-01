@@ -11,17 +11,17 @@ namespace YARG.Core.Chart
         public List<LightingEvent> Lighting { get; } = new();
         public List<PostProcessingEvent> PostProcessing { get; } = new();
         public List<PerformerEvent> Performer { get; } = new();
-        public List<VenueTextEvent> Other { get; } = new();
+        public List<StageEffectEvent> Stage { get; } = new();
 
         public VenueTrack() { }
 
         public VenueTrack(List<LightingEvent> lighting, List<PostProcessingEvent> postProcessing,
-            List<PerformerEvent> performer, List<VenueTextEvent> other)
+            List<PerformerEvent> performer, List<StageEffectEvent> stage)
         {
             Lighting = lighting;
             PostProcessing = postProcessing;
             Performer = performer;
-            Other = other;
+            Stage = stage;
         }
 
         public double GetStartTime()
@@ -31,7 +31,7 @@ namespace YARG.Core.Chart
             totalStartTime = Math.Min(Lighting.GetStartTime(), totalStartTime);
             totalStartTime = Math.Min(PostProcessing.GetStartTime(), totalStartTime);
             totalStartTime = Math.Min(Performer.GetStartTime(), totalStartTime);
-            totalStartTime = Math.Min(Other.GetStartTime(), totalStartTime);
+            totalStartTime = Math.Min(Stage.GetStartTime(), totalStartTime);
 
             return totalStartTime;
         }
@@ -43,7 +43,7 @@ namespace YARG.Core.Chart
             totalEndTime = Math.Max(Lighting.GetEndTime(), totalEndTime);
             totalEndTime = Math.Max(PostProcessing.GetEndTime(), totalEndTime);
             totalEndTime = Math.Max(Performer.GetEndTime(), totalEndTime);
-            totalEndTime = Math.Max(Other.GetEndTime(), totalEndTime);
+            totalEndTime = Math.Max(Stage.GetEndTime(), totalEndTime);
 
             return totalEndTime;
         }
@@ -55,7 +55,7 @@ namespace YARG.Core.Chart
             totalFirstTick = Math.Min(Lighting.GetFirstTick(), totalFirstTick);
             totalFirstTick = Math.Min(PostProcessing.GetFirstTick(), totalFirstTick);
             totalFirstTick = Math.Min(Performer.GetFirstTick(), totalFirstTick);
-            totalFirstTick = Math.Min(Other.GetFirstTick(), totalFirstTick);
+            totalFirstTick = Math.Min(Stage.GetFirstTick(), totalFirstTick);
 
             return totalFirstTick;
         }
@@ -67,7 +67,7 @@ namespace YARG.Core.Chart
             totalLastTick = Math.Max(Lighting.GetLastTick(), totalLastTick);
             totalLastTick = Math.Max(PostProcessing.GetLastTick(), totalLastTick);
             totalLastTick = Math.Max(Performer.GetLastTick(), totalLastTick);
-            totalLastTick = Math.Max(Other.GetLastTick(), totalLastTick);
+            totalLastTick = Math.Max(Stage.GetLastTick(), totalLastTick);
 
             return totalLastTick;
         }

@@ -123,11 +123,11 @@ namespace MoonscraperChartEditor.Song
         VENUE_POSTPROCESS_TRAILS_SPACEY = "trails_spacey"; // space_woosh.pp
         #endregion
 
-        #region Miscellaneous
+        #region Stage effects
         public const string
-        VENUE_MISC_BONUS_FX = VenueMiscellaneous.BONUS_FX,
-        VENUE_MISC_FOG_ON = VenueMiscellaneous.FOG_ON,
-        VENUE_MISC_FOG_OFF = VenueMiscellaneous.FOG_OFF;
+        VENUE_STAGE_BONUS_FX = "bonus_fx",
+        VENUE_STAGE_FOG_ON = "fog_on",
+        VENUE_STAGE_FOG_OFF = "fog_off";
         #endregion
 
         #endregion // Venue

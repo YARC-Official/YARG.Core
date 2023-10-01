@@ -14,7 +14,9 @@ namespace MoonscraperChartEditor.Song
             PostProcessing,
             Singalong,
             Spotlight,
-            Miscellaneous,
+            StageEffect,
+
+            Unknown = 99
         }
 
         private readonly ID _classID = ID.Venue;

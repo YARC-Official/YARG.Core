@@ -347,22 +347,31 @@ namespace MoonscraperChartEditor.Song.IO
                     {
                         song.Add(new VenueEvent(eventData.type, eventData.text, (uint)absoluteTime), false);
                     }
-                    // Events that need special matching
-                    else foreach (var (regex, (lookup, type, defaultValue)) in MidIOHelper.VENUE_EVENT_REGEX_TO_LOOKUP)
+                    else
                     {
-                        if (regex.Match(eventText) is not { Success: true } match)
-                            continue;
-
-                        // Get new representation of the event
-                        if (!lookup.TryGetValue(match.Groups[1].Value, out string converted))
+                        // Events that need special matching
+                        bool matched = false;
+                        foreach (var (regex, (lookup, type, defaultValue)) in MidIOHelper.VENUE_EVENT_REGEX_TO_LOOKUP)
                         {
-                            if (string.IsNullOrEmpty(defaultValue))
+                            if (regex.Match(eventText) is not { Success: true } match)
                                 continue;
-                            converted = defaultValue;
+
+                            // Get new representation of the event
+                            if (!lookup.TryGetValue(match.Groups[1].Value, out string converted))
+                            {
+                                if (string.IsNullOrEmpty(defaultValue))
+                                    continue;
+                                converted = defaultValue;
+                            }
+
+                            matched = true;
+                            song.Add(new VenueEvent(type, converted, (uint)absoluteTime), false);
+                            break;
                         }
 
-                        song.Add(new VenueEvent(type, converted, (uint)absoluteTime), false);
-                        break;
+                        // Unknown events
+                        if (!matched)
+                            song.Add(new VenueEvent(VenueEvent.Type.Unknown, eventText, (uint)absoluteTime), false);
                     }
                 }
             }
