@@ -65,7 +65,7 @@ namespace YARG.Core.Extensions
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsAsciiWhitespace(this char c)
-            => c.IsAscii() && (uint) c <= 32;
+            => (uint) c <= 32;
         #endregion
 
         #region Latin1

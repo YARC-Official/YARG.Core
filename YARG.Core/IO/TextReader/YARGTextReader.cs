@@ -42,7 +42,7 @@ namespace YARG.Core.IO
         }
     }
 
-    public class YARGTextReader<TType, TDecoder> : YARGTextReader_Base<TType>, ITextReader
+    public class YARGTextReader<TType, TDecoder> : YARGTextReader_Base<TType>, IYARGTextReader
         where TType : unmanaged, IConvertible
         where TDecoder : IStringDecoder<TType>, new()
     {
@@ -63,7 +63,7 @@ namespace YARG.Core.IO
             while (_position < Length)
             {
                 char ch = Data[_position].ToChar(null);
-                if (ITextReader.IsWhitespace(ch))
+                if (ch.IsAsciiWhitespace())
                 {
                     if (ch == '\n')
                         return ch;
@@ -117,7 +117,7 @@ namespace YARG.Core.IO
             if (checkForQuotes && Data[_position].ToChar(null) == '\"')
             {
                 int end = boundaries.Item2 - 1;
-                while (_position + 1 < end && ITextReader.IsWhitespace(Data[end].ToChar(null)))
+                while (_position + 1 < end && Data[end].ToChar(null).IsAsciiWhitespace())
                     --end;
 
                 if (_position < end && Data[end].ToChar(null) == '\"' && Data[end - 1].ToChar(null) != '\\')
@@ -130,7 +130,7 @@ namespace YARG.Core.IO
             if (boundaries.Item2 < boundaries.Item1)
                 return new();
 
-            while (boundaries.Item2 > boundaries.Item1 && ITextReader.IsWhitespace(Data[boundaries.Item2 - 1].ToChar(null)))
+            while (boundaries.Item2 > boundaries.Item1 && Data[boundaries.Item2 - 1].ToChar(null).IsAsciiWhitespace())
                 --boundaries.Item2;
 
             _position = _next;
@@ -146,7 +146,7 @@ namespace YARG.Core.IO
             }
             catch
             {
-                Decoder.SetEncoding(ITextReader.Latin1);
+                Decoder.SetEncoding(YARGTextReader.Latin1);
                 return Decode(span);
             }
         }
@@ -157,7 +157,7 @@ namespace YARG.Core.IO
             while (curr < Length)
             {
                 char b = Data[curr].ToChar(null);
-                if (ITextReader.IsWhitespace(b) || b == '=')
+                if (b.IsAsciiWhitespace() || b == '=')
                     break;
                 ++curr;
             }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using YARG.Core.Extensions;
 using YARG.Core.IO.Ini;
 
 namespace YARG.Core.IO
@@ -224,7 +225,7 @@ namespace YARG.Core.IO
         public NoteTracks_Chart Instrument => _instrument;
         public Difficulty Difficulty => _difficulty;
 
-        public YARGChartFileReader(ITextReader reader)
+        public YARGChartFileReader(IYARGTextReader reader)
         {
             this.reader = (YARGTextReader<TType, TDecoder>) reader;
         }
@@ -378,7 +379,7 @@ namespace YARG.Core.IO
                 while (point > position)
                 {
                     char character = reader.Data[point].ToChar(null);
-                    if (!ITextReader.IsWhitespace(character) || character == '\n')
+                    if (!character.IsAsciiWhitespace() || character == '\n')
                         break;
                     --point;
                 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.IO.Ini
 {
@@ -9,7 +10,7 @@ namespace YARG.Core.IO.Ini
     {
         private readonly YARGTextReader<TType, TDecoder> reader;
 
-        public YARGIniReader(ITextReader reader)
+        public YARGIniReader(IYARGTextReader reader)
         {
             this.reader = (YARGTextReader<TType, TDecoder>)reader;
         }
@@ -41,7 +42,7 @@ namespace YARG.Core.IO.Ini
                 while (point > position)
                 {
                     char character = reader.Data[point].ToChar(null);
-                    if (!ITextReader.IsWhitespace(character) || character == '\n')
+                    if (!character.IsAsciiWhitespace() || character == '\n')
                         break;
                     --point;
                 }

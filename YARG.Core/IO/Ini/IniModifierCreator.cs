@@ -37,7 +37,7 @@ namespace YARG.Core.IO.Ini
             this.type = type;
         }
 
-        public IniModifier CreateModifier(ITextReader reader)
+        public IniModifier CreateModifier(IYARGTextReader reader)
         {
             try
             {

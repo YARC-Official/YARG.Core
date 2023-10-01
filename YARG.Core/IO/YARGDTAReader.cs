@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.IO
 {
@@ -39,7 +40,7 @@ namespace YARG.Core.IO
                 _position += 2;
             }
             else
-                encoding = ITextReader.Latin1;
+                encoding = YARGTextReader.Latin1;
 
             SkipWhiteSpace();
         }
@@ -59,11 +60,11 @@ namespace YARG.Core.IO
             while (_position < Length)
             {
                 char ch = (char)Data[_position];
-                if (!ITextReader.IsWhitespace(ch) && ch != ';')
+                if (!ch.IsAsciiWhitespace() && ch != ';')
                     return ch;
 
                 ++_position;
-                if (!ITextReader.IsWhitespace(ch))
+                if (!ch.IsAsciiWhitespace())
                 {
                     while (_position < Length)
                     {
@@ -95,7 +96,7 @@ namespace YARG.Core.IO
             int start = _position;
             while (ch != '\'')
             {
-                if (ITextReader.IsWhitespace(ch))
+                if (ch.IsAsciiWhitespace())
                 {
                     if (hasApostrophe)
                         throw new Exception("Invalid name format");
@@ -145,7 +146,7 @@ namespace YARG.Core.IO
                     if (!inSquirley && !inQuotes)
                         throw new Exception("Text error - no apostrophes allowed");
                 }
-                else if (ITextReader.IsWhitespace(ch))
+                else if (ch.IsAsciiWhitespace())
                 {
                     if (inApostrophes)
                         throw new Exception("Text error - no whitespace allowed");

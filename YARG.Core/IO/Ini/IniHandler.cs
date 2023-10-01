@@ -11,7 +11,7 @@ namespace YARG.Core.IO.Ini
         {
             try
             {
-                if (ITextReader.Load(File.ReadAllBytes(iniFile), out var reader))
+                if (YARGTextReader.Load(File.ReadAllBytes(iniFile), out var reader))
                     return ProcessIni<byte, ByteStringDecoder>(reader, sections);
                 return ProcessIni<char, CharStringDecoder>(reader, sections);
             }
@@ -22,7 +22,7 @@ namespace YARG.Core.IO.Ini
             }
         }
 
-        private static Dictionary<string, IniSection> ProcessIni<TType, TDecoder>(ITextReader textReader, Dictionary<string, Dictionary<string, IniModifierCreator>> sections)
+        private static Dictionary<string, IniSection> ProcessIni<TType, TDecoder>(IYARGTextReader textReader, Dictionary<string, Dictionary<string, IniModifierCreator>> sections)
             where TType : unmanaged, IEquatable<TType>, IConvertible
             where TDecoder : IStringDecoder<TType>, new()
         {
