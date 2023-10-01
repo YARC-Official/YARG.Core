@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace YARG.Core.Song.Deserialization.Ini
+namespace YARG.Core.IO.Ini
 {
     public sealed class YARGIniReader<TType, TDecoder>
         where TType : unmanaged, IEquatable<TType>, IConvertible

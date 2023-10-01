@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-namespace YARG.Core.Song.Deserialization
+namespace YARG.Core.IO
 {
     public class YARGDTAReader : YARGTXTReader_Base<byte>
     {

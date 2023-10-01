@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using YARG.Core.Song;
 
-namespace YARG.Core.Song.Deserialization.Ini
+namespace YARG.Core.IO.Ini
 {
     public enum ModifierCreatorType
     {

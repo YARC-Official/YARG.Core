@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Text;
 
-namespace YARG.Core.Song.Deserialization
+namespace YARG.Core.IO
 {
     public abstract class YARGTXTReader_Base<T>
         where T : IConvertible

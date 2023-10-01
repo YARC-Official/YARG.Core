@@ -1,5 +1,5 @@
 ﻿using YARG.Core.Chart;
-using YARG.Core.Song.Deserialization;
+using YARG.Core.IO;
 
 namespace YARG.Core.Song
 {

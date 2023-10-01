@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 using YARG.Core.Song.Cache;
-using YARG.Core.Song.Deserialization;
+using YARG.Core.IO;
 
 namespace YARG.Core.Song
 {

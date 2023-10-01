@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-namespace YARG.Core.Song.Deserialization
+namespace YARG.Core.IO
 {
     public interface ITXTReader
     {

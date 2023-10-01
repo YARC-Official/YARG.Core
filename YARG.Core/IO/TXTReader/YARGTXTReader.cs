@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using YARG.Core.Extensions;
 
-namespace YARG.Core.Song.Deserialization
+namespace YARG.Core.IO
 {
     public interface IStringDecoder<TType>
         where TType : unmanaged

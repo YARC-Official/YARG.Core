@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using YARG.Core.Chart;
 using YARG.Core.Song.Cache;
-using YARG.Core.Song.Deserialization;
-using YARG.Core.Song.Deserialization.Ini;
+using YARG.Core.IO;
+using YARG.Core.IO.Ini;
 using YARG.Core.Song.Preparsers;
 
 namespace YARG.Core.Song

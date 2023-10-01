@@ -7,7 +7,7 @@ using Melanchall.DryWetMidi.Core;
 using YARG.Core.Chart;
 using YARG.Core.Extensions;
 using YARG.Core.Song.Cache;
-using YARG.Core.Song.Deserialization;
+using YARG.Core.IO;
 using YARG.Core.Song.Preparsers;
 
 namespace YARG.Core.Song
