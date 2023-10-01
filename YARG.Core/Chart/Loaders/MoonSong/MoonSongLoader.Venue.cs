@@ -122,26 +122,27 @@ namespace YARG.Core.Chart
 
             foreach (var moonVenue in _moonSong.venue)
             {
-                string text = moonVenue.title;
-
                 // Prefix flags
-                var splitter = text.AsSpan().Split(' ');
-                var currentSplit = splitter.GetNext();
+                var splitter = moonVenue.title.AsSpan().Split(' ');
+                splitter.MoveNext();
                 var flags = VenueEventFlags.None;
                 foreach (var (prefix, flag) in FlagPrefixLookup)
                 {
-                    if (currentSplit.Equals(prefix, StringComparison.Ordinal))
+                    if (splitter.Current.Equals(prefix, StringComparison.Ordinal))
                     {
                         flags |= flag;
-                        currentSplit = splitter.GetNext();
+                        splitter.MoveNext();
                     }
                 }
 
+                // Taking the allocation L here, the only way to access with a span is by going over
+                // all the key-value pairs, which is 5x slower at even just 25 elements (O(n) vs O(1) with a string)
+                // There's a lot of other allocations happening here anyways lol
+                string text = splitter.CurrentToEnd.ToString();
                 switch (moonVenue.type)
                 {
                     case MoonVenueEvent.Type.Lighting:
                     {
-                        // Lighting events are not optional, use the text directly
                         if (!LightingLookup.TryGetValue(text, out var type))
                             continue;
                         lightingEvents.Add(new(type, moonVenue.time, moonVenue.tick));
@@ -150,7 +151,6 @@ namespace YARG.Core.Chart
 
                     case MoonVenueEvent.Type.PostProcessing:
                     {
-                        // Post-processing events are not optional, use the text directly
                         if (!PostProcessLookup.TryGetValue(text, out var type))
                             continue;
                         postProcessingEvents.Add(new(type, moonVenue.time, moonVenue.tick));
@@ -174,8 +174,7 @@ namespace YARG.Core.Chart
                     case MoonVenueEvent.Type.Miscellaneous:
                     default:
                     {
-                        // Miscellaneous events may be optional, use the remaining text
-                        otherEvents.Add(new(splitter.Remaining.ToString(), flags, moonVenue.time, moonVenue.tick));
+                        otherEvents.Add(new(text, flags, moonVenue.time, moonVenue.tick));
                         break;
                     }
                 }

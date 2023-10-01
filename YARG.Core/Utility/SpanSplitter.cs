@@ -21,6 +21,16 @@ namespace YARG.Core.Utility
         private readonly TSplitter _splitter;
 
         public ReadOnlySpan<T> Current { get; private set; }
+        public readonly ReadOnlySpan<T> CurrentToEnd
+        {
+            get
+            {
+                int fromEnd = _remaining.IsEmpty ? Current.Length
+                    : Current.Length + 1 + _remaining.Length; // + 1 to account for split being skipped
+                int index = _original.Length - fromEnd;
+                return _original[index..];
+            }
+        }
 
         public readonly ReadOnlySpan<T> Original => _original;
         public readonly ReadOnlySpan<T> Remaining => _remaining;
