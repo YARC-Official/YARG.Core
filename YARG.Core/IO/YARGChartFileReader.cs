@@ -215,7 +215,7 @@ namespace YARG.Core.IO
     {
         private static readonly TBase CONFIG = default;
 
-        private readonly YARGTXTReader<TType, TDecoder> reader;
+        private readonly YARGTextReader<TType, TDecoder> reader;
 
         private DotChartEventCombo<TType>[] eventSet = Array.Empty<DotChartEventCombo<TType>>();
         private NoteTracks_Chart _instrument;
@@ -224,9 +224,9 @@ namespace YARG.Core.IO
         public NoteTracks_Chart Instrument => _instrument;
         public Difficulty Difficulty => _difficulty;
 
-        public YARGChartFileReader(ITXTReader reader)
+        public YARGChartFileReader(ITextReader reader)
         {
-            this.reader = (YARGTXTReader<TType, TDecoder>) reader;
+            this.reader = (YARGTextReader<TType, TDecoder>) reader;
         }
 
         public bool IsStartOfTrack()
@@ -378,7 +378,7 @@ namespace YARG.Core.IO
                 while (point > position)
                 {
                     char character = reader.Data[point].ToChar(null);
-                    if (!ITXTReader.IsWhitespace(character) || character == '\n')
+                    if (!ITextReader.IsWhitespace(character) || character == '\n')
                         break;
                     --point;
                 }

@@ -5,7 +5,7 @@ using System.Text;
 
 namespace YARG.Core.IO
 {
-    public class YARGDTAReader : YARGTXTReader_Base<byte>
+    public class YARGDTAReader : YARGTextReader_Base<byte>
     {
         private static readonly byte[] BOM_UTF8 = { 0xEF, 0xBB, 0xBF };
         private static readonly byte[] BOM_OTHER = { 0xFF, 0xFE };
@@ -39,7 +39,7 @@ namespace YARG.Core.IO
                 _position += 2;
             }
             else
-                encoding = ITXTReader.Latin1;
+                encoding = ITextReader.Latin1;
 
             SkipWhiteSpace();
         }
@@ -59,11 +59,11 @@ namespace YARG.Core.IO
             while (_position < Length)
             {
                 char ch = (char)Data[_position];
-                if (!ITXTReader.IsWhitespace(ch) && ch != ';')
+                if (!ITextReader.IsWhitespace(ch) && ch != ';')
                     return ch;
 
                 ++_position;
-                if (!ITXTReader.IsWhitespace(ch))
+                if (!ITextReader.IsWhitespace(ch))
                 {
                     while (_position < Length)
                     {
@@ -95,7 +95,7 @@ namespace YARG.Core.IO
             int start = _position;
             while (ch != '\'')
             {
-                if (ITXTReader.IsWhitespace(ch))
+                if (ITextReader.IsWhitespace(ch))
                 {
                     if (hasApostrophe)
                         throw new Exception("Invalid name format");
@@ -145,7 +145,7 @@ namespace YARG.Core.IO
                     if (!inSquirley && !inQuotes)
                         throw new Exception("Text error - no apostrophes allowed");
                 }
-                else if (ITXTReader.IsWhitespace(ch))
+                else if (ITextReader.IsWhitespace(ch))
                 {
                     if (inApostrophes)
                         throw new Exception("Text error - no whitespace allowed");

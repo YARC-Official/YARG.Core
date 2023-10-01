@@ -7,11 +7,11 @@ namespace YARG.Core.IO.Ini
         where TType : unmanaged, IEquatable<TType>, IConvertible
         where TDecoder : IStringDecoder<TType>, new()
     {
-        private readonly YARGTXTReader<TType, TDecoder> reader;
+        private readonly YARGTextReader<TType, TDecoder> reader;
 
-        public YARGIniReader(ITXTReader reader)
+        public YARGIniReader(ITextReader reader)
         {
-            this.reader = (YARGTXTReader<TType, TDecoder>)reader;
+            this.reader = (YARGTextReader<TType, TDecoder>)reader;
         }
 
         public bool TrySection(out string section)
@@ -41,7 +41,7 @@ namespace YARG.Core.IO.Ini
                 while (point > position)
                 {
                     char character = reader.Data[point].ToChar(null);
-                    if (!ITXTReader.IsWhitespace(character) || character == '\n')
+                    if (!ITextReader.IsWhitespace(character) || character == '\n')
                         break;
                     --point;
                 }

@@ -3,7 +3,7 @@ using System.Text;
 
 namespace YARG.Core.IO
 {
-    public abstract class YARGTXTReader_Base<T>
+    public abstract class YARGTextReader_Base<T>
         where T : IConvertible
     {
         public readonly T[] Data;
@@ -29,7 +29,7 @@ namespace YARG.Core.IO
             return Data[_position].ToChar(null).Equals(cmp);
         }
 
-        protected YARGTXTReader_Base(T[] data)
+        protected YARGTextReader_Base(T[] data)
         {
             Data = data;
             Length = data.Length;
