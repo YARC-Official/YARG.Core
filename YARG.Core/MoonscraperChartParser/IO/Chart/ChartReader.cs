@@ -339,11 +339,6 @@ namespace MoonscraperChartEditor.Song.IO
                 postNotesAddedProcessList = postNotesAddedProcessList
             };
 
-            // Estimate the number of events in the chart
-            var firstLine = sectionLines.Original.SplitOnce('\n', out _);
-            int capacity = sectionLines.Original.Length / firstLine.Length;
-            chart.SetCapacity(capacity);
-
             var noteProcessDict = GetNoteProcessDict(gameMode);
             var specialPhraseProcessDict = GetSpecialPhraseProcessDict(gameMode);
 

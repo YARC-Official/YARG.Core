@@ -62,12 +62,6 @@ namespace MoonscraperChartEditor.Song
             MoonSong.UpdateCacheList(events, _chartObjects);
         }
 
-        public void SetCapacity(int size)
-        {
-            if (size > _chartObjects.Capacity)
-                _chartObjects.Capacity = size;
-        }
-
         public void Clear()
         {
             _chartObjects.Clear();

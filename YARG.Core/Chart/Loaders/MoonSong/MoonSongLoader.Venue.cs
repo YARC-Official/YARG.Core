@@ -109,12 +109,10 @@ namespace YARG.Core.Chart
 
         public VenueTrack LoadVenueTrack()
         {
-            int venueCount = _moonSong.venue.Count;
-            // Some arbitrary, very rough size estimations based on the event count
-            var lightingEvents = new List<LightingEvent>(venueCount / 3);
-            var postProcessingEvents = new List<PostProcessingEvent>(venueCount / 3);
-            var performerEvents = new List<PerformerEvent>(venueCount / 3);
-            var otherEvents = new List<VenueTextEvent>(venueCount / 20);
+            var lightingEvents = new List<LightingEvent>();
+            var postProcessingEvents = new List<PostProcessingEvent>();
+            var performerEvents = new List<PerformerEvent>();
+            var otherEvents = new List<VenueTextEvent>();
 
             // For merging spotlights/singalongs into a single event
             MoonVenueEvent? spotlightCurrentEvent = null;

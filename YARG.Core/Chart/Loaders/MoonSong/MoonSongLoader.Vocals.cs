@@ -87,7 +87,7 @@ namespace YARG.Core.Chart
 
         private List<VocalsPhrase> GetVocalsPhrases(MoonChart moonChart, int harmonyPart)
         {
-            var phrases = new List<VocalsPhrase>(moonChart.specialPhrases.Count);
+            var phrases = new List<VocalsPhrase>();
             var currentPhrases = new Dictionary<SpecialPhrase.Type, SpecialPhrase>();
 
             int moonNoteIndex = 0;
