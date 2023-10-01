@@ -9,7 +9,7 @@ namespace YARG.Core.Extensions
         /// Duplicates the list and every element inside it, such that the new list is
         /// entirely independent and shares no references with the original.
         /// </summary>
-        public static List<T> Duplicate<T>(this IList<T> list)
+        public static List<T> Duplicate<T>(this List<T> list)
             where T : ICloneable<T>
         {
             var newlist = new List<T>();
@@ -29,7 +29,7 @@ namespace YARG.Core.Extensions
         /// <remarks>
         /// https://stackoverflow.com/questions/273313/randomize-a-listt
         /// </remarks>
-        public static void Shuffle<T>(this IList<T> list, Random random)
+        public static void Shuffle<T>(this List<T> list, Random random)
         {
             int n = list.Count;
             while (n > 1)
@@ -43,7 +43,7 @@ namespace YARG.Core.Extensions
         /// <summary>
         /// Picks a random value from the list using the given random number generator.
         /// </summary>
-        public static T PickRandom<T>(this IList<T> list, Random random)
+        public static T PickRandom<T>(this List<T> list, Random random)
         {
             return list[random.Next(0, list.Count)];
         }
@@ -55,7 +55,7 @@ namespace YARG.Core.Extensions
         /// The item from the list, or default if the list contains no elements.<br/>
         /// If no exact match was found, the item returned is the one that matches the most closely.
         /// </returns>
-        public static TItem? BinarySearch<TItem, TSearch>(this IList<TItem> list, TSearch searchObject,
+        public static TItem? BinarySearch<TItem, TSearch>(this List<TItem> list, TSearch searchObject,
             Func<TItem, TSearch, int> comparer)
         {
             int index = list.BinarySearchIndex(searchObject, comparer);
@@ -72,7 +72,7 @@ namespace YARG.Core.Extensions
         /// The index of the item in the list, or -1 if the list contains no elements.<br/>
         /// If no exact match was found, the index returned is that of the item that matches the most closely.
         /// </returns>
-        public static int BinarySearchIndex<TItem, TSearch>(this IList<TItem> list, TSearch searchObject,
+        public static int BinarySearchIndex<TItem, TSearch>(this List<TItem> list, TSearch searchObject,
             Func<TItem, TSearch, int> comparer)
         {
             int low = 0;

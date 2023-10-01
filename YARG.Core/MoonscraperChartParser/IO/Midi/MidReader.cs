@@ -604,7 +604,7 @@ namespace MoonscraperChartEditor.Song.IO
             return false;
         }
 
-        private static bool ContainsTextEvent(IList<ChartEvent> events, string text)
+        private static bool ContainsTextEvent(List<ChartEvent> events, string text)
         {
             foreach (var textEvent in events)
             {
