@@ -59,6 +59,9 @@
                 "--configuration", "Release",
                 "--property", "GenerateFullPaths=true",
             ],
+            "options": {
+                "cwd": "${workspaceFolder}/YARG.Core.Benchmarks"
+            },
             "problemMatcher": "$msCompile"
         }
     ]
