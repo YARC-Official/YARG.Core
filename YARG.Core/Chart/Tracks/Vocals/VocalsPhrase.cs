@@ -27,16 +27,11 @@ namespace YARG.Core.Chart
 
         public bool IsStarPower => PhraseParentNote.IsStarPower;
 
-        public VocalsPhrase(NoteFlags phraseFlags, Phrase bounds)
+
+        public VocalsPhrase(Phrase bounds, VocalNote phraseParentNote, List<TextEvent> lyrics)
         {
             Bounds = bounds;
 
-            PhraseParentNote = new VocalNote(phraseFlags, bounds.Time,
-                bounds.TimeLength, bounds.Tick, bounds.TickLength);
-        }
-
-        public VocalsPhrase(Phrase bounds, VocalNote phraseParentNote, List<TextEvent> lyrics) : this(bounds)
-        {
             if (!phraseParentNote.IsPhrase)
             {
                 throw new InvalidOperationException(
@@ -47,13 +42,10 @@ namespace YARG.Core.Chart
             Lyrics = lyrics;
         }
 
-        // public VocalsPhrase(VocalsPhrase other)
-        //     : this(other.Type, other.Bounds.Clone(), other._flags,
-        //         // NOTE: Does not use DuplicateNotes(), as vocals notes are not currently linked together
-        //         // TODO: Should we make that happen?
-        //         other.Notes.Duplicate(), other.Lyrics.Duplicate())
-        // {
-        // }
+        public VocalsPhrase(VocalsPhrase other)
+            : this(other.Bounds.Clone(), other.PhraseParentNote.Clone(), other.Lyrics.Duplicate())
+        {
+        }
 
         public VocalsPhrase Clone()
         {

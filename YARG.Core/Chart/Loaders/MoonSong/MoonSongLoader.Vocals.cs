@@ -99,8 +99,7 @@ namespace YARG.Core.Chart
                 var moonPhrase = moonChart.specialPhrases[moonPhraseIndex];
                 currentPhrases[moonPhrase.type] = moonPhrase;
 
-                if (moonPhrase.type != SpecialPhrase.Type.Vocals_LyricPhrase)
-                    continue;
+                if (moonPhrase.type != SpecialPhrase.Type.Vocals_LyricPhrase) continue;
 
                 // Ensure any other phrases on the same tick get tracked
                 moonPhraseIndex++;
@@ -162,7 +161,7 @@ namespace YARG.Core.Chart
                     }
 
                     // Create new note
-                    var note = CreateVocalNote(moonNote, currentPhrases, harmonyPart, lyricType);
+                    var note = CreateVocalNote(moonNote, harmonyPart, lyricType);
                     if (lyricType is LyricType.PitchSlide && previousNote is not null)
                     {
                         previousNote.AddChildNote(note);
@@ -188,14 +187,12 @@ namespace YARG.Core.Chart
             return phrases;
         }
 
-        private VocalNote CreateVocalNote(MoonNote moonNote, Dictionary<SpecialPhrase.Type, SpecialPhrase> currentPhrases,
-            int harmonyPart, LyricType lyricType)
+        private VocalNote CreateVocalNote(MoonNote moonNote, int harmonyPart, LyricType lyricType)
         {
             var vocalType = GetVocalNoteType(moonNote);
-            var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
             float pitch = GetVocalNotePitch(moonNote, lyricType);
 
-            return new VocalNote(pitch, harmonyPart, vocalType, generalFlags,
+            return new VocalNote(pitch, harmonyPart, vocalType,
                 moonNote.time, GetLengthInTime(moonNote), moonNote.tick, moonNote.length);
         }
 
@@ -224,11 +221,18 @@ namespace YARG.Core.Chart
         private VocalsPhrase CreateVocalsPhrase(SpecialPhrase moonPhrase,
             Dictionary<SpecialPhrase.Type, SpecialPhrase> currentPhrases, List<VocalNote> notes, List<TextEvent> lyrics)
         {
-            var type = GetVocalsPhraseType(moonPhrase, notes);
             var bounds = GetVocalsPhraseBounds(moonPhrase);
             var phraseFlags = GetVocalsPhraseFlags(moonPhrase, currentPhrases);
 
-            return new VocalsPhrase(type, bounds, phraseFlags, notes, lyrics);
+            // Convert to SpecialPhrase into a vocal note phrase
+            var phraseNote = new VocalNote(phraseFlags, bounds.Time, bounds.TimeLength,
+                bounds.Tick, bounds.TickLength);
+            foreach (var note in notes)
+            {
+                phraseNote.AddNoteToPhrase(note);
+            }
+
+            return new VocalsPhrase(bounds, phraseNote, lyrics);
         }
 
         private Phrase GetVocalsPhraseBounds(SpecialPhrase moonPhrase)
@@ -237,38 +241,17 @@ namespace YARG.Core.Chart
                 moonPhrase.tick, moonPhrase.length);
         }
 
-        private VocalsPhraseType GetVocalsPhraseType(SpecialPhrase moonPhrase, List<VocalNote> notes)
-        {
-            var firstNote = notes[0];
-            var phraseType = firstNote.Type switch
-            {
-                VocalNoteType.Lyric      => VocalsPhraseType.Lyric,
-                VocalNoteType.Percussion => VocalsPhraseType.Percussion,
-                _ => throw new NotImplementedException($"Unhandled vocal note type {firstNote.Type}!")
-            };
-
-            // Some debug verifications
-            YargTrace.DebugAssert(notes.All((note) => note.Type == firstNote.Type), "Vocals phrase with inconsistent note types! Must be either lyric or percussion, but found both");
-
-            // Modify Moonscraper phrase to have the correct type
-            moonPhrase.type = phraseType switch
-            {
-                VocalsPhraseType.Lyric      => SpecialPhrase.Type.Vocals_LyricPhrase,
-                VocalsPhraseType.Percussion => SpecialPhrase.Type.Vocals_PercussionPhrase,
-                _ => throw new NotImplementedException($"Unhandled vocal phrase type {phraseType}!")
-            };
-
-            return phraseType;
-        }
-
-        private VocalsPhraseFlags GetVocalsPhraseFlags(SpecialPhrase moonPhrase,
+        private NoteFlags GetVocalsPhraseFlags(SpecialPhrase moonPhrase,
             Dictionary<SpecialPhrase.Type, SpecialPhrase> currentPhrases)
         {
-            var phraseFlags = VocalsPhraseFlags.None;
+            var phraseFlags = NoteFlags.None;
 
             // Star power
-            if (currentPhrases.TryGetValue(SpecialPhrase.Type.Starpower, out var starPower) && IsEventInPhrase(moonPhrase, starPower))
-                phraseFlags |= VocalsPhraseFlags.StarPower;
+            if (currentPhrases.TryGetValue(SpecialPhrase.Type.Starpower, out var starPower)
+                && IsEventInPhrase(moonPhrase, starPower))
+            {
+                phraseFlags |= NoteFlags.StarPower;
+            }
 
             return phraseFlags;
         }
