@@ -42,13 +42,13 @@ namespace YARG.Core.IO
         }
     }
 
-    public class YARGTextReader<TType, TDecoder> : YARGTextReader_Base<TType>, IYARGTextReader
-        where TType : unmanaged, IConvertible
-        where TDecoder : IStringDecoder<TType>, new()
+    public class YARGTextReader<TChar, TDecoder> : YARGTextReader_Base<TChar>, IYARGTextReader
+        where TChar : unmanaged, IConvertible
+        where TDecoder : IStringDecoder<TChar>, new()
     {
         private TDecoder Decoder = new();
 
-        public YARGTextReader(TType[] data, int position) : base(data)
+        public YARGTextReader(TChar[] data, int position) : base(data)
         {
             _position = position;
 
@@ -108,12 +108,12 @@ namespace YARG.Core.IO
                 ++_next;
         }
 
-        public ReadOnlySpan<TType> ExtractBasicSpan(int length)
+        public ReadOnlySpan<TChar> ExtractBasicSpan(int length)
         {
-            return new ReadOnlySpan<TType>(Data, _position, length);
+            return new ReadOnlySpan<TChar>(Data, _position, length);
         }
 
-        private ReadOnlySpan<TType> InternalExtractTextSpan(bool checkForQuotes = true)
+        private ReadOnlySpan<TChar> InternalExtractTextSpan(bool checkForQuotes = true)
         {
             (int stringBegin, int stringEnd) = (_position, _next);
             if (Data[stringEnd - 1].ToChar(null) == '\r')
@@ -167,13 +167,13 @@ namespace YARG.Core.IO
                 ++curr;
             }
 
-            ReadOnlySpan<TType> name = new(Data, _position, curr - _position);
+            ReadOnlySpan<TChar> name = new(Data, _position, curr - _position);
             _position = curr;
             SkipWhiteSpace();
             return Decode(name);
         }
 
-        public string Decode(ReadOnlySpan<TType> span)
+        public string Decode(ReadOnlySpan<TChar> span)
         {
             return Decoder.Decode(span);
         }

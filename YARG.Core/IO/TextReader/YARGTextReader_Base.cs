@@ -4,10 +4,10 @@ using YARG.Core.Extensions;
 
 namespace YARG.Core.IO
 {
-    public abstract class YARGTextReader_Base<T>
-        where T : IConvertible
+    public abstract class YARGTextReader_Base<TChar>
+        where TChar : IConvertible
     {
-        public readonly T[] Data;
+        public readonly TChar[] Data;
         public readonly int Length;
         protected int _position;
 
@@ -23,14 +23,14 @@ namespace YARG.Core.IO
         }
 
         protected int _next;
-        public int Next { get { return _next; } }
+        public int Next => _next;
 
         public bool IsCurrentCharacter(char cmp)
         {
             return Data[_position].ToChar(null).Equals(cmp);
         }
 
-        protected YARGTextReader_Base(T[] data)
+        protected YARGTextReader_Base(TChar[] data)
         {
             Data = data;
             Length = data.Length;
