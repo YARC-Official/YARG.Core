@@ -209,14 +209,12 @@ namespace YARG.Core.IO
         public DotChartEventCombo<char>[] EVENTS_DIFF => _EVENTS_DIFF;
     }
 
-    public sealed class YARGChartFileReader<TChar, TBase, TDecoder>
+    public sealed class YARGChartFileReader<TChar, TBase>
         where TChar : unmanaged, IEquatable<TChar>, IConvertible
         where TBase : unmanaged, IDotChartBases<TChar>
-        where TDecoder : IStringDecoder<TChar>, new()
     {
         private static readonly TBase CONFIG = default;
-
-        private readonly YARGTextReader<TChar, TDecoder> reader;
+        private readonly YARGTextReader<TChar> reader;
 
         private DotChartEventCombo<TChar>[] eventSet = Array.Empty<DotChartEventCombo<TChar>>();
         private NoteTracks_Chart _instrument;
@@ -225,9 +223,9 @@ namespace YARG.Core.IO
         public NoteTracks_Chart Instrument => _instrument;
         public Difficulty Difficulty => _difficulty;
 
-        public YARGChartFileReader(IYARGTextReader reader)
+        public YARGChartFileReader(YARGTextReader<TChar> reader)
         {
-            this.reader = (YARGTextReader<TChar, TDecoder>) reader;
+            this.reader = reader;
         }
 
         public bool IsStartOfTrack()
@@ -410,15 +408,16 @@ namespace YARG.Core.IO
             return false;
         }
 
-        public Dictionary<string, List<IniModifier>> ExtractModifiers(Dictionary<string, IniModifierCreator> validNodes)
+        public Dictionary<string, List<IniModifier>> ExtractModifiers<TDecoder>(TDecoder decoder, Dictionary<string, IniModifierCreator> validNodes)
+            where TDecoder : StringDecoder<TChar>
         {
             Dictionary<string, List<IniModifier>> modifiers = new();
             while (IsStillCurrentTrack())
             {
-                string name = reader.ExtractModifierName();
+                string name = decoder.ExtractModifierName(reader);
                 if (validNodes.TryGetValue(name, out var node))
                 {
-                    var mod = node.CreateModifier(reader);
+                    var mod = node.CreateModifier(reader, decoder);
                     if (modifiers.TryGetValue(node.outputName, out var list))
                         list.Add(mod);
                     else

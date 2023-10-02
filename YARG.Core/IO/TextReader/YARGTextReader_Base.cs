@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Text;
-using YARG.Core.Extensions;
 
 namespace YARG.Core.IO
 {

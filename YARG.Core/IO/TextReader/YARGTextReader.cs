@@ -1,53 +1,46 @@
 ﻿using System;
-using System.IO;
-using System.Linq;
 using System.Text;
 using YARG.Core.Extensions;
 
 namespace YARG.Core.IO
 {
-    public interface IStringDecoder<TType>
-        where TType : unmanaged
+    public static class YARGTextReader
     {
-        public void SetEncoding(Encoding encoding);
+        public static readonly Encoding Latin1 = Encoding.GetEncoding(28591);
+        private static readonly UTF32Encoding UTF32BE = new(true, false);
 
-        public string Decode(ReadOnlySpan<TType> span);
+        public static YARGTextReader<byte>? TryLoadByteReader(byte[] data)
+        {
+            if ((data[0] == 0xFF && data[1] == 0xFE) || (data[0] == 0xFE && data[1] == 0xFF))
+                return null;
+
+            int position = data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF ? 3 : 0;
+            return new YARGTextReader<byte>(data, position);
+        }
+
+        public static YARGTextReader<char> LoadCharReader(byte[] data)
+        {
+            char[] charData;
+            if (data[0] == 0xFF && data[1] == 0xFE)
+            {
+                if (data[2] != 0)
+                    charData = Encoding.Unicode.GetChars(data, 2, data.Length - 2);
+                else
+                    charData = Encoding.UTF32.GetChars(data, 3, data.Length - 3);
+            }
+            else
+            {
+                if (data[2] != 0)
+                    charData = Encoding.BigEndianUnicode.GetChars(data, 2, data.Length - 2);
+                else
+                    charData = UTF32BE.GetChars(data, 3, data.Length - 3);
+            }
+            return new YARGTextReader<char>(charData, 0);
+        }
     }
 
-    public class ByteStringDecoder : IStringDecoder<byte>
-    {
-        protected static readonly UTF8Encoding UTF8 = new(true, true);
-        private Encoding encoding = UTF8;
-        public void SetEncoding(Encoding encoding)
-        {
-            this.encoding = encoding;
-        }
-
-        public string Decode(ReadOnlySpan<byte> span)
-        {
-            return encoding.GetString(span);
-        }
-    }
-
-    public struct CharStringDecoder : IStringDecoder<char>
-    {
-        public void SetEncoding(Encoding encoding)
-        {
-            throw new NotImplementedException();
-        }
-
-        public string Decode(ReadOnlySpan<char> span)
-        {
-            return span.ToString();
-        }
-    }
-
-    public class YARGTextReader<TChar, TDecoder> : YARGTextReader_Base<TChar>, IYARGTextReader
         where TChar : unmanaged, IConvertible
-        where TDecoder : IStringDecoder<TChar>, new()
     {
-        private TDecoder Decoder = new();
-
         public YARGTextReader(TChar[] data, int position) : base(data)
         {
             Position = position;
@@ -111,71 +104,6 @@ namespace YARG.Core.IO
         public ReadOnlySpan<TChar> PeekBasicSpan(int length)
         {
             return new ReadOnlySpan<TChar>(Data, Position, length);
-        }
-
-        private ReadOnlySpan<TChar> InternalExtractTextSpan(bool isChartFile = true)
-        {
-            (int stringBegin, int stringEnd) = (Position, _next);
-            if (Data[stringEnd - 1].ToChar(null) == '\r')
-                --stringEnd;
-
-            if (isChartFile && Data[Position].ToChar(null) == '\"')
-            {
-                int end = stringEnd - 1;
-                while (Position + 1 < end && Data[end].ToChar(null).IsAsciiWhitespace())
-                    --end;
-
-                if (Position < end && Data[end].ToChar(null) == '\"' && Data[end - 1].ToChar(null) != '\\')
-                {
-                    ++stringBegin;
-                    stringEnd = end;
-                }
-            }
-
-            if (stringEnd < stringBegin)
-                return new();
-
-            while (stringEnd > stringBegin && Data[stringEnd - 1].ToChar(null).IsAsciiWhitespace())
-                --stringEnd;
-
-            Position = _next;
-            return new(Data, stringBegin, stringEnd - stringBegin);
-        }
-
-        public string ExtractText(bool isChartFile = true)
-        {
-            var span = InternalExtractTextSpan(isChartFile);
-            try
-            {
-                return Decode(span);
-            }
-            catch
-            {
-                Decoder.SetEncoding(YARGTextReader.Latin1);
-                return Decode(span);
-            }
-        }
-
-        public string ExtractModifierName()
-        {
-            int curr = Position;
-            while (curr < Length)
-            {
-                char b = Data[curr].ToChar(null);
-                if (b.IsAsciiWhitespace() || b == '=')
-                    break;
-                ++curr;
-            }
-
-            ReadOnlySpan<TChar> name = new(Data, Position, curr - Position);
-            Position = curr;
-            SkipWhiteSpace();
-            return Decode(name);
-        }
-
-        public string Decode(ReadOnlySpan<TChar> span)
-        {
-            return Decoder.Decode(span);
         }
     }
 }

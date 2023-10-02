@@ -11,9 +11,14 @@ namespace YARG.Core.IO.Ini
         {
             try
             {
-                if (YARGTextReader.Load(File.ReadAllBytes(iniFile), out var reader))
-                    return YARGIniReader<byte, ByteStringDecoder>.ProcessIni(reader, sections);
-                return YARGIniReader<char, CharStringDecoder>.ProcessIni(reader, sections);
+                byte[] bytes = File.ReadAllBytes(iniFile);
+                var byteReader = YARGTextReader.TryLoadByteReader(bytes);
+                if (byteReader != null)
+                    return YARGIniReader.ProcessIni<byte, ByteStringDecoder>(byteReader, sections);
+
+                var charReader = YARGTextReader.LoadCharReader(bytes);
+                return YARGIniReader.ProcessIni<char, CharStringDecoder>(charReader, sections);
+                
             }
             catch (Exception ex)
             {

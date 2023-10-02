@@ -4,26 +4,27 @@ using YARG.Core.Extensions;
 
 namespace YARG.Core.IO.Ini
 {
-    public static class YARGIniReader<TType, TDecoder>
-        where TType : unmanaged, IEquatable<TType>, IConvertible
-        where TDecoder : IStringDecoder<TType>, new()
+    public static class YARGIniReader
     {
-        public static Dictionary<string, IniSection> ProcessIni(IYARGTextReader baseReader, Dictionary<string, Dictionary<string, IniModifierCreator>> sections)
+        public static Dictionary<string, IniSection> ProcessIni<TChar, TDecoder>(YARGTextReader<TChar> textReader, Dictionary<string, Dictionary<string, IniModifierCreator>> sections)
+            where TChar : unmanaged, IEquatable<TChar>, IConvertible
+            where TDecoder : StringDecoder<TChar>, new()
         {
-            var textReader = (YARGTextReader<TType, TDecoder>) baseReader;
-
+            TDecoder decoder = new();
             Dictionary<string, IniSection> modifierMap = new();
-            while (TrySection(textReader, out string section))
+            while (TrySection(textReader, decoder, out string section))
             {
                 if (sections.TryGetValue(section, out var nodes))
-                    modifierMap[section] = ExtractModifiers(textReader, ref nodes);
+                    modifierMap[section] = ExtractModifiers(textReader, decoder, ref nodes);
                 else
                     SkipSection(textReader);
             }
             return modifierMap;
         }
 
-        private static bool TrySection(YARGTextReader<TType, TDecoder> reader, out string section)
+        private static bool TrySection<TChar, TDecoder>(YARGTextReader<TChar> reader, TDecoder decoder, out string section)
+            where TChar : unmanaged, IEquatable<TChar>, IConvertible
+            where TDecoder : StringDecoder<TChar>
         {
             section = string.Empty;
             if (reader.IsEndOfFile())
@@ -36,11 +37,12 @@ namespace YARG.Core.IO.Ini
                     return false;
             }
 
-            section = reader.Decode(reader.PeekBasicSpan(reader.Next - reader.Position)).TrimEnd().ToLower();
+            section = decoder.Decode(reader.PeekBasicSpan(reader.Next - reader.Position)).TrimEnd().ToLower();
             return true;
         }
 
-        private static void SkipSection(YARGTextReader<TType, TDecoder> reader)
+        private static void SkipSection<TChar>(YARGTextReader<TChar> reader)
+            where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {
             reader.GotoNextLine();
             int position = reader.Position;
@@ -69,21 +71,24 @@ namespace YARG.Core.IO.Ini
             reader.SetNextPointer();
         }
 
-        private static bool IsStillCurrentSection(YARGTextReader<TType, TDecoder> reader)
+        private static bool IsStillCurrentSection<TChar>(YARGTextReader<TChar> reader)
+            where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {
             return !reader.IsEndOfFile() && !reader.IsCurrentCharacter('[');
         }
 
-        private static IniSection ExtractModifiers(YARGTextReader<TType, TDecoder> reader, ref Dictionary<string, IniModifierCreator> validNodes)
+        private static IniSection ExtractModifiers<TChar, TDecoder>(YARGTextReader<TChar> reader, TDecoder decoder, ref Dictionary<string, IniModifierCreator> validNodes)
+            where TChar : unmanaged, IEquatable<TChar>, IConvertible
+            where TDecoder : StringDecoder<TChar>
         {
             Dictionary<string, List<IniModifier>> modifiers = new();
             reader.GotoNextLine();
             while (IsStillCurrentSection(reader))
             {
-                string name = reader.ExtractModifierName().ToLower();
+                string name = decoder.ExtractModifierName(reader).ToLower();
                 if (validNodes.TryGetValue(name, out var node))
                 {
-                    var mod = node.CreateModifier(reader);
+                    var mod = node.CreateModifier(reader, decoder);
                     if (modifiers.TryGetValue(node.outputName, out var list))
                         list.Add(mod);
                     else
@@ -94,7 +99,8 @@ namespace YARG.Core.IO.Ini
             return new IniSection(modifiers);
         }
 
-        private static bool GetDistanceToTrackCharacter(YARGTextReader<TType, TDecoder> reader, int position, out int i)
+        private static bool GetDistanceToTrackCharacter<TChar>(YARGTextReader<TChar> reader, int position, out int i)
+            where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {
             int distanceToEnd = reader.Length - position;
             i = 0;
