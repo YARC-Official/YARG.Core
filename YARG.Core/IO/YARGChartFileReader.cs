@@ -318,8 +318,6 @@ namespace YARG.Core.IO
             return true;
         }
 
-        private const int LOWER_CASE_MASK = ~32;
-
         public bool TryParseEvent(ref DotChartEvent ev)
         {
             if (!IsStillCurrentTrack())
@@ -331,8 +329,8 @@ namespace YARG.Core.IO
             int end = start;
             while (true)
             {
-                char curr = (char) (reader.Data[end].ToChar(null) & LOWER_CASE_MASK);
-                if (curr < 'A' || 'Z' < curr)
+                char curr = reader.Data[end].ToChar(null);
+                if (!curr.IsAsciiLetter())
                     break;
                 ++end;
             }

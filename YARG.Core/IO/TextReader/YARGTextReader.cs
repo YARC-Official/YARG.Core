@@ -110,31 +110,31 @@ namespace YARG.Core.IO
 
         private ReadOnlySpan<TType> InternalExtractTextSpan(bool checkForQuotes = true)
         {
-            (int, int) boundaries = new(_position, _next);
-            if (Data[boundaries.Item2 - 1].ToChar(null) == '\r')
-                --boundaries.Item2;
+            (int position, int next) boundaries = (_position, _next);
+            if (Data[boundaries.next - 1].ToChar(null) == '\r')
+                --boundaries.next;
 
             if (checkForQuotes && Data[_position].ToChar(null) == '\"')
             {
-                int end = boundaries.Item2 - 1;
+                int end = boundaries.next - 1;
                 while (_position + 1 < end && Data[end].ToChar(null).IsAsciiWhitespace())
                     --end;
 
                 if (_position < end && Data[end].ToChar(null) == '\"' && Data[end - 1].ToChar(null) != '\\')
                 {
-                    ++boundaries.Item1;
-                    boundaries.Item2 = end;
+                    ++boundaries.position;
+                    boundaries.next = end;
                 }
             }
 
-            if (boundaries.Item2 < boundaries.Item1)
+            if (boundaries.next < boundaries.position)
                 return new();
 
-            while (boundaries.Item2 > boundaries.Item1 && Data[boundaries.Item2 - 1].ToChar(null).IsAsciiWhitespace())
-                --boundaries.Item2;
+            while (boundaries.next > boundaries.position && Data[boundaries.next - 1].ToChar(null).IsAsciiWhitespace())
+                --boundaries.next;
 
             _position = _next;
-            return new(Data, boundaries.Item1, boundaries.Item2 - boundaries.Item1);
+            return new(Data, boundaries.position, boundaries.next - boundaries.position);
         }
 
         public string ExtractText(bool checkForQuotes = true)

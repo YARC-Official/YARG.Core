@@ -66,6 +66,14 @@ namespace YARG.Core.Extensions
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsAsciiWhitespace(this char c)
             => (uint) c <= 32;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static char ToAsciiUpper(this char c)
+            => (char) (c & ~ASCII_LOWERCASE_FLAG);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static char ToAsciiLower(this char c)
+            => (char) (c | ASCII_LOWERCASE_FLAG);
         #endregion
 
         #region Latin1
