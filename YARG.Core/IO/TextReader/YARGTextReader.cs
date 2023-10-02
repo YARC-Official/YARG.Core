@@ -115,31 +115,31 @@ namespace YARG.Core.IO
 
         private ReadOnlySpan<TType> InternalExtractTextSpan(bool checkForQuotes = true)
         {
-            (int position, int next) boundaries = (_position, _next);
-            if (Data[boundaries.next - 1].ToChar(null) == '\r')
-                --boundaries.next;
+            (int stringBegin, int stringEnd) = (_position, _next);
+            if (Data[stringEnd - 1].ToChar(null) == '\r')
+                --stringEnd;
 
             if (checkForQuotes && Data[_position].ToChar(null) == '\"')
             {
-                int end = boundaries.next - 1;
+                int end = stringEnd - 1;
                 while (_position + 1 < end && Data[end].ToChar(null).IsAsciiWhitespace())
                     --end;
 
                 if (_position < end && Data[end].ToChar(null) == '\"' && Data[end - 1].ToChar(null) != '\\')
                 {
-                    ++boundaries.position;
-                    boundaries.next = end;
+                    ++stringBegin;
+                    stringEnd = end;
                 }
             }
 
-            if (boundaries.next < boundaries.position)
+            if (stringEnd < stringBegin)
                 return new();
 
-            while (boundaries.next > boundaries.position && Data[boundaries.next - 1].ToChar(null).IsAsciiWhitespace())
-                --boundaries.next;
+            while (stringEnd > stringBegin && Data[stringEnd - 1].ToChar(null).IsAsciiWhitespace())
+                --stringEnd;
 
             _position = _next;
-            return new(Data, boundaries.position, boundaries.next - boundaries.position);
+            return new(Data, stringBegin, stringEnd - stringBegin);
         }
 
         public string ExtractText(bool checkForQuotes = true)
