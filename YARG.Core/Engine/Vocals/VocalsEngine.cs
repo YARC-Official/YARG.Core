@@ -1,4 +1,5 @@
-﻿using YARG.Core.Chart;
+﻿using System.Linq;
+using YARG.Core.Chart;
 using YARG.Core.Input;
 
 namespace YARG.Core.Engine.Vocals
@@ -55,6 +56,8 @@ namespace YARG.Core.Engine.Vocals
 
             AddScore(note);
 
+            OnNoteHit?.Invoke(State.NoteIndex, note);
+
             State.NoteIndex++;
 
             return true;
@@ -62,19 +65,55 @@ namespace YARG.Core.Engine.Vocals
 
         protected override void MissNote(VocalNote note)
         {
-            throw new System.NotImplementedException();
+            note.SetMissState(true, false);
+
+            if (note.IsStarPower)
+            {
+                StripStarPower(note);
+            }
+
+            if (note.IsSoloEnd)
+            {
+                EndSolo();
+            }
+            if (note.IsSoloStart)
+            {
+                StartSolo();
+            }
+
+            EngineStats.Combo = 0;
+            EngineStats.NotesMissed++;
+
+            UpdateMultiplier();
+
+            OnNoteMissed?.Invoke(State.NoteIndex, note);
+
+            State.NoteIndex++;
         }
 
         protected override void AddScore(VocalNote note)
         {
-            throw new System.NotImplementedException();
+            EngineStats.Score += 1000 * EngineStats.ScoreMultiplier;
+            UpdateStars();
         }
 
         protected override void UpdateMultiplier()
         {
-            throw new System.NotImplementedException();
+            EngineStats.ScoreMultiplier = EngineStats.Combo switch
+            {
+                >= 4 => 4,
+                _    => EngineStats.Combo
+            };
+
+            if (EngineStats.IsStarPowerActive)
+            {
+                EngineStats.ScoreMultiplier *= 2;
+            }
         }
 
-        protected override int CalculateBaseScore() => throw new System.NotImplementedException();
+        protected sealed override int CalculateBaseScore()
+        {
+            return Notes.Where(note => note.ChildNotes.Count > 0).Sum(_ => 1000);
+        }
     }
 }
