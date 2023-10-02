@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
 using NUnit.Framework;
@@ -129,42 +129,56 @@ namespace YARG.Core.UnitTests.Parsing
             string difficultyName = DifficultyToNameLookup[difficulty];
             builder.Append($"[{difficultyName}{instrumentName}]{NEWLINE}{{{NEWLINE}");
 
-            List<ChartObject> eventsToRemove = new();
-            foreach (var chartObj in chart.chartObjects)
+            List<SpecialPhrase> phrasesToRemove = new();
+            int noteIndex = 0;
+            int phraseIndex = 0;
+            int eventIndex = 0;
+            while (noteIndex < chart.notes.Count ||
+                   phraseIndex < chart.specialPhrases.Count ||
+                   eventIndex < chart.events.Count)
             {
-                switch (chartObj)
+                // Generate in this order: phrases, notes, then events
+                while (phraseIndex < chart.specialPhrases.Count &&
+                    (noteIndex  == chart.notes.Count  || chart.specialPhrases[phraseIndex].tick <= chart.notes[noteIndex].tick) &&
+                    (eventIndex == chart.events.Count || chart.specialPhrases[phraseIndex].tick <= chart.events[eventIndex].tick))
                 {
-                    case MoonNote note:
-                        AppendNote(builder, note);
-                        break;
-                    case SpecialPhrase phrase:
-                        // Drums-only phrases
-                        if (gameMode is not GameMode.Drums && DrumsOnlySpecialPhrases.Contains(phrase.type))
-                        {
-                            eventsToRemove.Add(chartObj);
-                            continue;
-                        }
+                    var phrase = chart.specialPhrases[phraseIndex++];
+                    // Drums-only phrases
+                    if (DrumsOnlySpecialPhrases.Contains(phrase.type) && gameMode is not GameMode.Drums)
+                    {
+                        phrasesToRemove.Add(phrase);
+                        continue;
+                    }
 
-                        // Solos are written as text events in .chart
-                        if (phrase.type is SpecialPhrase.Type.Solo)
-                        {
-                            builder.Append($"  {phrase.tick} = E {SOLO_START}{NEWLINE}");
-                            builder.Append($"  {phrase.tick + phrase.length} = E {SOLO_END}{NEWLINE}");
-                            continue;
-                        }
+                    // Solos are written as text events in .chart
+                    if (phrase.type is SpecialPhrase.Type.Solo)
+                    {
+                        builder.Append($"  {phrase.tick} = E {SOLO_START}{NEWLINE}");
+                        builder.Append($"  {phrase.tick + phrase.length} = E {SOLO_END}{NEWLINE}");
+                        continue;
+                    }
 
-                        int phraseNumber = SpecialPhraseLookup[phrase.type];
-                        builder.Append($"  {phrase.tick} = S {phraseNumber} {phrase.length}{NEWLINE}");
-                        break;
-                    case ChartEvent text:
-                        builder.Append($"  {text.tick} = E {text.eventName}{NEWLINE}");
-                        break;
+                    int phraseNumber = SpecialPhraseLookup[phrase.type];
+                    builder.Append($"  {phrase.tick} = S {phraseNumber} {phrase.length}{NEWLINE}");
+                }
+
+                while (noteIndex < chart.notes.Count &&
+                    (phraseIndex == chart.specialPhrases.Count || chart.notes[noteIndex].tick <  chart.specialPhrases[phraseIndex].tick) &&
+                    (eventIndex  == chart.events.Count         || chart.notes[noteIndex].tick <= chart.events[eventIndex].tick))
+                    AppendNote(builder, chart.notes[noteIndex++]);
+
+                while (eventIndex < chart.events.Count &&
+                    (phraseIndex == chart.specialPhrases.Count || chart.events[eventIndex].tick < chart.specialPhrases[phraseIndex].tick) &&
+                    (noteIndex   == chart.notes.Count          || chart.events[eventIndex].tick < chart.notes[noteIndex].tick))
+                {
+                    var ev = chart.events[eventIndex++];
+                    builder.Append($"  {ev.tick} = E {ev.eventName}{NEWLINE}");
                 }
             }
 
-            foreach (var chartObj in eventsToRemove)
+            foreach (var phrase in phrasesToRemove)
             {
-                chart.Remove(chartObj);
+                chart.Remove(phrase);
             }
 
             builder.Append($"}}{NEWLINE}");

@@ -1,9 +1,8 @@
-using Melanchall.DryWetMidi.Common;
+﻿using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.Core;
 using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
 using NUnit.Framework;
-using YARG.Core;
 using YARG.Core.Extensions;
 
 namespace YARG.Core.UnitTests.Parsing
@@ -278,19 +277,31 @@ namespace YARG.Core.UnitTests.Parsing
                     continue;
 
                 var chart = sourceSong.GetChart(instrument, difficulty);
-                foreach (var chartObj in chart.chartObjects)
+                int noteIndex = 0;
+                int phraseIndex = difficulty == Difficulty.Expert? 0 : chart.specialPhrases.Count;
+                int eventIndex = difficulty == Difficulty.Expert ? 0 : chart.events.Count;
+
+                while (noteIndex < chart.notes.Count ||
+                        phraseIndex < chart.specialPhrases.Count ||
+                        eventIndex < chart.events.Count)
                 {
-                    switch (chartObj)
+                    // Generate in this order: phrases, notes, then events
+                    while (phraseIndex < chart.specialPhrases.Count &&
+                        (noteIndex  == chart.notes.Count  || chart.specialPhrases[phraseIndex].tick <= chart.notes[noteIndex].tick) &&
+                        (eventIndex == chart.events.Count || chart.specialPhrases[phraseIndex].tick <= chart.events[eventIndex].tick))
+                        GenerateSpecialPhrase(timedEvents, chart.specialPhrases[phraseIndex++], gameMode);
+
+                    while (noteIndex < chart.notes.Count &&
+                        (phraseIndex == chart.specialPhrases.Count || chart.notes[noteIndex].tick <  chart.specialPhrases[phraseIndex].tick) &&
+                        (eventIndex  == chart.events.Count         || chart.notes[noteIndex].tick <= chart.events[eventIndex].tick))
+                        GenerateNote(timedEvents, chart.notes[noteIndex++], gameMode, difficulty, ref lastNoteTick);
+
+                    while (eventIndex < chart.events.Count &&
+                        (phraseIndex == chart.specialPhrases.Count || chart.events[eventIndex].tick < chart.specialPhrases[phraseIndex].tick) &&
+                        (noteIndex   == chart.notes.Count          || chart.events[eventIndex].tick < chart.notes[noteIndex].tick))
                     {
-                        case MoonNote note:
-                            GenerateNote(timedEvents, note, gameMode, difficulty, ref lastNoteTick);
-                            break;
-                        case SpecialPhrase phrase when difficulty == Difficulty.Expert:
-                            GenerateSpecialPhrase(timedEvents, phrase, gameMode);
-                            break;
-                        case ChartEvent text when difficulty == Difficulty.Expert:
-                            timedEvents.Add((text.tick, new TextEvent(text.eventName)));
-                            break;
+                        var ev = chart.events[eventIndex++];
+                        timedEvents.Add((ev.tick, new TextEvent(ev.eventName)));
                     }
                 }
             }

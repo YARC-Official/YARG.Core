@@ -41,28 +41,28 @@ namespace MoonscraperChartEditor.Song
         /// <summary>
         /// Read only list of song events.
         /// </summary>
-        public SongObjectCache<Event> events { get; private set; } = new();
+        public List<Event> events { get; private set; } = new();
         /// <summary>
         /// Read only list of song sections.
         /// </summary>
-        public SongObjectCache<Section> sections { get; private set; } = new();
+        public List<Section> sections { get; private set; } = new();
         /// <summary>
         /// Read only list of venue events.
         /// </summary>
-        public SongObjectCache<VenueEvent> venue { get; private set; } = new();
+        public List<VenueEvent> venue { get; private set; } = new();
 
         /// <summary>
         /// Read only list of a song's bpm changes.
         /// </summary>
-        public SongObjectCache<BPM> bpms { get; private set; } = new();
+        public List<BPM> bpms { get; private set; } = new();
         /// <summary>
         /// Read only list of a song's time signature changes.
         /// </summary>
-        public SongObjectCache<TimeSignature> timeSignatures { get; private set; } = new();
+        public List<TimeSignature> timeSignatures { get; private set; } = new();
         /// <summary>
         /// Read only list of a song's beats.
         /// </summary>
-        public SongObjectCache<Beat> beats { get; private set; } = new();
+        public List<Beat> beats { get; private set; } = new();
 
         /// <summary>
         /// Default constructor for a new chart. Initialises all lists and adds locked bpm and timesignature objects.
@@ -96,7 +96,7 @@ namespace MoonscraperChartEditor.Song
             foreach (var difficulty in EnumExtensions<Difficulty>.Values)
             {
                 var chart = GetChart(instrument, difficulty);
-                if (chart.chartObjects.Count > 0)
+                if (chart.IsOccupied())
                 {
                     return true;
                 }
@@ -107,7 +107,7 @@ namespace MoonscraperChartEditor.Song
 
         public bool DoesChartExist(MoonInstrument instrument, Difficulty difficulty)
         {
-            return GetChart(instrument, difficulty).chartObjects.Count > 0;
+            return GetChart(instrument, difficulty).IsOccupied();
         }
 
         /// <summary>
@@ -260,18 +260,17 @@ namespace MoonscraperChartEditor.Song
             return success;
         }
 
-        public static void UpdateCacheList<T, U>(SongObjectCache<T> cache, List<U> objectsToCache)
+        public static void UpdateCacheList<T, U>(List<T> cache, List<U> objectsToCache)
             where U : SongObject
             where T : U
         {
-            var cacheObjectList = cache.EditCache();
-            cacheObjectList.Clear();
+            cache.Clear();
 
             foreach (var objectToCache in objectsToCache)
             {
                 if (objectToCache.GetType() == typeof(T))
                 {
-                    cacheObjectList.Add((T) objectToCache);
+                    cache.Add((T) objectToCache);
                 }
             }
         }
@@ -290,12 +289,6 @@ namespace MoonscraperChartEditor.Song
             UpdateCacheList(beats, _syncTrack);
 
             UpdateBPMTimeValues();
-        }
-
-        public void UpdateAllChartCaches()
-        {
-            foreach (var chart in charts)
-                chart.UpdateCache();
         }
 
         /// <summary>
@@ -442,83 +435,6 @@ namespace MoonscraperChartEditor.Song
             Vocals = 8,
             Keys = 9,
             Crowd = 10
-        }
-    }
-
-    internal class SongObjectCache<T> : IList<T>, IEnumerable<T> where T : SongObject
-    {
-        private readonly List<T> cache = new();
-
-        public T this[int index] { get { return cache[index]; } set { cache[index] = value; } }
-
-        public int Count
-        {
-            get { return cache.Count; }
-        }
-
-        public bool IsReadOnly
-        {
-            get { return true; }
-        }
-
-        public void Add(T item)
-        {
-            throw new NotSupportedException();
-        }
-
-        public void Clear()
-        {
-            throw new NotSupportedException();
-        }
-
-        public bool Contains(T item)
-        {
-            return cache.Contains(item);
-        }
-
-        public void CopyTo(T[] array, int arrayIndex)
-        {
-
-        }
-
-        public IEnumerator<T> GetEnumerator()
-        {
-            return cache.GetEnumerator();
-        }
-
-        public int IndexOf(T item)
-        {
-            return cache.IndexOf(item);
-        }
-
-        public void Insert(int index, T item)
-        {
-            throw new NotSupportedException();
-        }
-
-        public bool Remove(T item)
-        {
-            throw new NotSupportedException();
-        }
-
-        public void RemoveAt(int index)
-        {
-            throw new NotSupportedException();
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return cache.GetEnumerator();
-        }
-
-        public List<T> EditCache()
-        {
-            return cache;
-        }
-
-        public T[] ToArray()
-        {
-            return cache.ToArray();
         }
     }
 

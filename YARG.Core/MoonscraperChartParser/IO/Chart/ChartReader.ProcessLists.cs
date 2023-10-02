@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2020 Alexander Ong
+﻿// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
 // Chart file format specifications- https://docs.google.com/document/d/1v2v0U-9HQ5qHeccpExDOLJ5CMPZZ3QytPmAG5WF0Kzs/edit?usp=sharing
@@ -210,7 +210,7 @@ namespace MoonscraperChartEditor.Song.IO
         {
             static void AddSolo(MoonChart chart, uint startTick, uint endTick)
             {
-                chart.Add(new SpecialPhrase(startTick, endTick - startTick, SpecialPhrase.Type.Solo), false);
+                chart.Add(new SpecialPhrase(startTick, endTick - startTick, SpecialPhrase.Type.Solo));
             }
 
             static void ProcessSoloMarkers(MoonChart chart, uint currentTick, ref uint? currentStartTick,
@@ -276,20 +276,18 @@ namespace MoonscraperChartEditor.Song.IO
                 // Determine what events are present on the current tick
                 if (text.eventName == TextEventDefinitions.SOLO_START)
                 {
-                    chart.Remove(text, false);
+                    chart.Remove(text);
                     start = true;
                 }
                 else if (text.eventName == TextEventDefinitions.SOLO_END)
                 {
-                    chart.Remove(text, false);
+                    chart.Remove(text);
                     end = true;
                 }
             }
 
             // Handle final set of events
             ProcessSoloMarkers(chart, currentTick, ref currentStartTick, ref start, ref end);
-
-            chart.UpdateCache();
         }
 
         private static void DisambiguateDrumsType(in NoteProcessParams processParams)

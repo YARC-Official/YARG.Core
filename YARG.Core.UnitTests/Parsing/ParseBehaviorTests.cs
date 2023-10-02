@@ -1,4 +1,4 @@
-using MoonscraperChartEditor.Song;
+﻿using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
 using NUnit.Framework;
 using YARG.Core.Extensions;
@@ -43,333 +43,378 @@ namespace YARG.Core.UnitTests.Parsing
         private static SpecialPhrase NewSpecial(int index, SpecialPhrase.Type type, uint length = 0)
             => new((uint)(index * RESOLUTION), length, type);
 
-        public static readonly List<ChartObject> GuitarTrack = new()
+        public interface IParseBehavior
         {
-            NewNote(0, GuitarFret.Green),
-            NewNote(1, GuitarFret.Red),
-            NewNote(2, GuitarFret.Yellow),
-            NewNote(3, GuitarFret.Blue),
-            NewNote(4, GuitarFret.Orange),
-            NewNote(5, GuitarFret.Open),
+            public List<MoonNote> Notes { get; }
+            public List<SpecialPhrase> Phrases { get; }
+        }
 
-            NewSpecial(6, SpecialPhrase.Type.Versus_Player1, RESOLUTION * 6),
-            NewNote(6, GuitarFret.Green, flags: Flags.Forced),
-            NewNote(7, GuitarFret.Red, flags: Flags.Forced),
-            NewNote(8, GuitarFret.Yellow, flags: Flags.Forced),
-            NewNote(9, GuitarFret.Blue, flags: Flags.Forced),
-            NewNote(10, GuitarFret.Orange, flags: Flags.Forced),
-            NewNote(11, GuitarFret.Open, flags: Flags.Forced),
-
-            NewSpecial(12, SpecialPhrase.Type.Versus_Player2, RESOLUTION * 5),
-            NewNote(12, GuitarFret.Green, flags: Flags.Tap),
-            NewNote(13, GuitarFret.Red, flags: Flags.Tap),
-            NewNote(14, GuitarFret.Yellow, flags: Flags.Tap),
-            NewNote(15, GuitarFret.Blue, flags: Flags.Tap),
-            NewNote(16, GuitarFret.Orange, flags: Flags.Tap),
-
-            NewSpecial(17, SpecialPhrase.Type.Starpower, RESOLUTION * 6),
-            NewNote(17, GuitarFret.Green),
-            NewNote(18, GuitarFret.Red),
-            NewNote(19, GuitarFret.Yellow),
-            NewNote(20, GuitarFret.Blue),
-            NewNote(21, GuitarFret.Orange),
-            NewNote(22, GuitarFret.Open),
-
-            NewSpecial(23, SpecialPhrase.Type.TremoloLane, RESOLUTION * 6),
-            NewNote(23, GuitarFret.Yellow),
-            NewNote(24, GuitarFret.Yellow),
-            NewNote(25, GuitarFret.Yellow),
-            NewNote(26, GuitarFret.Yellow),
-            NewNote(27, GuitarFret.Yellow),
-            NewNote(28, GuitarFret.Yellow),
-
-            NewSpecial(29, SpecialPhrase.Type.TrillLane, RESOLUTION * 6),
-            NewNote(29, GuitarFret.Green),
-            NewNote(30, GuitarFret.Red),
-            NewNote(31, GuitarFret.Green),
-            NewNote(32, GuitarFret.Red),
-            NewNote(33, GuitarFret.Green),
-            NewNote(34, GuitarFret.Red),
-
-            NewSpecial(35, SpecialPhrase.Type.Solo, RESOLUTION * 6),
-            NewNote(35, GuitarFret.Green, flags: Flags.Forced),
-            NewNote(36, GuitarFret.Red, flags: Flags.Forced),
-            NewNote(37, GuitarFret.Yellow, flags: Flags.Forced),
-            NewNote(38, GuitarFret.Blue, flags: Flags.Forced),
-            NewNote(39, GuitarFret.Orange, flags: Flags.Forced),
-            NewNote(40, GuitarFret.Open, flags: Flags.Forced),
-        };
-
-        public static readonly List<ChartObject> GhlGuitarTrack = new()
+        public class ParseBehaviorGuitar : IParseBehavior
         {
-            NewNote(0, GHLiveGuitarFret.Black1),
-            NewNote(1, GHLiveGuitarFret.Black2),
-            NewNote(2, GHLiveGuitarFret.Black3),
-            NewNote(3, GHLiveGuitarFret.White1),
-            NewNote(4, GHLiveGuitarFret.White2),
-            NewNote(5, GHLiveGuitarFret.White3),
-            NewNote(6, GHLiveGuitarFret.Open),
+            public List<MoonNote> Notes { get; } = new()
+            {
+                NewNote(0, GuitarFret.Green),
+                NewNote(1, GuitarFret.Red),
+                NewNote(2, GuitarFret.Yellow),
+                NewNote(3, GuitarFret.Blue),
+                NewNote(4, GuitarFret.Orange),
+                NewNote(5, GuitarFret.Open),
+                NewNote(6, GuitarFret.Green, flags: Flags.Forced),
+                NewNote(7, GuitarFret.Red, flags: Flags.Forced),
+                NewNote(8, GuitarFret.Yellow, flags: Flags.Forced),
+                NewNote(9, GuitarFret.Blue, flags: Flags.Forced),
+                NewNote(10, GuitarFret.Orange, flags: Flags.Forced),
+                NewNote(11, GuitarFret.Open, flags: Flags.Forced),
+                NewNote(12, GuitarFret.Green, flags: Flags.Tap),
+                NewNote(13, GuitarFret.Red, flags: Flags.Tap),
+                NewNote(14, GuitarFret.Yellow, flags: Flags.Tap),
+                NewNote(15, GuitarFret.Blue, flags: Flags.Tap),
+                NewNote(16, GuitarFret.Orange, flags: Flags.Tap),
+                NewNote(17, GuitarFret.Green),
+                NewNote(18, GuitarFret.Red),
+                NewNote(19, GuitarFret.Yellow),
+                NewNote(20, GuitarFret.Blue),
+                NewNote(21, GuitarFret.Orange),
+                NewNote(22, GuitarFret.Open),
+                NewNote(23, GuitarFret.Yellow),
+                NewNote(24, GuitarFret.Yellow),
+                NewNote(25, GuitarFret.Yellow),
+                NewNote(26, GuitarFret.Yellow),
+                NewNote(27, GuitarFret.Yellow),
+                NewNote(28, GuitarFret.Yellow),
+                NewNote(29, GuitarFret.Green),
+                NewNote(30, GuitarFret.Red),
+                NewNote(31, GuitarFret.Green),
+                NewNote(32, GuitarFret.Red),
+                NewNote(33, GuitarFret.Green),
+                NewNote(34, GuitarFret.Red),
+                NewNote(35, GuitarFret.Green, flags: Flags.Forced),
+                NewNote(36, GuitarFret.Red, flags: Flags.Forced),
+                NewNote(37, GuitarFret.Yellow, flags: Flags.Forced),
+                NewNote(38, GuitarFret.Blue, flags: Flags.Forced),
+                NewNote(39, GuitarFret.Orange, flags: Flags.Forced),
+                NewNote(40, GuitarFret.Open, flags: Flags.Forced),
+            };
 
-            NewNote(7, GHLiveGuitarFret.Black1, flags: Flags.Forced),
-            NewNote(8, GHLiveGuitarFret.Black2, flags: Flags.Forced),
-            NewNote(9, GHLiveGuitarFret.Black3, flags: Flags.Forced),
-            NewNote(10, GHLiveGuitarFret.White1, flags: Flags.Forced),
-            NewNote(11, GHLiveGuitarFret.White2, flags: Flags.Forced),
-            NewNote(12, GHLiveGuitarFret.White3, flags: Flags.Forced),
-            NewNote(13, GHLiveGuitarFret.Open, flags: Flags.Forced),
+            public List<SpecialPhrase> Phrases { get; } = new()
+            {
+                NewSpecial(6, SpecialPhrase.Type.Versus_Player1, RESOLUTION * 6),
+                NewSpecial(12, SpecialPhrase.Type.Versus_Player2, RESOLUTION * 5),
+                NewSpecial(17, SpecialPhrase.Type.Starpower, RESOLUTION * 6),
+                NewSpecial(23, SpecialPhrase.Type.TremoloLane, RESOLUTION * 6),
+                NewSpecial(29, SpecialPhrase.Type.TrillLane, RESOLUTION * 6),
+                NewSpecial(35, SpecialPhrase.Type.Solo, RESOLUTION * 6),
+            };
+        }
 
-            NewNote(14, GHLiveGuitarFret.Black1, flags: Flags.Tap),
-            NewNote(15, GHLiveGuitarFret.Black2, flags: Flags.Tap),
-            NewNote(16, GHLiveGuitarFret.Black3, flags: Flags.Tap),
-            NewNote(17, GHLiveGuitarFret.White1, flags: Flags.Tap),
-            NewNote(18, GHLiveGuitarFret.White2, flags: Flags.Tap),
-            NewNote(19, GHLiveGuitarFret.White3, flags: Flags.Tap),
+        public static readonly ParseBehaviorGuitar GuitarTrack = new();
 
-            NewSpecial(20, SpecialPhrase.Type.Starpower, RESOLUTION * 7),
-            NewNote(20, GHLiveGuitarFret.Black1),
-            NewNote(21, GHLiveGuitarFret.Black2),
-            NewNote(22, GHLiveGuitarFret.Black3),
-            NewNote(23, GHLiveGuitarFret.White1),
-            NewNote(24, GHLiveGuitarFret.White2),
-            NewNote(25, GHLiveGuitarFret.White3),
-            NewNote(26, GHLiveGuitarFret.Open),
-
-            NewSpecial(27, SpecialPhrase.Type.Solo, RESOLUTION * 7),
-            NewNote(27, GHLiveGuitarFret.Black1),
-            NewNote(28, GHLiveGuitarFret.Black2),
-            NewNote(29, GHLiveGuitarFret.Black3),
-            NewNote(30, GHLiveGuitarFret.White1),
-            NewNote(31, GHLiveGuitarFret.White2),
-            NewNote(32, GHLiveGuitarFret.White3),
-            NewNote(33, GHLiveGuitarFret.Open),
-        };
-
-        public static readonly List<ChartObject> ProGuitarTrack = new()
+        public class ParseBehaviorGHLGuitar : IParseBehavior
         {
-            NewNote(0, ProGuitarString.Red, 0),
-            NewNote(1, ProGuitarString.Green, 1),
-            NewNote(2, ProGuitarString.Orange, 2),
-            NewNote(3, ProGuitarString.Blue, 3),
-            NewNote(4, ProGuitarString.Yellow, 4),
-            NewNote(5, ProGuitarString.Purple, 5),
+            public List<MoonNote> Notes { get; } = new()
+            {
+                NewNote(0, GHLiveGuitarFret.Black1),
+                NewNote(1, GHLiveGuitarFret.Black2),
+                NewNote(2, GHLiveGuitarFret.Black3),
+                NewNote(3, GHLiveGuitarFret.White1),
+                NewNote(4, GHLiveGuitarFret.White2),
+                NewNote(5, GHLiveGuitarFret.White3),
+                NewNote(6, GHLiveGuitarFret.Open),
 
-            NewNote(6, ProGuitarString.Red, 6, flags: Flags.Forced),
-            NewNote(7, ProGuitarString.Green, 7, flags: Flags.Forced),
-            NewNote(8, ProGuitarString.Orange, 8, flags: Flags.Forced),
-            NewNote(9, ProGuitarString.Blue, 9, flags: Flags.Forced),
-            NewNote(10, ProGuitarString.Yellow, 10, flags: Flags.Forced),
-            NewNote(11, ProGuitarString.Purple, 11, flags: Flags.Forced),
+                NewNote(7, GHLiveGuitarFret.Black1, flags: Flags.Forced),
+                NewNote(8, GHLiveGuitarFret.Black2, flags: Flags.Forced),
+                NewNote(9, GHLiveGuitarFret.Black3, flags: Flags.Forced),
+                NewNote(10, GHLiveGuitarFret.White1, flags: Flags.Forced),
+                NewNote(11, GHLiveGuitarFret.White2, flags: Flags.Forced),
+                NewNote(12, GHLiveGuitarFret.White3, flags: Flags.Forced),
+                NewNote(13, GHLiveGuitarFret.Open, flags: Flags.Forced),
 
-            NewNote(12, ProGuitarString.Red, 12, flags: Flags.ProGuitar_Muted),
-            NewNote(13, ProGuitarString.Green, 13, flags: Flags.ProGuitar_Muted),
-            NewNote(14, ProGuitarString.Orange, 14, flags: Flags.ProGuitar_Muted),
-            NewNote(15, ProGuitarString.Blue, 15, flags: Flags.ProGuitar_Muted),
-            NewNote(16, ProGuitarString.Yellow, 16, flags: Flags.ProGuitar_Muted),
-            NewNote(17, ProGuitarString.Purple, 17, flags: Flags.ProGuitar_Muted),
+                NewNote(14, GHLiveGuitarFret.Black1, flags: Flags.Tap),
+                NewNote(15, GHLiveGuitarFret.Black2, flags: Flags.Tap),
+                NewNote(16, GHLiveGuitarFret.Black3, flags: Flags.Tap),
+                NewNote(17, GHLiveGuitarFret.White1, flags: Flags.Tap),
+                NewNote(18, GHLiveGuitarFret.White2, flags: Flags.Tap),
+                NewNote(19, GHLiveGuitarFret.White3, flags: Flags.Tap),
 
-            NewSpecial(18, SpecialPhrase.Type.Starpower, RESOLUTION * 6),
-            NewNote(18, ProGuitarString.Red, 0),
-            NewNote(19, ProGuitarString.Green, 1),
-            NewNote(20, ProGuitarString.Orange, 2),
-            NewNote(21, ProGuitarString.Blue, 3),
-            NewNote(22, ProGuitarString.Yellow, 4),
-            NewNote(23, ProGuitarString.Purple, 5),
+                NewNote(20, GHLiveGuitarFret.Black1),
+                NewNote(21, GHLiveGuitarFret.Black2),
+                NewNote(22, GHLiveGuitarFret.Black3),
+                NewNote(23, GHLiveGuitarFret.White1),
+                NewNote(24, GHLiveGuitarFret.White2),
+                NewNote(25, GHLiveGuitarFret.White3),
+                NewNote(26, GHLiveGuitarFret.Open),
 
-            NewSpecial(24, SpecialPhrase.Type.TremoloLane, RESOLUTION * 6),
-            NewNote(24, ProGuitarString.Red, 0),
-            NewNote(25, ProGuitarString.Red, 0),
-            NewNote(26, ProGuitarString.Red, 0),
-            NewNote(27, ProGuitarString.Red, 0),
-            NewNote(28, ProGuitarString.Red, 0),
-            NewNote(29, ProGuitarString.Red, 0),
+                NewNote(27, GHLiveGuitarFret.Black1),
+                NewNote(28, GHLiveGuitarFret.Black2),
+                NewNote(29, GHLiveGuitarFret.Black3),
+                NewNote(30, GHLiveGuitarFret.White1),
+                NewNote(31, GHLiveGuitarFret.White2),
+                NewNote(32, GHLiveGuitarFret.White3),
+                NewNote(33, GHLiveGuitarFret.Open),
+            };
 
-            NewSpecial(30, SpecialPhrase.Type.TrillLane, RESOLUTION * 6),
-            NewNote(30, ProGuitarString.Yellow, 5),
-            NewNote(31, ProGuitarString.Yellow, 6),
-            NewNote(32, ProGuitarString.Yellow, 5),
-            NewNote(33, ProGuitarString.Yellow, 6),
-            NewNote(34, ProGuitarString.Yellow, 5),
-            NewNote(35, ProGuitarString.Yellow, 6),
+            public List<SpecialPhrase> Phrases { get; } = new()
+            {
+                NewSpecial(20, SpecialPhrase.Type.Starpower, RESOLUTION * 7),
+                NewSpecial(27, SpecialPhrase.Type.Solo, RESOLUTION * 7),
+            };
+        }
 
-            NewSpecial(36, SpecialPhrase.Type.Solo, RESOLUTION * 6),
-            NewNote(36, ProGuitarString.Red, 0),
-            NewNote(37, ProGuitarString.Green, 1),
-            NewNote(38, ProGuitarString.Orange, 2),
-            NewNote(39, ProGuitarString.Blue, 3),
-            NewNote(40, ProGuitarString.Yellow, 4),
-            NewNote(41, ProGuitarString.Purple, 5),
-        };
+        public static readonly ParseBehaviorGHLGuitar GhlGuitarTrack = new();
 
-        public static readonly List<ChartObject> DrumsTrack = new()
+        public class ParseBehaviorProGuitar : IParseBehavior
         {
-            NewNote(0, DrumPad.Kick),
-            NewNote(1, DrumPad.Kick, flags: Flags.DoubleKick),
+            public List<MoonNote> Notes { get; } = new()
+            {
+                NewNote(0, ProGuitarString.Red, 0),
+                NewNote(1, ProGuitarString.Green, 1),
+                NewNote(2, ProGuitarString.Orange, 2),
+                NewNote(3, ProGuitarString.Blue, 3),
+                NewNote(4, ProGuitarString.Yellow, 4),
+                NewNote(5, ProGuitarString.Purple, 5),
 
-            NewNote(2, DrumPad.Red, length: 16),
-            NewNote(3, DrumPad.Yellow, length: 16),
-            NewNote(4, DrumPad.Blue, length: 16),
-            NewNote(5, DrumPad.Orange, length: 16),
-            NewNote(6, DrumPad.Green, length: 16),
-            NewNote(7, DrumPad.Yellow, flags: Flags.ProDrums_Cymbal),
-            NewNote(8, DrumPad.Blue, flags: Flags.ProDrums_Cymbal),
-            NewNote(9, DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
+                NewNote(6, ProGuitarString.Red, 6, flags: Flags.Forced),
+                NewNote(7, ProGuitarString.Green, 7, flags: Flags.Forced),
+                NewNote(8, ProGuitarString.Orange, 8, flags: Flags.Forced),
+                NewNote(9, ProGuitarString.Blue, 9, flags: Flags.Forced),
+                NewNote(10, ProGuitarString.Yellow, 10, flags: Flags.Forced),
+                NewNote(11, ProGuitarString.Purple, 11, flags: Flags.Forced),
 
-            NewNote(10, DrumPad.Red, flags: Flags.ProDrums_Accent),
-            NewNote(11, DrumPad.Yellow, flags: Flags.ProDrums_Accent),
-            NewNote(12, DrumPad.Blue, flags: Flags.ProDrums_Accent),
-            NewNote(13, DrumPad.Orange, flags: Flags.ProDrums_Accent),
-            NewNote(14, DrumPad.Green, flags: Flags.ProDrums_Accent),
-            NewNote(15, DrumPad.Yellow, flags: Flags.ProDrums_Cymbal | Flags.ProDrums_Accent),
-            NewNote(16, DrumPad.Blue, flags: Flags.ProDrums_Cymbal | Flags.ProDrums_Accent),
-            NewNote(17, DrumPad.Orange, flags: Flags.ProDrums_Cymbal | Flags.ProDrums_Accent),
+                NewNote(12, ProGuitarString.Red, 12, flags: Flags.ProGuitar_Muted),
+                NewNote(13, ProGuitarString.Green, 13, flags: Flags.ProGuitar_Muted),
+                NewNote(14, ProGuitarString.Orange, 14, flags: Flags.ProGuitar_Muted),
+                NewNote(15, ProGuitarString.Blue, 15, flags: Flags.ProGuitar_Muted),
+                NewNote(16, ProGuitarString.Yellow, 16, flags: Flags.ProGuitar_Muted),
+                NewNote(17, ProGuitarString.Purple, 17, flags: Flags.ProGuitar_Muted),
 
-            NewNote(18, DrumPad.Red, flags: Flags.ProDrums_Ghost),
-            NewNote(19, DrumPad.Yellow, flags: Flags.ProDrums_Ghost),
-            NewNote(20, DrumPad.Blue, flags: Flags.ProDrums_Ghost),
-            NewNote(21, DrumPad.Orange, flags: Flags.ProDrums_Ghost),
-            NewNote(22, DrumPad.Green, flags: Flags.ProDrums_Ghost),
-            NewNote(23, DrumPad.Yellow, flags: Flags.ProDrums_Cymbal | Flags.ProDrums_Ghost),
-            NewNote(24, DrumPad.Blue, flags: Flags.ProDrums_Cymbal | Flags.ProDrums_Ghost),
-            NewNote(25, DrumPad.Orange, flags: Flags.ProDrums_Cymbal | Flags.ProDrums_Ghost),
+                NewNote(18, ProGuitarString.Red, 0),
+                NewNote(19, ProGuitarString.Green, 1),
+                NewNote(20, ProGuitarString.Orange, 2),
+                NewNote(21, ProGuitarString.Blue, 3),
+                NewNote(22, ProGuitarString.Yellow, 4),
+                NewNote(23, ProGuitarString.Purple, 5),
 
-            NewSpecial(26, SpecialPhrase.Type.Starpower, RESOLUTION * 8),
-            NewNote(26, DrumPad.Red),
-            NewNote(27, DrumPad.Yellow),
-            NewNote(28, DrumPad.Blue),
-            NewNote(29, DrumPad.Orange),
-            NewNote(30, DrumPad.Green),
-            NewNote(31, DrumPad.Yellow, flags: Flags.ProDrums_Cymbal),
-            NewNote(32, DrumPad.Blue, flags: Flags.ProDrums_Cymbal),
-            NewNote(33, DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
+                NewNote(24, ProGuitarString.Red, 0),
+                NewNote(25, ProGuitarString.Red, 0),
+                NewNote(26, ProGuitarString.Red, 0),
+                NewNote(27, ProGuitarString.Red, 0),
+                NewNote(28, ProGuitarString.Red, 0),
+                NewNote(29, ProGuitarString.Red, 0),
 
-            NewSpecial(34, SpecialPhrase.Type.ProDrums_Activation, RESOLUTION * 5),
-            NewNote(34, DrumPad.Red),
-            NewNote(35, DrumPad.Yellow),
-            NewNote(36, DrumPad.Blue),
-            NewNote(37, DrumPad.Orange),
-            NewNote(38, DrumPad.Green),
-            NewNote(39, DrumPad.Yellow, flags: Flags.ProDrums_Cymbal),
-            NewNote(40, DrumPad.Blue, flags: Flags.ProDrums_Cymbal),
-            NewNote(41, DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
+                NewNote(30, ProGuitarString.Yellow, 5),
+                NewNote(31, ProGuitarString.Yellow, 6),
+                NewNote(32, ProGuitarString.Yellow, 5),
+                NewNote(33, ProGuitarString.Yellow, 6),
+                NewNote(34, ProGuitarString.Yellow, 5),
+                NewNote(35, ProGuitarString.Yellow, 6),
 
-            NewSpecial(42, SpecialPhrase.Type.Versus_Player1, RESOLUTION * 8),
-            NewNote(42, DrumPad.Red),
-            NewNote(43, DrumPad.Yellow),
-            NewNote(44, DrumPad.Blue),
-            NewNote(45, DrumPad.Orange),
-            NewNote(46, DrumPad.Green),
-            NewNote(47, DrumPad.Yellow, flags: Flags.ProDrums_Cymbal),
-            NewNote(48, DrumPad.Blue, flags: Flags.ProDrums_Cymbal),
-            NewNote(49, DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
+                NewNote(36, ProGuitarString.Red, 0),
+                NewNote(37, ProGuitarString.Green, 1),
+                NewNote(38, ProGuitarString.Orange, 2),
+                NewNote(39, ProGuitarString.Blue, 3),
+                NewNote(40, ProGuitarString.Yellow, 4),
+                NewNote(41, ProGuitarString.Purple, 5),
+            };
 
-            NewSpecial(50, SpecialPhrase.Type.Versus_Player2, RESOLUTION * 8),
-            NewNote(50, DrumPad.Red),
-            NewNote(51, DrumPad.Yellow),
-            NewNote(52, DrumPad.Blue),
-            NewNote(53, DrumPad.Orange),
-            NewNote(54, DrumPad.Green),
-            NewNote(55, DrumPad.Yellow, flags: Flags.ProDrums_Cymbal),
-            NewNote(56, DrumPad.Blue, flags: Flags.ProDrums_Cymbal),
-            NewNote(57, DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
+            public List<SpecialPhrase> Phrases { get; } = new()
+            {
+                NewSpecial(18, SpecialPhrase.Type.Starpower, RESOLUTION * 6),
+                NewSpecial(24, SpecialPhrase.Type.TremoloLane, RESOLUTION * 6),
+                NewSpecial(30, SpecialPhrase.Type.TrillLane, RESOLUTION * 6),
+                NewSpecial(36, SpecialPhrase.Type.Solo, RESOLUTION * 6),
+            };
+        }
 
-            NewSpecial(58, SpecialPhrase.Type.TremoloLane, RESOLUTION * 6),
-            NewNote(58, DrumPad.Red),
-            NewNote(59, DrumPad.Red),
-            NewNote(60, DrumPad.Red),
-            NewNote(61, DrumPad.Red),
-            NewNote(62, DrumPad.Red),
-            NewNote(63, DrumPad.Red),
+        public static readonly ParseBehaviorProGuitar ProGuitarTrack = new();
 
-            NewSpecial(64, SpecialPhrase.Type.TrillLane, RESOLUTION * 6),
-            NewNote(64, DrumPad.Yellow, flags: Flags.ProDrums_Cymbal),
-            NewNote(65, DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
-            NewNote(66, DrumPad.Yellow, flags: Flags.ProDrums_Cymbal),
-            NewNote(67, DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
-            NewNote(68, DrumPad.Yellow, flags: Flags.ProDrums_Cymbal),
-            NewNote(69, DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
+        public class ParseBehaviorDrums : IParseBehavior
+        {
+            public List<MoonNote> Notes { get; } = new()
+            {
+                NewNote(0, DrumPad.Kick),
+                NewNote(1, DrumPad.Kick, flags: Flags.DoubleKick),
 
-            NewSpecial(70, SpecialPhrase.Type.Solo, RESOLUTION * 8),
-            NewNote(70, DrumPad.Red),
-            NewNote(71, DrumPad.Yellow),
-            NewNote(72, DrumPad.Blue),
-            NewNote(73, DrumPad.Orange),
-            NewNote(74, DrumPad.Green),
-            NewNote(75, DrumPad.Yellow, flags: Flags.ProDrums_Cymbal),
-            NewNote(76, DrumPad.Blue, flags: Flags.ProDrums_Cymbal),
-            NewNote(77, DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
-        };
+                NewNote(2, DrumPad.Red, length: 16),
+                NewNote(3, DrumPad.Yellow, length: 16),
+                NewNote(4, DrumPad.Blue, length: 16),
+                NewNote(5, DrumPad.Orange, length: 16),
+                NewNote(6, DrumPad.Green, length: 16),
+                NewNote(7, DrumPad.Yellow, flags: Flags.ProDrums_Cymbal),
+                NewNote(8, DrumPad.Blue, flags: Flags.ProDrums_Cymbal),
+                NewNote(9, DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
+
+                NewNote(10, DrumPad.Red, flags: Flags.ProDrums_Accent),
+                NewNote(11, DrumPad.Yellow, flags: Flags.ProDrums_Accent),
+                NewNote(12, DrumPad.Blue, flags: Flags.ProDrums_Accent),
+                NewNote(13, DrumPad.Orange, flags: Flags.ProDrums_Accent),
+                NewNote(14, DrumPad.Green, flags: Flags.ProDrums_Accent),
+                NewNote(15, DrumPad.Yellow, flags: Flags.ProDrums_Cymbal | Flags.ProDrums_Accent),
+                NewNote(16, DrumPad.Blue, flags: Flags.ProDrums_Cymbal | Flags.ProDrums_Accent),
+                NewNote(17, DrumPad.Orange, flags: Flags.ProDrums_Cymbal | Flags.ProDrums_Accent),
+
+                NewNote(18, DrumPad.Red, flags: Flags.ProDrums_Ghost),
+                NewNote(19, DrumPad.Yellow, flags: Flags.ProDrums_Ghost),
+                NewNote(20, DrumPad.Blue, flags: Flags.ProDrums_Ghost),
+                NewNote(21, DrumPad.Orange, flags: Flags.ProDrums_Ghost),
+                NewNote(22, DrumPad.Green, flags: Flags.ProDrums_Ghost),
+                NewNote(23, DrumPad.Yellow, flags: Flags.ProDrums_Cymbal | Flags.ProDrums_Ghost),
+                NewNote(24, DrumPad.Blue, flags: Flags.ProDrums_Cymbal | Flags.ProDrums_Ghost),
+                NewNote(25, DrumPad.Orange, flags: Flags.ProDrums_Cymbal | Flags.ProDrums_Ghost),
+
+                NewNote(26, DrumPad.Red),
+                NewNote(27, DrumPad.Yellow),
+                NewNote(28, DrumPad.Blue),
+                NewNote(29, DrumPad.Orange),
+                NewNote(30, DrumPad.Green),
+                NewNote(31, DrumPad.Yellow, flags: Flags.ProDrums_Cymbal),
+                NewNote(32, DrumPad.Blue, flags: Flags.ProDrums_Cymbal),
+                NewNote(33, DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
+
+                NewNote(34, DrumPad.Red),
+                NewNote(35, DrumPad.Yellow),
+                NewNote(36, DrumPad.Blue),
+                NewNote(37, DrumPad.Orange),
+                NewNote(38, DrumPad.Green),
+                NewNote(39, DrumPad.Yellow, flags: Flags.ProDrums_Cymbal),
+                NewNote(40, DrumPad.Blue, flags: Flags.ProDrums_Cymbal),
+                NewNote(41, DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
+
+                NewNote(42, DrumPad.Red),
+                NewNote(43, DrumPad.Yellow),
+                NewNote(44, DrumPad.Blue),
+                NewNote(45, DrumPad.Orange),
+                NewNote(46, DrumPad.Green),
+                NewNote(47, DrumPad.Yellow, flags: Flags.ProDrums_Cymbal),
+                NewNote(48, DrumPad.Blue, flags: Flags.ProDrums_Cymbal),
+                NewNote(49, DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
+
+                NewNote(50, DrumPad.Red),
+                NewNote(51, DrumPad.Yellow),
+                NewNote(52, DrumPad.Blue),
+                NewNote(53, DrumPad.Orange),
+                NewNote(54, DrumPad.Green),
+                NewNote(55, DrumPad.Yellow, flags: Flags.ProDrums_Cymbal),
+                NewNote(56, DrumPad.Blue, flags: Flags.ProDrums_Cymbal),
+                NewNote(57, DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
+
+                NewNote(58, DrumPad.Red),
+                NewNote(59, DrumPad.Red),
+                NewNote(60, DrumPad.Red),
+                NewNote(61, DrumPad.Red),
+                NewNote(62, DrumPad.Red),
+                NewNote(63, DrumPad.Red),
+
+                NewNote(64, DrumPad.Yellow, flags: Flags.ProDrums_Cymbal),
+                NewNote(65, DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
+                NewNote(66, DrumPad.Yellow, flags: Flags.ProDrums_Cymbal),
+                NewNote(67, DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
+                NewNote(68, DrumPad.Yellow, flags: Flags.ProDrums_Cymbal),
+                NewNote(69, DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
+
+                NewNote(70, DrumPad.Red),
+                NewNote(71, DrumPad.Yellow),
+                NewNote(72, DrumPad.Blue),
+                NewNote(73, DrumPad.Orange),
+                NewNote(74, DrumPad.Green),
+                NewNote(75, DrumPad.Yellow, flags: Flags.ProDrums_Cymbal),
+                NewNote(76, DrumPad.Blue, flags: Flags.ProDrums_Cymbal),
+                NewNote(77, DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
+            };
+
+            public List<SpecialPhrase> Phrases { get; } = new()
+            {
+                NewSpecial(26, SpecialPhrase.Type.Starpower, RESOLUTION * 8),
+                NewSpecial(34, SpecialPhrase.Type.ProDrums_Activation, RESOLUTION * 5),
+                NewSpecial(42, SpecialPhrase.Type.Versus_Player1, RESOLUTION * 8),
+                NewSpecial(50, SpecialPhrase.Type.Versus_Player2, RESOLUTION * 8),
+                NewSpecial(58, SpecialPhrase.Type.TremoloLane, RESOLUTION * 6),
+                NewSpecial(64, SpecialPhrase.Type.TrillLane, RESOLUTION * 6),
+                NewSpecial(70, SpecialPhrase.Type.Solo, RESOLUTION * 8),
+            };
+        }
+
+        public static readonly ParseBehaviorDrums DrumsTrack = new();
 
         private const byte VOCALS_RANGE_START = MidIOHelper.VOCALS_RANGE_START;
 
-        public static readonly List<ChartObject> VocalsNotes = new()
+        public class ParseBehaviorVocals : IParseBehavior
         {
-            NewSpecial(0, SpecialPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 12),
-            NewSpecial(0, SpecialPhrase.Type.Versus_Player1, RESOLUTION * 12),
-            NewNote(0, VOCALS_RANGE_START + 0, length: RESOLUTION / 2),
-            NewNote(1, VOCALS_RANGE_START + 1, length: RESOLUTION / 2),
-            NewNote(2, VOCALS_RANGE_START + 2, length: RESOLUTION / 2),
-            NewNote(3, VOCALS_RANGE_START + 3, length: RESOLUTION / 2),
-            NewNote(4, VOCALS_RANGE_START + 4, length: RESOLUTION / 2),
-            NewNote(5, VOCALS_RANGE_START + 5, length: RESOLUTION / 2),
-            NewNote(6, VOCALS_RANGE_START + 6, length: RESOLUTION / 2),
-            NewNote(7, VOCALS_RANGE_START + 7, length: RESOLUTION / 2),
-            NewNote(8, VOCALS_RANGE_START + 8, length: RESOLUTION / 2),
-            NewNote(9, VOCALS_RANGE_START + 9, length: RESOLUTION / 2),
-            NewNote(10, VOCALS_RANGE_START + 10, length: RESOLUTION / 2),
-            NewNote(11, VOCALS_RANGE_START + 11, length: RESOLUTION / 2),
+            public List<MoonNote> Notes { get; } = new()
+            {
+                NewNote(0, VOCALS_RANGE_START + 0, length: RESOLUTION / 2),
+                NewNote(1, VOCALS_RANGE_START + 1, length: RESOLUTION / 2),
+                NewNote(2, VOCALS_RANGE_START + 2, length: RESOLUTION / 2),
+                NewNote(3, VOCALS_RANGE_START + 3, length: RESOLUTION / 2),
+                NewNote(4, VOCALS_RANGE_START + 4, length: RESOLUTION / 2),
+                NewNote(5, VOCALS_RANGE_START + 5, length: RESOLUTION / 2),
+                NewNote(6, VOCALS_RANGE_START + 6, length: RESOLUTION / 2),
+                NewNote(7, VOCALS_RANGE_START + 7, length: RESOLUTION / 2),
+                NewNote(8, VOCALS_RANGE_START + 8, length: RESOLUTION / 2),
+                NewNote(9, VOCALS_RANGE_START + 9, length: RESOLUTION / 2),
+                NewNote(10, VOCALS_RANGE_START + 10, length: RESOLUTION / 2),
+                NewNote(11, VOCALS_RANGE_START + 11, length: RESOLUTION / 2),
 
-            NewSpecial(12, SpecialPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 12),
-            NewSpecial(12, SpecialPhrase.Type.Versus_Player2, RESOLUTION * 12),
-            NewSpecial(12, SpecialPhrase.Type.Starpower, RESOLUTION * 12),
-            NewNote(12, VOCALS_RANGE_START + 12, length: RESOLUTION / 2),
-            NewNote(13, VOCALS_RANGE_START + 13, length: RESOLUTION / 2),
-            NewNote(14, VOCALS_RANGE_START + 14, length: RESOLUTION / 2),
-            NewNote(15, VOCALS_RANGE_START + 15, length: RESOLUTION / 2),
-            NewNote(16, VOCALS_RANGE_START + 16, length: RESOLUTION / 2),
-            NewNote(17, VOCALS_RANGE_START + 17, length: RESOLUTION / 2),
-            NewNote(18, VOCALS_RANGE_START + 18, length: RESOLUTION / 2),
-            NewNote(19, VOCALS_RANGE_START + 19, length: RESOLUTION / 2),
-            NewNote(20, VOCALS_RANGE_START + 20, length: RESOLUTION / 2),
-            NewNote(21, VOCALS_RANGE_START + 21, length: RESOLUTION / 2),
-            NewNote(22, VOCALS_RANGE_START + 22, length: RESOLUTION / 2),
-            NewNote(23, VOCALS_RANGE_START + 23, length: RESOLUTION / 2),
+                NewNote(12, VOCALS_RANGE_START + 12, length: RESOLUTION / 2),
+                NewNote(13, VOCALS_RANGE_START + 13, length: RESOLUTION / 2),
+                NewNote(14, VOCALS_RANGE_START + 14, length: RESOLUTION / 2),
+                NewNote(15, VOCALS_RANGE_START + 15, length: RESOLUTION / 2),
+                NewNote(16, VOCALS_RANGE_START + 16, length: RESOLUTION / 2),
+                NewNote(17, VOCALS_RANGE_START + 17, length: RESOLUTION / 2),
+                NewNote(18, VOCALS_RANGE_START + 18, length: RESOLUTION / 2),
+                NewNote(19, VOCALS_RANGE_START + 19, length: RESOLUTION / 2),
+                NewNote(20, VOCALS_RANGE_START + 20, length: RESOLUTION / 2),
+                NewNote(21, VOCALS_RANGE_START + 21, length: RESOLUTION / 2),
+                NewNote(22, VOCALS_RANGE_START + 22, length: RESOLUTION / 2),
+                NewNote(23, VOCALS_RANGE_START + 23, length: RESOLUTION / 2),
 
-            NewSpecial(24, SpecialPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 12),
-            NewSpecial(24, SpecialPhrase.Type.Versus_Player1, RESOLUTION * 12),
-            NewSpecial(24, SpecialPhrase.Type.Versus_Player2, RESOLUTION * 12),
-            NewNote(24, VOCALS_RANGE_START + 24, length: RESOLUTION / 2),
-            NewNote(25, VOCALS_RANGE_START + 25, length: RESOLUTION / 2),
-            NewNote(26, VOCALS_RANGE_START + 26, length: RESOLUTION / 2),
-            NewNote(27, VOCALS_RANGE_START + 27, length: RESOLUTION / 2),
-            NewNote(28, VOCALS_RANGE_START + 28, length: RESOLUTION / 2),
-            NewNote(29, VOCALS_RANGE_START + 29, length: RESOLUTION / 2),
-            NewNote(30, VOCALS_RANGE_START + 30, length: RESOLUTION / 2),
-            NewNote(31, VOCALS_RANGE_START + 31, length: RESOLUTION / 2),
-            NewNote(32, VOCALS_RANGE_START + 32, length: RESOLUTION / 2),
-            NewNote(33, VOCALS_RANGE_START + 33, length: RESOLUTION / 2),
-            NewNote(34, VOCALS_RANGE_START + 34, length: RESOLUTION / 2),
-            NewNote(35, VOCALS_RANGE_START + 35, length: RESOLUTION / 2),
+                NewNote(24, VOCALS_RANGE_START + 24, length: RESOLUTION / 2),
+                NewNote(25, VOCALS_RANGE_START + 25, length: RESOLUTION / 2),
+                NewNote(26, VOCALS_RANGE_START + 26, length: RESOLUTION / 2),
+                NewNote(27, VOCALS_RANGE_START + 27, length: RESOLUTION / 2),
+                NewNote(28, VOCALS_RANGE_START + 28, length: RESOLUTION / 2),
+                NewNote(29, VOCALS_RANGE_START + 29, length: RESOLUTION / 2),
+                NewNote(30, VOCALS_RANGE_START + 30, length: RESOLUTION / 2),
+                NewNote(31, VOCALS_RANGE_START + 31, length: RESOLUTION / 2),
+                NewNote(32, VOCALS_RANGE_START + 32, length: RESOLUTION / 2),
+                NewNote(33, VOCALS_RANGE_START + 33, length: RESOLUTION / 2),
+                NewNote(34, VOCALS_RANGE_START + 34, length: RESOLUTION / 2),
+                NewNote(35, VOCALS_RANGE_START + 35, length: RESOLUTION / 2),
 
-            NewSpecial(36, SpecialPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 13),
-            NewSpecial(36, SpecialPhrase.Type.Versus_Player2, RESOLUTION * 13),
-            NewNote(36, VOCALS_RANGE_START + 36, length: RESOLUTION / 2),
-            NewNote(37, VOCALS_RANGE_START + 37, length: RESOLUTION / 2),
-            NewNote(38, VOCALS_RANGE_START + 38, length: RESOLUTION / 2),
-            NewNote(39, VOCALS_RANGE_START + 39, length: RESOLUTION / 2),
-            NewNote(40, VOCALS_RANGE_START + 40, length: RESOLUTION / 2),
-            NewNote(41, VOCALS_RANGE_START + 41, length: RESOLUTION / 2),
-            NewNote(42, VOCALS_RANGE_START + 42, length: RESOLUTION / 2),
-            NewNote(43, VOCALS_RANGE_START + 43, length: RESOLUTION / 2),
-            NewNote(44, VOCALS_RANGE_START + 44, length: RESOLUTION / 2),
-            NewNote(45, VOCALS_RANGE_START + 45, length: RESOLUTION / 2),
-            NewNote(46, VOCALS_RANGE_START + 46, length: RESOLUTION / 2),
-            NewNote(47, VOCALS_RANGE_START + 47, length: RESOLUTION / 2),
-            NewNote(48, VOCALS_RANGE_START + 48, length: RESOLUTION / 2),
+                NewNote(36, VOCALS_RANGE_START + 36, length: RESOLUTION / 2),
+                NewNote(37, VOCALS_RANGE_START + 37, length: RESOLUTION / 2),
+                NewNote(38, VOCALS_RANGE_START + 38, length: RESOLUTION / 2),
+                NewNote(39, VOCALS_RANGE_START + 39, length: RESOLUTION / 2),
+                NewNote(40, VOCALS_RANGE_START + 40, length: RESOLUTION / 2),
+                NewNote(41, VOCALS_RANGE_START + 41, length: RESOLUTION / 2),
+                NewNote(42, VOCALS_RANGE_START + 42, length: RESOLUTION / 2),
+                NewNote(43, VOCALS_RANGE_START + 43, length: RESOLUTION / 2),
+                NewNote(44, VOCALS_RANGE_START + 44, length: RESOLUTION / 2),
+                NewNote(45, VOCALS_RANGE_START + 45, length: RESOLUTION / 2),
+                NewNote(46, VOCALS_RANGE_START + 46, length: RESOLUTION / 2),
+                NewNote(47, VOCALS_RANGE_START + 47, length: RESOLUTION / 2),
+                NewNote(48, VOCALS_RANGE_START + 48, length: RESOLUTION / 2),
 
-            NewSpecial(49, SpecialPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 1),
-            NewSpecial(49, SpecialPhrase.Type.Versus_Player1, RESOLUTION * 1),
-            NewNote(49, 0, flags: Flags.Vocals_Percussion),
-        };
+                NewNote(49, 0, flags: Flags.Vocals_Percussion),
+            };
+
+            public List<SpecialPhrase> Phrases { get; } = new()
+            {
+                NewSpecial(0, SpecialPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 12),
+                NewSpecial(0, SpecialPhrase.Type.Versus_Player1, RESOLUTION * 12),
+                NewSpecial(12, SpecialPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 12),
+                NewSpecial(12, SpecialPhrase.Type.Versus_Player2, RESOLUTION * 12),
+                NewSpecial(12, SpecialPhrase.Type.Starpower, RESOLUTION * 12),
+                NewSpecial(24, SpecialPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 12),
+                NewSpecial(24, SpecialPhrase.Type.Versus_Player1, RESOLUTION * 12),
+                NewSpecial(24, SpecialPhrase.Type.Versus_Player2, RESOLUTION * 12),
+                NewSpecial(36, SpecialPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 13),
+                NewSpecial(36, SpecialPhrase.Type.Versus_Player2, RESOLUTION * 13),
+                NewSpecial(49, SpecialPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 1),
+                NewSpecial(49, SpecialPhrase.Type.Versus_Player1, RESOLUTION * 1),
+            };
+        }
+
+        public static readonly ParseBehaviorVocals VocalsNotes = new();
 
         public static MoonSong GenerateSong()
         {
@@ -381,14 +426,14 @@ namespace YARG.Core.UnitTests.Parsing
             PopulateGlobalEvents(song, GlobalEvents);
             foreach (var instrument in EnumExtensions<MoonInstrument>.Values)
             {
-                var gameMode = MoonSong.InstumentToChartGameMode(instrument);
-                var data = GameModeToChartData(gameMode);
-                PopulateInstrument(song, instrument, data);
+                var gameMode = InstumentToChartGameMode(instrument);
+                var track = GameModeToChartData(gameMode);
+                PopulateInstrument(song, instrument, track);
             }
             return song;
         }
 
-        public static List<ChartObject> GameModeToChartData(GameMode gameMode)
+        public static IParseBehavior GameModeToChartData(GameMode gameMode)
         {
             return gameMode switch {
                 GameMode.Guitar => GuitarTrack,
@@ -418,22 +463,22 @@ namespace YARG.Core.UnitTests.Parsing
             song.UpdateCache();
         }
 
-        public static void PopulateInstrument(MoonSong song, MoonInstrument instrument, List<ChartObject> data)
+        public static void PopulateInstrument(MoonSong song, MoonInstrument instrument, IParseBehavior track)
         {
             foreach (var difficulty in EnumExtensions<Difficulty>.Values)
             {
-                PopulateDifficulty(song, instrument, difficulty, data);
+                PopulateDifficulty(song, instrument, difficulty, track);
             }
         }
 
-        public static void PopulateDifficulty(MoonSong song, MoonInstrument instrument, Difficulty difficulty, List<ChartObject> data)
+        public static void PopulateDifficulty(MoonSong song, MoonInstrument instrument, Difficulty difficulty, IParseBehavior track)
         {
             var chart = song.GetChart(instrument, difficulty);
-            foreach (var chartObj in data)
-            {
-                chart.Add(chartObj.Clone(), false);
-            }
-            chart.UpdateCache();
+            foreach (var note in track.Notes)
+                chart.Add(note.Clone());
+
+            foreach (var phrase in track.Phrases)
+                chart.Add(phrase.Clone());
         }
 
         public static void VerifySong(MoonSong sourceSong, MoonSong parsedSong, IEnumerable<GameMode> supportedModes)

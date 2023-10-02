@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2020 Alexander Ong
+﻿// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
 // Chart file format specifications- https://docs.google.com/document/d/1v2v0U-9HQ5qHeccpExDOLJ5CMPZZ3QytPmAG5WF0Kzs/edit?usp=sharing
@@ -339,6 +339,8 @@ namespace MoonscraperChartEditor.Song.IO
                 postNotesAddedProcessList = postNotesAddedProcessList
             };
 
+            chart.InitNotesCapacity(5000);
+
             var noteProcessDict = GetNoteProcessDict(gameMode);
             var specialPhraseProcessDict = GetSpecialPhraseProcessDict(gameMode);
 
@@ -417,7 +419,7 @@ namespace MoonscraperChartEditor.Song.IO
                                     eventText = match.Groups[1].Value;
                                 }
 
-                                chart.Add(new ChartEvent(tick, eventText), false);
+                                chart.Add(new ChartEvent(tick, eventText));
                                 break;
                             }
 
@@ -432,7 +434,6 @@ namespace MoonscraperChartEditor.Song.IO
                         YargTrace.LogException(e, $"Error parsing .chart line '{line.ToString()}'!");
                     }
                 }
-                chart.UpdateCache();
 
                 foreach (var fn in postNotesAddedProcessList)
                 {
@@ -464,7 +465,7 @@ namespace MoonscraperChartEditor.Song.IO
             uint sus = ApplySustainCutoff(noteProcessParams.settings, noteEvent.length);
 
             var newMoonNote = new MoonNote(tick, ingameFret, sus, defaultFlags);
-            chart.Add(newMoonNote, false);
+            chart.Add(newMoonNote);
         }
 
         private static void ProcessNoteOnEventAsSpecialPhrase(in NoteProcessParams noteProcessParams, SpecialPhrase.Type type)
@@ -476,7 +477,7 @@ namespace MoonscraperChartEditor.Song.IO
             uint sus = noteEvent.length;
 
             var newPhrase = new SpecialPhrase(tick, sus, type);
-            chart.Add(newPhrase, false);
+            chart.Add(newPhrase);
         }
 
         private static void ProcessNoteOnEventAsChordFlag(in NoteProcessParams noteProcessParams, NoteFlagPriority flagData)

@@ -382,20 +382,21 @@ namespace MoonscraperChartEditor.Song
         /// <param name="item">The item to be remove.</param>
         /// <param name="list">The list in which the item will be removed from.</param>
         /// <returns>Returns whether the item was successfully removed or not (may not be removed if the objects was not found).</returns>
-        public static bool Remove<T>(T item, IList<T> list, bool uniqueData = true) where T : SongObject
+        public static bool Remove(MoonNote item, IList<MoonNote> list, bool uniqueData = true)
         {
             int pos = FindObjectPosition(item, list);
 
             if (pos != NOTFOUND)
             {
-                if (uniqueData && item.GetType() == typeof(MoonNote))
+                if (uniqueData)
                 {
                     // Update linked list
-                    var previous = FindPreviousOfType(item.GetType(), pos, list) as MoonNote;
-                    var next = FindNextOfType(item.GetType(), pos, list) as MoonNote;
+                    var previous = FindPreviousOfType(item.GetType(), pos, list);
+                    var next = FindNextOfType(item.GetType(), pos, list);
 
                     if (previous != null)
                         previous.next = next;
+
                     if (next != null)
                         next.previous = previous;
                 }
@@ -406,6 +407,19 @@ namespace MoonscraperChartEditor.Song
 
             return false;
         }
+
+        public static bool Remove<T>(T item, IList<T> list) where T : SongObject
+        {
+            int pos = FindObjectPosition(item, list);
+            if (pos != NOTFOUND)
+            {
+                list.RemoveAt(pos);
+                return true;
+            }
+            return false;
+        }
+
+
         public static T[] GetRangeCopy<T>(T[] list, uint minPos, uint maxPos) where T : SongObject
         {
             GetRange(list, minPos, maxPos, out int index, out int length);

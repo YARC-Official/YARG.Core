@@ -7,8 +7,6 @@ namespace MoonscraperChartEditor.Song
 {
     internal class MoonChart
     {
-        private readonly List<ChartObject> _chartObjects = new();
-
         /// <summary>
         /// The song this chart is connected to.
         /// </summary>
@@ -21,20 +19,15 @@ namespace MoonscraperChartEditor.Song
         /// <summary>
         /// Read only list of notes.
         /// </summary>
-        public SongObjectCache<MoonNote> notes { get; private set; } = new();
+        public List<MoonNote> notes { get; private set; } = new();
         /// <summary>
         /// Read only list of special phrases.
         /// </summary>
-        public SongObjectCache<SpecialPhrase> specialPhrases { get; private set; } = new();
+        public List<SpecialPhrase> specialPhrases { get; private set; } = new();
         /// <summary>
         /// Read only list of local events.
         /// </summary>
-        public SongObjectCache<ChartEvent> events { get; private set; } = new();
-
-        /// <summary>
-        /// Read only list containing all chart notes, special phrases, and text events.
-        /// </summary>
-        public ReadOnlyList<ChartObject> chartObjects { get; private set; }
+        public List<ChartEvent> events { get; private set; } = new();
 
         /// <summary>
         /// Creates a new chart object.
@@ -44,63 +37,64 @@ namespace MoonscraperChartEditor.Song
         {
             song = _song;
             gameMode = _gameMode;
-
-            chartObjects = new ReadOnlyList<ChartObject>(_chartObjects);
         }
 
         public MoonChart(MoonSong song, MoonSong.MoonInstrument Instrument) : this(song, MoonSong.InstumentToChartGameMode(Instrument))
         {
         }
 
-        /// <summary>
-        /// Updates all read-only values and the total note count.
-        /// </summary>
-        public void UpdateCache()
-        {
-            MoonSong.UpdateCacheList(notes, _chartObjects);
-            MoonSong.UpdateCacheList(specialPhrases, _chartObjects);
-            MoonSong.UpdateCacheList(events, _chartObjects);
-        }
-
         public void Clear()
         {
-            _chartObjects.Clear();
+            notes.Clear();
+            events.Clear();
+            specialPhrases.Clear();
         }
 
-        /// <summary>
-        /// Adds a chart object (note, special phrase, and/or chart event) into the chart.
-        /// </summary>
-        /// <param name="chartObject">The item to add</param>
-        /// <param name="update">Automatically update all read-only arrays? 
-        /// If set to false, you must manually call the updateArrays() method, but is useful when adding multiple objects as it increases performance dramatically.</param>
-        public int Add(ChartObject chartObject, bool update = true)
+        public void InitNotesCapacity(int capcaity)
         {
-            chartObject.chart = this;
-            chartObject.song = song;
-
-            int pos = SongObjectHelper.Insert(chartObject, _chartObjects);
-
-            if (update)
-                UpdateCache();
-
-            return pos;
+            notes.Capacity = capcaity;
         }
 
-        /// <summary>
-        /// Removes a chart object (note, special phrase, and/or chart event) from the chart.
-        /// </summary>
-        /// <param name="chartObject">Item to add.</param>
-        /// <param name="update">Automatically update all read-only arrays? 
-        /// If set to false, you must manually call the updateArrays() method, but is useful when removing multiple objects as it increases performance dramatically.</param>
-        /// <returns>Returns whether the removal was successful or not (item may not have been found if false).</returns>
-        public bool Remove(ChartObject chartObject, bool update = true)
+
+        public int Add(MoonNote note)
         {
-            bool success = SongObjectHelper.Remove(chartObject, _chartObjects);
+            note.chart = this;
+            note.song = song;
+            return SongObjectHelper.Insert(note, notes);
+        }
 
-            if (update)
-                UpdateCache();
+        public int Add(SpecialPhrase phrase)
+        {
+            phrase.chart = this;
+            phrase.song = song;
+            return SongObjectHelper.Insert(phrase, specialPhrases);
+        }
 
-            return success;
+        public int Add(ChartEvent ev)
+        {
+            ev.chart = this;
+            ev.song = song;
+            return SongObjectHelper.Insert(ev, events);
+        }
+
+        public bool Remove(MoonNote note)
+        {
+            return SongObjectHelper.Remove(note, notes);
+        }
+
+        public bool Remove(SpecialPhrase phrase)
+        {
+            return SongObjectHelper.Remove(phrase, specialPhrases);
+        }
+
+        public bool Remove(ChartEvent ev)
+        {
+            return SongObjectHelper.Remove(ev, events);
+        }
+
+        public bool IsOccupied()
+        {
+            return notes.Count > 0 || specialPhrases.Count > 0 || events.Count > 0;
         }
 
         public enum GameMode

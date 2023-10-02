@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2020 Alexander Ong
+﻿// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
 using System;
@@ -149,7 +149,6 @@ namespace MoonscraperChartEditor.Song.IO
                             {
                                 var chart = song.GetChart(instrument, difficulty);
                                 chart.Clear();
-                                chart.UpdateCache();
                             }
                         }
 
@@ -437,12 +436,6 @@ namespace MoonscraperChartEditor.Song.IO
             YargTrace.Assert(unpairedNoteQueue.Count == 0, $"Note queue was not fully processed! Remaining event count: {unpairedNoteQueue.Count}");
             YargTrace.Assert(unpairedSysexQueue.Count == 0, $"SysEx event queue was not fully processed! Remaining event count: {unpairedSysexQueue.Count}");
 
-            // Update chart caches
-            foreach (var diff in EnumExtensions<MoonSong.Difficulty>.Values)
-            {
-                song.GetChart(instrument, diff).UpdateCache();
-            }
-
             // Apply SysEx events first
             // These are separate to prevent forcing issues on open notes marked via SysEx
             foreach (var process in processParams.sysexProcessList)
@@ -638,7 +631,7 @@ namespace MoonscraperChartEditor.Song.IO
                 sus = ApplySustainCutoff(eventProcessParams.settings, sus);
 
             var newMoonNote = new MoonNote(tick, ingameFret, sus, defaultFlags);
-            chart.Add(newMoonNote, false);
+            chart.Add(newMoonNote);
         }
 
         private static void ProcessNoteOnEventAsSpecialPhrase(in EventProcessParams eventProcessParams, SpecialPhrase.Type type)
@@ -652,7 +645,7 @@ namespace MoonscraperChartEditor.Song.IO
 
             foreach (var diff in EnumExtensions<MoonSong.Difficulty>.Values)
             {
-                song.GetChart(instrument, diff).Add(new SpecialPhrase(tick, sus, type), false);
+                song.GetChart(instrument, diff).Add(new SpecialPhrase(tick, sus, type));
             }
         }
 
@@ -882,8 +875,6 @@ namespace MoonscraperChartEditor.Song.IO
                         break;
                 }
             }
-
-            chart.UpdateCache();
         }
     }
 }
