@@ -339,7 +339,7 @@ namespace MoonscraperChartEditor.Song.IO
                 postNotesAddedProcessList = postNotesAddedProcessList
             };
 
-            chart.InitNotesCapacity(5000);
+            chart.notes.Capacity = 5000;
 
             var noteProcessDict = GetNoteProcessDict(gameMode);
             var specialPhraseProcessDict = GetSpecialPhraseProcessDict(gameMode);
@@ -439,6 +439,7 @@ namespace MoonscraperChartEditor.Song.IO
                 {
                     fn(processParams);
                 }
+                chart.notes.TrimExcess();
             }
             catch (Exception e)
             {

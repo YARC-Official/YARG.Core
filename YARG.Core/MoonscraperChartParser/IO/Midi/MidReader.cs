@@ -455,6 +455,9 @@ namespace MoonscraperChartEditor.Song.IO
             {
                 process(processParams);
             }
+
+            foreach (var difficulty in EnumExtensions<MoonSong.Difficulty>.Values)
+                song.GetChart(instrument, difficulty).notes.TrimExcess();
         }
 
         private static void ProcessNoteEvent(ref EventProcessParams processParams, NoteEventQueue unpairedNotes,
@@ -631,6 +634,8 @@ namespace MoonscraperChartEditor.Song.IO
                 sus = ApplySustainCutoff(eventProcessParams.settings, sus);
 
             var newMoonNote = new MoonNote(tick, ingameFret, sus, defaultFlags);
+            if (chart.notes.Capacity == 0)
+                chart.notes.Capacity = 5000;
             chart.Add(newMoonNote);
         }
 

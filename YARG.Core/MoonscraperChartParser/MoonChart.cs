@@ -50,12 +50,6 @@ namespace MoonscraperChartEditor.Song
             specialPhrases.Clear();
         }
 
-        public void InitNotesCapacity(int capcaity)
-        {
-            notes.Capacity = capcaity;
-        }
-
-
         public int Add(MoonNote note)
         {
             note.chart = this;
