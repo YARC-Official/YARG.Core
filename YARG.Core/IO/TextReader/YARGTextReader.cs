@@ -50,19 +50,19 @@ namespace YARG.Core.IO
 
         public YARGTextReader(TChar[] data, int position) : base(data)
         {
-            _position = position;
+            Position = position;
 
             SkipWhiteSpace();
             SetNextPointer();
-            if (data[_position].ToChar(null) == '\n')
+            if (data[Position].ToChar(null) == '\n')
                 GotoNextLine();
         }
 
         public override char SkipWhiteSpace()
         {
-            while (_position < Length)
+            while (Position < Length)
             {
-                char ch = Data[_position].ToChar(null);
+                char ch = Data[Position].ToChar(null);
                 if (ch.IsAsciiWhitespace())
                 {
                     if (ch == '\n')
@@ -70,7 +70,7 @@ namespace YARG.Core.IO
                 }
                 else if (ch != '=')
                     return ch;
-                ++_position;
+                ++Position;
             }
 
             return (char) 0;
@@ -81,51 +81,51 @@ namespace YARG.Core.IO
             char curr;
             do
             {
-                _position = _next;
-                if (_position >= Length)
+                Position = _next;
+                if (Position >= Length)
                     break;
 
-                _position++;
+                Position++;
                 curr = SkipWhiteSpace();
 
-                if (_position == Length)
+                if (Position == Length)
                     break;
 
-                if (Data[_position].ToChar(null) == '{')
+                if (Data[Position].ToChar(null) == '{')
                 {
-                    _position++;
+                    Position++;
                     curr = SkipWhiteSpace();
                 }
 
                 SetNextPointer();
-            } while (curr == '\n' || curr == '/' && Data[_position + 1].ToChar(null) == '/');
+            } while (curr == '\n' || curr == '/' && Data[Position + 1].ToChar(null) == '/');
         }
 
         public void SetNextPointer()
         {
-            _next = _position;
+            _next = Position;
             while (_next < Length && Data[_next].ToChar(null) != '\n')
                 ++_next;
         }
 
         public ReadOnlySpan<TChar> ExtractBasicSpan(int length)
         {
-            return new ReadOnlySpan<TChar>(Data, _position, length);
+            return new ReadOnlySpan<TChar>(Data, Position, length);
         }
 
         private ReadOnlySpan<TChar> InternalExtractTextSpan(bool checkForQuotes = true)
         {
-            (int stringBegin, int stringEnd) = (_position, _next);
+            (int stringBegin, int stringEnd) = (Position, _next);
             if (Data[stringEnd - 1].ToChar(null) == '\r')
                 --stringEnd;
 
-            if (checkForQuotes && Data[_position].ToChar(null) == '\"')
+            if (checkForQuotes && Data[Position].ToChar(null) == '\"')
             {
                 int end = stringEnd - 1;
-                while (_position + 1 < end && Data[end].ToChar(null).IsAsciiWhitespace())
+                while (Position + 1 < end && Data[end].ToChar(null).IsAsciiWhitespace())
                     --end;
 
-                if (_position < end && Data[end].ToChar(null) == '\"' && Data[end - 1].ToChar(null) != '\\')
+                if (Position < end && Data[end].ToChar(null) == '\"' && Data[end - 1].ToChar(null) != '\\')
                 {
                     ++stringBegin;
                     stringEnd = end;
@@ -138,7 +138,7 @@ namespace YARG.Core.IO
             while (stringEnd > stringBegin && Data[stringEnd - 1].ToChar(null).IsAsciiWhitespace())
                 --stringEnd;
 
-            _position = _next;
+            Position = _next;
             return new(Data, stringBegin, stringEnd - stringBegin);
         }
 
@@ -158,7 +158,7 @@ namespace YARG.Core.IO
 
         public string ExtractModifierName()
         {
-            int curr = _position;
+            int curr = Position;
             while (curr < Length)
             {
                 char b = Data[curr].ToChar(null);
@@ -167,8 +167,8 @@ namespace YARG.Core.IO
                 ++curr;
             }
 
-            ReadOnlySpan<TChar> name = new(Data, _position, curr - _position);
-            _position = curr;
+            ReadOnlySpan<TChar> name = new(Data, Position, curr - Position);
+            Position = curr;
             SkipWhiteSpace();
             return Decode(name);
         }
