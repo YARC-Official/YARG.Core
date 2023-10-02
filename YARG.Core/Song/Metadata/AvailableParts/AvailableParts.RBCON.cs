@@ -22,7 +22,7 @@ namespace YARG.Core.Song
             while (reader.StartNode())
             {
                 string name = reader.GetNameOfNode();
-                diff = reader.ReadInt32();
+                diff = YARGNumberExtractor.Int32(reader);
                 switch (name)
                 {
                     case "drum":

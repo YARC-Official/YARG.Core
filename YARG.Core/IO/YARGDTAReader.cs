@@ -172,7 +172,7 @@ namespace YARG.Core.IO
         {
             List<int> values = new();
             while (Data[Position] != ')')
-                values.Add(ReadInt32());
+                values.Add(YARGNumberExtractor.Int32(this));
             return values;
         }
 
@@ -180,7 +180,7 @@ namespace YARG.Core.IO
         {
             List<float> values = new();
             while (Data[Position] != ')')
-                values.Add(ReadFloat());
+                values.Add(YARGNumberExtractor.Float(this));
             return values;
         }
 
