@@ -36,7 +36,7 @@ namespace YARG.Core.IO.Ini
                     return false;
             }
 
-            section = reader.Decode(reader.ExtractBasicSpan(reader.Next - reader.Position)).TrimEnd().ToLower();
+            section = reader.Decode(reader.PeekBasicSpan(reader.Next - reader.Position)).TrimEnd().ToLower();
             return true;
         }
 

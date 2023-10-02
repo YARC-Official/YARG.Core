@@ -300,7 +300,7 @@ namespace YARG.Core.IO
         {
             if (reader.Next - reader.Position < str.Length)
                 return false;
-            return reader.ExtractBasicSpan(str.Length).SequenceEqual(str);
+            return reader.PeekBasicSpan(str.Length).SequenceEqual(str);
         }
 
         public bool IsStillCurrentTrack()

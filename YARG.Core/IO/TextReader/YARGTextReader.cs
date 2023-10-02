@@ -108,7 +108,7 @@ namespace YARG.Core.IO
                 ++_next;
         }
 
-        public ReadOnlySpan<TChar> ExtractBasicSpan(int length)
+        public ReadOnlySpan<TChar> PeekBasicSpan(int length)
         {
             return new ReadOnlySpan<TChar>(Data, Position, length);
         }
