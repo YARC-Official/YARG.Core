@@ -1,12 +1,33 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using YARG.Core.Extensions;
 
 namespace YARG.Core.IO.Ini
 {
     public static class YARGIniReader
     {
-        public static Dictionary<string, IniSection> ProcessIni<TChar, TDecoder>(YARGTextReader<TChar> textReader, Dictionary<string, Dictionary<string, IniModifierCreator>> sections)
+        public static Dictionary<string, IniSection> ReadIniFile(string iniFile, Dictionary<string, Dictionary<string, IniModifierCreator>> sections)
+        {
+            try
+            {
+                byte[] bytes = File.ReadAllBytes(iniFile);
+                var byteReader = YARGTextReader.TryLoadByteReader(bytes);
+                if (byteReader != null)
+                    return ProcessIni<byte, ByteStringDecoder>(byteReader, sections);
+
+                var charReader = YARGTextReader.LoadCharReader(bytes);
+                return ProcessIni<char, CharStringDecoder>(charReader, sections);
+
+            }
+            catch (Exception ex)
+            {
+                YargTrace.LogException(ex, ex.Message);
+                return new();
+            }
+        }
+
+        private static Dictionary<string, IniSection> ProcessIni<TChar, TDecoder>(YARGTextReader<TChar> textReader, Dictionary<string, Dictionary<string, IniModifierCreator>> sections)
             where TChar : unmanaged, IConvertible
             where TDecoder : StringDecoder<TChar>, new()
         {

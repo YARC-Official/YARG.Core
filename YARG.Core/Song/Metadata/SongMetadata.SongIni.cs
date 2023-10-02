@@ -248,7 +248,7 @@ namespace YARG.Core.Song
             IniSection modifiers;
             if (iniFile != null)
             {
-                modifiers = IniHandler.ReadSongIniFile(iniFile);
+                modifiers = SongIniHandler.ReadSongIniFile(iniFile);
                 iniInfo = new AbridgedFileInfo(iniFile);
             }
             else if (IniSubmetadata.DoesSoloChartHaveAudio(Path.GetDirectoryName(chartFile)))

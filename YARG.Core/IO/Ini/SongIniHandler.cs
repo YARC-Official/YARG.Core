@@ -1,34 +1,20 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
+﻿using System.Collections.Generic;
 using System.Linq;
 
 namespace YARG.Core.IO.Ini
 {
-    public static class IniHandler
+    public static class SongIniHandler
     {
-        public static Dictionary<string, IniSection> ReadIniFile(string iniFile, Dictionary<string, Dictionary<string, IniModifierCreator>> sections)
+        public static IniSection ReadSongIniFile(string iniFile)
         {
-            try
-            {
-                byte[] bytes = File.ReadAllBytes(iniFile);
-                var byteReader = YARGTextReader.TryLoadByteReader(bytes);
-                if (byteReader != null)
-                    return YARGIniReader.ProcessIni<byte, ByteStringDecoder>(byteReader, sections);
-
-                var charReader = YARGTextReader.LoadCharReader(bytes);
-                return YARGIniReader.ProcessIni<char, CharStringDecoder>(charReader, sections);
-                
-            }
-            catch (Exception ex)
-            {
-                YargTrace.LogException(ex, ex.Message);
+            var modifiers = YARGIniReader.ReadIniFile(iniFile, SONG_INI_DICTIONARY);
+            if (modifiers.Count == 0)
                 return new();
-            }
+            return modifiers.First().Value;
         }
 
         private static readonly Dictionary<string, Dictionary<string, IniModifierCreator>> SONG_INI_DICTIONARY = new();
-        static IniHandler()
+        static SongIniHandler()
         {
             SONG_INI_DICTIONARY.Add("[song]", new()
             {
@@ -151,14 +137,6 @@ namespace YARG.Core.IO.Ini
 
                 { "year",                                 new("year", ModifierCreatorType.String) }
             });
-        }
-
-        public static IniSection ReadSongIniFile(string iniFile)
-        {
-            var modifiers = ReadIniFile(iniFile, SONG_INI_DICTIONARY);
-            if (modifiers.Count == 0)
-                return new();
-            return modifiers.First().Value;
         }
     }
 }
