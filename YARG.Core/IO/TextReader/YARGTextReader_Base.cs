@@ -256,11 +256,6 @@ namespace YARG.Core.IO
             throw new Exception("Data for Double not present");
         }
 
-        public ReadOnlySpan<T> ExtractBasicSpan(int length)
-        {
-            return new ReadOnlySpan<T>(Data, _position, length);
-        }
-
         private bool InternalReadSigned(out long value, long hardMax, long hardMin, long softMax)
         {
             value = 0;

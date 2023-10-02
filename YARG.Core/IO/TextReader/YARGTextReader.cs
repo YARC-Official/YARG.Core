@@ -108,6 +108,11 @@ namespace YARG.Core.IO
                 ++_next;
         }
 
+        public ReadOnlySpan<TType> ExtractBasicSpan(int length)
+        {
+            return new ReadOnlySpan<TType>(Data, _position, length);
+        }
+
         private ReadOnlySpan<TType> InternalExtractTextSpan(bool checkForQuotes = true)
         {
             (int position, int next) boundaries = (_position, _next);
