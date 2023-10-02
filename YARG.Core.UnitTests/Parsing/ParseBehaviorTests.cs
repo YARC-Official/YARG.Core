@@ -20,12 +20,6 @@ namespace YARG.Core.UnitTests.Parsing
 
         public static readonly SongObjectComparer Comparer = new();
 
-        public static readonly List<SyncTrack> TempoMap = new()
-        {
-            new BPM(0, (uint)(TEMPO * 1000)),
-            new TimeSignature(0, NUMERATOR, DENOMINATOR),
-        };
-
         public static readonly List<Event> GlobalEvents = new()
         {
         };
@@ -422,7 +416,7 @@ namespace YARG.Core.UnitTests.Parsing
             {
                 resolution = RESOLUTION,
             };
-            PopulateSyncTrack(song, TempoMap);
+            PopulateSyncTrack(song);
             PopulateGlobalEvents(song, GlobalEvents);
             foreach (var instrument in EnumExtensions<MoonInstrument>.Values)
             {
@@ -445,22 +439,18 @@ namespace YARG.Core.UnitTests.Parsing
             };
         }
 
-        public static void PopulateSyncTrack(MoonSong song, List<SyncTrack> tempoMap)
+        public static void PopulateSyncTrack(MoonSong song)
         {
-            foreach (var sync in tempoMap)
-            {
-                song.Add(sync.Clone(), false);
-            }
-            song.UpdateCache();
+            song.Add(new BPM(0, (uint) (TEMPO * 1000)));
+            song.Add(new TimeSignature(0, NUMERATOR, DENOMINATOR));
         }
 
         public static void PopulateGlobalEvents(MoonSong song, List<Event> events)
         {
             foreach (var text in events)
             {
-                song.Add(text.Clone(), false);
+                song.Add(text.Clone());
             }
-            song.UpdateCache();
         }
 
         public static void PopulateInstrument(MoonSong song, MoonInstrument instrument, IParseBehavior track)

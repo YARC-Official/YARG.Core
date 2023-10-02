@@ -91,16 +91,24 @@ namespace YARG.Core.UnitTests.Parsing
         private static void GenerateSyncSection(MoonSong sourceSong, StringBuilder builder)
         {
             builder.Append($"[{SECTION_SYNC_TRACK}]{NEWLINE}{{{NEWLINE}");
-            foreach (var sync in sourceSong.syncTrack)
+            int timeSigIndex = 0;
+            int bpmIndex = 0;
+            while (timeSigIndex < sourceSong.timeSignatures.Count ||
+                   bpmIndex < sourceSong.bpms.Count)
             {
-                switch (sync)
+                // Generate in this order: phrases, notes, then events
+                while (timeSigIndex < sourceSong.timeSignatures.Count &&
+                    (bpmIndex == sourceSong.bpms.Count || sourceSong.timeSignatures[timeSigIndex].tick <= sourceSong.bpms[bpmIndex].tick))
                 {
-                    case BPM bpm:
-                        builder.Append($"  {bpm.tick} = B {bpm.value}");
-                        break;
-                    case TimeSignature ts:
-                        builder.Append($"  {ts.tick} = TS {ts.numerator} {(int)Math.Log2(ts.denominator)}");
-                        break;
+                    var ts = sourceSong.timeSignatures[timeSigIndex++];
+                    builder.Append($"  {ts.tick} = TS {ts.numerator} {(int) Math.Log2(ts.denominator)}");
+                }
+
+                while (bpmIndex < sourceSong.bpms.Count &&
+                    (timeSigIndex == sourceSong.timeSignatures.Count || sourceSong.bpms[bpmIndex].tick < sourceSong.timeSignatures[timeSigIndex].tick))
+                {
+                    var bpm = sourceSong.bpms[bpmIndex++];
+                    builder.Append($"  {bpm.tick} = B {bpm.value}");
                 }
             }
             builder.Append($"}}{NEWLINE}");
@@ -109,9 +117,25 @@ namespace YARG.Core.UnitTests.Parsing
         private static void GenerateEventsSection(MoonSong sourceSong, StringBuilder builder)
         {
             builder.Append($"[{SECTION_EVENTS}]{NEWLINE}{{{NEWLINE}");
-            foreach (var text in sourceSong.eventsAndSections)
+            int sectionIndex = 0;
+            int eventIndex = 0;
+            while (sectionIndex < sourceSong.sections.Count ||
+                   eventIndex < sourceSong.events.Count)
             {
-                builder.Append($"  {text.tick} = E \"{text.title}\"");
+                // Generate in this order: phrases, notes, then events
+                while (sectionIndex < sourceSong.sections.Count &&
+                    (eventIndex == sourceSong.events.Count || sourceSong.sections[sectionIndex].tick <= sourceSong.events[eventIndex].tick))
+                {
+                    var section = sourceSong.sections[sectionIndex++];
+                    builder.Append($"  {section.tick} = E \"{section.title}\"");
+                }
+
+                while (eventIndex < sourceSong.events.Count &&
+                    (sectionIndex == sourceSong.sections.Count || sourceSong.bpms[eventIndex].tick < sourceSong.sections[sectionIndex].tick))
+                {
+                    var ev = sourceSong.events[eventIndex++];
+                    builder.Append($"  {ev.tick} = E \"{ev.title}\"");
+                }
             }
             builder.Append($"}}{NEWLINE}");
         }

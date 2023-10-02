@@ -180,14 +180,13 @@ namespace MoonscraperChartEditor.Song.IO
 
             foreach (var tempo in tempoMap.GetTempoChanges())
             {
-                song.Add(new BPM((uint)tempo.Time, (uint)(tempo.Value.BeatsPerMinute * 1000)), false);
+                song.Add(new BPM((uint)tempo.Time, (uint)(tempo.Value.BeatsPerMinute * 1000)));
             }
             foreach (var timesig in tempoMap.GetTimeSignatureChanges())
             {
-                song.Add(new TimeSignature((uint)timesig.Time, (uint)timesig.Value.Numerator, (uint)timesig.Value.Denominator), false);
+                song.Add(new TimeSignature((uint)timesig.Time, (uint)timesig.Value.Numerator, (uint)timesig.Value.Denominator));
             }
-
-            song.UpdateCache();
+            song.UpdateBPMTimeValues();
         }
 
         private static void ReadSongBeats(TrackChunk track, MoonSong song)
@@ -217,7 +216,7 @@ namespace MoonscraperChartEditor.Song.IO
                             continue;
                     }
 
-                    song.Add(new Beat((uint)absoluteTime, beatType), false);
+                    song.Add(new Beat((uint)absoluteTime, beatType));
                 }
             }
         }
@@ -250,16 +249,14 @@ namespace MoonscraperChartEditor.Song.IO
                     {
                         // This is a section, use the text grouped by the regex
                         string sectionText = sectionMatch.Groups[1].Value;
-                        song.Add(new Section(sectionText, (uint)absoluteTime), false);
+                        song.Add(new Section(sectionText, (uint)absoluteTime));
                         continue;
                     }
 
                     // Add the event as-is
-                    song.Add(new Event(eventText, (uint)absoluteTime), false);
+                    song.Add(new Event(eventText, (uint)absoluteTime));
                 }
             }
-
-            song.UpdateCache();
         }
 
         private static void ReadTextEventsIntoGlobalEventsAsLyrics(TrackChunk track, MoonSong song)
@@ -277,18 +274,16 @@ namespace MoonscraperChartEditor.Song.IO
                 if (trackEvent is BaseTextEvent text && !text.Text.Contains('['))
                 {
                     string lyricEvent = TextEventDefinitions.LYRIC_PREFIX_WITH_SPACE + text.Text;
-                    song.Add(new Event(lyricEvent, (uint)absoluteTime), false);
+                    song.Add(new Event(lyricEvent, (uint)absoluteTime));
                 }
                 else if (trackEvent is NoteEvent note && (byte)note.NoteNumber is MidIOHelper.LYRICS_PHRASE_1 or MidIOHelper.LYRICS_PHRASE_2)
                 {
                     if (note.EventType == MidiEventType.NoteOn)
-                        song.Add(new Event(TextEventDefinitions.LYRIC_PHRASE_START, (uint)absoluteTime), false);
+                        song.Add(new Event(TextEventDefinitions.LYRIC_PHRASE_START, (uint)absoluteTime));
                     else if (note.EventType == MidiEventType.NoteOff)
-                        song.Add(new Event(TextEventDefinitions.LYRIC_PHRASE_END, (uint)absoluteTime), false);
+                        song.Add(new Event(TextEventDefinitions.LYRIC_PHRASE_END, (uint)absoluteTime));
                 }
             }
-
-            song.UpdateCache();
         }
 
         private static void ReadVenueEvents(TrackChunk track, MoonSong song)
@@ -331,7 +326,7 @@ namespace MoonscraperChartEditor.Song.IO
                             continue;
 
                         // Add the event
-                        song.Add(new VenueEvent(eventData.type, eventData.text, (uint)startTick, (uint)(startTick - absoluteTime)), false);
+                        song.Add(new VenueEvent(eventData.type, eventData.text, (uint)startTick, (uint)(startTick - absoluteTime)));
                     }
                 }
                 else if (trackEvent is BaseTextEvent text)
@@ -344,7 +339,7 @@ namespace MoonscraperChartEditor.Song.IO
                     // Get new representation of the event
                     if (MidIOHelper.VENUE_TEXT_CONVERSION_LOOKUP.TryGetValue(eventText, out var eventData))
                     {
-                        song.Add(new VenueEvent(eventData.type, eventData.text, (uint)absoluteTime), false);
+                        song.Add(new VenueEvent(eventData.type, eventData.text, (uint)absoluteTime));
                     }
                     else
                     {
@@ -364,18 +359,16 @@ namespace MoonscraperChartEditor.Song.IO
                             }
 
                             matched = true;
-                            song.Add(new VenueEvent(type, converted, (uint)absoluteTime), false);
+                            song.Add(new VenueEvent(type, converted, (uint)absoluteTime));
                             break;
                         }
 
                         // Unknown events
                         if (!matched)
-                            song.Add(new VenueEvent(VenueEvent.Type.Unknown, eventText, (uint)absoluteTime), false);
+                            song.Add(new VenueEvent(VenueEvent.Type.Unknown, eventText, (uint)absoluteTime));
                     }
                 }
             }
-
-            song.UpdateCache();
         }
 
         private static void ReadNotes(ParseSettings settings, TrackChunk track, MoonSong song,

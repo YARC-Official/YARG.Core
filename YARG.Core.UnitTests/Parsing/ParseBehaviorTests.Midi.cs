@@ -227,19 +227,25 @@ namespace YARG.Core.UnitTests.Parsing
         private static TrackChunk GenerateSyncChunk(MoonSong sourceSong)
         {
             var timedEvents = new MidiEventList();
-            foreach (var sync in sourceSong.syncTrack)
+            int timeSigIndex = 0;
+            int bpmIndex = 0;
+            while (timeSigIndex < sourceSong.timeSignatures.Count ||
+                   bpmIndex < sourceSong.bpms.Count)
             {
-                switch (sync)
+                // Generate in this order: phrases, notes, then events
+                while (timeSigIndex < sourceSong.timeSignatures.Count &&
+                    (bpmIndex == sourceSong.bpms.Count || sourceSong.timeSignatures[timeSigIndex].tick <= sourceSong.bpms[bpmIndex].tick))
                 {
-                    case BPM bpm:
-                        // MIDI stores tempo as microseconds per quarter note, so we need to convert
-                        // Moonscraper already ties BPM to quarter notes, so no additional conversion is needed
-                        long microseconds = Chart.TempoChange.BpmToMicroSeconds(bpm.displayValue);
-                        timedEvents.Add((sync.tick, new SetTempoEvent(microseconds)));
-                        break;
-                    case TimeSignature ts:
-                        timedEvents.Add((sync.tick, new TimeSignatureEvent((byte)ts.numerator, (byte)ts.denominator)));
-                        break;
+                    var ts = sourceSong.timeSignatures[timeSigIndex++];
+                    timedEvents.Add((ts.tick, new TimeSignatureEvent((byte) ts.numerator, (byte) ts.denominator)));
+                }
+
+                while (bpmIndex < sourceSong.bpms.Count &&
+                    (timeSigIndex == sourceSong.timeSignatures.Count || sourceSong.bpms[bpmIndex].tick < sourceSong.timeSignatures[timeSigIndex].tick))
+                {
+                    var bpm = sourceSong.bpms[bpmIndex++];
+                    long microseconds = Chart.TempoChange.BpmToMicroSeconds(bpm.displayValue);
+                    timedEvents.Add((bpm.tick, new SetTempoEvent((long) microseconds)));
                 }
             }
 
@@ -248,10 +254,27 @@ namespace YARG.Core.UnitTests.Parsing
 
         private static TrackChunk GenerateEventsChunk(MoonSong sourceSong)
         {
-            var timedEvents = new MidiEventList();
-            foreach (var text in sourceSong.eventsAndSections)
+            MidiEventList timedEvents = new();
+
+            int sectionIndex = 0;
+            int eventIndex = 0;
+            while (sectionIndex < sourceSong.sections.Count ||
+                   eventIndex < sourceSong.events.Count)
             {
-                timedEvents.Add((text.tick, new TextEvent(text.title)));
+                // Generate in this order: phrases, notes, then events
+                while (sectionIndex < sourceSong.sections.Count &&
+                    (eventIndex == sourceSong.events.Count || sourceSong.sections[sectionIndex].tick <= sourceSong.events[eventIndex].tick))
+                {
+                    var section = sourceSong.sections[sectionIndex++];
+                    timedEvents.Add((section.tick, new TextEvent(section.title)));
+                }
+
+                while (eventIndex < sourceSong.events.Count &&
+                    (sectionIndex == sourceSong.sections.Count || sourceSong.bpms[eventIndex].tick < sourceSong.sections[sectionIndex].tick))
+                {
+                    var ev = sourceSong.events[eventIndex++];
+                    timedEvents.Add((ev.tick, new TextEvent(ev.title)));
+                }
             }
 
             return FinalizeTrackChunk(EVENTS_TRACK, timedEvents);

@@ -135,8 +135,6 @@ namespace MoonscraperChartEditor.Song.IO
                 var splitter = sectionText.SplitTrimmed('\n');
                 SubmitChartData(settings, song, sectionName, splitter);
             }
-
-            song.UpdateCache();
             return song;
         }
 
@@ -152,7 +150,7 @@ namespace MoonscraperChartEditor.Song.IO
             else if (sectionName.Equals(ChartIOHelper.SECTION_SYNC_TRACK, StringComparison.Ordinal))
             {
                 YargTrace.DebugInfo("Loading sync data");
-                SubmitDataGlobals(song, sectionLines);
+                SubmitDataSync(song, sectionLines);
                 return;
             }
             else if (sectionName.Equals(ChartIOHelper.SECTION_EVENTS, StringComparison.Ordinal))
@@ -198,7 +196,7 @@ namespace MoonscraperChartEditor.Song.IO
             // Note snap threshold is not verified, as the parser doesn't use it
         }
 
-        private static void SubmitDataGlobals(MoonSong song, TrimSplitter sectionLines)
+        private static void SubmitDataSync(MoonSong song, TrimSplitter sectionLines)
         {
             var anchorData = new List<Anchor>();
 
@@ -231,7 +229,7 @@ namespace MoonscraperChartEditor.Song.IO
                             var denominatorText = remaining.GetNextWord(out remaining);
                             uint denominator = denominatorText.IsEmpty ? 2 : (uint)FastInt32Parse(denominatorText);
 
-                            song.Add(new TimeSignature(tick, numerator, (uint)Math.Pow(2, denominator)), false);
+                            song.Add(new TimeSignature(tick, numerator, (uint)Math.Pow(2, denominator)));
                             break;
                         }
 
@@ -241,34 +239,7 @@ namespace MoonscraperChartEditor.Song.IO
                             var tempoText = remaining.GetNextWord(out remaining);
                             uint tempo = (uint)FastInt32Parse(tempoText);
 
-                            song.Add(new BPM(tick, tempo), false);
-                            break;
-                        }
-
-                        case 'E':
-                        {
-                            // Get event text
-                            string eventText = remaining.Trim().Trim('"').ToString();
-
-                            // Strip off brackets and any garbage outside of them
-                            var match = ChartIOHelper.TextEventRegex.Match(eventText);
-                            if (match.Success)
-                            {
-                                eventText = match.Groups[1].Value;
-                            }
-
-                            // Check for section events
-                            var sectionMatch = ChartIOHelper.SectionEventRegex.Match(eventText);
-                            if (sectionMatch.Success)
-                            {
-                                // This is a section, use the text grouped by the regex
-                                string sectionText = sectionMatch.Groups[1].Value;
-                                song.Add(new Section(sectionText, tick), false);
-                            }
-                            else
-                            {
-                                song.Add(new Event(eventText, tick), false);
-                            }
+                            song.Add(new BPM(tick, tempo));
                             break;
                         }
 
@@ -298,24 +269,78 @@ namespace MoonscraperChartEditor.Song.IO
                 }
             }
 
-            var bpms = song.syncTrack.OfType<BPM>().ToArray();        // BPMs are currently uncached
             foreach (var anchor in anchorData)
             {
-                int arrayPos = SongObjectHelper.FindClosestPosition(anchor.tick, bpms);
-                if (bpms[arrayPos].tick == anchor.tick)
+                int arrayPos = SongObjectHelper.FindClosestPosition(anchor.tick, song.bpms);
+                if (song.bpms[arrayPos].tick == anchor.tick)
                 {
-                    bpms[arrayPos].anchor = anchor.anchorTime;
+                    song.bpms[arrayPos].anchor = anchor.anchorTime;
                 }
                 else
                 {
                     // Create a new anchored bpm
                     uint value;
-                    if (bpms[arrayPos].tick > anchor.tick)
-                        value = bpms[arrayPos - 1].value;
+                    if (song.bpms[arrayPos].tick > anchor.tick)
+                        value = song.bpms[arrayPos - 1].value;
                     else
-                        value = bpms[arrayPos].value;
+                        value = song.bpms[arrayPos].value;
 
                     song.Add(new BPM(anchor.tick, value, anchor.anchorTime));
+                }
+            }
+
+            song.UpdateBPMTimeValues();
+        }
+
+        private static void SubmitDataGlobals(MoonSong song, TrimSplitter sectionLines)
+        {
+            foreach (var _line in sectionLines)
+            {
+                var line = _line.Trim();
+                if (line.IsEmpty)
+                    continue;
+
+                try
+                {
+                    // Split on the equals sign
+                    var tickText = line.SplitOnceTrimmed('=', out var remaining);
+
+                    // Get tick
+                    uint tick = (uint) FastInt32Parse(tickText);
+
+                    // Get event type
+                    var typeCodeText = remaining.GetNextWord(out remaining);
+                    if (typeCodeText[0] == 'E')
+                    {
+                        // Get event text
+                        string eventText = remaining.Trim().Trim('"').ToString();
+
+                        // Strip off brackets and any garbage outside of them
+                        var match = ChartIOHelper.TextEventRegex.Match(eventText);
+                        if (match.Success)
+                        {
+                            eventText = match.Groups[1].Value;
+                        }
+
+                        // Check for section events
+                        var sectionMatch = ChartIOHelper.SectionEventRegex.Match(eventText);
+                        if (sectionMatch.Success)
+                        {
+                            // This is a section, use the text grouped by the regex
+                            string sectionText = sectionMatch.Groups[1].Value;
+                            song.Add(new Section(sectionText, tick));
+                        }
+                        else
+                        {
+                            song.Add(new Event(eventText, tick));
+                        }
+                    }
+                    else
+                        YargTrace.LogWarning($"Unrecognized type code '{typeCodeText[0]}'!");
+                }
+                catch (Exception e)
+                {
+                    YargTrace.LogException(e, $"Error parsing .chart line '{line.ToString()}'!");
                 }
             }
         }
