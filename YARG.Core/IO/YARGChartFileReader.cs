@@ -2,9 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using YARG.Core.Song.Deserialization.Ini;
+using YARG.Core.Extensions;
+using YARG.Core.IO.Ini;
 
-namespace YARG.Core.Song.Deserialization
+namespace YARG.Core.IO
 {
     public enum ChartEventType
     {
@@ -215,7 +216,7 @@ namespace YARG.Core.Song.Deserialization
     {
         private static readonly TBase CONFIG = default;
 
-        private readonly YARGTXTReader<TType, TDecoder> reader;
+        private readonly YARGTextReader<TType, TDecoder> reader;
 
         private DotChartEventCombo<TType>[] eventSet = Array.Empty<DotChartEventCombo<TType>>();
         private NoteTracks_Chart _instrument;
@@ -224,9 +225,9 @@ namespace YARG.Core.Song.Deserialization
         public NoteTracks_Chart Instrument => _instrument;
         public Difficulty Difficulty => _difficulty;
 
-        public YARGChartFileReader(ITXTReader reader)
+        public YARGChartFileReader(IYARGTextReader reader)
         {
-            this.reader = (YARGTXTReader<TType, TDecoder>) reader;
+            this.reader = (YARGTextReader<TType, TDecoder>) reader;
         }
 
         public bool IsStartOfTrack()
@@ -317,8 +318,6 @@ namespace YARG.Core.Song.Deserialization
             return true;
         }
 
-        private const int LOWER_CASE_MASK = ~32;
-
         public bool TryParseEvent(ref DotChartEvent ev)
         {
             if (!IsStillCurrentTrack())
@@ -330,8 +329,8 @@ namespace YARG.Core.Song.Deserialization
             int end = start;
             while (true)
             {
-                char curr = (char) (reader.Data[end].ToChar(null) & LOWER_CASE_MASK);
-                if (curr < 'A' || 'Z' < curr)
+                char curr = reader.Data[end].ToChar(null);
+                if (!curr.IsAsciiLetter())
                     break;
                 ++end;
             }
@@ -378,7 +377,7 @@ namespace YARG.Core.Song.Deserialization
                 while (point > position)
                 {
                     char character = reader.Data[point].ToChar(null);
-                    if (!ITXTReader.IsWhitespace(character) || character == '\n')
+                    if (!character.IsAsciiWhitespace() || character == '\n')
                         break;
                     --point;
                 }

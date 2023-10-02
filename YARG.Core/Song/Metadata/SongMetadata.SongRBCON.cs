@@ -7,7 +7,7 @@ using Melanchall.DryWetMidi.Core;
 using YARG.Core.Chart;
 using YARG.Core.Extensions;
 using YARG.Core.Song.Cache;
-using YARG.Core.Song.Deserialization;
+using YARG.Core.IO;
 using YARG.Core.Song.Preparsers;
 
 namespace YARG.Core.Song
@@ -458,7 +458,7 @@ namespace YARG.Core.Song
                     case "encoding":
                         var encoding = reader.ExtractText().ToLower() switch
                         {
-                            "latin1" => ITXTReader.Latin1,
+                            "latin1" => YARGTextReader.Latin1,
                             "utf-8" or
                             "utf8" => Encoding.UTF8,
                             _ => reader.encoding

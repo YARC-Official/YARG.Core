@@ -2,10 +2,11 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using YARG.Core.Extensions;
 
-namespace YARG.Core.Song.Deserialization
+namespace YARG.Core.IO
 {
-    public class YARGDTAReader : YARGTXTReader_Base<byte>
+    public class YARGDTAReader : YARGTextReader_Base<byte>
     {
         private static readonly byte[] BOM_UTF8 = { 0xEF, 0xBB, 0xBF };
         private static readonly byte[] BOM_OTHER = { 0xFF, 0xFE };
@@ -39,7 +40,7 @@ namespace YARG.Core.Song.Deserialization
                 _position += 2;
             }
             else
-                encoding = ITXTReader.Latin1;
+                encoding = YARGTextReader.Latin1;
 
             SkipWhiteSpace();
         }
@@ -59,11 +60,11 @@ namespace YARG.Core.Song.Deserialization
             while (_position < Length)
             {
                 char ch = (char)Data[_position];
-                if (!ITXTReader.IsWhitespace(ch) && ch != ';')
+                if (!ch.IsAsciiWhitespace() && ch != ';')
                     return ch;
 
                 ++_position;
-                if (!ITXTReader.IsWhitespace(ch))
+                if (!ch.IsAsciiWhitespace())
                 {
                     while (_position < Length)
                     {
@@ -95,7 +96,7 @@ namespace YARG.Core.Song.Deserialization
             int start = _position;
             while (ch != '\'')
             {
-                if (ITXTReader.IsWhitespace(ch))
+                if (ch.IsAsciiWhitespace())
                 {
                     if (hasApostrophe)
                         throw new Exception("Invalid name format");
@@ -145,7 +146,7 @@ namespace YARG.Core.Song.Deserialization
                     if (!inSquirley && !inQuotes)
                         throw new Exception("Text error - no apostrophes allowed");
                 }
-                else if (ITXTReader.IsWhitespace(ch))
+                else if (ch.IsAsciiWhitespace())
                 {
                     if (inApostrophes)
                         throw new Exception("Text error - no whitespace allowed");

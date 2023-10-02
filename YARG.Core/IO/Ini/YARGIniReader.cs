@@ -1,17 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
+using YARG.Core.Extensions;
 
-namespace YARG.Core.Song.Deserialization.Ini
+namespace YARG.Core.IO.Ini
 {
     public sealed class YARGIniReader<TType, TDecoder>
         where TType : unmanaged, IEquatable<TType>, IConvertible
         where TDecoder : IStringDecoder<TType>, new()
     {
-        private readonly YARGTXTReader<TType, TDecoder> reader;
+        private readonly YARGTextReader<TType, TDecoder> reader;
 
-        public YARGIniReader(ITXTReader reader)
+        public YARGIniReader(IYARGTextReader reader)
         {
-            this.reader = (YARGTXTReader<TType, TDecoder>)reader;
+            this.reader = (YARGTextReader<TType, TDecoder>)reader;
         }
 
         public bool TrySection(out string section)
@@ -41,7 +42,7 @@ namespace YARG.Core.Song.Deserialization.Ini
                 while (point > position)
                 {
                     char character = reader.Data[point].ToChar(null);
-                    if (!ITXTReader.IsWhitespace(character) || character == '\n')
+                    if (!character.IsAsciiWhitespace() || character == '\n')
                         break;
                     --point;
                 }

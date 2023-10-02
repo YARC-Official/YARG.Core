@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using System.Xml.Linq;
 using YARG.Core.Song;
 
-namespace YARG.Core.Song.Deserialization.Ini
+namespace YARG.Core.IO.Ini
 {
     public enum ModifierType
     {
@@ -18,7 +18,7 @@ namespace YARG.Core.Song.Deserialization.Ini
         UInt64,
         Int64,
         UInt32,
-        Int332,
+        Int32,
         UInt16,
         Int16,
         Bool,
@@ -77,7 +77,7 @@ namespace YARG.Core.Song.Deserialization.Ini
         }
         public IniModifier(int value)
         {
-            type = ModifierType.Int332;
+            type = ModifierType.Int32;
             union.i = value;
         }
         public IniModifier(ushort value)
@@ -196,13 +196,13 @@ namespace YARG.Core.Song.Deserialization.Ini
         {
             get
             {
-                if (type != ModifierType.Int332)
+                if (type != ModifierType.Int32)
                     throw new ArgumentException("Modifier is not a INT32");
                 return union.i;
             }
             set
             {
-                if (type != ModifierType.Int332)
+                if (type != ModifierType.Int32)
                     throw new ArgumentException("Modifier is not a INT32");
                 union.i = value;
             }

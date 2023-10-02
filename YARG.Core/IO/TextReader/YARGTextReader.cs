@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using YARG.Core.Extensions;
 
-namespace YARG.Core.Song.Deserialization
+namespace YARG.Core.IO
 {
     public interface IStringDecoder<TType>
         where TType : unmanaged
@@ -42,13 +42,13 @@ namespace YARG.Core.Song.Deserialization
         }
     }
 
-    public class YARGTXTReader<TType, TDecoder> : YARGTXTReader_Base<TType>, ITXTReader
+    public class YARGTextReader<TType, TDecoder> : YARGTextReader_Base<TType>, IYARGTextReader
         where TType : unmanaged, IConvertible
         where TDecoder : IStringDecoder<TType>, new()
     {
         private TDecoder Decoder = new();
 
-        public YARGTXTReader(TType[] data, int position) : base(data)
+        public YARGTextReader(TType[] data, int position) : base(data)
         {
             _position = position;
 
@@ -63,7 +63,7 @@ namespace YARG.Core.Song.Deserialization
             while (_position < Length)
             {
                 char ch = Data[_position].ToChar(null);
-                if (ITXTReader.IsWhitespace(ch))
+                if (ch.IsAsciiWhitespace())
                 {
                     if (ch == '\n')
                         return ch;
@@ -110,31 +110,31 @@ namespace YARG.Core.Song.Deserialization
 
         private ReadOnlySpan<TType> InternalExtractTextSpan(bool checkForQuotes = true)
         {
-            (int, int) boundaries = new(_position, _next);
-            if (Data[boundaries.Item2 - 1].ToChar(null) == '\r')
-                --boundaries.Item2;
+            (int position, int next) boundaries = (_position, _next);
+            if (Data[boundaries.next - 1].ToChar(null) == '\r')
+                --boundaries.next;
 
             if (checkForQuotes && Data[_position].ToChar(null) == '\"')
             {
-                int end = boundaries.Item2 - 1;
-                while (_position + 1 < end && ITXTReader.IsWhitespace(Data[end].ToChar(null)))
+                int end = boundaries.next - 1;
+                while (_position + 1 < end && Data[end].ToChar(null).IsAsciiWhitespace())
                     --end;
 
                 if (_position < end && Data[end].ToChar(null) == '\"' && Data[end - 1].ToChar(null) != '\\')
                 {
-                    ++boundaries.Item1;
-                    boundaries.Item2 = end;
+                    ++boundaries.position;
+                    boundaries.next = end;
                 }
             }
 
-            if (boundaries.Item2 < boundaries.Item1)
+            if (boundaries.next < boundaries.position)
                 return new();
 
-            while (boundaries.Item2 > boundaries.Item1 && ITXTReader.IsWhitespace(Data[boundaries.Item2 - 1].ToChar(null)))
-                --boundaries.Item2;
+            while (boundaries.next > boundaries.position && Data[boundaries.next - 1].ToChar(null).IsAsciiWhitespace())
+                --boundaries.next;
 
             _position = _next;
-            return new(Data, boundaries.Item1, boundaries.Item2 - boundaries.Item1);
+            return new(Data, boundaries.position, boundaries.next - boundaries.position);
         }
 
         public string ExtractText(bool checkForQuotes = true)
@@ -146,7 +146,7 @@ namespace YARG.Core.Song.Deserialization
             }
             catch
             {
-                Decoder.SetEncoding(ITXTReader.Latin1);
+                Decoder.SetEncoding(YARGTextReader.Latin1);
                 return Decode(span);
             }
         }
@@ -157,7 +157,7 @@ namespace YARG.Core.Song.Deserialization
             while (curr < Length)
             {
                 char b = Data[curr].ToChar(null);
-                if (ITXTReader.IsWhitespace(b) || b == '=')
+                if (b.IsAsciiWhitespace() || b == '=')
                     break;
                 ++curr;
             }

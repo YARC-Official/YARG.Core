@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Text;
+using YARG.Core.Extensions;
 
-namespace YARG.Core.Song.Deserialization
+namespace YARG.Core.IO
 {
-    public abstract class YARGTXTReader_Base<T>
+    public abstract class YARGTextReader_Base<T>
         where T : IConvertible
     {
         public readonly T[] Data;
@@ -29,7 +30,7 @@ namespace YARG.Core.Song.Deserialization
             return Data[_position].ToChar(null).Equals(cmp);
         }
 
-        protected YARGTXTReader_Base(T[] data)
+        protected YARGTextReader_Base(T[] data)
         {
             Data = data;
             Length = data.Length;
@@ -42,7 +43,7 @@ namespace YARG.Core.Song.Deserialization
             while (_position < _next)
             {
                 char ch = Data[_position].ToChar(null);
-                if (ch < '0' || '9' < ch)
+                if (!ch.IsAsciiDigit())
                     break;
                 ++_position;
             }
@@ -144,10 +145,10 @@ namespace YARG.Core.Song.Deserialization
                 ch = Data[_position].ToChar(null);
             }
 
-            if (ch > '9' || (ch < '0' && ch != '.'))
+            if (!ch.IsAsciiDigit() && ch != '.')
                 return false;
 
-            while ('0' <= ch && ch <= '9')
+            while (ch.IsAsciiDigit())
             {
                 value *= 10;
                 value += ch - '0';
@@ -165,7 +166,7 @@ namespace YARG.Core.Song.Deserialization
                 {
                     double divisor = 1;
                     ch = Data[_position].ToChar(null);
-                    while ('0' <= ch && ch <= '9')
+                    while (ch.IsAsciiDigit())
                     {
                         divisor *= 10;
                         value += (ch - '0') / divisor;
@@ -192,10 +193,10 @@ namespace YARG.Core.Song.Deserialization
                 '0' => false,
                 '1' => true,
                 _ => _position + 4 <= _next &&
-                    (Data[_position].ToChar(null) == 't' || Data[_position].ToChar(null) == 'T') &&
-                    (Data[_position + 1].ToChar(null) == 'r' || Data[_position + 1].ToChar(null) == 'R') &&
-                    (Data[_position + 2].ToChar(null) == 'u' || Data[_position + 2].ToChar(null) == 'U') &&
-                    (Data[_position + 3].ToChar(null) == 'e' || Data[_position + 3].ToChar(null) == 'E'),
+                    (Data[_position].ToChar(null).ToAsciiLower() == 't') &&
+                    (Data[_position + 1].ToChar(null).ToAsciiLower() == 'r') &&
+                    (Data[_position + 2].ToChar(null).ToAsciiLower() == 'u') &&
+                    (Data[_position + 3].ToChar(null).ToAsciiLower() == 'e')
             };
         }
 
@@ -282,7 +283,7 @@ namespace YARG.Core.Song.Deserialization
                     break;
             }
 
-            if (ch < '0' || '9' < ch)
+            if (!ch.IsAsciiDigit())
                 return false;
 
             while (true)
@@ -293,7 +294,7 @@ namespace YARG.Core.Song.Deserialization
                 if (_position < _next)
                 {
                     ch = Data[_position].ToChar(null);
-                    if ('0' <= ch && ch <= '9')
+                    if (ch.IsAsciiDigit())
                     {
                         if (value < softMax || value == softMax && ch <= LAST_DIGIT_SIGNED)
                         {
@@ -329,7 +330,7 @@ namespace YARG.Core.Song.Deserialization
                 ch = Data[_position].ToChar(null);
             }
 
-            if (ch < '0' || '9' < ch)
+            if (!ch.IsAsciiDigit())
                 return false;
 
             while (true)
@@ -340,7 +341,7 @@ namespace YARG.Core.Song.Deserialization
                 if (_position < _next)
                 {
                     ch = Data[_position].ToChar(null);
-                    if ('0' <= ch && ch <= '9')
+                    if (ch.IsAsciiDigit())
                     {
                         if (value < softMax || value == softMax && ch <= LAST_DIGIT_UNSIGNED)
                         {

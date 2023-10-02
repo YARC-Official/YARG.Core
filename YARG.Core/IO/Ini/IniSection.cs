@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using YARG.Core.Song;
 
-namespace YARG.Core.Song.Deserialization.Ini
+namespace YARG.Core.IO.Ini
 {
     public class IniSection
     {

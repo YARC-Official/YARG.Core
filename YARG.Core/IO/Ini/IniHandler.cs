@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-namespace YARG.Core.Song.Deserialization.Ini
+namespace YARG.Core.IO.Ini
 {
     public static class IniHandler
     {
@@ -11,7 +11,7 @@ namespace YARG.Core.Song.Deserialization.Ini
         {
             try
             {
-                if (ITXTReader.Load(File.ReadAllBytes(iniFile), out var reader))
+                if (YARGTextReader.Load(File.ReadAllBytes(iniFile), out var reader))
                     return ProcessIni<byte, ByteStringDecoder>(reader, sections);
                 return ProcessIni<char, CharStringDecoder>(reader, sections);
             }
@@ -22,13 +22,13 @@ namespace YARG.Core.Song.Deserialization.Ini
             }
         }
 
-        private static Dictionary<string, IniSection> ProcessIni<TType, TDecoder>(ITXTReader txtReader, Dictionary<string, Dictionary<string, IniModifierCreator>> sections)
+        private static Dictionary<string, IniSection> ProcessIni<TType, TDecoder>(IYARGTextReader textReader, Dictionary<string, Dictionary<string, IniModifierCreator>> sections)
             where TType : unmanaged, IEquatable<TType>, IConvertible
             where TDecoder : IStringDecoder<TType>, new()
         {
             Dictionary<string, IniSection> modifierMap = new();
 
-            YARGIniReader<TType, TDecoder> iniReader = new(txtReader);
+            YARGIniReader<TType, TDecoder> iniReader = new(textReader);
             while (iniReader.TrySection(out string section))
             {
                 if (sections.TryGetValue(section, out var nodes))

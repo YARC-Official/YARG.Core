@@ -4,7 +4,7 @@ using System.IO;
 using System.Text;
 using YARG.Core.Extensions;
 
-namespace YARG.Core.Song.Deserialization
+namespace YARG.Core.IO
 {
     public class YargMoggReadStream : Stream
     {
