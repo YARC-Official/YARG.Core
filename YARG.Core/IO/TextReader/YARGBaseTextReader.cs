@@ -2,7 +2,7 @@
 
 namespace YARG.Core.IO
 {
-    public abstract class YARGTextReader_Base<TChar>
+    public abstract class YARGBaseTextReader<TChar>
         where TChar : IConvertible
     {
         protected int _next;
@@ -12,7 +12,7 @@ namespace YARG.Core.IO
         
         public int Next => _next;
         
-        protected YARGTextReader_Base(TChar[] data)
+        protected YARGBaseTextReader(TChar[] data)
         {
             Data = data;
             Length = data.Length;

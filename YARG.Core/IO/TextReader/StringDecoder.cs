@@ -9,7 +9,7 @@ namespace YARG.Core.IO
         private static readonly UTF8Encoding UTF8 = new(true, true);
         private Encoding encoding = UTF8;
 
-        public override string ExtractText(YARGTextReader_Base<byte> reader, bool isChartFile = true)
+        public override string ExtractText(YARGBaseTextReader<byte> reader, bool isChartFile = true)
         {
             var span = InternalExtractTextSpan(reader, isChartFile);
             try
@@ -31,7 +31,7 @@ namespace YARG.Core.IO
 
     public class CharStringDecoder : StringDecoder<char>
     {
-        public override string ExtractText(YARGTextReader_Base<char> reader, bool isChartFile = true)
+        public override string ExtractText(YARGBaseTextReader<char> reader, bool isChartFile = true)
         {
             var span = InternalExtractTextSpan(reader, isChartFile);
             return Decode(span);
@@ -46,7 +46,7 @@ namespace YARG.Core.IO
     public abstract class StringDecoder<TChar>
         where TChar : unmanaged, IConvertible
     {
-        public string ExtractModifierName(YARGTextReader_Base<TChar> reader)
+        public string ExtractModifierName(YARGBaseTextReader<TChar> reader)
         {
             int curr = reader.Position;
             while (curr < reader.Length)
@@ -63,11 +63,11 @@ namespace YARG.Core.IO
             return Decode(name);
         }
 
-        public abstract string ExtractText(YARGTextReader_Base<TChar> reader, bool isChartFile = true);
+        public abstract string ExtractText(YARGBaseTextReader<TChar> reader, bool isChartFile = true);
 
         public abstract string Decode(ReadOnlySpan<TChar> span);
 
-        protected static ReadOnlySpan<TChar> InternalExtractTextSpan(YARGTextReader_Base<TChar> reader, bool isChartFile = true)
+        protected static ReadOnlySpan<TChar> InternalExtractTextSpan(YARGBaseTextReader<TChar> reader, bool isChartFile = true)
         {
             (int stringBegin, int stringEnd) = (reader.Position, reader.Next);
             if (reader.Data[stringEnd - 1].ToChar(null) == '\r')

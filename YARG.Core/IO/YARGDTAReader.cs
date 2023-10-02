@@ -6,7 +6,7 @@ using YARG.Core.Extensions;
 
 namespace YARG.Core.IO
 {
-    public class YARGDTAReader : YARGTextReader_Base<byte>
+    public class YARGDTAReader : YARGBaseTextReader<byte>
     {
         private static readonly byte[] BOM_UTF8 = { 0xEF, 0xBB, 0xBF };
         private static readonly byte[] BOM_OTHER = { 0xFF, 0xFE };
