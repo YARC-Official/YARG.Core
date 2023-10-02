@@ -113,13 +113,13 @@ namespace YARG.Core.IO
             return new ReadOnlySpan<TChar>(Data, Position, length);
         }
 
-        private ReadOnlySpan<TChar> InternalExtractTextSpan(bool checkForQuotes = true)
+        private ReadOnlySpan<TChar> InternalExtractTextSpan(bool isChartFile = true)
         {
             (int stringBegin, int stringEnd) = (Position, _next);
             if (Data[stringEnd - 1].ToChar(null) == '\r')
                 --stringEnd;
 
-            if (checkForQuotes && Data[Position].ToChar(null) == '\"')
+            if (isChartFile && Data[Position].ToChar(null) == '\"')
             {
                 int end = stringEnd - 1;
                 while (Position + 1 < end && Data[end].ToChar(null).IsAsciiWhitespace())
@@ -142,9 +142,9 @@ namespace YARG.Core.IO
             return new(Data, stringBegin, stringEnd - stringBegin);
         }
 
-        public string ExtractText(bool checkForQuotes = true)
+        public string ExtractText(bool isChartFile = true)
         {
-            var span = InternalExtractTextSpan(checkForQuotes);
+            var span = InternalExtractTextSpan(isChartFile);
             try
             {
                 return Decode(span);
