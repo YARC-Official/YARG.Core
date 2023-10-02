@@ -39,10 +39,9 @@ namespace YARG.Core.Song.Preparsers
             }
         }
 
-        public void ParseChart<TType, TBase, TDecoder>(YARGChartFileReader<TType, TBase, TDecoder> reader)
+        public void ParseChart<TType, TBase>(YARGChartFileReader<TType, TBase> reader)
             where TType : unmanaged, IEquatable<TType>, IConvertible
             where TBase : unmanaged, IDotChartBases<TType>
-            where TDecoder : IStringDecoder<TType>, new()
         {
             var difficulty = reader.Difficulty.ToDifficultyMask();
 
@@ -67,10 +66,9 @@ namespace YARG.Core.Song.Preparsers
         private const int GREEN_CYMBAL = 68;
         private const int DOUBLE_BASS_MODIFIER = 32;
 
-        private bool ParseChartUnknown<TType, TBase, TDecoder>(YARGChartFileReader<TType, TBase, TDecoder> reader, DifficultyMask difficulty)
+        private bool ParseChartUnknown<TType, TBase>(YARGChartFileReader<TType, TBase> reader, DifficultyMask difficulty)
             where TType : unmanaged, IEquatable<TType>, IConvertible
             where TBase : unmanaged, IDotChartBases<TType>
-            where TDecoder : IStringDecoder<TType>, new()
         {
             bool found = false;
             bool checkExpertPlus = difficulty == DifficultyMask.Expert;
@@ -108,10 +106,9 @@ namespace YARG.Core.Song.Preparsers
             return false;
         }
 
-        private bool ParseChartFourLane<TType, TBase, TDecoder>(YARGChartFileReader<TType, TBase, TDecoder> reader, DifficultyMask difficulty)
+        private bool ParseChartFourLane<TType, TBase>(YARGChartFileReader<TType, TBase> reader, DifficultyMask difficulty)
             where TType : unmanaged, IEquatable<TType>, IConvertible
             where TBase : unmanaged, IDotChartBases<TType>
-            where TDecoder : IStringDecoder<TType>, new()
         {
             bool found = false;
             bool checkExpertPlus = difficulty == DifficultyMask.Expert;
@@ -146,10 +143,9 @@ namespace YARG.Core.Song.Preparsers
             return false;
         }
 
-        private bool ParseChartCommon<TType, TBase, TDecoder>(YARGChartFileReader<TType, TBase, TDecoder> reader, DifficultyMask difficulty)
+        private bool ParseChartCommon<TType, TBase>(YARGChartFileReader<TType, TBase> reader, DifficultyMask difficulty)
             where TType : unmanaged, IEquatable<TType>, IConvertible
             where TBase : unmanaged, IDotChartBases<TType>
-            where TDecoder : IStringDecoder<TType>, new()
         {
             bool found = false;
             bool checkExpertPlus = difficulty == DifficultyMask.Expert;
