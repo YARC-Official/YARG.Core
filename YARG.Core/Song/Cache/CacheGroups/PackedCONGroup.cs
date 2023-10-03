@@ -10,7 +10,6 @@ namespace YARG.Core.Song.Cache
         public const string SONGSFILEPATH = "songs/songs.dta";
         public const string UPGRADESFILEPATH = "songs_upgrades/upgrades.dta";
 
-        public readonly string Filename;
         public readonly List<CONFileListing> Files;
         public readonly DateTime LastWrite;
         public readonly Dictionary<string, IRBProUpgrade> Upgrades = new();
@@ -38,9 +37,8 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        public PackedCONGroup(string filename, List<CONFileListing> files, DateTime lastWrite)
+        public PackedCONGroup(List<CONFileListing> files, DateTime lastWrite)
         {
-            Filename = filename;
             this.Files = files;
             this.LastWrite = lastWrite;
         }
@@ -80,12 +78,12 @@ namespace YARG.Core.Song.Cache
             return songDTA != null;
         }
 
-        public byte[] SerializeModifications()
+        public byte[] SerializeModifications(string filename)
         {
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);
 
-            writer.Write(Filename);
+            writer.Write(filename);
             writer.Write(LastWrite.ToBinary());
             writer.Write(upgradeDta!.lastWrite.ToBinary());
             writer.Write(Upgrades.Count);
@@ -97,12 +95,12 @@ namespace YARG.Core.Song.Cache
             return ms.ToArray();
         }
 
-        public byte[] SerializeEntries(Dictionary<SongMetadata, CategoryCacheWriteNode> nodes)
+        public byte[] SerializeEntries(string filename, Dictionary<SongMetadata, CategoryCacheWriteNode> nodes)
         {
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);
 
-            writer.Write(Filename);
+            writer.Write(filename);
             writer.Write(songDTA!.lastWrite.ToBinary());
             Serialize(writer, ref nodes);
             return ms.ToArray();

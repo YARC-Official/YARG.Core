@@ -6,17 +6,15 @@ namespace YARG.Core.Song.Cache
 {
     public sealed class UpgradeGroup : IModificationGroup
     {
-        public readonly string directory;
         private readonly DateTime dtaLastWrite;
         public readonly Dictionary<string, IRBProUpgrade> upgrades = new();
 
-        public UpgradeGroup(string directory, DateTime dtaLastWrite)
+        public UpgradeGroup(DateTime dtaLastWrite)
         {
-            this.directory = directory;
             this.dtaLastWrite = dtaLastWrite;
         }
 
-        public byte[] SerializeModifications()
+        public byte[] SerializeModifications(string directory)
         {
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);

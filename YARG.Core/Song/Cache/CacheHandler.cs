@@ -22,11 +22,10 @@ namespace YARG.Core.Song.Cache
             this.cacheLocation = cacheLocation;
             this.badSongsLocation = badSongsLocation;
             this.multithreading = multithreading;
-            this.baseDirectories = baseDirectories;
 
             iniGroups = new(baseDirectories.Length);
             for (int i = 0; i < baseDirectories.Length; ++i)
-                iniGroups.Add(new(baseDirectories[i]));
+                iniGroups.Add(baseDirectories[i], new());
             cache = new(multithreading);
         }
 
@@ -75,11 +74,11 @@ namespace YARG.Core.Song.Cache
         private readonly SongCache cache;
         private int _count;
 
-        private readonly List<UpdateGroup> updateGroups = new();
-        private readonly List<UpgradeGroup> upgradeGroups = new();
-        private readonly List<PackedCONGroup> conGroups = new();
-        private readonly List<UnpackedCONGroup> extractedConGroups = new();
-        private readonly List<IniGroup> iniGroups;
+        private readonly Dictionary<string, UpdateGroup> updateGroups = new();
+        private readonly Dictionary<string, UpgradeGroup> upgradeGroups = new();
+        private readonly Dictionary<string, PackedCONGroup> conGroups = new();
+        private readonly Dictionary<string, UnpackedCONGroup> extractedConGroups = new();
+        private readonly Dictionary<string, IniGroup> iniGroups;
         private readonly Dictionary<string, List<(string, YARGDTAReader)>> updates = new();
         private readonly Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades = new();
         private readonly HashSet<string> preScannedDirectories = new();
@@ -87,20 +86,21 @@ namespace YARG.Core.Song.Cache
         private readonly SortedDictionary<string, ScanResult> badSongs = new();
 
         private readonly bool multithreading;
-        private readonly string[] baseDirectories = Array.Empty<string>();
         private readonly string cacheLocation;
         private readonly string badSongsLocation;
 
-        private int GetBaseDirectoryIndex(string path)
+        private IniGroup? GetBaseIniGroup(string path)
         {
-            for (int i = 0; i != baseDirectories.Length; ++i)
-                if (path.StartsWith(baseDirectories[i]) &&
+            foreach (var group in iniGroups)
+            {
+                if (path.StartsWith(group.Key) &&
                     // Ensures directories with similar names (previously separate bases)
                     // that are consolidated in-gamne to a single base directory
                     // don't have conflicting "relative path" issues
-                    (path.Length == baseDirectories[i].Length || path[baseDirectories[i].Length] == Path.DirectorySeparatorChar))
-                    return i;
-            return -1;
+                    (path.Length == group.Key.Length || path[group.Key.Length] == Path.DirectorySeparatorChar))
+                    return group.Value;
+            }
+            return null;
         }
 
         private bool QuickScan()
@@ -270,7 +270,7 @@ namespace YARG.Core.Song.Cache
         private void CreateUpdateGroup(string directory, FileInfo dta, bool removeEntries = false)
         {
             YARGDTAReader reader = new(dta.FullName);
-            UpdateGroup group = new(directory, dta.LastWriteTime);
+            UpdateGroup group = new(dta.LastWriteTime);
             while (reader!.StartNode())
             {
                 string name = reader.GetNameOfNode();
@@ -283,13 +283,13 @@ namespace YARG.Core.Song.Cache
             }
 
             if (group!.updates.Count > 0)
-                AddUpdateGroup(group);
+                AddUpdateGroup(directory, group);
         }
 
         private UpgradeGroup? CreateUpgradeGroup(string directory, FileInfo dta, bool removeEntries = false)
         {
             YARGDTAReader reader = new(dta.FullName);
-            UpgradeGroup group = new(directory, dta.LastWriteTime);
+            UpgradeGroup group = new(dta.LastWriteTime);
             while (reader!.StartNode())
             {
                 string name = reader.GetNameOfNode();
@@ -312,7 +312,7 @@ namespace YARG.Core.Song.Cache
 
             if (group.upgrades.Count > 0)
             {
-                AddUpgradeGroup(group);
+                AddUpgradeGroup(directory, group);
                 return group;
             }
             return null;
@@ -354,11 +354,6 @@ namespace YARG.Core.Song.Cache
             return true;
         }
 
-        private void AddIniEntry(SongMetadata entry, int index)
-        {
-            iniGroups[index].AddEntry(entry);
-        }
-
         private void AddUpgrade(string name, YARGDTAReader? reader, IRBProUpgrade upgrade)
         {
             lock (upgradeLock)
@@ -376,45 +371,48 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void AddCONGroup(PackedCONGroup group)
+        private void AddCONGroup(string file, PackedCONGroup group)
         {
             lock (conLock)
-                conGroups.Add(group);
+                conGroups.Add(file, group);
         }
 
-        private void AddUpdateGroup(UpdateGroup group)
+        private void AddUpdateGroup(string directory, UpdateGroup group)
         {
             lock (updateGroupLock)
-                updateGroups.Add(group);
+                updateGroups.Add(directory, group);
         }
 
-        private void AddUpgradeGroup(UpgradeGroup group)
+        private void AddUpgradeGroup(string directory, UpgradeGroup group)
         {
             lock (upgradeGroupLock)
-                upgradeGroups.Add(group);
+                upgradeGroups.Add(directory, group);
         }
 
-        private void AddExtractedCONGroup(UnpackedCONGroup group)
+        private void AddExtractedCONGroup(string directory, UnpackedCONGroup group)
         {
             lock (extractedLock)
-                extractedConGroups.Add(group);
+                extractedConGroups.Add(directory, group);
         }
 
         private void RemoveCONEntry(string shortname)
         {
             lock (conLock)
             {
-                for (int i = 0; i < conGroups.Count; ++i)
-                    if (conGroups[i].RemoveEntries(shortname))
-                        YargTrace.DebugInfo($"{conGroups[i].Files[0].ConFile} - {shortname} pending rescan");
-
+                foreach (var group in conGroups)
+                {
+                    if (group.Value.RemoveEntries(shortname))
+                        YargTrace.DebugInfo($"{group.Key} - {shortname} pending rescan");
+                }
             }
 
             lock (extractedLock)
             {
-                for (int i = 0; i < extractedConGroups.Count; ++i)
-                    if (extractedConGroups[i].RemoveEntries(shortname))
-                        YargTrace.DebugInfo($"{conGroups[i].Files[0].ConFile} - {shortname} pending rescan");
+                foreach (var group in extractedConGroups)
+                {
+                    if (group.Value.RemoveEntries(shortname))
+                        YargTrace.DebugInfo($"{group.Key} - {shortname} pending rescan");
+                }    
             }
         }
 
@@ -424,11 +422,11 @@ namespace YARG.Core.Song.Cache
             {
                 foreach (var group in upgradeGroups)
                 {
-                    if (group.upgrades.TryGetValue(shortname, out var currUpgrade))
+                    if (group.Value.upgrades.TryGetValue(shortname, out var currUpgrade))
                     {
                         if (currUpgrade.LastWrite >= lastWrite)
                             return false;
-                        group.upgrades.Remove(shortname);
+                        group.Value.upgrades.Remove(shortname);
                         break;
                     }
                 }
@@ -443,7 +441,7 @@ namespace YARG.Core.Song.Cache
             {
                 foreach (var group in conGroups)
                 {
-                    var upgrades = group.Upgrades;
+                    var upgrades = group.Value.Upgrades;
                     if (upgrades.TryGetValue(shortname, out var currUpgrade))
                     {
                         if (currUpgrade!.LastWrite >= lastWrite)

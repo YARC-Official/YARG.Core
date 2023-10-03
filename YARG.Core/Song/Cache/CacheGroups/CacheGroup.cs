@@ -7,15 +7,15 @@ namespace YARG.Core.Song.Cache
 {
     public interface ICacheGroup
     {
-        public byte[] SerializeEntries(Dictionary<SongMetadata, CategoryCacheWriteNode> nodes);
+        public byte[] SerializeEntries(string filename, Dictionary<SongMetadata, CategoryCacheWriteNode> nodes);
 
-        public static void SerializeGroups<TGroup>(List<TGroup> groups, BinaryWriter writer, Dictionary<SongMetadata, CategoryCacheWriteNode> nodes)
+        public static void SerializeGroups<TGroup>(ICollection<KeyValuePair<string, TGroup>> groups, BinaryWriter writer, Dictionary<SongMetadata, CategoryCacheWriteNode> nodes)
             where TGroup : ICacheGroup
         {
             writer.Write(groups.Count);
             foreach (var group in groups)
             {
-                byte[] buffer = group.SerializeEntries(nodes);
+                byte[] buffer = group.Value.SerializeEntries(group.Key, nodes);
                 writer.Write(buffer.Length);
                 writer.Write(buffer);
             }
