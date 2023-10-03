@@ -37,15 +37,20 @@ namespace YARG.Core.UnitTests.Parsing
         private static SpecialPhrase NewSpecial(int index, SpecialPhrase.Type type, uint length = 0)
             => new((uint)(index * RESOLUTION), length, type);
 
-        public interface IParseBehavior
+        public class ParseBehavior
         {
-            public List<MoonNote> Notes { get; }
-            public List<SpecialPhrase> Phrases { get; }
+            public MoonNote[] Notes;
+            public SpecialPhrase[] Phrases;
+
+            public ParseBehavior(MoonNote[] notes, SpecialPhrase[] phrases)
+            {
+                Notes = notes;
+                Phrases = phrases;
+            }
         }
 
-        public class ParseBehaviorGuitar : IParseBehavior
-        {
-            public List<MoonNote> Notes { get; } = new()
+        public static readonly ParseBehavior GuitarTrack = new(
+            new[]
             {
                 NewNote(0, GuitarFret.Green),
                 NewNote(1, GuitarFret.Red),
@@ -88,9 +93,8 @@ namespace YARG.Core.UnitTests.Parsing
                 NewNote(38, GuitarFret.Blue, flags: Flags.Forced),
                 NewNote(39, GuitarFret.Orange, flags: Flags.Forced),
                 NewNote(40, GuitarFret.Open, flags: Flags.Forced),
-            };
-
-            public List<SpecialPhrase> Phrases { get; } = new()
+            },
+            new[]
             {
                 NewSpecial(6, SpecialPhrase.Type.Versus_Player1, RESOLUTION * 6),
                 NewSpecial(12, SpecialPhrase.Type.Versus_Player2, RESOLUTION * 5),
@@ -98,14 +102,11 @@ namespace YARG.Core.UnitTests.Parsing
                 NewSpecial(23, SpecialPhrase.Type.TremoloLane, RESOLUTION * 6),
                 NewSpecial(29, SpecialPhrase.Type.TrillLane, RESOLUTION * 6),
                 NewSpecial(35, SpecialPhrase.Type.Solo, RESOLUTION * 6),
-            };
-        }
+            }
+        );
 
-        public static readonly ParseBehaviorGuitar GuitarTrack = new();
-
-        public class ParseBehaviorGHLGuitar : IParseBehavior
-        {
-            public List<MoonNote> Notes { get; } = new()
+        public static readonly ParseBehavior GhlGuitarTrack = new(
+            new[]
             {
                 NewNote(0, GHLiveGuitarFret.Black1),
                 NewNote(1, GHLiveGuitarFret.Black2),
@@ -145,20 +146,16 @@ namespace YARG.Core.UnitTests.Parsing
                 NewNote(31, GHLiveGuitarFret.White2),
                 NewNote(32, GHLiveGuitarFret.White3),
                 NewNote(33, GHLiveGuitarFret.Open),
-            };
-
-            public List<SpecialPhrase> Phrases { get; } = new()
+            },
+            new[]
             {
                 NewSpecial(20, SpecialPhrase.Type.Starpower, RESOLUTION * 7),
                 NewSpecial(27, SpecialPhrase.Type.Solo, RESOLUTION * 7),
-            };
-        }
+            }
+        );
 
-        public static readonly ParseBehaviorGHLGuitar GhlGuitarTrack = new();
-
-        public class ParseBehaviorProGuitar : IParseBehavior
-        {
-            public List<MoonNote> Notes { get; } = new()
+        public static readonly ParseBehavior ProGuitarTrack = new(
+            new[]
             {
                 NewNote(0, ProGuitarString.Red, 0),
                 NewNote(1, ProGuitarString.Green, 1),
@@ -208,22 +205,18 @@ namespace YARG.Core.UnitTests.Parsing
                 NewNote(39, ProGuitarString.Blue, 3),
                 NewNote(40, ProGuitarString.Yellow, 4),
                 NewNote(41, ProGuitarString.Purple, 5),
-            };
-
-            public List<SpecialPhrase> Phrases { get; } = new()
+            },
+            new[]
             {
                 NewSpecial(18, SpecialPhrase.Type.Starpower, RESOLUTION * 6),
                 NewSpecial(24, SpecialPhrase.Type.TremoloLane, RESOLUTION * 6),
                 NewSpecial(30, SpecialPhrase.Type.TrillLane, RESOLUTION * 6),
                 NewSpecial(36, SpecialPhrase.Type.Solo, RESOLUTION * 6),
-            };
-        }
+            }
+        );
 
-        public static readonly ParseBehaviorProGuitar ProGuitarTrack = new();
-
-        public class ParseBehaviorDrums : IParseBehavior
-        {
-            public List<MoonNote> Notes { get; } = new()
+        public static readonly ParseBehavior DrumsTrack = new(
+            new[]
             {
                 NewNote(0, DrumPad.Kick),
                 NewNote(1, DrumPad.Kick, flags: Flags.DoubleKick),
@@ -313,9 +306,8 @@ namespace YARG.Core.UnitTests.Parsing
                 NewNote(75, DrumPad.Yellow, flags: Flags.ProDrums_Cymbal),
                 NewNote(76, DrumPad.Blue, flags: Flags.ProDrums_Cymbal),
                 NewNote(77, DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
-            };
-
-            public List<SpecialPhrase> Phrases { get; } = new()
+            },
+            new[]
             {
                 NewSpecial(26, SpecialPhrase.Type.Starpower, RESOLUTION * 8),
                 NewSpecial(34, SpecialPhrase.Type.ProDrums_Activation, RESOLUTION * 5),
@@ -324,16 +316,13 @@ namespace YARG.Core.UnitTests.Parsing
                 NewSpecial(58, SpecialPhrase.Type.TremoloLane, RESOLUTION * 6),
                 NewSpecial(64, SpecialPhrase.Type.TrillLane, RESOLUTION * 6),
                 NewSpecial(70, SpecialPhrase.Type.Solo, RESOLUTION * 8),
-            };
-        }
-
-        public static readonly ParseBehaviorDrums DrumsTrack = new();
+            }
+        );
 
         private const byte VOCALS_RANGE_START = MidIOHelper.VOCALS_RANGE_START;
 
-        public class ParseBehaviorVocals : IParseBehavior
-        {
-            public List<MoonNote> Notes { get; } = new()
+        public static readonly ParseBehavior VocalsNotes = new(
+            new[]
             {
                 NewNote(0, VOCALS_RANGE_START + 0, length: RESOLUTION / 2),
                 NewNote(1, VOCALS_RANGE_START + 1, length: RESOLUTION / 2),
@@ -389,9 +378,8 @@ namespace YARG.Core.UnitTests.Parsing
                 NewNote(48, VOCALS_RANGE_START + 48, length: RESOLUTION / 2),
 
                 NewNote(49, 0, flags: Flags.Vocals_Percussion),
-            };
-
-            public List<SpecialPhrase> Phrases { get; } = new()
+            },
+            new[]
             {
                 NewSpecial(0, SpecialPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 12),
                 NewSpecial(0, SpecialPhrase.Type.Versus_Player1, RESOLUTION * 12),
@@ -405,10 +393,8 @@ namespace YARG.Core.UnitTests.Parsing
                 NewSpecial(36, SpecialPhrase.Type.Versus_Player2, RESOLUTION * 13),
                 NewSpecial(49, SpecialPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 1),
                 NewSpecial(49, SpecialPhrase.Type.Versus_Player1, RESOLUTION * 1),
-            };
-        }
-
-        public static readonly ParseBehaviorVocals VocalsNotes = new();
+            }
+        );
 
         public static MoonSong GenerateSong()
         {
@@ -427,7 +413,7 @@ namespace YARG.Core.UnitTests.Parsing
             return song;
         }
 
-        public static IParseBehavior GameModeToChartData(GameMode gameMode)
+        public static ParseBehavior GameModeToChartData(GameMode gameMode)
         {
             return gameMode switch {
                 GameMode.Guitar => GuitarTrack,
@@ -453,7 +439,7 @@ namespace YARG.Core.UnitTests.Parsing
             }
         }
 
-        public static void PopulateInstrument(MoonSong song, MoonInstrument instrument, IParseBehavior track)
+        public static void PopulateInstrument(MoonSong song, MoonInstrument instrument, ParseBehavior track)
         {
             foreach (var difficulty in EnumExtensions<Difficulty>.Values)
             {
@@ -461,7 +447,7 @@ namespace YARG.Core.UnitTests.Parsing
             }
         }
 
-        public static void PopulateDifficulty(MoonSong song, MoonInstrument instrument, Difficulty difficulty, IParseBehavior track)
+        public static void PopulateDifficulty(MoonSong song, MoonInstrument instrument, Difficulty difficulty, ParseBehavior track)
         {
             var chart = song.GetChart(instrument, difficulty);
             foreach (var note in track.Notes)
