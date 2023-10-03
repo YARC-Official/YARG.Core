@@ -4,7 +4,7 @@ using YARG.Core.Extensions;
 
 namespace YARG.Core.IO
 {
-    public class ByteStringDecoder : StringDecoder<byte>
+    public sealed class ByteStringDecoder : StringDecoder<byte>
     {
         private static readonly UTF8Encoding UTF8 = new(true, true);
         private Encoding encoding = UTF8;
@@ -29,7 +29,7 @@ namespace YARG.Core.IO
         }
     }
 
-    public class CharStringDecoder : StringDecoder<char>
+    public sealed class CharStringDecoder : StringDecoder<char>
     {
         public override string ExtractText(YARGBaseTextReader<char> reader, bool isChartFile = true)
         {

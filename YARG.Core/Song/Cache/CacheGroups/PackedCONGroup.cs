@@ -5,7 +5,7 @@ using YARG.Core.IO;
 
 namespace YARG.Core.Song.Cache
 {
-    public class PackedCONGroup : CONGroup, ICacheGroup, IModificationGroup
+    public sealed class PackedCONGroup : CONGroup, ICacheGroup, IModificationGroup
     {
         public const string SONGSFILEPATH = "songs/songs.dta";
         public const string UPGRADESFILEPATH = "songs_upgrades/upgrades.dta";

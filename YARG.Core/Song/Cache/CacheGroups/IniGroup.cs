@@ -3,7 +3,7 @@ using System.IO;
 
 namespace YARG.Core.Song.Cache
 {
-    public class IniGroup : ICacheGroup
+    public sealed class IniGroup : ICacheGroup
     {
         public readonly string directory;
         public readonly object iniLock = new();

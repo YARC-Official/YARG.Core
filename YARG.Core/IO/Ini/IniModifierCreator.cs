@@ -26,7 +26,7 @@ namespace YARG.Core.IO.Ini
         UInt64Array,
     }
 
-    public class IniModifierCreator
+    public sealed class IniModifierCreator
     {
         public readonly string outputName;
         public readonly ModifierCreatorType type;

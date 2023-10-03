@@ -38,15 +38,15 @@ namespace YARG.Core.Song
         }
     }
 
-    public class EntryComparer : IComparer<SongMetadata>
+    public sealed class EntryComparer : IComparer<SongMetadata>
     {
         private readonly SongAttribute attribute;
 
         public EntryComparer(SongAttribute attribute) { this.attribute = attribute; }
 
-        public virtual int Compare(SongMetadata lhs, SongMetadata rhs) { return IsLowerOrdered(lhs, rhs) ? -1 : 1; }
+        public int Compare(SongMetadata lhs, SongMetadata rhs) { return IsLowerOrdered(lhs, rhs) ? -1 : 1; }
 
-        protected bool IsLowerOrdered(SongMetadata lhs, SongMetadata rhs)
+        private bool IsLowerOrdered(SongMetadata lhs, SongMetadata rhs)
         {
             switch (attribute)
             {
@@ -90,15 +90,16 @@ namespace YARG.Core.Song
         }
     }
 
-    public class InstrumentComparer : EntryComparer
+    public sealed class InstrumentComparer : IComparer<SongMetadata>
     {
+        private readonly EntryComparer baseComparer = new(SongAttribute.Unspecified);
         public readonly Instrument instrument;
-        public InstrumentComparer(Instrument instrument) : base(SongAttribute.Unspecified)
+        public InstrumentComparer(Instrument instrument)
         {
             this.instrument = instrument;
         }
 
-        public override int Compare(SongMetadata lhs, SongMetadata rhs)
+        public int Compare(SongMetadata lhs, SongMetadata rhs)
         {
             var lhsValues = lhs.Parts.GetValues(instrument);
             var rhsValues = rhs.Parts.GetValues(instrument);
@@ -118,7 +119,7 @@ namespace YARG.Core.Song
             if (lhsValues.subTracks < rhsValues.subTracks)
                 return 1;
 
-            return base.Compare(lhs, rhs);
+            return baseComparer.Compare(lhs, rhs);
         }
     }
 }

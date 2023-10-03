@@ -9,7 +9,7 @@ namespace YARG.Core.Song.Cache
 {
     public sealed partial class CacheHandler
     {
-        private class ParallelExceptionTracker
+        private sealed class ParallelExceptionTracker
         {
             private readonly object _lock = new object();
             private Exception? _exception = null;

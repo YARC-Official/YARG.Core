@@ -5,7 +5,7 @@ using YARG.Core.Song;
 
 namespace YARG.Core.IO.Ini
 {
-    public class IniSection
+    public sealed class IniSection
     {
         private readonly Dictionary<string, List<IniModifier>> modifiers;
 
