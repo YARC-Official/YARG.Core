@@ -85,9 +85,9 @@ namespace YARG.Core.Song.Cache
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);
 
-            writer.Write(upgradeDta!.ConFile.FullName);
+            writer.Write(Filename);
             writer.Write(LastWrite.ToBinary());
-            writer.Write(upgradeDta.lastWrite.ToBinary());
+            writer.Write(upgradeDta!.lastWrite.ToBinary());
             writer.Write(Upgrades.Count);
             foreach (var upgrade in Upgrades)
             {
@@ -102,7 +102,7 @@ namespace YARG.Core.Song.Cache
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);
 
-            writer.Write(songDTA!.ConFile.FullName);
+            writer.Write(Filename);
             writer.Write(songDTA!.lastWrite.ToBinary());
             Serialize(writer, ref nodes);
             return ms.ToArray();
