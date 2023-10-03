@@ -441,15 +441,15 @@ namespace YARG.Core.UnitTests.Parsing
 
         public static void PopulateSyncTrack(MoonSong song)
         {
-            song.Add(new BPM(0, (uint) (TEMPO * 1000)));
-            song.Add(new TimeSignature(0, NUMERATOR, DENOMINATOR));
+            song.bpms.Add(new BPM(0, (uint) (TEMPO * 1000)));
+            song.timeSignatures.Add(new TimeSignature(0, NUMERATOR, DENOMINATOR));
         }
 
         public static void PopulateGlobalEvents(MoonSong song, List<Event> events)
         {
             foreach (var text in events)
             {
-                song.Add(text.Clone());
+                song.events.Add(text.Clone());
             }
         }
 
@@ -465,10 +465,14 @@ namespace YARG.Core.UnitTests.Parsing
         {
             var chart = song.GetChart(instrument, difficulty);
             foreach (var note in track.Notes)
-                chart.Add(note.Clone());
+            {
+                chart.notes.Add(note.Clone());
+            }
 
             foreach (var phrase in track.Phrases)
-                chart.Add(phrase.Clone());
+            {
+                chart.specialPhrases.Add(phrase.Clone());
+            }
         }
 
         public static void VerifySong(MoonSong sourceSong, MoonSong parsedSong, IEnumerable<GameMode> supportedModes)

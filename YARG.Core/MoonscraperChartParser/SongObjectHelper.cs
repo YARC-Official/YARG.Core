@@ -233,6 +233,71 @@ namespace MoonscraperChartEditor.Song
                 return list[pos];
         }
 
+
+        /// <summary>
+        /// Pushes a MoonNote to the back of a list, ensuring correct setting of `previous` & `next` variables.
+        /// </summary>
+        /// <param name="note">The note to be inserted, with assumed correct ordering.</param>
+        /// <param name="notes">The list in which the note will be inserted.</param>
+        /// <returns>Returns the list position it was inserted into,
+        /// which equates to the list size before insertion.</returns>
+        public static int PushNote(MoonNote note, List<MoonNote> notes)
+        {
+            int pos = notes.Count;
+            if (pos > 0)
+            {
+                note.previous = notes[pos - 1];
+                notes[pos - 1].next = note;
+            }
+            notes.Add(note);
+            return pos;
+        }
+
+        /// <summary>
+        /// Insert a note into the provided list linearly, with the search starting from the back of the list.
+        /// Ensures correct setting of `previous` & `next` variables.
+        /// Use for handling .mid
+        /// </summary>
+        /// <param name="note">The note to be inserted.</param>
+        /// <param name="notes">The list in which the note will be inserted.</param>
+        /// <returns>Returns the list position it was inserted into.</returns>
+        public static int OrderedInsertFromBack(MoonNote note, List<MoonNote> notes)
+        {
+            int pos = notes.Count;
+            while (pos > 0 && notes[pos - 1].tick > note.tick)
+                --pos;
+
+            if (pos > 0)
+            {
+                note.previous = notes[pos - 1];
+                notes[pos - 1].next = note;
+            }
+
+            if (pos < notes.Count)
+            {
+                notes[pos].previous = note;
+                note.next = notes[pos];
+            }
+            notes.Insert(pos, note);
+            return pos;
+        }
+
+        /// <summary>
+        /// Insert an item into the provided list linearly, with the search starting from the back of the list.
+        /// Use for handling .mid
+        /// </summary>
+        /// <param name="item">The item to be inserted.</param>
+        /// <param name="list">The list in which the item will be inserted.</param>
+        /// <returns>Returns the list position it was inserted into.</returns>
+        public static int OrderedInsertFromBack<T>(T item, List<T> list) where T : SongObject
+        {
+            int pos = list.Count;
+            while (pos > 0 && list[pos - 1].tick > item.tick)
+                --pos;
+            list.Insert(pos, item);
+            return pos;
+        }
+
         /// <summary>
         /// Adds the item into a sorted position into the specified list and updates the note linked list if a note is inserted. 
         /// </summary>
@@ -240,7 +305,7 @@ namespace MoonscraperChartEditor.Song
         /// <param name="item">The item to be inserted.</param>
         /// <param name="list">The list in which the item will be inserted.</param>
         /// <returns>Returns the list position it was inserted into.</returns>
-        public static int Insert<T>(T item, IList<T> list) where T : SongObject
+        public static int Insert<T>(T item, List<T> list) where T : SongObject
         {
             int insertionPos = NOTFOUND;
             int count = list.Count;
