@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using YARG.Core.Extensions;
 
 namespace YARG.Core.Chart
@@ -9,19 +10,23 @@ namespace YARG.Core.Chart
     /// </summary>
     public class VocalsPart : ICloneable<VocalsPart>
     {
+        public readonly bool IsHarmony;
+
         public List<VocalsPhrase> NotePhrases { get; } = new();
         public List<Phrase> OtherPhrases { get; } = new();
         public List<TextEvent> TextEvents { get; } = new();
 
-        public VocalsPart(List<VocalsPhrase> notePhrases, List<Phrase> otherPhrases, List<TextEvent> text)
+        public VocalsPart(bool isHarmony, List<VocalsPhrase> notePhrases, List<Phrase> otherPhrases, List<TextEvent> text)
         {
+            IsHarmony = isHarmony;
             NotePhrases = notePhrases;
             OtherPhrases = otherPhrases;
             TextEvents = text;
         }
 
         public VocalsPart(VocalsPart other)
-            : this(other.NotePhrases.Duplicate(), other.OtherPhrases.Duplicate(), other.TextEvents.Duplicate())
+            : this(other.IsHarmony, other.NotePhrases.Duplicate(),
+                other.OtherPhrases.Duplicate(), other.TextEvents.Duplicate())
         {
         }
 
@@ -80,6 +85,17 @@ namespace YARG.Core.Chart
         public bool IsOccupied()
         {
             return NotePhrases.Count > 0 || OtherPhrases.Count > 0 || TextEvents.Count > 0;
+        }
+
+        public InstrumentDifficulty<VocalNote> CloneAsInstrumentDifficulty()
+        {
+            var vocalNotes = NotePhrases.Select(i => i.PhraseParentNote).ToList();
+            var instrument = IsHarmony ? Instrument.Harmony : Instrument.Vocals;
+
+            var diff = new InstrumentDifficulty<VocalNote>(instrument, Difficulty.Expert,
+                vocalNotes, new(OtherPhrases), new(TextEvents));
+
+            return diff;
         }
 
         public VocalsPart Clone()

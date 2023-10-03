@@ -79,10 +79,11 @@ namespace YARG.Core.Chart
             };
             var moonChart = _moonSong.GetChart(moonInstrument, MoonSong.Difficulty.Expert);
 
+            var isHarmony = moonInstrument != MoonSong.MoonInstrument.Vocals;
             var notePhrases = GetVocalsPhrases(moonChart, harmonyPart);
             var otherPhrases = GetPhrases(moonChart);
             var textEvents = GetTextEvents(moonChart);
-            return new(notePhrases, otherPhrases, textEvents);
+            return new(isHarmony, notePhrases, otherPhrases, textEvents);
         }
 
         private List<VocalsPhrase> GetVocalsPhrases(MoonChart moonChart, int harmonyPart)
