@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using MoonscraperChartEditor.Song;
 using YARG.Core.Utility;
@@ -152,7 +152,9 @@ namespace YARG.Core.Chart
                     {
                         if (!LightingLookup.TryGetValue(text, out var type))
                             continue;
-                        lightingEvents.Add(new(type, moonVenue.time, moonVenue.tick));
+
+                        double time = _moonSong.TickToTime(moonVenue.tick);
+                        lightingEvents.Add(new(type, time, moonVenue.tick));
                         break;
                     }
 
@@ -160,7 +162,9 @@ namespace YARG.Core.Chart
                     {
                         if (!PostProcessLookup.TryGetValue(text, out var type))
                             continue;
-                        postProcessingEvents.Add(new(type, moonVenue.time, moonVenue.tick));
+
+                        double time = _moonSong.TickToTime(moonVenue.tick);
+                        postProcessingEvents.Add(new(type, time, moonVenue.tick));
                         break;
                     }
 
@@ -182,7 +186,9 @@ namespace YARG.Core.Chart
                     {
                         if (!StageEffectLookup.TryGetValue(text, out var type))
                             continue;
-                        stageEvents.Add(new(type, flags, moonVenue.time, moonVenue.tick));
+
+                        double time = _moonSong.TickToTime(moonVenue.tick);
+                        stageEvents.Add(new(type, flags, time, moonVenue.tick));
                         break;
                     }
 
@@ -213,8 +219,9 @@ namespace YARG.Core.Chart
             // Start of a new event
             else if (currentEvent.tick != moonEvent.tick && performers != Performer.None)
             {
+                double time = _moonSong.TickToTime(currentEvent.tick);
                 // Add tracked event
-                events.Add(new(type, performers, currentEvent.time, GetLengthInTime(currentEvent),
+                events.Add(new(type, performers, time, GetLengthInTime(currentEvent),
                     currentEvent.tick, currentEvent.length));
 
                 // Track new event
@@ -230,7 +237,8 @@ namespace YARG.Core.Chart
 
         private double GetLengthInTime(MoonVenueEvent ev)
         {
-            return GetLengthInTime(ev.time, ev.tick, ev.length);
+            double time = _moonSong.TickToTime(ev.tick);
+            return GetLengthInTime(time, ev.tick, ev.length);
         }
     }
 }

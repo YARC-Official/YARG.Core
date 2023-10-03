@@ -167,7 +167,8 @@ namespace YARG.Core.Chart
                                 lyricType = LyricType.NonPitched;
                         }
 
-                        lyrics.Add(new(lyric.ToString(), moonEvent.time, moonEvent.tick));
+                        double time = _moonSong.TickToTime(moonEvent.tick);
+                        lyrics.Add(new(lyric.ToString(), time, moonEvent.tick));
                     }
 
                     // Create new note
@@ -201,9 +202,9 @@ namespace YARG.Core.Chart
         {
             var vocalType = GetVocalNoteType(moonNote);
             float pitch = GetVocalNotePitch(moonNote, lyricType);
-
-            return new VocalNote(pitch, harmonyPart, vocalType,
-                moonNote.time, GetLengthInTime(moonNote), moonNote.tick, moonNote.length);
+			
+            double time = _moonSong.TickToTime(moonNote.tick);
+            return new VocalNote(pitch, harmonyPart, vocalType, time, GetLengthInTime(moonNote), moonNote.tick, moonNote.length);
         }
 
         private float GetVocalNotePitch(MoonNote moonNote, LyricType lyricType)
@@ -247,7 +248,8 @@ namespace YARG.Core.Chart
 
         private Phrase GetVocalsPhraseBounds(SpecialPhrase moonPhrase)
         {
-            return new Phrase(PhraseType.LyricPhrase, moonPhrase.time, GetLengthInTime(moonPhrase),
+            double time = _moonSong.TickToTime(moonPhrase.tick);
+            return new Phrase(PhraseType.LyricPhrase, time, GetLengthInTime(moonPhrase),
                 moonPhrase.tick, moonPhrase.length);
         }
 

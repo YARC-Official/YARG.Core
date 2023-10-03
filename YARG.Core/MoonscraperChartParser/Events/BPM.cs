@@ -39,7 +39,6 @@ namespace MoonscraperChartEditor.Song
             return new BPM(tick, value, anchor)
             {
                 assignedTime = assignedTime,
-                song = song,
             };
         }
 

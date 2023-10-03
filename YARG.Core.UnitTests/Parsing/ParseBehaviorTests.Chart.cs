@@ -189,7 +189,7 @@ namespace YARG.Core.UnitTests.Parsing
                 while (noteIndex < chart.notes.Count &&
                     (phraseIndex == chart.specialPhrases.Count || chart.notes[noteIndex].tick <  chart.specialPhrases[phraseIndex].tick) &&
                     (eventIndex  == chart.events.Count         || chart.notes[noteIndex].tick <= chart.events[eventIndex].tick))
-                    AppendNote(builder, chart.notes[noteIndex++]);
+                    AppendNote(builder, chart.notes[noteIndex++], gameMode);
 
                 while (eventIndex < chart.events.Count &&
                     (phraseIndex == chart.specialPhrases.Count || chart.events[eventIndex].tick < chart.specialPhrases[phraseIndex].tick) &&
@@ -208,11 +208,10 @@ namespace YARG.Core.UnitTests.Parsing
             builder.Append($"}}{NEWLINE}");
         }
 
-        private static void AppendNote(StringBuilder builder, MoonNote note)
+        private static void AppendNote(StringBuilder builder, MoonNote note, GameMode gameMode)
         {
             uint tick = note.tick;
             var flags = note.flags;
-            var gameMode = note.gameMode;
 
             bool canForce = gameMode is GameMode.Guitar or GameMode.GHLGuitar;
             bool canTap = gameMode is GameMode.Guitar or GameMode.GHLGuitar;

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using MoonscraperChartEditor.Song;
@@ -44,8 +44,8 @@ namespace YARG.Core.Chart
             var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
             var drumFlags = GetDrumNoteFlags(moonNote, currentPhrases);
 
-            return new DrumNote(pad, noteType, drumFlags, generalFlags,
-                moonNote.time, moonNote.tick);
+            double time = _moonSong.TickToTime(moonNote.tick);
+            return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick);
         }
 
         private DrumNote CreateFiveLaneDrumNote(MoonNote moonNote, Dictionary<SpecialPhrase.Type, SpecialPhrase> currentPhrases)
@@ -55,8 +55,8 @@ namespace YARG.Core.Chart
             var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
             var drumFlags = GetDrumNoteFlags(moonNote, currentPhrases);
 
-            return new DrumNote(pad, noteType, drumFlags, generalFlags,
-                moonNote.time, moonNote.tick);
+            double time = _moonSong.TickToTime(moonNote.tick);
+            return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick);
         }
 
         private void HandleTextEvent(MoonChartEvent text)
@@ -297,7 +297,7 @@ namespace YARG.Core.Chart
 
             // SP activator
             if (currentPhrases.TryGetValue(SpecialPhrase.Type.ProDrums_Activation, out var activationPhrase) &&
-                IsNoteClosestToEndOfPhrase(moonNote, activationPhrase))
+                IsNoteClosestToEndOfPhrase(_moonSong, moonNote, activationPhrase))
             {
                 flags |= DrumNoteFlags.StarPowerActivator;
             }

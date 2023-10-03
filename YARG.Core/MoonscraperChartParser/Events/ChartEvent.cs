@@ -52,11 +52,7 @@ namespace MoonscraperChartEditor.Song
 
         public new ChartEvent Clone()
         {
-            return new ChartEvent(tick, eventName)
-            {
-                song = song,
-                chart = chart,
-            };
+            return new ChartEvent(tick, eventName);
         }
 
         public override string ToString()

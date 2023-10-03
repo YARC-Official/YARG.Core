@@ -22,7 +22,6 @@ namespace MoonscraperChartEditor.Song
         }
 
         public float resolution;
-        public float hopoThreshold;
         public float offset = 0;
 
         public float? manualLength = null;
@@ -181,19 +180,16 @@ namespace MoonscraperChartEditor.Song
 
         public void Add(Beat beat)
         {
-            beat.song = this;
             SongObjectHelper.Insert(beat, beats);
         }
 
         public void Add(TimeSignature timeSig)
         {
-            timeSig.song = this;
             SongObjectHelper.Insert(timeSig, timeSignatures);
         }
 
         public void Add(BPM bpm)
         {
-            bpm.song = this;
             SongObjectHelper.Insert(bpm, bpms);
         }
 
@@ -214,19 +210,16 @@ namespace MoonscraperChartEditor.Song
 
         public void Add(Event ev)
         {
-            ev.song = this;
             SongObjectHelper.Insert(ev, events);
         }
 
         public void Add(Section section)
         {
-            section.song = this;
             SongObjectHelper.Insert(section, sections);
         }
 
         public void Add(VenueEvent venueEvent)
         {
-            venueEvent.song = this;
             SongObjectHelper.Insert(venueEvent, venue);
         }
 

@@ -8,9 +8,6 @@ namespace MoonscraperChartEditor.Song
     [Serializable]
     internal abstract class ChartObject : SongObject
     {
-        [NonSerialized]
-        public MoonChart chart;
-
 // Non-nullable field 'chart' must contain a non-null value when exiting constructor
 // 'chart' is assigned externally as part of this object being added to a chart
 #pragma warning disable 8618

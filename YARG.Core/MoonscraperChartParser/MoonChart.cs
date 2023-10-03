@@ -52,22 +52,16 @@ namespace MoonscraperChartEditor.Song
 
         public int Add(MoonNote note)
         {
-            note.chart = this;
-            note.song = song;
             return SongObjectHelper.Insert(note, notes);
         }
 
         public int Add(SpecialPhrase phrase)
         {
-            phrase.chart = this;
-            phrase.song = song;
             return SongObjectHelper.Insert(phrase, specialPhrases);
         }
 
         public int Add(ChartEvent ev)
         {
-            ev.chart = this;
-            ev.song = song;
             return SongObjectHelper.Insert(ev, events);
         }
 

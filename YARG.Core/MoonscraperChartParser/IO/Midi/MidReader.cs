@@ -164,7 +164,7 @@ namespace MoonscraperChartEditor.Song.IO
         private static void ValidateAndApplySettings(MoonSong song, ParseSettings settings)
         {
             // Apply HOPO threshold settings
-            song.hopoThreshold = MidIOHelper.GetHopoThreshold(settings, song.resolution);
+            MoonNote.hopoThreshold = MidIOHelper.GetHopoThreshold(settings, song.resolution);
 
             // Verify sustain cutoff threshold
             if (settings.SustainCutoffThreshold < 0)
@@ -706,7 +706,7 @@ namespace MoonscraperChartEditor.Song.IO
                         break;
 
                     case MoonNote.MoonNoteType.Tap:
-                        if (!note.IsOpenNote())
+                        if (!note.IsOpenNote(MoonChart.GameMode.Guitar))
                         {
                             note.flags |= MoonNote.Flags.Tap;
                             note.flags &= ~MoonNote.Flags.Forced;
@@ -724,7 +724,8 @@ namespace MoonscraperChartEditor.Song.IO
                         continue;
                 }
 
-                YargTrace.Assert(note.type == newType, $"Failed to set forced type! Expected: {newType}  Actual: {note.type}\non {difficulty} {instrument} at tick {note.tick} ({TimeSpan.FromSeconds(note.time):mm':'ss'.'ff})");
+                double time = song.TickToTime(note.tick);
+                YargTrace.Assert(note.guitarType == newType, $"Failed to set forced type! Expected: {newType}  Actual: {note.guitarType}\non {difficulty} {instrument} at tick {note.tick} ({TimeSpan.FromSeconds(time):mm':'ss'.'ff})");
             }
         }
 
