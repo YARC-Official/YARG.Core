@@ -25,14 +25,25 @@ namespace YARG.Core.IO
             get => _fileStream.Position - MATRIXSIZE;
             set
             {
-                _fileStream.Position = value + MATRIXSIZE;
-
-                // Yes this is inefficient, but it must be done
-                ResetEncryptionMatrix();
-                for (long i = 0; i < value; i++)
+                long newPos = value + MATRIXSIZE;
+                if (newPos < _fileStream.Position)
                 {
-                    RollEncryptionMatrix();
+                    // Yes this is inefficient, but it must be done
+                    ResetEncryptionMatrix();
+                    for (long i = 0; i < value; i++)
+                    {
+                        RollEncryptionMatrix();
+                    }
                 }
+                else if (_fileStream.Position < newPos)
+                {
+                    // No need to reset so long as we're still going forwards
+                    for (long i = _fileStream.Position; i < newPos; i++)
+                    {
+                        RollEncryptionMatrix();
+                    }
+                }
+                _fileStream.Position = newPos;
             }
         }
 
