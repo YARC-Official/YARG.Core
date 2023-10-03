@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace YARG.Core.Song.Cache
 {
     [Serializable]
-    public class SongCache
+    public sealed class SongCache
     {
         [NonSerialized]
         public readonly Dictionary<HashWrapper, List<SongMetadata>> entries = new();

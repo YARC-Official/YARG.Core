@@ -27,7 +27,7 @@ namespace YARG.Core.IO.Ini
         UInt64Array,
     };
 
-    public unsafe class IniModifier
+    public sealed unsafe class IniModifier
     {
         [StructLayout(LayoutKind.Explicit)]
         private struct ModifierUnion

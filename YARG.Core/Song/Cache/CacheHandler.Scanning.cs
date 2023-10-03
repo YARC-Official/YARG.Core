@@ -8,7 +8,7 @@ namespace YARG.Core.Song.Cache
 {
     public sealed partial class CacheHandler
     {
-        private class FileCollector
+        private sealed class FileCollector
         {
             public readonly string directory;
             public readonly string?[] charts = new string?[3];

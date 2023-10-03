@@ -6,7 +6,7 @@ using YARG.Core.IO;
 
 namespace YARG.Core.Song.Cache
 {
-    public class CategoryCacheWriteNode
+    public sealed class CategoryCacheWriteNode
     {
         public int title;
         public int artist;

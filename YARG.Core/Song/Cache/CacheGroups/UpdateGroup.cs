@@ -4,7 +4,7 @@ using System.IO;
 
 namespace YARG.Core.Song.Cache
 {
-    public class UpdateGroup : IModificationGroup
+    public sealed class UpdateGroup : IModificationGroup
     {
         public readonly string directory;
         private readonly DateTime dtaLastWrite;

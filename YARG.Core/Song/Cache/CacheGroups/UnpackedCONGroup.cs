@@ -4,7 +4,7 @@ using YARG.Core.IO;
 
 namespace YARG.Core.Song.Cache
 {
-    public class UnpackedCONGroup : CONGroup, ICacheGroup
+    public sealed class UnpackedCONGroup : CONGroup, ICacheGroup
     {
         public readonly string directory;
         public readonly AbridgedFileInfo dta;
