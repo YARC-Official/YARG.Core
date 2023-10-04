@@ -236,7 +236,7 @@ namespace YARG.Core.Song.Cache
             List<PackedCONGroup> entryCons = new();
             foreach (var group in conGroups)
             {
-                if (group.UpgradeCount > 0)
+                if (group.Upgrades.Count > 0)
                     upgradeCons.Add(group);
 
                 if (group.EntryCount > 0)
@@ -344,13 +344,13 @@ namespace YARG.Core.Song.Cache
 
                     if (group.UpgradeDTALastWrite == dtaLastWrite)
                     {
-                        if (group.lastWrite != conLastWrite)
+                        if (group.LastWrite != conLastWrite)
                         {
                             for (int i = 0; i < count; i++)
                             {
                                 string name = cacheReader.ReadLEBString();
                                 var lastWrite = DateTime.FromBinary(cacheReader.ReadInt64());
-                                if (group.upgrades[name].LastWrite != lastWrite)
+                                if (group.Upgrades[name].LastWrite != lastWrite)
                                     AddInvalidSong(name);
                             }
                         }
@@ -387,14 +387,14 @@ namespace YARG.Core.Song.Cache
 
                 MarkFile(filename);
 
-                var file = CONFile.LoadCON(info.FullName);
-                if (file == null)
+                var files = CONFileHandler.TryParseListings(info.FullName);
+                if (files == null)
                 {
                     YargTrace.DebugInfo($"CON could not be loaded: {filename}");
                     return null;
                 }
 
-                group = new(file, info.LastWriteTime);
+                group = new(filename, files, info.LastWriteTime);
                 YargTrace.DebugInfo($"CON added in main loop {filename}");
                 AddCONGroup(group);
             }
@@ -474,16 +474,15 @@ namespace YARG.Core.Song.Cache
 
             if (CreateCONGroup(filename, out var group))
             {
-                var file = group!.file;
-                AddCONGroup(group);
+                AddCONGroup(group!);
 
                 for (int i = 0; i < count; i++)
                 {
                     string name = reader.ReadLEBString();
                     var lastWrite = DateTime.FromBinary(reader.ReadInt64());
-                    var listing = file.TryGetListing($"songs_upgrades/{name}_plus.mid");
+                    var listing = CONFileHandler.TryGetListing(group!.Files, $"songs_upgrades/{name}_plus.mid");
 
-                    IRBProUpgrade upgrade = new PackedRBProUpgrade(file, listing, lastWrite);
+                    IRBProUpgrade upgrade = new PackedRBProUpgrade(listing, lastWrite);
                     AddUpgrade(name, null, upgrade);
                 }
             }
@@ -494,7 +493,7 @@ namespace YARG.Core.Song.Cache
                     string name = reader.ReadLEBString();
                     var lastWrite = DateTime.FromBinary(reader.ReadInt64());
 
-                    IRBProUpgrade upgrade = new PackedRBProUpgrade(null, null, lastWrite);
+                    IRBProUpgrade upgrade = new PackedRBProUpgrade(null, lastWrite);
                     AddUpgrade(name, null, upgrade);
                 }
             }
@@ -544,11 +543,11 @@ namespace YARG.Core.Song.Cache
 
             MarkFile(filename);
 
-            var file = CONFile.LoadCON(filename);
-            if (file == null)
+            var files = CONFileHandler.TryParseListings(filename);
+            if (files == null)
                 return false;
 
-            group = new(file, info.LastWriteTime);
+            group = new(filename, files, info.LastWriteTime);
             return true;
         }
 
@@ -558,7 +557,7 @@ namespace YARG.Core.Song.Cache
             {
                 foreach (var con in conGroups)
                 {
-                    if (con.file.filename == filename)
+                    if (con.Files[0].ConFile.FullName == filename)
                     {
                         group = con;
                         return true;

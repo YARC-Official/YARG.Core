@@ -22,8 +22,29 @@ namespace YARG.Core.IO
 
         public override long Position
         {
-            get => _fileStream.Position;
-            set => _fileStream.Position = value;
+            get => _fileStream.Position - MATRIXSIZE;
+            set
+            {
+                long newPos = value + MATRIXSIZE;
+                if (newPos < _fileStream.Position)
+                {
+                    // Yes this is inefficient, but it must be done
+                    ResetEncryptionMatrix();
+                    for (long i = 0; i < value; i++)
+                    {
+                        RollEncryptionMatrix();
+                    }
+                }
+                else if (_fileStream.Position < newPos)
+                {
+                    // No need to reset so long as we're still going forwards
+                    for (long i = _fileStream.Position; i < newPos; i++)
+                    {
+                        RollEncryptionMatrix();
+                    }
+                }
+                _fileStream.Position = newPos;
+            }
         }
 
         public override bool CanWrite => false;
@@ -95,22 +116,20 @@ namespace YARG.Core.IO
 
         public override long Seek(long offset, SeekOrigin origin)
         {
-            // Skip the encryption matrix
-            if (origin == SeekOrigin.Begin)
+            switch (origin)
             {
-                offset += MATRIXSIZE;
+                case SeekOrigin.Begin:
+                    Position = offset;
+                    break;
+                case SeekOrigin.Current:
+                    Position += offset;
+                    break;
+                case SeekOrigin.End:
+                    Position = _length + offset;
+                    break;
             }
 
-            long newPos = _fileStream.Seek(offset, origin);
-
-            // Yes this is inefficient, but it must be done
-            ResetEncryptionMatrix();
-            for (long i = 0; i < newPos; i++)
-            {
-                RollEncryptionMatrix();
-            }
-
-            return newPos;
+            return Position;
         }
 
         public override void SetLength(long value)
