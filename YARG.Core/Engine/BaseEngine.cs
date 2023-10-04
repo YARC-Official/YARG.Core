@@ -47,7 +47,7 @@ namespace YARG.Core.Engine
             StarScoreThresholds = new int[multiplierThresholds.Length];
             for (int i = 0; i < multiplierThresholds.Length; i++)
             {
-                StarScoreThresholds[i] = (int)(BaseScore * multiplierThresholds[i]);
+                StarScoreThresholds[i] = (int) (BaseScore * multiplierThresholds[i]);
             }
 
             InputQueue = new Queue<GameInput>();
@@ -259,6 +259,7 @@ namespace YARG.Core.Engine
             foreach (var solo in Solos)
             {
                 solo.NotesHit = 0;
+                solo.SoloBonus = 0;
             }
         }
 
@@ -412,7 +413,31 @@ namespace YARG.Core.Engine
                 return;
             }
 
+            var currentSolo = Solos[State.CurrentSoloIndex];
+
+            double soloPercentage = currentSolo.NotesHit / (double) currentSolo.NoteCount;
+
+            if (soloPercentage < 0.6)
+            {
+                currentSolo.SoloBonus = 0;
+            }
+            else
+            {
+                double multiplier = Math.Clamp((soloPercentage - 0.6) / 0.4, 0, 1);
+                
+                // Old engine says this is 200 *, but I'm not sure that's right?? Isn't it 2x the note's worth, not 4x?
+                double points = 100 * currentSolo.NotesHit * multiplier;
+
+                // Round down to nearest 50 (kinda just makes sense I think?)
+                points -= points % 50;
+                
+                currentSolo.SoloBonus = (int) points;
+            }
+
+            EngineStats.SoloBonuses += currentSolo.SoloBonus;
+            
             State.IsSoloActive = false;
+
             OnSoloEnd?.Invoke(Solos[State.CurrentSoloIndex]);
             State.CurrentSoloIndex++;
         }

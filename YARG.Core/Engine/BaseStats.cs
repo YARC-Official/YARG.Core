@@ -61,6 +61,11 @@ namespace YARG.Core.Engine
         public int PhrasesMissed;
 
         /// <summary>
+        /// Amount of points earned from solo bonuses.
+        /// </summary>
+        public int SoloBonuses;
+
+        /// <summary>
         /// The number of stars the player has achieved.
         /// </summary>
         /// <remarks>This value should not be written to Replay files as Star Cutoffs may change over time.</remarks>
@@ -82,6 +87,7 @@ namespace YARG.Core.Engine
             IsStarPowerActive = stats.IsStarPowerActive;
             PhrasesHit = stats.PhrasesHit;
             PhrasesMissed = stats.PhrasesMissed;
+            SoloBonuses = stats.SoloBonuses;
             Stars = stats.Stars;
         }
 
@@ -97,6 +103,7 @@ namespace YARG.Core.Engine
             IsStarPowerActive = false;
             PhrasesHit = 0;
             PhrasesMissed = 0;
+            SoloBonuses = 0;
             Stars = 0;
         }
 
@@ -112,6 +119,7 @@ namespace YARG.Core.Engine
             writer.Write(IsStarPowerActive);
             writer.Write(PhrasesHit);
             writer.Write(PhrasesMissed);
+            writer.Write(SoloBonuses);
         }
 
         public virtual void Deserialize(BinaryReader reader, int version = 0)
@@ -126,6 +134,7 @@ namespace YARG.Core.Engine
             IsStarPowerActive = reader.ReadBoolean();
             PhrasesHit = reader.ReadInt32();
             PhrasesMissed = reader.ReadInt32();
+            SoloBonuses = reader.ReadInt32();
         }
     }
 }
