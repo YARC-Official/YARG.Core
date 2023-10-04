@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using YARG.Core.Chart;
 using YARG.Core.Song.Cache;
-using YARG.Core.Song.Deserialization;
-using YARG.Core.Song.Deserialization.Ini;
+using YARG.Core.IO;
+using YARG.Core.IO.Ini;
 using YARG.Core.Song.Preparsers;
 
 namespace YARG.Core.Song
@@ -203,16 +203,17 @@ namespace YARG.Core.Song
             _iniData = iniData;
         }
 
-        private static DrumsType ParseChart<TType, TBase, TDecoder>(ITXTReader txtReader, IniSection modifiers, AvailableParts parts)
-            where TType : unmanaged, IEquatable<TType>, IConvertible
-            where TBase : unmanaged, IDotChartBases<TType>
-            where TDecoder : IStringDecoder<TType>, new()
+        private static DrumsType ParseChart<TChar, TBase, TDecoder>(YARGTextReader<TChar> textReader, IniSection modifiers, AvailableParts parts)
+            where TChar : unmanaged, IEquatable<TChar>, IConvertible
+            where TBase : unmanaged, IDotChartBases<TChar>
+            where TDecoder : StringDecoder<TChar>, new()
         {
-            YARGChartFileReader<TType, TBase, TDecoder> chartReader = new(txtReader);
+            TDecoder decoder = new();
+            YARGChartFileReader<TChar, TBase> chartReader = new(textReader);
             if (!chartReader.ValidateHeaderTrack())
                 return DrumsType.Unknown;
 
-            var chartMods = chartReader.ExtractModifiers(CHART_MODIFIER_LIST);
+            var chartMods = chartReader.ExtractModifiers(decoder, CHART_MODIFIER_LIST);
             modifiers.Append(chartMods);
 
             return parts.ParseChart(chartReader, GetDrumTypeFromModifier(modifiers));
@@ -247,7 +248,7 @@ namespace YARG.Core.Song
             IniSection modifiers;
             if (iniFile != null)
             {
-                modifiers = IniHandler.ReadSongIniFile(iniFile);
+                modifiers = SongIniHandler.ReadSongIniFile(iniFile);
                 iniInfo = new AbridgedFileInfo(iniFile);
             }
             else if (IniSubmetadata.DoesSoloChartHaveAudio(Path.GetDirectoryName(chartFile)))
@@ -262,10 +263,14 @@ namespace YARG.Core.Song
             DrumsType drumType = default;
             if (chartType == ChartType.Chart)
             {
-                if (ITXTReader.Load(file, out var reader))
-                    drumType = ParseChart<byte, DotChartByte, ByteStringDecoder>(reader, modifiers, parts);
+                var byteReader = YARGTextReader.TryLoadByteReader(file);
+                if (byteReader != null)
+                    drumType = ParseChart<byte, DotChartByte, ByteStringDecoder>(byteReader, modifiers, parts);
                 else
-                    drumType = ParseChart<char, DotChartChar, CharStringDecoder>(reader, modifiers, parts);
+                {
+                    var charReader = YARGTextReader.LoadCharReader(file);
+                    drumType = ParseChart<char, DotChartChar, CharStringDecoder>(charReader, modifiers, parts);
+                }
             }
 
             if (!modifiers.Contains("name"))

@@ -2,11 +2,11 @@
 using System.IO;
 using System.Threading.Tasks;
 using YARG.Core.Extensions;
-using YARG.Core.Song.Deserialization;
+using YARG.Core.IO;
 
 namespace YARG.Core.Song.Cache
 {
-    public class CategoryCacheWriteNode
+    public sealed class CategoryCacheWriteNode
     {
         public int title;
         public int artist;

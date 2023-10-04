@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Text;
 using YARG.Core.Song;
 
-namespace YARG.Core.Song.Deserialization.Ini
+namespace YARG.Core.IO.Ini
 {
-    public class IniSection
+    public sealed class IniSection
     {
         private readonly Dictionary<string, List<IniModifier>> modifiers;
 

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using YARG.Core.Song.Deserialization.Ini;
+using YARG.Core.IO.Ini;
 
 namespace YARG.Core.Song
 {
@@ -54,26 +54,38 @@ namespace YARG.Core.Song
             {
                 ProDrums.intensity = (sbyte) intensity;
                 if (FourLaneDrums.intensity == -1)
-                    FourLaneDrums.intensity = (sbyte) intensity;
+                    FourLaneDrums.intensity = ProDrums.intensity;
             }
 
             if (modifiers.TryGet("diff_guitar_real", out intensity))
-                ProGuitar_17Fret.intensity = (sbyte) intensity;
+                ProGuitar_22Fret.intensity = ProGuitar_17Fret.intensity = (sbyte) intensity;
 
             if (modifiers.TryGet("diff_bass_real", out intensity))
-                ProBass_17Fret.intensity = (sbyte) intensity;
+                ProBass_22Fret.intensity = ProBass_17Fret.intensity = (sbyte) intensity;
 
             if (modifiers.TryGet("diff_guitar_real_22", out intensity))
+            {
                 ProGuitar_22Fret.intensity = (sbyte) intensity;
+                if (ProGuitar_17Fret.intensity == -1)
+                    ProGuitar_17Fret.intensity = ProGuitar_22Fret.intensity;
+            }
 
             if (modifiers.TryGet("diff_bass_real_22", out intensity))
+            {
                 ProBass_22Fret.intensity = (sbyte) intensity;
+                if (ProBass_17Fret.intensity == -1)
+                    ProBass_17Fret.intensity = ProBass_22Fret.intensity;
+            }
 
             if (modifiers.TryGet("diff_vocals", out intensity))
-                LeadVocals.intensity = (sbyte) intensity;
+                HarmonyVocals.intensity = LeadVocals.intensity = (sbyte) intensity;
 
             if (modifiers.TryGet("diff_vocals_harm", out intensity))
+            {
                 HarmonyVocals.intensity = (sbyte) intensity;
+                if (LeadVocals.intensity == -1)
+                    LeadVocals.intensity = HarmonyVocals.intensity;
+            }
         }
     }
 }

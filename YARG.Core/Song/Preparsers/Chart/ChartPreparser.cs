@@ -2,16 +2,15 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
-using YARG.Core.Song.Deserialization;
+using YARG.Core.IO;
 
 namespace YARG.Core.Song
 {
     public static class ChartPreparser
     {
-        public static bool Preparse<TType, TBase, TDecoder>(YARGChartFileReader<TType, TBase, TDecoder> reader, ref PartValues scan, Func<int, bool> func)
+        public static bool Preparse<TType, TBase>(YARGChartFileReader<TType, TBase> reader, ref PartValues scan, Func<int, bool> func)
             where TType : unmanaged, IEquatable<TType>, IConvertible
             where TBase : unmanaged, IDotChartBases<TType>
-            where TDecoder : IStringDecoder<TType>, new()
         {
             var difficulty = reader.Difficulty;
             if (scan[difficulty])

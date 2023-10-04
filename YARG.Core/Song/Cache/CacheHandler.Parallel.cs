@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Threading.Tasks;
-using YARG.Core.Song.Deserialization;
+using YARG.Core.IO;
 
 namespace YARG.Core.Song.Cache
 {
     public sealed partial class CacheHandler
     {
-        private class ParallelExceptionTracker
+        private sealed class ParallelExceptionTracker
         {
             private readonly object _lock = new object();
             private Exception? _exception = null;

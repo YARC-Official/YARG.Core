@@ -1,4 +1,4 @@
-﻿using YARG.Core.Song.Deserialization;
+﻿using YARG.Core.IO;
 
 namespace YARG.Core.Song
 {
@@ -22,7 +22,7 @@ namespace YARG.Core.Song
             while (reader.StartNode())
             {
                 string name = reader.GetNameOfNode();
-                diff = reader.ReadInt32();
+                diff = YARGNumberExtractor.Int32(reader);
                 switch (name)
                 {
                     case "drum":
@@ -43,6 +43,8 @@ namespace YARG.Core.Song
                     case "vocals":
                         condiffs.LeadVocals = (short) diff;
                         SetRank(ref LeadVocals.intensity, diff, VocalsDiffMap);
+                        if (HarmonyVocals.intensity == -1)
+                            HarmonyVocals.intensity = LeadVocals.intensity;
                         break;
                     case "keys":
                         condiffs.Keys = (short) diff;
@@ -76,6 +78,8 @@ namespace YARG.Core.Song
                     case "vocal_harm":
                         condiffs.HarmonyVocals = (short) diff;
                         SetRank(ref HarmonyVocals.intensity, diff, HarmonyDiffMap);
+                        if (LeadVocals.intensity == -1)
+                            LeadVocals.intensity = HarmonyVocals.intensity;
                         break;
                     case "band":
                         condiffs.band = (short) diff;

@@ -2,9 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using YARG.Core.Song.Deserialization.Ini;
+using YARG.Core.Extensions;
+using YARG.Core.IO.Ini;
 
-namespace YARG.Core.Song.Deserialization
+namespace YARG.Core.IO
 {
     public enum ChartEventType
     {
@@ -208,25 +209,23 @@ namespace YARG.Core.Song.Deserialization
         public DotChartEventCombo<char>[] EVENTS_DIFF => _EVENTS_DIFF;
     }
 
-    public sealed class YARGChartFileReader<TType, TBase, TDecoder>
-        where TType : unmanaged, IEquatable<TType>, IConvertible
-        where TBase : unmanaged, IDotChartBases<TType>
-        where TDecoder : IStringDecoder<TType>, new()
+    public sealed class YARGChartFileReader<TChar, TBase>
+        where TChar : unmanaged, IEquatable<TChar>, IConvertible
+        where TBase : unmanaged, IDotChartBases<TChar>
     {
         private static readonly TBase CONFIG = default;
+        private readonly YARGTextReader<TChar> reader;
 
-        private readonly YARGTXTReader<TType, TDecoder> reader;
-
-        private DotChartEventCombo<TType>[] eventSet = Array.Empty<DotChartEventCombo<TType>>();
+        private DotChartEventCombo<TChar>[] eventSet = Array.Empty<DotChartEventCombo<TChar>>();
         private NoteTracks_Chart _instrument;
         private Difficulty _difficulty;
 
         public NoteTracks_Chart Instrument => _instrument;
         public Difficulty Difficulty => _difficulty;
 
-        public YARGChartFileReader(ITXTReader reader)
+        public YARGChartFileReader(YARGTextReader<TChar> reader)
         {
-            this.reader = (YARGTXTReader<TType, TDecoder>) reader;
+            this.reader = reader;
         }
 
         public bool IsStartOfTrack()
@@ -286,7 +285,7 @@ namespace YARG.Core.Song.Deserialization
             return false;
         }
 
-        private bool ValidateTrack(ReadOnlySpan<TType> track)
+        private bool ValidateTrack(ReadOnlySpan<TChar> track)
         {
             if (!DoesStringMatch(track))
                 return false;
@@ -295,11 +294,11 @@ namespace YARG.Core.Song.Deserialization
             return true;
         }
 
-        private bool DoesStringMatch(ReadOnlySpan<TType> str)
+        private bool DoesStringMatch(ReadOnlySpan<TChar> str)
         {
             if (reader.Next - reader.Position < str.Length)
                 return false;
-            return reader.ExtractBasicSpan(str.Length).SequenceEqual(str);
+            return reader.PeekBasicSpan(str.Length).SequenceEqual(str);
         }
 
         public bool IsStillCurrentTrack()
@@ -317,27 +316,25 @@ namespace YARG.Core.Song.Deserialization
             return true;
         }
 
-        private const int LOWER_CASE_MASK = ~32;
-
         public bool TryParseEvent(ref DotChartEvent ev)
         {
             if (!IsStillCurrentTrack())
                 return false;
 
-            ev.Position = reader.ReadInt64();
+            ev.Position = YARGNumberExtractor.Int64(reader);
 
             int start = reader.Position;
             int end = start;
             while (true)
             {
-                char curr = (char) (reader.Data[end].ToChar(null) & LOWER_CASE_MASK);
-                if (curr < 'A' || 'Z' < curr)
+                char curr = reader.Data[end].ToChar(null);
+                if (!curr.IsAsciiLetter())
                     break;
                 ++end;
             }
             reader.Position = end;
 
-            ReadOnlySpan<TType> span = new(reader.Data, start, end - start);
+            ReadOnlySpan<TChar> span = new(reader.Data, start, end - start);
             foreach (var combo in eventSet)
             {
                 if (combo.DoesEventMatch(span))
@@ -364,8 +361,8 @@ namespace YARG.Core.Song.Deserialization
 
         public void ExtractLaneAndSustain(ref DotChartNote note)
         {
-            note.Lane = reader.ReadInt32();
-            note.Duration = reader.ReadInt64();
+            note.Lane = YARGNumberExtractor.Int32(reader);
+            note.Duration = YARGNumberExtractor.Int64(reader);
         }
 
         public void SkipTrack()
@@ -378,7 +375,7 @@ namespace YARG.Core.Song.Deserialization
                 while (point > position)
                 {
                     char character = reader.Data[point].ToChar(null);
-                    if (!ITXTReader.IsWhitespace(character) || character == '\n')
+                    if (!character.IsAsciiWhitespace() || character == '\n')
                         break;
                     --point;
                 }
@@ -411,15 +408,16 @@ namespace YARG.Core.Song.Deserialization
             return false;
         }
 
-        public Dictionary<string, List<IniModifier>> ExtractModifiers(Dictionary<string, IniModifierCreator> validNodes)
+        public Dictionary<string, List<IniModifier>> ExtractModifiers<TDecoder>(TDecoder decoder, Dictionary<string, IniModifierCreator> validNodes)
+            where TDecoder : StringDecoder<TChar>
         {
             Dictionary<string, List<IniModifier>> modifiers = new();
             while (IsStillCurrentTrack())
             {
-                string name = reader.ExtractModifierName();
+                string name = decoder.ExtractModifierName(reader);
                 if (validNodes.TryGetValue(name, out var node))
                 {
-                    var mod = node.CreateModifier(reader);
+                    var mod = node.CreateModifier(reader, decoder);
                     if (modifiers.TryGetValue(node.outputName, out var list))
                         list.Add(mod);
                     else

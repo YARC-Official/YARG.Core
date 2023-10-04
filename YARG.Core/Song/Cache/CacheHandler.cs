@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
-using YARG.Core.Song.Deserialization;
+using YARG.Core.IO;
 
 namespace YARG.Core.Song.Cache
 {
@@ -49,7 +49,7 @@ namespace YARG.Core.Song.Cache
         /// Format is YY_MM_DD_RR: Y = year, M = month, D = day, R = revision (reset across dates, only increment
         /// if multiple cache version changes happen in a single day).
         /// </summary>
-        public const int CACHE_VERSION = 23_09_29_01;
+        public const int CACHE_VERSION = 23_10_02_01;
 
         public ScanProgress Progress { get; private set; }
         public int Count { get { lock (entryLock) return _count; } }

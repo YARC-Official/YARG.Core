@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using YARG.Core.Extensions;
 using YARG.Core.Song.Cache;
-using YARG.Core.Song.Deserialization;
+using YARG.Core.IO;
 
 namespace YARG.Core.Song
 {

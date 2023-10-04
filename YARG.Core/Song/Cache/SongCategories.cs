@@ -16,7 +16,8 @@ namespace YARG.Core.Song.Cache
 
         public abstract void Add(SongMetadata entry);
 
-        protected void Add(TKey key, SongMetadata entry, EntryComparer comparer)
+        protected void Add<TComparer>(TKey key, SongMetadata entry, TComparer comparer)
+            where TComparer : IComparer<SongMetadata>
         {
             lock (elementLock)
             {
@@ -100,7 +101,7 @@ namespace YARG.Core.Song.Cache
     }
 
     [Serializable]
-    public class NormalCategory : SerializableCategory<SortString>
+    public sealed class NormalCategory : SerializableCategory<SortString>
     {
         public NormalCategory(SongAttribute attribute) : base(attribute)
         {
@@ -114,7 +115,7 @@ namespace YARG.Core.Song.Cache
     }
 
     [Serializable]
-    public class TitleCategory : SerializableCategory<string>
+    public sealed class TitleCategory : SerializableCategory<string>
     {
         public TitleCategory() : base(SongAttribute.Name) { }
 
@@ -134,7 +135,7 @@ namespace YARG.Core.Song.Cache
     }
 
     [Serializable]
-    public class YearCategory : SerializableCategory<string>
+    public sealed class YearCategory : SerializableCategory<string>
     {
         public YearCategory() : base(SongAttribute.Year) { }
 
@@ -147,7 +148,7 @@ namespace YARG.Core.Song.Cache
         }
     }
 
-    public class ArtistAlbumCategory : SongCategory<string>
+    public sealed class ArtistAlbumCategory : SongCategory<string>
     {
         private static readonly EntryComparer comparer = new(SongAttribute.Album);
         public override void Add(SongMetadata entry)
@@ -157,7 +158,7 @@ namespace YARG.Core.Song.Cache
         }
     }
 
-    public class SongLengthCategory : SongCategory<string>
+    public sealed class SongLengthCategory : SongCategory<string>
     {
         private const int MILLISECONDS_PER_MINUTE = 60 * 1000;
         private static readonly EntryComparer comparer = new(SongAttribute.SongLength);
@@ -177,7 +178,7 @@ namespace YARG.Core.Song.Cache
         }
     }
 
-    public class InstrumentCategory : SongCategory<SortString>
+    public sealed class InstrumentCategory : SongCategory<SortString>
     {
         private static readonly InstrumentComparer FiveFretGuitarComparer   = new(Instrument.FiveFretGuitar);
         private static readonly InstrumentComparer FiveFretBassComparer     = new(Instrument.FiveFretBass);

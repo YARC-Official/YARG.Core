@@ -1,46 +1,20 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
+﻿using System.Collections.Generic;
 using System.Linq;
 
-namespace YARG.Core.Song.Deserialization.Ini
+namespace YARG.Core.IO.Ini
 {
-    public static class IniHandler
+    public static class SongIniHandler
     {
-        public static Dictionary<string, IniSection> ReadIniFile(string iniFile, Dictionary<string, Dictionary<string, IniModifierCreator>> sections)
+        public static IniSection ReadSongIniFile(string iniFile)
         {
-            try
-            {
-                if (ITXTReader.Load(File.ReadAllBytes(iniFile), out var reader))
-                    return ProcessIni<byte, ByteStringDecoder>(reader, sections);
-                return ProcessIni<char, CharStringDecoder>(reader, sections);
-            }
-            catch (Exception ex)
-            {
-                YargTrace.LogException(ex, ex.Message);
+            var modifiers = YARGIniReader.ReadIniFile(iniFile, SONG_INI_DICTIONARY);
+            if (modifiers.Count == 0)
                 return new();
-            }
-        }
-
-        private static Dictionary<string, IniSection> ProcessIni<TType, TDecoder>(ITXTReader txtReader, Dictionary<string, Dictionary<string, IniModifierCreator>> sections)
-            where TType : unmanaged, IEquatable<TType>, IConvertible
-            where TDecoder : IStringDecoder<TType>, new()
-        {
-            Dictionary<string, IniSection> modifierMap = new();
-
-            YARGIniReader<TType, TDecoder> iniReader = new(txtReader);
-            while (iniReader.TrySection(out string section))
-            {
-                if (sections.TryGetValue(section, out var nodes))
-                    modifierMap[section] = iniReader.ExtractModifiers(ref nodes);
-                else
-                    iniReader.SkipSection();
-            }
-            return modifierMap;
+            return modifiers.First().Value;
         }
 
         private static readonly Dictionary<string, Dictionary<string, IniModifierCreator>> SONG_INI_DICTIONARY = new();
-        static IniHandler()
+        static SongIniHandler()
         {
             SONG_INI_DICTIONARY.Add("[song]", new()
             {
@@ -163,14 +137,6 @@ namespace YARG.Core.Song.Deserialization.Ini
 
                 { "year",                                 new("year", ModifierCreatorType.String) }
             });
-        }
-
-        public static IniSection ReadSongIniFile(string iniFile)
-        {
-            var modifiers = ReadIniFile(iniFile, SONG_INI_DICTIONARY);
-            if (modifiers.Count == 0)
-                return new();
-            return modifiers.First().Value;
         }
     }
 }
