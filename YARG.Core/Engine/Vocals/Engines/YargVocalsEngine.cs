@@ -54,7 +54,7 @@ namespace YARG.Core.Engine.Vocals.Engines
 
             // Check for end of phrase
             var phrase = Notes[State.NoteIndex];
-            if (phrase.TickEnd >= State.CurrentTick)
+            if (phrase.TickEnd <= State.CurrentTick)
             {
                 double percentHit = (double) State.PhraseTicksHit / State.PhraseTicksProcessed;
 
