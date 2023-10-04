@@ -108,8 +108,26 @@ namespace YARG.Core.Engine.Vocals.Engines
         {
             if (State.PitchSangThisUpdate == null) return false;
 
-            float pitch = note.PitchAtSongTick(State.CurrentTick);
-            return Math.Abs(State.PitchSangThisUpdate.Value - pitch) <= EngineParameters.HitWindow;
+            // Octave does not matter
+            float notePitch = note.PitchAtSongTick(State.CurrentTick) % 12f;
+            float singPitch = State.PitchSangThisUpdate.Value % 12f;
+            float dist = Math.Abs(singPitch - notePitch);
+
+            // Try to check once within the range and...
+            if (dist <= EngineParameters.HitWindow)
+            {
+                return true;
+            }
+
+            // ...try again twelve notes (one octave) away.
+            // This effectively allows wrapping in the check. Only subtraction is needed
+            // since we take the absolute value.
+            if (dist - 12f <= EngineParameters.HitWindow)
+            {
+                return true;
+            }
+
+            return false;
         }
     }
 }
