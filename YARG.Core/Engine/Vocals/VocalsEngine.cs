@@ -13,9 +13,12 @@ namespace YARG.Core.Engine.Vocals
 
         public override bool TreatChordAsSeparate => false;
 
-        public VocalsEngine(InstrumentDifficulty<VocalNote> chart, SyncTrack syncTrack, VocalsEngineParameters engineParameters)
+        protected VocalsEngine(InstrumentDifficulty<VocalNote> chart, SyncTrack syncTrack,
+            VocalsEngineParameters engineParameters)
             : base(chart, syncTrack, engineParameters)
         {
+            BaseScore = CalculateBaseScore();
+            State.Initialize(engineParameters);
         }
 
         protected override bool HitNote(VocalNote note)

@@ -20,14 +20,17 @@ namespace YARG.Core.Engine.Vocals.Engines
             // Get the pitch this update
             if (IsInputUpdate && CurrentInput.GetAction<VocalsAction>() == VocalsAction.Pitch)
             {
+                State.InputLeniencyTimer.Start(State.CurrentTime);
                 State.PitchSangThisUpdate = CurrentInput.Axis;
             }
             else if (!IsBotUpdate)
             {
-                State.PitchSangThisUpdate = null;
+                // Only set to null if the input leniency timer is expired
+                if (State.InputLeniencyTimer.IsExpired(State.CurrentTime))
+                {
+                    State.PitchSangThisUpdate = null;
+                }
             }
-
-            // TODO: Add some sort of leniency timer as microphone inputs don't happen every tick
 
             // Quits early if there are no notes left
             if (State.NoteIndex >= Notes.Count)
@@ -58,14 +61,22 @@ namespace YARG.Core.Engine.Vocals.Engines
             {
                 double percentHit = (double) State.PhraseTicksHit / State.PhraseTicksProcessed;
 
-                if (percentHit >= EngineParameters.PhraseHitPercent)
-                {
-                    HitNote(phrase);
-                }
-                else
-                {
-                    MissNote(phrase);
-                }
+                // if (percentHit >= EngineParameters.PhraseHitPercent)
+                // {
+                //     HitNote(phrase);
+                // }
+                // else
+                // {
+                //     MissNote(phrase);
+                // }
+
+                // TODO: Proper scoring
+
+                HitNote(phrase);
+                EngineStats.Score += (int) State.PhraseTicksHit;
+                UpdateStars();
+
+                State.PhraseTicksHit = 0;
             }
 
             // Vocals never need a re-update
@@ -80,18 +91,15 @@ namespace YARG.Core.Engine.Vocals.Engines
             var phrase = Notes[State.NoteIndex];
 
             // Not hittable if the phrase is after the current tick
-            if (phrase.Tick > State.CurrentTick) return false;
+            if (State.CurrentTick < phrase.Tick) return false;
 
             // Find the note within the phrase
             VocalNote? note = null;
             foreach (var phraseNote in phrase.ChildNotes)
             {
-                // There are no more hittable notes at this point (phrase is sorted)
-                if (State.CurrentTick < phraseNote.Tick) break;
-
                 // If in bounds, this is the note!
-                if (State.CurrentTick > phraseNote.Tick &&
-                    State.CurrentTick < phraseNote.TotalTickLength)
+                if (State.CurrentTick >= phraseNote.Tick &&
+                    State.CurrentTick < phraseNote.TotalTickEnd)
                 {
                     note = phraseNote;
                     break;

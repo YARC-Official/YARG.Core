@@ -17,6 +17,16 @@
         /// </summary>
         public uint PhraseTicksHit;
 
+        /// <summary>
+        /// The timer that determines how long the pitch input should continue being held onto for.
+        /// </summary>
+        public EngineTimer InputLeniencyTimer;
+
+        public void Initialize(VocalsEngineParameters parameters)
+        {
+            InputLeniencyTimer = new(parameters.InputLeniency);
+        }
+
         public override void Reset()
         {
             base.Reset();

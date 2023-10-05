@@ -9,14 +9,21 @@ namespace YARG.Core.Engine.Vocals
         /// </summary>
         public double PhraseHitPercent { get; private set; }
 
+        /// <summary>
+        /// How long the pitch input should continue being held onto for.
+        /// </summary>
+        public double InputLeniency { get; private set; }
+
         public VocalsEngineParameters()
         {
         }
 
-        public VocalsEngineParameters(double hitWindow, double phraseHitPercent, float[] starMultiplierThresholds)
+        public VocalsEngineParameters(double hitWindow, double phraseHitPercent, double inputLeniency,
+            float[] starMultiplierThresholds)
             : base(hitWindow, 1f, starMultiplierThresholds)
         {
             PhraseHitPercent = phraseHitPercent;
+            InputLeniency = inputLeniency;
         }
 
         public override void Serialize(BinaryWriter writer)
