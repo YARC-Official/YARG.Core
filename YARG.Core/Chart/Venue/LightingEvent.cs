@@ -54,8 +54,11 @@ namespace YARG.Core.Chart
         Silhouettes,
         Silhouettes_Spotlight,
         Searchlights,
+        Strobe_Fastest,
         Strobe_Fast,
+        Strobe_Medium,
         Strobe_Slow,
+        Strobe_Off,
         Sweep,
         Warm_Automatic,
 
