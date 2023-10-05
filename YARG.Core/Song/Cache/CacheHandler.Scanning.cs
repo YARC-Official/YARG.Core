@@ -55,14 +55,14 @@ namespace YARG.Core.Song.Cache
             if (multithreading)
             {
                 ParallelLoop(iniGroups, ScanDirectory_Parallel);
-                Task.WaitAll(Task.Run(() => ParallelLoop(conGroups, ScanCONGroup_Parallel)),
-                             Task.Run(() => ParallelLoop(extractedConGroups, ScanExtractedCONGroup_Parallel)));
+                Task.WaitAll(Task.Run(() => ParallelLoop(conGroups.Values, ScanCONGroup_Parallel)),
+                             Task.Run(() => ParallelLoop(extractedConGroups.Values, ScanExtractedCONGroup_Parallel)));
             }
             else
             {
                 SequentialLoop(iniGroups, ScanDirectory);
-                SequentialLoop(conGroups, ScanCONGroup);
-                SequentialLoop(extractedConGroups, ScanExtractedCONGroup);
+                SequentialLoop(conGroups.Values, ScanCONGroup);
+                SequentialLoop(extractedConGroups.Values, ScanExtractedCONGroup);
             }
         }
 
@@ -95,7 +95,7 @@ namespace YARG.Core.Song.Cache
                 FileInfo dta = new(Path.Combine(directory, "songs.dta"));
                 if (dta.Exists)
                 {
-                    AddExtractedCONGroup(directory, new(dta));
+                    extractedConGroups.Add(directory, new(dta));
                     return false;
                 }
             }
@@ -149,7 +149,7 @@ namespace YARG.Core.Song.Cache
                 return;
 
             PackedCONGroup group = new(files, File.GetLastWriteTime(filename));
-            AddCONGroup(filename, group);
+            conGroups.Add(filename, group);
 
             var reader = group.LoadUpgrades();
             if (reader != null)

@@ -63,21 +63,16 @@ namespace YARG.Core.Song.Cache
         private static readonly object badsongsLock = new();
         private static readonly object invalidLock = new();
 
-        private static readonly object updateGroupLock = new();
-        private static readonly object upgradeGroupLock = new();
-        private static readonly object extractedLock = new();
-        private static readonly object conLock = new();
-
         static CacheHandler() { }
 
 
         private readonly SongCache cache;
         private int _count;
 
-        private readonly Dictionary<string, UpdateGroup> updateGroups = new();
-        private readonly Dictionary<string, UpgradeGroup> upgradeGroups = new();
-        private readonly Dictionary<string, PackedCONGroup> conGroups = new();
-        private readonly Dictionary<string, UnpackedCONGroup> extractedConGroups = new();
+        private readonly LockedCacheDictionary<UpdateGroup> updateGroups = new();
+        private readonly LockedCacheDictionary<UpgradeGroup> upgradeGroups = new();
+        private readonly LockedCacheDictionary<PackedCONGroup> conGroups = new();
+        private readonly LockedCacheDictionary<UnpackedCONGroup> extractedConGroups = new();
         private readonly Dictionary<string, IniGroup> iniGroups;
         private readonly Dictionary<string, List<(string, YARGDTAReader)>> updates = new();
         private readonly Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades = new();
@@ -283,7 +278,7 @@ namespace YARG.Core.Song.Cache
             }
 
             if (group!.updates.Count > 0)
-                AddUpdateGroup(directory, group);
+                updateGroups.Add(directory, group);
         }
 
         private UpgradeGroup? CreateUpgradeGroup(string directory, FileInfo dta, bool removeEntries = false)
@@ -312,7 +307,7 @@ namespace YARG.Core.Song.Cache
 
             if (group.upgrades.Count > 0)
             {
-                AddUpgradeGroup(directory, group);
+                upgradeGroups.Add(directory, group);
                 return group;
             }
             return null;
@@ -371,56 +366,26 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void AddCONGroup(string file, PackedCONGroup group)
-        {
-            lock (conLock)
-                conGroups.Add(file, group);
-        }
-
-        private void AddUpdateGroup(string directory, UpdateGroup group)
-        {
-            lock (updateGroupLock)
-                updateGroups.Add(directory, group);
-        }
-
-        private void AddUpgradeGroup(string directory, UpgradeGroup group)
-        {
-            lock (upgradeGroupLock)
-                upgradeGroups.Add(directory, group);
-        }
-
-        private void AddExtractedCONGroup(string directory, UnpackedCONGroup group)
-        {
-            lock (extractedLock)
-                extractedConGroups.Add(directory, group);
-        }
-
         private void RemoveCONEntry(string shortname)
         {
-            lock (conLock)
+            void Remove<T>(LockedCacheDictionary<T> dict) where T : CONGroup
             {
-                foreach (var group in conGroups)
+                lock (dict.Lock)
                 {
-                    if (group.Value.RemoveEntries(shortname))
-                        YargTrace.DebugInfo($"{group.Key} - {shortname} pending rescan");
+                    foreach (var group in dict.Values)
+                        if (group.Value.RemoveEntries(shortname))
+                            YargTrace.DebugInfo($"{group.Key} - {shortname} pending rescan");
                 }
             }
-
-            lock (extractedLock)
-            {
-                foreach (var group in extractedConGroups)
-                {
-                    if (group.Value.RemoveEntries(shortname))
-                        YargTrace.DebugInfo($"{group.Key} - {shortname} pending rescan");
-                }    
-            }
+            Remove(conGroups);
+            Remove(extractedConGroups);
         }
 
         private bool CanAddUpgrade(string shortname, DateTime lastWrite)
         {
-            lock (upgradeGroupLock)
+            lock (upgradeGroups.Lock)
             {
-                foreach (var group in upgradeGroups)
+                foreach (var group in upgradeGroups.Values)
                 {
                     if (group.Value.upgrades.TryGetValue(shortname, out var currUpgrade))
                     {
@@ -434,12 +399,11 @@ namespace YARG.Core.Song.Cache
             return true;
         }
 
-
         private bool CanAddUpgrade_CONInclusive(string shortname, DateTime lastWrite)
         {
-            lock (conLock)
+            lock (conGroups.Lock)
             {
-                foreach (var group in conGroups)
+                foreach (var group in conGroups.Values)
                 {
                     var upgrades = group.Value.Upgrades;
                     if (upgrades.TryGetValue(shortname, out var currUpgrade))
