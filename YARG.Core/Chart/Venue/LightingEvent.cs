@@ -66,5 +66,9 @@ namespace YARG.Core.Chart
         Keyframe_First,
         Keyframe_Next,
         Keyframe_Previous,
+
+        //YARG internal
+        Menu,
+        Score,
     }
 }
