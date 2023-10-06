@@ -39,6 +39,7 @@ namespace YARG.Core.Engine.Vocals.Engines
             }
 
             // If an input was detected, and this tick has not been processed, process it
+            bool hitProcessed = false;
             if (State.PitchSangThisUpdate != null &&
                 State.PhraseTicksProcessed < State.CurrentTick)
             {
@@ -47,8 +48,12 @@ namespace YARG.Core.Engine.Vocals.Engines
                 if (noteHit)
                 {
                     State.PhraseTicksHit++;
+
+                    hitProcessed = true;
                 }
             }
+
+            OnSingTick?.Invoke(hitProcessed);
 
             // If there are any ticks that were missed between now and the last update, catch up.
             // This solves problems with this engines deterministic-ness, as updates don't happen if
@@ -108,6 +113,8 @@ namespace YARG.Core.Engine.Vocals.Engines
 
             // No note found to hit
             if (note == null) return false;
+
+            OnTargetNoteChanged?.Invoke(note);
 
             return CanNoteBeHit(note);
         }

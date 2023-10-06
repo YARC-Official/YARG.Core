@@ -7,9 +7,11 @@ namespace YARG.Core.Engine.Vocals
     public abstract class VocalsEngine :
         BaseEngine<VocalNote, VocalsAction, VocalsEngineParameters, VocalsStats, VocalsEngineState>
     {
-        public delegate void HittingStateAction(bool isHitting);
+        public delegate void SingTickEvent(bool isHitting);
+        public delegate void TargetNoteChangeEvent(VocalNote targetNote);
 
-        public HittingStateAction? OnHittingStateChanged;
+        public SingTickEvent?         OnSingTick;
+        public TargetNoteChangeEvent? OnTargetNoteChanged;
 
         public override bool TreatChordAsSeparate => false;
 
