@@ -85,7 +85,7 @@ namespace YARG.Core.Song.Cache
         /// </summary>
         private const int MIN_CACHEFILESIZE = 92;
 
-        private FileStream? CheckCacheFile()
+        private FileStream? CheckCacheFile(string cacheLocation)
         {
             FileInfo info = new(cacheLocation);
             if (!info.Exists || info.Length < MIN_CACHEFILESIZE)
@@ -104,10 +104,9 @@ namespace YARG.Core.Song.Cache
             return fs;
         }
 
-        private void Deserialize()
+        private void Deserialize(string cacheLocation, bool multithreading)
         {
-            Progress = ScanProgress.LoadingCache;
-            using var stream = CheckCacheFile();
+            using var stream = CheckCacheFile(cacheLocation);
             if (stream == null)
                 return;
 
@@ -154,10 +153,9 @@ namespace YARG.Core.Song.Cache
             YargTrace.DebugInfo($"Ini Entries read: {_count}");
         }
 
-        private bool Deserialize_Quick()
+        private bool Deserialize_Quick(string cacheLocation, bool multithreading)
         {
-            Progress = ScanProgress.LoadingCache;
-            using var stream = CheckCacheFile();
+            using var stream = CheckCacheFile(cacheLocation);
             if (stream == null)
                 return false;
 
@@ -215,7 +213,7 @@ namespace YARG.Core.Song.Cache
             return true;
         }
 
-        private void Serialize()
+        private void Serialize(string cacheLocation)
         {
             Progress = ScanProgress.WritingCache;
             using var writer = new BinaryWriter(new FileStream(cacheLocation, FileMode.Create, FileAccess.Write));

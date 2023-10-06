@@ -38,7 +38,7 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void FindNewEntries()
+        private void FindNewEntries(bool multithreading)
         {
             static void ParallelLoop<T>(Dictionary<string, T> groups, Action<string, T> action)
             {
