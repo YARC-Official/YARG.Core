@@ -94,9 +94,11 @@ namespace YARG.Core.Song
     {
         private readonly EntryComparer baseComparer = new(SongAttribute.Unspecified);
         public readonly Instrument instrument;
+        public readonly string instrumentString;
         public InstrumentComparer(Instrument instrument)
         {
             this.instrument = instrument;
+            this.instrumentString = instrument.ToString();
         }
 
         public int Compare(SongMetadata lhs, SongMetadata rhs)

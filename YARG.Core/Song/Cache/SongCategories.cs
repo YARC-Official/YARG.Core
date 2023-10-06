@@ -240,7 +240,7 @@ namespace YARG.Core.Song.Cache
             }
             else if (entry.Parts.HasInstrument(comparer.instrument))
             {
-                Add(comparer.instrument.ToString(), entry, comparer);
+                Add(comparer.instrumentString, entry, comparer);
             }
         }
     }
