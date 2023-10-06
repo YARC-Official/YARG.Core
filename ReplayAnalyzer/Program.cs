@@ -108,9 +108,9 @@ while (true)
 
     Console.WriteLine("Loading replay...");
     var result = ReplayIO.ReadReplay(replayPath, out var replayFile);
-    var replay = replayFile.Replay;
+    var replay = replayFile?.Replay;
 
-    if (result != ReplayReadResult.Valid)
+    if (result != ReplayReadResult.Valid || replay is null)
     {
         Console.WriteLine($"ERROR: Replay result is {result}! Press any key to continue.");
         Console.ReadKey(true);
