@@ -7,15 +7,15 @@ namespace YARG.Core.Song.Cache
 {
     public interface IModificationGroup
     {
-        public byte[] SerializeModifications();
+        public byte[] SerializeModifications(string filename);
 
-        public static void SerializeGroups<TGroup>(List<TGroup> groups, BinaryWriter writer)
+        public static void SerializeGroups<TGroup>(ICollection<KeyValuePair<string, TGroup>> groups, BinaryWriter writer)
             where TGroup : IModificationGroup
         {
             writer.Write(groups.Count);
             foreach (var group in groups)
             {
-                byte[] buffer = group.SerializeModifications();
+                byte[] buffer = group.Value.SerializeModifications(group.Key);
                 writer.Write(buffer.Length);
                 writer.Write(buffer);
             }
