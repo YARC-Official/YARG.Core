@@ -10,7 +10,7 @@ namespace YARG.Core.Song.Cache
         where TKey : IComparable<TKey>, IEquatable<TKey>
     {
         private readonly object elementLock = new();
-        private readonly SortedDictionary<TKey, List<SongMetadata>> _elements = new();
+        protected readonly SortedDictionary<TKey, List<SongMetadata>> _elements = new();
 
         public SortedDictionary<TKey, List<SongMetadata>> Elements { get { return _elements; } }
 
@@ -30,8 +30,6 @@ namespace YARG.Core.Song.Cache
                 node.Insert(~index, entry);
             }
         }
-
-        public SortedDictionary<TKey, List<SongMetadata>>.Enumerator GetEnumerator() { return _elements.GetEnumerator(); }
     }
 
     [Serializable]
@@ -57,7 +55,7 @@ namespace YARG.Core.Song.Cache
         public void WriteToCache(BinaryWriter fileWriter, ref Dictionary<SongMetadata, CategoryCacheWriteNode> nodes)
         {
             List<string> strings = new();
-            foreach (var element in this)
+            foreach (var element in _elements)
             {
                 foreach (var entry in element.Value)
                 {
