@@ -26,7 +26,6 @@ namespace YARG.Core.Song.Cache
             iniGroups = new(baseDirectories.Length);
             for (int i = 0; i < baseDirectories.Length; ++i)
                 iniGroups.Add(baseDirectories[i], new());
-            cache = new(multithreading);
         }
 
         public SongCache RunScan(bool fast)
@@ -66,7 +65,7 @@ namespace YARG.Core.Song.Cache
         static CacheHandler() { }
 
 
-        private readonly SongCache cache;
+        private readonly SongCache cache = new();
         private int _count;
 
         private readonly LockedCacheDictionary<UpdateGroup> updateGroups = new();

@@ -225,19 +225,9 @@ namespace YARG.Core.Song.Cache
             BandComparer
         };
 
-        private readonly bool multithreading;
-        public InstrumentCategory(bool multithreading)
-        {
-            this.multithreading = multithreading;
-        }
-
         public override void Add(SongMetadata entry)
         {
-            if (multithreading)
-                Parallel.ForEach(comparers, comparer => AddToInstrument(entry, comparer));
-            else
-                foreach (var comparer in comparers)
-                    AddToInstrument(entry, comparer);
+            Parallel.ForEach(comparers, comparer => AddToInstrument(entry, comparer));
         }
 
         private void AddToInstrument(SongMetadata entry, InstrumentComparer comparer)
