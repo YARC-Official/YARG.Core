@@ -160,46 +160,31 @@ namespace YARG.Core.Song.Cache
 
         private void SortCategories()
         {
+            void SortEntries(List<SongMetadata> entries)
+            {
+                foreach (var entry in entries)
+                {
+                    cache.titles.Add(entry);
+                    cache.artists.Add(entry);
+                    cache.albums.Add(entry);
+                    cache.genres.Add(entry);
+                    cache.years.Add(entry);
+                    cache.charters.Add(entry);
+                    cache.playlists.Add(entry);
+                    cache.sources.Add(entry);
+                    cache.artistAlbums.Add(entry);
+                    cache.songLengths.Add(entry);
+                    cache.instruments.Add(entry);
+                }
+            }
+
             Progress = ScanProgress.Sorting;
             if (multithreading)
-            {
-                Parallel.ForEach(cache.entries, entryList =>
-                {
-                    foreach (var entry in entryList.Value)
-                    {
-                        cache.titles.Add(entry);
-                        cache.artists.Add(entry);
-                        cache.albums.Add(entry);
-                        cache.genres.Add(entry);
-                        cache.years.Add(entry);
-                        cache.charters.Add(entry);
-                        cache.playlists.Add(entry);
-                        cache.sources.Add(entry);
-                        cache.artistAlbums.Add(entry);
-                        cache.songLengths.Add(entry);
-                        cache.instruments.Add(entry);
-                    }
-                });
-            }
+                Parallel.ForEach(cache.entries, node => SortEntries(node.Value));
             else
             {
-                foreach (var entryList in cache.entries)
-                {
-                    foreach (var entry in entryList.Value)
-                    {
-                        cache.titles.Add(entry);
-                        cache.artists.Add(entry);
-                        cache.albums.Add(entry);
-                        cache.genres.Add(entry);
-                        cache.years.Add(entry);
-                        cache.charters.Add(entry);
-                        cache.playlists.Add(entry);
-                        cache.sources.Add(entry);
-                        cache.artistAlbums.Add(entry);
-                        cache.songLengths.Add(entry);
-                        cache.instruments.Add(entry);
-                    }
-                }
+                foreach (var node in cache.entries)
+                    SortEntries(node.Value);
             }
         }
 
