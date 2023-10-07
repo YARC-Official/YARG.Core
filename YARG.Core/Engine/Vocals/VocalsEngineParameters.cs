@@ -10,20 +10,20 @@ namespace YARG.Core.Engine.Vocals
         public double PhraseHitPercent { get; private set; }
 
         /// <summary>
-        /// How long the pitch input should continue being held onto for.
+        /// How often the vocals give a pitch reading (approximately).
         /// </summary>
-        public double InputLeniency { get; private set; }
+        public double ApproximateVocalFps { get; private set; }
 
         public VocalsEngineParameters()
         {
         }
 
-        public VocalsEngineParameters(double hitWindow, double phraseHitPercent, double inputLeniency,
+        public VocalsEngineParameters(double hitWindow, double phraseHitPercent, double approximateVocalFps,
             float[] starMultiplierThresholds)
             : base(hitWindow, 1f, starMultiplierThresholds)
         {
             PhraseHitPercent = phraseHitPercent;
-            InputLeniency = inputLeniency;
+            ApproximateVocalFps = approximateVocalFps;
         }
 
         public override void Serialize(BinaryWriter writer)
@@ -31,7 +31,7 @@ namespace YARG.Core.Engine.Vocals
             base.Serialize(writer);
 
             writer.Write(PhraseHitPercent);
-            writer.Write(InputLeniency);
+            writer.Write(ApproximateVocalFps);
         }
 
         public override void Deserialize(BinaryReader reader, int version = 0)
@@ -39,7 +39,7 @@ namespace YARG.Core.Engine.Vocals
             base.Deserialize(reader, version);
 
             PhraseHitPercent = reader.ReadDouble();
-            InputLeniency = reader.ReadDouble();
+            ApproximateVocalFps = reader.ReadDouble();
         }
     }
 }

@@ -96,6 +96,45 @@ namespace YARG.Core.Engine.Vocals
             State.NoteIndex++;
         }
 
+        protected override bool CheckForNoteHit()
+        {
+            var phrase = Notes[State.NoteIndex];
+
+            // Not hittable if the phrase is after the current tick
+            if (State.CurrentTick < phrase.Tick) return false;
+
+            // Find the note within the phrase
+            VocalNote? note = null;
+            foreach (var phraseNote in phrase.ChildNotes)
+            {
+                // If in bounds, this is the note!
+                if (State.CurrentTick > phraseNote.Tick &&
+                    State.CurrentTick < phraseNote.TotalTickEnd)
+                {
+                    note = phraseNote;
+                    break;
+                }
+            }
+
+            // No note found to hit
+            if (note == null) return false;
+
+            OnTargetNoteChanged?.Invoke(note);
+
+            return CanNoteBeHit(note);
+        }
+
+        protected uint GetVocalTicksInPhrase(VocalNote phrase)
+        {
+            uint totalMidiTicks = 0;
+            foreach (var phraseNote in phrase.ChildNotes)
+            {
+                totalMidiTicks += phraseNote.TotalTickLength;
+            }
+
+            return (uint) (totalMidiTicks * State.VocalFpsToResolutionRatio);
+        }
+
         protected override void AddScore(VocalNote note)
         {
             EngineStats.Score += 1000 * EngineStats.ScoreMultiplier;
