@@ -223,14 +223,14 @@ namespace YARG.Core.Song.Cache
 
             writer.Write(CACHE_VERSION);
 
-            CategoryWriter.WriteToCache(writer, cache.titles   , SongAttribute.Name,     ref nodes);
-            CategoryWriter.WriteToCache(writer, cache.artists  , SongAttribute.Artist,   ref nodes);
-            CategoryWriter.WriteToCache(writer, cache.albums   , SongAttribute.Album,    ref nodes);
-            CategoryWriter.WriteToCache(writer, cache.genres   , SongAttribute.Genre,    ref nodes);
-            CategoryWriter.WriteToCache(writer, cache.years    , SongAttribute.Year,     ref nodes);
-            CategoryWriter.WriteToCache(writer, cache.charters , SongAttribute.Charter,  ref nodes);
-            CategoryWriter.WriteToCache(writer, cache.playlists, SongAttribute.Playlist, ref nodes);
-            CategoryWriter.WriteToCache(writer, cache.sources  , SongAttribute.Source,   ref nodes);
+            CategoryWriter.WriteToCache(writer, cache.Titles   , SongAttribute.Name,     ref nodes);
+            CategoryWriter.WriteToCache(writer, cache.Artists  , SongAttribute.Artist,   ref nodes);
+            CategoryWriter.WriteToCache(writer, cache.Albums   , SongAttribute.Album,    ref nodes);
+            CategoryWriter.WriteToCache(writer, cache.Genres   , SongAttribute.Genre,    ref nodes);
+            CategoryWriter.WriteToCache(writer, cache.Years    , SongAttribute.Year,     ref nodes);
+            CategoryWriter.WriteToCache(writer, cache.Charters , SongAttribute.Charter,  ref nodes);
+            CategoryWriter.WriteToCache(writer, cache.Playlists, SongAttribute.Playlist, ref nodes);
+            CategoryWriter.WriteToCache(writer, cache.Sources  , SongAttribute.Source,   ref nodes);
 
             List<KeyValuePair<string, PackedCONGroup>> upgradeCons = new();
             List<KeyValuePair<string, PackedCONGroup>> entryCons = new();
