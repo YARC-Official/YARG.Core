@@ -9,7 +9,7 @@ namespace YARG.Core.Song.Cache
     public abstract class SongCategory<TKey>
         where TKey : IComparable<TKey>, IEquatable<TKey>
     {
-        private readonly object elementLock = new();
+        protected readonly object elementLock = new();
         protected readonly SortedDictionary<TKey, List<SongMetadata>> _elements = new();
 
         public SortedDictionary<TKey, List<SongMetadata>> Elements { get { return _elements; } }
@@ -176,69 +176,31 @@ namespace YARG.Core.Song.Cache
         }
     }
 
-    public sealed class InstrumentCategory : SongCategory<SortString>
+    public sealed class InstrumentCategory
     {
-        private static readonly InstrumentComparer FiveFretGuitarComparer   = new(Instrument.FiveFretGuitar);
-        private static readonly InstrumentComparer FiveFretBassComparer     = new(Instrument.FiveFretBass);
-        private static readonly InstrumentComparer FiveFretRhythmComparer   = new(Instrument.FiveFretRhythm);
-        private static readonly InstrumentComparer FiveFretCoopComparer     = new(Instrument.FiveFretCoopGuitar);
-        private static readonly InstrumentComparer SixFretGuitarComparer    = new(Instrument.SixFretGuitar);
-        private static readonly InstrumentComparer SixFretBassComparer      = new(Instrument.SixFretBass);
-        private static readonly InstrumentComparer SixFretRhythmComparer    = new(Instrument.SixFretRhythm);
-        private static readonly InstrumentComparer SixFretCoopComparer      = new(Instrument.SixFretCoopGuitar);
-        private static readonly InstrumentComparer KeysComparer             = new(Instrument.Keys);
-        private static readonly InstrumentComparer FourLaneDrumComparer     = new(Instrument.FourLaneDrums);
-        private static readonly InstrumentComparer ProDrumComparer          = new(Instrument.ProDrums);
-        private static readonly InstrumentComparer FiveLaneDrumComparer     = new(Instrument.FiveLaneDrums);
-        private static readonly InstrumentComparer VocalsComparer           = new(Instrument.Vocals);
-        private static readonly InstrumentComparer HarmonyComparer          = new(Instrument.Harmony);
-        private static readonly InstrumentComparer ProGuitar_17FretComparer = new(Instrument.ProGuitar_17Fret);
-        private static readonly InstrumentComparer ProGuitar_22FretComparer = new(Instrument.ProGuitar_22Fret);
-        private static readonly InstrumentComparer ProBass_17FretComparer   = new(Instrument.ProBass_17Fret);
-        private static readonly InstrumentComparer ProBass_22FretComparer   = new(Instrument.ProBass_22Fret);
-        private static readonly InstrumentComparer ProKeysComparer          = new(Instrument.ProKeys);
-        private static readonly InstrumentComparer BandComparer             = new(Instrument.Band);
+        private readonly InstrumentComparer comparer;
+        private readonly List<SongMetadata> _entries = new();
+        private readonly object entryLock = new();
 
-        private static readonly InstrumentComparer[] comparers =
-        {
-            FiveFretGuitarComparer,
-            FiveFretBassComparer,
-            FiveFretRhythmComparer,
-            FiveFretCoopComparer,
-            SixFretGuitarComparer,
-            SixFretBassComparer,
-            SixFretRhythmComparer,
-            SixFretCoopComparer,
-            KeysComparer,
-            FourLaneDrumComparer,
-            ProDrumComparer,
-            FiveLaneDrumComparer,
-            VocalsComparer,
-            HarmonyComparer,
-            ProGuitar_17FretComparer,
-            ProGuitar_22FretComparer,
-            ProBass_17FretComparer,
-            ProBass_22FretComparer,
-            ProKeysComparer,
-            BandComparer
-        };
+        public readonly string Key;
+        public List<SongMetadata> Entries => _entries;
 
-        public override void Add(SongMetadata entry)
+        public InstrumentCategory(Instrument instrument)
         {
-            Parallel.ForEach(comparers, comparer => AddToInstrument(entry, comparer));
+            comparer = new InstrumentComparer(instrument);
+            Key = instrument.ToString();
         }
 
-        private void AddToInstrument(SongMetadata entry, InstrumentComparer comparer)
+        public void Add(SongMetadata entry)
         {
-            if (comparer.instrument == Instrument.Band)
+            if (entry.Parts.HasInstrument(comparer.instrument) ||
+                (comparer.instrument == Instrument.Band && entry.Parts.GetValues(Instrument.Band).intensity >= 0))
             {
-                var values = entry.Parts.GetValues(Instrument.Band);
-                if (values.intensity >= 0)
-                    Add("Band", entry, comparer);
-            }
-            else if (entry.Parts.HasInstrument(comparer.instrument))
-            {
-                Add(comparer.instrumentString, entry, comparer);
+                lock (entryLock)
+                {
+                    int index = _entries.BinarySearch(entry, comparer);
+                    _entries.Insert(~index, entry);
+                }    
             }
         }
     }

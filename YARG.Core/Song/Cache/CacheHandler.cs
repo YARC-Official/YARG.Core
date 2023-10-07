@@ -160,6 +160,30 @@ namespace YARG.Core.Song.Cache
 
         private void SortCategories()
         {
+            InstrumentCategory[] instruments =
+            {
+                new(Instrument.FiveFretGuitar),
+                new(Instrument.FiveFretBass),
+                new(Instrument.FiveFretRhythm),
+                new(Instrument.FiveFretCoopGuitar),
+                new(Instrument.SixFretGuitar),
+                new(Instrument.SixFretBass),
+                new(Instrument.SixFretRhythm),
+                new(Instrument.SixFretCoopGuitar),
+                new(Instrument.Keys),
+                new(Instrument.FourLaneDrums),
+                new(Instrument.ProDrums),
+                new(Instrument.FiveLaneDrums),
+                new(Instrument.Vocals),
+                new(Instrument.Harmony),
+                new(Instrument.ProGuitar_17Fret),
+                new(Instrument.ProGuitar_22Fret),
+                new(Instrument.ProBass_17Fret),
+                new(Instrument.ProBass_22Fret),
+                new(Instrument.ProKeys),
+                new(Instrument.Band),
+            };
+
             void SortEntries(List<SongMetadata> entries)
             {
                 foreach (var entry in entries)
@@ -174,7 +198,9 @@ namespace YARG.Core.Song.Cache
                     cache.sources.Add(entry);
                     cache.artistAlbums.Add(entry);
                     cache.songLengths.Add(entry);
-                    cache.instruments.Add(entry);
+
+                    foreach (var instrument in instruments)
+                        instrument.Add(entry);
                 }
             }
 
@@ -186,6 +212,10 @@ namespace YARG.Core.Song.Cache
                 foreach (var node in cache.entries)
                     SortEntries(node.Value);
             }
+
+            foreach (var instrument in instruments)
+                if (instrument.Entries.Count > 0)
+                    cache.instruments.Add(instrument.Key, instrument.Entries);
         }
 
         private void WriteBadSongs()

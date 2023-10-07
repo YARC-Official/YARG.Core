@@ -92,13 +92,11 @@ namespace YARG.Core.Song
 
     public sealed class InstrumentComparer : IComparer<SongMetadata>
     {
-        private readonly EntryComparer baseComparer = new(SongAttribute.Unspecified);
+        private static readonly EntryComparer baseComparer = new(SongAttribute.Unspecified);
         public readonly Instrument instrument;
-        public readonly string instrumentString;
         public InstrumentComparer(Instrument instrument)
         {
             this.instrument = instrument;
-            this.instrumentString = instrument.ToString();
         }
 
         public int Compare(SongMetadata lhs, SongMetadata rhs)
