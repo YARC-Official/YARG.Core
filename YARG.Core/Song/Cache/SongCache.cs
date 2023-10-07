@@ -10,20 +10,18 @@ namespace YARG.Core.Song.Cache
         public readonly Dictionary<HashWrapper, List<SongMetadata>> entries = new();
 
         [NonSerialized]
-        public readonly ArtistAlbumCategory artistAlbums = new();
+        public readonly SortedDictionary<string,     List<SongMetadata>> artistAlbums = new();
         [NonSerialized]
-        public readonly SongLengthCategory songLengths = new();
+        public readonly SortedDictionary<string,     List<SongMetadata>> songLengths  = new();
         [NonSerialized]
-        public readonly SortedDictionary<string, List<SongMetadata>> instruments = new();
-
-        public readonly TitleCategory titles = new();
-        public readonly YearCategory years = new();
-
-        public readonly NormalCategory artists = new(SongAttribute.Artist);
-        public readonly NormalCategory albums = new(SongAttribute.Album);
-        public readonly NormalCategory genres = new(SongAttribute.Genre);
-        public readonly NormalCategory charters = new(SongAttribute.Charter);
-        public readonly NormalCategory playlists = new(SongAttribute.Playlist);
-        public readonly NormalCategory sources = new(SongAttribute.Source);
+        public readonly SortedDictionary<string,     List<SongMetadata>> instruments  = new();
+        public readonly SortedDictionary<string,     List<SongMetadata>> titles       = new();
+        public readonly SortedDictionary<string,     List<SongMetadata>> years        = new();
+        public readonly SortedDictionary<SortString, List<SongMetadata>> artists      = new();
+        public readonly SortedDictionary<SortString, List<SongMetadata>> albums       = new();
+        public readonly SortedDictionary<SortString, List<SongMetadata>> genres       = new();
+        public readonly SortedDictionary<SortString, List<SongMetadata>> charters     = new();
+        public readonly SortedDictionary<SortString, List<SongMetadata>> playlists    = new();
+        public readonly SortedDictionary<SortString, List<SongMetadata>> sources      = new();
     }
 }

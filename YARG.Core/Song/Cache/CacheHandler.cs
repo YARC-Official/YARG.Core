@@ -188,16 +188,16 @@ namespace YARG.Core.Song.Cache
             {
                 foreach (var entry in entries)
                 {
-                    cache.titles.Add(entry);
-                    cache.artists.Add(entry);
-                    cache.albums.Add(entry);
-                    cache.genres.Add(entry);
-                    cache.years.Add(entry);
-                    cache.charters.Add(entry);
-                    cache.playlists.Add(entry);
-                    cache.sources.Add(entry);
-                    cache.artistAlbums.Add(entry);
-                    cache.songLengths.Add(entry);
+                    CategorySorter<string,     TitleConfig>.      Add(entry, cache.titles);
+                    CategorySorter<SortString, ArtistConfig>.     Add(entry, cache.artists);
+                    CategorySorter<SortString, AlbumConfig>.      Add(entry, cache.albums);
+                    CategorySorter<SortString, GenreConfig>.      Add(entry, cache.genres);
+                    CategorySorter<string,     YearConfig>.       Add(entry, cache.years);
+                    CategorySorter<SortString, CharterConfig>.    Add(entry, cache.charters);
+                    CategorySorter<SortString, PlaylistConfig>.   Add(entry, cache.playlists);
+                    CategorySorter<SortString, SourceConfig>.     Add(entry, cache.sources);
+                    CategorySorter<string,     ArtistAlbumConfig>.Add(entry, cache.artistAlbums);
+                    CategorySorter<string,     SongLengthConfig>. Add(entry, cache.songLengths);
 
                     foreach (var instrument in instruments)
                         instrument.Add(entry);
