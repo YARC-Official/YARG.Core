@@ -99,7 +99,7 @@ public class Analyzer
                 double frameTime = frameUpdateQueue.Dequeue();
 
                 // Queue all of the inputs for that frame
-                while (inputQueue.TryPeek(out var input) && input.Time < frameTime)
+                while (inputQueue.TryPeek(out var input) && frameTime >= input.Time)
                 {
                     engine.QueueInput(inputQueue.Dequeue());
                 }
