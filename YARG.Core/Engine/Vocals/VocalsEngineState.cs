@@ -1,4 +1,7 @@
-﻿namespace YARG.Core.Engine.Vocals
+﻿using System;
+using YARG.Core.Chart;
+
+namespace YARG.Core.Engine.Vocals
 {
     public class VocalsEngineState : BaseEngineState
     {
@@ -18,13 +21,19 @@
         public uint PhraseTicksHit;
 
         /// <summary>
-        /// The timer that determines how long the pitch input should continue being held onto for.
+        /// The tick that the last input was inputted.
         /// </summary>
-        public EngineTimer InputLeniencyTimer;
+        public uint InputTick;
 
-        public void Initialize(VocalsEngineParameters parameters)
+        /// <summary>
+        /// The amount of ticks for how long the pitch input should continue being held onto for.
+        /// </summary>
+        public uint InputLeniencyTicks;
+
+        public void Initialize(VocalsEngineParameters parameters, SyncTrack syncTrack)
         {
-            InputLeniencyTimer = new(parameters.InputLeniency);
+            // InputLeniencyTicks = (uint) (parameters.InputLeniency * syncTrack.Resolution);
+            InputLeniencyTicks = uint.MaxValue;
         }
 
         public override void Reset()

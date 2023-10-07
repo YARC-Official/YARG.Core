@@ -20,16 +20,8 @@ namespace YARG.Core.Engine.Vocals.Engines
             // Get the pitch this update
             if (IsInputUpdate && CurrentInput.GetAction<VocalsAction>() == VocalsAction.Pitch)
             {
-                State.InputLeniencyTimer.Start(State.CurrentTime);
+                State.InputTick = State.CurrentTick;
                 State.PitchSangThisUpdate = CurrentInput.Axis;
-            }
-            else if (!IsBotUpdate)
-            {
-                // Only set to null if the input leniency timer is expired
-                if (State.InputLeniencyTimer.IsExpired(State.CurrentTime))
-                {
-                    State.PitchSangThisUpdate = null;
-                }
             }
 
             // Quits early if there are no notes left
@@ -40,16 +32,32 @@ namespace YARG.Core.Engine.Vocals.Engines
 
             // If an input was detected, and this tick has not been processed, process it
             bool hitProcessed = false;
-            if (State.PitchSangThisUpdate != null &&
+            if (IsInputUpdate &&
                 State.PhraseTicksProcessed < State.CurrentTick)
             {
                 bool noteHit = CheckForNoteHit();
 
                 if (noteHit)
                 {
-                    State.PhraseTicksHit++;
+                    // We have to do some math here in order to stay deterministic
 
-                    hitProcessed = true;
+                    var ticksProcessedSinceInput = (int) (State.PhraseTicksProcessed - State.InputTick);
+
+                    if (ticksProcessedSinceInput < State.InputLeniencyTicks)
+                    {
+                        var tickDiff = State.CurrentTick - State.PhraseTicksProcessed;
+                        var ticksSinceInput = State.CurrentTick - State.InputTick;
+
+                        if (ticksSinceInput > State.InputLeniencyTicks)
+                        {
+                            var leniencyDiff = ticksSinceInput - State.InputLeniencyTicks;
+                            tickDiff -= leniencyDiff;
+                        }
+
+                        State.PhraseTicksHit += tickDiff;
+
+                        hitProcessed = true;
+                    }
                 }
             }
 
@@ -103,7 +111,7 @@ namespace YARG.Core.Engine.Vocals.Engines
             foreach (var phraseNote in phrase.ChildNotes)
             {
                 // If in bounds, this is the note!
-                if (State.CurrentTick >= phraseNote.Tick &&
+                if (State.CurrentTick > phraseNote.Tick &&
                     State.CurrentTick < phraseNote.TotalTickEnd)
                 {
                     note = phraseNote;
