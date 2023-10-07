@@ -31,6 +31,7 @@ namespace YARG.Core.Engine.Vocals
             base.Serialize(writer);
 
             writer.Write(PhraseHitPercent);
+            writer.Write(InputLeniency);
         }
 
         public override void Deserialize(BinaryReader reader, int version = 0)
@@ -38,6 +39,7 @@ namespace YARG.Core.Engine.Vocals
             base.Deserialize(reader, version);
 
             PhraseHitPercent = reader.ReadDouble();
+            InputLeniency = reader.ReadDouble();
         }
     }
 }
