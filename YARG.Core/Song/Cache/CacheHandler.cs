@@ -160,29 +160,10 @@ namespace YARG.Core.Song.Cache
 
         private void SortCategories()
         {
-            InstrumentCategory[] instruments =
-            {
-                new(Instrument.FiveFretGuitar),
-                new(Instrument.FiveFretBass),
-                new(Instrument.FiveFretRhythm),
-                new(Instrument.FiveFretCoopGuitar),
-                new(Instrument.SixFretGuitar),
-                new(Instrument.SixFretBass),
-                new(Instrument.SixFretRhythm),
-                new(Instrument.SixFretCoopGuitar),
-                new(Instrument.Keys),
-                new(Instrument.FourLaneDrums),
-                new(Instrument.ProDrums),
-                new(Instrument.FiveLaneDrums),
-                new(Instrument.Vocals),
-                new(Instrument.Harmony),
-                new(Instrument.ProGuitar_17Fret),
-                new(Instrument.ProGuitar_22Fret),
-                new(Instrument.ProBass_17Fret),
-                new(Instrument.ProBass_22Fret),
-                new(Instrument.ProKeys),
-                new(Instrument.Band),
-            };
+            var enums = (Instrument[])Enum.GetValues(typeof(Instrument));
+            var instruments = new InstrumentCategory[enums.Length];
+            for (int i = 0; i < instruments.Length; ++i)
+                instruments[i] = new InstrumentCategory(enums[i]);
 
             void SortEntries(List<SongMetadata> entries)
             {
