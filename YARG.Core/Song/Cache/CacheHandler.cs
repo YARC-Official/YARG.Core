@@ -6,7 +6,7 @@ using YARG.Core.IO;
 
 namespace YARG.Core.Song.Cache
 {
-    public enum ScanProgress
+    public enum ScanStage
     {
         LoadingCache,
         LoadingSongs,
@@ -15,19 +15,30 @@ namespace YARG.Core.Song.Cache
         WritingBadSongs
     }
 
+    public struct ScanProgressTracker
+    {
+        public ScanStage Stage;
+        public int Count;
+        public int NumScannedDirectories;
+        public int BadSongCount;
+    }
+
     public sealed partial class CacheHandler
     {
-        public SongCache RunScan(bool fast, string cacheLocation, string badSongsLocation, bool multithreading, List<string> baseDirectories)
+        public static ScanProgressTracker Progress => _progress;
+        private static ScanProgressTracker _progress;
+        public static SongCache RunScan(bool fast, string cacheLocation, string badSongsLocation, bool multithreading, List<string> baseDirectories)
         {
+            CacheHandler handler = new();
             try
             {
-                if (!fast || !QuickScan(cacheLocation, multithreading))
+                if (!fast || !handler.QuickScan(cacheLocation, multithreading))
                 {
-                    iniGroups.EnsureCapacity(baseDirectories.Count);
+                    handler.iniGroups.EnsureCapacity(baseDirectories.Count);
                     foreach (string dir in baseDirectories)
-                        iniGroups.Add(dir, new());
+                        handler.iniGroups.Add(dir, new());
 
-                    FullScan(!fast, cacheLocation, badSongsLocation, multithreading);
+                    handler.FullScan(!fast, cacheLocation, badSongsLocation, multithreading);
                 }
             }
             catch (Exception ex)
@@ -35,7 +46,7 @@ namespace YARG.Core.Song.Cache
                 YargTrace.LogException(ex, "Unknown error while running song scan!");
             }
 
-            return cache;
+            return handler.cache;
         }
 
         /// <summary>
@@ -44,11 +55,6 @@ namespace YARG.Core.Song.Cache
         /// if multiple cache version changes happen in a single day).
         /// </summary>
         public const int CACHE_VERSION = 23_10_02_01;
-
-        public ScanProgress Progress { get; private set; }
-        public int Count { get { lock (entryLock) return _count; } }
-        public int NumScannedDirectories { get { lock (dirLock) return preScannedDirectories.Count; } }
-        public int BadSongCount { get { lock (badsongsLock) return badSongs.Count; } }
 
         private static readonly object dirLock = new();
         private static readonly object fileLock = new();
@@ -62,7 +68,6 @@ namespace YARG.Core.Song.Cache
 
 
         private readonly SongCache cache = new();
-        private int _count;
 
         private readonly LockedCacheDictionary<UpdateGroup> updateGroups = new();
         private readonly LockedCacheDictionary<UpgradeGroup> upgradeGroups = new();
@@ -74,6 +79,8 @@ namespace YARG.Core.Song.Cache
         private readonly HashSet<string> preScannedDirectories = new();
         private readonly HashSet<string> preScannedFiles = new();
         private readonly SortedDictionary<string, ScanResult> badSongs = new();
+
+        private CacheHandler() { _progress = default; }
 
         private IniGroup? GetBaseIniGroup(string path)
         {
@@ -104,7 +111,7 @@ namespace YARG.Core.Song.Cache
                 YargTrace.LogException(ex, "Error occurred during quick cache file read!");
             }
 
-            if (Count == 0)
+            if (_progress.Count == 0)
             {
                 //ToastManager.ToastWarning("Song cache provided zero songs - performing rescan");
                 return false;
@@ -177,7 +184,7 @@ namespace YARG.Core.Song.Cache
                 }
             }
 
-            Progress = ScanProgress.Sorting;
+            _progress.Stage = ScanStage.Sorting;
             if (multithreading)
                 Parallel.ForEach(cache.Entries, node => SortEntries(node.Value));
             else
@@ -199,7 +206,7 @@ namespace YARG.Core.Song.Cache
                 return;
             }
 
-            Progress = ScanProgress.WritingBadSongs;
+            _progress.Stage = ScanStage.WritingBadSongs;
             using var stream = new FileStream(badSongsLocation, FileMode.Create, FileAccess.Write);
             using var writer = new StreamWriter(stream);
 
@@ -331,7 +338,7 @@ namespace YARG.Core.Song.Cache
                     list.Add(entry);
                 else
                     cache.Entries.Add(hash, new() { entry });
-                ++_count;
+                ++_progress.Count;
             }
             return true;
         }

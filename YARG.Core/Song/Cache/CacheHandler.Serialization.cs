@@ -150,7 +150,7 @@ namespace YARG.Core.Song.Cache
                 RunEntryTasks(stream, strings, ReadCONGroup);
                 RunEntryTasks(stream, strings, ReadExtractedCONGroup);
             }
-            YargTrace.DebugInfo($"Ini Entries read: {_count}");
+            YargTrace.DebugInfo($"Ini Entries read: {_progress.Count}");
         }
 
         private bool Deserialize_Quick(string cacheLocation, bool multithreading)
@@ -195,7 +195,7 @@ namespace YARG.Core.Song.Cache
             else
             {
                 RunEntryTasks(stream, strings, QuickReadIniGroup);
-                YargTrace.DebugInfo($"Ini Entries quick read: {_count}");
+                YargTrace.DebugInfo($"Ini Entries quick read: {_progress.Count}");
 
                 int count = stream.ReadInt32LE();
                 for (int i = 0; i < count; ++i)
@@ -209,13 +209,13 @@ namespace YARG.Core.Song.Cache
                 RunEntryTasks(stream, strings, QuickReadCONGroup);
                 RunEntryTasks(stream, strings, QuickReadExtractedCONGroup);
             }
-            YargTrace.DebugInfo($"Total Entries: {_count}");
+            YargTrace.DebugInfo($"Total Entries: {_progress.Count}");
             return true;
         }
 
         private void Serialize(string cacheLocation)
         {
-            Progress = ScanProgress.WritingCache;
+            _progress.Stage = ScanStage.WritingCache;
             using var writer = new BinaryWriter(new FileStream(cacheLocation, FileMode.Create, FileAccess.Write));
             Dictionary<SongMetadata, CategoryCacheWriteNode> nodes = new();
 
@@ -561,7 +561,11 @@ namespace YARG.Core.Song.Cache
 
         private void MarkDirectory(string directory)
         {
-            lock (dirLock) preScannedDirectories.Add(directory);
+            lock (dirLock)
+            {
+                preScannedDirectories.Add(directory);
+                _progress.NumScannedDirectories++;
+            }
         }
 
         private void MarkFile(string file)
