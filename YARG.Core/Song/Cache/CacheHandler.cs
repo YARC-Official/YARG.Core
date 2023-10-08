@@ -17,24 +17,24 @@ namespace YARG.Core.Song.Cache
 
     public sealed partial class CacheHandler
     {
-        public CacheHandler(List<string> baseDirectories)
-        {
-            iniGroups = new(baseDirectories.Count);
-            foreach (string dir in baseDirectories)
-                iniGroups.Add(dir, new());
-        }
-
-        public SongCache RunScan(bool fast, string cacheLocation, string badSongsLocation, bool multithreading)
+        public SongCache RunScan(bool fast, string cacheLocation, string badSongsLocation, bool multithreading, List<string> baseDirectories)
         {
             try
             {
                 if (!fast || !QuickScan(cacheLocation, multithreading))
+                {
+                    iniGroups.EnsureCapacity(baseDirectories.Count);
+                    foreach (string dir in baseDirectories)
+                        iniGroups.Add(dir, new());
+
                     FullScan(!fast, cacheLocation, badSongsLocation, multithreading);
+                }
             }
             catch (Exception ex)
             {
                 YargTrace.LogException(ex, "Unknown error while running song scan!");
             }
+
             return cache;
         }
 
@@ -68,13 +68,12 @@ namespace YARG.Core.Song.Cache
         private readonly LockedCacheDictionary<UpgradeGroup> upgradeGroups = new();
         private readonly LockedCacheDictionary<PackedCONGroup> conGroups = new();
         private readonly LockedCacheDictionary<UnpackedCONGroup> extractedConGroups = new();
-        private readonly Dictionary<string, IniGroup> iniGroups;
+        private readonly Dictionary<string, IniGroup> iniGroups = new();
         private readonly Dictionary<string, List<(string, YARGDTAReader)>> updates = new();
         private readonly Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades = new();
         private readonly HashSet<string> preScannedDirectories = new();
         private readonly HashSet<string> preScannedFiles = new();
         private readonly SortedDictionary<string, ScanResult> badSongs = new();
-
 
         private IniGroup? GetBaseIniGroup(string path)
         {

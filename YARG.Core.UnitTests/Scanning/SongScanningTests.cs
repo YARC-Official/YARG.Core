@@ -24,8 +24,8 @@ namespace YARG.Core.UnitTests.Scanning
         public void FullScan()
         {
             YargTrace.AddListener(new YargDebugTraceListener());
-            CacheHandler handler = new(songDirectories);
-            var cache = handler.RunScan(false, SongCachePath, BadSongsPath, MULTITHREADING);
+            CacheHandler handler = new();
+            var cache = handler.RunScan(false, SongCachePath, BadSongsPath, MULTITHREADING, songDirectories);
             // TODO: Any cache properties we want to check here?
             // Currently the only fail condition would be an unhandled exception
         }
@@ -34,8 +34,8 @@ namespace YARG.Core.UnitTests.Scanning
         public void QuickScan()
         {
             YargTrace.AddListener(new YargDebugTraceListener());
-            CacheHandler handler = new(songDirectories);
-            var cache = handler.RunScan(true, SongCachePath, BadSongsPath, MULTITHREADING);
+            CacheHandler handler = new();
+            var cache = handler.RunScan(true, SongCachePath, BadSongsPath, MULTITHREADING, songDirectories);
             // TODO: see above
         }
     }
