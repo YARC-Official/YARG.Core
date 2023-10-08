@@ -5,9 +5,9 @@ namespace YARG.Core.Engine.Vocals
     public class VocalsEngineState : BaseEngineState
     {
         /// <summary>
-        /// The float value for the pitch sang this update (as a MIDI note). <c>null</c> is none, or no input.
+        /// The float value for the last pitch sang (as a MIDI note).
         /// </summary>
-        public float PitchSangThisUpdate;
+        public float PitchSang;
 
         /// <summary>
         /// The amount of note ticks in the current phrase.
@@ -24,6 +24,16 @@ namespace YARG.Core.Engine.Vocals
         /// </summary>
         public double VocalFpsToResolutionRatio;
 
+        /// <summary>
+        /// The last time there was a pitch update. <b>THIS IS FOR VISUAL PURPOSES ONLY.</b>
+        /// </summary>
+        public double VisualLastSingTime;
+
+        /// <summary>
+        /// The last time a note was hit. <b>THIS IS FOR VISUAL PURPOSES ONLY.</b>
+        /// </summary>
+        public double VisualLastHitTime;
+
         public void Initialize(VocalsEngineParameters parameters, SyncTrack syncTrack)
         {
             VocalFpsToResolutionRatio = parameters.ApproximateVocalFps / syncTrack.Resolution;
@@ -33,10 +43,13 @@ namespace YARG.Core.Engine.Vocals
         {
             base.Reset();
 
-            PitchSangThisUpdate = 0f;
+            PitchSang = 0f;
 
             PhraseTicksTotal = null;
             PhraseTicksHit = 0;
+
+            VisualLastSingTime = double.NegativeInfinity;
+            VisualLastHitTime = double.NegativeInfinity;
         }
     }
 }

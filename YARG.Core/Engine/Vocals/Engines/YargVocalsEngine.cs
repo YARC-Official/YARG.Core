@@ -20,7 +20,8 @@ namespace YARG.Core.Engine.Vocals.Engines
             // Get the pitch this update
             if (IsInputUpdate && CurrentInput.GetAction<VocalsAction>() == VocalsAction.Pitch)
             {
-                State.PitchSangThisUpdate = CurrentInput.Axis;
+                State.PitchSang = CurrentInput.Axis;
+                State.VisualLastSingTime = State.CurrentTime;
             }
 
             // Quits early if there are no notes left
@@ -41,9 +42,8 @@ namespace YARG.Core.Engine.Vocals.Engines
                 if (noteHit)
                 {
                     State.PhraseTicksHit++;
+                    State.VisualLastHitTime = State.CurrentTime;
                 }
-
-                OnSingTick?.Invoke(noteHit);
             }
 
             // Check for end of phrase
@@ -77,7 +77,7 @@ namespace YARG.Core.Engine.Vocals.Engines
         {
             // Octave does not matter
             float notePitch = note.PitchAtSongTick(State.CurrentTick) % 12f;
-            float singPitch = State.PitchSangThisUpdate % 12f;
+            float singPitch = State.PitchSang % 12f;
             float dist = Math.Abs(singPitch - notePitch);
 
             // Try to check once within the range and...
