@@ -26,7 +26,6 @@ namespace YARG.Core.Song.Cache
             iniGroups = new(baseDirectories.Length);
             for (int i = 0; i < baseDirectories.Length; ++i)
                 iniGroups.Add(baseDirectories[i], new());
-            cache = new(multithreading);
         }
 
         public SongCache RunScan(bool fast)
@@ -66,7 +65,7 @@ namespace YARG.Core.Song.Cache
         static CacheHandler() { }
 
 
-        private readonly SongCache cache;
+        private readonly SongCache cache = new();
         private int _count;
 
         private readonly LockedCacheDictionary<UpdateGroup> updateGroups = new();
@@ -161,47 +160,43 @@ namespace YARG.Core.Song.Cache
 
         private void SortCategories()
         {
-            Progress = ScanProgress.Sorting;
-            if (multithreading)
+            var enums = (Instrument[])Enum.GetValues(typeof(Instrument));
+            var instruments = new InstrumentCategory[enums.Length];
+            for (int i = 0; i < instruments.Length; ++i)
+                instruments[i] = new InstrumentCategory(enums[i]);
+
+            void SortEntries(List<SongMetadata> entries)
             {
-                Parallel.ForEach(cache.entries, entryList =>
+                foreach (var entry in entries)
                 {
-                    foreach (var entry in entryList.Value)
-                    {
-                        cache.titles.Add(entry);
-                        cache.artists.Add(entry);
-                        cache.albums.Add(entry);
-                        cache.genres.Add(entry);
-                        cache.years.Add(entry);
-                        cache.charters.Add(entry);
-                        cache.playlists.Add(entry);
-                        cache.sources.Add(entry);
-                        cache.artistAlbums.Add(entry);
-                        cache.songLengths.Add(entry);
-                        cache.instruments.Add(entry);
-                    }
-                });
-            }
-            else
-            {
-                foreach (var entryList in cache.entries)
-                {
-                    foreach (var entry in entryList.Value)
-                    {
-                        cache.titles.Add(entry);
-                        cache.artists.Add(entry);
-                        cache.albums.Add(entry);
-                        cache.genres.Add(entry);
-                        cache.years.Add(entry);
-                        cache.charters.Add(entry);
-                        cache.playlists.Add(entry);
-                        cache.sources.Add(entry);
-                        cache.artistAlbums.Add(entry);
-                        cache.songLengths.Add(entry);
-                        cache.instruments.Add(entry);
-                    }
+                    CategorySorter<string,     TitleConfig>.      Add(entry, cache.Titles);
+                    CategorySorter<SortString, ArtistConfig>.     Add(entry, cache.Artists);
+                    CategorySorter<SortString, AlbumConfig>.      Add(entry, cache.Albums);
+                    CategorySorter<SortString, GenreConfig>.      Add(entry, cache.Genres);
+                    CategorySorter<string,     YearConfig>.       Add(entry, cache.Years);
+                    CategorySorter<SortString, CharterConfig>.    Add(entry, cache.Charters);
+                    CategorySorter<SortString, PlaylistConfig>.   Add(entry, cache.Playlists);
+                    CategorySorter<SortString, SourceConfig>.     Add(entry, cache.Sources);
+                    CategorySorter<string,     ArtistAlbumConfig>.Add(entry, cache.ArtistAlbums);
+                    CategorySorter<string,     SongLengthConfig>. Add(entry, cache.SongLengths);
+
+                    foreach (var instrument in instruments)
+                        instrument.Add(entry);
                 }
             }
+
+            Progress = ScanProgress.Sorting;
+            if (multithreading)
+                Parallel.ForEach(cache.Entries, node => SortEntries(node.Value));
+            else
+            {
+                foreach (var node in cache.Entries)
+                    SortEntries(node.Value);
+            }
+
+            foreach (var instrument in instruments)
+                if (instrument.Entries.Count > 0)
+                    cache.Instruments.Add(instrument.Key, instrument.Entries);
         }
 
         private void WriteBadSongs()
@@ -340,10 +335,10 @@ namespace YARG.Core.Song.Cache
             var hash = entry.Hash;
             lock (entryLock)
             {
-                if (cache.entries.TryGetValue(hash, out var list))
+                if (cache.Entries.TryGetValue(hash, out var list))
                     list.Add(entry);
                 else
-                    cache.entries.Add(hash, new() { entry });
+                    cache.Entries.Add(hash, new() { entry });
                 ++_count;
             }
             return true;
