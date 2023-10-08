@@ -38,7 +38,7 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void FindNewEntries()
+        private void FindNewEntries(bool multithreading)
         {
             static void ParallelLoop<T>(Dictionary<string, T> groups, Action<string, T> action)
             {
@@ -51,7 +51,7 @@ namespace YARG.Core.Song.Cache
                     action(group.Key, group.Value);
             }
 
-            Progress = ScanProgress.LoadingSongs;
+            _progress.Stage = ScanStage.LoadingSongs;
             if (multithreading)
             {
                 ParallelLoop(iniGroups, ScanDirectory_Parallel);
@@ -215,6 +215,7 @@ namespace YARG.Core.Song.Cache
                     return false;
 
                 preScannedDirectories.Add(directory);
+                _progress.NumScannedDirectories++;
                 return true;
             }
         }
@@ -233,7 +234,11 @@ namespace YARG.Core.Song.Cache
 
         private void AddToBadSongs(string filePath, ScanResult err)
         {
-            lock (badsongsLock) badSongs.Add(filePath, err);
+            lock (badsongsLock)
+            {
+                badSongs.Add(filePath, err);
+                _progress.BadSongCount++;
+            }
         }
     }
 }
