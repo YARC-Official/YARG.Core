@@ -29,17 +29,11 @@ namespace YARG.Core.Song.Cache
         private static ScanProgressTracker _progress;
         public static SongCache RunScan(bool fast, string cacheLocation, string badSongsLocation, bool multithreading, List<string> baseDirectories)
         {
-            CacheHandler handler = new();
+            CacheHandler handler = new(baseDirectories);
             try
             {
                 if (!fast || !handler.QuickScan(cacheLocation, multithreading))
-                {
-                    handler.iniGroups.EnsureCapacity(baseDirectories.Count);
-                    foreach (string dir in baseDirectories)
-                        handler.iniGroups.Add(dir, new());
-
                     handler.FullScan(!fast, cacheLocation, badSongsLocation, multithreading);
-                }
             }
             catch (Exception ex)
             {
@@ -73,14 +67,20 @@ namespace YARG.Core.Song.Cache
         private readonly LockedCacheDictionary<UpgradeGroup> upgradeGroups = new();
         private readonly LockedCacheDictionary<PackedCONGroup> conGroups = new();
         private readonly LockedCacheDictionary<UnpackedCONGroup> extractedConGroups = new();
-        private readonly Dictionary<string, IniGroup> iniGroups = new();
+        private readonly Dictionary<string, IniGroup> iniGroups;
         private readonly Dictionary<string, List<(string, YARGDTAReader)>> updates = new();
         private readonly Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades = new();
         private readonly HashSet<string> preScannedDirectories = new();
         private readonly HashSet<string> preScannedFiles = new();
         private readonly SortedDictionary<string, ScanResult> badSongs = new();
 
-        private CacheHandler() { _progress = default; }
+        private CacheHandler(List<string> baseDirectories)
+        {
+            _progress = default;
+            iniGroups = new(baseDirectories.Count);
+            foreach (string dir in baseDirectories)
+                iniGroups.Add(dir, new());
+        }
 
         private IniGroup? GetBaseIniGroup(string path)
         {
