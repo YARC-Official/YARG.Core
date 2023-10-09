@@ -1,6 +1,4 @@
-﻿using YARG.Core.Chart;
-
-namespace YARG.Core.Engine.Vocals
+﻿namespace YARG.Core.Engine.Vocals
 {
     public class VocalsEngineState : BaseEngineState
     {
@@ -10,19 +8,16 @@ namespace YARG.Core.Engine.Vocals
         public float PitchSang;
 
         /// <summary>
-        /// The amount of note ticks in the current phrase.
+        /// The amount of vocal ticks in the current phrase. Is decimal.<br/>
+        /// A vocal tick is the amount of vocal updates per second.
         /// </summary>
-        public uint? PhraseTicksTotal;
+        public double? PhraseTicksTotal;
 
         /// <summary>
-        /// The amount of note ticks hit in the current phrase.
+        /// The amount of vocals ticks hit in the current phrase. Is not decimal.<br/>
+        /// A vocal tick is the amount of vocal updates per second.
         /// </summary>
         public uint PhraseTicksHit;
-
-        /// <summary>
-        /// The ratio of vocal reading FPS to MIDI resolution.
-        /// </summary>
-        public double VocalFpsToResolutionRatio;
 
         /// <summary>
         /// The last time there was a pitch update. <b>THIS IS FOR VISUAL PURPOSES ONLY.</b>
@@ -33,11 +28,6 @@ namespace YARG.Core.Engine.Vocals
         /// The last time a note was hit. <b>THIS IS FOR VISUAL PURPOSES ONLY.</b>
         /// </summary>
         public double VisualLastHitTime;
-
-        public void Initialize(VocalsEngineParameters parameters, SyncTrack syncTrack)
-        {
-            VocalFpsToResolutionRatio = parameters.ApproximateVocalFps / syncTrack.Resolution;
-        }
 
         public override void Reset()
         {

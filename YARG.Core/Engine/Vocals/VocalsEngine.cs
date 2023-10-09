@@ -18,7 +18,6 @@ namespace YARG.Core.Engine.Vocals
             : base(chart, syncTrack, engineParameters)
         {
             BaseScore = CalculateBaseScore();
-            State.Initialize(engineParameters, syncTrack);
         }
 
         protected override bool HitNote(VocalNote note)
@@ -106,8 +105,8 @@ namespace YARG.Core.Engine.Vocals
             foreach (var phraseNote in phrase.ChildNotes)
             {
                 // If in bounds, this is the note!
-                if (State.CurrentTick > phraseNote.Tick &&
-                    State.CurrentTick < phraseNote.TotalTickEnd)
+                if (State.CurrentTick >= phraseNote.Tick &&
+                    State.CurrentTick <= phraseNote.TotalTickEnd)
                 {
                     note = phraseNote;
                     break;
@@ -119,18 +118,22 @@ namespace YARG.Core.Engine.Vocals
 
             OnTargetNoteChanged?.Invoke(note);
 
-            return CanNoteBeHit(note);
+            // return CanNoteBeHit(note);
+            return true;
         }
 
-        protected uint GetVocalTicksInPhrase(VocalNote phrase)
+        /// <returns>
+        /// Gets the amount of vocal ticks in the phrase.
+        /// </returns>
+        protected double GetVocalTicksInPhrase(VocalNote phrase)
         {
-            uint totalMidiTicks = 0;
+            double totalTime = 0;
             foreach (var phraseNote in phrase.ChildNotes)
             {
-                totalMidiTicks += phraseNote.TotalTickLength;
+                totalTime += phraseNote.TotalTimeLength;
             }
 
-            return (uint) (totalMidiTicks * State.VocalFpsToResolutionRatio);
+            return totalTime * EngineParameters.ApproximateVocalFps;
         }
 
         protected override void AddScore(VocalNote note)

@@ -47,9 +47,9 @@ namespace YARG.Core.Engine.Vocals.Engines
             }
 
             // Check for end of phrase
-            if (phrase.TickEnd <= State.CurrentTick)
+            if (State.CurrentTick > phrase.TickEnd)
             {
-                double percentHit = (double) State.PhraseTicksHit / State.PhraseTicksTotal.Value;
+                double percentHit = State.PhraseTicksHit / State.PhraseTicksTotal.Value;
 
                 if (percentHit >= EngineParameters.PhraseHitPercent)
                 {
@@ -88,8 +88,8 @@ namespace YARG.Core.Engine.Vocals.Engines
 
             // ...try again twelve notes (one octave) away.
             // This effectively allows wrapping in the check. Only subtraction is needed
-            // since we take the absolute value.
-            if (dist - 12f <= EngineParameters.HitWindow)
+            // since we take the absolute value before hand and now.
+            if (Math.Abs(dist - 12f) <= EngineParameters.HitWindow)
             {
                 return true;
             }
