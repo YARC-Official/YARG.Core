@@ -54,12 +54,11 @@ namespace YARG.Core.Engine.Vocals
 
             EngineStats.NotesHit++;
 
-            UpdateMultiplier();
-
             AddScore(note);
 
-            OnNoteHit?.Invoke(State.NoteIndex, note);
+            UpdateMultiplier();
 
+            OnNoteHit?.Invoke(State.NoteIndex, note);
             State.NoteIndex++;
 
             return true;
@@ -147,7 +146,7 @@ namespace YARG.Core.Engine.Vocals
             EngineStats.ScoreMultiplier = EngineStats.Combo switch
             {
                 >= 4 => 4,
-                _    => EngineStats.Combo
+                _    => EngineStats.Combo + 1
             };
 
             if (EngineStats.IsStarPowerActive)
