@@ -51,22 +51,22 @@ namespace YARG.Core.Engine.Vocals.Engines
             {
                 double percentHit = (double) State.PhraseTicksHit / State.PhraseTicksTotal.Value;
 
-                // if (percentHit >= EngineParameters.PhraseHitPercent)
-                // {
-                //     HitNote(phrase);
-                // }
-                // else
-                // {
-                //     MissNote(phrase);
-                // }
+                if (percentHit >= EngineParameters.PhraseHitPercent)
+                {
+                    HitNote(phrase);
+                }
+                else
+                {
+                    MissNote(phrase);
+                }
 
-                // TODO: Proper scoring
-
-                HitNote(phrase);
-                EngineStats.Score += (int) State.PhraseTicksHit;
                 UpdateStars();
 
+                // Update tick variables
                 State.PhraseTicksHit = 0;
+                State.PhraseTicksTotal = State.NoteIndex < Notes.Count ?
+                    GetVocalTicksInPhrase(Notes[State.NoteIndex]) :
+                    null;
             }
 
             // Vocals never need a re-update
