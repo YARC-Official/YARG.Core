@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using YARG.Core.Chart;
+using YARG.Core.Engine.Logging;
 using YARG.Core.Input;
 
 namespace YARG.Core.Engine.Guitar
@@ -98,6 +99,16 @@ namespace YARG.Core.Engine.Guitar
 
                 prevNote.SetMissState(true, true);
 
+                EventLogger.LogEvent(new NoteEngineEvent(State.CurrentTime)
+                {
+                    NoteTime = prevNote.Time,
+                    NoteLength = prevNote.TimeLength,
+                    NoteIndex = State.NoteIndex,
+                    NoteMask = prevNote.NoteMask,
+                    WasHit = false,
+                    WasSkipped = true,
+                });
+                
                 EngineStats.Combo = 0;
                 EngineStats.NotesMissed++;
 
@@ -167,6 +178,16 @@ namespace YARG.Core.Engine.Guitar
 
             State.WasNoteGhosted = false;
 
+            EventLogger.LogEvent(new NoteEngineEvent(State.CurrentTime)
+            {
+                NoteTime = note.Time,
+                NoteLength = note.TimeLength,
+                NoteIndex = State.NoteIndex,
+                NoteMask = note.NoteMask,
+                WasHit = true,
+                WasSkipped = skipped,
+            });
+            
             OnNoteHit?.Invoke(State.NoteIndex, note);
             State.NoteIndex++;
             return true;
@@ -197,6 +218,16 @@ namespace YARG.Core.Engine.Guitar
 
             UpdateMultiplier();
 
+            EventLogger.LogEvent(new NoteEngineEvent(State.CurrentTime)
+            {
+                NoteTime = note.Time,
+                NoteLength = note.TimeLength,
+                NoteIndex = State.NoteIndex,
+                NoteMask = note.NoteMask,
+                WasHit = false,
+                WasSkipped = false,
+            });
+            
             OnNoteMissed?.Invoke(State.NoteIndex, note);
             State.NoteIndex++;
         }

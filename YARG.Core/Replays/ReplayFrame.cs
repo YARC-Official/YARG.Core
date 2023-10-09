@@ -4,6 +4,7 @@ using System.IO;
 using YARG.Core.Engine;
 using YARG.Core.Engine.Drums;
 using YARG.Core.Engine.Guitar;
+using YARG.Core.Engine.Logging;
 using YARG.Core.Input;
 using YARG.Core.Utility;
 
@@ -16,16 +17,20 @@ namespace YARG.Core.Replays
         public BaseStats            Stats;
         public int                  InputCount;
         public GameInput[]          Inputs;
+        public EngineEventLogger    EventLog;
 
         public ReplayFrame()
         {
             EngineParameters = new GuitarEngineParameters();
             Stats = new GuitarStats();
             Inputs = Array.Empty<GameInput>();
+            EventLog = new EngineEventLogger();
         }
 
         public ReplayFrame(BinaryReader reader, int version = 0)
         {
+            EventLog = new EngineEventLogger();
+            
             Deserialize(reader, version);
         }
 
@@ -42,6 +47,8 @@ namespace YARG.Core.Replays
                 writer.Write(Inputs[i].Action);
                 writer.Write(Inputs[i].Integer);
             }
+            
+            EventLog.Serialize(writer);
         }
 
         [MemberNotNull(nameof(EngineParameters))]
@@ -86,6 +93,8 @@ namespace YARG.Core.Replays
 
                 Inputs[i] = new GameInput(time, action, value);
             }
+            
+            EventLog.Deserialize(reader, version);
         }
     }
 }
