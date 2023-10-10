@@ -62,6 +62,9 @@ namespace YARG.Core.IO
             }
         }
 
+        public CONFileStream(string file, bool isContinguous, int fileSize, int firstBlock, int shift)
+            : this(new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, 1), isContinguous, fileSize, firstBlock, shift) { }
+
         public CONFileStream(FileStream filestream, bool isContinguous, int fileSize, int firstBlock, int shift)
         {
             _filestream = filestream;
@@ -147,6 +150,15 @@ namespace YARG.Core.IO
 
         public override int Read(byte[] buffer, int offset, int count)
         {
+            if (offset < 0 || count < 0)
+                throw new ArgumentOutOfRangeException();
+
+            if (buffer == null)
+                throw new ArgumentNullException();
+
+            if (buffer.Length < offset + count)
+                throw new ArgumentException();
+
             if (_position == fileSize)
                 return 0;
 
