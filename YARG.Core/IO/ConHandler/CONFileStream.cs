@@ -155,13 +155,13 @@ namespace YARG.Core.IO
             if (bytesLeftInSection > fileSize - (int) _position)
                 bytesLeftInSection = fileSize - (int) _position;
 
-            while (true)
+            while (read < count)
             {
                 int readCount = count - read;
                 if (readCount > bytesLeftInSection)
                     readCount = bytesLeftInSection;
 
-                Unsafe.CopyBlock(ref buffer[offset], ref dataBuffer[bufferPosition], (uint) readCount);
+                Unsafe.CopyBlock(ref buffer[offset + read], ref dataBuffer[bufferPosition], (uint) readCount);
 
                 read += readCount;
                 _position += readCount;
@@ -170,7 +170,6 @@ namespace YARG.Core.IO
                 if (bufferPosition < dataBuffer.Size || _position == fileSize)
                     break;
 
-                offset += readCount;
                 bytesLeftInSection = UpdateBuffer();
             }
             return read;
