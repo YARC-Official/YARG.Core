@@ -53,8 +53,7 @@ namespace YARG.Core.IO
         public CONFileStream CreateStream()
         {
             Debug.Assert(!IsDirectory(), "Directory listing cannot be loaded as a file");
-            var fs = new FileStream(ConFile.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
-            return new CONFileStream(fs, IsContiguous(), size, firstBlock, shift);
+            return new CONFileStream(ConFile.FullName, IsContiguous(), size, firstBlock, shift);
         }
 
         public byte[] LoadAllBytes()
@@ -66,8 +65,7 @@ namespace YARG.Core.IO
         public static int GetMoggVersion(CONFileListing listing)
         {
             Debug.Assert(!listing.IsDirectory(), "Directory listing cannot be loaded as a file");
-            var fs = new FileStream(listing.ConFile.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
-            using var conStream = new CONFileStream(fs, false, 4, listing.firstBlock, listing.shift);
+            using var conStream = new CONFileStream(listing.ConFile.FullName, false, 4, listing.firstBlock, listing.shift);
             return conStream.ReadInt32LE();
         }
 
