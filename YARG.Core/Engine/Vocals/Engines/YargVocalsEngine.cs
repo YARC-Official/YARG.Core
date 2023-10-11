@@ -67,6 +67,8 @@ namespace YARG.Core.Engine.Vocals.Engines
                 State.PhraseTicksTotal = State.NoteIndex < Notes.Count ?
                     GetVocalTicksInPhrase(Notes[State.NoteIndex]) :
                     null;
+
+                OnPhraseHit?.Invoke(percentHit / EngineParameters.PhraseHitPercent);
             }
 
             // Vocals never need a re-update

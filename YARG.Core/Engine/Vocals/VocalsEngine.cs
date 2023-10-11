@@ -9,7 +9,11 @@ namespace YARG.Core.Engine.Vocals
     {
         public delegate void TargetNoteChangeEvent(VocalNote targetNote);
 
+        public delegate void PhraseHitEvent(double hitPercentAfterParams);
+
         public TargetNoteChangeEvent? OnTargetNoteChanged;
+
+        public PhraseHitEvent? OnPhraseHit;
 
         public override bool TreatChordAsSeparate => false;
 
