@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -25,6 +25,8 @@ namespace YARG.Core.Utility
             RichTextTags.Subscript | RichTextTags.Superscript);
 
         private static readonly Dictionary<ulong, Regex> RegexCache = new();
+        private static readonly int EnumLength = Enum.GetValues(typeof(RichTextTags)).Length;
+        private static readonly ConcurrentDictionary<RichTextTags, Regex> RegexCache = new();
 
         public static string StripRichTextTags(string text)
         {
@@ -43,26 +45,29 @@ namespace YARG.Core.Utility
 
         private static string StripRichTextTagsPrivate(string text, RichTextTags tags)
         {
-            if (!RegexCache.TryGetValue((ulong) tags, out var regex))
-            {
-                var regexFormat = @"<\/*{0}.*?>|";
-
-                var sb = new StringBuilder();
-                int enumLength = Enum.GetValues(typeof(RichTextTags)).Length;
-                for (int i = 0; i < enumLength; i++)
-                {
-                    if ((tags & (RichTextTags) (1 << i)) != 0)
-                    {
-                        sb.AppendFormat(regexFormat, RichTextTagStrings[i]);
-                    }
-                }
-
-                if (sb.Length > 0) regexFormat = sb.Remove(sb.Length - 1, 1).ToString();
-
-                regex = new Regex(regexFormat, RegexOptions.Compiled);
-                RegexCache.Add((ulong) tags, regex);
-            }
+            if (!RegexCache.TryGetValue(tags, out var regex))
+                regex = ConstructRegex(tags);
             return regex.Replace(text, "");
+        }
+
+        private static Regex ConstructRegex(RichTextTags tags)
+        {
+            string regexFormat = @"<\/*{0}.*?>|";
+
+            var sb = new StringBuilder();
+            for (int i = 0; i < EnumLength; i++)
+            {
+                if ((tags & (RichTextTags) (1 << i)) != 0)
+                {
+                    sb.AppendFormat(regexFormat, RichTextTagStrings[i]);
+                }
+            }
+
+            if (sb.Length > 0) regexFormat = sb.Remove(sb.Length - 1, 1).ToString();
+
+            var regex = new Regex(regexFormat, RegexOptions.Compiled);
+            RegexCache[tags] = regex;
+            return regex;
         }
     }
 
