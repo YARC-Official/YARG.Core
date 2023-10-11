@@ -1,4 +1,6 @@
-﻿namespace YARG.Core.Song
+﻿using YARG.Core.IO;
+
+namespace YARG.Core.Song
 {
     public abstract class Midi_Drum_Preparser_Base : MidiInstrument_Common
     {
@@ -21,7 +23,7 @@
 
         protected readonly bool[,] statuses = new bool[NUM_DIFFICULTIES, MAX_NUMPADS];
 
-        protected override bool ProcessSpecialNote_ON()
+        protected override bool ProcessSpecialNote_ON(YARGMidiTrack track)
         {
             if (note.value != DOUBLE_BASS_NOTE)
                 return false;
@@ -30,7 +32,7 @@
             return true;
         }
 
-        protected override bool ProcessSpecialNote_Off()
+        protected override bool ProcessSpecialNote_Off(YARGMidiTrack track)
         {
             if (note.value != DOUBLE_BASS_NOTE)
                 return false;

@@ -32,43 +32,43 @@ namespace YARG.Core.Song
             this.maxVelocity = maxVelocity;
         }
 
-        public static DifficultyMask Parse_17Fret(YARGMidiReader reader)
+        public static DifficultyMask Parse_17Fret(YARGMidiTrack track)
         {
             Midi_ProGuitar_Preparser preparser = new(117);
-            preparser.Process(reader);
+            preparser.Process(track);
             return preparser.validations;
         }
 
-        public static DifficultyMask Parse_22Fret(YARGMidiReader reader)
+        public static DifficultyMask Parse_22Fret(YARGMidiTrack track)
         {
             Midi_ProGuitar_Preparser preparser = new(122);
-            preparser.Process(reader);
+            preparser.Process(track);
             return preparser.validations;
         }
 
         protected override bool IsNote() { return PROGUITAR_MIN <= note.value && note.value <= PROGUITAR_MAX; }
 
-        protected override bool ParseLaneColor_ON()
+        protected override bool ParseLaneColor_ON(YARGMidiTrack track)
         {
             int noteValue = note.value - PROGUITAR_MIN;
             int diffIndex = DIFFVALUES[noteValue];
             if (!diffultyTracker[diffIndex])
             {
                 int laneIndex = LANEINDICES[noteValue];
-                if (laneIndex < NUM_STRINGS && currEvent.channel != ARPEGGIO_CHANNEL && MIN_VELOCITY <= note.velocity && note.velocity <= maxVelocity)
+                if (laneIndex < NUM_STRINGS && track.Channel != ARPEGGIO_CHANNEL && MIN_VELOCITY <= note.velocity && note.velocity <= maxVelocity)
                     statuses[diffIndex, laneIndex] = true;
             }
             return false;
         }
 
-        protected override bool ParseLaneColor_Off()
+        protected override bool ParseLaneColor_Off(YARGMidiTrack track)
         {
             int noteValue = note.value - PROGUITAR_MIN;
             int diffIndex = DIFFVALUES[noteValue];
             if (!diffultyTracker[diffIndex])
             {
                 int laneIndex = LANEINDICES[noteValue];
-                if (laneIndex < NUM_STRINGS && currEvent.channel != ARPEGGIO_CHANNEL)
+                if (laneIndex < NUM_STRINGS && track.Channel != ARPEGGIO_CHANNEL)
                 {
                     Validate(diffIndex);
                     diffultyTracker[diffIndex] = true;

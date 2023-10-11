@@ -19,19 +19,19 @@ namespace YARG.Core.Song
             this.checkForPercussion = checkForPercussion;
         }
 
-        public static bool ParseLeadTrack(YARGMidiReader reader)
+        public static bool ParseLeadTrack(YARGMidiTrack track)
         {
             Midi_Vocal_Preparser preparser = new(true);
-            return preparser.Process(reader);
+            return preparser.Process(track);
         }
 
-        public static bool ParseHarmonyTrack(YARGMidiReader reader)
+        public static bool ParseHarmonyTrack(YARGMidiTrack track)
         {
             Midi_Vocal_Preparser preparser = new(false);
-            return preparser.Process(reader);
+            return preparser.Process(track);
         }
 
-        protected override bool ParseNote_ON()
+        protected override bool ParseNote_ON(YARGMidiTrack track)
         {
             if (VOACAL_MIN <= note.value && note.value <= VOCAL_MAX)
             {
@@ -44,7 +44,7 @@ namespace YARG.Core.Song
             return false;
         }
 
-        protected override bool ParseNote_Off()
+        protected override bool ParseNote_Off(YARGMidiTrack track)
         {
             if (VOACAL_MIN <= note.value && note.value <= VOCAL_MAX)
                 return vocal && lyric;

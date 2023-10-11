@@ -11,14 +11,14 @@ namespace YARG.Core.Song
 
         private Midi_FiveLane_Preparser() { }
 
-        public static DifficultyMask Parse(YARGMidiReader reader)
+        public static DifficultyMask Parse(YARGMidiTrack track)
         {
             Midi_FiveLane_Preparser preparser = new();
-            preparser.Process(reader);
+            preparser.Process(track);
             return preparser.validations;
         }
 
-        protected override bool ParseLaneColor_ON()
+        protected override bool ParseLaneColor_ON(YARGMidiTrack track)
         {
             int noteValue = note.value - DEFAULT_MIN;
             int diffIndex = DIFFVALUES[noteValue];
@@ -31,7 +31,7 @@ namespace YARG.Core.Song
             return false;
         }
 
-        protected override bool ParseLaneColor_Off()
+        protected override bool ParseLaneColor_Off(YARGMidiTrack track)
         {
             int noteValue = note.value - DEFAULT_MIN;
             int diffIndex = DIFFVALUES[noteValue];
