@@ -117,8 +117,7 @@ namespace YARG.Core.Engine.Vocals
 
             OnTargetNoteChanged?.Invoke(note);
 
-            // return CanNoteBeHit(note);
-            return true;
+            return CanNoteBeHit(note);
         }
 
         /// <returns>
