@@ -24,13 +24,18 @@ namespace YARG.Core.Utility
             RichTextTags.Strikethrough | RichTextTags.Underline |
             RichTextTags.Subscript | RichTextTags.Superscript);
 
-        private static readonly Dictionary<ulong, Regex> RegexCache = new();
+        private static readonly Regex ALL_TAGS_REGEX;
         private static readonly int EnumLength = Enum.GetValues(typeof(RichTextTags)).Length;
         private static readonly ConcurrentDictionary<RichTextTags, Regex> RegexCache = new();
 
+        static RichTextUtils()
+        {
+            ALL_TAGS_REGEX = ConstructRegex(ALL_TAGS);
+        }
+
         public static string StripRichTextTags(string text)
         {
-            return StripRichTextTagsPrivate(text, ALL_TAGS);
+            return ALL_TAGS_REGEX.Replace(text, "");
         }
 
         public static string StripRichTextTags(string text, RichTextTags tags)
