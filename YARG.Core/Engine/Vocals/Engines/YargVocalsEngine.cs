@@ -53,10 +53,17 @@ namespace YARG.Core.Engine.Vocals.Engines
 
                 if (percentHit >= EngineParameters.PhraseHitPercent)
                 {
+                    // Update stats (always add 100% of the phrase when hit)
+                    EngineStats.VocalTicksHit += (uint) State.PhraseTicksTotal.Value;
+
                     HitNote(phrase);
                 }
                 else
                 {
+                    // Update stats (just do it normally here)
+                    EngineStats.VocalTicksHit += State.PhraseTicksHit;
+                    EngineStats.VocalTicksMissed += (uint) (State.PhraseTicksTotal.Value - State.PhraseTicksHit);
+
                     MissNote(phrase);
                 }
 
