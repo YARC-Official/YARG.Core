@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 
-namespace YARG.Core.Song
+namespace YARG.Core.IO
 {
     public class AbridgedFileInfo
     {

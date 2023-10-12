@@ -6,17 +6,15 @@ namespace YARG.Core.Song.Cache
 {
     public sealed class UpdateGroup : IModificationGroup
     {
-        public readonly string directory;
         private readonly DateTime dtaLastWrite;
         public readonly List<string> updates = new();
 
-        public UpdateGroup(string directory, DateTime dtaLastWrite)
+        public UpdateGroup(DateTime dtaLastWrite)
         {
-            this.directory = directory;
             this.dtaLastWrite = dtaLastWrite;
         }
 
-        public byte[] SerializeModifications()
+        public byte[] SerializeModifications(string directory)
         {
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);

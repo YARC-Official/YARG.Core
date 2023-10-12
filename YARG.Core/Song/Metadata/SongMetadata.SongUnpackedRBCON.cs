@@ -98,19 +98,18 @@ namespace YARG.Core.Song
                 _metadata.Serialize(writer);
             }
 
-            public byte[]? LoadMidiFile()
+            public Stream? GetMidiStream()
             {
-                if (!Midi.IsStillValid())
+                if (DTA == null || !DTA.IsStillValid() || !Midi.IsStillValid())
                     return null;
-                return File.ReadAllBytes(Midi.FullName);
+                return new FileStream(Midi.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
             }
 
-            public byte[]? LoadMoggFile()
+            public byte[]? LoadMidiFile()
             {
-                using var stream = _metadata.GetMoggStream();
-                if (stream == null)
+                if (DTA == null || !DTA.IsStillValid() || !Midi.IsStillValid())
                     return null;
-                return stream.ReadBytes((int) stream.Length);
+                return File.ReadAllBytes(Midi.FullName);
             }
 
             public byte[]? LoadMiloFile()
@@ -125,6 +124,11 @@ namespace YARG.Core.Song
                 if (_metadata.Image == null || !File.Exists(_metadata.Image.FullName))
                     return null;
                 return File.ReadAllBytes(_metadata.Image.FullName);
+            }
+
+            public Stream? GetMoggStream()
+            {
+                return _metadata.GetMoggStream();
             }
 
             public bool IsMoggValid()

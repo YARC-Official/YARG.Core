@@ -32,7 +32,7 @@ namespace YARG.Core.Song.Cache
             public Exception? Exception => _exception;
         }
 
-        private void ScanDirectory_Parallel(string directory, int index)
+        private void ScanDirectory_Parallel(string directory, IniGroup group)
         {
             try
             {
@@ -40,7 +40,7 @@ namespace YARG.Core.Song.Cache
                     return;
 
                 var result = FileCollector.Collect(directory);
-                if (ScanIniEntry(result, index))
+                if (ScanIniEntry(result, group))
                     return;
 
                 Parallel.ForEach(result.subfiles, file =>
@@ -49,7 +49,7 @@ namespace YARG.Core.Song.Cache
                     {
                         var attributes = File.GetAttributes(file);
                         if ((attributes & FileAttributes.Directory) != 0)
-                            ScanDirectory_Parallel(file, index);
+                            ScanDirectory_Parallel(file, group);
                         else
                             AddPossibleCON(file);
                     }
@@ -73,7 +73,7 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void ScanCONGroup_Parallel(PackedCONGroup group)
+        private void ScanCONGroup_Parallel(string filename, PackedCONGroup group)
         {
             var reader = group.LoadSongs();
             if (reader == null)
@@ -89,7 +89,7 @@ namespace YARG.Core.Song.Cache
                     int index = GetCONIndex(indices, name);
 
                     var node = new YARGDTAReader(reader);
-                    tasks.Add(Task.Run(() => ScanPackedCONNode(group, name, index, node)));
+                    tasks.Add(Task.Run(() => ScanPackedCONNode(filename, group, name, index, node)));
                     reader.EndNode();
                 }
 
@@ -97,11 +97,11 @@ namespace YARG.Core.Song.Cache
             }
             catch (Exception e)
             {
-                YargTrace.LogException(e, $"Error while scanning packed CON group {group.file.filename}!");
+                YargTrace.LogException(e, $"Error while scanning packed CON group {filename}!");
             }
         }
 
-        private void ScanExtractedCONGroup_Parallel(UnpackedCONGroup group)
+        private void ScanExtractedCONGroup_Parallel(string directory, UnpackedCONGroup group)
         {
             try
             {
@@ -114,22 +114,22 @@ namespace YARG.Core.Song.Cache
                     int index = GetCONIndex(indices, name);
 
                     var node = new YARGDTAReader(reader);
-                    tasks.Add(Task.Run(() => ScanUnpackedCONNode(group, name, index, node)));
+                    tasks.Add(Task.Run(() => ScanUnpackedCONNode(directory, group, name, index, node)));
                     reader.EndNode();
                 }
                 Task.WaitAll(tasks.ToArray());
             }
             catch (Exception e)
             {
-                YargTrace.LogException(e, $"Error while scanning extracted CON group {group.directory}!");
+                YargTrace.LogException(e, $"Error while scanning extracted CON group {directory}!");
             }
         }
 
         private void ReadIniGroup_Parallel(YARGBinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
         {
             string directory = reader.ReadLEBString();
-            int baseIndex = GetBaseDirectoryIndex(directory);
-            if (baseIndex == -1)
+            var group = GetBaseIniGroup(directory);
+            if (group == null)
             {
                 YargTrace.DebugInfo($"INI group outside base directories: {directory}");
                 return;
@@ -145,7 +145,7 @@ namespace YARG.Core.Song.Cache
                     // Error catching must be done per-thread
                     try
                     {
-                        ReadIniEntry(directory, baseIndex, entryReader, strings);
+                        ReadIniEntry(directory, group, entryReader, strings);
                     }
                     catch (Exception ex)
                     {
@@ -157,7 +157,7 @@ namespace YARG.Core.Song.Cache
 
         private void ReadCONGroup_Parallel(YARGBinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
         {
-            var group = ReadCONGroupHeader(reader);
+            var group = ReadCONGroupHeader(reader, out string filename);
             if (group == null)
                 return;
 
@@ -180,7 +180,7 @@ namespace YARG.Core.Song.Cache
                     try
                     {
                         if (!group.ReadEntry(name, index, upgrades, entryReader, strings))
-                            YargTrace.DebugError($"CON entry {name} in group {group.file.filename} is invalid!");
+                            YargTrace.DebugInfo($"CON entry {name} in group {filename} is invalid!");
                     }
                     catch (Exception ex)
                     {
@@ -192,7 +192,7 @@ namespace YARG.Core.Song.Cache
 
         private void ReadExtractedCONGroup_Parallel(YARGBinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
         {
-            var group = ReadExtractedCONGroupHeader(reader);
+            var group = ReadExtractedCONGroupHeader(reader, out string directory);
             if (group == null)
                 return;
 
@@ -216,7 +216,7 @@ namespace YARG.Core.Song.Cache
                     try
                     {
                         if (!group.ReadEntry(name, index, upgrades, entryReader, strings))
-                            YargTrace.DebugError($"Extracted CON entry {name} in group {group.directory} is invalid!");
+                            YargTrace.DebugInfo($"Extracted CON entry {name} in group {directory} is invalid!");
                     }
                     catch (Exception ex)
                     {
@@ -269,7 +269,7 @@ namespace YARG.Core.Song.Cache
                     // Error catching must be done per-thread
                     try
                     {
-                        AddEntry(SongMetadata.PackedRBCONFromCache_Quick(group.file, name, upgrades, entryReader, strings));
+                        AddEntry(SongMetadata.PackedRBCONFromCache_Quick(group.Files, name, upgrades, entryReader, strings));
                     }
                     catch (Exception ex)
                     {

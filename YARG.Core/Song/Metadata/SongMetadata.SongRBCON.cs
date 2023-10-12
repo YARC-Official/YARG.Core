@@ -208,6 +208,17 @@ namespace YARG.Core.Song
                 }
             }
 
+            public Stream? GetMidiUpdateStream()
+            {
+                if (UpdateMidi == null)
+                    return null;
+
+                FileInfo info = new(UpdateMidi.FullName);
+                if (!info.Exists || info.LastWriteTime != UpdateMidi.LastWriteTime)
+                    return null;
+                return new FileStream(UpdateMidi.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
+            }
+
             public byte[]? LoadMidiUpdateFile()
             {
                 if (UpdateMidi == null)
@@ -234,10 +245,11 @@ namespace YARG.Core.Song
         {
             public RBCONSubMetadata SharedMetadata { get; }
             public DateTime MidiLastWrite { get; }
+            public Stream? GetMidiStream();
             public byte[]? LoadMidiFile();
-            public byte[]? LoadMoggFile();
             public byte[]? LoadMiloFile();
             public byte[]? LoadImgFile();
+            public Stream? GetMoggStream();
             public bool IsMoggValid();
             public void Serialize(BinaryWriter writer);
         }
@@ -720,40 +732,34 @@ namespace YARG.Core.Song
 
         private SongChart LoadCONChart()
         {
-            // Read base MIDI
-            byte[]? chartFile = RBData!.LoadMidiFile();
-            if (chartFile == null)
-                throw new Exception("Base MIDI file not present");
-
             MidiFile midi;
-            using (MemoryStream chartStream = new(chartFile))
+            // Read base MIDI
+            using (var midiStream = RBData!.GetMidiStream())
             {
-                midi = MidiFile.Read(chartStream);
+                if (midiStream == null)
+                    throw new Exception("Base MIDI file not present");
+                midi = MidiFile.Read(midiStream);
             }
 
             // Merge update MIDI
             var shared = RBData.SharedMetadata;
             if (shared.UpdateMidi != null)
             {
-                chartFile = shared.LoadMidiUpdateFile();
-                if (chartFile == null)
+                using var midiStream = shared.GetMidiUpdateStream();
+                if (midiStream == null)
                     throw new Exception("Scanned update MIDI file not present");
-
-                using MemoryStream updateStream = new(chartFile);
-                var update = MidiFile.Read(updateStream);
+                var update = MidiFile.Read(midiStream);
                 midi.Merge(update);
             }
 
             // Merge upgrade MIDI
             if (shared.Upgrade != null)
             {
-                chartFile = shared.Upgrade.LoadUpgradeMidi();
-                if (chartFile == null)
+                using var midiStream = shared.Upgrade.GetUpgradeMidiStream();
+                if (midiStream == null)
                     throw new Exception("Scanned upgrade MIDI file not present");
-
-                using MemoryStream upgradeStream = new(chartFile);
-                var upgrade = MidiFile.Read(upgradeStream);
-                midi.Merge(upgrade);
+                var update = MidiFile.Read(midiStream);
+                midi.Merge(update);
             }
 
             return SongChart.FromMidi(_parseSettings, midi);

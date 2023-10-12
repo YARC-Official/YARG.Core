@@ -5,15 +5,9 @@ namespace YARG.Core.Song.Cache
 {
     public sealed class IniGroup : ICacheGroup
     {
-        public readonly string directory;
         public readonly object iniLock = new();
         public readonly Dictionary<HashWrapper, List<SongMetadata>> entries = new();
         private int _count;
-
-        public IniGroup(string directory)
-        {
-            this.directory = directory;
-        }
 
         public void AddEntry(SongMetadata entry)
         {
@@ -28,7 +22,7 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        public byte[] SerializeEntries(Dictionary<SongMetadata, CategoryCacheWriteNode> nodes)
+        public byte[] SerializeEntries(string directory, Dictionary<SongMetadata, CategoryCacheWriteNode> nodes)
         {
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);
@@ -39,7 +33,7 @@ namespace YARG.Core.Song.Cache
             {
                 foreach (var entry in shared.Value)
                 {
-                    byte[] buffer = SerializeEntry(entry, nodes[entry]);
+                    byte[] buffer = SerializeEntry(directory, entry, nodes[entry]);
                     writer.Write(buffer.Length);
                     writer.Write(buffer);
                 }
@@ -47,7 +41,7 @@ namespace YARG.Core.Song.Cache
             return ms.ToArray();
         }
 
-        private byte[] SerializeEntry(SongMetadata entry, CategoryCacheWriteNode node)
+        private byte[] SerializeEntry(string directory, SongMetadata entry, CategoryCacheWriteNode node)
         {
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
+using YARG.Core.Utility;
 
 namespace YARG.Core.Song
 {
@@ -17,7 +18,7 @@ namespace YARG.Core.Song
             set
             {
                 _str = value;
-                _sortStr = RemoveDiacritics(value);
+                _sortStr = RemoveDiacritics(RichTextUtils.StripRichTextTags(value));
                 _hashCode = _sortStr.GetHashCode();
             }
         }
