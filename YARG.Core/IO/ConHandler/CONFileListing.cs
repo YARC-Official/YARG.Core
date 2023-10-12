@@ -58,15 +58,14 @@ namespace YARG.Core.IO
 
         public byte[] LoadAllBytes()
         {
-            using var conStream = CreateStream();
-            return conStream.ReadBytes(size);
+            return CONFileStream.LoadFile(ConFile.FullName, IsContiguous(), size, firstBlock, shift);
         }
 
         public static int GetMoggVersion(CONFileListing listing)
         {
             Debug.Assert(!listing.IsDirectory(), "Directory listing cannot be loaded as a file");
-            using var conStream = new CONFileStream(listing.ConFile.FullName, false, 4, listing.firstBlock, listing.shift);
-            return conStream.ReadInt32LE();
+            byte[] buffer = CONFileStream.LoadFile(listing.ConFile.FullName, listing.IsContiguous(), 4, listing.firstBlock, listing.shift);
+            return BitConverter.ToInt32(buffer);
         }
 
         public static DateTime FatTimeDT(int fatTime)
