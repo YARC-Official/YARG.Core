@@ -24,21 +24,13 @@ namespace YARG.Core.Game
 
         public bool LeftyFlip;
 
-        public Instrument PreferredInstrument;
-        public Difficulty PreferredDifficulty;
-
-        public Modifier PreferredModifiers { get; private set; }
-
         public Guid ColorProfile;
         public Guid CameraPreset;
 
-        [JsonIgnore]
         public Instrument CurrentInstrument;
-
-        [JsonIgnore]
         public Difficulty CurrentDifficulty;
 
-        [JsonIgnore]
+        [JsonProperty]
         public Modifier CurrentModifiers { get; private set; }
 
         public YargProfile()
@@ -46,8 +38,6 @@ namespace YARG.Core.Game
             Id = Guid.NewGuid();
             Name = "Default";
             GameMode = GameMode.FiveFretGuitar;
-            PreferredInstrument = Instrument.FiveFretGuitar;
-            PreferredDifficulty = Difficulty.Expert;
             NoteSpeed = 6;
             HighwayLength = 1;
             LeftyFlip = false;
