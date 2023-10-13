@@ -8,7 +8,7 @@ namespace YARG.Core.Game
 {
     public class YargProfile : IBinarySerializable
     {
-        private const int PROFILE_VERSION = 1;
+        private const int PROFILE_VERSION = 2;
 
         public int Version = PROFILE_VERSION;
 
@@ -27,9 +27,26 @@ namespace YARG.Core.Game
         public Guid ColorProfile;
         public Guid CameraPreset;
 
+        /// <summary>
+        /// The selected instrument.
+        /// </summary>
         public Instrument CurrentInstrument;
+
+        /// <summary>
+        /// The selected difficulty.
+        /// </summary>
         public Difficulty CurrentDifficulty;
 
+        /// <summary>
+        /// The harmony index, used for determining what harmony part the player selected.
+        /// Does nothing if <see cref="CurrentInstrument"/> is not a harmony.
+        /// </summary>
+        public byte HarmonyIndex;
+
+        /// <summary>
+        /// The currently selected modifiers as a flag.
+        /// Use <see cref="AddSingleModifier"/> and <see cref="RemoveModifiers"/> to modify.
+        /// </summary>
         [JsonProperty]
         public Modifier CurrentModifiers { get; private set; }
 
@@ -126,12 +143,15 @@ namespace YARG.Core.Game
             writer.Write(Version);
 
             writer.Write(Name);
+
             writer.Write((byte) CurrentInstrument);
             writer.Write((byte) CurrentDifficulty);
+            writer.Write((ulong) CurrentModifiers);
+            writer.Write(HarmonyIndex);
+
             writer.Write(NoteSpeed);
             writer.Write(HighwayLength);
             writer.Write(LeftyFlip);
-            writer.Write((ulong) CurrentModifiers);
         }
 
         public void Deserialize(BinaryReader reader, int version = 0)
@@ -141,12 +161,15 @@ namespace YARG.Core.Game
                 throw new InvalidDataException($"Wrong profile version read! Expected {PROFILE_VERSION}, got {Version}");
 
             Name = reader.ReadString();
+
             CurrentInstrument = (Instrument) reader.ReadByte();
             CurrentDifficulty = (Difficulty) reader.ReadByte();
+            CurrentModifiers = (Modifier) reader.ReadUInt64();
+            HarmonyIndex = reader.ReadByte();
+
             NoteSpeed = reader.ReadSingle();
             HighwayLength = reader.ReadSingle();
             LeftyFlip = reader.ReadBoolean();
-            CurrentModifiers = (Modifier) reader.ReadUInt64();
 
             GameMode = CurrentInstrument.ToGameMode();
         }
