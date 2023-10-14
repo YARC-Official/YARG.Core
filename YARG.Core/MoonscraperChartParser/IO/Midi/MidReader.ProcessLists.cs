@@ -296,7 +296,7 @@ namespace MoonscraperChartEditor.Song.IO
 
         private static void CopyDownHarmonyPhrases(in EventProcessParams processParams)
         {
-            if (processParams.instrument is not MoonSong.MoonInstrument.Harmony2 or MoonSong.MoonInstrument.Harmony3)
+            if (processParams.instrument is not (MoonSong.MoonInstrument.Harmony2 or MoonSong.MoonInstrument.Harmony3))
                 return;
 
             // Remove any existing phrases
