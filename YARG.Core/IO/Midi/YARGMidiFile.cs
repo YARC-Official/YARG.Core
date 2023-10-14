@@ -2,14 +2,14 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using YARG.Core.Extensions;
 
 namespace YARG.Core.IO
 {
     public sealed class YARGMidiFile : IEnumerable<YARGMidiTrack>
     {
-        internal static readonly byte[][] TRACKTAGS = { Encoding.ASCII.GetBytes("MThd"), Encoding.ASCII.GetBytes("MTrk") };
+        private static readonly FourCC HEADER_TAG = new('M', 'T', 'h', 'd');
+        private static readonly FourCC TRACK_TAG = new('M', 'T', 'r', 'k');
 
         private readonly Stream _stream;
         private readonly ushort _format;
@@ -23,7 +23,7 @@ namespace YARG.Core.IO
         public YARGMidiFile(Stream stream)
         {
             _stream = stream;
-            if (!TestTag(TRACKTAGS[0]))
+            if (FourCC.Read(stream) != HEADER_TAG)
                 throw new Exception("Midi Header Chunk Tag 'MThd' not found");
 
             int length = stream.ReadInt32BE();
@@ -46,17 +46,10 @@ namespace YARG.Core.IO
                 return null;
 
             _trackNumber++;
-            if (!TestTag(TRACKTAGS[1]))
+            if (FourCC.Read(_stream) != TRACK_TAG)
                 throw new Exception($"Midi Track Tag 'MTrk' not found for Track '{_trackNumber}'");
 
             return new YARGMidiTrack(_stream);
-        }
-
-        private bool TestTag(byte[] tag)
-        {
-            Span<byte> tagBuffer = stackalloc byte[4];
-            _stream.Read(tagBuffer);
-            return tagBuffer.SequenceEqual(tag);
         }
 
         public IEnumerator<YARGMidiTrack> GetEnumerator()
