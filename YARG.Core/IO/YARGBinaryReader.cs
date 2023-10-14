@@ -62,20 +62,6 @@ namespace YARG.Core.IO
             baseReader._position += length;
         }
 
-        public bool CompareTag(byte[] tag)
-        {
-            var span = memory.Span;
-            Debug.Assert(tag.Length == 4);
-            if (tag[0] != span[_position] ||
-                tag[1] != span[_position + 1] ||
-                tag[2] != span[_position + 2] ||
-                tag[3] != span[_position + 3])
-                return false;
-
-            _position += 4;
-            return true;
-        }
-
         public void Move_Unsafe(int amount)
         {
             _position += amount;
