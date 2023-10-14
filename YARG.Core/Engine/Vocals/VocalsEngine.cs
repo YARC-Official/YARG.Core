@@ -28,7 +28,7 @@ namespace YARG.Core.Engine.Vocals
         {
             note.SetHitState(true, false);
 
-            if (note.IsStarPower && note.IsStarPowerEnd)
+            if (note.IsStarPower)
             {
                 AwardStarPower(note);
                 EngineStats.PhrasesHit++;
