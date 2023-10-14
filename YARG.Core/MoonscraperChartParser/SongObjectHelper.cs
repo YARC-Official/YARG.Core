@@ -267,18 +267,21 @@ namespace MoonscraperChartEditor.Song
             while (pos > 0 && notes[pos - 1].tick > note.tick)
                 --pos;
 
-            if (pos > 0)
+            if (pos == 0 || notes[pos - 1].tick < note.tick || notes[pos - 1] != note)
             {
-                note.previous = notes[pos - 1];
-                notes[pos - 1].next = note;
-            }
+                if (pos > 0)
+                {
+                    note.previous = notes[pos - 1];
+                    notes[pos - 1].next = note;
+                }
 
-            if (pos < notes.Count)
-            {
-                notes[pos].previous = note;
-                note.next = notes[pos];
+                if (pos < notes.Count)
+                {
+                    notes[pos].previous = note;
+                    note.next = notes[pos];
+                }
+                notes.Insert(pos, note);
             }
-            notes.Insert(pos, note);
             return pos;
         }
 
@@ -292,9 +295,11 @@ namespace MoonscraperChartEditor.Song
         public static int OrderedInsertFromBack<T>(T item, List<T> list) where T : SongObject
         {
             int pos = list.Count;
-            while (pos > 0 && list[pos - 1].tick > item.tick)
+            while (pos > 0 && item.tick < list[pos - 1].tick)
                 --pos;
-            list.Insert(pos, item);
+
+            if (pos == 0 || list[pos - 1].tick < item.tick || list[pos - 1] != item)
+                list.Insert(pos, item);
             return pos;
         }
 
