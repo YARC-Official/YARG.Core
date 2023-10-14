@@ -626,13 +626,16 @@ namespace MoonscraperChartEditor.Song.IO
             return false;
         }
 
-        private static void ProcessNoteOnEventAsNote(in EventProcessParams eventProcessParams, MoonSong.Difficulty diff, int ingameFret, MoonNote.Flags defaultFlags = MoonNote.Flags.None)
+        private static void ProcessNoteOnEventAsNote(in EventProcessParams eventProcessParams, MoonSong.Difficulty diff,
+            int ingameFret, MoonNote.Flags defaultFlags = MoonNote.Flags.None, bool sustainCutoff = true)
         {
             var chart = eventProcessParams.song.GetChart(eventProcessParams.instrument, diff);
 
             var timedEvent = eventProcessParams.timedEvent;
             uint tick = (uint)timedEvent.startTick;
-            uint sus = ApplySustainCutoff(eventProcessParams.settings, (uint)timedEvent.length);
+            uint sus = (uint)timedEvent.length;
+            if (sustainCutoff)
+                sus = ApplySustainCutoff(eventProcessParams.settings, sus);
 
             var newMoonNote = new MoonNote(tick, ingameFret, sus, defaultFlags);
             chart.Add(newMoonNote, false);
