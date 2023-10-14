@@ -24,6 +24,13 @@ namespace YARG.Core.Game
 
         public bool LeftyFlip;
 
+        public long VideoCalibrationMilliseconds;
+        public double VideoCalibrationSeconds
+        {
+            get => VideoCalibrationMilliseconds / 1000.0;
+            set => VideoCalibrationMilliseconds = (long) (value * 1000);
+        }
+
         public Instrument PreferredInstrument;
         public Difficulty PreferredDifficulty;
 
