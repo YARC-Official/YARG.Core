@@ -2,6 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using YARG.Core.Game;
+using YARG.Core.IO;
 using YARG.Core.Song;
 using YARG.Core.Utility;
 
@@ -9,14 +10,14 @@ namespace YARG.Core.Replays
 {
     public class ReplayHeader : IBinarySerializable
     {
-        public long        Magic;
+        public EightCC     Magic;
         public int         ReplayVersion;
         public int         EngineVersion;
         public HashWrapper ReplayChecksum;
 
         public void Serialize(BinaryWriter writer)
         {
-            writer.Write(Magic);
+            Magic.Serialize(writer);
             writer.Write(ReplayVersion);
             writer.Write(EngineVersion);
 
@@ -25,7 +26,7 @@ namespace YARG.Core.Replays
 
         public void Deserialize(BinaryReader reader, int version = 0)
         {
-            Magic = reader.ReadInt64();
+            Magic = EightCC.Read(reader);
             ReplayVersion = reader.ReadInt32();
             EngineVersion = reader.ReadInt32();
             ReplayChecksum = new HashWrapper(reader);

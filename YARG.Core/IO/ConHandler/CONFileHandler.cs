@@ -7,6 +7,10 @@ namespace YARG.Core.IO
 {
     public static class CONFileHandler
     {
+        private static readonly FourCC CON_TAG = new('C', 'O', 'N', ' ');
+        private static readonly FourCC LIVE_TAG = new('L', 'I', 'V', 'E');
+        private static readonly FourCC PIRS_TAG = new('P', 'I', 'R', 'S');
+
         private const int METADATA_POSITION = 0x340;
         private const int FILETABLEBLOCKCOUNT_POSITION = 0x37C;
         private const int FILETABLEFIRSTBLOCK_POSITION = 0x37E;
@@ -25,8 +29,8 @@ namespace YARG.Core.IO
             if (stream.Read(int32Buffer) != BYTES_32BIT)
                 return null;
 
-            string tag = Encoding.Default.GetString(int32Buffer);
-            if (tag != "CON " && tag != "LIVE" && tag != "PIRS")
+            var tag = new FourCC(int32Buffer);
+            if (tag != CON_TAG && tag != LIVE_TAG && tag != PIRS_TAG)
                 return null;
 
             stream.Seek(METADATA_POSITION, SeekOrigin.Begin);

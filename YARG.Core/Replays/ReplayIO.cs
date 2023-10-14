@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
+using YARG.Core.IO;
 
 namespace YARG.Core.Replays
 {
@@ -15,8 +16,9 @@ namespace YARG.Core.Replays
 
     public static class ReplayIO
     {
-        public const long REPLAY_MAGIC_HEADER = 0x59414C5047524159;
-        public const int  REPLAY_VERSION      = 3;
+        public static readonly EightCC REPLAY_MAGIC_HEADER = new('Y', 'A', 'R', 'G', 'P', 'L', 'A', 'Y');
+
+        public const int REPLAY_VERSION = 3;
 
         // Some versions may be invalidated (such as significant format changes)
         private static readonly int[] InvalidVersions = { 0, 1, 2 };

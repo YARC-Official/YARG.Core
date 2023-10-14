@@ -235,9 +235,8 @@ namespace YARG.Core.UnitTests.Parsing
                     case BPM bpm:
                         // MIDI stores tempo as microseconds per quarter note, so we need to convert
                         // Moonscraper already ties BPM to quarter notes, so no additional conversion is needed
-                        double secondsPerBeat = 60 / bpm.displayValue;
-                        double microseconds = secondsPerBeat * 1000 * 1000;
-                        timedEvents.Add((sync.tick, new SetTempoEvent((long)microseconds)));
+                        long microseconds = Chart.TempoChange.BpmToMicroSeconds(bpm.displayValue);
+                        timedEvents.Add((sync.tick, new SetTempoEvent(microseconds)));
                         break;
                     case TimeSignature ts:
                         timedEvents.Add((sync.tick, new TimeSignatureEvent((byte)ts.numerator, (byte)ts.denominator)));
