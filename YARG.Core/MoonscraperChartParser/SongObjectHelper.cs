@@ -267,21 +267,29 @@ namespace MoonscraperChartEditor.Song
             while (pos > 0 && notes[pos - 1].tick > note.tick)
                 --pos;
 
-            if (pos == 0 || notes[pos - 1].tick < note.tick || notes[pos - 1] != note)
+            if (pos > 0 && notes[pos - 1].tick == note.tick)
             {
-                if (pos > 0)
+                int check = pos - 1;
+                do
                 {
-                    note.previous = notes[pos - 1];
-                    notes[pos - 1].next = note;
-                }
-
-                if (pos < notes.Count)
-                {
-                    notes[pos].previous = note;
-                    note.next = notes[pos];
-                }
-                notes.Insert(pos, note);
+                    if (notes[check] == note)
+                        return check;
+                    --check;
+                } while (check >= 0 && notes[check].tick == note.tick);
             }
+
+            if (pos > 0)
+            {
+                note.previous = notes[pos - 1];
+                notes[pos - 1].next = note;
+            }
+
+            if (pos < notes.Count)
+            {
+                notes[pos].previous = note;
+                note.next = notes[pos];
+            }
+            notes.Insert(pos, note);
             return pos;
         }
 
@@ -298,8 +306,18 @@ namespace MoonscraperChartEditor.Song
             while (pos > 0 && item.tick < list[pos - 1].tick)
                 --pos;
 
-            if (pos == 0 || list[pos - 1].tick < item.tick || list[pos - 1] != item)
-                list.Insert(pos, item);
+            if (pos > 0 && list[pos - 1].tick == item.tick)
+            {
+                int check = pos - 1;
+                do
+                {
+                    if (list[check] == item)
+                        return check;
+                    --check;
+                } while (check >= 0 && list[check].tick == item.tick);
+            }
+
+            list.Insert(pos, item);
             return pos;
         }
 
