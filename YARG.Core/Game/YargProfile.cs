@@ -8,7 +8,7 @@ namespace YARG.Core.Game
 {
     public class YargProfile : IBinarySerializable
     {
-        private const int PROFILE_VERSION = 2;
+        private const int PROFILE_VERSION = 1;
 
         public Guid Id;
         public string Name;
@@ -155,10 +155,6 @@ namespace YARG.Core.Game
         public void Deserialize(BinaryReader reader, int version = 0)
         {
             version = reader.ReadInt32();
-            if (version != PROFILE_VERSION)
-            {
-                throw new InvalidDataException($"Wrong profile version read! Expected {PROFILE_VERSION}, got {version}");
-            }
 
             Name = reader.ReadString();
 
