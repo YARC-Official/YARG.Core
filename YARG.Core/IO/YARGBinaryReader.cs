@@ -247,24 +247,19 @@ namespace YARG.Core.IO
             return (int) result;
         }
 
+        private const uint VLQ_SHIFTLIMIT = 1 << 21;
         public uint ReadVLQ()
         {
             var span = memory.Span;
-            uint value = 0;
-            uint i = 0;
-            while (true)
+            uint value = (uint) span[_position] & 127;
+            while (span[_position++] >= 128)
             {
-                uint b = span[_position++];
-                value |= b & 127;
-                if (b < 128)
-                    return value;
-
-                if (i == 3)
+                if (value >= VLQ_SHIFTLIMIT)
                     throw new Exception("Invalid variable length quantity");
-
                 value <<= 7;
-                ++i;
+                value |= (uint) span[_position] & 127;
             }
+            return value;
         }
 
         public ReadOnlySpan<byte> ReadSpan(int length)

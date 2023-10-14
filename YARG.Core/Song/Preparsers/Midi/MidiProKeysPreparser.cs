@@ -12,21 +12,21 @@ namespace YARG.Core.Song
 
         private Midi_ProKeys_Preparser() { }
 
-        public static bool Parse(YARGMidiReader reader)
+        public static bool Parse(YARGMidiTrack track)
         {
             Midi_ProKeys_Preparser preparser = new();
-            return preparser.Process(reader);
+            return preparser.Process(track);
         }
 
         protected override bool IsNote() { return PROKEYS_MIN <= note.value && note.value <= PROKEYS_MAX; }
 
-        protected override bool ParseLaneColor_ON()
+        protected override bool ParseLaneColor_ON(YARGMidiTrack track)
         {
             statuses[note.value - PROKEYS_MIN] = true;
             return false;
         }
 
-        protected override bool ParseLaneColor_Off()
+        protected override bool ParseLaneColor_Off(YARGMidiTrack track)
         {
             return statuses[note.value - PROKEYS_MIN];
         }
