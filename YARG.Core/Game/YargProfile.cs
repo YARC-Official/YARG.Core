@@ -10,8 +10,6 @@ namespace YARG.Core.Game
     {
         private const int PROFILE_VERSION = 2;
 
-        public int Version = PROFILE_VERSION;
-
         public Guid Id;
         public string Name;
 
@@ -140,7 +138,7 @@ namespace YARG.Core.Game
         // For replay serialization
         public void Serialize(BinaryWriter writer)
         {
-            writer.Write(Version);
+            writer.Write(PROFILE_VERSION);
 
             writer.Write(Name);
 
@@ -156,9 +154,11 @@ namespace YARG.Core.Game
 
         public void Deserialize(BinaryReader reader, int version = 0)
         {
-            Version = reader.ReadInt32();
-            if (Version != PROFILE_VERSION)
-                throw new InvalidDataException($"Wrong profile version read! Expected {PROFILE_VERSION}, got {Version}");
+            version = reader.ReadInt32();
+            if (version != PROFILE_VERSION)
+            {
+                throw new InvalidDataException($"Wrong profile version read! Expected {PROFILE_VERSION}, got {version}");
+            }
 
             Name = reader.ReadString();
 
