@@ -671,7 +671,8 @@ namespace MoonscraperChartEditor.Song.IO
                 { MidIOHelper.PERCUSSION_NOTE, (in EventProcessParams eventProcessParams) => {
                     foreach (var difficulty in EnumExtensions<MoonSong.Difficulty>.Values)
                     {
-                        ProcessNoteOnEventAsNote(eventProcessParams, difficulty, 0, MoonNote.Flags.Vocals_Percussion);
+                        ProcessNoteOnEventAsNote(eventProcessParams, difficulty, 0, MoonNote.Flags.Vocals_Percussion,
+                            sustainCutoff: false);
                     };
                 }},
             };
@@ -682,7 +683,7 @@ namespace MoonscraperChartEditor.Song.IO
                 processFnDict.Add(i, (in EventProcessParams eventProcessParams) => {
                     foreach (var difficulty in EnumExtensions<MoonSong.Difficulty>.Values)
                     {
-                        ProcessNoteOnEventAsNote(eventProcessParams, difficulty, rawNote);
+                        ProcessNoteOnEventAsNote(eventProcessParams, difficulty, rawNote, sustainCutoff: false);
                     };
                 });
             }
