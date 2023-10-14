@@ -381,18 +381,23 @@ namespace YARG.Core.UnitTests.Parsing
             },
             new[]
             {
-                NewSpecial(0, SpecialPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 12),
                 NewSpecial(0, SpecialPhrase.Type.Versus_Player1, RESOLUTION * 12),
-                NewSpecial(12, SpecialPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 12),
+                NewSpecial(0, SpecialPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 12),
+
                 NewSpecial(12, SpecialPhrase.Type.Versus_Player2, RESOLUTION * 12),
+                NewSpecial(12, SpecialPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 12),
+                
                 NewSpecial(12, SpecialPhrase.Type.Starpower, RESOLUTION * 12),
-                NewSpecial(24, SpecialPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 12),
+
                 NewSpecial(24, SpecialPhrase.Type.Versus_Player1, RESOLUTION * 12),
+                NewSpecial(24, SpecialPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 12),
                 NewSpecial(24, SpecialPhrase.Type.Versus_Player2, RESOLUTION * 12),
-                NewSpecial(36, SpecialPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 13),
+
                 NewSpecial(36, SpecialPhrase.Type.Versus_Player2, RESOLUTION * 13),
-                NewSpecial(49, SpecialPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 1),
+                NewSpecial(36, SpecialPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 13),
+                
                 NewSpecial(49, SpecialPhrase.Type.Versus_Player1, RESOLUTION * 1),
+                NewSpecial(49, SpecialPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 1),
             }
         );
 
