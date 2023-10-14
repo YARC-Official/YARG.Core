@@ -90,26 +90,12 @@ namespace YARG.Core.Engine.Guitar
             note.SetHitState(true, true);
 
             // Detect if the last note(s) were skipped
-            bool skipped = false;
             var prevNote = note.PreviousNote;
             while (prevNote is not null && !prevNote.WasHit && !prevNote.WasMissed)
             {
-                skipped = true;
-
-                prevNote.SetMissState(true, true);
-
-                EngineStats.Combo = 0;
-                EngineStats.NotesMissed++;
-
-                OnNoteMissed?.Invoke(State.NoteIndex, prevNote);
-                State.NoteIndex++;
+                MissNote(prevNote);
 
                 prevNote = prevNote.PreviousNote;
-            }
-
-            if (skipped)
-            {
-                StripStarPower(note.PreviousNote);
             }
 
             if (note.IsStarPower && note.IsStarPowerEnd)
