@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
+using YARG.Core.Extensions;
 using YARG.Core.IO;
 
 namespace YARG.Core.Song
@@ -88,7 +89,7 @@ namespace YARG.Core.Song
 
         public override string ToString()
         {
-            return BitConverter.ToString(_hash).Replace("-", "");
+            return _hash.ToHexString(dashes: false);
         }
     }
 }
