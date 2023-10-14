@@ -255,8 +255,8 @@ namespace MoonscraperChartEditor.Song
 
         /// <summary>
         /// Insert a note into the provided list linearly, with the search starting from the back of the list.
-        /// Ensures correct setting of `previous` & `next` variables.
-        /// Use for handling .mid
+        /// Ensures correct setting of 'previous' and 'next' variables.
+        /// Use for handling .mid note off events
         /// </summary>
         /// <param name="note">The note to be inserted.</param>
         /// <param name="notes">The list in which the note will be inserted.</param>
@@ -287,7 +287,7 @@ namespace MoonscraperChartEditor.Song
 
         /// <summary>
         /// Insert an item into the provided list linearly, with the search starting from the back of the list.
-        /// Use for handling .mid
+        /// Use for handling .mid note off events
         /// </summary>
         /// <param name="item">The item to be inserted.</param>
         /// <param name="list">The list in which the item will be inserted.</param>

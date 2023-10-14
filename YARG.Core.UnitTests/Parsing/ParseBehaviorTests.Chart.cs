@@ -91,13 +91,18 @@ namespace YARG.Core.UnitTests.Parsing
         private static void GenerateSyncSection(MoonSong sourceSong, StringBuilder builder)
         {
             builder.Append($"[{SECTION_SYNC_TRACK}]{NEWLINE}{{{NEWLINE}");
+
+            // Indexing the separate lists is the only way to
+            // 1: Not allocate more space for a combined list, and
+            // 2: Not rely on polymorphic queries
             int timeSigIndex = 0;
             int bpmIndex = 0;
             while (timeSigIndex < sourceSong.timeSignatures.Count ||
                    bpmIndex < sourceSong.bpms.Count)
             {
-                // Generate in this order: phrases, notes, then events
+                // Generate in this order: time sig, bpm
                 while (timeSigIndex < sourceSong.timeSignatures.Count &&
+                    // Time sig comes before or at the same time as a bpm
                     (bpmIndex == sourceSong.bpms.Count || sourceSong.timeSignatures[timeSigIndex].tick <= sourceSong.bpms[bpmIndex].tick))
                 {
                     var ts = sourceSong.timeSignatures[timeSigIndex++];
@@ -105,6 +110,7 @@ namespace YARG.Core.UnitTests.Parsing
                 }
 
                 while (bpmIndex < sourceSong.bpms.Count &&
+                    // Bpm comes before a time sig (equals does not count)
                     (timeSigIndex == sourceSong.timeSignatures.Count || sourceSong.bpms[bpmIndex].tick < sourceSong.timeSignatures[timeSigIndex].tick))
                 {
                     var bpm = sourceSong.bpms[bpmIndex++];
@@ -117,13 +123,18 @@ namespace YARG.Core.UnitTests.Parsing
         private static void GenerateEventsSection(MoonSong sourceSong, StringBuilder builder)
         {
             builder.Append($"[{SECTION_EVENTS}]{NEWLINE}{{{NEWLINE}");
+
+            // Indexing the separate lists is the only way to
+            // 1: Not allocate more space for a combined list, and
+            // 2: Not rely on polymorphic queries
             int sectionIndex = 0;
             int eventIndex = 0;
             while (sectionIndex < sourceSong.sections.Count ||
                    eventIndex < sourceSong.events.Count)
             {
-                // Generate in this order: phrases, notes, then events
+                // Generate in this order: sections, events
                 while (sectionIndex < sourceSong.sections.Count &&
+                    // Section comes before or at the same time as an event
                     (eventIndex == sourceSong.events.Count || sourceSong.sections[sectionIndex].tick <= sourceSong.events[eventIndex].tick))
                 {
                     var section = sourceSong.sections[sectionIndex++];
@@ -131,6 +142,7 @@ namespace YARG.Core.UnitTests.Parsing
                 }
 
                 while (eventIndex < sourceSong.events.Count &&
+                    // Event comes before a section (equals does not count)
                     (sectionIndex == sourceSong.sections.Count || sourceSong.bpms[eventIndex].tick < sourceSong.sections[sectionIndex].tick))
                 {
                     var ev = sourceSong.events[eventIndex++];
@@ -154,6 +166,10 @@ namespace YARG.Core.UnitTests.Parsing
             builder.Append($"[{difficultyName}{instrumentName}]{NEWLINE}{{{NEWLINE}");
 
             List<SpecialPhrase> phrasesToRemove = new();
+
+            // Indexing the separate lists is the only way to
+            // 1: Not allocate more space for a combined list, and
+            // 2: Not rely on polymorphic queries
             int noteIndex = 0;
             int phraseIndex = 0;
             int eventIndex = 0;
@@ -163,7 +179,9 @@ namespace YARG.Core.UnitTests.Parsing
             {
                 // Generate in this order: phrases, notes, then events
                 while (phraseIndex < chart.specialPhrases.Count &&
+                    // Phrase comes before or at the same time as a note
                     (noteIndex  == chart.notes.Count  || chart.specialPhrases[phraseIndex].tick <= chart.notes[noteIndex].tick) &&
+                    // Phrase comes before or at the same time as an event
                     (eventIndex == chart.events.Count || chart.specialPhrases[phraseIndex].tick <= chart.events[eventIndex].tick))
                 {
                     var phrase = chart.specialPhrases[phraseIndex++];
@@ -187,12 +205,16 @@ namespace YARG.Core.UnitTests.Parsing
                 }
 
                 while (noteIndex < chart.notes.Count &&
+                    // Note comes before a phrase (equals does not count)
                     (phraseIndex == chart.specialPhrases.Count || chart.notes[noteIndex].tick <  chart.specialPhrases[phraseIndex].tick) &&
+                    // Note comes before or at the same time as an event
                     (eventIndex  == chart.events.Count         || chart.notes[noteIndex].tick <= chart.events[eventIndex].tick))
                     AppendNote(builder, chart.notes[noteIndex++], gameMode);
 
                 while (eventIndex < chart.events.Count &&
+                    // Event comes before a phrase (equals does not count)
                     (phraseIndex == chart.specialPhrases.Count || chart.events[eventIndex].tick < chart.specialPhrases[phraseIndex].tick) &&
+                    // Event comes before a note (equals does not count)
                     (noteIndex   == chart.notes.Count          || chart.events[eventIndex].tick < chart.notes[noteIndex].tick))
                 {
                     var ev = chart.events[eventIndex++];
