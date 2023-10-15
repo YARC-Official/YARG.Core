@@ -535,7 +535,7 @@ namespace MoonscraperChartEditor.Song.IO
             if (!PhaseShiftSysEx.TryParse(sysex, out var psEvent))
             {
                 // SysEx event is not a Phase Shift SysEx event
-                YargTrace.DebugWarning($"Encountered unknown SysEx event at tick {absoluteTick}: {BitConverter.ToString(sysex.Data)}");
+                YargTrace.DebugWarning($"Encountered unknown SysEx event at tick {absoluteTick}: {sysex.Data.ToHexString()}");
                 return;
             }
 

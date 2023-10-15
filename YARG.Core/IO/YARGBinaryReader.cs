@@ -62,20 +62,6 @@ namespace YARG.Core.IO
             baseReader._position += length;
         }
 
-        public bool CompareTag(byte[] tag)
-        {
-            var span = memory.Span;
-            Debug.Assert(tag.Length == 4);
-            if (tag[0] != span[_position] ||
-                tag[1] != span[_position + 1] ||
-                tag[2] != span[_position + 2] ||
-                tag[3] != span[_position + 3])
-                return false;
-
-            _position += 4;
-            return true;
-        }
-
         public void Move_Unsafe(int amount)
         {
             _position += amount;
@@ -247,24 +233,19 @@ namespace YARG.Core.IO
             return (int) result;
         }
 
+        private const uint VLQ_SHIFTLIMIT = 1 << 21;
         public uint ReadVLQ()
         {
             var span = memory.Span;
-            uint value = 0;
-            uint i = 0;
-            while (true)
+            uint value = (uint) span[_position] & 127;
+            while (span[_position++] >= 128)
             {
-                uint b = span[_position++];
-                value |= b & 127;
-                if (b < 128)
-                    return value;
-
-                if (i == 3)
+                if (value >= VLQ_SHIFTLIMIT)
                     throw new Exception("Invalid variable length quantity");
-
                 value <<= 7;
-                ++i;
+                value |= (uint) span[_position] & 127;
             }
+            return value;
         }
 
         public ReadOnlySpan<byte> ReadSpan(int length)

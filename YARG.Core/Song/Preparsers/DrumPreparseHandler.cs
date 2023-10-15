@@ -18,20 +18,20 @@ namespace YARG.Core.Song.Preparsers
             _validations = 0;
         }
 
-        public void ParseMidi(YARGMidiReader reader)
+        public void ParseMidi(YARGMidiTrack track)
         {
             if (_validations > 0)
                 return;
 
             if (_type == DrumsType.FiveLane)
-                _validations = Midi_FiveLane_Preparser.Parse(reader);
+                _validations = Midi_FiveLane_Preparser.Parse(track);
             else if (_type == DrumsType.ProDrums)
-                _validations = Midi_FourLane_Preparser.ParseProDrums(reader);
+                _validations = Midi_FourLane_Preparser.ParseProDrums(track);
             else if (_type == DrumsType.FourLane)
-                (_validations, _type) = Midi_FourLane_Preparser.ParseFourLane(reader);
+                (_validations, _type) = Midi_FourLane_Preparser.ParseFourLane(track);
             else
             {
-                (_validations, _type) = Midi_UnknownDrums_Preparser.Parse(reader, _type);
+                (_validations, _type) = Midi_UnknownDrums_Preparser.Parse(track, _type);
                 if (_type == DrumsType.UnknownPro)
                     _type = DrumsType.ProDrums;
                 else if (_type == DrumsType.Unknown)

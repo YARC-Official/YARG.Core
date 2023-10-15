@@ -22,6 +22,13 @@ namespace YARG.Core.Game
 
         public bool LeftyFlip;
 
+        public long InputCalibrationMilliseconds;
+        public double InputCalibrationSeconds
+        {
+            get => InputCalibrationMilliseconds / 1000.0;
+            set => InputCalibrationMilliseconds = (long) (value * 1000);
+        }
+
         public Guid ColorProfile;
         public Guid CameraPreset;
 
