@@ -4,6 +4,7 @@ using System.IO;
 using YARG.Core.Engine;
 using YARG.Core.Engine.Drums;
 using YARG.Core.Engine.Guitar;
+using YARG.Core.Engine.Vocals;
 using YARG.Core.Input;
 using YARG.Core.Utility;
 
@@ -63,13 +64,12 @@ namespace YARG.Core.Replays
                     Stats = new DrumsStats();
                     EngineParameters = new DrumsEngineParameters();
                     break;
-                case GameMode.ProGuitar:
-                case GameMode.ProKeys:
                 case GameMode.Vocals:
-                default:
-                    Stats = new GuitarStats();
-                    EngineParameters = new GuitarEngineParameters();
+                    Stats = new VocalsStats();
+                    EngineParameters = new VocalsEngineParameters();
                     break;
+                default:
+                    throw new InvalidOperationException("Stat creation not implemented.");
             }
 
             EngineParameters.Deserialize(reader, version);

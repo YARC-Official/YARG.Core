@@ -5,6 +5,8 @@ using YARG.Core.Engine.Drums;
 using YARG.Core.Engine.Drums.Engines;
 using YARG.Core.Engine.Guitar;
 using YARG.Core.Engine.Guitar.Engines;
+using YARG.Core.Engine.Vocals;
+using YARG.Core.Engine.Vocals.Engines;
 using YARG.Core.Input;
 using YARG.Core.Replays;
 
@@ -97,7 +99,7 @@ public class Analyzer
                 double frameTime = frameUpdateQueue.Dequeue();
 
                 // Queue all of the inputs for that frame
-                while (inputQueue.TryPeek(out var input) && input.Time < frameTime)
+                while (inputQueue.TryPeek(out var input) && frameTime >= input.Time)
                 {
                     engine.QueueInput(inputQueue.Dequeue());
                 }
@@ -145,7 +147,7 @@ public class Analyzer
                 return new YargFiveFretEngine(
                     notes,
                     _chart.SyncTrack,
-                    replayFrame.EngineParameters as GuitarEngineParameters);
+                    (GuitarEngineParameters) replayFrame.EngineParameters);
             }
             case GameMode.FourLaneDrums:
             {
@@ -163,7 +165,18 @@ public class Analyzer
                 return new YargDrumsEngine(
                     notes,
                     _chart.SyncTrack,
-                    replayFrame.EngineParameters as DrumsEngineParameters);
+                    (DrumsEngineParameters) replayFrame.EngineParameters);
+            }
+            case GameMode.Vocals:
+            {
+                // Get the notes
+                var notes = _chart.GetVocalsTrack(profile.CurrentInstrument).Parts[0].CloneAsInstrumentDifficulty();
+
+                // Create engine
+                return new YargVocalsEngine(
+                    notes,
+                    _chart.SyncTrack,
+                    (VocalsEngineParameters) replayFrame.EngineParameters);
             }
             default:
                 throw new InvalidOperationException("Game mode not configured!");
@@ -178,6 +191,7 @@ public class Analyzer
         {
             GameMode.FiveFretGuitar => ((GuitarEngine) engine).EngineStats.Score,
             GameMode.FourLaneDrums  => ((DrumsEngine) engine).EngineStats.Score,
+            GameMode.Vocals         => ((VocalsEngine) engine).EngineStats.Score,
             _                       => throw new InvalidOperationException("Game mode not configured!")
         };
     }

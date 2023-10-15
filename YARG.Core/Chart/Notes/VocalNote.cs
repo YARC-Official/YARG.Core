@@ -7,10 +7,8 @@ namespace YARG.Core.Chart
     /// </summary>
     public class VocalNote : Note<VocalNote>
     {
-        // private readonly VocalNoteFlags _vocalFlags; // Left for convenience later
-
         /// <summary>
-        /// The type of vocals note (either a lyrical note or a percussion hit).
+        /// The type of vocals note (either a phrase, a lyrical note or a percussion hit).
         /// </summary>
         public VocalNoteType Type { get; }
 
@@ -31,6 +29,7 @@ namespace YARG.Core.Chart
         /// Octaves start at -1 in MIDI: note 60 is C4, note 12 is C0, note 0 is C-1.
         /// </summary>
         public int Octave => (int) (Pitch / 12) - 1;
+
         /// <summary>
         /// The pitch of the note wrapped relative to an octave (0-11).
         /// C is 0, B is 11. -1 means the note is unpitched.
@@ -41,10 +40,11 @@ namespace YARG.Core.Chart
         /// The length of this note and all of its children, in seconds.
         /// </summary>
         public double TotalTimeLength { get; private set; }
+
         /// <summary>
         /// The time-based end of this note and all of its children.
         /// </summary>
-        public double TotalTimeEnd    => Time + TotalTimeLength;
+        public double TotalTimeEnd => Time + TotalTimeLength;
 
         /// <summary>
         /// The length of this note and all of its children, in ticks.
@@ -53,27 +53,48 @@ namespace YARG.Core.Chart
         /// <summary>
         /// The tick-based end of this note and all of its children.
         /// </summary>
-        public uint TotalTickEnd    => Tick + TotalTickLength;
+        public uint TotalTickEnd => Tick + TotalTickLength;
 
         /// <summary>
         /// Whether or not this note is non-pitched.
         /// </summary>
         public bool IsNonPitched => Pitch < 0;
+
         /// <summary>
         /// Whether or not this note is a percussion note.
         /// </summary>
-        public bool IsPercussion => Type is VocalNoteType.Percussion;
+        public bool IsPercussion => Type == VocalNoteType.Percussion;
+
+        /// <summary>
+        /// Whether or not this note is a vocal phrase.
+        /// </summary>
+        public bool IsPhrase => Type == VocalNoteType.Phrase;
 
         /// <summary>
         /// Creates a new <see cref="VocalNote"/> with the given properties.
+        /// This constructor should be used for notes only.
         /// </summary>
-        public VocalNote(float pitch, int harmonyPart, VocalNoteType type, NoteFlags flags,
+        public VocalNote(float pitch, int harmonyPart, VocalNoteType type,
             double time, double timeLength, uint tick, uint tickLength)
-            : base(flags, time, timeLength, tick, tickLength)
+            : base(NoteFlags.None, time, timeLength, tick, tickLength)
         {
             Type = type;
             Pitch = pitch;
             HarmonyPart = harmonyPart;
+
+            TotalTimeLength = timeLength;
+            TotalTickLength = tickLength;
+        }
+
+        /// <summary>
+        /// Creates a new <see cref="VocalNote"/> phrase with the given properties.
+        /// This constructor should be used for vocal phrases only.
+        /// </summary>
+        public VocalNote(NoteFlags noteFlags,
+            double time, double timeLength, uint tick, uint tickLength)
+            : base(noteFlags, time, timeLength, tick, tickLength)
+        {
+            Type = VocalNoteType.Phrase;
 
             TotalTimeLength = timeLength;
             TotalTickLength = tickLength;
@@ -90,33 +111,38 @@ namespace YARG.Core.Chart
         }
 
         /// <summary>
-        /// Gets the pitch of this note and its children at the specified time.
+        /// Gets the pitch of this note and its children at the specified tick.
         /// Clamps to the start and end if the time is out of bounds.
         /// </summary>
-        public float PitchAtSongTime(double time)
+        public float PitchAtSongTick(uint tick)
         {
+            if (Type == VocalNoteType.Phrase)
+            {
+                return -1f;
+            }
+
             // Clamp to start
-            if (time < TimeEnd || ChildNotes.Count < 1)
+            if (tick < TickEnd || ChildNotes.Count < 1)
+            {
                 return Pitch;
+            }
 
             // Search child notes
             var firstNote = this;
-            for (int index = 0; index < ChildNotes.Count; index++)
+            foreach (var secondNote in ChildNotes)
             {
-                var secondNote = ChildNotes[index];
-
                 // Check note bounds
-                if (time >= firstNote.Time && time < secondNote.TimeEnd)
+                if (tick >= firstNote.Tick && tick < secondNote.TickEnd)
                 {
-                    // Check if time is in a specific pitch
-                    if (time < firstNote.TimeEnd)
+                    // Check if tick is in a specific pitch
+                    if (tick < firstNote.TickEnd)
                         return firstNote.Pitch;
 
-                    if (time >= secondNote.Time)
+                    if (tick >= secondNote.Tick)
                         return secondNote.Pitch;
 
-                    // Time is between the two pitches, lerp them
-                    return YargMath.Lerp(firstNote.Pitch, secondNote.Pitch, firstNote.TimeEnd, secondNote.Time, time);
+                    // Tick is between the two pitches, lerp them
+                    return YargMath.Lerp(firstNote.Pitch, secondNote.Pitch, firstNote.TickEnd, secondNote.Tick, tick);
                 }
 
                 firstNote = secondNote;
@@ -126,9 +152,15 @@ namespace YARG.Core.Chart
             return ChildNotes[^1].Pitch;
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Adds a child note to this vocal note.
+        /// Use <see cref="AddNoteToPhrase"/> instead if this is a phrase!
+        /// </summary>
         public override void AddChildNote(VocalNote note)
         {
+            // Use AddNoteToPhrase instead!
+            if (IsPhrase) return;
+
             if (note.Tick <= Tick || note.ChildNotes.Count > 0)
                 return;
 
@@ -137,16 +169,37 @@ namespace YARG.Core.Chart
             // Sort child notes by tick
             _childNotes.Sort((note1, note2) =>
             {
-                if (note1.Tick > note2.Tick)
-                    return 1;
-                else if (note1.Tick < note2.Tick)
-                    return -1;
+                if (note1.Tick > note2.Tick) return 1;
+                if (note1.Tick < note2.Tick) return -1;
                 return 0;
             });
 
             // Track total length
             TotalTimeLength = _childNotes[^1].TimeEnd - Time;
             TotalTickLength = _childNotes[^1].TickEnd - Tick;
+        }
+
+        /// <summary>
+        /// Adds a child note to this vocal phrase.
+        /// Use <see cref="AddChildNote"/> instead if this is a note!
+        /// </summary>
+        public void AddNoteToPhrase(VocalNote note)
+        {
+            // Use AddChildNote instead!
+            if (!IsPhrase) return;
+
+            if (note.Tick <= Tick)
+                return;
+
+            _childNotes.Add(note);
+
+            // Sort child notes by tick
+            _childNotes.Sort((note1, note2) =>
+            {
+                if (note1.Tick > note2.Tick) return 1;
+                if (note1.Tick < note2.Tick) return -1;
+                return 0;
+            });
         }
 
         protected override VocalNote CloneNote()
@@ -160,16 +213,8 @@ namespace YARG.Core.Chart
     /// </summary>
     public enum VocalNoteType
     {
+        Phrase,
         Lyric,
         Percussion
-    }
-
-    /// <summary>
-    /// Modifier flags for a vocal note.
-    /// </summary>
-    [Flags]
-    public enum VocalNoteFlags
-    {
-        None = 0,
     }
 }
