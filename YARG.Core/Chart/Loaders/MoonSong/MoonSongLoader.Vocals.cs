@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -89,28 +89,36 @@ namespace YARG.Core.Chart
         private List<VocalsPhrase> GetVocalsPhrases(MoonChart moonChart, int harmonyPart)
         {
             var phrases = new List<VocalsPhrase>();
-            var currentPhrases = new Dictionary<SpecialPhrase.Type, SpecialPhrase>();
+
+            // Prefill with the valid phrases
+            var phraseTracker = new Dictionary<SpecialPhrase.Type, SpecialPhrase?>()
+            {
+                { SpecialPhrase.Type.Starpower , null },
+                { SpecialPhrase.Type.Versus_Player1 , null },
+                { SpecialPhrase.Type.Versus_Player2 , null },
+                { SpecialPhrase.Type.Vocals_PercussionPhrase , null },
+            };
 
             int moonNoteIndex = 0;
             int moonTextIndex = 0;
 
-            // Load relative to special phrases, not notes
-            for (int moonPhraseIndex = 0; moonPhraseIndex < moonChart.specialPhrases.Count; moonPhraseIndex++)
+            for (int moonPhraseIndex = 0; moonPhraseIndex < moonChart.specialPhrases.Count;)
             {
-                var moonPhrase = moonChart.specialPhrases[moonPhraseIndex];
-                currentPhrases[moonPhrase.type] = moonPhrase;
-
-                if (moonPhrase.type != SpecialPhrase.Type.Vocals_LyricPhrase) continue;
+                var moonPhrase = moonChart.specialPhrases[moonPhraseIndex++];
+                if (moonPhrase.type != SpecialPhrase.Type.Vocals_LyricPhrase)
+                {
+                    phraseTracker[moonPhrase.type] = moonPhrase;
+                    continue;
+                }
 
                 // Ensure any other phrases on the same tick get tracked
-                moonPhraseIndex++;
                 while (moonPhraseIndex < moonChart.specialPhrases.Count)
                 {
                     var moonPhrase2 = moonChart.specialPhrases[moonPhraseIndex];
                     if (moonPhrase2.tick > moonPhrase.tick)
                         break;
 
-                    currentPhrases[moonPhrase2.type] = moonPhrase2;
+                    phraseTracker[moonPhrase2.type] = moonPhrase2;
                     moonPhraseIndex++;
                 }
 
@@ -118,10 +126,11 @@ namespace YARG.Core.Chart
                 var notes = new List<VocalNote>();
                 var lyrics = new List<TextEvent>();
                 VocalNote? previousNote = null;
+                uint endOfPhrase = moonPhrase.tick + moonPhrase.length;
                 while (moonNoteIndex < moonChart.notes.Count)
                 {
                     var moonNote = moonChart.notes[moonNoteIndex];
-                    if (moonNote.tick >= (moonPhrase.tick + moonPhrase.length))
+                    if (moonNote.tick >= endOfPhrase)
                         break;
                     moonNoteIndex++;
 
@@ -180,7 +189,7 @@ namespace YARG.Core.Chart
                     continue;
                 }
 
-                var vocalsPhrase = CreateVocalsPhrase(moonPhrase, currentPhrases, notes, lyrics);
+                var vocalsPhrase = CreateVocalsPhrase(moonPhrase, phraseTracker, notes, lyrics);
                 phrases.Add(vocalsPhrase);
             }
 
@@ -219,11 +228,11 @@ namespace YARG.Core.Chart
             return flags;
         }
 
-        private VocalsPhrase CreateVocalsPhrase(SpecialPhrase moonPhrase,
-            Dictionary<SpecialPhrase.Type, SpecialPhrase> currentPhrases, List<VocalNote> notes, List<TextEvent> lyrics)
+        private VocalsPhrase CreateVocalsPhrase(SpecialPhrase moonPhrase, Dictionary<SpecialPhrase.Type, SpecialPhrase?> phrasetracker,
+            List<VocalNote> notes, List<TextEvent> lyrics)
         {
             var bounds = GetVocalsPhraseBounds(moonPhrase);
-            var phraseFlags = GetVocalsPhraseFlags(moonPhrase, currentPhrases);
+            var phraseFlags = GetVocalsPhraseFlags(moonPhrase, phrasetracker);
 
             // Convert to SpecialPhrase into a vocal note phrase
             var phraseNote = new VocalNote(phraseFlags, bounds.Time, bounds.TimeLength,
@@ -242,14 +251,14 @@ namespace YARG.Core.Chart
                 moonPhrase.tick, moonPhrase.length);
         }
 
-        private NoteFlags GetVocalsPhraseFlags(SpecialPhrase moonPhrase,
-            Dictionary<SpecialPhrase.Type, SpecialPhrase> currentPhrases)
+        private NoteFlags GetVocalsPhraseFlags(SpecialPhrase moonPhrase, Dictionary<SpecialPhrase.Type, SpecialPhrase?> phrasetracker)
         {
             var phraseFlags = NoteFlags.None;
 
-            // Star power
-            if (currentPhrases.TryGetValue(SpecialPhrase.Type.Starpower, out var starPower)
-                && IsEventInPhrase(moonPhrase, starPower))
+            // No need to check the start of the phrase, as entering the function
+            // already guarantees that condition *if* the below is true
+            var starPower = phrasetracker[SpecialPhrase.Type.Starpower];
+            if (starPower != null &&  moonPhrase.tick < starPower.tick + starPower.length)
             {
                 phraseFlags |= NoteFlags.StarPower;
             }
