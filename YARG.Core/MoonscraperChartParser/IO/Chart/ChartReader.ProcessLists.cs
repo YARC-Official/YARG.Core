@@ -264,8 +264,9 @@ namespace MoonscraperChartEditor.Song.IO
             bool start = false;
             bool end = false;
 
-            foreach (var text in chart.events)
+            for (int i = 0; i < chart.events.Count;)
             {
+                var text = chart.events[i];
                 // Commit found events on next tick
                 if (text.tick != currentTick)
                 {
@@ -276,14 +277,16 @@ namespace MoonscraperChartEditor.Song.IO
                 // Determine what events are present on the current tick
                 if (text.eventName == TextEventDefinitions.SOLO_START)
                 {
-                    chart.Remove(text);
+                    chart.events.RemoveAt(i);
                     start = true;
                 }
                 else if (text.eventName == TextEventDefinitions.SOLO_END)
                 {
-                    chart.Remove(text);
+                    chart.events.RemoveAt(i);
                     end = true;
                 }
+                else
+                    ++i;
             }
 
             // Handle final set of events
