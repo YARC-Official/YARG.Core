@@ -84,6 +84,12 @@ namespace YARG.Core.Engine.Vocals.Engines
 
         protected override bool CanNoteBeHit(VocalNote note)
         {
+            // Non-pitched notes (talkies) can be hit always
+            if (note.IsNonPitched)
+            {
+                return true;
+            }
+
             // Octave does not matter
             float notePitch = note.PitchAtSongTick(State.CurrentTick) % 12f;
             float singPitch = State.PitchSang % 12f;
