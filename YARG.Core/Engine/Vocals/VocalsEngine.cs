@@ -104,20 +104,10 @@ namespace YARG.Core.Engine.Vocals
             if (State.CurrentTick < phrase.Tick) return false;
 
             // Find the note within the phrase
-            VocalNote? note = null;
-            foreach (var phraseNote in phrase.ChildNotes)
-            {
-                // If in bounds, this is the note!
-                if (State.CurrentTick >= phraseNote.Tick &&
-                    State.CurrentTick <= phraseNote.TotalTickEnd)
-                {
-                    note = phraseNote;
-                    break;
-                }
-            }
+            var note = GetNoteInPhraseAtSongTick(phrase, State.CurrentTick);
 
             // No note found to hit
-            if (note == null) return false;
+            if (note is null) return false;
 
             OnTargetNoteChanged?.Invoke(note);
 
@@ -136,6 +126,16 @@ namespace YARG.Core.Engine.Vocals
             }
 
             return totalTime * EngineParameters.ApproximateVocalFps;
+        }
+
+        /// <returns>
+        /// The note in the specified <paramref name="phrase"/>
+        /// at the specified song <paramref name="tick"/>.
+        /// </returns>
+        protected static VocalNote? GetNoteInPhraseAtSongTick(VocalNote phrase, uint tick)
+        {
+            return phrase.ChildNotes.FirstOrDefault(phraseNote =>
+                tick >= phraseNote.Tick && tick <= phraseNote.TotalTickEnd);
         }
 
         protected override void AddScore(VocalNote note)

@@ -3,6 +3,11 @@
     public class VocalsEngineState : BaseEngineState
     {
         /// <summary>
+        /// Whether or not the player/bot sang in the current update.
+        /// </summary>
+        public bool DidSing;
+
+        /// <summary>
         /// The float value for the last pitch sang (as a MIDI note).
         /// </summary>
         public float PitchSang;

@@ -11,6 +11,45 @@ namespace YARG.Core.Engine.Vocals.Engines
         {
         }
 
+        public override void UpdateBot(double songTime)
+        {
+            base.UpdateBot(songTime);
+
+            // Skip if there are no notes left
+            if (State.NoteIndex >= Notes.Count)
+            {
+                return;
+            }
+
+            // This is a little more tricky since vocals requires a constant stream of inputs.
+            // We can use the ApproximateVocalFps from 0s songTime to determine the amount of inputs
+            // (or rather updates) we need to apply.
+            double spf = 1.0 / EngineParameters.ApproximateVocalFps;
+
+            // First, get the first update after the last time
+            double first = Math.Ceiling(State.LastUpdateTime / spf) * spf;
+
+            // Push out a bunch of updates
+            for (double time = first; time < songTime; time += spf)
+            {
+                var phrase = Notes[State.NoteIndex];
+                var note = GetNoteInPhraseAtSongTick(phrase, State.CurrentTick);
+
+                if (note is not null)
+                {
+                    State.DidSing = true;
+                    State.PitchSang = note.PitchAtSongTick(State.CurrentTick);
+                    State.VisualLastSingTime = time;
+                }
+                else
+                {
+                    State.DidSing = false;
+                }
+
+                UpdateHitLogic(time);
+            }
+        }
+
         protected override bool UpdateHitLogic(double time)
         {
             UpdateTimeVariables(time);
@@ -20,8 +59,14 @@ namespace YARG.Core.Engine.Vocals.Engines
             // Get the pitch this update
             if (IsInputUpdate && CurrentInput.GetAction<VocalsAction>() == VocalsAction.Pitch)
             {
+                State.DidSing = true;
                 State.PitchSang = CurrentInput.Axis;
+
                 State.VisualLastSingTime = State.CurrentTime;
+            }
+            else if (!IsBotUpdate)
+            {
+                State.DidSing = false;
             }
 
             // Quits early if there are no notes left
@@ -35,7 +80,7 @@ namespace YARG.Core.Engine.Vocals.Engines
             State.PhraseTicksTotal ??= GetVocalTicksInPhrase(phrase);
 
             // If an input was detected, and this tick has not been processed, process it
-            if (IsInputUpdate || IsBotUpdate)
+            if (State.DidSing)
             {
                 bool noteHit = CheckForNoteHit();
 
