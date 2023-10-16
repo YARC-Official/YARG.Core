@@ -26,8 +26,9 @@ namespace YARG.Core.Engine.Vocals.Engines
             // (or rather updates) we need to apply.
             double spf = 1.0 / EngineParameters.ApproximateVocalFps;
 
-            // First, get the first update after the last time
-            double first = Math.Ceiling(State.LastUpdateTime / spf) * spf;
+            // First, get the first update after the last time.
+            // Make sure to increase by one frame to prevent the same frame being processed multiple times.
+            double first = Math.Ceiling(State.LastUpdateTime / spf) * spf + spf;
 
             // Push out a bunch of updates
             for (double time = first; time < songTime; time += spf)
