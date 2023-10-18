@@ -14,15 +14,11 @@ namespace MoonscraperChartEditor.Song
         public uint tick;
 
         public abstract int classID { get; }
-
-// Non-nullable field 'song' must contain a non-null value when exiting constructor
-// 'song' is assigned externally as part of this object being added to a song
-#pragma warning disable 8618
+        
         public SongObject(uint _tick)
         {
             tick = _tick;
         }
-#pragma warning restore 8618
 
         // Clone needs to be hideable so it can return a different type in derived classes
         protected abstract SongObject SongClone();

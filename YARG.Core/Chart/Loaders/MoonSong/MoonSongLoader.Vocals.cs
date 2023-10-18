@@ -202,7 +202,7 @@ namespace YARG.Core.Chart
         {
             var vocalType = GetVocalNoteType(moonNote);
             float pitch = GetVocalNotePitch(moonNote, lyricType);
-			
+            
             double time = _moonSong.TickToTime(moonNote.tick);
             return new VocalNote(pitch, harmonyPart, vocalType, time, GetLengthInTime(moonNote), moonNote.tick, moonNote.length);
         }
