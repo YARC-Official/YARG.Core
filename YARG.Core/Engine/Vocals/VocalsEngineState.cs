@@ -25,14 +25,14 @@
         public uint PhraseTicksHit;
 
         /// <summary>
-        /// The last time there was a pitch update. <b>THIS IS FOR VISUAL PURPOSES ONLY.</b>
+        /// The last time there was a pitch update.
         /// </summary>
-        public double VisualLastSingTime;
+        public double LastSingTime;
 
         /// <summary>
-        /// The last time a note was hit. <b>THIS IS FOR VISUAL PURPOSES ONLY.</b>
+        /// The last time a note was hit.
         /// </summary>
-        public double VisualLastHitTime;
+        public double LastHitTime;
 
         public override void Reset()
         {
@@ -43,8 +43,8 @@
             PhraseTicksTotal = null;
             PhraseTicksHit = 0;
 
-            VisualLastSingTime = double.NegativeInfinity;
-            VisualLastHitTime = double.NegativeInfinity;
+            LastSingTime = double.NegativeInfinity;
+            LastHitTime = double.NegativeInfinity;
         }
     }
 }

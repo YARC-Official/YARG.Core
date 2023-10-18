@@ -40,7 +40,7 @@ namespace YARG.Core.Engine.Vocals.Engines
                 {
                     State.DidSing = true;
                     State.PitchSang = note.PitchAtSongTick(State.CurrentTick);
-                    State.VisualLastSingTime = time;
+                    State.LastSingTime = time;
                 }
                 else
                 {
@@ -55,6 +55,13 @@ namespace YARG.Core.Engine.Vocals.Engines
         {
             UpdateTimeVariables(time);
 
+            // Activate starpower
+            if (IsInputUpdate && CurrentInput.GetAction<VocalsAction>() == VocalsAction.StarPower &&
+                EngineStats.CanStarPowerActivate)
+            {
+                ActivateStarPower();
+            }
+
             DepleteStarPower(GetUsedStarPower());
 
             // Get the pitch this update
@@ -63,7 +70,7 @@ namespace YARG.Core.Engine.Vocals.Engines
                 State.DidSing = true;
                 State.PitchSang = CurrentInput.Axis;
 
-                State.VisualLastSingTime = State.CurrentTime;
+                State.LastSingTime = State.CurrentTime;
             }
             else if (!IsBotUpdate)
             {
@@ -88,7 +95,19 @@ namespace YARG.Core.Engine.Vocals.Engines
                 if (noteHit)
                 {
                     State.PhraseTicksHit++;
-                    State.VisualLastHitTime = State.CurrentTime;
+                    State.LastHitTime = State.CurrentTime;
+                }
+                else
+                {
+                    // If star power can activate, there is no note to hit, and the player
+                    // hasn't sang in 0.25 seconds, then activate starpower.
+                    if (EngineParameters.SingToActivateStarpower &&
+                        GetNoteInPhraseAtSongTick(phrase, State.CurrentTick) is null &&
+                        EngineStats.CanStarPowerActivate &&
+                        State.CurrentTime - State.LastHitTime > 0.5)
+                    {
+                        ActivateStarPower();
+                    }
                 }
             }
 
