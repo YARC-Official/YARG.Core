@@ -189,7 +189,7 @@ namespace MoonscraperChartEditor.Song.IO
         private static void ValidateAndApplySettings(MoonSong song, ParseSettings settings)
         {
             // Apply HOPO threshold settings
-            MoonNote.hopoThreshold = ChartIOHelper.GetHopoThreshold(settings, song.resolution);
+            song.hopoThreshold = ChartIOHelper.GetHopoThreshold(settings, song.resolution);
 
             // Sustain cutoff threshold is not verified, sustains are not cut off by default in .chart
             // SP note is not verified, as it is only relevant for .mid

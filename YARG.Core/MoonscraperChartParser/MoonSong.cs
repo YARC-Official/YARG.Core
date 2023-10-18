@@ -22,6 +22,7 @@ namespace MoonscraperChartEditor.Song
         }
 
         public float resolution;
+        public float hopoThreshold;
         public float offset = 0;
 
         public float? manualLength = null;

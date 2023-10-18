@@ -164,7 +164,7 @@ namespace MoonscraperChartEditor.Song.IO
         private static void ValidateAndApplySettings(MoonSong song, ParseSettings settings)
         {
             // Apply HOPO threshold settings
-            MoonNote.hopoThreshold = MidIOHelper.GetHopoThreshold(settings, song.resolution);
+            song.hopoThreshold = MidIOHelper.GetHopoThreshold(settings, song.resolution);
 
             // Verify sustain cutoff threshold
             if (settings.SustainCutoffThreshold < 0)
@@ -693,14 +693,14 @@ namespace MoonscraperChartEditor.Song.IO
                 switch (newType)
                 {
                     case MoonNote.MoonNoteType.Strum:
-                        if (!note.isChord && note.isNaturalHopo)
+                        if (!note.isChord && note.IsNaturalHopo(song.hopoThreshold))
                             note.flags |= MoonNote.Flags.Forced;
                         else
                             note.flags &= ~MoonNote.Flags.Forced;
                         break;
 
                     case MoonNote.MoonNoteType.Hopo:
-                        if (note.isChord || !note.isNaturalHopo)
+                        if (note.isChord || !note.IsNaturalHopo(song.hopoThreshold))
                             note.flags |= MoonNote.Flags.Forced;
                         else
                             note.flags &= ~MoonNote.Flags.Forced;
@@ -726,7 +726,7 @@ namespace MoonscraperChartEditor.Song.IO
                 }
 
                 double time = song.TickToTime(note.tick);
-                YargTrace.Assert(note.guitarType == newType, $"Failed to set forced type! Expected: {newType}  Actual: {note.guitarType}\non {difficulty} {instrument} at tick {note.tick} ({TimeSpan.FromSeconds(time):mm':'ss'.'ff})");
+                YargTrace.Assert(note.GetGuitarType(song.hopoThreshold) == newType, $"Failed to set forced type! Expected: {newType}  Actual: {note.GetGuitarType(song.hopoThreshold)}\non {difficulty} {instrument} at tick {note.tick} ({TimeSpan.FromSeconds(time):mm':'ss'.'ff})");
             }
         }
 

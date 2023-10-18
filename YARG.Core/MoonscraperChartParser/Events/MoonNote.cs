@@ -96,8 +96,6 @@ namespace MoonscraperChartEditor.Song
             ProDrums_Ghost = 1 << 13,
         }
 
-        public static float hopoThreshold;
-
         private readonly ID _classID = ID.Note;
         public override int classID => (int)_classID;
 
@@ -245,43 +243,22 @@ namespace MoonscraperChartEditor.Song
         /// <summary>
         /// Ignores the note's forced flag when determining whether it would be a hopo or not
         /// </summary>
-        public bool isNaturalHopo
+        public bool IsNaturalHopo(float hopoThreshold)
         {
-            get
-            {
-                bool HOPO = false;
-
-                if (!isChord && previous != null)
-                {
-                    bool prevIsChord = previous.isChord;
-                    // Need to consider whether the previous note was a chord, and if they are the same type of note
-                    if (prevIsChord || (!prevIsChord && rawNote != previous.rawNote))
-                    {
-                        // Check distance from previous note 
-                        if (tick - previous.tick <= hopoThreshold)
-                            HOPO = true;
-                    }
-                }
-
-                return HOPO;
-            }
+            // Checking state in this order is important
+            return !isChord &&
+                previous != null &&
+                (previous.isChord || rawNote != previous.rawNote) &&
+                tick - previous.tick <= hopoThreshold;
         }
 
         /// <summary>
         /// Would this note be a hopo or not? (Ignores whether the note's tap flag is set or not.)
         /// </summary>
-        public bool isHopo
+        public bool IsHopo(float hopoThreshold)
         {
-            get
-            {
-                bool HOPO = isNaturalHopo;
-
-                // Check if forced
-                if (forced)
-                    HOPO = !HOPO;
-
-                return HOPO;
-            }
+            // F + F || T + T = strum
+            return IsNaturalHopo(hopoThreshold) != forced;
         }
 
         /// <summary>
@@ -329,16 +306,13 @@ namespace MoonscraperChartEditor.Song
         /// <summary>
         /// Live calculation of what Note_Type this note would currently be. 
         /// </summary>
-        public MoonNoteType guitarType
+        public MoonNoteType GetGuitarType(float hopoThreshold)
         {
-            get
+            if (!IsOpenNote(MoonChart.GameMode.Guitar) && (flags & Flags.Tap) != 0)
             {
-                if (!IsOpenNote(MoonChart.GameMode.Guitar) && (flags & Flags.Tap) != 0)
-                {
-                    return MoonNoteType.Tap;
-                }
-                return isHopo ? MoonNoteType.Hopo : MoonNoteType.Strum;
+                return MoonNoteType.Tap;
             }
+            return IsHopo(hopoThreshold) ? MoonNoteType.Hopo : MoonNoteType.Strum;
         }
 
         public MoonNoteType drumType

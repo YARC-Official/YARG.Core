@@ -81,12 +81,13 @@ namespace YARG.Core.Chart
 
         private GuitarNoteType GetGuitarNoteType(MoonNote moonNote)
         {
-            return moonNote.guitarType switch
+            var type = moonNote.GetGuitarType(_moonSong.hopoThreshold);
+            return type switch
             {
                 MoonNote.MoonNoteType.Strum => GuitarNoteType.Strum,
                 MoonNote.MoonNoteType.Hopo  => GuitarNoteType.Hopo,
                 MoonNote.MoonNoteType.Tap   => GuitarNoteType.Tap,
-                _ => throw new InvalidOperationException($"Unhandled Moonscraper note type {moonNote.guitarType}!")
+                _ => throw new InvalidOperationException($"Unhandled Moonscraper note type {type}!")
             };
         }
 
