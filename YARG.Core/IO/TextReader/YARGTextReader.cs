@@ -103,23 +103,23 @@ namespace YARG.Core.IO
             return Decoder.ExtractText(Container, isChartFile);
         }
 
-        public bool   ExtractBoolean() => YARGNumberExtractor.Boolean(Container);
-        public short  ExtractInt16()   => YARGNumberExtractor.Int16(Container, SkipWhitespace);
-        public ushort ExtractUInt16()  => YARGNumberExtractor.UInt16(Container, SkipWhitespace);
-        public int    ExtractInt32()   => YARGNumberExtractor.Int32(Container, SkipWhitespace);
-        public uint   ExtractUInt32()  => YARGNumberExtractor.UInt32(Container, SkipWhitespace);
-        public long   ExtractInt64()   => YARGNumberExtractor.Int64(Container, SkipWhitespace);
-        public ulong  ExtractUInt64()  => YARGNumberExtractor.UInt64(Container, SkipWhitespace);
-        public float  ExtractFloat()   => YARGNumberExtractor.Float(Container, SkipWhitespace);
-        public double ExtractDouble()  => YARGNumberExtractor.Double(Container, SkipWhitespace);
+        public bool   ExtractBoolean() => Container.ExtractBoolean();
+        public short  ExtractInt16()   => Container.ExtractInt16(SkipWhitespace);
+        public ushort ExtractUInt16()  => Container.ExtractUInt16(SkipWhitespace);
+        public int    ExtractInt32()   => Container.ExtractInt32(SkipWhitespace);
+        public uint   ExtractUInt32()  => Container.ExtractUInt32(SkipWhitespace);
+        public long   ExtractInt64()   => Container.ExtractInt64(SkipWhitespace);
+        public ulong  ExtractUInt64()  => Container.ExtractUInt64(SkipWhitespace);
+        public float  ExtractFloat()   => Container.ExtractFloat(SkipWhitespace);
+        public double ExtractDouble()  => Container.ExtractDouble(SkipWhitespace);
 
-        public bool ExtractInt16(out short value)   => YARGNumberExtractor.Int16(Container, out value, SkipWhitespace);
-        public bool ExtractUInt16(out ushort value) => YARGNumberExtractor.UInt16(Container, out value, SkipWhitespace);
-        public bool ExtractInt32(out int value)     => YARGNumberExtractor.Int32(Container, out value, SkipWhitespace);
-        public bool ExtractUInt32(out uint value)   => YARGNumberExtractor.UInt32(Container, out value, SkipWhitespace);
-        public bool ExtractInt64(out long value)    => YARGNumberExtractor.Int64(Container, out value, SkipWhitespace);
-        public bool ExtractUInt64(out ulong value)  => YARGNumberExtractor.UInt64(Container, out value, SkipWhitespace);
-        public bool ExtractFloat(out float value)   => YARGNumberExtractor.Float(Container, out value, SkipWhitespace);
-        public bool ExtractDouble(out double value) => YARGNumberExtractor.Double(Container, out value, SkipWhitespace);
+        public bool ExtractInt16(out short value)   => Container.ExtractInt16(out value, SkipWhitespace);
+        public bool ExtractUInt16(out ushort value) => Container.ExtractUInt16(out value, SkipWhitespace);
+        public bool ExtractInt32(out int value)     => Container.ExtractInt32(out value, SkipWhitespace);
+        public bool ExtractUInt32(out uint value)   => Container.ExtractUInt32(out value, SkipWhitespace);
+        public bool ExtractInt64(out long value)    => Container.ExtractInt64(out value, SkipWhitespace);
+        public bool ExtractUInt64(out ulong value)  => Container.ExtractUInt64(out value, SkipWhitespace);
+        public bool ExtractFloat(out float value)   => Container.ExtractFloat(out value, SkipWhitespace);
+        public bool ExtractDouble(out double value) => Container.ExtractDouble(out value, SkipWhitespace);
     }
 }

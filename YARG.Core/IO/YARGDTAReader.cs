@@ -265,14 +265,14 @@ namespace YARG.Core.IO
             SkipWhitespace(container);
         }
 
-        public bool   ExtractBoolean() => YARGNumberExtractor.Boolean(container);
-        public short  ExtractInt16()   => YARGNumberExtractor.Int16(container, SkipWhitespace);
-        public ushort ExtractUInt16()  => YARGNumberExtractor.UInt16(container, SkipWhitespace);
-        public int    ExtractInt32()   => YARGNumberExtractor.Int32(container, SkipWhitespace);
-        public uint   ExtractUInt32()  => YARGNumberExtractor.UInt32(container, SkipWhitespace);
-        public long   ExtractInt64()   => YARGNumberExtractor.Int64(container, SkipWhitespace);
-        public ulong  ExtractUInt64()  => YARGNumberExtractor.UInt64(container, SkipWhitespace);
-        public float  ExtractFloat()   => YARGNumberExtractor.Float(container, SkipWhitespace);
-        public double ExtractDouble()  => YARGNumberExtractor.Double(container, SkipWhitespace);
+        public bool   ExtractBoolean() => container.ExtractBoolean();
+        public short  ExtractInt16()   => container.ExtractInt16(SkipWhitespace);
+        public ushort ExtractUInt16()  => container.ExtractUInt16(SkipWhitespace);
+        public int    ExtractInt32()   => container.ExtractInt32(SkipWhitespace);
+        public uint   ExtractUInt32()  => container.ExtractUInt32(SkipWhitespace);
+        public long   ExtractInt64()   => container.ExtractInt64(SkipWhitespace);
+        public ulong  ExtractUInt64()  => container.ExtractUInt64(SkipWhitespace);
+        public float  ExtractFloat()   => container.ExtractFloat(SkipWhitespace);
+        public double ExtractDouble()  => container.ExtractDouble(SkipWhitespace);
     };
 }
