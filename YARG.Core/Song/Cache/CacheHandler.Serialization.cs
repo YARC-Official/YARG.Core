@@ -338,25 +338,19 @@ namespace YARG.Core.Song.Cache
                 YargTrace.DebugInfo($"CON added in upgrade loop {filename}");
                 conGroups.Add(filename, group!);
 
-                var reader = group!.LoadUpgrades();
-                if (reader != null)
+                if (TryParseUpgrades(filename, group!) && group!.UpgradeDTALastWrite == dtaLastWrite)
                 {
-                    AddCONUpgrades(filename, group, reader);
-
-                    if (group.UpgradeDTALastWrite == dtaLastWrite)
+                    if (group.LastWrite != conLastWrite)
                     {
-                        if (group.LastWrite != conLastWrite)
+                        for (int i = 0; i < count; i++)
                         {
-                            for (int i = 0; i < count; i++)
-                            {
-                                string name = cacheReader.ReadLEBString();
-                                var lastWrite = DateTime.FromBinary(cacheReader.ReadInt64());
-                                if (group.Upgrades[name].LastWrite != lastWrite)
-                                    AddInvalidSong(name);
-                            }
+                            string name = cacheReader.ReadLEBString();
+                            var lastWrite = DateTime.FromBinary(cacheReader.ReadInt64());
+                            if (group.Upgrades[name].LastWrite != lastWrite)
+                                AddInvalidSong(name);
                         }
-                        return;
                     }
+                    return;
                 }
             }
 

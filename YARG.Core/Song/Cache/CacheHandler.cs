@@ -327,8 +327,12 @@ namespace YARG.Core.Song.Cache
             return null;
         }
 
-        private void AddCONUpgrades(string filename, PackedCONGroup group, YARGDTAReader reader)
+        private bool TryParseUpgrades(string filename, PackedCONGroup group)
         {
+            var reader = group.LoadUpgrades();
+            if (reader == null)
+                return false;
+
             try
             {
                 while (reader.StartNode())
@@ -354,6 +358,7 @@ namespace YARG.Core.Song.Cache
             {
                 YargTrace.LogException(ex, $"Error while scanning CON upgrades - {filename}!");
             }
+            return group.Upgrades.Count > 0;
         }
 
         private bool AddEntry(SongMetadata entry)
