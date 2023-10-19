@@ -324,35 +324,18 @@ namespace YARG.Core.Song
                     return ScanResult.NoNotes;
 
                 byte[] buffer = new byte[bufLength];
-                unsafe
+                System.Runtime.CompilerServices.Unsafe.CopyBlock(ref buffer[0], ref chartFile[0], (uint)chartFile.Length);
+
+                int offset = chartFile.Length;
+                if (updateFile != null)
                 {
-                    fixed (byte* buf = buffer)
-                    {
-                        int offset = 0;
-                        fixed (byte* chart = chartFile)
-                        {
-                            System.Runtime.CompilerServices.Unsafe.CopyBlock(buf, chart, (uint) chartFile.Length);
-                            offset += chartFile.Length;
-                        }
+                    System.Runtime.CompilerServices.Unsafe.CopyBlock(ref buffer[offset], ref updateFile[0], (uint)updateFile.Length);
+                    offset += updateFile.Length;
+                }
 
-                        if (updateFile != null)
-                        {
-                            fixed (byte* update = updateFile)
-                            {
-                                System.Runtime.CompilerServices.Unsafe.CopyBlock(buf, update, (uint) updateFile.Length);
-                                offset += updateFile.Length;
-                            }
-                        }
-
-                        if (upgradeFile != null)
-                        {
-                            fixed (byte* upgrade = upgradeFile)
-                            {
-                                System.Runtime.CompilerServices.Unsafe.CopyBlock(buf, upgrade, (uint) upgradeFile.Length);
-                                offset += upgradeFile.Length;
-                            }
-                        }
-                    }
+                if (upgradeFile != null)
+                {
+                    System.Runtime.CompilerServices.Unsafe.CopyBlock(ref buffer[offset], ref upgradeFile[0], (uint)upgradeFile.Length);
                 }
                 _hash = HashWrapper.Create(buffer);
                 return ScanResult.Success;
