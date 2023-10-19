@@ -337,7 +337,7 @@ namespace YARG.Core.IO
             }
             container.Position = end;
 
-            ReadOnlySpan<TChar> span = container.GetSpan(start, end - start);
+            ReadOnlySpan<TChar> span = container.Slice(start, end - start);
             foreach (var combo in eventSet)
             {
                 if (combo.DoesEventMatch(span))

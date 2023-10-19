@@ -75,7 +75,7 @@ namespace YARG.Core.IO
             return Position >= Length;
         }
 
-        public ReadOnlySpan<TChar> GetSpan(int position, int length)
+        public ReadOnlySpan<TChar> Slice(int position, int length)
         {
             return new ReadOnlySpan<TChar>(Data, position, length);
         }

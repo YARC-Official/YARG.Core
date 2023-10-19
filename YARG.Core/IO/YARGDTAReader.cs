@@ -115,7 +115,7 @@ namespace YARG.Core.IO
             }
             int end = container.Position++;
             SkipWhitespace(container);
-            return Encoding.UTF8.GetString(container.GetSpan(start, end - start));
+            return Encoding.UTF8.GetString(container.Slice(start, end - start));
         }
 
         public string ExtractText()
@@ -174,7 +174,7 @@ namespace YARG.Core.IO
             else if (inSquirley || inQuotes || inApostrophes)
                 throw new Exception("Improper end to text");
 
-            return encoding.GetString(container.GetSpan(start, end - start)).Replace("\\q", "\"");
+            return encoding.GetString(container.Slice(start, end - start)).Replace("\\q", "\"");
         }
 
         public List<int> ExtractList_Int()

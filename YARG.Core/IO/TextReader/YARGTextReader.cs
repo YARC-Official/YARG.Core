@@ -78,7 +78,7 @@ namespace YARG.Core.IO
 
         public ReadOnlySpan<TChar> PeekBasicSpan(int length)
         {
-            return Container.GetSpan(Container.Position, length);
+            return Container.Slice(Container.Position, length);
         }
 
         public string ExtractModifierName()
@@ -92,7 +92,7 @@ namespace YARG.Core.IO
                 ++curr;
             }
 
-            var name = Container.GetSpan(Container.Position, curr - Container.Position);
+            var name = Container.Slice(Container.Position, curr - Container.Position);
             Container.Position = curr;
             SkipWhitespace(Container);
             return Decoder.Decode(name);
