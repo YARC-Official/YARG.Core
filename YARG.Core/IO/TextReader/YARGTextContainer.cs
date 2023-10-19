@@ -212,9 +212,9 @@ namespace YARG.Core.IO
             return true;
         }
 
-        public bool ExtractBoolean()
+        public bool ExtractBoolean(Func<YARGTextContainer<TChar>, char> SkipWhitespace)
         {
-            return Data[Position].ToChar(null) switch
+            bool result = Data[Position].ToChar(null) switch
             {
                 '0' => false,
                 '1' => true,
@@ -224,6 +224,9 @@ namespace YARG.Core.IO
                     (Data[Position + 2].ToChar(null).ToAsciiLower() == 'u') &&
                     (Data[Position + 3].ToChar(null).ToAsciiLower() == 'e'),
             };
+
+            SkipWhitespace(this);
+            return result;
         }
 
         public short ExtractInt16(Func<YARGTextContainer<TChar>, char> SkipWhitespace)

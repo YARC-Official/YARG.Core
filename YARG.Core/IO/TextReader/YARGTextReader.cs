@@ -103,7 +103,7 @@ namespace YARG.Core.IO
             return Decoder.ExtractText(Container, isChartFile);
         }
 
-        public bool   ExtractBoolean() => Container.ExtractBoolean();
+        public bool   ExtractBoolean() => Container.ExtractBoolean(SkipWhitespace);
         public short  ExtractInt16()   => Container.ExtractInt16(SkipWhitespace);
         public ushort ExtractUInt16()  => Container.ExtractUInt16(SkipWhitespace);
         public int    ExtractInt32()   => Container.ExtractInt32(SkipWhitespace);

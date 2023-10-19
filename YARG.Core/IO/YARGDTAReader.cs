@@ -265,7 +265,7 @@ namespace YARG.Core.IO
             SkipWhitespace(container);
         }
 
-        public bool   ExtractBoolean() => container.ExtractBoolean();
+        public bool   ExtractBoolean() => container.ExtractBoolean(SkipWhitespace);
         public short  ExtractInt16()   => container.ExtractInt16(SkipWhitespace);
         public ushort ExtractUInt16()  => container.ExtractUInt16(SkipWhitespace);
         public int    ExtractInt32()   => container.ExtractInt32(SkipWhitespace);
