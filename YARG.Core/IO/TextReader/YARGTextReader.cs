@@ -76,11 +76,6 @@ namespace YARG.Core.IO
                 ++Container.Next;
         }
 
-        public ReadOnlySpan<TChar> PeekBasicSpan(int length)
-        {
-            return Container.Slice(Container.Position, length);
-        }
-
         public string ExtractModifierName()
         {
             int curr = Container.Position;

@@ -69,7 +69,7 @@ namespace YARG.Core.IO.Ini
                     return false;
             }
 
-            section = reader.Decoder.Decode(reader.PeekBasicSpan(container.Next - container.Position)).TrimEnd().ToLower();
+            section = reader.Decoder.Decode(container.Slice(container.Position, container.Next - container.Position)).TrimEnd().ToLower();
             return true;
         }
 
