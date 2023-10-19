@@ -39,7 +39,7 @@ namespace YARG.Core.IO
         }
     }
 
-    public sealed class YARGTextReader<TChar> : YARGBaseTextReader<TChar>
+    public sealed class YARGTextReader<TChar> : YARGTextContainer<TChar>
         where TChar : unmanaged, IConvertible
     {
         public YARGTextReader(TChar[] data, int position) : base(data)

@@ -9,7 +9,7 @@ namespace YARG.Core.IO
         private const char LAST_DIGIT_UNSIGNED = '5';
 
         private const short SHORT_MAX = short.MaxValue / 10;
-        public static bool Int16<TChar>(YARGBaseTextReader<TChar> reader, out short value)
+        public static bool Int16<TChar>(YARGTextContainer<TChar> reader, out short value)
             where TChar : IConvertible
         {
             if (InternalReadSigned(reader, out long tmp, short.MaxValue, short.MinValue, SHORT_MAX))
@@ -22,7 +22,7 @@ namespace YARG.Core.IO
         }
 
         private const int INT_MAX = int.MaxValue / 10;
-        public static bool Int32<TChar>(YARGBaseTextReader<TChar> reader, out int value)
+        public static bool Int32<TChar>(YARGTextContainer<TChar> reader, out int value)
             where TChar : IConvertible
         {
             if (InternalReadSigned(reader, out long tmp, int.MaxValue, int.MinValue, INT_MAX))
@@ -35,14 +35,14 @@ namespace YARG.Core.IO
         }
 
         private const long LONG_MAX = long.MaxValue / 10;
-        public static bool Int64<TChar>(YARGBaseTextReader<TChar> reader, out long value)
+        public static bool Int64<TChar>(YARGTextContainer<TChar> reader, out long value)
             where TChar : IConvertible
         {
             return InternalReadSigned(reader, out value, long.MaxValue, long.MinValue, LONG_MAX);
         }
 
         private const ushort USHORT_MAX = ushort.MaxValue / 10;
-        public static bool UInt16<TChar>(YARGBaseTextReader<TChar> reader, out ushort value)
+        public static bool UInt16<TChar>(YARGTextContainer<TChar> reader, out ushort value)
             where TChar : IConvertible
         {
             if (InternalReadUnsigned(reader, out ulong tmp, ushort.MaxValue, USHORT_MAX))
@@ -55,7 +55,7 @@ namespace YARG.Core.IO
         }
 
         private const uint UINT_MAX = uint.MaxValue / 10;
-        public static bool UInt32<TChar>(YARGBaseTextReader<TChar> reader, out uint value)
+        public static bool UInt32<TChar>(YARGTextContainer<TChar> reader, out uint value)
             where TChar : IConvertible
         {
             if (InternalReadUnsigned(reader, out ulong tmp, uint.MaxValue, UINT_MAX))
@@ -68,13 +68,13 @@ namespace YARG.Core.IO
         }
 
         private const ulong ULONG_MAX = ulong.MaxValue / 10;
-        public static bool UInt64<TChar>(YARGBaseTextReader<TChar> reader, out ulong value)
+        public static bool UInt64<TChar>(YARGTextContainer<TChar> reader, out ulong value)
             where TChar : IConvertible
         {
             return InternalReadUnsigned(reader, out value, ulong.MaxValue, ULONG_MAX);
         }
 
-        public static bool Float<TChar>(YARGBaseTextReader<TChar> reader, out float value)
+        public static bool Float<TChar>(YARGTextContainer<TChar> reader, out float value)
             where TChar : IConvertible
         {
             if (Double(reader, out double tmp))
@@ -86,7 +86,7 @@ namespace YARG.Core.IO
             return false;
         }
 
-        public static bool Double<TChar>(YARGBaseTextReader<TChar> reader, out double value)
+        public static bool Double<TChar>(YARGTextContainer<TChar> reader, out double value)
             where TChar : IConvertible
         {
             value = 0;
@@ -145,7 +145,7 @@ namespace YARG.Core.IO
             return true;
         }
 
-        public static bool Boolean<TChar>(YARGBaseTextReader<TChar> reader)
+        public static bool Boolean<TChar>(YARGTextContainer<TChar> reader)
             where TChar : IConvertible
         {
             return reader.Data[reader.Position].ToChar(null) switch
@@ -160,7 +160,7 @@ namespace YARG.Core.IO
             };
         }
 
-        public static short Int16<TChar>(YARGBaseTextReader<TChar> reader)
+        public static short Int16<TChar>(YARGTextContainer<TChar> reader)
             where TChar : IConvertible
         {
             if (Int16(reader, out short value))
@@ -168,7 +168,7 @@ namespace YARG.Core.IO
             throw new Exception("Data for Int16 not present");
         }
 
-        public static ushort UInt16<TChar>(YARGBaseTextReader<TChar> reader)
+        public static ushort UInt16<TChar>(YARGTextContainer<TChar> reader)
             where TChar : IConvertible
         {
             if (UInt16(reader, out ushort value))
@@ -176,7 +176,7 @@ namespace YARG.Core.IO
             throw new Exception("Data for UInt16 not present");
         }
 
-        public static int Int32<TChar>(YARGBaseTextReader<TChar> reader)
+        public static int Int32<TChar>(YARGTextContainer<TChar> reader)
             where TChar : IConvertible
         {
             if (Int32(reader, out int value))
@@ -184,7 +184,7 @@ namespace YARG.Core.IO
             throw new Exception("Data for Int32 not present");
         }
 
-        public static uint UInt32<TChar>(YARGBaseTextReader<TChar> reader)
+        public static uint UInt32<TChar>(YARGTextContainer<TChar> reader)
             where TChar : IConvertible
         {
             if (UInt32(reader, out uint value))
@@ -192,7 +192,7 @@ namespace YARG.Core.IO
             throw new Exception("Data for UInt32 not present");
         }
 
-        public static long Int64<TChar>(YARGBaseTextReader<TChar> reader)
+        public static long Int64<TChar>(YARGTextContainer<TChar> reader)
             where TChar : IConvertible
         {
             if (Int64(reader, out long value))
@@ -200,7 +200,7 @@ namespace YARG.Core.IO
             throw new Exception("Data for Int64 not present");
         }
 
-        public static ulong UInt64<TChar>(YARGBaseTextReader<TChar> reader)
+        public static ulong UInt64<TChar>(YARGTextContainer<TChar> reader)
             where TChar : IConvertible
         {
             if (UInt64(reader, out ulong value))
@@ -208,7 +208,7 @@ namespace YARG.Core.IO
             throw new Exception("Data for UInt64 not present");
         }
 
-        public static float Float<TChar>(YARGBaseTextReader<TChar> reader)
+        public static float Float<TChar>(YARGTextContainer<TChar> reader)
             where TChar : IConvertible
         {
             if (Float(reader, out float value))
@@ -216,7 +216,7 @@ namespace YARG.Core.IO
             throw new Exception("Data for Float not present");
         }
 
-        public static double Double<TChar>(YARGBaseTextReader<TChar> reader)
+        public static double Double<TChar>(YARGTextContainer<TChar> reader)
             where TChar : IConvertible
         {
             if (Double(reader, out double value))
@@ -224,7 +224,7 @@ namespace YARG.Core.IO
             throw new Exception("Data for Double not present");
         }
 
-        private static void SkipDigits<TChar>(YARGBaseTextReader<TChar> reader)
+        private static void SkipDigits<TChar>(YARGTextContainer<TChar> reader)
             where TChar : IConvertible
         {
             while (reader.Position < reader.Next)
@@ -236,7 +236,7 @@ namespace YARG.Core.IO
             }
         }
 
-        private static bool InternalReadSigned<TChar>(YARGBaseTextReader<TChar> reader, out long value, long hardMax, long hardMin, long softMax)
+        private static bool InternalReadSigned<TChar>(YARGTextContainer<TChar> reader, out long value, long hardMax, long hardMin, long softMax)
             where TChar : IConvertible
         {
             value = 0;
@@ -291,7 +291,7 @@ namespace YARG.Core.IO
             }
         }
 
-        private static bool InternalReadUnsigned<TChar>(YARGBaseTextReader<TChar> reader, out ulong value, ulong hardMax, ulong softMax)
+        private static bool InternalReadUnsigned<TChar>(YARGTextContainer<TChar> reader, out ulong value, ulong hardMax, ulong softMax)
             where TChar : IConvertible
         {
             value = 0;
