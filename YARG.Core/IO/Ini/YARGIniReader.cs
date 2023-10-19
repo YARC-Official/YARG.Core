@@ -43,7 +43,7 @@ namespace YARG.Core.IO.Ini
             return modifierMap;
         }
     }
-    public class YARGIniReader<TChar, TDecoder>
+    public sealed class YARGIniReader<TChar, TDecoder>
         where TChar : unmanaged, IConvertible
         where TDecoder : StringDecoder<TChar>, new()
     {

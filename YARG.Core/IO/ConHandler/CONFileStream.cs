@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 
 namespace YARG.Core.IO
 {
-    public class CONFileStream : Stream
+    public sealed class CONFileStream : Stream
     {
         private const int FIRSTBLOCK_OFFSET = 0xC000;
         private const int BYTES_PER_BLOCK = 0x1000;

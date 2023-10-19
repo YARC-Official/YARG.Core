@@ -38,7 +38,7 @@ namespace YARG.Core.IO
         }
     }
 
-    public class YARGTextContainer<TChar>
+    public sealed class YARGTextContainer<TChar>
         where TChar : IConvertible
     {
         public readonly TChar[] Data;

@@ -3,7 +3,7 @@ using System.IO;
 
 namespace YARG.Core.IO
 {
-    public class AbridgedFileInfo
+    public sealed class AbridgedFileInfo
     {
         public readonly string FullName;
         public readonly DateTime LastWriteTime;

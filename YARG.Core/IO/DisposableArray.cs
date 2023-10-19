@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 
 namespace YARG.Core.IO
 {
-    public class PtrCounter
+    public sealed class PtrCounter
     {
         private int _count = 1;
         public int Count => _count;
@@ -14,7 +14,7 @@ namespace YARG.Core.IO
         public void Decrement() => --_count;
     }
 
-    public unsafe class DisposableArray<T> : IDisposable
+    public sealed unsafe class DisposableArray<T> : IDisposable
         where T : unmanaged
     {
         public readonly T* Ptr;
@@ -93,7 +93,7 @@ namespace YARG.Core.IO
 
         public static implicit operator ReadOnlySpan<T>(DisposableArray<T> arr) => arr.Span;
 
-        protected virtual void Dispose(bool disposing)
+        private void Dispose(bool disposing)
         {
             if (!disposedValue)
             {
