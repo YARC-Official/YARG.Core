@@ -341,7 +341,7 @@ namespace YARG.Core.Song.Cache
                 var reader = group!.LoadUpgrades();
                 if (reader != null)
                 {
-                    AddCONUpgrades(group, reader);
+                    AddCONUpgrades(filename, group, reader);
 
                     if (group.UpgradeDTALastWrite == dtaLastWrite)
                     {

@@ -4,59 +4,15 @@ using YARG.Core.Extensions;
 
 namespace YARG.Core.IO
 {
-    public static class YARGTextReader
-    {
-        public static readonly Encoding Latin1 = Encoding.GetEncoding(28591);
-        private static readonly UTF32Encoding UTF32BE = new(true, false);
-
-        public static YARGTextReader<byte>? TryLoadByteReader(byte[] data)
-        {
-            if ((data[0] == 0xFF && data[1] == 0xFE) || (data[0] == 0xFE && data[1] == 0xFF))
-                return null;
-
-            int position = data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF ? 3 : 0;
-            return new YARGTextReader<byte>(data, position);
-        }
-
-        public static YARGTextReader<char> LoadCharReader(byte[] data)
-        {
-            char[] charData;
-            if (data[0] == 0xFF && data[1] == 0xFE)
-            {
-                if (data[2] != 0)
-                    charData = Encoding.Unicode.GetChars(data, 2, data.Length - 2);
-                else
-                    charData = Encoding.UTF32.GetChars(data, 3, data.Length - 3);
-            }
-            else
-            {
-                if (data[2] != 0)
-                    charData = Encoding.BigEndianUnicode.GetChars(data, 2, data.Length - 2);
-                else
-                    charData = UTF32BE.GetChars(data, 3, data.Length - 3);
-            }
-            return new YARGTextReader<char>(charData, 0);
-        }
-    }
-
-    public sealed class YARGTextReader<TChar> : YARGTextContainer<TChar>
+    public sealed class YARGTextReader<TChar, TDecoder>
         where TChar : unmanaged, IConvertible
+        where TDecoder : StringDecoder<TChar>, new()
     {
-        public YARGTextReader(TChar[] data, int position) : base(data)
+        private static char SkipWhitespace(YARGTextContainer<TChar> container)
         {
-            Position = position;
-
-            SkipWhiteSpace();
-            SetNextPointer();
-            if (data[Position].ToChar(null) == '\n')
-                GotoNextLine();
-        }
-
-        public override char SkipWhiteSpace()
-        {
-            while (Position < Length)
+            while (container.Position < container.Length)
             {
-                char ch = Data[Position].ToChar(null);
+                char ch = container.Current.ToChar(null);
                 if (ch.IsAsciiWhitespace())
                 {
                     if (ch == '\n')
@@ -64,10 +20,28 @@ namespace YARG.Core.IO
                 }
                 else if (ch != '=')
                     return ch;
-                ++Position;
+                ++container.Position;
             }
 
-            return (char) 0;
+            return (char)0;
+        }
+
+        public readonly YARGTextContainer<TChar> Container;
+        public readonly TDecoder Decoder = new();
+
+        public YARGTextReader(YARGTextContainer<TChar> container)
+        {
+            Container = container;
+
+            SkipWhitespace(container);
+            SetNextPointer();
+            if (container.Current.ToChar(null) == '\n')
+                GotoNextLine();
+        }
+
+        public char SkipWhitespace()
+        {
+            return SkipWhitespace(Container);
         }
 
         public void GotoNextLine()
@@ -75,36 +49,77 @@ namespace YARG.Core.IO
             char curr;
             do
             {
-                Position = _next;
-                if (Position >= Length)
+                Container.Position = Container.Next;
+                if (Container.Position >= Container.Length)
                     break;
 
-                Position++;
-                curr = SkipWhiteSpace();
+                Container.Position++;
+                curr = SkipWhitespace(Container);
 
-                if (Position == Length)
+                if (Container.Position == Container.Length)
                     break;
 
-                if (Data[Position].ToChar(null) == '{')
+                if (Container.Current.ToChar(null) == '{')
                 {
-                    Position++;
-                    curr = SkipWhiteSpace();
+                    Container.Position++;
+                    curr = SkipWhitespace(Container);
                 }
 
                 SetNextPointer();
-            } while (curr == '\n' || curr == '/' && Data[Position + 1].ToChar(null) == '/');
+            } while (curr == '\n' || curr == '/' && Container[Container.Position + 1].ToChar(null) == '/');
         }
 
         public void SetNextPointer()
         {
-            _next = Position;
-            while (_next < Length && Data[_next].ToChar(null) != '\n')
-                ++_next;
+            Container.Next = Container.Position;
+            while (Container.Next < Container.Length && Container[Container.Next].ToChar(null) != '\n')
+                ++Container.Next;
         }
 
         public ReadOnlySpan<TChar> PeekBasicSpan(int length)
         {
-            return new ReadOnlySpan<TChar>(Data, Position, length);
+            return Container.GetSpan(Container.Position, length);
         }
+
+        public string ExtractModifierName()
+        {
+            int curr = Container.Position;
+            while (curr < Container.Length)
+            {
+                char b = Container[curr].ToChar(null);
+                if (b.IsAsciiWhitespace() || b == '=')
+                    break;
+                ++curr;
+            }
+
+            var name = Container.GetSpan(Container.Position, curr - Container.Position);
+            Container.Position = curr;
+            SkipWhitespace(Container);
+            return Decoder.Decode(name);
+        }
+
+        public string ExtractText(bool isChartFile)
+        {
+            return Decoder.ExtractText(Container, isChartFile);
+        }
+
+        public bool   ExtractBoolean() => YARGNumberExtractor.Boolean(Container);
+        public short  ExtractInt16()   => YARGNumberExtractor.Int16(Container, SkipWhitespace);
+        public ushort ExtractUInt16()  => YARGNumberExtractor.UInt16(Container, SkipWhitespace);
+        public int    ExtractInt32()   => YARGNumberExtractor.Int32(Container, SkipWhitespace);
+        public uint   ExtractUInt32()  => YARGNumberExtractor.UInt32(Container, SkipWhitespace);
+        public long   ExtractInt64()   => YARGNumberExtractor.Int64(Container, SkipWhitespace);
+        public ulong  ExtractUInt64()  => YARGNumberExtractor.UInt64(Container, SkipWhitespace);
+        public float  ExtractFloat()   => YARGNumberExtractor.Float(Container, SkipWhitespace);
+        public double ExtractDouble()  => YARGNumberExtractor.Double(Container, SkipWhitespace);
+
+        public bool ExtractInt16(out short value)   => YARGNumberExtractor.Int16(Container, out value, SkipWhitespace);
+        public bool ExtractUInt16(out ushort value) => YARGNumberExtractor.UInt16(Container, out value, SkipWhitespace);
+        public bool ExtractInt32(out int value)     => YARGNumberExtractor.Int32(Container, out value, SkipWhitespace);
+        public bool ExtractUInt32(out uint value)   => YARGNumberExtractor.UInt32(Container, out value, SkipWhitespace);
+        public bool ExtractInt64(out long value)    => YARGNumberExtractor.Int64(Container, out value, SkipWhitespace);
+        public bool ExtractUInt64(out ulong value)  => YARGNumberExtractor.UInt64(Container, out value, SkipWhitespace);
+        public bool ExtractFloat(out float value)   => YARGNumberExtractor.Float(Container, out value, SkipWhitespace);
+        public bool ExtractDouble(out double value) => YARGNumberExtractor.Double(Container, out value, SkipWhitespace);
     }
 }

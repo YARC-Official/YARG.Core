@@ -379,12 +379,12 @@ namespace YARG.Core.Song
                 {
                     case "name": _name = reader.ExtractText(); break;
                     case "artist": _artist = reader.ExtractText(); break;
-                    case "master": _isMaster = YARGNumberExtractor.Boolean(reader); break;
+                    case "master": _isMaster = reader.ExtractBoolean(); break;
                     case "context": /*Context = reader.ReadUInt32();*/ break;
                     case "song": SongLoop(rbConMetadata, result, reader); break;
                     case "song_vocals": while (reader.StartNode()) reader.EndNode(); break;
-                    case "song_scroll_speed": rbConMetadata.VocalSongScrollSpeed = YARGNumberExtractor.UInt32(reader); break;
-                    case "tuning_offset_cents": rbConMetadata.TuningOffsetCents = YARGNumberExtractor.Int32(reader); break;
+                    case "song_scroll_speed": rbConMetadata.VocalSongScrollSpeed = reader.ExtractUInt32(); break;
+                    case "tuning_offset_cents": rbConMetadata.TuningOffsetCents = reader.ExtractInt32(); break;
                     case "bank": rbConMetadata.VocalPercussionBank = reader.ExtractText(); break;
                     case "anim_tempo":
                         {
@@ -399,8 +399,8 @@ namespace YARG.Core.Song
                             break;
                         }
                     case "preview":
-                        _previewStart = YARGNumberExtractor.UInt64(reader);
-                        _previewEnd = YARGNumberExtractor.UInt64(reader);
+                        _previewStart = reader.ExtractUInt64();
+                        _previewEnd = reader.ExtractUInt64();
                         break;
                     case "rank": _parts.SetIntensities(rbConMetadata.RBDifficulties, reader); break;
                     case "solo": rbConMetadata.Soloes = reader.ExtractList_String().ToArray(); break;
@@ -408,7 +408,7 @@ namespace YARG.Core.Song
                     case "decade": /*Decade = reader.ExtractText();*/ break;
                     case "vocal_gender": rbConMetadata.VocalGender = reader.ExtractText() == "male"; break;
                     case "format": /*Format = reader.ReadUInt32();*/ break;
-                    case "version": rbConMetadata.VenueVersion = YARGNumberExtractor.UInt32(reader); break;
+                    case "version": rbConMetadata.VenueVersion = reader.ExtractUInt32(); break;
                     case "fake": /*IsFake = reader.ExtractText();*/ break;
                     case "downloaded": /*Downloaded = reader.ExtractText();*/ break;
                     case "game_origin":
@@ -434,25 +434,25 @@ namespace YARG.Core.Song
                             break;
                         }
                     case "song_id": rbConMetadata.SongID = reader.ExtractText(); break;
-                    case "rating": rbConMetadata.SongRating = YARGNumberExtractor.UInt32(reader); break;
+                    case "rating": rbConMetadata.SongRating = reader.ExtractUInt32(); break;
                     case "short_version": /*ShortVersion = reader.ReadUInt32();*/ break;
-                    case "album_art": rbConMetadata.HasAlbumArt = YARGNumberExtractor.Boolean(reader); break;
+                    case "album_art": rbConMetadata.HasAlbumArt = reader.ExtractBoolean(); break;
                     case "year_released":
-                    case "year_recorded": YearAsNumber = YARGNumberExtractor.Int32(reader); break;
+                    case "year_recorded": YearAsNumber = reader.ExtractInt32(); break;
                     case "album_name": _album = reader.ExtractText(); break;
-                    case "album_track_number": _albumTrack = YARGNumberExtractor.UInt16(reader); break;
+                    case "album_track_number": _albumTrack = reader.ExtractUInt16(); break;
                     case "pack_name": _playlist = reader.ExtractText(); break;
                     case "base_points": /*BasePoints = reader.ReadUInt32();*/ break;
                     case "band_fail_cue": /*BandFailCue = reader.ExtractText();*/ break;
                     case "drum_bank": rbConMetadata.DrumBank = reader.ExtractText(); break;
-                    case "song_length": _songLength = YARGNumberExtractor.UInt64(reader); break;
+                    case "song_length": _songLength = reader.ExtractUInt64(); break;
                     case "sub_genre": /*Subgenre = reader.ExtractText();*/ break;
                     case "author": _charter = reader.ExtractText(); break;
                     case "guide_pitch_volume": /*GuidePitchVolume = reader.ReadFloat();*/ break;
                     case "encoding":
                         var encoding = reader.ExtractText().ToLower() switch
                         {
-                            "latin1" => YARGTextReader.Latin1,
+                            "latin1" => YARGTextContainer.Latin1,
                             "utf-8" or
                             "utf8" => Encoding.UTF8,
                             _ => reader.encoding
@@ -490,9 +490,9 @@ namespace YARG.Core.Song
                         }
 
                         break;
-                    case "vocal_tonic_note": rbConMetadata.VocalTonicNote = YARGNumberExtractor.UInt32(reader); break;
-                    case "song_tonality": rbConMetadata.SongTonality = YARGNumberExtractor.Boolean(reader); break;
-                    case "alternate_path": result.alternatePath = YARGNumberExtractor.Boolean(reader); break;
+                    case "vocal_tonic_note": rbConMetadata.VocalTonicNote = reader.ExtractUInt32(); break;
+                    case "song_tonality": rbConMetadata.SongTonality = reader.ExtractBoolean(); break;
+                    case "alternate_path": result.alternatePath = reader.ExtractBoolean(); break;
                     case "real_guitar_tuning":
                         {
                             if (reader.StartNode())
@@ -501,7 +501,7 @@ namespace YARG.Core.Song
                                 reader.EndNode();
                             }
                             else
-                                rbConMetadata.RealGuitarTuning = new[] { YARGNumberExtractor.Int32(reader) };
+                                rbConMetadata.RealGuitarTuning = new[] { reader.ExtractInt32() };
                             break;
                         }
                     case "real_bass_tuning":
@@ -512,7 +512,7 @@ namespace YARG.Core.Song
                                 reader.EndNode();
                             }
                             else
-                                rbConMetadata.RealBassTuning = new[] { YARGNumberExtractor.Int32(reader) };
+                                rbConMetadata.RealBassTuning = new[] { reader.ExtractInt32() };
                             break;
                         }
                     case "video_venues":
@@ -574,7 +574,7 @@ namespace YARG.Core.Song
                             reader.EndNode();
                         }
                         else
-                            result.pans = new[] { YARGNumberExtractor.Float(reader) };
+                            result.pans = new[] { reader.ExtractFloat() };
                         break;
                     case "vols":
                         if (reader.StartNode())
@@ -583,7 +583,7 @@ namespace YARG.Core.Song
                             reader.EndNode();
                         }
                         else
-                            result.volumes = new[] { YARGNumberExtractor.Float(reader) };
+                            result.volumes = new[] { reader.ExtractFloat() };
                         break;
                     case "cores":
                         if (reader.StartNode())
@@ -592,9 +592,9 @@ namespace YARG.Core.Song
                             reader.EndNode();
                         }
                         else
-                            result.cores = new[] { YARGNumberExtractor.Float(reader) };
+                            result.cores = new[] { reader.ExtractFloat() };
                         break;
-                    case "hopo_threshold": _parseSettings.HopoThreshold = YARGNumberExtractor.Int64(reader); break;
+                    case "hopo_threshold": _parseSettings.HopoThreshold = reader.ExtractInt64(); break;
                 }
                 reader.EndNode();
             }
@@ -616,7 +616,7 @@ namespace YARG.Core.Song
                                     reader.EndNode();
                                 }
                                 else
-                                    rbConMetadata.DrumIndices = new[] { YARGNumberExtractor.Int32(reader) };
+                                    rbConMetadata.DrumIndices = new[] { reader.ExtractInt32() };
                                 break;
                             }
                         case "bass":
@@ -627,7 +627,7 @@ namespace YARG.Core.Song
                                     reader.EndNode();
                                 }
                                 else
-                                    rbConMetadata.BassIndices = new[] { YARGNumberExtractor.Int32(reader) };
+                                    rbConMetadata.BassIndices = new[] { reader.ExtractInt32() };
                                 break;
                             }
                         case "guitar":
@@ -638,7 +638,7 @@ namespace YARG.Core.Song
                                     reader.EndNode();
                                 }
                                 else
-                                    rbConMetadata.GuitarIndices = new[] { YARGNumberExtractor.Int32(reader) };
+                                    rbConMetadata.GuitarIndices = new[] { reader.ExtractInt32() };
                                 break;
                             }
                         case "keys":
@@ -649,7 +649,7 @@ namespace YARG.Core.Song
                                     reader.EndNode();
                                 }
                                 else
-                                    rbConMetadata.KeysIndices = new[] { YARGNumberExtractor.Int32(reader) };
+                                    rbConMetadata.KeysIndices = new[] { reader.ExtractInt32() };
                                 break;
                             }
                         case "vocals":
@@ -660,7 +660,7 @@ namespace YARG.Core.Song
                                     reader.EndNode();
                                 }
                                 else
-                                    rbConMetadata.VocalsIndices = new[] { YARGNumberExtractor.Int32(reader) };
+                                    rbConMetadata.VocalsIndices = new[] { reader.ExtractInt32() };
                                 break;
                             }
                     }

@@ -39,8 +39,8 @@ namespace YARG.Core.Song.Cache
 
         public PackedCONGroup(List<CONFileListing> files, DateTime lastWrite)
         {
-            this.Files = files;
-            this.LastWrite = lastWrite;
+            Files = files;
+            LastWrite = lastWrite;
         }
 
         public override bool ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings)
@@ -60,16 +60,14 @@ namespace YARG.Core.Song.Cache
             upgradeDta = CONFileHandler.TryGetListing(Files, UPGRADESFILEPATH);
             if (upgradeDta == null)
                 return null;
-
-            return new YARGDTAReader(upgradeDta.LoadAllBytes());
+            return YARGDTAReader.TryCreate(upgradeDta);
         }
 
         public YARGDTAReader? LoadSongs()
         {
             if (songDTA == null && !SetSongDTA())
                 return null;
-
-            return new YARGDTAReader(songDTA!.LoadAllBytes());
+            return YARGDTAReader.TryCreate(songDTA!);
         }
 
         public bool SetSongDTA()

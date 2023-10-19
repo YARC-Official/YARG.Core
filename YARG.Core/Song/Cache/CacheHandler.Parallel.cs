@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Reflection;
 using System.Threading.Tasks;
 using YARG.Core.IO;
 
@@ -83,7 +82,7 @@ namespace YARG.Core.Song.Cache
             {
                 Dictionary<string, int> indices = new();
                 List<Task> tasks = new();
-                while (reader!.StartNode())
+                while (reader.StartNode())
                 {
                     string name = reader.GetNameOfNode();
                     int index = GetCONIndex(indices, name);
@@ -103,9 +102,12 @@ namespace YARG.Core.Song.Cache
 
         private void ScanExtractedCONGroup_Parallel(string directory, UnpackedCONGroup group)
         {
+            var reader = group.LoadDTA();
+            if (reader == null)
+                return;
+
             try
             {
-                YARGDTAReader reader = new(group.dta.FullName);
                 Dictionary<string, int> indices = new();
                 List<Task> tasks = new();
                 while (reader.StartNode())

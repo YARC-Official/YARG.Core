@@ -153,7 +153,7 @@ namespace YARG.Core.Song.Cache
 
             var reader = group.LoadUpgrades();
             if (reader != null)
-                AddCONUpgrades(group, reader);
+                AddCONUpgrades(filename, group, reader);
         }
 
         private int GetCONIndex(Dictionary<string, int> indices, string name)

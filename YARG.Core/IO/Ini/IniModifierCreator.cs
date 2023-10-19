@@ -37,31 +37,31 @@ namespace YARG.Core.IO.Ini
             this.type = type;
         }
 
-        public IniModifier CreateModifier<TChar, TDecoder>(YARGTextReader<TChar> reader, TDecoder decoder)
+        public IniModifier CreateModifier<TChar, TDecoder>(YARGTextReader<TChar, TDecoder> reader)
             where TChar : unmanaged, IConvertible
-            where TDecoder : StringDecoder<TChar>
+            where TDecoder : StringDecoder<TChar>, new()
         {
             try
             {
                 switch (type)
                 {
-                    case ModifierCreatorType.SortString:       return new(new SortString(decoder.ExtractText(reader, false)));
-                    case ModifierCreatorType.SortString_Chart: return new(new SortString(decoder.ExtractText(reader, true)));
-                    case ModifierCreatorType.String:           return new(decoder.ExtractText(reader, false));
-                    case ModifierCreatorType.String_Chart:     return new(decoder.ExtractText(reader, true));
-                    case ModifierCreatorType.UInt64:           return new(YARGNumberExtractor.UInt64(reader));
-                    case ModifierCreatorType.Int64:            return new(YARGNumberExtractor.Int64(reader));
-                    case ModifierCreatorType.UInt32:           return new(YARGNumberExtractor.UInt32(reader));
-                    case ModifierCreatorType.Int32:            return new(YARGNumberExtractor.Int32(reader));
-                    case ModifierCreatorType.UInt16:           return new(YARGNumberExtractor.UInt16(reader));
-                    case ModifierCreatorType.Int16:            return new(YARGNumberExtractor.Int16(reader));
-                    case ModifierCreatorType.Bool:             return new(YARGNumberExtractor.Boolean(reader));
-                    case ModifierCreatorType.Float:            return new(YARGNumberExtractor.Float(reader));
-                    case ModifierCreatorType.Double:           return new(YARGNumberExtractor.Double(reader));
+                    case ModifierCreatorType.SortString:       return new(new SortString(reader.ExtractText(false)));
+                    case ModifierCreatorType.SortString_Chart: return new(new SortString(reader.ExtractText(true)));
+                    case ModifierCreatorType.String:           return new(reader.ExtractText(false));
+                    case ModifierCreatorType.String_Chart:     return new(reader.ExtractText(true));
+                    case ModifierCreatorType.UInt64:           return new(reader.ExtractUInt64());
+                    case ModifierCreatorType.Int64:            return new(reader.ExtractInt64());
+                    case ModifierCreatorType.UInt32:           return new(reader.ExtractUInt32());
+                    case ModifierCreatorType.Int32:            return new(reader.ExtractInt32());
+                    case ModifierCreatorType.UInt16:           return new(reader.ExtractUInt16());
+                    case ModifierCreatorType.Int16:            return new(reader.ExtractInt16());
+                    case ModifierCreatorType.Bool:             return new(reader.ExtractBoolean());
+                    case ModifierCreatorType.Float:            return new(reader.ExtractFloat());
+                    case ModifierCreatorType.Double:           return new(reader.ExtractDouble());
                     case ModifierCreatorType.UInt64Array:
                         {
-                            ulong ul1 = YARGNumberExtractor.UInt64(reader);
-                            ulong ul2 = YARGNumberExtractor.UInt64(reader);
+                            ulong ul1 = reader.ExtractUInt64();
+                            ulong ul2 = reader.ExtractUInt64();
                             return new(ul1, ul2);
                         }
                 }

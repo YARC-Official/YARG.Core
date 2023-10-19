@@ -9,7 +9,7 @@ namespace YARG.Core.IO
         private static readonly UTF8Encoding UTF8 = new(true, true);
         private Encoding encoding = UTF8;
 
-        public override string ExtractText(YARGTextContainer<byte> reader, bool isChartFile = true)
+        public override string ExtractText(YARGTextContainer<byte> reader, bool isChartFile)
         {
             var span = InternalExtractTextSpan(reader, isChartFile);
             try
@@ -18,7 +18,7 @@ namespace YARG.Core.IO
             }
             catch
             {
-                encoding = YARGTextReader.Latin1;
+                encoding = YARGTextContainer.Latin1;
                 return Decode(span);
             }
         }
@@ -31,7 +31,7 @@ namespace YARG.Core.IO
 
     public sealed class CharStringDecoder : StringDecoder<char>
     {
-        public override string ExtractText(YARGTextContainer<char> reader, bool isChartFile = true)
+        public override string ExtractText(YARGTextContainer<char> reader, bool isChartFile)
         {
             var span = InternalExtractTextSpan(reader, isChartFile);
             return Decode(span);
@@ -46,24 +46,7 @@ namespace YARG.Core.IO
     public abstract class StringDecoder<TChar>
         where TChar : unmanaged, IConvertible
     {
-        public string ExtractModifierName(YARGTextContainer<TChar> reader)
-        {
-            int curr = reader.Position;
-            while (curr < reader.Length)
-            {
-                char b = reader.Data[curr].ToChar(null);
-                if (b.IsAsciiWhitespace() || b == '=')
-                    break;
-                ++curr;
-            }
-
-            ReadOnlySpan<TChar> name = new(reader.Data, reader.Position, curr - reader.Position);
-            reader.Position = curr;
-            reader.SkipWhiteSpace();
-            return Decode(name);
-        }
-
-        public abstract string ExtractText(YARGTextContainer<TChar> reader, bool isChartFile = true);
+        public abstract string ExtractText(YARGTextContainer<TChar> reader, bool isChartFile);
 
         public abstract string Decode(ReadOnlySpan<TChar> span);
 

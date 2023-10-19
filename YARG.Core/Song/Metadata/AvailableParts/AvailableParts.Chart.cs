@@ -11,9 +11,10 @@ namespace YARG.Core.Song
         /// Uses the current instrument to institute applicable test parameters.
         /// This does not include drums as those must be handled by a dedicated DrumPreparseHandler object.
         /// </summary>
-        public DrumsType ParseChart<TChar, TBase>(YARGChartFileReader<TChar, TBase> reader, DrumsType drumType)
+        public DrumsType ParseChart<TChar, TBase, TDecoder>(YARGChartFileReader<TChar, TBase, TDecoder> reader, DrumsType drumType)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
             where TBase : unmanaged, IDotChartBases<TChar>
+            where TDecoder : StringDecoder<TChar>, new()
         {
             DrumPreparseHandler drums = new(drumType);
             while (reader.IsStartOfTrack())
@@ -30,9 +31,10 @@ namespace YARG.Core.Song
             return drums.Type;
         }
 
-        private void ParseChartTrack<TType, TBase>(YARGChartFileReader<TType, TBase> reader)
-            where TType : unmanaged, IEquatable<TType>, IConvertible
-            where TBase : unmanaged, IDotChartBases<TType>
+        private void ParseChartTrack<TChar, TBase, TDecoder>(YARGChartFileReader<TChar, TBase, TDecoder> reader)
+            where TChar : unmanaged, IEquatable<TChar>, IConvertible
+            where TBase : unmanaged, IDotChartBases<TChar>
+            where TDecoder : StringDecoder<TChar>, new()
         {
             bool skip = reader.Instrument switch
             {
