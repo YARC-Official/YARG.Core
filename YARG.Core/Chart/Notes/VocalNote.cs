@@ -212,7 +212,7 @@ namespace YARG.Core.Chart
             var newPhrase = CloneNote();
             foreach (var child in _childNotes)
             {
-                newPhrase.AddNoteToPhrase(child.CloneNote());
+                newPhrase.AddNoteToPhrase(child.Clone());
             }
 
             return newPhrase;
