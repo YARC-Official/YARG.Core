@@ -87,25 +87,17 @@ namespace YARG.Core.IO
         private const short SHORT_MAX = short.MaxValue / 10;
         public bool ExtractInt16(out short value)
         {
-            if (InternalExtractSigned(out long tmp, short.MaxValue, short.MinValue, SHORT_MAX))
-            {
-                value = (short)tmp;
-                return true;
-            }
-            value = default;
-            return false;
+            bool result = InternalExtractSigned(out long tmp, short.MaxValue, short.MinValue, SHORT_MAX);
+            value = (short)tmp;
+            return result;
         }
 
         private const int INT_MAX = int.MaxValue / 10;
         public bool ExtractInt32(out int value)
         {
-            if (InternalExtractSigned(out long tmp, int.MaxValue, int.MinValue, INT_MAX))
-            {
-                value = (int)tmp;
-                return true;
-            }
-            value = default;
-            return false;
+            bool result = InternalExtractSigned(out long tmp, int.MaxValue, int.MinValue, INT_MAX);
+            value = (int)tmp;
+            return result;
         }
 
         private const long LONG_MAX = long.MaxValue / 10;
@@ -117,25 +109,17 @@ namespace YARG.Core.IO
         private const ushort USHORT_MAX = ushort.MaxValue / 10;
         public bool ExtractUInt16(out ushort value)
         {
-            if (InternalExtractUnsigned(out ulong tmp, ushort.MaxValue, USHORT_MAX))
-            {
-                value = (ushort)tmp;
-                return true;
-            }
-            value = default;
-            return false;
+            bool result = InternalExtractUnsigned(out ulong tmp, ushort.MaxValue, USHORT_MAX);
+            value = (ushort) tmp;
+            return result;
         }
 
         private const uint UINT_MAX = uint.MaxValue / 10;
         public bool ExtractUInt32(out uint value)
         {
-            if (InternalExtractUnsigned(out ulong tmp, uint.MaxValue, UINT_MAX))
-            {
-                value = (uint)tmp;
-                return true;
-            }
-            value = default;
-            return false;
+            bool result = InternalExtractUnsigned(out ulong tmp, uint.MaxValue, UINT_MAX);
+            value = (uint) tmp;
+            return result;
         }
 
         private const ulong ULONG_MAX = ulong.MaxValue / 10;
@@ -146,13 +130,9 @@ namespace YARG.Core.IO
 
         public bool ExtractFloat(out float value)
         {
-            if (ExtractDouble(out double tmp))
-            {
-                value = (float)tmp;
-                return true;
-            }
-            value = default;
-            return false;
+            bool result = ExtractDouble(out double tmp);
+            value = (float) tmp;
+            return result;
         }
 
         public bool ExtractDouble(out double value)
