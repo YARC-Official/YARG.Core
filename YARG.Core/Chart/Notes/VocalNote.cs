@@ -106,7 +106,7 @@ namespace YARG.Core.Chart
             Pitch = other.Pitch;
             HarmonyPart = other.HarmonyPart;
 
-            TotalTimeLength = other.TotalTickLength;
+            TotalTimeLength = other.TotalTimeLength;
             TotalTickLength = other.TotalTickLength;
         }
 
