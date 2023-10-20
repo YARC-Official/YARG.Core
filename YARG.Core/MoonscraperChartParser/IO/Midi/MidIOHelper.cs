@@ -43,15 +43,15 @@ namespace MoonscraperChartEditor.Song.IO
         public const string HARMONY_3_TRACK_2 = "PART HARM3";
 
         // Regex for text events, matches text inside [brackets] without including the brackets
-		// '[end]' -> 'end'
+        // '[end]' -> 'end'
         // '[section Solo] - "Solo"' -> 'section Solo'
-		public static readonly Regex TextEventRegex = new(@"\[(.*?)\]", RegexOptions.Compiled | RegexOptions.Singleline);
+        public static readonly Regex TextEventRegex = new(@"\[(.*?)\]", RegexOptions.Compiled | RegexOptions.Singleline);
 
         // Regex for section events, assumes the brackets have already been stripped out
         // 'section Practice' -> 'Practice'
         // 'prc_intro' -> 'intro'
         // 'section_outro' -> 'outro'
-		public static readonly Regex SectionEventRegex = new(@"(?:section|prc)[ _](.*)", RegexOptions.Compiled | RegexOptions.Singleline);
+        public static readonly Regex SectionEventRegex = new(@"(?:section|prc)[ _](.*)", RegexOptions.Compiled | RegexOptions.Singleline);
 
         // Matches venue lighting events and groups the text inside (parentheses), not including the parentheses
         // 'lighting (verse)' -> 'verse'

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using MoonscraperChartEditor.Song;
 
@@ -35,8 +35,8 @@ namespace YARG.Core.Chart
             var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
             var guitarFlags = GetGuitarNoteFlags(moonNote);
 
-            return new GuitarNote(fret, noteType, guitarFlags, generalFlags,
-                moonNote.time, GetLengthInTime(moonNote), moonNote.tick, moonNote.length);
+            double time = _moonSong.TickToTime(moonNote.tick);
+            return new GuitarNote(fret, noteType, guitarFlags, generalFlags, time, GetLengthInTime(moonNote), moonNote.tick, moonNote.length);
         }
 
         private GuitarNote CreateSixFretGuitarNote(MoonNote moonNote, Dictionary<SpecialPhrase.Type, SpecialPhrase> currentPhrases)
@@ -46,8 +46,8 @@ namespace YARG.Core.Chart
             var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
             var guitarFlags = GetGuitarNoteFlags(moonNote);
 
-            return new GuitarNote(fret, noteType, guitarFlags, generalFlags,
-                moonNote.time, GetLengthInTime(moonNote), moonNote.tick, moonNote.length);
+            double time = _moonSong.TickToTime(moonNote.tick);
+            return new GuitarNote(fret, noteType, guitarFlags, generalFlags, time, GetLengthInTime(moonNote), moonNote.tick, moonNote.length);
         }
 
         private FiveFretGuitarFret GetFiveFretGuitarFret(MoonNote moonNote)
@@ -81,12 +81,13 @@ namespace YARG.Core.Chart
 
         private GuitarNoteType GetGuitarNoteType(MoonNote moonNote)
         {
-            return moonNote.type switch
+            var type = moonNote.GetGuitarType(_moonSong.hopoThreshold);
+            return type switch
             {
                 MoonNote.MoonNoteType.Strum => GuitarNoteType.Strum,
                 MoonNote.MoonNoteType.Hopo  => GuitarNoteType.Hopo,
                 MoonNote.MoonNoteType.Tap   => GuitarNoteType.Tap,
-                _ => throw new InvalidOperationException($"Unhandled Moonscraper note type {moonNote.type}!")
+                _ => throw new InvalidOperationException($"Unhandled Moonscraper note type {type}!")
             };
         }
 

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using Melanchall.DryWetMidi.Core;
@@ -64,7 +64,8 @@ namespace YARG.Core.Chart
             var textEvents = new List<TextEvent>(_moonSong.events.Count);
             foreach (var moonText in _moonSong.events)
             {
-                var newText = new TextEvent(moonText.title, moonText.time, moonText.tick);
+                double time = _moonSong.TickToTime(moonText.tick);
+                var newText = new TextEvent(moonText.title, time, moonText.tick);
                 textEvents.Add(newText);
             }
 
@@ -78,11 +79,13 @@ namespace YARG.Core.Chart
             for (var i = 0; i < _moonSong.sections.Count;)
             {
                 var moonSection = _moonSong.sections[i];
-                sections.Add(new Section(moonSection.title, moonSection.time, moonSection.tick));
+                double time = _moonSong.TickToTime(moonSection.tick);
+                sections.Add(new Section(moonSection.title, time, moonSection.tick));
 
                 if (++i < _moonSong.sections.Count)
                 {
-                    sections[^1].TimeLength = _moonSong.sections[i].time - moonSection.time;
+                    double next = _moonSong.TickToTime(_moonSong.sections[i].tick);
+                    sections[^1].TimeLength = next - time;
                     sections[^1].TickLength = _moonSong.sections[i].tick - moonSection.tick;
                 }
             }
@@ -98,14 +101,15 @@ namespace YARG.Core.Chart
 
             foreach (var moonBpm in _moonSong.bpms)
             {
-                var tempo = new TempoChange(moonBpm.displayValue, moonBpm.time, moonBpm.tick);
+                double time = _moonSong.TickToTime(moonBpm.tick);
+                var tempo = new TempoChange(moonBpm.displayValue, time, moonBpm.tick);
                 tempos.Add(tempo);
             }
 
             foreach (var moonTimeSig in _moonSong.timeSignatures)
             {
-                var timeSig = new TimeSignatureChange(moonTimeSig.numerator, moonTimeSig.denominator,
-                    moonTimeSig.time, moonTimeSig.tick);
+                double time = _moonSong.TickToTime(moonTimeSig.tick);
+                var timeSig = new TimeSignatureChange(moonTimeSig.numerator, moonTimeSig.denominator, time, moonTimeSig.tick);
                 timeSigs.Add(timeSig);
             }
 
@@ -117,7 +121,8 @@ namespace YARG.Core.Chart
                     Beat.Type.Beat => BeatlineType.Strong,
                     _ => throw new NotImplementedException($"Unhandled Moonscraper beat type {moonBeat.type}!")
                 };
-                var beatline = new Beatline(beatType, moonBeat.time, moonBeat.tick);
+                double time = _moonSong.TickToTime(moonBeat.tick);
+                var beatline = new Beatline(beatType, time, moonBeat.tick);
                 beats.Add(beatline);
             }
 
@@ -209,7 +214,8 @@ namespace YARG.Core.Chart
                     _ => throw new NotImplementedException($"Unhandled special phrase type {moonPhrase.type}!")
                 };
 
-                var newPhrase = new Phrase(phraseType, moonPhrase.time, GetLengthInTime(moonPhrase), moonPhrase.tick, moonPhrase.length);
+                double time = _moonSong.TickToTime(moonPhrase.tick);
+                var newPhrase = new Phrase(phraseType, time, GetLengthInTime(moonPhrase), moonPhrase.tick, moonPhrase.length);
                 phrases.Add(newPhrase);
             }
 
@@ -221,7 +227,8 @@ namespace YARG.Core.Chart
             var textEvents = new List<TextEvent>(moonChart.events.Count);
             foreach (var moonText in moonChart.events)
             {
-                var newText = new TextEvent(moonText.eventName, moonText.time, moonText.tick);
+                double time = _moonSong.TickToTime(moonText.tick);
+                var newText = new TextEvent(moonText.eventName, time, moonText.tick);
                 textEvents.Add(newText);
             }
 
@@ -297,17 +304,19 @@ namespace YARG.Core.Chart
 
         private double GetLengthInTime(double startTime, uint tick, uint tickLength)
         {
-            return _moonSong.TickToTime(tick + tickLength, _moonSong.resolution) - startTime;
+            return _moonSong.TickToTime(tick + tickLength) - startTime;
         }
 
         private double GetLengthInTime(MoonNote note)
         {
-            return GetLengthInTime(note.time, note.tick, note.length);
+            double time = _moonSong.TickToTime(note.tick);
+            return GetLengthInTime(time, note.tick, note.length);
         }
 
         private double GetLengthInTime(SpecialPhrase phrase)
         {
-            return GetLengthInTime(phrase.time, phrase.tick, phrase.length - 1);
+            double time = _moonSong.TickToTime(phrase.tick);
+            return GetLengthInTime(time, phrase.tick, phrase.length - 1);
         }
 
         private static bool IsEventInPhrase(SongObject songObj, SpecialPhrase phrase)
@@ -327,7 +336,7 @@ namespace YARG.Core.Chart
             return songObj.tick >= phrase.tick && songObj.tick < (phrase.tick + phrase.length);
         }
 
-        private static bool IsNoteClosestToEndOfPhrase(MoonNote note, SpecialPhrase phrase)
+        private static bool IsNoteClosestToEndOfPhrase(MoonSong song, MoonNote note, SpecialPhrase phrase)
         {
             int endTick = (int) (phrase.tick + phrase.length);
 
@@ -357,7 +366,7 @@ namespace YARG.Core.Chart
                     if (previousNote is null)
                     {
                         // This is the first note in the chart, check by distance
-                        float tickThreshold = note.song.resolution / 3; // 1/12th note
+                        float tickThreshold = song.resolution / 3; // 1/12th note
                         return Math.Abs((int) note.tick - endTick) < tickThreshold;
                     }
                     else if (note.tick >= endTick && previousNote.tick < endTick)

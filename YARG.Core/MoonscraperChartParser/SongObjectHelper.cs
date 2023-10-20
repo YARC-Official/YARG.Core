@@ -233,6 +233,94 @@ namespace MoonscraperChartEditor.Song
                 return list[pos];
         }
 
+
+        /// <summary>
+        /// Pushes a MoonNote to the back of a list, ensuring correct setting of `previous` & `next` variables.
+        /// </summary>
+        /// <param name="note">The note to be inserted, with assumed correct ordering.</param>
+        /// <param name="notes">The list in which the note will be inserted.</param>
+        /// <returns>Returns the list position it was inserted into,
+        /// which equates to the list size before insertion.</returns>
+        public static int PushNote(MoonNote note, List<MoonNote> notes)
+        {
+            int pos = notes.Count;
+            if (pos > 0)
+            {
+                note.previous = notes[pos - 1];
+                notes[pos - 1].next = note;
+            }
+            notes.Add(note);
+            return pos;
+        }
+
+        /// <summary>
+        /// Insert a note into the provided list linearly, with the search starting from the back of the list.
+        /// Ensures correct setting of 'previous' and 'next' variables.
+        /// Use for handling .mid note off events
+        /// </summary>
+        /// <param name="note">The note to be inserted.</param>
+        /// <param name="notes">The list in which the note will be inserted.</param>
+        /// <returns>Returns the list position it was inserted into.</returns>
+        public static int OrderedInsertFromBack(MoonNote note, List<MoonNote> notes)
+        {
+            int pos = notes.Count;
+            while (pos > 0 && notes[pos - 1].tick > note.tick)
+                --pos;
+
+            if (pos > 0 && notes[pos - 1].tick == note.tick)
+            {
+                int check = pos - 1;
+                do
+                {
+                    if (notes[check] == note)
+                        return check;
+                    --check;
+                } while (check >= 0 && notes[check].tick == note.tick);
+            }
+
+            if (pos > 0)
+            {
+                note.previous = notes[pos - 1];
+                notes[pos - 1].next = note;
+            }
+
+            if (pos < notes.Count)
+            {
+                notes[pos].previous = note;
+                note.next = notes[pos];
+            }
+            notes.Insert(pos, note);
+            return pos;
+        }
+
+        /// <summary>
+        /// Insert an item into the provided list linearly, with the search starting from the back of the list.
+        /// Use for handling .mid note off events
+        /// </summary>
+        /// <param name="item">The item to be inserted.</param>
+        /// <param name="list">The list in which the item will be inserted.</param>
+        /// <returns>Returns the list position it was inserted into.</returns>
+        public static int OrderedInsertFromBack<T>(T item, List<T> list) where T : SongObject
+        {
+            int pos = list.Count;
+            while (pos > 0 && item.tick < list[pos - 1].tick)
+                --pos;
+
+            if (pos > 0 && list[pos - 1].tick == item.tick)
+            {
+                int check = pos - 1;
+                do
+                {
+                    if (list[check] == item)
+                        return check;
+                    --check;
+                } while (check >= 0 && list[check].tick == item.tick);
+            }
+
+            list.Insert(pos, item);
+            return pos;
+        }
+
         /// <summary>
         /// Adds the item into a sorted position into the specified list and updates the note linked list if a note is inserted. 
         /// </summary>
@@ -240,7 +328,7 @@ namespace MoonscraperChartEditor.Song
         /// <param name="item">The item to be inserted.</param>
         /// <param name="list">The list in which the item will be inserted.</param>
         /// <returns>Returns the list position it was inserted into.</returns>
-        public static int Insert<T>(T item, IList<T> list) where T : SongObject
+        public static int Insert<T>(T item, List<T> list) where T : SongObject
         {
             int insertionPos = NOTFOUND;
             int count = list.Count;
@@ -382,20 +470,21 @@ namespace MoonscraperChartEditor.Song
         /// <param name="item">The item to be remove.</param>
         /// <param name="list">The list in which the item will be removed from.</param>
         /// <returns>Returns whether the item was successfully removed or not (may not be removed if the objects was not found).</returns>
-        public static bool Remove<T>(T item, IList<T> list, bool uniqueData = true) where T : SongObject
+        public static bool Remove(MoonNote item, IList<MoonNote> list, bool uniqueData = true)
         {
             int pos = FindObjectPosition(item, list);
 
             if (pos != NOTFOUND)
             {
-                if (uniqueData && item.GetType() == typeof(MoonNote))
+                if (uniqueData)
                 {
                     // Update linked list
-                    var previous = FindPreviousOfType(item.GetType(), pos, list) as MoonNote;
-                    var next = FindNextOfType(item.GetType(), pos, list) as MoonNote;
+                    var previous = FindPreviousOfType(item.GetType(), pos, list);
+                    var next = FindNextOfType(item.GetType(), pos, list);
 
                     if (previous != null)
                         previous.next = next;
+
                     if (next != null)
                         next.previous = previous;
                 }
@@ -406,6 +495,19 @@ namespace MoonscraperChartEditor.Song
 
             return false;
         }
+
+        public static bool Remove<T>(T item, IList<T> list) where T : SongObject
+        {
+            int pos = FindObjectPosition(item, list);
+            if (pos != NOTFOUND)
+            {
+                list.RemoveAt(pos);
+                return true;
+            }
+            return false;
+        }
+
+
         public static T[] GetRangeCopy<T>(T[] list, uint minPos, uint maxPos) where T : SongObject
         {
             GetRange(list, minPos, maxPos, out int index, out int length);

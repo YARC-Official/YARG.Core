@@ -35,7 +35,7 @@ namespace MoonscraperChartEditor.Song
             public BeatInfo quarterBeatLine;
         }
 
-        public MeasureInfo GetMeasureInfo()
+        public MeasureInfo GetMeasureInfo(MoonSong song)
         {
             var measureInfo = new MeasureInfo();
             float resolution = song.resolution;
@@ -68,10 +68,7 @@ namespace MoonscraperChartEditor.Song
 
         public new TimeSignature Clone()
         {
-            return new TimeSignature(tick, numerator, denominator)
-            {
-                song = song,
-            };
+            return new TimeSignature(tick, numerator, denominator);
         }
 
         public override string ToString()

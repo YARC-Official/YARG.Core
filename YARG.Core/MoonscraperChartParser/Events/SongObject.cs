@@ -9,30 +9,16 @@ namespace MoonscraperChartEditor.Song
     internal abstract class SongObject
     {
         /// <summary>
-        /// The song this object is connected to.
-        /// </summary>
-        [NonSerialized]
-        public MoonSong song;
-        /// <summary>
         /// The tick position of the object
         /// </summary>
         public uint tick;
 
         public abstract int classID { get; }
-
-// Non-nullable field 'song' must contain a non-null value when exiting constructor
-// 'song' is assigned externally as part of this object being added to a song
-#pragma warning disable 8618
+        
         public SongObject(uint _tick)
         {
             tick = _tick;
         }
-#pragma warning restore 8618
-
-        /// <summary>
-        /// Automatically converts the object's tick position into the time it will appear in the song.
-        /// </summary>
-        public double time => song.TickToTime(tick, song.resolution);
 
         // Clone needs to be hideable so it can return a different type in derived classes
         protected abstract SongObject SongClone();

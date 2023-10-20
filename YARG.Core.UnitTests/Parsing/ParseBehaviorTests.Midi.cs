@@ -1,9 +1,8 @@
-using Melanchall.DryWetMidi.Common;
+﻿using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.Core;
 using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
 using NUnit.Framework;
-using YARG.Core;
 using YARG.Core.Extensions;
 
 namespace YARG.Core.UnitTests.Parsing
@@ -228,19 +227,31 @@ namespace YARG.Core.UnitTests.Parsing
         private static TrackChunk GenerateSyncChunk(MoonSong sourceSong)
         {
             var timedEvents = new MidiEventList();
-            foreach (var sync in sourceSong.syncTrack)
+
+            // Indexing the separate lists is the only way to
+            // 1: Not allocate more space for a combined list, and
+            // 2: Not rely on polymorphic queries
+            int timeSigIndex = 0;
+            int bpmIndex = 0;
+            while (timeSigIndex < sourceSong.timeSignatures.Count ||
+                   bpmIndex < sourceSong.bpms.Count)
             {
-                switch (sync)
+                // Generate in this order: time sig, bpm
+                while (timeSigIndex < sourceSong.timeSignatures.Count &&
+                    // Time sig comes before or at the same time as a bpm
+                    (bpmIndex == sourceSong.bpms.Count || sourceSong.timeSignatures[timeSigIndex].tick <= sourceSong.bpms[bpmIndex].tick))
                 {
-                    case BPM bpm:
-                        // MIDI stores tempo as microseconds per quarter note, so we need to convert
-                        // Moonscraper already ties BPM to quarter notes, so no additional conversion is needed
-                        long microseconds = Chart.TempoChange.BpmToMicroSeconds(bpm.displayValue);
-                        timedEvents.Add((sync.tick, new SetTempoEvent(microseconds)));
-                        break;
-                    case TimeSignature ts:
-                        timedEvents.Add((sync.tick, new TimeSignatureEvent((byte)ts.numerator, (byte)ts.denominator)));
-                        break;
+                    var ts = sourceSong.timeSignatures[timeSigIndex++];
+                    timedEvents.Add((ts.tick, new TimeSignatureEvent((byte) ts.numerator, (byte) ts.denominator)));
+                }
+
+                while (bpmIndex < sourceSong.bpms.Count &&
+                    // Bpm comes before a time sig (equals does not count)
+                    (timeSigIndex == sourceSong.timeSignatures.Count || sourceSong.bpms[bpmIndex].tick < sourceSong.timeSignatures[timeSigIndex].tick))
+                {
+                    var bpm = sourceSong.bpms[bpmIndex++];
+                    long microseconds = Chart.TempoChange.BpmToMicroSeconds(bpm.displayValue);
+                    timedEvents.Add((bpm.tick, new SetTempoEvent((long) microseconds)));
                 }
             }
 
@@ -249,10 +260,32 @@ namespace YARG.Core.UnitTests.Parsing
 
         private static TrackChunk GenerateEventsChunk(MoonSong sourceSong)
         {
-            var timedEvents = new MidiEventList();
-            foreach (var text in sourceSong.eventsAndSections)
+            MidiEventList timedEvents = new();
+
+            // Indexing the separate lists is the only way to
+            // 1: Not allocate more space for a combined list, and
+            // 2: Not rely on polymorphic queries
+            int sectionIndex = 0;
+            int eventIndex = 0;
+            while (sectionIndex < sourceSong.sections.Count ||
+                   eventIndex < sourceSong.events.Count)
             {
-                timedEvents.Add((text.tick, new TextEvent(text.title)));
+                // Generate in this order: sections, events
+                while (sectionIndex < sourceSong.sections.Count &&
+                    // Section comes before or at the same time as an event
+                    (eventIndex == sourceSong.events.Count || sourceSong.sections[sectionIndex].tick <= sourceSong.events[eventIndex].tick))
+                {
+                    var section = sourceSong.sections[sectionIndex++];
+                    timedEvents.Add((section.tick, new TextEvent(section.title)));
+                }
+
+                while (eventIndex < sourceSong.events.Count &&
+                    // Event comes before a section (equals does not count)
+                    (sectionIndex == sourceSong.sections.Count || sourceSong.bpms[eventIndex].tick < sourceSong.sections[sectionIndex].tick))
+                {
+                    var ev = sourceSong.events[eventIndex++];
+                    timedEvents.Add((ev.tick, new TextEvent(ev.title)));
+                }
             }
 
             return FinalizeTrackChunk(EVENTS_TRACK, timedEvents);
@@ -278,19 +311,41 @@ namespace YARG.Core.UnitTests.Parsing
                     continue;
 
                 var chart = sourceSong.GetChart(instrument, difficulty);
-                foreach (var chartObj in chart.chartObjects)
+
+                // Indexing the separate lists is the only way to
+                // 1: Not allocate more space for a combined list, and
+                // 2: Not rely on polymorphic queries
+                int noteIndex = 0;
+                int phraseIndex = difficulty == Difficulty.Expert? 0 : chart.specialPhrases.Count;
+                int eventIndex = difficulty == Difficulty.Expert ? 0 : chart.events.Count;
+
+                while (noteIndex < chart.notes.Count ||
+                        phraseIndex < chart.specialPhrases.Count ||
+                        eventIndex < chart.events.Count)
                 {
-                    switch (chartObj)
+                    // Generate in this order: phrases, notes, then events
+                    while (phraseIndex < chart.specialPhrases.Count &&
+                        // Phrase comes before or at the same time as a note
+                        (noteIndex == chart.notes.Count || chart.specialPhrases[phraseIndex].tick <= chart.notes[noteIndex].tick) &&
+                        // Phrase comes before or at the same time as an event
+                        (eventIndex == chart.events.Count || chart.specialPhrases[phraseIndex].tick <= chart.events[eventIndex].tick))
+                        GenerateSpecialPhrase(timedEvents, chart.specialPhrases[phraseIndex++], gameMode);
+
+                    while (noteIndex < chart.notes.Count &&
+                        // Note comes before a phrase (equals does not count)
+                        (phraseIndex == chart.specialPhrases.Count || chart.notes[noteIndex].tick < chart.specialPhrases[phraseIndex].tick) &&
+                        // Note comes before or at the same time as an event
+                        (eventIndex  == chart.events.Count         || chart.notes[noteIndex].tick <= chart.events[eventIndex].tick))
+                        GenerateNote(timedEvents, chart.notes[noteIndex++], gameMode, difficulty, ref lastNoteTick);
+
+                    while (eventIndex < chart.events.Count &&
+                        // Event comes before a phrase (equals does not count)
+                        (phraseIndex == chart.specialPhrases.Count || chart.events[eventIndex].tick < chart.specialPhrases[phraseIndex].tick) &&
+                        // Event comes before a note (equals does not count)
+                        (noteIndex   == chart.notes.Count          || chart.events[eventIndex].tick < chart.notes[noteIndex].tick))
                     {
-                        case MoonNote note:
-                            GenerateNote(timedEvents, note, gameMode, difficulty, ref lastNoteTick);
-                            break;
-                        case SpecialPhrase phrase when difficulty == Difficulty.Expert:
-                            GenerateSpecialPhrase(timedEvents, phrase, gameMode);
-                            break;
-                        case ChartEvent text when difficulty == Difficulty.Expert:
-                            timedEvents.Add((text.tick, new TextEvent(text.eventName)));
-                            break;
+                        var ev = chart.events[eventIndex++];
+                        timedEvents.Add((ev.tick, new TextEvent(ev.eventName)));
                     }
                 }
             }

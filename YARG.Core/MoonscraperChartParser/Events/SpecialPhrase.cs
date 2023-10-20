@@ -72,7 +72,7 @@ namespace MoonscraperChartEditor.Song
                 return base.LessThan(b);
         }
 
-        public uint GetCappedLengthForPos(uint pos)
+        public uint GetCappedLengthForPos(uint pos, MoonChart? chart)
         {
             uint newLength;
             if (pos > tick)
@@ -81,7 +81,7 @@ namespace MoonscraperChartEditor.Song
                 newLength = 0;
 
             SpecialPhrase? nextSp = null;
-            if (song != null && chart != null)
+            if (chart != null)
             {
                 int arrayPos = SongObjectHelper.FindClosestPosition(this, chart.specialPhrases);
                 if (arrayPos == SongObjectHelper.NOTFOUND)
@@ -114,11 +114,7 @@ namespace MoonscraperChartEditor.Song
 
         public new SpecialPhrase Clone()
         {
-            return new SpecialPhrase(tick, length, type)
-            {
-                song = song,
-                chart = chart,
-            };
+            return new SpecialPhrase(tick, length, type);
         }
 
         public override string ToString()

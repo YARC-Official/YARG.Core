@@ -19,10 +19,7 @@ namespace MoonscraperChartEditor.Song
 
         public new Section Clone()
         {
-            return new Section(title, tick)
-            {
-                song = song,
-            };
+            return new Section(title, tick);
         }
 
         public override string ToString()

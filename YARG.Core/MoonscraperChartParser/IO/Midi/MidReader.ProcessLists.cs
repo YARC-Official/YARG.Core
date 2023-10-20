@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2020 Alexander Ong
+﻿// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
 using System;
@@ -303,20 +303,15 @@ namespace MoonscraperChartEditor.Song.IO
             // TODO: HARM2 phrases are used to mark when lyrics shift in static lyrics, this needs to be preserved in some way
             // TODO: Determine if there are any phrases that shouldn't be removed/copied down
             var chart = processParams.song.GetChart(processParams.instrument, MoonSong.Difficulty.Expert);
-            foreach (var phrase in chart.specialPhrases)
-            {
-                chart.Remove(phrase, false);
-            }
+            chart.specialPhrases.Clear();
 
             // Add in phrases from HARM1
             var harm1 = processParams.song.GetChart(MoonSong.MoonInstrument.Harmony1, MoonSong.Difficulty.Expert);
             foreach (var phrase in harm1.specialPhrases)
             {
                 // Make a new copy instead of adding the original reference
-                chart.Add(phrase.Clone(), false);
+                chart.specialPhrases.Add(phrase.Clone());
             }
-
-            chart.UpdateCache();
         }
 
         private static void SwitchToGuitarEnhancedOpensProcessMap(ref EventProcessParams processParams)

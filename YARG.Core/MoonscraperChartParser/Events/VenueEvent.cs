@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2020 Alexander Ong
+﻿// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
 using System;
@@ -35,10 +35,7 @@ namespace MoonscraperChartEditor.Song
 
         public new VenueEvent Clone()
         {
-            return new VenueEvent(type, title, tick, length)
-            {
-                song = song,
-            };
+            return new VenueEvent(type, title, tick, length);
         }
 
         public override string ToString()
