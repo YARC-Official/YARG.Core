@@ -41,48 +41,78 @@ namespace YARG.Core.IO.Ini
             where TChar : unmanaged, IConvertible
             where TDecoder : StringDecoder<TChar>, new()
         {
-            try
+            switch (type)
             {
-                switch (type)
-                {
-                    case ModifierCreatorType.SortString:       return new(new SortString(reader.ExtractText(false)));
-                    case ModifierCreatorType.SortString_Chart: return new(new SortString(reader.ExtractText(true)));
-                    case ModifierCreatorType.String:           return new(reader.ExtractText(false));
-                    case ModifierCreatorType.String_Chart:     return new(reader.ExtractText(true));
-                    case ModifierCreatorType.UInt64:           return new(reader.ExtractUInt64());
-                    case ModifierCreatorType.Int64:            return new(reader.ExtractInt64());
-                    case ModifierCreatorType.UInt32:           return new(reader.ExtractUInt32());
-                    case ModifierCreatorType.Int32:            return new(reader.ExtractInt32());
-                    case ModifierCreatorType.UInt16:           return new(reader.ExtractUInt16());
-                    case ModifierCreatorType.Int16:            return new(reader.ExtractInt16());
-                    case ModifierCreatorType.Bool:             return new(reader.ExtractBoolean());
-                    case ModifierCreatorType.Float:            return new(reader.ExtractFloat());
-                    case ModifierCreatorType.Double:           return new(reader.ExtractDouble());
-                    case ModifierCreatorType.UInt64Array:
-                        {
-                            ulong ul1 = reader.ExtractUInt64();
-                            ulong ul2 = reader.ExtractUInt64();
-                            return new(ul1, ul2);
-                        }
-                }
+                case ModifierCreatorType.SortString:       return new IniModifier(new SortString(reader.ExtractText(false)));
+                case ModifierCreatorType.SortString_Chart: return new IniModifier(new SortString(reader.ExtractText(true)));
+                case ModifierCreatorType.String:           return new IniModifier(reader.ExtractText(false));
+                case ModifierCreatorType.String_Chart:     return new IniModifier(reader.ExtractText(true));
+                case ModifierCreatorType.UInt64:
+                    {
+                        if (reader.ExtractUInt64(out ulong value))
+                            return new IniModifier(value);
+                        return new IniModifier((ulong) 0);
+                    }
+                case ModifierCreatorType.Int64:
+                    {
+                        if (reader.ExtractInt64(out long value))
+                            return new IniModifier(value);
+                        return new IniModifier((long) 0);
+                    }
+                case ModifierCreatorType.UInt32:
+                    {
+                        if (reader.ExtractUInt32(out uint value))
+                            return new IniModifier(value);
+                        return new IniModifier((uint) 0);
+                    }
+                case ModifierCreatorType.Int32:
+                    {
+                        if (reader.ExtractInt32(out int value))
+                            return new IniModifier(value);
+                        return new IniModifier(0);
+                    }
+                case ModifierCreatorType.UInt16:
+                    {
+                        if (reader.ExtractUInt16(out ushort value))
+                            return new IniModifier(value);
+                        return new IniModifier((ushort) 0);
+                    }
+                case ModifierCreatorType.Int16:
+                    {
+                        if (reader.ExtractInt16(out short value))
+                            return new IniModifier(value);
+                        return new IniModifier((short) 0);
+                    }
+                case ModifierCreatorType.Bool:
+                    try
+                    {
+                        return new IniModifier(reader.ExtractBoolean());
+                    }
+                    catch (Exception)
+                    {
+                        return new IniModifier(false);
+                    }
+                case ModifierCreatorType.Float:
+                    {
+                        if (reader.ExtractFloat(out float value))
+                            return new IniModifier(value);
+                        return new IniModifier(.0f);
+                    }
+                case ModifierCreatorType.Double:
+                    {
+                        if (reader.ExtractDouble(out double value))
+                            return new IniModifier(value);
+                        return new IniModifier(.0);
+                    }
+                case ModifierCreatorType.UInt64Array:
+                    {
+                        if (reader.ExtractUInt64(out ulong ul1) && reader.ExtractUInt64(out ulong ul2))
+                            return new IniModifier(ul1, ul2);
+                        return new IniModifier(0, 0);
+                    }
+                default:
+                    throw new NotImplementedException();
             }
-            catch (Exception)
-            {
-                switch (type)
-                {
-                    case ModifierCreatorType.UInt64:      return new((ulong) 0);
-                    case ModifierCreatorType.Int64:       return new((long) 0);
-                    case ModifierCreatorType.UInt32:      return new((uint) 0);
-                    case ModifierCreatorType.Int32:       return new(0);
-                    case ModifierCreatorType.UInt16:      return new((ushort) 0);
-                    case ModifierCreatorType.Int16:       return new((short) 0);
-                    case ModifierCreatorType.Bool:        return new(false);
-                    case ModifierCreatorType.Float:       return new(.0f);
-                    case ModifierCreatorType.Double:      return new(.0);
-                    case ModifierCreatorType.UInt64Array: return new(0, 0);
-                }
-            }
-            throw new Exception("How in the fu-");
         }
     }
 }
