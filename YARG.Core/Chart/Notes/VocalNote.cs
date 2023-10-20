@@ -206,6 +206,17 @@ namespace YARG.Core.Chart
         {
             return new(this);
         }
+
+        public VocalNote CloneAsPhrase()
+        {
+            var newPhrase = CloneNote();
+            foreach (var child in _childNotes)
+            {
+                newPhrase.AddNoteToPhrase(child.CloneNote());
+            }
+
+            return newPhrase;
+        }
     }
 
     /// <summary>

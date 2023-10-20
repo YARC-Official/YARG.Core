@@ -43,7 +43,7 @@ namespace YARG.Core.Chart
         }
 
         public VocalsPhrase(VocalsPhrase other)
-            : this(other.Bounds.Clone(), other.PhraseParentNote.Clone(), other.Lyrics.Duplicate())
+            : this(other.Bounds.Clone(), other.PhraseParentNote.CloneAsPhrase(), other.Lyrics.Duplicate())
         {
         }
 
