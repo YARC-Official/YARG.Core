@@ -163,7 +163,7 @@ namespace YARG.Core.Chart
                             // Handle modifier lyrics
                             if (lyric.EndsWith(PITCH_SLIDE_CHARACTER))
                                 lyricType = LyricType.PitchSlide;
-                            else if (NONPITCHED_CHARACTERS.Contains(lyric[^1]))
+                            else if (lyric.Length > 0 && NONPITCHED_CHARACTERS.Contains(lyric[^1]))
                                 lyricType = LyricType.NonPitched;
                         }
 
