@@ -265,14 +265,67 @@ namespace YARG.Core.IO
             SkipWhitespace(container);
         }
 
-        public bool   ExtractBoolean() => container.ExtractBoolean(SkipWhitespace);
-        public short  ExtractInt16()   => container.ExtractInt16(SkipWhitespace);
-        public ushort ExtractUInt16()  => container.ExtractUInt16(SkipWhitespace);
-        public int    ExtractInt32()   => container.ExtractInt32(SkipWhitespace);
-        public uint   ExtractUInt32()  => container.ExtractUInt32(SkipWhitespace);
-        public long   ExtractInt64()   => container.ExtractInt64(SkipWhitespace);
-        public ulong  ExtractUInt64()  => container.ExtractUInt64(SkipWhitespace);
-        public float  ExtractFloat()   => container.ExtractFloat(SkipWhitespace);
-        public double ExtractDouble()  => container.ExtractDouble(SkipWhitespace);
+        public bool ExtractBoolean()
+        {
+            bool result = container.ExtractBoolean();
+            SkipWhitespace(container);
+            return result;
+        }
+
+        public short ExtractInt16()
+        {
+            short result = container.ExtractInt16();
+            SkipWhitespace(container);
+            return result;
+        }
+
+        public ushort ExtractUInt16()
+        {
+            ushort result = container.ExtractUInt16();
+            SkipWhitespace(container);
+            return result;
+        }
+
+        public int ExtractInt32()
+        {
+            int result = container.ExtractInt32();
+            SkipWhitespace(container);
+            return result;
+        }
+
+        public uint ExtractUInt32()
+        {
+            uint result = container.ExtractUInt32();
+            SkipWhitespace(container);
+            return result;
+        }
+
+        public long ExtractInt64()
+        {
+            long result = container.ExtractInt64();
+            SkipWhitespace(container);
+            return result;
+        }
+
+        public ulong ExtractUInt64()
+        {
+            ulong result = container.ExtractUInt64();
+            SkipWhitespace(container);
+            return result;
+        }
+
+        public float ExtractFloat()
+        {
+            float result = container.ExtractFloat();
+            SkipWhitespace(container);
+            return result;
+        }
+
+        public double ExtractDouble()
+        {
+            double result = container.ExtractDouble();
+            SkipWhitespace(container);
+            return result;
+        }
     };
 }

@@ -85,9 +85,9 @@ namespace YARG.Core.IO
         private const char LAST_DIGIT_UNSIGNED = '5';
 
         private const short SHORT_MAX = short.MaxValue / 10;
-        public bool ExtractInt16(out short value, Func<YARGTextContainer<TChar>, char> SkipWhitespace)
+        public bool ExtractInt16(out short value)
         {
-            if (InternalExtractSigned(out long tmp, short.MaxValue, short.MinValue, SHORT_MAX, SkipWhitespace))
+            if (InternalExtractSigned(out long tmp, short.MaxValue, short.MinValue, SHORT_MAX))
             {
                 value = (short)tmp;
                 return true;
@@ -97,9 +97,9 @@ namespace YARG.Core.IO
         }
 
         private const int INT_MAX = int.MaxValue / 10;
-        public bool ExtractInt32(out int value, Func<YARGTextContainer<TChar>, char> SkipWhitespace)
+        public bool ExtractInt32(out int value)
         {
-            if (InternalExtractSigned(out long tmp, int.MaxValue, int.MinValue, INT_MAX, SkipWhitespace))
+            if (InternalExtractSigned(out long tmp, int.MaxValue, int.MinValue, INT_MAX))
             {
                 value = (int)tmp;
                 return true;
@@ -109,15 +109,15 @@ namespace YARG.Core.IO
         }
 
         private const long LONG_MAX = long.MaxValue / 10;
-        public bool ExtractInt64(out long value, Func<YARGTextContainer<TChar>, char> SkipWhitespace)
+        public bool ExtractInt64(out long value)
         {
-            return InternalExtractSigned(out value, long.MaxValue, long.MinValue, LONG_MAX, SkipWhitespace);
+            return InternalExtractSigned(out value, long.MaxValue, long.MinValue, LONG_MAX);
         }
 
         private const ushort USHORT_MAX = ushort.MaxValue / 10;
-        public bool ExtractUInt16(out ushort value, Func<YARGTextContainer<TChar>, char> SkipWhitespace)
+        public bool ExtractUInt16(out ushort value)
         {
-            if (InternalExtractUnsigned(out ulong tmp, ushort.MaxValue, USHORT_MAX, SkipWhitespace))
+            if (InternalExtractUnsigned(out ulong tmp, ushort.MaxValue, USHORT_MAX))
             {
                 value = (ushort)tmp;
                 return true;
@@ -127,9 +127,9 @@ namespace YARG.Core.IO
         }
 
         private const uint UINT_MAX = uint.MaxValue / 10;
-        public bool ExtractUInt32(out uint value, Func<YARGTextContainer<TChar>, char> SkipWhitespace)
+        public bool ExtractUInt32(out uint value)
         {
-            if (InternalExtractUnsigned(out ulong tmp, uint.MaxValue, UINT_MAX, SkipWhitespace))
+            if (InternalExtractUnsigned(out ulong tmp, uint.MaxValue, UINT_MAX))
             {
                 value = (uint)tmp;
                 return true;
@@ -139,14 +139,14 @@ namespace YARG.Core.IO
         }
 
         private const ulong ULONG_MAX = ulong.MaxValue / 10;
-        public bool ExtractUInt64(out ulong value, Func<YARGTextContainer<TChar>, char> SkipWhitespace)
+        public bool ExtractUInt64(out ulong value)
         {
-            return InternalExtractUnsigned(out value, ulong.MaxValue, ULONG_MAX, SkipWhitespace);
+            return InternalExtractUnsigned(out value, ulong.MaxValue, ULONG_MAX);
         }
 
-        public bool ExtractFloat(out float value, Func<YARGTextContainer<TChar>, char> SkipWhitespace)
+        public bool ExtractFloat(out float value)
         {
-            if (ExtractDouble(out double tmp, SkipWhitespace))
+            if (ExtractDouble(out double tmp))
             {
                 value = (float)tmp;
                 return true;
@@ -155,7 +155,7 @@ namespace YARG.Core.IO
             return false;
         }
 
-        public bool ExtractDouble(out double value, Func<YARGTextContainer<TChar>, char> SkipWhitespace)
+        public bool ExtractDouble(out double value)
         {
             value = 0;
             if (Position >= Next)
@@ -208,13 +208,12 @@ namespace YARG.Core.IO
             }
 
             value *= sign;
-            SkipWhitespace(this);
             return true;
         }
 
-        public bool ExtractBoolean(Func<YARGTextContainer<TChar>, char> SkipWhitespace)
+        public bool ExtractBoolean()
         {
-            bool result = Data[Position].ToChar(null) switch
+            return Data[Position].ToChar(null) switch
             {
                 '0' => false,
                 '1' => true,
@@ -224,63 +223,60 @@ namespace YARG.Core.IO
                     (Data[Position + 2].ToChar(null).ToAsciiLower() == 'u') &&
                     (Data[Position + 3].ToChar(null).ToAsciiLower() == 'e'),
             };
-
-            SkipWhitespace(this);
-            return result;
         }
 
-        public short ExtractInt16(Func<YARGTextContainer<TChar>, char> SkipWhitespace)
+        public short ExtractInt16()
         {
-            if (ExtractInt16(out short value, SkipWhitespace))
+            if (ExtractInt16(out short value))
                 return value;
             throw new Exception("Data for Int16 not present");
         }
 
-        public ushort ExtractUInt16(Func<YARGTextContainer<TChar>, char> SkipWhitespace)
+        public ushort ExtractUInt16()
         {
-            if (ExtractUInt16(out ushort value, SkipWhitespace))
+            if (ExtractUInt16(out ushort value))
                 return value;
             throw new Exception("Data for UInt16 not present");
         }
 
-        public int ExtractInt32(Func<YARGTextContainer<TChar>, char> SkipWhitespace)
+        public int ExtractInt32()
         {
-            if (ExtractInt32(out int value, SkipWhitespace))
+            if (ExtractInt32(out int value))
                 return value;
             throw new Exception("Data for Int32 not present");
         }
 
-        public uint ExtractUInt32(Func<YARGTextContainer<TChar>, char> SkipWhitespace)
+        public uint ExtractUInt32()
         {
-            if (ExtractUInt32(out uint value, SkipWhitespace))
+            if (ExtractUInt32(out uint value))
                 return value;
             throw new Exception("Data for UInt32 not present");
         }
 
-        public long ExtractInt64(Func<YARGTextContainer<TChar>, char> SkipWhitespace)
+        public long ExtractInt64()
         {
-            if (ExtractInt64(out long value, SkipWhitespace))
+            if (ExtractInt64(out long value))
                 return value;
             throw new Exception("Data for Int64 not present");
         }
 
-        public ulong ExtractUInt64(Func<YARGTextContainer<TChar>, char> SkipWhitespace)
+        public ulong ExtractUInt64()
         {
-            if (ExtractUInt64(out ulong value, SkipWhitespace))
+            if (ExtractUInt64(out ulong value))
                 return value;
             throw new Exception("Data for UInt64 not present");
         }
 
-        public float ExtractFloat(Func<YARGTextContainer<TChar>, char> SkipWhitespace)
+        public float ExtractFloat()
         {
-            if (ExtractFloat(out float value, SkipWhitespace))
+            if (ExtractFloat(out float value))
                 return value;
             throw new Exception("Data for Float not present");
         }
 
-        public double ExtractDouble(Func<YARGTextContainer<TChar>, char> SkipWhitespace)
+        public double ExtractDouble()
         {
-            if (ExtractDouble(out double value, SkipWhitespace))
+            if (ExtractDouble(out double value))
                 return value;
             throw new Exception("Data for Double not present");
         }
@@ -296,7 +292,7 @@ namespace YARG.Core.IO
             }
         }
 
-        private bool InternalExtractSigned(out long value, long hardMax, long hardMin, long softMax, Func<YARGTextContainer<TChar>, char> SkipWhitespace)
+        private bool InternalExtractSigned(out long value, long hardMax, long hardMin, long softMax)
         {
             value = 0;
             if (Position >= Next)
@@ -339,18 +335,16 @@ namespace YARG.Core.IO
 
                         value = sign == -1 ? hardMin : hardMax;
                         SkipDigits();
-                        SkipWhitespace(this);
                         return true;
                     }
                 }
 
                 value *= sign;
-                SkipWhitespace(this);
                 return true;
             }
         }
 
-        private bool InternalExtractUnsigned(out ulong value, ulong hardMax, ulong softMax, Func<YARGTextContainer<TChar>, char> SkipWhitespace)
+        private bool InternalExtractUnsigned(out ulong value, ulong hardMax, ulong softMax)
         {
             value = 0;
             if (Position >= Next)
@@ -386,14 +380,11 @@ namespace YARG.Core.IO
 
                         value = hardMax;
                         SkipDigits();
-                        SkipWhitespace(this);
-                        return true;
                     }
                 }
-
-                SkipWhitespace(this);
-                return true;
+                break;
             }
+            return true;
         }
     }
 }

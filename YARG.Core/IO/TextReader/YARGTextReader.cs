@@ -98,23 +98,131 @@ namespace YARG.Core.IO
             return Decoder.ExtractText(Container, isChartFile);
         }
 
-        public bool   ExtractBoolean() => Container.ExtractBoolean(SkipWhitespace);
-        public short  ExtractInt16()   => Container.ExtractInt16(SkipWhitespace);
-        public ushort ExtractUInt16()  => Container.ExtractUInt16(SkipWhitespace);
-        public int    ExtractInt32()   => Container.ExtractInt32(SkipWhitespace);
-        public uint   ExtractUInt32()  => Container.ExtractUInt32(SkipWhitespace);
-        public long   ExtractInt64()   => Container.ExtractInt64(SkipWhitespace);
-        public ulong  ExtractUInt64()  => Container.ExtractUInt64(SkipWhitespace);
-        public float  ExtractFloat()   => Container.ExtractFloat(SkipWhitespace);
-        public double ExtractDouble()  => Container.ExtractDouble(SkipWhitespace);
+        public bool ExtractBoolean()
+        {
+            bool result = Container.ExtractBoolean();
+            SkipWhitespace(Container);
+            return result;
+        }
 
-        public bool ExtractInt16(out short value)   => Container.ExtractInt16(out value, SkipWhitespace);
-        public bool ExtractUInt16(out ushort value) => Container.ExtractUInt16(out value, SkipWhitespace);
-        public bool ExtractInt32(out int value)     => Container.ExtractInt32(out value, SkipWhitespace);
-        public bool ExtractUInt32(out uint value)   => Container.ExtractUInt32(out value, SkipWhitespace);
-        public bool ExtractInt64(out long value)    => Container.ExtractInt64(out value, SkipWhitespace);
-        public bool ExtractUInt64(out ulong value)  => Container.ExtractUInt64(out value, SkipWhitespace);
-        public bool ExtractFloat(out float value)   => Container.ExtractFloat(out value, SkipWhitespace);
-        public bool ExtractDouble(out double value) => Container.ExtractDouble(out value, SkipWhitespace);
+        public short ExtractInt16()
+        {
+            short result = Container.ExtractInt16();
+            SkipWhitespace(Container);
+            return result;
+        }
+
+        public ushort ExtractUInt16()
+        {
+            ushort result = Container.ExtractUInt16();
+            SkipWhitespace(Container);
+            return result;
+        }
+
+        public int ExtractInt32()
+        {
+            int result = Container.ExtractInt32();
+            SkipWhitespace(Container);
+            return result;
+        }
+
+        public uint ExtractUInt32()
+        {
+            uint result = Container.ExtractUInt32();
+            SkipWhitespace(Container);
+            return result;
+        }
+
+        public long ExtractInt64()
+        {
+            long result = Container.ExtractInt64();
+            SkipWhitespace(Container);
+            return result;
+        }
+
+        public ulong ExtractUInt64()
+        {
+            ulong result = Container.ExtractUInt64();
+            SkipWhitespace(Container);
+            return result;
+        }
+
+        public float ExtractFloat()
+        {
+            float result = Container.ExtractFloat();
+            SkipWhitespace(Container);
+            return result;
+        }
+
+        public double ExtractDouble()
+        {
+            double result = Container.ExtractDouble();
+            SkipWhitespace(Container);
+            return result;
+        }
+
+        public bool ExtractInt16(out short value)
+        {
+            if (!Container.ExtractInt16(out value))
+                return false;
+            SkipWhitespace(Container);
+            return true;
+        }
+
+        public bool ExtractUInt16(out ushort value)
+        {
+            if (!Container.ExtractUInt16(out value))
+                return false;
+            SkipWhitespace(Container);
+            return true;
+        }
+
+        public bool ExtractInt32(out int value)
+        {
+            if (!Container.ExtractInt32(out value))
+                return false;
+            SkipWhitespace(Container);
+            return true;
+        }
+
+        public bool ExtractUInt32(out uint value)
+        {
+            if (!Container.ExtractUInt32(out value))
+                return false;
+            SkipWhitespace(Container);
+            return true;
+        }
+
+        public bool ExtractInt64(out long value)
+        {
+            if (!Container.ExtractInt64(out value))
+                return false;
+            SkipWhitespace(Container);
+            return true;
+        }
+
+        public bool ExtractUInt64(out ulong value)
+        {
+            if (!Container.ExtractUInt64(out value))
+                return false;
+            SkipWhitespace(Container);
+            return true;
+        }
+
+        public bool ExtractFloat(out float value)
+        {
+            if (!Container.ExtractFloat(out value))
+                return false;
+            SkipWhitespace(Container);
+            return true;
+        }
+
+        public bool ExtractDouble(out double value)
+        {
+            if (!Container.ExtractDouble(out value))
+                return false;
+            SkipWhitespace(Container);
+            return true;
+        }
     }
 }
