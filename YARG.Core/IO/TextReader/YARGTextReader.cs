@@ -8,7 +8,7 @@ namespace YARG.Core.IO
         where TChar : unmanaged, IConvertible
         where TDecoder : StringDecoder<TChar>, new()
     {
-        private static char SkipWhitespace(YARGTextContainer<TChar> container)
+        public static char SkipWhitespace(YARGTextContainer<TChar> container)
         {
             while (container.Position < container.Length)
             {
@@ -37,11 +37,6 @@ namespace YARG.Core.IO
             SetNextPointer();
             if (container.Current.ToChar(null) == '\n')
                 GotoNextLine();
-        }
-
-        public char SkipWhitespace()
-        {
-            return SkipWhitespace(Container);
         }
 
         public void GotoNextLine()

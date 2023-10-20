@@ -47,7 +47,7 @@ namespace YARG.Core.IO
             return new YARGDTAReader(container);
         }
 
-        private static char SkipWhitespace(YARGTextContainer<byte> container)
+        public static char SkipWhitespace(YARGTextContainer<byte> container)
         {
             while (container.Position < container.Length)
             {
