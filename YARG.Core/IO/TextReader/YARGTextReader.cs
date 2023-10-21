@@ -7,11 +7,11 @@ namespace YARG.Core.IO
     public sealed class YARGTextReader<TChar>
         where TChar : unmanaged, IConvertible
     {
-        public readonly YARGTextContainer<TChar> Container;
+        private readonly YARGTextContainer<TChar> container;
 
         public YARGTextReader(YARGTextContainer<TChar> container)
         {
-            Container = container;
+            this.container = container;
 
             SkipWhitespace();
             SetNextPointer();
@@ -21,9 +21,9 @@ namespace YARG.Core.IO
 
         public char SkipWhitespace()
         {
-            while (Container.Position < Container.Length)
+            while (container.Position < container.Length)
             {
-                char ch = Container.Current.ToChar(null);
+                char ch = container.Current.ToChar(null);
                 if (ch.IsAsciiWhitespace())
                 {
                     if (ch == '\n')
@@ -31,7 +31,7 @@ namespace YARG.Core.IO
                 }
                 else if (ch != '=')
                     return ch;
-                ++Container.Position;
+                ++container.Position;
             }
 
             return (char) 0;
@@ -42,47 +42,47 @@ namespace YARG.Core.IO
             char curr;
             do
             {
-                Container.Position = Container.Next;
-                if (Container.Position >= Container.Length)
+                container.Position = container.Next;
+                if (container.Position >= container.Length)
                     break;
 
-                Container.Position++;
+                container.Position++;
                 curr = SkipWhitespace();
 
-                if (Container.Position == Container.Length)
+                if (container.Position == container.Length)
                     break;
 
-                if (Container.Current.ToChar(null) == '{')
+                if (container.Current.ToChar(null) == '{')
                 {
-                    Container.Position++;
+                    container.Position++;
                     curr = SkipWhitespace();
                 }
 
                 SetNextPointer();
-            } while (curr == '\n' || curr == '/' && Container[Container.Position + 1].ToChar(null) == '/');
+            } while (curr == '\n' || curr == '/' && container[container.Position + 1].ToChar(null) == '/');
         }
 
         public void SetNextPointer()
         {
-            Container.Next = Container.Position;
-            while (Container.Next < Container.Length && Container[Container.Next].ToChar(null) != '\n')
-                ++Container.Next;
+            container.Next = container.Position;
+            while (container.Next < container.Length && container[container.Next].ToChar(null) != '\n')
+                ++container.Next;
         }
 
         public string ExtractModifierName<TDecoder>(TDecoder decoder)
             where TDecoder : StringDecoder<TChar>
         {
-            int curr = Container.Position;
-            while (curr < Container.Length)
+            int curr = container.Position;
+            while (curr < container.Length)
             {
-                char b = Container[curr].ToChar(null);
+                char b = container[curr].ToChar(null);
                 if (b.IsAsciiWhitespace() || b == '=')
                     break;
                 ++curr;
             }
 
-            var name = Container.Slice(Container.Position, curr - Container.Position);
-            Container.Position = curr;
+            var name = container.Slice(container.Position, curr - container.Position);
+            container.Position = curr;
             SkipWhitespace();
             return decoder.Decode(name);
         }
@@ -90,75 +90,75 @@ namespace YARG.Core.IO
         public string ExtractText<TDecoder>(TDecoder decoder, bool isChartFile)
             where TDecoder : StringDecoder<TChar>
         {
-            return decoder.ExtractText(Container, isChartFile);
+            return decoder.ExtractText(container, isChartFile);
         }
 
         public bool ExtractBoolean()
         {
-            bool result = Container.ExtractBoolean();
+            bool result = container.ExtractBoolean();
             SkipWhitespace();
             return result;
         }
 
         public short ExtractInt16()
         {
-            short result = Container.ExtractInt16();
+            short result = container.ExtractInt16();
             SkipWhitespace();
             return result;
         }
 
         public ushort ExtractUInt16()
         {
-            ushort result = Container.ExtractUInt16();
+            ushort result = container.ExtractUInt16();
             SkipWhitespace();
             return result;
         }
 
         public int ExtractInt32()
         {
-            int result = Container.ExtractInt32();
+            int result = container.ExtractInt32();
             SkipWhitespace();
             return result;
         }
 
         public uint ExtractUInt32()
         {
-            uint result = Container.ExtractUInt32();
+            uint result = container.ExtractUInt32();
             SkipWhitespace();
             return result;
         }
 
         public long ExtractInt64()
         {
-            long result = Container.ExtractInt64();
+            long result = container.ExtractInt64();
             SkipWhitespace();
             return result;
         }
 
         public ulong ExtractUInt64()
         {
-            ulong result = Container.ExtractUInt64();
+            ulong result = container.ExtractUInt64();
             SkipWhitespace();
             return result;
         }
 
         public float ExtractFloat()
         {
-            float result = Container.ExtractFloat();
+            float result = container.ExtractFloat();
             SkipWhitespace();
             return result;
         }
 
         public double ExtractDouble()
         {
-            double result = Container.ExtractDouble();
+            double result = container.ExtractDouble();
             SkipWhitespace();
             return result;
         }
 
         public bool ExtractInt16(out short value)
         {
-            if (!Container.ExtractInt16(out value))
+            if (!container.ExtractInt16(out value))
                 return false;
             SkipWhitespace();
             return true;
@@ -166,7 +166,7 @@ namespace YARG.Core.IO
 
         public bool ExtractUInt16(out ushort value)
         {
-            if (!Container.ExtractUInt16(out value))
+            if (!container.ExtractUInt16(out value))
                 return false;
             SkipWhitespace();
             return true;
@@ -174,7 +174,7 @@ namespace YARG.Core.IO
 
         public bool ExtractInt32(out int value)
         {
-            if (!Container.ExtractInt32(out value))
+            if (!container.ExtractInt32(out value))
                 return false;
             SkipWhitespace();
             return true;
@@ -182,7 +182,7 @@ namespace YARG.Core.IO
 
         public bool ExtractUInt32(out uint value)
         {
-            if (!Container.ExtractUInt32(out value))
+            if (!container.ExtractUInt32(out value))
                 return false;
             SkipWhitespace();
             return true;
@@ -190,7 +190,7 @@ namespace YARG.Core.IO
 
         public bool ExtractInt64(out long value)
         {
-            if (!Container.ExtractInt64(out value))
+            if (!container.ExtractInt64(out value))
                 return false;
             SkipWhitespace();
             return true;
@@ -198,7 +198,7 @@ namespace YARG.Core.IO
 
         public bool ExtractUInt64(out ulong value)
         {
-            if (!Container.ExtractUInt64(out value))
+            if (!container.ExtractUInt64(out value))
                 return false;
             SkipWhitespace();
             return true;
@@ -206,7 +206,7 @@ namespace YARG.Core.IO
 
         public bool ExtractFloat(out float value)
         {
-            if (!Container.ExtractFloat(out value))
+            if (!container.ExtractFloat(out value))
                 return false;
             SkipWhitespace();
             return true;
@@ -214,7 +214,7 @@ namespace YARG.Core.IO
 
         public bool ExtractDouble(out double value)
         {
-            if (!Container.ExtractDouble(out value))
+            if (!container.ExtractDouble(out value))
                 return false;
             SkipWhitespace();
             return true;
