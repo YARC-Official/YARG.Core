@@ -8,10 +8,10 @@ namespace YARG.Core.Song
 {
     public static class ChartPreparser
     {
-        public static bool Preparse<TChar, TBase, TDecoder>(YARGChartFileReader<TChar, TBase, TDecoder> reader, ref PartValues scan, Func<int, bool> func)
+        public static bool Preparse<TChar, TDecoder, TBase>(YARGChartFileReader<TChar, TDecoder, TBase> reader, ref PartValues scan, Func<int, bool> func)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
-            where TBase : unmanaged, IDotChartBases<TChar>
             where TDecoder : IStringDecoder<TChar>, new()
+            where TBase : unmanaged, IDotChartBases<TChar>
         {
             var difficulty = reader.Difficulty;
             if (scan[difficulty])

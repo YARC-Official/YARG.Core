@@ -209,10 +209,10 @@ namespace YARG.Core.IO
         public DotChartEventCombo<char>[] EVENTS_DIFF => _EVENTS_DIFF;
     }
 
-    public sealed class YARGChartFileReader<TChar, TBase, TDecoder>
+    public sealed class YARGChartFileReader<TChar, TDecoder, TBase>
         where TChar : unmanaged, IEquatable<TChar>, IConvertible
-        where TBase : unmanaged, IDotChartBases<TChar>
         where TDecoder : IStringDecoder<TChar>, new()
+        where TBase : unmanaged, IDotChartBases<TChar>
     {
         private static readonly TBase CONFIG = default;
         private readonly YARGTextReader<TChar, TDecoder> reader;
