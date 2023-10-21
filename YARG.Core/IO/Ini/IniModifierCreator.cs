@@ -37,16 +37,16 @@ namespace YARG.Core.IO.Ini
             this.type = type;
         }
 
-        public IniModifier CreateModifier<TChar, TDecoder>(YARGTextReader<TChar, TDecoder> reader)
+        public IniModifier CreateModifier<TChar, TDecoder>(YARGTextReader<TChar> reader, TDecoder decoder)
             where TChar : unmanaged, IConvertible
-            where TDecoder : StringDecoder<TChar>, new()
+            where TDecoder : StringDecoder<TChar>
         {
             switch (type)
             {
-                case ModifierCreatorType.SortString:       return new IniModifier(new SortString(reader.ExtractText(false)));
-                case ModifierCreatorType.SortString_Chart: return new IniModifier(new SortString(reader.ExtractText(true)));
-                case ModifierCreatorType.String:           return new IniModifier(reader.ExtractText(false));
-                case ModifierCreatorType.String_Chart:     return new IniModifier(reader.ExtractText(true));
+                case ModifierCreatorType.SortString:       return new IniModifier(new SortString(reader.ExtractText(decoder, false)));
+                case ModifierCreatorType.SortString_Chart: return new IniModifier(new SortString(reader.ExtractText(decoder, true)));
+                case ModifierCreatorType.String:           return new IniModifier(reader.ExtractText(decoder, false));
+                case ModifierCreatorType.String_Chart:     return new IniModifier(reader.ExtractText(decoder, true));
                 case ModifierCreatorType.UInt64:
                     {
                         if (reader.ExtractUInt64(out ulong value))

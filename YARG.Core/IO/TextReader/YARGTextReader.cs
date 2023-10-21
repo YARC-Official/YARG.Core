@@ -4,9 +4,8 @@ using YARG.Core.Extensions;
 
 namespace YARG.Core.IO
 {
-    public sealed class YARGTextReader<TChar, TDecoder>
+    public sealed class YARGTextReader<TChar>
         where TChar : unmanaged, IConvertible
-        where TDecoder : StringDecoder<TChar>, new()
     {
         public static char SkipWhitespace(YARGTextContainer<TChar> container)
         {
@@ -27,7 +26,6 @@ namespace YARG.Core.IO
         }
 
         public readonly YARGTextContainer<TChar> Container;
-        public readonly TDecoder Decoder = new();
 
         public YARGTextReader(YARGTextContainer<TChar> container)
         {
@@ -71,7 +69,8 @@ namespace YARG.Core.IO
                 ++Container.Next;
         }
 
-        public string ExtractModifierName()
+        public string ExtractModifierName<TDecoder>(TDecoder decoder)
+            where TDecoder : StringDecoder<TChar>
         {
             int curr = Container.Position;
             while (curr < Container.Length)
@@ -85,12 +84,13 @@ namespace YARG.Core.IO
             var name = Container.Slice(Container.Position, curr - Container.Position);
             Container.Position = curr;
             SkipWhitespace(Container);
-            return Decoder.Decode(name);
+            return decoder.Decode(name);
         }
 
-        public string ExtractText(bool isChartFile)
+        public string ExtractText<TDecoder>(TDecoder decoder, bool isChartFile)
+            where TDecoder : StringDecoder<TChar>
         {
-            return Decoder.ExtractText(Container, isChartFile);
+            return decoder.ExtractText(Container, isChartFile);
         }
 
         public bool ExtractBoolean()

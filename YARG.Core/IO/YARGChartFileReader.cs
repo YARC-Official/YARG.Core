@@ -216,7 +216,8 @@ namespace YARG.Core.IO
     {
         private static readonly TBase CONFIG = default;
         private readonly YARGTextContainer<TChar> container;
-        private readonly YARGTextReader<TChar, TDecoder> reader;
+        private readonly TDecoder decoder = new();
+        private readonly YARGTextReader<TChar> reader;
 
         private DotChartEventCombo<TChar>[] eventSet = Array.Empty<DotChartEventCombo<TChar>>();
         private NoteTracks_Chart _instrument;
@@ -228,7 +229,7 @@ namespace YARG.Core.IO
         public YARGChartFileReader(YARGTextContainer<TChar> container)
         {
             this.container = container;
-            reader = new YARGTextReader<TChar, TDecoder>(container);
+            reader = new YARGTextReader<TChar>(container);
         }
 
         public bool IsStartOfTrack()
@@ -342,7 +343,7 @@ namespace YARG.Core.IO
             {
                 if (combo.DoesEventMatch(span))
                 {
-                    YARGTextReader<TChar, TDecoder>.SkipWhitespace(container);
+                    YARGTextReader<TChar>.SkipWhitespace(container);
                     ev.Type = combo.eventType;
                     return true;
                 }
@@ -416,10 +417,10 @@ namespace YARG.Core.IO
             Dictionary<string, List<IniModifier>> modifiers = new();
             while (IsStillCurrentTrack())
             {
-                string name = reader.ExtractModifierName();
+                string name = reader.ExtractModifierName(decoder);
                 if (validNodes.TryGetValue(name, out var node))
                 {
-                    var mod = node.CreateModifier(reader);
+                    var mod = node.CreateModifier(reader, decoder);
                     if (modifiers.TryGetValue(node.outputName, out var list))
                         list.Add(mod);
                     else

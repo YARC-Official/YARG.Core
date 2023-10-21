@@ -48,12 +48,13 @@ namespace YARG.Core.IO.Ini
         where TDecoder : StringDecoder<TChar>, new()
     {
         private readonly YARGTextContainer<TChar> container;
-        private readonly YARGTextReader<TChar, TDecoder> reader;
+        private readonly TDecoder decoder = new();
+        private readonly YARGTextReader<TChar> reader;
 
         public YARGIniReader(YARGTextContainer<TChar> container)
         {
             this.container = container;
-            reader = new YARGTextReader<TChar, TDecoder>(container);
+            reader = new YARGTextReader<TChar>(container);
         }
 
         public bool TrySection(out string section)
@@ -69,7 +70,7 @@ namespace YARG.Core.IO.Ini
                     return false;
             }
 
-            section = reader.Decoder.Decode(container.Slice(container.Position, container.Next - container.Position)).TrimEnd().ToLower();
+            section = decoder.Decode(container.Slice(container.Position, container.Next - container.Position)).TrimEnd().ToLower();
             return true;
         }
 
@@ -108,10 +109,10 @@ namespace YARG.Core.IO.Ini
             reader.GotoNextLine();
             while (IsStillCurrentSection())
             {
-                string name = reader.ExtractModifierName().ToLower();
+                string name = reader.ExtractModifierName(decoder).ToLower();
                 if (validNodes.TryGetValue(name, out var node))
                 {
-                    var mod = node.CreateModifier(reader);
+                    var mod = node.CreateModifier(reader, decoder);
                     if (modifiers.TryGetValue(node.outputName, out var list))
                         list.Add(mod);
                     else
