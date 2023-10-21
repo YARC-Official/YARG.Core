@@ -343,7 +343,7 @@ namespace YARG.Core.IO
             {
                 if (combo.DoesEventMatch(span))
                 {
-                    YARGTextReader<TChar>.SkipWhitespace(container);
+                    reader.SkipWhitespace();
                     ev.Type = combo.eventType;
                     return true;
                 }

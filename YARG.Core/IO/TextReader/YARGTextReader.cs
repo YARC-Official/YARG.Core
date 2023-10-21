@@ -7,11 +7,23 @@ namespace YARG.Core.IO
     public sealed class YARGTextReader<TChar>
         where TChar : unmanaged, IConvertible
     {
-        public static char SkipWhitespace(YARGTextContainer<TChar> container)
+        public readonly YARGTextContainer<TChar> Container;
+
+        public YARGTextReader(YARGTextContainer<TChar> container)
         {
-            while (container.Position < container.Length)
+            Container = container;
+
+            SkipWhitespace();
+            SetNextPointer();
+            if (container.Current.ToChar(null) == '\n')
+                GotoNextLine();
+        }
+
+        public char SkipWhitespace()
+        {
+            while (Container.Position < Container.Length)
             {
-                char ch = container.Current.ToChar(null);
+                char ch = Container.Current.ToChar(null);
                 if (ch.IsAsciiWhitespace())
                 {
                     if (ch == '\n')
@@ -19,22 +31,10 @@ namespace YARG.Core.IO
                 }
                 else if (ch != '=')
                     return ch;
-                ++container.Position;
+                ++Container.Position;
             }
 
-            return (char)0;
-        }
-
-        public readonly YARGTextContainer<TChar> Container;
-
-        public YARGTextReader(YARGTextContainer<TChar> container)
-        {
-            Container = container;
-
-            SkipWhitespace(container);
-            SetNextPointer();
-            if (container.Current.ToChar(null) == '\n')
-                GotoNextLine();
+            return (char) 0;
         }
 
         public void GotoNextLine()
@@ -47,7 +47,7 @@ namespace YARG.Core.IO
                     break;
 
                 Container.Position++;
-                curr = SkipWhitespace(Container);
+                curr = SkipWhitespace();
 
                 if (Container.Position == Container.Length)
                     break;
@@ -55,7 +55,7 @@ namespace YARG.Core.IO
                 if (Container.Current.ToChar(null) == '{')
                 {
                     Container.Position++;
-                    curr = SkipWhitespace(Container);
+                    curr = SkipWhitespace();
                 }
 
                 SetNextPointer();
@@ -83,7 +83,7 @@ namespace YARG.Core.IO
 
             var name = Container.Slice(Container.Position, curr - Container.Position);
             Container.Position = curr;
-            SkipWhitespace(Container);
+            SkipWhitespace();
             return decoder.Decode(name);
         }
 
@@ -96,63 +96,63 @@ namespace YARG.Core.IO
         public bool ExtractBoolean()
         {
             bool result = Container.ExtractBoolean();
-            SkipWhitespace(Container);
+            SkipWhitespace();
             return result;
         }
 
         public short ExtractInt16()
         {
             short result = Container.ExtractInt16();
-            SkipWhitespace(Container);
+            SkipWhitespace();
             return result;
         }
 
         public ushort ExtractUInt16()
         {
             ushort result = Container.ExtractUInt16();
-            SkipWhitespace(Container);
+            SkipWhitespace();
             return result;
         }
 
         public int ExtractInt32()
         {
             int result = Container.ExtractInt32();
-            SkipWhitespace(Container);
+            SkipWhitespace();
             return result;
         }
 
         public uint ExtractUInt32()
         {
             uint result = Container.ExtractUInt32();
-            SkipWhitespace(Container);
+            SkipWhitespace();
             return result;
         }
 
         public long ExtractInt64()
         {
             long result = Container.ExtractInt64();
-            SkipWhitespace(Container);
+            SkipWhitespace();
             return result;
         }
 
         public ulong ExtractUInt64()
         {
             ulong result = Container.ExtractUInt64();
-            SkipWhitespace(Container);
+            SkipWhitespace();
             return result;
         }
 
         public float ExtractFloat()
         {
             float result = Container.ExtractFloat();
-            SkipWhitespace(Container);
+            SkipWhitespace();
             return result;
         }
 
         public double ExtractDouble()
         {
             double result = Container.ExtractDouble();
-            SkipWhitespace(Container);
+            SkipWhitespace();
             return result;
         }
 
@@ -160,7 +160,7 @@ namespace YARG.Core.IO
         {
             if (!Container.ExtractInt16(out value))
                 return false;
-            SkipWhitespace(Container);
+            SkipWhitespace();
             return true;
         }
 
@@ -168,7 +168,7 @@ namespace YARG.Core.IO
         {
             if (!Container.ExtractUInt16(out value))
                 return false;
-            SkipWhitespace(Container);
+            SkipWhitespace();
             return true;
         }
 
@@ -176,7 +176,7 @@ namespace YARG.Core.IO
         {
             if (!Container.ExtractInt32(out value))
                 return false;
-            SkipWhitespace(Container);
+            SkipWhitespace();
             return true;
         }
 
@@ -184,7 +184,7 @@ namespace YARG.Core.IO
         {
             if (!Container.ExtractUInt32(out value))
                 return false;
-            SkipWhitespace(Container);
+            SkipWhitespace();
             return true;
         }
 
@@ -192,7 +192,7 @@ namespace YARG.Core.IO
         {
             if (!Container.ExtractInt64(out value))
                 return false;
-            SkipWhitespace(Container);
+            SkipWhitespace();
             return true;
         }
 
@@ -200,7 +200,7 @@ namespace YARG.Core.IO
         {
             if (!Container.ExtractUInt64(out value))
                 return false;
-            SkipWhitespace(Container);
+            SkipWhitespace();
             return true;
         }
 
@@ -208,7 +208,7 @@ namespace YARG.Core.IO
         {
             if (!Container.ExtractFloat(out value))
                 return false;
-            SkipWhitespace(Container);
+            SkipWhitespace();
             return true;
         }
 
@@ -216,7 +216,7 @@ namespace YARG.Core.IO
         {
             if (!Container.ExtractDouble(out value))
                 return false;
-            SkipWhitespace(Container);
+            SkipWhitespace();
             return true;
         }
     }

@@ -47,11 +47,29 @@ namespace YARG.Core.IO
             return new YARGDTAReader(container);
         }
 
-        public static char SkipWhitespace(YARGTextContainer<byte> container)
+        private readonly YARGTextContainer<byte> container;
+        private readonly List<int> nodeEnds = new();
+        public Encoding encoding;
+
+        private YARGDTAReader(YARGTextContainer<byte> container)
+        {
+            this.container = container;
+            encoding = container.Position == 3 ? Encoding.UTF8 : YARGTextContainer.Latin1;
+            SkipWhitespace();
+        }
+
+        public YARGDTAReader(YARGDTAReader reader)
+        {
+            container = new(reader.container);
+            encoding = reader.encoding;
+            nodeEnds.Add(reader.nodeEnds[0]);
+        }
+
+        public char SkipWhitespace()
         {
             while (container.Position < container.Length)
             {
-                char ch = (char)container.Current;
+                char ch = (char) container.Current;
                 if (!ch.IsAsciiWhitespace() && ch != ';')
                     return ch;
 
@@ -65,25 +83,7 @@ namespace YARG.Core.IO
                     }
                 }
             }
-            return (char)0;
-        }
-
-        private readonly YARGTextContainer<byte> container;
-        private readonly List<int> nodeEnds = new();
-        public Encoding encoding;
-
-        private YARGDTAReader(YARGTextContainer<byte> container)
-        {
-            this.container = container;
-            encoding = container.Position == 3 ? Encoding.UTF8 : YARGTextContainer.Latin1;
-            SkipWhitespace(container);
-        }
-
-        public YARGDTAReader(YARGDTAReader reader)
-        {
-            container = new(reader.container);
-            encoding = reader.encoding;
-            nodeEnds.Add(reader.nodeEnds[0]);
+            return (char) 0;
         }
 
         public string GetNameOfNode()
@@ -114,7 +114,7 @@ namespace YARG.Core.IO
                 ch = (char)container[++container.Position];
             }
             int end = container.Position++;
-            SkipWhitespace(container);
+            SkipWhitespace();
             return Encoding.UTF8.GetString(container.Slice(start, end - start));
         }
 
@@ -169,7 +169,7 @@ namespace YARG.Core.IO
             if (container.Position != container.Next)
             {
                 ++container.Position;
-                SkipWhitespace(container);
+                SkipWhitespace();
             }
             else if (inSquirley || inQuotes || inApostrophes)
                 throw new Exception("Improper end to text");
@@ -211,7 +211,7 @@ namespace YARG.Core.IO
                 return false;
 
             ++container.Position;
-            SkipWhitespace(container);
+            SkipWhitespace();
 
             int scopeLevel = 1;
             bool inApostropes = false;
@@ -262,69 +262,69 @@ namespace YARG.Core.IO
             nodeEnds.RemoveAt(index);
             if (index > 0)
                 container.Next = nodeEnds[--index];
-            SkipWhitespace(container);
+            SkipWhitespace();
         }
 
         public bool ExtractBoolean()
         {
             bool result = container.ExtractBoolean();
-            SkipWhitespace(container);
+            SkipWhitespace();
             return result;
         }
 
         public short ExtractInt16()
         {
             short result = container.ExtractInt16();
-            SkipWhitespace(container);
+            SkipWhitespace();
             return result;
         }
 
         public ushort ExtractUInt16()
         {
             ushort result = container.ExtractUInt16();
-            SkipWhitespace(container);
+            SkipWhitespace();
             return result;
         }
 
         public int ExtractInt32()
         {
             int result = container.ExtractInt32();
-            SkipWhitespace(container);
+            SkipWhitespace();
             return result;
         }
 
         public uint ExtractUInt32()
         {
             uint result = container.ExtractUInt32();
-            SkipWhitespace(container);
+            SkipWhitespace();
             return result;
         }
 
         public long ExtractInt64()
         {
             long result = container.ExtractInt64();
-            SkipWhitespace(container);
+            SkipWhitespace();
             return result;
         }
 
         public ulong ExtractUInt64()
         {
             ulong result = container.ExtractUInt64();
-            SkipWhitespace(container);
+            SkipWhitespace();
             return result;
         }
 
         public float ExtractFloat()
         {
             float result = container.ExtractFloat();
-            SkipWhitespace(container);
+            SkipWhitespace();
             return result;
         }
 
         public double ExtractDouble()
         {
             double result = container.ExtractDouble();
-            SkipWhitespace(container);
+            SkipWhitespace();
             return result;
         }
     };
