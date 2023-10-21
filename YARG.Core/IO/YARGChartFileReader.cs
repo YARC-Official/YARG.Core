@@ -328,7 +328,7 @@ namespace YARG.Core.IO
             int end = start;
             while (true)
             {
-                char curr = reader[end].ToChar(null);
+                char curr = reader.Data[end].ToChar(null);
                 if (!curr.IsAsciiLetter())
                     break;
                 ++end;
@@ -375,13 +375,13 @@ namespace YARG.Core.IO
                 int point = position + next - 1;
                 while (point > position)
                 {
-                    char character = reader[point].ToChar(null);
+                    char character = reader.Data[point].ToChar(null);
                     if (!character.IsAsciiWhitespace() || character == '\n')
                         break;
                     --point;
                 }
 
-                if (reader[point].ToChar(null) == '\n')
+                if (reader.Data[point].ToChar(null) == '\n')
                 {
                     reader.Position = position + next;
                     reader.SetNextPointer();
@@ -402,7 +402,7 @@ namespace YARG.Core.IO
             i = 0;
             while (i < distanceToEnd)
             {
-                if (reader[position + i].ToChar(null) == '}')
+                if (reader.Data[position + i].ToChar(null) == '}')
                     return true;
                 ++i;
             }

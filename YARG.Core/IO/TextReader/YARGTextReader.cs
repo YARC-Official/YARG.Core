@@ -47,7 +47,7 @@ namespace YARG.Core.IO
         {
             SkipWhitespace();
             SetNextPointer();
-            if (Current.ToChar(null) == '\n')
+            if (Data[Position].ToChar(null) == '\n')
                 GotoNextLine();
         }
 
@@ -55,7 +55,7 @@ namespace YARG.Core.IO
         {
             while (Position < Length)
             {
-                char ch = Current.ToChar(null);
+                char ch = Data[Position].ToChar(null);
                 if (ch.IsAsciiWhitespace())
                 {
                     if (ch == '\n')
@@ -84,7 +84,7 @@ namespace YARG.Core.IO
                 if (Position == Length)
                     break;
 
-                if (Current.ToChar(null) == '{')
+                if (Data[Position].ToChar(null) == '{')
                 {
                     Position++;
                     curr = SkipWhitespace();

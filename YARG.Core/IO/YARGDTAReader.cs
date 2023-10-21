@@ -67,7 +67,7 @@ namespace YARG.Core.IO
         {
             while (Position < Length)
             {
-                char ch = (char) Current;
+                char ch = (char) Data[Position];
                 if (!ch.IsAsciiWhitespace() && ch != ';')
                     return ch;
 
@@ -86,7 +86,7 @@ namespace YARG.Core.IO
 
         public string GetNameOfNode()
         {
-            char ch = (char)Current;
+            char ch = (char)Data[Position];
             if (ch == '(')
                 return string.Empty;
 
@@ -118,7 +118,7 @@ namespace YARG.Core.IO
 
         public string ExtractText()
         {
-            char ch = (char)Current;
+            char ch = (char)Data[Position];
             bool inSquirley = ch == '{';
             bool inQuotes = !inSquirley && ch == '\"';
             bool inApostrophes = !inQuotes && ch == '\'';
@@ -129,7 +129,7 @@ namespace YARG.Core.IO
             int start = Position++;
             while (Position < Next)
             {
-                ch = (char)Current;
+                ch = (char)Data[Position];
                 if (ch == '{')
                     throw new Exception("Text error - no { braces allowed");
 
@@ -178,7 +178,7 @@ namespace YARG.Core.IO
         public List<int> ExtractList_Int()
         {
             List<int> values = new();
-            while (Current != ')')
+            while (Data[Position] != ')')
                 values.Add(ExtractInt32());
             return values;
         }
@@ -186,7 +186,7 @@ namespace YARG.Core.IO
         public List<float> ExtractList_Float()
         {
             List<float> values = new();
-            while (Current != ')')
+            while (Data[Position] != ')')
                 values.Add(ExtractFloat());
             return values;
         }
@@ -194,7 +194,7 @@ namespace YARG.Core.IO
         public List<string> ExtractList_String()
         {
             List<string> strings = new();
-            while (Current != ')')
+            while (Data[Position] != ')')
                 strings.Add(ExtractText());
             return strings;
         }
@@ -204,7 +204,7 @@ namespace YARG.Core.IO
             if (Position >= Length)
                 return false;
 
-            byte ch = Current;
+            byte ch = Data[Position];
             if (ch != '(')
                 return false;
 

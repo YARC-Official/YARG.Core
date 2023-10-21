@@ -17,9 +17,6 @@ namespace YARG.Core.IO
         public int Position;
         public int Next;
 
-        public TChar Current => Data[Position];
-        public TChar this[int index] => Data[index];
-
         protected YARGTextContainer(TChar[] data, int position)
         {
             Data = data;
