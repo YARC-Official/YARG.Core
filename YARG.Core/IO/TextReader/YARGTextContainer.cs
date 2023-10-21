@@ -7,40 +7,10 @@ namespace YARG.Core.IO
     public static class YARGTextContainer
     {
         public static readonly Encoding Latin1 = Encoding.GetEncoding(28591);
-        private static readonly UTF32Encoding UTF32BE = new(true, false);
-
-        public static YARGTextContainer<byte>? TryLoadByteText(byte[] data)
-        {
-            if ((data[0] == 0xFF && data[1] == 0xFE) || (data[0] == 0xFE && data[1] == 0xFF))
-                return null;
-
-            int position = data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF ? 3 : 0;
-            return new YARGTextContainer<byte>(data, position);
-        }
-
-        public static YARGTextContainer<char> LoadCharText(byte[] data)
-        {
-            char[] charData;
-            if (data[0] == 0xFF && data[1] == 0xFE)
-            {
-                if (data[2] != 0)
-                    charData = Encoding.Unicode.GetChars(data, 2, data.Length - 2);
-                else
-                    charData = Encoding.UTF32.GetChars(data, 3, data.Length - 3);
-            }
-            else
-            {
-                if (data[2] != 0)
-                    charData = Encoding.BigEndianUnicode.GetChars(data, 2, data.Length - 2);
-                else
-                    charData = UTF32BE.GetChars(data, 3, data.Length - 3);
-            }
-            return new YARGTextContainer<char>(charData, 0);
-        }
     }
 
-    public sealed class YARGTextContainer<TChar>
-        where TChar : IConvertible
+    public abstract class YARGTextContainer<TChar>
+        where TChar : unmanaged, IConvertible
     {
         public readonly TChar[] Data;
         public readonly int Length;
@@ -50,7 +20,7 @@ namespace YARG.Core.IO
         public TChar Current => Data[Position];
         public TChar this[int index] => Data[index];
 
-        public YARGTextContainer(TChar[] data, int position)
+        protected YARGTextContainer(TChar[] data, int position)
         {
             Data = data;
             Length = data.Length;
@@ -58,13 +28,15 @@ namespace YARG.Core.IO
             Next = position;
         }
 
-        public YARGTextContainer(YARGTextContainer<TChar> other)
+        protected YARGTextContainer(YARGTextContainer<TChar> other)
         {
             Data = other.Data;
             Length = other.Length;
             Position = other.Position;
             Next = other.Next;
         }
+
+        public abstract char SkipWhitespace();
 
         public bool IsCurrentCharacter(char cmp)
         {
@@ -188,12 +160,13 @@ namespace YARG.Core.IO
             }
 
             value *= sign;
+            SkipWhitespace();
             return true;
         }
 
         public bool ExtractBoolean()
         {
-            return Data[Position].ToChar(null) switch
+            bool value = Data[Position].ToChar(null) switch
             {
                 '0' => false,
                 '1' => true,
@@ -203,6 +176,8 @@ namespace YARG.Core.IO
                     (Data[Position + 2].ToChar(null).ToAsciiLower() == 'u') &&
                     (Data[Position + 3].ToChar(null).ToAsciiLower() == 'e'),
             };
+            SkipWhitespace();
+            return value;
         }
 
         public short ExtractInt16()
@@ -315,11 +290,13 @@ namespace YARG.Core.IO
 
                         value = sign == -1 ? hardMin : hardMax;
                         SkipDigits();
+                        SkipWhitespace();
                         return true;
                     }
                 }
 
                 value *= sign;
+                SkipWhitespace();
                 return true;
             }
         }
@@ -364,6 +341,7 @@ namespace YARG.Core.IO
                 }
                 break;
             }
+            SkipWhitespace();
             return true;
         }
     }

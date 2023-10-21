@@ -203,12 +203,12 @@ namespace YARG.Core.Song
             _iniData = iniData;
         }
 
-        private static DrumsType ParseChart<TChar, TBase, TDecoder>(YARGTextContainer<TChar> container, IniSection modifiers, AvailableParts parts)
+        private static DrumsType ParseChart<TChar, TBase, TDecoder>(YARGTextReader<TChar, TDecoder> textReader, IniSection modifiers, AvailableParts parts)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
             where TBase : unmanaged, IDotChartBases<TChar>
             where TDecoder : StringDecoder<TChar>, new()
         {
-            YARGChartFileReader<TChar, TBase, TDecoder> chartReader = new(container);
+            YARGChartFileReader<TChar, TBase, TDecoder> chartReader = new(textReader);
             if (!chartReader.ValidateHeaderTrack())
                 return DrumsType.Unknown;
 
@@ -262,12 +262,12 @@ namespace YARG.Core.Song
             DrumsType drumType = default;
             if (chartType == ChartType.Chart)
             {
-                var byteReader = YARGTextContainer.TryLoadByteText(file);
+                var byteReader = YARGTextLoader.TryLoadByteText(file);
                 if (byteReader != null)
                     drumType = ParseChart<byte, DotChartByte, ByteStringDecoder>(byteReader, modifiers, parts);
                 else
                 {
-                    var charReader = YARGTextContainer.LoadCharText(file);
+                    var charReader = YARGTextLoader.LoadCharText(file);
                     drumType = ParseChart<char, DotChartChar, CharStringDecoder>(charReader, modifiers, parts);
                 }
             }

@@ -215,9 +215,7 @@ namespace YARG.Core.IO
         where TDecoder : StringDecoder<TChar>, new()
     {
         private static readonly TBase CONFIG = default;
-        private readonly YARGTextContainer<TChar> container;
-        private readonly TDecoder decoder = new();
-        private readonly YARGTextReader<TChar> reader;
+        private readonly YARGTextReader<TChar, TDecoder> reader;
 
         private DotChartEventCombo<TChar>[] eventSet = Array.Empty<DotChartEventCombo<TChar>>();
         private NoteTracks_Chart _instrument;
@@ -226,15 +224,14 @@ namespace YARG.Core.IO
         public NoteTracks_Chart Instrument => _instrument;
         public Difficulty Difficulty => _difficulty;
 
-        public YARGChartFileReader(YARGTextContainer<TChar> container)
+        public YARGChartFileReader(YARGTextReader<TChar, TDecoder> reader)
         {
-            this.container = container;
-            reader = new YARGTextReader<TChar>(container);
+            this.reader = reader;
         }
 
         public bool IsStartOfTrack()
         {
-            return !container.IsEndOfFile() && container.IsCurrentCharacter('[');
+            return !reader.IsEndOfFile() && reader.IsCurrentCharacter('[');
         }
 
         public bool ValidateHeaderTrack()
@@ -269,7 +266,7 @@ namespace YARG.Core.IO
                 {
                     _difficulty = difficulty;
                     eventSet = CONFIG.EVENTS_DIFF;
-                    container.Position += name.Length;
+                    reader.Position += name.Length;
                     return true;
                 }
             }
@@ -300,18 +297,18 @@ namespace YARG.Core.IO
 
         private bool DoesStringMatch(ReadOnlySpan<TChar> str)
         {
-            if (container.Next - container.Position < str.Length)
+            if (reader.Next - reader.Position < str.Length)
                 return false;
-            return container.Slice(container.Position, str.Length).SequenceEqual(str);
+            return reader.Slice(reader.Position, str.Length).SequenceEqual(str);
         }
 
         public bool IsStillCurrentTrack()
         {
-            int position = container.Position;
-            if (position == container.Length)
+            int position = reader.Position;
+            if (position == reader.Length)
                 return false;
 
-            if (container.IsCurrentCharacter('}'))
+            if (reader.IsCurrentCharacter('}'))
             {
                 reader.GotoNextLine();
                 return false;
@@ -327,18 +324,18 @@ namespace YARG.Core.IO
 
             ev.Position = reader.ExtractInt64();
 
-            int start = container.Position;
+            int start = reader.Position;
             int end = start;
             while (true)
             {
-                char curr = container[end].ToChar(null);
+                char curr = reader[end].ToChar(null);
                 if (!curr.IsAsciiLetter())
                     break;
                 ++end;
             }
-            container.Position = end;
+            reader.Position = end;
 
-            ReadOnlySpan<TChar> span = container.Slice(start, end - start);
+            ReadOnlySpan<TChar> span = reader.Slice(start, end - start);
             foreach (var combo in eventSet)
             {
                 if (combo.DoesEventMatch(span))
@@ -372,21 +369,21 @@ namespace YARG.Core.IO
         public void SkipTrack()
         {
             reader.GotoNextLine();
-            int position = container.Position;
+            int position = reader.Position;
             while (GetDistanceToTrackCharacter(position, out int next))
             {
                 int point = position + next - 1;
                 while (point > position)
                 {
-                    char character = container[point].ToChar(null);
+                    char character = reader[point].ToChar(null);
                     if (!character.IsAsciiWhitespace() || character == '\n')
                         break;
                     --point;
                 }
 
-                if (container[point].ToChar(null) == '\n')
+                if (reader[point].ToChar(null) == '\n')
                 {
-                    container.Position = position + next;
+                    reader.Position = position + next;
                     reader.SetNextPointer();
                     reader.GotoNextLine();
                     return;
@@ -395,17 +392,17 @@ namespace YARG.Core.IO
                 position += next + 1;
             }
 
-            container.Position = container.Length;
+            reader.Position = reader.Length;
             reader.SetNextPointer();
         }
 
         private bool GetDistanceToTrackCharacter(int position, out int i)
         {
-            int distanceToEnd = container.Length - position;
+            int distanceToEnd = reader.Length - position;
             i = 0;
             while (i < distanceToEnd)
             {
-                if (container[position + i].ToChar(null) == '}')
+                if (reader[position + i].ToChar(null) == '}')
                     return true;
                 ++i;
             }
@@ -417,10 +414,10 @@ namespace YARG.Core.IO
             Dictionary<string, List<IniModifier>> modifiers = new();
             while (IsStillCurrentTrack())
             {
-                string name = reader.ExtractModifierName(decoder);
+                string name = reader.ExtractModifierName();
                 if (validNodes.TryGetValue(name, out var node))
                 {
-                    var mod = node.CreateModifier(reader, decoder);
+                    var mod = node.CreateModifier(reader);
                     if (modifiers.TryGetValue(node.outputName, out var list))
                         list.Add(mod);
                     else

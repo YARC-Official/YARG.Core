@@ -4,26 +4,58 @@ using YARG.Core.Extensions;
 
 namespace YARG.Core.IO
 {
-    public sealed class YARGTextReader<TChar>
-        where TChar : unmanaged, IConvertible
+    public static class YARGTextLoader
     {
-        private readonly YARGTextContainer<TChar> container;
+        private static readonly UTF32Encoding UTF32BE = new(true, false);
 
-        public YARGTextReader(YARGTextContainer<TChar> container)
+        public static YARGTextReader<byte, ByteStringDecoder>? TryLoadByteText(byte[] data)
         {
-            this.container = container;
+            if ((data[0] == 0xFF && data[1] == 0xFE) || (data[0] == 0xFE && data[1] == 0xFF))
+                return null;
 
+            int position = data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF ? 3 : 0;
+            return new YARGTextReader<byte, ByteStringDecoder>(data, position);
+        }
+
+        public static YARGTextReader<char, CharStringDecoder> LoadCharText(byte[] data)
+        {
+            char[] charData;
+            if (data[0] == 0xFF && data[1] == 0xFE)
+            {
+                if (data[2] != 0)
+                    charData = Encoding.Unicode.GetChars(data, 2, data.Length - 2);
+                else
+                    charData = Encoding.UTF32.GetChars(data, 3, data.Length - 3);
+            }
+            else
+            {
+                if (data[2] != 0)
+                    charData = Encoding.BigEndianUnicode.GetChars(data, 2, data.Length - 2);
+                else
+                    charData = UTF32BE.GetChars(data, 3, data.Length - 3);
+            }
+            return new YARGTextReader<char, CharStringDecoder>(charData, 0);
+        }
+    }
+
+    public sealed class YARGTextReader<TChar, TDecoder> : YARGTextContainer<TChar>
+        where TChar : unmanaged, IConvertible
+        where TDecoder : StringDecoder<TChar>, new()
+    {
+        private TDecoder decoder = new();
+        public YARGTextReader(TChar[] data, int position) : base(data, position)
+        {
             SkipWhitespace();
             SetNextPointer();
-            if (container.Current.ToChar(null) == '\n')
+            if (Current.ToChar(null) == '\n')
                 GotoNextLine();
         }
 
-        public char SkipWhitespace()
+        public override char SkipWhitespace()
         {
-            while (container.Position < container.Length)
+            while (Position < Length)
             {
-                char ch = container.Current.ToChar(null);
+                char ch = Current.ToChar(null);
                 if (ch.IsAsciiWhitespace())
                 {
                     if (ch == '\n')
@@ -31,7 +63,7 @@ namespace YARG.Core.IO
                 }
                 else if (ch != '=')
                     return ch;
-                ++container.Position;
+                ++Position;
             }
 
             return (char) 0;
@@ -42,182 +74,58 @@ namespace YARG.Core.IO
             char curr;
             do
             {
-                container.Position = container.Next;
-                if (container.Position >= container.Length)
+                Position = Next;
+                if (Position >= Length)
                     break;
 
-                container.Position++;
+                Position++;
                 curr = SkipWhitespace();
 
-                if (container.Position == container.Length)
+                if (Position == Length)
                     break;
 
-                if (container.Current.ToChar(null) == '{')
+                if (Current.ToChar(null) == '{')
                 {
-                    container.Position++;
+                    Position++;
                     curr = SkipWhitespace();
                 }
 
                 SetNextPointer();
-            } while (curr == '\n' || curr == '/' && container[container.Position + 1].ToChar(null) == '/');
+            } while (curr == '\n' || curr == '/' && Data[Position + 1].ToChar(null) == '/');
         }
 
         public void SetNextPointer()
         {
-            container.Next = container.Position;
-            while (container.Next < container.Length && container[container.Next].ToChar(null) != '\n')
-                ++container.Next;
+            Next = Position;
+            while (Next < Length && Data[Next].ToChar(null) != '\n')
+                ++Next;
         }
 
-        public string ExtractModifierName<TDecoder>(TDecoder decoder)
-            where TDecoder : StringDecoder<TChar>
+        public string ExtractModifierName()
         {
-            int curr = container.Position;
-            while (curr < container.Length)
+            int curr = Position;
+            while (curr < Length)
             {
-                char b = container[curr].ToChar(null);
+                char b = Data[curr].ToChar(null);
                 if (b.IsAsciiWhitespace() || b == '=')
                     break;
                 ++curr;
             }
 
-            var name = container.Slice(container.Position, curr - container.Position);
-            container.Position = curr;
+            var name = Slice(Position, curr - Position);
+            Position = curr;
             SkipWhitespace();
             return decoder.Decode(name);
         }
 
-        public string ExtractText<TDecoder>(TDecoder decoder, bool isChartFile)
-            where TDecoder : StringDecoder<TChar>
+        public string ExtractLine()
         {
-            return decoder.ExtractText(container, isChartFile);
+            return decoder.Decode(Slice(Position, Next - Position)).TrimEnd();
         }
 
-        public bool ExtractBoolean()
+        public string ExtractText(bool isChartFile)
         {
-            bool result = container.ExtractBoolean();
-            SkipWhitespace();
-            return result;
-        }
-
-        public short ExtractInt16()
-        {
-            short result = container.ExtractInt16();
-            SkipWhitespace();
-            return result;
-        }
-
-        public ushort ExtractUInt16()
-        {
-            ushort result = container.ExtractUInt16();
-            SkipWhitespace();
-            return result;
-        }
-
-        public int ExtractInt32()
-        {
-            int result = container.ExtractInt32();
-            SkipWhitespace();
-            return result;
-        }
-
-        public uint ExtractUInt32()
-        {
-            uint result = container.ExtractUInt32();
-            SkipWhitespace();
-            return result;
-        }
-
-        public long ExtractInt64()
-        {
-            long result = container.ExtractInt64();
-            SkipWhitespace();
-            return result;
-        }
-
-        public ulong ExtractUInt64()
-        {
-            ulong result = container.ExtractUInt64();
-            SkipWhitespace();
-            return result;
-        }
-
-        public float ExtractFloat()
-        {
-            float result = container.ExtractFloat();
-            SkipWhitespace();
-            return result;
-        }
-
-        public double ExtractDouble()
-        {
-            double result = container.ExtractDouble();
-            SkipWhitespace();
-            return result;
-        }
-
-        public bool ExtractInt16(out short value)
-        {
-            if (!container.ExtractInt16(out value))
-                return false;
-            SkipWhitespace();
-            return true;
-        }
-
-        public bool ExtractUInt16(out ushort value)
-        {
-            if (!container.ExtractUInt16(out value))
-                return false;
-            SkipWhitespace();
-            return true;
-        }
-
-        public bool ExtractInt32(out int value)
-        {
-            if (!container.ExtractInt32(out value))
-                return false;
-            SkipWhitespace();
-            return true;
-        }
-
-        public bool ExtractUInt32(out uint value)
-        {
-            if (!container.ExtractUInt32(out value))
-                return false;
-            SkipWhitespace();
-            return true;
-        }
-
-        public bool ExtractInt64(out long value)
-        {
-            if (!container.ExtractInt64(out value))
-                return false;
-            SkipWhitespace();
-            return true;
-        }
-
-        public bool ExtractUInt64(out ulong value)
-        {
-            if (!container.ExtractUInt64(out value))
-                return false;
-            SkipWhitespace();
-            return true;
-        }
-
-        public bool ExtractFloat(out float value)
-        {
-            if (!container.ExtractFloat(out value))
-                return false;
-            SkipWhitespace();
-            return true;
-        }
-
-        public bool ExtractDouble(out double value)
-        {
-            if (!container.ExtractDouble(out value))
-                return false;
-            SkipWhitespace();
-            return true;
+            return decoder.ExtractText(this, isChartFile);
         }
     }
 }
