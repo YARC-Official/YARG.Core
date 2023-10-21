@@ -39,7 +39,7 @@ namespace YARG.Core.Engine.Vocals.Engines
                 if (note is not null)
                 {
                     State.DidSing = true;
-                    State.PitchSang = note.PitchAtSongTick(State.CurrentTick);
+                    State.PitchSang = note.PitchAtSongTime(State.CurrentTime);
                     State.LastSingTime = time;
                 }
                 else
@@ -156,7 +156,7 @@ namespace YARG.Core.Engine.Vocals.Engines
             }
 
             // Octave does not matter
-            float notePitch = note.PitchAtSongTick(State.CurrentTick) % 12f;
+            float notePitch = note.PitchAtSongTime(State.CurrentTime) % 12f;
             float singPitch = State.PitchSang % 12f;
             float dist = Math.Abs(singPitch - notePitch);
 

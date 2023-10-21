@@ -111,10 +111,10 @@ namespace YARG.Core.Chart
         }
 
         /// <summary>
-        /// Gets the pitch of this note and its children at the specified tick.
+        /// Gets the pitch of this note and its children at the specified time.
         /// Clamps to the start and end if the time is out of bounds.
         /// </summary>
-        public float PitchAtSongTick(uint tick)
+        public float PitchAtSongTime(double time)
         {
             if (Type == VocalNoteType.Phrase)
             {
@@ -122,7 +122,7 @@ namespace YARG.Core.Chart
             }
 
             // Clamp to start
-            if (tick < TickEnd || ChildNotes.Count < 1)
+            if (time < TimeEnd || ChildNotes.Count < 1)
             {
                 return Pitch;
             }
@@ -132,17 +132,17 @@ namespace YARG.Core.Chart
             foreach (var secondNote in ChildNotes)
             {
                 // Check note bounds
-                if (tick >= firstNote.Tick && tick < secondNote.TickEnd)
+                if (time >= firstNote.Time && time < secondNote.TimeEnd)
                 {
-                    // Check if tick is in a specific pitch
-                    if (tick < firstNote.TickEnd)
+                    // Check if time is in a specific pitch
+                    if (time < firstNote.TimeEnd)
                         return firstNote.Pitch;
 
-                    if (tick >= secondNote.Tick)
+                    if (time >= secondNote.Time)
                         return secondNote.Pitch;
 
-                    // Tick is between the two pitches, lerp them
-                    return YargMath.Lerp(firstNote.Pitch, secondNote.Pitch, firstNote.TickEnd, secondNote.Tick, tick);
+                    // Time is between the two pitches, lerp them
+                    return YargMath.Lerp(firstNote.Pitch, secondNote.Pitch, firstNote.TimeEnd, secondNote.Time, time);
                 }
 
                 firstNote = secondNote;
