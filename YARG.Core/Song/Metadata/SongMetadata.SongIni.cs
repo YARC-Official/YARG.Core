@@ -206,7 +206,7 @@ namespace YARG.Core.Song
         private static DrumsType ParseChart<TChar, TBase, TDecoder>(YARGTextReader<TChar, TDecoder> textReader, IniSection modifiers, AvailableParts parts)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
             where TBase : unmanaged, IDotChartBases<TChar>
-            where TDecoder : StringDecoder<TChar>, new()
+            where TDecoder : IStringDecoder<TChar>, new()
         {
             YARGChartFileReader<TChar, TBase, TDecoder> chartReader = new(textReader);
             if (!chartReader.ValidateHeaderTrack())

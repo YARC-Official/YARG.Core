@@ -212,7 +212,7 @@ namespace YARG.Core.IO
     public sealed class YARGChartFileReader<TChar, TBase, TDecoder>
         where TChar : unmanaged, IEquatable<TChar>, IConvertible
         where TBase : unmanaged, IDotChartBases<TChar>
-        where TDecoder : StringDecoder<TChar>, new()
+        where TDecoder : IStringDecoder<TChar>, new()
     {
         private static readonly TBase CONFIG = default;
         private readonly YARGTextReader<TChar, TDecoder> reader;

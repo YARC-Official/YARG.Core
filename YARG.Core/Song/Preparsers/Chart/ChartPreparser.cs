@@ -11,7 +11,7 @@ namespace YARG.Core.Song
         public static bool Preparse<TChar, TBase, TDecoder>(YARGChartFileReader<TChar, TBase, TDecoder> reader, ref PartValues scan, Func<int, bool> func)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
             where TBase : unmanaged, IDotChartBases<TChar>
-            where TDecoder : StringDecoder<TChar>, new()
+            where TDecoder : IStringDecoder<TChar>, new()
         {
             var difficulty = reader.Difficulty;
             if (scan[difficulty])

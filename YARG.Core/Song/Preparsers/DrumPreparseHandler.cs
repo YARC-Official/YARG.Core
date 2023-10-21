@@ -42,7 +42,7 @@ namespace YARG.Core.Song.Preparsers
         public void ParseChart<TChar, TBase, TDecoder>(YARGChartFileReader<TChar, TBase, TDecoder> reader)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
             where TBase : unmanaged, IDotChartBases<TChar>
-            where TDecoder : StringDecoder<TChar>, new()
+            where TDecoder : IStringDecoder<TChar>, new()
         {
             var difficulty = reader.Difficulty.ToDifficultyMask();
 
@@ -70,7 +70,7 @@ namespace YARG.Core.Song.Preparsers
         private bool ParseChartUnknown<TChar, TBase, TDecoder>(YARGChartFileReader<TChar, TBase, TDecoder> reader, DifficultyMask difficulty)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
             where TBase : unmanaged, IDotChartBases<TChar>
-            where TDecoder : StringDecoder<TChar>, new()
+            where TDecoder : IStringDecoder<TChar>, new()
         {
             bool found = false;
             bool checkExpertPlus = difficulty == DifficultyMask.Expert;
@@ -111,7 +111,7 @@ namespace YARG.Core.Song.Preparsers
         private bool ParseChartFourLane<TChar, TBase, TDecoder>(YARGChartFileReader<TChar, TBase, TDecoder> reader, DifficultyMask difficulty)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
             where TBase : unmanaged, IDotChartBases<TChar>
-            where TDecoder : StringDecoder<TChar>, new()
+            where TDecoder : IStringDecoder<TChar>, new()
         {
             bool found = false;
             bool checkExpertPlus = difficulty == DifficultyMask.Expert;
@@ -149,7 +149,7 @@ namespace YARG.Core.Song.Preparsers
         private bool ParseChartCommon<TChar, TBase, TDecoder>(YARGChartFileReader<TChar, TBase, TDecoder> reader, DifficultyMask difficulty)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
             where TBase : unmanaged, IDotChartBases<TChar>
-            where TDecoder : StringDecoder<TChar>, new()
+            where TDecoder : IStringDecoder<TChar>, new()
         {
             bool found = false;
             bool checkExpertPlus = difficulty == DifficultyMask.Expert;

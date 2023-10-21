@@ -39,7 +39,7 @@ namespace YARG.Core.IO.Ini
 
         public IniModifier CreateModifier<TChar, TDecoder>(YARGTextReader<TChar, TDecoder> reader)
             where TChar : unmanaged, IConvertible
-            where TDecoder : StringDecoder<TChar>, new()
+            where TDecoder : IStringDecoder<TChar>, new()
         {
             switch (type)
             {

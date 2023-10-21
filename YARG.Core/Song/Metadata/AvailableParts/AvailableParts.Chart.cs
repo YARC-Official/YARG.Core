@@ -14,7 +14,7 @@ namespace YARG.Core.Song
         public DrumsType ParseChart<TChar, TBase, TDecoder>(YARGChartFileReader<TChar, TBase, TDecoder> reader, DrumsType drumType)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
             where TBase : unmanaged, IDotChartBases<TChar>
-            where TDecoder : StringDecoder<TChar>, new()
+            where TDecoder : IStringDecoder<TChar>, new()
         {
             DrumPreparseHandler drums = new(drumType);
             while (reader.IsStartOfTrack())
@@ -34,7 +34,7 @@ namespace YARG.Core.Song
         private void ParseChartTrack<TChar, TBase, TDecoder>(YARGChartFileReader<TChar, TBase, TDecoder> reader)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
             where TBase : unmanaged, IDotChartBases<TChar>
-            where TDecoder : StringDecoder<TChar>, new()
+            where TDecoder : IStringDecoder<TChar>, new()
         {
             bool skip = reader.Instrument switch
             {

@@ -40,7 +40,7 @@ namespace YARG.Core.IO
 
     public sealed class YARGTextReader<TChar, TDecoder> : YARGTextContainer<TChar>
         where TChar : unmanaged, IConvertible
-        where TDecoder : StringDecoder<TChar>, new()
+        where TDecoder : IStringDecoder<TChar>, new()
     {
         private TDecoder decoder = new();
         public YARGTextReader(TChar[] data, int position) : base(data, position)
@@ -112,20 +112,44 @@ namespace YARG.Core.IO
                 ++curr;
             }
 
-            var name = Slice(Position, curr - Position);
+            string name = decoder.Decode(Data, Position, curr - Position);
             Position = curr;
             SkipWhitespace();
-            return decoder.Decode(name);
+            return name;
         }
 
         public string ExtractLine()
         {
-            return decoder.Decode(Slice(Position, Next - Position)).TrimEnd();
+            return decoder.Decode(Data, Position, Next - Position).TrimEnd();
         }
 
         public string ExtractText(bool isChartFile)
         {
-            return decoder.ExtractText(this, isChartFile);
+            (int stringBegin, int stringEnd) = (Position, Next);
+            if (Data[stringEnd - 1].ToChar(null) == '\r')
+                --stringEnd;
+
+            if (isChartFile && Data[Position].ToChar(null) == '\"')
+            {
+                int end = stringEnd - 1;
+                while (Position + 1 < end && Data[end].ToChar(null).IsAsciiWhitespace())
+                    --end;
+
+                if (Position < end && Data[end].ToChar(null) == '\"' && Data[end - 1].ToChar(null) != '\\')
+                {
+                    ++stringBegin;
+                    stringEnd = end;
+                }
+            }
+
+            if (stringEnd < stringBegin)
+                return string.Empty;
+
+            while (stringEnd > stringBegin && Data[stringEnd - 1].ToChar(null).IsAsciiWhitespace())
+                --stringEnd;
+
+            Position = Next;
+            return decoder.Decode(Data, stringBegin, stringEnd - stringBegin);
         }
     }
 }

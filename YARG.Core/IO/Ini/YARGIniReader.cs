@@ -29,7 +29,7 @@ namespace YARG.Core.IO.Ini
 
         private static Dictionary<string, IniSection> ProcessIni<TChar, TDecoder>(YARGTextReader<TChar, TDecoder> reader, Dictionary<string, Dictionary<string, IniModifierCreator>> sections)
             where TChar : unmanaged, IConvertible
-            where TDecoder : StringDecoder<TChar>, new()
+            where TDecoder : IStringDecoder<TChar>, new()
         {
             Dictionary<string, IniSection> modifierMap = new();
             while (TrySection(reader, out string section))
@@ -44,7 +44,7 @@ namespace YARG.Core.IO.Ini
 
         private static bool TrySection<TChar, TDecoder>(YARGTextReader<TChar, TDecoder> reader, out string section)
             where TChar : unmanaged, IConvertible
-            where TDecoder : StringDecoder<TChar>, new()
+            where TDecoder : IStringDecoder<TChar>, new()
         {
             section = string.Empty;
             if (reader.IsEndOfFile())
@@ -62,7 +62,7 @@ namespace YARG.Core.IO.Ini
 
         private static void SkipSection<TChar, TDecoder>(YARGTextReader<TChar, TDecoder> reader)
             where TChar : unmanaged, IConvertible
-            where TDecoder : StringDecoder<TChar>, new()
+            where TDecoder : IStringDecoder<TChar>, new()
         {
             reader.GotoNextLine();
             int position = reader.Position;
@@ -92,7 +92,7 @@ namespace YARG.Core.IO.Ini
 
         private static IniSection ExtractModifiers<TChar, TDecoder>(YARGTextReader<TChar, TDecoder> reader, ref Dictionary<string, IniModifierCreator> validNodes)
             where TChar : unmanaged, IConvertible
-            where TDecoder : StringDecoder<TChar>, new()
+            where TDecoder : IStringDecoder<TChar>, new()
         {
             Dictionary<string, List<IniModifier>> modifiers = new();
             reader.GotoNextLine();
@@ -114,14 +114,14 @@ namespace YARG.Core.IO.Ini
 
         private static bool IsStillCurrentSection<TChar, TDecoder>(YARGTextReader<TChar, TDecoder> reader)
             where TChar : unmanaged, IConvertible
-            where TDecoder : StringDecoder<TChar>, new()
+            where TDecoder : IStringDecoder<TChar>, new()
         {
             return !reader.IsEndOfFile() && !reader.IsCurrentCharacter('[');
         }
 
         private static bool GetDistanceToTrackCharacter<TChar, TDecoder>(YARGTextReader<TChar, TDecoder> reader, int position, out int i)
             where TChar : unmanaged, IConvertible
-            where TDecoder : StringDecoder<TChar>, new()
+            where TDecoder : IStringDecoder<TChar>, new()
         {
             int distanceToEnd = reader.Length - position;
             i = 0;
