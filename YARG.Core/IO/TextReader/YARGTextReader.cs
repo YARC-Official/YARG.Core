@@ -97,6 +97,31 @@ namespace YARG.Core.IO
             } while (curr == '\n' || curr == '/' && Container.Data[Container.Position + 1].ToChar(null) == '/');
         }
 
+        public void SkipLinesUntil(char stopCharacter)
+        {
+            GotoNextLine();
+            while (Container.Position < Container.Length)
+            {
+                if (Container.Data[Container.Position].ToChar(null) == stopCharacter)
+                {
+                    // Runs a check to ensure that the character is the start of the line
+                    int point = Container.Position - 1;
+                    while (point > Container.Position)
+                    {
+                        char character = Container.Data[point].ToChar(null);
+                        if (!character.IsAsciiWhitespace() || character == '\n')
+                            break;
+                        --point;
+                    }
+
+                    if (Container.Data[point].ToChar(null) == '\n')
+                        break;
+                }
+                ++Container.Position;
+            }
+            SetNextPointer();
+        }
+
         public void SetNextPointer()
         {
             Container.Next = Container.Position;

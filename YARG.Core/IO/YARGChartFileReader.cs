@@ -368,45 +368,9 @@ namespace YARG.Core.IO
 
         public void SkipTrack()
         {
-            reader.GotoNextLine();
-            int position = reader.Container.Position;
-            while (GetDistanceToTrackCharacter(position, out int next))
-            {
-                int point = position + next - 1;
-                while (point > position)
-                {
-                    char character = reader.Container.Data[point].ToChar(null);
-                    if (!character.IsAsciiWhitespace() || character == '\n')
-                        break;
-                    --point;
-                }
-
-                if (reader.Container.Data[point].ToChar(null) == '\n')
-                {
-                    reader.Container.Position = position + next;
-                    reader.SetNextPointer();
-                    reader.GotoNextLine();
-                    return;
-                }
-
-                position += next + 1;
-            }
-
-            reader.Container.Position = reader.Container.Length;
-            reader.SetNextPointer();
-        }
-
-        private bool GetDistanceToTrackCharacter(int position, out int i)
-        {
-            int distanceToEnd = reader.Container.Length - position;
-            i = 0;
-            while (i < distanceToEnd)
-            {
-                if (reader.Container.Data[position + i].ToChar(null) == '}')
-                    return true;
-                ++i;
-            }
-            return false;
+            reader.SkipLinesUntil('}');
+            if (!reader.Container.IsEndOfFile())
+                reader.GotoNextLine();
         }
 
         public Dictionary<string, List<IniModifier>> ExtractModifiers(Dictionary<string, IniModifierCreator> validNodes)
