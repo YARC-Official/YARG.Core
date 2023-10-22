@@ -1,3 +1,4 @@
+using System.Text;
 using Melanchall.DryWetMidi.Core;
 
 namespace YARG.Core.Chart
@@ -10,6 +11,7 @@ namespace YARG.Core.Chart
             NotEnoughBytesPolicy = NotEnoughBytesPolicy.Ignore,
             NoHeaderChunkPolicy = NoHeaderChunkPolicy.Ignore,
             InvalidChannelEventParameterValuePolicy = InvalidChannelEventParameterValuePolicy.ReadValid,
+            TextEncoding = Encoding.UTF8,
             // DecodeTextCallback = DecodeText,
         };
 
