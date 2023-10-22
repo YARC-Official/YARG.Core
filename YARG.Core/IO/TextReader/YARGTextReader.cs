@@ -74,7 +74,7 @@ namespace YARG.Core.IO
             char curr;
             do
             {
-                Position = Next;
+                Position = _next;
                 if (Position >= Length)
                     break;
 
@@ -96,9 +96,9 @@ namespace YARG.Core.IO
 
         public void SetNextPointer()
         {
-            Next = Position;
-            while (Next < Length && Data[Next].ToChar(null) != '\n')
-                ++Next;
+            _next = Position;
+            while (_next < Length && Data[_next].ToChar(null) != '\n')
+                ++_next;
         }
 
         public string ExtractModifierName()
@@ -120,12 +120,12 @@ namespace YARG.Core.IO
 
         public string ExtractLine()
         {
-            return decoder.Decode(Data, Position, Next - Position).TrimEnd();
+            return decoder.Decode(Data, Position, _next - Position).TrimEnd();
         }
 
         public string ExtractText(bool isChartFile)
         {
-            (int stringBegin, int stringEnd) = (Position, Next);
+            (int stringBegin, int stringEnd) = (Position, _next);
             if (Data[stringEnd - 1].ToChar(null) == '\r')
                 --stringEnd;
 
@@ -148,7 +148,7 @@ namespace YARG.Core.IO
             while (stringEnd > stringBegin && Data[stringEnd - 1].ToChar(null).IsAsciiWhitespace())
                 --stringEnd;
 
-            Position = Next;
+            Position = _next;
             return decoder.Decode(Data, stringBegin, stringEnd - stringBegin);
         }
     }

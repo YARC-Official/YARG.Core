@@ -127,7 +127,7 @@ namespace YARG.Core.IO
                 ++Position;
 
             int start = Position++;
-            while (Position < Next)
+            while (Position < _next)
             {
                 ch = (char)Data[Position];
                 if (ch == '{')
@@ -164,7 +164,7 @@ namespace YARG.Core.IO
             }
 
             int end = Position;
-            if (Position != Next)
+            if (Position != _next)
             {
                 ++Position;
                 SkipWhitespace();
@@ -249,7 +249,7 @@ namespace YARG.Core.IO
                 ++pos;
             }
             nodeEnds.Add(pos - 1);
-            Next = pos - 1;
+            _next = pos - 1;
             return true;
         }
 
@@ -259,7 +259,7 @@ namespace YARG.Core.IO
             Position = nodeEnds[index] + 1;
             nodeEnds.RemoveAt(index);
             if (index > 0)
-                Next = nodeEnds[--index];
+                _next = nodeEnds[--index];
             SkipWhitespace();
         }
     };
