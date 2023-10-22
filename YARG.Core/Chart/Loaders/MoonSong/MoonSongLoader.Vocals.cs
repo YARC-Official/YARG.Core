@@ -202,7 +202,7 @@ namespace YARG.Core.Chart
         {
             var vocalType = GetVocalNoteType(moonNote);
             float pitch = GetVocalNotePitch(moonNote, lyricType);
-            
+
             double time = _moonSong.TickToTime(moonNote.tick);
             return new VocalNote(pitch, harmonyPart, vocalType, time, GetLengthInTime(moonNote), moonNote.tick, moonNote.length);
         }
@@ -224,7 +224,9 @@ namespace YARG.Core.Chart
 
             // Percussion notes
             if ((moonNote.flags & MoonNote.Flags.Vocals_Percussion) != 0)
-                flags |= VocalNoteType.Percussion;
+            {
+                flags = VocalNoteType.Percussion;
+            }
 
             return flags;
         }
