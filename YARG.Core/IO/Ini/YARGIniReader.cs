@@ -47,13 +47,13 @@ namespace YARG.Core.IO.Ini
             where TDecoder : IStringDecoder<TChar>, new()
         {
             section = string.Empty;
-            if (reader.IsEndOfFile())
+            if (reader.Container.IsEndOfFile())
                 return false;
 
-            if (!reader.IsCurrentCharacter('['))
+            if (!reader.Container.IsCurrentCharacter('['))
             {
                 SkipSection(reader);
-                if (reader.IsEndOfFile())
+                if (reader.Container.IsEndOfFile())
                     return false;
             }
             section = reader.ExtractLine().ToLower();
@@ -65,28 +65,28 @@ namespace YARG.Core.IO.Ini
             where TDecoder : IStringDecoder<TChar>, new()
         {
             reader.GotoNextLine();
-            int position = reader.Position;
+            int position = reader.Container.Position;
             while (GetDistanceToTrackCharacter(reader, position, out int next))
             {
                 int point = position + next - 1;
                 while (point > position)
                 {
-                    char character = reader.Data[point].ToChar(null);
+                    char character = reader.Container.Data[point].ToChar(null);
                     if (!character.IsAsciiWhitespace() || character == '\n')
                         break;
                     --point;
                 }
 
-                if (reader.Data[point].ToChar(null) == '\n')
+                if (reader.Container.Data[point].ToChar(null) == '\n')
                 {
-                    reader.Position = position + next;
+                    reader.Container.Position = position + next;
                     reader.SetNextPointer();
                     return;
                 }
                 position += next + 1;
             }
 
-            reader.Position = reader.Length;
+            reader.Container.Position = reader.Container.Length;
             reader.SetNextPointer();
         }
 
@@ -116,18 +116,18 @@ namespace YARG.Core.IO.Ini
             where TChar : unmanaged, IConvertible
             where TDecoder : IStringDecoder<TChar>, new()
         {
-            return !reader.IsEndOfFile() && !reader.IsCurrentCharacter('[');
+            return !reader.Container.IsEndOfFile() && !reader.Container.IsCurrentCharacter('[');
         }
 
         private static bool GetDistanceToTrackCharacter<TChar, TDecoder>(YARGTextReader<TChar, TDecoder> reader, int position, out int i)
             where TChar : unmanaged, IConvertible
             where TDecoder : IStringDecoder<TChar>, new()
         {
-            int distanceToEnd = reader.Length - position;
+            int distanceToEnd = reader.Container.Length - position;
             i = 0;
             while (i < distanceToEnd)
             {
-                if (reader.Data[position + i].ToChar(null) == '[')
+                if (reader.Container.Data[position + i].ToChar(null) == '[')
                     return true;
                 ++i;
             }

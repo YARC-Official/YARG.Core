@@ -9,33 +9,29 @@ namespace YARG.Core.IO
         public static readonly Encoding Latin1 = Encoding.GetEncoding(28591);
     }
 
-    public abstract class YARGTextContainer<TChar>
+    public sealed class YARGTextContainer<TChar>
         where TChar : unmanaged, IConvertible
     {
         public readonly TChar[] Data;
         public readonly int Length;
         public int Position;
-        protected int _next;
+        public int Next;
 
-        public int Next => _next;
-
-        protected YARGTextContainer(TChar[] data, int position)
+        public YARGTextContainer(TChar[] data, int position)
         {
             Data = data;
             Length = data.Length;
             Position = position;
-            _next = position;
+            Next = position;
         }
 
-        protected YARGTextContainer(YARGTextContainer<TChar> other)
+        public YARGTextContainer(YARGTextContainer<TChar> other)
         {
             Data = other.Data;
             Length = other.Length;
             Position = other.Position;
-            _next = other._next;
+            Next = other.Next;
         }
-
-        public abstract char SkipWhitespace();
 
         public bool IsCurrentCharacter(char cmp)
         {
@@ -109,7 +105,7 @@ namespace YARG.Core.IO
         public bool ExtractDouble(out double value)
         {
             value = 0;
-            if (Position >= _next)
+            if (Position >= Next)
                 return false;
 
             char ch = Data[Position].ToChar(null);
@@ -118,7 +114,7 @@ namespace YARG.Core.IO
             if (ch == '-' || ch == '+')
             {
                 ++Position;
-                if (Position == _next)
+                if (Position == Next)
                     return false;
                 ch = Data[Position].ToChar(null);
             }
@@ -131,7 +127,7 @@ namespace YARG.Core.IO
                 value *= 10;
                 value += ch - '0';
                 ++Position;
-                if (Position < _next)
+                if (Position < Next)
                     ch = Data[Position].ToChar(null);
                 else
                     break;
@@ -140,7 +136,7 @@ namespace YARG.Core.IO
             if (ch == '.')
             {
                 ++Position;
-                if (Position < _next)
+                if (Position < Next)
                 {
                     double divisor = 1;
                     ch = Data[Position].ToChar(null);
@@ -150,7 +146,7 @@ namespace YARG.Core.IO
                         value += (ch - '0') / divisor;
 
                         ++Position;
-                        if (Position < _next)
+                        if (Position < Next)
                             ch = Data[Position].ToChar(null);
                         else
                             break;
@@ -159,24 +155,21 @@ namespace YARG.Core.IO
             }
 
             value *= sign;
-            SkipWhitespace();
             return true;
         }
 
         public bool ExtractBoolean()
         {
-            bool value = Data[Position].ToChar(null) switch
+            return Position < Next && Data[Position].ToChar(null) switch
             {
                 '0' => false,
                 '1' => true,
-                _ => Position + 4 <= _next &&
+                _ => Position + 4 <= Next &&
                     (Data[Position].ToChar(null).ToAsciiLower() == 't') &&
                     (Data[Position + 1].ToChar(null).ToAsciiLower() == 'r') &&
                     (Data[Position + 2].ToChar(null).ToAsciiLower() == 'u') &&
                     (Data[Position + 3].ToChar(null).ToAsciiLower() == 'e'),
             };
-            SkipWhitespace();
-            return value;
         }
 
         public short ExtractInt16()
@@ -237,7 +230,7 @@ namespace YARG.Core.IO
 
         private void SkipDigits()
         {
-            while (Position < _next)
+            while (Position < Next)
             {
                 char ch = Data[Position].ToChar(null);
                 if (!ch.IsAsciiDigit())
@@ -249,7 +242,7 @@ namespace YARG.Core.IO
         private bool InternalExtractSigned(out long value, long hardMax, long hardMin, long softMax)
         {
             value = 0;
-            if (Position >= _next)
+            if (Position >= Next)
                 return false;
 
             char ch = Data[Position].ToChar(null);
@@ -262,7 +255,7 @@ namespace YARG.Core.IO
                     goto case '+';
                 case '+':
                     ++Position;
-                    if (Position == _next)
+                    if (Position == Next)
                         return false;
                     ch = Data[Position].ToChar(null);
                     break;
@@ -276,7 +269,7 @@ namespace YARG.Core.IO
                 value += ch - '0';
 
                 ++Position;
-                if (Position < _next)
+                if (Position < Next)
                 {
                     ch = Data[Position].ToChar(null);
                     if (ch.IsAsciiDigit())
@@ -289,13 +282,11 @@ namespace YARG.Core.IO
 
                         value = sign == -1 ? hardMin : hardMax;
                         SkipDigits();
-                        SkipWhitespace();
                         return true;
                     }
                 }
 
                 value *= sign;
-                SkipWhitespace();
                 return true;
             }
         }
@@ -303,14 +294,14 @@ namespace YARG.Core.IO
         private bool InternalExtractUnsigned(out ulong value, ulong hardMax, ulong softMax)
         {
             value = 0;
-            if (Position >= _next)
+            if (Position >= Next)
                 return false;
 
             char ch = Data[Position].ToChar(null);
             if (ch == '+')
             {
                 ++Position;
-                if (Position == _next)
+                if (Position == Next)
                     return false;
                 ch = Data[Position].ToChar(null);
             }
@@ -323,7 +314,7 @@ namespace YARG.Core.IO
                 value += (ulong)(ch - '0');
 
                 ++Position;
-                if (Position < _next)
+                if (Position < Next)
                 {
                     ch = Data[Position].ToChar(null);
                     if (ch.IsAsciiDigit())
@@ -340,7 +331,6 @@ namespace YARG.Core.IO
                 }
                 break;
             }
-            SkipWhitespace();
             return true;
         }
     }

@@ -231,7 +231,7 @@ namespace YARG.Core.IO
 
         public bool IsStartOfTrack()
         {
-            return !reader.IsEndOfFile() && reader.IsCurrentCharacter('[');
+            return !reader.Container.IsEndOfFile() && reader.Container.IsCurrentCharacter('[');
         }
 
         public bool ValidateHeaderTrack()
@@ -266,7 +266,7 @@ namespace YARG.Core.IO
                 {
                     _difficulty = difficulty;
                     eventSet = CONFIG.EVENTS_DIFF;
-                    reader.Position += name.Length;
+                    reader.Container.Position += name.Length;
                     return true;
                 }
             }
@@ -297,18 +297,18 @@ namespace YARG.Core.IO
 
         private bool DoesStringMatch(ReadOnlySpan<TChar> str)
         {
-            if (reader.Next - reader.Position < str.Length)
+            if (reader.Container.Next - reader.Container.Position < str.Length)
                 return false;
-            return reader.Slice(reader.Position, str.Length).SequenceEqual(str);
+            return reader.Container.Slice(reader.Container.Position, str.Length).SequenceEqual(str);
         }
 
         public bool IsStillCurrentTrack()
         {
-            int position = reader.Position;
-            if (position == reader.Length)
+            int position = reader.Container.Position;
+            if (position == reader.Container.Length)
                 return false;
 
-            if (reader.IsCurrentCharacter('}'))
+            if (reader.Container.IsCurrentCharacter('}'))
             {
                 reader.GotoNextLine();
                 return false;
@@ -324,18 +324,18 @@ namespace YARG.Core.IO
 
             ev.Position = reader.ExtractInt64();
 
-            int start = reader.Position;
+            int start = reader.Container.Position;
             int end = start;
             while (true)
             {
-                char curr = reader.Data[end].ToChar(null);
+                char curr = reader.Container.Data[end].ToChar(null);
                 if (!curr.IsAsciiLetter())
                     break;
                 ++end;
             }
-            reader.Position = end;
+            reader.Container.Position = end;
 
-            ReadOnlySpan<TChar> span = reader.Slice(start, end - start);
+            ReadOnlySpan<TChar> span = reader.Container.Slice(start, end - start);
             foreach (var combo in eventSet)
             {
                 if (combo.DoesEventMatch(span))
@@ -369,21 +369,21 @@ namespace YARG.Core.IO
         public void SkipTrack()
         {
             reader.GotoNextLine();
-            int position = reader.Position;
+            int position = reader.Container.Position;
             while (GetDistanceToTrackCharacter(position, out int next))
             {
                 int point = position + next - 1;
                 while (point > position)
                 {
-                    char character = reader.Data[point].ToChar(null);
+                    char character = reader.Container.Data[point].ToChar(null);
                     if (!character.IsAsciiWhitespace() || character == '\n')
                         break;
                     --point;
                 }
 
-                if (reader.Data[point].ToChar(null) == '\n')
+                if (reader.Container.Data[point].ToChar(null) == '\n')
                 {
-                    reader.Position = position + next;
+                    reader.Container.Position = position + next;
                     reader.SetNextPointer();
                     reader.GotoNextLine();
                     return;
@@ -392,17 +392,17 @@ namespace YARG.Core.IO
                 position += next + 1;
             }
 
-            reader.Position = reader.Length;
+            reader.Container.Position = reader.Container.Length;
             reader.SetNextPointer();
         }
 
         private bool GetDistanceToTrackCharacter(int position, out int i)
         {
-            int distanceToEnd = reader.Length - position;
+            int distanceToEnd = reader.Container.Length - position;
             i = 0;
             while (i < distanceToEnd)
             {
-                if (reader.Data[position + i].ToChar(null) == '}')
+                if (reader.Container.Data[position + i].ToChar(null) == '}')
                     return true;
                 ++i;
             }

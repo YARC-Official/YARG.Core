@@ -49,66 +49,55 @@ namespace YARG.Core.IO.Ini
                 case ModifierCreatorType.String_Chart:     return new IniModifier(reader.ExtractText(true));
                 case ModifierCreatorType.UInt64:
                     {
-                        if (reader.ExtractUInt64(out ulong value))
-                            return new IniModifier(value);
-                        return new IniModifier((ulong) 0);
+                        reader.Container.ExtractUInt64(out ulong value);
+                        return new IniModifier(value);
                     }
                 case ModifierCreatorType.Int64:
                     {
-                        if (reader.ExtractInt64(out long value))
-                            return new IniModifier(value);
-                        return new IniModifier((long) 0);
+                        reader.Container.ExtractInt64(out long value);
+                        return new IniModifier(value);
                     }
                 case ModifierCreatorType.UInt32:
                     {
-                        if (reader.ExtractUInt32(out uint value))
-                            return new IniModifier(value);
-                        return new IniModifier((uint) 0);
+                        reader.Container.ExtractUInt32(out uint value);
+                        return new IniModifier(value);
                     }
                 case ModifierCreatorType.Int32:
                     {
-                        if (reader.ExtractInt32(out int value))
-                            return new IniModifier(value);
-                        return new IniModifier(0);
+                        reader.Container.ExtractInt32(out int value);
+                        return new IniModifier(value);
                     }
                 case ModifierCreatorType.UInt16:
                     {
-                        if (reader.ExtractUInt16(out ushort value))
-                            return new IniModifier(value);
-                        return new IniModifier((ushort) 0);
+                        reader.Container.ExtractUInt16(out ushort value);
+                        return new IniModifier(value);
                     }
                 case ModifierCreatorType.Int16:
                     {
-                        if (reader.ExtractInt16(out short value))
-                            return new IniModifier(value);
-                        return new IniModifier((short) 0);
+                        reader.Container.ExtractInt16(out short value);
+                        return new IniModifier(value);
                     }
                 case ModifierCreatorType.Bool:
-                    try
                     {
-                        return new IniModifier(reader.ExtractBoolean());
-                    }
-                    catch (Exception)
-                    {
-                        return new IniModifier(false);
+                        return new IniModifier(reader.Container.ExtractBoolean());
                     }
                 case ModifierCreatorType.Float:
                     {
-                        if (reader.ExtractFloat(out float value))
-                            return new IniModifier(value);
-                        return new IniModifier(.0f);
+                        reader.Container.ExtractFloat(out float value);
+                        return new IniModifier(value);
                     }
                 case ModifierCreatorType.Double:
                     {
-                        if (reader.ExtractDouble(out double value))
-                            return new IniModifier(value);
-                        return new IniModifier(.0);
+                        reader.Container.ExtractDouble(out double value);
+                        return new IniModifier(value);
                     }
                 case ModifierCreatorType.UInt64Array:
                     {
-                        if (reader.ExtractUInt64(out ulong ul1) && reader.ExtractUInt64(out ulong ul2))
-                            return new IniModifier(ul1, ul2);
-                        return new IniModifier(0, 0);
+                        ulong ul2 = 0;
+                        // Use reader version for the first one to ensure whitespace removal
+                        if (reader.ExtractUInt64(out ulong ul1))
+                            reader.Container.ExtractUInt64(out ul2);
+                        return new IniModifier(ul1, ul2);
                     }
                 default:
                     throw new NotImplementedException();
