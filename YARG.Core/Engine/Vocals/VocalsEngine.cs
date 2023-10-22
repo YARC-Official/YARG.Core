@@ -109,6 +109,9 @@ namespace YARG.Core.Engine.Vocals
             // No note found to hit
             if (note is null) return false;
 
+            // TODO: Implement vocal percussion. This is temporary.
+            if (note.IsPercussion) return false;
+
             OnTargetNoteChanged?.Invoke(note);
 
             return CanNoteBeHit(note);
@@ -122,6 +125,9 @@ namespace YARG.Core.Engine.Vocals
             double totalTime = 0;
             foreach (var phraseNote in phrase.ChildNotes)
             {
+                // TODO: Implement vocal percussion. This is temporary.
+                if (phraseNote.IsPercussion) continue;
+
                 totalTime += phraseNote.TotalTimeLength;
             }
 

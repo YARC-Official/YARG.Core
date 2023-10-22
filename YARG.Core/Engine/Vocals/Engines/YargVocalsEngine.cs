@@ -36,7 +36,7 @@ namespace YARG.Core.Engine.Vocals.Engines
                 var phrase = Notes[State.NoteIndex];
                 var note = GetNoteInPhraseAtSongTick(phrase, State.CurrentTick);
 
-                if (note is not null)
+                if (note is not null && !note.IsPercussion)
                 {
                     State.DidSing = true;
                     State.PitchSang = note.PitchAtSongTime(State.CurrentTime);
@@ -114,7 +114,12 @@ namespace YARG.Core.Engine.Vocals.Engines
             // Check for end of phrase
             if (State.CurrentTick > phrase.TickEnd)
             {
+                // Get the percent hit. If there's no notes, 100% was hit.
                 double percentHit = State.PhraseTicksHit / State.PhraseTicksTotal.Value;
+                if (State.PhraseTicksTotal.Value == 0)
+                {
+                    percentHit = 1.0;
+                }
 
                 if (percentHit >= EngineParameters.PhraseHitPercent)
                 {
