@@ -273,6 +273,8 @@ namespace YARG.Core.Song.Cache
 
             if (group!.updates.Count > 0)
                 updateGroups.Add(directory, group);
+            else
+                YargTrace.LogWarning($"{directory} .dta file possibly malformed");
         }
 
         private UpgradeGroup? CreateUpgradeGroup(string directory, FileInfo dta, bool removeEntries = false)
@@ -304,6 +306,8 @@ namespace YARG.Core.Song.Cache
                 upgradeGroups.Add(directory, group);
                 return group;
             }
+
+            YargTrace.LogWarning($"{directory} .dta file possibly malformed");
             return null;
         }
 
