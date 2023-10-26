@@ -3,7 +3,7 @@ using System.IO;
 
 namespace YARG.Core.IO
 {
-    public class YargMoggReadStream : Stream
+    public sealed class YargMoggReadStream : Stream
     {
         private const int MATRIXSIZE = 16;
         private readonly FileStream _fileStream;

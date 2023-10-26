@@ -6,94 +6,104 @@ using YARG.Core.Extensions;
 
 namespace YARG.Core.IO
 {
-    public sealed class YARGDTAReader : YARGBaseTextReader<byte>
+    public sealed class YARGDTAReader
     {
-        private static readonly byte[] BOM_UTF8 = { 0xEF, 0xBB, 0xBF };
-        private static readonly byte[] BOM_OTHER = { 0xFF, 0xFE };
+        public static YARGDTAReader? TryCreate(CONFileListing listing)
+        {
+            try
+            {
+                var bytes = listing.LoadAllBytes();
+                return TryCreate(bytes);
+            }
+            catch (Exception ex)
+            {
+                YargTrace.LogException(ex, $"Error while loading {listing.ConFile.FullName}");
+                return null;
+            }
+        }
 
+        public static YARGDTAReader? TryCreate(string filename)
+        {
+            try
+            {
+                var bytes = File.ReadAllBytes(filename);
+                return TryCreate(bytes);
+            }
+            catch (Exception ex)
+            {
+                YargTrace.LogException(ex, $"Error while loading {filename}");
+                return null;
+            }
+        }
+
+        private static YARGDTAReader? TryCreate(byte[] data)
+        {
+            if ((data[0] == 0xFF && data[1] == 0xFE) || (data[0] == 0xFE && data[1] == 0xFF))
+            {
+                YargTrace.LogError("UTF-16 & UTF-32 are not supported for .dta files");
+                return null;
+            }
+
+            int position = data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF ? 3 : 0;
+            return new YARGDTAReader(data, position);
+        }
+
+        private readonly YARGTextContainer<byte> container;
         private readonly List<int> nodeEnds = new();
         public Encoding encoding;
 
-        public YARGDTAReader(byte[] data) : base(data)
+        private YARGDTAReader(byte[] data, int position)
         {
-            if (data[0] == BOM_UTF8[0] && data[1] == BOM_UTF8[1] && data[2] == BOM_UTF8[2])
-            {
-                encoding = Encoding.UTF8;
-                Position += 3;
-            }
-            else if (data[0] == BOM_OTHER[0] && data[1] == BOM_OTHER[1])
-            {
-                if (data[2] == 0)
-                {
-                    encoding = Encoding.UTF32;
-                    Position += 3;
-                }
-                else
-                {
-                    encoding = Encoding.Unicode;
-                    Position += 2;
-                }
-            }
-            else if (data[0] == BOM_OTHER[1] && data[1] == BOM_OTHER[0])
-            {
-                encoding = Encoding.BigEndianUnicode;
-                Position += 2;
-            }
-            else
-                encoding = YARGTextReader.Latin1;
-
-            SkipWhiteSpace();
+            container = new YARGTextContainer<byte>(data, position);
+            encoding = container.Position == 3 ? Encoding.UTF8 : YARGTextContainer.Latin1;
+            SkipWhitespace();
         }
 
-        public YARGDTAReader(string path) : this(File.ReadAllBytes(path)) { }
-
-        public YARGDTAReader(YARGDTAReader reader) : base(reader.Data)
+        public YARGDTAReader(YARGDTAReader reader)
         {
-            Position = reader.Position;
-            _next = reader._next;
+            container = new(reader.container);
             encoding = reader.encoding;
             nodeEnds.Add(reader.nodeEnds[0]);
         }
 
-        public override char SkipWhiteSpace()
+        public char SkipWhitespace()
         {
-            while (Position < Length)
+            while (container.Position < container.Length)
             {
-                char ch = (char)Data[Position];
+                char ch = (char) container.Data[container.Position];
                 if (!ch.IsAsciiWhitespace() && ch != ';')
                     return ch;
 
-                ++Position;
+                ++container.Position;
                 if (!ch.IsAsciiWhitespace())
                 {
-                    while (Position < Length)
+                    while (container.Position < container.Length)
                     {
-                        ++Position;
-                        if (Data[Position - 1] == '\n')
+                        if (container.Data[container.Position++] == '\n')
                             break;
                     }
                 }
             }
-            return (char)0;
+            return (char) 0;
         }
 
         public string GetNameOfNode()
         {
-            char ch = (char)Data[Position];
+            char ch = (char)container.Data[container.Position];
             if (ch == '(')
                 return string.Empty;
 
             bool hasApostrophe = true;
             if (ch != '\'')
             {
-                if (Data[Position - 1] != '(')
+                if (container.Data[container.Position - 1] != '(')
                     throw new Exception("Invalid name call");
                 hasApostrophe = false;
             }
             else
-                ch = (char)Data[++Position];
+                ch = (char) container.Data[++container.Position];
 
-            int start = Position;
+            int start = container.Position;
             while (ch != '\'')
             {
                 if (ch.IsAsciiWhitespace())
@@ -102,27 +112,27 @@ namespace YARG.Core.IO
                         throw new Exception("Invalid name format");
                     break;
                 }
-                ch = (char)Data[++Position];
+                ch = (char) container.Data[++container.Position];
             }
-            int end = Position++;
-            SkipWhiteSpace();
-            return Encoding.UTF8.GetString(new ReadOnlySpan<byte>(Data, start, end - start));
+            int end = container.Position++;
+            SkipWhitespace();
+            return Encoding.UTF8.GetString(container.Data, start, end - start);
         }
 
         public string ExtractText()
         {
-            char ch = (char)Data[Position];
+            char ch = (char)container.Data[container.Position];
             bool inSquirley = ch == '{';
             bool inQuotes = !inSquirley && ch == '\"';
             bool inApostrophes = !inQuotes && ch == '\'';
 
             if (inSquirley || inQuotes || inApostrophes)
-                ++Position;
+                ++container.Position;
 
-            int start = Position++;
-            while (Position < _next)
+            int start = container.Position++;
+            while (container.Position < container.Next)
             {
-                ch = (char)Data[Position];
+                ch = (char)container.Data[container.Position];
                 if (ch == '{')
                     throw new Exception("Text error - no { braces allowed");
 
@@ -153,65 +163,65 @@ namespace YARG.Core.IO
                     if (!inSquirley && !inQuotes)
                         break;
                 }
-                ++Position;
+                ++container.Position;
             }
 
-            int end = Position;
-            if (Position != _next)
+            int end = container.Position;
+            if (container.Position != container.Next)
             {
-                ++Position;
-                SkipWhiteSpace();
+                ++container.Position;
+                SkipWhitespace();
             }
             else if (inSquirley || inQuotes || inApostrophes)
                 throw new Exception("Improper end to text");
 
-            return encoding.GetString(new ReadOnlySpan<byte>(Data, start, end - start)).Replace("\\q", "\"");
+            return encoding.GetString(container.Data, start, end - start).Replace("\\q", "\"");
         }
 
         public List<int> ExtractList_Int()
         {
             List<int> values = new();
-            while (Data[Position] != ')')
-                values.Add(YARGNumberExtractor.Int32(this));
+            while (container.Data[container.Position] != ')')
+                values.Add(ExtractInt32());
             return values;
         }
 
         public List<float> ExtractList_Float()
         {
             List<float> values = new();
-            while (Data[Position] != ')')
-                values.Add(YARGNumberExtractor.Float(this));
+            while (container.Data[container.Position] != ')')
+                values.Add(ExtractFloat());
             return values;
         }
 
         public List<string> ExtractList_String()
         {
             List<string> strings = new();
-            while (Data[Position] != ')')
+            while (container.Data[container.Position] != ')')
                 strings.Add(ExtractText());
             return strings;
         }
 
         public bool StartNode()
         {
-            if (Position >= Length)
+            if (container.Position >= container.Length)
                 return false;
 
-            byte ch = Data[Position];
+            byte ch = container.Data[container.Position];
             if (ch != '(')
                 return false;
 
-            ++Position;
-            SkipWhiteSpace();
+            ++container.Position;
+            SkipWhitespace();
 
             int scopeLevel = 1;
             bool inApostropes = false;
             bool inQuotes = false;
             bool inComment = false;
-            int pos = Position;
-            while (scopeLevel >= 1 && pos < Length)
+            int pos = container.Position;
+            while (scopeLevel >= 1 && pos < container.Length)
             {
-                ch = Data[pos];
+                ch = container.Data[pos];
                 if (inComment)
                 {
                     if (ch == '\n')
@@ -242,18 +252,80 @@ namespace YARG.Core.IO
                 ++pos;
             }
             nodeEnds.Add(pos - 1);
-            _next = pos - 1;
+            container.Next = pos - 1;
             return true;
         }
 
         public void EndNode()
         {
             int index = nodeEnds.Count - 1;
-            Position = nodeEnds[index] + 1;
+            container.Position = nodeEnds[index] + 1;
             nodeEnds.RemoveAt(index);
             if (index > 0)
-                _next = nodeEnds[--index];
-            SkipWhiteSpace();
+                container.Next = nodeEnds[--index];
+            SkipWhitespace();
+        }
+
+        public bool ExtractBoolean()
+        {
+            bool result = container.ExtractBoolean();
+            SkipWhitespace();
+            return result;
+        }
+
+        public short ExtractInt16()
+        {
+            short result = container.ExtractInt16();
+            SkipWhitespace();
+            return result;
+        }
+
+        public ushort ExtractUInt16()
+        {
+            ushort result = container.ExtractUInt16();
+            SkipWhitespace();
+            return result;
+        }
+
+        public int ExtractInt32()
+        {
+            int result = container.ExtractInt32();
+            SkipWhitespace();
+            return result;
+        }
+        public uint ExtractUInt32()
+        {
+            uint result = container.ExtractUInt32();
+            SkipWhitespace();
+            return result;
+        }
+
+        public long ExtractInt64()
+        {
+            long result = container.ExtractInt64();
+            SkipWhitespace();
+            return result;
+        }
+
+        public ulong ExtractUInt64()
+        {
+            ulong result = container.ExtractUInt64();
+            SkipWhitespace();
+            return result;
+        }
+
+        public float ExtractFloat()
+        {
+            float result = container.ExtractFloat();
+            SkipWhitespace();
+            return result;
+        }
+
+        public double ExtractDouble()
+        {
+            double result = container.ExtractDouble();
+            SkipWhitespace();
+            return result;
         }
     };
 }

@@ -75,9 +75,12 @@ namespace YARG.Core.Song.Cache
 
         private void ScanExtractedCONGroup(string directory, UnpackedCONGroup group)
         {
+            var reader = group.LoadDTA();
+            if (reader == null)
+                return;
+
             try
             {
-                YARGDTAReader reader = new(group.dta.FullName);
                 Dictionary<string, int> indices = new();
                 while (reader.StartNode())
                 {

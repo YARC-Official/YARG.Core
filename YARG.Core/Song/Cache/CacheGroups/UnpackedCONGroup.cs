@@ -13,6 +13,11 @@ namespace YARG.Core.Song.Cache
             this.dta = dta;
         }
 
+        public YARGDTAReader? LoadDTA()
+        {
+            return YARGDTAReader.TryCreate(dta.FullName);
+        }
+
         public override bool ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings)
         {
             var song = SongMetadata.UnpackedRBCONFromCache(dta, nodeName, upgrades, reader, strings);

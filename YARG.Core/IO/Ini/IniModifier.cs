@@ -27,10 +27,10 @@ namespace YARG.Core.IO.Ini
         UInt64Array,
     };
 
-    public sealed unsafe class IniModifier
+    public sealed class IniModifier
     {
         [StructLayout(LayoutKind.Explicit)]
-        private struct ModifierUnion
+        private unsafe struct ModifierUnion
         {
             [FieldOffset(0)] public ulong ul;
             [FieldOffset(0)] public long l;
@@ -108,8 +108,11 @@ namespace YARG.Core.IO.Ini
         public IniModifier(ulong dub1, ulong dub2)
         {
             type = ModifierType.UInt64Array;
-            union.ulArr[0] = dub1;
-            union.ulArr[1] = dub2;
+            unsafe
+            {
+                union.ulArr[0] = dub1;
+                union.ulArr[1] = dub2;
+            }
         }
 
         public SortString SortString
@@ -294,14 +297,21 @@ namespace YARG.Core.IO.Ini
             {
                 if (type != ModifierType.UInt64Array)
                     throw new ArgumentException("Modifier is not a UINT64ARRAY");
-                return new ulong[] { union.ulArr[0], union.ulArr[1] };
+                unsafe
+                {
+                    return new ulong[] { union.ulArr[0], union.ulArr[1] };
+                }
             }
             set
             {
                 if (type != ModifierType.UInt64Array)
                     throw new ArgumentException("Modifier is not a UINT64ARRAY");
-                union.ulArr[0] = value[0];
-                union.ulArr[1] = value[1];
+
+                unsafe
+                {
+                    union.ulArr[0] = value[0];
+                    union.ulArr[1] = value[1];
+                }
             }
         }
     }
