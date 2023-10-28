@@ -120,20 +120,19 @@ namespace YARG.Core.IO
                 if (value == fileSize)
                     return;
 
-                blockIndex = (int) (value / dataBuffer.Size);
+                int truePosition = (int)(value + initialOffset);
+                blockIndex = truePosition / dataBuffer.Size;
+                bufferPosition = truePosition % dataBuffer.Size;
 
-                int offset = blockIndex == 0 ? initialOffset : 0;
-                bufferPosition = (int) (value % dataBuffer.Size) + offset;
-                
-                int readPosition = (int)value - bufferPosition;
-                int readSize = dataBuffer.Size - offset;
-                if (readSize > fileSize - readPosition)
-                    readSize = fileSize - readPosition;
+                int readSize = dataBuffer.Size - bufferPosition;
+                if (readSize > fileSize - _position)
+                    readSize = (int)(fileSize - _position);
 
                 if (blockIndex < blockLocations.Size)
                 {
-                    _filestream.Seek(blockLocations[blockIndex++], SeekOrigin.Begin);
-                    var buffer = dataBuffer.Slice(offset, readSize);
+                    int offset = blockIndex == 0 ? (int)value : bufferPosition;
+                    _filestream.Seek(blockLocations[blockIndex++] + offset, SeekOrigin.Begin);
+                    var buffer = dataBuffer.Slice(bufferPosition, readSize);
                     if (_filestream.Read(buffer) != readSize)
                         throw new Exception("Seek error in CON subfile");
                 }
