@@ -158,11 +158,13 @@ namespace YARG.Core.Chart
         /// </summary>
         public override void AddChildNote(VocalNote note)
         {
-            // Use AddNoteToPhrase instead!
-            if (IsPhrase) return;
+            if (IsPhrase)
+            {
+                throw new InvalidOperationException(
+                    "Called `AddChildNote` on a phrase. Use `AddNoteToPhrase` instead!");
+            }
 
-            if (note.Tick <= Tick || note.ChildNotes.Count > 0)
-                return;
+            if (note.Tick <= Tick || note.ChildNotes.Count > 0) return;
 
             _childNotes.Add(note);
 
@@ -185,11 +187,13 @@ namespace YARG.Core.Chart
         /// </summary>
         public void AddNoteToPhrase(VocalNote note)
         {
-            // Use AddChildNote instead!
-            if (!IsPhrase) return;
+            if (!IsPhrase)
+            {
+                throw new InvalidOperationException(
+                    "Called `AddNoteToPhrase` on a non-phrase note. Use `AddChildNote` instead!");
+            }
 
-            if (note.Tick < Tick)
-                return;
+            if (note.Tick < Tick) return;
 
             _childNotes.Add(note);
 
