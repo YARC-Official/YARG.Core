@@ -104,7 +104,7 @@ namespace YARG.Core.Engine.Drums
                 Solos[State.CurrentSoloIndex].NotesHit++;
             }
 
-            if (note.IsSoloEnd)
+            if (note.IsSoloEnd && note.ParentOrSelf.WasFullyHitOrMissed())
             {
                 EndSolo();
             }
@@ -151,7 +151,7 @@ namespace YARG.Core.Engine.Drums
                 StripStarPower(note);
             }
 
-            if (note.IsSoloEnd)
+            if (note.IsSoloEnd && note.ParentOrSelf.WasFullyHitOrMissed())
             {
                 EndSolo();
             }
