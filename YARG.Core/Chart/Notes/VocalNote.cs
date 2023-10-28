@@ -188,7 +188,7 @@ namespace YARG.Core.Chart
             // Use AddChildNote instead!
             if (!IsPhrase) return;
 
-            if (note.Tick <= Tick)
+            if (note.Tick < Tick)
                 return;
 
             _childNotes.Add(note);
