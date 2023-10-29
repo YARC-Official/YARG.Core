@@ -169,6 +169,8 @@ namespace YARG.Core.IO
                     blockLocations[i] = location;
                     if (i < numBlocks - 1)
                     {
+                        block += blockMovement;
+
                         int seekCount = 1;
                         if (block == BLOCKS_PER_SECTION)
                             seekCount = 2;
@@ -180,7 +182,6 @@ namespace YARG.Core.IO
                             threshold += NUM_BLOCKS_SQUARED;
                         }
 
-                        block += blockMovement;
                         location += byteMovement + seekCount * skipVal;
                         blockMovement = BLOCKS_PER_SECTION;
                         byteMovement = BYTES_PER_SECTION;
