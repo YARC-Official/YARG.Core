@@ -383,7 +383,7 @@ namespace YARG.Core.Song.Cache
 
                 MarkFile(filename);
 
-                var files = CONFileHandler.TryParseListings(info.FullName);
+                var files = CONFileHandler.TryLoadCONFile(info.FullName);
                 if (files == null)
                 {
                     YargTrace.DebugInfo($"CON could not be loaded: {filename}");
@@ -477,7 +477,7 @@ namespace YARG.Core.Song.Cache
                 {
                     string name = reader.ReadLEBString();
                     var lastWrite = DateTime.FromBinary(reader.ReadInt64());
-                    var listing = CONFileHandler.TryGetListing(group!.Files, $"songs_upgrades/{name}_plus.mid");
+                    var listing = CONFileHandler.TryGetListing(group!.CONFile.Listings, $"songs_upgrades/{name}_plus.mid");
 
                     IRBProUpgrade upgrade = new PackedRBProUpgrade(listing, lastWrite);
                     AddUpgrade(name, null, upgrade);
@@ -540,7 +540,7 @@ namespace YARG.Core.Song.Cache
 
             MarkFile(filename);
 
-            var files = CONFileHandler.TryParseListings(filename);
+            var files = CONFileHandler.TryLoadCONFile(filename);
             if (files == null)
                 return false;
 

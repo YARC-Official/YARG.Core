@@ -98,6 +98,7 @@ namespace YARG.Core.Song.Cache
             {
                 YargTrace.LogException(e, $"Error while scanning packed CON group {filename}!");
             }
+            group.CONFile.Dispose();
         }
 
         private void ScanExtractedCONGroup_Parallel(string directory, UnpackedCONGroup group)
@@ -271,7 +272,7 @@ namespace YARG.Core.Song.Cache
                     // Error catching must be done per-thread
                     try
                     {
-                        AddEntry(SongMetadata.PackedRBCONFromCache_Quick(group.Files, name, upgrades, entryReader, strings));
+                        AddEntry(SongMetadata.PackedRBCONFromCache_Quick(group.CONFile, name, upgrades, entryReader, strings));
                     }
                     catch (Exception ex)
                     {

@@ -105,7 +105,7 @@ namespace YARG.Core.Song
                 return new FileStream(Midi.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
             }
 
-            public byte[]? LoadMidiFile()
+            public byte[]? LoadMidiFile(SharedCONStream? _)
             {
                 if (DTA == null || !DTA.IsStillValid() || !Midi.IsStillValid())
                     return null;
@@ -131,7 +131,7 @@ namespace YARG.Core.Song
                 return _metadata.GetMoggStream();
             }
 
-            public bool IsMoggValid()
+            public bool IsMoggValid(SharedCONStream? _)
             {
                 using var stream = _metadata.GetMoggStream();
                 if (stream == null)
@@ -163,7 +163,7 @@ namespace YARG.Core.Song
             try
             {
                 SongMetadata song = new(folder, dta, nodeName, reader, updates, upgrades);
-                var result = song.ParseRBCONMidi();
+                var result = song.ParseRBCONMidi(null);
                 if (result != ScanResult.Success)
                     return (result, null);
                 return (result, song);

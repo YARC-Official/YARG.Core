@@ -247,11 +247,11 @@ namespace YARG.Core.Song
             public RBCONSubMetadata SharedMetadata { get; }
             public DateTime MidiLastWrite { get; }
             public Stream? GetMidiStream();
-            public byte[]? LoadMidiFile();
+            public byte[]? LoadMidiFile(SharedCONStream? file);
             public byte[]? LoadMiloFile();
             public byte[]? LoadImgFile();
             public Stream? GetMoggStream();
-            public bool IsMoggValid();
+            public bool IsMoggValid(SharedCONStream? file);
             public void Serialize(BinaryWriter writer);
         }
 
@@ -277,7 +277,7 @@ namespace YARG.Core.Song
             _directory = rbMeta.SharedMetadata.Directory;
         }
 
-        public ScanResult ParseRBCONMidi()
+        public ScanResult ParseRBCONMidi(SharedCONStream? file)
         {
             var sharedMetadata = _rbData!.SharedMetadata;
             if (_name.Length == 0)
@@ -285,14 +285,14 @@ namespace YARG.Core.Song
                 return ScanResult.NoName;
             }
 
-            if (!_rbData.IsMoggValid())
+            if (!_rbData.IsMoggValid(file))
             {
                 return ScanResult.MoggError;
             }
 
             try
             {
-                byte[]? chartFile = _rbData.LoadMidiFile();
+                byte[]? chartFile = _rbData.LoadMidiFile(file);
                 byte[]? updateFile = sharedMetadata.LoadMidiUpdateFile();
                 byte[]? upgradeFile = sharedMetadata.Upgrade?.LoadUpgradeMidi();
 

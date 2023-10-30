@@ -5,6 +5,26 @@ using System.Text;
 
 namespace YARG.Core.IO
 {
+    public class CONScanResult : IDisposable
+    {
+        public readonly string Name;
+        public readonly SharedCONStream Stream;
+        public readonly List<CONFileListing> Listings = new();
+
+        public CONScanResult(string filename)
+        {
+            Name = filename;
+            Stream = new SharedCONStream(filename);
+        }
+
+        public void Dispose()
+        {
+            Listings.Clear();
+            Stream.Dispose();
+        }
+    }
+
+
     public static class CONFileHandler
     {
         private static readonly FourCC CON_TAG = new('C', 'O', 'N', ' ');
@@ -20,8 +40,8 @@ namespace YARG.Core.IO
 
         private const int BYTES_PER_BLOCK = 0x1000;
         private const int SIZEOF_FILELISTING = 0x40;
-
-        public static List<CONFileListing>? TryParseListings(string filename)
+        
+        public static CONScanResult? TryLoadCONFile(string filename)
         {
             Span<byte> int32Buffer = stackalloc byte[BYTES_32BIT];
             using FileStream stream = new(filename, FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -58,23 +78,23 @@ namespace YARG.Core.IO
 
             try
             {
+                CONScanResult results = new(filename);
+                AbridgedFileInfo fileInfo = new(filename);
+
                 using var conStream = new CONFileStream(stream, true, length, firstBlock, shift);
                 Span<byte> listingBuffer = stackalloc byte[SIZEOF_FILELISTING];
-                AbridgedFileInfo conFile = new(filename);
-
-                List<CONFileListing> files = new();
                 for (int i = 0; i < length; i += SIZEOF_FILELISTING)
                 {
                     conStream.Read(listingBuffer);
                     if (listingBuffer[0] == 0)
                         break;
 
-                    CONFileListing listing = new(conFile, shift, listingBuffer);
+                    CONFileListing listing = new(fileInfo, shift, listingBuffer);
                     if (listing.pathIndex != -1)
-                        listing.SetParentDirectory(files[listing.pathIndex].Filename);
-                    files.Add(listing);
+                        listing.SetParentDirectory(results.Listings[listing.pathIndex].Filename);
+                    results.Listings.Add(listing);
                 }
-                return files;
+                return results;
             }
             catch (Exception ex)
             {

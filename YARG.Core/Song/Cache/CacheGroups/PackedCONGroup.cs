@@ -10,8 +10,8 @@ namespace YARG.Core.Song.Cache
         public const string SONGSFILEPATH = "songs/songs.dta";
         public const string UPGRADESFILEPATH = "songs_upgrades/upgrades.dta";
 
-        public readonly List<CONFileListing> Files;
         public readonly DateTime LastWrite;
+        public readonly CONScanResult CONFile;
         public readonly Dictionary<string, IRBProUpgrade> Upgrades = new();
 
         private readonly object upgradeLock = new();
@@ -37,15 +37,15 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        public PackedCONGroup(List<CONFileListing> files, DateTime lastWrite)
+        public PackedCONGroup(CONScanResult file, DateTime lastWrite)
         {
-            Files = files;
+            CONFile = file;
             LastWrite = lastWrite;
         }
 
         public override bool ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings)
         {
-            var song = SongMetadata.PackedRBCONFromCache(Files, nodeName, upgrades, reader, strings);
+            var song = SongMetadata.PackedRBCONFromCache(CONFile.Listings, nodeName, upgrades, reader, strings);
             if (song == null)
                 return false;
 
@@ -57,22 +57,22 @@ namespace YARG.Core.Song.Cache
 
         public YARGDTAReader? LoadUpgrades()
         {
-            upgradeDta = CONFileHandler.TryGetListing(Files, UPGRADESFILEPATH);
+            upgradeDta = CONFileHandler.TryGetListing(CONFile.Listings, UPGRADESFILEPATH);
             if (upgradeDta == null)
                 return null;
-            return YARGDTAReader.TryCreate(upgradeDta);
+            return YARGDTAReader.TryCreate(upgradeDta, CONFile.Stream);
         }
 
         public YARGDTAReader? LoadSongs()
         {
             if (songDTA == null && !SetSongDTA())
                 return null;
-            return YARGDTAReader.TryCreate(songDTA!);
+            return YARGDTAReader.TryCreate(songDTA!, CONFile.Stream);
         }
 
         public bool SetSongDTA()
         {
-            songDTA = CONFileHandler.TryGetListing(Files, SONGSFILEPATH);
+            songDTA = CONFileHandler.TryGetListing(CONFile.Listings, SONGSFILEPATH);
             return songDTA != null;
         }
 

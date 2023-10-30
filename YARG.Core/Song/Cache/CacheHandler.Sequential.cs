@@ -71,6 +71,7 @@ namespace YARG.Core.Song.Cache
             {
                 YargTrace.LogException(e, $"Error while scanning packed CON group {filename}!");
             }
+            group.CONFile.Dispose();
         }
 
         private void ScanExtractedCONGroup(string directory, UnpackedCONGroup group)
@@ -192,7 +193,7 @@ namespace YARG.Core.Song.Cache
 
                 int length = reader.ReadInt32();
                 var entryReader = new YARGBinaryReader(reader, length);
-                AddEntry(SongMetadata.PackedRBCONFromCache_Quick(group.Files, name, upgrades, entryReader, strings));
+                AddEntry(SongMetadata.PackedRBCONFromCache_Quick(group.CONFile, name, upgrades, entryReader, strings));
             }
         }
 

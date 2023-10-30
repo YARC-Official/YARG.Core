@@ -143,11 +143,11 @@ namespace YARG.Core.Song.Cache
             if (!FindOrMarkFile(filename))
                 return;
 
-            var files = CONFileHandler.TryParseListings(filename);
-            if (files == null)
+            var conFile = CONFileHandler.TryLoadCONFile(filename);
+            if (conFile == null)
                 return;
 
-            PackedCONGroup group = new(files, File.GetLastWriteTime(filename));
+            PackedCONGroup group = new(conFile, File.GetLastWriteTime(filename));
             conGroups.Add(filename, group);
             TryParseUpgrades(filename, group);
         }
@@ -168,7 +168,7 @@ namespace YARG.Core.Song.Cache
             }
             else
             {
-                var song = SongMetadata.FromPackedRBCON(group.Files, name, node, updates, upgrades);
+                var song = SongMetadata.FromPackedRBCON(group.CONFile, name, node, updates, upgrades);
                 if (song.Item2 != null)
                 {
                     if (AddEntry(song.Item2))
