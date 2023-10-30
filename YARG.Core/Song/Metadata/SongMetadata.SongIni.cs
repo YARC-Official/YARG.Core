@@ -21,6 +21,20 @@ namespace YARG.Core.Song
             Chart,
         };
 
+        private static readonly Dictionary<string, IniModifierCreator> CHART_MODIFIER_LIST = new()
+        {
+            { "Album",        new("album",        ModifierCreatorType.SortString_Chart ) },
+            { "Artist",       new("artist",       ModifierCreatorType.SortString_Chart ) },
+            { "Charter",      new("charter",      ModifierCreatorType.SortString_Chart ) },
+            { "Difficulty",   new("diff_band",    ModifierCreatorType.Int32 ) },
+            { "Genre",        new("genre",        ModifierCreatorType.SortString_Chart ) },
+            { "Name",         new("name",         ModifierCreatorType.SortString_Chart ) },
+            { "PreviewEnd",   new("previewEnd",   ModifierCreatorType.Double ) },
+            { "PreviewStart", new("previewStart", ModifierCreatorType.Double ) },
+            { "Year",         new("year_chart",   ModifierCreatorType.String_Chart ) },
+            { "Offset",       new("offset",       ModifierCreatorType.Double ) },
+        };
+
         [Serializable]
         public sealed class IniSubmetadata
         {
@@ -101,20 +115,6 @@ namespace YARG.Core.Song
             }
         }
 
-        private static readonly Dictionary<string, IniModifierCreator> CHART_MODIFIER_LIST = new()
-        {
-            { "Album",        new("album",        ModifierCreatorType.SortString_Chart ) },
-            { "Artist",       new("artist",       ModifierCreatorType.SortString_Chart ) },
-            { "Charter",      new("charter",      ModifierCreatorType.SortString_Chart ) },
-            { "Difficulty",   new("diff_band",    ModifierCreatorType.Int32 ) },
-            { "Genre",        new("genre",        ModifierCreatorType.SortString_Chart ) },
-            { "Name",         new("name",         ModifierCreatorType.SortString_Chart ) },
-            { "PreviewEnd",   new("previewEnd",   ModifierCreatorType.Double ) },
-            { "PreviewStart", new("previewStart", ModifierCreatorType.Double ) },
-            { "Year",         new("year_chart",   ModifierCreatorType.String_Chart ) },
-            { "Offset",       new("offset",       ModifierCreatorType.Double ) },
-        };
-
         private SongMetadata(IniSection section, IniSubmetadata iniData, AvailableParts parts, DrumsType drumType, HashWrapper hash)
         {
             // .ini songs are assumed to be masters and not covers
@@ -178,10 +178,13 @@ namespace YARG.Core.Song
             section.TryGet("video_start_time", out _videoStartTime);
             _videoEndTime = section.TryGet("video_end_time", out long videoEndTime) ? videoEndTime : -1000;
 
-            if (_parseSettings.DrumsType == DrumsType.ProDrums)
-                _parseSettings.DrumsType = DrumsType.FourLane;
-            else if (_parseSettings.DrumsType == DrumsType.UnknownPro)
-                _parseSettings.DrumsType = DrumsType.Unknown;
+            _parseSettings.DrumsType = drumType switch
+            {
+                DrumsType.ProDrums => DrumsType.FourLane,
+                // Only possible if 1. is .mid & 2. does not have drums
+                DrumsType.UnknownPro => DrumsType.Unknown,
+                _ => drumType
+            };
 
             if (!section.TryGet("hopo_frequency", out _parseSettings.HopoThreshold))
                 _parseSettings.HopoThreshold = -1;
@@ -203,87 +206,25 @@ namespace YARG.Core.Song
             _iniData = iniData;
         }
 
-        private static DrumsType ParseChart<TChar, TDecoder, TBase>(YARGTextReader<TChar, TDecoder> textReader, IniSection modifiers, AvailableParts parts)
-            where TChar : unmanaged, IEquatable<TChar>, IConvertible
-            where TDecoder : IStringDecoder<TChar>, new()
-            where TBase : unmanaged, IDotChartBases<TChar>
+        public static (ScanResult, SongMetadata?) FromIni(string chartFile, string? iniFile, int chartTypeIndex)
         {
-            YARGChartFileReader<TChar, TDecoder, TBase> chartReader = new(textReader);
-            if (!chartReader.ValidateHeaderTrack())
-                return DrumsType.Unknown;
-
-            var chartMods = chartReader.ExtractModifiers(CHART_MODIFIER_LIST);
-            modifiers.Append(chartMods);
-
-            return parts.ParseChart(chartReader, GetDrumTypeFromModifier(modifiers));
-        }
-
-        private static DrumsType ParseMidi(byte[] file, IniSection modifiers, AvailableParts parts)
-        {
-            var drumType = GetDrumTypeFromModifier(modifiers);
-            bool usePro = !modifiers.TryGet("pro_drums", out bool proDrums) || proDrums;
-            if (drumType == DrumsType.Unknown)
-            {
-                if (usePro)
-                    drumType = DrumsType.UnknownPro;
-            }
-            else if (drumType == DrumsType.FourLane && usePro)
-                drumType = DrumsType.ProDrums;
-
-            return parts.ParseMidi(file, drumType);
-        }
-
-        private static DrumsType GetDrumTypeFromModifier(IniSection modifiers)
-        {
-            if (!modifiers.TryGet("five_lane_drums", out bool fivelane))
-                return DrumsType.Unknown;
-            return fivelane ? DrumsType.FiveLane : DrumsType.FourLane;
-        }
-
-        public static (ScanResult, SongMetadata?) FromIni(byte[] file, string chartFile, string? iniFile, int chartTypeIndex)
-        {
-            AvailableParts parts = new();
-            AbridgedFileInfo? iniInfo;
-            IniSection modifiers;
-            if (iniFile != null)
-            {
-                modifiers = SongIniHandler.ReadSongIniFile(iniFile);
-                iniInfo = new AbridgedFileInfo(iniFile);
-            }
-            else if (IniSubmetadata.DoesSoloChartHaveAudio(Path.GetDirectoryName(chartFile)))
-            {
-                modifiers = new();
-                iniInfo = null;
-            }
-            else
+            var iniModifiers = LoadIniFile(chartFile, iniFile);
+            if (iniModifiers.Item1 == null)
                 return (ScanResult.LooseChart_NoAudio, null);
-
+            
+            byte[] file = File.ReadAllBytes(chartFile);
             var chartType = IniSubmetadata.CHART_FILE_TYPES[chartTypeIndex].Item2;
-            DrumsType drumType = default;
-            if (chartType == ChartType.Chart)
-            {
-                var byteReader = YARGTextLoader.TryLoadByteText(file);
-                if (byteReader != null)
-                    drumType = ParseChart<byte, ByteStringDecoder, DotChartByte>(byteReader, modifiers, parts);
-                else
-                {
-                    var charReader = YARGTextLoader.LoadCharText(file);
-                    drumType = ParseChart<char, CharStringDecoder, DotChartChar>(charReader, modifiers, parts);
-                }
-            }
+            var result = Scan(file, chartType, iniModifiers.Item1);
 
-            if (!modifiers.Contains("name"))
-                return (ScanResult.NoName, null);
-
-            if (chartType == ChartType.Mid || chartType == ChartType.Midi)
-                drumType = ParseMidi(file, modifiers, parts);
-
-            if (!parts.CheckScanValidity())
+            if (!result.Item1.CheckScanValidity())
                 return (ScanResult.NoNotes, null);
 
-            IniSubmetadata metadata = new(chartType, new AbridgedFileInfo(chartFile), iniInfo);
-            parts.SetIntensities(modifiers);
-            return (ScanResult.Success, new SongMetadata(modifiers, metadata, parts, drumType, HashWrapper.Create(file)));
+            if (!iniModifiers.Item1.Contains("name"))
+                return (ScanResult.NoName, null);
+
+            IniSubmetadata metadata = new(chartType, new AbridgedFileInfo(chartFile), iniModifiers.Item2);
+            result.Item1.SetIntensities(iniModifiers.Item1);
+            return (ScanResult.Success, new SongMetadata(iniModifiers.Item1, metadata, result.Item1, result.Item2, HashWrapper.Create(file)));
         }
 
         public static SongMetadata? IniFromCache(string baseDirectory, YARGBinaryReader reader, CategoryCacheStrings strings)
@@ -338,6 +279,84 @@ namespace YARG.Core.Song
             {
                 _directory = directory
             };
+        }
+
+        private static (IniSection?, AbridgedFileInfo?) LoadIniFile(string chartFile, string? iniFile)
+        {
+            IniSection? modifiers = null;
+            AbridgedFileInfo? iniInfo = null;
+            if (iniFile != null)
+            {
+                modifiers = SongIniHandler.ReadSongIniFile(iniFile);
+                iniInfo = new AbridgedFileInfo(iniFile);
+            }
+            else if (IniSubmetadata.DoesSoloChartHaveAudio(Path.GetDirectoryName(chartFile)))
+                modifiers = new();
+            return (modifiers, iniInfo);
+        }
+
+        private static (AvailableParts, DrumsType) Scan(byte[] file, ChartType chartType, IniSection modifiers)
+        {
+            AvailableParts parts = new();
+            DrumPreparseHandler drums = new()
+            {
+                Type = GetDrumTypeFromModifier(modifiers)
+            };
+
+            if (chartType == ChartType.Chart)
+            {
+                var byteReader = YARGTextLoader.TryLoadByteText(file);
+                if (byteReader != null)
+                    ParseChart<byte, ByteStringDecoder, DotChartByte>(byteReader, modifiers, parts, drums);
+                else
+                {
+                    var charReader = YARGTextLoader.LoadCharText(file);
+                    ParseChart<char, CharStringDecoder, DotChartChar>(charReader, modifiers, parts, drums);
+                }
+            }
+            else // if (chartType == ChartType.Mid || chartType == ChartType.Midi) // Uncomment for any future file type
+                ParseMidi(file, modifiers, parts, drums);
+
+            parts.SetDrums(drums);
+            return (parts, drums.Type);
+        }
+
+         private static void ParseChart<TChar, TDecoder, TBase>(YARGTextReader<TChar, TDecoder> textReader, IniSection modifiers, AvailableParts parts, DrumPreparseHandler drums)
+            where TChar : unmanaged, IEquatable<TChar>, IConvertible
+            where TDecoder : IStringDecoder<TChar>, new()
+            where TBase : unmanaged, IDotChartBases<TChar>
+        {
+            YARGChartFileReader<TChar, TDecoder, TBase> chartReader = new(textReader);
+            if (chartReader.ValidateHeaderTrack())
+            {
+                var chartMods = chartReader.ExtractModifiers(CHART_MODIFIER_LIST);
+                modifiers.Append(chartMods);
+            }
+            parts.ParseChart(chartReader, drums);
+
+            if (drums.Type == DrumsType.Unknown && drums.ValidatedDiffs > 0)
+                drums.Type = DrumsType.FourLane;
+        }
+
+        private static void ParseMidi(byte[] file, IniSection modifiers, AvailableParts parts, DrumPreparseHandler drums)
+        {
+            bool usePro = !modifiers.TryGet("pro_drums", out bool proDrums) || proDrums;
+            if (drums.Type == DrumsType.Unknown)
+            {
+                if (usePro)
+                    drums.Type = DrumsType.UnknownPro;
+            }
+            else if (drums.Type == DrumsType.FourLane && usePro)
+                drums.Type = DrumsType.ProDrums;
+
+            parts.ParseMidi(file, drums);
+        }
+
+        private static DrumsType GetDrumTypeFromModifier(IniSection modifiers)
+        {
+            if (!modifiers.TryGet("five_lane_drums", out bool fivelane))
+                return DrumsType.Unknown;
+            return fivelane ? DrumsType.FiveLane : DrumsType.FourLane;
         }
 
         private SongChart LoadIniChart()

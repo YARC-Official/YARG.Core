@@ -111,8 +111,7 @@ namespace YARG.Core.Song.Cache
                 {
                     try
                     {
-                        byte[] file = File.ReadAllBytes(chart);
-                        var entry = SongMetadata.FromIni(file, chart, results.ini, i);
+                        var entry = SongMetadata.FromIni(chart, results.ini, i);
                         if (entry.Item2 != null)
                         {
                             if (AddEntry(entry.Item2))

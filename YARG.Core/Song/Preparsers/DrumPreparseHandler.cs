@@ -7,35 +7,28 @@ namespace YARG.Core.Song.Preparsers
     public class DrumPreparseHandler
     {
         private DifficultyMask _validations;
-        private DrumsType _type;
+        public DrumsType Type;
 
         public DifficultyMask ValidatedDiffs => _validations;
-        public DrumsType Type => _type;
-
-        public DrumPreparseHandler(DrumsType type)
-        {
-            _type = type;
-            _validations = 0;
-        }
 
         public void ParseMidi(YARGMidiTrack track)
         {
             if (_validations > 0)
                 return;
 
-            if (_type == DrumsType.FiveLane)
+            if (Type == DrumsType.FiveLane)
                 _validations = Midi_FiveLane_Preparser.Parse(track);
-            else if (_type == DrumsType.ProDrums)
+            else if (Type == DrumsType.ProDrums)
                 _validations = Midi_FourLane_Preparser.ParseProDrums(track);
-            else if (_type == DrumsType.FourLane)
-                (_validations, _type) = Midi_FourLane_Preparser.ParseFourLane(track);
+            else if (Type == DrumsType.FourLane)
+                (_validations, Type) = Midi_FourLane_Preparser.ParseFourLane(track);
             else
             {
-                (_validations, _type) = Midi_UnknownDrums_Preparser.Parse(track, _type);
-                if (_type == DrumsType.UnknownPro)
-                    _type = DrumsType.ProDrums;
-                else if (_type == DrumsType.Unknown)
-                    _type = DrumsType.FourLane;
+                (_validations, Type) = Midi_UnknownDrums_Preparser.Parse(track, Type);
+                if (Type == DrumsType.UnknownPro)
+                    Type = DrumsType.ProDrums;
+                else if (Type == DrumsType.Unknown)
+                    Type = DrumsType.FourLane;
             }
         }
 
@@ -49,7 +42,7 @@ namespace YARG.Core.Song.Preparsers
             bool skip = true;
             if ((_validations & difficulty) == 0)
             {
-                skip = _type switch
+                skip = Type switch
                 {
                     DrumsType.Unknown => ParseChartUnknown(reader, difficulty),
                     DrumsType.FourLane => ParseChartFourLane(reader, difficulty),
@@ -88,11 +81,11 @@ namespace YARG.Core.Song.Preparsers
                         found = true;
 
                         if (note.Lane == FIVE_LANE_COUNT)
-                            _type = DrumsType.FiveLane;
+                            Type = DrumsType.FiveLane;
                     }
                     else if (YELLOW_CYMBAL <= note.Lane && note.Lane <= GREEN_CYMBAL)
                     {
-                        _type = DrumsType.ProDrums;
+                        Type = DrumsType.ProDrums;
                     }
                     else if (checkExpertPlus && note.Lane == DOUBLE_BASS_MODIFIER)
                     {
@@ -100,7 +93,7 @@ namespace YARG.Core.Song.Preparsers
                         _validations |= DifficultyMask.ExpertPlus;
                     }
 
-                    if (found && _type != DrumsType.Unknown && !checkExpertPlus)
+                    if (found && Type != DrumsType.Unknown && !checkExpertPlus)
                         return true;
                 }
                 reader.NextEvent();
@@ -130,7 +123,7 @@ namespace YARG.Core.Song.Preparsers
                     }
                     else if (YELLOW_CYMBAL <= note.Lane && note.Lane <= GREEN_CYMBAL)
                     {
-                        _type = DrumsType.ProDrums;
+                        Type = DrumsType.ProDrums;
                     }
                     else if (checkExpertPlus && note.Lane == DOUBLE_BASS_MODIFIER)
                     {
@@ -138,7 +131,7 @@ namespace YARG.Core.Song.Preparsers
                         _validations |= DifficultyMask.ExpertPlus;
                     }
 
-                    if (found && _type == DrumsType.ProDrums && !checkExpertPlus)
+                    if (found && Type == DrumsType.ProDrums && !checkExpertPlus)
                         return true;
                 }
                 reader.NextEvent();
@@ -153,7 +146,7 @@ namespace YARG.Core.Song.Preparsers
         {
             bool found = false;
             bool checkExpertPlus = difficulty == DifficultyMask.Expert;
-            int numPads = _type == DrumsType.ProDrums ? FOUR_LANE_COUNT : FIVE_LANE_COUNT;
+            int numPads = Type == DrumsType.ProDrums ? FOUR_LANE_COUNT : FIVE_LANE_COUNT;
 
             DotChartEvent ev = default;
             DotChartNote note = default;

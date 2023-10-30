@@ -8,6 +8,7 @@ using YARG.Core.Chart;
 using YARG.Core.Extensions;
 using YARG.Core.Song.Cache;
 using YARG.Core.IO;
+using YARG.Core.Song.Preparsers;
 
 namespace YARG.Core.Song
 {
@@ -295,13 +296,18 @@ namespace YARG.Core.Song
                 byte[]? updateFile = sharedMetadata.LoadMidiUpdateFile();
                 byte[]? upgradeFile = sharedMetadata.Upgrade?.LoadUpgradeMidi();
 
+                DrumPreparseHandler drumTracker = new()
+                {
+                    Type = DrumsType.ProDrums
+                };
+
                 int bufLength = 0;
                 if (sharedMetadata.UpdateMidi != null)
                 {
                     if (updateFile == null)
                         return ScanResult.MissingUpdateMidi;
 
-                    _parts.ParseMidi(updateFile, DrumsType.ProDrums);
+                    _parts.ParseMidi(updateFile, drumTracker);
                     bufLength += updateFile.Length;
                 }
 
@@ -310,16 +316,17 @@ namespace YARG.Core.Song
                     if (upgradeFile == null)
                         return ScanResult.MissingUpgradeMidi;
 
-                    _parts.ParseMidi(upgradeFile, DrumsType.ProDrums);
+                    _parts.ParseMidi(upgradeFile, drumTracker);
                     bufLength += upgradeFile.Length;
                 }
 
                 if (chartFile == null)
                     return ScanResult.MissingMidi;
 
-                _parts.ParseMidi(chartFile, DrumsType.ProDrums);
+                _parts.ParseMidi(chartFile, drumTracker);
                 bufLength += chartFile.Length;
 
+                _parts.SetDrums(drumTracker);
                 if (!_parts.CheckScanValidity())
                     return ScanResult.NoNotes;
 
