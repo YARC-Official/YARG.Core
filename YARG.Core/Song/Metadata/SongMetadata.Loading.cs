@@ -9,7 +9,7 @@ namespace YARG.Core.Song
 {
     public sealed partial class SongMetadata
     {
-        public SongChart LoadChart()
+        public SongChart? LoadChart()
         {
             if (IniData != null)
             {
@@ -26,14 +26,17 @@ namespace YARG.Core.Song
             throw new Exception(errorMessage);
         }
 
-        private SongChart LoadIniChart()
+        private SongChart? LoadIniChart()
         {
-            string notesFile = IniData!.chartFile.FullName;
+            if (!IniData!.chartFile.IsStillValid())
+                return null;
+
+            string notesFile = IniData.chartFile.FullName;
             YargTrace.LogInfo($"Loading chart file {notesFile}");
             return SongChart.FromFile(_parseSettings, notesFile);
         }
 
-        private SongChart LoadCONChart()
+        private SongChart? LoadCONChart()
         {
             MidiFile midi;
             ReadingSettings readingSettings = MidiSettingsLatin1.Instance; // RBCONs are always Latin-1
@@ -41,7 +44,7 @@ namespace YARG.Core.Song
             using (var midiStream = RBData!.GetMidiStream())
             {
                 if (midiStream == null)
-                    throw new Exception("Base MIDI file not present");
+                    return null;
                 midi = MidiFile.Read(midiStream, readingSettings);
             }
 
@@ -51,7 +54,7 @@ namespace YARG.Core.Song
             {
                 using var midiStream = shared.GetMidiUpdateStream();
                 if (midiStream == null)
-                    throw new Exception("Scanned update MIDI file not present");
+                    return null;
                 var update = MidiFile.Read(midiStream, readingSettings);
                 midi.Merge(update);
             }
@@ -61,7 +64,7 @@ namespace YARG.Core.Song
             {
                 using var midiStream = shared.Upgrade.GetUpgradeMidiStream();
                 if (midiStream == null)
-                    throw new Exception("Scanned upgrade MIDI file not present");
+                    return null;
                 var update = MidiFile.Read(midiStream, readingSettings);
                 midi.Merge(update);
             }
