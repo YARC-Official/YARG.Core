@@ -358,12 +358,5 @@ namespace YARG.Core.Song
                 return DrumsType.Unknown;
             return fivelane ? DrumsType.FiveLane : DrumsType.FourLane;
         }
-
-        private SongChart LoadIniChart()
-        {
-            string notesFile = IniData!.chartFile.FullName;
-            YargTrace.LogInfo($"Loading chart file {notesFile}");
-            return SongChart.FromFile(_parseSettings, notesFile);
-        }
     }
 }

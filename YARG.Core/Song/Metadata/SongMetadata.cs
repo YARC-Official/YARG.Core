@@ -223,23 +223,6 @@ namespace YARG.Core.Song
 
         public SongMetadata() { }
 
-        public SongChart LoadChart()
-        {
-            if (IniData != null)
-            {
-                return LoadIniChart();
-            }
-            else if (RBData != null)
-            {
-                return LoadCONChart();
-            }
-
-            // This is an invalid state, notify about it
-            string errorMessage = $"No chart data available for song {Name} - {Artist}!";
-            YargTrace.Fail(errorMessage);
-            throw new Exception(errorMessage);
-        }
-
         public override string ToString() { return _artist + " | " + _name; }
     }
 }
