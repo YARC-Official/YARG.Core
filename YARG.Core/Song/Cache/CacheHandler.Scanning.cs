@@ -143,7 +143,7 @@ namespace YARG.Core.Song.Cache
             if (!FindOrMarkFile(filename))
                 return;
 
-            var conFile = CONFileHandler.TryLoadCONFile(filename);
+            var conFile = CONFile.TryLoadFile(filename);
             if (conFile == null)
                 return;
 

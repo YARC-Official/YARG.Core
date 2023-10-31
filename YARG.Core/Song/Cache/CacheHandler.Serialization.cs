@@ -383,7 +383,7 @@ namespace YARG.Core.Song.Cache
 
                 MarkFile(filename);
 
-                var file = CONFileHandler.TryLoadCONFile(info.FullName);
+                var file = CONFile.TryLoadFile(info.FullName);
                 if (file == null)
                 {
                     YargTrace.DebugInfo($"CON could not be loaded: {filename}");
@@ -540,7 +540,7 @@ namespace YARG.Core.Song.Cache
 
             MarkFile(filename);
 
-            var file = CONFileHandler.TryLoadCONFile(filename);
+            var file = CONFile.TryLoadFile(filename);
             if (file == null)
                 return false;
 

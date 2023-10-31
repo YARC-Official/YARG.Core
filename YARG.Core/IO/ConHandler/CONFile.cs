@@ -12,7 +12,6 @@ namespace YARG.Core.IO
         public readonly List<CONFileListing> Listings = new();
         public readonly object Lock = new();
 
-
         public CONFile(AbridgedFileInfo info)
         {
             Info = info;
@@ -35,11 +34,7 @@ namespace YARG.Core.IO
             Listings.Clear();
             Stream.Dispose();
         }
-    }
 
-
-    public static class CONFileHandler
-    {
         private static readonly FourCC CON_TAG = new('C', 'O', 'N', ' ');
         private static readonly FourCC LIVE_TAG = new('L', 'I', 'V', 'E');
         private static readonly FourCC PIRS_TAG = new('P', 'I', 'R', 'S');
@@ -53,8 +48,8 @@ namespace YARG.Core.IO
 
         private const int BYTES_PER_BLOCK = 0x1000;
         private const int SIZEOF_FILELISTING = 0x40;
-        
-        public static CONFile? TryLoadCONFile(string filename)
+
+        public static CONFile? TryLoadFile(string filename)
         {
             Span<byte> int32Buffer = stackalloc byte[BYTES_32BIT];
             using FileStream stream = new(filename, FileMode.Open, FileAccess.Read, FileShare.Read);
