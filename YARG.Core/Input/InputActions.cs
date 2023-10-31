@@ -1,4 +1,4 @@
-﻿namespace YARG.Core.Input
+namespace YARG.Core.Input
 {
     public enum MenuAction : byte
     {
@@ -64,7 +64,6 @@
         String5_Strum,
         String6_Strum,
 
-        Whammy,
         StarPower,
     }
 
