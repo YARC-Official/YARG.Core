@@ -151,7 +151,7 @@ namespace YARG.Core.Song
                 return midiListing.CreateStream();
             }
 
-            public byte[]? LoadMidiFile(SharedCONStream? file)
+            public byte[]? LoadMidiFile(CONFile? file)
             {
                 if (midiListing == null || !midiListing.IsStillValid())
                     return null;
@@ -180,7 +180,7 @@ namespace YARG.Core.Song
                 return moggListing?.CreateStream();
             }
 
-            public bool IsMoggValid(SharedCONStream? file)
+            public bool IsMoggValid(CONFile? file)
             {
                 using var stream = _metadata.GetMoggStream();
                 if (stream != null)
@@ -215,7 +215,7 @@ namespace YARG.Core.Song
             try
             {
                 SongMetadata song = new(file, nodeName, reader, updates, upgrades);
-                var result = song.ParseRBCONMidi(file.Stream);
+                var result = song.ParseRBCONMidi(file);
                 if (result != ScanResult.Success)
                     return (result, null);
                 return (result, song);

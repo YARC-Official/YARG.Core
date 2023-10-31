@@ -61,14 +61,14 @@ namespace YARG.Core.Song.Cache
             upgradeDta = CONFile.TryGetListing(UPGRADESFILEPATH);
             if (upgradeDta == null)
                 return null;
-            return YARGDTAReader.TryCreate(upgradeDta, CONFile.Stream);
+            return YARGDTAReader.TryCreate(upgradeDta, CONFile);
         }
 
         public YARGDTAReader? LoadSongs()
         {
             if (songDTA == null && !SetSongDTA())
                 return null;
-            return YARGDTAReader.TryCreate(songDTA!, CONFile.Stream);
+            return YARGDTAReader.TryCreate(songDTA!, CONFile);
         }
 
         public bool SetSongDTA()

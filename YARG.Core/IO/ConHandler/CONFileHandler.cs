@@ -8,13 +8,15 @@ namespace YARG.Core.IO
     public class CONFile : IDisposable
     {
         public readonly AbridgedFileInfo Info;
-        public readonly SharedCONStream Stream;
+        public readonly FileStream Stream;
         public readonly List<CONFileListing> Listings = new();
+        public readonly object Lock = new();
+
 
         public CONFile(AbridgedFileInfo info)
         {
             Info = info;
-            Stream = new SharedCONStream(info.FullName);
+            Stream = new FileStream(info.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
         }
 
         public CONFileListing? TryGetListing(string filename)

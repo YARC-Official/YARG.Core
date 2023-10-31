@@ -247,11 +247,11 @@ namespace YARG.Core.Song
             public RBCONSubMetadata SharedMetadata { get; }
             public DateTime MidiLastWrite { get; }
             public Stream? GetMidiStream();
-            public byte[]? LoadMidiFile(SharedCONStream? file);
+            public byte[]? LoadMidiFile(CONFile? file);
             public byte[]? LoadMiloFile();
             public byte[]? LoadImgFile();
             public Stream? GetMoggStream();
-            public bool IsMoggValid(SharedCONStream? file);
+            public bool IsMoggValid(CONFile? file);
             public void Serialize(BinaryWriter writer);
         }
 
@@ -277,7 +277,7 @@ namespace YARG.Core.Song
             _directory = rbMeta.SharedMetadata.Directory;
         }
 
-        public ScanResult ParseRBCONMidi(SharedCONStream? file)
+        public ScanResult ParseRBCONMidi(CONFile? file)
         {
             var sharedMetadata = _rbData!.SharedMetadata;
             if (_name.Length == 0)

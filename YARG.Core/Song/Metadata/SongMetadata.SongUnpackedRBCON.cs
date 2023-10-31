@@ -105,7 +105,7 @@ namespace YARG.Core.Song
                 return new FileStream(Midi.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
             }
 
-            public byte[]? LoadMidiFile(SharedCONStream? _)
+            public byte[]? LoadMidiFile(CONFile? _)
             {
                 if (DTA == null || !DTA.IsStillValid() || !Midi.IsStillValid())
                     return null;
@@ -131,7 +131,7 @@ namespace YARG.Core.Song
                 return _metadata.GetMoggStream();
             }
 
-            public bool IsMoggValid(SharedCONStream? _)
+            public bool IsMoggValid(CONFile? _)
             {
                 using var stream = _metadata.GetMoggStream();
                 if (stream == null)

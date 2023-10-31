@@ -57,10 +57,10 @@ namespace YARG.Core.IO
         }
 
         // This overload should only be called during scanning
-        public byte[] LoadAllBytes(SharedCONStream file)
+        public byte[] LoadAllBytes(CONFile file)
         {
             lock (file.Lock)
-                return CONFileStream.LoadFile(file.stream, IsContiguous(), size, firstBlock, shift);
+                return CONFileStream.LoadFile(file.Stream, IsContiguous(), size, firstBlock, shift);
         }
 
         public byte[] LoadAllBytes()
@@ -68,12 +68,12 @@ namespace YARG.Core.IO
             return CONFileStream.LoadFile(ConFile.FullName, IsContiguous(), size, firstBlock, shift);
         }
 
-        public static int GetMoggVersion(CONFileListing listing, SharedCONStream file)
+        public static int GetMoggVersion(CONFileListing listing, CONFile file)
         {
             Debug.Assert(!listing.IsDirectory(), "Directory listing cannot be loaded as a file");
             byte[] buffer;
             lock (file.Lock)
-                buffer = CONFileStream.LoadFile(file.stream, listing.IsContiguous(), 4, listing.firstBlock, listing.shift);
+                buffer = CONFileStream.LoadFile(file.Stream, listing.IsContiguous(), 4, listing.firstBlock, listing.shift);
             return BitConverter.ToInt32(buffer);
         }
 
