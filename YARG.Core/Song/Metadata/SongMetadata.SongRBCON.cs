@@ -209,17 +209,6 @@ namespace YARG.Core.Song
                 }
             }
 
-            public Stream? GetMidiUpdateStream()
-            {
-                if (UpdateMidi == null)
-                    return null;
-
-                FileInfo info = new(UpdateMidi.FullName);
-                if (!info.Exists || info.LastWriteTime != UpdateMidi.LastWriteTime)
-                    return null;
-                return new FileStream(UpdateMidi.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
-            }
-
             public byte[]? LoadMidiUpdateFile()
             {
                 if (UpdateMidi == null)

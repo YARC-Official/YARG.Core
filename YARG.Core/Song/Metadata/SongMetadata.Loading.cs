@@ -1,6 +1,7 @@
 ﻿using Melanchall.DryWetMidi.Core;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using YARG.Core.Chart;
 using YARG.Core.Extensions;
@@ -52,9 +53,10 @@ namespace YARG.Core.Song
             var shared = RBData.SharedMetadata;
             if (shared.UpdateMidi != null)
             {
-                using var midiStream = shared.GetMidiUpdateStream();
-                if (midiStream == null)
+                if (!shared.UpdateMidi.IsStillValid())
                     return null;
+
+                using var midiStream = new FileStream(shared.UpdateMidi.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
                 var update = MidiFile.Read(midiStream, readingSettings);
                 midi.Merge(update);
             }
