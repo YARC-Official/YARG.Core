@@ -147,7 +147,7 @@ namespace YARG.Core.Song.Cache
             if (conFile == null)
                 return;
 
-            PackedCONGroup group = new(conFile, File.GetLastWriteTime(filename));
+            PackedCONGroup group = new(conFile);
             conGroups.Add(filename, group);
             TryParseUpgrades(filename, group);
         }

@@ -7,14 +7,14 @@ namespace YARG.Core.IO
 {
     public class CONFile : IDisposable
     {
-        public readonly string Name;
+        public readonly AbridgedFileInfo Info;
         public readonly SharedCONStream Stream;
         public readonly List<CONFileListing> Listings = new();
 
-        public CONFile(string filename)
+        public CONFile(AbridgedFileInfo info)
         {
-            Name = filename;
-            Stream = new SharedCONStream(filename);
+            Info = info;
+            Stream = new SharedCONStream(info.FullName);
         }
 
         public void Dispose()
@@ -79,7 +79,7 @@ namespace YARG.Core.IO
             try
             {
                 AbridgedFileInfo fileInfo = new(filename);
-                CONFile conFile = new(filename);
+                CONFile conFile = new(fileInfo);
 
                 using var conStream = new CONFileStream(stream, true, length, firstBlock, shift);
                 Span<byte> listingBuffer = stackalloc byte[SIZEOF_FILELISTING];

@@ -340,7 +340,7 @@ namespace YARG.Core.Song.Cache
 
                 if (TryParseUpgrades(filename, group!) && group!.UpgradeDTALastWrite == dtaLastWrite)
                 {
-                    if (group.LastWrite != conLastWrite)
+                    if (group.CONFileLastWrite != conLastWrite)
                     {
                         for (int i = 0; i < count; i++)
                         {
@@ -383,14 +383,14 @@ namespace YARG.Core.Song.Cache
 
                 MarkFile(filename);
 
-                var files = CONFileHandler.TryLoadCONFile(info.FullName);
-                if (files == null)
+                var file = CONFileHandler.TryLoadCONFile(info.FullName);
+                if (file == null)
                 {
                     YargTrace.DebugInfo($"CON could not be loaded: {filename}");
                     return null;
                 }
 
-                group = new(files, info.LastWriteTime);
+                group = new(file);
                 YargTrace.DebugInfo($"CON added in main loop {filename}");
                 conGroups.Add(filename, group);
             }
@@ -540,11 +540,11 @@ namespace YARG.Core.Song.Cache
 
             MarkFile(filename);
 
-            var files = CONFileHandler.TryLoadCONFile(filename);
-            if (files == null)
+            var file = CONFileHandler.TryLoadCONFile(filename);
+            if (file == null)
                 return false;
 
-            group = new(files, info.LastWriteTime);
+            group = new(file);
             return true;
         }
 

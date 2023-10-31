@@ -203,7 +203,7 @@ namespace YARG.Core.Song
             _directory = rbMetadata.Directory;
 
             if (_playlist.Length == 0)
-                _playlist = Path.GetFileName(file.Name);
+                _playlist = Path.GetFileName(file.Info.FullName);
 
             ApplyRBCONUpdates(nodeName, updates);
             ApplyRBProUpgrade(nodeName, upgrades);
