@@ -5,13 +5,13 @@ using System.Text;
 
 namespace YARG.Core.IO
 {
-    public class CONScanResult : IDisposable
+    public class CONFile : IDisposable
     {
         public readonly string Name;
         public readonly SharedCONStream Stream;
         public readonly List<CONFileListing> Listings = new();
 
-        public CONScanResult(string filename)
+        public CONFile(string filename)
         {
             Name = filename;
             Stream = new SharedCONStream(filename);
@@ -41,7 +41,7 @@ namespace YARG.Core.IO
         private const int BYTES_PER_BLOCK = 0x1000;
         private const int SIZEOF_FILELISTING = 0x40;
         
-        public static CONScanResult? TryLoadCONFile(string filename)
+        public static CONFile? TryLoadCONFile(string filename)
         {
             Span<byte> int32Buffer = stackalloc byte[BYTES_32BIT];
             using FileStream stream = new(filename, FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -78,8 +78,8 @@ namespace YARG.Core.IO
 
             try
             {
-                CONScanResult results = new(filename);
                 AbridgedFileInfo fileInfo = new(filename);
+                CONFile conFile = new(filename);
 
                 using var conStream = new CONFileStream(stream, true, length, firstBlock, shift);
                 Span<byte> listingBuffer = stackalloc byte[SIZEOF_FILELISTING];
@@ -91,10 +91,10 @@ namespace YARG.Core.IO
 
                     CONFileListing listing = new(fileInfo, shift, listingBuffer);
                     if (listing.pathIndex != -1)
-                        listing.SetParentDirectory(results.Listings[listing.pathIndex].Filename);
-                    results.Listings.Add(listing);
+                        listing.SetParentDirectory(conFile.Listings[listing.pathIndex].Filename);
+                    conFile.Listings.Add(listing);
                 }
-                return results;
+                return conFile;
             }
             catch (Exception ex)
             {

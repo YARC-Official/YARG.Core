@@ -11,7 +11,7 @@ namespace YARG.Core.Song.Cache
         public const string UPGRADESFILEPATH = "songs_upgrades/upgrades.dta";
 
         public readonly DateTime LastWrite;
-        public readonly CONScanResult CONFile;
+        public readonly CONFile CONFile;
         public readonly Dictionary<string, IRBProUpgrade> Upgrades = new();
 
         private readonly object upgradeLock = new();
@@ -37,7 +37,7 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        public PackedCONGroup(CONScanResult file, DateTime lastWrite)
+        public PackedCONGroup(CONFile file, DateTime lastWrite)
         {
             CONFile = file;
             LastWrite = lastWrite;

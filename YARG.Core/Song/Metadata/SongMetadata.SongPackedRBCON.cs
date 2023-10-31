@@ -194,7 +194,7 @@ namespace YARG.Core.Song
             }
         }
 
-        private SongMetadata(CONScanResult file, string nodeName, YARGDTAReader reader, Dictionary<string, List<(string, YARGDTAReader)>> updates, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades)
+        private SongMetadata(CONFile file, string nodeName, YARGDTAReader reader, Dictionary<string, List<(string, YARGDTAReader)>> updates, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades)
         {
             RBCONSubMetadata rbMetadata = new();
 
@@ -210,7 +210,7 @@ namespace YARG.Core.Song
             FinalizeRBCONAudioValues(rbMetadata, dtaResults.pans, dtaResults.volumes, dtaResults.cores);
         }
 
-        public static (ScanResult, SongMetadata?) FromPackedRBCON(CONScanResult file, string nodeName, YARGDTAReader reader, Dictionary<string, List<(string, YARGDTAReader)>> updates, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades)
+        public static (ScanResult, SongMetadata?) FromPackedRBCON(CONFile file, string nodeName, YARGDTAReader reader, Dictionary<string, List<(string, YARGDTAReader)>> updates, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades)
         {
             try
             {
@@ -263,7 +263,7 @@ namespace YARG.Core.Song
             return new SongMetadata(packedMeta, reader, strings);
         }
 
-        public static SongMetadata PackedRBCONFromCache_Quick(CONScanResult file, string nodeName, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings)
+        public static SongMetadata PackedRBCONFromCache_Quick(CONFile file, string nodeName, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings)
         {
             var midiListing = CONFileHandler.TryGetListing(file.Listings, reader.ReadLEBString());
             var midiLastWrite = DateTime.FromBinary(reader.ReadInt64());
