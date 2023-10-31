@@ -69,6 +69,17 @@ namespace YARG.Core.Song
                     writer.Write(false);
             }
 
+            public bool Validate(string directory)
+            {
+                if (!chartFile.IsStillValid())
+                    return false;
+
+                if (iniFile == null)
+                    return !File.Exists(Path.Combine(directory, "song.ini"));
+
+                return iniFile.IsStillValid();
+            }
+
             private static readonly string[] SupportedFormats =
             {
                 ".ogg", ".mogg", ".wav", ".mp3", ".aiff", ".opus",
