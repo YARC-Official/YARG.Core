@@ -46,7 +46,7 @@ namespace YARG.Core.Song.Cache
 
         public override bool ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings)
         {
-            var song = SongMetadata.PackedRBCONFromCache(CONFile.Listings, nodeName, upgrades, reader, strings);
+            var song = SongMetadata.PackedRBCONFromCache(CONFile, nodeName, upgrades, reader, strings);
             if (song == null)
                 return false;
 
@@ -58,7 +58,7 @@ namespace YARG.Core.Song.Cache
 
         public YARGDTAReader? LoadUpgrades()
         {
-            upgradeDta = CONFileHandler.TryGetListing(CONFile.Listings, UPGRADESFILEPATH);
+            upgradeDta = CONFile.TryGetListing(UPGRADESFILEPATH);
             if (upgradeDta == null)
                 return null;
             return YARGDTAReader.TryCreate(upgradeDta, CONFile.Stream);
@@ -73,7 +73,7 @@ namespace YARG.Core.Song.Cache
 
         public bool SetSongDTA()
         {
-            songDTA = CONFileHandler.TryGetListing(CONFile.Listings, SONGSFILEPATH);
+            songDTA = CONFile.TryGetListing(SONGSFILEPATH);
             return songDTA != null;
         }
 

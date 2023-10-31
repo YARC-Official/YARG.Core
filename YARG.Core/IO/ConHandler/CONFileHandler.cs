@@ -17,6 +17,17 @@ namespace YARG.Core.IO
             Stream = new SharedCONStream(info.FullName);
         }
 
+        public CONFileListing? TryGetListing(string filename)
+        {
+            for (int i = 0; i < Listings.Count; ++i)
+            {
+                var listing = Listings[i];
+                if (filename == listing.Filename)
+                    return listing;
+            }
+            return null;
+        }
+
         public void Dispose()
         {
             Listings.Clear();
@@ -101,17 +112,6 @@ namespace YARG.Core.IO
                 YargTrace.LogException(ex, $"Error while parsing {filename} (usually when the file doesn't follow spec)");
                 return null;
             }
-        }
-
-        public static CONFileListing? TryGetListing(List<CONFileListing> files, string filename)
-        {
-            for (int i = 0; i < files.Count; ++i)
-            {
-                var listing = files[i];
-                if (filename == listing.Filename)
-                    return listing;
-            }
-            return null;
         }
     }
 }
