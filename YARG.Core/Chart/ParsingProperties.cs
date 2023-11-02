@@ -1,6 +1,4 @@
-﻿using System.Text;
-
-namespace YARG.Core.Chart
+﻿namespace YARG.Core.Chart
 {
     /// <summary>
     /// The type of drums contained in the chart.
@@ -30,7 +28,6 @@ namespace YARG.Core.Chart
             NoteSnapThreshold = 0,
 
             StarPowerNote = SETTING_DEFAULT,
-            Encoding = null,
         };
 
         public const int SETTING_DEFAULT = -1;
@@ -44,6 +41,5 @@ namespace YARG.Core.Chart
         public long NoteSnapThreshold;
 
         public int StarPowerNote;
-        public string? Encoding;
     }
 }

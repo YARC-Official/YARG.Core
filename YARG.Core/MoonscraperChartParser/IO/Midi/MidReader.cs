@@ -69,28 +69,15 @@ namespace MoonscraperChartEditor.Song.IO
             MidiFile midi;
             try
             {
-                switch (settings.Encoding) {
-                    case "utf8":
-                    case "utf-8":
-                        midi = MidiFile.Read(path, MidiSettingsUTF8.Instance); // Force UTF-8
-                        YargTrace.DebugInfo("Loaded forced UTF-8 midi");
-                        break;
-                    case "latin1":
-                        midi = MidiFile.Read(path, MidiSettingsLatin1.Instance); // Force Latin-1
-                        YargTrace.DebugInfo("Loaded forced Latin-1 midi");
-                        break;
-                    default:
-                        try
-                        {
-                            midi = MidiFile.Read(path, MidiSettings.Instance); // Try UTF-8
-                            YargTrace.DebugInfo("Loaded autodetected UTF-8 midi");
-                        }
-                        catch (DecoderFallbackException)
-                        {
-                            midi = MidiFile.Read(path, MidiSettingsLatin1.Instance); // Force Latin-1 as fallback
-                            YargTrace.DebugInfo("Loaded autodetected Latin-1 midi");
-                        }
-                        break;
+                try
+                {
+                    midi = MidiFile.Read(path, MidiSettings.Instance); // Reading .ini MIDI; Try UTF-8
+                    YargTrace.DebugInfo("Loaded autodetected UTF-8 midi");
+                }
+                catch (DecoderFallbackException)
+                {
+                    midi = MidiFile.Read(path, MidiSettingsLatin1.Instance); // Force Latin-1 as fallback
+                    YargTrace.DebugInfo("Loaded autodetected Latin-1 midi");
                 }
                 // midi = MidiFile.Read(path, MidiSettings.Instance);
             }

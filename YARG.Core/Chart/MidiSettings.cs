@@ -27,16 +27,4 @@ namespace YARG.Core.Chart
             TextEncoding = YARGTextContainer.Latin1,
         };
 	}
-
-    public static class MidiSettingsUTF8
-    {
-        public static readonly ReadingSettings Instance = new()
-        {
-            InvalidChunkSizePolicy = InvalidChunkSizePolicy.Ignore,
-            NotEnoughBytesPolicy = NotEnoughBytesPolicy.Ignore,
-            NoHeaderChunkPolicy = NoHeaderChunkPolicy.Ignore,
-            InvalidChannelEventParameterValuePolicy = InvalidChannelEventParameterValuePolicy.ReadValid,
-            TextEncoding = Encoding.UTF8,
-        };
-	}
 }
