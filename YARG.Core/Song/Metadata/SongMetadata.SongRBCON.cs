@@ -273,6 +273,10 @@ namespace YARG.Core.Song
 
         private SongMetadata(IRBCONMetadata rbMeta, YARGBinaryReader reader, CategoryCacheStrings strings) : this(reader, strings)
         {
+            if (_parseSettings.Encoding is null)
+            {
+                _parseSettings.Encoding = "latin1";
+            }
             _rbData = rbMeta;
             _directory = rbMeta.SharedMetadata.Directory;
         }
@@ -457,7 +461,8 @@ namespace YARG.Core.Song
                     case "author": _charter = reader.ExtractText(); break;
                     case "guide_pitch_volume": /*GuidePitchVolume = reader.ReadFloat();*/ break;
                     case "encoding":
-                        var encoding = reader.ExtractText().ToLower() switch
+                        _parseSettings.Encoding = reader.ExtractText().ToLower();
+                        var encoding = _parseSettings.Encoding switch
                         {
                             "latin1" => YARGTextContainer.Latin1,
                             "utf-8" or
@@ -723,12 +728,24 @@ namespace YARG.Core.Song
         private SongChart LoadCONChart()
         {
             MidiFile midi;
+            ReadingSettings readingSettings = MidiSettings.Instance;
+            switch (_parseSettings.Encoding) {
+                case "latin1":
+                    readingSettings = MidiSettingsLatin1.Instance;
+                    break;
+                case "utf8":
+                case "utf-8":
+                    readingSettings = MidiSettingsUTF8.Instance;
+                    break;
+                default: break;
+            }
+            YargTrace.DebugInfo("RBCON encoding: " + _parseSettings.Encoding);
             // Read base MIDI
             using (var midiStream = RBData!.GetMidiStream())
             {
                 if (midiStream == null)
                     throw new Exception("Base MIDI file not present");
-                midi = MidiFile.Read(midiStream);
+                midi = MidiFile.Read(midiStream, readingSettings);
             }
 
             // Merge update MIDI
@@ -738,7 +755,7 @@ namespace YARG.Core.Song
                 using var midiStream = shared.GetMidiUpdateStream();
                 if (midiStream == null)
                     throw new Exception("Scanned update MIDI file not present");
-                var update = MidiFile.Read(midiStream);
+                var update = MidiFile.Read(midiStream, readingSettings);
                 midi.Merge(update);
             }
 
@@ -748,7 +765,7 @@ namespace YARG.Core.Song
                 using var midiStream = shared.Upgrade.GetUpgradeMidiStream();
                 if (midiStream == null)
                     throw new Exception("Scanned upgrade MIDI file not present");
-                var update = MidiFile.Read(midiStream);
+                var update = MidiFile.Read(midiStream, readingSettings);
                 midi.Merge(update);
             }
 
