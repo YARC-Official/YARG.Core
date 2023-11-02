@@ -158,7 +158,7 @@ namespace YARG.Core.Chart
                         
                         if (start.Equals(TextEventDefinitions.LYRIC_PREFIX, StringComparison.Ordinal))
                             isExplicit = false;
-                        else if (start.Equals(TextEventDefinitions.E_LYRIC_PREFIX, StringComparison.Ordinal))
+                        else if (start.Equals(TextEventDefinitions.EXPLICIT_LYRIC_PREFIX, StringComparison.Ordinal))
                             isExplicit = true;
                         else
                             continue;
