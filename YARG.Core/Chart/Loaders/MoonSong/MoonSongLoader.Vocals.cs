@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -154,7 +154,13 @@ namespace YARG.Core.Chart
                         // Ignore non-lyric events
                         var start = splitter.GetNext();
                         var lyric = splitter.Remaining;
-                        if (!start.Equals(TextEventDefinitions.LYRIC_PREFIX, StringComparison.Ordinal))
+                        bool isExplicit = false;
+                        
+                        if (start.Equals(TextEventDefinitions.LYRIC_PREFIX, StringComparison.Ordinal))
+                            isExplicit = false;
+                        else if (start.Equals(TextEventDefinitions.E_LYRIC_PREFIX, StringComparison.Ordinal))
+                            isExplicit = true;
+                        else
                             continue;
 
                         // Only process note modifiers for lyrics that match the current note
@@ -168,7 +174,11 @@ namespace YARG.Core.Chart
                         }
 
                         double time = _moonSong.TickToTime(moonEvent.tick);
-                        lyrics.Add(new(lyric.ToString(), time, moonEvent.tick));
+                        
+       					if (isExplicit)
+        					lyrics.Add(new(new string('-', lyric.ToString().Length) + " ", time, moonEvent.tick));
+        				else
+           					lyrics.Add(new(lyric.ToString(), time, moonEvent.tick));
                     }
 
                     // Create new note
