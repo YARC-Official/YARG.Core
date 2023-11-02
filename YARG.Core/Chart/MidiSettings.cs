@@ -12,7 +12,7 @@ namespace YARG.Core.Chart
             NotEnoughBytesPolicy = NotEnoughBytesPolicy.Ignore,
             NoHeaderChunkPolicy = NoHeaderChunkPolicy.Ignore,
             InvalidChannelEventParameterValuePolicy = InvalidChannelEventParameterValuePolicy.ReadValid,
-            TextEncoding = new UTF8Encoding(false, true),
+            TextEncoding = YARGTextContainer.UTF8Strict,
         };
 	}
 
