@@ -10,7 +10,7 @@ namespace MoonscraperChartEditor.Song
         #region Global lyric events
         public const string
         LYRIC_PREFIX = "lyric",
-        E_LYRIC_PREFIX = "lyric_explicit",
+        EXPLICIT_LYRIC_PREFIX = "lyric_explicit",
         LYRIC_PREFIX_WITH_SPACE = LYRIC_PREFIX + " ",
         LYRIC_PHRASE_START = "phrase_start",
         LYRIC_PHRASE_END = "phrase_end";
