@@ -80,6 +80,7 @@ namespace YARG.Core.Chart
             uint resolution = chart.Resolution;
             LightingType latestLighting = LightingType.Intro;
             PostProcessingType latestPostProc = PostProcessingType.Default;
+            bool latestBonusFxState = false;
             // Add initial state
             chart.VenueTrack.Lighting.Add(new LightingEvent(latestLighting, 0, 0));
             chart.VenueTrack.PostProcessing.Add(new PostProcessingEvent(latestPostProc, 0, 0));
@@ -111,6 +112,12 @@ namespace YARG.Core.Chart
                 {
                     YargTrace.DebugInfo("No match found for section " + section.Name + "; using default autogen section");
                 }
+                // BonusFx at start
+                if (sectionPreset.BonusFxAtStart && !latestBonusFxState) // Avoid multiple BonusFx in a row
+                {
+                    chart.VenueTrack.Stage.Add(new StageEffectEvent(StageEffect.BonusFx, VenueEventFlags.None, section.Time, section.Tick));
+                }
+                latestBonusFxState = sectionPreset.BonusFxAtStart;
                 // Actually generate lighting
                 LightingType currentLighting = latestLighting;
                 foreach (LightingType lighting in sectionPreset.AllowedLightPresets)
