@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Text.RegularExpressions;
 using YARG.Core.Chart;
 
@@ -223,15 +224,15 @@ namespace YARG.Core.Song
 
         public SongMetadata() { }
 
-        public SongChart LoadChart()
+        public SongChart LoadChart(string? autogenPath = null)
         {
             if (IniData != null)
             {
-                return AutogenerateVenue(LoadIniChart());
+                return AutogenerateVenue(LoadIniChart(), autogenPath);
             }
             else if (RBData != null)
             {
-                return AutogenerateVenue(LoadCONChart());
+                return AutogenerateVenue(LoadCONChart(), autogenPath);
             }
 
             // This is an invalid state, notify about it
@@ -242,15 +243,15 @@ namespace YARG.Core.Song
 
         public override string ToString() { return _artist + " | " + _name; }
 
-        private SongChart AutogenerateVenue(SongChart chart, bool skip = false) {
+        private SongChart AutogenerateVenue(SongChart chart, string? autogenPath = null) {
             // Auto-generate venue events if needed - don't do anything if not needed
             // TODO: possibly move this to YARG itself rather than YARG.Core?
-            if (skip) // useful in case of engine being used only to validate replays and whatnot rather than actually playing the game
+            if (autogenPath is null || !File.Exists(autogenPath)) // useful in case of engine being used only to validate replays and whatnot rather than actually playing the game
             {
                 return chart; 
             }
-            // TODO: load from settings rather than hardcoded path
-            VenueAutogenerationPreset autogenerationPreset = new VenueAutogenerationPreset("Z:\\rgces\\Documents\\ArenaRockPreset.json");
+            // Full path sent from YARG expected here
+            VenueAutogenerationPreset autogenerationPreset = new VenueAutogenerationPreset(autogenPath);
             if (chart.VenueTrack.Lighting.Count == 0)
             {
                 YargTrace.DebugInfo("Auto-generating venue lighting...");
