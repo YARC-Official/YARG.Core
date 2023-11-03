@@ -39,7 +39,6 @@ namespace YARG.Core.Chart
 
         private void ReadPresetFromFile(string path)
         {
-            // TODO: ACTUALLY TEST IT!! GOTTA SLEEP
             try
             {
                 JObject o = JObject.Parse(File.ReadAllText(path));
@@ -63,6 +62,10 @@ namespace YARG.Core.Chart
                     {
                         SectionPresets.Add(value);
                     }
+                }
+                if (!defaultSectionRead)
+                {
+                    YargTrace.DebugWarning("Missing default section in preset: " + path);
                 }
             }
             catch (Exception ex)
