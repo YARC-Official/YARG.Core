@@ -245,7 +245,7 @@ namespace YARG.Core.Song
 
         private SongChart AutogenerateVenue(SongChart chart, string? autogenPath = null) {
             // Auto-generate venue events if needed - don't do anything if not needed
-            // TODO: possibly move this to YARG itself rather than YARG.Core?
+            // TODO: possibly move this function to YARG itself rather than YARG.Core?
             if (autogenPath is null || !File.Exists(autogenPath)) // useful in case of engine being used only to validate replays and whatnot rather than actually playing the game
             {
                 return chart; 
