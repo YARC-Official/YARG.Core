@@ -26,7 +26,7 @@ namespace YARG.Core.Chart
             { VENUE_PERFORMER_KEYS,   Performer.Keyboard },
         };
 
-        private static readonly Dictionary<string, LightingType> LightingLookup = new()
+        public static readonly Dictionary<string, LightingType> LightingLookup = new()
         {
             // Keyframed
             { VENUE_LIGHTING_DEFAULT,     LightingType.Default },
@@ -62,7 +62,7 @@ namespace YARG.Core.Chart
             { VENUE_LIGHTING_PREVIOUS, LightingType.Keyframe_Previous },
         };
 
-        private static readonly Dictionary<string, PostProcessingType> PostProcessLookup = new()
+        public static readonly Dictionary<string, PostProcessingType> PostProcessLookup = new()
         {
             { VENUE_POSTPROCESS_DEFAULT, PostProcessingType.Default },
 

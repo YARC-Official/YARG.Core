@@ -1,8 +1,13 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using MoonscraperChartEditor.Song;
+using MoonscraperChartEditor.Song.IO;
+
+using MoonVenueEvent = MoonscraperChartEditor.Song.VenueEvent;
 
 namespace YARG.Core.Chart
 {
@@ -80,13 +85,20 @@ namespace YARG.Core.Chart
             {
                 switch (parameter.Key.ToLower().Trim())
                 {
+                    case "practice_sections":
+                        List<string> practiceSections = new List<string>();
+                        foreach (string section in (JArray)parameter.Value) {
+                            practiceSections.Add(section);
+                        }
+                        sectionPreset.PracticeSections = practiceSections;
+                        break;
                     case "allowed_lightpresets":
                         List<LightingType> allowedLightPresets = new List<LightingType>();
                         foreach (string key in (JArray)parameter.Value) {
-                            key = key.Trim();
-                            if (VENUE_LIGHTING_CONVERSION_LOOKUP.TryGetValue(key, out eventData))
+                            var keyTrim = key.Trim();
+                            if (MidIOHelper.VENUE_LIGHTING_CONVERSION_LOOKUP.TryGetValue(keyTrim, out var eventData))
                             {
-                                allowedLightPresets.Add(eventData);
+                                allowedLightPresets.Add(MoonSongLoader.LightingLookup[eventData]);
                             }
                             else
                             {
@@ -96,12 +108,12 @@ namespace YARG.Core.Chart
                         sectionPreset.AllowedLightPresets = allowedLightPresets;
                         break;
                     case "allowed_postprocs":
-                        List<LightingType> allowedPostProcs = new List<LightingType>();
+                        List<PostProcessingType> allowedPostProcs = new List<PostProcessingType>();
                         foreach (string key in (JArray)parameter.Value) {
-                            key = key.Trim();
-                            if (VENUE_TEXT_CONVERSION_LOOKUP.TryGetValue(key, out eventData) && eventData.type == VenueEvent.Type.PostProcessing)
+                            var keyTrim = key.Trim();
+                            if (MidIOHelper.VENUE_TEXT_CONVERSION_LOOKUP.TryGetValue(keyTrim, out var eventData) && eventData.type == MoonVenueEvent.Type.PostProcessing)
                             {
-                                allowedPostProcs.Add(eventData.text);
+                                allowedPostProcs.Add(MoonSongLoader.PostProcessLookup[eventData.text]);
                             }
                             else
                             {
@@ -119,14 +131,17 @@ namespace YARG.Core.Chart
                     case "postproc_blendin":
                         sectionPreset.PostProcBlendIn = (int)parameter.Value;
                         break;
-                    /*case "dircut_at_start":
+                    case "dircut_at_start":
                         // TODO: add when we have characters / directed camera cuts
-                        break;*/
+                        break;
                     case "bonusfx_at_start":
                         sectionPreset.BonusFxAtStart = (bool)parameter.Value;
                         break;
                     case "camera_pacing":
-                        sectionPreset.CameraPacing = StringToCameraPacing((string)parameter.Value);
+                        sectionPreset.CameraPacingOverride = StringToCameraPacing((string)parameter.Value);
+                        break;
+                    default:
+                        YargTrace.DebugWarning("Unknown section preset parameter: " + parameter.Key);
                         break;
                 }
             }
