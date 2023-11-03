@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using MoonscraperChartEditor.Song;
@@ -75,11 +76,118 @@ namespace YARG.Core.Chart
         }
 
         public void GenerateLightingEvents(ref SongChart chart) {
-            // TODO: lighting generator function
+            uint lastTick = chart.GetLastTick();
+            uint resolution = chart.Resolution;
+            LightingType latestLighting = LightingType.Intro;
+            PostProcessingType latestPostProc = PostProcessingType.Default;
+            // Add initial state
+            chart.VenueTrack.Lighting.Add(new LightingEvent(latestLighting, 0, 0));
+            chart.VenueTrack.PostProcessing.Add(new PostProcessingEvent(latestPostProc, 0, 0));
+            foreach (Section section in chart.Sections)
+            {
+                // Find which section preset to use...
+                AutogenerationSectionPreset sectionPreset = DefaultSectionPreset;
+                bool matched = false;
+                foreach (AutogenerationSectionPreset preset in SectionPresets)
+                {
+                    var nameToMatch = section.Name.ToLower().Trim().Replace("-","").Replace(" ","_");
+                    foreach (string practiceSecion in preset.PracticeSections)
+                    {
+                        var regexString = "^" + Regex.Escape(practiceSecion).Replace("\\*", ".*") + "$"; 
+                        if (Regex.IsMatch(nameToMatch, regexString))
+                        {
+                            sectionPreset = preset;
+                            matched = true;
+                            YargTrace.DebugInfo("Section " + section.Name + " matched practice section " + practiceSecion);
+                            break;
+                        }
+                    }
+                    if (matched)
+                    {
+                        break;
+                    }
+                }
+                if (!matched)
+                {
+                    YargTrace.DebugInfo("No match found for section " + section.Name + "; using default autogen section");
+                }
+                // Actually generate lighting
+                LightingType currentLighting = latestLighting;
+                foreach (LightingType lighting in sectionPreset.AllowedLightPresets)
+                {
+                    if (lighting != latestLighting)
+                    {
+                        currentLighting = lighting;
+                        break;
+                    }
+                }
+                if (currentLighting != latestLighting) // Only generate new events if lighting's changed
+                {
+                    if (sectionPreset.LightPresetBlendIn > 0)
+                    {
+                        uint blendTick = section.Tick - (sectionPreset.LightPresetBlendIn * resolution);
+                        if (blendTick > 0)
+                        {
+                            chart.VenueTrack.Lighting.Add(new LightingEvent(latestLighting, chart.SyncTrack.TickToTime(blendTick), blendTick));
+                        }
+                    }
+                    chart.VenueTrack.Lighting.Add(new LightingEvent(currentLighting, section.Time, section.Tick));
+                    latestLighting = currentLighting;
+                }
+                else if (LightingIsManual(currentLighting))
+                {
+                    chart.VenueTrack.Lighting.Add(new LightingEvent(LightingType.Keyframe_Next, section.Time, section.Tick));
+                }
+                // Generate next keyframes
+                if (LightingIsManual(currentLighting))
+                {
+                    uint nextTick = section.Tick + (resolution * sectionPreset.KeyframeRate);
+                    while (nextTick < lastTick && nextTick < section.TickEnd)
+                    {
+                        chart.VenueTrack.Lighting.Add(new LightingEvent(LightingType.Keyframe_Next, chart.SyncTrack.TickToTime(nextTick), nextTick));
+                        nextTick += (resolution * sectionPreset.KeyframeRate);
+                    }
+                }
+                // Generate post-procs
+                PostProcessingType currentPostProc = latestPostProc;
+                foreach (PostProcessingType postProc in sectionPreset.AllowedPostProcs)
+                {
+                    if (postProc != latestPostProc)
+                    {
+                        currentPostProc = postProc;
+                        break;
+                    }
+                }
+                if (currentPostProc != latestPostProc) // Only generate new events if post-proc's changed
+                {
+                    if (sectionPreset.PostProcBlendIn > 0)
+                    {
+                        uint blendTick = section.Tick - (sectionPreset.PostProcBlendIn * resolution);
+                        if (blendTick > 0)
+                        {
+                            chart.VenueTrack.PostProcessing.Add(new PostProcessingEvent(latestPostProc, chart.SyncTrack.TickToTime(blendTick), blendTick));
+                        }
+                    }
+                    chart.VenueTrack.PostProcessing.Add(new PostProcessingEvent(currentPostProc, section.Time, section.Tick));
+                    latestPostProc = currentPostProc;
+                }
+            }
+            // Reorder lighting track (Next keyframes and blend-in events might be unordered)
+            chart.VenueTrack.Lighting.Sort((x,y) => x.Tick.CompareTo(y.Tick));
         }
 
         public void GenerateCameraCutEvents(ref SongChart chart) {
             // TODO: camera cut generator function
+        }
+
+        private bool LightingIsManual(LightingType lighting) {
+            return lighting == LightingType.Default ||
+                   lighting == LightingType.Dischord ||
+                   lighting == LightingType.Chorus ||
+                   lighting == LightingType.Cool_Manual ||
+                   lighting == LightingType.Stomp ||
+                   lighting == LightingType.Verse ||
+                   lighting == LightingType.Warm_Manual;
         }
 
         private AutogenerationSectionPreset JObjectToSectionPreset(JObject o) {
@@ -126,13 +234,13 @@ namespace YARG.Core.Chart
                         sectionPreset.AllowedPostProcs = allowedPostProcs;
                         break;
                     case "keyframe_rate":
-                        sectionPreset.KeyframeRate = (int)parameter.Value;
+                        sectionPreset.KeyframeRate = (uint)parameter.Value;
                         break;
                     case "lightpreset_blendin":
-                        sectionPreset.LightPresetBlendIn = (int)parameter.Value;
+                        sectionPreset.LightPresetBlendIn = (uint)parameter.Value;
                         break;
                     case "postproc_blendin":
-                        sectionPreset.PostProcBlendIn = (int)parameter.Value;
+                        sectionPreset.PostProcBlendIn = (uint)parameter.Value;
                         break;
                     case "dircut_at_start":
                         // TODO: add when we have characters / directed camera cuts
@@ -178,9 +286,9 @@ namespace YARG.Core.Chart
         public List<string> PracticeSections; // i.e. "*verse*" which applies to "Verse 1", "Verse 2", etc.
         public List<LightingType> AllowedLightPresets;
         public List<PostProcessingType> AllowedPostProcs;
-        public int KeyframeRate;
-        public int LightPresetBlendIn;
-        public int PostProcBlendIn;
+        public uint KeyframeRate;
+        public uint LightPresetBlendIn;
+        public uint PostProcBlendIn;
         // public DirectedCameraCutType DirectedCutAtStart; // TODO: add when we have characters / directed camera cuts
         public bool BonusFxAtStart;
         public CameraPacing? CameraPacingOverride;
