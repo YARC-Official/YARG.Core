@@ -227,11 +227,11 @@ namespace YARG.Core.Song
         {
             if (IniData != null)
             {
-                return LoadIniChart();
+                return AutogenerateVenue(LoadIniChart());
             }
             else if (RBData != null)
             {
-                return LoadCONChart();
+                return AutogenerateVenue(LoadCONChart());
             }
 
             // This is an invalid state, notify about it
@@ -241,5 +241,27 @@ namespace YARG.Core.Song
         }
 
         public override string ToString() { return _artist + " | " + _name; }
+
+        private SongChart AutogenerateVenue(SongChart chart, bool skip = false) {
+            // Auto-generate venue events if needed - don't do anything if not needed
+            // TODO: possibly move this to YARG itself rather than YARG.Core?
+            if (skip) // useful in case of engine being used only to validate replays and whatnot rather than actually playing the game
+            {
+                return chart; 
+            }
+            // TODO: load from settings rather than hardcoded path
+            VenueAutogenerationPreset autogenerationPreset = new VenueAutogenerationPreset("Z:\\rgces\\Documents\\ArenaRockPreset.json");
+            if (chart.VenueTrack.Lighting.Count == 0)
+            {
+                YargTrace.DebugInfo("Auto-generating venue lighting...");
+                autogenerationPreset.GenerateLightingEvents(ref chart);
+            }
+            // TODO: add when characters and camera events are present ingame
+            /*if (chart.VenueTrack.Camera.Count == 0)
+            {
+                autogenerationPreset.GenerateCameraCutEvents(ref chart);
+            }*/
+            return chart;
+        }
     }
 }
