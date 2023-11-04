@@ -723,12 +723,13 @@ namespace YARG.Core.Song
         private SongChart LoadCONChart()
         {
             MidiFile midi;
-            // Read base MIDI
+            ReadingSettings readingSettings = MidiSettingsLatin1.Instance; // RBCONs are always Latin-1
+            // Read base MIDi
             using (var midiStream = RBData!.GetMidiStream())
             {
                 if (midiStream == null)
                     throw new Exception("Base MIDI file not present");
-                midi = MidiFile.Read(midiStream);
+                midi = MidiFile.Read(midiStream, readingSettings);
             }
 
             // Merge update MIDI
@@ -738,7 +739,7 @@ namespace YARG.Core.Song
                 using var midiStream = shared.GetMidiUpdateStream();
                 if (midiStream == null)
                     throw new Exception("Scanned update MIDI file not present");
-                var update = MidiFile.Read(midiStream);
+                var update = MidiFile.Read(midiStream, readingSettings);
                 midi.Merge(update);
             }
 
@@ -748,7 +749,7 @@ namespace YARG.Core.Song
                 using var midiStream = shared.Upgrade.GetUpgradeMidiStream();
                 if (midiStream == null)
                     throw new Exception("Scanned upgrade MIDI file not present");
-                var update = MidiFile.Read(midiStream);
+                var update = MidiFile.Read(midiStream, readingSettings);
                 midi.Merge(update);
             }
 

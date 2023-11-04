@@ -7,6 +7,7 @@ namespace YARG.Core.IO
     public static class YARGTextContainer
     {
         public static readonly Encoding Latin1 = Encoding.GetEncoding(28591);
+        public static readonly Encoding UTF8Strict = new UTF8Encoding(false, true);
     }
 
     public sealed class YARGTextContainer<TChar>
