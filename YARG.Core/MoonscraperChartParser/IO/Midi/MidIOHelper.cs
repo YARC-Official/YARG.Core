@@ -9,6 +9,7 @@ using YARG.Core.Chart;
 namespace MoonscraperChartEditor.Song.IO
 {
     using static TextEventDefinitions;
+    using static VenueLookup;
 
     internal static class MidIOHelper
     {
@@ -201,137 +202,50 @@ namespace MoonscraperChartEditor.Song.IO
             // { PRO_GUITAR_CHANNEL_PINCH_HARMONIC, MoonNote.Flags. },
         };
 
-        public static readonly Dictionary<int, (VenueEvent.Type type, string text)> VENUE_NOTE_LOOKUP = new()
+        public static readonly Dictionary<int, (VenueLookup.Type type, string text)> VENUE_NOTE_LOOKUP = new()
         {
             #region Post-processing events
-            { 110, (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_TRAILS_LONG) },           // Trails
-            { 109, (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_SCANLINES_SECURITY) },    // Security camera
-            { 108, (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_SCANLINES_BLACK_WHITE) }, // Black and white
-            { 107, (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_SCANLINES) },             // Scanlines
-            { 106, (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_SCANLINES_BLUE) },        // Blue tint
-            { 105, (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_MIRROR) },                // Mirror
-            { 104, (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_DESATURATED_RED) },       // Bloom B
-            { 103, (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_BLOOM) },                 // Bloom A
-            { 102, (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_CHOPPY_BLACK_WHITE) },    // Photocopy
-            { 101, (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_PHOTONEGATIVE) },         // Negative
-            { 100, (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_SILVERTONE) },            // Silvertone
-            { 99,  (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_SEPIATONE) },             // Sepia
-            { 98,  (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_GRAINY_FILM) },           // 16mm
-            { 97,  (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_POLARIZED_BLACK_WHITE) }, // Contrast A
-            { 96,  (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_DEFAULT) },               // Default
+            { 110, (VenueLookup.Type.PostProcessing, VENUE_POSTPROCESS_TRAILS_LONG) },           // Trails
+            { 109, (VenueLookup.Type.PostProcessing, VENUE_POSTPROCESS_SCANLINES_SECURITY) },    // Security camera
+            { 108, (VenueLookup.Type.PostProcessing, VENUE_POSTPROCESS_SCANLINES_BLACK_WHITE) }, // Black and white
+            { 107, (VenueLookup.Type.PostProcessing, VENUE_POSTPROCESS_SCANLINES) },             // Scanlines
+            { 106, (VenueLookup.Type.PostProcessing, VENUE_POSTPROCESS_SCANLINES_BLUE) },        // Blue tint
+            { 105, (VenueLookup.Type.PostProcessing, VENUE_POSTPROCESS_MIRROR) },                // Mirror
+            { 104, (VenueLookup.Type.PostProcessing, VENUE_POSTPROCESS_DESATURATED_RED) },       // Bloom B
+            { 103, (VenueLookup.Type.PostProcessing, VENUE_POSTPROCESS_BLOOM) },                 // Bloom A
+            { 102, (VenueLookup.Type.PostProcessing, VENUE_POSTPROCESS_CHOPPY_BLACK_WHITE) },    // Photocopy
+            { 101, (VenueLookup.Type.PostProcessing, VENUE_POSTPROCESS_PHOTONEGATIVE) },         // Negative
+            { 100, (VenueLookup.Type.PostProcessing, VENUE_POSTPROCESS_SILVERTONE) },            // Silvertone
+            { 99,  (VenueLookup.Type.PostProcessing, VENUE_POSTPROCESS_SEPIATONE) },             // Sepia
+            { 98,  (VenueLookup.Type.PostProcessing, VENUE_POSTPROCESS_GRAINY_FILM) },           // 16mm
+            { 97,  (VenueLookup.Type.PostProcessing, VENUE_POSTPROCESS_POLARIZED_BLACK_WHITE) }, // Contrast A
+            { 96,  (VenueLookup.Type.PostProcessing, VENUE_POSTPROCESS_DEFAULT) },               // Default
             #endregion
 
             #region Performer singalongs
-            { 87, (VenueEvent.Type.Singalong, VENUE_PERFORMER_GUITAR) },
-            { 86, (VenueEvent.Type.Singalong, VENUE_PERFORMER_DRUMS) },
-            { 85, (VenueEvent.Type.Singalong, VENUE_PERFORMER_BASS) },
+            { 87, (VenueLookup.Type.Singalong, VENUE_PERFORMER_GUITAR) },
+            { 86, (VenueLookup.Type.Singalong, VENUE_PERFORMER_DRUMS) },
+            { 85, (VenueLookup.Type.Singalong, VENUE_PERFORMER_BASS) },
             #endregion
 
             #region Lighting keyframes
-            { 50, (VenueEvent.Type.Lighting, VENUE_LIGHTING_FIRST) },
-            { 49, (VenueEvent.Type.Lighting, VENUE_LIGHTING_PREVIOUS) },
-            { 48, (VenueEvent.Type.Lighting, VENUE_LIGHTING_NEXT) },
+            { 50, (VenueLookup.Type.Lighting, VENUE_LIGHTING_FIRST) },
+            { 49, (VenueLookup.Type.Lighting, VENUE_LIGHTING_PREVIOUS) },
+            { 48, (VenueLookup.Type.Lighting, VENUE_LIGHTING_NEXT) },
             #endregion
 
             #region Performer spotlights
-            { 41, (VenueEvent.Type.Spotlight, VENUE_PERFORMER_KEYS) },
-            { 40, (VenueEvent.Type.Spotlight, VENUE_PERFORMER_VOCALS) },
-            { 39, (VenueEvent.Type.Spotlight, VENUE_PERFORMER_GUITAR) },
-            { 38, (VenueEvent.Type.Spotlight, VENUE_PERFORMER_DRUMS) },
-            { 37, (VenueEvent.Type.Spotlight, VENUE_PERFORMER_BASS) },
+            { 41, (VenueLookup.Type.Spotlight, VENUE_PERFORMER_KEYS) },
+            { 40, (VenueLookup.Type.Spotlight, VENUE_PERFORMER_VOCALS) },
+            { 39, (VenueLookup.Type.Spotlight, VENUE_PERFORMER_GUITAR) },
+            { 38, (VenueLookup.Type.Spotlight, VENUE_PERFORMER_DRUMS) },
+            { 37, (VenueLookup.Type.Spotlight, VENUE_PERFORMER_BASS) },
             #endregion
         };
 
-        public static readonly Dictionary<string, (VenueEvent.Type type, string text)> VENUE_TEXT_CONVERSION_LOOKUP = new()
+        public static readonly Dictionary<Regex, (Dictionary<string, string> lookup, VenueLookup.Type type, string defaultValue)> VENUE_EVENT_REGEX_TO_LOOKUP = new()
         {
-            #region Lighting events
-            // Keyframe events
-            { "first", (VenueEvent.Type.Lighting, VENUE_LIGHTING_FIRST) },
-            { "next",  (VenueEvent.Type.Lighting, VENUE_LIGHTING_NEXT) },
-            { "prev",  (VenueEvent.Type.Lighting, VENUE_LIGHTING_PREVIOUS) },
-
-            // RBN1 equivalents for `lighting (chorus)` and `lighting (verse)`
-            { "verse",  (VenueEvent.Type.Lighting, VENUE_LIGHTING_VERSE) },
-            { "chorus", (VenueEvent.Type.Lighting, VENUE_LIGHTING_CHORUS) },
-            #endregion
-
-            #region Post-processing events
-            { "bloom.pp",                        (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_BLOOM) },
-            { "bright.pp",                       (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_BRIGHT) },
-            { "clean_trails.pp",                 (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_TRAILS) },
-            { "contrast_a.pp",                   (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_POLARIZED_BLACK_WHITE) },
-            { "desat_blue.pp",                   (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_DESATURATED_BLUE) },
-            { "desat_posterize_trails.pp",       (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_TRAILS_DESATURATED) },
-            { "film_contrast.pp",                (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_CONTRAST) },
-            { "film_b+w.pp",                     (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_BLACK_WHITE) },
-            { "film_sepia_ink.pp",               (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_SEPIATONE) },
-            { "film_silvertone.pp",              (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_SILVERTONE) },
-            { "film_contrast_red.pp",            (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_CONTRAST_RED) },
-            { "film_contrast_green.pp",          (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_CONTRAST_GREEN) },
-            { "film_contrast_blue.pp",           (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_CONTRAST_BLUE) },
-            { "film_16mm.pp",                    (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_GRAINY_FILM) },
-            { "film_blue_filter.pp",             (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_SCANLINES_BLUE) },
-            { "flicker_trails.pp",               (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_TRAILS_FLICKERY) },
-            { "horror_movie_special.pp",         (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_PHOTONEGATIVE_RED_BLACK) },
-            { "photocopy.pp",                    (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_CHOPPY_BLACK_WHITE) },
-            { "photo_negative.pp",               (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_PHOTONEGATIVE) },
-            { "posterize.pp",                    (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_POSTERIZE) },
-            { "ProFilm_a.pp",                    (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_DEFAULT) },
-            { "ProFilm_b.pp",                    (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_DESATURATED_RED) },
-            { "ProFilm_mirror_a.pp",             (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_MIRROR) },
-            { "ProFilm_psychedelic_blue_red.pp", (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_POLARIZED_RED_BLUE) },
-            { "shitty_tv.pp",                    (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_GRAINY_CHROMATIC_ABBERATION) },
-            { "space_woosh.pp",                  (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_TRAILS_SPACEY) },
-            { "video_a.pp",                      (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_SCANLINES) },
-            { "video_bw.pp",                     (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_SCANLINES_BLACK_WHITE) },
-            { "video_security.pp",               (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_SCANLINES_SECURITY) },
-            { "video_trails.pp",                 (VenueEvent.Type.PostProcessing, VENUE_POSTPROCESS_TRAILS_LONG) },
-            #endregion
-
-            #region Stage effects
-            { "bonusfx",          (VenueEvent.Type.StageEffect, VENUE_STAGE_BONUS_FX) },
-            { "bonusfx_optional", (VenueEvent.Type.StageEffect, VENUE_OPTIONAL_EVENT_PREFIX_WITH_SPACE + VENUE_STAGE_BONUS_FX) },
-            { "FogOn",            (VenueEvent.Type.StageEffect, VENUE_STAGE_FOG_ON) },
-            { "FogOff",           (VenueEvent.Type.StageEffect, VENUE_STAGE_FOG_OFF) },
-            #endregion
-        };
-
-        public static readonly Dictionary<string, string> VENUE_LIGHTING_CONVERSION_LOOKUP = new()
-        {
-            #region Keyframed
-            // { string.Empty,  VENUE_LIGHTING_DEFAULT }, // Handled by the default case
-            { "chorus",      VENUE_LIGHTING_CHORUS },
-            { "dischord",    VENUE_LIGHTING_DISCHORD },
-            { "manual_cool", VENUE_LIGHTING_COOL_MANUAL },
-            { "manual_warm", VENUE_LIGHTING_WARM_MANUAL },
-            { "stomp",       VENUE_LIGHTING_STOMP },
-            { "verse",       VENUE_LIGHTING_VERSE },
-            #endregion
-
-            #region Automatic
-            { "blackout_fast",    VENUE_LIGHTING_BLACKOUT_FAST },
-            { "blackout_slow",    VENUE_LIGHTING_BLACKOUT_SLOW },
-            { "blackout_spot",    VENUE_LIGHTING_BLACKOUT_SPOTLIGHT },
-            { "bre",              VENUE_LIGHTING_BIG_ROCK_ENDING },
-            { "flare_fast",       VENUE_LIGHTING_FLARE_FAST },
-            { "flare_slow",       VENUE_LIGHTING_FLARE_SLOW },
-            { "frenzy",           VENUE_LIGHTING_FRENZY },
-            { "harmony",          VENUE_LIGHTING_HARMONY },
-            { "intro",            VENUE_LIGHTING_INTRO },
-            { "loop_cool",        VENUE_LIGHTING_COOL_AUTOMATIC },
-            { "loop_warm",        VENUE_LIGHTING_WARM_AUTOMATIC },
-            { "searchlights",     VENUE_LIGHTING_SEARCHLIGHTS },
-            { "silhouettes",      VENUE_LIGHTING_SILHOUETTES },
-            { "silhouettes_spot", VENUE_LIGHTING_SILHOUETTES_SPOTLIGHT },
-            { "strobe_fast",      VENUE_LIGHTING_STROBE_FAST },
-            { "strobe_slow",      VENUE_LIGHTING_STROBE_SLOW },
-            { "sweep",            VENUE_LIGHTING_SWEEP },
-            #endregion
-        };
-
-        public static readonly Dictionary<Regex, (Dictionary<string, string> lookup, VenueEvent.Type type, string defaultValue)> VENUE_EVENT_REGEX_TO_LOOKUP = new()
-        {
-            { LightingRegex,    (VENUE_LIGHTING_CONVERSION_LOOKUP, VenueEvent.Type.Lighting, VENUE_LIGHTING_DEFAULT) },
+            { LightingRegex,    (VENUE_LIGHTING_CONVERSION_LOOKUP, VenueLookup.Type.Lighting, VENUE_LIGHTING_DEFAULT) },
         };
 
         public static float GetHopoThreshold(ParseSettings settings, float resolution)

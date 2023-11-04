@@ -8,6 +8,7 @@ using MoonVenueEvent = MoonscraperChartEditor.Song.VenueEvent;
 namespace YARG.Core.Chart
 {
     using static TextEventDefinitions;
+    using static VenueLookup;
 
     internal partial class MoonSongLoader : ISongLoader
     {
@@ -148,7 +149,7 @@ namespace YARG.Core.Chart
                 string text = splitter.CurrentToEnd.ToString();
                 switch (moonVenue.type)
                 {
-                    case MoonVenueEvent.Type.Lighting:
+                    case VenueLookup.Type.Lighting:
                     {
                         if (!LightingLookup.TryGetValue(text, out var type))
                             continue;
@@ -158,7 +159,7 @@ namespace YARG.Core.Chart
                         break;
                     }
 
-                    case MoonVenueEvent.Type.PostProcessing:
+                    case VenueLookup.Type.PostProcessing:
                     {
                         if (!PostProcessLookup.TryGetValue(text, out var type))
                             continue;
@@ -168,21 +169,21 @@ namespace YARG.Core.Chart
                         break;
                     }
 
-                    case MoonVenueEvent.Type.Singalong:
+                    case VenueLookup.Type.Singalong:
                     {
                         HandlePerformerEvent(performerEvents, PerformerEventType.Singalong, moonVenue,
                             ref singalongCurrentEvent, ref singalongPerformers);
                         break;
                     }
 
-                    case MoonVenueEvent.Type.Spotlight:
+                    case VenueLookup.Type.Spotlight:
                     {
                         HandlePerformerEvent(performerEvents, PerformerEventType.Spotlight, moonVenue,
                             ref spotlightCurrentEvent, ref spotlightPerformers);
                         break;
                     }
 
-                    case MoonVenueEvent.Type.StageEffect:
+                    case VenueLookup.Type.StageEffect:
                     {
                         if (!StageEffectLookup.TryGetValue(text, out var type))
                             continue;
