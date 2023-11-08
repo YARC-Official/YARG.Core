@@ -84,11 +84,6 @@ namespace YARG.Core.Engine.Guitar.Engines
                 ToggleFret(CurrentInput.Action, CurrentInput.Button);
                 State.FrontEndStartTime = State.CurrentTime;
                 
-                EventLogger.LogEvent(new InputEngineEvent(State.CurrentTime)
-                {
-                    Input = CurrentInput
-                });
-                
                 EventLogger.LogEvent(new TimerEngineEvent(State.CurrentTime)
                 {
                     TimerName = "FrontEnd",
@@ -105,11 +100,6 @@ namespace YARG.Core.Engine.Guitar.Engines
             // This is up here so overstrumming still works when there are no notes left
             if (State.StrummedThisUpdate)
             {
-                EventLogger.LogEvent(new InputEngineEvent(State.CurrentTime)
-                {
-                    Input = CurrentInput
-                });
-                
                 // Strummed while strum leniency active
                 if (State.StrumLeniencyTimer.IsActive(State.CurrentTime))
                 {

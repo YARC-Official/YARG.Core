@@ -55,8 +55,6 @@ namespace YARG.Core.Engine.Logging
                 //     return new SustainEngineEvent(type, 0);
                 case EngineEventType.Timer:
                     return new TimerEngineEvent(0);
-                case EngineEventType.Input:
-                    return new InputEngineEvent(0);
                 case EngineEventType.Score:
                     return new ScoreEngineEvent(0);
                 case EngineEventType.StarPower:
