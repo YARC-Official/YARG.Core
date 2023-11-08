@@ -70,17 +70,13 @@ namespace YARG.Core.Song
 
             public void Serialize(BinaryWriter writer)
             {
-                writer.Write(Midi.FullName);
-                writer.Write(Midi.LastWriteTime.ToBinary());
-
-                writer.Write(_metadata.Mogg!.FullName);
-                writer.Write(_metadata.Mogg.LastWriteTime.ToBinary());
+                Midi.Serialize(writer);
+                _metadata.Mogg!.Serialize(writer);
 
                 if (_metadata.UpdateMidi != null)
                 {
                     writer.Write(true);
-                    writer.Write(_metadata.UpdateMidi.FullName);
-                    writer.Write(_metadata.UpdateMidi.LastWriteTime.ToBinary());
+                    _metadata.UpdateMidi.Serialize(writer);
                 }
                 else
                     writer.Write(false);
@@ -105,7 +101,7 @@ namespace YARG.Core.Song
                 return new FileStream(Midi.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
             }
 
-            public byte[]? LoadMidiFile()
+            public byte[]? LoadMidiFile(CONFile? _)
             {
                 if (DTA == null || !DTA.IsStillValid() || !Midi.IsStillValid())
                     return null;
@@ -131,7 +127,7 @@ namespace YARG.Core.Song
                 return _metadata.GetMoggStream();
             }
 
-            public bool IsMoggValid()
+            public bool IsMoggValid(CONFile? _)
             {
                 using var stream = _metadata.GetMoggStream();
                 if (stream == null)
@@ -163,7 +159,7 @@ namespace YARG.Core.Song
             try
             {
                 SongMetadata song = new(folder, dta, nodeName, reader, updates, upgrades);
-                var result = song.ParseRBCONMidi();
+                var result = song.ParseRBCONMidi(null);
                 if (result != ScanResult.Success)
                     return (result, null);
                 return (result, song);
@@ -177,19 +173,19 @@ namespace YARG.Core.Song
 
         public static SongMetadata? UnpackedRBCONFromCache(AbridgedFileInfo dta, string nodeName, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings)
         {
-            var midiInfo = ParseFileInfo(reader);
+            var midiInfo = AbridgedFileInfo.TryParseInfo(reader);
             if (midiInfo == null)
                 return null;
 
-            var moggInfo = ParseFileInfo(reader);
+            var moggInfo = AbridgedFileInfo.TryParseInfo(reader);
             if (moggInfo == null)
                 return null;
 
             AbridgedFileInfo? updateInfo = null;
             if (reader.ReadBoolean())
             {
-                updateInfo = ParseFileInfo(reader);
-                if (moggInfo == null)
+                updateInfo = AbridgedFileInfo.TryParseInfo(reader);
+                if (updateInfo == null)
                     return null;
             }
 
@@ -214,9 +210,7 @@ namespace YARG.Core.Song
             AbridgedFileInfo? updateInfo = null;
             if (reader.ReadBoolean())
             {
-                filename = reader.ReadLEBString();
-                lastWrite = DateTime.FromBinary(reader.ReadInt64());
-                updateInfo = new(filename, lastWrite);
+                updateInfo = new(reader);
             }
 
             RBUnpackedCONMetadata packedMeta = new(dta, midiInfo, moggInfo, updateInfo, reader);

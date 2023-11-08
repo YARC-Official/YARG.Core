@@ -6,9 +6,15 @@ namespace YARG.Core.Engine
 {
     public abstract class BaseEngineParameters : IBinarySerializable
     {
-        // Don't use this value in logic, use the FrontEnd and BackEnd (-1/2 and +1/2 values respectively)
-        public double HitWindow        { get; }
-        public double FrontToBackRatio { get; }
+        /// <summary>
+        /// The total width of the hit window.
+        /// </summary>
+        public double HitWindow        { get; private set; }
+
+        /// <summary>
+        /// The front to back ratio of the hit window.
+        /// </summary>
+        public double FrontToBackRatio { get; private set; }
 
         /// <summary>
         /// How much time ahead of the strikeline can a note be hit. This value is always negative.
@@ -47,6 +53,9 @@ namespace YARG.Core.Engine
         {
             FrontEnd = reader.ReadDouble();
             BackEnd = reader.ReadDouble();
+
+            HitWindow = Math.Abs(FrontEnd) + Math.Abs(BackEnd);
+            FrontToBackRatio = Math.Abs(FrontEnd) / Math.Abs(BackEnd);
         }
     }
 }

@@ -289,12 +289,8 @@ namespace YARG.Core.Chart
 
         public uint GetFirstTick()
         {
-            uint totalFirstTick = 0;
-
-            totalFirstTick = Math.Min(Tempos.GetFirstTick(), totalFirstTick);
-            totalFirstTick = Math.Min(TimeSignatures.GetFirstTick(), totalFirstTick);
-
-            return totalFirstTick;
+            // The sync track always starts at the very beginning of the chart
+            return 0;
         }
 
         public uint GetLastTick()

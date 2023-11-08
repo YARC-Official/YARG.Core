@@ -285,7 +285,7 @@ namespace YARG.Core.Song
             return DrumsType.Unknown;
         }
 
-        private void SetDrums(DrumPreparseHandler drums)
+        public void SetDrums(DrumPreparseHandler drums)
         {
             if (drums.Type == DrumsType.FiveLane)
                 FiveLaneDrums.Difficulties = drums.ValidatedDiffs;

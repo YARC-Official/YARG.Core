@@ -1,4 +1,6 @@
-﻿namespace YARG.Core.Song
+﻿using YARG.Core.IO;
+
+namespace YARG.Core.Song
 {
     public abstract class Midi_Instrument_Preparser : Midi_Preparser
     {
@@ -17,34 +19,34 @@
 
         protected Midi_Instrument_Preparser() { }
 
-        protected override bool ParseNote_ON()
+        protected override bool ParseNote_ON(YARGMidiTrack track)
         {
-            if (ProcessSpecialNote_ON())
+            if (ProcessSpecialNote_ON(track))
                 return false;
 
             if (IsNote())
-                return ParseLaneColor_ON();
-            return ToggleExtraValues();
+                return ParseLaneColor_ON(track);
+            return ToggleExtraValues(track);
         }
 
-        protected override bool ParseNote_Off()
+        protected override bool ParseNote_Off(YARGMidiTrack track)
         {
-            return ProcessSpecialNote_Off() || (IsNote() && ParseLaneColor_Off());
+            return ProcessSpecialNote_Off(track) || (IsNote() && ParseLaneColor_Off(track));
         }
 
-        protected abstract bool ParseLaneColor_ON();
+        protected abstract bool ParseLaneColor_ON(YARGMidiTrack track);
 
-        protected abstract bool ParseLaneColor_Off();
+        protected abstract bool ParseLaneColor_Off(YARGMidiTrack track);
 
         protected virtual bool IsFullyScanned() { return validations == ALL_DIFFICULTIES; }
 
         protected virtual bool IsNote() { return DEFAULT_MIN <= note.value && note.value <= DEFAULT_MAX; }
 
-        protected virtual bool ProcessSpecialNote_ON() { return false; }
+        protected virtual bool ProcessSpecialNote_ON(YARGMidiTrack track) { return false; }
 
-        protected virtual bool ProcessSpecialNote_Off() { return false; }
+        protected virtual bool ProcessSpecialNote_Off(YARGMidiTrack track) { return false; }
 
-        protected virtual bool ToggleExtraValues() { return false; }
+        protected virtual bool ToggleExtraValues(YARGMidiTrack track) { return false; }
 
         protected void Validate(int diffIndex) { validations |= DIFFINDEX_TO_DIFF[diffIndex]; }
     }

@@ -10,8 +10,6 @@ namespace YARG.Core.Game
     {
         private const int PROFILE_VERSION = 1;
 
-        public int Version = PROFILE_VERSION;
-
         public Guid Id;
         public string Name;
 
@@ -24,21 +22,37 @@ namespace YARG.Core.Game
 
         public bool LeftyFlip;
 
-        public Instrument PreferredInstrument;
-        public Difficulty PreferredDifficulty;
-
-        public Modifier PreferredModifiers { get; private set; }
+        public long InputCalibrationMilliseconds;
+        public double InputCalibrationSeconds
+        {
+            get => InputCalibrationMilliseconds / 1000.0;
+            set => InputCalibrationMilliseconds = (long) (value * 1000);
+        }
 
         public Guid ColorProfile;
         public Guid CameraPreset;
 
-        [JsonIgnore]
+        /// <summary>
+        /// The selected instrument.
+        /// </summary>
         public Instrument CurrentInstrument;
 
-        [JsonIgnore]
+        /// <summary>
+        /// The selected difficulty.
+        /// </summary>
         public Difficulty CurrentDifficulty;
 
-        [JsonIgnore]
+        /// <summary>
+        /// The harmony index, used for determining what harmony part the player selected.
+        /// Does nothing if <see cref="CurrentInstrument"/> is not a harmony.
+        /// </summary>
+        public byte HarmonyIndex;
+
+        /// <summary>
+        /// The currently selected modifiers as a flag.
+        /// Use <see cref="AddSingleModifier"/> and <see cref="RemoveModifiers"/> to modify.
+        /// </summary>
+        [JsonProperty]
         public Modifier CurrentModifiers { get; private set; }
 
         public YargProfile()
@@ -46,8 +60,6 @@ namespace YARG.Core.Game
             Id = Guid.NewGuid();
             Name = "Default";
             GameMode = GameMode.FiveFretGuitar;
-            PreferredInstrument = Instrument.FiveFretGuitar;
-            PreferredDifficulty = Difficulty.Expert;
             NoteSpeed = 6;
             HighwayLength = 1;
             LeftyFlip = false;
@@ -133,30 +145,34 @@ namespace YARG.Core.Game
         // For replay serialization
         public void Serialize(BinaryWriter writer)
         {
-            writer.Write(Version);
+            writer.Write(PROFILE_VERSION);
 
             writer.Write(Name);
+
             writer.Write((byte) CurrentInstrument);
             writer.Write((byte) CurrentDifficulty);
+            writer.Write((ulong) CurrentModifiers);
+            writer.Write(HarmonyIndex);
+
             writer.Write(NoteSpeed);
             writer.Write(HighwayLength);
             writer.Write(LeftyFlip);
-            writer.Write((ulong) CurrentModifiers);
         }
 
         public void Deserialize(BinaryReader reader, int version = 0)
         {
-            Version = reader.ReadInt32();
-            if (Version != PROFILE_VERSION)
-                throw new InvalidDataException($"Wrong profile version read! Expected {PROFILE_VERSION}, got {Version}");
+            version = reader.ReadInt32();
 
             Name = reader.ReadString();
+
             CurrentInstrument = (Instrument) reader.ReadByte();
             CurrentDifficulty = (Difficulty) reader.ReadByte();
+            CurrentModifiers = (Modifier) reader.ReadUInt64();
+            HarmonyIndex = reader.ReadByte();
+
             NoteSpeed = reader.ReadSingle();
             HighwayLength = reader.ReadSingle();
             LeftyFlip = reader.ReadBoolean();
-            CurrentModifiers = (Modifier) reader.ReadUInt64();
 
             GameMode = CurrentInstrument.ToGameMode();
         }

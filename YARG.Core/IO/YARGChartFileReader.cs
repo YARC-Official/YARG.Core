@@ -209,12 +209,13 @@ namespace YARG.Core.IO
         public DotChartEventCombo<char>[] EVENTS_DIFF => _EVENTS_DIFF;
     }
 
-    public sealed class YARGChartFileReader<TChar, TBase>
+    public sealed class YARGChartFileReader<TChar, TDecoder, TBase>
         where TChar : unmanaged, IEquatable<TChar>, IConvertible
+        where TDecoder : IStringDecoder<TChar>, new()
         where TBase : unmanaged, IDotChartBases<TChar>
     {
         private static readonly TBase CONFIG = default;
-        private readonly YARGTextReader<TChar> reader;
+        private readonly YARGTextReader<TChar, TDecoder> reader;
 
         private DotChartEventCombo<TChar>[] eventSet = Array.Empty<DotChartEventCombo<TChar>>();
         private NoteTracks_Chart _instrument;
@@ -223,14 +224,14 @@ namespace YARG.Core.IO
         public NoteTracks_Chart Instrument => _instrument;
         public Difficulty Difficulty => _difficulty;
 
-        public YARGChartFileReader(YARGTextReader<TChar> reader)
+        public YARGChartFileReader(YARGTextReader<TChar, TDecoder> reader)
         {
             this.reader = reader;
         }
 
         public bool IsStartOfTrack()
         {
-            return !reader.IsEndOfFile() && reader.IsCurrentCharacter('[');
+            return !reader.Container.IsEndOfFile() && reader.Container.IsCurrentCharacter('[');
         }
 
         public bool ValidateHeaderTrack()
@@ -265,7 +266,7 @@ namespace YARG.Core.IO
                 {
                     _difficulty = difficulty;
                     eventSet = CONFIG.EVENTS_DIFF;
-                    reader.Position += name.Length;
+                    reader.Container.Position += name.Length;
                     return true;
                 }
             }
@@ -296,18 +297,18 @@ namespace YARG.Core.IO
 
         private bool DoesStringMatch(ReadOnlySpan<TChar> str)
         {
-            if (reader.Next - reader.Position < str.Length)
+            if (reader.Container.Next - reader.Container.Position < str.Length)
                 return false;
-            return reader.PeekBasicSpan(str.Length).SequenceEqual(str);
+            return reader.Container.Slice(reader.Container.Position, str.Length).SequenceEqual(str);
         }
 
         public bool IsStillCurrentTrack()
         {
-            int position = reader.Position;
-            if (position == reader.Length)
+            int position = reader.Container.Position;
+            if (position == reader.Container.Length)
                 return false;
 
-            if (reader.IsCurrentCharacter('}'))
+            if (reader.Container.IsCurrentCharacter('}'))
             {
                 reader.GotoNextLine();
                 return false;
@@ -321,25 +322,25 @@ namespace YARG.Core.IO
             if (!IsStillCurrentTrack())
                 return false;
 
-            ev.Position = YARGNumberExtractor.Int64(reader);
+            ev.Position = reader.ExtractInt64();
 
-            int start = reader.Position;
+            int start = reader.Container.Position;
             int end = start;
             while (true)
             {
-                char curr = reader.Data[end].ToChar(null);
+                char curr = reader.Container.Data[end].ToChar(null);
                 if (!curr.IsAsciiLetter())
                     break;
                 ++end;
             }
-            reader.Position = end;
+            reader.Container.Position = end;
 
-            ReadOnlySpan<TChar> span = new(reader.Data, start, end - start);
+            ReadOnlySpan<TChar> span = reader.Container.Slice(start, end - start);
             foreach (var combo in eventSet)
             {
                 if (combo.DoesEventMatch(span))
                 {
-                    reader.SkipWhiteSpace();
+                    reader.SkipWhitespace();
                     ev.Type = combo.eventType;
                     return true;
                 }
@@ -361,63 +362,26 @@ namespace YARG.Core.IO
 
         public void ExtractLaneAndSustain(ref DotChartNote note)
         {
-            note.Lane = YARGNumberExtractor.Int32(reader);
-            note.Duration = YARGNumberExtractor.Int64(reader);
+            note.Lane = reader.ExtractInt32();
+            note.Duration = reader.ExtractInt64();
         }
 
         public void SkipTrack()
         {
-            reader.GotoNextLine();
-            int position = reader.Position;
-            while (GetDistanceToTrackCharacter(position, out int next))
-            {
-                int point = position + next - 1;
-                while (point > position)
-                {
-                    char character = reader.Data[point].ToChar(null);
-                    if (!character.IsAsciiWhitespace() || character == '\n')
-                        break;
-                    --point;
-                }
-
-                if (reader.Data[point].ToChar(null) == '\n')
-                {
-                    reader.Position = position + next;
-                    reader.SetNextPointer();
-                    reader.GotoNextLine();
-                    return;
-                }
-
-                position += next + 1;
-            }
-
-            reader.Position = reader.Length;
-            reader.SetNextPointer();
+            reader.SkipLinesUntil('}');
+            if (!reader.Container.IsEndOfFile())
+                reader.GotoNextLine();
         }
 
-        private bool GetDistanceToTrackCharacter(int position, out int i)
-        {
-            int distanceToEnd = reader.Length - position;
-            i = 0;
-            while (i < distanceToEnd)
-            {
-                if (reader.Data[position + i].ToChar(null) == '}')
-                    return true;
-                ++i;
-            }
-            return false;
-        }
-
-        public Dictionary<string, List<IniModifier>> ExtractModifiers<TDecoder>(TDecoder decoder, Dictionary<string, IniModifierCreator> validNodes)
-            where TDecoder : StringDecoder<TChar>
+        public Dictionary<string, List<IniModifier>> ExtractModifiers(Dictionary<string, IniModifierCreator> validNodes)
         {
             Dictionary<string, List<IniModifier>> modifiers = new();
             while (IsStillCurrentTrack())
             {
-                string name = decoder.ExtractModifierName(reader);
+                string name = reader.ExtractModifierName();
                 if (validNodes.TryGetValue(name, out var node))
                 {
-                    var mod = node.CreateModifier(reader, decoder);
+                    var mod = node.CreateModifier(reader);
                     if (modifiers.TryGetValue(node.outputName, out var list))
                         list.Add(mod);
                     else

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using MoonscraperChartEditor.Song;
 
@@ -29,8 +29,8 @@ namespace YARG.Core.Chart
             var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
             var proFlags = GetProGuitarNoteFlags(moonNote);
 
-            return new ProGuitarNote(proString, proFret, noteType, proFlags, generalFlags,
-                moonNote.time, GetLengthInTime(moonNote), moonNote.tick, moonNote.length);
+            double time = _moonSong.TickToTime(moonNote.tick);
+            return new ProGuitarNote(proString, proFret, noteType, proFlags, generalFlags, time, GetLengthInTime(moonNote), moonNote.tick, moonNote.length);
         }
 
         private ProGuitarString GetProGuitarString(MoonNote moonNote)
@@ -54,12 +54,13 @@ namespace YARG.Core.Chart
 
         private ProGuitarNoteType GetProGuitarNoteType(MoonNote moonNote)
         {
-            return moonNote.type switch
+            var type = moonNote.GetGuitarType(_moonSong.hopoThreshold);
+            return type switch
             {
                 MoonNote.MoonNoteType.Strum => ProGuitarNoteType.Strum,
                 MoonNote.MoonNoteType.Hopo  => ProGuitarNoteType.Hopo,
                 MoonNote.MoonNoteType.Tap   => ProGuitarNoteType.Tap,
-                _ => throw new InvalidOperationException($"Unhandled Moonscraper note type {moonNote.type}!")
+                _ => throw new InvalidOperationException($"Unhandled Moonscraper note type {type}!")
             };
         }
 

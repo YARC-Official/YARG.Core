@@ -10,14 +10,16 @@ namespace YARG.Core.Song.Cache
         public const string SONGSFILEPATH = "songs/songs.dta";
         public const string UPGRADESFILEPATH = "songs_upgrades/upgrades.dta";
 
-        public readonly List<CONFileListing> Files;
-        public readonly DateTime LastWrite;
+        public readonly CONFile CONFile;
         public readonly Dictionary<string, IRBProUpgrade> Upgrades = new();
 
         private readonly object upgradeLock = new();
 
         private CONFileListing? songDTA;
         private CONFileListing? upgradeDta;
+
+        public DateTime CONFileLastWrite => CONFile.Info.LastWriteTime;
+
         public DateTime DTALastWrite
         {
             get
@@ -37,15 +39,14 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        public PackedCONGroup(List<CONFileListing> files, DateTime lastWrite)
+        public PackedCONGroup(CONFile file)
         {
-            this.Files = files;
-            this.LastWrite = lastWrite;
+            CONFile = file;
         }
 
         public override bool ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings)
         {
-            var song = SongMetadata.PackedRBCONFromCache(Files, nodeName, upgrades, reader, strings);
+            var song = SongMetadata.PackedRBCONFromCache(CONFile, nodeName, upgrades, reader, strings);
             if (song == null)
                 return false;
 
@@ -57,24 +58,22 @@ namespace YARG.Core.Song.Cache
 
         public YARGDTAReader? LoadUpgrades()
         {
-            upgradeDta = CONFileHandler.TryGetListing(Files, UPGRADESFILEPATH);
+            upgradeDta = CONFile.TryGetListing(UPGRADESFILEPATH);
             if (upgradeDta == null)
                 return null;
-
-            return new YARGDTAReader(upgradeDta.LoadAllBytes());
+            return YARGDTAReader.TryCreate(upgradeDta, CONFile);
         }
 
         public YARGDTAReader? LoadSongs()
         {
             if (songDTA == null && !SetSongDTA())
                 return null;
-
-            return new YARGDTAReader(songDTA!.LoadAllBytes());
+            return YARGDTAReader.TryCreate(songDTA!, CONFile);
         }
 
         public bool SetSongDTA()
         {
-            songDTA = CONFileHandler.TryGetListing(Files, SONGSFILEPATH);
+            songDTA = CONFile.TryGetListing(SONGSFILEPATH);
             return songDTA != null;
         }
 
@@ -84,7 +83,7 @@ namespace YARG.Core.Song.Cache
             using BinaryWriter writer = new(ms);
 
             writer.Write(filename);
-            writer.Write(LastWrite.ToBinary());
+            writer.Write(CONFile.Info.LastWriteTime.ToBinary());
             writer.Write(upgradeDta!.lastWrite.ToBinary());
             writer.Write(Upgrades.Count);
             foreach (var upgrade in Upgrades)

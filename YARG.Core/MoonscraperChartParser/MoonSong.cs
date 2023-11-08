@@ -32,49 +32,37 @@ namespace MoonscraperChartEditor.Song
 
         public IReadOnlyList<MoonChart> Charts => charts.ToList();
 
-        private readonly List<Event> _events = new();
-        private readonly List<SyncTrack> _syncTrack = new();
-
-        public ReadOnlyList<Event> eventsAndSections { get; private set; }
-        public ReadOnlyList<SyncTrack> syncTrack { get; private set; }
-
         /// <summary>
         /// Read only list of song events.
         /// </summary>
-        public SongObjectCache<Event> events { get; private set; } = new();
+        public List<Event> events { get; private set; } = new();
         /// <summary>
         /// Read only list of song sections.
         /// </summary>
-        public SongObjectCache<Section> sections { get; private set; } = new();
+        public List<Section> sections { get; private set; } = new();
         /// <summary>
         /// Read only list of venue events.
         /// </summary>
-        public SongObjectCache<VenueEvent> venue { get; private set; } = new();
+        public List<VenueEvent> venue { get; private set; } = new();
 
         /// <summary>
         /// Read only list of a song's bpm changes.
         /// </summary>
-        public SongObjectCache<BPM> bpms { get; private set; } = new();
+        public List<BPM> bpms { get; private set; } = new();
         /// <summary>
         /// Read only list of a song's time signature changes.
         /// </summary>
-        public SongObjectCache<TimeSignature> timeSignatures { get; private set; } = new();
+        public List<TimeSignature> timeSignatures { get; private set; } = new();
         /// <summary>
         /// Read only list of a song's beats.
         /// </summary>
-        public SongObjectCache<Beat> beats { get; private set; } = new();
+        public List<Beat> beats { get; private set; } = new();
 
         /// <summary>
         /// Default constructor for a new chart. Initialises all lists and adds locked bpm and timesignature objects.
         /// </summary>
         public MoonSong()
         {
-            eventsAndSections = new ReadOnlyList<Event>(_events);
-            syncTrack = new ReadOnlyList<SyncTrack>(_syncTrack);
-
-            Add(new BPM());
-            Add(new TimeSignature());
-
             // Chart initialisation
             charts = new MoonChart[EnumExtensions<MoonInstrument>.Count * EnumExtensions<Difficulty>.Count];
             for (int i = 0; i < charts.Length; ++i)
@@ -82,8 +70,6 @@ namespace MoonscraperChartEditor.Song
                 var instrument = (MoonInstrument)(i / EnumExtensions<Difficulty>.Count);
                 charts[i] = new MoonChart(this, instrument);
             }
-
-            UpdateCache();
         }
 
         public MoonChart GetChart(MoonInstrument instrument, Difficulty difficulty)
@@ -96,7 +82,7 @@ namespace MoonscraperChartEditor.Song
             foreach (var difficulty in EnumExtensions<Difficulty>.Values)
             {
                 var chart = GetChart(instrument, difficulty);
-                if (chart.chartObjects.Count > 0)
+                if (chart.IsOccupied())
                 {
                     return true;
                 }
@@ -107,7 +93,7 @@ namespace MoonscraperChartEditor.Song
 
         public bool DoesChartExist(MoonInstrument instrument, Difficulty difficulty)
         {
-            return GetChart(instrument, difficulty).chartObjects.Count > 0;
+            return GetChart(instrument, difficulty).IsOccupied();
         }
 
         /// <summary>
@@ -193,115 +179,70 @@ namespace MoonscraperChartEditor.Song
             return time;
         }
 
-        /// <summary>
-        /// Adds a synctrack object (bpm or time signature) into the song.
-        /// </summary>
-        /// <param name="syncTrackObject">Item to add.</param>
-        /// <param name="autoUpdate">Automatically update all read-only arrays? 
-        /// If set to false, you must manually call the updateArrays() method, but is useful when adding multiple objects as it increases performance dramatically.</param>
-        public void Add(SyncTrack syncTrackObject, bool autoUpdate = true)
+        public void Add(Beat beat)
         {
-            syncTrackObject.song = this;
-            SongObjectHelper.Insert(syncTrackObject, _syncTrack);
-
-            if (autoUpdate)
-                UpdateCache();
+            SongObjectHelper.Insert(beat, beats);
         }
 
-        /// <summary>
-        /// Removes a synctrack object (bpm or time signature) from the song.
-        /// </summary>
-        /// <param name="autoUpdate">Automatically update all read-only arrays? 
-        /// If set to false, you must manually call the updateArrays() method, but is useful when removing multiple objects as it increases performance dramatically.</param>
-        /// <returns>Returns whether the removal was successful or not (item may not have been found if false).</returns>
-        public bool Remove(SyncTrack syncTrackObject, bool autoUpdate = true)
+        public void Add(TimeSignature timeSig)
         {
-            bool success = false;
-
-            if (syncTrackObject.tick > 0)
-            {
-                success = SongObjectHelper.Remove(syncTrackObject, _syncTrack);
-            }
-
-            if (autoUpdate)
-                UpdateCache();
-
-            return success;
+            SongObjectHelper.Insert(timeSig, timeSignatures);
         }
 
-        /// <summary>
-        /// Adds an event object (section or event) into the song.
-        /// </summary>
-        /// <param name="eventObject">Item to add.</param>
-        /// <param name="autoUpdate">Automatically update all read-only arrays? 
-        /// If set to false, you must manually call the updateArrays() method, but is useful when adding multiple objects as it increases performance dramatically.</param>
-        public void Add(Event eventObject, bool autoUpdate = true)
+        public void Add(BPM bpm)
         {
-            eventObject.song = this;
-            SongObjectHelper.Insert(eventObject, _events);
-
-            if (autoUpdate)
-                UpdateCache();
+            SongObjectHelper.Insert(bpm, bpms);
         }
 
-        /// <summary>
-        /// Removes an event object (section or event) from the song.
-        /// </summary>
-        /// <param name="autoUpdate">Automatically update all read-only arrays? 
-        /// If set to false, you must manually call the updateArrays() method, but is useful when removing multiple objects as it increases performance dramatically.</param>
-        /// <returns>Returns whether the removal was successful or not (item may not have been found if false).</returns>
-        public bool Remove(Event eventObject, bool autoUpdate = true)
+        public bool Remove(Beat beat)
         {
-            bool success = SongObjectHelper.Remove(eventObject, _events);
-
-            if (autoUpdate)
-                UpdateCache();
-
-            return success;
+            return beat.tick > 0 && SongObjectHelper.Remove(beat, beats);
         }
 
-        public static void UpdateCacheList<T, U>(SongObjectCache<T> cache, List<U> objectsToCache)
-            where U : SongObject
-            where T : U
+        public bool Remove(TimeSignature timeSig)
         {
-            var cacheObjectList = cache.EditCache();
-            cacheObjectList.Clear();
-
-            foreach (var objectToCache in objectsToCache)
-            {
-                if (objectToCache.GetType() == typeof(T))
-                {
-                    cacheObjectList.Add((T) objectToCache);
-                }
-            }
+            return timeSig.tick > 0 && SongObjectHelper.Remove(timeSig, timeSignatures);
         }
 
-        /// <summary>
-        /// Updates all read-only values and bpm assigned time values. 
-        /// </summary>
-        public void UpdateCache()
+        public bool Remove(BPM bpm)
         {
-            UpdateCacheList(sections, _events);
-            UpdateCacheList(events, _events);
-            UpdateCacheList(venue, _events);
-
-            UpdateCacheList(bpms, _syncTrack);
-            UpdateCacheList(timeSignatures, _syncTrack);
-            UpdateCacheList(beats, _syncTrack);
-
-            UpdateBPMTimeValues();
+            return bpm.tick > 0 && SongObjectHelper.Remove(bpm, bpms);
         }
 
-        public void UpdateAllChartCaches()
+        public void Add(Event ev)
         {
-            foreach (var chart in charts)
-                chart.UpdateCache();
+            SongObjectHelper.Insert(ev, events);
+        }
+
+        public void Add(Section section)
+        {
+            SongObjectHelper.Insert(section, sections);
+        }
+
+        public void Add(VenueEvent venueEvent)
+        {
+            SongObjectHelper.Insert(venueEvent, venue);
+        }
+
+        public bool Remove(Event ev)
+        {
+            return SongObjectHelper.Remove(ev, events);
+        }
+
+        public bool Remove(Section section)
+        {
+            return SongObjectHelper.Remove(section, sections);
+        }
+
+        public bool Remove(VenueEvent venueEvent)
+        {
+            return SongObjectHelper.Remove(venueEvent, venue);
         }
 
         /// <summary>
         /// Dramatically speeds up calculations of songs with lots of bpm changes.
         /// </summary>
-        private void UpdateBPMTimeValues()
+        public void UpdateBPMTimeValues()
         {
             /*
              * Essentially just an optimised version of this, as this was n^2 and bad
@@ -310,6 +251,12 @@ namespace MoonscraperChartEditor.Song
              *     bpm.assignedTime = LiveTickToTime(bpm.tick, resolution);
              * }
             */
+
+            if (bpms.Count == 0 || bpms[0].tick != 0)
+                bpms.Insert(0, new BPM());
+
+            if (timeSignatures.Count == 0 || timeSignatures[0].tick != 0)
+                timeSignatures.Insert(0, new TimeSignature());
 
             double time = 0;
             var prevBPM = bpms[0];
@@ -325,10 +272,10 @@ namespace MoonscraperChartEditor.Song
 
         public double LiveTickToTime(uint position, float resolution)
         {
-            return LiveTickToTime(position, resolution, bpms[0], _syncTrack);
+            return LiveTickToTime(position, resolution, bpms[0], bpms);
         }
 
-        public static double LiveTickToTime(uint position, float resolution, BPM initialBpm, IList<SyncTrack> synctrack)
+        public static double LiveTickToTime(uint position, float resolution, BPM initialBpm, List<BPM> synctrack)
         {
             double time = 0;
             var prevBPM = initialBpm;
@@ -442,83 +389,6 @@ namespace MoonscraperChartEditor.Song
             Vocals = 8,
             Keys = 9,
             Crowd = 10
-        }
-    }
-
-    internal class SongObjectCache<T> : IList<T>, IEnumerable<T> where T : SongObject
-    {
-        private readonly List<T> cache = new();
-
-        public T this[int index] { get { return cache[index]; } set { cache[index] = value; } }
-
-        public int Count
-        {
-            get { return cache.Count; }
-        }
-
-        public bool IsReadOnly
-        {
-            get { return true; }
-        }
-
-        public void Add(T item)
-        {
-            throw new NotSupportedException();
-        }
-
-        public void Clear()
-        {
-            throw new NotSupportedException();
-        }
-
-        public bool Contains(T item)
-        {
-            return cache.Contains(item);
-        }
-
-        public void CopyTo(T[] array, int arrayIndex)
-        {
-
-        }
-
-        public IEnumerator<T> GetEnumerator()
-        {
-            return cache.GetEnumerator();
-        }
-
-        public int IndexOf(T item)
-        {
-            return cache.IndexOf(item);
-        }
-
-        public void Insert(int index, T item)
-        {
-            throw new NotSupportedException();
-        }
-
-        public bool Remove(T item)
-        {
-            throw new NotSupportedException();
-        }
-
-        public void RemoveAt(int index)
-        {
-            throw new NotSupportedException();
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return cache.GetEnumerator();
-        }
-
-        public List<T> EditCache()
-        {
-            return cache;
-        }
-
-        public T[] ToArray()
-        {
-            return cache.ToArray();
         }
     }
 

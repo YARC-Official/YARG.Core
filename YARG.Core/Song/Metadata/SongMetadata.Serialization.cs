@@ -2,6 +2,7 @@
 using System.IO;
 using YARG.Core.Song.Cache;
 using YARG.Core.IO;
+using YARG.Core.Chart;
 
 namespace YARG.Core.Song
 {
@@ -40,6 +41,7 @@ namespace YARG.Core.Song
             _parseSettings.SustainCutoffThreshold = reader.ReadInt64();
             _parseSettings.NoteSnapThreshold = reader.ReadInt64();
             _parseSettings.StarPowerNote = reader.ReadInt32();
+            _parseSettings.DrumsType = (DrumsType)reader.ReadInt32();
 
             _parts = new(reader);
             _hash = new(reader);
@@ -78,22 +80,10 @@ namespace YARG.Core.Song
             writer.Write(_parseSettings.SustainCutoffThreshold);
             writer.Write(_parseSettings.NoteSnapThreshold);
             writer.Write(_parseSettings.StarPowerNote);
+            writer.Write((int)_parseSettings.DrumsType);
 
             _parts.Serialize(writer);
             _hash.Serialize(writer);
-        }
-
-        private static AbridgedFileInfo? ParseFileInfo(YARGBinaryReader reader)
-        {
-            return ParseFileInfo(reader.ReadLEBString(), reader);
-        }
-
-        private static AbridgedFileInfo? ParseFileInfo(string file, YARGBinaryReader reader)
-        {
-            FileInfo midiInfo = new(file);
-            if (!midiInfo.Exists || midiInfo.LastWriteTime != DateTime.FromBinary(reader.ReadInt64()))
-                return null;
-            return midiInfo;
         }
     }
 }

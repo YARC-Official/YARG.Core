@@ -12,17 +12,17 @@ namespace YARG.Core.Song
             _type = type;
         }
 
-        public static (DifficultyMask, DrumsType) ParseFourLane(YARGMidiReader reader)
+        public static (DifficultyMask, DrumsType) ParseFourLane(YARGMidiTrack track)
         {
             Midi_FourLane_Preparser preparser = new(DrumsType.FourLane);
-            preparser.Process(reader);
+            preparser.Process(track);
             return (preparser.validations, preparser._type);
         }
 
-        public static DifficultyMask ParseProDrums(YARGMidiReader reader)
+        public static DifficultyMask ParseProDrums(YARGMidiTrack track)
         {
             Midi_FourLane_Preparser preparser = new(DrumsType.ProDrums);
-            preparser.Process(reader);
+            preparser.Process(track);
             return preparser.validations;
         }
 
@@ -30,7 +30,7 @@ namespace YARG.Core.Song
 
         protected override bool IsFullyScanned() { return validations == ALL_DIFFICULTIES_PLUS && _type == DrumsType.ProDrums; }
 
-        protected override bool ParseLaneColor_ON()
+        protected override bool ParseLaneColor_ON(YARGMidiTrack track)
         {
             int noteValue = note.value - DEFAULT_MIN;
             int diffIndex = DIFFVALUES[noteValue];
@@ -43,7 +43,7 @@ namespace YARG.Core.Song
             return false;
         }
 
-        protected override bool ParseLaneColor_Off()
+        protected override bool ParseLaneColor_Off(YARGMidiTrack track)
         {
             int noteValue = note.value - DEFAULT_MIN;
             int diffIndex = DIFFVALUES[noteValue];
@@ -60,7 +60,7 @@ namespace YARG.Core.Song
             return false;
         }
 
-        protected override bool ToggleExtraValues()
+        protected override bool ToggleExtraValues(YARGMidiTrack track)
         {
             if (YELLOW_FLAG <= note.value && note.value <= GREEN_FLAG)
             {

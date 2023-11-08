@@ -48,7 +48,7 @@ namespace YARG.Core.Song.Cache
         /// Format is YY_MM_DD_RR: Y = year, M = month, D = day, R = revision (reset across dates, only increment
         /// if multiple cache version changes happen in a single day).
         /// </summary>
-        public const int CACHE_VERSION = 23_10_11_01;
+        public const int CACHE_VERSION = 23_10_30_02;
 
         private static readonly object dirLock = new();
         private static readonly object fileLock = new();
@@ -79,7 +79,8 @@ namespace YARG.Core.Song.Cache
             _progress = default;
             iniGroups = new(baseDirectories.Count);
             foreach (string dir in baseDirectories)
-                iniGroups.Add(dir, new());
+                if (!iniGroups.ContainsKey(dir))
+                    iniGroups.Add(dir, new());
         }
 
         private IniGroup? GetBaseIniGroup(string path)
@@ -258,45 +259,67 @@ namespace YARG.Core.Song.Cache
 
         private void CreateUpdateGroup(string directory, FileInfo dta, bool removeEntries = false)
         {
-            YARGDTAReader reader = new(dta.FullName);
-            UpdateGroup group = new(dta.LastWriteTime);
-            while (reader!.StartNode())
-            {
-                string name = reader.GetNameOfNode();
-                group!.updates.Add(name);
-                AddUpdate(name, new(directory, new YARGDTAReader(reader)));
+            var reader = YARGDTAReader.TryCreate(dta.FullName);
+            if (reader == null)
+                return;
 
-                if (removeEntries)
-                    RemoveCONEntry(name);
-                reader.EndNode();
+            UpdateGroup group = new(dta.LastWriteTime);
+            try
+            {
+                while (reader!.StartNode())
+                {
+                    string name = reader.GetNameOfNode();
+                    group!.updates.Add(name);
+                    AddUpdate(name, new(directory, new YARGDTAReader(reader)));
+
+                    if (removeEntries)
+                        RemoveCONEntry(name);
+                    reader.EndNode();
+                }
+            }
+            catch (Exception ex)
+            {
+                YargTrace.LogException(ex, $"Error while scanning CON update folder {directory}!");
             }
 
             if (group!.updates.Count > 0)
                 updateGroups.Add(directory, group);
+            else
+                YargTrace.LogWarning($"{directory} .dta file possibly malformed");
         }
 
         private UpgradeGroup? CreateUpgradeGroup(string directory, FileInfo dta, bool removeEntries = false)
         {
-            YARGDTAReader reader = new(dta.FullName);
+            var reader = YARGDTAReader.TryCreate(dta.FullName);
+            if (reader == null)
+                return null;
+
             UpgradeGroup group = new(dta.LastWriteTime);
-            while (reader!.StartNode())
+            try
             {
-                string name = reader.GetNameOfNode();
-                FileInfo file = new(Path.Combine(directory, $"{name}_plus.mid"));
-                if (file.Exists)
+                while (reader.StartNode())
                 {
-                    if (CanAddUpgrade(name, file.LastWriteTime))
+                    string name = reader.GetNameOfNode();
+                    FileInfo file = new(Path.Combine(directory, $"{name}_plus.mid"));
+                    if (file.Exists)
                     {
-                        IRBProUpgrade upgrade = new UnpackedRBProUpgrade(file.FullName, file.LastWriteTime);
-                        group!.upgrades[name] = upgrade;
-                        AddUpgrade(name, new YARGDTAReader(reader), upgrade);
+                        if (CanAddUpgrade(name, file.LastWriteTime))
+                        {
+                            IRBProUpgrade upgrade = new UnpackedRBProUpgrade(file.FullName, file.LastWriteTime);
+                            group!.upgrades[name] = upgrade;
+                            AddUpgrade(name, new YARGDTAReader(reader), upgrade);
 
-                        if (removeEntries)
-                            RemoveCONEntry(name);
+                            if (removeEntries)
+                                RemoveCONEntry(name);
+                        }
                     }
-                }
 
-                reader.EndNode();
+                    reader.EndNode();
+                }
+            }
+            catch (Exception ex)
+            {
+                YargTrace.LogException(ex, $"Error while scanning CON upgrade folder {directory}!");
             }
 
             if (group.upgrades.Count > 0)
@@ -304,29 +327,43 @@ namespace YARG.Core.Song.Cache
                 upgradeGroups.Add(directory, group);
                 return group;
             }
+
+            YargTrace.LogWarning($"{directory} .dta file possibly malformed");
             return null;
         }
 
-        private void AddCONUpgrades(PackedCONGroup group, YARGDTAReader reader)
+        private bool TryParseUpgrades(string filename, PackedCONGroup group)
         {
-            while (reader.StartNode())
+            var reader = group.LoadUpgrades();
+            if (reader == null)
+                return false;
+
+            try
             {
-                string name = reader.GetNameOfNode();
-                var listing = CONFileHandler.TryGetListing(group.Files, $"songs_upgrades/{name}_plus.mid");
-
-                if (listing != null)
+                while (reader.StartNode())
                 {
-                    if (CanAddUpgrade_CONInclusive(name, listing.lastWrite))
-                    {
-                        IRBProUpgrade upgrade = new PackedRBProUpgrade(listing, listing.lastWrite);
-                        group.Upgrades[name] = upgrade;
-                        AddUpgrade(name, new YARGDTAReader(reader), upgrade);
-                        RemoveCONEntry(name);
-                    }
-                }
+                    string name = reader.GetNameOfNode();
+                    var listing = group.CONFile.TryGetListing($"songs_upgrades/{name}_plus.mid");
 
-                reader.EndNode();
+                    if (listing != null)
+                    {
+                        if (CanAddUpgrade_CONInclusive(name, listing.lastWrite))
+                        {
+                            IRBProUpgrade upgrade = new PackedRBProUpgrade(listing, listing.lastWrite);
+                            group.Upgrades[name] = upgrade;
+                            AddUpgrade(name, new YARGDTAReader(reader), upgrade);
+                            RemoveCONEntry(name);
+                        }
+                    }
+
+                    reader.EndNode();
+                }
             }
+            catch (Exception ex)
+            {
+                YargTrace.LogException(ex, $"Error while scanning CON upgrades - {filename}!");
+            }
+            return group.Upgrades.Count > 0;
         }
 
         private bool AddEntry(SongMetadata entry)

@@ -6,8 +6,8 @@
         {
         }
 
-        public DrumsEngineParameters(double hitWindow, double frontBackRatio, float[] starMultiplierThresholds) : base(hitWindow,
-            frontBackRatio, starMultiplierThresholds)
+        public DrumsEngineParameters(double hitWindow, double frontBackRatio, float[] starMultiplierThresholds)
+            : base(hitWindow, frontBackRatio, starMultiplierThresholds)
         {
         }
     }

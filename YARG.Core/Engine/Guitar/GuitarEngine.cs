@@ -96,8 +96,7 @@ namespace YARG.Core.Engine.Guitar
             while (prevNote is not null && !prevNote.WasHit && !prevNote.WasMissed)
             {
                 skipped = true;
-
-                prevNote.SetMissState(true, true);
+                MissNote(prevNote);
 
                 EventLogger.LogEvent(new NoteEngineEvent(State.CurrentTime)
                 {
@@ -109,18 +108,7 @@ namespace YARG.Core.Engine.Guitar
                     WasSkipped = true,
                 });
                 
-                EngineStats.Combo = 0;
-                EngineStats.NotesMissed++;
-
-                OnNoteMissed?.Invoke(State.NoteIndex, prevNote);
-                State.NoteIndex++;
-
                 prevNote = prevNote.PreviousNote;
-            }
-
-            if (skipped)
-            {
-                StripStarPower(note.PreviousNote);
             }
 
             if (note.IsStarPower && note.IsStarPowerEnd)

@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2020 Alexander Ong
+﻿// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
 using System;
@@ -296,27 +296,22 @@ namespace MoonscraperChartEditor.Song.IO
 
         private static void CopyDownHarmonyPhrases(in EventProcessParams processParams)
         {
-            if (processParams.instrument is not MoonSong.MoonInstrument.Harmony2 or MoonSong.MoonInstrument.Harmony3)
+            if (processParams.instrument is not (MoonSong.MoonInstrument.Harmony2 or MoonSong.MoonInstrument.Harmony3))
                 return;
 
             // Remove any existing phrases
             // TODO: HARM2 phrases are used to mark when lyrics shift in static lyrics, this needs to be preserved in some way
             // TODO: Determine if there are any phrases that shouldn't be removed/copied down
             var chart = processParams.song.GetChart(processParams.instrument, MoonSong.Difficulty.Expert);
-            foreach (var phrase in chart.specialPhrases)
-            {
-                chart.Remove(phrase, false);
-            }
+            chart.specialPhrases.Clear();
 
             // Add in phrases from HARM1
             var harm1 = processParams.song.GetChart(MoonSong.MoonInstrument.Harmony1, MoonSong.Difficulty.Expert);
             foreach (var phrase in harm1.specialPhrases)
             {
                 // Make a new copy instead of adding the original reference
-                chart.Add(phrase.Clone(), false);
+                chart.specialPhrases.Add(phrase.Clone());
             }
-
-            chart.UpdateCache();
         }
 
         private static void SwitchToGuitarEnhancedOpensProcessMap(ref EventProcessParams processParams)
@@ -671,7 +666,8 @@ namespace MoonscraperChartEditor.Song.IO
                 { MidIOHelper.PERCUSSION_NOTE, (in EventProcessParams eventProcessParams) => {
                     foreach (var difficulty in EnumExtensions<MoonSong.Difficulty>.Values)
                     {
-                        ProcessNoteOnEventAsNote(eventProcessParams, difficulty, 0, MoonNote.Flags.Vocals_Percussion);
+                        ProcessNoteOnEventAsNote(eventProcessParams, difficulty, 0, MoonNote.Flags.Vocals_Percussion,
+                            sustainCutoff: false);
                     };
                 }},
             };
@@ -682,7 +678,7 @@ namespace MoonscraperChartEditor.Song.IO
                 processFnDict.Add(i, (in EventProcessParams eventProcessParams) => {
                     foreach (var difficulty in EnumExtensions<MoonSong.Difficulty>.Values)
                     {
-                        ProcessNoteOnEventAsNote(eventProcessParams, difficulty, rawNote);
+                        ProcessNoteOnEventAsNote(eventProcessParams, difficulty, rawNote, sustainCutoff: false);
                     };
                 });
             }

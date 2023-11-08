@@ -1,36 +1,39 @@
 ﻿namespace YARG.Core.Input
 {
+    // !DO NOT MODIFY THE VALUES OR ORDER OF THESE ENUMS!
+    // Since they are serialized in replays, they *must* remain the same across changes.
+
     public enum MenuAction : byte
     {
-        Green,
-        Red,
-        Yellow,
-        Blue,
-        Orange,
+        Green = 0,
+        Red = 1,
+        Yellow = 2,
+        Blue = 3,
+        Orange = 4,
 
-        Up,
-        Down,
-        Left,
-        Right,
+        Up = 5,
+        Down = 6,
+        Left = 7,
+        Right = 8,
 
-        Start,
-        Select,
+        Start = 9,
+        Select = 10,
     }
 
     public enum GuitarAction : byte
     {
-        Fret1,
-        Fret2,
-        Fret3,
-        Fret4,
-        Fret5,
-        Fret6,
+        Fret1 = 0,
+        Fret2 = 1,
+        Fret3 = 2,
+        Fret4 = 3,
+        Fret5 = 4,
+        Fret6 = 5,
 
-        StrumUp,
-        StrumDown,
+        StrumUp = 6,
+        StrumDown = 7,
 
-        Whammy,
-        StarPower,
+        Whammy = 8,
+        StarPower = 9,
 
         // 5-fret
         GreenFret  = Fret1,
@@ -50,36 +53,35 @@
 
     public enum ProGuitarAction : byte
     {
-        String1_Fret,
-        String2_Fret,
-        String3_Fret,
-        String4_Fret,
-        String5_Fret,
-        String6_Fret,
+        String1_Fret = 0,
+        String2_Fret = 1,
+        String3_Fret = 2,
+        String4_Fret = 3,
+        String5_Fret = 4,
+        String6_Fret = 5,
 
-        String1_Strum,
-        String2_Strum,
-        String3_Strum,
-        String4_Strum,
-        String5_Strum,
-        String6_Strum,
+        String1_Strum = 6,
+        String2_Strum = 7,
+        String3_Strum = 8,
+        String4_Strum = 9,
+        String5_Strum = 10,
+        String6_Strum = 11,
 
-        Whammy,
-        StarPower,
+        StarPower = 12,
     }
 
     public enum DrumsAction : byte
     {
-        Drum1,
-        Drum2,
-        Drum3,
-        Drum4,
+        Drum1 = 0,
+        Drum2 = 1,
+        Drum3 = 2,
+        Drum4 = 3,
 
-        Cymbal1,
-        Cymbal2,
-        Cymbal3,
+        Cymbal1 = 4,
+        Cymbal2 = 5,
+        Cymbal3 = 6,
 
-        Kick,
+        Kick = 7,
 
         RedDrum    = Drum1,
         YellowDrum = Drum2,
@@ -94,8 +96,8 @@
 
     public enum VocalsAction : byte
     {
-        Pitch,
+        Pitch = 0,
 
-        StarPower,
+        StarPower = 1,
     }
 }

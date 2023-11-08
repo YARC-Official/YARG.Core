@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 
 namespace YARG.Core.Chart
 {
@@ -8,8 +9,8 @@ namespace YARG.Core.Chart
 
         public float BeatsPerMinute { get; }
         public float SecondsPerBeat => SECONDS_PER_MINUTE / BeatsPerMinute;
-        public long MilliSecondsPerBeat => (long) (SECONDS_PER_MINUTE / BeatsPerMinute * 1000);
-        public long MicroSecondsPerBeat => (long) (SECONDS_PER_MINUTE / BeatsPerMinute * 1000 * 1000);
+        public long MilliSecondsPerBeat => BpmToMicroSeconds(BeatsPerMinute) / 1000;
+        public long MicroSecondsPerBeat => BpmToMicroSeconds(BeatsPerMinute);
 
         public TempoChange(float tempo, double time, uint tick) : base(time, tick)
         {
@@ -19,6 +20,22 @@ namespace YARG.Core.Chart
         public TempoChange Clone()
         {
             return new(BeatsPerMinute, Time, Tick);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static long BpmToMicroSeconds(float tempo)
+        {
+            double secondsPerBeat = SECONDS_PER_MINUTE / tempo;
+            double microseconds = secondsPerBeat * 1000 * 1000;
+            return (long) microseconds;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float MicroSecondsToBpm(long usecs)
+        {
+            double secondsPerBeat = usecs / 1000f / 1000f;
+            double tempo = SECONDS_PER_MINUTE / secondsPerBeat;
+            return (float) tempo;
         }
     }
 }

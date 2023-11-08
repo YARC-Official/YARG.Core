@@ -111,8 +111,7 @@ namespace YARG.Core.Song.Cache
                 {
                     try
                     {
-                        byte[] file = File.ReadAllBytes(chart);
-                        var entry = SongMetadata.FromIni(file, chart, results.ini, i);
+                        var entry = SongMetadata.FromIni(chart, results.ini, i);
                         if (entry.Item2 != null)
                         {
                             if (AddEntry(entry.Item2))
@@ -144,16 +143,13 @@ namespace YARG.Core.Song.Cache
             if (!FindOrMarkFile(filename))
                 return;
 
-            var files = CONFileHandler.TryParseListings(filename);
-            if (files == null)
+            var conFile = CONFile.TryLoadFile(filename);
+            if (conFile == null)
                 return;
 
-            PackedCONGroup group = new(files, File.GetLastWriteTime(filename));
+            PackedCONGroup group = new(conFile);
             conGroups.Add(filename, group);
-
-            var reader = group.LoadUpgrades();
-            if (reader != null)
-                AddCONUpgrades(group, reader);
+            TryParseUpgrades(filename, group);
         }
 
         private int GetCONIndex(Dictionary<string, int> indices, string name)
@@ -172,7 +168,7 @@ namespace YARG.Core.Song.Cache
             }
             else
             {
-                var song = SongMetadata.FromPackedRBCON(group.Files, name, node, updates, upgrades);
+                var song = SongMetadata.FromPackedRBCON(group.CONFile, name, node, updates, upgrades);
                 if (song.Item2 != null)
                 {
                     if (AddEntry(song.Item2))
