@@ -69,6 +69,17 @@ namespace YARG.Core.Song
                     writer.Write(false);
             }
 
+            public bool Validate(string directory)
+            {
+                if (!chartFile.IsStillValid())
+                    return false;
+
+                if (iniFile == null)
+                    return !File.Exists(Path.Combine(directory, "song.ini"));
+
+                return iniFile.IsStillValid();
+            }
+
             private static readonly string[] SupportedFormats =
             {
                 ".ogg", ".mogg", ".wav", ".mp3", ".aiff", ".opus",
@@ -357,13 +368,6 @@ namespace YARG.Core.Song
             if (!modifiers.TryGet("five_lane_drums", out bool fivelane))
                 return DrumsType.Unknown;
             return fivelane ? DrumsType.FiveLane : DrumsType.FourLane;
-        }
-
-        private SongChart LoadIniChart()
-        {
-            string notesFile = IniData!.chartFile.FullName;
-            YargTrace.LogInfo($"Loading chart file {notesFile}");
-            return SongChart.FromFile(_parseSettings, notesFile);
         }
     }
 }

@@ -35,14 +35,14 @@ namespace YARG.Core.Song
 
         public Stream? GetUpgradeMidiStream()
         {
-            if (_midiListing == null || _midiListing.lastWrite != _lastWrite)
+            if (_midiListing == null || !_midiListing.ConFile.IsStillValid())
                 return null;
             return _midiListing.CreateStream();
         }
 
         public byte[]? LoadUpgradeMidi()
         {
-            if (_midiListing == null || _midiListing.lastWrite != _lastWrite)
+            if (_midiListing == null || !_midiListing.ConFile.IsStillValid())
                 return null;
             return _midiListing.LoadAllBytes();
         }

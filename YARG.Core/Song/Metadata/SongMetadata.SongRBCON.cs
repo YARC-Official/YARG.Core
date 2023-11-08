@@ -209,17 +209,6 @@ namespace YARG.Core.Song
                 }
             }
 
-            public Stream? GetMidiUpdateStream()
-            {
-                if (UpdateMidi == null)
-                    return null;
-
-                FileInfo info = new(UpdateMidi.FullName);
-                if (!info.Exists || info.LastWriteTime != UpdateMidi.LastWriteTime)
-                    return null;
-                return new FileStream(UpdateMidi.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
-            }
-
             public byte[]? LoadMidiUpdateFile()
             {
                 if (UpdateMidi == null)
@@ -718,42 +707,6 @@ namespace YARG.Core.Song
                 }
                 return values;
             }
-        }
-
-        private SongChart LoadCONChart()
-        {
-            MidiFile midi;
-            ReadingSettings readingSettings = MidiSettingsLatin1.Instance; // RBCONs are always Latin-1
-            // Read base MIDi
-            using (var midiStream = RBData!.GetMidiStream())
-            {
-                if (midiStream == null)
-                    throw new Exception("Base MIDI file not present");
-                midi = MidiFile.Read(midiStream, readingSettings);
-            }
-
-            // Merge update MIDI
-            var shared = RBData.SharedMetadata;
-            if (shared.UpdateMidi != null)
-            {
-                using var midiStream = shared.GetMidiUpdateStream();
-                if (midiStream == null)
-                    throw new Exception("Scanned update MIDI file not present");
-                var update = MidiFile.Read(midiStream, readingSettings);
-                midi.Merge(update);
-            }
-
-            // Merge upgrade MIDI
-            if (shared.Upgrade != null)
-            {
-                using var midiStream = shared.Upgrade.GetUpgradeMidiStream();
-                if (midiStream == null)
-                    throw new Exception("Scanned upgrade MIDI file not present");
-                var update = MidiFile.Read(midiStream, readingSettings);
-                midi.Merge(update);
-            }
-
-            return SongChart.FromMidi(_parseSettings, midi);
         }
     }
 }
