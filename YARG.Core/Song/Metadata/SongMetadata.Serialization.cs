@@ -85,18 +85,5 @@ namespace YARG.Core.Song
             _parts.Serialize(writer);
             _hash.Serialize(writer);
         }
-
-        private static AbridgedFileInfo? ParseFileInfo(YARGBinaryReader reader)
-        {
-            return ParseFileInfo(reader.ReadLEBString(), reader);
-        }
-
-        private static AbridgedFileInfo? ParseFileInfo(string file, YARGBinaryReader reader)
-        {
-            FileInfo midiInfo = new(file);
-            if (!midiInfo.Exists || midiInfo.LastWriteTime != DateTime.FromBinary(reader.ReadInt64()))
-                return null;
-            return midiInfo;
-        }
     }
 }

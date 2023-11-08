@@ -246,14 +246,14 @@ namespace YARG.Core.Song
                 return null;
 
             ref var chartType = ref IniSubmetadata.CHART_FILE_TYPES[chartTypeIndex];
-            var chartFile = ParseFileInfo(Path.Combine(directory, chartType.Item1), reader);
+            var chartFile = AbridgedFileInfo.TryParseInfo(Path.Combine(directory, chartType.Item1), reader);
             if (chartFile == null)
                 return null;
 
             AbridgedFileInfo? iniFile = null;
             if (reader.ReadBoolean())
             {
-                iniFile = ParseFileInfo(Path.Combine(directory, "song.ini"), reader);
+                iniFile = AbridgedFileInfo.TryParseInfo(Path.Combine(directory, "song.ini"), reader);
                 if (iniFile == null)
                     return null;
             }

@@ -112,15 +112,13 @@ namespace YARG.Core.Song
                 else
                 {
                     writer.Write(false);
-                    writer.Write(_metadata.Mogg.FullName);
-                    writer.Write(_metadata.Mogg.LastWriteTime.ToBinary());
+                    _metadata.Mogg.Serialize(writer);
                 }
 
                 if (_metadata.UpdateMidi != null)
                 {
                     writer.Write(true);
-                    writer.Write(_metadata.UpdateMidi.FullName);
-                    writer.Write(_metadata.UpdateMidi.LastWriteTime.ToBinary());
+                    _metadata.UpdateMidi.Serialize(writer);
                 }
                 else
                     writer.Write(false);
@@ -244,7 +242,7 @@ namespace YARG.Core.Song
             }
             else
             {
-                moggInfo = ParseFileInfo(reader);
+                moggInfo = AbridgedFileInfo.TryParseInfo(reader);
                 if (moggInfo == null)
                     return null;
             }
@@ -252,7 +250,7 @@ namespace YARG.Core.Song
             AbridgedFileInfo? updateInfo = null;
             if (reader.ReadBoolean())
             {
-                updateInfo = ParseFileInfo(reader);
+                updateInfo = AbridgedFileInfo.TryParseInfo(reader);
                 if (updateInfo == null)
                     return null;
             }
@@ -276,19 +274,11 @@ namespace YARG.Core.Song
                 reader.Position += SIZEOF_DATETIME;
             }
             else
-            {
-                string moggName = reader.ReadLEBString();
-                var moggTime = DateTime.FromBinary(reader.ReadInt64());
-                moggInfo = new(moggName, moggTime);
-            }
+                moggInfo = new AbridgedFileInfo(reader);
 
             AbridgedFileInfo? updateInfo = null;
             if (reader.ReadBoolean())
-            {
-                string updateName = reader.ReadLEBString();
-                var updateTime = DateTime.FromBinary(reader.ReadInt64());
-                updateInfo = new(updateName, updateTime);
-            }
+                updateInfo = new AbridgedFileInfo(reader);
 
             RBPackedCONMetadata packedMeta = new(file, nodeName, midiListing, midiLastWrite, moggListing, moggInfo, updateInfo, reader);
             if (upgrades.TryGetValue(nodeName, out var upgrade))
