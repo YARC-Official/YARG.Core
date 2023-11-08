@@ -8,11 +8,11 @@ namespace YARG.Core.IO
 {
     public sealed class YARGDTAReader
     {
-        public static YARGDTAReader? TryCreate(CONFileListing listing)
+        public static YARGDTAReader? TryCreate(CONFileListing listing, CONFile file)
         {
             try
             {
-                var bytes = listing.LoadAllBytes();
+                var bytes = listing.LoadAllBytes(file);
                 return TryCreate(bytes);
             }
             catch (Exception ex)

@@ -18,6 +18,11 @@ namespace YARG.Core.IO
         public static byte[] LoadFile(string file, bool isContinguous, int fileSize, int blockNum, int shift)
         {
             using FileStream filestream = new(file, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+            return LoadFile(filestream, isContinguous, fileSize, blockNum, shift);
+        }
+
+        public static byte[] LoadFile(FileStream filestream, bool isContinguous, int fileSize, int blockNum, int shift)
+        {
             byte[] data = new byte[fileSize];
             if (isContinguous)
             {

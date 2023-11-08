@@ -5,8 +5,36 @@ using System.Text;
 
 namespace YARG.Core.IO
 {
-    public static class CONFileHandler
+    public class CONFile : IDisposable
     {
+        public readonly AbridgedFileInfo Info;
+        public readonly FileStream Stream;
+        public readonly List<CONFileListing> Listings = new();
+        public readonly object Lock = new();
+
+        public CONFile(AbridgedFileInfo info)
+        {
+            Info = info;
+            Stream = new FileStream(info.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+        }
+
+        public CONFileListing? TryGetListing(string filename)
+        {
+            for (int i = 0; i < Listings.Count; ++i)
+            {
+                var listing = Listings[i];
+                if (filename == listing.Filename)
+                    return listing;
+            }
+            return null;
+        }
+
+        public void Dispose()
+        {
+            Listings.Clear();
+            Stream.Dispose();
+        }
+
         private static readonly FourCC CON_TAG = new('C', 'O', 'N', ' ');
         private static readonly FourCC LIVE_TAG = new('L', 'I', 'V', 'E');
         private static readonly FourCC PIRS_TAG = new('P', 'I', 'R', 'S');
@@ -21,7 +49,7 @@ namespace YARG.Core.IO
         private const int BYTES_PER_BLOCK = 0x1000;
         private const int SIZEOF_FILELISTING = 0x40;
 
-        public static List<CONFileListing>? TryParseListings(string filename)
+        public static CONFile? TryLoadFile(string filename)
         {
             Span<byte> int32Buffer = stackalloc byte[BYTES_32BIT];
             using FileStream stream = new(filename, FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -58,40 +86,29 @@ namespace YARG.Core.IO
 
             try
             {
+                AbridgedFileInfo fileInfo = new(filename);
+                CONFile conFile = new(fileInfo);
+
                 using var conStream = new CONFileStream(stream, true, length, firstBlock, shift);
                 Span<byte> listingBuffer = stackalloc byte[SIZEOF_FILELISTING];
-                AbridgedFileInfo conFile = new(filename);
-
-                List<CONFileListing> files = new();
                 for (int i = 0; i < length; i += SIZEOF_FILELISTING)
                 {
                     conStream.Read(listingBuffer);
                     if (listingBuffer[0] == 0)
                         break;
 
-                    CONFileListing listing = new(conFile, shift, listingBuffer);
+                    CONFileListing listing = new(fileInfo, shift, listingBuffer);
                     if (listing.pathIndex != -1)
-                        listing.SetParentDirectory(files[listing.pathIndex].Filename);
-                    files.Add(listing);
+                        listing.SetParentDirectory(conFile.Listings[listing.pathIndex].Filename);
+                    conFile.Listings.Add(listing);
                 }
-                return files;
+                return conFile;
             }
             catch (Exception ex)
             {
                 YargTrace.LogException(ex, $"Error while parsing {filename} (usually when the file doesn't follow spec)");
                 return null;
             }
-        }
-
-        public static CONFileListing? TryGetListing(List<CONFileListing> files, string filename)
-        {
-            for (int i = 0; i < files.Count; ++i)
-            {
-                var listing = files[i];
-                if (filename == listing.Filename)
-                    return listing;
-            }
-            return null;
         }
     }
 }

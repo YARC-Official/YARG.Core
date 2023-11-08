@@ -340,7 +340,7 @@ namespace YARG.Core.Song.Cache
 
                 if (TryParseUpgrades(filename, group!) && group!.UpgradeDTALastWrite == dtaLastWrite)
                 {
-                    if (group.LastWrite != conLastWrite)
+                    if (group.CONFileLastWrite != conLastWrite)
                     {
                         for (int i = 0; i < count; i++)
                         {
@@ -383,14 +383,14 @@ namespace YARG.Core.Song.Cache
 
                 MarkFile(filename);
 
-                var files = CONFileHandler.TryParseListings(info.FullName);
-                if (files == null)
+                var file = CONFile.TryLoadFile(info.FullName);
+                if (file == null)
                 {
                     YargTrace.DebugInfo($"CON could not be loaded: {filename}");
                     return null;
                 }
 
-                group = new(files, info.LastWriteTime);
+                group = new(file);
                 YargTrace.DebugInfo($"CON added in main loop {filename}");
                 conGroups.Add(filename, group);
             }
@@ -477,7 +477,7 @@ namespace YARG.Core.Song.Cache
                 {
                     string name = reader.ReadLEBString();
                     var lastWrite = DateTime.FromBinary(reader.ReadInt64());
-                    var listing = CONFileHandler.TryGetListing(group!.Files, $"songs_upgrades/{name}_plus.mid");
+                    var listing = group!.CONFile.TryGetListing($"songs_upgrades/{name}_plus.mid");
 
                     IRBProUpgrade upgrade = new PackedRBProUpgrade(listing, lastWrite);
                     AddUpgrade(name, null, upgrade);
@@ -540,11 +540,11 @@ namespace YARG.Core.Song.Cache
 
             MarkFile(filename);
 
-            var files = CONFileHandler.TryParseListings(filename);
-            if (files == null)
+            var file = CONFile.TryLoadFile(filename);
+            if (file == null)
                 return false;
 
-            group = new(files, info.LastWriteTime);
+            group = new(file);
             return true;
         }
 

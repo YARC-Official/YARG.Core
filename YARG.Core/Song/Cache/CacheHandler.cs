@@ -343,7 +343,7 @@ namespace YARG.Core.Song.Cache
                 while (reader.StartNode())
                 {
                     string name = reader.GetNameOfNode();
-                    var listing = CONFileHandler.TryGetListing(group.Files, $"songs_upgrades/{name}_plus.mid");
+                    var listing = group.CONFile.TryGetListing($"songs_upgrades/{name}_plus.mid");
 
                     if (listing != null)
                     {
