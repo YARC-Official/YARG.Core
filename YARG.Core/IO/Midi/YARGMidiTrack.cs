@@ -51,6 +51,7 @@ namespace YARG.Core.IO
         private MidiEvent _running;
 
         private readonly byte[] _data;
+        private readonly ReadOnlyMemory<byte> memory;
         private int _trackPos;
 
         public long Position => _tickPosition;
@@ -59,7 +60,18 @@ namespace YARG.Core.IO
 
         public YARGMidiTrack(Stream stream)
         {
-            _data = stream.ReadBytes(stream.ReadInt32BE());
+            int count = stream.ReadInt32BE();
+            if (stream is MemoryStream mem)
+            {
+                _data = Array.Empty<byte>();
+                memory = new ReadOnlyMemory<byte>(mem.GetBuffer(), (int) mem.Position, count);
+                mem.Position += count;
+            }
+            else
+            {
+                _data = stream.ReadBytes(count);
+                memory = _data;
+            }
 
             if (!ParseEvent(true) || _event.Type != MidiEventType.Text_TrackName)
             {
@@ -77,7 +89,8 @@ namespace YARG.Core.IO
             else
                 _tickPosition += ReadVLQ();
 
-            byte tmp = _data[_trackPos];
+            var span = memory.Span;
+            byte tmp = span[_trackPos];
             var type = (MidiEventType) tmp;
             if (type < MidiEventType.Note_Off)
             {
@@ -108,7 +121,7 @@ namespace YARG.Core.IO
                     switch (type)
                     {
                         case MidiEventType.Reset_Or_Meta:
-                            type = (MidiEventType) _data[_trackPos++];
+                            type = (MidiEventType) span[_trackPos++];
                             goto case MidiEventType.SysEx_End;
                         case MidiEventType.SysEx:
                         case MidiEventType.SysEx_End:
@@ -134,15 +147,16 @@ namespace YARG.Core.IO
 
         public ReadOnlySpan<byte> ExtractTextOrSysEx()
         {
-            var span = new ReadOnlySpan<byte>(_data, _trackPos, _event.Length);
+            var span = memory.Slice(_trackPos, _event.Length).Span;
             _trackPos += _event.Length;
             return span;
         }
 
         public void ExtractMidiNote(ref MidiNote note)
         {
-            note.value = _data[_trackPos++];
-            note.velocity = _data[_trackPos++];
+            var span = memory.Span;
+            note.value = span[_trackPos++];
+            note.velocity = span[_trackPos++];
         }
 
         public void SkipEvent()
@@ -153,14 +167,15 @@ namespace YARG.Core.IO
         private const uint VLQ_SHIFTLIMIT = 1 << 21;
         private uint ReadVLQ()
         {
-            uint curr = _data[_trackPos++];
+            var span = memory.Span;
+            uint curr = span[_trackPos++];
             uint value = curr & 127;
             while (curr >= 128)
             {
                 if (value < VLQ_SHIFTLIMIT)
                 {
                     value <<= 7;
-                    curr = _data[_trackPos++];
+                    curr = span[_trackPos++];
                     value |= curr & 127;
                 }
                 else
@@ -171,15 +186,16 @@ namespace YARG.Core.IO
 
         private unsafe void AbsorbVLQ()
         {
-            uint b = _data[_trackPos++];
+            var span = memory.Span;
+            uint b = span[_trackPos++];
             // Skip zeroes
             while (b == 128)
-                b = _data[_trackPos++];
+                b = span[_trackPos++];
 
             for (int i = 0; b >= 128; ++i)
             {
                 if (i < 3)
-                    b = _data[_trackPos++];
+                    b = span[_trackPos++];
                 else
                     throw new Exception("Invalid variable length quantity");
             }
