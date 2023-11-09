@@ -46,13 +46,13 @@ namespace YARG.Core.IO
             public int Length;
         }
 
-        private long _position;
+        private long _tickPosition;
         private MidiEvent _event;
         private MidiEvent _running;
 
         private YARGBinaryReader _reader;
 
-        public long Position => _position;
+        public long Position => _tickPosition;
         public MidiEventType Type => _event.Type;
         public int Channel => _event.Channel;
 
@@ -62,7 +62,7 @@ namespace YARG.Core.IO
             if (!ParseEvent() || _event.Type != MidiEventType.Text_TrackName)
             {
                 _reader.Position = 0;
-                _position = 0;
+                _tickPosition = 0;
                 _event.Type = MidiEventType.Reset_Or_Meta;
                 _running.Type = MidiEventType.Reset_Or_Meta;
             }
@@ -70,7 +70,7 @@ namespace YARG.Core.IO
 
         public bool ParseEvent()
         {
-            _position += _reader.ReadVLQ();
+            _tickPosition += _reader.ReadVLQ();
             byte tmp = _reader.PeekByte();
             var type = (MidiEventType) tmp;
             if (type < MidiEventType.Note_Off)
