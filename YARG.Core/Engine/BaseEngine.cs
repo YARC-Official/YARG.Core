@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using YARG.Core.Chart;
+using YARG.Core.Engine.Logging;
 using YARG.Core.Input;
 
 namespace YARG.Core.Engine
@@ -14,6 +14,8 @@ namespace YARG.Core.Engine
         public int BaseScore { get; protected set; }
 
         public int[] StarScoreThresholds { get; protected set; }
+
+        public EngineEventLogger EventLogger { get; }
 
         protected bool IsInputUpdate { get; private set; }
         protected bool IsBotUpdate   { get; private set; }
@@ -50,6 +52,7 @@ namespace YARG.Core.Engine
                 StarScoreThresholds[i] = (int) (BaseScore * multiplierThresholds[i]);
             }
 
+            EventLogger = new EngineEventLogger();
             InputQueue = new Queue<GameInput>();
             CurrentInput = new GameInput(-9999, -9999, -9999);
         }
@@ -224,10 +227,14 @@ namespace YARG.Core.Engine
 
         protected void UpdateTimeVariables(double time)
         {
-            State.LastUpdateTime = State.CurrentTime;
+            // Only update the last time if the current time has changed
+            if (Math.Abs(time - State.CurrentTime) > double.Epsilon)
+            {
+                State.LastUpdateTime = State.CurrentTime;
+                State.LastTick = State.CurrentTick;
+            }
+            
             State.CurrentTime = time;
-
-            State.LastTick = State.CurrentTick;
             State.CurrentTick = GetCurrentTick(time);
 
             var timeSigs = SyncTrack.TimeSignatures;
@@ -250,6 +257,8 @@ namespace YARG.Core.Engine
 
             State.Reset();
             EngineStats.Reset();
+            
+            EventLogger.Clear();
 
             foreach (var note in Notes)
             {
@@ -373,6 +382,11 @@ namespace YARG.Core.Engine
             EngineStats.StarPowerAmount -= amount;
             if (EngineStats.StarPowerAmount <= 0)
             {
+                EventLogger.LogEvent(new StarPowerEngineEvent(State.CurrentTime)
+                {
+                    IsActive = false,
+                });
+                
                 EngineStats.StarPowerAmount = 0;
                 EngineStats.IsStarPowerActive = false;
                 OnStarPowerStatus?.Invoke(false);
@@ -385,6 +399,11 @@ namespace YARG.Core.Engine
             {
                 return;
             }
+            
+            EventLogger.LogEvent(new StarPowerEngineEvent(State.CurrentTime)
+            {
+                IsActive = true,
+            });
 
             EngineStats.IsStarPowerActive = true;
             OnStarPowerStatus?.Invoke(true);
