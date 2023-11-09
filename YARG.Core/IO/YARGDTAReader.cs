@@ -119,17 +119,30 @@ namespace YARG.Core.IO
             return Encoding.UTF8.GetString(container.Data, start, end - start);
         }
 
+        private enum TextScopeState
+        {
+            None,
+            Squirlies,
+            Quotes,
+            Apostrophes
+        }
+        
         public string ExtractText()
         {
             char ch = (char)container.Data[container.Position];
-            bool inSquirley = ch == '{';
-            bool inQuotes = !inSquirley && ch == '\"';
-            bool inApostrophes = !inQuotes && ch == '\'';
+            var state = ch switch
+            {
+                '{'  => TextScopeState.Squirlies,
+                '\"' => TextScopeState.Quotes,
+                '\'' => TextScopeState.Apostrophes,
+                _    => TextScopeState.None
+            };
 
-            if (inSquirley || inQuotes || inApostrophes)
+            if (state != TextScopeState.None)
                 ++container.Position;
 
             int start = container.Position++;
+            // Loop til the end of the text is found
             while (container.Position < container.Next)
             {
                 ch = (char)container.Data[container.Position];
@@ -138,30 +151,30 @@ namespace YARG.Core.IO
 
                 if (ch == '}')
                 {
-                    if (inSquirley)
+                    if (state == TextScopeState.Squirlies)
                         break;
                     throw new Exception("Text error - no \'}\' allowed");
                 }
                 else if (ch == '\"')
                 {
-                    if (inQuotes)
+                    if (state == TextScopeState.Quotes)
                         break;
-                    if (!inSquirley)
+                    if (state != TextScopeState.Squirlies)
                         throw new Exception("Text error - no quotes allowed");
                 }
                 else if (ch == '\'')
                 {
-                    if (inApostrophes)
+                    if (state == TextScopeState.Apostrophes)
                         break;
-                    if (!inSquirley && !inQuotes)
+                    if (state == TextScopeState.None)
                         throw new Exception("Text error - no apostrophes allowed");
                 }
                 else if (ch.IsAsciiWhitespace())
                 {
-                    if (inApostrophes)
-                        throw new Exception("Text error - no whitespace allowed");
-                    if (!inSquirley && !inQuotes)
+                    if (state == TextScopeState.None)
                         break;
+                    if (state == TextScopeState.Apostrophes)
+                        throw new Exception("Text error - no whitespace allowed");
                 }
                 ++container.Position;
             }
@@ -172,7 +185,7 @@ namespace YARG.Core.IO
                 ++container.Position;
                 SkipWhitespace();
             }
-            else if (inSquirley || inQuotes || inApostrophes)
+            else if (state != TextScopeState.None)
                 throw new Exception("Improper end to text");
 
             return encoding.GetString(container.Data, start, end - start).Replace("\\q", "\"");
