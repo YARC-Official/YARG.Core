@@ -197,21 +197,9 @@ namespace YARG.Core.Song
 
         public static SongMetadata UnpackedRBCONFromCache_Quick(AbridgedFileInfo? dta, string nodeName, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings)
         {
-            string filename = reader.ReadLEBString();
-            var lastWrite = DateTime.FromBinary(reader.ReadInt64());
-
-            AbridgedFileInfo midiInfo = new(filename, lastWrite);
-
-            filename = reader.ReadLEBString();
-            lastWrite = DateTime.FromBinary(reader.ReadInt64());
-
-            AbridgedFileInfo moggInfo = new(filename, lastWrite);
-
-            AbridgedFileInfo? updateInfo = null;
-            if (reader.ReadBoolean())
-            {
-                updateInfo = new(reader);
-            }
+            AbridgedFileInfo midiInfo = new(reader);
+            AbridgedFileInfo moggInfo = new(reader);
+            var updateInfo = reader.ReadBoolean() ? new AbridgedFileInfo(reader) : null;
 
             RBUnpackedCONMetadata packedMeta = new(dta, midiInfo, moggInfo, updateInfo, reader);
             if (upgrades.TryGetValue(nodeName, out var upgrade))
