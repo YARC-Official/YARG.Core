@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using YARG.Core.IO;
+using YARG.Core.Song;
 
 namespace YARG.Core.Replays
 {
@@ -51,7 +52,7 @@ namespace YARG.Core.Replays
             }
         }
 
-        public static void WriteReplay(string path, Replay replay)
+        public static HashWrapper? WriteReplay(string path, Replay replay)
         {
             using var stream = File.OpenWrite(path);
             using var writer = new BinaryWriter(stream);
@@ -61,11 +62,14 @@ namespace YARG.Core.Replays
                 var replayFile = new ReplayFile(replay);
 
                 replayFile.Serialize(writer);
+                return replayFile.Header.ReplayChecksum;
             }
             catch (Exception ex)
             {
                 YargTrace.LogException(ex, "Failed to write replay file");
             }
+
+            return null;
         }
     }
 }
