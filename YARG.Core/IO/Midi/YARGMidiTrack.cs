@@ -77,6 +77,7 @@ namespace YARG.Core.IO
             {
                 _trackPos = 0;
                 _tickPosition = 0;
+                _event.Length = 0;
                 _event.Type = MidiEventType.Reset_Or_Meta;
                 _running.Type = MidiEventType.Reset_Or_Meta;
             }
@@ -84,6 +85,7 @@ namespace YARG.Core.IO
 
         public bool ParseEvent(bool parseVLQ)
         {
+            _trackPos += _event.Length;
             if (!parseVLQ)
                 AbsorbVLQ();
             else
@@ -142,26 +144,22 @@ namespace YARG.Core.IO
                     _event.Type = type;
                 }
             }
+
+            if (_trackPos + _event.Length > memory.Length)
+                throw new EndOfStreamException();
             return true;
         }
 
         public ReadOnlySpan<byte> ExtractTextOrSysEx()
         {
-            var span = memory.Slice(_trackPos, _event.Length).Span;
-            _trackPos += _event.Length;
-            return span;
+            return memory.Slice(_trackPos, _event.Length).Span;
         }
 
         public void ExtractMidiNote(ref MidiNote note)
         {
             var span = memory.Span;
-            note.value = span[_trackPos++];
-            note.velocity = span[_trackPos++];
-        }
-
-        public void SkipEvent()
-        {
-            _trackPos += _event.Length;
+            note.value = span[_trackPos];
+            note.velocity = span[_trackPos + 1];
         }
 
         private const uint VLQ_SHIFTLIMIT = 1 << 21;

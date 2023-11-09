@@ -31,8 +31,6 @@ namespace YARG.Core.Song
                     ParseSysEx(track.ExtractTextOrSysEx());
                 else if (track.Type <= MidiEventType.Text_EnumLimit)
                     ParseText(track.ExtractTextOrSysEx());
-                else
-                    track.SkipEvent();
             }
             return false;
         }
