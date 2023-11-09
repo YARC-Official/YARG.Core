@@ -8,13 +8,14 @@ namespace YARG.Core.IO
     public class CONFile : IDisposable
     {
         public readonly AbridgedFileInfo Info;
+        public readonly List<CONFileListing> Listings;
         public readonly FileStream Stream;
-        public readonly List<CONFileListing> Listings = new();
         public readonly object Lock = new();
 
-        public CONFile(AbridgedFileInfo info)
+        private CONFile(AbridgedFileInfo info, List<CONFileListing> listings)
         {
             Info = info;
+            Listings = listings;
             Stream = new FileStream(info.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
         }
 
@@ -51,9 +52,11 @@ namespace YARG.Core.IO
 
         public static CONFile? TryLoadFile(string filename)
         {
-            Span<byte> int32Buffer = stackalloc byte[BYTES_32BIT];
-            using FileStream stream = new(filename, FileMode.Open, FileAccess.Read, FileShare.Read);
+            using var stream = InitStream_Internal(filename);
+            if (stream == null)
+                return null;
 
+            Span<byte> int32Buffer = stackalloc byte[BYTES_32BIT];
             if (stream.Read(int32Buffer) != BYTES_32BIT)
                 return null;
 
@@ -87,7 +90,7 @@ namespace YARG.Core.IO
             try
             {
                 AbridgedFileInfo fileInfo = new(filename);
-                CONFile conFile = new(fileInfo);
+                List<CONFileListing> listings = new();
 
                 using var conStream = new CONFileStream(stream, true, length, firstBlock, shift);
                 Span<byte> listingBuffer = stackalloc byte[SIZEOF_FILELISTING];
@@ -98,15 +101,34 @@ namespace YARG.Core.IO
                         break;
 
                     CONFileListing listing = new(fileInfo, shift, listingBuffer);
+                    if (listing.pathIndex >= listings.Count)
+                    {
+                        YargTrace.LogError($"Error while parsing {filename} - Filelisting blocks constructed out of spec");
+                        return null;
+                    }
+
                     if (listing.pathIndex != -1)
-                        listing.SetParentDirectory(conFile.Listings[listing.pathIndex].Filename);
-                    conFile.Listings.Add(listing);
+                        listing.SetParentDirectory(listings[listing.pathIndex].Filename);
+                    listings.Add(listing);
                 }
-                return conFile;
+                return new CONFile(fileInfo, listings);
             }
             catch (Exception ex)
             {
-                YargTrace.LogException(ex, $"Error while parsing {filename} (usually when the file doesn't follow spec)");
+                YargTrace.LogException(ex, $"Error while parsing {filename}");
+                return null;
+            }
+        }
+
+        private static FileStream? InitStream_Internal(string filename)
+        {
+            try
+            {
+                return new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read);
+            }
+            catch (Exception ex)
+            {
+                YargTrace.LogException(ex, $"Error loading {filename}");
                 return null;
             }
         }
