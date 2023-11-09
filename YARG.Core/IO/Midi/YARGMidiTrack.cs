@@ -60,7 +60,8 @@ namespace YARG.Core.IO
         public YARGMidiTrack(Stream stream)
         {
             _data = stream.ReadBytes(stream.ReadInt32BE());
-            if (!ParseEvent() || _event.Type != MidiEventType.Text_TrackName)
+
+            if (!ParseEvent(true) || _event.Type != MidiEventType.Text_TrackName)
             {
                 _trackPos = 0;
                 _tickPosition = 0;
@@ -69,9 +70,13 @@ namespace YARG.Core.IO
             }
         }
 
-        public bool ParseEvent()
+        public bool ParseEvent(bool parseVLQ)
         {
-            _tickPosition += ReadVLQ();
+            if (!parseVLQ)
+                AbsorbVLQ();
+            else
+                _tickPosition += ReadVLQ();
+
             byte tmp = _data[_trackPos];
             var type = (MidiEventType) tmp;
             if (type < MidiEventType.Note_Off)
@@ -148,15 +153,36 @@ namespace YARG.Core.IO
         private const uint VLQ_SHIFTLIMIT = 1 << 21;
         private uint ReadVLQ()
         {
-            uint value = (uint) _data[_trackPos] & 127;
-            while (_data[_trackPos++] >= 128)
+            uint curr = _data[_trackPos++];
+            uint value = curr & 127;
+            while (curr >= 128)
             {
-                if (value >= VLQ_SHIFTLIMIT)
+                if (value < VLQ_SHIFTLIMIT)
+                {
+                    value <<= 7;
+                    curr = _data[_trackPos++];
+                    value |= curr & 127;
+                }
+                else
                     throw new Exception("Invalid variable length quantity");
-                value <<= 7;
-                value |= (uint) _data[_trackPos] & 127;
             }
             return value;
+        }
+
+        private unsafe void AbsorbVLQ()
+        {
+            uint b = _data[_trackPos++];
+            // Skip zeroes
+            while (b == 128)
+                b = _data[_trackPos++];
+
+            for (int i = 0; b >= 128; ++i)
+            {
+                if (i < 3)
+                    b = _data[_trackPos++];
+                else
+                    throw new Exception("Invalid variable length quantity");
+            }
         }
     }
 

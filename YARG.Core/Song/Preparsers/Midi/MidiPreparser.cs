@@ -13,7 +13,7 @@ namespace YARG.Core.Song
 
         protected bool Process(YARGMidiTrack track)
         {
-            while (track.ParseEvent())
+            while (track.ParseEvent(false))
             {
                 if (track.Type == MidiEventType.Note_On)
                 {
