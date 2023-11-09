@@ -20,19 +20,14 @@ namespace YARG.Core.Replays
         public GameInput[]          Inputs;
         public EngineEventLogger    EventLog;
 
+        // Disabling this because it looks ugly with the initializers lol
+        // ReSharper disable once ConvertConstructorToMemberInitializers
         public ReplayFrame()
         {
             EngineParameters = new GuitarEngineParameters();
             Stats = new GuitarStats();
             Inputs = Array.Empty<GameInput>();
             EventLog = new EngineEventLogger();
-        }
-
-        public ReplayFrame(BinaryReader reader, int version = 0)
-        {
-            EventLog = new EngineEventLogger();
-            
-            Deserialize(reader, version);
         }
 
         public void Serialize(BinaryWriter writer)
