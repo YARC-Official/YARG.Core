@@ -51,7 +51,7 @@ namespace YARG.Core.IO
         private MidiEvent _running;
 
         private readonly byte[] _data;
-        private readonly ReadOnlyMemory<byte> memory;
+        private readonly ReadOnlyMemory<byte> _memory;
         private int _trackPos;
 
         public long Position => _tickPosition;
@@ -64,13 +64,13 @@ namespace YARG.Core.IO
             if (stream is MemoryStream mem)
             {
                 _data = Array.Empty<byte>();
-                memory = new ReadOnlyMemory<byte>(mem.GetBuffer(), (int) mem.Position, count);
+                _memory = new ReadOnlyMemory<byte>(mem.GetBuffer(), (int) mem.Position, count);
                 mem.Position += count;
             }
             else
             {
                 _data = stream.ReadBytes(count);
-                memory = _data;
+                _memory = _data;
             }
 
             if (!ParseEvent(true) || _event.Type != MidiEventType.Text_TrackName)
@@ -90,7 +90,7 @@ namespace YARG.Core.IO
             else
                 _tickPosition += ReadVLQ();
 
-            var span = memory.Span;
+            var span = _memory.Span;
             byte tmp = span[_trackPos];
             var type = (MidiEventType) tmp;
             if (type < MidiEventType.Note_Off)
@@ -143,19 +143,19 @@ namespace YARG.Core.IO
                 }
             }
 
-            if (_trackPos + _event.Length > memory.Length)
+            if (_trackPos + _event.Length > _memory.Length)
                 throw new EndOfStreamException();
             return true;
         }
 
         public ReadOnlySpan<byte> ExtractTextOrSysEx()
         {
-            return memory.Slice(_trackPos, _event.Length).Span;
+            return _memory.Slice(_trackPos, _event.Length).Span;
         }
 
         public void ExtractMidiNote(ref MidiNote note)
         {
-            var span = memory.Span;
+            var span = _memory.Span;
             note.value = span[_trackPos];
             note.velocity = span[_trackPos + 1];
         }
@@ -163,7 +163,7 @@ namespace YARG.Core.IO
         private const uint VLQ_SHIFTLIMIT = 1 << 21;
         private uint ReadVLQ()
         {
-            var span = memory.Span;
+            var span = _memory.Span;
             uint curr = span[_trackPos++];
             uint value = curr & 127;
             while (curr >= 128)
@@ -182,7 +182,7 @@ namespace YARG.Core.IO
 
         private unsafe void AbsorbVLQ()
         {
-            var span = memory.Span;
+            var span = _memory.Span;
             uint b = span[_trackPos++];
             // Skip zeroes
             while (b == 128)
