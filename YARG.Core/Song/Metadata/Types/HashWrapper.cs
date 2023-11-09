@@ -33,13 +33,15 @@ namespace YARG.Core.Song
 
         public static HashWrapper Create(byte[] buffer)
         {
-            return new HashWrapper(Algorithm.ComputeHash(buffer));
+            using var algo = Algorithm;
+            return new HashWrapper(algo.ComputeHash(buffer));
         }
 
         public static HashWrapper Create(Stream stream)
         {
             stream.Position = 0;
-            return new HashWrapper(Algorithm.ComputeHash(stream));
+            using var algo = Algorithm;
+            return new HashWrapper(algo.ComputeHash(stream));
         }
 
         public HashWrapper(byte[] hash)
