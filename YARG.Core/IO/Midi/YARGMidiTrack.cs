@@ -50,7 +50,8 @@ namespace YARG.Core.IO
         private MidiEvent _event;
         private MidiEvent _running;
 
-        private YARGBinaryReader _reader;
+        private readonly byte[] _data;
+        private int _trackPos;
 
         public long Position => _tickPosition;
         public MidiEventType Type => _event.Type;
@@ -58,10 +59,10 @@ namespace YARG.Core.IO
 
         public YARGMidiTrack(Stream stream)
         {
-            _reader = new YARGBinaryReader(stream, stream.ReadInt32BE());
+            _data = stream.ReadBytes(stream.ReadInt32BE());
             if (!ParseEvent() || _event.Type != MidiEventType.Text_TrackName)
             {
-                _reader.Position = 0;
+                _trackPos = 0;
                 _tickPosition = 0;
                 _event.Type = MidiEventType.Reset_Or_Meta;
                 _running.Type = MidiEventType.Reset_Or_Meta;
@@ -70,8 +71,8 @@ namespace YARG.Core.IO
 
         public bool ParseEvent()
         {
-            _tickPosition += _reader.ReadVLQ();
-            byte tmp = _reader.PeekByte();
+            _tickPosition += ReadVLQ();
+            byte tmp = _data[_trackPos];
             var type = (MidiEventType) tmp;
             if (type < MidiEventType.Note_Off)
             {
@@ -81,7 +82,7 @@ namespace YARG.Core.IO
             }
             else
             {
-                _reader.Move_Unsafe(1);
+                _trackPos++;
                 if (type < MidiEventType.SysEx)
                 {
                     _running.Channel = (byte) (tmp & 15);
@@ -102,11 +103,11 @@ namespace YARG.Core.IO
                     switch (type)
                     {
                         case MidiEventType.Reset_Or_Meta:
-                            type = (MidiEventType) _reader.ReadByte();
+                            type = (MidiEventType) _data[_trackPos++];
                             goto case MidiEventType.SysEx_End;
                         case MidiEventType.SysEx:
                         case MidiEventType.SysEx_End:
-                            _event.Length = (int) _reader.ReadVLQ();
+                            _event.Length = (int) ReadVLQ();
                             break;
                         case MidiEventType.Song_Position:
                             _event.Length = 2;
@@ -128,18 +129,34 @@ namespace YARG.Core.IO
 
         public ReadOnlySpan<byte> ExtractTextOrSysEx()
         {
-            return _reader.ReadSpan(_event.Length);
+            var span = new ReadOnlySpan<byte>(_data, _trackPos, _event.Length);
+            _trackPos += _event.Length;
+            return span;
         }
 
         public void ExtractMidiNote(ref MidiNote note)
         {
-            note.value = _reader.ReadByte();
-            note.velocity = _reader.ReadByte();
+            note.value = _data[_trackPos++];
+            note.velocity = _data[_trackPos++];
         }
 
         public void SkipEvent()
         {
-            _reader.Position += _event.Length;
+            _trackPos += _event.Length;
+        }
+
+        private const uint VLQ_SHIFTLIMIT = 1 << 21;
+        private uint ReadVLQ()
+        {
+            uint value = (uint) _data[_trackPos] & 127;
+            while (_data[_trackPos++] >= 128)
+            {
+                if (value >= VLQ_SHIFTLIMIT)
+                    throw new Exception("Invalid variable length quantity");
+                value <<= 7;
+                value |= (uint) _data[_trackPos] & 127;
+            }
+            return value;
         }
     }
 

@@ -62,16 +62,6 @@ namespace YARG.Core.IO
             baseReader._position += length;
         }
 
-        public void Move_Unsafe(int amount)
-        {
-            _position += amount;
-        }
-
-        public byte PeekByte()
-        {
-            return memory.Span[_position];
-        }
-
         public byte ReadByte()
         {
             return memory.Span[_position++];
@@ -231,21 +221,6 @@ namespace YARG.Core.IO
 
             result |= (uint) byteReadJustNow << MaxBytesWithoutOverflow * 7;
             return (int) result;
-        }
-
-        private const uint VLQ_SHIFTLIMIT = 1 << 21;
-        public uint ReadVLQ()
-        {
-            var span = memory.Span;
-            uint value = (uint) span[_position] & 127;
-            while (span[_position++] >= 128)
-            {
-                if (value >= VLQ_SHIFTLIMIT)
-                    throw new Exception("Invalid variable length quantity");
-                value <<= 7;
-                value |= (uint) span[_position] & 127;
-            }
-            return value;
         }
 
         public ReadOnlySpan<byte> ReadSpan(int length)
