@@ -78,8 +78,7 @@ namespace YARG.Core.IO
                 _trackPos = 0;
                 _tickPosition = 0;
                 _event.Length = 0;
-                _event.Type = MidiEventType.Reset_Or_Meta;
-                _running.Type = MidiEventType.Reset_Or_Meta;
+                _event.Type = _running.Type = MidiEventType.Reset_Or_Meta;
             }
         }
 
@@ -105,9 +104,9 @@ namespace YARG.Core.IO
                 _trackPos++;
                 if (type < MidiEventType.SysEx)
                 {
-                    _running.Channel = (byte) (tmp & 15);
-                    _running.Type = (MidiEventType) (tmp & 240);
-                    _running.Length = _running.Type switch
+                    _event.Channel = _running.Channel = (byte) (tmp & 15);
+                    _event.Type    = _running.Type    = (MidiEventType) (tmp & 240);
+                    _event.Length  = _running.Length  = _running.Type switch
                     {
                         MidiEventType.Note_On => 2,
                         MidiEventType.Note_Off => 2,
@@ -116,7 +115,6 @@ namespace YARG.Core.IO
                         MidiEventType.Pitch_Wheel => 2,
                         _ => 1
                     };
-                    _event = _running;
                 }
                 else
                 {
