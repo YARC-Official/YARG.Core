@@ -31,7 +31,10 @@ namespace YARG.Core.Song
 
         protected override bool ParseNote_Off(YARGMidiTrack track)
         {
-            return ProcessSpecialNote_Off(track) || (IsNote() && ParseLaneColor_Off(track));
+            if (ProcessSpecialNote_Off(track))
+                return IsFullyScanned();
+
+            return IsNote() && ParseLaneColor_Off(track);
         }
 
         protected abstract bool ParseLaneColor_ON(YARGMidiTrack track);
