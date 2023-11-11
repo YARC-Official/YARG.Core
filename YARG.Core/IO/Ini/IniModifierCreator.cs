@@ -103,5 +103,75 @@ namespace YARG.Core.IO.Ini
                     throw new NotImplementedException();
             }
         }
+
+        public IniModifier CreateSngModifier(YARGTextContainer<byte> sngContainer)
+        {
+            switch (type)
+            {
+                case ModifierCreatorType.SortString: return new IniModifier(new SortString(ExtractSngString(sngContainer)));
+                case ModifierCreatorType.String:     return new IniModifier(ExtractSngString(sngContainer));
+                case ModifierCreatorType.UInt64:
+                    {
+                        sngContainer.ExtractUInt64(out ulong value);
+                        return new IniModifier(value);
+                    }
+                case ModifierCreatorType.Int64:
+                    {
+                        sngContainer.ExtractInt64(out long value);
+                        return new IniModifier(value);
+                    }
+                case ModifierCreatorType.UInt32:
+                    {
+                        sngContainer.ExtractUInt32(out uint value);
+                        return new IniModifier(value);
+                    }
+                case ModifierCreatorType.Int32:
+                    {
+                        sngContainer.ExtractInt32(out int value);
+                        return new IniModifier(value);
+                    }
+                case ModifierCreatorType.UInt16:
+                    {
+                        sngContainer.ExtractUInt16(out ushort value);
+                        return new IniModifier(value);
+                    }
+                case ModifierCreatorType.Int16:
+                    {
+                        sngContainer.ExtractInt16(out short value);
+                        return new IniModifier(value);
+                    }
+                case ModifierCreatorType.Bool:
+                    {
+                        return new IniModifier(sngContainer.ExtractBoolean());
+                    }
+                case ModifierCreatorType.Float:
+                    {
+                        sngContainer.ExtractFloat(out float value);
+                        return new IniModifier(value);
+                    }
+                case ModifierCreatorType.Double:
+                    {
+                        sngContainer.ExtractDouble(out double value);
+                        return new IniModifier(value);
+                    }
+                case ModifierCreatorType.UInt64Array:
+                    {
+                        ulong ul2 = 0;
+                        if (sngContainer.ExtractUInt64(out ulong ul1))
+                        {
+                            YARGTextReader.SkipWhitespace(sngContainer);
+                            sngContainer.ExtractUInt64(out ul2);
+                        }
+                        return new IniModifier(ul1, ul2);
+                    }
+                default:
+                    throw new NotImplementedException();
+            }
+        }
+
+        private static string ExtractSngString(YARGTextContainer<byte> sngContainer)
+        {
+            return Encoding.UTF8.GetString(sngContainer.ExtractSpan(sngContainer.Next - sngContainer.Position));
+        }
     }
 }
