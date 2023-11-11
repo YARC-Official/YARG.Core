@@ -271,7 +271,7 @@ namespace YARG.Core.Song
             if (reader.ReadBoolean())
             {
                 moggListing = file.TryGetListing(reader.ReadLEBString());
-                reader.Position += SIZEOF_DATETIME;
+                reader.Move(SIZEOF_DATETIME);
             }
             else
                 moggInfo = new AbridgedFileInfo(reader);

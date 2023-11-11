@@ -133,7 +133,7 @@ namespace YARG.Core.Song.Cache
                 int length = reader.ReadInt32();
                 if (invalidSongsInCache.Contains(name))
                 {
-                    reader.Position += length;
+                    reader.Move(length);
                     continue;
                 }
 
@@ -158,7 +158,7 @@ namespace YARG.Core.Song.Cache
 
                 if (invalidSongsInCache.Contains(name))
                 {
-                    reader.Position += length;
+                    reader.Move(length);
                     continue;
                 }
 
@@ -191,7 +191,7 @@ namespace YARG.Core.Song.Cache
             {
                 string name = reader.ReadLEBString();
                 // index
-                reader.Position += 4;
+                reader.Move(4);
 
                 int length = reader.ReadInt32();
                 var entryReader = new YARGBinaryReader(reader, length);
@@ -209,7 +209,7 @@ namespace YARG.Core.Song.Cache
             {
                 string name = reader.ReadLEBString();
                 // index
-                reader.Position += 4;
+                reader.Move(4);
 
                 int length = reader.ReadInt32();
                 var entryReader = new YARGBinaryReader(reader, length);

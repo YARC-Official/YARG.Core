@@ -21,19 +21,6 @@ namespace YARG.Core.IO
         private readonly ReadOnlyMemory<byte> memory;
         private int _position;
 
-        public int Length => memory.Length;
-
-        public int Position
-        {
-            get { return _position; }
-            set
-            {
-                if (value > memory.Length)
-                    throw new ArgumentOutOfRangeException("Position");
-                _position = value;
-            }
-        }
-
         public YARGBinaryReader(byte[] data)
         {
             this.data = data;
@@ -60,6 +47,13 @@ namespace YARG.Core.IO
             data = Array.Empty<byte>();
             memory = baseReader.memory.Slice(baseReader._position, length);
             baseReader._position += length;
+        }
+
+        public void Move(int amount)
+        {
+            _position += amount;
+            if (_position > memory.Length)
+                throw new ArgumentOutOfRangeException("amount");
         }
 
         public byte ReadByte()
@@ -133,7 +127,7 @@ namespace YARG.Core.IO
                 value = BinaryPrimitives.ReadInt64LittleEndian(span);
             else
                 value = BinaryPrimitives.ReadInt64BigEndian(span);
-            Position += sizeof(long);
+            _position += sizeof(long);
             return value;
         }
 
