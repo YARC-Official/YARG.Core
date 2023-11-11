@@ -42,13 +42,6 @@ namespace YARG.Core.IO
             }
         }
 
-        public YARGBinaryReader(YARGBinaryReader baseReader, int length)
-        {
-            data = Array.Empty<byte>();
-            memory = baseReader.memory.Slice(baseReader._position, length);
-            baseReader._position += length;
-        }
-
         public void Move(int amount)
         {
             _position += amount;
@@ -223,6 +216,19 @@ namespace YARG.Core.IO
             var span = memory.Span.Slice(_position, length);
             _position = endPos;
             return span;
+        }
+
+        public YARGBinaryReader Slice(int length)
+        {
+            var local = _position;
+            Move(length);
+            return new YARGBinaryReader(memory.Slice(local, length));
+        }
+
+        private YARGBinaryReader(ReadOnlyMemory<byte> memory)
+        {
+            data = Array.Empty<byte>();
+            this.memory = memory;
         }
     }
 }

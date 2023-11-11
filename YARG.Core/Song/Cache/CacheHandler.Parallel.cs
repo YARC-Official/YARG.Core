@@ -144,7 +144,7 @@ namespace YARG.Core.Song.Cache
             for (int i = 0; i < count && !tracker.IsSet(); ++i)
             {
                 int length = reader.ReadInt32();
-                var entryReader = new YARGBinaryReader(reader, length);
+                var entryReader = reader.Slice(length);
                 entryTasks.Add(Task.Run(() =>
                 {
                     // Error catching must be done per-thread
@@ -178,7 +178,7 @@ namespace YARG.Core.Song.Cache
                     continue;
                 }
 
-                var entryReader = new YARGBinaryReader(reader, length);
+                var entryReader = reader.Slice(length);
                 entryTasks.Add(Task.Run(() =>
                 {
                     // Error catching must be done per-thread
@@ -214,7 +214,7 @@ namespace YARG.Core.Song.Cache
                     continue;
                 }
 
-                var entryReader = new YARGBinaryReader(reader, length);
+                var entryReader = reader.Slice(length);
                 entryTasks.Add(Task.Run(() =>
                 {
                     // Error catching must be done per-thread
@@ -238,7 +238,7 @@ namespace YARG.Core.Song.Cache
             for (int i = 0; i < count && !tracker.IsSet(); ++i)
             {
                 int length = reader.ReadInt32();
-                var entryReader = new YARGBinaryReader(reader, length);
+                var entryReader = reader.Slice(length);
                 entryTasks.Add(Task.Run(() =>
                 {
                     // Error catching must be done per-thread
@@ -268,7 +268,7 @@ namespace YARG.Core.Song.Cache
                 reader.Move(4);
 
                 int length = reader.ReadInt32();
-                var entryReader = new YARGBinaryReader(reader, length);
+                var entryReader = reader.Slice(length);
                 entryTasks.Add(Task.Run(() =>
                 {
                     // Error catching must be done per-thread
@@ -296,7 +296,7 @@ namespace YARG.Core.Song.Cache
                 reader.Move(4);
 
                 int length = reader.ReadInt32();
-                var entryReader = new YARGBinaryReader(reader, length);
+                var entryReader = reader.Slice(length);
                 entryTasks.Add(Task.Run(() =>
                 {
                     // Error catching must be done per-thread
