@@ -38,6 +38,27 @@ namespace YARG.Core.IO
         }
     }
 
+    public static class YARGTextReader
+    {
+        public static char SkipWhitespace<TChar>(YARGTextContainer<TChar> container)
+            where TChar : unmanaged, IConvertible
+        {
+            while (container.Position < container.Length)
+            {
+                char ch = container.Data[container.Position].ToChar(null);
+                if (ch.IsAsciiWhitespace())
+                {
+                    if (ch == '\n')
+                        return ch;
+                }
+                else if (ch != '=')
+                    return ch;
+                ++container.Position;
+            }
+            return (char) 0;
+        }
+    }
+
     public sealed class YARGTextReader<TChar, TDecoder>
         where TChar : unmanaged, IConvertible
         where TDecoder : IStringDecoder<TChar>, new()
@@ -56,20 +77,7 @@ namespace YARG.Core.IO
 
         public char SkipWhitespace()
         {
-            while (Container.Position < Container.Length)
-            {
-                char ch = Container.Data[Container.Position].ToChar(null);
-                if (ch.IsAsciiWhitespace())
-                {
-                    if (ch == '\n')
-                        return ch;
-                }
-                else if (ch != '=')
-                    return ch;
-                ++Container.Position;
-            }
-
-            return (char) 0;
+            return YARGTextReader.SkipWhitespace(Container);
         }
 
         public void GotoNextLine()
