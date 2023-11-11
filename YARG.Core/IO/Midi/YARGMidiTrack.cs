@@ -188,9 +188,10 @@ namespace YARG.Core.IO
             while (b == 128)
                 b = span[_trackPos++];
 
-            for (int i = 0; b >= 128; ++i)
+            int maxPos = _trackPos + 3;
+            while (b >= 128)
             {
-                if (i < 3)
+                if (_trackPos < maxPos)
                     b = span[_trackPos++];
                 else
                     throw new Exception("Invalid variable length quantity");
