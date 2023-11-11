@@ -160,19 +160,23 @@ namespace YARG.Core.IO
             note.velocity = span[_trackPos + 1];
         }
 
-        private const uint VLQ_SHIFTLIMIT = 1 << 21;
+        private const uint EXTENDED_VLQ_FLAG = 128;
+        private const uint VLQ_MASK = 127;
+        private const int  VLQ_SHIFT = 7;
+        private const int  MAX_SHIFTCOUNT = 3;
+        private const uint VLQ_SHIFTLIMIT = 1 << (VLQ_SHIFT * MAX_SHIFTCOUNT);
         private uint ReadVLQ()
         {
             var span = _memory.Span;
             uint curr = span[_trackPos++];
-            uint value = curr & 127;
-            while (curr >= 128)
+            uint value = curr & VLQ_MASK;
+            while (curr >= EXTENDED_VLQ_FLAG)
             {
                 if (value < VLQ_SHIFTLIMIT)
                 {
-                    value <<= 7;
+                    value <<= VLQ_SHIFT;
                     curr = span[_trackPos++];
-                    value |= curr & 127;
+                    value |= curr & VLQ_MASK;
                 }
                 else
                     throw new Exception("Invalid variable length quantity");
@@ -185,11 +189,11 @@ namespace YARG.Core.IO
             var span = _memory.Span;
             uint b = span[_trackPos++];
             // Skip zeroes
-            while (b == 128)
+            while (b == EXTENDED_VLQ_FLAG)
                 b = span[_trackPos++];
 
-            int maxPos = _trackPos + 3;
-            while (b >= 128)
+            int maxPos = _trackPos + MAX_SHIFTCOUNT;
+            while (b >= EXTENDED_VLQ_FLAG)
             {
                 if (_trackPos < maxPos)
                     b = span[_trackPos++];
