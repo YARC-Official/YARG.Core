@@ -49,6 +49,13 @@ namespace YARG.Core.IO
             return new ReadOnlySpan<TChar>(Data, position, length);
         }
 
+        public ReadOnlySpan<TChar> ExtractSpan(int length)
+        {
+            var span = Slice(Position, length);
+            Position += length;
+            return span;
+        }
+
         private const char LAST_DIGIT_SIGNED = '7';
         private const char LAST_DIGIT_UNSIGNED = '5';
 
