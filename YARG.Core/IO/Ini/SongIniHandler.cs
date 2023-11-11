@@ -13,7 +13,7 @@ namespace YARG.Core.IO.Ini
             return modifiers.First().Value;
         }
 
-        private static readonly Dictionary<string, Dictionary<string, IniModifierCreator>> SONG_INI_DICTIONARY = new();
+        public static readonly Dictionary<string, Dictionary<string, IniModifierCreator>> SONG_INI_DICTIONARY = new();
         static SongIniHandler()
         {
             SONG_INI_DICTIONARY.Add("[song]", new()
