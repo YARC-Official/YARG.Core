@@ -15,22 +15,26 @@ namespace YARG.Core.Song
         {
             while (track.ParseEvent(false))
             {
-                if (track.Type == MidiEventType.Note_On)
+                switch (track.Type)
                 {
-                    track.ExtractMidiNote(ref note);
-                    if (note.velocity > 0 ? ParseNote_ON(track) : ParseNote_Off(track))
-                        return true;
+                    case MidiEventType.Note_On:
+                        track.ExtractMidiNote(ref note);
+                        if (note.velocity > 0 ? ParseNote_ON(track) : ParseNote_Off(track))
+                            return true;
+                        break;
+                    case MidiEventType.Note_Off:
+                        track.ExtractMidiNote(ref note);
+                        if (ParseNote_Off(track))
+                            return true;
+                        break;
+                    case MidiEventType.SysEx:
+                    case MidiEventType.SysEx_End:
+                        ParseSysEx(track.ExtractTextOrSysEx());
+                        break;
+                    case <= MidiEventType.Text_EnumLimit:
+                        ParseText(track.ExtractTextOrSysEx());
+                        break;
                 }
-                else if (track.Type == MidiEventType.Note_Off)
-                {
-                    track.ExtractMidiNote(ref note);
-                    if (ParseNote_Off(track))
-                        return true;
-                }
-                else if (track.Type == MidiEventType.SysEx || track.Type == MidiEventType.SysEx_End)
-                    ParseSysEx(track.ExtractTextOrSysEx());
-                else if (track.Type <= MidiEventType.Text_EnumLimit)
-                    ParseText(track.ExtractTextOrSysEx());
             }
             return false;
         }
