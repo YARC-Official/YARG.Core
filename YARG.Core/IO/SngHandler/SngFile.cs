@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Numerics;
 using System.Text;
 using YARG.Core.Extensions;
 using YARG.Core.IO.Ini;
@@ -9,18 +10,35 @@ namespace YARG.Core.IO
 {
     public class SngFile
     {
-        public readonly byte[] XORMask;
+        private const int NUM_KEYBYTES = 256;
+        private const int VECTORBYTE_COUNT = 32;
+        private const int NUMVECTORS = 8;
+        private const int MASKLENGTH = 16;
+
+        private readonly DisposableArray<byte> keys = new(NUM_KEYBYTES);
+        private readonly DisposableArray<Vector<byte>> vectors = new(NUMVECTORS);
         private readonly IniSection metadata;
         private readonly Dictionary<string, SngFileListing> listings;
         private readonly long initialFilePosition;
 
         private SngFile(byte[] xORMask, IniSection metadata, Dictionary<string, SngFileListing> listings, long initialFilePosition)
         {
-            XORMask = xORMask;
             this.metadata = metadata;
             this.listings = listings;
             this.initialFilePosition = initialFilePosition;
 
+            for (int keyIndex = 0, maskIndex = 0, vectorIndex = 0, vectEnd = VECTORBYTE_COUNT; keyIndex < keys.Size;)
+            {
+                keys[keyIndex] = (byte) (xORMask[maskIndex++] ^ keyIndex);
+                if (maskIndex == MASKLENGTH)
+                    maskIndex = 0;
+
+                if (++keyIndex == vectEnd)
+                {
+                    vectors[vectorIndex++] = new Vector<byte>(keys.Slice(keyIndex - VECTORBYTE_COUNT, VECTORBYTE_COUNT));
+                    vectEnd += VECTORBYTE_COUNT;
+                }
+            }
         }
 
 
