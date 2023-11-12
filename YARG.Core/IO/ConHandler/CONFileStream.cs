@@ -109,9 +109,9 @@ namespace YARG.Core.IO
         private int blockIndex = 0;
         private bool disposedStream;
 
-        public override bool CanRead => true;
+        public override bool CanRead => _filestream.CanRead;
         public override bool CanWrite => false;
-        public override bool CanSeek => true;
+        public override bool CanSeek => _filestream.CanSeek;
         public override long Length => fileSize;
 
         public override long Position

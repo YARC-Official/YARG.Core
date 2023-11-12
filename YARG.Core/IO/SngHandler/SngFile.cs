@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Numerics;
 using System.Text;
 using YARG.Core.Extensions;
 using YARG.Core.IO.Ini;
@@ -27,6 +26,16 @@ namespace YARG.Core.IO
         {
             listings.TryGetValue(file, out var listing);
             return listing;
+        }
+
+        public byte[] LoadSubFileBytes(SngFileListing listing)
+        {
+            return SngFileStream.LoadFile(filename, listing.Length, listing.Position, mask.Clone());
+        }
+
+        public SngFileStream CreateStream(SngFileListing listing)
+        {
+            return new SngFileStream(filename, listing.Length, listing.Position, mask.Clone());
         }
 
         public void Dispose()
