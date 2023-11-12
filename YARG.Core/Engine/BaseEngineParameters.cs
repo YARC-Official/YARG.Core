@@ -47,12 +47,26 @@ namespace YARG.Core.Engine
         {
             writer.Write(FrontEnd);
             writer.Write(BackEnd);
+
+            // Write star multiplier thresholds
+            writer.Write(StarMultiplierThresholds.Length);
+            foreach (var f in StarMultiplierThresholds)
+            {
+                writer.Write(f);
+            }
         }
 
         public virtual void Deserialize(BinaryReader reader, int version = 0)
         {
             FrontEnd = reader.ReadDouble();
             BackEnd = reader.ReadDouble();
+
+            // Read star multiplier thresholds
+            StarMultiplierThresholds = new float[reader.ReadInt32()];
+            for (int i = 0; i < StarMultiplierThresholds.Length; i++)
+            {
+                StarMultiplierThresholds[i] = reader.ReadSingle();
+            }
 
             HitWindow = Math.Abs(FrontEnd) + Math.Abs(BackEnd);
             FrontToBackRatio = Math.Abs(FrontEnd) / Math.Abs(BackEnd);
