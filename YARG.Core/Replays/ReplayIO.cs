@@ -19,10 +19,13 @@ namespace YARG.Core.Replays
     {
         public static readonly EightCC REPLAY_MAGIC_HEADER = new('Y', 'A', 'R', 'G', 'P', 'L', 'A', 'Y');
 
-        public const int REPLAY_VERSION = 3;
+        public const int REPLAY_VERSION = 4;
 
         // Some versions may be invalidated (such as significant format changes)
-        private static readonly int[] InvalidVersions = { 0, 1, 2 };
+        private static readonly int[] InvalidVersions =
+        {
+            0, 1, 2, 3
+        };
 
         // note: [NotNullWhen(ReplayReadResult.Valid)] is not a valid form of [NotNullWhen],
         // so replayFile will always be indicated as possibly being null

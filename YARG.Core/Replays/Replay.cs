@@ -39,6 +39,7 @@ namespace YARG.Core.Replays
         public string      ArtistName;
         public string      CharterName;
         public int         BandScore;
+        public StarAmount  BandStars;
         public double      ReplayLength;
         public DateTime    Date;
         public HashWrapper SongChecksum;
@@ -73,6 +74,7 @@ namespace YARG.Core.Replays
             writer.Write(ArtistName);
             writer.Write(CharterName);
             writer.Write(BandScore);
+            writer.Write((byte) BandStars);
             writer.Write(ReplayLength);
             writer.Write(Date.ToBinary());
 
@@ -108,6 +110,7 @@ namespace YARG.Core.Replays
             ArtistName = reader.ReadString();
             CharterName = reader.ReadString();
             BandScore = reader.ReadInt32();
+            BandStars = (StarAmount) reader.ReadByte();
             ReplayLength = reader.ReadDouble();
             Date = DateTime.FromBinary(reader.ReadInt64());
             SongChecksum = new HashWrapper(reader);

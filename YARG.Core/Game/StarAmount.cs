@@ -1,6 +1,6 @@
 namespace YARG.Core.Game
 {
-    public enum StarAmount
+    public enum StarAmount : byte
     {
         None = 0,
 
