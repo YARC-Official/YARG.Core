@@ -1,0 +1,51 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Numerics;
+using System.Text;
+
+namespace YARG.Core.IO
+{
+    public struct SngMask : IDisposable
+    {
+        public const int NUM_KEYBYTES = 256;
+        public const int MASKLENGTH = 16;
+        public static readonly int VECTORBYTE_COUNT = Vector<byte>.Count;
+        public static readonly int NUMVECTORS = NUM_KEYBYTES / VECTORBYTE_COUNT;
+
+        public readonly DisposableArray<byte> Keys;
+        public readonly unsafe Vector<byte>* Vectors;
+
+        public SngMask(byte[] mask)
+        {
+            Keys = new(NUM_KEYBYTES);
+
+            unsafe
+            {
+                Vectors = (Vector<byte>*) Keys.Ptr;
+            }
+
+            for (int i = 0; i < NUM_KEYBYTES;)
+                for (int j = 0; j < MASKLENGTH; i++, j++)
+                    Keys[i] = (byte) (mask[j] ^ i);
+        }
+
+        public SngMask Clone()
+        {
+            return new SngMask(this);
+        }
+
+        private SngMask(SngMask other)
+        {
+            Keys = new(other.Keys);
+            unsafe
+            {
+                Vectors = other.Vectors;
+            }
+        }
+
+        public void Dispose()
+        {
+            Keys.Dispose();
+        }
+    }
+}
