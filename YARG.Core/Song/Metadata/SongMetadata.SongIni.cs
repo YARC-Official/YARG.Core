@@ -135,13 +135,31 @@ namespace YARG.Core.Song
             _hash = hash;
             _iniData = iniData;
 
-            section.TryGet("name",     out _name,     DEFAULT_NAME);
-            section.TryGet("artist",   out _artist,   DEFAULT_ARTIST);
-            section.TryGet("album",    out _album,    DEFAULT_ALBUM);
-            section.TryGet("genre",    out _genre,    DEFAULT_GENRE);
+            _parseSettings.DrumsType = drumType switch
+            {
+                DrumsType.ProDrums => DrumsType.FourLane,
+                // Only possible if 1. is .mid & 2. does not have drums
+                DrumsType.UnknownPro => DrumsType.Unknown,
+                _ => drumType
+            };
+
+            SetIniModifierData(section);
+        }
+
+        private SongMetadata(IniSubmetadata iniData, YARGBinaryReader reader, CategoryCacheStrings strings) : this(reader, strings)
+        {
+            _iniData = iniData;
+        }
+
+        private void SetIniModifierData(IniSection section)
+        {
+            section.TryGet("name", out _name, DEFAULT_NAME);
+            section.TryGet("artist", out _artist, DEFAULT_ARTIST);
+            section.TryGet("album", out _album, DEFAULT_ALBUM);
+            section.TryGet("genre", out _genre, DEFAULT_GENRE);
             if (!section.TryGet("charter", out _charter, DEFAULT_CHARTER))
-                section.TryGet("frets",    out _charter, DEFAULT_CHARTER);
-            section.TryGet("icon",     out _source,   DEFAULT_SOURCE);
+                section.TryGet("frets", out _charter, DEFAULT_CHARTER);
+            section.TryGet("icon", out _source, DEFAULT_SOURCE);
             section.TryGet("playlist", out _playlist, Path.GetFileName(Path.GetDirectoryName(_directory)));
 
             if (section.TryGet("year", out _unmodifiedYear))
@@ -157,7 +175,7 @@ namespace YARG.Core.Song
             }
             else
                 _unmodifiedYear = DEFAULT_YEAR;
-           
+
 
             section.TryGet("loading_phrase", out _loadingPhrase);
 
@@ -179,23 +197,17 @@ namespace YARG.Core.Song
                     section.TryGet("previewEnd", out double previewEndSeconds))
                     PreviewEndSeconds = previewEndSeconds;
             }
-            
+
 
             if (!section.TryGet("delay", out _songOffset) &&
                 section.TryGet("offset", out double songOffsetSeconds))
                 SongOffsetSeconds = songOffsetSeconds;
-                
+
 
             section.TryGet("video_start_time", out _videoStartTime);
             _videoEndTime = section.TryGet("video_end_time", out long videoEndTime) ? videoEndTime : -1000;
 
-            _parseSettings.DrumsType = drumType switch
-            {
-                DrumsType.ProDrums => DrumsType.FourLane,
-                // Only possible if 1. is .mid & 2. does not have drums
-                DrumsType.UnknownPro => DrumsType.Unknown,
-                _ => drumType
-            };
+
 
             if (!section.TryGet("hopo_frequency", out _parseSettings.HopoThreshold))
                 _parseSettings.HopoThreshold = -1;
@@ -210,11 +222,6 @@ namespace YARG.Core.Song
 
             if (!section.TryGet("multiplier_note", out _parseSettings.StarPowerNote))
                 _parseSettings.StarPowerNote = -1;
-        }
-
-        private SongMetadata(IniSubmetadata iniData, YARGBinaryReader reader, CategoryCacheStrings strings) : this(reader, strings)
-        {
-            _iniData = iniData;
         }
 
         public static (ScanResult, SongMetadata?) FromIni(string chartFile, string? iniFile, int chartTypeIndex)
