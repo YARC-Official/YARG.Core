@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading.Tasks;
 using YARG.Core.Extensions;
 
 namespace YARG.Core.IO
@@ -15,6 +16,16 @@ namespace YARG.Core.IO
         {
             Length = reader.ReadInt64();
             Position = reader.ReadInt64();
+        }
+
+        public byte[] LoadAllBytes(string filename, SngMask mask)
+        {
+            return SngFileStream.LoadFile(filename, Length, Position, mask.Clone());
+        }
+
+        public SngFileStream CreateStream(string filename, SngMask mask)
+        {
+            return new SngFileStream(filename, Length, Position, mask.Clone());
         }
     }
 }

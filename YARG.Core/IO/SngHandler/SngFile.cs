@@ -9,38 +9,22 @@ namespace YARG.Core.IO
 {
     public class SngFile : IDisposable
     {
-        private readonly string filename;
-        private readonly SngMask mask;
-        private readonly IniSection metadata;
-        private readonly Dictionary<string, SngFileListing> listings;
+        public readonly string Filename;
+        public readonly SngMask Mask;
+        public readonly IniSection Metadata;
+        public readonly Dictionary<string, SngFileListing> Listings;
 
         private SngFile(string filename, byte[] mask, IniSection metadata, Dictionary<string, SngFileListing> listings)
         {
-            this.filename = filename;
-            this.metadata = metadata;
-            this.listings = listings;
-            this.mask = new SngMask(mask);
-        }
-
-        public SngFileListing? TryGetListing(string file)
-        {
-            listings.TryGetValue(file, out var listing);
-            return listing;
-        }
-
-        public byte[] LoadSubFileBytes(SngFileListing listing)
-        {
-            return SngFileStream.LoadFile(filename, listing.Length, listing.Position, mask.Clone());
-        }
-
-        public SngFileStream CreateStream(SngFileListing listing)
-        {
-            return new SngFileStream(filename, listing.Length, listing.Position, mask.Clone());
+            Filename = filename;
+            Mask = new SngMask(mask);
+            Metadata = metadata;
+            Listings = listings;
         }
 
         public void Dispose()
         {
-            mask.Dispose();
+            Mask.Dispose();
         }
 
 
@@ -70,7 +54,6 @@ namespace YARG.Core.IO
             {
                 uint version = stream.ReadUInt32LE();
                 var xorMask = stream.ReadBytes(XORMASK_SIZE);
-
                 var metadata = ReadMetadata(stream);
                 var listings = ReadListings(stream);
                 return new SngFile(filename, xorMask, metadata, listings);
