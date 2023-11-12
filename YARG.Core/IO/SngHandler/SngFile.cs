@@ -10,17 +10,18 @@ namespace YARG.Core.IO
     public class SngFile
     {
         public readonly byte[] XORMask;
-        public readonly IniSection Metadata;
-        public readonly List<SngFileListing> Listings;
-        
+        private readonly IniSection metadata;
+        private readonly Dictionary<string, SngFileListing> listings;
+        private readonly long initialFilePosition;
 
-        private SngFile(byte[] xORMask, IniSection metadata, List<SngFileListing> listings)
+        private SngFile(byte[] xORMask, IniSection metadata, Dictionary<string, SngFileListing> listings, long initialFilePosition)
         {
             XORMask = xORMask;
-            Metadata = metadata;
-            Listings = listings;
-        }
+            this.metadata = metadata;
+            this.listings = listings;
+            this.initialFilePosition = initialFilePosition;
 
+        }
 
 
         private const int XORMASK_SIZE = 16;
@@ -29,6 +30,7 @@ namespace YARG.Core.IO
         private const int BYTES_24BIT = 3;
         private const int BYTES_16BIT = 2;
         private static readonly byte[] SNGPKG = { (byte)'S', (byte) 'N', (byte) 'G', (byte)'P', (byte)'K', (byte)'G' };
+
         public static SngFile? TryLoadFile(string filename)
         {
             using var stream = InitStream_Internal(filename);
@@ -51,7 +53,7 @@ namespace YARG.Core.IO
 
                 var metadata = ReadMetadata(stream);
                 var listings = ReadListings(stream);
-                return new SngFile(xorMask, metadata, listings);
+                return new SngFile(xorMask, metadata, listings, stream.Position);
             }
             catch (Exception ex)
             {
@@ -106,19 +108,20 @@ namespace YARG.Core.IO
             return new IniSection(modifiers);
         }
 
-        private static List<SngFileListing> ReadListings(FileStream stream)
+        private static Dictionary<string, SngFileListing> ReadListings(FileStream stream)
         {
             ulong length = stream.ReadUInt64LE() - sizeof(ulong);
             ulong numListings = stream.ReadUInt64LE();
 
-            List<SngFileListing> listings = new()
-            {
-                Capacity = (int)numListings,
-            };
+            Dictionary<string, SngFileListing> listings = new((int)numListings);
 
             YARGBinaryReader reader = new(stream, (int)length);
             for (ulong i = 0; i < numListings; i++)
-                listings.Add(new SngFileListing(reader, (ulong)stream.Position));
+            {
+                var strLen = reader.ReadByte();
+                string filename = Encoding.UTF8.GetString(reader.ReadBytes(strLen));
+                listings.Add(filename, new SngFileListing(reader));
+            }
             return listings;
         }
     }

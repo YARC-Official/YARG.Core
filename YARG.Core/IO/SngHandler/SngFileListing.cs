@@ -8,16 +8,13 @@ namespace YARG.Core.IO
 {
     public class SngFileListing
     {
-        public readonly string Filename;
         public readonly ulong Position;
         public readonly ulong Length;
 
-        public SngFileListing(YARGBinaryReader reader, ulong posOffset)
+        public SngFileListing(YARGBinaryReader reader)
         {
-            var strLen = reader.ReadByte();
-            Filename = Encoding.UTF8.GetString(reader.ReadBytes(strLen));
             Length = reader.ReadUInt64();
-            Position = reader.ReadUInt64() + posOffset;
+            Position = reader.ReadUInt64();
         }
     }
 }
