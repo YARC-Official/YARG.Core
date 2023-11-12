@@ -348,7 +348,7 @@ namespace MoonscraperChartEditor.Song.IO
                         eventText = bracketMatch.Groups[1].Value;
 
                     // Get new representation of the event
-                    if (MidIOHelper.VENUE_TEXT_CONVERSION_LOOKUP.TryGetValue(eventText, out var eventData))
+                    if (VenueLookup.VENUE_TEXT_CONVERSION_LOOKUP.TryGetValue(eventText, out var eventData))
                     {
                         song.venue.Add(new VenueEvent(eventData.type, eventData.text, (uint)absoluteTime));
                     }
@@ -376,7 +376,7 @@ namespace MoonscraperChartEditor.Song.IO
 
                         // Unknown events
                         if (!matched)
-                            song.venue.Add(new VenueEvent(VenueEvent.Type.Unknown, eventText, (uint)absoluteTime));
+                            song.venue.Add(new VenueEvent(VenueLookup.Type.Unknown, eventText, (uint)absoluteTime));
                     }
                 }
             }

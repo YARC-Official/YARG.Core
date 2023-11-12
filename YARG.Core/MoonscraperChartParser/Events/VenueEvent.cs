@@ -2,30 +2,20 @@
 // See LICENSE in project root for license information.
 
 using System;
+using YARG.Core.Chart;
 
 namespace MoonscraperChartEditor.Song
 {
     [Serializable]
     internal class VenueEvent : Event
     {
-        public enum Type
-        {
-            Lighting,
-            PostProcessing,
-            Singalong,
-            Spotlight,
-            StageEffect,
-
-            Unknown = 99
-        }
-
         private readonly ID _classID = ID.Venue;
         public override int classID => (int)_classID;
 
-        public Type type;
+        public VenueLookup.Type type;
         public uint length;
 
-        public VenueEvent(Type _type, string _text, uint _position, uint _length = 0) : base(_text, _position)
+        public VenueEvent(VenueLookup.Type _type, string _text, uint _position, uint _length = 0) : base(_text, _position)
         {
             type = _type;
             length = _length;
