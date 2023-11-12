@@ -17,7 +17,9 @@ public class DrumEngineTester
     {
         0.21f, 0.46f, 0.77f, 1.85f, 3.08f, 4.29f
     };
-    private readonly DrumsEngineParameters _engineParams = new(0.15, 1, StarMultiplierThresholds);
+
+    private readonly DrumsEngineParameters _engineParams = new(0.15, 1, StarMultiplierThresholds,
+        DrumsEngineParameters.DrumMode.ProFourLane);
 
     private string? _chartsDirectory;
 

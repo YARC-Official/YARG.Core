@@ -5,7 +5,8 @@ namespace YARG.Core.Engine.Drums.Engines
 {
     public class YargDrumsEngine : DrumsEngine
     {
-        public YargDrumsEngine(InstrumentDifficulty<DrumNote> chart, SyncTrack syncTrack, DrumsEngineParameters engineParameters) : base(chart, syncTrack, engineParameters)
+        public YargDrumsEngine(InstrumentDifficulty<DrumNote> chart, SyncTrack syncTrack, DrumsEngineParameters engineParameters)
+            : base(chart, syncTrack, engineParameters)
         {
         }
 
@@ -60,21 +61,9 @@ namespace YARG.Core.Engine.Drums.Engines
             // Get the pad hit this update
             if (IsInputUpdate && CurrentInput.Button)
             {
-                State.PadHitThisUpdate = CurrentInput.GetAction<DrumsAction>() switch
-                {
-                    DrumsAction.Kick => (int) FourLaneDrumPad.Kick,
-
-                    DrumsAction.Drum1 => (int) FourLaneDrumPad.RedDrum,
-                    DrumsAction.Drum2 => (int) FourLaneDrumPad.YellowDrum,
-                    DrumsAction.Drum3 => (int) FourLaneDrumPad.BlueDrum,
-                    DrumsAction.Drum4 => (int) FourLaneDrumPad.GreenDrum,
-
-                    DrumsAction.Cymbal1 => (int) FourLaneDrumPad.YellowCymbal,
-                    DrumsAction.Cymbal2 => (int) FourLaneDrumPad.BlueCymbal,
-                    DrumsAction.Cymbal3 => (int) FourLaneDrumPad.GreenCymbal,
-
-                    _ => -1
-                };
+                State.PadHitThisUpdate = ConvertInputToPad(
+                    EngineParameters.Mode,
+                    CurrentInput.GetAction<DrumsAction>());
             }
             else if (!IsBotUpdate)
             {

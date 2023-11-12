@@ -1,4 +1,5 @@
-﻿using YARG.Core.Chart;
+﻿using System;
+using YARG.Core.Chart;
 using YARG.Core.Input;
 
 namespace YARG.Core.Engine.Drums
@@ -238,6 +239,57 @@ namespace YARG.Core.Engine.Drums
         protected static bool IsNoteInput(GameInput input)
         {
             return IsTomInput(input) || IsCymbalInput(input) || IsKickInput(input);
+        }
+
+        protected static int ConvertInputToPad(DrumsEngineParameters.DrumMode mode, DrumsAction action)
+        {
+            return mode switch
+            {
+                DrumsEngineParameters.DrumMode.NonProFourLane => action switch
+                {
+                    DrumsAction.Kick => (int) FourLaneDrumPad.Kick,
+
+                    DrumsAction.RedDrum    => (int) FourLaneDrumPad.RedDrum,
+                    DrumsAction.YellowDrum => (int) FourLaneDrumPad.YellowDrum,
+                    DrumsAction.BlueDrum   => (int) FourLaneDrumPad.BlueDrum,
+                    DrumsAction.GreenDrum  => (int) FourLaneDrumPad.GreenDrum,
+
+                    DrumsAction.YellowCymbal => (int) FourLaneDrumPad.YellowDrum,
+                    DrumsAction.BlueCymbal   => (int) FourLaneDrumPad.BlueDrum,
+                    DrumsAction.GreenCymbal  => (int) FourLaneDrumPad.GreenDrum,
+
+                    _ => -1
+                },
+                DrumsEngineParameters.DrumMode.ProFourLane => action switch
+                {
+                    DrumsAction.Kick => (int) FourLaneDrumPad.Kick,
+
+                    DrumsAction.RedDrum    => (int) FourLaneDrumPad.RedDrum,
+                    DrumsAction.YellowDrum => (int) FourLaneDrumPad.YellowDrum,
+                    DrumsAction.BlueDrum   => (int) FourLaneDrumPad.BlueDrum,
+                    DrumsAction.GreenDrum  => (int) FourLaneDrumPad.GreenDrum,
+
+                    DrumsAction.YellowCymbal => (int) FourLaneDrumPad.YellowCymbal,
+                    DrumsAction.BlueCymbal   => (int) FourLaneDrumPad.BlueCymbal,
+                    DrumsAction.GreenCymbal  => (int) FourLaneDrumPad.GreenCymbal,
+
+                    _ => -1
+                },
+                DrumsEngineParameters.DrumMode.FiveLane => action switch
+                {
+                    DrumsAction.Kick => (int) FiveLaneDrumPad.Kick,
+
+                    DrumsAction.RedDrum   => (int) FiveLaneDrumPad.Red,
+                    DrumsAction.BlueDrum  => (int) FiveLaneDrumPad.Blue,
+                    DrumsAction.GreenDrum => (int) FiveLaneDrumPad.Green,
+
+                    DrumsAction.YellowCymbal => (int) FiveLaneDrumPad.Yellow,
+                    DrumsAction.OrangeCymbal => (int) FiveLaneDrumPad.Orange,
+
+                    _ => -1
+                },
+                _ => throw new Exception("Unreachable.")
+            };
         }
     }
 }

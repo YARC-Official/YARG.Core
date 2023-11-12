@@ -9,7 +9,6 @@ namespace YARG.Core.Game
     {
         private const int COLOR_PROFILE_VERSION = 1;
 
-
         /// <summary>
         /// Interface that has methods that allows for generic fret color retrieval.
         /// Not all instruments have frets, so it's an interface.
@@ -63,11 +62,13 @@ namespace YARG.Core.Game
 
         public FiveFretGuitarColors FiveFretGuitar;
         public FourLaneDrumsColors  FourLaneDrums;
+        public FiveLaneDrumsColors  FiveLaneDrums;
 
         public ColorProfile(string name, bool defaultPreset = false) : base(name, defaultPreset)
         {
             FiveFretGuitar = new FiveFretGuitarColors();
             FourLaneDrums = new FourLaneDrumsColors();
+            FiveLaneDrums = new FiveLaneDrumsColors();
         }
 
         public override BasePreset CopyWithNewName(string name)
@@ -75,7 +76,8 @@ namespace YARG.Core.Game
             return new ColorProfile(name)
             {
                 FiveFretGuitar = FiveFretGuitar.Copy(),
-                FourLaneDrums = FourLaneDrums.Copy()
+                FourLaneDrums = FourLaneDrums.Copy(),
+                FiveLaneDrums = FiveLaneDrums.Copy()
             };
         }
 
@@ -86,6 +88,7 @@ namespace YARG.Core.Game
 
             FiveFretGuitar.Serialize(writer);
             FourLaneDrums.Serialize(writer);
+            FiveLaneDrums.Serialize(writer);
         }
 
         public void Deserialize(BinaryReader reader, int version = 0)
@@ -95,6 +98,7 @@ namespace YARG.Core.Game
 
             FiveFretGuitar.Deserialize(reader, version);
             FourLaneDrums.Deserialize(reader, version);
+            FiveLaneDrums.Deserialize(reader, version);
         }
     }
 }
