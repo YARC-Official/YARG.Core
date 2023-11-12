@@ -5,7 +5,7 @@ using System.Text;
 
 namespace YARG.Core.IO
 {
-    public struct SngMask : IDisposable
+    public class SngMask : IDisposable
     {
         public const int NUM_KEYBYTES = 256;
         public const int MASKLENGTH = 16;
