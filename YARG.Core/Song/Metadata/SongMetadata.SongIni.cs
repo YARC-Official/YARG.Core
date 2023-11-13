@@ -47,6 +47,25 @@ namespace YARG.Core.Song
             { "Offset",       new("offset",       ModifierCreatorType.Double ) },
         };
 
+        public static class IniAudioChecker
+        {
+            private static readonly HashSet<string> SupportedAudioFiles = new();
+            static IniAudioChecker()
+            {
+                string[] stems = { "song", "guitar", "bass", "rhythm", "keys", "vocals", "vocals_1", "vocals_2", "drums", "drums_1", "drums_2", "drums_3", "drums_4", "crowd", };
+                string[] formats = { ".ogg", ".mogg", ".wav", ".mp3", ".aiff", ".opus", };
+
+                foreach (string stem in stems)
+                    foreach (string format in formats)
+                        SupportedAudioFiles.Add(stem + format);
+            }
+
+            public static bool IsAudioFile(string file)
+            {
+                return SupportedAudioFiles.Contains(file);
+            }
+        }
+
         [Serializable]
         public sealed class IniSubmetadata
         {
@@ -92,48 +111,11 @@ namespace YARG.Core.Song
                 return iniFile.IsStillValid();
             }
 
-            private static readonly string[] SupportedFormats =
-            {
-                ".ogg", ".mogg", ".wav", ".mp3", ".aiff", ".opus",
-            };
-
-            private static readonly string[] SupportedStems =
-            {
-                "song",
-                "guitar",
-                "bass",
-                "rhythm",
-                "keys",
-                "vocals",
-                "vocals_1",
-                "vocals_2",
-                "drums",
-                "drums_1",
-                "drums_2",
-                "drums_3",
-                "drums_4",
-                "crowd",
-            };
-
             public static bool DoesSoloChartHaveAudio(string directory)
             {
                 foreach (string subFile in System.IO.Directory.EnumerateFileSystemEntries(directory))
-                {
-                    string ext = Path.GetExtension(subFile);
-                    for (int i = 0; i < SupportedFormats.Length; ++i)
-                    {
-                        if (SupportedFormats[i] == ext)
-                        {
-                            string stem = Path.GetFileName(subFile);
-                            for (int j = 0; j < SupportedStems.Length; ++j)
-                            {
-                                if (SupportedStems[j] == stem)
-                                    return true;
-                            }
-                            break;
-                        }
-                    }
-                }
+                    if (IniAudioChecker.IsAudioFile(Path.GetFileName(subFile)))
+                        return true;
                 return false;
             }
         }
