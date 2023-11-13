@@ -10,27 +10,23 @@ namespace YARG.Core.Song.Cache
     {
         private sealed class FileCollector
         {
-            public readonly string directory;
-            public readonly string?[] charts = new string?[3];
+            public readonly SongMetadata.IniChartNode<string>?[] charts = new SongMetadata.IniChartNode<string>?[3];
             public string? ini = null;
             public readonly List<string> subfiles = new();
 
-            private FileCollector(string directory)
-            {
-                this.directory = directory;
-            }
+            private FileCollector() { }
 
             public static FileCollector Collect(string directory)
             {
-                FileCollector files = new(directory);
+                FileCollector files = new();
                 foreach (string subFile in Directory.EnumerateFileSystemEntries(directory))
                 {
                     switch (Path.GetFileName(subFile).ToLower())
                     {
                         case "song.ini": files.ini = subFile; break;
-                        case "notes.mid": files.charts[0] = subFile; break;
-                        case "notes.midi": files.charts[1] = subFile; break;
-                        case "notes.chart": files.charts[2] = subFile; break;
+                        case "notes.mid": files.charts[0] = new(SongMetadata.ChartType.Mid, subFile); break;
+                        case "notes.midi": files.charts[1] = new(SongMetadata.ChartType.Midi, subFile); break;
+                        case "notes.chart": files.charts[2] = new(SongMetadata.ChartType.Chart, subFile); break;
                         default: files.subfiles.Add(subFile); break;
                     }
                 }
@@ -106,31 +102,31 @@ namespace YARG.Core.Song.Cache
         {
             for (int i = results.ini != null ? 0 : 2; i < 3; ++i)
             {
-                string? chart = results.charts[i];
+                var chart = results.charts[i];
                 if (chart != null)
                 {
                     try
                     {
-                        var entry = SongMetadata.FromIni(chart, results.ini, i);
+                        var entry = SongMetadata.FromIni(chart, results.ini);
                         if (entry.Item2 != null)
                         {
                             if (AddEntry(entry.Item2))
                                 group.AddEntry(entry.Item2);
                         }
                         else if (entry.Item1 != ScanResult.LooseChart_NoAudio)
-                            AddToBadSongs(chart, entry.Item1);
+                            AddToBadSongs(chart.File, entry.Item1);
                         else
                             return false;
                     }
                     catch (PathTooLongException)
                     {
-                        YargTrace.LogWarning($"Path {chart} is too long for the file system!");
-                        AddToBadSongs(chart, ScanResult.PathTooLong);
+                        YargTrace.LogWarning($"Path {chart.File} is too long for the file system!");
+                        AddToBadSongs(chart.File, ScanResult.PathTooLong);
                     }
                     catch (Exception e)
                     {
-                        YargTrace.LogException(e, $"Error while scanning chart file {chart}!");
-                        AddToBadSongs(Path.GetDirectoryName(chart), ScanResult.IniEntryCorruption);
+                        YargTrace.LogException(e, $"Error while scanning chart file {chart.File}!");
+                        AddToBadSongs(Path.GetDirectoryName(chart.File), ScanResult.IniEntryCorruption);
                     }
                     return true;
                 }

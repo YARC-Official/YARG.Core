@@ -21,6 +21,18 @@ namespace YARG.Core.Song
             Chart,
         };
 
+        public class IniChartNode<TFileType>
+        {
+            public readonly ChartType Type;
+            public readonly TFileType File;
+
+            public IniChartNode(ChartType type, TFileType file)
+            {
+                Type = type;
+                File = file;
+            }
+        }
+
         private static readonly Dictionary<string, IniModifierCreator> CHART_MODIFIER_LIST = new()
         {
             { "Album",        new("album",        ModifierCreatorType.SortString_Chart ) },
@@ -224,15 +236,14 @@ namespace YARG.Core.Song
                 _parseSettings.StarPowerNote = -1;
         }
 
-        public static (ScanResult, SongMetadata?) FromIni(string chartFile, string? iniFile, int chartTypeIndex)
+        public static (ScanResult, SongMetadata?) FromIni(IniChartNode<string> chart, string? iniFile)
         {
-            var iniModifiers = LoadIniFile(chartFile, iniFile);
+            var iniModifiers = LoadIniFile(chart.File, iniFile);
             if (iniModifiers.Item1 == null)
                 return (ScanResult.LooseChart_NoAudio, null);
             
-            byte[] file = File.ReadAllBytes(chartFile);
-            var chartType = IniSubmetadata.CHART_FILE_TYPES[chartTypeIndex].Item2;
-            var result = Scan(file, chartType, iniModifiers.Item1);
+            byte[] file = File.ReadAllBytes(chart.File);
+            var result = Scan(file, chart.Type, iniModifiers.Item1);
 
             if (!result.Item1.CheckScanValidity())
                 return (ScanResult.NoNotes, null);
@@ -240,7 +251,7 @@ namespace YARG.Core.Song
             if (!iniModifiers.Item1.Contains("name"))
                 return (ScanResult.NoName, null);
 
-            IniSubmetadata metadata = new(chartType, new AbridgedFileInfo(chartFile), iniModifiers.Item2);
+            IniSubmetadata metadata = new(chart.Type, new AbridgedFileInfo(chart.File), iniModifiers.Item2);
             result.Item1.SetIntensities(iniModifiers.Item1);
             return (ScanResult.Success, new SongMetadata(iniModifiers.Item1, metadata, result.Item1, result.Item2, HashWrapper.Create(file)));
         }
