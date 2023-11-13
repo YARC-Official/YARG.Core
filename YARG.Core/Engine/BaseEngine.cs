@@ -174,9 +174,8 @@ namespace YARG.Core.Engine
         public abstract void ProcessFromTimeToTime(double startTime, double endTime, IEnumerable<GameInput> inputs);
     }
 
-    public abstract class BaseEngine<TNoteType, TActionType, TEngineParams, TEngineStats, TEngineState> : BaseEngine
+    public abstract class BaseEngine<TNoteType, TEngineParams, TEngineStats, TEngineState> : BaseEngine
         where TNoteType : Note<TNoteType>
-        where TActionType : unmanaged, Enum
         where TEngineParams : BaseEngineParameters
         where TEngineStats : BaseStats, new()
         where TEngineState : BaseEngineState, new()
