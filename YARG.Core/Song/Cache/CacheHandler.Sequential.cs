@@ -15,7 +15,7 @@ namespace YARG.Core.Song.Cache
                 if (!TraversalPreTest(directory))
                     return;
 
-                var result = FileCollector.Collect(directory);
+                var result = new FileCollector(directory);
                 if (ScanIniEntry(result, group))
                     return;
 

@@ -29,7 +29,7 @@ namespace YARG.Core.Song
 
         private SongChart? LoadIniChart()
         {
-            if (!IniData!.Validate(_directory))
+            if (!IniData!.Validate())
                 return null;
 
             string notesFile = IniData.chartFile.FullName;

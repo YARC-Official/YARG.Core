@@ -75,19 +75,26 @@ namespace YARG.Core.Song
                 new("notes.chart", ChartType.Chart),
             };
 
+            public readonly string directory;
             public readonly ChartType chartType;
             public readonly AbridgedFileInfo chartFile;
             public readonly AbridgedFileInfo? iniFile;
 
-            public IniSubmetadata(ChartType chartType, AbridgedFileInfo chartFile, AbridgedFileInfo? iniFile)
+            public IniSubmetadata(string directory, ChartType chartType, AbridgedFileInfo chartFile, AbridgedFileInfo? iniFile)
             {
+                this.directory = directory;
                 this.chartType = chartType;
                 this.chartFile = chartFile;
                 this.iniFile = iniFile;
             }
 
-            public void Serialize(BinaryWriter writer)
+            public void Serialize(BinaryWriter writer, string groupDirectory)
             {
+                string relative = Path.GetRelativePath(groupDirectory, directory);
+                if (relative == ".")
+                    relative = string.Empty;
+
+                writer.Write(relative);
                 writer.Write((byte) chartType);
                 writer.Write(chartFile.LastWriteTime.ToBinary());
                 if (iniFile != null)
@@ -99,7 +106,7 @@ namespace YARG.Core.Song
                     writer.Write(false);
             }
 
-            public bool Validate(string directory)
+            public bool Validate()
             {
                 if (!chartFile.IsStillValid())
                     return false;
@@ -217,7 +224,7 @@ namespace YARG.Core.Song
                 _parseSettings.StarPowerNote = -1;
         }
 
-        public static (ScanResult, SongMetadata?) FromIni(IniChartNode<string> chart, string? iniFile)
+        public static (ScanResult, SongMetadata?) FromIni(string directory, IniChartNode<string> chart, string? iniFile)
         {
             IniSection iniModifiers;
             AbridgedFileInfo? iniFileInfo = null;
@@ -231,8 +238,7 @@ namespace YARG.Core.Song
             else
                 return (ScanResult.LooseChart_NoAudio, null);
 
-            IniSubmetadata metadata = new(chart.Type, new AbridgedFileInfo(chart.File), iniFileInfo);
-
+            IniSubmetadata metadata = new(directory, chart.Type, new AbridgedFileInfo(chart.File), iniFileInfo);
             byte[] file = File.ReadAllBytes(chart.File);
             var result = ScanIniChartFile(file, chart.Type, iniModifiers);
             if (result.Item1 != ScanResult.Success)
@@ -262,7 +268,7 @@ namespace YARG.Core.Song
             else if (!IniSubmetadata.DoesSoloChartHaveAudio(directory))
                 return null;
 
-            IniSubmetadata iniData = new(chartType.Item2, chartFile, iniFile);
+            IniSubmetadata iniData = new(baseDirectory, chartType.Item2, chartFile, iniFile);
             return new SongMetadata(iniData, reader, strings)
             {
                 _directory = directory
@@ -287,7 +293,7 @@ namespace YARG.Core.Song
                 iniFile = new(Path.Combine(directory, "song.ini"), lastWrite);
             }
 
-            IniSubmetadata iniData = new(chartType.Item2, chartFile, iniFile);
+            IniSubmetadata iniData = new(baseDirectory, chartType.Item2, chartFile, iniFile);
             return new SongMetadata(iniData, reader, strings)
             {
                 _directory = directory

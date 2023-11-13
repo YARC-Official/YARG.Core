@@ -10,27 +10,25 @@ namespace YARG.Core.Song.Cache
     {
         private sealed class FileCollector
         {
+            public readonly string directory;
             public readonly SongMetadata.IniChartNode<string>?[] charts = new SongMetadata.IniChartNode<string>?[3];
             public string? ini = null;
             public readonly List<string> subfiles = new();
 
-            private FileCollector() { }
-
-            public static FileCollector Collect(string directory)
+            public FileCollector(string directory)
             {
-                FileCollector files = new();
+                this.directory = directory;
                 foreach (string subFile in Directory.EnumerateFileSystemEntries(directory))
                 {
                     switch (Path.GetFileName(subFile).ToLower())
                     {
-                        case "song.ini": files.ini = subFile; break;
-                        case "notes.mid": files.charts[0] = new(SongMetadata.ChartType.Mid, subFile); break;
-                        case "notes.midi": files.charts[1] = new(SongMetadata.ChartType.Midi, subFile); break;
-                        case "notes.chart": files.charts[2] = new(SongMetadata.ChartType.Chart, subFile); break;
-                        default: files.subfiles.Add(subFile); break;
+                        case "song.ini": ini = subFile; break;
+                        case "notes.mid": charts[0] = new(SongMetadata.ChartType.Mid, subFile); break;
+                        case "notes.midi": charts[1] = new(SongMetadata.ChartType.Midi, subFile); break;
+                        case "notes.chart": charts[2] = new(SongMetadata.ChartType.Chart, subFile); break;
+                        default: subfiles.Add(subFile); break;
                     }
                 }
-                return files;
             }
         }
 
@@ -107,7 +105,7 @@ namespace YARG.Core.Song.Cache
                 {
                     try
                     {
-                        var entry = SongMetadata.FromIni(chart, results.ini);
+                        var entry = SongMetadata.FromIni(results.directory, chart, results.ini);
                         if (entry.Item2 != null)
                         {
                             if (AddEntry(entry.Item2))
