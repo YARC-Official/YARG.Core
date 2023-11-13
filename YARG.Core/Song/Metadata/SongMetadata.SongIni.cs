@@ -47,6 +47,19 @@ namespace YARG.Core.Song
             { "Offset",       new("offset",       ModifierCreatorType.Double ) },
         };
 
+        public interface IIniMetadata
+        {
+            public static readonly IniChartNode<string>[] CHART_FILE_TYPES =
+            {
+                new(ChartType.Mid, "notes.mid"),
+                new(ChartType.Midi, "notes.midi"),
+                new(ChartType.Chart, "notes.chart"),
+            };
+
+            public void Serialize(BinaryWriter writer, string groupDirectory);
+            public bool Validate();
+        }
+
         public static class IniAudioChecker
         {
             public  static readonly string[] SupportedStems = { "song", "guitar", "bass", "rhythm", "keys", "vocals", "vocals_1", "vocals_2", "drums", "drums_1", "drums_2", "drums_3", "drums_4", "crowd", };
@@ -66,15 +79,8 @@ namespace YARG.Core.Song
         }
 
         [Serializable]
-        public sealed class IniSubmetadata
+        public sealed class IniSubmetadata : IIniMetadata
         {
-            public static readonly (string, ChartType)[] CHART_FILE_TYPES =
-            {
-                new("notes.mid",   ChartType.Mid),
-                new("notes.midi",  ChartType.Midi),
-                new("notes.chart", ChartType.Chart),
-            };
-
             public readonly string directory;
             public readonly ChartType chartType;
             public readonly AbridgedFileInfo chartFile;
@@ -250,25 +256,25 @@ namespace YARG.Core.Song
         {
             string directory = Path.Combine(baseDirectory, reader.ReadLEBString());
             byte chartTypeIndex = reader.ReadByte();
-            if (chartTypeIndex >= IniSubmetadata.CHART_FILE_TYPES.Length)
+            if (chartTypeIndex >= IIniMetadata.CHART_FILE_TYPES.Length)
                 return null;
 
-            ref var chartType = ref IniSubmetadata.CHART_FILE_TYPES[chartTypeIndex];
-            var chartFile = AbridgedFileInfo.TryParseInfo(Path.Combine(directory, chartType.Item1), reader);
-            if (chartFile == null)
+            var chart = IIniMetadata.CHART_FILE_TYPES[chartTypeIndex];
+            var chartInfo = AbridgedFileInfo.TryParseInfo(Path.Combine(directory, chart.File), reader);
+            if (chartInfo == null)
                 return null;
 
-            AbridgedFileInfo? iniFile = null;
+            AbridgedFileInfo? iniInfo = null;
             if (reader.ReadBoolean())
             {
-                iniFile = AbridgedFileInfo.TryParseInfo(Path.Combine(directory, "song.ini"), reader);
-                if (iniFile == null)
+                iniInfo = AbridgedFileInfo.TryParseInfo(Path.Combine(directory, "song.ini"), reader);
+                if (iniInfo == null)
                     return null;
             }
             else if (!IniSubmetadata.DoesSoloChartHaveAudio(directory))
                 return null;
 
-            IniSubmetadata iniData = new(baseDirectory, chartType.Item2, chartFile, iniFile);
+            IniSubmetadata iniData = new(baseDirectory, chart.Type, chartInfo, iniInfo);
             return new SongMetadata(iniData, reader, strings)
             {
                 _directory = directory
@@ -279,21 +285,21 @@ namespace YARG.Core.Song
         {
             string directory = Path.Combine(baseDirectory, reader.ReadLEBString());
             byte chartTypeIndex = reader.ReadByte();
-            if (chartTypeIndex >= IniSubmetadata.CHART_FILE_TYPES.Length)
+            if (chartTypeIndex >= IIniMetadata.CHART_FILE_TYPES.Length)
                 return null;
 
-            ref var chartType = ref IniSubmetadata.CHART_FILE_TYPES[chartTypeIndex];
+            var chart = IIniMetadata.CHART_FILE_TYPES[chartTypeIndex];
             var lastWrite = DateTime.FromBinary(reader.ReadInt64());
 
-            AbridgedFileInfo chartFile = new(Path.Combine(directory, chartType.Item1), lastWrite);
-            AbridgedFileInfo? iniFile = null;
+            AbridgedFileInfo chartInfo = new(Path.Combine(directory, chart.File), lastWrite);
+            AbridgedFileInfo? iniInfo = null;
             if (reader.ReadBoolean())
             {
                 lastWrite = DateTime.FromBinary(reader.ReadInt64());
-                iniFile = new(Path.Combine(directory, "song.ini"), lastWrite);
+                iniInfo = new(Path.Combine(directory, "song.ini"), lastWrite);
             }
 
-            IniSubmetadata iniData = new(baseDirectory, chartType.Item2, chartFile, iniFile);
+            IniSubmetadata iniData = new(baseDirectory, chart.Type, chartInfo, iniInfo);
             return new SongMetadata(iniData, reader, strings)
             {
                 _directory = directory
