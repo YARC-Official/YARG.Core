@@ -164,14 +164,6 @@ namespace YARG.Core.Engine
         /// <param name="inputs">List of inputs to execute against.</param>
         /// <returns>The input index that was processed up to.</returns>
         public abstract int ProcessUpToTime(double time, IEnumerable<GameInput> inputs);
-
-        /// <summary>
-        /// Processes the list of inputs from the given start time to the given end time. Does not reset the engine's state.
-        /// </summary>
-        /// <param name="startTime">Time to begin processing from.</param>
-        /// <param name="endTime">Time to process up to.</param>
-        /// <param name="inputs">List of inputs to execute against.</param>
-        public abstract void ProcessFromTimeToTime(double startTime, double endTime, IEnumerable<GameInput> inputs);
     }
 
     public abstract class BaseEngine<TNoteType, TEngineParams, TEngineStats, TEngineState> : BaseEngine
@@ -497,11 +489,6 @@ namespace YARG.Core.Engine
             ProcessInputs();
 
             return inputIndex;
-        }
-
-        public override void ProcessFromTimeToTime(double startTime, double endTime, IEnumerable<GameInput> inputs)
-        {
-            throw new NotImplementedException();
         }
 
         protected abstract int CalculateBaseScore();
