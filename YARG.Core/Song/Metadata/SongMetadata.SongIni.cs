@@ -56,6 +56,8 @@ namespace YARG.Core.Song
                 new(ChartType.Chart, "notes.chart"),
             };
 
+            public string Root { get; }
+
             public void Serialize(BinaryWriter writer, string groupDirectory);
             public bool Validate();
         }
@@ -81,10 +83,12 @@ namespace YARG.Core.Song
         [Serializable]
         public sealed class IniSubmetadata : IIniMetadata
         {
-            public readonly string directory;
+            private readonly string directory;
             public readonly ChartType chartType;
             public readonly AbridgedFileInfo chartFile;
             public readonly AbridgedFileInfo? iniFile;
+
+            public string Root => directory;
 
             public IniSubmetadata(string directory, ChartType chartType, AbridgedFileInfo chartFile, AbridgedFileInfo? iniFile)
             {
@@ -132,24 +136,17 @@ namespace YARG.Core.Song
             }
         }
 
-        private SongMetadata(IniSection section, IniSubmetadata iniData, AvailableParts parts, DrumsType drumType, HashWrapper hash)
+        private SongMetadata(IniSubmetadata iniData, AvailableParts parts, HashWrapper hash, IniSection modifiers)
         {
             // .ini songs are assumed to be masters and not covers
             _isMaster = true;
-            _directory = Path.GetDirectoryName(iniData.chartFile.FullName);
+            _directory = iniData.Root;
             _parts = parts;
             _hash = hash;
             _iniData = iniData;
 
-            _parseSettings.DrumsType = drumType switch
-            {
-                DrumsType.ProDrums => DrumsType.FourLane,
-                // Only possible if 1. is .mid & 2. does not have drums
-                DrumsType.UnknownPro => DrumsType.Unknown,
-                _ => drumType
-            };
-
-            SetIniModifierData(section);
+            _parseSettings.DrumsType = parts.GetDrumType();
+            SetIniModifierData(modifiers);
         }
 
         private SongMetadata(IniSubmetadata iniData, YARGBinaryReader reader, CategoryCacheStrings strings) : this(reader, strings)
@@ -245,11 +242,10 @@ namespace YARG.Core.Song
                 return (ScanResult.LooseChart_NoAudio, null);
 
             IniSubmetadata metadata = new(directory, chart.Type, new AbridgedFileInfo(chart.File), iniFileInfo);
+
             byte[] file = File.ReadAllBytes(chart.File);
             var result = ScanIniChartFile(file, chart.Type, iniModifiers);
-            if (result.Item1 != ScanResult.Success)
-                return (result.Item1, null);
-            return (ScanResult.Success, new SongMetadata(iniModifiers, metadata, result.Item2!, result.Item3, HashWrapper.Create(file)));
+            return (result.Item1, result.Item2 != null ? new(metadata, result.Item2, HashWrapper.Create(file), iniModifiers) : null);
         }
 
         public static SongMetadata? IniFromCache(string baseDirectory, YARGBinaryReader reader, CategoryCacheStrings strings)
@@ -306,7 +302,7 @@ namespace YARG.Core.Song
             };
         }
 
-        private static (ScanResult, AvailableParts?, DrumsType) ScanIniChartFile(byte[] file, ChartType chartType, IniSection modifiers)
+        private static (ScanResult, AvailableParts?) ScanIniChartFile(byte[] file, ChartType chartType, IniSection modifiers)
         {
             AvailableParts parts = new();
             DrumPreparseHandler drums = new()
@@ -331,13 +327,13 @@ namespace YARG.Core.Song
             parts.SetDrums(drums);
 
             if (!parts.CheckScanValidity())
-                return (ScanResult.NoNotes, null, default);
+                return (ScanResult.NoNotes, null);
 
             if (!modifiers.Contains("name"))
-                return (ScanResult.NoName, null, default);
+                return (ScanResult.NoName, null);
 
             parts.SetIntensities(modifiers);
-            return (ScanResult.Success, parts, drums.Type);
+            return (ScanResult.Success, parts);
         }
 
          private static void ParseDotChart<TChar, TDecoder, TBase>(YARGTextReader<TChar, TDecoder> textReader, IniSection modifiers, AvailableParts parts, DrumPreparseHandler drums)
