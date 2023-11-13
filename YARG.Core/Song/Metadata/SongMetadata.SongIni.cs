@@ -220,22 +220,25 @@ namespace YARG.Core.Song
 
         public static (ScanResult, SongMetadata?) FromIni(IniChartNode<string> chart, string? iniFile)
         {
-            var iniModifiers = LoadIniFile(chart.File, iniFile);
-            if (iniModifiers.Item1 == null)
+            IniSection iniModifiers;
+            AbridgedFileInfo? iniFileInfo = null;
+            if (iniFile != null)
+            {
+                iniModifiers = SongIniHandler.ReadSongIniFile(iniFile);
+                iniFileInfo = new AbridgedFileInfo(iniFile);
+            }
+            else if (IniSubmetadata.DoesSoloChartHaveAudio(Path.GetDirectoryName(chart.File)))
+                iniModifiers = new();
+            else
                 return (ScanResult.LooseChart_NoAudio, null);
-            
+
+            IniSubmetadata metadata = new(chart.Type, new AbridgedFileInfo(chart.File), iniFileInfo);
+
             byte[] file = File.ReadAllBytes(chart.File);
-            var result = Scan(file, chart.Type, iniModifiers.Item1);
-
-            if (!result.Item1.CheckScanValidity())
-                return (ScanResult.NoNotes, null);
-
-            if (!iniModifiers.Item1.Contains("name"))
-                return (ScanResult.NoName, null);
-
-            IniSubmetadata metadata = new(chart.Type, new AbridgedFileInfo(chart.File), iniModifiers.Item2);
-            result.Item1.SetIntensities(iniModifiers.Item1);
-            return (ScanResult.Success, new SongMetadata(iniModifiers.Item1, metadata, result.Item1, result.Item2, HashWrapper.Create(file)));
+            var result = ScanIniChartFile(file, chart.Type, iniModifiers);
+            if (result.Item1 != ScanResult.Success)
+                return (result.Item1, null);
+            return (ScanResult.Success, new SongMetadata(iniModifiers, metadata, result.Item2!, result.Item3, HashWrapper.Create(file)));
         }
 
         public static SongMetadata? IniFromCache(string baseDirectory, YARGBinaryReader reader, CategoryCacheStrings strings)
@@ -292,21 +295,7 @@ namespace YARG.Core.Song
             };
         }
 
-        private static (IniSection?, AbridgedFileInfo?) LoadIniFile(string chartFile, string? iniFile)
-        {
-            IniSection? modifiers = null;
-            AbridgedFileInfo? iniInfo = null;
-            if (iniFile != null)
-            {
-                modifiers = SongIniHandler.ReadSongIniFile(iniFile);
-                iniInfo = new AbridgedFileInfo(iniFile);
-            }
-            else if (IniSubmetadata.DoesSoloChartHaveAudio(Path.GetDirectoryName(chartFile)))
-                modifiers = new();
-            return (modifiers, iniInfo);
-        }
-
-        private static (AvailableParts, DrumsType) Scan(byte[] file, ChartType chartType, IniSection modifiers)
+        private static (ScanResult, AvailableParts?, DrumsType) ScanIniChartFile(byte[] file, ChartType chartType, IniSection modifiers)
         {
             AvailableParts parts = new();
             DrumPreparseHandler drums = new()
@@ -318,21 +307,29 @@ namespace YARG.Core.Song
             {
                 var byteReader = YARGTextLoader.TryLoadByteText(file);
                 if (byteReader != null)
-                    ParseChart<byte, ByteStringDecoder, DotChartByte>(byteReader, modifiers, parts, drums);
+                    ParseDotChart<byte, ByteStringDecoder, DotChartByte>(byteReader, modifiers, parts, drums);
                 else
                 {
                     var charReader = YARGTextLoader.LoadCharText(file);
-                    ParseChart<char, CharStringDecoder, DotChartChar>(charReader, modifiers, parts, drums);
+                    ParseDotChart<char, CharStringDecoder, DotChartChar>(charReader, modifiers, parts, drums);
                 }
             }
             else // if (chartType == ChartType.Mid || chartType == ChartType.Midi) // Uncomment for any future file type
-                ParseMidi(file, modifiers, parts, drums);
+                ParseDotMidi(file, modifiers, parts, drums);
 
             parts.SetDrums(drums);
-            return (parts, drums.Type);
+
+            if (!parts.CheckScanValidity())
+                return (ScanResult.NoNotes, null, default);
+
+            if (!modifiers.Contains("name"))
+                return (ScanResult.NoName, null, default);
+
+            parts.SetIntensities(modifiers);
+            return (ScanResult.Success, parts, drums.Type);
         }
 
-         private static void ParseChart<TChar, TDecoder, TBase>(YARGTextReader<TChar, TDecoder> textReader, IniSection modifiers, AvailableParts parts, DrumPreparseHandler drums)
+         private static void ParseDotChart<TChar, TDecoder, TBase>(YARGTextReader<TChar, TDecoder> textReader, IniSection modifiers, AvailableParts parts, DrumPreparseHandler drums)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
             where TDecoder : IStringDecoder<TChar>, new()
             where TBase : unmanaged, IDotChartBases<TChar>
@@ -349,7 +346,7 @@ namespace YARG.Core.Song
                 drums.Type = DrumsType.FourLane;
         }
 
-        private static void ParseMidi(byte[] file, IniSection modifiers, AvailableParts parts, DrumPreparseHandler drums)
+        private static void ParseDotMidi(byte[] file, IniSection modifiers, AvailableParts parts, DrumPreparseHandler drums)
         {
             bool usePro = !modifiers.TryGet("pro_drums", out bool proDrums) || proDrums;
             if (drums.Type == DrumsType.Unknown)
