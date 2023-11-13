@@ -11,7 +11,7 @@ namespace YARG.Core.Game
         {
             #region Frets
 
-            public Color KickFret   = DefaultOrangeFret;
+            public Color KickFret   = Color.FromArgb(0xFF, 0xFF, 0x8E, 0x00); // #ff8e00
             public Color RedFret    = DefaultRedFret;
             public Color YellowFret = DefaultYellowFret;
             public Color BlueFret   = DefaultBlueFret;
@@ -34,7 +34,7 @@ namespace YARG.Core.Game
                 };
             }
 
-            public Color KickFretInner   = DefaultOrangeFretInner;
+            public Color KickFretInner   = DefaultOrangeFret;
             public Color RedFretInner    = DefaultRedFretInner;
             public Color YellowFretInner = DefaultYellowFretInner;
             public Color BlueFretInner   = DefaultBlueFretInner;

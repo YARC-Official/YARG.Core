@@ -36,7 +36,7 @@ namespace YARG.Core.Game
                 };
             }
 
-            public Color KickFretInner   = DefaultPurpleFretInner;
+            public Color KickFretInner   = DefaultPurpleFret;
             public Color RedFretInner    = DefaultRedFretInner;
             public Color YellowFretInner = DefaultYellowFretInner;
             public Color BlueFretInner   = DefaultBlueFretInner;
