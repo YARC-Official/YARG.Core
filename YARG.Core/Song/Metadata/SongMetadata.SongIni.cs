@@ -65,7 +65,7 @@ namespace YARG.Core.Song
         public static class IniAudioChecker
         {
             public  static readonly string[] SupportedStems = { "song", "guitar", "bass", "rhythm", "keys", "vocals", "vocals_1", "vocals_2", "drums", "drums_1", "drums_2", "drums_3", "drums_4", "crowd", };
-            public  static readonly string[] SupportedFormats = { ".mogg", ".opus", ".ogg", ".mp3", ".wav", ".aiff", };
+            public  static readonly string[] SupportedFormats = { ".opus", ".ogg", ".mp3", ".wav", ".aiff", };
             private static readonly HashSet<string> SupportedAudioFiles = new();
             static IniAudioChecker()
             {
