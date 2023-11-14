@@ -66,27 +66,7 @@ namespace MoonscraperChartEditor.Song.IO
 
         public static MoonSong ReadMidi(ParseSettings settings, string path)
         {
-            MidiFile midi;
-            try
-            {
-                try
-                {
-                    midi = MidiFile.Read(path, MidiSettings.Instance); // Reading .ini MIDI; Try UTF-8
-                    YargTrace.DebugInfo("Loaded autodetected UTF-8 midi");
-                }
-                catch (DecoderFallbackException)
-                {
-                    midi = MidiFile.Read(path, MidiSettingsLatin1.Instance); // Force Latin-1 as fallback
-                    YargTrace.DebugInfo("Loaded autodetected Latin-1 midi");
-                }
-                // midi = MidiFile.Read(path, MidiSettings.Instance);
-            }
-            catch (Exception e)
-            {
-                throw new Exception("Bad or corrupted midi file!", e);
-            }
-
-            return ReadMidi(settings, midi);
+            return ReadMidi(settings, MidFileLoader.LoadMidiFile(path));
         }
 
         public static MoonSong ReadMidi(ParseSettings settings, MidiFile midi)
