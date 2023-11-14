@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -7,19 +8,32 @@ using YARG.Core.IO.Ini;
 
 namespace YARG.Core.IO
 {
-    public class SngFile : IDisposable
+    public class SngFile : IDisposable, IEnumerable<KeyValuePair<string, SngFileListing>>
     {
         public readonly string Filename;
         public readonly SngMask Mask;
         public readonly IniSection Metadata;
-        public readonly Dictionary<string, SngFileListing> Listings;
+        private readonly Dictionary<string, SngFileListing> listings;
 
         private SngFile(string filename, byte[] mask, IniSection metadata, Dictionary<string, SngFileListing> listings)
         {
             Filename = filename;
             Mask = new SngMask(mask);
             Metadata = metadata;
-            Listings = listings;
+            this.listings = listings;
+        }
+
+        public SngFileListing this[string key] => listings[key];
+        public bool ContainsKey(string key) => listings.ContainsKey(key);
+
+        IEnumerator<KeyValuePair<string, SngFileListing>> IEnumerable<KeyValuePair<string, SngFileListing>>.GetEnumerator()
+        {
+            return listings.GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return listings.GetEnumerator();
         }
 
         public void Dispose()
