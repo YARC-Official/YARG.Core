@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using YARG.Core.Audio;
 using YARG.Core.IO;
 using YARG.Core.Song.Cache;
 
@@ -50,9 +51,9 @@ namespace YARG.Core.Song
                 return sngFile[chart.File].CreateStream(sngInfo.FullName, sngFile.Mask);
             }
 
-            public Dictionary<string, Stream> GetAudioStreams()
+            public Dictionary<SongStem, Stream> GetAudioStreams()
             {
-                Dictionary<string, Stream> streams = new();
+                Dictionary<SongStem, Stream> streams = new();
 
                 var sngFile = SngFile.TryLoadFile(sngInfo.FullName);
                 if (sngFile != null)
@@ -64,7 +65,7 @@ namespace YARG.Core.Song
                             var file = stem + format;
                             if (sngFile.TryGetValue(file, out var listing))
                             {
-                                streams.Add(file, listing.CreateStream(sngInfo.FullName, sngFile.Mask));
+                                streams.Add(AudioHelpers.SupportedStems[stem], listing.CreateStream(sngInfo.FullName, sngFile.Mask));
                                 // Parse no duplicate stems
                                 break;
                             }

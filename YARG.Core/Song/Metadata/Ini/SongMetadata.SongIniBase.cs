@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using YARG.Core.Audio;
 using YARG.Core.Chart;
 using YARG.Core.IO;
 using YARG.Core.IO.Ini;
@@ -80,7 +81,7 @@ namespace YARG.Core.Song
 
             public void Serialize(BinaryWriter writer, string groupDirectory);
             public Stream? GetChartStream();
-            public Dictionary<string, Stream> GetAudioStreams();
+            public Dictionary<SongStem, Stream> GetAudioStreams();
         }
 
         private SongMetadata(IIniMetadata iniData, AvailableParts parts, HashWrapper hash, IniSection modifiers)

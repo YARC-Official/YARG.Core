@@ -4,6 +4,7 @@ using System.IO;
 using YARG.Core.Song.Cache;
 using YARG.Core.IO;
 using YARG.Core.IO.Ini;
+using YARG.Core.Audio;
 
 namespace YARG.Core.Song
 {
@@ -63,7 +64,7 @@ namespace YARG.Core.Song
                 return new FileStream(chartFile.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
             }
 
-            public Dictionary<string, Stream> GetAudioStreams()
+            public Dictionary<SongStem, Stream> GetAudioStreams()
             {
                 Dictionary<string, string> files = new();
                 {
@@ -72,7 +73,7 @@ namespace YARG.Core.Song
                         files.Add(Path.GetFileName(file), file);
                 }
 
-                Dictionary<string, Stream> streams = new();
+                Dictionary<SongStem, Stream> streams = new();
                 foreach (var stem in IniAudioChecker.SupportedStems)
                 {
                     foreach (var format in IniAudioChecker.SupportedFormats)
@@ -81,7 +82,7 @@ namespace YARG.Core.Song
                         if (files.TryGetValue(audioFile, out var fullname))
                         {
                             // No file buffer
-                            streams.Add(audioFile, new FileStream(fullname, FileMode.Open, FileAccess.Read, FileShare.Read, 1));
+                            streams.Add(AudioHelpers.SupportedStems[stem], new FileStream(fullname, FileMode.Open, FileAccess.Read, FileShare.Read, 1));
                             // Parse no duplicate stems
                             break;
                         }
