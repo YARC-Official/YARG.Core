@@ -79,6 +79,9 @@ namespace YARG.Core.IO
             }
         }
 
+        private const int CHANNEL_MASK = 0x0F;
+        private const int EVENTTYPE_MASK = 0xF0;
+
         public bool ParseEvent(bool parseVLQ)
         {
             _trackPos += _event.Length;
@@ -101,8 +104,8 @@ namespace YARG.Core.IO
                 _trackPos++;
                 if (type < MidiEventType.SysEx)
                 {
-                    _event.Channel = _running.Channel = (byte) (tmp & 15);
-                    _event.Type    = _running.Type    = (MidiEventType) (tmp & 240);
+                    _event.Channel = _running.Channel = (byte) (tmp & CHANNEL_MASK);
+                    _event.Type    = _running.Type    = (MidiEventType) (tmp & EVENTTYPE_MASK);
                     _event.Length  = _running.Length  = _running.Type switch
                     {
                         MidiEventType.Note_On => 2,
@@ -157,10 +160,13 @@ namespace YARG.Core.IO
             note.velocity = span[_trackPos + 1];
         }
 
-        private const uint EXTENDED_VLQ_FLAG = 128;
-        private const uint VLQ_MASK = 127;
+        private const uint EXTENDED_VLQ_FLAG = 0x80;
+        private const uint VLQ_MASK = 0x7F;
         private const int  VLQ_SHIFT = 7;
         private const int  MAX_SHIFTCOUNT = 3;
+        /// <summary>
+        /// Represents the minimum value where a VLQ shift would be illegal
+        /// </summary>
         private const uint VLQ_SHIFTLIMIT = 1 << (VLQ_SHIFT * MAX_SHIFTCOUNT);
         private uint ReadVLQ()
         {
