@@ -31,7 +31,7 @@ namespace YARG.Core.Song
                     case MidiEventType.SysEx_End:
                         ParseSysEx(track.ExtractTextOrSysEx());
                         break;
-                    case <= MidiEventType.Text_EnumLimit:
+                    case >= MidiEventType.Text and <= MidiEventType.Text_EnumLimit:
                         ParseText(track.ExtractTextOrSysEx());
                         break;
                 }
