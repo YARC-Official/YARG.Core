@@ -150,6 +150,7 @@ public class Analyzer
                     (GuitarEngineParameters) replayFrame.EngineParameters);
             }
             case GameMode.FourLaneDrums:
+            case GameMode.FiveLaneDrums:
             {
                 // Reset the notes
                 var notes = _chart.GetDrumsTrack(profile.CurrentInstrument).Difficulties[profile.CurrentDifficulty];
@@ -190,7 +191,8 @@ public class Analyzer
         return gameMode switch
         {
             GameMode.FiveFretGuitar => ((GuitarEngine) engine).EngineStats.Score,
-            GameMode.FourLaneDrums  => ((DrumsEngine) engine).EngineStats.Score,
+            GameMode.FourLaneDrums or
+            GameMode.FiveLaneDrums  => ((DrumsEngine) engine).EngineStats.Score,
             GameMode.Vocals         => ((VocalsEngine) engine).EngineStats.Score,
             _                       => throw new InvalidOperationException("Game mode not configured!")
         };
