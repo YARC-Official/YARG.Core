@@ -25,6 +25,7 @@ namespace YARG.Core.IO
 
         public SngFileListing this[string key] => listings[key];
         public bool ContainsKey(string key) => listings.ContainsKey(key);
+        public bool TryGetValue(string key, out SngFileListing listing) => listings.TryGetValue(key, out listing);
 
         IEnumerator<KeyValuePair<string, SngFileListing>> IEnumerable<KeyValuePair<string, SngFileListing>>.GetEnumerator()
         {
