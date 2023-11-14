@@ -57,6 +57,7 @@ namespace YARG.Core.Song
             };
 
             public string Root { get; }
+            public ChartType Type { get; }
 
             public void Serialize(BinaryWriter writer, string groupDirectory);
             public bool Validate();
@@ -89,6 +90,7 @@ namespace YARG.Core.Song
             public readonly AbridgedFileInfo? iniFile;
 
             public string Root => directory;
+            public ChartType Type => chartType;
 
             public IniSubmetadata(string directory, ChartType chartType, AbridgedFileInfo chartFile, AbridgedFileInfo? iniFile)
             {
