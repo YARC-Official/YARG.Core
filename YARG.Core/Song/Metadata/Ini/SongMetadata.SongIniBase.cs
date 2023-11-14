@@ -79,8 +79,6 @@ namespace YARG.Core.Song
             public ChartType Type { get; }
 
             public void Serialize(BinaryWriter writer, string groupDirectory);
-            public Stream? GetChartStream();
-            public List<Stream> GetAudioStreams();
         }
 
         private SongMetadata(IIniMetadata iniData, AvailableParts parts, HashWrapper hash, IniSection modifiers)

@@ -11,23 +11,18 @@ namespace YARG.Core.Song
         public sealed class SngSubmetadata : IIniMetadata
         {
             private readonly uint version;
-            private readonly SngFile sngFile;
             private readonly AbridgedFileInfo sngInfo;
             private readonly IniChartNode chart;
 
             public string Root => sngInfo.FullName;
             public ChartType Type => chart.Type;
 
-            public SngSubmetadata(uint version, SngFile sngFile, AbridgedFileInfo sngInfo, IniChartNode chart)
+            public SngSubmetadata(uint version, AbridgedFileInfo sngInfo, IniChartNode chart)
             {
                 this.version = version;
-                this.sngFile = sngFile;
                 this.sngInfo = sngInfo;
                 this.chart = chart;
             }
-
-            public SngSubmetadata(SngFile sngFile, AbridgedFileInfo sngInfo, IniChartNode chart)
-                : this(sngFile.Version ,sngFile, sngInfo, chart) { }
 
             public void Serialize(BinaryWriter writer, string groupDirectory)
             {
@@ -42,23 +37,23 @@ namespace YARG.Core.Song
                 writer.Write((byte) chart.Type);
             }
 
-            public Stream? GetChartStream()
+            private Stream? GetChartStream(SngFile sngFile)
             {
                 // Possible place where versioning could be useful, but who knows
                 return sngInfo.IsStillValid() ? sngFile[chart.File].CreateStream(sngInfo.FullName, sngFile.Mask) : null;
             }
 
-            public List<Stream> GetAudioStreams()
+            private Dictionary<string, Stream> GetAudioStreams(SngFile sngFile)
             {
-                List<Stream> streams = new();
+                Dictionary<string, Stream> streams = new();
                 foreach (var stem in IniAudioChecker.SupportedStems)
                 {
                     foreach (var format in IniAudioChecker.SupportedFormats)
                     {
                         var file = stem + format;
-                        if (sngFile.ContainsKey(file))
+                        if (sngFile.TryGetValue(file, out var listing))
                         {
-                            streams.Add(new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, 1));
+                            streams.Add(file, listing.CreateStream(sngInfo.FullName, sngFile.Mask));
                             // Parse no duplicate stems
                             break;
                         }
@@ -81,7 +76,7 @@ namespace YARG.Core.Song
             if (sng.Metadata.Count == 0 && !SngSubmetadata.DoesSoloChartHaveAudio(sng))
                 return (ScanResult.LooseChart_NoAudio, null);
 
-            SngSubmetadata metadata = new(sng, sngInfo, chart);
+            SngSubmetadata metadata = new(sng.Version, sngInfo, chart);
             byte[] file = sng[chart.File].LoadAllBytes(sngInfo.FullName, sng.Mask);
             var result = ScanIniChartFile(file, chart.Type, sng.Metadata);
             return (result.Item1, result.Item2 != null ? new(metadata, result.Item2, HashWrapper.Create(file), sng.Metadata) : null);
@@ -108,7 +103,7 @@ namespace YARG.Core.Song
             if (chartTypeIndex >= IIniMetadata.CHART_FILE_TYPES.Length)
                 return null;
 
-            SngSubmetadata sngData = new(sngfile, sngInfo, IIniMetadata.CHART_FILE_TYPES[chartTypeIndex]);
+            SngSubmetadata sngData = new(sngfile.Version, sngInfo, IIniMetadata.CHART_FILE_TYPES[chartTypeIndex]);
             return new SongMetadata(sngData, reader, strings)
             {
                 _directory = sngPath
@@ -120,13 +115,6 @@ namespace YARG.Core.Song
             uint version = reader.ReadUInt32();
 
             string sngPath = Path.Combine(baseDirectory, reader.ReadLEBString());
-            var sngfile = SngFile.TryLoadFile(sngPath);
-            if (sngfile == null)
-            {
-                YargTrace.DebugInfo($"Failed to load .sng from Cache file");
-                return null;
-            }
-
             AbridgedFileInfo sngInfo = new(sngPath, DateTime.FromBinary(reader.ReadInt64()));
 
             byte chartTypeIndex = reader.ReadByte();
@@ -136,7 +124,7 @@ namespace YARG.Core.Song
                 return null;
             }
 
-            SngSubmetadata sngData = new(version, sngfile, sngInfo, IIniMetadata.CHART_FILE_TYPES[chartTypeIndex]);
+            SngSubmetadata sngData = new(version, sngInfo, IIniMetadata.CHART_FILE_TYPES[chartTypeIndex]);
             return new SongMetadata(sngData, reader, strings)
             {
                 _directory = sngPath

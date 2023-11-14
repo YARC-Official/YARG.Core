@@ -63,24 +63,18 @@ namespace YARG.Core.Song
                 return new FileStream(chartFile.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
             }
 
-            public List<Stream> GetAudioStreams()
+            private Dictionary<string, Stream> GetAudioStreams(Dictionary<string, string> files)
             {
-                List<Stream> streams = new();
-                HashSet<string> files = new();
-                {
-                    var parsed = System.IO.Directory.GetFiles(directory);
-                    foreach (var file in parsed)
-                        files.Add(Path.GetFileName(file));
-                }
-
+                Dictionary<string, Stream> streams = new();
                 foreach (var stem in IniAudioChecker.SupportedStems)
                 {
                     foreach (var format in IniAudioChecker.SupportedFormats)
                     {
-                        var file = stem + format;
-                        if (files.Contains(file))
+                        var audioFile = stem + format;
+                        if (files.TryGetValue(audioFile, out var fullname))
                         {
-                            streams.Add(new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, 1));
+                            // No file buffer
+                            streams.Add(audioFile, new FileStream(fullname, FileMode.Open, FileAccess.Read, FileShare.Read, 1));
                             // Parse no duplicate stems
                             break;
                         }
