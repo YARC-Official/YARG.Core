@@ -60,7 +60,7 @@ namespace YARG.Core.Song
             public ChartType Type { get; }
 
             public void Serialize(BinaryWriter writer, string groupDirectory);
-            public bool Validate();
+            public Stream? GetChartStream();
         }
 
         public static class IniAudioChecker
@@ -118,15 +118,20 @@ namespace YARG.Core.Song
                     writer.Write(false);
             }
 
-            public bool Validate()
+            public Stream? GetChartStream()
             {
                 if (!chartFile.IsStillValid())
-                    return false;
+                    return null;
 
                 if (iniFile == null)
-                    return !File.Exists(Path.Combine(directory, "song.ini"));
+                {
+                    if (File.Exists(Path.Combine(directory, "song.ini")))
+                        return null;
+                }
+                else if (!iniFile.IsStillValid())
+                    return null;
 
-                return iniFile.IsStillValid();
+                return new FileStream(chartFile.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
             }
 
             public static bool DoesSoloChartHaveAudio(string directory)
