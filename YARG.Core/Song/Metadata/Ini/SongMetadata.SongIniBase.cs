@@ -105,6 +105,7 @@ namespace YARG.Core.Song
             public Dictionary<SongStem, Stream> GetAudioStreams();
             public byte[]? GetUnprocessedAlbumArt();
             public (BackgroundType, Stream?) GetBackgroundStream(BackgroundType selection);
+            public Stream? GetPreviewAudioStream();
         }
 
         private SongMetadata(IIniMetadata iniData, AvailableParts parts, HashWrapper hash, IniSection modifiers)

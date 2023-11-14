@@ -148,6 +148,17 @@ namespace YARG.Core.Song
                 return (default, null);
             }
 
+            public Stream? GetPreviewAudioStream()
+            {
+                foreach (var format in IniAudioChecker.SupportedFormats)
+                {
+                    var audioFile = Path.Combine(directory, "preview" + format);
+                    if (File.Exists(audioFile))
+                        return new FileStream(audioFile, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+                }
+                return null;
+            }
+
             public static bool DoesSoloChartHaveAudio(string directory)
             {
                 foreach (string subFile in System.IO.Directory.EnumerateFileSystemEntries(directory))

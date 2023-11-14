@@ -126,6 +126,20 @@ namespace YARG.Core.Song
                 return (default, null);
             }
 
+            public Stream? GetPreviewAudioStream()
+            {
+                var sngFile = SngFile.TryLoadFile(sngInfo.FullName);
+                if (sngFile == null)
+                    return null;
+
+                foreach (var format in IniAudioChecker.SupportedFormats)
+                {
+                    if (sngFile.TryGetValue("preview" + format, out var listing))
+                        return listing.CreateStream(sngInfo.FullName, sngFile.Mask);
+                }
+                return null;
+            }
+
             public static bool DoesSoloChartHaveAudio(SngFile sng)
             {
                 foreach (var listing in sng)
