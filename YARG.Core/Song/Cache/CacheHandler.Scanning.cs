@@ -11,7 +11,7 @@ namespace YARG.Core.Song.Cache
         private sealed class FileCollector
         {
             public readonly string directory;
-            public readonly SongMetadata.IniChartNode<string>?[] charts = new SongMetadata.IniChartNode<string>?[3];
+            public readonly SongMetadata.IniChartNode?[] charts = new SongMetadata.IniChartNode?[3];
             public string? ini = null;
             public readonly List<string> subfiles = new();
 

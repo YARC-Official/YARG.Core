@@ -21,12 +21,12 @@ namespace YARG.Core.Song
             Chart,
         };
 
-        public class IniChartNode<TFileType>
+        public class IniChartNode
         {
             public readonly ChartType Type;
-            public readonly TFileType File;
+            public readonly string File;
 
-            public IniChartNode(ChartType type, TFileType file)
+            public IniChartNode(ChartType type, string file)
             {
                 Type = type;
                 File = file;
@@ -49,7 +49,7 @@ namespace YARG.Core.Song
 
         public interface IIniMetadata
         {
-            public static readonly IniChartNode<string>[] CHART_FILE_TYPES =
+            public static readonly IniChartNode[] CHART_FILE_TYPES =
             {
                 new(ChartType.Mid, "notes.mid"),
                 new(ChartType.Midi, "notes.midi"),
@@ -234,7 +234,7 @@ namespace YARG.Core.Song
                 _parseSettings.StarPowerNote = -1;
         }
 
-        public static (ScanResult, SongMetadata?) FromIni(string directory, IniChartNode<string> chart, string? iniFile)
+        public static (ScanResult, SongMetadata?) FromIni(string directory, IniChartNode chart, string? iniFile)
         {
             IniSection iniModifiers;
             AbridgedFileInfo? iniFileInfo = null;
