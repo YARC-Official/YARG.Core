@@ -61,6 +61,7 @@ namespace YARG.Core.Song
 
             public void Serialize(BinaryWriter writer, string groupDirectory);
             public Stream? GetChartStream();
+            public List<Stream> GetAudioStreams();
         }
 
         public static class IniAudioChecker
@@ -134,6 +135,34 @@ namespace YARG.Core.Song
 
                 return new FileStream(chartFile.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
             }
+
+            public List<Stream> GetAudioStreams()
+            {
+                List<Stream> streams = new();
+                HashSet<string> files = new();
+                {
+                    var parsed = System.IO.Directory.GetFiles(directory);
+                    foreach (var file in parsed)
+                        files.Add(Path.GetFileName(file));
+                }
+
+                foreach (var stem in IniAudioChecker.SupportedStems)
+                {
+                    foreach (var format in IniAudioChecker.SupportedFormats)
+                    {
+                        var file = stem + format;
+                        if (files.Contains(file))
+                        {
+                            streams.Add(new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, 1));
+                            // Parse no duplicate stems
+                            break;
+                        }
+                    }
+                }
+                return streams;
+            }
+
+            
 
             public static bool DoesSoloChartHaveAudio(string directory)
             {

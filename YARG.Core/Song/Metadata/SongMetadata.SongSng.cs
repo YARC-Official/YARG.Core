@@ -41,6 +41,25 @@ namespace YARG.Core.Song
                 return sngInfo.IsStillValid() ? sngFile[chart.File].CreateStream(sngInfo.FullName, sngFile.Mask) : null;
             }
 
+            public List<Stream> GetAudioStreams()
+            {
+                List<Stream> streams = new();
+                foreach (var stem in IniAudioChecker.SupportedStems)
+                {
+                    foreach (var format in IniAudioChecker.SupportedFormats)
+                    {
+                        var file = stem + format;
+                        if (sngFile.ContainsKey(file))
+                        {
+                            streams.Add(new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, 1));
+                            // Parse no duplicate stems
+                            break;
+                        }
+                    }
+                }
+                return streams;
+            }
+
             public static bool DoesSoloChartHaveAudio(SngFile sng)
             {
                 foreach (var listing in sng)
