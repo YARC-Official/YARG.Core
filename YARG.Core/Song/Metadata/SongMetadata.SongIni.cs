@@ -83,7 +83,7 @@ namespace YARG.Core.Song
         }
 
         [Serializable]
-        public sealed class IniSubmetadata : IIniMetadata
+        public sealed class UnpackedIniSubmetadata : IIniMetadata
         {
             private readonly string directory;
             private readonly ChartType chartType;
@@ -93,7 +93,7 @@ namespace YARG.Core.Song
             public string Root => directory;
             public ChartType Type => chartType;
 
-            public IniSubmetadata(string directory, ChartType chartType, AbridgedFileInfo chartFile, AbridgedFileInfo? iniFile)
+            public UnpackedIniSubmetadata(string directory, ChartType chartType, AbridgedFileInfo chartFile, AbridgedFileInfo? iniFile)
             {
                 this.directory = directory;
                 this.chartType = chartType;
@@ -273,12 +273,12 @@ namespace YARG.Core.Song
                 iniModifiers = SongIniHandler.ReadSongIniFile(iniFile);
                 iniFileInfo = new AbridgedFileInfo(iniFile);
             }
-            else if (IniSubmetadata.DoesSoloChartHaveAudio(Path.GetDirectoryName(chart.File)))
+            else if (UnpackedIniSubmetadata.DoesSoloChartHaveAudio(Path.GetDirectoryName(chart.File)))
                 iniModifiers = new();
             else
                 return (ScanResult.LooseChart_NoAudio, null);
 
-            IniSubmetadata metadata = new(directory, chart.Type, new AbridgedFileInfo(chart.File), iniFileInfo);
+            UnpackedIniSubmetadata metadata = new(directory, chart.Type, new AbridgedFileInfo(chart.File), iniFileInfo);
 
             byte[] file = File.ReadAllBytes(chart.File);
             var result = ScanIniChartFile(file, chart.Type, iniModifiers);
@@ -304,10 +304,10 @@ namespace YARG.Core.Song
                 if (iniInfo == null)
                     return null;
             }
-            else if (!IniSubmetadata.DoesSoloChartHaveAudio(directory))
+            else if (!UnpackedIniSubmetadata.DoesSoloChartHaveAudio(directory))
                 return null;
 
-            IniSubmetadata iniData = new(baseDirectory, chart.Type, chartInfo, iniInfo);
+            UnpackedIniSubmetadata iniData = new(baseDirectory, chart.Type, chartInfo, iniInfo);
             return new SongMetadata(iniData, reader, strings)
             {
                 _directory = directory
@@ -332,7 +332,7 @@ namespace YARG.Core.Song
                 iniInfo = new(Path.Combine(directory, "song.ini"), lastWrite);
             }
 
-            IniSubmetadata iniData = new(baseDirectory, chart.Type, chartInfo, iniInfo);
+            UnpackedIniSubmetadata iniData = new(baseDirectory, chart.Type, chartInfo, iniInfo);
             return new SongMetadata(iniData, reader, strings)
             {
                 _directory = directory
