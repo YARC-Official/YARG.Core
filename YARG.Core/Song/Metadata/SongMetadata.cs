@@ -18,6 +18,7 @@ namespace YARG.Core.Song
         MissingUpdateMidi,
         MissingUpgradeMidi,
         PossibleCorruption,
+        FailedSngLoad,
 
         LooseChart_NoAudio,
         PathTooLong

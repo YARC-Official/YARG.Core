@@ -32,6 +32,20 @@ namespace YARG.Core.Song.Cache
             }
         }
 
+        private sealed class SngCollector
+        {
+            public readonly SngFile sng;
+            public readonly SongMetadata.IniChartNode?[] charts = new SongMetadata.IniChartNode?[3];
+
+            public SngCollector(SngFile sng)
+            {
+                this.sng = sng;
+                for (int i = 0; i < SongMetadata.IIniMetadata.CHART_FILE_TYPES.Length; ++i)
+                    if (sng.ContainsKey(SongMetadata.IIniMetadata.CHART_FILE_TYPES[i].File))
+                        charts[i] = SongMetadata.IIniMetadata.CHART_FILE_TYPES[i];
+            }
+        }
+
         private void FindNewEntries(bool multithreading)
         {
             static void ParallelLoop<T>(Dictionary<string, T> groups, Action<string, T> action)
@@ -130,6 +144,46 @@ namespace YARG.Core.Song.Cache
                 }
             }
             return false;
+        }
+
+        private void ScanSngFile(string filename, IniGroup group)
+        {
+            if (!FindOrMarkFile(filename))
+                return;
+
+            var sngFile = SngFile.TryLoadFile(filename);
+            if (sngFile == null)
+            {
+                AddToBadSongs(filename, ScanResult.PossibleCorruption);
+                return;
+            }
+
+            var results = new SngCollector(sngFile);
+            for (int i = sngFile.Metadata.Count != 0 ? 0 : 2; i < 3; ++i)
+            {
+                var chart = results.charts[i];
+                if (chart != null)
+                {
+                    try
+                    {
+                        var fileinfo = new AbridgedFileInfo(filename);
+                        var entry = SongMetadata.FromSng(sngFile, fileinfo, chart);
+                        if (entry.Item2 != null)
+                        {
+                            if (AddEntry(entry.Item2))
+                                group.AddEntry(entry.Item2);
+                        }
+                        else if (entry.Item1 != ScanResult.LooseChart_NoAudio)
+                            AddToBadSongs(filename, entry.Item1);
+                    }
+                    catch (Exception e)
+                    {
+                        YargTrace.LogException(e, $"Error while scanning chart file {chart} within {filename}!");
+                        AddToBadSongs(filename, ScanResult.IniEntryCorruption);
+                    }
+                    break;
+                }
+            }
         }
 
         private void AddPossibleCON(string filename)

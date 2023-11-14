@@ -30,6 +30,7 @@ namespace YARG.Core.Song
                 if (relative == ".")
                     relative = string.Empty;
 
+                writer.Write(true);
                 writer.Write(relative);
                 writer.Write(sngInfo.LastWriteTime.ToBinary());
                 writer.Write((byte) chart.Type);
@@ -89,11 +90,17 @@ namespace YARG.Core.Song
 
             byte chartTypeIndex = reader.ReadByte();
             if (chartTypeIndex >= IIniMetadata.CHART_FILE_TYPES.Length)
+            {
+                YargTrace.DebugInfo($"Cache file was modified externally with a bad CHART_TYPE enum value");
                 return null;
+            }
 
             var sngfile = SngFile.TryLoadFile(sngPath);
             if (sngfile == null)
+            {
+                YargTrace.DebugInfo($"Failed to load .sng from Cache file");
                 return null;
+            }
 
             SngSubmetadata sngData = new(sngfile, sngInfo, IIniMetadata.CHART_FILE_TYPES[chartTypeIndex]);
             return new SongMetadata(sngData, reader, strings)

@@ -106,6 +106,7 @@ namespace YARG.Core.Song
                 if (relative == ".")
                     relative = string.Empty;
 
+                writer.Write(false);
                 writer.Write(relative);
                 writer.Write((byte) chartType);
                 writer.Write(chartFile.LastWriteTime.ToBinary());

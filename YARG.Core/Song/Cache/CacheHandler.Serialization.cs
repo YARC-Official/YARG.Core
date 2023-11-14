@@ -251,14 +251,21 @@ namespace YARG.Core.Song.Cache
 
         private void ReadIniEntry(string baseDirectory, IniGroup group, YARGBinaryReader reader, CategoryCacheStrings strings)
         {
-            var entry = SongMetadata.IniFromCache(baseDirectory, reader, strings);
+            bool isSngEntry = reader.ReadBoolean();
+            var entry = isSngEntry ?
+                SongMetadata.SngFromCache(baseDirectory, reader, strings) :
+                SongMetadata.IniFromCache(baseDirectory, reader, strings);
+
             if (entry == null)
             {
                 YargTrace.DebugInfo($"Ini entry invalid {baseDirectory}");
                 return;
             }
 
-            MarkDirectory(entry.Directory);
+            if (isSngEntry)
+                MarkFile(entry.Directory);
+            else
+                MarkDirectory(entry.Directory);
             AddEntry(entry);
             group.AddEntry(entry);
         }
@@ -435,7 +442,10 @@ namespace YARG.Core.Song.Cache
 
         private void QuickReadIniEntry(string baseDirectory, YARGBinaryReader reader, CategoryCacheStrings strings)
         {
-            var entry = SongMetadata.IniFromCache_Quick(baseDirectory, reader, strings);
+            var entry = reader.ReadBoolean() ?
+                SongMetadata.SngFromCache_Quick(baseDirectory, reader, strings) :
+                SongMetadata.IniFromCache_Quick(baseDirectory, reader, strings);
+
             if (entry != null)
                 AddEntry(entry);
             else
