@@ -10,6 +10,7 @@ namespace YARG.Core.Song
     {
         public sealed class SngSubmetadata : IIniMetadata
         {
+            private readonly uint version;
             private readonly SngFile sngFile;
             private readonly AbridgedFileInfo sngInfo;
             private readonly IniChartNode chart;
@@ -17,12 +18,16 @@ namespace YARG.Core.Song
             public string Root => sngInfo.FullName;
             public ChartType Type => chart.Type;
 
-            public SngSubmetadata(SngFile sngFile, AbridgedFileInfo sngInfo, IniChartNode chart)
+            public SngSubmetadata(uint version, SngFile sngFile, AbridgedFileInfo sngInfo, IniChartNode chart)
             {
+                this.version = version;
                 this.sngFile = sngFile;
                 this.sngInfo = sngInfo;
                 this.chart = chart;
             }
+
+            public SngSubmetadata(SngFile sngFile, AbridgedFileInfo sngInfo, IniChartNode chart)
+                : this(sngFile.Version ,sngFile, sngInfo, chart) { }
 
             public void Serialize(BinaryWriter writer, string groupDirectory)
             {
@@ -31,6 +36,7 @@ namespace YARG.Core.Song
                     relative = string.Empty;
 
                 writer.Write(true);
+                writer.Write(version);
                 writer.Write(relative);
                 writer.Write(sngInfo.LastWriteTime.ToBinary());
                 writer.Write((byte) chart.Type);
@@ -38,6 +44,7 @@ namespace YARG.Core.Song
 
             public Stream? GetChartStream()
             {
+                // Possible place where versioning could be useful, but who knows
                 return sngInfo.IsStillValid() ? sngFile[chart.File].CreateStream(sngInfo.FullName, sngFile.Mask) : null;
             }
 
@@ -82,17 +89,23 @@ namespace YARG.Core.Song
 
         public static SongMetadata? SngFromCache(string baseDirectory, YARGBinaryReader reader, CategoryCacheStrings strings)
         {
+            // Implement proper versioning in the future 
+            uint version = reader.ReadUInt32();
+
             string sngPath = Path.Combine(baseDirectory, reader.ReadLEBString());
             var sngInfo = AbridgedFileInfo.TryParseInfo(sngPath, reader);
+
+            // Possibly could be handled differently in further versions of .sng
+            // Example: allowing for per-subfile lastwrite comparsions
             if (sngInfo == null)
+                return null;
+
+            var sngfile = SngFile.TryLoadFile(sngPath);
+            if (sngfile == null || sngfile.Version != version)
                 return null;
 
             byte chartTypeIndex = reader.ReadByte();
             if (chartTypeIndex >= IIniMetadata.CHART_FILE_TYPES.Length)
-                return null;
-
-            var sngfile = SngFile.TryLoadFile(sngPath);
-            if (sngfile == null)
                 return null;
 
             SngSubmetadata sngData = new(sngfile, sngInfo, IIniMetadata.CHART_FILE_TYPES[chartTypeIndex]);
@@ -104,15 +117,10 @@ namespace YARG.Core.Song
 
         public static SongMetadata? SngFromCache_Quick(string baseDirectory, YARGBinaryReader reader, CategoryCacheStrings strings)
         {
+            uint version = reader.ReadUInt32();
+
             string sngPath = Path.Combine(baseDirectory, reader.ReadLEBString());
             AbridgedFileInfo sngInfo = new(sngPath, DateTime.FromBinary(reader.ReadInt64()));
-
-            byte chartTypeIndex = reader.ReadByte();
-            if (chartTypeIndex >= IIniMetadata.CHART_FILE_TYPES.Length)
-            {
-                YargTrace.DebugInfo($"Cache file was modified externally with a bad CHART_TYPE enum value");
-                return null;
-            }
 
             var sngfile = SngFile.TryLoadFile(sngPath);
             if (sngfile == null)
@@ -121,7 +129,14 @@ namespace YARG.Core.Song
                 return null;
             }
 
-            SngSubmetadata sngData = new(sngfile, sngInfo, IIniMetadata.CHART_FILE_TYPES[chartTypeIndex]);
+            byte chartTypeIndex = reader.ReadByte();
+            if (chartTypeIndex >= IIniMetadata.CHART_FILE_TYPES.Length)
+            {
+                YargTrace.DebugInfo($"Cache file was modified externally with a bad CHART_TYPE enum value");
+                return null;
+            }
+
+            SngSubmetadata sngData = new(version, sngfile, sngInfo, IIniMetadata.CHART_FILE_TYPES[chartTypeIndex]);
             return new SongMetadata(sngData, reader, strings)
             {
                 _directory = sngPath
