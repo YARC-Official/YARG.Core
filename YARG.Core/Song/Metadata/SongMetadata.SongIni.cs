@@ -85,9 +85,9 @@ namespace YARG.Core.Song
         public sealed class IniSubmetadata : IIniMetadata
         {
             private readonly string directory;
-            public readonly ChartType chartType;
-            public readonly AbridgedFileInfo chartFile;
-            public readonly AbridgedFileInfo? iniFile;
+            private readonly ChartType chartType;
+            private readonly AbridgedFileInfo chartFile;
+            private readonly AbridgedFileInfo? iniFile;
 
             public string Root => directory;
             public ChartType Type => chartType;
