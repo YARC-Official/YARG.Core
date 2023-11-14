@@ -10,14 +10,12 @@ namespace YARG.Core.IO
 {
     public class SngFile : IDisposable, IEnumerable<KeyValuePair<string, SngFileListing>>
     {
-        public readonly string Filename;
         public readonly SngMask Mask;
         public readonly IniSection Metadata;
         private readonly Dictionary<string, SngFileListing> listings;
 
-        private SngFile(string filename, byte[] mask, IniSection metadata, Dictionary<string, SngFileListing> listings)
+        private SngFile(byte[] mask, IniSection metadata, Dictionary<string, SngFileListing> listings)
         {
-            Filename = filename;
             Mask = new SngMask(mask);
             Metadata = metadata;
             this.listings = listings;
@@ -70,7 +68,7 @@ namespace YARG.Core.IO
                 var xorMask = stream.ReadBytes(XORMASK_SIZE);
                 var metadata = ReadMetadata(stream);
                 var listings = ReadListings(stream);
-                return new SngFile(filename, xorMask, metadata, listings);
+                return new SngFile(xorMask, metadata, listings);
             }
             catch (Exception ex)
             {
