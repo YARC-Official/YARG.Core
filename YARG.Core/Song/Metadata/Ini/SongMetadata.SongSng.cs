@@ -93,15 +93,15 @@ namespace YARG.Core.Song
             uint version = reader.ReadUInt32();
 
             string sngPath = Path.Combine(baseDirectory, reader.ReadLEBString());
-            var sngInfo = AbridgedFileInfo.TryParseInfo(sngPath, reader);
+            var sngfile = SngFile.TryLoadFile(sngPath);
+            // TODO: Implement Update-in-place functionality
+            if (sngfile == null || sngfile.Version != version)
+                return null;
 
+            var sngInfo = AbridgedFileInfo.TryParseInfo(sngPath, reader);
             // Possibly could be handled differently in further versions of .sng
             // Example: allowing for per-subfile lastwrite comparsions
             if (sngInfo == null)
-                return null;
-
-            var sngfile = SngFile.TryLoadFile(sngPath);
-            if (sngfile == null || sngfile.Version != version)
                 return null;
 
             byte chartTypeIndex = reader.ReadByte();
@@ -120,14 +120,14 @@ namespace YARG.Core.Song
             uint version = reader.ReadUInt32();
 
             string sngPath = Path.Combine(baseDirectory, reader.ReadLEBString());
-            AbridgedFileInfo sngInfo = new(sngPath, DateTime.FromBinary(reader.ReadInt64()));
-
             var sngfile = SngFile.TryLoadFile(sngPath);
             if (sngfile == null)
             {
                 YargTrace.DebugInfo($"Failed to load .sng from Cache file");
                 return null;
             }
+
+            AbridgedFileInfo sngInfo = new(sngPath, DateTime.FromBinary(reader.ReadInt64()));
 
             byte chartTypeIndex = reader.ReadByte();
             if (chartTypeIndex >= IIniMetadata.CHART_FILE_TYPES.Length)
