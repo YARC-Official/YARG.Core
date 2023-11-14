@@ -5,6 +5,7 @@ using YARG.Core.Song.Cache;
 using YARG.Core.IO;
 using YARG.Core.IO.Ini;
 using YARG.Core.Audio;
+using YARG.Core.Venue;
 
 namespace YARG.Core.Song
 {
@@ -91,7 +92,61 @@ namespace YARG.Core.Song
                 return streams;
             }
 
-            
+            public byte[]? GetUnprocessedAlbumArt()
+            {
+                Dictionary<string, string> files = new();
+                {
+                    var parsed = System.IO.Directory.GetFiles(directory);
+                    foreach (var file in parsed)
+                        files.Add(Path.GetFileName(file), file);
+                }
+
+                foreach (string albumFile in IIniMetadata.ALBUMART_FILES)
+                    if (files.TryGetValue(albumFile, out var fullname))
+                        return File.ReadAllBytes(fullname);
+                return null;
+            }
+
+            public (BackgroundType, Stream?) GetBackgroundStream(BackgroundType selections)
+            {
+                Dictionary<string, string> files = new();
+                {
+                    var parsed = System.IO.Directory.GetFiles(directory);
+                    foreach (var file in parsed)
+                        files.Add(Path.GetFileName(file), file);
+                }
+
+                if ((selections & BackgroundType.Yarground) > 0)
+                {
+                    if (files.TryGetValue("bg.yarground", out var file))
+                        return (BackgroundType.Yarground, new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read));
+                }
+
+                if ((selections & BackgroundType.Video) > 0)
+                {
+                    foreach (var stem in IIniMetadata.BACKGROUND_FILENAMES)
+                    {
+                        foreach (var format in IIniMetadata.VIDEO_EXTENSIONS)
+                        {
+                            if (files.TryGetValue(stem + format, out var fullname))
+                                return (BackgroundType.Video, new FileStream(fullname, FileMode.Open, FileAccess.Read, FileShare.Read));
+                        }
+                    }
+                }
+
+                if ((selections & BackgroundType.Image) > 0)
+                {
+                    foreach (var stem in IIniMetadata.BACKGROUND_FILENAMES)
+                    {
+                        foreach (var format in IIniMetadata.IMAGE_EXTENSIONS)
+                        {
+                            if (files.TryGetValue(stem + format, out var fullname))
+                                return (BackgroundType.Image, new FileStream(fullname, FileMode.Open, FileAccess.Read, FileShare.Read));
+                        }
+                    }
+                }
+                return (default, null);
+            }
 
             public static bool DoesSoloChartHaveAudio(string directory)
             {

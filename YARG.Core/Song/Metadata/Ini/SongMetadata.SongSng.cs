@@ -4,6 +4,7 @@ using System.IO;
 using YARG.Core.Audio;
 using YARG.Core.IO;
 using YARG.Core.Song.Cache;
+using YARG.Core.Venue;
 
 namespace YARG.Core.Song
 {
@@ -73,6 +74,56 @@ namespace YARG.Core.Song
                     }
                 }
                 return streams;
+            }
+
+            public byte[]? GetUnprocessedAlbumArt()
+            {
+                var sngFile = SngFile.TryLoadFile(sngInfo.FullName);
+                if (sngFile == null)
+                    return null;
+
+                foreach (string albumFile in IIniMetadata.ALBUMART_FILES)
+                    if (sngFile.TryGetValue(albumFile, out var listing))
+                        return listing.LoadAllBytes(sngInfo.FullName, sngFile.Mask);
+                return null;
+            }
+
+            public (BackgroundType, Stream?) GetBackgroundStream(BackgroundType selections)
+            {
+                var sngFile = SngFile.TryLoadFile(sngInfo.FullName);
+                if (sngFile == null)
+                    return (default, null);
+
+                if ((selections & BackgroundType.Yarground) > 0)
+                {
+                    if (sngFile.TryGetValue("bg.yarground", out var listing))
+                        return (BackgroundType.Yarground, listing.CreateStream(sngInfo.FullName, sngFile.Mask));
+                }
+
+                if ((selections & BackgroundType.Video) > 0)
+                {
+                    foreach (var stem in IIniMetadata.BACKGROUND_FILENAMES)
+                    {
+                        foreach (var format in IIniMetadata.VIDEO_EXTENSIONS)
+                        {
+                            if (sngFile.TryGetValue(stem + format, out var listing))
+                                return (BackgroundType.Video, listing.CreateStream(sngInfo.FullName, sngFile.Mask));
+                        }
+                    }
+                }
+
+                if ((selections & BackgroundType.Image) > 0)
+                {
+                    foreach (var stem in IIniMetadata.BACKGROUND_FILENAMES)
+                    {
+                        foreach (var format in IIniMetadata.IMAGE_EXTENSIONS)
+                        {
+                            if (sngFile.TryGetValue(stem + format, out var listing))
+                                return (BackgroundType.Image, listing.CreateStream(sngInfo.FullName, sngFile.Mask));
+                        }
+                    }
+                }
+                return (default, null);
             }
 
             public static bool DoesSoloChartHaveAudio(SngFile sng)

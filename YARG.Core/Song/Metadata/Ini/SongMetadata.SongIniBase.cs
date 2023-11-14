@@ -8,6 +8,7 @@ using YARG.Core.IO;
 using YARG.Core.IO.Ini;
 using YARG.Core.Song.Cache;
 using YARG.Core.Song.Preparsers;
+using YARG.Core.Venue;
 
 namespace YARG.Core.Song
 {
@@ -76,12 +77,34 @@ namespace YARG.Core.Song
                 new(ChartType.Chart, "notes.chart"),
             };
 
+            protected static readonly string[] ALBUMART_FILES =
+            {
+                "album.png", "album.jpg", "album.jpeg",
+            };
+
+            protected static readonly string[] BACKGROUND_FILENAMES =
+            {
+                "bg", "background", "video"
+            };
+
+            protected static readonly string[] VIDEO_EXTENSIONS =
+            {
+                ".mp4", ".mov", ".webm",
+            };
+
+            protected static readonly string[] IMAGE_EXTENSIONS =
+            {
+                ".png", ".jpg", ".jpeg"
+            };
+
             public string Root { get; }
             public ChartType Type { get; }
 
             public void Serialize(BinaryWriter writer, string groupDirectory);
             public Stream? GetChartStream();
             public Dictionary<SongStem, Stream> GetAudioStreams();
+            public byte[]? GetUnprocessedAlbumArt();
+            public (BackgroundType, Stream?) GetBackgroundStream(BackgroundType selection);
         }
 
         private SongMetadata(IIniMetadata iniData, AvailableParts parts, HashWrapper hash, IniSection modifiers)
