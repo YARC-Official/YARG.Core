@@ -177,7 +177,7 @@ namespace YARG.Core.Song
                 iniModifiers = SongIniHandler.ReadSongIniFile(iniFile);
                 iniFileInfo = new AbridgedFileInfo(iniFile);
             }
-            else if (UnpackedIniSubmetadata.DoesSoloChartHaveAudio(Path.GetDirectoryName(chart.File)))
+            else if (UnpackedIniSubmetadata.DoesSoloChartHaveAudio(directory))
                 iniModifiers = new();
             else
                 return (ScanResult.LooseChart_NoAudio, null);
@@ -211,7 +211,7 @@ namespace YARG.Core.Song
             else if (!UnpackedIniSubmetadata.DoesSoloChartHaveAudio(directory))
                 return null;
 
-            UnpackedIniSubmetadata iniData = new(baseDirectory, chart.Type, chartInfo, iniInfo);
+            UnpackedIniSubmetadata iniData = new(directory, chart.Type, chartInfo, iniInfo);
             return new SongMetadata(iniData, reader, strings)
             {
                 _directory = directory
@@ -236,7 +236,7 @@ namespace YARG.Core.Song
                 iniInfo = new(Path.Combine(directory, "song.ini"), lastWrite);
             }
 
-            UnpackedIniSubmetadata iniData = new(baseDirectory, chart.Type, chartInfo, iniInfo);
+            UnpackedIniSubmetadata iniData = new(directory, chart.Type, chartInfo, iniInfo);
             return new SongMetadata(iniData, reader, strings)
             {
                 _directory = directory
