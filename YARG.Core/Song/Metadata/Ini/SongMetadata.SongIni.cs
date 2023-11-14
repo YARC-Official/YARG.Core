@@ -63,8 +63,15 @@ namespace YARG.Core.Song
                 return new FileStream(chartFile.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
             }
 
-            private Dictionary<string, Stream> GetAudioStreams(Dictionary<string, string> files)
+            public Dictionary<string, Stream> GetAudioStreams()
             {
+                Dictionary<string, string> files = new();
+                {
+                    var parsed = System.IO.Directory.GetFiles(directory);
+                    foreach (var file in parsed)
+                        files.Add(Path.GetFileName(file), file);
+                }
+
                 Dictionary<string, Stream> streams = new();
                 foreach (var stem in IniAudioChecker.SupportedStems)
                 {

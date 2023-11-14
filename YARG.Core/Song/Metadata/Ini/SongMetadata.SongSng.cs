@@ -37,25 +37,37 @@ namespace YARG.Core.Song
                 writer.Write((byte) chart.Type);
             }
 
-            private Stream? GetChartStream(SngFile sngFile)
+            public Stream? GetChartStream()
             {
                 // Possible place where versioning could be useful, but who knows
-                return sngInfo.IsStillValid() ? sngFile[chart.File].CreateStream(sngInfo.FullName, sngFile.Mask) : null;
+                if (!sngInfo.IsStillValid())
+                    return null;
+
+                var sngFile = SngFile.TryLoadFile(sngInfo.FullName);
+                if (sngFile == null)
+                    return null;
+
+                return sngFile[chart.File].CreateStream(sngInfo.FullName, sngFile.Mask);
             }
 
-            private Dictionary<string, Stream> GetAudioStreams(SngFile sngFile)
+            public Dictionary<string, Stream> GetAudioStreams()
             {
                 Dictionary<string, Stream> streams = new();
-                foreach (var stem in IniAudioChecker.SupportedStems)
+
+                var sngFile = SngFile.TryLoadFile(sngInfo.FullName);
+                if (sngFile != null)
                 {
-                    foreach (var format in IniAudioChecker.SupportedFormats)
+                    foreach (var stem in IniAudioChecker.SupportedStems)
                     {
-                        var file = stem + format;
-                        if (sngFile.TryGetValue(file, out var listing))
+                        foreach (var format in IniAudioChecker.SupportedFormats)
                         {
-                            streams.Add(file, listing.CreateStream(sngInfo.FullName, sngFile.Mask));
-                            // Parse no duplicate stems
-                            break;
+                            var file = stem + format;
+                            if (sngFile.TryGetValue(file, out var listing))
+                            {
+                                streams.Add(file, listing.CreateStream(sngInfo.FullName, sngFile.Mask));
+                                // Parse no duplicate stems
+                                break;
+                            }
                         }
                     }
                 }
