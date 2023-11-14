@@ -12,6 +12,7 @@ using YARG.Core.Song;
 using YARG.Core.Extensions;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using System.IO;
 
 namespace MoonscraperChartEditor.Song.IO
 {
@@ -67,6 +68,11 @@ namespace MoonscraperChartEditor.Song.IO
         public static MoonSong ReadMidi(ParseSettings settings, string path)
         {
             return ReadMidi(settings, MidFileLoader.LoadMidiFile(path));
+        }
+
+        public static MoonSong ReadMidi(ParseSettings settings, Stream stream)
+        {
+            return ReadMidi(settings, MidFileLoader.LoadMidiFile(stream));
         }
 
         public static MoonSong ReadMidi(ParseSettings settings, MidiFile midi)
