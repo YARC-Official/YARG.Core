@@ -19,6 +19,8 @@ namespace YARG.Core.Engine.Logging
 
         public override void Serialize(BinaryWriter writer)
         {
+            base.Serialize(writer);
+            
             writer.Write(TimerName);
             writer.Write(TimerValue);
             writer.Write(TimerStarted);
