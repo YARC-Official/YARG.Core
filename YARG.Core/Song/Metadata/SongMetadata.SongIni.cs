@@ -143,7 +143,7 @@ namespace YARG.Core.Song
             }
         }
 
-        private SongMetadata(IniSubmetadata iniData, AvailableParts parts, HashWrapper hash, IniSection modifiers)
+        private SongMetadata(IIniMetadata iniData, AvailableParts parts, HashWrapper hash, IniSection modifiers)
         {
             // .ini songs are assumed to be masters and not covers
             _isMaster = true;
@@ -156,7 +156,7 @@ namespace YARG.Core.Song
             SetIniModifierData(modifiers);
         }
 
-        private SongMetadata(IniSubmetadata iniData, YARGBinaryReader reader, CategoryCacheStrings strings) : this(reader, strings)
+        private SongMetadata(IIniMetadata iniData, YARGBinaryReader reader, CategoryCacheStrings strings) : this(reader, strings)
         {
             _iniData = iniData;
         }

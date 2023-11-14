@@ -91,7 +91,7 @@ namespace YARG.Core.Song
 
         private ParseSettings _parseSettings = ParseSettings.Default;
 
-        private readonly IniSubmetadata? _iniData = null;
+        private readonly IIniMetadata? _iniData = null;
         private readonly IRBCONMetadata? _rbData = null;
 
         public string Directory => _directory;
@@ -218,7 +218,7 @@ namespace YARG.Core.Song
 
         public ParseSettings ParseSettings => _parseSettings;
 
-        public IniSubmetadata? IniData => _iniData;
+        public IIniMetadata? IniData => _iniData;
         public IRBCONMetadata? RBData => _rbData;
 
         public SongMetadata() { }
