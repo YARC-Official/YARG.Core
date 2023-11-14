@@ -48,23 +48,6 @@ namespace YARG.Core.Song
             { "Offset",       new("offset",       ModifierCreatorType.Double ) },
         };
 
-        public interface IIniMetadata
-        {
-            public static readonly IniChartNode[] CHART_FILE_TYPES =
-            {
-                new(ChartType.Mid, "notes.mid"),
-                new(ChartType.Midi, "notes.midi"),
-                new(ChartType.Chart, "notes.chart"),
-            };
-
-            public string Root { get; }
-            public ChartType Type { get; }
-
-            public void Serialize(BinaryWriter writer, string groupDirectory);
-            public Stream? GetChartStream();
-            public List<Stream> GetAudioStreams();
-        }
-
         public static class IniAudioChecker
         {
             public static readonly string[] SupportedStems = { "song", "guitar", "bass", "rhythm", "keys", "vocals", "vocals_1", "vocals_2", "drums", "drums_1", "drums_2", "drums_3", "drums_4", "crowd", };
@@ -81,6 +64,23 @@ namespace YARG.Core.Song
             {
                 return SupportedAudioFiles.Contains(file);
             }
+        }
+
+        public interface IIniMetadata
+        {
+            public static readonly IniChartNode[] CHART_FILE_TYPES =
+            {
+                new(ChartType.Mid, "notes.mid"),
+                new(ChartType.Midi, "notes.midi"),
+                new(ChartType.Chart, "notes.chart"),
+            };
+
+            public string Root { get; }
+            public ChartType Type { get; }
+
+            public void Serialize(BinaryWriter writer, string groupDirectory);
+            public Stream? GetChartStream();
+            public List<Stream> GetAudioStreams();
         }
 
         private SongMetadata(IIniMetadata iniData, AvailableParts parts, HashWrapper hash, IniSection modifiers)
