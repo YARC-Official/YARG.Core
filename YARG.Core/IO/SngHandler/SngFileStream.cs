@@ -230,7 +230,7 @@ namespace YARG.Core.IO
 
             while (buffIndex <= vectorMax)
             {
-                var vec = new Vector<byte>(dataBuffer.Slice(buffIndex, 32));
+                var vec = new Vector<byte>(dataBuffer.Slice(buffIndex, SngMask.VECTORBYTE_COUNT));
                 unsafe
                 {
                     var result = Vector.Xor(vec, mask.Vectors[vectorIndex++]);
