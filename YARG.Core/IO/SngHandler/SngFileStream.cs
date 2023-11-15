@@ -244,7 +244,7 @@ namespace YARG.Core.IO
 
             while (buffIndex < end)
             {
-                buffer[buffIndex] ^= mask.Keys[buffIndex & 255];
+                dataBuffer[buffIndex] ^= mask.Keys[buffIndex & 255];
                 buffIndex++;
             }
 
