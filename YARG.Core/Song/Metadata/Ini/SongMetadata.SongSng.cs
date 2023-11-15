@@ -166,15 +166,15 @@ namespace YARG.Core.Song
             uint version = reader.ReadUInt32();
 
             string sngPath = Path.Combine(baseDirectory, reader.ReadLEBString());
-            var sngfile = SngFile.TryLoadFile(sngPath);
-            // TODO: Implement Update-in-place functionality
-            if (sngfile == null || sngfile.Version != version)
-                return null;
-
             var sngInfo = AbridgedFileInfo.TryParseInfo(sngPath, reader);
             // Possibly could be handled differently in further versions of .sng
             // Example: allowing for per-subfile lastwrite comparsions
             if (sngInfo == null)
+                return null;
+
+            var sngfile = SngFile.TryLoadFile(sngPath);
+            // TODO: Implement Update-in-place functionality
+            if (sngfile == null || sngfile.Version != version)
                 return null;
 
             byte chartTypeIndex = reader.ReadByte();
