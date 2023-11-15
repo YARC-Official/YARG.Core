@@ -134,6 +134,8 @@ public class Analyzer
         int score = GetScore(engine, replayFrame);
         Console.WriteLine($"> Done running for {replayFrame.PlayerInfo.Profile.Name}, final score: {score}");
         _currentBandScore += score;
+        
+        EventLog = engine.EventLogger;
     }
 
     private BaseEngine CreateEngine(ReplayFrame replayFrame)

@@ -159,7 +159,6 @@ LOADING:
 
         if (selectedOption == 1)
         {
-            var bandScore = analyzer.BandScores[0];
             var kp = analyzer.BandScores.First();
             var bandScore = kp.Value;
             if (bandScore != replay.BandScore)
