@@ -521,7 +521,7 @@ namespace YARG.Core.Engine
                     soloSections.Add(new SoloSection(soloNoteCount));
 
                     // Move i to the end of the solo section
-                    i = j + 1;
+                    i = j;
                     break;
                 }
             }
