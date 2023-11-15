@@ -210,7 +210,7 @@ LOADING:
 
             foreach (var s in analyzer.BandScores)
             {
-                if (distinctScores.Contains(s.Value)) continue;
+                if (distinctScores.Contains(s.Value) && s.Value == replay.BandScore) continue;
 
                 distinctScores.Add(s.Value);
                 distincts.Add((s.Key, s.Value));
