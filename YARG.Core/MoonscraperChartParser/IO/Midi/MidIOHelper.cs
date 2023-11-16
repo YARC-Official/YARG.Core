@@ -251,7 +251,7 @@ namespace MoonscraperChartEditor.Song.IO
         public static float GetHopoThreshold(ParseSettings settings, float resolution)
         {
             // Prefer explicit tick value to eighth-note HOPO value
-            if (settings.HopoThreshold >= 0)
+            if (settings.HopoThreshold > 0)
                 return settings.HopoThreshold;
             else if (settings.EighthNoteHopo)
                 return (resolution / 2) + 1; // +1 for a small bit of leniency

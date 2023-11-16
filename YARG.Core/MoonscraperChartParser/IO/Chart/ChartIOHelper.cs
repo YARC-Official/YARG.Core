@@ -113,7 +113,7 @@ namespace MoonscraperChartEditor.Song.IO
             const float EIGHTHNOTE_HOPO_THRESHOLD_FACTOR = ((DEFAULT_RESOLUTION / 2) + 1) / DEFAULT_RESOLUTION;
 
             // Prefer explicit tick value to eighth-note HOPO value
-            if (settings.HopoThreshold >= 0)
+            if (settings.HopoThreshold > 0)
                 return settings.HopoThreshold;
             else if (settings.EighthNoteHopo)
                 return resolution * EIGHTHNOTE_HOPO_THRESHOLD_FACTOR;
