@@ -41,7 +41,6 @@ namespace YARG.Core.Song
 
             public Stream? GetChartStream()
             {
-                // Possible place where versioning could be useful, but who knows
                 if (!sngInfo.IsStillValid())
                     return null;
 
@@ -167,8 +166,6 @@ namespace YARG.Core.Song
 
             string sngPath = Path.Combine(baseDirectory, reader.ReadLEBString());
             var sngInfo = AbridgedFileInfo.TryParseInfo(sngPath, reader);
-            // Possibly could be handled differently in further versions of .sng
-            // Example: allowing for per-subfile lastwrite comparsions
             if (sngInfo == null)
                 return null;
 
@@ -190,6 +187,7 @@ namespace YARG.Core.Song
 
         public static SongMetadata? SngFromCache_Quick(string baseDirectory, YARGBinaryReader reader, CategoryCacheStrings strings)
         {
+            // Implement proper versioning in the future 
             uint version = reader.ReadUInt32();
 
             string sngPath = Path.Combine(baseDirectory, reader.ReadLEBString());
