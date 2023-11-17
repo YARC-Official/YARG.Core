@@ -20,7 +20,7 @@ namespace YARG.Core.IO
         private readonly Memory<byte> data;
         private int _position;
 
-        public YARGBinaryReader(byte[] data)
+        public YARGBinaryReader(Memory<byte> data)
         {
             this.data = data;
         }
@@ -212,11 +212,6 @@ namespace YARG.Core.IO
             var local = _position;
             Move(length);
             return new YARGBinaryReader(data.Slice(local, length));
-        }
-
-        private YARGBinaryReader(Memory<byte> data)
-        {
-            this.data = data;
         }
     }
 }
