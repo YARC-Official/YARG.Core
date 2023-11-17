@@ -17,7 +17,7 @@ namespace YARG.Core.IO
 
         private SngFile(uint version, byte[] mask, IniSection metadata, Dictionary<string, SngFileListing> listings)
         {
-            this.Version = version;
+            Version = version;
             Mask = new SngMask(mask);
             Metadata = metadata;
             this.listings = listings;

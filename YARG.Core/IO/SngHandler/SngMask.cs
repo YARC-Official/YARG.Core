@@ -5,6 +5,10 @@ using System.Text;
 
 namespace YARG.Core.IO
 {
+    /// <summary>
+    /// Handles the buffer of decryption keys, while also providing easy access
+    /// to SIMD vector operations through pointers and fixed array behavior.
+    /// </summary>
     public class SngMask : IDisposable
     {
         public const int NUM_KEYBYTES = 256;
