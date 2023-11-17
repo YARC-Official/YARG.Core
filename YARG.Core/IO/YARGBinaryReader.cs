@@ -17,7 +17,7 @@ namespace YARG.Core.IO
 
     public sealed class YARGBinaryReader
     {
-        private readonly ReadOnlyMemory<byte> data;
+        private readonly Memory<byte> data;
         private int _position;
 
         public YARGBinaryReader(byte[] data)
@@ -29,7 +29,7 @@ namespace YARG.Core.IO
         {
             if (stream is MemoryStream mem)
             {
-                data = new ReadOnlyMemory<byte>(mem.GetBuffer(), (int) mem.Position, count);
+                data = new Memory<byte>(mem.GetBuffer(), (int) mem.Position, count);
                 mem.Position += count;
             }
             else
@@ -221,7 +221,7 @@ namespace YARG.Core.IO
             return new YARGBinaryReader(data.Slice(local, length));
         }
 
-        private YARGBinaryReader(ReadOnlyMemory<byte> data)
+        private YARGBinaryReader(Memory<byte> data)
         {
             this.data = data;
         }
