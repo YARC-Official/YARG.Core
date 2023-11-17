@@ -141,8 +141,11 @@ namespace YARG.Core.IO
             for (ulong i = 0; i < numListings; i++)
             {
                 var strLen = reader.ReadByte();
-                string filename = Encoding.UTF8.GetString(reader.ReadBytes(strLen)).ToLower();
-                listings.Add(filename, new SngFileListing(reader));
+                string filename = Encoding.UTF8.GetString(reader.ReadBytes(strLen));
+                int idx = filename.LastIndexOf('/');
+                if (idx != -1)
+                    filename = filename[idx..];
+                listings.Add(filename.ToLower(), new SngFileListing(reader));
             }
             return listings;
         }
