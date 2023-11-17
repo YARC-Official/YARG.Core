@@ -17,46 +17,42 @@ namespace YARG.Core.IO
 
     public sealed class YARGBinaryReader
     {
-        private readonly byte[] data;
-        private readonly ReadOnlyMemory<byte> memory;
+        private readonly ReadOnlyMemory<byte> data;
         private int _position;
 
         public YARGBinaryReader(byte[] data)
         {
             this.data = data;
-            memory = data;
         }
 
         public YARGBinaryReader(Stream stream, int count)
         {
             if (stream is MemoryStream mem)
             {
-                data = Array.Empty<byte>();
-                memory = new ReadOnlyMemory<byte>(mem.GetBuffer(), (int) mem.Position, count);
+                data = new ReadOnlyMemory<byte>(mem.GetBuffer(), (int) mem.Position, count);
                 mem.Position += count;
             }
             else
             {
                 data = stream.ReadBytes(count);
-                memory = data;
             }
         }
 
         public void Move(int amount)
         {
             _position += amount;
-            if (_position > memory.Length)
+            if (_position > data.Length)
                 throw new ArgumentOutOfRangeException("amount");
         }
 
         public byte ReadByte()
         {
-            return memory.Span[_position++];
+            return data.Span[_position++];
         }
 
         public sbyte ReadSByte()
         {
-            return (sbyte) memory.Span[_position++];
+            return (sbyte) data.Span[_position++];
         }
 
         public bool ReadBoolean()
@@ -67,7 +63,7 @@ namespace YARG.Core.IO
         public short ReadInt16(Endianness endianness = Endianness.LittleEndian)
         {
             short value;
-            var span = memory.Span.Slice(_position, sizeof(short));
+            var span = data.Span.Slice(_position, sizeof(short));
             if (endianness == Endianness.LittleEndian)
                 value = BinaryPrimitives.ReadInt16LittleEndian(span);
             else
@@ -79,7 +75,7 @@ namespace YARG.Core.IO
         public ushort ReadUInt16(Endianness endianness = Endianness.LittleEndian)
         {
             ushort value;
-            var span = memory.Span.Slice(_position, sizeof(ushort));
+            var span = data.Span.Slice(_position, sizeof(ushort));
             if (endianness == Endianness.LittleEndian)
                 value = BinaryPrimitives.ReadUInt16LittleEndian(span);
             else
@@ -91,7 +87,7 @@ namespace YARG.Core.IO
         public int ReadInt32(Endianness endianness = Endianness.LittleEndian)
         {
             int value;
-            var span = memory.Span.Slice(_position, sizeof(int));
+            var span = data.Span.Slice(_position, sizeof(int));
             if (endianness == Endianness.LittleEndian)
                 value = BinaryPrimitives.ReadInt32LittleEndian(span);
             else
@@ -103,7 +99,7 @@ namespace YARG.Core.IO
         public uint ReadUInt32(Endianness endianness = Endianness.LittleEndian)
         {
             uint value;
-            var span = memory.Span.Slice(_position, sizeof(uint));
+            var span = data.Span.Slice(_position, sizeof(uint));
             if (endianness == Endianness.LittleEndian)
                 value = BinaryPrimitives.ReadUInt32LittleEndian(span);
             else
@@ -115,7 +111,7 @@ namespace YARG.Core.IO
         public long ReadInt64(Endianness endianness = Endianness.LittleEndian)
         {
             long value;
-            var span = memory.Span.Slice(_position, sizeof(long));
+            var span = data.Span.Slice(_position, sizeof(long));
             if (endianness == Endianness.LittleEndian)
                 value = BinaryPrimitives.ReadInt64LittleEndian(span);
             else
@@ -127,7 +123,7 @@ namespace YARG.Core.IO
         public ulong ReadUInt64(Endianness endianness = Endianness.LittleEndian)
         {
             ulong value;
-            var span = memory.Span.Slice(_position, sizeof(ulong));
+            var span = data.Span.Slice(_position, sizeof(ulong));
             if (endianness == Endianness.LittleEndian)
                 value = BinaryPrimitives.ReadUInt64LittleEndian(span);
             else
@@ -153,12 +149,12 @@ namespace YARG.Core.IO
         public bool ReadBytes(byte[] bytes)
         {
             int endPos = _position + bytes.Length;
-            if (endPos > memory.Length)
+            if (endPos > data.Length)
                 return false;
 
             unsafe
             {
-                fixed (byte* dst = bytes, src = memory.Span)
+                fixed (byte* dst = bytes, src = data.Span)
                 {
                     Unsafe.CopyBlock(dst, src + _position, (uint) bytes.Length);
                 }
@@ -184,7 +180,7 @@ namespace YARG.Core.IO
 
         public int ReadLEB()
         {
-            var span = memory.Span;
+            var span = data.Span;
             uint result = 0;
             byte byteReadJustNow;
 
@@ -213,7 +209,7 @@ namespace YARG.Core.IO
         public ReadOnlySpan<byte> ReadSpan(int length)
         {
             int endPos = _position + length;
-            var span = memory.Span.Slice(_position, length);
+            var span = data.Span.Slice(_position, length);
             _position = endPos;
             return span;
         }
@@ -222,13 +218,12 @@ namespace YARG.Core.IO
         {
             var local = _position;
             Move(length);
-            return new YARGBinaryReader(memory.Slice(local, length));
+            return new YARGBinaryReader(data.Slice(local, length));
         }
 
-        private YARGBinaryReader(ReadOnlyMemory<byte> memory)
+        private YARGBinaryReader(ReadOnlyMemory<byte> data)
         {
-            data = Array.Empty<byte>();
-            this.memory = memory;
+            this.data = data;
         }
     }
 }
