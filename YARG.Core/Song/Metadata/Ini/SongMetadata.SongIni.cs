@@ -36,6 +36,7 @@ namespace YARG.Core.Song
                 if (relative == ".")
                     relative = string.Empty;
 
+                // Flag that says "this is NOT a sng file"
                 writer.Write(false);
                 writer.Write(relative);
                 writer.Write((byte) chartType);

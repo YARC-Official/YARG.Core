@@ -32,6 +32,7 @@ namespace YARG.Core.Song
                 if (relative == ".")
                     relative = string.Empty;
 
+                // Flag that says "this IS a sng file"
                 writer.Write(true);
                 writer.Write(version);
                 writer.Write(relative);
