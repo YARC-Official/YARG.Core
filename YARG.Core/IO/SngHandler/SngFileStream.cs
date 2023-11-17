@@ -11,12 +11,10 @@ namespace YARG.Core.IO
 {
     public class SngFileStream : Stream
     {
-        private const int NUM_KEYBYTES = 256;
-        private const int MASKLENGTH = 16;
+        private const int KEY_MASK = 0xFF;
 
         private static readonly int VECTOR_MASK = SngMask.VECTORBYTE_COUNT - 1;
         private static readonly int VECTOR_SHIFT;
-        private const int KEY_MASK = NUM_KEYBYTES - 1;
         private static readonly int NUM_VECTORS_MASK = SngMask.NUMVECTORS - 1;
 
         static SngFileStream()
