@@ -152,14 +152,7 @@ namespace YARG.Core.IO
             if (endPos > data.Length)
                 return false;
 
-            unsafe
-            {
-                fixed (byte* dst = bytes, src = data.Span)
-                {
-                    Unsafe.CopyBlock(dst, src + _position, (uint) bytes.Length);
-                }
-            }
-
+            Unsafe.CopyBlock(ref bytes[0], ref data.Span[_position], (uint) bytes.Length);
             _position = endPos;
             return true;
         }
