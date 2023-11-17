@@ -8,6 +8,10 @@ using YARG.Core.IO.Ini;
 
 namespace YARG.Core.IO
 {
+
+    /// <summary>
+    /// <see href="https://github.com/mdsitton/SngFileFormat">Documentation of SNG file type</see>
+    /// </summary>
     public class SngFile : IDisposable, IEnumerable<KeyValuePair<string, SngFileListing>>
     {
         public readonly uint Version;
