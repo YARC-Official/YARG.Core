@@ -142,7 +142,8 @@ namespace YARG.Core.Chart
                         return secondNote.Pitch;
 
                     // Time is between the two pitches, lerp them
-                    return YargMath.Lerp(firstNote.Pitch, secondNote.Pitch, firstNote.TimeEnd, secondNote.Time, time);
+                    double percent = YargMath.InverseLerpD(firstNote.TimeEnd, secondNote.Time, time);
+                    return YargMath.Lerp(firstNote.Pitch, secondNote.Pitch, percent);
                 }
 
                 firstNote = secondNote;
