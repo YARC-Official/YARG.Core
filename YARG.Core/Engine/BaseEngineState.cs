@@ -25,8 +25,8 @@
         {
             NoteIndex = 0;
 
-            CurrentTime = 0;
-            LastUpdateTime = 0;
+            CurrentTime = double.MinValue;
+            LastUpdateTime = double.MinValue;
 
             CurrentTick = 0;
             LastTick = 0;

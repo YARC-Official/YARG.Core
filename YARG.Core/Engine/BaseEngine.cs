@@ -17,6 +17,8 @@ namespace YARG.Core.Engine
 
         public EngineEventLogger EventLogger { get; }
 
+        public abstract BaseEngineState BaseState { get; }
+
         protected bool IsInputUpdate { get; private set; }
         protected bool IsBotUpdate   { get; private set; }
 
@@ -37,6 +39,8 @@ namespace YARG.Core.Engine
         /// as singular pieces.
         /// </summary>
         public abstract bool TreatChordAsSeparate { get; }
+
+        private double _lastQueuedInputTime = double.MinValue;
 
         protected BaseEngine(BaseEngineParameters parameters, SyncTrack syncTrack)
         {
@@ -72,7 +76,14 @@ namespace YARG.Core.Engine
         /// <param name="input">The input to queue into the engine.</param>
         public void QueueInput(GameInput input)
         {
+            if (input.Time < _lastQueuedInputTime)
+                YargTrace.Fail($"Input time cannot go backwards! Previous queued input: {_lastQueuedInputTime}, input being queued: {input.Time}");
+
+            if (input.Time < BaseState.CurrentTime)
+                YargTrace.Fail($"Input time cannot go backwards! Current time: {BaseState.CurrentTime}, input being queued: {input.Time}");
+
             InputQueue.Enqueue(input);
+            _lastQueuedInputTime = input.Time;
         }
 
         /// <summary>
@@ -208,6 +219,8 @@ namespace YARG.Core.Engine
 
         public TEngineState State;
 
+        public override BaseEngineState BaseState => State;
+
         protected BaseEngine(InstrumentDifficulty<TNoteType> chart, SyncTrack syncTrack,
             TEngineParams engineParameters) : base(engineParameters, syncTrack)
         {
@@ -227,6 +240,9 @@ namespace YARG.Core.Engine
 
         protected void UpdateTimeVariables(double time)
         {
+            if (time < State.CurrentTime)
+                YargTrace.Fail($"Time cannot go backwards! Current time: {State.CurrentTime}, new time: {time}");
+
             // Only update the last time if the current time has changed
             if (Math.Abs(time - State.CurrentTime) > double.Epsilon)
             {
