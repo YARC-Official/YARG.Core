@@ -55,6 +55,16 @@ namespace YARG.Core.Engine.Logging
 
             return Math.Abs(EventTime - engineEvent.EventTime) < double.Epsilon;
         }
+
+        public override bool Equals(object obj)
+        {
+            return Equals(obj as BaseEngineEvent);
+        }
+
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
+        }
     }
 
     public enum EngineEventType
