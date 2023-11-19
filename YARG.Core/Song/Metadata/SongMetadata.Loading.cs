@@ -1,4 +1,5 @@
 ﻿using Melanchall.DryWetMidi.Core;
+using MoonscraperChartEditor.Song.IO;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -29,12 +30,15 @@ namespace YARG.Core.Song
 
         private SongChart? LoadIniChart()
         {
-            if (!IniData!.Validate(_directory))
+            var stream = IniData!.GetChartStream();
+            if (stream == null)
                 return null;
 
-            string notesFile = IniData.chartFile.FullName;
-            YargTrace.LogInfo($"Loading chart file {notesFile}");
-            return SongChart.FromFile(_parseSettings, notesFile);
+            if (IniData.Type != ChartType.Chart)
+                return SongChart.FromMidi(_parseSettings, MidFileLoader.LoadMidiFile(stream));
+
+            using var reader = new StreamReader(stream);
+            return SongChart.FromDotChart(_parseSettings, reader.ReadToEnd());
         }
 
         private SongChart? LoadCONChart()

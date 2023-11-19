@@ -11,30 +11,38 @@ namespace YARG.Core.Song.Cache
         private sealed class FileCollector
         {
             public readonly string directory;
-            public readonly string?[] charts = new string?[3];
+            public readonly SongMetadata.IniChartNode?[] charts = new SongMetadata.IniChartNode?[3];
             public string? ini = null;
             public readonly List<string> subfiles = new();
 
-            private FileCollector(string directory)
+            public FileCollector(string directory)
             {
                 this.directory = directory;
-            }
-
-            public static FileCollector Collect(string directory)
-            {
-                FileCollector files = new(directory);
                 foreach (string subFile in Directory.EnumerateFileSystemEntries(directory))
                 {
                     switch (Path.GetFileName(subFile).ToLower())
                     {
-                        case "song.ini": files.ini = subFile; break;
-                        case "notes.mid": files.charts[0] = subFile; break;
-                        case "notes.midi": files.charts[1] = subFile; break;
-                        case "notes.chart": files.charts[2] = subFile; break;
-                        default: files.subfiles.Add(subFile); break;
+                        case "song.ini": ini = subFile; break;
+                        case "notes.mid": charts[0] = new(SongMetadata.ChartType.Mid, subFile); break;
+                        case "notes.midi": charts[1] = new(SongMetadata.ChartType.Midi, subFile); break;
+                        case "notes.chart": charts[2] = new(SongMetadata.ChartType.Chart, subFile); break;
+                        default: subfiles.Add(subFile); break;
                     }
                 }
-                return files;
+            }
+        }
+
+        private sealed class SngCollector
+        {
+            public readonly SngFile sng;
+            public readonly SongMetadata.IniChartNode?[] charts = new SongMetadata.IniChartNode?[3];
+
+            public SngCollector(SngFile sng)
+            {
+                this.sng = sng;
+                for (int i = 0; i < SongMetadata.IIniMetadata.CHART_FILE_TYPES.Length; ++i)
+                    if (sng.ContainsKey(SongMetadata.IIniMetadata.CHART_FILE_TYPES[i].File))
+                        charts[i] = SongMetadata.IIniMetadata.CHART_FILE_TYPES[i];
             }
         }
 
@@ -106,36 +114,76 @@ namespace YARG.Core.Song.Cache
         {
             for (int i = results.ini != null ? 0 : 2; i < 3; ++i)
             {
-                string? chart = results.charts[i];
+                var chart = results.charts[i];
                 if (chart != null)
                 {
                     try
                     {
-                        var entry = SongMetadata.FromIni(chart, results.ini, i);
+                        var entry = SongMetadata.FromIni(results.directory, chart, results.ini);
                         if (entry.Item2 != null)
                         {
                             if (AddEntry(entry.Item2))
                                 group.AddEntry(entry.Item2);
                         }
                         else if (entry.Item1 != ScanResult.LooseChart_NoAudio)
-                            AddToBadSongs(chart, entry.Item1);
+                            AddToBadSongs(chart.File, entry.Item1);
                         else
                             return false;
                     }
                     catch (PathTooLongException)
                     {
-                        YargTrace.LogWarning($"Path {chart} is too long for the file system!");
-                        AddToBadSongs(chart, ScanResult.PathTooLong);
+                        YargTrace.LogWarning($"Path {chart.File} is too long for the file system!");
+                        AddToBadSongs(chart.File, ScanResult.PathTooLong);
                     }
                     catch (Exception e)
                     {
-                        YargTrace.LogException(e, $"Error while scanning chart file {chart}!");
-                        AddToBadSongs(Path.GetDirectoryName(chart), ScanResult.IniEntryCorruption);
+                        YargTrace.LogException(e, $"Error while scanning chart file {chart.File}!");
+                        AddToBadSongs(Path.GetDirectoryName(chart.File), ScanResult.IniEntryCorruption);
                     }
                     return true;
                 }
             }
             return false;
+        }
+
+        private void ScanSngFile(string filename, IniGroup group)
+        {
+            if (!FindOrMarkFile(filename))
+                return;
+
+            var sngFile = SngFile.TryLoadFile(filename);
+            if (sngFile == null)
+            {
+                AddToBadSongs(filename, ScanResult.PossibleCorruption);
+                return;
+            }
+
+            var results = new SngCollector(sngFile);
+            for (int i = sngFile.Metadata.Count != 0 ? 0 : 2; i < 3; ++i)
+            {
+                var chart = results.charts[i];
+                if (chart != null)
+                {
+                    try
+                    {
+                        var fileinfo = new AbridgedFileInfo(filename);
+                        var entry = SongMetadata.FromSng(sngFile, fileinfo, chart);
+                        if (entry.Item2 != null)
+                        {
+                            if (AddEntry(entry.Item2))
+                                group.AddEntry(entry.Item2);
+                        }
+                        else if (entry.Item1 != ScanResult.LooseChart_NoAudio)
+                            AddToBadSongs(filename, entry.Item1);
+                    }
+                    catch (Exception e)
+                    {
+                        YargTrace.LogException(e, $"Error while scanning chart file {chart} within {filename}!");
+                        AddToBadSongs(filename, ScanResult.IniEntryCorruption);
+                    }
+                    break;
+                }
+            }
         }
 
         private void AddPossibleCON(string filename)

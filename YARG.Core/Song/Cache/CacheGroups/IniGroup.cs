@@ -46,12 +46,7 @@ namespace YARG.Core.Song.Cache
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);
 
-            string relative = Path.GetRelativePath(directory, entry.Directory);
-            if (relative == ".")
-                relative = string.Empty;
-
-            writer.Write(relative);
-            entry.IniData!.Serialize(writer);
+            entry.IniData!.Serialize(writer, directory);
             entry.Serialize(writer, node);
 
             return ms.ToArray();

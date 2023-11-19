@@ -12,6 +12,7 @@ using YARG.Core.Song;
 using YARG.Core.Extensions;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using System.IO;
 
 namespace MoonscraperChartEditor.Song.IO
 {
@@ -66,27 +67,12 @@ namespace MoonscraperChartEditor.Song.IO
 
         public static MoonSong ReadMidi(ParseSettings settings, string path)
         {
-            MidiFile midi;
-            try
-            {
-                try
-                {
-                    midi = MidiFile.Read(path, MidiSettings.Instance); // Reading .ini MIDI; Try UTF-8
-                    YargTrace.DebugInfo("Loaded autodetected UTF-8 midi");
-                }
-                catch (DecoderFallbackException)
-                {
-                    midi = MidiFile.Read(path, MidiSettingsLatin1.Instance); // Force Latin-1 as fallback
-                    YargTrace.DebugInfo("Loaded autodetected Latin-1 midi");
-                }
-                // midi = MidiFile.Read(path, MidiSettings.Instance);
-            }
-            catch (Exception e)
-            {
-                throw new Exception("Bad or corrupted midi file!", e);
-            }
+            return ReadMidi(settings, MidFileLoader.LoadMidiFile(path));
+        }
 
-            return ReadMidi(settings, midi);
+        public static MoonSong ReadMidi(ParseSettings settings, Stream stream)
+        {
+            return ReadMidi(settings, MidFileLoader.LoadMidiFile(stream));
         }
 
         public static MoonSong ReadMidi(ParseSettings settings, MidiFile midi)

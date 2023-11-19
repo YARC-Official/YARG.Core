@@ -38,7 +38,7 @@ namespace YARG.Core.Song.Cache
                 if (!TraversalPreTest(directory))
                     return;
 
-                var result = FileCollector.Collect(directory);
+                var result = new FileCollector(directory);
                 if (ScanIniEntry(result, group))
                     return;
 
@@ -49,6 +49,8 @@ namespace YARG.Core.Song.Cache
                         var attributes = File.GetAttributes(file);
                         if ((attributes & FileAttributes.Directory) != 0)
                             ScanDirectory_Parallel(file, group);
+                        else if (file.EndsWith(".sng"))
+                            ScanSngFile(file, group);
                         else
                             AddPossibleCON(file);
                     }

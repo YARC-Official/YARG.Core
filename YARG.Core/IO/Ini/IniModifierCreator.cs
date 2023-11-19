@@ -41,67 +41,93 @@ namespace YARG.Core.IO.Ini
             where TChar : unmanaged, IConvertible
             where TDecoder : IStringDecoder<TChar>, new()
         {
+            return type switch
+            {
+                ModifierCreatorType.SortString       => new IniModifier(new SortString(reader.ExtractText(false))),
+                ModifierCreatorType.SortString_Chart => new IniModifier(new SortString(reader.ExtractText(true))),
+                ModifierCreatorType.String           => new IniModifier(reader.ExtractText(false)),
+                ModifierCreatorType.String_Chart     => new IniModifier(reader.ExtractText(true)),
+                _ => CreateNumberModifier(reader.Container),
+            };
+        }
+
+        public IniModifier CreateSngModifier(YARGTextContainer<byte> sngContainer)
+        {
+            return type switch
+            {
+                ModifierCreatorType.SortString => new IniModifier(new SortString(ExtractSngString(sngContainer))),
+                ModifierCreatorType.String     => new IniModifier(ExtractSngString(sngContainer)),
+                _ => CreateNumberModifier(sngContainer),
+            };
+        }
+
+        private IniModifier CreateNumberModifier<TChar>(YARGTextContainer<TChar> container)
+            where TChar : unmanaged, IConvertible
+        {
             switch (type)
             {
-                case ModifierCreatorType.SortString:       return new IniModifier(new SortString(reader.ExtractText(false)));
-                case ModifierCreatorType.SortString_Chart: return new IniModifier(new SortString(reader.ExtractText(true)));
-                case ModifierCreatorType.String:           return new IniModifier(reader.ExtractText(false));
-                case ModifierCreatorType.String_Chart:     return new IniModifier(reader.ExtractText(true));
                 case ModifierCreatorType.UInt64:
                     {
-                        reader.Container.ExtractUInt64(out ulong value);
+                        container.ExtractUInt64(out ulong value);
                         return new IniModifier(value);
                     }
                 case ModifierCreatorType.Int64:
                     {
-                        reader.Container.ExtractInt64(out long value);
+                        container.ExtractInt64(out long value);
                         return new IniModifier(value);
                     }
                 case ModifierCreatorType.UInt32:
                     {
-                        reader.Container.ExtractUInt32(out uint value);
+                        container.ExtractUInt32(out uint value);
                         return new IniModifier(value);
                     }
                 case ModifierCreatorType.Int32:
                     {
-                        reader.Container.ExtractInt32(out int value);
+                        container.ExtractInt32(out int value);
                         return new IniModifier(value);
                     }
                 case ModifierCreatorType.UInt16:
                     {
-                        reader.Container.ExtractUInt16(out ushort value);
+                        container.ExtractUInt16(out ushort value);
                         return new IniModifier(value);
                     }
                 case ModifierCreatorType.Int16:
                     {
-                        reader.Container.ExtractInt16(out short value);
+                        container.ExtractInt16(out short value);
                         return new IniModifier(value);
                     }
                 case ModifierCreatorType.Bool:
                     {
-                        return new IniModifier(reader.Container.ExtractBoolean());
+                        return new IniModifier(container.ExtractBoolean());
                     }
                 case ModifierCreatorType.Float:
                     {
-                        reader.Container.ExtractFloat(out float value);
+                        container.ExtractFloat(out float value);
                         return new IniModifier(value);
                     }
                 case ModifierCreatorType.Double:
                     {
-                        reader.Container.ExtractDouble(out double value);
+                        container.ExtractDouble(out double value);
                         return new IniModifier(value);
                     }
                 case ModifierCreatorType.UInt64Array:
                     {
                         ulong ul2 = 0;
-                        // Use reader version for the first one to ensure whitespace removal
-                        if (reader.ExtractUInt64(out ulong ul1))
-                            reader.Container.ExtractUInt64(out ul2);
+                        if (container.ExtractUInt64(out ulong ul1))
+                        {
+                            YARGTextReader.SkipWhitespace(container);
+                            container.ExtractUInt64(out ul2);
+                        }
                         return new IniModifier(ul1, ul2);
                     }
                 default:
                     throw new NotImplementedException();
             }
+        }
+
+        private static string ExtractSngString(YARGTextContainer<byte> sngContainer)
+        {
+            return Encoding.UTF8.GetString(sngContainer.ExtractSpan(sngContainer.Next - sngContainer.Position));
         }
     }
 }
