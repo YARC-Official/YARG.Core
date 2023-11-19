@@ -405,6 +405,7 @@ namespace YARG.Core.Engine
                 
                 EngineStats.StarPowerAmount = 0;
                 EngineStats.IsStarPowerActive = false;
+                UpdateMultiplier();
                 OnStarPowerStatus?.Invoke(false);
             }
         }
@@ -422,6 +423,7 @@ namespace YARG.Core.Engine
             });
 
             EngineStats.IsStarPowerActive = true;
+            UpdateMultiplier();
             OnStarPowerStatus?.Invoke(true);
         }
 
