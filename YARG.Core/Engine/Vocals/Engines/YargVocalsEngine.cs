@@ -16,23 +16,41 @@ namespace YARG.Core.Engine.Vocals.Engines
             base.UpdateBot(songTime);
 
             // Skip if there are no notes left
-            if (State.NoteIndex >= Notes.Count)
-            {
-                return;
-            }
+            if (State.NoteIndex >= Notes.Count) return;
+
+            // Skip if the song hasn't started yet
+            if (songTime < 0) return;
+
+            // Skip if the song time and the current time is basically the same
+            if (Math.Abs(songTime - State.CurrentTime) <= double.Epsilon) return;
 
             // This is a little more tricky since vocals requires a constant stream of inputs.
             // We can use the ApproximateVocalFps from 0s songTime to determine the amount of inputs
             // (or rather updates) we need to apply.
             double spf = 1.0 / EngineParameters.ApproximateVocalFps;
 
-            // First, get the first update after the last time.
-            // Make sure to increase by one frame to prevent the same frame being processed multiple times.
-            double first = Math.Ceiling(State.LastUpdateTime / spf) * spf + spf;
+            // First, get the first update after the last time
+            // (CurrentTime would the be last time at this point)
+            double first;
+
+            // ReSharper disable once CompareOfFloatsByEqualityOperator
+            // Since CurrentTime is set equal to `double.MinValue`, this should work
+            if (State.CurrentTime == double.MinValue)
+            {
+                // If the last update time is not set, just assume 0
+                first = 0;
+            }
+            else
+            {
+                first = Math.Ceiling(State.CurrentTime / spf) * spf;
+            }
 
             // Push out a bunch of updates
             for (double time = first; time < songTime; time += spf)
             {
+                // Skip all updates that are in the past
+                if (time <= State.CurrentTime) continue;
+
                 var phrase = Notes[State.NoteIndex];
                 var note = GetNoteInPhraseAtSongTick(phrase, State.CurrentTick);
 
