@@ -126,14 +126,14 @@ namespace YARG.Core.IO
                     return;
 
                 int truePosition = (int)(value + initialOffset);
-                blockIndex = truePosition / dataBuffer.Size;
-                bufferPosition = truePosition % dataBuffer.Size;
+                blockIndex = truePosition / dataBuffer.Length;
+                bufferPosition = truePosition % dataBuffer.Length;
 
-                int readSize = dataBuffer.Size - bufferPosition;
+                int readSize = dataBuffer.Length - bufferPosition;
                 if (readSize > fileSize - _position)
                     readSize = (int)(fileSize - _position);
 
-                if (blockIndex < blockLocations.Size)
+                if (blockIndex < blockLocations.Length)
                 {
                     int offset = blockIndex == 0 ? (int)value : bufferPosition;
                     _filestream.Seek(blockLocations[blockIndex++] + offset, SeekOrigin.Begin);
@@ -246,7 +246,7 @@ namespace YARG.Core.IO
                 return 0;
 
             int read = 0;
-            int bytesLeftInSection = dataBuffer.Size - bufferPosition;
+            int bytesLeftInSection = dataBuffer.Length - bufferPosition;
             if (bytesLeftInSection > fileSize - (int) _position)
                 bytesLeftInSection = fileSize - (int) _position;
 
@@ -262,7 +262,7 @@ namespace YARG.Core.IO
                 _position += readCount;
                 bufferPosition += readCount;
 
-                if (bufferPosition < dataBuffer.Size || _position == fileSize)
+                if (bufferPosition < dataBuffer.Length || _position == fileSize)
                     break;
 
                 bytesLeftInSection = UpdateBuffer();
@@ -309,7 +309,7 @@ namespace YARG.Core.IO
         private int UpdateBuffer()
         {
             bufferPosition = blockIndex == 0 ? initialOffset : 0;
-            int readSize = dataBuffer.Size - bufferPosition;
+            int readSize = dataBuffer.Length - bufferPosition;
             if (readSize > fileSize - _position)
                 readSize = fileSize - (int)_position;
 

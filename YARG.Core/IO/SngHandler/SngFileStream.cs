@@ -118,7 +118,7 @@ namespace YARG.Core.IO
                 return 0;
 
             int read = 0;
-            long bytesLeftInSection = dataBuffer.Size - bufferPosition;
+            long bytesLeftInSection = dataBuffer.Length - bufferPosition;
             if (bytesLeftInSection > fileSize - _position)
                 bytesLeftInSection = fileSize - _position;
 
@@ -134,7 +134,7 @@ namespace YARG.Core.IO
                 _position += readCount;
                 bufferPosition += readCount;
 
-                if (bufferPosition < dataBuffer.Size || _position == fileSize)
+                if (bufferPosition < dataBuffer.Length || _position == fileSize)
                     break;
 
                 bufferPosition = 0;

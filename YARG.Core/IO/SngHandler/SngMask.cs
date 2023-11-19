@@ -40,7 +40,7 @@ namespace YARG.Core.IO
 
         private SngMask(SngMask other)
         {
-            Keys = new(other.Keys);
+            Keys = other.Keys.Clone();
             unsafe
             {
                 Vectors = other.Vectors;
