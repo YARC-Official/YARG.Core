@@ -8,8 +8,14 @@ namespace YARG.Core.Game
     public abstract class BasePreset
     {
         public string Name;
-        public Guid Id;
+        public Guid   Id;
 
+        /// <summary>
+        /// The type of the preset in string form. This is only
+        /// used for checking the type when importing a preset.
+        /// </summary>
+        public string? Type;
+        
         /// <summary>
         /// Determines whether or not the preset should be modifiable in the settings.
         /// </summary>
