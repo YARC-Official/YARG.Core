@@ -9,7 +9,7 @@ namespace YARG.Core.Engine.Vocals
     {
         public delegate void TargetNoteChangeEvent(VocalNote targetNote);
 
-        public delegate void PhraseHitEvent(double hitPercentAfterParams);
+        public delegate void PhraseHitEvent(double hitPercentAfterParams, bool fullPoints);
 
         public TargetNoteChangeEvent? OnTargetNoteChanged;
 

@@ -139,7 +139,8 @@ namespace YARG.Core.Engine.Vocals.Engines
                     percentHit = 1.0;
                 }
 
-                if (percentHit >= EngineParameters.PhraseHitPercent)
+                bool hit = percentHit >= EngineParameters.PhraseHitPercent;
+                if (hit)
                 {
                     // Update stats (always add 100% of the phrase when hit)
                     EngineStats.VocalTicksHit += (uint) State.PhraseTicksTotal.Value;
@@ -163,7 +164,7 @@ namespace YARG.Core.Engine.Vocals.Engines
                     GetVocalTicksInPhrase(Notes[State.NoteIndex]) :
                     null;
 
-                OnPhraseHit?.Invoke(percentHit / EngineParameters.PhraseHitPercent);
+                OnPhraseHit?.Invoke(percentHit / EngineParameters.PhraseHitPercent, hit);
             }
 
             // Vocals never need a re-update
