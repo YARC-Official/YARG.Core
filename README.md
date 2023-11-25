@@ -12,7 +12,7 @@ If you want to contribute, please feel free! Please join [our Discord](https://d
 
 ## 🛡️ License
 
-YARG.Core is licensed under the MIT License - see the [`LICENSE`](LICENSE) file for details.
+YARG.Core is licensed under the [GNU Lesser General Public License v3.0](https://www.gnu.org/licenses/lgpl-3.0.en.html) (or later) - see the [`LICENSE`](LICENSE) file for details.
 
 ## 🧰 External Licenses
 
