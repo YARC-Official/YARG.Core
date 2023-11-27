@@ -54,42 +54,44 @@ namespace YARG.Core.Game
 
         public static ColorProfile Default = new("Default", true);
 
+        public static ColorProfile CircularDefault = new("Circular", true)
+        {
+            FiveFretGuitar = new FiveFretGuitarColors
+            {
+                OpenFret = CircularPurple,
+                GreenFret = CircularGreen,
+                RedFret = CircularRed,
+                YellowFret = CircularYellow,
+                BlueFret = CircularBlue,
+                OrangeFret = CircularOrange,
+
+                OpenFretInner = CircularPurple,
+                GreenFretInner = CircularGreen,
+                RedFretInner = CircularRed,
+                YellowFretInner = CircularYellow,
+                BlueFretInner = CircularBlue,
+                OrangeFretInner = CircularOrange,
+
+                OpenNote = CircularPurple,
+                GreenNote = CircularGreen,
+                RedNote = CircularRed,
+                YellowNote = CircularYellow,
+                BlueNote = CircularBlue,
+                OrangeNote = CircularOrange,
+
+                OpenNoteStarPower = CircularStarpower,
+                GreenNoteStarPower = CircularStarpower,
+                RedNoteStarPower = CircularStarpower,
+                YellowNoteStarPower = CircularStarpower,
+                BlueNoteStarPower = CircularStarpower,
+                OrangeNoteStarPower = CircularStarpower,
+            }
+        };
+
         public static readonly List<ColorProfile> Defaults = new()
         {
             Default,
-            new ColorProfile("Circular", true)
-            {
-                FiveFretGuitar = new()
-                {
-                    OpenFret   = CircularPurple,
-                    GreenFret  = CircularGreen,
-                    RedFret    = CircularRed,
-                    YellowFret = CircularYellow,
-                    BlueFret   = CircularBlue,
-                    OrangeFret = CircularOrange,
-
-                    OpenFretInner   = CircularPurple,
-                    GreenFretInner  = CircularGreen,
-                    RedFretInner    = CircularRed,
-                    YellowFretInner = CircularYellow,
-                    BlueFretInner   = CircularBlue,
-                    OrangeFretInner = CircularOrange,
-
-                    OpenNote   = CircularPurple,
-                    GreenNote  = CircularGreen,
-                    RedNote    = CircularRed,
-                    YellowNote = CircularYellow,
-                    BlueNote   = CircularBlue,
-                    OrangeNote = CircularOrange,
-
-                    OpenNoteStarPower   = CircularStarpower,
-                    GreenNoteStarPower  = CircularStarpower,
-                    RedNoteStarPower    = CircularStarpower,
-                    YellowNoteStarPower = CircularStarpower,
-                    BlueNoteStarPower   = CircularStarpower,
-                    OrangeNoteStarPower = CircularStarpower,
-                }
-            }
+            CircularDefault
         };
     }
 }

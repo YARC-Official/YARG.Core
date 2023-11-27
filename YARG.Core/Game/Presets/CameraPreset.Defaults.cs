@@ -6,9 +6,20 @@ namespace YARG.Core.Game
     {
         public static CameraPreset Default = new("Default", true);
 
+        public static CameraPreset CircularDefault = new("Circular", true)
+        {
+            FieldOfView = 60f,
+            PositionY = 2.39f,
+            PositionZ = 1.54f,
+            Rotation = 24.12f,
+            FadeLength = 1.25f,
+            CurveFactor = 0f,
+        };
+
         public static readonly List<CameraPreset> Defaults = new()
         {
             Default,
+            CircularDefault,
             new CameraPreset("High FOV", true)
             {
                 FieldOfView = 60f,
@@ -98,16 +109,7 @@ namespace YARG.Core.Game
                 Rotation    = 17.09f,
                 FadeLength  = 1.5f,
                 CurveFactor = 0.5f,
-            },
-            new CameraPreset("Circular", true)
-            {
-                FieldOfView = 60f,
-                PositionY   = 2.39f,
-                PositionZ   = 1.54f,
-                Rotation    = 24.12f,
-                FadeLength  = 1.25f,
-                CurveFactor = 0f,
-            },
+            }
         };
     }
 }

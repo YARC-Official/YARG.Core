@@ -15,7 +15,7 @@ namespace YARG.Core.Game
         /// used for checking the type when importing a preset.
         /// </summary>
         public string? Type;
-        
+
         /// <summary>
         /// Determines whether or not the preset should be modifiable in the settings.
         /// </summary>
@@ -27,14 +27,14 @@ namespace YARG.Core.Game
             Name = name;
             DefaultPreset = defaultPreset;
 
-            Id = defaultPreset 
-                ? GetGuidForBasePreset(name) 
+            Id = defaultPreset
+                ? GetGuidForBasePreset(name)
                 : Guid.NewGuid();
         }
 
         public abstract BasePreset CopyWithNewName(string name);
 
-        public static Guid GetGuidForBasePreset(string name)
+        private static Guid GetGuidForBasePreset(string name)
         {
             // Make sure default presets are consistent based on names.
             // This ensures that their GUIDs will be consistent (because they are constructed in code every time).
