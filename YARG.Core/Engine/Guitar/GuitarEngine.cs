@@ -23,12 +23,16 @@ namespace YARG.Core.Engine.Guitar
 
         public override bool TreatChordAsSeparate => false;
 
+        private bool _isBass;
+
         protected GuitarEngine(InstrumentDifficulty<GuitarNote> chart, SyncTrack syncTrack,
             GuitarEngineParameters engineParameters)
             : base(chart, syncTrack, engineParameters)
         {
             BaseScore = CalculateBaseScore();
             State.Initialize(engineParameters);
+            
+            _isBass = chart.IsBass();
         }
 
         public override void Reset(bool keepCurrentButtons = false)
@@ -228,13 +232,28 @@ namespace YARG.Core.Engine.Guitar
 
         protected override void UpdateMultiplier()
         {
-            EngineStats.ScoreMultiplier = EngineStats.Combo switch
+            if (_isBass)
             {
-                >= 30 => 4,
-                >= 20 => 3,
-                >= 10 => 2,
-                _     => 1
-            };
+                EngineStats.ScoreMultiplier = EngineStats.Combo switch
+                {
+                    >= 50 => 6,
+                    >= 40 => 5,
+                    >= 30 => 4,
+                    >= 20 => 3,
+                    >= 10 => 2,
+                    _     => 1
+                };
+            }
+            else
+            {
+                EngineStats.ScoreMultiplier = EngineStats.Combo switch
+                {
+                    >= 30 => 4,
+                    >= 20 => 3,
+                    >= 10 => 2,
+                    _     => 1
+                };
+            }
 
             if (EngineStats.IsStarPowerActive)
             {

@@ -87,6 +87,14 @@ namespace YARG.Core.Chart
             return Notes.Count > 0 || Phrases.Count > 0 || TextEvents.Count > 0;
         }
 
+        public bool IsBass()
+        {
+            return Instrument is Instrument.FiveFretBass
+                || Instrument is Instrument.SixFretBass
+                || Instrument is Instrument.ProBass_17Fret
+                || Instrument is Instrument.ProBass_22Fret;
+        }
+
         public InstrumentDifficulty<TNote> Clone()
         {
             return new(this);
