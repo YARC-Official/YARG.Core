@@ -1,4 +1,6 @@
-﻿namespace YARG.Core.Engine.Guitar
+﻿using System;
+
+namespace YARG.Core.Engine.Guitar
 {
     public class GuitarEngineState : BaseEngineState
     {
@@ -14,12 +16,13 @@
         public EngineTimer StrumLeniencyTimer;
         public EngineTimer HopoLeniencyTimer;
 
-        public double FrontEndStartTime;
+        public EngineTimer FrontEndTimer;
 
         public void Initialize(GuitarEngineParameters parameters)
         {
             StrumLeniencyTimer = new(parameters.StrumLeniency);
             HopoLeniencyTimer = new(parameters.HopoLeniency);
+            FrontEndTimer = new(Math.Abs(parameters.FrontEnd));
         }
 
         public override void Reset()
@@ -36,8 +39,7 @@
 
             StrumLeniencyTimer.Reset();
             HopoLeniencyTimer.Reset();
-
-            FrontEndStartTime = 0;
+            FrontEndTimer.Reset();
         }
     }
 }

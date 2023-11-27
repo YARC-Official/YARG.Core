@@ -30,7 +30,7 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                 State.ButtonMask = (byte) note.NoteMask;
                 State.StrummedThisUpdate = true;
-                State.FrontEndStartTime = note.Time;
+                //State.FrontEndStartTime = note.Time;
 
                 foreach (var sustainNote in ActiveSustains)
                 {
@@ -82,7 +82,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             {
                 State.LastButtonMask = State.ButtonMask;
                 ToggleFret(CurrentInput.Action, CurrentInput.Button);
-                State.FrontEndStartTime = State.CurrentTime;
+                //State.FrontEndStartTime = State.CurrentTime;
                 
                 EventLogger.LogEvent(new TimerEngineEvent(State.CurrentTime)
                 {
@@ -458,7 +458,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 // Also allows first note to be hit without infinite front end
 
                 double frontEndAbs = Math.Abs(EngineParameters.FrontEnd);
-                bool frontEndExpired = EngineTimer.IsExpired(State.FrontEndStartTime, note.Time, frontEndAbs);
+                bool frontEndExpired = false;//EngineTimer.IsExpired(State.FrontEndStartTime, note.Time, frontEndAbs);
                 if (!EngineParameters.InfiniteFrontEnd && frontEndExpired && !strumLeniencyActive && State.NoteIndex > 0)
                 {
                     return false;
@@ -504,7 +504,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 State.TapButtonMask = 0;
 
                 // Does the same thing but ensures it still works when infinite front end is disabled
-                State.FrontEndStartTime = double.MaxValue;
+                //State.FrontEndStartTime = double.MaxValue;
 
                 State.WasHopoStrummed = false;
 

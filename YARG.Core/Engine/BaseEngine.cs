@@ -89,7 +89,7 @@ namespace YARG.Core.Engine
         /// <summary>
         /// Updates the engine and processes all inputs currently queued.
         /// </summary>
-        public void UpdateEngine()
+        public void UpdateEngineInputs()
         {
             if (!IsInputQueued)
             {
@@ -104,13 +104,19 @@ namespace YARG.Core.Engine
         /// Updates the engine with no input processing.
         /// </summary>
         /// <param name="time">The time to simulate hit logic at.</param>
-        public void UpdateEngine(double time)
+        public void UpdateEngineToTime(double time)
         {
             IsInputUpdate = false;
+            UpdateUpToTime(time);
+        }
+
+        protected void RunHitLogic(double time)
+        {
             bool noteUpdated;
             do
             {
                 noteUpdated = UpdateHitLogic(time);
+                IsInputUpdate = false;
             } while (noteUpdated);
         }
 
@@ -122,18 +128,13 @@ namespace YARG.Core.Engine
             // Start to process inputs in queue.
             while (InputQueue.TryDequeue(out var input))
             {
-                // Execute a non-input update using the input 's time.
-                // This will update the engine to the time of the first input, missing notes before the input is processed
-                UpdateEngine(input.Time);
+                // This will update the engine to the time of the input.
+                UpdateUpToTime(input.Time);
 
+                // Process the input and run hit logic for it.
                 CurrentInput = input;
                 IsInputUpdate = true;
-                bool noteUpdated;
-                do
-                {
-                    noteUpdated = UpdateHitLogic(input.Time);
-                    IsInputUpdate = false;
-                } while (noteUpdated);
+                RunHitLogic(input.Time);
             }
         }
 
@@ -149,6 +150,8 @@ namespace YARG.Core.Engine
         }
 
         public abstract void Reset(bool keepCurrentButtons = false);
+
+        protected abstract void UpdateUpToTime(double time);
 
         /// <summary>
         /// Executes engine logic with respect to the given time.
@@ -227,6 +230,32 @@ namespace YARG.Core.Engine
             EngineStats.ScoreMultiplier = 1;
 
             Solos = GetSoloSections();
+        }
+
+        protected override void UpdateUpToTime(double time)
+        {
+            var currentTime = State.CurrentTime;
+
+            var noteUpdateIndex = State.NoteIndex;
+            
+            // Get the index of the next note to update to
+            while (noteUpdateIndex < Notes.Count && currentTime > Notes[noteUpdateIndex].Time)
+            {
+                noteUpdateIndex++;
+            }
+            
+            // Update the engine to the next note
+            while(noteUpdateIndex < Notes.Count && Notes[noteUpdateIndex].Time < time)
+            {
+                RunHitLogic(Notes[noteUpdateIndex].Time);
+                
+                // Move to the next note
+                noteUpdateIndex++;
+            }
+            
+            // Updated to the last note before the given time
+            // Now we update the engine to the given time
+            RunHitLogic(time);
         }
 
         protected void UpdateTimeVariables(double time)
@@ -475,8 +504,10 @@ namespace YARG.Core.Engine
             Reset();
 
             var inputIndex = 0;
+            double lastInputTime = 0;
             foreach (var input in inputs)
             {
+                lastInputTime = input.Time;
                 if (input.Time > time)
                 {
                     break;
@@ -487,6 +518,11 @@ namespace YARG.Core.Engine
             }
 
             ProcessInputs();
+            
+            if(lastInputTime < time)
+            {
+                UpdateEngineToTime(time);
+            }
 
             return inputIndex;
         }

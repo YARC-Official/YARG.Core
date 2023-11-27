@@ -20,6 +20,7 @@
         public int CurrentStarIndex;
 
         public bool IsSoloActive;
+        public bool IsStarPowerInputActive;
 
         public uint TicksEveryEightMeasures;
 

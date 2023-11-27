@@ -121,11 +121,11 @@ public class Analyzer
                 // Run!
                 if (engine.IsInputQueued)
                 {
-                    engine.UpdateEngine();
+                    engine.UpdateEngineInputs();
                 }
                 else
                 {
-                    engine.UpdateEngine(frameTime);
+                    engine.UpdateEngineToTime(frameTime);
                 }
             }
         }
