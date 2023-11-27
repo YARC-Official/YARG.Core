@@ -8,6 +8,8 @@
         public double CurrentTime;
         public double LastUpdateTime;
 
+        public double LastQueuedInputTime;
+
         public uint CurrentTick;
         public uint LastTick;
 
@@ -27,6 +29,8 @@
 
             CurrentTime = double.MinValue;
             LastUpdateTime = double.MinValue;
+
+            LastQueuedInputTime = double.MinValue;
 
             CurrentTick = 0;
             LastTick = 0;

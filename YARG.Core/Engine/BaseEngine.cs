@@ -76,14 +76,14 @@ namespace YARG.Core.Engine
         /// <param name="input">The input to queue into the engine.</param>
         public void QueueInput(GameInput input)
         {
-            if (input.Time < _lastQueuedInputTime)
-                YargTrace.Fail($"Input time cannot go backwards! Previous queued input: {_lastQueuedInputTime}, input being queued: {input.Time}");
+            if (input.Time < BaseState.LastQueuedInputTime)
+                YargTrace.Fail($"Input time cannot go backwards! Previous queued input: {BaseState.LastQueuedInputTime}, input being queued: {input.Time}");
 
             if (input.Time < BaseState.CurrentTime)
                 YargTrace.Fail($"Input time cannot go backwards! Current time: {BaseState.CurrentTime}, input being queued: {input.Time}");
 
             InputQueue.Enqueue(input);
-            _lastQueuedInputTime = input.Time;
+            BaseState.LastQueuedInputTime = input.Time;
         }
 
         /// <summary>
