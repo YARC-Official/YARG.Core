@@ -96,7 +96,6 @@ namespace YARG.Core.Engine
                 return;
             }
 
-            IsInputUpdate = true;
             ProcessInputs();
         }
 
@@ -129,6 +128,8 @@ namespace YARG.Core.Engine
             while (InputQueue.TryDequeue(out var input))
             {
                 // This will update the engine to the time of the input.
+                // However, it does not use the input for the update.
+                IsInputUpdate = false;
                 UpdateUpToTime(input.Time);
 
                 // Process the input and run hit logic for it.
@@ -237,22 +238,22 @@ namespace YARG.Core.Engine
             var currentTime = State.CurrentTime;
 
             var noteUpdateIndex = State.NoteIndex;
-            
+
             // Get the index of the next note to update to
             while (noteUpdateIndex < Notes.Count && currentTime > Notes[noteUpdateIndex].Time)
             {
                 noteUpdateIndex++;
             }
-            
+
             // Update the engine to the next note
             while(noteUpdateIndex < Notes.Count && Notes[noteUpdateIndex].Time < time)
             {
                 RunHitLogic(Notes[noteUpdateIndex].Time);
-                
+
                 // Move to the next note
                 noteUpdateIndex++;
             }
-            
+
             // Updated to the last note before the given time
             // Now we update the engine to the given time
             RunHitLogic(time);
@@ -269,7 +270,7 @@ namespace YARG.Core.Engine
                 State.LastUpdateTime = State.CurrentTime;
                 State.LastTick = State.CurrentTick;
             }
-            
+
             State.CurrentTime = time;
             State.CurrentTick = GetCurrentTick(time);
 
@@ -293,7 +294,7 @@ namespace YARG.Core.Engine
 
             State.Reset();
             EngineStats.Reset();
-            
+
             EventLogger.Clear();
 
             foreach (var note in Notes)
@@ -422,7 +423,7 @@ namespace YARG.Core.Engine
                 {
                     IsActive = false,
                 });
-                
+
                 EngineStats.StarPowerAmount = 0;
                 EngineStats.IsStarPowerActive = false;
                 UpdateMultiplier();
@@ -436,7 +437,7 @@ namespace YARG.Core.Engine
             {
                 return;
             }
-            
+
             EventLogger.LogEvent(new StarPowerEngineEvent(State.CurrentTime)
             {
                 IsActive = true,
@@ -481,18 +482,18 @@ namespace YARG.Core.Engine
             else
             {
                 double multiplier = Math.Clamp((soloPercentage - 0.6) / 0.4, 0, 1);
-                
+
                 // Old engine says this is 200 *, but I'm not sure that's right?? Isn't it 2x the note's worth, not 4x?
                 double points = 100 * currentSolo.NotesHit * multiplier;
 
                 // Round down to nearest 50 (kinda just makes sense I think?)
                 points -= points % 50;
-                
+
                 currentSolo.SoloBonus = (int) points;
             }
 
             EngineStats.SoloBonuses += currentSolo.SoloBonus;
-            
+
             State.IsSoloActive = false;
 
             OnSoloEnd?.Invoke(Solos[State.CurrentSoloIndex]);
@@ -518,7 +519,7 @@ namespace YARG.Core.Engine
             }
 
             ProcessInputs();
-            
+
             if(lastInputTime < time)
             {
                 UpdateEngineToTime(time);

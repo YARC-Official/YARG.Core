@@ -106,7 +106,7 @@ namespace YARG.Core.Engine.Guitar
                     WasHit = false,
                     WasSkipped = true,
                 });
-                
+
                 prevNote = prevNote.PreviousNote;
             }
 
@@ -174,7 +174,7 @@ namespace YARG.Core.Engine.Guitar
                 WasHit = true,
                 WasSkipped = skipped,
             });
-            
+
             OnNoteHit?.Invoke(State.NoteIndex, note);
             State.NoteIndex++;
             return true;
@@ -214,7 +214,7 @@ namespace YARG.Core.Engine.Guitar
                 WasHit = false,
                 WasSkipped = false,
             });
-            
+
             OnNoteMissed?.Invoke(State.NoteIndex, note);
             State.NoteIndex++;
         }
