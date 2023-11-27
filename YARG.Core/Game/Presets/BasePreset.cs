@@ -27,20 +27,20 @@ namespace YARG.Core.Game
             Name = name;
             DefaultPreset = defaultPreset;
 
-            if (defaultPreset)
-            {
-                // Make sure default presets are consistent based on names.
-                // This ensures that their GUIDs will be consistent (because they are constructed in code every time).
-                using var md5 = MD5.Create();
-                byte[] hash = md5.ComputeHash(Encoding.UTF8.GetBytes(name));
-                Id = new Guid(hash);
-            }
-            else
-            {
-                Id = Guid.NewGuid();
-            }
+            Id = defaultPreset 
+                ? GetGuidForBasePreset(name) 
+                : Guid.NewGuid();
         }
 
         public abstract BasePreset CopyWithNewName(string name);
+
+        public static Guid GetGuidForBasePreset(string name)
+        {
+            // Make sure default presets are consistent based on names.
+            // This ensures that their GUIDs will be consistent (because they are constructed in code every time).
+            using var md5 = MD5.Create();
+            byte[] hash = md5.ComputeHash(Encoding.UTF8.GetBytes(name));
+            return new Guid(hash);
+        }
     }
 }

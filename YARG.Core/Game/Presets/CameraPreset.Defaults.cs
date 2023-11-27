@@ -99,6 +99,15 @@ namespace YARG.Core.Game
                 FadeLength  = 1.5f,
                 CurveFactor = 0.5f,
             },
+            new CameraPreset("Circular", true)
+            {
+                FieldOfView = 60f,
+                PositionY   = 2.39f,
+                PositionZ   = 1.54f,
+                Rotation    = 24.12f,
+                FadeLength  = 1.25f,
+                CurveFactor = 0f,
+            },
         };
     }
 }
