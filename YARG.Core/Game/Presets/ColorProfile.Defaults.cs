@@ -41,20 +41,14 @@ namespace YARG.Core.Game
 
         #region Circular Colors
 
-        private static readonly Color CircularGreenFret  = Color.FromArgb(0xFF, 0x00, 0x59, 0x00); // #005900
-        private static readonly Color CircularRedFret    = Color.FromArgb(0xFF, 0x9A, 0x00, 0x00); // #9a0000
-        private static readonly Color CircularYellowFret = Color.FromArgb(0xFF, 0xFF, 0xDE, 0x00); // #ffde00
-        private static readonly Color CircularBlueFret   = Color.FromArgb(0xFF, 0x00, 0x52, 0xB8); // #0052b8
-        private static readonly Color CircularOrangeFret = Color.FromArgb(0xFF, 0xE9, 0x73, 0x00); // #e97300
+        private static readonly Color CircularPurple = Color.FromArgb(0xFF, 0xBE, 0x0F, 0xFF); // #be0fff
+        private static readonly Color CircularGreen  = Color.FromArgb(0xFF, 0x00, 0xC9, 0x0E); // #00c90e
+        private static readonly Color CircularRed    = Color.FromArgb(0xFF, 0xC3, 0x00, 0x00); // #c30000
+        private static readonly Color CircularYellow = Color.FromArgb(0xFF, 0xF5, 0xD0, 0x00); // #f5d000
+        private static readonly Color CircularBlue   = Color.FromArgb(0xFF, 0x00, 0x5C, 0xF5); // #005cf5
+        private static readonly Color CircularOrange = Color.FromArgb(0xFF, 0xFF, 0x84, 0x00); // #ff8400
 
-        private static readonly Color CircularPurpleNote = Color.FromArgb(0xFF, 0x81, 0x00, 0xB1); // #8100b1
-        private static readonly Color CircularGreenNote  = Color.FromArgb(0xFF, 0x00, 0x6E, 0x08); // #006e08
-        private static readonly Color CircularRedNote    = Color.FromArgb(0xFF, 0xFF, 0x00, 0x00); // #ff0000
-        private static readonly Color CircularYellowNote = Color.FromArgb(0xFF, 0xFF, 0xE4, 0x00); // #ffe400
-        private static readonly Color CircularBlueNote   = Color.FromArgb(0xFF, 0x00, 0x46, 0xE6); // #0046e6
-        private static readonly Color CircularOrangeNote = Color.FromArgb(0xFF, 0x8D, 0x28, 0x00); // #8d2800
-
-        private static readonly Color CircularStarpower = Color.FromArgb(0xFF, 0x13, 0xD9, 0xEA); // #13D9EA
+        private static readonly Color CircularStarpower = Color.FromArgb(0xFF, 0x13, 0xD9, 0xEA); // #13d9ea
 
         #endregion
 
@@ -67,19 +61,26 @@ namespace YARG.Core.Game
             {
                 FiveFretGuitar = new()
                 {
-                    OpenFret   = DefaultPurpleFret,
-                    GreenFret  = CircularGreenFret,
-                    RedFret    = CircularRedFret,
-                    YellowFret = CircularYellowFret,
-                    BlueFret   = CircularBlueFret,
-                    OrangeFret = CircularOrangeFret,
+                    OpenFret   = CircularPurple,
+                    GreenFret  = CircularGreen,
+                    RedFret    = CircularRed,
+                    YellowFret = CircularYellow,
+                    BlueFret   = CircularBlue,
+                    OrangeFret = CircularOrange,
 
-                    OpenNote   = CircularPurpleNote,
-                    GreenNote  = CircularGreenNote,
-                    RedNote    = CircularRedNote,
-                    YellowNote = CircularYellowNote,
-                    BlueNote   = CircularBlueNote,
-                    OrangeNote = CircularOrangeNote,
+                    OpenFretInner   = CircularPurple,
+                    GreenFretInner  = CircularGreen,
+                    RedFretInner    = CircularRed,
+                    YellowFretInner = CircularYellow,
+                    BlueFretInner   = CircularBlue,
+                    OrangeFretInner = CircularOrange,
+
+                    OpenNote   = CircularPurple,
+                    GreenNote  = CircularGreen,
+                    RedNote    = CircularRed,
+                    YellowNote = CircularYellow,
+                    BlueNote   = CircularBlue,
+                    OrangeNote = CircularOrange,
 
                     OpenNoteStarPower   = CircularStarpower,
                     GreenNoteStarPower  = CircularStarpower,
