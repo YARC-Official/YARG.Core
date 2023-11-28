@@ -53,22 +53,42 @@ namespace YARG.Core
 
         public static float LerpF(int start, int end, float percent)
         {
-            return start + (end - start) * percent;
+            return (float) (start + (end - start) * percent);
         }
 
         public static float LerpF(uint start, uint end, float percent)
         {
-            return start + (end - start) * percent;
+            return (float) (start + (end - start) * percent);
+        }
+
+        public static float LerpF(float start, float end, float percent)
+        {
+            return (float) (start + (end - start) * percent);
+        }
+
+        public static float LerpF(double start, double end, float percent)
+        {
+            return (float) (start + (end - start) * percent);
         }
 
         public static double LerpD(int start, int end, double percent)
         {
-            return start + (end - start) * percent;
+            return (double) (start + (end - start) * percent);
         }
 
         public static double LerpD(uint start, uint end, double percent)
         {
-            return start + (end - start) * percent;
+            return (double) (start + (end - start) * percent);
+        }
+
+        public static double LerpD(float start, float end, double percent)
+        {
+            return (double) (start + (end - start) * percent);
+        }
+
+        public static double LerpD(double start, double end, double percent)
+        {
+            return (double) (start + (end - start) * percent);
         }
 
         #endregion
@@ -76,32 +96,42 @@ namespace YARG.Core
         #region InverseLerp
         public static float InverseLerpF(int start, int end, int value)
         {
-            return (value - start) / (end - start);
+            return (float) (value - start) / (float) (end - start);
         }
 
         public static float InverseLerpF(uint start, uint end, uint value)
         {
-            return (value - start) / (end - start);
+            return (float) (value - start) / (float) (end - start);
         }
 
         public static float InverseLerpF(float start, float end, float value)
         {
-            return (value - start) / (end - start);
+            return (float) (value - start) / (float) (end - start);
+        }
+
+        public static float InverseLerpF(double start, double end, double value)
+        {
+            return (float) (value - start) / (float) (end - start);
         }
 
         public static double InverseLerpD(int start, int end, int value)
         {
-            return (value - start) / (end - start);
+            return (double) (value - start) / (double) (end - start);
         }
 
         public static double InverseLerpD(uint start, uint end, uint value)
         {
-            return (value - start) / (end - start);
+            return (double) (value - start) / (double) (end - start);
+        }
+
+        public static double InverseLerpD(float start, float end, float value)
+        {
+            return (double) (value - start) / (double) (end - start);
         }
 
         public static double InverseLerpD(double start, double end, double value)
         {
-            return (value - start) / (end - start);
+            return (double) (value - start) / (double) (end - start);
         }
 
         #endregion

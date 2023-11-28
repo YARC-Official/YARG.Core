@@ -47,12 +47,12 @@ foreach (var (percentType, _) in percentTypes)
 
 foreach (var (percentType, percentSuffix) in percentTypes)
 {
-    foreach (var inputType in intTypes)
+    foreach (var inputType in types)
     {
 #>
         public static <#= percentType #> Lerp<#= percentSuffix #>(<#= inputType #> start, <#= inputType #> end, <#= percentType #> percent)
         {
-            return start + (end - start) * percent;
+            return (<#= percentType #>) (start + (end - start) * percent);
         }
 
 <#
@@ -65,23 +65,16 @@ foreach (var (percentType, percentSuffix) in percentTypes)
 <#
 foreach (var (percentType, percentSuffix) in percentTypes)
 {
-    foreach (var inputType in intTypes)
+    foreach (var inputType in types)
     {
 #>
         public static <#= percentType #> InverseLerp<#= percentSuffix #>(<#= inputType #> start, <#= inputType #> end, <#= inputType #> value)
         {
-            return (value - start) / (end - start);
+            return (<#= percentType #>) (value - start) / (<#= percentType #>) (end - start);
         }
 
 <#
     }
-#>
-        public static <#= percentType #> InverseLerp<#= percentSuffix #>(<#= percentType #> start, <#= percentType #> end, <#= percentType #> value)
-        {
-            return (value - start) / (end - start);
-        }
-
-<#
 }
 #>
         #endregion
