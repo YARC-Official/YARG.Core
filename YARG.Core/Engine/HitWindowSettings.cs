@@ -17,6 +17,7 @@ namespace YARG.Core.Engine
         public double FrontToBackRatio { get; private set; }
 
         private double _minMaxWindowRatio;
+        private double _minOverFive;
 
         public HitWindowSettings(double maxWindow, double minWindow, double frontToBackRatio, bool isDynamic)
         {
@@ -32,6 +33,7 @@ namespace YARG.Core.Engine
             IsDynamic = isDynamic;
 
             _minMaxWindowRatio = MinWindow / MaxWindow;
+            _minOverFive = MinWindow / 5 * 1000;
         }
 
         public double GetFrontEnd(double fullWindow)
@@ -53,13 +55,13 @@ namespace YARG.Core.Engine
 
             averageTimeDistance *= 1000;
 
-            double sqrt = Math.Sqrt(averageTimeDistance + _minMaxWindowRatio);
-            double eighth = 0.125 * averageTimeDistance;
-            double realSize = eighth * sqrt + MinWindow * 1000;
+            double sqrt = _minOverFive * Math.Sqrt(averageTimeDistance * _minMaxWindowRatio);
+            double eighthAverage = 0.125 * averageTimeDistance;
+            double realSize = eighthAverage + sqrt + MinWindow * 1000;
 
             realSize /= 1000;
 
-            return Math.Max(Math.Min(realSize, MaxWindow), MinWindow);
+            return Math.Clamp(realSize, MinWindow, MaxWindow);
         }
 
         public void Serialize(BinaryWriter writer)
@@ -78,6 +80,7 @@ namespace YARG.Core.Engine
             FrontToBackRatio = reader.ReadDouble();
 
             _minMaxWindowRatio = MinWindow / MaxWindow;
+            _minOverFive = MinWindow / 5 * 1000;
         }
     }
 }
