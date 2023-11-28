@@ -100,7 +100,7 @@ public class Analyzer
             {
                 engine.QueueInput(input);
             }
-            engine.UpdateEngine();
+            engine.UpdateEngineInputs();
         }
         else
         {
@@ -119,14 +119,7 @@ public class Analyzer
                 }
 
                 // Run!
-                if (engine.IsInputQueued)
-                {
-                    engine.UpdateEngineInputs();
-                }
-                else
-                {
-                    engine.UpdateEngineToTime(frameTime);
-                }
+                engine.UpdateEngine(frameTime);
             }
         }
 

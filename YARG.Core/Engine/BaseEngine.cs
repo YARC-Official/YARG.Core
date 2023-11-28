@@ -87,7 +87,16 @@ namespace YARG.Core.Engine
         }
 
         /// <summary>
-        /// Updates the engine and processes all inputs currently queued.
+        /// Updates the engine to the given time, processing any queued inputs along the way.
+        /// </summary>
+        public void UpdateEngine(double time)
+        {
+            ProcessInputs();
+            UpdateEngineToTime(time);
+        }
+
+        /// <summary>
+        /// Updates the engine using only the currently queued inputs.
         /// </summary>
         public void UpdateEngineInputs()
         {
