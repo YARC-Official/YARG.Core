@@ -35,7 +35,7 @@ public class Analyzer
 
     public void Run()
     {
-        RunAnalyzer(null);
+        RunAnalyzer(0, null);
     }
 
     public void RunWithSimulatedUpdates()
