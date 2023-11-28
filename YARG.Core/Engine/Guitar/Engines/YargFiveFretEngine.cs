@@ -30,7 +30,7 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                 State.ButtonMask = (byte) note.NoteMask;
                 State.StrummedThisUpdate = true;
-                State.FrontEndStartTime = note.Time;
+                State.FrontEndStartTime = State.CurrentTime;
 
                 foreach (var sustainNote in ActiveSustains)
                 {
@@ -83,13 +83,6 @@ namespace YARG.Core.Engine.Guitar.Engines
                 State.LastButtonMask = State.ButtonMask;
                 ToggleFret(CurrentInput.Action, CurrentInput.Button);
                 State.FrontEndStartTime = State.CurrentTime;
-                
-                EventLogger.LogEvent(new TimerEngineEvent(State.CurrentTime)
-                {
-                    TimerName = "FrontEnd",
-                    TimerStarted = true,
-                    TimerValue = Math.Abs(EngineParameters.FrontEnd),
-                });
             }
 
             if (State.ButtonMask != State.TapButtonMask)
@@ -108,7 +101,7 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                 // Use small leniency (in case no notes in window or last note)
                 State.StrumLeniencyTimer.StartWithOffset(State.CurrentTime, EngineParameters.StrumLeniencySmall);
-                
+
                 EventLogger.LogEvent(new TimerEngineEvent(State.CurrentTime)
                 {
                     TimerName = "StrumLeniency",
@@ -130,7 +123,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             if (State.StrummedThisUpdate && IsNoteInWindow(note))
             {
                 State.StrumLeniencyTimer.Start(State.CurrentTime);
-                
+
                 EventLogger.LogEvent(new TimerEngineEvent(State.CurrentTime)
                 {
                     TimerName = "StrumLeniency",
@@ -217,18 +210,19 @@ namespace YARG.Core.Engine.Guitar.Engines
         protected override bool CheckForNoteHit()
         {
             var note = Notes[State.NoteIndex];
+            double fullWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
 
             if (note.WasHit || note.WasMissed)
             {
                 return false;
             }
 
-            if (State.CurrentTime < note.Time + EngineParameters.FrontEnd)
+            if (State.CurrentTime < note.Time + EngineParameters.HitWindow.GetFrontEnd(fullWindow))
             {
                 return false;
             }
 
-            if (State.CurrentTime > note.Time + EngineParameters.BackEnd && !note.WasHit)
+            if (State.CurrentTime > note.Time + EngineParameters.HitWindow.GetBackEnd(fullWindow) && !note.WasHit)
             {
                 MissNote(note);
                 return true;
@@ -251,7 +245,8 @@ namespace YARG.Core.Engine.Guitar.Engines
                 var next = note.NextNote;
                 while (next is not null)
                 {
-                    if (State.CurrentTime < next.Time + EngineParameters.FrontEnd)
+                    double hitWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(next));
+                    if (State.CurrentTime < next.Time + EngineParameters.HitWindow.GetFrontEnd(hitWindow))
                     {
                         return false;
                     }
@@ -457,7 +452,10 @@ namespace YARG.Core.Engine.Guitar.Engines
                 // (tried to hit as a hammeron/pulloff)
                 // Also allows first note to be hit without infinite front end
 
-                double frontEndAbs = Math.Abs(EngineParameters.FrontEnd);
+                double hitWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
+                double frontEnd = EngineParameters.HitWindow.GetFrontEnd(hitWindow);
+
+                double frontEndAbs = Math.Abs(frontEnd);
                 bool frontEndExpired = EngineTimer.IsExpired(State.FrontEndStartTime, note.Time, frontEndAbs);
                 if (!EngineParameters.InfiniteFrontEnd && frontEndExpired && !strumLeniencyActive && State.NoteIndex > 0)
                 {
@@ -468,7 +466,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 if (((note.IsHopo && EngineStats.Combo > 0) || note.IsTap) && strumLeniencyActive)
                 {
                     State.StrumLeniencyTimer.StartWithOffset(State.CurrentTime, EngineParameters.StrumLeniencySmall);
-                    
+
                     EventLogger.LogEvent(new TimerEngineEvent(State.CurrentTime)
                     {
                         TimerName = "StrumLeniency",
@@ -480,7 +478,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 else
                 {
                     State.StrumLeniencyTimer.Reset();
-                    
+
                     EventLogger.LogEvent(new TimerEngineEvent(State.CurrentTime)
                     {
                         TimerName = "StrumLeniency",
@@ -490,7 +488,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 }
 
                 State.HopoLeniencyTimer.Start(State.CurrentTime);
-                
+
                 EventLogger.LogEvent(new TimerEngineEvent(State.CurrentTime)
                 {
                     TimerName = "HopoLeniency",
@@ -504,12 +502,12 @@ namespace YARG.Core.Engine.Guitar.Engines
                 State.TapButtonMask = 0;
 
                 // Does the same thing but ensures it still works when infinite front end is disabled
-                State.FrontEndStartTime = double.MaxValue;
+                EngineTimer.Reset(ref State.FrontEndStartTime);
 
                 State.WasHopoStrummed = false;
 
                 State.StrumLeniencyTimer.Reset();
-                
+
                 EventLogger.LogEvent(new TimerEngineEvent(State.CurrentTime)
                 {
                     TimerName = "StrumLeniency",

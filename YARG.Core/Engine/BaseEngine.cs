@@ -77,10 +77,12 @@ namespace YARG.Core.Engine
         public void QueueInput(GameInput input)
         {
             if (input.Time < BaseState.LastQueuedInputTime)
-                YargTrace.Fail($"Input time cannot go backwards! Previous queued input: {BaseState.LastQueuedInputTime}, input being queued: {input.Time}");
+                YargTrace.Fail(
+                    $"Input time cannot go backwards! Previous queued input: {BaseState.LastQueuedInputTime}, input being queued: {input.Time}");
 
             if (input.Time < BaseState.CurrentTime)
-                YargTrace.Fail($"Input time cannot go backwards! Current time: {BaseState.CurrentTime}, input being queued: {input.Time}");
+                YargTrace.Fail(
+                    $"Input time cannot go backwards! Current time: {BaseState.CurrentTime}, input being queued: {input.Time}");
 
             InputQueue.Enqueue(input);
             BaseState.LastQueuedInputTime = input.Time;
@@ -89,14 +91,13 @@ namespace YARG.Core.Engine
         /// <summary>
         /// Updates the engine and processes all inputs currently queued.
         /// </summary>
-        public void UpdateEngine()
+        public void UpdateEngineInputs()
         {
             if (!IsInputQueued)
             {
                 return;
             }
 
-            IsInputUpdate = true;
             ProcessInputs();
         }
 
@@ -104,13 +105,19 @@ namespace YARG.Core.Engine
         /// Updates the engine with no input processing.
         /// </summary>
         /// <param name="time">The time to simulate hit logic at.</param>
-        public void UpdateEngine(double time)
+        public void UpdateEngineToTime(double time)
         {
             IsInputUpdate = false;
+            UpdateUpToTime(time);
+        }
+
+        protected void RunHitLogic(double time)
+        {
             bool noteUpdated;
             do
             {
                 noteUpdated = UpdateHitLogic(time);
+                IsInputUpdate = false;
             } while (noteUpdated);
         }
 
@@ -122,18 +129,15 @@ namespace YARG.Core.Engine
             // Start to process inputs in queue.
             while (InputQueue.TryDequeue(out var input))
             {
-                // Execute a non-input update using the input 's time.
-                // This will update the engine to the time of the first input, missing notes before the input is processed
-                UpdateEngine(input.Time);
+                // This will update the engine to the time of the input.
+                // However, it does not use the input for the update.
+                IsInputUpdate = false;
+                UpdateUpToTime(input.Time);
 
+                // Process the input and run hit logic for it.
                 CurrentInput = input;
                 IsInputUpdate = true;
-                bool noteUpdated;
-                do
-                {
-                    noteUpdated = UpdateHitLogic(input.Time);
-                    IsInputUpdate = false;
-                } while (noteUpdated);
+                RunHitLogic(input.Time);
             }
         }
 
@@ -150,6 +154,8 @@ namespace YARG.Core.Engine
 
         public abstract void Reset(bool keepCurrentButtons = false);
 
+        protected abstract void UpdateUpToTime(double time);
+
         /// <summary>
         /// Executes engine logic with respect to the given time.
         /// </summary>
@@ -165,18 +171,11 @@ namespace YARG.Core.Engine
         /// <returns>The input index that was processed up to.</returns>
         public abstract int ProcessUpToTime(double time, IEnumerable<GameInput> inputs);
 
-        /// <summary>
-        /// Processes the list of inputs from the given start time to the given end time. Does not reset the engine's state.
-        /// </summary>
-        /// <param name="startTime">Time to begin processing from.</param>
-        /// <param name="endTime">Time to process up to.</param>
-        /// <param name="inputs">List of inputs to execute against.</param>
-        public abstract void ProcessFromTimeToTime(double startTime, double endTime, IEnumerable<GameInput> inputs);
+        public abstract (double FrontEnd, double BackEnd) CalculateHitWindow();
     }
 
-    public abstract class BaseEngine<TNoteType, TActionType, TEngineParams, TEngineStats, TEngineState> : BaseEngine
+    public abstract class BaseEngine<TNoteType, TEngineParams, TEngineStats, TEngineState> : BaseEngine
         where TNoteType : Note<TNoteType>
-        where TActionType : unmanaged, Enum
         where TEngineParams : BaseEngineParameters
         where TEngineStats : BaseStats, new()
         where TEngineState : BaseEngineState, new()
@@ -238,6 +237,32 @@ namespace YARG.Core.Engine
             Solos = GetSoloSections();
         }
 
+        protected override void UpdateUpToTime(double time)
+        {
+            var currentTime = State.CurrentTime;
+
+            var noteUpdateIndex = State.NoteIndex;
+
+            // Get the index of the next note to update to
+            while (noteUpdateIndex < Notes.Count && currentTime > Notes[noteUpdateIndex].Time)
+            {
+                noteUpdateIndex++;
+            }
+
+            // Update the engine to the next note
+            while (noteUpdateIndex < Notes.Count && Notes[noteUpdateIndex].Time < time)
+            {
+                RunHitLogic(Notes[noteUpdateIndex].Time);
+
+                // Move to the next note
+                noteUpdateIndex++;
+            }
+
+            // Updated to the last note before the given time
+            // Now we update the engine to the given time
+            RunHitLogic(time);
+        }
+
         protected void UpdateTimeVariables(double time)
         {
             if (time < State.CurrentTime)
@@ -249,7 +274,7 @@ namespace YARG.Core.Engine
                 State.LastUpdateTime = State.CurrentTime;
                 State.LastTick = State.CurrentTick;
             }
-            
+
             State.CurrentTime = time;
             State.CurrentTick = GetCurrentTick(time);
 
@@ -273,7 +298,7 @@ namespace YARG.Core.Engine
 
             State.Reset();
             EngineStats.Reset();
-            
+
             EventLogger.Clear();
 
             foreach (var note in Notes)
@@ -402,7 +427,7 @@ namespace YARG.Core.Engine
                 {
                     IsActive = false,
                 });
-                
+
                 EngineStats.StarPowerAmount = 0;
                 EngineStats.IsStarPowerActive = false;
                 UpdateMultiplier();
@@ -416,7 +441,7 @@ namespace YARG.Core.Engine
             {
                 return;
             }
-            
+
             EventLogger.LogEvent(new StarPowerEngineEvent(State.CurrentTime)
             {
                 IsActive = true,
@@ -461,18 +486,18 @@ namespace YARG.Core.Engine
             else
             {
                 double multiplier = Math.Clamp((soloPercentage - 0.6) / 0.4, 0, 1);
-                
+
                 // Old engine says this is 200 *, but I'm not sure that's right?? Isn't it 2x the note's worth, not 4x?
                 double points = 100 * currentSolo.NotesHit * multiplier;
 
                 // Round down to nearest 50 (kinda just makes sense I think?)
                 points -= points % 50;
-                
+
                 currentSolo.SoloBonus = (int) points;
             }
 
             EngineStats.SoloBonuses += currentSolo.SoloBonus;
-            
+
             State.IsSoloActive = false;
 
             OnSoloEnd?.Invoke(Solos[State.CurrentSoloIndex]);
@@ -484,8 +509,10 @@ namespace YARG.Core.Engine
             Reset();
 
             var inputIndex = 0;
+            double lastInputTime = 0;
             foreach (var input in inputs)
             {
+                lastInputTime = input.Time;
                 if (input.Time > time)
                 {
                     break;
@@ -497,20 +524,59 @@ namespace YARG.Core.Engine
 
             ProcessInputs();
 
+            if (lastInputTime < time)
+            {
+                UpdateEngineToTime(time);
+            }
+
             return inputIndex;
         }
 
-        public override void ProcessFromTimeToTime(double startTime, double endTime, IEnumerable<GameInput> inputs)
+        public sealed override (double FrontEnd, double BackEnd) CalculateHitWindow()
         {
-            throw new NotImplementedException();
+            var maxWindow = EngineParameters.HitWindow.MaxWindow;
+
+            if (State.NoteIndex >= Notes.Count)
+            {
+                return (EngineParameters.HitWindow.GetFrontEnd(maxWindow),
+                    EngineParameters.HitWindow.GetBackEnd(maxWindow));
+            }
+
+            var noteDistance = GetAverageNoteDistance(Notes[State.NoteIndex]);
+            var hitWindow = EngineParameters.HitWindow.CalculateHitWindow(noteDistance);
+
+            return (EngineParameters.HitWindow.GetFrontEnd(hitWindow),
+                EngineParameters.HitWindow.GetBackEnd(hitWindow));
         }
 
         protected abstract int CalculateBaseScore();
 
         protected bool IsNoteInWindow(TNoteType note)
         {
-            return note.Time - State.CurrentTime < EngineParameters.BackEnd &&
-                note.Time - State.CurrentTime > EngineParameters.FrontEnd;
+            double hitWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
+
+            return note.Time - State.CurrentTime < EngineParameters.HitWindow.GetFrontEnd(hitWindow) &&
+                note.Time - State.CurrentTime > EngineParameters.HitWindow.GetBackEnd(hitWindow);
+        }
+
+        public double GetAverageNoteDistance(TNoteType note)
+        {
+            int noteCount = 0;
+            double totalDistance = 0;
+
+            if (note.PreviousNote is not null)
+            {
+                totalDistance += note.Time - note.PreviousNote.Time;
+                noteCount++;
+            }
+
+            if (note.NextNote is not null)
+            {
+                totalDistance += note.NextNote.Time - note.Time;
+                noteCount++;
+            }
+
+            return totalDistance / noteCount;
         }
 
         private List<SoloSection> GetSoloSections()

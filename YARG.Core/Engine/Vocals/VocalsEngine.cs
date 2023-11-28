@@ -1,11 +1,10 @@
 ﻿using System.Linq;
 using YARG.Core.Chart;
-using YARG.Core.Input;
 
 namespace YARG.Core.Engine.Vocals
 {
     public abstract class VocalsEngine :
-        BaseEngine<VocalNote, VocalsAction, VocalsEngineParameters, VocalsStats, VocalsEngineState>
+        BaseEngine<VocalNote, VocalsEngineParameters, VocalsStats, VocalsEngineState>
     {
         public delegate void TargetNoteChangeEvent(VocalNote targetNote);
 

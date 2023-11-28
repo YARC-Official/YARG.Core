@@ -20,9 +20,9 @@ namespace YARG.Core.Engine.Drums
         {
         }
 
-        public DrumsEngineParameters(double hitWindow, double frontBackRatio, float[] starMultiplierThresholds,
+        public DrumsEngineParameters(HitWindowSettings hitWindow, float[] starMultiplierThresholds,
             DrumMode mode)
-            : base(hitWindow, frontBackRatio, starMultiplierThresholds)
+            : base(hitWindow, starMultiplierThresholds)
         {
             Mode = mode;
         }

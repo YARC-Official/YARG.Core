@@ -6,25 +6,7 @@ namespace YARG.Core.Engine
 {
     public abstract class BaseEngineParameters : IBinarySerializable
     {
-        /// <summary>
-        /// The total width of the hit window.
-        /// </summary>
-        public double HitWindow        { get; private set; }
-
-        /// <summary>
-        /// The front to back ratio of the hit window.
-        /// </summary>
-        public double FrontToBackRatio { get; private set; }
-
-        /// <summary>
-        /// How much time ahead of the strikeline can a note be hit. This value is always negative.
-        /// </summary>
-        public double FrontEnd { get; private set; }
-
-        /// <summary>
-        /// How much time behind the strikeline can a note be hit. This value is always positive.
-        /// </summary>
-        public double BackEnd { get; private set; }
+        public HitWindowSettings HitWindow { get; private set;}
 
         public float[] StarMultiplierThresholds { get; private set; }
 
@@ -33,20 +15,15 @@ namespace YARG.Core.Engine
             StarMultiplierThresholds = Array.Empty<float>();
         }
 
-        protected BaseEngineParameters(double hitWindow, double frontBackRatio, float[] starMultiplierThresholds)
+        protected BaseEngineParameters(HitWindowSettings hitWindow, float[] starMultiplierThresholds)
         {
             HitWindow = hitWindow;
-            FrontToBackRatio = frontBackRatio;
             StarMultiplierThresholds = starMultiplierThresholds;
-
-            FrontEnd = -(Math.Abs(HitWindow / 2) * FrontToBackRatio);
-            BackEnd = Math.Abs(HitWindow / 2) * (2 - FrontToBackRatio);
         }
 
         public virtual void Serialize(BinaryWriter writer)
         {
-            writer.Write(FrontEnd);
-            writer.Write(BackEnd);
+            HitWindow.Serialize(writer);
 
             // Write star multiplier thresholds
             writer.Write(StarMultiplierThresholds.Length);
@@ -58,8 +35,8 @@ namespace YARG.Core.Engine
 
         public virtual void Deserialize(BinaryReader reader, int version = 0)
         {
-            FrontEnd = reader.ReadDouble();
-            BackEnd = reader.ReadDouble();
+            HitWindow = new HitWindowSettings();
+            HitWindow.Deserialize(reader, version);
 
             // Read star multiplier thresholds
             StarMultiplierThresholds = new float[reader.ReadInt32()];
@@ -67,9 +44,6 @@ namespace YARG.Core.Engine
             {
                 StarMultiplierThresholds[i] = reader.ReadSingle();
             }
-
-            HitWindow = Math.Abs(FrontEnd) + Math.Abs(BackEnd);
-            FrontToBackRatio = Math.Abs(FrontEnd) / Math.Abs(BackEnd);
         }
     }
 }
