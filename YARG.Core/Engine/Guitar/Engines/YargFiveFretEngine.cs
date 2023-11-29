@@ -30,7 +30,7 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                 State.ButtonMask = (byte) note.NoteMask;
                 State.StrummedThisUpdate = true;
-                State.FrontEndStartTime = State.CurrentTime;
+                State.FrontEndStartTime = note.Time;
 
                 foreach (var sustainNote in ActiveSustains)
                 {
@@ -272,8 +272,8 @@ namespace YARG.Core.Engine.Guitar.Engines
 
             // Handles hitting a hopo/tap notes
             // If first note is a hopo then it can be hit without combo (for practice mode)
-            if ((State.TapButtonMask == 0 && note.IsTap ||
-                    (note.IsHopo && (EngineStats.Combo > 0 || State.NoteIndex == 0))) && !State.WasNoteGhosted)
+            bool hopoCondition = note.IsHopo && (EngineStats.Combo > 0 || State.NoteIndex == 0);
+            if (State.TapButtonMask == 0 && (hopoCondition || note.IsTap) && !State.WasNoteGhosted)
             {
                 return HitNote(note);
             }
