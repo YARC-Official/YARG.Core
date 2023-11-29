@@ -5,6 +5,7 @@ using YARG.Core.Engine.Drums;
 using YARG.Core.Engine.Drums.Engines;
 using YARG.Core.Engine.Guitar;
 using YARG.Core.Engine.Guitar.Engines;
+using YARG.Core.Engine.Logging;
 using YARG.Core.Engine.Vocals;
 using YARG.Core.Engine.Vocals.Engines;
 using YARG.Core.Input;
@@ -19,10 +20,12 @@ public class Analyzer
     private readonly SongChart _chart;
     private readonly Replay    _replay;
 
-    private int                _currentBandScore;
-    private readonly List<int> _bandScores = new();
+    private          int           _currentBandScore;
+    private readonly Dictionary<int, int> _bandScores = new();
 
-    public IReadOnlyList<int> BandScores => _bandScores;
+    public IReadOnlyDictionary<int, int> BandScores => _bandScores;
+
+    public EngineEventLogger EventLog;
 
     public Analyzer(SongChart chart, Replay replay)
     {
@@ -32,7 +35,7 @@ public class Analyzer
 
     public void Run()
     {
-        RunAnalyzer(null);
+        RunAnalyzer(0, null);
     }
 
     public void RunWithSimulatedUpdates()
@@ -44,23 +47,33 @@ public class Analyzer
 
             // Populate with a fps
             int fps = i * 2 + 1;
-            double secondsPerFrame = 1.0 / fps;
-            double endTime = _chart.GetEndTime();
-            for (double time = 0; time < endTime; time += secondsPerFrame)
-            {
-                // Add a little bit of inconsistency
-                randomValues.Add(time + (random.NextDouble() - 0.5) * secondsPerFrame);
-            }
-
-            // Sort
-            randomValues.Sort();
+            randomValues.AddRange(GenerateFrameTimes(fps));
 
             Console.WriteLine($"> Running at {fps} FPS");
-            RunAnalyzer(randomValues);
+            RunAnalyzer(fps, randomValues);
         }
     }
 
-    private void RunAnalyzer(IReadOnlyList<double> frameUpdates)
+    private List<double> GenerateFrameTimes(int fps)
+    {
+        var random = new Random();
+        var frameTimes = new List<double>();
+
+        double secondsPerFrame = 1.0 / fps;
+        double endTime = _chart.GetEndTime();
+        for (double time = -2; time < endTime; time += secondsPerFrame)
+        {
+            // Add a little bit of inconsistency
+            frameTimes.Add(time + (random.NextDouble() - 0.5) * secondsPerFrame);
+        }
+
+        // Sort
+        frameTimes.Sort();
+
+        return frameTimes;
+    }
+
+    private void RunAnalyzer(int fps, IReadOnlyList<double> frameUpdates)
     {
         _currentBandScore = 0;
 
@@ -68,14 +81,16 @@ public class Analyzer
         foreach (var frame in _replay.Frames)
         {
             RunFrame(frame, frameUpdates);
+            break;
         }
 
-        _bandScores.Add(_currentBandScore);
+        _bandScores.Add(fps, _currentBandScore);
     }
 
     private void RunFrame(ReplayFrame replayFrame, IReadOnlyList<double> frameUpdates)
     {
         var engine = CreateEngine(replayFrame);
+        engine.Reset();
 
         Console.WriteLine($"> Running for {replayFrame.PlayerInfo.Profile.Name}...");
 
@@ -86,7 +101,8 @@ public class Analyzer
             {
                 engine.QueueInput(input);
             }
-            engine.UpdateEngine();
+
+            engine.UpdateEngineInputs();
         }
         else
         {
@@ -107,11 +123,11 @@ public class Analyzer
                 // Run!
                 if (engine.IsInputQueued)
                 {
-                    engine.UpdateEngine();
+                    engine.UpdateEngineInputs();
                 }
                 else
                 {
-                    engine.UpdateEngine(frameTime);
+                    engine.UpdateEngineToTime(frameTime);
                 }
             }
         }
@@ -120,6 +136,8 @@ public class Analyzer
         int score = GetScore(engine, replayFrame);
         Console.WriteLine($"> Done running for {replayFrame.PlayerInfo.Profile.Name}, final score: {score}");
         _currentBandScore += score;
+
+        EventLog = engine.EventLogger;
     }
 
     private BaseEngine CreateEngine(ReplayFrame replayFrame)

@@ -78,8 +78,10 @@ namespace YARG.Core.Engine.Drums.Engines
 
             var note = Notes[State.NoteIndex];
 
+            double hitWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
+
             // Miss notes (back end)
-            if (State.CurrentTime > note.Time + EngineParameters.BackEnd)
+            if (State.CurrentTime > note.Time + EngineParameters.HitWindow.GetBackEnd(hitWindow))
             {
                 foreach (var chordNote in note.ChordEnumerator())
                 {
@@ -127,7 +129,9 @@ namespace YARG.Core.Engine.Drums.Engines
 
         protected bool CheckForNoteHit(DrumNote note)
         {
-            if (State.CurrentTime < note.Time + EngineParameters.FrontEnd)
+            double hitWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
+
+            if (State.CurrentTime < note.Time + EngineParameters.HitWindow.GetFrontEnd(hitWindow))
             {
                 return false;
             }

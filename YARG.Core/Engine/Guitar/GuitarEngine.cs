@@ -6,7 +6,7 @@ using YARG.Core.Input;
 
 namespace YARG.Core.Engine.Guitar
 {
-    public abstract class GuitarEngine : BaseEngine<GuitarNote, GuitarAction, GuitarEngineParameters,
+    public abstract class GuitarEngine : BaseEngine<GuitarNote, GuitarEngineParameters,
         GuitarStats, GuitarEngineState>
     {
         public delegate void OverstrumEvent();
@@ -107,7 +107,7 @@ namespace YARG.Core.Engine.Guitar
                     WasHit = false,
                     WasSkipped = true,
                 });
-                
+
                 prevNote = prevNote.PreviousNote;
             }
 
@@ -175,7 +175,7 @@ namespace YARG.Core.Engine.Guitar
                 WasHit = true,
                 WasSkipped = skipped,
             });
-            
+
             OnNoteHit?.Invoke(State.NoteIndex, note);
             State.NoteIndex++;
             return true;
@@ -215,7 +215,7 @@ namespace YARG.Core.Engine.Guitar
                 WasHit = false,
                 WasSkipped = false,
             });
-            
+
             OnNoteMissed?.Invoke(State.NoteIndex, note);
             State.NoteIndex++;
         }

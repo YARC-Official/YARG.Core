@@ -185,7 +185,7 @@ namespace YARG.Core.Engine.Vocals.Engines
             float dist = Math.Abs(singPitch - notePitch);
 
             // Try to check once within the range and...
-            if (dist <= EngineParameters.HitWindow)
+            if (dist <= EngineParameters.HitWindow.MaxWindow)
             {
                 return true;
             }
@@ -193,7 +193,7 @@ namespace YARG.Core.Engine.Vocals.Engines
             // ...try again twelve notes (one octave) away.
             // This effectively allows wrapping in the check. Only subtraction is needed
             // since we take the absolute value before hand and now.
-            if (Math.Abs(dist - 12f) <= EngineParameters.HitWindow)
+            if (Math.Abs(dist - 12f) <= EngineParameters.HitWindow.MaxWindow)
             {
                 return true;
             }

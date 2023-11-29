@@ -23,9 +23,9 @@ namespace YARG.Core.Engine.Vocals
         {
         }
 
-        public VocalsEngineParameters(double hitWindow, double phraseHitPercent, bool singToActivateStarpower,
+        public VocalsEngineParameters(HitWindowSettings hitWindow, double phraseHitPercent, bool singToActivateStarpower,
             double approximateVocalFps, float[] starMultiplierThresholds)
-            : base(hitWindow, 1f, starMultiplierThresholds)
+            : base(hitWindow, starMultiplierThresholds)
         {
             PhraseHitPercent = phraseHitPercent;
             ApproximateVocalFps = approximateVocalFps;

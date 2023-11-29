@@ -4,7 +4,7 @@ using YARG.Core.Input;
 
 namespace YARG.Core.Engine.Drums
 {
-    public abstract class DrumsEngine : BaseEngine<DrumNote, DrumsAction, DrumsEngineParameters,
+    public abstract class DrumsEngine : BaseEngine<DrumNote, DrumsEngineParameters,
         DrumsStats, DrumsEngineState>
     {
         public delegate void OverhitEvent();
