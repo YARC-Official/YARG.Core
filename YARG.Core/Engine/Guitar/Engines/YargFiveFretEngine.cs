@@ -83,7 +83,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 State.LastButtonMask = State.ButtonMask;
                 ToggleFret(CurrentInput.Action, CurrentInput.Button);
                 State.FrontEndStartTime = State.CurrentTime;
-                
+
                 EventLogger.LogEvent(new TimerEngineEvent(State.CurrentTime)
                 {
                     TimerName = "FrontEnd",
@@ -108,7 +108,7 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                 // Use small leniency (in case no notes in window or last note)
                 State.StrumLeniencyTimer.StartWithOffset(State.CurrentTime, EngineParameters.StrumLeniencySmall);
-                
+
                 EventLogger.LogEvent(new TimerEngineEvent(State.CurrentTime)
                 {
                     TimerName = "StrumLeniency",
@@ -130,7 +130,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             if (State.StrummedThisUpdate && IsNoteInWindow(note))
             {
                 State.StrumLeniencyTimer.Start(State.CurrentTime);
-                
+
                 EventLogger.LogEvent(new TimerEngineEvent(State.CurrentTime)
                 {
                     TimerName = "StrumLeniency",
@@ -277,8 +277,8 @@ namespace YARG.Core.Engine.Guitar.Engines
 
             // Handles hitting a hopo/tap notes
             // If first note is a hopo then it can be hit without combo (for practice mode)
-            if ((State.TapButtonMask == 0 && note.IsTap ||
-                    (note.IsHopo && (EngineStats.Combo > 0 || State.NoteIndex == 0))) && !State.WasNoteGhosted)
+            bool hopoCondition = note.IsHopo && (EngineStats.Combo > 0 || State.NoteIndex == 0);
+            if (State.TapButtonMask == 0 && (hopoCondition || note.IsTap) && !State.WasNoteGhosted)
             {
                 return HitNote(note);
             }
@@ -468,7 +468,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 if (((note.IsHopo && EngineStats.Combo > 0) || note.IsTap) && strumLeniencyActive)
                 {
                     State.StrumLeniencyTimer.StartWithOffset(State.CurrentTime, EngineParameters.StrumLeniencySmall);
-                    
+
                     EventLogger.LogEvent(new TimerEngineEvent(State.CurrentTime)
                     {
                         TimerName = "StrumLeniency",
@@ -480,7 +480,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 else
                 {
                     State.StrumLeniencyTimer.Reset();
-                    
+
                     EventLogger.LogEvent(new TimerEngineEvent(State.CurrentTime)
                     {
                         TimerName = "StrumLeniency",
@@ -490,7 +490,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 }
 
                 State.HopoLeniencyTimer.Start(State.CurrentTime);
-                
+
                 EventLogger.LogEvent(new TimerEngineEvent(State.CurrentTime)
                 {
                     TimerName = "HopoLeniency",
@@ -509,7 +509,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 State.WasHopoStrummed = false;
 
                 State.StrumLeniencyTimer.Reset();
-                
+
                 EventLogger.LogEvent(new TimerEngineEvent(State.CurrentTime)
                 {
                     TimerName = "StrumLeniency",
