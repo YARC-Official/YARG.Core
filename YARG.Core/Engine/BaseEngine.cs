@@ -299,6 +299,9 @@ namespace YARG.Core.Engine
             // Rebase SP on time signature change
             if (previousTimeSigIndex != State.CurrentTimeSigIndex)
             {
+                // Update SP drain to ensure the base is accurate, e.g. if a time signature change happens
+                // after 4 measures of SP drainage, the base should be exactly 0.5
+                UpdateStarPowerAmount(currentTimeSig.Tick);
                 RebaseStarPower(currentTimeSig.Tick);
                 // Update ticks per measure *after* rebasing, otherwise SP won't update correctly
                 State.TicksEveryMeasure = currentTimeSig.GetTicksPerMeasure(SyncTrack);
@@ -319,7 +322,10 @@ namespace YARG.Core.Engine
             {
                 // Rebase again on misaligned time signatures
                 if (currentMeasureTick != currentTimeSig.Tick)
+                {
+                    UpdateStarPowerAmount(currentMeasureTick);
                     RebaseStarPower(currentMeasureTick);
+                }
                 State.TicksEveryMeasure = nextTimeSigTick - currentMeasureTick;
             }
         }
@@ -435,30 +441,30 @@ namespace YARG.Core.Engine
             OnStarPowerPhraseMissed?.Invoke(note);
         }
 
-        protected void RebaseStarPower(uint baseTick)
+        protected virtual void RebaseStarPower(uint baseTick)
         {
             if (baseTick < State.StarPowerBaseTick)
                 YargTrace.Fail($"Star Power base tick cannot go backwards! Went from {State.StarPowerBaseTick} to {baseTick}");
 
-            // Update SP drain to ensure the base is accurate
-            // E.g. if a time signature change happens after 4 measures of SP drainage,
-            // the base should be exactly 0.5
-            UpdateStarPowerDrain(baseTick);
             EngineStats.StarPowerBaseAmount = EngineStats.StarPowerAmount;
             State.StarPowerBaseTick = baseTick;
         }
 
-        protected double CalculateStarPowerProgress(uint tick)
+        protected double CalculateStarPowerProgress(uint tick, uint baseTick)
         {
-            return (tick - State.StarPowerBaseTick) / (double) State.TicksEveryMeasure * STAR_POWER_MEASURE_AMOUNT;
+            return (tick - baseTick) / (double) State.TicksEveryMeasure * STAR_POWER_MEASURE_AMOUNT;
         }
 
-        protected void UpdateStarPowerDrain(uint tick)
-        {
-            if (!EngineStats.IsStarPowerActive)
-                return;
+        protected virtual double CalculateStarPowerGain(uint tick) => 0;
 
-            EngineStats.StarPowerAmount = EngineStats.StarPowerBaseAmount - CalculateStarPowerProgress(tick);
+        protected virtual double CalculateStarPowerDrain(uint tick)
+            => EngineStats.IsStarPowerActive ? CalculateStarPowerProgress(tick, State.StarPowerBaseTick) : 0;
+
+        protected void UpdateStarPowerAmount(uint tick)
+        {
+            double gain = CalculateStarPowerGain(tick);
+            double drain = CalculateStarPowerDrain(tick);
+            EngineStats.StarPowerAmount = Math.Clamp(EngineStats.StarPowerBaseAmount + gain - drain, 0, 1);
         }
 
         protected void AwardStarPower(TNoteType note)
@@ -475,14 +481,9 @@ namespace YARG.Core.Engine
 
         protected void UpdateStarPower()
         {
-            if (!EngineStats.IsStarPowerActive)
-            {
-                return;
-            }
+            UpdateStarPowerAmount(State.CurrentTick);
 
-            UpdateStarPowerDrain(State.CurrentTick);
-
-            if (EngineStats.StarPowerAmount <= 0)
+            if (EngineStats.IsStarPowerActive && EngineStats.StarPowerAmount <= 0)
             {
                 EventLogger.LogEvent(new StarPowerEngineEvent(State.CurrentTime)
                 {
@@ -491,7 +492,6 @@ namespace YARG.Core.Engine
 
                 EngineStats.StarPowerAmount = 0;
                 EngineStats.IsStarPowerActive = false;
-                // Update bases last to prevent an SP drain update from occurring
                 RebaseStarPower(State.CurrentTick);
 
                 UpdateMultiplier();
@@ -511,7 +511,6 @@ namespace YARG.Core.Engine
                 IsActive = true,
             });
 
-            // Update bases first to prevent an SP drain update from occurring
             RebaseStarPower(State.CurrentTick);
             EngineStats.IsStarPowerActive = true;
 

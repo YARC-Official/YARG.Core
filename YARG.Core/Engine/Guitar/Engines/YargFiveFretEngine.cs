@@ -411,6 +411,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             // No sustains
             if (ActiveSustains.Count == 0)
             {
+                UpdateWhammyStarPower(spSustainsActive: false);
                 return;
             }
 
@@ -419,7 +420,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             {
                 var note = ActiveSustains[i];
 
-                isStarPowerSustainActive = note.IsStarPower || isStarPowerSustainActive;
+                isStarPowerSustainActive |= note.IsStarPower;
                 bool sustainEnded = State.CurrentTick > note.TickEnd;
 
                 if (!CanNoteBeHit(note) || sustainEnded)
@@ -430,15 +431,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 }
             }
 
-            if (isStarPowerSustainActive && CurrentInput.GetAction<GuitarAction>() == GuitarAction.Whammy)
-            {
-                EngineStats.StarPowerAmount += (State.CurrentTick - State.LastTick) /
-                    (double) (State.TicksEveryMeasure * STAR_POWER_MAX_MEASURES);
-                if (EngineStats.StarPowerAmount >= 1)
-                {
-                    EngineStats.StarPowerAmount = 1;
-                }
-            }
+            UpdateWhammyStarPower(isStarPowerSustainActive);
         }
 
         protected override bool HitNote(GuitarNote note)

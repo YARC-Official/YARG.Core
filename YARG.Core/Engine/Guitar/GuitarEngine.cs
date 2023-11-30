@@ -242,6 +242,40 @@ namespace YARG.Core.Engine.Guitar
             }
         }
 
+        protected override void RebaseStarPower(uint baseTick)
+        {
+            base.RebaseStarPower(baseTick);
+
+            State.StarPowerWhammyBaseTick = baseTick;
+        }
+
+        protected override double CalculateStarPowerGain(uint tick)
+            => State.StarPowerWhammyTimer.IsActive(State.CurrentTime) ?
+                CalculateStarPowerProgress(tick, State.StarPowerWhammyBaseTick) : 0;
+
+        protected void UpdateWhammyStarPower(bool spSustainsActive)
+        {
+            if (spSustainsActive)
+            {
+                if (CurrentInput.GetAction<GuitarAction>() == GuitarAction.Whammy)
+                {
+                    // Rebase when beginning to SP whammy
+                    if (!State.StarPowerWhammyTimer.IsActive(State.CurrentTime))
+                    {
+                        RebaseStarPower(State.CurrentTick);
+                    }
+
+                    State.StarPowerWhammyTimer.Start(State.CurrentTime);
+                }
+            }
+            // Rebase after SP whammy ends to commit the final amount to the base
+            else if (State.StarPowerWhammyTimer.IsActive(State.CurrentTime))
+            {
+                RebaseStarPower(State.CurrentTick);
+                State.StarPowerWhammyTimer.Reset();
+            }
+        }
+
         protected sealed override int CalculateBaseScore()
         {
             int score = 0;
