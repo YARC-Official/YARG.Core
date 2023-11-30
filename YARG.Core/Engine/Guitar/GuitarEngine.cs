@@ -251,7 +251,7 @@ namespace YARG.Core.Engine.Guitar
 
         protected override double CalculateStarPowerGain(uint tick)
             => State.StarPowerWhammyTimer.IsActive(State.CurrentTime) ?
-                CalculateStarPowerProgress(tick, State.StarPowerWhammyBaseTick) : 0;
+                CalculateStarPowerBeatProgress(tick, State.StarPowerWhammyBaseTick) : 0;
 
         protected void UpdateWhammyStarPower(bool spSustainsActive)
         {

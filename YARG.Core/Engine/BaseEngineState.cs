@@ -16,6 +16,7 @@
         public int CurrentTimeSigIndex;
         public int NextTimeSigIndex;
 
+        public uint TicksEveryBeat;
         public uint TicksEveryMeasure;
 
         public int CurrentSoloIndex;
@@ -41,6 +42,7 @@
             CurrentTimeSigIndex = 0;
             NextTimeSigIndex = 1;
 
+            TicksEveryBeat = 0;
             TicksEveryMeasure = 0;
 
             CurrentSoloIndex = 0;
