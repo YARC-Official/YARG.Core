@@ -17,7 +17,6 @@ namespace YARG.Core.Engine
         public double FrontToBackRatio { get; private set; }
 
         private double _minMaxWindowRatio;
-        private double _minOverFive;
 
         public HitWindowSettings(double maxWindow, double minWindow, double frontToBackRatio, bool isDynamic)
         {
@@ -33,7 +32,6 @@ namespace YARG.Core.Engine
             IsDynamic = isDynamic;
 
             _minMaxWindowRatio = MinWindow / MaxWindow;
-            _minOverFive = MinWindow / 5 * 1000;
         }
 
         public double GetFrontEnd(double fullWindow)
@@ -53,15 +51,51 @@ namespace YARG.Core.Engine
                 return MaxWindow;
             }
 
+            return Third_Yarg_Impl(averageTimeDistance);
+        }
+
+        private double Original_Yarg_Impl(double averageTimeDistance)
+        {
             averageTimeDistance *= 1000;
 
-            double sqrt = _minOverFive * Math.Sqrt(averageTimeDistance * _minMaxWindowRatio);
+            double sqrt = Math.Sqrt(averageTimeDistance + _minMaxWindowRatio);
+            double tenth = 0.1 * averageTimeDistance;
+            double realSize = tenth * sqrt + MinWindow * 1000;
+
+            realSize /= 1000;
+
+            return Math.Clamp(realSize, MinWindow, MaxWindow);
+        }
+
+        private double Second_Yarg_Impl(double averageTimeDistance)
+        {
+            averageTimeDistance *= 1000;
+
+            double minOverFive = MinWindow / 5 * 1000;
+
+            double sqrt = minOverFive * Math.Sqrt(averageTimeDistance * _minMaxWindowRatio);
             double eighthAverage = 0.125 * averageTimeDistance;
             double realSize = eighthAverage + sqrt + MinWindow * 1000;
 
             realSize /= 1000;
 
             return Math.Clamp(realSize, MinWindow, MaxWindow);
+        }
+
+        private double Third_Yarg_Impl(double averageTimeDistance)
+        {
+            averageTimeDistance *= 1000;
+
+            double realSize = Curve(Math.Sqrt(MinWindow * 1000 / 40) * averageTimeDistance) + MinWindow * 1000;
+
+            realSize /= 1000;
+
+            return Math.Clamp(realSize, MinWindow, MaxWindow);
+
+            static double Curve(double x)
+            {
+                return 0.2 * x + Math.Sqrt(17 * x);
+            }
         }
 
         public void Serialize(BinaryWriter writer)
@@ -80,7 +114,6 @@ namespace YARG.Core.Engine
             FrontToBackRatio = reader.ReadDouble();
 
             _minMaxWindowRatio = MinWindow / MaxWindow;
-            _minOverFive = MinWindow / 5 * 1000;
         }
     }
 }
