@@ -561,17 +561,21 @@ namespace YARG.Core.Engine
 
         public double GetAverageNoteDistance(TNoteType note)
         {
-            double currentToNext;
-            double previousToCurrent = currentToNext = EngineParameters.HitWindow.MaxWindow / 2;
+            double previousToCurrent;
+            double currentToNext = EngineParameters.HitWindow.MaxWindow / 2;
+
+            if (note.NextNote is not null)
+            {
+                currentToNext = (note.NextNote.Time - note.Time) / 2;
+            }
 
             if (note.PreviousNote is not null)
             {
                 previousToCurrent = (note.Time - note.PreviousNote.Time) / 2;
             }
-
-            if (note.NextNote is not null)
+            else
             {
-                currentToNext = (note.NextNote.Time - note.Time) / 2;
+                previousToCurrent = currentToNext;
             }
 
             return previousToCurrent + currentToNext;
