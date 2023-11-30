@@ -555,8 +555,8 @@ namespace YARG.Core.Engine
         {
             double hitWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
 
-            return note.Time - State.CurrentTime < EngineParameters.HitWindow.GetFrontEnd(hitWindow) &&
-                note.Time - State.CurrentTime > EngineParameters.HitWindow.GetBackEnd(hitWindow);
+            return note.Time - State.CurrentTime < EngineParameters.HitWindow.GetBackEnd(hitWindow) &&
+                note.Time - State.CurrentTime > EngineParameters.HitWindow.GetFrontEnd(hitWindow);
         }
 
         public double GetAverageNoteDistance(TNoteType note)
