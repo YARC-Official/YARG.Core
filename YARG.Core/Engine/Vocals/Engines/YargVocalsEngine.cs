@@ -80,7 +80,7 @@ namespace YARG.Core.Engine.Vocals.Engines
                 ActivateStarPower();
             }
 
-            DepleteStarPower(GetUsedStarPower());
+            UpdateStarPower();
 
             // Get the pitch this update
             if (IsInputUpdate && CurrentInput.GetAction<VocalsAction>() == VocalsAction.Pitch)

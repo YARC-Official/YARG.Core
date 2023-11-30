@@ -41,6 +41,12 @@ namespace YARG.Core.Engine
         public double StarPowerAmount;
 
         /// <summary>
+        /// Amount of Star Power/Overdrive the player had as of the most recent SP/OD rebase
+        /// (SP activation, time signature change, SP sustain whammy start).
+        /// </summary>
+        public double StarPowerBaseAmount;
+
+        /// <summary>
         /// True if the player currently has Star Power/Overdrive active.
         /// </summary>
         public bool IsStarPowerActive;
@@ -83,8 +89,11 @@ namespace YARG.Core.Engine
             ScoreMultiplier = stats.ScoreMultiplier;
             NotesHit = stats.NotesHit;
             NotesMissed = stats.NotesMissed;
+
             StarPowerAmount = stats.StarPowerAmount;
+            StarPowerBaseAmount = stats.StarPowerBaseAmount;
             IsStarPowerActive = stats.IsStarPowerActive;
+
             PhrasesHit = stats.PhrasesHit;
             PhrasesMissed = stats.PhrasesMissed;
             SoloBonuses = stats.SoloBonuses;
@@ -99,8 +108,11 @@ namespace YARG.Core.Engine
             ScoreMultiplier = 1;
             NotesHit = 0;
             NotesMissed = 0;
+
             StarPowerAmount = 0;
+            StarPowerBaseAmount = 0;
             IsStarPowerActive = false;
+
             PhrasesHit = 0;
             PhrasesMissed = 0;
             SoloBonuses = 0;
@@ -115,8 +127,11 @@ namespace YARG.Core.Engine
             writer.Write(ScoreMultiplier);
             writer.Write(NotesHit);
             writer.Write(NotesMissed);
+
             writer.Write(StarPowerAmount);
+            writer.Write(StarPowerBaseAmount);
             writer.Write(IsStarPowerActive);
+
             writer.Write(PhrasesHit);
             writer.Write(PhrasesMissed);
             writer.Write(SoloBonuses);
@@ -130,8 +145,11 @@ namespace YARG.Core.Engine
             ScoreMultiplier = reader.ReadInt32();
             NotesHit = reader.ReadInt32();
             NotesMissed = reader.ReadInt32();
+
             StarPowerAmount = reader.ReadDouble();
+            StarPowerBaseAmount = reader.ReadDouble();
             IsStarPowerActive = reader.ReadBoolean();
+
             PhrasesHit = reader.ReadInt32();
             PhrasesMissed = reader.ReadInt32();
             SoloBonuses = reader.ReadInt32();

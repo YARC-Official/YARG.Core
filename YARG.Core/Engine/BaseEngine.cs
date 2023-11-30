@@ -183,7 +183,11 @@ namespace YARG.Core.Engine
         protected const int POINTS_PER_NOTE = 50;
         protected const int POINTS_PER_BEAT = 25;
 
-        protected const double STAR_POWER_PHRASE_AMOUNT = 0.25;
+        protected const int STAR_POWER_MAX_MEASURES = 8;
+        protected const int STAR_POWER_PHRASE_MEASURE_COUNT = 2;
+
+        protected const double STAR_POWER_MEASURE_AMOUNT = 1.0 / STAR_POWER_MAX_MEASURES;
+        protected const double STAR_POWER_PHRASE_AMOUNT = STAR_POWER_PHRASE_MEASURE_COUNT * STAR_POWER_MEASURE_AMOUNT;
 
         public delegate void NoteHitEvent(int noteIndex, TNoteType note);
 
@@ -278,6 +282,7 @@ namespace YARG.Core.Engine
             State.CurrentTime = time;
             State.CurrentTick = GetCurrentTick(time);
 
+            int previousTimeSigIndex = State.CurrentTimeSigIndex;
             var timeSigs = SyncTrack.TimeSignatures;
             while (State.NextTimeSigIndex < timeSigs.Count && timeSigs[State.NextTimeSigIndex].Time < time)
             {
@@ -287,8 +292,36 @@ namespace YARG.Core.Engine
 
             var currentTimeSig = timeSigs[State.CurrentTimeSigIndex];
 
-            State.TicksEveryEightMeasures =
-                (uint) (Resolution * ((double) 4 / currentTimeSig.Denominator) * currentTimeSig.Numerator * 8);
+            // Set ticks per measure if it hasn't been set yet
+            if (State.TicksEveryMeasure == 0)
+                State.TicksEveryMeasure = currentTimeSig.GetTicksPerMeasure(SyncTrack);
+
+            // Rebase SP on time signature change
+            if (previousTimeSigIndex != State.CurrentTimeSigIndex)
+            {
+                RebaseStarPower(currentTimeSig.Tick);
+                // Update ticks per measure *after* rebasing, otherwise SP won't update correctly
+                State.TicksEveryMeasure = currentTimeSig.GetTicksPerMeasure(SyncTrack);
+            }
+
+            uint nextTimeSigTick;
+            if (State.NextTimeSigIndex < timeSigs.Count)
+                nextTimeSigTick = timeSigs[State.NextTimeSigIndex].Tick;
+            else
+                nextTimeSigTick = uint.MaxValue;
+
+            // Detect misaligned time signatures
+            uint measureCount = currentTimeSig.GetMeasureProgress(State.CurrentTick, SyncTrack).count;
+            uint currentMeasureTick = currentTimeSig.Tick + (State.TicksEveryMeasure * measureCount);
+            if ((currentMeasureTick + State.TicksEveryMeasure) > nextTimeSigTick &&
+                // Only do this once for the misaligned TS
+                State.TicksEveryMeasure != (nextTimeSigTick - currentMeasureTick))
+            {
+                // Rebase again on misaligned time signatures
+                if (currentMeasureTick != currentTimeSig.Tick)
+                    RebaseStarPower(currentMeasureTick);
+                State.TicksEveryMeasure = nextTimeSigTick - currentMeasureTick;
+            }
         }
 
         public override void Reset(bool keepCurrentButtons = false)
@@ -402,25 +435,53 @@ namespace YARG.Core.Engine
             OnStarPowerPhraseMissed?.Invoke(note);
         }
 
+        protected void RebaseStarPower(uint baseTick)
+        {
+            if (baseTick < State.StarPowerBaseTick)
+                YargTrace.Fail($"Star Power base tick cannot go backwards! Went from {State.StarPowerBaseTick} to {baseTick}");
+
+            // Update SP drain to ensure the base is accurate
+            // E.g. if a time signature change happens after 4 measures of SP drainage,
+            // the base should be exactly 0.5
+            UpdateStarPowerDrain(baseTick);
+            EngineStats.StarPowerBaseAmount = EngineStats.StarPowerAmount;
+            State.StarPowerBaseTick = baseTick;
+        }
+
+        protected double CalculateStarPowerProgress(uint tick)
+        {
+            return (tick - State.StarPowerBaseTick) / (double) State.TicksEveryMeasure * STAR_POWER_MEASURE_AMOUNT;
+        }
+
+        protected void UpdateStarPowerDrain(uint tick)
+        {
+            if (!EngineStats.IsStarPowerActive)
+                return;
+
+            EngineStats.StarPowerAmount = EngineStats.StarPowerBaseAmount - CalculateStarPowerProgress(tick);
+        }
+
         protected void AwardStarPower(TNoteType note)
         {
             EngineStats.StarPowerAmount += STAR_POWER_PHRASE_AMOUNT;
-            if (EngineStats.StarPowerAmount >= 1)
+            if (EngineStats.StarPowerAmount > 1)
             {
                 EngineStats.StarPowerAmount = 1;
             }
 
+            RebaseStarPower(State.CurrentTick);
             OnStarPowerPhraseHit?.Invoke(note);
         }
 
-        protected void DepleteStarPower(double amount)
+        protected void UpdateStarPower()
         {
             if (!EngineStats.IsStarPowerActive)
             {
                 return;
             }
 
-            EngineStats.StarPowerAmount -= amount;
+            UpdateStarPowerDrain(State.CurrentTick);
+
             if (EngineStats.StarPowerAmount <= 0)
             {
                 EventLogger.LogEvent(new StarPowerEngineEvent(State.CurrentTime)
@@ -430,6 +491,9 @@ namespace YARG.Core.Engine
 
                 EngineStats.StarPowerAmount = 0;
                 EngineStats.IsStarPowerActive = false;
+                // Update bases last to prevent an SP drain update from occurring
+                RebaseStarPower(State.CurrentTick);
+
                 UpdateMultiplier();
                 OnStarPowerStatus?.Invoke(false);
             }
@@ -447,14 +511,12 @@ namespace YARG.Core.Engine
                 IsActive = true,
             });
 
+            // Update bases first to prevent an SP drain update from occurring
+            RebaseStarPower(State.CurrentTick);
             EngineStats.IsStarPowerActive = true;
+
             UpdateMultiplier();
             OnStarPowerStatus?.Invoke(true);
-        }
-
-        protected double GetUsedStarPower()
-        {
-            return (State.CurrentTick - State.LastTick) / (double) State.TicksEveryEightMeasures;
         }
 
         protected void StartSolo()

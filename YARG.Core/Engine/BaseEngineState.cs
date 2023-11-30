@@ -16,12 +16,15 @@
         public int CurrentTimeSigIndex;
         public int NextTimeSigIndex;
 
+        public uint TicksEveryMeasure;
+
         public int CurrentSoloIndex;
         public int CurrentStarIndex;
 
         public bool IsSoloActive;
 
-        public uint TicksEveryEightMeasures;
+        public bool IsStarPowerInputActive;
+        public uint StarPowerBaseTick;
 
         public virtual void Reset()
         {
@@ -38,12 +41,14 @@
             CurrentTimeSigIndex = 0;
             NextTimeSigIndex = 1;
 
+            TicksEveryMeasure = 0;
+
             CurrentSoloIndex = 0;
             CurrentStarIndex = 0;
 
             IsSoloActive = false;
 
-            TicksEveryEightMeasures = 0;
+            StarPowerBaseTick = 0;
         }
 
     }

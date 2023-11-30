@@ -71,7 +71,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 ActivateStarPower();
             }
 
-            DepleteStarPower(GetUsedStarPower());
+            UpdateStarPower();
 
             State.StrummedThisUpdate = (IsInputUpdate && IsStrumInput(CurrentInput) && CurrentInput.Button)
                 || (State.StrummedThisUpdate && IsBotUpdate);
@@ -432,7 +432,8 @@ namespace YARG.Core.Engine.Guitar.Engines
 
             if (isStarPowerSustainActive && CurrentInput.GetAction<GuitarAction>() == GuitarAction.Whammy)
             {
-                EngineStats.StarPowerAmount += (State.CurrentTick - State.LastTick) / (double)State.TicksEveryEightMeasures;
+                EngineStats.StarPowerAmount += (State.CurrentTick - State.LastTick) /
+                    (double) (State.TicksEveryMeasure * STAR_POWER_MAX_MEASURES);
                 if (EngineStats.StarPowerAmount >= 1)
                 {
                     EngineStats.StarPowerAmount = 1;
