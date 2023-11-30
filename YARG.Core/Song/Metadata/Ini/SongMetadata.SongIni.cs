@@ -72,7 +72,7 @@ namespace YARG.Core.Song
                 {
                     var parsed = System.IO.Directory.GetFiles(directory);
                     foreach (var file in parsed)
-                        files.Add(Path.GetFileName(file), file);
+                        files.Add(Path.GetFileName(file).ToLower(), file);
                 }
 
                 Dictionary<SongStem, Stream> streams = new();
@@ -99,7 +99,7 @@ namespace YARG.Core.Song
                 {
                     var parsed = System.IO.Directory.GetFiles(directory);
                     foreach (var file in parsed)
-                        files.Add(Path.GetFileName(file), file);
+                        files.Add(Path.GetFileName(file).ToLower(), file);
                 }
 
                 foreach (string albumFile in IIniMetadata.ALBUMART_FILES)
@@ -114,7 +114,7 @@ namespace YARG.Core.Song
                 {
                     var parsed = System.IO.Directory.GetFiles(directory);
                     foreach (var file in parsed)
-                        files.Add(Path.GetFileName(file), file);
+                        files.Add(Path.GetFileName(file).ToLower(), file);
                 }
 
                 if ((selections & BackgroundType.Yarground) > 0)
@@ -163,7 +163,7 @@ namespace YARG.Core.Song
             public static bool DoesSoloChartHaveAudio(string directory)
             {
                 foreach (string subFile in System.IO.Directory.EnumerateFileSystemEntries(directory))
-                    if (IniAudioChecker.IsAudioFile(Path.GetFileName(subFile)))
+                    if (IniAudioChecker.IsAudioFile(Path.GetFileName(subFile).ToLower()))
                         return true;
                 return false;
             }
