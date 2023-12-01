@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using YARG.Core.Chart;
 using YARG.Core.Engine.Logging;
@@ -300,11 +300,20 @@ namespace YARG.Core.Engine
 
             var currentTimeSig = timeSigs[State.CurrentTimeSigIndex];
 
+            YargTrace.DebugAssert(currentTimeSig.Numerator != 0, "Time signature numerator is 0! Ticks per beat/measure will be 0 after this");
+            YargTrace.DebugAssert(currentTimeSig.Denominator != 0, "Time signature denominator is 0! Ticks per beat/measure will be 0 after this");
+
             // Set ticks per beat/measure if they haven't been set yet
             if (State.TicksEveryBeat == 0)
+            {
                 State.TicksEveryBeat = currentTimeSig.GetTicksPerBeat(SyncTrack);
+                YargTrace.DebugAssert(State.TicksEveryBeat != 0, "Ticks per beat is 0! Star Power will be NaN after this");
+            }
             if (State.TicksEveryMeasure == 0)
+            {
                 State.TicksEveryMeasure = currentTimeSig.GetTicksPerMeasure(SyncTrack);
+                YargTrace.DebugAssert(State.TicksEveryMeasure != 0, "Ticks per measure is 0! Star Power will be NaN after this");
+            }
 
             // Rebase SP on time signature change
             if (previousTimeSigIndex != State.CurrentTimeSigIndex)
@@ -316,6 +325,8 @@ namespace YARG.Core.Engine
                 // Update ticks per beat/measure *after* rebasing, otherwise SP won't update correctly
                 State.TicksEveryBeat = currentTimeSig.GetTicksPerBeat(SyncTrack);
                 State.TicksEveryMeasure = currentTimeSig.GetTicksPerMeasure(SyncTrack);
+                YargTrace.DebugAssert(State.TicksEveryBeat != 0, "Ticks per beat is 0! Star Power will be NaN after this");
+                YargTrace.DebugAssert(State.TicksEveryMeasure != 0, "Ticks per measure is 0! Star Power will be NaN after this");
             }
 
             uint nextTimeSigTick;
@@ -338,6 +349,7 @@ namespace YARG.Core.Engine
                     RebaseStarPower(currentMeasureTick);
                 }
                 State.TicksEveryMeasure = nextTimeSigTick - currentMeasureTick;
+                YargTrace.DebugAssert(State.TicksEveryMeasure != 0, "Ticks per measure is 0! Star Power will be NaN after this");
             }
 
             // Handle the last beat of misaligned time signatures correctly
@@ -351,6 +363,7 @@ namespace YARG.Core.Engine
                 UpdateStarPowerAmount(currentBeatTick);
                 RebaseStarPower(currentBeatTick);
                 State.TicksEveryBeat = nextTimeSigTick - currentBeatTick;
+                YargTrace.DebugAssert(State.TicksEveryBeat != 0, "Ticks per beat is 0! Star Power will be NaN after this");
             }
         }
 
@@ -494,6 +507,11 @@ namespace YARG.Core.Engine
             double gain = CalculateStarPowerGain(tick);
             double drain = CalculateStarPowerDrain(tick);
             EngineStats.StarPowerAmount = Math.Clamp(EngineStats.StarPowerBaseAmount + gain - drain, 0, 1);
+
+            YargTrace.DebugAssert(!double.IsNaN(gain), "SP gain is NaN!");
+            YargTrace.DebugAssert(!double.IsNaN(drain), "SP drain is NaN!");
+            YargTrace.DebugAssert(!double.IsNaN(EngineStats.StarPowerBaseAmount), "SP base is NaN!");
+            YargTrace.DebugAssert(!double.IsNaN(EngineStats.StarPowerAmount), "SP amount is NaN!");
         }
 
         protected void AwardStarPower(TNoteType note)
