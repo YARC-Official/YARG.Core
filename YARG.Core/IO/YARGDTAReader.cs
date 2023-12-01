@@ -77,6 +77,7 @@ namespace YARG.Core.IO
                 ++container.Position;
                 if (!ch.IsAsciiWhitespace())
                 {
+                    // In comment
                     while (container.Position < container.Length)
                     {
                         if (container.Data[container.Position++] == '\n')

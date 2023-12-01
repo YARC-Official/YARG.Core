@@ -349,8 +349,15 @@ namespace YARG.Core.Song
             {
                 foreach (var update in updateList!)
                 {
-                    var updateResults = ParseDTA(nodeName, sharedMetadata, new YARGDTAReader(update.Item2));
-                    sharedMetadata.Update(update.Item1, nodeName, updateResults);
+                    try
+                    {
+                        var updateResults = ParseDTA(nodeName, sharedMetadata, new YARGDTAReader(update.Item2));
+                        sharedMetadata.Update(update.Item1, nodeName, updateResults);
+                    }
+                    catch (Exception ex)
+                    {
+                        YargTrace.LogException(ex, $"Error processing CON Update {update.Item1} - {nodeName}!");
+                    }
                 }
             }
         }
@@ -360,8 +367,15 @@ namespace YARG.Core.Song
             var sharedMetadata = _rbData!.SharedMetadata;
             if (upgrades.TryGetValue(nodeName, out var upgrade))
             {
-                sharedMetadata.Upgrade = upgrade.Item2;
-                ParseDTA(nodeName, sharedMetadata, new YARGDTAReader(upgrade.Item1!));
+                try
+                {
+                    ParseDTA(nodeName, sharedMetadata, new YARGDTAReader(upgrade.Item1!));
+                    sharedMetadata.Upgrade = upgrade.Item2;
+                }
+                catch (Exception ex)
+                {
+                    YargTrace.LogException(ex, $"Error processing CON Upgrade {nodeName}!");
+                }
             }
         }
 
