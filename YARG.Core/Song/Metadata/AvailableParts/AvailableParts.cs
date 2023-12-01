@@ -299,15 +299,11 @@ namespace YARG.Core.Song
 
         private void SetVocalsCount()
         {
-            if (HarmonyVocals.subTracks > 0)
-            {
-                int count = 0;
-                for (int i = 1; i < 8; i <<= 1)
-                    if ((HarmonyVocals.subTracks & i) > 0)
-                        ++count;
-                VocalsCount = count;
-            }
-            else if (LeadVocals.subTracks > 0)
+            if (HarmonyVocals[2])
+                VocalsCount = 3;
+            else if (HarmonyVocals[1])
+                VocalsCount = 2;
+            else if (HarmonyVocals[0] || LeadVocals[0])
                 VocalsCount = 1;
             else
                 VocalsCount = 0;
