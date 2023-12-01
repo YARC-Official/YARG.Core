@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using YARG.Core.Chart;
 using YARG.Core.Engine.Logging;
@@ -292,7 +292,7 @@ namespace YARG.Core.Engine
 
             int previousTimeSigIndex = State.CurrentTimeSigIndex;
             var timeSigs = SyncTrack.TimeSignatures;
-            while (State.NextTimeSigIndex < timeSigs.Count && timeSigs[State.NextTimeSigIndex].Time < time)
+            while (State.NextTimeSigIndex < timeSigs.Count && timeSigs[State.NextTimeSigIndex].Tick <= State.CurrentTick)
             {
                 State.CurrentTimeSigIndex++;
                 State.NextTimeSigIndex++;
