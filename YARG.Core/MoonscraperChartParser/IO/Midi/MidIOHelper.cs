@@ -2,8 +2,10 @@
 // See LICENSE in project root for license information.
 
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Melanchall.DryWetMidi.Core;
 using YARG.Core.Chart;
 
 namespace MoonscraperChartEditor.Song.IO
@@ -117,6 +119,20 @@ namespace MoonscraperChartEditor.Song.IO
         public const byte VELOCITY_GHOST = 1;         // fof/ps
 
         // Lookup tables
+        public static readonly HashSet<MidiEventType> DisallowedTextEventTypes = new()
+        {
+            // The track name must never be used for anything other than identifying which track is which
+            MidiEventType.SequenceTrackName,
+
+            // Some charters put copyright notices, these need to be ignored for parsing purposes
+            MidiEventType.CopyrightNotice,
+
+            // For now, there is no need to ignore any of these
+            // MidiEventType.CuePoint,
+            // MidiEventType.InstrumentName,
+            // MidiEventType.Marker,
+        };
+
         public static readonly Dictionary<string, MoonSong.MoonInstrument> TrackNameToInstrumentMap = new()
         {
             { GUITAR_TRACK,        MoonSong.MoonInstrument.Guitar },
@@ -247,6 +263,21 @@ namespace MoonscraperChartEditor.Song.IO
         {
             { LightingRegex,    (VENUE_LIGHTING_CONVERSION_LOOKUP, VenueLookup.Type.Lighting, VENUE_LIGHTING_DEFAULT) },
         };
+
+        public static bool IsTextEvent(MidiEvent trackEvent, [NotNullWhen(true)] out BaseTextEvent? text)
+        {
+            text = null;
+            if (DisallowedTextEventTypes.Contains(trackEvent.EventType))
+                return false;
+
+            if (trackEvent is BaseTextEvent txt)
+            {
+                text = txt;
+                return true;
+            }
+
+            return false;
+        }
 
         public static float GetHopoThreshold(ParseSettings settings, float resolution)
         {

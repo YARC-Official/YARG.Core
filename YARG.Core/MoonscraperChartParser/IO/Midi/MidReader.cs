@@ -230,7 +230,7 @@ namespace MoonscraperChartEditor.Song.IO
                 var trackEvent = track.Events[i];
                 absoluteTime += trackEvent.DeltaTime;
 
-                if (trackEvent is BaseTextEvent text)
+                if (MidIOHelper.IsTextEvent(trackEvent, out var text))
                 {
                     string eventText = text.Text;
                     // Strip off brackets and any garbage outside of them
@@ -268,7 +268,7 @@ namespace MoonscraperChartEditor.Song.IO
                 var trackEvent = track.Events[i];
                 absoluteTime += trackEvent.DeltaTime;
 
-                if (trackEvent is BaseTextEvent text && !text.Text.Contains('['))
+                if (MidIOHelper.IsTextEvent(trackEvent, out var text) && !text.Text.Contains('['))
                 {
                     string lyricEvent = TextEventDefinitions.LYRIC_PREFIX_WITH_SPACE + text.Text;
                     song.events.Add(new Event(lyricEvent, (uint)absoluteTime));
@@ -326,7 +326,7 @@ namespace MoonscraperChartEditor.Song.IO
                         song.venue.Add(new VenueEvent(eventData.type, eventData.text, (uint)startTick, (uint)(startTick - absoluteTime)));
                     }
                 }
-                else if (trackEvent is BaseTextEvent text)
+                else if (MidIOHelper.IsTextEvent(trackEvent, out var text))
                 {
                     string eventText = text.Text;
                     // Strip off brackets and any garbage outside of them
@@ -413,7 +413,7 @@ namespace MoonscraperChartEditor.Song.IO
                 {
                     ProcessNoteEvent(ref processParams, unpairedNoteQueue, note, absoluteTick);
                 }
-                else if (trackEvent is BaseTextEvent text)
+                else if (MidIOHelper.IsTextEvent(trackEvent, out var text))
                 {
                     ProcessTextEvent(ref processParams, text, absoluteTick);
                 }
