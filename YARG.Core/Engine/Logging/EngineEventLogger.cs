@@ -14,7 +14,7 @@ namespace YARG.Core.Engine.Logging
         {
             _events.Add(engineEvent);
         }
-        
+
         public void Clear()
         {
             _events.Clear();
@@ -35,33 +35,26 @@ namespace YARG.Core.Engine.Logging
             for (int i = 0; i < count; i++)
             {
                 var engineEvent = GetEventObjectFromType((EngineEventType) reader.ReadInt32());
-                
-                if(engineEvent is null)
-                    break;
-                
+
+                if (engineEvent is null) break;
+
                 engineEvent.Deserialize(reader, version);
-                
+
                 _events.Add(engineEvent);
             }
         }
 
         private static BaseEngineEvent? GetEventObjectFromType(EngineEventType type)
         {
-            switch (type)
+            return type switch
             {
-                case EngineEventType.Note:
-                    return new NoteEngineEvent(0);
-                // case EngineEventType.Sustain:
-                //     return new SustainEngineEvent(type, 0);
-                case EngineEventType.Timer:
-                    return new TimerEngineEvent(0);
-                case EngineEventType.Score:
-                    return new ScoreEngineEvent(0);
-                case EngineEventType.StarPower:
-                    return new StarPowerEngineEvent(0);
-                default:
-                    return null;
-            }
+                EngineEventType.Note      => new NoteEngineEvent(0),
+                //EngineEventType.Sustain => new SustainEngineEvent(type, 0),
+                EngineEventType.Timer     => new TimerEngineEvent(0),
+                EngineEventType.Score     => new ScoreEngineEvent(0),
+                EngineEventType.StarPower => new StarPowerEngineEvent(0),
+                _                         => null
+            };
         }
     }
 }

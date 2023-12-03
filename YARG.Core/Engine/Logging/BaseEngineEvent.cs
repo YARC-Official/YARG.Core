@@ -25,7 +25,7 @@ namespace YARG.Core.Engine.Logging
         public virtual void Deserialize(BinaryReader reader, int version = 0)
         {
             // Don't deserialize event type as it's done manually to determine object type
-            
+
             EventTime = reader.ReadDouble();
         }
 

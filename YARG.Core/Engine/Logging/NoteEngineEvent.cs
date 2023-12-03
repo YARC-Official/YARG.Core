@@ -20,13 +20,13 @@ namespace YARG.Core.Engine.Logging
         public override void Serialize(BinaryWriter writer)
         {
             base.Serialize(writer);
-            
+
             writer.Write(NoteTime);
             writer.Write(NoteLength);
-            
+
             writer.Write(NoteIndex);
             writer.Write(NoteMask);
-            
+
             writer.Write(WasHit);
             writer.Write(WasSkipped);
         }
@@ -34,13 +34,13 @@ namespace YARG.Core.Engine.Logging
         public override void Deserialize(BinaryReader reader, int version = 0)
         {
             base.Deserialize(reader, version);
-            
+
             NoteTime = reader.ReadDouble();
             NoteLength = reader.ReadDouble();
-            
+
             NoteIndex = reader.ReadInt32();
             NoteMask = reader.ReadInt32();
-            
+
             WasHit = reader.ReadBoolean();
             WasSkipped = reader.ReadBoolean();
         }

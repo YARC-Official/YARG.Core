@@ -20,7 +20,7 @@ namespace YARG.Core.Engine.Logging
         public override void Serialize(BinaryWriter writer)
         {
             base.Serialize(writer);
-            
+
             writer.Write(TimerName);
             writer.Write(TimerValue);
             writer.Write(TimerStarted);
@@ -31,7 +31,7 @@ namespace YARG.Core.Engine.Logging
         public override void Deserialize(BinaryReader reader, int version = 0)
         {
             base.Deserialize(reader, version);
-            
+
             TimerName = reader.ReadString();
             TimerValue = reader.ReadDouble();
             TimerStarted = reader.ReadBoolean();
