@@ -2,7 +2,6 @@
 {
     public class GuitarEngineState : BaseEngineState
     {
-
         public byte ButtonMask;
         public byte LastButtonMask;
         public byte TapButtonMask;
@@ -14,12 +13,17 @@
         public EngineTimer StrumLeniencyTimer;
         public EngineTimer HopoLeniencyTimer;
 
+        public EngineTimer StarPowerWhammyTimer;
+
         public double FrontEndStartTime;
+
+        public uint StarPowerWhammyBaseTick;
 
         public void Initialize(GuitarEngineParameters parameters)
         {
             StrumLeniencyTimer = new(parameters.StrumLeniency);
             HopoLeniencyTimer = new(parameters.HopoLeniency);
+            StarPowerWhammyTimer = new(parameters.StarPowerWhammyBuffer);
         }
 
         public override void Reset()
@@ -36,6 +40,7 @@
 
             StrumLeniencyTimer.Reset();
             HopoLeniencyTimer.Reset();
+            StarPowerWhammyTimer.Reset();
 
             FrontEndStartTime = 0;
         }

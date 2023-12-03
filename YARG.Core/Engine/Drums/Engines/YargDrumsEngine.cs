@@ -56,7 +56,7 @@ namespace YARG.Core.Engine.Drums.Engines
         {
             UpdateTimeVariables(time);
 
-            DepleteStarPower(GetUsedStarPower());
+            UpdateStarPower();
 
             // Get the pad hit this update
             if (IsInputUpdate && CurrentInput.Button)

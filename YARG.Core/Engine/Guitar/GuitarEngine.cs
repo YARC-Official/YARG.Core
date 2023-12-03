@@ -242,6 +242,52 @@ namespace YARG.Core.Engine.Guitar
             }
         }
 
+        protected override void RebaseStarPower(uint baseTick)
+        {
+            base.RebaseStarPower(baseTick);
+
+            State.StarPowerWhammyBaseTick = baseTick;
+        }
+
+        protected override double CalculateStarPowerGain(uint tick)
+            => State.StarPowerWhammyTimer.IsActive(State.CurrentTime) ?
+                CalculateStarPowerBeatProgress(tick, State.StarPowerWhammyBaseTick) : 0;
+
+        protected void UpdateWhammyStarPower(bool spSustainsActive)
+        {
+            if (spSustainsActive)
+            {
+                if (IsInputUpdate && CurrentInput.GetAction<GuitarAction>() == GuitarAction.Whammy)
+                {
+                    // Rebase when beginning to SP whammy
+                    if (!State.StarPowerWhammyTimer.IsActive(State.CurrentTime))
+                    {
+                        RebaseStarPower(State.CurrentTick);
+                    }
+
+                    State.StarPowerWhammyTimer.Start(State.CurrentTime);
+                }
+                else if (State.StarPowerWhammyTimer.IsExpired(State.CurrentTime))
+                {
+                    // Temporarily re-start whammy timer so that whammy gain gets calculated
+                    State.StarPowerWhammyTimer.Start(State.CurrentTime);
+
+                    // Commit final whammy gain amount
+                    UpdateStarPowerAmount(State.CurrentTick);
+                    RebaseStarPower(State.CurrentTick);
+
+                    // Stop whammy gain
+                    State.StarPowerWhammyTimer.Reset();
+                }
+            }
+            // Rebase after SP whammy ends to commit the final amount to the base
+            else if (State.StarPowerWhammyTimer.IsActive(State.CurrentTime))
+            {
+                RebaseStarPower(State.CurrentTick);
+                State.StarPowerWhammyTimer.Reset();
+            }
+        }
+
         protected sealed override int CalculateBaseScore()
         {
             int score = 0;
