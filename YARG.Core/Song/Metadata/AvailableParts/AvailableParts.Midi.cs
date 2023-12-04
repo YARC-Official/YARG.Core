@@ -15,10 +15,11 @@ namespace YARG.Core.Song
             YARGMidiFile midiFile = new(file);
             foreach (var track in midiFile)
             {
-                if (midiFile.TrackNumber == 1 || !track.FindTrackType(Encoding.ASCII, out var type))
+                if (midiFile.TrackNumber == 1)
                     continue;
 
-                if (type is MidiTrackType.Events or MidiTrackType.Beat)
+                var trackname = track.FindTrackName(Encoding.ASCII);
+                if (!YARGMidiTrack.TRACKNAMES.TryGetValue(trackname, out var type))
                     continue;
 
                 switch (type)
@@ -36,10 +37,10 @@ namespace YARG.Core.Song
 
                     case MidiTrackType.Drums: drums.ParseMidi(track); break;
 
-                    case MidiTrackType.Pro_Guitar_17: if (!ProGuitar_17Fret.WasParsed())   ProGuitar_17Fret.Difficulties    = Midi_ProGuitar_Preparser.Parse_17Fret(track); break;
-                    case MidiTrackType.Pro_Guitar_22: if (!ProGuitar_22Fret.WasParsed())   ProGuitar_22Fret.Difficulties    = Midi_ProGuitar_Preparser.Parse_22Fret(track); break;
-                    case MidiTrackType.Pro_Bass_17:   if (!ProBass_17Fret.WasParsed())     ProBass_17Fret.Difficulties      = Midi_ProGuitar_Preparser.Parse_17Fret(track); break;
-                    case MidiTrackType.Pro_Bass_22:   if (!ProBass_22Fret.WasParsed())     ProBass_22Fret.Difficulties      = Midi_ProGuitar_Preparser.Parse_22Fret(track); break;
+                    case MidiTrackType.Pro_Guitar_17: if (!ProGuitar_17Fret.WasParsed())   ProGuitar_17Fret.Difficulties = Midi_ProGuitar_Preparser.Parse_17Fret(track); break;
+                    case MidiTrackType.Pro_Guitar_22: if (!ProGuitar_22Fret.WasParsed())   ProGuitar_22Fret.Difficulties = Midi_ProGuitar_Preparser.Parse_22Fret(track); break;
+                    case MidiTrackType.Pro_Bass_17:   if (!ProBass_17Fret.WasParsed())     ProBass_17Fret.Difficulties   = Midi_ProGuitar_Preparser.Parse_17Fret(track); break;
+                    case MidiTrackType.Pro_Bass_22:   if (!ProBass_22Fret.WasParsed())     ProBass_22Fret.Difficulties   = Midi_ProGuitar_Preparser.Parse_22Fret(track); break;
 
                     case MidiTrackType.Pro_Keys_E: if (!ProKeys[Difficulty.Easy]   && Midi_ProKeys_Preparser.Parse(track)) ProKeys.SetDifficulty(Difficulty.Easy); break;
                     case MidiTrackType.Pro_Keys_M: if (!ProKeys[Difficulty.Medium] && Midi_ProKeys_Preparser.Parse(track)) ProKeys.SetDifficulty(Difficulty.Medium); break;

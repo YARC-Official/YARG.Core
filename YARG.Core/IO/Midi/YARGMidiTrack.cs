@@ -72,6 +72,21 @@ namespace YARG.Core.IO
             }
         }
 
+        public string FindTrackName(Encoding encoding)
+        {
+            string trackname = string.Empty;
+            while (ParseEvent(false) && _tickPosition == 0)
+            {
+                if (_event.Type == MidiEventType.Text_TrackName)
+                {
+                    trackname = encoding.GetString(ExtractTextOrSysEx());
+                    break;
+                }
+            }
+            Reset();
+            return trackname;
+        }
+
         private const int CHANNEL_MASK = 0x0F;
         private const int EVENTTYPE_MASK = 0xF0;
 
@@ -151,36 +166,6 @@ namespace YARG.Core.IO
             var span = _data.Span;
             note.value = span[_trackPos];
             note.velocity = span[_trackPos + 1];
-        }
-
-        public bool FindTrackType(Encoding encoding, out MidiTrackType trackType)
-        {
-            try
-            {
-                // The first event is not always the track name,
-                // so we need to search through everything at tick 0
-                while (ParseEvent(false) && _tickPosition == 0)
-                {
-                    if (_event.Type != MidiEventType.Text_TrackName)
-                        continue;
-
-                    // Unfortunately we cannot rely on the first event being the correct track name,
-                    // so we need to verify that it's a name we actually recognize
-                    string trackName = encoding.GetString(ExtractTextOrSysEx());
-                    if (TRACKNAMES.TryGetValue(trackName, out var type))
-                    {
-                        trackType = type;
-                        return true;
-                    }
-                }
-
-                trackType = default;
-                return false;
-            }
-            finally
-            {
-                Reset();
-            }
         }
 
         public void Reset()
