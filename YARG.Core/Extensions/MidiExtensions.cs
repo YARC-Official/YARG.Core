@@ -32,12 +32,17 @@ namespace YARG.Core.Extensions
 
         public static string GetTrackName(this TrackChunk track)
         {
-            // This should almost always only go through one iteration, but in the case that
-            // the track name isn't the first event exactly, it's probably good to have a bit of leniency
-            const int MAX_SEARCH = 5;
-            for (int i = 0; i < track.Events.Count && i < MAX_SEARCH; i++)
+            // The first event is not always the track name,
+            // so we need to search through everything at tick 0
+            for (int i = 0; i < track.Events.Count; i++)
             {
                 var midiEvent = track.Events[i];
+
+                // Search until the first event that's not at position 0,
+                // indicated by the first non-zero delta-time
+                if (midiEvent.DeltaTime != 0)
+                    break;
+
                 if (midiEvent.EventType == MidiEventType.SequenceTrackName &&
                     midiEvent is SequenceTrackNameEvent trackName)
                     return trackName.Text;

@@ -158,10 +158,8 @@ namespace YARG.Core.IO
             try
             {
                 // The first event is not always the track name,
-                // so we need to search through multiple events
-                // If we don't find it in 5 events, chances are it's not there
-                const int maxEventCount = 5;
-                for (int i = 0; i < maxEventCount && ParseEvent(false); i++)
+                // so we need to search through everything at tick 0
+                while (ParseEvent(false) && _tickPosition == 0)
                 {
                     if (_event.Type != MidiEventType.Text_TrackName)
                         continue;
