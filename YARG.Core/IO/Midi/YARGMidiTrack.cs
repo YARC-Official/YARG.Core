@@ -70,6 +70,7 @@ namespace YARG.Core.IO
             {
                 _data = stream.ReadBytes(count);
             }
+            _event.Type = _running.Type = MidiEventType.Reset_Or_Meta;
         }
 
         public string FindTrackName(Encoding encoding)
