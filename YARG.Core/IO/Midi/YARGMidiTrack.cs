@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using YARG.Core.Extensions;
 
 namespace YARG.Core.IO
@@ -68,14 +69,6 @@ namespace YARG.Core.IO
             else
             {
                 _data = stream.ReadBytes(count);
-            }
-
-            if (!ParseEvent(true) || _event.Type != MidiEventType.Text_TrackName)
-            {
-                _trackPos = 0;
-                _tickPosition = 0;
-                _event.Length = 0;
-                _event.Type = _running.Type = MidiEventType.Reset_Or_Meta;
             }
         }
 
@@ -158,6 +151,46 @@ namespace YARG.Core.IO
             var span = _data.Span;
             note.value = span[_trackPos];
             note.velocity = span[_trackPos + 1];
+        }
+
+        public bool FindTrackType(Encoding encoding, out MidiTrackType trackType)
+        {
+            try
+            {
+                // The first event is not always the track name,
+                // so we need to search through multiple events
+                // If we don't find it in 5 events, chances are it's not there
+                const int maxEventCount = 5;
+                for (int i = 0; i < maxEventCount && ParseEvent(false); i++)
+                {
+                    if (_event.Type != MidiEventType.Text_TrackName)
+                        continue;
+
+                    // Unfortunately we cannot rely on the first event being the correct track name,
+                    // so we need to verify that it's a name we actually recognize
+                    string trackName = encoding.GetString(ExtractTextOrSysEx());
+                    if (TRACKNAMES.TryGetValue(trackName, out var type))
+                    {
+                        trackType = type;
+                        return true;
+                    }
+                }
+
+                trackType = default;
+                return false;
+            }
+            finally
+            {
+                Reset();
+            }
+        }
+
+        public void Reset()
+        {
+            _trackPos = 0;
+            _tickPosition = 0;
+            _event.Length = 0;
+            _event.Type = _running.Type = MidiEventType.Reset_Or_Meta;
         }
 
         private const uint EXTENDED_VLQ_FLAG = 0x80;

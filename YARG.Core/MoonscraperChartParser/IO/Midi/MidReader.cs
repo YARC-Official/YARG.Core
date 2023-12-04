@@ -102,14 +102,8 @@ namespace MoonscraperChartEditor.Song.IO
                     continue;
                 }
 
-                if (track.Events[0] is not SequenceTrackNameEvent trackName)
-                {
-                    YargTrace.DebugWarning("Could not determine the name of a track! (Likely the tempo track)");
-                    continue;
-                }
-
-                string trackNameKey = trackName.Text.ToUpper();
-                switch (trackNameKey)
+                string trackName = track.GetTrackName();
+                switch (trackName)
                 {
                     case MidIOHelper.BEAT_TRACK:
                         ReadSongBeats(track, song);
@@ -130,15 +124,15 @@ namespace MoonscraperChartEditor.Song.IO
 
                     default:
                         MoonSong.MoonInstrument instrument;
-                        if (!MidIOHelper.TrackNameToInstrumentMap.TryGetValue(trackNameKey, out instrument))
+                        if (!MidIOHelper.TrackNameToInstrumentMap.TryGetValue(trackName, out instrument))
                         {
                             // Ignore unrecognized tracks
-                            YargTrace.DebugInfo($"Skipping unrecognized track {trackNameKey}");
+                            YargTrace.DebugInfo($"Skipping unrecognized track {trackName}");
                             continue;
                         }
                         else if (song.ChartExistsForInstrument(instrument))
                         {
-                            if (!TrackOverrides.TryGetValue(trackNameKey, out bool overwrite) || !overwrite)
+                            if (!TrackOverrides.TryGetValue(trackName, out bool overwrite) || !overwrite)
                                 continue;
 
                             // Overwrite existing track
@@ -149,7 +143,7 @@ namespace MoonscraperChartEditor.Song.IO
                             }
                         }
 
-                        YargTrace.DebugInfo($"Loading MIDI track {trackNameKey}");
+                        YargTrace.DebugInfo($"Loading MIDI track {trackName}");
                         ReadNotes(settings, track, song, instrument);
                         break;
                 }
