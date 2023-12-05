@@ -80,10 +80,10 @@ namespace YARG.Core.IO
             {
                 if (_event.Type == MidiEventType.Text_TrackName)
                 {
-                    if (trackname.Length > 0)
+                    string ev = encoding.GetString(ExtractTextOrSysEx());
+                    if (trackname.Length > 0 && trackname != ev)
                         throw new DuplicateTrackNameException();
-
-                    trackname = encoding.GetString(ExtractTextOrSysEx());
+                    trackname = ev;
                 }
             }
             Reset();
