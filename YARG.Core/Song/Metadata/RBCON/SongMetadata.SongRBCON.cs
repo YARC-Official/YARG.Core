@@ -336,6 +336,10 @@ namespace YARG.Core.Song
                 _hash = HashWrapper.Create(buffer);
                 return ScanResult.Success;
             }
+            catch (DuplicateTrackNameException)
+            {
+                return ScanResult.DuplicateMidiTrackNames;
+            }
             catch
             {
                 return ScanResult.PossibleCorruption;

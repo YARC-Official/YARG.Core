@@ -80,8 +80,10 @@ namespace YARG.Core.IO
             {
                 if (_event.Type == MidiEventType.Text_TrackName)
                 {
+                    if (trackname.Length > 0)
+                        throw new DuplicateTrackNameException();
+
                     trackname = encoding.GetString(ExtractTextOrSysEx());
-                    break;
                 }
             }
             Reset();
@@ -221,6 +223,10 @@ namespace YARG.Core.IO
                     throw new Exception("Invalid variable length quantity");
             }
         }
+    }
+
+    public sealed class DuplicateTrackNameException : Exception
+    {
     }
 
     public enum MidiTrackType

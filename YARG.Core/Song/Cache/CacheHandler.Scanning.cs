@@ -135,6 +135,11 @@ namespace YARG.Core.Song.Cache
                         YargTrace.LogWarning($"Path {chart.File} is too long for the file system!");
                         AddToBadSongs(chart.File, ScanResult.PathTooLong);
                     }
+                    catch (DuplicateTrackNameException)
+                    {
+                        YargTrace.LogWarning($"{chart.File} contains midi tracks with multiple tracknames!");
+                        AddToBadSongs(chart.File, ScanResult.DuplicateMidiTrackNames);
+                    }
                     catch (Exception e)
                     {
                         YargTrace.LogException(e, $"Error while scanning chart file {chart.File}!");
