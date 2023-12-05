@@ -150,6 +150,18 @@ namespace YARG.Core.Chart
                 }
             }
 
+            // Down-convert to standard 4-lane
+            if (_currentInstrument is Instrument.FourLaneDrums)
+            {
+                pad = pad switch
+                {
+                    FourLaneDrumPad.YellowCymbal => FourLaneDrumPad.YellowDrum,
+                    FourLaneDrumPad.BlueCymbal   => FourLaneDrumPad.BlueDrum,
+                    FourLaneDrumPad.GreenCymbal  => FourLaneDrumPad.GreenDrum,
+                    _ => pad
+                };
+            }
+
             return pad;
         }
 
