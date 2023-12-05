@@ -76,7 +76,7 @@ namespace YARG.Core.IO
         public string FindTrackName(Encoding encoding)
         {
             string trackname = string.Empty;
-            while (ParseEvent(false) && _tickPosition == 0)
+            while (ParseEvent(true) && _tickPosition == 0)
             {
                 if (_event.Type == MidiEventType.Text_TrackName)
                 {
