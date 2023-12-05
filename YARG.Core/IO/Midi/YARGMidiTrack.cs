@@ -82,7 +82,7 @@ namespace YARG.Core.IO
                 {
                     string ev = encoding.GetString(ExtractTextOrSysEx());
                     if (trackname.Length > 0 && trackname != ev)
-                        throw new DuplicateTrackNameException();
+                        throw new MultipleTrackNamesException();
                     trackname = ev;
                 }
             }
@@ -225,7 +225,7 @@ namespace YARG.Core.IO
         }
     }
 
-    public sealed class DuplicateTrackNameException : Exception
+    public sealed class MultipleTrackNamesException : Exception
     {
     }
 

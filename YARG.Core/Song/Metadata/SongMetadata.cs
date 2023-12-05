@@ -22,7 +22,7 @@ namespace YARG.Core.Song
 
         LooseChart_NoAudio,
         PathTooLong,
-        DuplicateMidiTrackNames
+        MultipleMidiTrackNames
     }
 
     /// <summary>
