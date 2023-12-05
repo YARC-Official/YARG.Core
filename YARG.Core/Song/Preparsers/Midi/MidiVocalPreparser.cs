@@ -53,7 +53,7 @@ namespace YARG.Core.Song
 
         protected override void ParseText(ReadOnlySpan<byte> str)
         {
-            if (str.Length != 0 && str[0] != '[')
+            if (str.Length == 0 || str[0] != '[')
                 lyric = true;
         }
     }
