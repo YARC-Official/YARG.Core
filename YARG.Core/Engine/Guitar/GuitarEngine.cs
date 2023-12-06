@@ -55,7 +55,7 @@ namespace YARG.Core.Engine.Guitar
             }
 
             // Cancel overstrum if past last note and no active sustains
-            if (State.NoteIndex >= Chart.Notes.Count - 1 && ActiveSustains.Count == 0)
+            if (State.NoteIndex >= Chart.Notes.Count && ActiveSustains.Count == 0)
             {
                 return;
             }
