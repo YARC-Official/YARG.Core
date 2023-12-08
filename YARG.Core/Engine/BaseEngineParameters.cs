@@ -35,8 +35,11 @@ namespace YARG.Core.Engine
 
         public virtual void Deserialize(BinaryReader reader, int version = 0)
         {
-            HitWindow = new HitWindowSettings();
-            HitWindow.Deserialize(reader, version);
+            // Since "HitWindow" is a property and returns
+            // a "temporary value," we gotta do this.
+            var hitWindow = new HitWindowSettings();
+            hitWindow.Deserialize(reader, version);
+            HitWindow = hitWindow;
 
             // Read star multiplier thresholds
             StarMultiplierThresholds = new float[reader.ReadInt32()];
