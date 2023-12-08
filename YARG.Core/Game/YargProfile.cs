@@ -29,6 +29,8 @@ namespace YARG.Core.Game
             set => InputCalibrationMilliseconds = (long) (value * 1000);
         }
 
+        public Guid EnginePreset;
+
         public Guid ThemePreset;
         public Guid ColorProfile;
         public Guid CameraPreset;
