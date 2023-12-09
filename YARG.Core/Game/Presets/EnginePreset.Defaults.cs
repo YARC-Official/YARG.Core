@@ -10,10 +10,10 @@ namespace YARG.Core.Game
         {
             FiveFretGuitar =
             {
-                StrumLeniency = 0.07,
-                StrumLeniencySmall = 0.03,
                 AntiGhosting = false,
-                InfiniteFrontEnd = true
+                InfiniteFrontEnd = true,
+                StrumLeniency = 0.07,
+                StrumLeniencySmall = 0.03
             }
         };
 
@@ -25,8 +25,8 @@ namespace YARG.Core.Game
                 StrumLeniencySmall = 0.02,
                 HitWindow =
                 {
-                    MaxWindow = 0.15,
-                    MinWindow = 0.13,
+                    MaxWindow = 0.13,
+                    MinWindow = 0.04,
                     IsDynamic = true,
                 }
             },
@@ -34,8 +34,8 @@ namespace YARG.Core.Game
             {
                 HitWindow =
                 {
-                    MaxWindow = 0.15,
-                    MinWindow = 0.13,
+                    MaxWindow = 0.13,
+                    MinWindow = 0.04,
                     IsDynamic = true,
                 }
             }
