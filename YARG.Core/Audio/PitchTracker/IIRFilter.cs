@@ -1,127 +1,119 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
-namespace YARG.Core.Audio.PitchDetection
+namespace YARG.Core.Audio
 {
-    enum IIRFilterType
+    /// <summary>
+    /// Available IIR filter types.
+    /// </summary>
+    internal enum IIRFilterType
     {
-        LP,
-        HP
+        LowPass,
+        HighPass
     }
 
     /// <summary>
-    /// Infinite impulse response filter (old style analog filters)
+    /// An infinite impulse response filter (old-style analog filter).
     /// </summary>
-    class IIRFilter
+    internal class IIRFilter
     {
-        const int kHistMask = 31, kHistSize = 32;
+        private const int HISTORY_MASK = 31, HISTORY_SIZE = 32;
+        private const int ORDER_MIN = 1, ORDER_MAX = 16;
 
-        int m_order;
-        IIRFilterType m_filterType;
+        private int _order;
+        private IIRFilterType _filterType;
 
-        float m_fp1, m_fp2, m_fN, m_sampleRate;
-        double[] m_real, m_imag, m_z, m_aCoeff, m_bCoeff, m_inHistory, m_outHistory;
-        int m_histIdx;
-        bool m_invertDenormal;
-
-        /// <summary>
-        /// Returns true if all the filter parameters are valid
-        /// </summary>
-        public bool FilterValid
-        {
-            get
-            {
-                if (m_order < 1 || m_order > 16 ||
-                    m_sampleRate <= 0 ||
-                    m_fN <= 0)
-                    return false;
-
-                switch (m_filterType)
-                {
-                    case IIRFilterType.LP:
-                        if (m_fp2 <= 0) return false;
-                        break;
-
-                    case IIRFilterType.HP:
-                        if (m_fp1 <= 0) return false;
-                        break;
-                }
-
-                return true;
-            }
-        }
+        private float _freqLow, _freqHigh, _freqMax, _sampleRate;
+        private double[] _real, _imag, _z, _aCoeff, _bCoeff;
+        private double[] _inHistory = new double[HISTORY_SIZE], _outHistory = new double[HISTORY_SIZE];
+        private int _histIdx;
+        private bool _invertDenormal;
 
         public float FreqLow
         {
-            get => m_fp1;
+            get => _freqLow;
             set
             {
-                m_fp1 = value;
+                if (value <= 0)
+                    throw new ArgumentOutOfRangeException(nameof(value));
+                _freqLow = value;
                 Design();
             }
         }
 
         public float FreqHigh
         {
-            get => m_fp2;
+            get => _freqHigh;
             set
             {
-                m_fp2 = value;
+                if (value <= 0)
+                    throw new ArgumentOutOfRangeException(nameof(value));
+                _freqHigh = value;
                 Design();
             }
         }
 
-        public IIRFilter(IIRFilterType type, int order, float sampleRate)
+        public IIRFilter(IIRFilterType type, int order, float freqLimit, float sampleRate)
         {
-            m_filterType = type;
+            if (order < ORDER_MIN || order > ORDER_MAX)
+                throw new ArgumentOutOfRangeException(nameof(order));
+            if (freqLimit <= 0)
+                throw new ArgumentOutOfRangeException(nameof(freqLimit));
+            if (sampleRate <= 0)
+                throw new ArgumentOutOfRangeException(nameof(sampleRate));
 
-            m_order = Math.Min(16, Math.Max(1, Math.Abs(order)));
+            _filterType = type;
 
-            m_sampleRate = sampleRate;
-            m_fN = 0.5f * m_sampleRate;
+            _order = Math.Clamp(Math.Abs(order), ORDER_MIN, ORDER_MAX);
+
+            switch (_filterType)
+            {
+                case IIRFilterType.LowPass:
+                    _freqHigh = freqLimit;
+                    break;
+
+                case IIRFilterType.HighPass:
+                    _freqLow = freqLimit;
+                    break;
+            }
+
+            _sampleRate = sampleRate;
+            _freqMax = 0.5f * _sampleRate;
 
             Design();
         }
 
-        static bool IsOdd(int n) => (n & 1) == 1;
+        private static bool IsOdd(int n) => (n & 1) == 1;
 
-        static double Sqr(double value) => value * value;
+        private static double Sqr(double value) => value * value;
 
         /// <summary>
-        /// Determines poles and zeros of IIR filter
-        /// based on bilinear transform method
+        /// Determines the poles and zeros of the filter based on the bilinear transform method.
         /// </summary>
-        void LocatePolesAndZeros()
+        [MemberNotNull(nameof(_real))]
+        [MemberNotNull(nameof(_imag))]
+        [MemberNotNull(nameof(_z))]
+        private void LocatePolesAndZeros()
         {
-            m_real = new double[m_order + 1];
-            m_imag = new double[m_order + 1];
-            m_z = new double[m_order + 1];
+            _real = new double[_order + 1];
+            _imag = new double[_order + 1];
+            _z = new double[_order + 1];
 
             // Butterworth, Chebyshev parameters
-            var n = m_order;
+            int n = _order;
 
-            var ir = n % 2;
-            var n1 = n + ir;
-            var n2 = (3 * n + ir) / 2 - 1;
-            double f1;
-
-            switch (m_filterType)
+            int ir = n % 2;
+            int n1 = n + ir;
+            int n2 = (3 * n + ir) / 2 - 1;
+            double f1 = _filterType switch
             {
-                case IIRFilterType.LP:
-                    f1 = m_fp2;
-                    break;
-
-                case IIRFilterType.HP:
-                    f1 = m_fN - m_fp1;
-                    break;
-
-                default:
-                    f1 = 0.0;
-                    break;
-            }
-
-            var tanw1 = Math.Tan(0.5 * Math.PI * f1 / m_fN);
-            var tansqw1 = Sqr(tanw1);
+                IIRFilterType.LowPass => _freqHigh,
+                IIRFilterType.HighPass => (double) (_freqMax - _freqLow),
+                _ => 0.0,
+            };
+            double tanw1 = Math.Tan(0.5 * Math.PI * f1 / _freqMax);
+            double tansqw1 = Sqr(tanw1);
 
             // Real and Imaginary parts of low-pass poles
             double r;
@@ -135,32 +127,32 @@ namespace YARG.Core.Audio.PitchDetection
                 var i = 2.0 * tanw1 * Math.Sin(t) / b3;
 
                 var m = 2 * (n2 - k) + 1;
-                m_real[m + ir] = r;
-                m_imag[m + ir] = Math.Abs(i);
-                m_real[m + ir + 1] = r;
-                m_imag[m + ir + 1] = -Math.Abs(i);
+                _real[m + ir] = r;
+                _imag[m + ir] = Math.Abs(i);
+                _real[m + ir + 1] = r;
+                _imag[m + ir + 1] = -Math.Abs(i);
             }
 
             if (IsOdd(n))
             {
                 r = (1.0 - tansqw1) / (1.0 + 2.0 * tanw1 + tansqw1);
 
-                m_real[1] = r;
-                m_imag[1] = 0.0;
+                _real[1] = r;
+                _imag[1] = 0.0;
             }
 
-            switch (m_filterType)
+            switch (_filterType)
             {
-                case IIRFilterType.LP:
-                    for (var m = 1; m <= n; m++) m_z[m] = -1.0;
+                case IIRFilterType.LowPass:
+                    for (var m = 1; m <= n; m++) _z[m] = -1.0;
                     break;
 
-                case IIRFilterType.HP:
+                case IIRFilterType.HighPass:
                     // Low-pass to high-pass transformation
                     for (var m = 1; m <= n; m++)
                     {
-                        m_real[m] = -m_real[m];
-                        m_z[m] = 1.0;
+                        _real[m] = -_real[m];
+                        _z[m] = 1.0;
                     }
 
                     break;
@@ -168,116 +160,115 @@ namespace YARG.Core.Audio.PitchDetection
         }
 
         /// <summary>
-        /// Calculate all the values
+        /// Pre-calculates all values necessary for filtering.
         /// </summary>
-        public void Design()
+        // LocatePolesAndZeros
+        [MemberNotNull(nameof(_real))]
+        [MemberNotNull(nameof(_imag))]
+        [MemberNotNull(nameof(_z))]
+        // Design
+        [MemberNotNull(nameof(_aCoeff))]
+        [MemberNotNull(nameof(_bCoeff))]
+        private void Design()
         {
-            if (!FilterValid) return;
+            _aCoeff = new double[_order + 1];
+            _bCoeff = new double[_order + 1];
 
-            m_aCoeff = new double[m_order + 1];
-            m_bCoeff = new double[m_order + 1];
-            m_inHistory = new double[kHistSize];
-            m_outHistory = new double[kHistSize];
-
-            var newA = new double[m_order + 1];
-            var newB = new double[m_order + 1];
+            var newA = new double[_order + 1];
+            var newB = new double[_order + 1];
 
             // Find filter poles and zeros
             LocatePolesAndZeros();
 
             // Compute filter coefficients from pole/zero values
-            m_aCoeff[0] = 1.0;
-            m_bCoeff[0] = 1.0;
+            _aCoeff[0] = 1.0;
+            _bCoeff[0] = 1.0;
 
-            for (var i = 1; i <= m_order; i++) m_aCoeff[i] = m_bCoeff[i] = 0.0;
+            for (var i = 1; i <= _order; i++) _aCoeff[i] = _bCoeff[i] = 0.0;
 
             var k = 0;
-            var n = m_order;
+            var n = _order;
             var pairs = n / 2;
 
-            if (IsOdd(m_order))
+            if (IsOdd(_order))
             {
                 // First subfilter is first order
-                m_aCoeff[1] = -m_z[1];
-                m_bCoeff[1] = -m_real[1];
+                _aCoeff[1] = -_z[1];
+                _bCoeff[1] = -_real[1];
                 k = 1;
             }
 
             for (var p = 1; p <= pairs; p++)
             {
                 var m = 2 * p - 1 + k;
-                var alpha1 = -(m_z[m] + m_z[m + 1]);
-                var alpha2 = m_z[m] * m_z[m + 1];
-                var beta1 = -2.0 * m_real[m];
-                var beta2 = Sqr(m_real[m]) + Sqr(m_imag[m]);
+                var alpha1 = -(_z[m] + _z[m + 1]);
+                var alpha2 = _z[m] * _z[m + 1];
+                var beta1 = -2.0 * _real[m];
+                var beta2 = Sqr(_real[m]) + Sqr(_imag[m]);
 
-                newA[1] = m_aCoeff[1] + alpha1 * m_aCoeff[0];
-                newB[1] = m_bCoeff[1] + beta1 * m_bCoeff[0];
+                newA[1] = _aCoeff[1] + alpha1 * _aCoeff[0];
+                newB[1] = _bCoeff[1] + beta1 * _bCoeff[0];
 
                 for (var i = 2; i <= n; i++)
                 {
-                    newA[i] = m_aCoeff[i] + alpha1 * m_aCoeff[i - 1] + alpha2 * m_aCoeff[i - 2];
-                    newB[i] = m_bCoeff[i] + beta1 * m_bCoeff[i - 1] + beta2 * m_bCoeff[i - 2];
+                    newA[i] = _aCoeff[i] + alpha1 * _aCoeff[i - 1] + alpha2 * _aCoeff[i - 2];
+                    newB[i] = _bCoeff[i] + beta1 * _bCoeff[i - 1] + beta2 * _bCoeff[i - 2];
                 }
 
                 for (var i = 1; i <= n; i++)
                 {
-                    m_aCoeff[i] = newA[i];
-                    m_bCoeff[i] = newB[i];
+                    _aCoeff[i] = newA[i];
+                    _bCoeff[i] = newB[i];
                 }
             }
 
             // Ensure the filter is normalized
-            FilterGain(1000);
+            Span<float> temp = stackalloc float[1000];
+            FilterGain(temp);
         }
 
         /// <summary>
-        /// Reset the history buffers
+        /// Resets the filter's history buffers.
         /// </summary>
         public void Reset()
         {
-            if (m_inHistory != null) Array.Clear(m_inHistory, 0, m_inHistory.Length);
-
-            if (m_outHistory != null) Array.Clear(m_outHistory, 0, m_outHistory.Length);
-
-            m_histIdx = 0;
+            Array.Clear(_inHistory, 0, _inHistory.Length);
+            Array.Clear(_outHistory, 0, _outHistory.Length);
+            _histIdx = 0;
         }
 
         /// <summary>
-        /// Apply the filter to the Buffer
+        /// Applies the filter to the given buffer.
         /// </summary>
         public void FilterBuffer(ReadOnlySpan<float> inBuffer, int inBufferOffset, Span<float> outBuffer,
             int outBufferOffset, int size)
         {
             const double kDenormal = 0.000000000000001;
-            var denormal = m_invertDenormal ? -kDenormal : kDenormal;
-            m_invertDenormal = !m_invertDenormal;
+            var denormal = _invertDenormal ? -kDenormal : kDenormal;
+            _invertDenormal = !_invertDenormal;
 
             for (var sampleIdx = 0; sampleIdx < size; sampleIdx++)
             {
-                m_inHistory[m_histIdx] = inBuffer[inBufferOffset + sampleIdx] + denormal;
+                _inHistory[_histIdx] = inBuffer[inBufferOffset + sampleIdx] + denormal;
 
-                var sum = m_aCoeff.Select((t, idx) => t * m_inHistory[(m_histIdx - idx) & kHistMask]).Sum();
+                var sum = _aCoeff.Select((t, idx) => t * _inHistory[(_histIdx - idx) & HISTORY_MASK]).Sum();
 
-                for (var idx = 1; idx < m_bCoeff.Length; idx++)
-                    sum -= m_bCoeff[idx] * m_outHistory[(m_histIdx - idx) & kHistMask];
+                for (var idx = 1; idx < _bCoeff.Length; idx++)
+                    sum -= _bCoeff[idx] * _outHistory[(_histIdx - idx) & HISTORY_MASK];
 
-                m_outHistory[m_histIdx] = sum;
-                m_histIdx = (m_histIdx + 1) & kHistMask;
+                _outHistory[_histIdx] = sum;
+                _histIdx = (_histIdx + 1) & HISTORY_MASK;
                 outBuffer[outBufferOffset + sampleIdx] = (float) sum;
             }
         }
 
         /// <summary>
-        /// Get the gain at the specified number of frequency points
+        /// Determines the gain at the given buffer's size number of frequency points.
         /// </summary>
-        /// <param name="freqPoints"></param>
-        /// <returns></returns>
-        public float[] FilterGain(int freqPoints)
+        public void FilterGain(Span<float> gainBuffer)
         {
             // Filter gain at uniform frequency intervals
-            var g = new float[freqPoints];
-
+            int freqPoints = gainBuffer.Length;
             var gMax = -100f;
             var sc = 10 / (float) Math.Log(10);
             var t = Math.PI / (freqPoints - 1);
@@ -292,29 +283,27 @@ namespace YARG.Core.Audio.PitchDetection
 
                 double sac = 0, sas = 0, sbc = 0, sbs = 0;
 
-                for (var k = 0; k <= m_order; k++)
+                for (var k = 0; k <= _order; k++)
                 {
                     var c = Math.Cos(k * theta);
                     var s = Math.Sin(k * theta);
-                    sac += c * m_aCoeff[k];
-                    sas += s * m_aCoeff[k];
-                    sbc += c * m_bCoeff[k];
-                    sbs += s * m_bCoeff[k];
+                    sac += c * _aCoeff[k];
+                    sas += s * _aCoeff[k];
+                    sbc += c * _bCoeff[k];
+                    sbs += s * _bCoeff[k];
                 }
 
-                g[i] = sc * (float) Math.Log((Sqr(sac) + Sqr(sas)) / (Sqr(sbc) + Sqr(sbs)));
-                gMax = Math.Max(gMax, g[i]);
+                gainBuffer[i] = sc * (float) Math.Log((Sqr(sac) + Sqr(sas)) / (Sqr(sbc) + Sqr(sbs)));
+                gMax = Math.Max(gMax, gainBuffer[i]);
             }
 
             // Normalize to 0 dB maximum gain
-            for (var i = 0; i < freqPoints; i++) g[i] -= gMax;
+            for (var i = 0; i < freqPoints; i++) gainBuffer[i] -= gMax;
 
             // Normalize numerator (a) coefficients
             var normFactor = (float) Math.Pow(10.0f, -0.05f * gMax);
 
-            for (var i = 0; i <= m_order; i++) m_aCoeff[i] *= normFactor;
-
-            return g;
+            for (var i = 0; i <= _order; i++) _aCoeff[i] *= normFactor;
         }
     }
 }

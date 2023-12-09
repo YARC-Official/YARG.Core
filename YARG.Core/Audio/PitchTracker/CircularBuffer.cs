@@ -1,7 +1,10 @@
 ﻿using System;
 
-namespace YARG.Core.Audio.PitchDetection
+namespace YARG.Core.Audio
 {
+    /// <summary>
+    /// A circular buffer of floats used in pitch processing.
+    /// </summary>
     internal class CircularBuffer
     {
         private readonly int _size;
@@ -31,7 +34,7 @@ namespace YARG.Core.Audio.PitchDetection
         }
 
         /// <summary>
-        /// Reset to the beginning of the Buffer
+        /// Resets the buffer's position to the beginning.
         /// </summary>
         public void Reset()
         {
@@ -41,7 +44,7 @@ namespace YARG.Core.Audio.PitchDetection
         }
 
         /// <summary>
-        /// Clear the Buffer
+        /// Clears all data from the buffer.
         /// </summary>
         public void Clear()
         {
@@ -49,7 +52,7 @@ namespace YARG.Core.Audio.PitchDetection
         }
 
         /// <summary>
-        /// Write data into the Buffer
+        /// Writes the given data into the buffer.
         /// </summary>
         public int Write(ReadOnlySpan<float> inputBuffer, int count)
         {
@@ -100,7 +103,7 @@ namespace YARG.Core.Audio.PitchDetection
         }
 
         /// <summary>
-        /// Read from the Buffer
+        /// Reads data from this buffer into the given one.
         /// </summary>
         public bool Read(Span<float> outBuffer, long startRead, int readCount)
         {

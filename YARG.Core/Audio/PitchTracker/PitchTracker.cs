@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace YARG.Core.Audio.PitchDetection
+namespace YARG.Core.Audio
 {
     /// <summary>
     /// Tracks pitch
@@ -67,14 +67,8 @@ namespace YARG.Core.Audio.PitchDetection
 
                 var filter = new FilterInfo
                 {
-                    Low = new IIRFilter(IIRFilterType.HP, 5, sampleRate)
-                    {
-                        FreqLow = 45
-                    },
-                    High = new IIRFilter(IIRFilterType.LP, 5, sampleRate)
-                    {
-                        FreqHigh = highFreq
-                    },
+                    Low = new IIRFilter(IIRFilterType.HighPass, 5, 45f, sampleRate),
+                    High = new IIRFilter(IIRFilterType.LowPass, 5, highFreq, sampleRate),
                     Buffer = new float[_pitchBufSize + _detectOverlapSamples],
                     CircularBuffer = new CircularBuffer((int) (CIRCULAR_BUF_SAVE_TIME * sampleRate + 0.5f) + 10000)
                 };
@@ -84,8 +78,8 @@ namespace YARG.Core.Audio.PitchDetection
         }
 
         /// <summary>
-        /// Reset the pitch tracker. Call this when the sample position is
-        /// not consecutive from the previous position
+        /// Resets the pitch tracker.
+        /// Must be called when the sample position is not consecutive from the previous position.
         /// </summary>
         public void Reset()
         {
@@ -105,23 +99,13 @@ namespace YARG.Core.Audio.PitchDetection
         }
 
         /// <summary>
-        /// Process the passed in Buffer of data. During this call, the PitchDetected event will
-        /// be fired zero or more times, depending how many pitch records will fit in the new
-        /// and previously cached Buffer.
-        ///
-        /// This means that there is no size restriction on the Buffer that is passed into ProcessBuffer.
-        /// For instance, ProcessBuffer can be called with one very large Buffer that contains all of the
-        /// audio to be processed (many PitchDetected events will be fired), or just a small Buffer at
-        /// a time which is more typical for realtime applications. In the latter case, the PitchDetected
-        /// event might not be fired at all since additional calls must first be made to accumulate enough
-        /// data do another pitch detect operation.
+        /// Process the given buffer of samples. Must be in the range of -1.0 to 1.0.
         /// </summary>
-        /// <param name="input">Input Buffer. Samples must be in the range -1.0 to 1.0</param>
         public float? ProcessBuffer(ReadOnlySpan<float> input)
         {
-            if (input == null)
+            if (input.IsEmpty)
             {
-                throw new ArgumentNullException(nameof(input), "Input buffer cannot be null");
+                throw new ArgumentNullException(nameof(input), "Input buffer cannot be empty");
             }
 
             float? detectedPitch = null;
@@ -181,8 +165,8 @@ namespace YARG.Core.Audio.PitchDetection
         }
 
         /// <summary>
-        /// Copy the values from one Buffer to a different or the same Buffer.
-        /// It is safe to copy to the same Buffer, even if the areas overlap
+        /// Copy the values from one buffer to another.
+        /// It is safe to copy from one region of a buffer to another of the same buffer, even if the regions overlap.
         /// </summary>
         private static void SafeCopy<T>(T[] from, T[] to, int fromStart, int toStart, int length)
         {
