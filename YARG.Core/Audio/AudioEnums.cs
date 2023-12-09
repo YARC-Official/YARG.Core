@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace YARG.Core.Audio
+﻿namespace YARG.Core.Audio
 {
     public enum SongStem
     {
@@ -16,7 +12,7 @@ namespace YARG.Core.Audio
         Vocals,
         Vocals1,
         Vocals2,
-        Drums,
+        Drums, // TODO: Should this be equivalent to Drums1?
         Drums1,
         Drums2,
         Drums3,
