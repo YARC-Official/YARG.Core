@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
@@ -34,12 +34,12 @@ namespace YARG.Core.Audio
 
         public void LoadSfx();
 
-        public void LoadSong(IDictionary<SongStem, Stream> stems, float speed);
-        public void LoadMogg(Stream stream, List<MoggStemMap> stemMaps, float speed);
-        public void LoadCustomAudioFile(Stream stream, float speed);
-        public void LoadCustomAudioFile(string file, float speed)
+        public Task LoadSong(IDictionary<SongStem, Stream> stems, float speed);
+        public Task LoadMogg(Stream stream, List<MoggStemMap> stemMaps, float speed);
+        public Task LoadCustomAudioFile(Stream stream, float speed);
+        public Task LoadCustomAudioFile(string file, float speed)
         {
-            LoadCustomAudioFile(new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, 1), speed);
+            return LoadCustomAudioFile(new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, 1), speed);
         }
 
         public void UnloadSong();
