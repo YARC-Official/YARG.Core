@@ -46,8 +46,7 @@ namespace YARG.Core.Audio
         /// <summary>
         /// Initialize the microphone.
         /// </summary>
-        /// <returns>0 if successful, otherwise an error code.</returns>
-        public int Initialize();
+        public bool Initialize();
 
         /// <summary>
         /// Dequeues an output frame from the microphone.

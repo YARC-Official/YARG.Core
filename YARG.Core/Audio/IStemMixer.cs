@@ -16,7 +16,7 @@ namespace YARG.Core.Audio
         public float Volume { get; set; }
         public float Speed { get; set; }
 
-        public int AddChannel(IStemChannel channel);
+        public bool AddChannel(IStemChannel channel);
         public bool RemoveChannel(IStemChannel channel);
 
         public void Play(bool restart = false);
