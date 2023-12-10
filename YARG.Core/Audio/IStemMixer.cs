@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,8 +15,6 @@ namespace YARG.Core.Audio
 
         public float Volume { get; set; }
         public float Speed { get; set; }
-
-        public bool Create();
 
         public int AddChannel(IStemChannel channel);
         public bool RemoveChannel(IStemChannel channel);

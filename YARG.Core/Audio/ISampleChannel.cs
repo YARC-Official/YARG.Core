@@ -8,8 +8,6 @@ namespace YARG.Core.Audio
 
         public float Volume { get; set; }
 
-        public int Load();
-
         public void Play();
     }
 }
