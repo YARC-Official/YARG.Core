@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -23,15 +23,14 @@ namespace YARG.Core.Audio
 
         public IList<IMicDevice> GetAllInputDevices();
 
-        public void LoadSfx();
+        public void LoadSoundEffects();
+        public void PlaySoundEffect(SfxSample sample);
 
         public Task<ISongContext> LoadSong(IDictionary<SongStem, Stream> stems, float speed);
         public Task<ISongContext> LoadMogg(Stream stream, List<MoggStemMap> stemMaps, float speed);
         public Task<ISongContext> LoadCustomAudio(Stream stream, float speed);
 
         public void ForceUnloadSong();
-
-        public void PlaySoundEffect(SfxSample sample);
 
         public double GetVolumeSetting(SongStem stem);
         public void SetVolumeSetting(SongStem stem, float volume);

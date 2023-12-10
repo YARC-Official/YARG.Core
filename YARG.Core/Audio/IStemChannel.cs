@@ -6,6 +6,8 @@ namespace YARG.Core.Audio
 {
     public interface IStemChannel : IDisposable
     {
+        public event Action ChannelEnd;
+
         public SongStem Stem { get; }
 
         public double Length { get; }
@@ -13,16 +15,13 @@ namespace YARG.Core.Audio
         public float Volume { get; set; }
         public float Speed { get; set; }
 
-        public event Action ChannelEnd;
-
         public int Load(float speed);
 
         public void FadeIn(float maxVolume);
         public Task FadeOut(CancellationToken token = default);
 
-        public void SetReverb(bool reverb);
-
         public void SetWhammyPitch(float percent);
+        public void SetReverb(bool reverb);
 
         public double GetPosition(bool desyncCompensation = true);
         public void SetPosition(double position, bool desyncCompensation = true);
