@@ -32,8 +32,8 @@ namespace YARG.Core.Game
             new CameraPreset("The Band 1", true)
             {
                 FieldOfView = 47.84f,
-                PositionY   = 2.43f,
-                PositionZ   = 1.42f,
+                PositionY   = 2.32f,
+                PositionZ   = 1.35f,
                 Rotation    = 26f,
                 FadeLength  = 1.25f,
                 CurveFactor = 0.5f,
@@ -41,8 +41,8 @@ namespace YARG.Core.Game
             new CameraPreset("The Band 2", true)
             {
                 FieldOfView = 44.97f,
-                PositionY   = 2.66f,
-                PositionZ   = 0.86f,
+                PositionY   = 2.72f,
+                PositionZ   = 0.72f,
                 Rotation    = 24.12f,
                 FadeLength  = 1.25f,
                 CurveFactor = 0.5f,
@@ -69,28 +69,28 @@ namespace YARG.Core.Game
             {
                 FieldOfView = 58.15f,
                 PositionY   = 1.82f,
-                PositionZ   = 1.50f,
+                PositionZ   = 1.26f,
                 Rotation    = 12.40f,
                 FadeLength  = 1.5f,
-                CurveFactor = 0.5f,
+                CurveFactor = 0f,
             },
             new CameraPreset("Hero 3", true)
             {
                 FieldOfView = 52.71f,
                 PositionY   = 2.17f,
-                PositionZ   = 1.14f,
+                PositionZ   = 0.97f,
                 Rotation    = 15.21f,
                 FadeLength  = 1.5f,
-                CurveFactor = 0.5f,
+                CurveFactor = 0f,
             },
             new CameraPreset("Hero Traveling the World", true)
             {
                 FieldOfView  = 53.85f,
                 PositionY    = 1.97f,
-                PositionZ    = 1.52f,
+                PositionZ    = 1.31f,
                 Rotation     = 16.62f,
                 FadeLength   = 1.5f,
-                CurveFactor  = 0.5f,
+                CurveFactor  = 0f,
             },
             new CameraPreset("Hero Live", true)
             {
@@ -99,16 +99,16 @@ namespace YARG.Core.Game
                 PositionZ   = 1.42f,
                 Rotation    = 21.31f,
                 FadeLength  = 1.25f,
-                CurveFactor = 0.5f,
+                CurveFactor = 0f,
             },
             new CameraPreset("Clone", true)
             {
                 FieldOfView = 55f,
                 PositionY   = 2.07f,
-                PositionZ   = 1.51f,
+                PositionZ   = 1.27f,
                 Rotation    = 17.09f,
                 FadeLength  = 1.5f,
-                CurveFactor = 0.5f,
+                CurveFactor = 0f,
             }
         };
     }
