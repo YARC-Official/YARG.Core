@@ -81,7 +81,7 @@ namespace YARG.Core.Audio
         private static Task<ISongContext> LoadIniAudio(this IAudioManager manager, SongMetadata.IIniMetadata iniData,
             float speed, params SongStem[] ignoreStems)
         {
-            var stems = iniData.GetAudioStreams();
+            var stems = iniData.GetAudioStreams(ignoreStems);
             return manager.LoadSong(stems, speed);
         }
 
