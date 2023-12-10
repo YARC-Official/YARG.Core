@@ -9,11 +9,7 @@ namespace YARG.Core.Audio
     {
         public event Action SongEnd;
 
-        public int StemsLoaded { get; }
-
-        public IReadOnlyDictionary<SongStem, List<IStemChannel>> Channels { get; }
-
-        public IStemChannel LeadChannel { get; }
+        public double Length { get; }
 
         public bool IsPlaying { get; }
 
@@ -34,6 +30,6 @@ namespace YARG.Core.Audio
         public void FadeIn(float maxVolume);
         public Task FadeOut(CancellationToken token = default);
 
-        public IStemChannel[] GetChannels(SongStem stem);
+        public IReadOnlyList<IStemChannel> GetChannels(SongStem stem);
     }
 }
