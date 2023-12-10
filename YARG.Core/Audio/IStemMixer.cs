@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -17,6 +17,9 @@ namespace YARG.Core.Audio
 
         public IStemChannel LeadChannel { get; }
 
+        public float Volume { get; set; }
+        public float Speed { get; set; }
+
         public bool Create();
 
         public int Play(bool restart = false);
@@ -29,10 +32,6 @@ namespace YARG.Core.Audio
         public double GetPosition(bool desyncCompensation = true);
 
         public void SetPosition(double position, bool desyncCompensation = true);
-
-        public void SetPlayVolume(bool fadeIn);
-
-        public void SetSpeed(float speed);
 
         public int AddChannel(IStemChannel channel);
 

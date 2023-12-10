@@ -8,9 +8,12 @@ namespace YARG.Core.Audio
     {
         public event Action SongEnd;
 
-        public double AudioLength { get; }
+        public double Length { get; }
 
         public bool IsPlaying { get; }
+
+        public float Volume { get; set; }
+        public float Speed { get; set; }
 
         public void Play();
         public void Pause();
@@ -18,13 +21,12 @@ namespace YARG.Core.Audio
         public double GetPosition(bool desyncCompensation = true);
         public void SetPosition(double position, bool desyncCompensation = true);
 
-        public void SetVolume(double volume);
-        public void SetVolume(SongStem stem, double volume);
+        public float GetVolume(SongStem stem);
+        public void SetVolume(SongStem stem, float volume);
 
         public void FadeIn(float maxVolume);
         public Task FadeOut(CancellationToken token = default);
 
-        public void SetSpeed(float speed);
         public void SetPitchBend(SongStem stem, float semitones);
         public void SetReverb(SongStem stem, bool enabled);
     }

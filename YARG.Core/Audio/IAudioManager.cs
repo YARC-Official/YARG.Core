@@ -15,8 +15,8 @@ namespace YARG.Core.Audio
 
         public bool IsAudioLoaded { get; }
 
-        public double MasterVolume { get; set; }
-        public double SfxVolume { get; set; }
+        public float MasterVolume { get; set; }
+        public float SfxVolume { get; set; }
 
         public void Initialize();
         public void Unload();
@@ -34,7 +34,7 @@ namespace YARG.Core.Audio
         public void PlaySoundEffect(SfxSample sample);
 
         public double GetVolumeSetting(SongStem stem);
-        public void SetVolumeSetting(SongStem stem, double volume);
+        public void SetVolumeSetting(SongStem stem, float volume);
     }
 
     // For methods that are not specific to any particular audio interface
