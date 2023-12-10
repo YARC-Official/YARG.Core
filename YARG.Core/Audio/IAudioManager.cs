@@ -1,8 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using YARG.Core.Song;
 
@@ -15,19 +14,9 @@ namespace YARG.Core.Audio
         public IList<string> SupportedFormats { get; }
 
         public bool IsAudioLoaded { get; }
-        public bool IsPlaying { get; }
-        public bool IsFadingOut { get; }
 
         public double MasterVolume { get; }
         public double SfxVolume { get; }
-
-        public double CurrentPositionD { get; }
-        public double AudioLengthD { get; }
-
-        public float CurrentPositionF { get; }
-        public float AudioLengthF { get; }
-
-        public event Action SongEnd;
 
         public void Initialize();
         public void Unload();
@@ -36,40 +25,23 @@ namespace YARG.Core.Audio
 
         public void LoadSfx();
 
-        public Task LoadSong(IDictionary<SongStem, Stream> stems, float speed);
-        public Task LoadMogg(Stream stream, List<MoggStemMap> stemMaps, float speed);
-        public Task LoadCustomAudio(Stream stream, float speed);
+        public Task<ISongContext> LoadSong(IDictionary<SongStem, Stream> stems, float speed);
+        public Task<ISongContext> LoadMogg(Stream stream, List<MoggStemMap> stemMaps, float speed);
+        public Task<ISongContext> LoadCustomAudio(Stream stream, float speed);
 
-        public void UnloadSong();
-
-        public void Play();
-        public void Pause();
-
-        public void FadeIn(float maxVolume);
-        public Task FadeOut(CancellationToken token = default);
+        public void ForceUnloadSong();
 
         public void PlaySoundEffect(SfxSample sample);
 
-        public void SetStemVolume(SongStem stem, double volume);
-        public void SetAllStemsVolume(double volume);
-
-        public void UpdateVolumeSetting(SongStem stem, double volume);
-
         public double GetVolumeSetting(SongStem stem);
-
-        public void ApplyReverb(SongStem stem, bool reverb);
-
-        public void SetSpeed(float speed);
-        public void SetWhammyPitch(SongStem stem, float percent);
-
-        public double GetPosition(bool desyncCompensation = true);
-        public void SetPosition(double position, bool desyncCompensation = true);
+        public void SetVolumeSetting(SongStem stem, double volume);
     }
 
     // For methods that are not specific to any particular audio interface
     public static class AudioManagerExtensions
     {
-        public static Task LoadAudio(this IAudioManager manager, SongMetadata song, float speed, params SongStem[] ignoreStems)
+        public static Task<ISongContext> LoadAudio(this IAudioManager manager, SongMetadata song, float speed,
+            params SongStem[] ignoreStems)
         {
             if (song.IniData != null)
             {
@@ -81,12 +53,12 @@ namespace YARG.Core.Audio
             }
         }
 
-        public static Task LoadCustomAudio(this IAudioManager manager, string file, float speed)
+        public static Task<ISongContext> LoadCustomAudio(this IAudioManager manager, string file, float speed)
         {
             return manager.LoadCustomAudio(new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read), speed);
         }
 
-        public static Task LoadPreviewAudio(this IAudioManager manager, SongMetadata song, float speed,
+        public static Task<ISongContext> LoadPreviewAudio(this IAudioManager manager, SongMetadata song, float speed,
             out bool usesPreviewFile)
         {
             usesPreviewFile = false;
@@ -106,13 +78,15 @@ namespace YARG.Core.Audio
             }
         }
 
-        private static Task LoadIniAudio(this IAudioManager manager, SongMetadata.IIniMetadata iniData, float speed, params SongStem[] ignoreStems)
+        private static Task<ISongContext> LoadIniAudio(this IAudioManager manager, SongMetadata.IIniMetadata iniData,
+            float speed, params SongStem[] ignoreStems)
         {
             var stems = iniData.GetAudioStreams();
             return manager.LoadSong(stems, speed);
         }
 
-        private static Task LoadRBCONAudio(this IAudioManager manager, SongMetadata.IRBCONMetadata rbData, float speed, params SongStem[] ignoreStems)
+        private static Task<ISongContext> LoadRBCONAudio(this IAudioManager manager, SongMetadata.IRBCONMetadata rbData,
+            float speed, params SongStem[] ignoreStems)
         {
             var rbmetadata = rbData.SharedMetadata;
 
