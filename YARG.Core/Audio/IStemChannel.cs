@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace YARG.Core.Audio
@@ -16,7 +17,7 @@ namespace YARG.Core.Audio
         public int Load(float speed);
 
         public void FadeIn(float maxVolume);
-        public Task FadeOut();
+        public Task FadeOut(CancellationToken token = default);
 
         public void SetVolume(double newVolume);
 
