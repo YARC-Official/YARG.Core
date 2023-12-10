@@ -15,8 +15,8 @@ namespace YARG.Core.Audio
 
         public bool IsAudioLoaded { get; }
 
-        public double MasterVolume { get; }
-        public double SfxVolume { get; }
+        public double MasterVolume { get; set; }
+        public double SfxVolume { get; set; }
 
         public void Initialize();
         public void Unload();

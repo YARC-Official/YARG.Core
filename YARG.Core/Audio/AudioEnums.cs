@@ -2,8 +2,6 @@
 {
     public enum SongStem
     {
-        Master = -2,
-        Sfx = -1,
         Song,
         Guitar,
         Bass,
