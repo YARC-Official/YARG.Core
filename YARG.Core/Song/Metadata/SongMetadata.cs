@@ -21,7 +21,10 @@ namespace YARG.Core.Song
         FailedSngLoad,
 
         LooseChart_NoAudio,
-        PathTooLong
+        PathTooLong,
+        MultipleMidiTrackNames,
+        MultipleMidiTrackNames_Update,
+        MultipleMidiTrackNames_Upgrade,
     }
 
     /// <summary>

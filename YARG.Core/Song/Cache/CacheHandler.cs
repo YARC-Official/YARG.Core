@@ -255,6 +255,15 @@ namespace YARG.Core.Song.Cache
                     case ScanResult.PathTooLong:
                         writer.WriteLine("Path too long for the Windows Filesystem (path limitation can be changed in registry settings if you so wish)");
                         break;
+                    case ScanResult.MultipleMidiTrackNames:
+                        writer.WriteLine("At least one track fails midi spec for containing multiple unique track names (thus making it ambiguous)");
+                        break;
+                    case ScanResult.MultipleMidiTrackNames_Update:
+                        writer.WriteLine("At least one track fails midi spec for containing multiple unique track names (thus making it ambiguous) - Thrown by a midi update");
+                        break;
+                    case ScanResult.MultipleMidiTrackNames_Upgrade:
+                        writer.WriteLine("At least one track fails midi spec for containing multiple unique track names (thus making it ambiguous) - Thrown by a pro guitar upgrade");
+                        break;
                 }
                 writer.WriteLine();
             }

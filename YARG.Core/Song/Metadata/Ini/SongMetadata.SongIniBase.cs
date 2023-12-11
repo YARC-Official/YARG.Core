@@ -219,7 +219,12 @@ namespace YARG.Core.Song
                 }
             }
             else // if (chartType == ChartType.Mid || chartType == ChartType.Midi) // Uncomment for any future file type
-                ParseDotMidi(file, modifiers, parts, drums);
+            {
+                if (!ParseDotMidi(file, modifiers, parts, drums))
+                {
+                    return (ScanResult.MultipleMidiTrackNames, null);
+                }
+            }
 
             parts.SetDrums(drums);
 
@@ -250,7 +255,7 @@ namespace YARG.Core.Song
                 drums.Type = DrumsType.FourLane;
         }
 
-        private static void ParseDotMidi(byte[] file, IniSection modifiers, AvailableParts parts, DrumPreparseHandler drums)
+        private static bool ParseDotMidi(byte[] file, IniSection modifiers, AvailableParts parts, DrumPreparseHandler drums)
         {
             bool usePro = !modifiers.TryGet("pro_drums", out bool proDrums) || proDrums;
             if (drums.Type == DrumsType.Unknown)
@@ -261,7 +266,7 @@ namespace YARG.Core.Song
             else if (drums.Type == DrumsType.FourLane && usePro)
                 drums.Type = DrumsType.ProDrums;
 
-            parts.ParseMidi(file, drums);
+            return parts.ParseMidi(file, drums);
         }
 
         private static DrumsType GetDrumTypeFromModifier(IniSection modifiers)

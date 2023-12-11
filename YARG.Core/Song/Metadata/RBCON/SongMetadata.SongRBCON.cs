@@ -296,7 +296,9 @@ namespace YARG.Core.Song
                     if (updateFile == null)
                         return ScanResult.MissingUpdateMidi;
 
-                    _parts.ParseMidi(updateFile, drumTracker);
+                    if (!_parts.ParseMidi(updateFile, drumTracker))
+                        return ScanResult.MultipleMidiTrackNames_Update;
+
                     bufLength += updateFile.Length;
                 }
 
@@ -305,14 +307,18 @@ namespace YARG.Core.Song
                     if (upgradeFile == null)
                         return ScanResult.MissingUpgradeMidi;
 
-                    _parts.ParseMidi(upgradeFile, drumTracker);
+                    if (!_parts.ParseMidi(upgradeFile, drumTracker))
+                        return ScanResult.MultipleMidiTrackNames_Upgrade;
+
                     bufLength += upgradeFile.Length;
                 }
 
                 if (chartFile == null)
                     return ScanResult.MissingMidi;
 
-                _parts.ParseMidi(chartFile, drumTracker);
+                if (!_parts.ParseMidi(chartFile, drumTracker))
+                    return ScanResult.MultipleMidiTrackNames;
+
                 bufLength += chartFile.Length;
 
                 _parts.SetDrums(drumTracker);

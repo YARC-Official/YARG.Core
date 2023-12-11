@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using YARG.Core.Extensions;
 
 namespace YARG.Core.IO
@@ -69,14 +70,24 @@ namespace YARG.Core.IO
             {
                 _data = stream.ReadBytes(count);
             }
+            _event.Type = _running.Type = MidiEventType.Reset_Or_Meta;
+        }
 
-            if (!ParseEvent(true) || _event.Type != MidiEventType.Text_TrackName)
+        public string? FindTrackName(Encoding encoding)
+        {
+            string trackname = string.Empty;
+            while (ParseEvent(true) && _tickPosition == 0)
             {
-                _trackPos = 0;
-                _tickPosition = 0;
-                _event.Length = 0;
-                _event.Type = _running.Type = MidiEventType.Reset_Or_Meta;
+                if (_event.Type == MidiEventType.Text_TrackName)
+                {
+                    string ev = encoding.GetString(ExtractTextOrSysEx());
+                    if (trackname.Length > 0 && trackname != ev)
+                        return null;
+                    trackname = ev;
+                }
             }
+            Reset();
+            return trackname;
         }
 
         private const int CHANNEL_MASK = 0x0F;
@@ -158,6 +169,14 @@ namespace YARG.Core.IO
             var span = _data.Span;
             note.value = span[_trackPos];
             note.velocity = span[_trackPos + 1];
+        }
+
+        public void Reset()
+        {
+            _trackPos = 0;
+            _tickPosition = 0;
+            _event.Length = 0;
+            _event.Type = _running.Type = MidiEventType.Reset_Or_Meta;
         }
 
         private const uint EXTENDED_VLQ_FLAG = 0x80;
