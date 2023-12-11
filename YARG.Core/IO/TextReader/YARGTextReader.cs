@@ -113,16 +113,15 @@ namespace YARG.Core.IO
                 if (Container.Data[Container.Position].ToChar(null) == stopCharacter)
                 {
                     // Runs a check to ensure that the character is the start of the line
-                    int point = Container.Position - 1;
-                    while (point > Container.Position)
+                    int test = Container.Position - 1;
+                    char character = Container.Data[test].ToChar(null);
+                    while (test > 0 && character.IsAsciiWhitespace() && character != '\n')
                     {
-                        char character = Container.Data[point].ToChar(null);
-                        if (!character.IsAsciiWhitespace() || character == '\n')
-                            break;
-                        --point;
+                        --test;
+                        character = Container.Data[test].ToChar(null);
                     }
 
-                    if (Container.Data[point].ToChar(null) == '\n')
+                    if (character == '\n')
                         break;
                 }
                 ++Container.Position;
