@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -16,15 +16,11 @@ namespace YARG.Core.Audio
         public bool IsAudioLoaded { get; }
 
         public float MasterVolume { get; set; }
-        public float SfxVolume { get; set; }
 
         public void Initialize();
         public void Unload();
 
         public IList<IMicDevice> GetAllInputDevices();
-
-        public void LoadSoundEffects();
-        public void PlaySoundEffect(SfxSample sample);
 
         public Task<ISongContext> LoadSong(IDictionary<SongStem, Stream> stems, float speed);
         public Task<ISongContext> LoadMogg(Stream stream, List<MoggStemMap> stemMaps, float speed);
@@ -34,6 +30,17 @@ namespace YARG.Core.Audio
 
         public double GetVolumeSetting(SongStem stem);
         public void SetVolumeSetting(SongStem stem, float volume);
+    }
+
+    public interface ISfxManager<TSfxSample>
+        where TSfxSample : Enum
+    {
+        public float SfxVolume { get; set; }
+
+        public void LoadSoundEffects();
+        public void UnloadSoundEffects();
+
+        public void PlaySoundEffect(TSfxSample sample);
     }
 
     // For methods that are not specific to any particular audio interface
