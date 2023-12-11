@@ -1,0 +1,33 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace YARG.Core.Audio
+{
+    public interface IStemMixer : IDisposable
+    {
+        public event Action SongEnd;
+
+        public double Length { get; }
+
+        public bool IsPlaying { get; }
+
+        public float Volume { get; set; }
+        public float Speed { get; set; }
+
+        public bool AddChannel(IStemChannel channel);
+        public bool RemoveChannel(IStemChannel channel);
+
+        public void Play(bool restart = false);
+        public void Pause();
+
+        public double GetPosition(bool desyncCompensation = true);
+        public void SetPosition(double position, bool desyncCompensation = true);
+
+        public void FadeIn(float maxVolume);
+        public Task FadeOut(CancellationToken token = default);
+
+        public IReadOnlyList<IStemChannel> GetChannels(SongStem stem);
+    }
+}

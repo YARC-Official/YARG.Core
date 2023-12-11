@@ -21,6 +21,7 @@ Some libraries/assets are packaged **within** the source code and have licenses 
 | Library | License |
 | --- | --- |
 | [Moonscraper](https://github.com/FireFox2000000/Moonscraper-Chart-Editor) | [BSD 3-Clause License](https://github.com/FireFox2000000/Moonscraper-Chart-Editor/blob/master/LICENSE)
+| [PitchTracker](https://web.archive.org/web/20210629142557/https://archive.codeplex.com/?p=pitchtracker) | [Microsoft Public License](YARG.Core\Audio\PitchTracker\LICENSE)
 
 Please note that other libraries are **not** packaged within the source code, and are to be install by NuGet.
 
@@ -32,4 +33,5 @@ Please note that other libraries are **not** packaged within the source code, an
 | [GuitarGame_ChartFormats](https://github.com/TheNathannator/GuitarGame_ChartFormats) | Reference | File Format Documentation
 | [DryWetMidi](https://www.nuget.org/packages/Melanchall.DryWetMidi) | Library | Parsing `.mid` Files
 | [Moonscraper](https://github.com/FireFox2000000/Moonscraper-Chart-Editor) | Library | Parsing `.chart` Files
-| [NUnit](https://docs.nunit.org/articles/nunit/intro.html) | Library | Unit tests
+| [NUnit](https://docs.nunit.org/articles/nunit/intro.html) | Library | Unit Tests
+| [PitchTracker](https://web.archive.org/web/20210629142557/https://archive.codeplex.com/?p=pitchtracker) | Library | Audio Pitch Detection
