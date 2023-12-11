@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -73,7 +73,7 @@ namespace YARG.Core.IO
             _event.Type = _running.Type = MidiEventType.Reset_Or_Meta;
         }
 
-        public string FindTrackName(Encoding encoding)
+        public string? FindTrackName(Encoding encoding)
         {
             string trackname = string.Empty;
             while (ParseEvent(true) && _tickPosition == 0)
@@ -82,7 +82,7 @@ namespace YARG.Core.IO
                 {
                     string ev = encoding.GetString(ExtractTextOrSysEx());
                     if (trackname.Length > 0 && trackname != ev)
-                        throw new MultipleTrackNamesException();
+                        return null;
                     trackname = ev;
                 }
             }
@@ -223,10 +223,6 @@ namespace YARG.Core.IO
                     throw new Exception("Invalid variable length quantity");
             }
         }
-    }
-
-    public sealed class MultipleTrackNamesException : Exception
-    {
     }
 
     public enum MidiTrackType

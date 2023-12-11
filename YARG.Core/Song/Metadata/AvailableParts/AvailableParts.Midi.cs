@@ -10,7 +10,7 @@ namespace YARG.Core.Song
         /// <summary>
         /// This not include drums as those must be handled by a dedicated DrumPreparseHandler object.
         /// </summary>
-        public void ParseMidi(byte[] file, DrumPreparseHandler drums)
+        public bool ParseMidi(byte[] file, DrumPreparseHandler drums)
         {
             YARGMidiFile midiFile = new(file);
             foreach (var track in midiFile)
@@ -19,6 +19,9 @@ namespace YARG.Core.Song
                     continue;
 
                 var trackname = track.FindTrackName(Encoding.ASCII);
+                if (trackname == null)
+                    return false;
+
                 if (!YARGMidiTrack.TRACKNAMES.TryGetValue(trackname, out var type))
                     continue;
 
@@ -55,6 +58,7 @@ namespace YARG.Core.Song
             }
 
             SetVocalsCount();
+            return true;
         }
     }
 }
