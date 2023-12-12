@@ -85,10 +85,14 @@ namespace YARG.Core.Audio
             return instrument switch
             {
                 Instrument.FiveFretGuitar or
-                Instrument.SixFretGuitar => SongStem.Guitar,
+                Instrument.SixFretGuitar or
+                Instrument.ProGuitar_17Fret or
+                Instrument.ProGuitar_22Fret => SongStem.Guitar,
 
                 Instrument.FiveFretBass or
-                Instrument.SixFretBass => SongStem.Bass,
+                Instrument.SixFretBass or
+                Instrument.ProBass_17Fret or
+                Instrument.ProBass_22Fret => SongStem.Bass,
 
                 Instrument.FiveFretRhythm or
                 Instrument.SixFretRhythm or
@@ -101,6 +105,9 @@ namespace YARG.Core.Audio
                 Instrument.ProDrums or
                 Instrument.FourLaneDrums or
                 Instrument.FiveLaneDrums => SongStem.Drums,
+
+                Instrument.Vocals or
+                Instrument.Harmony => SongStem.Vocals,
 
                 _ => throw new Exception("Unreachable.")
             };
