@@ -25,5 +25,14 @@ namespace YARG.Core.Game
                 _             => StarAmount.None
             };
         }
+
+        public static int GetStarCount(this StarAmount starAmount)
+        {
+            return starAmount switch
+            {
+                <= StarAmount.Star5 => (int) starAmount,
+                _                   => 5,
+            };
+        }
     }
 }
