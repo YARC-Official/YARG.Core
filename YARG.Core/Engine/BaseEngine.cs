@@ -74,15 +74,30 @@ namespace YARG.Core.Engine
         /// Queue an input to be processed by the engine.
         /// </summary>
         /// <param name="input">The input to queue into the engine.</param>
-        public void QueueInput(GameInput input)
+        public void QueueInput(ref GameInput input)
         {
-            if (input.Time < BaseState.LastQueuedInputTime)
-                YargTrace.Fail(
-                    $"Input time cannot go backwards! Previous queued input: {BaseState.LastQueuedInputTime}, input being queued: {input.Time}");
+            // If the game attempts to queue an input that goes backwards in time, the engine
+            // can't handle it and it will cause inconsistencies! In these rare cases, the
+            // engine will be forced to move these times forwards a *tiny* bit to prevent
+            // issues.
 
+            // In the case that the queue is not in order...
+            if (input.Time < BaseState.LastQueuedInputTime)
+            {
+                input = new GameInput(BaseState.LastQueuedInputTime, input.Action, input.Integer);
+
+                YargTrace.LogWarning("Engine was forced to move an input time! " +
+                    $"Previous queued input: {BaseState.LastQueuedInputTime}, input being queued: {input.Time}");
+            }
+
+            // In the case that the input is before the current time...
             if (input.Time < BaseState.CurrentTime)
-                YargTrace.Fail(
-                    $"Input time cannot go backwards! Current time: {BaseState.CurrentTime}, input being queued: {input.Time}");
+            {
+                input = new GameInput(BaseState.CurrentTime, input.Action, input.Integer);
+
+                YargTrace.Fail("Engine was forced to move an input time! " +
+                    $"$Current time: {BaseState.CurrentTime}, input being queued: {input.Time}");
+            }
 
             InputQueue.Enqueue(input);
             BaseState.LastQueuedInputTime = input.Time;
