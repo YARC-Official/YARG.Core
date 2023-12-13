@@ -174,9 +174,13 @@ namespace YARG.Core.Song
             }
 
 
-            if (!section.TryGet("delay", out _songOffset) &&
-                section.TryGet("offset", out double songOffsetSeconds))
-                SongOffsetSeconds = songOffsetSeconds;
+            if (!section.TryGet("delay", out _songOffset) || _songOffset == 0)
+            {
+                if (section.TryGet("offset", out double songOffsetSeconds))
+                {
+                    SongOffsetSeconds = songOffsetSeconds;
+                }
+            }
 
 
             section.TryGet("video_start_time", out _videoStartTime);
