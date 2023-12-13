@@ -7,8 +7,15 @@ namespace YARG.Core.Game
 {
     public abstract class BasePreset
     {
+        /// <summary>
+        /// The display name of the preset.
+        /// </summary>
         public string Name;
-        public Guid   Id;
+
+        /// <summary>
+        /// The unique ID of the preset.
+        /// </summary>
+        public Guid Id;
 
         /// <summary>
         /// The type of the preset in string form. This is only
@@ -21,6 +28,12 @@ namespace YARG.Core.Game
         /// </summary>
         [JsonIgnore]
         public bool DefaultPreset;
+
+        /// <summary>
+        /// The path of the preset. This is only used to determine the path when it's in class form.
+        /// </summary>
+        [JsonIgnore]
+        public string? Path;
 
         protected BasePreset(string name, bool defaultPreset)
         {
