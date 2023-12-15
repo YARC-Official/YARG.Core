@@ -99,7 +99,8 @@ public class Analyzer
             // Run each input through the engine
             foreach (var input in replayFrame.Inputs)
             {
-                engine.QueueInput(input);
+                var inp = input;
+                engine.QueueInput(ref inp);
             }
 
             engine.UpdateEngineInputs();
@@ -117,7 +118,8 @@ public class Analyzer
                 // Queue all of the inputs for that frame
                 while (inputQueue.TryPeek(out var input) && frameTime >= input.Time)
                 {
-                    engine.QueueInput(inputQueue.Dequeue());
+                    engine.QueueInput(ref input);
+                    inputQueue.Dequeue();
                 }
 
                 // Run!
