@@ -35,7 +35,7 @@ namespace YARG.Core.Chart
             double totalStartTime = 0;
 
             if (NotePhrases.Count > 0)
-                totalStartTime = Math.Min(NotePhrases[^1].Time, totalStartTime);
+                totalStartTime = Math.Min(NotePhrases[0].Time, totalStartTime);
 
             totalStartTime = Math.Min(OtherPhrases.GetStartTime(), totalStartTime);
             totalStartTime = Math.Min(TextEvents.GetStartTime(), totalStartTime);
@@ -61,7 +61,7 @@ namespace YARG.Core.Chart
             uint totalFirstTick = 0;
 
             if (NotePhrases.Count > 0)
-                totalFirstTick = Math.Min(NotePhrases[^1].Tick, totalFirstTick);
+                totalFirstTick = Math.Min(NotePhrases[0].Tick, totalFirstTick);
 
             totalFirstTick = Math.Min(OtherPhrases.GetFirstTick(), totalFirstTick);
             totalFirstTick = Math.Min(TextEvents.GetFirstTick(), totalFirstTick);
