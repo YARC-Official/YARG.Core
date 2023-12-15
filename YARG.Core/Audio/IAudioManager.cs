@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -11,7 +11,7 @@ namespace YARG.Core.Audio
     {
         public AudioOptions Options { get; set; }
 
-        public IList<string> SupportedFormats { get; }
+        public IReadOnlyList<string> SupportedFormats { get; }
 
         public bool IsAudioLoaded { get; }
 
@@ -28,7 +28,7 @@ namespace YARG.Core.Audio
 
         public void ForceUnloadSong();
 
-        public double GetVolumeSetting(SongStem stem);
+        public float GetVolumeSetting(SongStem stem);
         public void SetVolumeSetting(SongStem stem, float volume);
     }
 
