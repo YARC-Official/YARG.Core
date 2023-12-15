@@ -7,7 +7,7 @@ using YARG.Core.Song;
 
 namespace YARG.Core.Audio
 {
-    public interface IAudioManager
+    public interface IAudioManager : IDisposable
     {
         public AudioOptions Options { get; set; }
 
@@ -16,9 +16,6 @@ namespace YARG.Core.Audio
         public bool IsAudioLoaded { get; }
 
         public float MasterVolume { get; set; }
-
-        public void Initialize();
-        public void Unload();
 
         public IList<IMicDevice> GetAllInputDevices();
 
@@ -32,13 +29,10 @@ namespace YARG.Core.Audio
         public void SetVolumeSetting(SongStem stem, float volume);
     }
 
-    public interface ISfxManager<TSfxSample>
+    public interface ISfxManager<TSfxSample> : IDisposable
         where TSfxSample : Enum
     {
         public float SfxVolume { get; set; }
-
-        public void LoadSoundEffects();
-        public void UnloadSoundEffects();
 
         public void PlaySoundEffect(TSfxSample sample);
     }
