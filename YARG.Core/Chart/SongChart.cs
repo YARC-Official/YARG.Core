@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Melanchall.DryWetMidi.Core;
@@ -13,10 +13,11 @@ namespace YARG.Core.Chart
         public uint Resolution => SyncTrack.Resolution;
 
         public List<TextEvent> GlobalEvents { get; set; } = new();
+        public List<Section> Sections { get; set; } = new();
+
         public SyncTrack SyncTrack { get; set; } = new();
         public VenueTrack VenueTrack { get; set; } = new();
-
-        public List<Section> Sections { get; set; } = new();
+        public LyricsTrack Lyrics { get; set; } = new();
 
         public InstrumentTrack<GuitarNote> FiveFretGuitar { get; set; } = new(Instrument.FiveFretGuitar);
         public InstrumentTrack<GuitarNote> FiveFretCoop { get; set; } = new(Instrument.FiveFretCoopGuitar);
