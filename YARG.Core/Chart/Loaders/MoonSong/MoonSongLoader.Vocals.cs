@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
 using MoonscraperChartEditor.Song;
-using YARG.Core.Utility;
+using YARG.Core.Extensions;
 
 // TODO: Better parsing/sanitization of lyric events
 
@@ -18,24 +16,6 @@ namespace YARG.Core.Chart
             NonPitched = 1 << 0,
             PitchSlide = 1 << 1,
         }
-
-        private const string PITCH_SLIDE_CHARACTER = "+";
-
-        private static readonly List<char> NONPITCHED_CHARACTERS = new()
-        {
-            '#', // Standard
-            '^', // Lenient
-            '*', // Unknown, present in some charts
-        };
-
-        private static readonly Dictionary<string, string> LYRIC_REPLACE_MAP = new()
-        {
-            { "+", "" },
-            { "#", "" },
-            { "^", "" },
-            { "*", "" },
-            { "_", " " },
-        };
 
         public VocalsTrack LoadVocalsTrack(Instrument instrument)
         {
@@ -150,25 +130,35 @@ namespace YARG.Core.Chart
                             break;
                         moonTextIndex++;
 
-                        var splitter = moonEvent.text.AsSpan().Split(' ');
+                        string eventText = moonEvent.text;
                         // Ignore non-lyric events
-                        var start = splitter.GetNext();
-                        var lyric = splitter.Remaining;
-                        if (!start.Equals(TextEventDefinitions.LYRIC_PREFIX, StringComparison.Ordinal))
+                        if (!eventText.StartsWith(TextEventDefinitions.LYRIC_PREFIX_WITH_SPACE))
+                            continue;
+
+                        var lyric = eventText.AsSpan()
+                            .Slice(TextEventDefinitions.LYRIC_PREFIX_WITH_SPACE.Length).TrimStartAscii();
+                        // Ignore empty lyrics
+                        if (lyric.IsEmpty)
                             continue;
 
                         // Only process note modifiers for lyrics that match the current note
                         if (moonEvent.tick == moonNote.tick)
                         {
                             // Handle modifier lyrics
-                            if (lyric.EndsWith(PITCH_SLIDE_CHARACTER))
+                            char modifier = lyric[^1];
+                            if (modifier == LyricSymbols.PITCH_SLIDE_SYMBOL)
                                 lyricType = LyricType.PitchSlide;
-                            else if (lyric.Length > 0 && NONPITCHED_CHARACTERS.Contains(lyric[^1]))
+                            else if (LyricSymbols.NONPITCHED_SYMBOLS.Contains(modifier))
                                 lyricType = LyricType.NonPitched;
                         }
 
+                        // Strip special symbols from lyrics
+                        string strippedLyric = LyricSymbols.StripForVocals(lyric.ToString());
+                        if (string.IsNullOrWhiteSpace(strippedLyric))
+                            continue;
+
                         double time = _moonSong.TickToTime(moonEvent.tick);
-                        lyrics.Add(new(lyric.ToString(), time, moonEvent.tick));
+                        lyrics.Add(new(strippedLyric, time, moonEvent.tick));
                     }
 
                     // Create new note
