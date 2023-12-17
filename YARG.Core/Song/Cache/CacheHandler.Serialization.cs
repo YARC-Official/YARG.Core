@@ -328,7 +328,7 @@ namespace YARG.Core.Song.Cache
             for (int i = 0; i < count; i++)
             {
                 AddInvalidSong(reader.ReadLEBString());
-                reader.Position += SongMetadata.SIZEOF_DATETIME;
+                reader.Move(SongMetadata.SIZEOF_DATETIME);
             }
         }
 
@@ -364,7 +364,7 @@ namespace YARG.Core.Song.Cache
             for (int i = 0; i < count; i++)
             {
                 AddInvalidSong(cacheReader.ReadLEBString());
-                cacheReader.Position += SongMetadata.SIZEOF_DATETIME;
+                cacheReader.Move(SongMetadata.SIZEOF_DATETIME);
             }
         }
 
@@ -476,7 +476,7 @@ namespace YARG.Core.Song.Cache
         private void QuickReadUpgradeCON(YARGBinaryReader reader)
         {
             string filename = reader.ReadLEBString();
-            reader.Position += 2 * SongMetadata.SIZEOF_DATETIME;
+            reader.Move(2 * SongMetadata.SIZEOF_DATETIME);
             int count = reader.ReadInt32();
 
             if (CreateCONGroup(filename, out var group))

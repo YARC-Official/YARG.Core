@@ -17,59 +17,42 @@ namespace YARG.Core.IO
 
     public sealed class YARGBinaryReader
     {
-        private readonly byte[] data;
-        private readonly ReadOnlyMemory<byte> memory;
+        private readonly Memory<byte> data;
         private int _position;
 
-        public int Length => memory.Length;
-
-        public int Position
-        {
-            get { return _position; }
-            set
-            {
-                if (value > memory.Length)
-                    throw new ArgumentOutOfRangeException("Position");
-                _position = value;
-            }
-        }
-
-        public YARGBinaryReader(byte[] data)
+        public YARGBinaryReader(Memory<byte> data)
         {
             this.data = data;
-            memory = data;
         }
 
         public YARGBinaryReader(Stream stream, int count)
         {
             if (stream is MemoryStream mem)
             {
-                data = Array.Empty<byte>();
-                memory = new ReadOnlyMemory<byte>(mem.GetBuffer(), (int) mem.Position, count);
+                data = new Memory<byte>(mem.GetBuffer(), (int) mem.Position, count);
                 mem.Position += count;
             }
             else
             {
                 data = stream.ReadBytes(count);
-                memory = data;
             }
         }
 
-        public YARGBinaryReader(YARGBinaryReader baseReader, int length)
+        public void Move(int amount)
         {
-            data = Array.Empty<byte>();
-            memory = baseReader.memory.Slice(baseReader._position, length);
-            baseReader._position += length;
+            _position += amount;
+            if (_position > data.Length)
+                throw new ArgumentOutOfRangeException("amount");
         }
 
         public byte ReadByte()
         {
-            return memory.Span[_position++];
+            return data.Span[_position++];
         }
 
         public sbyte ReadSByte()
         {
-            return (sbyte) memory.Span[_position++];
+            return (sbyte) data.Span[_position++];
         }
 
         public bool ReadBoolean()
@@ -80,7 +63,7 @@ namespace YARG.Core.IO
         public short ReadInt16(Endianness endianness = Endianness.LittleEndian)
         {
             short value;
-            var span = memory.Span.Slice(_position, sizeof(short));
+            var span = data.Span.Slice(_position, sizeof(short));
             if (endianness == Endianness.LittleEndian)
                 value = BinaryPrimitives.ReadInt16LittleEndian(span);
             else
@@ -92,7 +75,7 @@ namespace YARG.Core.IO
         public ushort ReadUInt16(Endianness endianness = Endianness.LittleEndian)
         {
             ushort value;
-            var span = memory.Span.Slice(_position, sizeof(ushort));
+            var span = data.Span.Slice(_position, sizeof(ushort));
             if (endianness == Endianness.LittleEndian)
                 value = BinaryPrimitives.ReadUInt16LittleEndian(span);
             else
@@ -104,7 +87,7 @@ namespace YARG.Core.IO
         public int ReadInt32(Endianness endianness = Endianness.LittleEndian)
         {
             int value;
-            var span = memory.Span.Slice(_position, sizeof(int));
+            var span = data.Span.Slice(_position, sizeof(int));
             if (endianness == Endianness.LittleEndian)
                 value = BinaryPrimitives.ReadInt32LittleEndian(span);
             else
@@ -116,7 +99,7 @@ namespace YARG.Core.IO
         public uint ReadUInt32(Endianness endianness = Endianness.LittleEndian)
         {
             uint value;
-            var span = memory.Span.Slice(_position, sizeof(uint));
+            var span = data.Span.Slice(_position, sizeof(uint));
             if (endianness == Endianness.LittleEndian)
                 value = BinaryPrimitives.ReadUInt32LittleEndian(span);
             else
@@ -128,19 +111,19 @@ namespace YARG.Core.IO
         public long ReadInt64(Endianness endianness = Endianness.LittleEndian)
         {
             long value;
-            var span = memory.Span.Slice(_position, sizeof(long));
+            var span = data.Span.Slice(_position, sizeof(long));
             if (endianness == Endianness.LittleEndian)
                 value = BinaryPrimitives.ReadInt64LittleEndian(span);
             else
                 value = BinaryPrimitives.ReadInt64BigEndian(span);
-            Position += sizeof(long);
+            _position += sizeof(long);
             return value;
         }
 
         public ulong ReadUInt64(Endianness endianness = Endianness.LittleEndian)
         {
             ulong value;
-            var span = memory.Span.Slice(_position, sizeof(ulong));
+            var span = data.Span.Slice(_position, sizeof(ulong));
             if (endianness == Endianness.LittleEndian)
                 value = BinaryPrimitives.ReadUInt64LittleEndian(span);
             else
@@ -166,17 +149,10 @@ namespace YARG.Core.IO
         public bool ReadBytes(byte[] bytes)
         {
             int endPos = _position + bytes.Length;
-            if (endPos > memory.Length)
+            if (endPos > data.Length)
                 return false;
 
-            unsafe
-            {
-                fixed (byte* dst = bytes, src = memory.Span)
-                {
-                    Unsafe.CopyBlock(dst, src + _position, (uint) bytes.Length);
-                }
-            }
-
+            Unsafe.CopyBlock(ref bytes[0], ref data.Span[_position], (uint) bytes.Length);
             _position = endPos;
             return true;
         }
@@ -197,7 +173,7 @@ namespace YARG.Core.IO
 
         public int ReadLEB()
         {
-            var span = memory.Span;
+            var span = data.Span;
             uint result = 0;
             byte byteReadJustNow;
 
@@ -226,9 +202,16 @@ namespace YARG.Core.IO
         public ReadOnlySpan<byte> ReadSpan(int length)
         {
             int endPos = _position + length;
-            var span = memory.Span.Slice(_position, length);
+            var span = data.Span.Slice(_position, length);
             _position = endPos;
             return span;
+        }
+
+        public YARGBinaryReader Slice(int length)
+        {
+            var local = _position;
+            Move(length);
+            return new YARGBinaryReader(data.Slice(local, length));
         }
     }
 }
