@@ -96,7 +96,7 @@ namespace YARG.Core.Engine
                 input = new GameInput(BaseState.CurrentTime, input.Action, input.Integer);
 
                 YargTrace.LogWarning("Engine was forced to move an input time! " +
-                    $"$Current time: {BaseState.CurrentTime}, input being queued: {input.Time}");
+                    $"Current time: {BaseState.CurrentTime}, input being queued: {input.Time}");
             }
 
             InputQueue.Enqueue(input);
