@@ -48,7 +48,7 @@ namespace MoonscraperChartEditor.Song
 
         public override string ToString()
         {
-            return $"Global event at tick {tick} with text '{text}'";
+            return $"Text event '{text}' at tick {tick}";
         }
     }
 }

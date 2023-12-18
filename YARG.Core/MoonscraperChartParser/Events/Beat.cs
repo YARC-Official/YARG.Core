@@ -40,7 +40,7 @@ namespace MoonscraperChartEditor.Song
 
         public override string ToString()
         {
-            return $"{type} beat at tick {tick}";
+            return $"{type} line at tick {tick}";
         }
     }
 }

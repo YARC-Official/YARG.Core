@@ -376,7 +376,7 @@ namespace MoonscraperChartEditor.Song
 
         public override string ToString()
         {
-            return $"Note at tick {tick} with value {rawNote} and length {length}";
+            return $"Note at tick {tick} with value {rawNote}, length {length}, flags {flags}";
         }
     }
 }

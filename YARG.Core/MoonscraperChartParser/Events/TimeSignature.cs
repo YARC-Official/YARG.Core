@@ -80,7 +80,7 @@ namespace MoonscraperChartEditor.Song
 
         public override string ToString()
         {
-            return $"Time signature at tick {tick} with numerator {numerator} and denominator {denominator}";
+            return $"Time signature {numerator}/{denominator} at tick {tick}";
         }
     }
 }

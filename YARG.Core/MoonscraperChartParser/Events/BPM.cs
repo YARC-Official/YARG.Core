@@ -47,7 +47,7 @@ namespace MoonscraperChartEditor.Song
 
         public override string ToString()
         {
-            return $"BPM at tick {tick} with tempo {value}";
+            return $"BPM at tick {tick} with tempo {value}, anchor {anchor?.ToString() ?? "(none)"}, time {assignedTime}";
         }
     }
 }

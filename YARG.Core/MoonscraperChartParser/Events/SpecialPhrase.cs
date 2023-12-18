@@ -102,7 +102,7 @@ namespace MoonscraperChartEditor.Song
 
         public override string ToString()
         {
-            return $"Special phrase at tick {tick} with type {type} and length {length}";
+            return $"Special phrase at tick {tick} with type {type}, length {length}";
         }
     }
 }
