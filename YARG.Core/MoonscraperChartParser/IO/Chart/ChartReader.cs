@@ -243,7 +243,7 @@ namespace MoonscraperChartEditor.Song.IO
                             var tempoText = remaining.GetNextWord(out remaining);
                             uint tempo = (uint)FastInt32Parse(tempoText);
 
-                            song.bpms.Add(new BPM(tick, tempo));
+                            song.bpms.Add(new BPM(tick, tempo / 1000f));
                             break;
                         }
 
