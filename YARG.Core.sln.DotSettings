@@ -3,4 +3,5 @@
 	<s:String x:Key="/Default/CodeStyle/Naming/CSharpNaming/Abbreviations/=DTA/@EntryIndexedValue">DTA</s:String>
 	<s:String x:Key="/Default/CodeStyle/Naming/CSharpNaming/Abbreviations/=RB/@EntryIndexedValue">RB</s:String>
 	<s:String x:Key="/Default/CodeStyle/Naming/CSharpNaming/Abbreviations/=RBCON/@EntryIndexedValue">RBCON</s:String>
+	<s:String x:Key="/Default/CodeStyle/Naming/CSharpNaming/Abbreviations/=YARG/@EntryIndexedValue">YARG</s:String>
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=YARG/@EntryIndexedValue">True</s:Boolean></wpf:ResourceDictionary>
