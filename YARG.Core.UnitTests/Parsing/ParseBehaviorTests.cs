@@ -56,35 +56,47 @@ namespace YARG.Core.UnitTests.Parsing
                 NewNote(3, GuitarFret.Blue),
                 NewNote(4, GuitarFret.Orange),
                 NewNote(5, GuitarFret.Open),
+
+                // Versus_Player1
                 NewNote(6, GuitarFret.Green, flags: Flags.Forced),
                 NewNote(7, GuitarFret.Red, flags: Flags.Forced),
                 NewNote(8, GuitarFret.Yellow, flags: Flags.Forced),
                 NewNote(9, GuitarFret.Blue, flags: Flags.Forced),
                 NewNote(10, GuitarFret.Orange, flags: Flags.Forced),
                 NewNote(11, GuitarFret.Open, flags: Flags.Forced),
+
+                // Versus_Player2
                 NewNote(12, GuitarFret.Green, flags: Flags.Tap),
                 NewNote(13, GuitarFret.Red, flags: Flags.Tap),
                 NewNote(14, GuitarFret.Yellow, flags: Flags.Tap),
                 NewNote(15, GuitarFret.Blue, flags: Flags.Tap),
                 NewNote(16, GuitarFret.Orange, flags: Flags.Tap),
+
+                // Starpower
                 NewNote(17, GuitarFret.Green),
                 NewNote(18, GuitarFret.Red),
                 NewNote(19, GuitarFret.Yellow),
                 NewNote(20, GuitarFret.Blue),
                 NewNote(21, GuitarFret.Orange),
                 NewNote(22, GuitarFret.Open),
+
+                // TremoloLane
                 NewNote(23, GuitarFret.Yellow),
                 NewNote(24, GuitarFret.Yellow),
                 NewNote(25, GuitarFret.Yellow),
                 NewNote(26, GuitarFret.Yellow),
                 NewNote(27, GuitarFret.Yellow),
                 NewNote(28, GuitarFret.Yellow),
+
+                // TrillLane
                 NewNote(29, GuitarFret.Green),
                 NewNote(30, GuitarFret.Red),
                 NewNote(31, GuitarFret.Green),
                 NewNote(32, GuitarFret.Red),
                 NewNote(33, GuitarFret.Green),
                 NewNote(34, GuitarFret.Red),
+
+                // Solo
                 NewNote(35, GuitarFret.Green, flags: Flags.Forced),
                 NewNote(36, GuitarFret.Red, flags: Flags.Forced),
                 NewNote(37, GuitarFret.Yellow, flags: Flags.Forced),
@@ -129,6 +141,7 @@ namespace YARG.Core.UnitTests.Parsing
                 NewNote(18, GHLiveGuitarFret.White2, flags: Flags.Tap),
                 NewNote(19, GHLiveGuitarFret.White3, flags: Flags.Tap),
 
+                // Starpower
                 NewNote(20, GHLiveGuitarFret.Black1),
                 NewNote(21, GHLiveGuitarFret.Black2),
                 NewNote(22, GHLiveGuitarFret.Black3),
@@ -137,6 +150,7 @@ namespace YARG.Core.UnitTests.Parsing
                 NewNote(25, GHLiveGuitarFret.White3),
                 NewNote(26, GHLiveGuitarFret.Open),
 
+                // Solo
                 NewNote(27, GHLiveGuitarFret.Black1),
                 NewNote(28, GHLiveGuitarFret.Black2),
                 NewNote(29, GHLiveGuitarFret.Black3),
@@ -176,6 +190,7 @@ namespace YARG.Core.UnitTests.Parsing
                 NewNote(16, ProGuitarString.Yellow, 16, flags: Flags.ProGuitar_Muted),
                 NewNote(17, ProGuitarString.Purple, 17, flags: Flags.ProGuitar_Muted),
 
+                // Starpower
                 NewNote(18, ProGuitarString.Red, 0),
                 NewNote(19, ProGuitarString.Green, 1),
                 NewNote(20, ProGuitarString.Orange, 2),
@@ -183,6 +198,7 @@ namespace YARG.Core.UnitTests.Parsing
                 NewNote(22, ProGuitarString.Yellow, 4),
                 NewNote(23, ProGuitarString.Purple, 5),
 
+                // TremoloLane
                 NewNote(24, ProGuitarString.Red, 0),
                 NewNote(25, ProGuitarString.Red, 0),
                 NewNote(26, ProGuitarString.Red, 0),
@@ -190,6 +206,7 @@ namespace YARG.Core.UnitTests.Parsing
                 NewNote(28, ProGuitarString.Red, 0),
                 NewNote(29, ProGuitarString.Red, 0),
 
+                // TrillLane
                 NewNote(30, ProGuitarString.Yellow, 5),
                 NewNote(31, ProGuitarString.Yellow, 6),
                 NewNote(32, ProGuitarString.Yellow, 5),
@@ -197,6 +214,7 @@ namespace YARG.Core.UnitTests.Parsing
                 NewNote(34, ProGuitarString.Yellow, 5),
                 NewNote(35, ProGuitarString.Yellow, 6),
 
+                // Solo
                 NewNote(36, ProGuitarString.Red, 0),
                 NewNote(37, ProGuitarString.Green, 1),
                 NewNote(38, ProGuitarString.Orange, 2),
@@ -246,6 +264,7 @@ namespace YARG.Core.UnitTests.Parsing
                 NewNote(24, DrumPad.Blue, flags: Flags.ProDrums_Cymbal | Flags.ProDrums_Ghost),
                 NewNote(25, DrumPad.Orange, flags: Flags.ProDrums_Cymbal | Flags.ProDrums_Ghost),
 
+                // Starpower
                 NewNote(26, DrumPad.Red),
                 NewNote(27, DrumPad.Yellow),
                 NewNote(28, DrumPad.Blue),
@@ -255,6 +274,7 @@ namespace YARG.Core.UnitTests.Parsing
                 NewNote(32, DrumPad.Blue, flags: Flags.ProDrums_Cymbal),
                 NewNote(33, DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
 
+                // ProDrums_Activation
                 NewNote(34, DrumPad.Red),
                 NewNote(35, DrumPad.Yellow),
                 NewNote(36, DrumPad.Blue),
@@ -264,6 +284,7 @@ namespace YARG.Core.UnitTests.Parsing
                 NewNote(40, DrumPad.Blue, flags: Flags.ProDrums_Cymbal),
                 NewNote(41, DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
 
+                // Versus_Player1
                 NewNote(42, DrumPad.Red),
                 NewNote(43, DrumPad.Yellow),
                 NewNote(44, DrumPad.Blue),
@@ -273,6 +294,7 @@ namespace YARG.Core.UnitTests.Parsing
                 NewNote(48, DrumPad.Blue, flags: Flags.ProDrums_Cymbal),
                 NewNote(49, DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
 
+                // Versus_Player2
                 NewNote(50, DrumPad.Red),
                 NewNote(51, DrumPad.Yellow),
                 NewNote(52, DrumPad.Blue),
@@ -282,6 +304,7 @@ namespace YARG.Core.UnitTests.Parsing
                 NewNote(56, DrumPad.Blue, flags: Flags.ProDrums_Cymbal),
                 NewNote(57, DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
 
+                // TremoloLane
                 NewNote(58, DrumPad.Red),
                 NewNote(59, DrumPad.Red),
                 NewNote(60, DrumPad.Red),
@@ -289,6 +312,7 @@ namespace YARG.Core.UnitTests.Parsing
                 NewNote(62, DrumPad.Red),
                 NewNote(63, DrumPad.Red),
 
+                // TrillLane
                 NewNote(64, DrumPad.Yellow, flags: Flags.ProDrums_Cymbal),
                 NewNote(65, DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
                 NewNote(66, DrumPad.Yellow, flags: Flags.ProDrums_Cymbal),
@@ -296,6 +320,7 @@ namespace YARG.Core.UnitTests.Parsing
                 NewNote(68, DrumPad.Yellow, flags: Flags.ProDrums_Cymbal),
                 NewNote(69, DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
 
+                // Solo
                 NewNote(70, DrumPad.Red),
                 NewNote(71, DrumPad.Yellow),
                 NewNote(72, DrumPad.Blue),
@@ -322,6 +347,8 @@ namespace YARG.Core.UnitTests.Parsing
         public static readonly ParseBehavior VocalsNotes = new(
             new[]
             {
+                // Versus_Player1
+                // Vocals_LyricPhrase
                 NewNote(0, VOCALS_RANGE_START + 0, length: RESOLUTION / 2),
                 NewNote(1, VOCALS_RANGE_START + 1, length: RESOLUTION / 2),
                 NewNote(2, VOCALS_RANGE_START + 2, length: RESOLUTION / 2),
@@ -335,6 +362,9 @@ namespace YARG.Core.UnitTests.Parsing
                 NewNote(10, VOCALS_RANGE_START + 10, length: RESOLUTION / 2),
                 NewNote(11, VOCALS_RANGE_START + 11, length: RESOLUTION / 2),
 
+                // Versus_Player2
+                // Vocals_LyricPhrase
+                // Starpower
                 NewNote(12, VOCALS_RANGE_START + 12, length: RESOLUTION / 2),
                 NewNote(13, VOCALS_RANGE_START + 13, length: RESOLUTION / 2),
                 NewNote(14, VOCALS_RANGE_START + 14, length: RESOLUTION / 2),
@@ -348,6 +378,9 @@ namespace YARG.Core.UnitTests.Parsing
                 NewNote(22, VOCALS_RANGE_START + 22, length: RESOLUTION / 2),
                 NewNote(23, VOCALS_RANGE_START + 23, length: RESOLUTION / 2),
 
+                // Versus_Player1
+                // Vocals_LyricPhrase
+                // Versus_Player2
                 NewNote(24, VOCALS_RANGE_START + 24, length: RESOLUTION / 2),
                 NewNote(25, VOCALS_RANGE_START + 25, length: RESOLUTION / 2),
                 NewNote(26, VOCALS_RANGE_START + 26, length: RESOLUTION / 2),
@@ -361,6 +394,8 @@ namespace YARG.Core.UnitTests.Parsing
                 NewNote(34, VOCALS_RANGE_START + 34, length: RESOLUTION / 2),
                 NewNote(35, VOCALS_RANGE_START + 35, length: RESOLUTION / 2),
 
+                // Versus_Player2
+                // Vocals_LyricPhrase
                 NewNote(36, VOCALS_RANGE_START + 36, length: RESOLUTION / 2),
                 NewNote(37, VOCALS_RANGE_START + 37, length: RESOLUTION / 2),
                 NewNote(38, VOCALS_RANGE_START + 38, length: RESOLUTION / 2),
@@ -375,6 +410,8 @@ namespace YARG.Core.UnitTests.Parsing
                 NewNote(47, VOCALS_RANGE_START + 47, length: RESOLUTION / 2),
                 NewNote(48, VOCALS_RANGE_START + 48, length: RESOLUTION / 2),
 
+                // Versus_Player1
+                // Vocals_LyricPhrase
                 NewNote(49, 0, flags: Flags.Vocals_Percussion),
             },
             new[]
@@ -384,7 +421,6 @@ namespace YARG.Core.UnitTests.Parsing
 
                 NewSpecial(12, SpecialPhrase.Type.Versus_Player2, RESOLUTION * 12),
                 NewSpecial(12, SpecialPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 12),
-                
                 NewSpecial(12, SpecialPhrase.Type.Starpower, RESOLUTION * 12),
 
                 NewSpecial(24, SpecialPhrase.Type.Versus_Player1, RESOLUTION * 12),
