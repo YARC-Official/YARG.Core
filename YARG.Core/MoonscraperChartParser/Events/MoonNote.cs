@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2020 Alexander Ong
+﻿// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
 using System;
@@ -12,36 +12,33 @@ namespace MoonscraperChartEditor.Song
     {
         public enum GuitarFret
         {
-            // Assign to the sprite array position
-            Green = 0,
-            Red = 1,
-            Yellow = 2,
-            Blue = 3,
-            Orange = 4,
-            Open = 5
+            Open,
+            Green,
+            Red,
+            Yellow,
+            Blue,
+            Orange,
         }
 
         public enum DrumPad
         {
-            // Wrapper to account for how the frets change colours between the drums and guitar tracks from the GH series  
-            Red = GuitarFret.Green,
-            Yellow = GuitarFret.Red,
-            Blue = GuitarFret.Yellow,
-            Orange = GuitarFret.Blue,
-            Green = GuitarFret.Orange,
-            Kick = GuitarFret.Open,
+            Kick,
+            Red,
+            Yellow,
+            Blue,
+            Orange,
+            Green,
         }
 
         public enum GHLiveGuitarFret
         {
-            // Assign to the sprite array position
+            Open,
             Black1,
             Black2,
             Black3,
             White1,
             White2,
             White3,
-            Open
         }
 
         public enum ProGuitarString
@@ -98,13 +95,18 @@ namespace MoonscraperChartEditor.Song
 
         public uint length;
         public int rawNote;
+
         public GuitarFret guitarFret
         {
             get => (GuitarFret)rawNote;
             set => rawNote = (int)value;
         }
 
-        public DrumPad drumPad => (DrumPad)guitarFret;
+        public DrumPad drumPad
+        {
+            get => (DrumPad)rawNote;
+            set => rawNote = (int)value;
+        }
 
         public GHLiveGuitarFret ghliveGuitarFret
         {
