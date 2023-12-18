@@ -7,7 +7,7 @@ namespace MoonscraperChartEditor.Song
         string StartEvent { get; }
         string EndEvent { get; }
 
-        void AddPhrase(uint startTick, uint endTick);
+        void AddPhrase(uint startTick, uint endTick, bool nextPhraseStarted);
         void AddPhraseEvent(string text, uint tick);
     }
 
@@ -101,7 +101,7 @@ namespace MoonscraperChartEditor.Song
                 else
                 {
                     // Phrase ends on this tick
-                    converter.AddPhrase(startTick.Value, currentTick);
+                    converter.AddPhrase(startTick.Value, currentTick, false);
                     // A new one may also start here
                     startTick = start ? currentTick : null;
                 }
@@ -111,12 +111,12 @@ namespace MoonscraperChartEditor.Song
                 if (startTick == null)
                 {
                     // Phrase starts and ends on this tick
-                    converter.AddPhrase(currentTick, currentTick);
+                    converter.AddPhrase(currentTick, currentTick, false);
                 }
                 else
                 {
                     // Phrase ends on this tick and a new one starts
-                    converter.AddPhrase(startTick.Value, currentTick);
+                    converter.AddPhrase(startTick.Value, currentTick, true);
                     startTick = currentTick;
                 }
             }

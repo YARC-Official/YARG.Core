@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Melanchall.DryWetMidi.Core;
@@ -111,6 +111,7 @@ namespace YARG.Core.Chart
             SyncTrack = loader.LoadSyncTrack();
             VenueTrack = loader.LoadVenueTrack();
             Sections = loader.LoadSections();
+            Lyrics = loader.LoadLyrics();
 
             FiveFretGuitar = loader.LoadGuitarTrack(Instrument.FiveFretGuitar);
             FiveFretCoop = loader.LoadGuitarTrack(Instrument.FiveFretCoopGuitar);
