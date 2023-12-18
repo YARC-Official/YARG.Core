@@ -27,13 +27,11 @@ namespace MoonscraperChartEditor.Song
             Vocals_PercussionPhrase,
         }
 
-        private readonly ID _classID = ID.Special;
-        public override int classID => (int)_classID;
-
         public uint length;
         public Type type;
 
-        public SpecialPhrase(uint _position, uint _length, Type _type) : base(_position)
+        public SpecialPhrase(uint _position, uint _length, Type _type)
+            : base(ID.Special, _position)
         {
             length = _length;
             type = _type;

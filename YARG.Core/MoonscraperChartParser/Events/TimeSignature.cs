@@ -8,13 +8,11 @@ namespace MoonscraperChartEditor.Song
     [Serializable]
     internal class TimeSignature : SongObject
     {
-        private readonly ID _classID = ID.TimeSignature;
-        public override int classID => (int)_classID;
-
         public uint numerator;
         public uint denominator;
 
-        public TimeSignature(uint _position = 0, uint _numerator = 4, uint _denominator = 4) : base(_position)
+        public TimeSignature(uint _position = 0, uint _numerator = 4, uint _denominator = 4)
+            : base(ID.TimeSignature, _position)
         {
             numerator = _numerator;
             denominator = _denominator;

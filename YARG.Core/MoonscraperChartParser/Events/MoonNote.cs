@@ -96,9 +96,6 @@ namespace MoonscraperChartEditor.Song
             ProDrums_Ghost = 1 << 13,
         }
 
-        private readonly ID _classID = ID.Note;
-        public override int classID => (int)_classID;
-
         public uint length;
         public int rawNote;
         public GuitarFret guitarFret
@@ -152,7 +149,8 @@ namespace MoonscraperChartEditor.Song
 
         public Chord chord => new(this);
 
-        public MoonNote(uint _position, int _rawNote, uint _sustain = 0, Flags _flags = Flags.None) : base(_position)
+        public MoonNote(uint _position, int _rawNote, uint _sustain = 0, Flags _flags = Flags.None)
+            : base(ID.Note, _position)
         {
             length = _sustain;
             flags = _flags;

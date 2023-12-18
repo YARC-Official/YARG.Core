@@ -14,12 +14,10 @@ namespace MoonscraperChartEditor.Song
             Beat,
         }
 
-        private readonly ID _classID = ID.Beat;
-        public override int classID => (int)_classID;
-
         public Type type;
 
-        public Beat(uint _position, Type _type) : base(_position)
+        public Beat(uint _position, Type _type)
+            : base(ID.Beat, _position)
         {
             type = _type;
         }

@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2020 Alexander Ong
+﻿// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
 using System;
@@ -13,10 +13,11 @@ namespace MoonscraperChartEditor.Song
         /// </summary>
         public uint tick;
 
-        public abstract int classID { get; }
+        public readonly ID classID;
         
-        public SongObject(uint _tick)
+        public SongObject(ID id, uint _tick)
         {
+            classID = id;
             tick = _tick;
         }
 

@@ -9,13 +9,11 @@ namespace MoonscraperChartEditor.Song
     [Serializable]
     internal class VenueEvent : TextEvent
     {
-        private readonly ID _classID = ID.Venue;
-        public override int classID => (int)_classID;
-
         public VenueLookup.Type type;
         public uint length;
 
-        public VenueEvent(VenueLookup.Type _type, string _text, uint _position, uint _length = 0) : base(_text, _position)
+        public VenueEvent(VenueLookup.Type _type, string _text, uint _position, uint _length = 0)
+            : base(ID.Venue, _text, _position)
         {
             type = _type;
             length = _length;

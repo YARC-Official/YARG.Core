@@ -8,12 +8,15 @@ namespace MoonscraperChartEditor.Song
     [Serializable]
     internal class TextEvent : SongObject
     {
-        private readonly ID _classID = ID.Text;
-        public override int classID => (int)_classID;
-
         public string text;
 
-        public TextEvent(string _title, uint _position) : base(_position)
+        public TextEvent(string _title, uint _position)
+            : this(ID.Text, _title, _position)
+        {
+        }
+
+        protected TextEvent(ID id, string _title, uint _position)
+            : base(id, _position)
         {
             text = _title;
         }

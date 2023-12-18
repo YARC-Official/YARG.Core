@@ -8,9 +8,6 @@ namespace MoonscraperChartEditor.Song
     [Serializable]
     internal class BPM : SongObject
     {
-        private readonly ID _classID = ID.BPM;
-        public override int classID => (int)_classID;
-
         /// <summary>
         /// Stored as the bpm value * 1000. For example, a bpm of 120.075 would be stored as 120075.
         /// </summary>
@@ -26,7 +23,8 @@ namespace MoonscraperChartEditor.Song
         /// </summary>
         /// <param name="_position">Tick position.</param>
         /// <param name="_value">Stored as the bpm value * 1000 to limit it to 3 decimal places. For example, a bpm of 120.075 would be stored as 120075.</param>
-        public BPM(uint _position = 0, uint _value = 120000, double? _anchor = null) : base(_position)
+        public BPM(uint _position = 0, uint _value = 120000, double? _anchor = null)
+            : base(ID.BPM, _position)
         {
             value = _value;
             anchor = _anchor;
