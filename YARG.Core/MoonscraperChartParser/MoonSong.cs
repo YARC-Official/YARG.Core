@@ -120,7 +120,7 @@ namespace MoonscraperChartEditor.Song
             }
 
             uint position = prevBPM.tick;
-            position += TickFunctions.TimeToDis(prevBPM.assignedTime, time, resolution, prevBPM.value / 1000.0f);
+            position += TickFunctions.TimeToDis(prevBPM.assignedTime, time, resolution, prevBPM.value);
 
             return position;
         }
@@ -174,7 +174,7 @@ namespace MoonscraperChartEditor.Song
 
             var prevBPM = bpms[previousBPMPos];
             double time = prevBPM.assignedTime;
-            time += TickFunctions.DisToTime(prevBPM.tick, position, resolution, prevBPM.value / 1000.0f);
+            time += TickFunctions.DisToTime(prevBPM.tick, position, resolution, prevBPM.value);
 
             return time;
         }
@@ -264,7 +264,7 @@ namespace MoonscraperChartEditor.Song
 
             foreach (var bpm in bpms)
             {
-                time += TickFunctions.DisToTime(prevBPM.tick, bpm.tick, resolution, prevBPM.value / 1000.0f);
+                time += TickFunctions.DisToTime(prevBPM.tick, bpm.tick, resolution, prevBPM.value);
                 bpm.assignedTime = time;
                 prevBPM = bpm;
             }
@@ -293,12 +293,12 @@ namespace MoonscraperChartEditor.Song
                 }
                 else
                 {
-                    time += TickFunctions.DisToTime(prevBPM.tick, bpmInfo.tick, resolution, prevBPM.value / 1000.0f);
+                    time += TickFunctions.DisToTime(prevBPM.tick, bpmInfo.tick, resolution, prevBPM.value);
                     prevBPM = bpmInfo;
                 }
             }
 
-            time += TickFunctions.DisToTime(prevBPM.tick, position, resolution, prevBPM.value / 1000.0f);
+            time += TickFunctions.DisToTime(prevBPM.tick, position, resolution, prevBPM.value);
 
             return time;
         }

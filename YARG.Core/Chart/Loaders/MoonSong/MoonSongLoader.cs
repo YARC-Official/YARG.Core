@@ -102,7 +102,7 @@ namespace YARG.Core.Chart
             foreach (var moonBpm in _moonSong.bpms)
             {
                 double time = _moonSong.TickToTime(moonBpm.tick);
-                var tempo = new TempoChange(moonBpm.displayValue, time, moonBpm.tick);
+                var tempo = new TempoChange(moonBpm.value, time, moonBpm.tick);
                 tempos.Add(tempo);
             }
 

@@ -114,7 +114,8 @@ namespace YARG.Core.UnitTests.Parsing
                     (timeSigIndex == sourceSong.timeSignatures.Count || sourceSong.bpms[bpmIndex].tick < sourceSong.timeSignatures[timeSigIndex].tick))
                 {
                     var bpm = sourceSong.bpms[bpmIndex++];
-                    builder.Append($"  {bpm.tick} = B {bpm.value}");
+                    uint writtenBpm = (uint) (bpm.value * 1000);
+                    builder.Append($"  {bpm.tick} = B {writtenBpm}");
                 }
             }
             builder.Append($"}}{NEWLINE}");

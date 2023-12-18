@@ -12,7 +12,7 @@ namespace YARG.Core.UnitTests.Parsing
     internal class ParseBehaviorTests
     {
         public const uint RESOLUTION = 192;
-        public const double TEMPO = 120.0;
+        public const float TEMPO = 120;
         public const int NUMERATOR = 4;
         public const int DENOMINATOR = 4;
 
@@ -432,7 +432,7 @@ namespace YARG.Core.UnitTests.Parsing
 
         public static void PopulateSyncTrack(MoonSong song)
         {
-            song.bpms.Add(new BPM(0, (uint) (TEMPO * 1000)));
+            song.bpms.Add(new BPM(0, TEMPO));
             song.timeSignatures.Add(new TimeSignature(0, NUMERATOR, DENOMINATOR));
         }
 

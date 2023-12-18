@@ -1,4 +1,4 @@
-﻿using Melanchall.DryWetMidi.Common;
+using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.Core;
 using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
@@ -250,8 +250,8 @@ namespace YARG.Core.UnitTests.Parsing
                     (timeSigIndex == sourceSong.timeSignatures.Count || sourceSong.bpms[bpmIndex].tick < sourceSong.timeSignatures[timeSigIndex].tick))
                 {
                     var bpm = sourceSong.bpms[bpmIndex++];
-                    long microseconds = Chart.TempoChange.BpmToMicroSeconds(bpm.displayValue);
-                    timedEvents.Add((bpm.tick, new SetTempoEvent((long) microseconds)));
+                    long microseconds = Chart.TempoChange.BpmToMicroSeconds(bpm.value);
+                    timedEvents.Add((bpm.tick, new SetTempoEvent(microseconds)));
                 }
             }
 
