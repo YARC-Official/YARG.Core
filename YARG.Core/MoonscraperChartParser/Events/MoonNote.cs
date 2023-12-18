@@ -8,7 +8,7 @@ using System.Collections.Generic;
 namespace MoonscraperChartEditor.Song
 {
     [Serializable]
-    internal class MoonNote : ChartObject
+    internal class MoonNote : SongObject
     {
         public enum GuitarFret
         {
@@ -382,7 +382,7 @@ namespace MoonscraperChartEditor.Song
             return rawNote;
         }
 
-        protected override ChartObject ChartClone() => Clone();
+        protected override SongObject SongClone() => Clone();
 
         public new MoonNote Clone()
         {

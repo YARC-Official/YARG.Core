@@ -6,7 +6,7 @@ using System;
 namespace MoonscraperChartEditor.Song
 {
     [Serializable]
-    internal class Beat : SyncTrack
+    internal class Beat : SongObject
     {
         public enum Type
         {
@@ -24,7 +24,7 @@ namespace MoonscraperChartEditor.Song
             type = _type;
         }
 
-        protected override SyncTrack SyncClone() => Clone();
+        protected override SongObject SongClone() => Clone();
 
         public new Beat Clone()
         {

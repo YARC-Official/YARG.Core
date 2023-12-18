@@ -6,7 +6,7 @@ using System;
 namespace MoonscraperChartEditor.Song
 {
     [Serializable]
-    internal class ChartEvent : ChartObject
+    internal class ChartEvent : SongObject
     {
         private readonly ID _classID = ID.ChartEvent;
         public override int classID => (int)_classID;
@@ -48,7 +48,7 @@ namespace MoonscraperChartEditor.Song
                 return base.LessThan(b);
         }
 
-        protected override ChartObject ChartClone() => Clone();
+        protected override SongObject SongClone() => Clone();
 
         public new ChartEvent Clone()
         {

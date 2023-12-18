@@ -6,7 +6,7 @@ using System;
 namespace MoonscraperChartEditor.Song
 {
     [Serializable]
-    internal class SpecialPhrase : ChartObject
+    internal class SpecialPhrase : SongObject
     {
         public enum Type
         {
@@ -110,7 +110,7 @@ namespace MoonscraperChartEditor.Song
             return newLength;
         }
 
-        protected override ChartObject ChartClone() => Clone();
+        protected override SongObject SongClone() => Clone();
 
         public new SpecialPhrase Clone()
         {
