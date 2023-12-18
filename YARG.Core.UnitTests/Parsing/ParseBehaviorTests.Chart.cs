@@ -71,9 +71,6 @@ namespace YARG.Core.UnitTests.Parsing
 
         private static readonly List<SpecialPhrase.Type> DrumsOnlySpecialPhrases = new()
         {
-            SpecialPhrase.Type.Starpower,
-            SpecialPhrase.Type.Versus_Player1,
-            SpecialPhrase.Type.Versus_Player2,
             SpecialPhrase.Type.TremoloLane,
             SpecialPhrase.Type.TrillLane,
             SpecialPhrase.Type.ProDrums_Activation,
