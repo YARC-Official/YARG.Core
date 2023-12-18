@@ -329,11 +329,11 @@ namespace MoonscraperChartEditor.Song.IO
                         {
                             // This is a section, use the text grouped by the regex
                             string sectionText = sectionMatch.Groups[1].Value;
-                            song.sections.Add(new Section(sectionText, tick));
+                            song.sections.Add(new TextEvent(sectionText, tick));
                         }
                         else
                         {
-                            song.events.Add(new Event(eventText, tick));
+                            song.events.Add(new TextEvent(eventText, tick));
                         }
                     }
                     else
@@ -450,7 +450,7 @@ namespace MoonscraperChartEditor.Song.IO
                                     eventText = match.Groups[1].Value;
                                 }
 
-                                chart.events.Add(new ChartEvent(tick, eventText));
+                                chart.events.Add(new TextEvent(eventText, tick));
                                 break;
                             }
 

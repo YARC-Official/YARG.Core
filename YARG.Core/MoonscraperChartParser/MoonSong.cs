@@ -35,11 +35,11 @@ namespace MoonscraperChartEditor.Song
         /// <summary>
         /// Read only list of song events.
         /// </summary>
-        public List<Event> events { get; private set; } = new();
+        public List<TextEvent> events { get; private set; } = new();
         /// <summary>
         /// Read only list of song sections.
         /// </summary>
-        public List<Section> sections { get; private set; } = new();
+        public List<TextEvent> sections { get; private set; } = new();
         /// <summary>
         /// Read only list of venue events.
         /// </summary>
@@ -145,7 +145,7 @@ namespace MoonscraperChartEditor.Song
             return SongObjectHelper.GetPrevious(timeSignatures, position);
         }
 
-        public Section? GetPrevSection(uint position)
+        public TextEvent? GetPrevSection(uint position)
         {
             return SongObjectHelper.GetPrevious(sections, position);
         }
@@ -209,12 +209,12 @@ namespace MoonscraperChartEditor.Song
             return bpm.tick > 0 && SongObjectHelper.Remove(bpm, bpms);
         }
 
-        public void Add(Event ev)
+        public void Add(TextEvent ev)
         {
             SongObjectHelper.Insert(ev, events);
         }
 
-        public void Add(Section section)
+        public void AddSection(TextEvent section)
         {
             SongObjectHelper.Insert(section, sections);
         }
@@ -224,12 +224,12 @@ namespace MoonscraperChartEditor.Song
             SongObjectHelper.Insert(venueEvent, venue);
         }
 
-        public bool Remove(Event ev)
+        public bool Remove(TextEvent ev)
         {
             return SongObjectHelper.Remove(ev, events);
         }
 
-        public bool Remove(Section section)
+        public bool RemoveSection(TextEvent section)
         {
             return SongObjectHelper.Remove(section, sections);
         }

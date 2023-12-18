@@ -138,7 +138,7 @@ namespace YARG.Core.UnitTests.Parsing
                     (eventIndex == sourceSong.events.Count || sourceSong.sections[sectionIndex].tick <= sourceSong.events[eventIndex].tick))
                 {
                     var section = sourceSong.sections[sectionIndex++];
-                    builder.Append($"  {section.tick} = E \"{section.title}\"");
+                    builder.Append($"  {section.tick} = E \"{section.text}\"");
                 }
 
                 while (eventIndex < sourceSong.events.Count &&
@@ -146,7 +146,7 @@ namespace YARG.Core.UnitTests.Parsing
                     (sectionIndex == sourceSong.sections.Count || sourceSong.bpms[eventIndex].tick < sourceSong.sections[sectionIndex].tick))
                 {
                     var ev = sourceSong.events[eventIndex++];
-                    builder.Append($"  {ev.tick} = E \"{ev.title}\"");
+                    builder.Append($"  {ev.tick} = E \"{ev.text}\"");
                 }
             }
             builder.Append($"}}{NEWLINE}");
@@ -218,7 +218,7 @@ namespace YARG.Core.UnitTests.Parsing
                     (noteIndex   == chart.notes.Count          || chart.events[eventIndex].tick < chart.notes[noteIndex].tick))
                 {
                     var ev = chart.events[eventIndex++];
-                    builder.Append($"  {ev.tick} = E {ev.eventName}{NEWLINE}");
+                    builder.Append($"  {ev.tick} = E {ev.text}{NEWLINE}");
                 }
             }
 

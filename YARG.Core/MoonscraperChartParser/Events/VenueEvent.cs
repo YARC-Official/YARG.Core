@@ -7,7 +7,7 @@ using YARG.Core.Chart;
 namespace MoonscraperChartEditor.Song
 {
     [Serializable]
-    internal class VenueEvent : Event
+    internal class VenueEvent : TextEvent
     {
         private readonly ID _classID = ID.Venue;
         public override int classID => (int)_classID;
@@ -25,12 +25,12 @@ namespace MoonscraperChartEditor.Song
 
         public new VenueEvent Clone()
         {
-            return new VenueEvent(type, title, tick, length);
+            return new VenueEvent(type, text, tick, length);
         }
 
         public override string ToString()
         {
-            return $"Venue event '{title}' at tick {tick}";
+            return $"Venue event '{text}' at tick {tick}";
         }
     }
 }

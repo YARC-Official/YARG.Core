@@ -29,7 +29,7 @@ namespace YARG.Core.Chart
             foreach (var moonVenue in _moonSong.venue)
             {
                 // Prefix flags
-                var splitter = moonVenue.title.AsSpan().Split(' ');
+                var splitter = moonVenue.text.AsSpan().Split(' ');
                 splitter.MoveNext();
                 var flags = VenueEventFlags.None;
                 foreach (var (prefix, flag) in FlagPrefixLookup)
@@ -129,7 +129,7 @@ namespace YARG.Core.Chart
             }
 
             // Sing-along events are not optional, use the text directly
-            if (!PerformerLookup.TryGetValue(moonEvent.title, out var performer))
+            if (!PerformerLookup.TryGetValue(moonEvent.text, out var performer))
                 return;
             performers |= performer;
         }

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using MoonscraperChartEditor.Song;
 
-using MoonChartEvent = MoonscraperChartEditor.Song.ChartEvent;
+using MoonTextEvent = MoonscraperChartEditor.Song.TextEvent;
 
 namespace YARG.Core.Chart
 {
@@ -59,14 +59,14 @@ namespace YARG.Core.Chart
             return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick);
         }
 
-        private void HandleTextEvent(MoonChartEvent text)
+        private void HandleTextEvent(MoonTextEvent text)
         {
             // Ignore on 5-lane or standard Drums
             if (_settings.DrumsType != DrumsType.FourLane && _currentInstrument is Instrument.FourLaneDrums)
                 return;
 
             // Parse out event data
-            if (_discoFlipEventRegex.Match(text.eventName) is not { Success: true } match)
+            if (_discoFlipEventRegex.Match(text.text) is not { Success: true } match)
                 return;
 
             char difficultyChar = match.Groups[1].Value[0];

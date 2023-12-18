@@ -27,7 +27,7 @@ namespace MoonscraperChartEditor.Song
         /// <summary>
         /// Read only list of local events.
         /// </summary>
-        public List<ChartEvent> events { get; private set; } = new();
+        public List<TextEvent> events { get; private set; } = new();
 
         /// <summary>
         /// Creates a new chart object.
@@ -60,7 +60,7 @@ namespace MoonscraperChartEditor.Song
             return SongObjectHelper.Insert(phrase, specialPhrases);
         }
 
-        public int Add(ChartEvent ev)
+        public int Add(TextEvent ev)
         {
             return SongObjectHelper.Insert(ev, events);
         }
@@ -75,7 +75,7 @@ namespace MoonscraperChartEditor.Song
             return SongObjectHelper.Remove(phrase, specialPhrases);
         }
 
-        public bool Remove(ChartEvent ev)
+        public bool Remove(TextEvent ev)
         {
             return SongObjectHelper.Remove(ev, events);
         }

@@ -5,7 +5,7 @@ using Melanchall.DryWetMidi.Core;
 using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
 
-using MoonChartEvent = MoonscraperChartEditor.Song.ChartEvent;
+using MoonTextEvent = MoonscraperChartEditor.Song.TextEvent;
 
 namespace YARG.Core.Chart
 {
@@ -18,7 +18,7 @@ namespace YARG.Core.Chart
     {
         private delegate TNote CreateNoteDelegate<TNote>(MoonNote moonNote, CurrentPhrases currentPhrases)
             where TNote : Note<TNote>;
-        private delegate void ProcessTextDelegate(MoonChartEvent text);
+        private delegate void ProcessTextDelegate(MoonTextEvent text);
 
         private MoonSong _moonSong;
         private ParseSettings _settings;
@@ -65,7 +65,7 @@ namespace YARG.Core.Chart
             foreach (var moonText in _moonSong.events)
             {
                 double time = _moonSong.TickToTime(moonText.tick);
-                var newText = new TextEvent(moonText.title, time, moonText.tick);
+                var newText = new TextEvent(moonText.text, time, moonText.tick);
                 textEvents.Add(newText);
             }
 
@@ -80,7 +80,7 @@ namespace YARG.Core.Chart
             {
                 var moonSection = _moonSong.sections[i];
                 double time = _moonSong.TickToTime(moonSection.tick);
-                sections.Add(new Section(moonSection.title, time, moonSection.tick));
+                sections.Add(new Section(moonSection.text, time, moonSection.tick));
 
                 if (++i < _moonSong.sections.Count)
                 {
@@ -228,7 +228,7 @@ namespace YARG.Core.Chart
             foreach (var moonText in moonChart.events)
             {
                 double time = _moonSong.TickToTime(moonText.tick);
-                var newText = new TextEvent(moonText.eventName, time, moonText.tick);
+                var newText = new TextEvent(moonText.text, time, moonText.tick);
                 textEvents.Add(newText);
             }
 

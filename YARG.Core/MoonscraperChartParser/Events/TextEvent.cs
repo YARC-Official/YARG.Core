@@ -6,39 +6,39 @@ using System;
 namespace MoonscraperChartEditor.Song
 {
     [Serializable]
-    internal class ChartEvent : SongObject
+    internal class TextEvent : SongObject
     {
-        private readonly ID _classID = ID.ChartEvent;
+        private readonly ID _classID = ID.Text;
         public override int classID => (int)_classID;
 
-        public string eventName { get; private set; }
+        public string text;
 
-        public ChartEvent(uint _position, string _eventName) : base(_position)
+        public TextEvent(string _title, uint _position) : base(_position)
         {
-            eventName = _eventName;
+            text = _title;
         }
 
         protected override bool Equals(SongObject b)
         {
-            if (b.GetType() == typeof(ChartEvent))
+            if (base.Equals(b))
             {
-                var realB = (ChartEvent) b;
-                return tick == realB.tick && eventName == realB.eventName;
+                var realB = (TextEvent) b;
+                return realB != null && tick == realB.tick && text == realB.text;
             }
-            else
-                return base.Equals(b);
+
+            return false;
         }
 
         protected override bool LessThan(SongObject b)
         {
-            if (b.GetType() == typeof(ChartEvent))
+            if (classID == b.classID)
             {
-                var realB = (ChartEvent) b;
+                var realB = (TextEvent) b;
                 if (tick < b.tick)
                     return true;
                 else if (tick == b.tick)
                 {
-                    if (string.Compare(eventName, realB.eventName) < 0)
+                    if (string.Compare(text, realB.text) < 0)
                         return true;
                 }
 
@@ -50,14 +50,14 @@ namespace MoonscraperChartEditor.Song
 
         protected override SongObject SongClone() => Clone();
 
-        public new ChartEvent Clone()
+        public new TextEvent Clone()
         {
-            return new ChartEvent(tick, eventName);
+            return new TextEvent(text, tick);
         }
 
         public override string ToString()
         {
-            return $"Local event at tick {tick} with text '{eventName}'";
+            return $"Global event at tick {tick} with text '{text}'";
         }
     }
 }

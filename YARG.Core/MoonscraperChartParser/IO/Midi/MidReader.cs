@@ -240,12 +240,12 @@ namespace MoonscraperChartEditor.Song.IO
                     {
                         // This is a section, use the text grouped by the regex
                         string sectionText = sectionMatch.Groups[1].Value;
-                        song.sections.Add(new Section(sectionText, (uint)absoluteTime));
+                        song.sections.Add(new TextEvent(sectionText, (uint)absoluteTime));
                         continue;
                     }
 
                     // Add the event as-is
-                    song.events.Add(new Event(eventText, (uint)absoluteTime));
+                    song.events.Add(new TextEvent(eventText, (uint)absoluteTime));
                 }
             }
         }
@@ -265,14 +265,14 @@ namespace MoonscraperChartEditor.Song.IO
                 if (MidIOHelper.IsTextEvent(trackEvent, out var text) && !text.Text.Contains('['))
                 {
                     string lyricEvent = TextEventDefinitions.LYRIC_PREFIX_WITH_SPACE + text.Text;
-                    song.events.Add(new Event(lyricEvent, (uint)absoluteTime));
+                    song.events.Add(new TextEvent(lyricEvent, (uint)absoluteTime));
                 }
                 else if (trackEvent is NoteEvent note && (byte)note.NoteNumber is MidIOHelper.LYRICS_PHRASE_1 or MidIOHelper.LYRICS_PHRASE_2)
                 {
                     if (note.EventType == MidiEventType.NoteOn)
-                        song.events.Add(new Event(TextEventDefinitions.LYRIC_PHRASE_START, (uint)absoluteTime));
+                        song.events.Add(new TextEvent(TextEventDefinitions.LYRIC_PHRASE_START, (uint)absoluteTime));
                     else if (note.EventType == MidiEventType.NoteOff)
-                        song.events.Add(new Event(TextEventDefinitions.LYRIC_PHRASE_END, (uint)absoluteTime));
+                        song.events.Add(new TextEvent(TextEventDefinitions.LYRIC_PHRASE_END, (uint)absoluteTime));
                 }
             }
         }
@@ -503,7 +503,7 @@ namespace MoonscraperChartEditor.Song.IO
                 // Copy text event to all difficulties so that .chart format can store these properly. Midi writer will strip duplicate events just fine anyway.
                 foreach (var difficulty in EnumExtensions<MoonSong.Difficulty>.Values)
                 {
-                    var chartEvent = new ChartEvent(tick, eventName);
+                    var chartEvent = new TextEvent(eventName, tick);
                     processParams.song.GetChart(processParams.instrument, difficulty).events.Add(chartEvent);
                 }
             }
@@ -593,11 +593,11 @@ namespace MoonscraperChartEditor.Song.IO
             return false;
         }
 
-        private static bool ContainsTextEvent(List<ChartEvent> events, string text)
+        private static bool ContainsTextEvent(List<TextEvent> events, string text)
         {
             foreach (var textEvent in events)
             {
-                if (textEvent.eventName == text)
+                if (textEvent.text == text)
                 {
                     return true;
                 }

@@ -150,7 +150,7 @@ namespace YARG.Core.Chart
                             break;
                         moonTextIndex++;
 
-                        var splitter = moonEvent.eventName.AsSpan().Split(' ');
+                        var splitter = moonEvent.text.AsSpan().Split(' ');
                         // Ignore non-lyric events
                         var start = splitter.GetNext();
                         var lyric = splitter.Remaining;

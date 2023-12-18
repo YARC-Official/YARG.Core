@@ -20,7 +20,7 @@ namespace YARG.Core.UnitTests.Parsing
 
         public static readonly SongObjectComparer Comparer = new();
 
-        public static readonly List<Event> GlobalEvents = new()
+        public static readonly List<TextEvent> GlobalEvents = new()
         {
         };
 
@@ -436,7 +436,7 @@ namespace YARG.Core.UnitTests.Parsing
             song.timeSignatures.Add(new TimeSignature(0, NUMERATOR, DENOMINATOR));
         }
 
-        public static void PopulateGlobalEvents(MoonSong song, List<Event> events)
+        public static void PopulateGlobalEvents(MoonSong song, List<TextEvent> events)
         {
             foreach (var text in events)
             {

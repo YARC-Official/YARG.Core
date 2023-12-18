@@ -276,7 +276,7 @@ namespace YARG.Core.UnitTests.Parsing
                     (eventIndex == sourceSong.events.Count || sourceSong.sections[sectionIndex].tick <= sourceSong.events[eventIndex].tick))
                 {
                     var section = sourceSong.sections[sectionIndex++];
-                    timedEvents.Add((section.tick, new TextEvent(section.title)));
+                    timedEvents.Add(((long absoluteTick, MidiEvent midiEvent))(section.tick, new Melanchall.DryWetMidi.Core.TextEvent(section.text)));
                 }
 
                 while (eventIndex < sourceSong.events.Count &&
@@ -284,7 +284,7 @@ namespace YARG.Core.UnitTests.Parsing
                     (sectionIndex == sourceSong.sections.Count || sourceSong.bpms[eventIndex].tick < sourceSong.sections[sectionIndex].tick))
                 {
                     var ev = sourceSong.events[eventIndex++];
-                    timedEvents.Add((ev.tick, new TextEvent(ev.title)));
+                    timedEvents.Add(((long absoluteTick, MidiEvent midiEvent))(ev.tick, new Melanchall.DryWetMidi.Core.TextEvent(ev.text)));
                 }
             }
 
@@ -300,9 +300,9 @@ namespace YARG.Core.UnitTests.Parsing
 
             // Text event flags to enable extended features
             if (gameMode == GameMode.Drums)
-                timedEvents.Add((0, new TextEvent($"[{CHART_DYNAMICS_TEXT}]")));
+                timedEvents.Add(((long absoluteTick, MidiEvent midiEvent))(0, new Melanchall.DryWetMidi.Core.TextEvent($"[{CHART_DYNAMICS_TEXT}]")));
             else if (gameMode == GameMode.Guitar)
-                timedEvents.Add((0, new TextEvent($"[{ENHANCED_OPENS_TEXT}]")));
+                timedEvents.Add(((long absoluteTick, MidiEvent midiEvent))(0, new Melanchall.DryWetMidi.Core.TextEvent($"[{ENHANCED_OPENS_TEXT}]")));
 
             long lastNoteTick = 0;
             foreach (var difficulty in EnumExtensions<Difficulty>.Values)
@@ -345,7 +345,7 @@ namespace YARG.Core.UnitTests.Parsing
                         (noteIndex   == chart.notes.Count          || chart.events[eventIndex].tick < chart.notes[noteIndex].tick))
                     {
                         var ev = chart.events[eventIndex++];
-                        timedEvents.Add((ev.tick, new TextEvent(ev.eventName)));
+                        timedEvents.Add(((long absoluteTick, MidiEvent midiEvent))(ev.tick, new Melanchall.DryWetMidi.Core.TextEvent(ev.text)));
                     }
                 }
             }

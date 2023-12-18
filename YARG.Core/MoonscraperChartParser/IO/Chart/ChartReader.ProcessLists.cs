@@ -275,12 +275,12 @@ namespace MoonscraperChartEditor.Song.IO
                 }
 
                 // Determine what events are present on the current tick
-                if (text.eventName == TextEventDefinitions.SOLO_START)
+                if (text.text == TextEventDefinitions.SOLO_START)
                 {
                     chart.events.RemoveAt(i);
                     start = true;
                 }
-                else if (text.eventName == TextEventDefinitions.SOLO_END)
+                else if (text.text == TextEventDefinitions.SOLO_END)
                 {
                     chart.events.RemoveAt(i);
                     end = true;
