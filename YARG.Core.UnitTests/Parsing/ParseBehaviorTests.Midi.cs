@@ -359,7 +359,7 @@ namespace YARG.Core.UnitTests.Parsing
             ref long lastNoteTick)
         {
             // Apply sustain cutoffs
-            if (note.length < (SUSTAIN_CUTOFF_THRESHOLD))
+            if (note.length < (SUSTAIN_CUTOFF_THRESHOLD) && gameMode != GameMode.Vocals)
                 note.length = 0;
 
             // Write notes
@@ -470,10 +470,6 @@ namespace YARG.Core.UnitTests.Parsing
 
         private static void GenerateSpecialPhrase(MidiEventList events, SpecialPhrase phrase, GameMode gameMode)
         {
-            // Apply sustain cutoffs
-            if (phrase.length < (SUSTAIN_CUTOFF_THRESHOLD))
-                phrase.length = 0;
-
             // Get note number (ignore if not supported by the game mode)
             if (!InstrumentSpecialPhraseLookup[gameMode].TryGetValue(phrase.type, out byte[]? notesToAdd))
                 return;
