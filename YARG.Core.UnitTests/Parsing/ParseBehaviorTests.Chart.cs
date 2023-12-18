@@ -163,60 +163,44 @@ namespace YARG.Core.UnitTests.Parsing
             string difficultyName = DifficultyToNameLookup[difficulty];
             builder.Append($"[{difficultyName}{instrumentName}]{NEWLINE}{{{NEWLINE}");
 
+            // Combine all of the chart events into a single list and sort them according to insertion order
+            // Not very efficient, but adding a 4th list to the previous handling and
+            // quadratically increasing the number of checks is just not sane lol
+            List<SongObject> combined = [..chart.notes, ..chart.specialPhrases, ..chart.events];
+            combined.Sort((obj1, obj2) => obj1.InsertionCompareTo(obj2));
+
             List<SpecialPhrase> phrasesToRemove = new();
-
-            // Indexing the separate lists is the only way to
-            // 1: Not allocate more space for a combined list, and
-            // 2: Not rely on polymorphic queries
-            int noteIndex = 0;
-            int phraseIndex = 0;
-            int eventIndex = 0;
-            while (noteIndex < chart.notes.Count ||
-                   phraseIndex < chart.specialPhrases.Count ||
-                   eventIndex < chart.events.Count)
+            for (int i = 0; i < combined.Count; i++)
             {
-                // Generate in this order: phrases, notes, then events
-                while (phraseIndex < chart.specialPhrases.Count &&
-                    // Phrase comes before or at the same time as a note
-                    (noteIndex  == chart.notes.Count  || chart.specialPhrases[phraseIndex].tick <= chart.notes[noteIndex].tick) &&
-                    // Phrase comes before or at the same time as an event
-                    (eventIndex == chart.events.Count || chart.specialPhrases[phraseIndex].tick <= chart.events[eventIndex].tick))
+                var chartObj = combined[i];
+
+                switch (chartObj)
                 {
-                    var phrase = chart.specialPhrases[phraseIndex++];
-                    // Drums-only phrases
-                    if (DrumsOnlySpecialPhrases.Contains(phrase.type) && gameMode is not GameMode.Drums)
-                    {
-                        phrasesToRemove.Add(phrase);
-                        continue;
-                    }
+                    case MoonNote note:
+                        AppendNote(builder, note, gameMode);
+                        break;
+                    case SpecialPhrase phrase:
+                        // Drums-only phrases
+                        if (gameMode is not GameMode.Drums && DrumsOnlySpecialPhrases.Contains(phrase.type))
+                        {
+                            phrasesToRemove.Add(phrase);
+                            continue;
+                        }
 
-                    // Solos are written as text events in .chart
-                    if (phrase.type is SpecialPhrase.Type.Solo)
-                    {
-                        builder.Append($"  {phrase.tick} = E {SOLO_START}{NEWLINE}");
-                        builder.Append($"  {phrase.tick + phrase.length} = E {SOLO_END}{NEWLINE}");
-                        continue;
-                    }
+                        // Solos are written as text events in .chart
+                        if (phrase.type is SpecialPhrase.Type.Solo)
+                        {
+                            builder.Append($"  {phrase.tick} = E {SOLO_START}{NEWLINE}");
+                            SongObjectHelper.Insert(new TextEvent(SOLO_END, phrase.tick + phrase.length), combined);
+                            continue;
+                        }
 
-                    int phraseNumber = SpecialPhraseLookup[phrase.type];
-                    builder.Append($"  {phrase.tick} = S {phraseNumber} {phrase.length}{NEWLINE}");
-                }
-
-                while (noteIndex < chart.notes.Count &&
-                    // Note comes before a phrase (equals does not count)
-                    (phraseIndex == chart.specialPhrases.Count || chart.notes[noteIndex].tick <  chart.specialPhrases[phraseIndex].tick) &&
-                    // Note comes before or at the same time as an event
-                    (eventIndex  == chart.events.Count         || chart.notes[noteIndex].tick <= chart.events[eventIndex].tick))
-                    AppendNote(builder, chart.notes[noteIndex++], gameMode);
-
-                while (eventIndex < chart.events.Count &&
-                    // Event comes before a phrase (equals does not count)
-                    (phraseIndex == chart.specialPhrases.Count || chart.events[eventIndex].tick < chart.specialPhrases[phraseIndex].tick) &&
-                    // Event comes before a note (equals does not count)
-                    (noteIndex   == chart.notes.Count          || chart.events[eventIndex].tick < chart.notes[noteIndex].tick))
-                {
-                    var ev = chart.events[eventIndex++];
-                    builder.Append($"  {ev.tick} = E {ev.text}{NEWLINE}");
+                        int phraseNumber = SpecialPhraseLookup[phrase.type];
+                        builder.Append($"  {phrase.tick} = S {phraseNumber} {phrase.length}{NEWLINE}");
+                        break;
+                    case TextEvent text:
+                        builder.Append($"  {text.tick} = E {text.text}{NEWLINE}");
+                        break;
                 }
             }
 
