@@ -62,6 +62,15 @@ namespace MoonscraperChartEditor.Song
             return measureInfo;
         }
 
+        public override bool ValueEquals(SongObject obj)
+        {
+            bool baseEq = base.ValueEquals(obj);
+            if (!baseEq || obj is not TimeSignature ts)
+                return baseEq;
+
+            return numerator == ts.numerator || denominator == ts.denominator;
+        }
+
         protected override SongObject SongClone() => Clone();
 
         public new TimeSignature Clone()

@@ -30,13 +30,13 @@ namespace MoonscraperChartEditor.Song
                 midPoint = (lowerBound + upperBound) / 2;
                 index = midPoint;
 
-                if (objects[midPoint] == searchItem)
+                if (objects[midPoint].InsertionEquals(searchItem))
                 {
                     break;
                 }
                 else
                 {
-                    if (objects[midPoint] < searchItem)
+                    if (objects[midPoint].InsertionCompareTo(searchItem) < 0)
                     {
                         // data is in upper half
                         lowerBound = midPoint + 1;
@@ -272,7 +272,7 @@ namespace MoonscraperChartEditor.Song
                 int check = pos - 1;
                 do
                 {
-                    if (notes[check] == note)
+                    if (notes[check].InsertionEquals(note))
                         return check;
                     --check;
                 } while (check >= 0 && notes[check].tick == note.tick);
@@ -311,7 +311,7 @@ namespace MoonscraperChartEditor.Song
                 int check = pos - 1;
                 do
                 {
-                    if (list[check] == item)
+                    if (list[check].InsertionEquals(item))
                         return check;
                     --check;
                 } while (check >= 0 && list[check].tick == item.tick);
@@ -335,7 +335,7 @@ namespace MoonscraperChartEditor.Song
 
             if (count > 0)
             {
-                if (list[count - 1] < item)
+                if (list[count - 1].InsertionCompareTo(item) < 0)
                 {
                     insertionPos = count;
                     list.Add(item);
@@ -344,13 +344,13 @@ namespace MoonscraperChartEditor.Song
                 {
                     // Linear search backwards
                     int pos = count - 1;
-                    while (pos >= 0 && list[pos] >= item)        // Find the next item less than the current one and insert into the position after that
+                    while (pos >= 0 && list[pos].InsertionCompareTo(item) >= 0)        // Find the next item less than the current one and insert into the position after that
                         --pos;
 
                     insertionPos = pos + 1;
 
                     // Account for overwrite
-                    if (insertionPos < count && list[insertionPos] == item)
+                    if (insertionPos < count && list[insertionPos].InsertionEquals(item))
                     {
                         list[insertionPos] = item;
                     }
@@ -363,14 +363,14 @@ namespace MoonscraperChartEditor.Song
 
                     if (insertionPos != NOTFOUND)
                     {
-                        if (list[insertionPos] == item && item.classID == list[insertionPos].classID)
+                        if (list[insertionPos].InsertionEquals(item) && item.classID == list[insertionPos].classID)
                         {
                             list[insertionPos] = item;
                         }
                         // Insert into sorted position
                         else
                         {
-                            if (item > list[insertionPos])
+                            if (item.InsertionCompareTo(list[insertionPos]) > 0)
                             {
                                 ++insertionPos;
                             }
@@ -591,7 +591,7 @@ namespace MoonscraperChartEditor.Song
                 temp = songObjects[i];
                 j = i - 1;
 
-                while (j >= 0 && songObjects[j] > temp)
+                while (j >= 0 && songObjects[j].InsertionCompareTo(temp) > 0)
                 {
                     songObjects[j + 1] = songObjects[j];
                     j--;

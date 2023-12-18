@@ -25,55 +25,32 @@ namespace MoonscraperChartEditor.Song
         protected abstract SongObject SongClone();
         public SongObject Clone() => SongClone();
 
-        public static bool operator ==(SongObject? a, SongObject? b)
-        {
-            if (ReferenceEquals(a, b))
-                return true;
-
-            if (a is null || b is null)
-                return false;
-
-            return a.Equals(b);
-        }
-
-        protected virtual bool Equals(SongObject b)
-        {
-            return tick == b.tick && classID == b.classID;
-        }
-
-        public static bool operator !=(SongObject? a, SongObject? b)
-        {
-            return !(a == b);
-        }
-
-        protected virtual bool LessThan(SongObject b)
-        {
-            return tick < b.tick || (tick == b.tick && classID < b.classID);
-        }
-
-        public static bool operator <(SongObject? a, SongObject? b)
-        {
-            return a is not null && b is not null && a.LessThan(b);
-        }
-
-        public static bool operator >(SongObject? a, SongObject? b)
-        {
-            return a != b && !(a < b);
-        }
-
-        public static bool operator <=(SongObject? a, SongObject? b)
-        {
-            return a < b || a == b;
-        }
-
-        public static bool operator >=(SongObject? a, SongObject? b)
-        {
-            return a > b || a == b;
-        }
-
         public override bool Equals(object obj)
         {
-            return obj is SongObject songObj && this == songObj;
+            return ReferenceEquals(this, obj) || (obj is SongObject songObj && ValueEquals(songObj));
+        }
+
+        public virtual bool ValueEquals(SongObject obj)
+        {
+            return tick == obj.tick && classID == obj.classID;
+        }
+
+        public bool InsertionEquals(SongObject obj)
+        {
+            return InsertionCompareTo(obj) == 0;
+        }
+
+        public virtual int InsertionCompareTo(SongObject obj)
+        {
+            int tickComp = tick.CompareTo(obj.tick);
+            if (tickComp != 0)
+                return tickComp;
+
+            int idComp = ((int)classID).CompareTo((int)obj.classID);
+            if (idComp != 0)
+                return idComp;
+
+            return 0;
         }
 
         public override int GetHashCode()

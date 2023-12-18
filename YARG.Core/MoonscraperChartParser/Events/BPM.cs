@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2020 Alexander Ong
+﻿// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
 using System;
@@ -22,6 +22,17 @@ namespace MoonscraperChartEditor.Song
         {
             value = _value;
             anchor = _anchor;
+        }
+
+        public override bool ValueEquals(SongObject obj)
+        {
+            bool baseEq = base.ValueEquals(obj);
+            if (!baseEq || obj is not BPM bpm)
+                return baseEq;
+
+            return value == bpm.value &&
+                anchor == bpm.anchor &&
+                assignedTime == bpm.assignedTime;
         }
 
         protected override SongObject SongClone() => Clone();

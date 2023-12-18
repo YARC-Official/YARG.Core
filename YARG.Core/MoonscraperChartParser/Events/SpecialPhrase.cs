@@ -37,37 +37,22 @@ namespace MoonscraperChartEditor.Song
             type = _type;
         }
 
-        protected override bool Equals(SongObject b)
+        public override bool ValueEquals(SongObject obj)
         {
-            if (b.GetType() == typeof(SpecialPhrase))
-            {
-                var realB = (SpecialPhrase) b;
-                if (tick == realB.tick && type == realB.type)
-                    return true;
-                else
-                    return false;
-            }
-            else
-                return base.Equals(b);
+            bool baseEq = base.ValueEquals(obj);
+            if (!baseEq || obj is not SpecialPhrase phrase)
+                return baseEq;
+
+            return type == phrase.type;
         }
 
-        protected override bool LessThan(SongObject b)
+        public override int InsertionCompareTo(SongObject obj)
         {
-            if (b.GetType() == typeof(SpecialPhrase))
-            {
-                var realB = (SpecialPhrase) b;
-                if (tick < b.tick)
-                    return true;
-                else if (tick == b.tick)
-                {
-                    if (type < realB.type)
-                        return true;
-                }
+            int baseComp = base.InsertionCompareTo(obj);
+            if (baseComp != 0 || obj is not SpecialPhrase phrase)
+                return baseComp;
 
-                return false;
-            }
-            else
-                return base.LessThan(b);
+            return ((int) type).CompareTo((int) phrase.type);
         }
 
         public uint GetCappedLengthForPos(uint pos, MoonChart? chart)

@@ -18,8 +18,6 @@ namespace YARG.Core.UnitTests.Parsing
 
         public static readonly Chart.ParseSettings Settings = Chart.ParseSettings.Default;
 
-        public static readonly SongObjectComparer Comparer = new();
-
         public static readonly List<TextEvent> GlobalEvents = new()
         {
         };
@@ -496,9 +494,9 @@ namespace YARG.Core.UnitTests.Parsing
         {
             Assert.Multiple(() =>
             {
-                CollectionAssert.AreEqual(sourceSong.bpms, parsedSong.bpms, Comparer, "BPMs do not match!");
-                CollectionAssert.AreEqual(sourceSong.timeSignatures, parsedSong.timeSignatures, Comparer, "Time signatures do not match!");
-                CollectionAssert.AreEqual(parsedSong.events, parsedSong.events, Comparer, "Global events do not match!");
+                CollectionAssert.AreEqual(sourceSong.bpms, parsedSong.bpms, "BPMs do not match!");
+                CollectionAssert.AreEqual(sourceSong.timeSignatures, parsedSong.timeSignatures, "Time signatures do not match!");
+                CollectionAssert.AreEqual(parsedSong.events, parsedSong.events, "Global events do not match!");
             });
         }
 
@@ -521,9 +519,9 @@ namespace YARG.Core.UnitTests.Parsing
 
                 var sourceChart = sourceSong.GetChart(instrument, difficulty);
                 var parsedChart = parsedSong.GetChart(instrument, difficulty);
-                CollectionAssert.AreEqual(sourceChart.notes, parsedChart.notes, Comparer, $"Notes on {difficulty} {instrument} do not match!");
-                CollectionAssert.AreEqual(sourceChart.specialPhrases, parsedChart.specialPhrases, Comparer, $"Special phrases on {difficulty} {instrument} do not match!");
-                CollectionAssert.AreEqual(sourceChart.events, parsedChart.events, Comparer, $"Local events on {difficulty} {instrument} do not match!");
+                CollectionAssert.AreEqual(sourceChart.notes, parsedChart.notes, $"Notes on {difficulty} {instrument} do not match!");
+                CollectionAssert.AreEqual(sourceChart.specialPhrases, parsedChart.specialPhrases, $"Special phrases on {difficulty} {instrument} do not match!");
+                CollectionAssert.AreEqual(sourceChart.events, parsedChart.events, $"Local events on {difficulty} {instrument} do not match!");
             });
         }
     }

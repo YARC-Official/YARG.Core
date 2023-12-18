@@ -19,6 +19,24 @@ namespace MoonscraperChartEditor.Song
             length = _length;
         }
 
+        public override bool ValueEquals(SongObject obj)
+        {
+            bool baseEq = base.ValueEquals(obj);
+            if (!baseEq || obj is not VenueEvent venueEv)
+                return baseEq;
+
+            return type == venueEv.type || length == venueEv.length;
+        }
+
+        public override int InsertionCompareTo(SongObject obj)
+        {
+            int baseComp = base.InsertionCompareTo(obj);
+            if (baseComp != 0 || obj is not VenueEvent venueEv)
+                return baseComp;
+
+            return ((int) type).CompareTo((int) venueEv.type);
+        }
+
         protected override SongObject SongClone() => Clone();
 
         public new VenueEvent Clone()

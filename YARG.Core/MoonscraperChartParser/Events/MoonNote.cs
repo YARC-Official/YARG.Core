@@ -203,37 +203,24 @@ namespace MoonscraperChartEditor.Song
             }
         }
 
-        protected override bool Equals(SongObject b)
+        public override bool ValueEquals(SongObject obj)
         {
-            if (b.GetType() == typeof(MoonNote))
-            {
-                var realB = (MoonNote) b;
-                if (tick == realB.tick && rawNote == realB.rawNote)
-                    return true;
-                else
-                    return false;
-            }
-            else
-                return base.Equals(b);
+            bool baseEq = base.ValueEquals(obj);
+            if (!baseEq || obj is not MoonNote note)
+                return baseEq;
+
+            return rawNote == note.rawNote &&
+                length == note.length &&
+                flags == note.flags;
         }
 
-        protected override bool LessThan(SongObject b)
+        public override int InsertionCompareTo(SongObject obj)
         {
-            if (b.GetType() == typeof(MoonNote))
-            {
-                var realB = (MoonNote) b;
-                if (tick < b.tick)
-                    return true;
-                else if (tick == b.tick)
-                {
-                    if (rawNote < realB.rawNote)
-                        return true;
-                }
+            int baseComp = base.InsertionCompareTo(obj);
+            if (baseComp != 0 || obj is not MoonNote note)
+                return baseComp;
 
-                return false;
-            }
-            else
-                return base.LessThan(b);
+            return rawNote.CompareTo(note.rawNote);
         }
 
         public bool isChord => (previous != null && previous.tick == tick) || (next != null && next.tick == tick);

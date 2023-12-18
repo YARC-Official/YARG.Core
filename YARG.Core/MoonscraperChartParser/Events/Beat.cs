@@ -22,6 +22,15 @@ namespace MoonscraperChartEditor.Song
             type = _type;
         }
 
+        public override bool ValueEquals(SongObject obj)
+        {
+            bool baseEq = base.ValueEquals(obj);
+            if (!baseEq || obj is not Beat beat)
+                return baseEq;
+
+            return type == beat.type;
+        }
+
         protected override SongObject SongClone() => Clone();
 
         public new Beat Clone()

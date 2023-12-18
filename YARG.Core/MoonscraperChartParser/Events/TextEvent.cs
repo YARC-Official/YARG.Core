@@ -21,34 +21,22 @@ namespace MoonscraperChartEditor.Song
             text = _title;
         }
 
-        protected override bool Equals(SongObject b)
+        public override bool ValueEquals(SongObject obj)
         {
-            if (base.Equals(b))
-            {
-                var realB = (TextEvent) b;
-                return realB != null && tick == realB.tick && text == realB.text;
-            }
+            bool baseEq = base.ValueEquals(obj);
+            if (!baseEq || obj is not TextEvent textEv)
+                return baseEq;
 
-            return false;
+            return text == textEv.text;
         }
 
-        protected override bool LessThan(SongObject b)
+        public override int InsertionCompareTo(SongObject obj)
         {
-            if (classID == b.classID)
-            {
-                var realB = (TextEvent) b;
-                if (tick < b.tick)
-                    return true;
-                else if (tick == b.tick)
-                {
-                    if (string.Compare(text, realB.text) < 0)
-                        return true;
-                }
+            int baseComp = base.InsertionCompareTo(obj);
+            if (baseComp != 0 || obj is not TextEvent textEv)
+                return baseComp;
 
-                return false;
-            }
-            else
-                return base.LessThan(b);
+            return string.Compare(text, textEv.text);
         }
 
         protected override SongObject SongClone() => Clone();
