@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
 using NUnit.Framework;
@@ -84,7 +84,7 @@ namespace YARG.Core.UnitTests.Parsing
         private static void GenerateSongSection(MoonSong sourceSong, StringBuilder builder)
         {
             builder.Append($"[{SECTION_SONG}]{NEWLINE}{{{NEWLINE}");
-            builder.Append($"  Resolution = {sourceSong.resolution}");
+            builder.Append($"  Resolution = {sourceSong.resolution}{NEWLINE}");
             builder.Append($"}}{NEWLINE}");
         }
 
@@ -106,7 +106,7 @@ namespace YARG.Core.UnitTests.Parsing
                     (bpmIndex == sourceSong.bpms.Count || sourceSong.timeSignatures[timeSigIndex].tick <= sourceSong.bpms[bpmIndex].tick))
                 {
                     var ts = sourceSong.timeSignatures[timeSigIndex++];
-                    builder.Append($"  {ts.tick} = TS {ts.numerator} {(int) Math.Log2(ts.denominator)}");
+                    builder.Append($"  {ts.tick} = TS {ts.numerator} {(int) Math.Log2(ts.denominator)}{NEWLINE}");
                 }
 
                 while (bpmIndex < sourceSong.bpms.Count &&
@@ -115,7 +115,7 @@ namespace YARG.Core.UnitTests.Parsing
                 {
                     var bpm = sourceSong.bpms[bpmIndex++];
                     uint writtenBpm = (uint) (bpm.value * 1000);
-                    builder.Append($"  {bpm.tick} = B {writtenBpm}");
+                    builder.Append($"  {bpm.tick} = B {writtenBpm}{NEWLINE}");
                 }
             }
             builder.Append($"}}{NEWLINE}");
