@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2016-2020 Alexander Ong
+// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
 using System;
@@ -288,32 +288,24 @@ namespace MoonscraperChartEditor.Song
             return mask;
         }
 
-        /// <summary>
-        /// Live calculation of what Note_Type this note would currently be. 
-        /// </summary>
-        public MoonNoteType GetGuitarType(float hopoThreshold)
+        public MoonNoteType GetNoteType(MoonChart.GameMode gameMode, float hopoThreshold)
         {
-            if (!IsOpenNote(MoonChart.GameMode.Guitar) && (flags & Flags.Tap) != 0)
+            return gameMode switch
             {
-                return MoonNoteType.Tap;
-            }
-            return IsHopo(hopoThreshold) ? MoonNoteType.Hopo : MoonNoteType.Strum;
-        }
+                MoonChart.GameMode.Guitar or
+                MoonChart.GameMode.GHLGuitar or
+                MoonChart.GameMode.ProGuitar =>
+                    !IsOpenNote(MoonChart.GameMode.Guitar) && (flags & Flags.Tap) != 0
+                        ? MoonNoteType.Tap
+                        : IsHopo(hopoThreshold) ? MoonNoteType.Hopo : MoonNoteType.Strum,
 
-        public MoonNoteType drumType
-        {
-            get
-            {
-                if (drumPad is DrumPad.Yellow or DrumPad.Blue or DrumPad.Orange &&
-                           (flags & Flags.ProDrums_Cymbal) != 0)
-                {
-                    return MoonNoteType.Cymbal;
-                }
-                return MoonNoteType.Strum;
-            }
+                MoonChart.GameMode.Drums =>
+                    drumPad is DrumPad.Yellow or DrumPad.Blue or DrumPad.Orange && (flags & Flags.ProDrums_Cymbal) != 0
+                        ? MoonNoteType.Cymbal
+                        : MoonNoteType.Strum,
+                _ => MoonNoteType.Natural
+            };
         }
-
-        public MoonNoteType type => MoonNoteType.Natural;
 
         public class Chord : IEnumerable<MoonNote>
         {

@@ -667,6 +667,7 @@ namespace MoonscraperChartEditor.Song.IO
         {
             var song = eventProcessParams.song;
             var instrument = eventProcessParams.instrument;
+            var gameMode = MoonSong.InstumentToChartGameMode(instrument);
 
             var chart = song.GetChart(instrument, difficulty);
 
@@ -698,7 +699,7 @@ namespace MoonscraperChartEditor.Song.IO
                         break;
 
                     case MoonNote.MoonNoteType.Tap:
-                        if (!note.IsOpenNote(MoonChart.GameMode.Guitar))
+                        if (!note.IsOpenNote(gameMode))
                         {
                             note.flags |= MoonNote.Flags.Tap;
                             note.flags &= ~MoonNote.Flags.Forced;
@@ -717,7 +718,8 @@ namespace MoonscraperChartEditor.Song.IO
                 }
 
                 double time = song.TickToTime(note.tick);
-                YargTrace.Assert(note.GetGuitarType(song.hopoThreshold) == newType, $"Failed to set forced type! Expected: {newType}  Actual: {note.GetGuitarType(song.hopoThreshold)}\non {difficulty} {instrument} at tick {note.tick} ({TimeSpan.FromSeconds(time):mm':'ss'.'ff})");
+                var finalType = note.GetNoteType(gameMode, song.hopoThreshold);
+                YargTrace.Assert(finalType == newType, $"Failed to set forced type! Expected: {newType}  Actual: {finalType}\non {difficulty} {instrument} at tick {note.tick} ({TimeSpan.FromSeconds(time):mm':'ss'.'ff})");
             }
         }
 
