@@ -666,7 +666,10 @@ namespace MoonscraperChartEditor.Song.IO
                 { MidIOHelper.PERCUSSION_NOTE, (in EventProcessParams eventProcessParams) => {
                     foreach (var difficulty in EnumExtensions<MoonSong.Difficulty>.Values)
                     {
-                        ProcessNoteOnEventAsNote(eventProcessParams, difficulty, 0, MoonNote.Flags.Vocals_Percussion,
+                        // Force percussion notes to be 0-length
+                        var newParams = eventProcessParams;
+                        newParams.timedEvent.endTick = newParams.timedEvent.startTick;
+                        ProcessNoteOnEventAsNote(newParams, difficulty, 0, MoonNote.Flags.Vocals_Percussion,
                             sustainCutoff: false);
                     };
                 }},
