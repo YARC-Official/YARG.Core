@@ -146,7 +146,7 @@ namespace YARG.Core.IO
             return value;
         }
 
-        public bool ReadBytes(byte[] bytes)
+        public bool ReadBytes(Span<byte> bytes)
         {
             int endPos = _position + bytes.Length;
             if (endPos > data.Length)
