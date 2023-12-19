@@ -111,48 +111,48 @@ namespace MoonscraperChartEditor.Song.IO
         private static readonly Dictionary<int, NoteEventProcessFn> GuitarChartSpecialPhraseNumberToProcessFnMap = new()
         {
             { ChartIOHelper.PHRASE_VERSUS_PLAYER_1, (in NoteProcessParams noteProcessParams) => {
-                ProcessNoteOnEventAsSpecialPhrase(noteProcessParams, SpecialPhrase.Type.Versus_Player1);
+                ProcessNoteOnEventAsSpecialPhrase(noteProcessParams, MoonPhrase.Type.Versus_Player1);
             }},
             { ChartIOHelper.PHRASE_VERSUS_PLAYER_2, (in NoteProcessParams noteProcessParams) => {
-                ProcessNoteOnEventAsSpecialPhrase(noteProcessParams, SpecialPhrase.Type.Versus_Player2);
+                ProcessNoteOnEventAsSpecialPhrase(noteProcessParams, MoonPhrase.Type.Versus_Player2);
             }},
             { ChartIOHelper.PHRASE_STARPOWER, (in NoteProcessParams noteProcessParams) => {
-                ProcessNoteOnEventAsSpecialPhrase(noteProcessParams, SpecialPhrase.Type.Starpower);
+                ProcessNoteOnEventAsSpecialPhrase(noteProcessParams, MoonPhrase.Type.Starpower);
             }},
         };
 
         private static readonly Dictionary<int, NoteEventProcessFn> DrumsChartSpecialPhraseNumberToProcessFnMap = new()
         {
             { ChartIOHelper.PHRASE_VERSUS_PLAYER_1, (in NoteProcessParams noteProcessParams) => {
-                ProcessNoteOnEventAsSpecialPhrase(noteProcessParams, SpecialPhrase.Type.Versus_Player1);
+                ProcessNoteOnEventAsSpecialPhrase(noteProcessParams, MoonPhrase.Type.Versus_Player1);
             }},
             { ChartIOHelper.PHRASE_VERSUS_PLAYER_2, (in NoteProcessParams noteProcessParams) => {
-                ProcessNoteOnEventAsSpecialPhrase(noteProcessParams, SpecialPhrase.Type.Versus_Player2);
+                ProcessNoteOnEventAsSpecialPhrase(noteProcessParams, MoonPhrase.Type.Versus_Player2);
             }},
             { ChartIOHelper.PHRASE_STARPOWER, (in NoteProcessParams noteProcessParams) => {
-                ProcessNoteOnEventAsSpecialPhrase(noteProcessParams, SpecialPhrase.Type.Starpower);
+                ProcessNoteOnEventAsSpecialPhrase(noteProcessParams, MoonPhrase.Type.Starpower);
             }},
             { ChartIOHelper.PHRASE_DRUM_FILL, (in NoteProcessParams noteProcessParams) => {
-                ProcessNoteOnEventAsSpecialPhrase(noteProcessParams, SpecialPhrase.Type.ProDrums_Activation);
+                ProcessNoteOnEventAsSpecialPhrase(noteProcessParams, MoonPhrase.Type.ProDrums_Activation);
             }},
             { ChartIOHelper.PHRASE_TREMOLO_LANE, (in NoteProcessParams noteProcessParams) => {
-                ProcessNoteOnEventAsSpecialPhrase(noteProcessParams, SpecialPhrase.Type.TremoloLane);
+                ProcessNoteOnEventAsSpecialPhrase(noteProcessParams, MoonPhrase.Type.TremoloLane);
             }},
             { ChartIOHelper.PHRASE_TRILL_LANE, (in NoteProcessParams noteProcessParams) => {
-                ProcessNoteOnEventAsSpecialPhrase(noteProcessParams, SpecialPhrase.Type.TrillLane);
+                ProcessNoteOnEventAsSpecialPhrase(noteProcessParams, MoonPhrase.Type.TrillLane);
             }},
         };
 
         private static readonly Dictionary<int, NoteEventProcessFn> GhlChartSpecialPhraseNumberToProcessFnMap = new()
         {
             { ChartIOHelper.PHRASE_VERSUS_PLAYER_1, (in NoteProcessParams noteProcessParams) => {
-                ProcessNoteOnEventAsSpecialPhrase(noteProcessParams, SpecialPhrase.Type.Versus_Player1);
+                ProcessNoteOnEventAsSpecialPhrase(noteProcessParams, MoonPhrase.Type.Versus_Player1);
             }},
             { ChartIOHelper.PHRASE_VERSUS_PLAYER_2, (in NoteProcessParams noteProcessParams) => {
-                ProcessNoteOnEventAsSpecialPhrase(noteProcessParams, SpecialPhrase.Type.Versus_Player2);
+                ProcessNoteOnEventAsSpecialPhrase(noteProcessParams, MoonPhrase.Type.Versus_Player2);
             }},
             { ChartIOHelper.PHRASE_STARPOWER, (in NoteProcessParams noteProcessParams) => {
-                ProcessNoteOnEventAsSpecialPhrase(noteProcessParams, SpecialPhrase.Type.Starpower);
+                ProcessNoteOnEventAsSpecialPhrase(noteProcessParams, MoonPhrase.Type.Starpower);
             }},
         };
 
@@ -210,7 +210,7 @@ namespace MoonscraperChartEditor.Song.IO
         {
             static void AddSolo(MoonChart chart, uint startTick, uint endTick)
             {
-                chart.Add(new SpecialPhrase(startTick, endTick - startTick, SpecialPhrase.Type.Solo));
+                chart.Add(new MoonPhrase(startTick, endTick - startTick, MoonPhrase.Type.Solo));
             }
 
             static void ProcessSoloMarkers(MoonChart chart, uint currentTick, ref uint? currentStartTick,

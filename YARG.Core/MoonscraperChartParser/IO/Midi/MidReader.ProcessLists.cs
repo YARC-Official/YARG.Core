@@ -244,8 +244,8 @@ namespace MoonscraperChartEditor.Song.IO
 
             // Only need to check one difficulty since phrases get copied to all difficulties
             var chart = processParams.song.GetChart(processParams.instrument, MoonSong.Difficulty.Expert);
-            if (chart.specialPhrases.Any((sp) => sp.type == SpecialPhrase.Type.Starpower)
-                || !chart.specialPhrases.Any((sp) => sp.type == SpecialPhrase.Type.Solo))
+            if (chart.specialPhrases.Any((sp) => sp.type == MoonPhrase.Type.Starpower)
+                || !chart.specialPhrases.Any((sp) => sp.type == MoonPhrase.Type.Solo))
             {
                 return;
             }
@@ -255,8 +255,8 @@ namespace MoonscraperChartEditor.Song.IO
                 chart = processParams.song.GetChart(processParams.instrument, diff);
                 foreach (var phrase in chart.specialPhrases)
                 {
-                    if (phrase.type == SpecialPhrase.Type.Solo)
-                        phrase.type = SpecialPhrase.Type.Starpower;
+                    if (phrase.type == MoonPhrase.Type.Solo)
+                        phrase.type = MoonPhrase.Type.Starpower;
                 }
             }
         }
@@ -347,34 +347,34 @@ namespace MoonscraperChartEditor.Song.IO
             if (settings.starPowerNote >= 0)
             {
                 processMap.Add(settings.starPowerNote, (in EventProcessParams eventProcessParams) => {
-                    ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, SpecialPhrase.Type.Starpower);
+                    ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, MoonPhrase.Type.Starpower);
                 });
             }
 
             if (settings.soloNote >= 0)
             {
                 processMap.Add(settings.soloNote, (in EventProcessParams eventProcessParams) => {
-                    ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, SpecialPhrase.Type.Solo);
+                    ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, MoonPhrase.Type.Solo);
                 });
             }
 
             if (settings.versusPhrases)
             {
                 processMap.Add(MidIOHelper.VERSUS_PHRASE_PLAYER_1, (in EventProcessParams eventProcessParams) => {
-                    ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, SpecialPhrase.Type.Versus_Player1);
+                    ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, MoonPhrase.Type.Versus_Player1);
                 });
                 processMap.Add(MidIOHelper.VERSUS_PHRASE_PLAYER_2, (in EventProcessParams eventProcessParams) => {
-                    ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, SpecialPhrase.Type.Versus_Player2);
+                    ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, MoonPhrase.Type.Versus_Player2);
                 });
             }
 
             if (settings.lanePhrases)
             {
                 processMap.Add(MidIOHelper.TREMOLO_LANE_NOTE, (in EventProcessParams eventProcessParams) => {
-                    ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, SpecialPhrase.Type.TremoloLane);
+                    ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, MoonPhrase.Type.TremoloLane);
                 });
                 processMap.Add(MidIOHelper.TRILL_LANE_NOTE, (in EventProcessParams eventProcessParams) => {
-                    ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, SpecialPhrase.Type.TrillLane);
+                    ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, MoonPhrase.Type.TrillLane);
                 });
             }
 
@@ -546,19 +546,19 @@ namespace MoonscraperChartEditor.Song.IO
             var processFnDict = new Dictionary<int, EventProcessFn>()
             {
                 { MidIOHelper.DRUM_FILL_NOTE_0, (in EventProcessParams eventProcessParams) => {
-                    ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, SpecialPhrase.Type.ProDrums_Activation);
+                    ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, MoonPhrase.Type.ProDrums_Activation);
                 }},
                 { MidIOHelper.DRUM_FILL_NOTE_1, (in EventProcessParams eventProcessParams) => {
-                    ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, SpecialPhrase.Type.ProDrums_Activation);
+                    ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, MoonPhrase.Type.ProDrums_Activation);
                 }},
                 { MidIOHelper.DRUM_FILL_NOTE_2, (in EventProcessParams eventProcessParams) => {
-                    ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, SpecialPhrase.Type.ProDrums_Activation);
+                    ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, MoonPhrase.Type.ProDrums_Activation);
                 }},
                 { MidIOHelper.DRUM_FILL_NOTE_3, (in EventProcessParams eventProcessParams) => {
-                    ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, SpecialPhrase.Type.ProDrums_Activation);
+                    ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, MoonPhrase.Type.ProDrums_Activation);
                 }},
                 { MidIOHelper.DRUM_FILL_NOTE_4, (in EventProcessParams eventProcessParams) => {
-                    ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, SpecialPhrase.Type.ProDrums_Activation);
+                    ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, MoonPhrase.Type.ProDrums_Activation);
                 }},
             };
 
@@ -655,12 +655,12 @@ namespace MoonscraperChartEditor.Song.IO
             var processFnDict = new Dictionary<int, EventProcessFn>()
             {
                 { MidIOHelper.LYRICS_PHRASE_1, (in EventProcessParams eventProcessParams) => {
-                    ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, SpecialPhrase.Type.Versus_Player1);
-                    ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, SpecialPhrase.Type.Vocals_LyricPhrase);
+                    ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, MoonPhrase.Type.Versus_Player1);
+                    ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, MoonPhrase.Type.Vocals_LyricPhrase);
                 }},
                 { MidIOHelper.LYRICS_PHRASE_2, (in EventProcessParams eventProcessParams) => {
-                    ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, SpecialPhrase.Type.Versus_Player2);
-                    ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, SpecialPhrase.Type.Vocals_LyricPhrase);
+                    ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, MoonPhrase.Type.Versus_Player2);
+                    ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, MoonPhrase.Type.Vocals_LyricPhrase);
                 }},
 
                 { MidIOHelper.PERCUSSION_NOTE, (in EventProcessParams eventProcessParams) => {

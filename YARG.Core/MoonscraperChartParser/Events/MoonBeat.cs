@@ -6,7 +6,7 @@ using System;
 namespace MoonscraperChartEditor.Song
 {
     [Serializable]
-    internal class Beat : SongObject
+    internal class MoonBeat : MoonObject
     {
         public enum Type
         {
@@ -16,26 +16,26 @@ namespace MoonscraperChartEditor.Song
 
         public Type type;
 
-        public Beat(uint _position, Type _type)
+        public MoonBeat(uint _position, Type _type)
             : base(ID.Beat, _position)
         {
             type = _type;
         }
 
-        public override bool ValueEquals(SongObject obj)
+        public override bool ValueEquals(MoonObject obj)
         {
             bool baseEq = base.ValueEquals(obj);
-            if (!baseEq || obj is not Beat beat)
+            if (!baseEq || obj is not MoonBeat beat)
                 return baseEq;
 
             return type == beat.type;
         }
 
-        protected override SongObject SongClone() => Clone();
+        protected override MoonObject CloneImpl() => Clone();
 
-        public new Beat Clone()
+        public new MoonBeat Clone()
         {
-            return new Beat(tick, type);
+            return new MoonBeat(tick, type);
         }
 
         public override string ToString()

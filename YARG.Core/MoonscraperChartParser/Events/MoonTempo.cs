@@ -6,7 +6,7 @@ using System;
 namespace MoonscraperChartEditor.Song
 {
     [Serializable]
-    internal class BPM : SongObject
+    internal class MoonTempo : MoonObject
     {
         public float value;
         public double? anchor = null;
@@ -17,17 +17,17 @@ namespace MoonscraperChartEditor.Song
         /// </summary>
         /// <param name="_position">Tick position.</param>
         /// <param name="_value">The bpm value.</param>
-        public BPM(uint _position = 0, float _value = 120, double? _anchor = null)
+        public MoonTempo(uint _position = 0, float _value = 120, double? _anchor = null)
             : base(ID.BPM, _position)
         {
             value = _value;
             anchor = _anchor;
         }
 
-        public override bool ValueEquals(SongObject obj)
+        public override bool ValueEquals(MoonObject obj)
         {
             bool baseEq = base.ValueEquals(obj);
-            if (!baseEq || obj is not BPM bpm)
+            if (!baseEq || obj is not MoonTempo bpm)
                 return baseEq;
 
             return value == bpm.value &&
@@ -35,11 +35,11 @@ namespace MoonscraperChartEditor.Song
                 assignedTime == bpm.assignedTime;
         }
 
-        protected override SongObject SongClone() => Clone();
+        protected override MoonObject CloneImpl() => Clone();
 
-        public new BPM Clone()
+        public new MoonTempo Clone()
         {
-            return new BPM(tick, value, anchor)
+            return new MoonTempo(tick, value, anchor)
             {
                 assignedTime = assignedTime,
             };

@@ -1,6 +1,7 @@
 ﻿using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
 using NUnit.Framework;
+using YARG.Core.Chart;
 using YARG.Core.Extensions;
 
 namespace YARG.Core.UnitTests.Parsing
@@ -16,9 +17,9 @@ namespace YARG.Core.UnitTests.Parsing
         public const int NUMERATOR = 4;
         public const int DENOMINATOR = 4;
 
-        public static readonly Chart.ParseSettings Settings = Chart.ParseSettings.Default;
+        public static readonly ParseSettings Settings = ParseSettings.Default;
 
-        public static readonly List<TextEvent> GlobalEvents = new()
+        public static readonly List<MoonText> GlobalEvents = new()
         {
         };
 
@@ -32,15 +33,15 @@ namespace YARG.Core.UnitTests.Parsing
             => NewNote(index, (int)pad, length, flags);
         private static MoonNote NewNote(int index, ProGuitarString str, int fret, uint length = 0, Flags flags = Flags.None)
             => NewNote(index, MoonNote.MakeProGuitarRawNote(str, fret), length, flags);
-        private static SpecialPhrase NewSpecial(int index, SpecialPhrase.Type type, uint length = 0)
+        private static MoonPhrase NewSpecial(int index, MoonPhrase.Type type, uint length = 0)
             => new((uint)(index * RESOLUTION), length, type);
 
         public class ParseBehavior
         {
             public MoonNote[] Notes;
-            public SpecialPhrase[] Phrases;
+            public MoonPhrase[] Phrases;
 
-            public ParseBehavior(MoonNote[] notes, SpecialPhrase[] phrases)
+            public ParseBehavior(MoonNote[] notes, MoonPhrase[] phrases)
             {
                 Notes = notes;
                 Phrases = phrases;
@@ -106,12 +107,12 @@ namespace YARG.Core.UnitTests.Parsing
             },
             new[]
             {
-                NewSpecial(6, SpecialPhrase.Type.Versus_Player1, RESOLUTION * 6),
-                NewSpecial(12, SpecialPhrase.Type.Versus_Player2, RESOLUTION * 5),
-                NewSpecial(17, SpecialPhrase.Type.Starpower, RESOLUTION * 6),
-                NewSpecial(23, SpecialPhrase.Type.TremoloLane, RESOLUTION * 6),
-                NewSpecial(29, SpecialPhrase.Type.TrillLane, RESOLUTION * 6),
-                NewSpecial(35, SpecialPhrase.Type.Solo, RESOLUTION * 6),
+                NewSpecial(6, MoonPhrase.Type.Versus_Player1, RESOLUTION * 6),
+                NewSpecial(12, MoonPhrase.Type.Versus_Player2, RESOLUTION * 5),
+                NewSpecial(17, MoonPhrase.Type.Starpower, RESOLUTION * 6),
+                NewSpecial(23, MoonPhrase.Type.TremoloLane, RESOLUTION * 6),
+                NewSpecial(29, MoonPhrase.Type.TrillLane, RESOLUTION * 6),
+                NewSpecial(35, MoonPhrase.Type.Solo, RESOLUTION * 6),
             }
         );
 
@@ -161,8 +162,8 @@ namespace YARG.Core.UnitTests.Parsing
             },
             new[]
             {
-                NewSpecial(20, SpecialPhrase.Type.Starpower, RESOLUTION * 7),
-                NewSpecial(27, SpecialPhrase.Type.Solo, RESOLUTION * 7),
+                NewSpecial(20, MoonPhrase.Type.Starpower, RESOLUTION * 7),
+                NewSpecial(27, MoonPhrase.Type.Solo, RESOLUTION * 7),
             }
         );
 
@@ -224,10 +225,10 @@ namespace YARG.Core.UnitTests.Parsing
             },
             new[]
             {
-                NewSpecial(18, SpecialPhrase.Type.Starpower, RESOLUTION * 6),
-                NewSpecial(24, SpecialPhrase.Type.TremoloLane, RESOLUTION * 6),
-                NewSpecial(30, SpecialPhrase.Type.TrillLane, RESOLUTION * 6),
-                NewSpecial(36, SpecialPhrase.Type.Solo, RESOLUTION * 6),
+                NewSpecial(18, MoonPhrase.Type.Starpower, RESOLUTION * 6),
+                NewSpecial(24, MoonPhrase.Type.TremoloLane, RESOLUTION * 6),
+                NewSpecial(30, MoonPhrase.Type.TrillLane, RESOLUTION * 6),
+                NewSpecial(36, MoonPhrase.Type.Solo, RESOLUTION * 6),
             }
         );
 
@@ -332,13 +333,13 @@ namespace YARG.Core.UnitTests.Parsing
             },
             new[]
             {
-                NewSpecial(26, SpecialPhrase.Type.Starpower, RESOLUTION * 8),
-                NewSpecial(34, SpecialPhrase.Type.ProDrums_Activation, RESOLUTION * 5),
-                NewSpecial(42, SpecialPhrase.Type.Versus_Player1, RESOLUTION * 8),
-                NewSpecial(50, SpecialPhrase.Type.Versus_Player2, RESOLUTION * 8),
-                NewSpecial(58, SpecialPhrase.Type.TremoloLane, RESOLUTION * 6),
-                NewSpecial(64, SpecialPhrase.Type.TrillLane, RESOLUTION * 6),
-                NewSpecial(70, SpecialPhrase.Type.Solo, RESOLUTION * 8),
+                NewSpecial(26, MoonPhrase.Type.Starpower, RESOLUTION * 8),
+                NewSpecial(34, MoonPhrase.Type.ProDrums_Activation, RESOLUTION * 5),
+                NewSpecial(42, MoonPhrase.Type.Versus_Player1, RESOLUTION * 8),
+                NewSpecial(50, MoonPhrase.Type.Versus_Player2, RESOLUTION * 8),
+                NewSpecial(58, MoonPhrase.Type.TremoloLane, RESOLUTION * 6),
+                NewSpecial(64, MoonPhrase.Type.TrillLane, RESOLUTION * 6),
+                NewSpecial(70, MoonPhrase.Type.Solo, RESOLUTION * 8),
             }
         );
 
@@ -416,22 +417,22 @@ namespace YARG.Core.UnitTests.Parsing
             },
             new[]
             {
-                NewSpecial(0, SpecialPhrase.Type.Versus_Player1, RESOLUTION * 12),
-                NewSpecial(0, SpecialPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 12),
+                NewSpecial(0, MoonPhrase.Type.Versus_Player1, RESOLUTION * 12),
+                NewSpecial(0, MoonPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 12),
 
-                NewSpecial(12, SpecialPhrase.Type.Versus_Player2, RESOLUTION * 12),
-                NewSpecial(12, SpecialPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 12),
-                NewSpecial(12, SpecialPhrase.Type.Starpower, RESOLUTION * 12),
+                NewSpecial(12, MoonPhrase.Type.Versus_Player2, RESOLUTION * 12),
+                NewSpecial(12, MoonPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 12),
+                NewSpecial(12, MoonPhrase.Type.Starpower, RESOLUTION * 12),
 
-                NewSpecial(24, SpecialPhrase.Type.Versus_Player1, RESOLUTION * 12),
-                NewSpecial(24, SpecialPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 12),
-                NewSpecial(24, SpecialPhrase.Type.Versus_Player2, RESOLUTION * 12),
+                NewSpecial(24, MoonPhrase.Type.Versus_Player1, RESOLUTION * 12),
+                NewSpecial(24, MoonPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 12),
+                NewSpecial(24, MoonPhrase.Type.Versus_Player2, RESOLUTION * 12),
 
-                NewSpecial(36, SpecialPhrase.Type.Versus_Player2, RESOLUTION * 13),
-                NewSpecial(36, SpecialPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 13),
+                NewSpecial(36, MoonPhrase.Type.Versus_Player2, RESOLUTION * 13),
+                NewSpecial(36, MoonPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 13),
                 
-                NewSpecial(49, SpecialPhrase.Type.Versus_Player1, RESOLUTION * 1),
-                NewSpecial(49, SpecialPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 1),
+                NewSpecial(49, MoonPhrase.Type.Versus_Player1, RESOLUTION * 1),
+                NewSpecial(49, MoonPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 1),
             }
         );
 
@@ -466,11 +467,11 @@ namespace YARG.Core.UnitTests.Parsing
 
         public static void PopulateSyncTrack(MoonSong song)
         {
-            song.bpms.Add(new BPM(0, TEMPO));
-            song.timeSignatures.Add(new TimeSignature(0, NUMERATOR, DENOMINATOR));
+            song.bpms.Add(new MoonTempo(0, TEMPO));
+            song.timeSignatures.Add(new MoonTimeSignature(0, NUMERATOR, DENOMINATOR));
         }
 
-        public static void PopulateGlobalEvents(MoonSong song, List<TextEvent> events)
+        public static void PopulateGlobalEvents(MoonSong song, List<MoonText> events)
         {
             foreach (var text in events)
             {

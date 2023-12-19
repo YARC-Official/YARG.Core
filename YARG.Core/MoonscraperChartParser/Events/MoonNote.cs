@@ -8,7 +8,7 @@ using System.Collections.Generic;
 namespace MoonscraperChartEditor.Song
 {
     [Serializable]
-    internal class MoonNote : SongObject
+    internal class MoonNote : MoonObject
     {
         public enum GuitarFret
         {
@@ -205,7 +205,7 @@ namespace MoonscraperChartEditor.Song
             }
         }
 
-        public override bool ValueEquals(SongObject obj)
+        public override bool ValueEquals(MoonObject obj)
         {
             bool baseEq = base.ValueEquals(obj);
             if (!baseEq || obj is not MoonNote note)
@@ -216,7 +216,7 @@ namespace MoonscraperChartEditor.Song
                 flags == note.flags;
         }
 
-        public override int InsertionCompareTo(SongObject obj)
+        public override int InsertionCompareTo(MoonObject obj)
         {
             int baseComp = base.InsertionCompareTo(obj);
             if (baseComp != 0 || obj is not MoonNote note)
@@ -361,7 +361,7 @@ namespace MoonscraperChartEditor.Song
             return rawNote;
         }
 
-        protected override SongObject SongClone() => Clone();
+        protected override MoonObject CloneImpl() => Clone();
 
         public new MoonNote Clone()
         {

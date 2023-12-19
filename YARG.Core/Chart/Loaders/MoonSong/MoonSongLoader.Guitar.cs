@@ -28,7 +28,7 @@ namespace YARG.Core.Chart
             return new(instrument, difficulties);
         }
 
-        private GuitarNote CreateFiveFretGuitarNote(MoonNote moonNote, Dictionary<SpecialPhrase.Type, SpecialPhrase> currentPhrases)
+        private GuitarNote CreateFiveFretGuitarNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases)
         {
             var fret = GetFiveFretGuitarFret(moonNote);
             var noteType = GetGuitarNoteType(moonNote);
@@ -39,7 +39,7 @@ namespace YARG.Core.Chart
             return new GuitarNote(fret, noteType, guitarFlags, generalFlags, time, GetLengthInTime(moonNote), moonNote.tick, moonNote.length);
         }
 
-        private GuitarNote CreateSixFretGuitarNote(MoonNote moonNote, Dictionary<SpecialPhrase.Type, SpecialPhrase> currentPhrases)
+        private GuitarNote CreateSixFretGuitarNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases)
         {
             var fret = GetSixFretGuitarFret(moonNote);
             var noteType = GetGuitarNoteType(moonNote);

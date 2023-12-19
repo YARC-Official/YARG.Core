@@ -7,41 +7,41 @@ using YARG.Core.Chart;
 namespace MoonscraperChartEditor.Song
 {
     [Serializable]
-    internal class VenueEvent : TextEvent
+    internal class MoonVenue : MoonText
     {
         public VenueLookup.Type type;
         public uint length;
 
-        public VenueEvent(VenueLookup.Type _type, string _text, uint _position, uint _length = 0)
+        public MoonVenue(VenueLookup.Type _type, string _text, uint _position, uint _length = 0)
             : base(ID.Venue, _text, _position)
         {
             type = _type;
             length = _length;
         }
 
-        public override bool ValueEquals(SongObject obj)
+        public override bool ValueEquals(MoonObject obj)
         {
             bool baseEq = base.ValueEquals(obj);
-            if (!baseEq || obj is not VenueEvent venueEv)
+            if (!baseEq || obj is not MoonVenue venueEv)
                 return baseEq;
 
             return type == venueEv.type || length == venueEv.length;
         }
 
-        public override int InsertionCompareTo(SongObject obj)
+        public override int InsertionCompareTo(MoonObject obj)
         {
             int baseComp = base.InsertionCompareTo(obj);
-            if (baseComp != 0 || obj is not VenueEvent venueEv)
+            if (baseComp != 0 || obj is not MoonVenue venueEv)
                 return baseComp;
 
             return ((int) type).CompareTo((int) venueEv.type);
         }
 
-        protected override SongObject SongClone() => Clone();
+        protected override MoonObject CloneImpl() => Clone();
 
-        public new VenueEvent Clone()
+        public new MoonVenue Clone()
         {
-            return new VenueEvent(type, text, tick, length);
+            return new MoonVenue(type, text, tick, length);
         }
 
         public override string ToString()

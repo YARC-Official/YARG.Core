@@ -23,11 +23,11 @@ namespace MoonscraperChartEditor.Song
         /// <summary>
         /// Read only list of special phrases.
         /// </summary>
-        public List<SpecialPhrase> specialPhrases { get; private set; } = new();
+        public List<MoonPhrase> specialPhrases { get; private set; } = new();
         /// <summary>
         /// Read only list of local events.
         /// </summary>
-        public List<TextEvent> events { get; private set; } = new();
+        public List<MoonText> events { get; private set; } = new();
 
         /// <summary>
         /// Creates a new chart object.
@@ -52,32 +52,32 @@ namespace MoonscraperChartEditor.Song
 
         public int Add(MoonNote note)
         {
-            return SongObjectHelper.Insert(note, notes);
+            return MoonObjectHelper.Insert(note, notes);
         }
 
-        public int Add(SpecialPhrase phrase)
+        public int Add(MoonPhrase phrase)
         {
-            return SongObjectHelper.Insert(phrase, specialPhrases);
+            return MoonObjectHelper.Insert(phrase, specialPhrases);
         }
 
-        public int Add(TextEvent ev)
+        public int Add(MoonText ev)
         {
-            return SongObjectHelper.Insert(ev, events);
+            return MoonObjectHelper.Insert(ev, events);
         }
 
         public bool Remove(MoonNote note)
         {
-            return SongObjectHelper.Remove(note, notes);
+            return MoonObjectHelper.Remove(note, notes);
         }
 
-        public bool Remove(SpecialPhrase phrase)
+        public bool Remove(MoonPhrase phrase)
         {
-            return SongObjectHelper.Remove(phrase, specialPhrases);
+            return MoonObjectHelper.Remove(phrase, specialPhrases);
         }
 
-        public bool Remove(TextEvent ev)
+        public bool Remove(MoonText ev)
         {
-            return SongObjectHelper.Remove(ev, events);
+            return MoonObjectHelper.Remove(ev, events);
         }
 
         public bool IsOccupied()

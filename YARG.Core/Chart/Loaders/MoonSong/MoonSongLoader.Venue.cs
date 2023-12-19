@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using MoonscraperChartEditor.Song;
 using YARG.Core.Utility;
 
-using MoonVenueEvent = MoonscraperChartEditor.Song.VenueEvent;
-
 namespace YARG.Core.Chart
 {
     using static TextEventDefinitions;
@@ -21,8 +19,8 @@ namespace YARG.Core.Chart
             var stageEvents = new List<StageEffectEvent>();
 
             // For merging spotlights/singalongs into a single event
-            MoonVenueEvent? spotlightCurrentEvent = null;
-            MoonVenueEvent? singalongCurrentEvent = null;
+            MoonVenue? spotlightCurrentEvent = null;
+            MoonVenue? singalongCurrentEvent = null;
             var spotlightPerformers = Performer.None;
             var singalongPerformers = Performer.None;
 
@@ -107,8 +105,8 @@ namespace YARG.Core.Chart
             return new(lightingEvents, postProcessingEvents, performerEvents, stageEvents);
         }
 
-        private void HandlePerformerEvent(List<PerformerEvent> events, PerformerEventType type, MoonVenueEvent moonEvent,
-            ref MoonVenueEvent? currentEvent, ref Performer performers)
+        private void HandlePerformerEvent(List<PerformerEvent> events, PerformerEventType type, MoonVenue moonEvent,
+            ref MoonVenue? currentEvent, ref Performer performers)
         {
             // First event
             if (currentEvent == null)
@@ -134,7 +132,7 @@ namespace YARG.Core.Chart
             performers |= performer;
         }
 
-        private double GetLengthInTime(MoonVenueEvent ev)
+        private double GetLengthInTime(MoonVenue ev)
         {
             double time = _moonSong.TickToTime(ev.tick);
             return GetLengthInTime(time, ev.tick, ev.length);

@@ -6,7 +6,7 @@ using System;
 namespace MoonscraperChartEditor.Song
 {
     [Serializable]
-    internal class SpecialPhrase : SongObject
+    internal class MoonPhrase : MoonObject
     {
         public enum Type
         {
@@ -30,26 +30,26 @@ namespace MoonscraperChartEditor.Song
         public uint length;
         public Type type;
 
-        public SpecialPhrase(uint _position, uint _length, Type _type)
-            : base(ID.Special, _position)
+        public MoonPhrase(uint _position, uint _length, Type _type)
+            : base(ID.Phrase, _position)
         {
             length = _length;
             type = _type;
         }
 
-        public override bool ValueEquals(SongObject obj)
+        public override bool ValueEquals(MoonObject obj)
         {
             bool baseEq = base.ValueEquals(obj);
-            if (!baseEq || obj is not SpecialPhrase phrase)
+            if (!baseEq || obj is not MoonPhrase phrase)
                 return baseEq;
 
             return type == phrase.type;
         }
 
-        public override int InsertionCompareTo(SongObject obj)
+        public override int InsertionCompareTo(MoonObject obj)
         {
             int baseComp = base.InsertionCompareTo(obj);
-            if (baseComp != 0 || obj is not SpecialPhrase phrase)
+            if (baseComp != 0 || obj is not MoonPhrase phrase)
                 return baseComp;
 
             return ((int) type).CompareTo((int) phrase.type);
@@ -63,11 +63,11 @@ namespace MoonscraperChartEditor.Song
             else
                 newLength = 0;
 
-            SpecialPhrase? nextSp = null;
+            MoonPhrase? nextSp = null;
             if (chart != null)
             {
-                int arrayPos = SongObjectHelper.FindClosestPosition(this, chart.specialPhrases);
-                if (arrayPos == SongObjectHelper.NOTFOUND)
+                int arrayPos = MoonObjectHelper.FindClosestPosition(this, chart.specialPhrases);
+                if (arrayPos == MoonObjectHelper.NOTFOUND)
                     return newLength;
 
                 while (arrayPos < chart.specialPhrases.Count - 1 && chart.specialPhrases[arrayPos].tick <= tick)
@@ -93,11 +93,11 @@ namespace MoonscraperChartEditor.Song
             return newLength;
         }
 
-        protected override SongObject SongClone() => Clone();
+        protected override MoonObject CloneImpl() => Clone();
 
-        public new SpecialPhrase Clone()
+        public new MoonPhrase Clone()
         {
-            return new SpecialPhrase(tick, length, type);
+            return new MoonPhrase(tick, length, type);
         }
 
         public override string ToString()

@@ -35,28 +35,28 @@ namespace MoonscraperChartEditor.Song
         /// <summary>
         /// Read only list of song events.
         /// </summary>
-        public List<TextEvent> events { get; private set; } = new();
+        public List<MoonText> events { get; private set; } = new();
         /// <summary>
         /// Read only list of song sections.
         /// </summary>
-        public List<TextEvent> sections { get; private set; } = new();
+        public List<MoonText> sections { get; private set; } = new();
         /// <summary>
         /// Read only list of venue events.
         /// </summary>
-        public List<VenueEvent> venue { get; private set; } = new();
+        public List<MoonVenue> venue { get; private set; } = new();
 
         /// <summary>
         /// Read only list of a song's bpm changes.
         /// </summary>
-        public List<BPM> bpms { get; private set; } = new();
+        public List<MoonTempo> bpms { get; private set; } = new();
         /// <summary>
         /// Read only list of a song's time signature changes.
         /// </summary>
-        public List<TimeSignature> timeSignatures { get; private set; } = new();
+        public List<MoonTimeSignature> timeSignatures { get; private set; } = new();
         /// <summary>
         /// Read only list of a song's beats.
         /// </summary>
-        public List<Beat> beats { get; private set; } = new();
+        public List<MoonBeat> beats { get; private set; } = new();
 
         /// <summary>
         /// Default constructor for a new chart. Initialises all lists and adds locked bpm and timesignature objects.
@@ -130,9 +130,9 @@ namespace MoonscraperChartEditor.Song
         /// </summary>
         /// <param name="position">The tick position</param>
         /// <returns>Returns the value of the bpm that was found.</returns>
-        public BPM? GetPrevBPM(uint position)
+        public MoonTempo? GetPrevBPM(uint position)
         {
-            return SongObjectHelper.GetPrevious(bpms, position);
+            return MoonObjectHelper.GetPrevious(bpms, position);
         }
 
         /// <summary>
@@ -140,14 +140,14 @@ namespace MoonscraperChartEditor.Song
         /// </summary>
         /// <param name="position">The tick position</param>
         /// <returns>Returns the value of the time signature that was found.</returns>
-        public TimeSignature? GetPrevTS(uint position)
+        public MoonTimeSignature? GetPrevTS(uint position)
         {
-            return SongObjectHelper.GetPrevious(timeSignatures, position);
+            return MoonObjectHelper.GetPrevious(timeSignatures, position);
         }
 
-        public TextEvent? GetPrevSection(uint position)
+        public MoonText? GetPrevSection(uint position)
         {
-            return SongObjectHelper.GetPrevious(sections, position);
+            return MoonObjectHelper.GetPrevious(sections, position);
         }
 
         /// <summary>
@@ -168,7 +168,7 @@ namespace MoonscraperChartEditor.Song
         /// <returns>Returns the time in seconds.</returns>
         public double TickToTime(uint position, float resolution)
         {
-            int previousBPMPos = SongObjectHelper.FindClosestPosition(position, bpms);
+            int previousBPMPos = MoonObjectHelper.FindClosestPosition(position, bpms);
             if (bpms[previousBPMPos].tick > position)
                 --previousBPMPos;
 
@@ -179,64 +179,64 @@ namespace MoonscraperChartEditor.Song
             return time;
         }
 
-        public void Add(Beat beat)
+        public void Add(MoonBeat beat)
         {
-            SongObjectHelper.Insert(beat, beats);
+            MoonObjectHelper.Insert(beat, beats);
         }
 
-        public void Add(TimeSignature timeSig)
+        public void Add(MoonTimeSignature timeSig)
         {
-            SongObjectHelper.Insert(timeSig, timeSignatures);
+            MoonObjectHelper.Insert(timeSig, timeSignatures);
         }
 
-        public void Add(BPM bpm)
+        public void Add(MoonTempo bpm)
         {
-            SongObjectHelper.Insert(bpm, bpms);
+            MoonObjectHelper.Insert(bpm, bpms);
         }
 
-        public bool Remove(Beat beat)
+        public bool Remove(MoonBeat beat)
         {
-            return beat.tick > 0 && SongObjectHelper.Remove(beat, beats);
+            return beat.tick > 0 && MoonObjectHelper.Remove(beat, beats);
         }
 
-        public bool Remove(TimeSignature timeSig)
+        public bool Remove(MoonTimeSignature timeSig)
         {
-            return timeSig.tick > 0 && SongObjectHelper.Remove(timeSig, timeSignatures);
+            return timeSig.tick > 0 && MoonObjectHelper.Remove(timeSig, timeSignatures);
         }
 
-        public bool Remove(BPM bpm)
+        public bool Remove(MoonTempo bpm)
         {
-            return bpm.tick > 0 && SongObjectHelper.Remove(bpm, bpms);
+            return bpm.tick > 0 && MoonObjectHelper.Remove(bpm, bpms);
         }
 
-        public void Add(TextEvent ev)
+        public void Add(MoonText ev)
         {
-            SongObjectHelper.Insert(ev, events);
+            MoonObjectHelper.Insert(ev, events);
         }
 
-        public void AddSection(TextEvent section)
+        public void AddSection(MoonText section)
         {
-            SongObjectHelper.Insert(section, sections);
+            MoonObjectHelper.Insert(section, sections);
         }
 
-        public void Add(VenueEvent venueEvent)
+        public void Add(MoonVenue venueEvent)
         {
-            SongObjectHelper.Insert(venueEvent, venue);
+            MoonObjectHelper.Insert(venueEvent, venue);
         }
 
-        public bool Remove(TextEvent ev)
+        public bool Remove(MoonText ev)
         {
-            return SongObjectHelper.Remove(ev, events);
+            return MoonObjectHelper.Remove(ev, events);
         }
 
-        public bool RemoveSection(TextEvent section)
+        public bool RemoveSection(MoonText section)
         {
-            return SongObjectHelper.Remove(section, sections);
+            return MoonObjectHelper.Remove(section, sections);
         }
 
-        public bool Remove(VenueEvent venueEvent)
+        public bool Remove(MoonVenue venueEvent)
         {
-            return SongObjectHelper.Remove(venueEvent, venue);
+            return MoonObjectHelper.Remove(venueEvent, venue);
         }
 
         /// <summary>
@@ -253,10 +253,10 @@ namespace MoonscraperChartEditor.Song
             */
 
             if (bpms.Count == 0 || bpms[0].tick != 0)
-                bpms.Insert(0, new BPM());
+                bpms.Insert(0, new MoonTempo());
 
             if (timeSignatures.Count == 0 || timeSignatures[0].tick != 0)
-                timeSignatures.Insert(0, new TimeSignature());
+                timeSignatures.Insert(0, new MoonTimeSignature());
 
             double time = 0;
             var prevBPM = bpms[0];
@@ -275,14 +275,14 @@ namespace MoonscraperChartEditor.Song
             return LiveTickToTime(position, resolution, bpms[0], bpms);
         }
 
-        public static double LiveTickToTime(uint position, float resolution, BPM initialBpm, List<BPM> synctrack)
+        public static double LiveTickToTime(uint position, float resolution, MoonTempo initialBpm, List<MoonTempo> synctrack)
         {
             double time = 0;
             var prevBPM = initialBpm;
 
             foreach (var syncTrack in synctrack)
             {
-                var bpmInfo = syncTrack as BPM;
+                var bpmInfo = syncTrack as MoonTempo;
 
                 if (bpmInfo == null)
                     continue;

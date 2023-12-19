@@ -59,21 +59,21 @@ namespace YARG.Core.UnitTests.Parsing
             { GameMode.GHLGuitar, GhlGuitarNoteLookup },
         };
 
-        private static readonly Dictionary<SpecialPhrase.Type, int> SpecialPhraseLookup = new()
+        private static readonly Dictionary<MoonPhrase.Type, int> SpecialPhraseLookup = new()
         {
-            { SpecialPhrase.Type.Starpower,           PHRASE_STARPOWER },
-            { SpecialPhrase.Type.Versus_Player1,      PHRASE_VERSUS_PLAYER_1 },
-            { SpecialPhrase.Type.Versus_Player2,      PHRASE_VERSUS_PLAYER_2 },
-            { SpecialPhrase.Type.TremoloLane,         PHRASE_TREMOLO_LANE },
-            { SpecialPhrase.Type.TrillLane,           PHRASE_TRILL_LANE },
-            { SpecialPhrase.Type.ProDrums_Activation, PHRASE_DRUM_FILL },
+            { MoonPhrase.Type.Starpower,           PHRASE_STARPOWER },
+            { MoonPhrase.Type.Versus_Player1,      PHRASE_VERSUS_PLAYER_1 },
+            { MoonPhrase.Type.Versus_Player2,      PHRASE_VERSUS_PLAYER_2 },
+            { MoonPhrase.Type.TremoloLane,         PHRASE_TREMOLO_LANE },
+            { MoonPhrase.Type.TrillLane,           PHRASE_TRILL_LANE },
+            { MoonPhrase.Type.ProDrums_Activation, PHRASE_DRUM_FILL },
         };
 
-        private static readonly List<SpecialPhrase.Type> DrumsOnlySpecialPhrases = new()
+        private static readonly List<MoonPhrase.Type> DrumsOnlySpecialPhrases = new()
         {
-            SpecialPhrase.Type.TremoloLane,
-            SpecialPhrase.Type.TrillLane,
-            SpecialPhrase.Type.ProDrums_Activation,
+            MoonPhrase.Type.TremoloLane,
+            MoonPhrase.Type.TrillLane,
+            MoonPhrase.Type.ProDrums_Activation,
         };
 
         private const string NEWLINE = "\r\n";
@@ -166,10 +166,10 @@ namespace YARG.Core.UnitTests.Parsing
             // Combine all of the chart events into a single list and sort them according to insertion order
             // Not very efficient, but adding a 4th list to the previous handling and
             // quadratically increasing the number of checks is just not sane lol
-            List<SongObject> combined = [..chart.notes, ..chart.specialPhrases, ..chart.events];
+            List<MoonObject> combined = [..chart.notes, ..chart.specialPhrases, ..chart.events];
             combined.Sort((obj1, obj2) => obj1.InsertionCompareTo(obj2));
 
-            List<SpecialPhrase> phrasesToRemove = new();
+            List<MoonPhrase> phrasesToRemove = new();
             for (int i = 0; i < combined.Count; i++)
             {
                 var chartObj = combined[i];
@@ -179,7 +179,7 @@ namespace YARG.Core.UnitTests.Parsing
                     case MoonNote note:
                         AppendNote(builder, note, gameMode);
                         break;
-                    case SpecialPhrase phrase:
+                    case MoonPhrase phrase:
                         // Drums-only phrases
                         if (gameMode is not GameMode.Drums && DrumsOnlySpecialPhrases.Contains(phrase.type))
                         {
@@ -188,17 +188,17 @@ namespace YARG.Core.UnitTests.Parsing
                         }
 
                         // Solos are written as text events in .chart
-                        if (phrase.type is SpecialPhrase.Type.Solo)
+                        if (phrase.type is MoonPhrase.Type.Solo)
                         {
                             builder.Append($"  {phrase.tick} = E {SOLO_START}{NEWLINE}");
-                            SongObjectHelper.Insert(new TextEvent(SOLO_END, phrase.tick + phrase.length), combined);
+                            MoonObjectHelper.Insert(new MoonText(SOLO_END, phrase.tick + phrase.length), combined);
                             continue;
                         }
 
                         int phraseNumber = SpecialPhraseLookup[phrase.type];
                         builder.Append($"  {phrase.tick} = S {phraseNumber} {phrase.length}{NEWLINE}");
                         break;
-                    case TextEvent text:
+                    case MoonText text:
                         builder.Append($"  {text.tick} = E {text.text}{NEWLINE}");
                         break;
                 }

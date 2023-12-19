@@ -21,7 +21,7 @@ namespace YARG.Core.Chart
             return new(instrument, difficulties);
         }
 
-        private ProGuitarNote CreateProGuitarNote(MoonNote moonNote, Dictionary<SpecialPhrase.Type, SpecialPhrase> currentPhrases)
+        private ProGuitarNote CreateProGuitarNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases)
         {
             var proString = GetProGuitarString(moonNote);
             int proFret = GetProGuitarFret(moonNote);

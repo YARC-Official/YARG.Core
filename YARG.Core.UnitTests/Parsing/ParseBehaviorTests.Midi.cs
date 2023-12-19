@@ -3,6 +3,7 @@ using Melanchall.DryWetMidi.Core;
 using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
 using NUnit.Framework;
+using YARG.Core.Chart;
 using YARG.Core.Extensions;
 
 namespace YARG.Core.UnitTests.Parsing
@@ -62,14 +63,14 @@ namespace YARG.Core.UnitTests.Parsing
             { MoonNoteType.Strum, 6 },
         };
 
-        private static readonly Dictionary<SpecialPhrase.Type, byte[]> GuitarSpecialPhraseLookup = new()
+        private static readonly Dictionary<MoonPhrase.Type, byte[]> GuitarSpecialPhraseLookup = new()
         {
-            { SpecialPhrase.Type.Starpower,      new[] { STARPOWER_NOTE } },
-            { SpecialPhrase.Type.Solo,           new[] { SOLO_NOTE } },
-            { SpecialPhrase.Type.Versus_Player1, new[] { VERSUS_PHRASE_PLAYER_1 } },
-            { SpecialPhrase.Type.Versus_Player2, new[] { VERSUS_PHRASE_PLAYER_2 } },
-            { SpecialPhrase.Type.TremoloLane,    new[] { TREMOLO_LANE_NOTE } },
-            { SpecialPhrase.Type.TrillLane,      new[] { TRILL_LANE_NOTE } },
+            { MoonPhrase.Type.Starpower,      new[] { STARPOWER_NOTE } },
+            { MoonPhrase.Type.Solo,           new[] { SOLO_NOTE } },
+            { MoonPhrase.Type.Versus_Player1, new[] { VERSUS_PHRASE_PLAYER_1 } },
+            { MoonPhrase.Type.Versus_Player2, new[] { VERSUS_PHRASE_PLAYER_2 } },
+            { MoonPhrase.Type.TremoloLane,    new[] { TREMOLO_LANE_NOTE } },
+            { MoonPhrase.Type.TrillLane,      new[] { TRILL_LANE_NOTE } },
         };
 
         private static readonly Dictionary<int, int> GhlGuitarNoteOffsetLookup = new()
@@ -89,10 +90,10 @@ namespace YARG.Core.UnitTests.Parsing
             { MoonNoteType.Strum, 8 },
         };
 
-        private static readonly Dictionary<SpecialPhrase.Type, byte[]> GhlGuitarSpecialPhraseLookup = new()
+        private static readonly Dictionary<MoonPhrase.Type, byte[]> GhlGuitarSpecialPhraseLookup = new()
         {
-            { SpecialPhrase.Type.Starpower, new[] { STARPOWER_NOTE } },
-            { SpecialPhrase.Type.Solo,      new[] { SOLO_NOTE } },
+            { MoonPhrase.Type.Starpower, new[] { STARPOWER_NOTE } },
+            { MoonPhrase.Type.Solo,      new[] { SOLO_NOTE } },
         };
 
         private static readonly Dictionary<int, int> ProGuitarNoteOffsetLookup = new()
@@ -113,12 +114,12 @@ namespace YARG.Core.UnitTests.Parsing
         private static readonly Dictionary<Flags, byte> ProGuitarChannelFlagLookup =
             PRO_GUITAR_CHANNEL_FLAG_LOOKUP.ToDictionary((pair) => pair.Value, (pair) => pair.Key);
 
-        private static readonly Dictionary<SpecialPhrase.Type, byte[]> ProGuitarSpecialPhraseLookup = new()
+        private static readonly Dictionary<MoonPhrase.Type, byte[]> ProGuitarSpecialPhraseLookup = new()
         {
-            { SpecialPhrase.Type.Starpower,   new[] { STARPOWER_NOTE } },
-            { SpecialPhrase.Type.Solo,        new[] { SOLO_NOTE_PRO_GUITAR } },
-            { SpecialPhrase.Type.TremoloLane, new[] { TREMOLO_LANE_NOTE } },
-            { SpecialPhrase.Type.TrillLane,   new[] { TRILL_LANE_NOTE } },
+            { MoonPhrase.Type.Starpower,   new[] { STARPOWER_NOTE } },
+            { MoonPhrase.Type.Solo,        new[] { SOLO_NOTE_PRO_GUITAR } },
+            { MoonPhrase.Type.TremoloLane, new[] { TREMOLO_LANE_NOTE } },
+            { MoonPhrase.Type.TrillLane,   new[] { TRILL_LANE_NOTE } },
         };
 
         private static readonly Dictionary<int, int> DrumsNoteOffsetLookup = new()
@@ -131,15 +132,15 @@ namespace YARG.Core.UnitTests.Parsing
             { (int)DrumPad.Green,  5 },
         };
 
-        private static readonly Dictionary<SpecialPhrase.Type, byte[]> DrumsSpecialPhraseLookup = new()
+        private static readonly Dictionary<MoonPhrase.Type, byte[]> DrumsSpecialPhraseLookup = new()
         {
-            { SpecialPhrase.Type.Starpower,           new[] { STARPOWER_NOTE } },
-            { SpecialPhrase.Type.Solo,                new[] { SOLO_NOTE } },
-            { SpecialPhrase.Type.Versus_Player1,      new[] { VERSUS_PHRASE_PLAYER_1 } },
-            { SpecialPhrase.Type.Versus_Player2,      new[] { VERSUS_PHRASE_PLAYER_2 } },
-            { SpecialPhrase.Type.TremoloLane,         new[] { TREMOLO_LANE_NOTE } },
-            { SpecialPhrase.Type.TrillLane,           new[] { TRILL_LANE_NOTE } },
-            { SpecialPhrase.Type.ProDrums_Activation, new[] { DRUM_FILL_NOTE_0, DRUM_FILL_NOTE_1, DRUM_FILL_NOTE_2, DRUM_FILL_NOTE_3, DRUM_FILL_NOTE_4 } },
+            { MoonPhrase.Type.Starpower,           new[] { STARPOWER_NOTE } },
+            { MoonPhrase.Type.Solo,                new[] { SOLO_NOTE } },
+            { MoonPhrase.Type.Versus_Player1,      new[] { VERSUS_PHRASE_PLAYER_1 } },
+            { MoonPhrase.Type.Versus_Player2,      new[] { VERSUS_PHRASE_PLAYER_2 } },
+            { MoonPhrase.Type.TremoloLane,         new[] { TREMOLO_LANE_NOTE } },
+            { MoonPhrase.Type.TrillLane,           new[] { TRILL_LANE_NOTE } },
+            { MoonPhrase.Type.ProDrums_Activation, new[] { DRUM_FILL_NOTE_0, DRUM_FILL_NOTE_1, DRUM_FILL_NOTE_2, DRUM_FILL_NOTE_3, DRUM_FILL_NOTE_4 } },
         };
 
         private static readonly Dictionary<int, int> VocalsNoteOffsetLookup = BuildVocalsNoteLookup();
@@ -167,11 +168,11 @@ namespace YARG.Core.UnitTests.Parsing
             { Difficulty.Easy,   0 },
         };
 
-        private static readonly Dictionary<SpecialPhrase.Type, byte[]> VocalsSpecialPhraseLookup = new()
+        private static readonly Dictionary<MoonPhrase.Type, byte[]> VocalsSpecialPhraseLookup = new()
         {
-            { SpecialPhrase.Type.Starpower,      new[] { STARPOWER_NOTE } },
-            { SpecialPhrase.Type.Versus_Player1, new[] { LYRICS_PHRASE_1 } },
-            { SpecialPhrase.Type.Versus_Player2, new[] { LYRICS_PHRASE_2 } },
+            { MoonPhrase.Type.Starpower,      new[] { STARPOWER_NOTE } },
+            { MoonPhrase.Type.Versus_Player1, new[] { LYRICS_PHRASE_1 } },
+            { MoonPhrase.Type.Versus_Player2, new[] { LYRICS_PHRASE_2 } },
         };
 
         private static readonly Dictionary<GameMode, Dictionary<int, int>> InstrumentNoteOffsetLookup = new()
@@ -210,7 +211,7 @@ namespace YARG.Core.UnitTests.Parsing
             { GameMode.Vocals,    VocalsDifficultyStartOffsetLookup },
         };
 
-        private static readonly Dictionary<GameMode, Dictionary<SpecialPhrase.Type, byte[]>> InstrumentSpecialPhraseLookup = new()
+        private static readonly Dictionary<GameMode, Dictionary<MoonPhrase.Type, byte[]>> InstrumentSpecialPhraseLookup = new()
         {
             { GameMode.Guitar,    GuitarSpecialPhraseLookup },
             { GameMode.Drums,     DrumsSpecialPhraseLookup },
@@ -250,7 +251,7 @@ namespace YARG.Core.UnitTests.Parsing
                     (timeSigIndex == sourceSong.timeSignatures.Count || sourceSong.bpms[bpmIndex].tick < sourceSong.timeSignatures[timeSigIndex].tick))
                 {
                     var bpm = sourceSong.bpms[bpmIndex++];
-                    long microseconds = Chart.TempoChange.BpmToMicroSeconds(bpm.value);
+                    long microseconds = TempoChange.BpmToMicroSeconds(bpm.value);
                     timedEvents.Add((bpm.tick, new SetTempoEvent(microseconds)));
                 }
             }
@@ -468,7 +469,7 @@ namespace YARG.Core.UnitTests.Parsing
             }
         }
 
-        private static void GenerateSpecialPhrase(MidiEventList events, SpecialPhrase phrase, GameMode gameMode)
+        private static void GenerateSpecialPhrase(MidiEventList events, MoonPhrase phrase, GameMode gameMode)
         {
             // Get note number (ignore if not supported by the game mode)
             if (!InstrumentSpecialPhraseLookup[gameMode].TryGetValue(phrase.type, out byte[]? notesToAdd))

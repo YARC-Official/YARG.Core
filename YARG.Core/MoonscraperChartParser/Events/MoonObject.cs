@@ -6,7 +6,7 @@ using System;
 namespace MoonscraperChartEditor.Song
 {
     [Serializable]
-    internal abstract class SongObject
+    internal abstract class MoonObject
     {
         /// <summary>
         /// The tick position of the object
@@ -15,32 +15,32 @@ namespace MoonscraperChartEditor.Song
 
         public readonly ID classID;
         
-        public SongObject(ID id, uint _tick)
+        public MoonObject(ID id, uint _tick)
         {
             classID = id;
             tick = _tick;
         }
 
         // Clone needs to be hideable so it can return a different type in derived classes
-        protected abstract SongObject SongClone();
-        public SongObject Clone() => SongClone();
+        protected abstract MoonObject CloneImpl();
+        public MoonObject Clone() => CloneImpl();
 
         public override bool Equals(object obj)
         {
-            return ReferenceEquals(this, obj) || (obj is SongObject songObj && ValueEquals(songObj));
+            return ReferenceEquals(this, obj) || (obj is MoonObject songObj && ValueEquals(songObj));
         }
 
-        public virtual bool ValueEquals(SongObject obj)
+        public virtual bool ValueEquals(MoonObject obj)
         {
             return tick == obj.tick && classID == obj.classID;
         }
 
-        public bool InsertionEquals(SongObject obj)
+        public bool InsertionEquals(MoonObject obj)
         {
             return InsertionCompareTo(obj) == 0;
         }
 
-        public virtual int InsertionCompareTo(SongObject obj)
+        public virtual int InsertionCompareTo(MoonObject obj)
         {
             int tickComp = tick.CompareTo(obj.tick);
             if (tickComp != 0)
@@ -75,7 +75,7 @@ namespace MoonscraperChartEditor.Song
             Text,
             Venue,
             Note,
-            Special,
+            Phrase,
         }
     }
 }
