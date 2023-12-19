@@ -124,8 +124,9 @@ namespace YARG.Core.Chart
         private static Dictionary<string, string> CreateStripReplacements(
             HashSet<char> strip, Dictionary<char, char> replace)
         {
-            return replace
-                .Concat(strip.Select((c) => new KeyValuePair<char, char>(c, '\0')))
+            // Add strip characters first to ensure they don't mess with the replacements
+            return strip.Select((c) => new KeyValuePair<char, char>(c, '\0'))
+                .Concat(replace)
                 .ToDictionary(
                     (pair) => pair.Key != '\0' ? pair.Key.ToString() : string.Empty,
                     (pair) => pair.Value != '\0' ? pair.Value.ToString() : string.Empty);
