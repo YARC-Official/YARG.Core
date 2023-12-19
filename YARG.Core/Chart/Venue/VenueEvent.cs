@@ -1,3 +1,5 @@
+using System;
+
 namespace YARG.Core.Chart
 {
     /// <summary>
@@ -29,6 +31,7 @@ namespace YARG.Core.Chart
     /// <summary>
     /// Flags for venue events.
     /// </summary>
+    [Flags]
     public enum VenueEventFlags
     {
         None = 0,

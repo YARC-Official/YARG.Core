@@ -8,6 +8,7 @@ namespace YARG.Core.IO
 {
     public sealed class CONFileListing
     {
+        [Flags]
         public enum CONFileListingFlag : byte
         {
             Contiguous = 0x40,
