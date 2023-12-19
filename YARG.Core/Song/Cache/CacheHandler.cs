@@ -79,8 +79,7 @@ namespace YARG.Core.Song.Cache
             _progress = default;
             iniGroups = new(baseDirectories.Count);
             foreach (string dir in baseDirectories)
-                if (!iniGroups.ContainsKey(dir))
-                    iniGroups.Add(dir, new());
+                iniGroups.TryAdd(dir, new IniGroup());
         }
 
         private IniGroup? GetBaseIniGroup(string path)
