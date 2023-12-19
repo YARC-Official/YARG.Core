@@ -163,7 +163,7 @@ namespace YARG.Core.Song
         public static SongMetadata? SngFromCache(string baseDirectory, YARGBinaryReader reader, CategoryCacheStrings strings)
         {
             // Implement proper versioning in the future 
-            uint version = reader.ReadUInt32();
+            uint version = reader.Read<uint>();
 
             string sngPath = Path.Combine(baseDirectory, reader.ReadLEBString());
             var sngInfo = AbridgedFileInfo.TryParseInfo(sngPath, reader);
@@ -189,10 +189,10 @@ namespace YARG.Core.Song
         public static SongMetadata? SngFromCache_Quick(string baseDirectory, YARGBinaryReader reader, CategoryCacheStrings strings)
         {
             // Implement proper versioning in the future 
-            uint version = reader.ReadUInt32();
+            uint version = reader.Read<uint>();
 
             string sngPath = Path.Combine(baseDirectory, reader.ReadLEBString());
-            AbridgedFileInfo sngInfo = new(sngPath, DateTime.FromBinary(reader.ReadInt64()));
+            AbridgedFileInfo sngInfo = new(sngPath, DateTime.FromBinary(reader.Read<long>()));
 
             byte chartTypeIndex = reader.ReadByte();
             if (chartTypeIndex >= IIniMetadata.CHART_FILE_TYPES.Length)

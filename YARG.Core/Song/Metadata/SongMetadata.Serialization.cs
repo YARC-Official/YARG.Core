@@ -10,38 +10,38 @@ namespace YARG.Core.Song
     {
         public SongMetadata(YARGBinaryReader reader, CategoryCacheStrings strings)
         {
-            _name.Str = strings.titles[reader.ReadInt32()];
-            _artist.Str = strings.artists[reader.ReadInt32()];
-            _album.Str = strings.albums[reader.ReadInt32()];
-            _genre.Str = strings.genres[reader.ReadInt32()];
-            Year = strings.years[reader.ReadInt32()];
-            _charter.Str = strings.charters[reader.ReadInt32()];
-            _playlist.Str = strings.playlists[reader.ReadInt32()];
-            _source.Str = strings.sources[reader.ReadInt32()];
+            _name.Str = strings.titles[reader.Read<int>()];
+            _artist.Str = strings.artists[reader.Read<int>()];
+            _album.Str = strings.albums[reader.Read<int>()];
+            _genre.Str = strings.genres[reader.Read<int>()];
+            Year = strings.years[reader.Read<int>()];
+            _charter.Str = strings.charters[reader.Read<int>()];
+            _playlist.Str = strings.playlists[reader.Read<int>()];
+            _source.Str = strings.sources[reader.Read<int>()];
 
             _isMaster = reader.ReadBoolean();
 
-            _albumTrack = reader.ReadInt32();
-            _playlistTrack = reader.ReadInt32();
+            _albumTrack = reader.Read<int>();
+            _playlistTrack = reader.Read<int>();
 
-            _songLength = reader.ReadUInt64();
-            _songOffset = reader.ReadInt64();
+            _songLength = reader.Read<ulong>();
+            _songOffset = reader.Read<long>();
 
-            _previewStart = reader.ReadUInt64();
-            _previewEnd = reader.ReadUInt64();
+            _previewStart = reader.Read<ulong>();
+            _previewEnd = reader.Read<ulong>();
 
-            VideoStartTimeSeconds = reader.ReadDouble();
-            VideoEndTimeSeconds = reader.ReadDouble();
+            VideoStartTimeSeconds = reader.Read<double>();
+            VideoEndTimeSeconds = reader.Read<double>();
 
             _loadingPhrase = reader.ReadLEBString();
 
-            _parseSettings.HopoThreshold = reader.ReadInt64();
-            _parseSettings.HopoFreq_FoF = reader.ReadInt32();
+            _parseSettings.HopoThreshold = reader.Read<long>();
+            _parseSettings.HopoFreq_FoF = reader.Read<int>();
             _parseSettings.EighthNoteHopo = reader.ReadBoolean();
-            _parseSettings.SustainCutoffThreshold = reader.ReadInt64();
-            _parseSettings.NoteSnapThreshold = reader.ReadInt64();
-            _parseSettings.StarPowerNote = reader.ReadInt32();
-            _parseSettings.DrumsType = (DrumsType)reader.ReadInt32();
+            _parseSettings.SustainCutoffThreshold = reader.Read<long>();
+            _parseSettings.NoteSnapThreshold = reader.Read<long>();
+            _parseSettings.StarPowerNote = reader.Read<int>();
+            _parseSettings.DrumsType = (DrumsType)reader.Read<int>();
 
             _parts = new(reader);
             _hash = new(reader);

@@ -18,7 +18,7 @@ namespace YARG.Core.IO
         public AbridgedFileInfo(YARGBinaryReader reader)
         {
             FullName = reader.ReadLEBString();
-            LastWriteTime = DateTime.FromBinary(reader.ReadInt64());
+            LastWriteTime = DateTime.FromBinary(reader.Read<long>());
         }
 
         public AbridgedFileInfo(string fullname, DateTime lastWrite)
@@ -55,7 +55,7 @@ namespace YARG.Core.IO
         public static AbridgedFileInfo? TryParseInfo(string file, YARGBinaryReader reader)
         {
             FileInfo midiInfo = new(file);
-            if (!midiInfo.Exists || midiInfo.LastWriteTime != DateTime.FromBinary(reader.ReadInt64()))
+            if (!midiInfo.Exists || midiInfo.LastWriteTime != DateTime.FromBinary(reader.Read<long>()))
                 return null;
             return midiInfo;
         }

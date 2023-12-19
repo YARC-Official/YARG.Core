@@ -69,16 +69,16 @@ namespace YARG.Core.Song
             {
                 RBDifficulties = new(reader);
                 Directory = reader.ReadLEBString();
-                AnimTempo = reader.ReadUInt32();
+                AnimTempo = reader.Read<uint>();
                 SongID = reader.ReadLEBString();
                 VocalPercussionBank = reader.ReadLEBString();
-                VocalSongScrollSpeed = reader.ReadUInt32();
-                SongRating = reader.ReadUInt32();
+                VocalSongScrollSpeed = reader.Read<uint>();
+                SongRating = reader.Read<uint>();
                 VocalGender = reader.ReadBoolean();
-                VocalTonicNote = reader.ReadUInt32();
+                VocalTonicNote = reader.Read<uint>();
                 SongTonality = reader.ReadBoolean();
-                TuningOffsetCents = reader.ReadInt32();
-                VenueVersion = reader.ReadUInt32();
+                TuningOffsetCents = reader.Read<int>();
+                VenueVersion = reader.Read<uint>();
 
                 RealGuitarTuning = ReadIntArray(reader);
                 RealBassTuning = ReadIntArray(reader);
@@ -137,25 +137,25 @@ namespace YARG.Core.Song
 
             private static int[] ReadIntArray(YARGBinaryReader reader)
             {
-                int length = reader.ReadInt32();
+                int length = reader.Read<int>();
                 if (length == 0)
                     return Array.Empty<int>();
 
                 int[] values = new int[length];
                 for (int i = 0; i < length; ++i)
-                    values[i] = reader.ReadInt32();
+                    values[i] = reader.Read<int>();
                 return values;
             }
 
             private static float[] ReadFloatArray(YARGBinaryReader reader)
             {
-                int length = reader.ReadInt32();
+                int length = reader.Read<int>();
                 if (length == 0)
                     return Array.Empty<float>();
 
                 float[] values = new float[length];
                 for (int i = 0; i < length; ++i)
-                    values[i] = reader.ReadFloat();
+                    values[i] = reader.Read<float>();
                 return values;
             }
 
@@ -396,7 +396,7 @@ namespace YARG.Core.Song
                     case "name": _name = reader.ExtractText(); break;
                     case "artist": _artist = reader.ExtractText(); break;
                     case "master": _isMaster = reader.ExtractBoolean(); break;
-                    case "context": /*Context = reader.ReadUInt32();*/ break;
+                    case "context": /*Context = reader.Read<uint>();*/ break;
                     case "song": SongLoop(rbConMetadata, result, reader); break;
                     case "song_vocals": while (reader.StartNode()) reader.EndNode(); break;
                     case "song_scroll_speed": rbConMetadata.VocalSongScrollSpeed = reader.ExtractUInt32(); break;
@@ -423,7 +423,7 @@ namespace YARG.Core.Song
                     case "genre": _genre = reader.ExtractText(); break;
                     case "decade": /*Decade = reader.ExtractText();*/ break;
                     case "vocal_gender": rbConMetadata.VocalGender = reader.ExtractText() == "male"; break;
-                    case "format": /*Format = reader.ReadUInt32();*/ break;
+                    case "format": /*Format = reader.Read<uint>();*/ break;
                     case "version": rbConMetadata.VenueVersion = reader.ExtractUInt32(); break;
                     case "fake": /*IsFake = reader.ExtractText();*/ break;
                     case "downloaded": /*Downloaded = reader.ExtractText();*/ break;
@@ -451,14 +451,14 @@ namespace YARG.Core.Song
                         }
                     case "song_id": rbConMetadata.SongID = reader.ExtractText(); break;
                     case "rating": rbConMetadata.SongRating = reader.ExtractUInt32(); break;
-                    case "short_version": /*ShortVersion = reader.ReadUInt32();*/ break;
+                    case "short_version": /*ShortVersion = reader.Read<uint>();*/ break;
                     case "album_art": rbConMetadata.HasAlbumArt = reader.ExtractBoolean(); break;
                     case "year_released":
                     case "year_recorded": YearAsNumber = reader.ExtractInt32(); break;
                     case "album_name": _album = reader.ExtractText(); break;
                     case "album_track_number": _albumTrack = reader.ExtractUInt16(); break;
                     case "pack_name": _playlist = reader.ExtractText(); break;
-                    case "base_points": /*BasePoints = reader.ReadUInt32();*/ break;
+                    case "base_points": /*BasePoints = reader.Read<uint>();*/ break;
                     case "band_fail_cue": /*BandFailCue = reader.ExtractText();*/ break;
                     case "drum_bank": rbConMetadata.DrumBank = reader.ExtractText(); break;
                     case "song_length": _songLength = reader.ExtractUInt64(); break;
@@ -582,7 +582,7 @@ namespace YARG.Core.Song
                     case "name": result.location = reader.ExtractText(); break;
                     case "tracks": TracksLoop(rbConMetadata, reader); break;
                     case "crowd_channels": rbConMetadata.CrowdIndices = reader.ExtractList_Int().ToArray(); break;
-                    //case "vocal_parts": rbConMetadata.VocalParts = reader.ReadUInt16(); break;
+                    //case "vocal_parts": rbConMetadata.VocalParts = reader.Read<ushort>(); break;
                     case "pans":
                         if (reader.StartNode())
                         {
