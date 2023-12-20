@@ -60,7 +60,7 @@ namespace YARG.Core.IO
 
         public YARGMidiTrack(Stream stream)
         {
-            int count = stream.Read<int>(Endianness.BigEndian);
+            int count = stream.Read<int>(Endianness.Big);
             if (stream is MemoryStream mem)
             {
                 _data = new ReadOnlyMemory<byte>(mem.GetBuffer(), (int) mem.Position, count);

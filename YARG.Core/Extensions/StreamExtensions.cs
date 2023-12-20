@@ -6,7 +6,7 @@ namespace YARG.Core.Extensions
 {
     public static class StreamExtensions
     {
-        public static TType Read<TType>(this Stream stream, Endianness endianness = Endianness.LittleEndian)
+        public static TType Read<TType>(this Stream stream, Endianness endianness = Endianness.Little)
             where TType : unmanaged, IComparable, IComparable<TType>, IConvertible, IEquatable<TType>, IFormattable
         {
             TType value = default;
@@ -17,7 +17,7 @@ namespace YARG.Core.Extensions
                     throw new EndOfStreamException($"Not enough data in the stream to read {typeof(TType)} ({sizeof(TType)} bytes)!");
 
                 // Have to flip bits if the OS uses the opposite Endian
-                if ((endianness == Endianness.LittleEndian) != BitConverter.IsLittleEndian)
+                if ((endianness == Endianness.Little) != BitConverter.IsLittleEndian)
                 {
                     int half = sizeof(TType) >> 1;
                     for (int i = 0, j = sizeof(TType) - 1; i < half; ++i, --j)
@@ -36,14 +36,14 @@ namespace YARG.Core.Extensions
             return buffer;
         }
 
-        public static void Write<TType>(this Stream stream, TType value, Endianness endianness = Endianness.LittleEndian)
+        public static void Write<TType>(this Stream stream, TType value, Endianness endianness = Endianness.Little)
             where TType : unmanaged, IComparable, IComparable<TType>, IConvertible, IEquatable<TType>, IFormattable
         {
             unsafe
             {
                 byte* buffer = (byte*) &value;
                 // Have to flip bits if the OS uses the opposite Endian
-                if ((endianness == Endianness.LittleEndian) != BitConverter.IsLittleEndian)
+                if ((endianness == Endianness.Little) != BitConverter.IsLittleEndian)
                 {
                     int half = sizeof(TType) >> 1;
                     for (int i = 0, j = sizeof(TType) - 1; i < half; ++i, --j)

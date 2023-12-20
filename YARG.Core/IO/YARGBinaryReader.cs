@@ -12,8 +12,8 @@ namespace YARG.Core.IO
 {
     public enum Endianness
     {
-        LittleEndian = 0,
-        BigEndian = 1,
+        Little = 0,
+        Big = 1,
     };
 
     public sealed class YARGBinaryReader
@@ -61,7 +61,7 @@ namespace YARG.Core.IO
             return ReadByte() > 0;
         }
 
-        public TType Read<TType>(Endianness endianness = Endianness.LittleEndian)
+        public TType Read<TType>(Endianness endianness = Endianness.Little)
             where TType : unmanaged, IComparable, IComparable<TType>, IConvertible, IEquatable<TType>, IFormattable
         {
             unsafe
@@ -74,7 +74,7 @@ namespace YARG.Core.IO
                 {
                     // If the memory layout of the host system matches the layout of
                     // the value to be parsed from the file, we only require a cast
-                    if ((endianness == Endianness.LittleEndian) == BitConverter.IsLittleEndian)
+                    if ((endianness == Endianness.Little) == BitConverter.IsLittleEndian)
                         return *(TType*) (buf + pos);
 
                     // Reminder: _position moved

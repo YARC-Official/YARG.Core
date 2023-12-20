@@ -26,14 +26,14 @@ namespace YARG.Core.IO
             if (FourCC.Read(stream) != HEADER_TAG)
                 throw new Exception("Midi Header Chunk Tag 'MThd' not found");
 
-            int length = stream.Read<int>(Endianness.BigEndian);
+            int length = stream.Read<int>(Endianness.Big);
             if (length < SIZEOF_HEADER)
                 throw new Exception("Midi Header not of sufficient length");
 
             YARGBinaryReader reader = new(stream, length);
-            _format = reader.Read<ushort>(Endianness.BigEndian);
-            _numTracks = reader.Read<ushort>(Endianness.BigEndian);
-            _tickRate = reader.Read<ushort>(Endianness.BigEndian);
+            _format = reader.Read<ushort>(Endianness.Big);
+            _numTracks = reader.Read<ushort>(Endianness.Big);
+            _tickRate = reader.Read<ushort>(Endianness.Big);
         }
 
         public YARGMidiFile(byte[] data) : this(new MemoryStream(data, 0, data.Length, false, true)) { }
