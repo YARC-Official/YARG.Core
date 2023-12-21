@@ -14,15 +14,10 @@ namespace YARG.Core.Extensions
             {
                 byte* buffer = (byte*)&value;
                 if (stream.Read(new Span<byte>(buffer, sizeof(TType))) != sizeof(TType))
-                    throw new EndOfStreamException($"Not enough data in the stream to read {typeof(TType)} ({sizeof(TType)} bytes)!");
-
-                // Have to flip bits if the OS uses the opposite Endian
-                if ((endianness == Endianness.Little) != BitConverter.IsLittleEndian)
                 {
-                    int half = sizeof(TType) >> 1;
-                    for (int i = 0, j = sizeof(TType) - 1; i < half; ++i, --j)
-                        (buffer[j], buffer[i]) = (buffer[i], buffer[j]);
+                    throw new EndOfStreamException($"Not enough data in the stream to read {typeof(TType)} ({sizeof(TType)} bytes)!");
                 }
+                CorrectByteOrder<TType>(buffer, endianness);
             }
             return value;
         }
@@ -31,8 +26,9 @@ namespace YARG.Core.Extensions
         {
             byte[] buffer = new byte[length];
             if (stream.Read(buffer, 0, length) != length)
+            {
                 throw new EndOfStreamException($"Not enough data in the stream to read {length} bytes!");
-
+            }
             return buffer;
         }
 
@@ -42,14 +38,20 @@ namespace YARG.Core.Extensions
             unsafe
             {
                 byte* buffer = (byte*) &value;
-                // Have to flip bits if the OS uses the opposite Endian
-                if ((endianness == Endianness.Little) != BitConverter.IsLittleEndian)
-                {
-                    int half = sizeof(TType) >> 1;
-                    for (int i = 0, j = sizeof(TType) - 1; i < half; ++i, --j)
-                        (buffer[j], buffer[i]) = (buffer[i], buffer[j]);
-                }
+                CorrectByteOrder<TType>(buffer, endianness);
                 stream.Write(new Span<byte>(buffer, sizeof(TType)));
+            }
+        }
+
+        private static unsafe void CorrectByteOrder<TType>(byte* bytes, Endianness endianness)
+            where TType : unmanaged, IComparable, IComparable<TType>, IConvertible, IEquatable<TType>, IFormattable
+        {
+            // Have to flip bits if the OS uses the opposite Endian
+            if ((endianness == Endianness.Little) != BitConverter.IsLittleEndian)
+            {
+                int half = sizeof(TType) >> 1;
+                for (int i = 0, j = sizeof(TType) - 1; i < half; ++i, --j)
+                    (bytes[j], bytes[i]) = (bytes[i], bytes[j]);
             }
         }
     }
