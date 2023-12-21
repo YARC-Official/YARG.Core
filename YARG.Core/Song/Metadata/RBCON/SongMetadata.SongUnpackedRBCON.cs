@@ -133,7 +133,7 @@ namespace YARG.Core.Song
                 if (stream == null)
                     return false;
 
-                int version = stream.Read<int>();
+                int version = stream.Read<int>(Endianness.Little);
                 return version == 0x0A || version == 0xf0;
             }
         }

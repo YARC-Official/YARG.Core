@@ -61,7 +61,7 @@ namespace YARG.Core.IO
             return ReadByte() > 0;
         }
 
-        public TType Read<TType>(Endianness endianness = Endianness.Little)
+        public TType Read<TType>(Endianness endianness)
             where TType : unmanaged, IComparable, IComparable<TType>, IConvertible, IEquatable<TType>, IFormattable
         {
             unsafe

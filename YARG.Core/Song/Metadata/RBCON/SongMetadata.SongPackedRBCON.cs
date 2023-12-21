@@ -183,7 +183,7 @@ namespace YARG.Core.Song
                 using var stream = _metadata.GetMoggStream();
                 if (stream != null)
                 {
-                    int version = stream.Read<int>();
+                    int version = stream.Read<int>(Endianness.Little);
                     return version == 0x0A || version == 0xf0;
                 }
                 else if (moggListing != null)
@@ -228,7 +228,7 @@ namespace YARG.Core.Song
         public static SongMetadata? PackedRBCONFromCache(CONFile file, string nodeName, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings)
         {
             var midiListing = file.TryGetListing(reader.ReadLEBString());
-            var midiLastWrite = DateTime.FromBinary(reader.Read<long>());
+            var midiLastWrite = DateTime.FromBinary(reader.Read<long>(Endianness.Little));
             if (midiListing == null || midiListing.lastWrite != midiLastWrite)
                 return null;
 
@@ -237,7 +237,7 @@ namespace YARG.Core.Song
             if (reader.ReadBoolean())
             {
                 moggListing = file.TryGetListing(reader.ReadLEBString());
-                if (moggListing == null || moggListing.lastWrite != DateTime.FromBinary(reader.Read<long>()))
+                if (moggListing == null || moggListing.lastWrite != DateTime.FromBinary(reader.Read<long>(Endianness.Little)))
                     return null;
             }
             else
@@ -264,7 +264,7 @@ namespace YARG.Core.Song
         public static SongMetadata PackedRBCONFromCache_Quick(CONFile file, string nodeName, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings)
         {
             var midiListing = file.TryGetListing(reader.ReadLEBString());
-            var midiLastWrite = DateTime.FromBinary(reader.Read<long>());
+            var midiLastWrite = DateTime.FromBinary(reader.Read<long>(Endianness.Little));
 
             CONFileListing? moggListing = null;
             AbridgedFileInfo? moggInfo = null;

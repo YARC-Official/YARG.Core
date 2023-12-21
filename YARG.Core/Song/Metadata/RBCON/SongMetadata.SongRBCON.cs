@@ -69,16 +69,16 @@ namespace YARG.Core.Song
             {
                 RBDifficulties = new(reader);
                 Directory = reader.ReadLEBString();
-                AnimTempo = reader.Read<uint>();
+                AnimTempo = reader.Read<uint>(Endianness.Little);
                 SongID = reader.ReadLEBString();
                 VocalPercussionBank = reader.ReadLEBString();
-                VocalSongScrollSpeed = reader.Read<uint>();
-                SongRating = reader.Read<uint>();
+                VocalSongScrollSpeed = reader.Read<uint>(Endianness.Little);
+                SongRating = reader.Read<uint>(Endianness.Little);
                 VocalGender = reader.ReadBoolean();
-                VocalTonicNote = reader.Read<uint>();
+                VocalTonicNote = reader.Read<uint>(Endianness.Little);
                 SongTonality = reader.ReadBoolean();
-                TuningOffsetCents = reader.Read<int>();
-                VenueVersion = reader.Read<uint>();
+                TuningOffsetCents = reader.Read<int>(Endianness.Little);
+                VenueVersion = reader.Read<uint>(Endianness.Little);
 
                 RealGuitarTuning = ReadIntArray(reader);
                 RealBassTuning = ReadIntArray(reader);
@@ -137,25 +137,25 @@ namespace YARG.Core.Song
 
             private static int[] ReadIntArray(YARGBinaryReader reader)
             {
-                int length = reader.Read<int>();
+                int length = reader.Read<int>(Endianness.Little);
                 if (length == 0)
                     return Array.Empty<int>();
 
                 int[] values = new int[length];
                 for (int i = 0; i < length; ++i)
-                    values[i] = reader.Read<int>();
+                    values[i] = reader.Read<int>(Endianness.Little);
                 return values;
             }
 
             private static float[] ReadFloatArray(YARGBinaryReader reader)
             {
-                int length = reader.Read<int>();
+                int length = reader.Read<int>(Endianness.Little);
                 if (length == 0)
                     return Array.Empty<float>();
 
                 float[] values = new float[length];
                 for (int i = 0; i < length; ++i)
-                    values[i] = reader.Read<float>();
+                    values[i] = reader.Read<float>(Endianness.Little);
                 return values;
             }
 

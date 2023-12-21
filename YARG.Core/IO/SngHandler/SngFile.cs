@@ -71,7 +71,7 @@ namespace YARG.Core.IO
 
             try
             {
-                uint version = stream.Read<uint>();
+                uint version = stream.Read<uint>(Endianness.Little);
                 var xorMask = stream.ReadBytes(XORMASK_SIZE);
                 var metadata = ReadMetadata(stream);
                 var listings = ReadListings(stream);
@@ -100,8 +100,8 @@ namespace YARG.Core.IO
         private static IniSection ReadMetadata(FileStream stream)
         {
             Dictionary<string, List<IniModifier>> modifiers = new();
-            ulong length = stream.Read<ulong>() - sizeof(ulong);
-            ulong numPairs = stream.Read<ulong>();
+            ulong length = stream.Read<ulong>(Endianness.Little) - sizeof(ulong);
+            ulong numPairs = stream.Read<ulong>(Endianness.Little);
 
             var validNodes = SongIniHandler.SONG_INI_DICTIONARY["[song]"];
             YARGTextContainer<byte> text = new(stream.ReadBytes((int)length), 0);
@@ -132,8 +132,8 @@ namespace YARG.Core.IO
 
         private static Dictionary<string, SngFileListing> ReadListings(FileStream stream)
         {
-            ulong length = stream.Read<ulong>() - sizeof(ulong);
-            ulong numListings = stream.Read<ulong>();
+            ulong length = stream.Read<ulong>(Endianness.Little) - sizeof(ulong);
+            ulong numListings = stream.Read<ulong>(Endianness.Little);
 
             Dictionary<string, SngFileListing> listings = new((int)numListings);
 

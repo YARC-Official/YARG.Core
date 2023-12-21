@@ -6,7 +6,7 @@ namespace YARG.Core.Extensions
 {
     public static class StreamExtensions
     {
-        public static TType Read<TType>(this Stream stream, Endianness endianness = Endianness.Little)
+        public static TType Read<TType>(this Stream stream, Endianness endianness)
             where TType : unmanaged, IComparable, IComparable<TType>, IConvertible, IEquatable<TType>, IFormattable
         {
             TType value = default;
@@ -32,7 +32,7 @@ namespace YARG.Core.Extensions
             return buffer;
         }
 
-        public static void Write<TType>(this Stream stream, TType value, Endianness endianness = Endianness.Little)
+        public static void Write<TType>(this Stream stream, TType value, Endianness endianness)
             where TType : unmanaged, IComparable, IComparable<TType>, IConvertible, IEquatable<TType>, IFormattable
         {
             unsafe

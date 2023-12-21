@@ -26,19 +26,19 @@ namespace YARG.Core.Song
         public RBCONDifficulties() { }
         public RBCONDifficulties(YARGBinaryReader reader)
         {
-            band = reader.Read<short>();
-            FiveFretGuitar = reader.Read<short>();
-            FiveFretBass = reader.Read<short>();
-            FiveFretRhythm = reader.Read<short>();
-            FiveFretCoop = reader.Read<short>();
-            Keys = reader.Read<short>();
-            FourLaneDrums = reader.Read<short>();
-            ProDrums = reader.Read<short>();
-            ProGuitar = reader.Read<short>();
-            ProBass = reader.Read<short>();
-            ProKeys = reader.Read<short>();
-            LeadVocals = reader.Read<short>();
-            HarmonyVocals = reader.Read<short>();
+            band = reader.Read<short>(Endianness.Little);
+            FiveFretGuitar = reader.Read<short>(Endianness.Little);
+            FiveFretBass = reader.Read<short>(Endianness.Little);
+            FiveFretRhythm = reader.Read<short>(Endianness.Little);
+            FiveFretCoop = reader.Read<short>(Endianness.Little);
+            Keys = reader.Read<short>(Endianness.Little);
+            FourLaneDrums = reader.Read<short>(Endianness.Little);
+            ProDrums = reader.Read<short>(Endianness.Little);
+            ProGuitar = reader.Read<short>(Endianness.Little);
+            ProBass = reader.Read<short>(Endianness.Little);
+            ProKeys = reader.Read<short>(Endianness.Little);
+            LeadVocals = reader.Read<short>(Endianness.Little);
+            HarmonyVocals = reader.Read<short>(Endianness.Little);
         }
 
         public void Serialize(BinaryWriter writer)
