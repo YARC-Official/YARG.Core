@@ -5,14 +5,15 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Xml.Linq;
 using YARG.Core.Extensions;
 
 namespace YARG.Core.IO
 {
     public enum Endianness
     {
-        LittleEndian = 0,
-        BigEndian = 1,
+        Little = 0,
+        Big = 1,
     };
 
     public sealed class YARGBinaryReader
@@ -60,90 +61,33 @@ namespace YARG.Core.IO
             return ReadByte() > 0;
         }
 
-        public short ReadInt16(Endianness endianness = Endianness.LittleEndian)
+        public TType Read<TType>(Endianness endianness)
+            where TType : unmanaged, IComparable, IComparable<TType>, IConvertible, IEquatable<TType>, IFormattable
         {
-            short value;
-            var span = data.Span.Slice(_position, sizeof(short));
-            if (endianness == Endianness.LittleEndian)
-                value = BinaryPrimitives.ReadInt16LittleEndian(span);
-            else
-                value = BinaryPrimitives.ReadInt16BigEndian(span);
-            _position += sizeof(short);
-            return value;
-        }
+            unsafe
+            {
+                long pos = _position;
+                // Will throw if invalid
+                Move(sizeof(TType));
 
-        public ushort ReadUInt16(Endianness endianness = Endianness.LittleEndian)
-        {
-            ushort value;
-            var span = data.Span.Slice(_position, sizeof(ushort));
-            if (endianness == Endianness.LittleEndian)
-                value = BinaryPrimitives.ReadUInt16LittleEndian(span);
-            else
-                value = BinaryPrimitives.ReadUInt16BigEndian(span);
-            _position += sizeof(ushort);
-            return value;
-        }
+                fixed (byte* buf = data.Span)
+                {
+                    // If the memory layout of the host system matches the layout of
+                    // the value to be parsed from the file, we only require a cast
+                    if ((endianness == Endianness.Little) == BitConverter.IsLittleEndian)
+                        return *(TType*) (buf + pos);
 
-        public int ReadInt32(Endianness endianness = Endianness.LittleEndian)
-        {
-            int value;
-            var span = data.Span.Slice(_position, sizeof(int));
-            if (endianness == Endianness.LittleEndian)
-                value = BinaryPrimitives.ReadInt32LittleEndian(span);
-            else
-                value = BinaryPrimitives.ReadInt32BigEndian(span);
-            _position += sizeof(int);
-            return value;
-        }
+                    // Reminder: _position moved
+                    pos = _position;
 
-        public uint ReadUInt32(Endianness endianness = Endianness.LittleEndian)
-        {
-            uint value;
-            var span = data.Span.Slice(_position, sizeof(uint));
-            if (endianness == Endianness.LittleEndian)
-                value = BinaryPrimitives.ReadUInt32LittleEndian(span);
-            else
-                value = BinaryPrimitives.ReadUInt32BigEndian(span);
-            _position += sizeof(uint);
-            return value;
-        }
-
-        public long ReadInt64(Endianness endianness = Endianness.LittleEndian)
-        {
-            long value;
-            var span = data.Span.Slice(_position, sizeof(long));
-            if (endianness == Endianness.LittleEndian)
-                value = BinaryPrimitives.ReadInt64LittleEndian(span);
-            else
-                value = BinaryPrimitives.ReadInt64BigEndian(span);
-            _position += sizeof(long);
-            return value;
-        }
-
-        public ulong ReadUInt64(Endianness endianness = Endianness.LittleEndian)
-        {
-            ulong value;
-            var span = data.Span.Slice(_position, sizeof(ulong));
-            if (endianness == Endianness.LittleEndian)
-                value = BinaryPrimitives.ReadUInt64LittleEndian(span);
-            else
-                value = BinaryPrimitives.ReadUInt64BigEndian(span);
-            _position += sizeof(ulong);
-            return value;
-        }
-
-        public float ReadFloat(Endianness endianness = Endianness.LittleEndian)
-        {
-            uint memory = ReadUInt32(endianness);
-            float value = Unsafe.As<uint, float>(ref memory);
-            return value;
-        }
-
-        public double ReadDouble(Endianness endianness = Endianness.LittleEndian)
-        {
-            ulong memory = ReadUInt64(endianness);
-            double value = Unsafe.As<ulong, double>(ref memory);
-            return value;
+                    // Otherwise, we have to flip the bytes
+                    TType value = default;
+                    byte* bytes = (byte*)&value;
+                    for (int i = 0; i < sizeof(TType); ++i)
+                        bytes[i] = buf[--pos];
+                    return value;
+                }
+            }
         }
 
         public bool ReadBytes(Span<byte> bytes)

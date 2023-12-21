@@ -10,38 +10,38 @@ namespace YARG.Core.Song
     {
         public SongMetadata(YARGBinaryReader reader, CategoryCacheStrings strings)
         {
-            _name.Str = strings.titles[reader.ReadInt32()];
-            _artist.Str = strings.artists[reader.ReadInt32()];
-            _album.Str = strings.albums[reader.ReadInt32()];
-            _genre.Str = strings.genres[reader.ReadInt32()];
-            Year = strings.years[reader.ReadInt32()];
-            _charter.Str = strings.charters[reader.ReadInt32()];
-            _playlist.Str = strings.playlists[reader.ReadInt32()];
-            _source.Str = strings.sources[reader.ReadInt32()];
+            _name.Str = strings.titles[reader.Read<int>(Endianness.Little)];
+            _artist.Str = strings.artists[reader.Read<int>(Endianness.Little)];
+            _album.Str = strings.albums[reader.Read<int>(Endianness.Little)];
+            _genre.Str = strings.genres[reader.Read<int>(Endianness.Little)];
+            Year = strings.years[reader.Read<int>(Endianness.Little)];
+            _charter.Str = strings.charters[reader.Read<int>(Endianness.Little)];
+            _playlist.Str = strings.playlists[reader.Read<int>(Endianness.Little)];
+            _source.Str = strings.sources[reader.Read<int>(Endianness.Little)];
 
             _isMaster = reader.ReadBoolean();
 
-            _albumTrack = reader.ReadInt32();
-            _playlistTrack = reader.ReadInt32();
+            _albumTrack = reader.Read<int>(Endianness.Little);
+            _playlistTrack = reader.Read<int>(Endianness.Little);
 
-            _songLength = reader.ReadUInt64();
-            _songOffset = reader.ReadInt64();
+            _songLength = reader.Read<ulong>(Endianness.Little);
+            _songOffset = reader.Read<long>(Endianness.Little);
 
-            _previewStart = reader.ReadUInt64();
-            _previewEnd = reader.ReadUInt64();
+            _previewStart = reader.Read<ulong>(Endianness.Little);
+            _previewEnd = reader.Read<ulong>(Endianness.Little);
 
-            VideoStartTimeSeconds = reader.ReadDouble();
-            VideoEndTimeSeconds = reader.ReadDouble();
+            VideoStartTimeSeconds = reader.Read<double>(Endianness.Little);
+            VideoEndTimeSeconds = reader.Read<double>(Endianness.Little);
 
             _loadingPhrase = reader.ReadLEBString();
 
-            _parseSettings.HopoThreshold = reader.ReadInt64();
-            _parseSettings.HopoFreq_FoF = reader.ReadInt32();
+            _parseSettings.HopoThreshold = reader.Read<long>(Endianness.Little);
+            _parseSettings.HopoFreq_FoF = reader.Read<int>(Endianness.Little);
             _parseSettings.EighthNoteHopo = reader.ReadBoolean();
-            _parseSettings.SustainCutoffThreshold = reader.ReadInt64();
-            _parseSettings.NoteSnapThreshold = reader.ReadInt64();
-            _parseSettings.StarPowerNote = reader.ReadInt32();
-            _parseSettings.DrumsType = (DrumsType)reader.ReadInt32();
+            _parseSettings.SustainCutoffThreshold = reader.Read<long>(Endianness.Little);
+            _parseSettings.NoteSnapThreshold = reader.Read<long>(Endianness.Little);
+            _parseSettings.StarPowerNote = reader.Read<int>(Endianness.Little);
+            _parseSettings.DrumsType = (DrumsType)reader.Read<int>(Endianness.Little);
 
             _parts = new(reader);
             _hash = new(reader);

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Buffers.Binary;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -36,13 +36,13 @@ namespace YARG.Core.IO
             _code = BinaryPrimitives.ReadUInt32BigEndian(data);
         }
 
-        public static FourCC Read(Stream stream) => new(stream.ReadUInt32BE());
-        public static FourCC Read(BinaryReader reader) => new(reader.ReadUInt32BE());
-        public static FourCC Read(YARGBinaryReader reader) => new(reader.ReadUInt32(Endianness.BigEndian));
+        public static FourCC Read(Stream stream) => new(stream.Read<uint>(Endianness.Big));
+        public static FourCC Read(BinaryReader reader) => new(reader.BaseStream.Read<uint>(Endianness.Big));
+        public static FourCC Read(YARGBinaryReader reader) => new(reader.Read<uint>(Endianness.Big));
 
         public void Serialize(BinaryWriter writer)
         {
-            writer.WriteUInt32BE(_code);
+            writer.BaseStream.Write(_code, Endianness.Big);
         }
 
         [Obsolete("FourCC is a readonly struct, use the Read static method instead.", true)]
@@ -99,13 +99,13 @@ namespace YARG.Core.IO
             _code = BinaryPrimitives.ReadUInt64BigEndian(data);
         }
 
-        public static EightCC Read(Stream stream) => new(stream.ReadUInt64BE());
-        public static EightCC Read(BinaryReader reader) => new(reader.ReadUInt64BE());
-        public static EightCC Read(YARGBinaryReader reader) => new(reader.ReadUInt64(Endianness.BigEndian));
+        public static EightCC Read(Stream stream) => new(stream.Read<ulong>(Endianness.Big));
+        public static EightCC Read(BinaryReader reader) => new(reader.BaseStream.Read<ulong>(Endianness.Big));
+        public static EightCC Read(YARGBinaryReader reader) => new(reader.Read<ulong>(Endianness.Big));
 
         public void Serialize(BinaryWriter writer)
         {
-            writer.WriteUInt64BE(_code);
+            writer.BaseStream.Write(_code, Endianness.Big);
         }
 
         [Obsolete("EightCC is a readonly struct, use the Read static method instead.", true)]
