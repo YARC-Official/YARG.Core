@@ -8,7 +8,6 @@ using YARG.Core.IO.Ini;
 
 namespace YARG.Core.IO
 {
-
     /// <summary>
     /// <see href="https://github.com/mdsitton/SngFileFormat">Documentation of SNG file type</see>
     /// </summary>
@@ -17,13 +16,24 @@ namespace YARG.Core.IO
         public readonly uint Version;
         public readonly SngMask Mask;
         public readonly IniSection Metadata;
+
+        /// <summary>
+        /// This is <b>not</b> part of the SNG spec.
+        /// Indicates whether or not the <see cref="YARGSongFileStream"/> should be used.
+        /// </summary>
+        public readonly bool IsYARGSong;
+
         private readonly Dictionary<string, SngFileListing> listings;
 
-        private SngFile(uint version, byte[] mask, IniSection metadata, Dictionary<string, SngFileListing> listings)
+        private SngFile(uint version, byte[] mask, IniSection metadata, bool isYARGSong,
+            Dictionary<string, SngFileListing> listings)
         {
             Version = version;
             Mask = new SngMask(mask);
             Metadata = metadata;
+
+            IsYARGSong = isYARGSong;
+
             this.listings = listings;
         }
 
@@ -54,50 +64,46 @@ namespace YARG.Core.IO
         private const int BYTES_16BIT = 2;
         private static readonly byte[] SNGPKG = { (byte)'S', (byte) 'N', (byte) 'G', (byte)'P', (byte)'K', (byte)'G' };
 
-        public static SngFile? TryLoadFile(string filename)
+        public static SngFile? TryLoadFromFile(string path, bool isYARGSong)
         {
-            using var stream = InitStream_Internal(filename);
-            if (stream == null)
+            try
+            {
+                return LoadFromFile(path, isYARGSong);
+            }
+            catch (Exception ex)
+            {
+                YargTrace.LogException(ex, $"Error loading {path}.");
                 return null;
+            }
+        }
 
+        private static SngFile LoadFromFile(string path, bool isYARGSong)
+        {
+            using Stream stream = isYARGSong
+                ? new YARGSongFileStream(path)
+                : new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+
+            if (!isYARGSong)
             {
                 Span<byte> tag = stackalloc byte[SNGPKG.Length];
-                if (stream.Read(tag) != tag.Length)
-                    return null;
-
-                if (!tag.SequenceEqual(SNGPKG))
-                    return null;
+                if (stream.Read(tag) != tag.Length || !tag.SequenceEqual(SNGPKG))
+                    throw new InvalidOperationException("`.sng` file signature does not match!");
             }
-
-            try
+            else
             {
-                uint version = stream.Read<uint>(Endianness.Little);
-                var xorMask = stream.ReadBytes(XORMASK_SIZE);
-                var metadata = ReadMetadata(stream);
-                var listings = ReadListings(stream);
-                return new SngFile(version, xorMask, metadata, listings);
+                // YARG SNGs replace the signature, so just skip it.
+                // File signature will be checked when decrypting
+                stream.Seek(SNGPKG.Length, SeekOrigin.Current);
             }
-            catch (Exception ex)
-            {
-                YargTrace.LogException(ex, $"Error loading {filename}");
-                return null;
-            }
+
+            uint version = stream.Read<uint>(Endianness.Little);
+            var xorMask = stream.ReadBytes(XORMASK_SIZE);
+            var metadata = ReadMetadata(stream);
+            var listings = ReadListings(stream, isYARGSong);
+            return new SngFile(version, xorMask, metadata, isYARGSong, listings);
         }
 
-        private static FileStream? InitStream_Internal(string filename)
-        {
-            try
-            {
-                return new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read);
-            }
-            catch (Exception ex)
-            {
-                YargTrace.LogException(ex, $"Error loading {filename}");
-                return null;
-            }
-        }
-
-        private static IniSection ReadMetadata(FileStream stream)
+        private static IniSection ReadMetadata(Stream stream)
         {
             Dictionary<string, List<IniModifier>> modifiers = new();
             ulong length = stream.Read<ulong>(Endianness.Little) - sizeof(ulong);
@@ -125,12 +131,14 @@ namespace YARG.Core.IO
                     text.Position = text.Next;
                 }
                 else
+                {
                     text.Position += size;
+                }
             }
             return new IniSection(modifiers);
         }
 
-        private static Dictionary<string, SngFileListing> ReadListings(FileStream stream)
+        private static Dictionary<string, SngFileListing> ReadListings(Stream stream, bool isYARGSong)
         {
             ulong length = stream.Read<ulong>(Endianness.Little) - sizeof(ulong);
             ulong numListings = stream.Read<ulong>(Endianness.Little);
@@ -145,7 +153,7 @@ namespace YARG.Core.IO
                 int idx = filename.LastIndexOf('/');
                 if (idx != -1)
                     filename = filename[idx..];
-                listings.Add(filename.ToLower(), new SngFileListing(reader));
+                listings.Add(filename.ToLower(), new SngFileListing(reader, isYARGSong));
             }
             return listings;
         }

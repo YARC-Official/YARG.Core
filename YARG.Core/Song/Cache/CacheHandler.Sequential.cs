@@ -24,12 +24,23 @@ namespace YARG.Core.Song.Cache
                     try
                     {
                         var attributes = File.GetAttributes(file);
+
                         if ((attributes & FileAttributes.Directory) != 0)
+                        {
                             ScanDirectory(file, group);
+                        }
                         else if (file.EndsWith(".sng"))
-                            ScanSngFile(file, group);
+                        {
+                            ScanSngFile(false, file, group);
+                        }
+                        else if (file.EndsWith(".yargsong"))
+                        {
+                            ScanSngFile(true, file, group);
+                        }
                         else
+                        {
                             AddPossibleCON(file);
+                        }
                     }
                     catch (PathTooLongException)
                     {
