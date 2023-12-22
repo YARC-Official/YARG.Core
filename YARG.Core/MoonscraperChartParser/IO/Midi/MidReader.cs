@@ -639,15 +639,15 @@ namespace MoonscraperChartEditor.Song.IO
             }
         }
 
-        private static void ProcessNoteOnEventAsForcedType(in EventProcessParams eventProcessParams, MoonNote.MoonNoteType noteType)
+        private static void ProcessNoteOnEventAsGuitarForcedType(in EventProcessParams eventProcessParams, MoonNote.MoonNoteType noteType)
         {
             foreach (var diff in EnumExtensions<MoonSong.Difficulty>.Values)
             {
-                ProcessNoteOnEventAsForcedType(eventProcessParams, diff, noteType);
+                ProcessNoteOnEventAsGuitarForcedType(eventProcessParams, diff, noteType);
             }
         }
 
-        private static void ProcessNoteOnEventAsForcedType(in EventProcessParams eventProcessParams, MoonSong.Difficulty difficulty, MoonNote.MoonNoteType noteType)
+        private static void ProcessNoteOnEventAsGuitarForcedType(in EventProcessParams eventProcessParams, MoonSong.Difficulty difficulty, MoonNote.MoonNoteType noteType)
         {
             var timedEvent = eventProcessParams.timedEvent;
             uint startTick = (uint)timedEvent.startTick;
@@ -659,16 +659,20 @@ namespace MoonscraperChartEditor.Song.IO
             // Delay the actual processing once all the notes are actually in
             eventProcessParams.forcingProcessList.Add((in EventProcessParams processParams) =>
             {
-                ProcessEventAsForcedTypePostDelay(processParams, startTick, endTick, difficulty, noteType);
+                ProcessEventAsGuitarForcedTypePostDelay(processParams, startTick, endTick, difficulty, noteType);
             });
         }
 
-        private static void ProcessEventAsForcedTypePostDelay(in EventProcessParams eventProcessParams, uint startTick, uint endTick, MoonSong.Difficulty difficulty, MoonNote.MoonNoteType noteType)
+        private static void ProcessEventAsGuitarForcedTypePostDelay(in EventProcessParams eventProcessParams, uint startTick, uint endTick, MoonSong.Difficulty difficulty, MoonNote.MoonNoteType noteType)
         {
             var song = eventProcessParams.song;
             var instrument = eventProcessParams.instrument;
             var chart = song.GetChart(instrument, difficulty);
             var gameMode = chart.gameMode;
+
+            // Drums force notes are handled by ProcessNoteOnEventAsFlagToggle
+            if (gameMode is MoonChart.GameMode.Drums)
+                return;
 
             MoonObjectHelper.GetRange(chart.notes, startTick, endTick, out int index, out int length);
 
@@ -717,7 +721,7 @@ namespace MoonscraperChartEditor.Song.IO
                 }
 
                 double time = song.TickToTime(note.tick);
-                var finalType = note.GetNoteType(gameMode, song.hopoThreshold);
+                var finalType = note.GetGuitarNoteType(gameMode, song.hopoThreshold);
                 YargTrace.Assert(finalType == newType, $"Failed to set forced type! Expected: {newType}  Actual: {finalType}\non {difficulty} {instrument} at tick {note.tick} ({TimeSpan.FromSeconds(time):mm':'ss'.'ff})");
             }
         }
@@ -770,12 +774,12 @@ namespace MoonscraperChartEditor.Song.IO
             }
         }
 
-        private static void ProcessSysExEventPairAsForcedType(in EventProcessParams eventProcessParams, MoonNote.MoonNoteType noteType)
+        private static void ProcessSysExEventPairAsGuitarForcedType(in EventProcessParams eventProcessParams, MoonNote.MoonNoteType noteType)
         {
             var timedEvent = eventProcessParams.timedEvent;
             if (eventProcessParams.timedEvent.midiEvent is not PhaseShiftSysEx startEvent)
             {
-                YargTrace.Fail($"Wrong note event type passed to {nameof(ProcessSysExEventPairAsForcedType)}. Expected: {typeof(PhaseShiftSysEx)}, Actual: {eventProcessParams.timedEvent.midiEvent.GetType()}");
+                YargTrace.Fail($"Wrong note event type passed to {nameof(ProcessSysExEventPairAsGuitarForcedType)}. Expected: {typeof(PhaseShiftSysEx)}, Actual: {eventProcessParams.timedEvent.midiEvent.GetType()}");
                 return;
             }
 
@@ -791,7 +795,7 @@ namespace MoonscraperChartEditor.Song.IO
                 {
                     eventProcessParams.sysexProcessList.Add((in EventProcessParams processParams) =>
                     {
-                        ProcessEventAsForcedTypePostDelay(processParams, startTick, endTick, diff, noteType);
+                        ProcessEventAsGuitarForcedTypePostDelay(processParams, startTick, endTick, diff, noteType);
                     });
                 }
             }
@@ -800,7 +804,7 @@ namespace MoonscraperChartEditor.Song.IO
                 var diff = PhaseShiftSysEx.SysExDiffToMsDiff[startEvent.difficulty];
                 eventProcessParams.sysexProcessList.Add((in EventProcessParams processParams) =>
                 {
-                    ProcessEventAsForcedTypePostDelay(processParams, startTick, endTick, diff, noteType);
+                    ProcessEventAsGuitarForcedTypePostDelay(processParams, startTick, endTick, diff, noteType);
                 });
             }
         }

@@ -107,7 +107,7 @@ namespace MoonscraperChartEditor.Song.IO
         {
             { PhaseShiftSysEx.PhraseCode.Guitar_Open, ProcessSysExEventPairAsOpenNoteModifier },
             { PhaseShiftSysEx.PhraseCode.Guitar_Tap, (in EventProcessParams eventProcessParams) => {
-                ProcessSysExEventPairAsForcedType(eventProcessParams, MoonNote.MoonNoteType.Tap);
+                ProcessSysExEventPairAsGuitarForcedType(eventProcessParams, MoonNote.MoonNoteType.Tap);
             }},
         };
 
@@ -115,7 +115,7 @@ namespace MoonscraperChartEditor.Song.IO
         {
             { PhaseShiftSysEx.PhraseCode.Guitar_Open, ProcessSysExEventPairAsOpenNoteModifier },
             { PhaseShiftSysEx.PhraseCode.Guitar_Tap, (in EventProcessParams eventProcessParams) => {
-                ProcessSysExEventPairAsForcedType(eventProcessParams, MoonNote.MoonNoteType.Tap);
+                ProcessSysExEventPairAsGuitarForcedType(eventProcessParams, MoonNote.MoonNoteType.Tap);
             }},
         };
 
@@ -386,7 +386,7 @@ namespace MoonscraperChartEditor.Song.IO
             var processFnDict = new Dictionary<int, EventProcessFn>()
             {
                 { MidIOHelper.TAP_NOTE_CH, (in EventProcessParams eventProcessParams) => {
-                    ProcessNoteOnEventAsForcedType(eventProcessParams, MoonNote.MoonNoteType.Tap);
+                    ProcessNoteOnEventAsGuitarForcedType(eventProcessParams, MoonNote.MoonNoteType.Tap);
                 }},
             };
 
@@ -424,14 +424,14 @@ namespace MoonscraperChartEditor.Song.IO
                     int flagKey = difficultyStartRange + 5;
                     processFnDict.Add(flagKey, (in EventProcessParams eventProcessParams) =>
                     {
-                        ProcessNoteOnEventAsForcedType(eventProcessParams, difficulty, MoonNote.MoonNoteType.Hopo);
+                        ProcessNoteOnEventAsGuitarForcedType(eventProcessParams, difficulty, MoonNote.MoonNoteType.Hopo);
                     });
                 }
                 {
                     int flagKey = difficultyStartRange + 6;
                     processFnDict.Add(flagKey, (in EventProcessParams eventProcessParams) =>
                     {
-                        ProcessNoteOnEventAsForcedType(eventProcessParams, difficulty, MoonNote.MoonNoteType.Strum);
+                        ProcessNoteOnEventAsGuitarForcedType(eventProcessParams, difficulty, MoonNote.MoonNoteType.Strum);
                     });
                 }
             };
@@ -444,7 +444,7 @@ namespace MoonscraperChartEditor.Song.IO
             var processFnDict = new Dictionary<int, EventProcessFn>()
             {
                 { MidIOHelper.TAP_NOTE_CH, (in EventProcessParams eventProcessParams) => {
-                    ProcessNoteOnEventAsForcedType(eventProcessParams, MoonNote.MoonNoteType.Tap);
+                    ProcessNoteOnEventAsGuitarForcedType(eventProcessParams, MoonNote.MoonNoteType.Tap);
                 }},
             };
 
@@ -481,14 +481,14 @@ namespace MoonscraperChartEditor.Song.IO
                     int flagKey = difficultyStartRange + 7;
                     processFnDict.Add(flagKey, (in EventProcessParams eventProcessParams) =>
                     {
-                        ProcessNoteOnEventAsForcedType(eventProcessParams, difficulty, MoonNote.MoonNoteType.Hopo);
+                        ProcessNoteOnEventAsGuitarForcedType(eventProcessParams, difficulty, MoonNote.MoonNoteType.Hopo);
                     });
                 }
                 {
                     int flagKey = difficultyStartRange + 8;
                     processFnDict.Add(flagKey, (in EventProcessParams eventProcessParams) =>
                     {
-                        ProcessNoteOnEventAsForcedType(eventProcessParams, difficulty, MoonNote.MoonNoteType.Strum);
+                        ProcessNoteOnEventAsGuitarForcedType(eventProcessParams, difficulty, MoonNote.MoonNoteType.Strum);
                     });
                 }
             };
@@ -534,7 +534,7 @@ namespace MoonscraperChartEditor.Song.IO
                 // Process forced hopo
                 processFnDict.Add(difficultyStartRange + 6, (in EventProcessParams eventProcessParams) =>
                 {
-                    ProcessNoteOnEventAsForcedType(eventProcessParams, difficulty, MoonNote.MoonNoteType.Hopo);
+                    ProcessNoteOnEventAsGuitarForcedType(eventProcessParams, difficulty, MoonNote.MoonNoteType.Hopo);
                 });
             };
 
