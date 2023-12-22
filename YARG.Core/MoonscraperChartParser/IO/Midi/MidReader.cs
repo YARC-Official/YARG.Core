@@ -667,9 +667,8 @@ namespace MoonscraperChartEditor.Song.IO
         {
             var song = eventProcessParams.song;
             var instrument = eventProcessParams.instrument;
-            var gameMode = MoonSong.InstumentToChartGameMode(instrument);
-
             var chart = song.GetChart(instrument, difficulty);
+            var gameMode = chart.gameMode;
 
             MoonObjectHelper.GetRange(chart.notes, startTick, endTick, out int index, out int length);
 
@@ -844,10 +843,9 @@ namespace MoonscraperChartEditor.Song.IO
         private static void ProcessEventAsOpenNoteModifierPostDelay(in EventProcessParams processParams, uint startTick, uint endTick, MoonSong.Difficulty difficulty)
         {
             var instrument = processParams.instrument;
-            var gameMode = MoonSong.InstumentToChartGameMode(instrument);
             var song = processParams.song;
-
             var chart = song.GetChart(instrument, difficulty);
+            var gameMode = chart.gameMode;
 
             MoonObjectHelper.GetRange(chart.notes, startTick, endTick, out int index, out int length);
             for (int i = index; i < index + length; ++i)
