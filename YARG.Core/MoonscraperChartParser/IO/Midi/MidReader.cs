@@ -374,7 +374,7 @@ namespace MoonscraperChartEditor.Song.IO
             var unpairedNoteQueue = new NoteEventQueue();
             var unpairedSysexQueue = new SysExEventQueue();
 
-            var gameMode = MoonSong.InstumentToChartGameMode(instrument);
+            var gameMode = MoonSong.InstrumentToChartGameMode(instrument);
 
             var processParams = new EventProcessParams()
             {
@@ -488,7 +488,7 @@ namespace MoonscraperChartEditor.Song.IO
                 eventName = bracketMatch.Groups[1].Value;
             }
             // No brackets to strip off, on vocals this is most likely a lyric event
-            else if (MoonSong.InstumentToChartGameMode(processParams.instrument) is MoonChart.GameMode.Vocals)
+            else if (MoonSong.InstrumentToChartGameMode(processParams.instrument) is MoonChart.GameMode.Vocals)
             {
                 eventName = TextEventDefinitions.LYRIC_PREFIX_WITH_SPACE + text.Text;
             }

@@ -308,7 +308,7 @@ namespace MoonscraperChartEditor.Song
             return targetResoltion / resolution;
         }
 
-        public static MoonChart.GameMode InstumentToChartGameMode(MoonInstrument instrument)
+        public static MoonChart.GameMode InstrumentToChartGameMode(MoonInstrument instrument)
         {
             switch (instrument)
             {

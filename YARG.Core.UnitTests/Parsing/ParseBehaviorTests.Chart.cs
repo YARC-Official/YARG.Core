@@ -153,7 +153,7 @@ namespace YARG.Core.UnitTests.Parsing
         private static void GenerateInstrumentSection(MoonSong sourceSong, StringBuilder builder, MoonInstrument instrument, Difficulty difficulty)
         {
             // Skip unsupported instruments
-            var gameMode = MoonSong.InstumentToChartGameMode(instrument);
+            var gameMode = MoonSong.InstrumentToChartGameMode(instrument);
             if (!InstrumentToNoteLookupLookup.ContainsKey(gameMode))
                 return;
 

@@ -316,7 +316,7 @@ namespace MoonscraperChartEditor.Song.IO
 
         private static void SwitchToGuitarEnhancedOpensProcessMap(ref EventProcessParams processParams)
         {
-            var gameMode = MoonSong.InstumentToChartGameMode(processParams.instrument);
+            var gameMode = MoonSong.InstrumentToChartGameMode(processParams.instrument);
             if (gameMode != MoonChart.GameMode.Guitar)
             {
                 YargTrace.DebugWarning($"Attempted to apply guitar enhanced opens process map to non-guitar instrument: {processParams.instrument}");
@@ -329,7 +329,7 @@ namespace MoonscraperChartEditor.Song.IO
 
         private static void SwitchToDrumsVelocityProcessMap(ref EventProcessParams processParams)
         {
-            var gameMode = MoonSong.InstumentToChartGameMode(processParams.instrument);
+            var gameMode = MoonSong.InstrumentToChartGameMode(processParams.instrument);
             if (gameMode != MoonChart.GameMode.Drums)
             {
                 YargTrace.DebugWarning($"Attempted to apply drums velocity process map to non-drums instrument: {processParams.instrument}");

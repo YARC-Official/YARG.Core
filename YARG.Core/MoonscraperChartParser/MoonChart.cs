@@ -39,7 +39,7 @@ namespace MoonscraperChartEditor.Song
             gameMode = _gameMode;
         }
 
-        public MoonChart(MoonSong song, MoonSong.MoonInstrument Instrument) : this(song, MoonSong.InstumentToChartGameMode(Instrument))
+        public MoonChart(MoonSong song, MoonSong.MoonInstrument Instrument) : this(song, MoonSong.InstrumentToChartGameMode(Instrument))
         {
         }
 

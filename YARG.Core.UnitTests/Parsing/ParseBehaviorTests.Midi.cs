@@ -294,7 +294,7 @@ namespace YARG.Core.UnitTests.Parsing
 
         private static TrackChunk GenerateTrackChunk(MoonSong sourceSong, MoonInstrument instrument)
         {
-            var gameMode = MoonSong.InstumentToChartGameMode(instrument);
+            var gameMode = MoonSong.InstrumentToChartGameMode(instrument);
             var timedEvents = new MidiEventList();
 
             bool singleDifficulty = gameMode is GameMode.Vocals;

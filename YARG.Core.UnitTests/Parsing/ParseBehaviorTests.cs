@@ -446,7 +446,7 @@ namespace YARG.Core.UnitTests.Parsing
             PopulateGlobalEvents(song, GlobalEvents);
             foreach (var instrument in EnumExtensions<MoonInstrument>.Values)
             {
-                var gameMode = InstumentToChartGameMode(instrument);
+                var gameMode = InstrumentToChartGameMode(instrument);
                 var track = GameModeToChartData(gameMode);
                 PopulateInstrument(song, instrument, track);
             }
@@ -510,7 +510,7 @@ namespace YARG.Core.UnitTests.Parsing
                 foreach (var instrument in EnumExtensions<MoonInstrument>.Values)
                 {
                     // Skip unsupported instruments
-                    var gameMode = MoonSong.InstumentToChartGameMode(instrument);
+                    var gameMode = MoonSong.InstrumentToChartGameMode(instrument);
                     if (!supportedModes.Contains(gameMode))
                         continue;
 
