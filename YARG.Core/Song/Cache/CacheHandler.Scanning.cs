@@ -146,12 +146,12 @@ namespace YARG.Core.Song.Cache
             return false;
         }
 
-        private void ScanSngFile(string filename, IniGroup group)
+        private void ScanSngFile(bool isYARGSong, string filename, IniGroup group)
         {
             if (!FindOrMarkFile(filename))
                 return;
 
-            var sngFile = SngFile.TryLoadFile(filename);
+            var sngFile = SngFile.TryLoadFromFile(filename, isYARGSong);
             if (sngFile == null)
             {
                 AddToBadSongs(filename, ScanResult.PossibleCorruption);
@@ -162,27 +162,31 @@ namespace YARG.Core.Song.Cache
             for (int i = sngFile.Metadata.Count != 0 ? 0 : 2; i < 3; ++i)
             {
                 var chart = results.charts[i];
-                if (chart != null)
+                if (chart == null) continue;
+
+                try
                 {
-                    try
+                    var fileInfo = new AbridgedFileInfo(filename);
+                    var entry = SongMetadata.FromSng(isYARGSong, sngFile, fileInfo, chart);
+                    if (entry.Item2 != null)
                     {
-                        var fileinfo = new AbridgedFileInfo(filename);
-                        var entry = SongMetadata.FromSng(sngFile, fileinfo, chart);
-                        if (entry.Item2 != null)
+                        if (AddEntry(entry.Item2))
                         {
-                            if (AddEntry(entry.Item2))
-                                group.AddEntry(entry.Item2);
+                            group.AddEntry(entry.Item2);
                         }
-                        else if (entry.Item1 != ScanResult.LooseChart_NoAudio)
-                            AddToBadSongs(filename, entry.Item1);
                     }
-                    catch (Exception e)
+                    else if (entry.Item1 != ScanResult.LooseChart_NoAudio)
                     {
-                        YargTrace.LogException(e, $"Error while scanning chart file {chart} within {filename}!");
-                        AddToBadSongs(filename, ScanResult.IniEntryCorruption);
+                        AddToBadSongs(filename, entry.Item1);
                     }
-                    break;
                 }
+                catch (Exception e)
+                {
+                    YargTrace.LogException(e, $"Error while scanning chart file {chart} within {filename}!");
+                    AddToBadSongs(filename, ScanResult.IniEntryCorruption);
+                }
+
+                break;
             }
         }
 

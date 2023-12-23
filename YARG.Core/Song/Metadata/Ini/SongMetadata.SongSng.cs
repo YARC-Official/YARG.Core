@@ -12,6 +12,8 @@ namespace YARG.Core.Song
     {
         public sealed class SngSubmetadata : IIniMetadata
         {
+            private readonly bool isYARGSong;
+
             private readonly uint version;
             private readonly AbridgedFileInfo sngInfo;
             private readonly IniChartNode chart;
@@ -19,8 +21,10 @@ namespace YARG.Core.Song
             public string Root => sngInfo.FullName;
             public ChartType Type => chart.Type;
 
-            public SngSubmetadata(uint version, AbridgedFileInfo sngInfo, IniChartNode chart)
+            public SngSubmetadata(bool isYARGSong, uint version, AbridgedFileInfo sngInfo, IniChartNode chart)
             {
+                this.isYARGSong = isYARGSong;
+
                 this.version = version;
                 this.sngInfo = sngInfo;
                 this.chart = chart;
@@ -34,7 +38,9 @@ namespace YARG.Core.Song
 
                 // Flag that says "this IS a sng file"
                 writer.Write(true);
+
                 writer.Write(version);
+                writer.Write(isYARGSong);
                 writer.Write(relative);
                 writer.Write(sngInfo.LastWriteTime.ToBinary());
                 writer.Write((byte) chart.Type);
@@ -45,7 +51,7 @@ namespace YARG.Core.Song
                 if (!sngInfo.IsStillValid())
                     return null;
 
-                var sngFile = SngFile.TryLoadFile(sngInfo.FullName);
+                var sngFile = SngFile.TryLoadFromFile(sngInfo.FullName, isYARGSong);
                 if (sngFile == null)
                     return null;
 
@@ -56,48 +62,61 @@ namespace YARG.Core.Song
             {
                 Dictionary<SongStem, Stream> streams = new();
 
-                var sngFile = SngFile.TryLoadFile(sngInfo.FullName);
-                if (sngFile != null)
+                var sngFile = SngFile.TryLoadFromFile(sngInfo.FullName, isYARGSong);
+                if (sngFile == null) return streams;
+
+                foreach (var stem in IniAudioChecker.SupportedStems)
                 {
-                    foreach (var stem in IniAudioChecker.SupportedStems)
+                    foreach (var format in IniAudioChecker.SupportedFormats)
                     {
-                        foreach (var format in IniAudioChecker.SupportedFormats)
+                        var file = stem + format;
+                        if (sngFile.TryGetValue(file, out var listing))
                         {
-                            var file = stem + format;
-                            if (sngFile.TryGetValue(file, out var listing))
-                            {
-                                streams.Add(AudioHelpers.SupportedStems[stem], listing.CreateStream(sngInfo.FullName, sngFile.Mask));
-                                // Parse no duplicate stems
-                                break;
-                            }
+                            streams.Add(
+                                AudioHelpers.SupportedStems[stem],
+                                listing.CreateStream(sngInfo.FullName, sngFile.Mask)
+                            );
+
+                            // Parse no duplicate stems
+                            break;
                         }
                     }
                 }
+
                 return streams;
             }
 
             public byte[]? GetUnprocessedAlbumArt()
             {
-                var sngFile = SngFile.TryLoadFile(sngInfo.FullName);
+                var sngFile = SngFile.TryLoadFromFile(sngInfo.FullName, isYARGSong);
                 if (sngFile == null)
                     return null;
 
                 foreach (string albumFile in IIniMetadata.ALBUMART_FILES)
+                {
                     if (sngFile.TryGetValue(albumFile, out var listing))
+                    {
                         return listing.LoadAllBytes(sngInfo.FullName, sngFile.Mask);
+                    }
+                }
                 return null;
             }
 
             public (BackgroundType, Stream?) GetBackgroundStream(BackgroundType selections)
             {
-                var sngFile = SngFile.TryLoadFile(sngInfo.FullName);
+                var sngFile = SngFile.TryLoadFromFile(sngInfo.FullName, isYARGSong);
                 if (sngFile == null)
                     return (default, null);
 
                 if ((selections & BackgroundType.Yarground) > 0)
                 {
                     if (sngFile.TryGetValue("bg.yarground", out var listing))
-                        return (BackgroundType.Yarground, listing.CreateStream(sngInfo.FullName, sngFile.Mask));
+                    {
+                        return (
+                            BackgroundType.Yarground,
+                            listing.CreateStream(sngInfo.FullName, sngFile.Mask)
+                        );
+                    }
                 }
 
                 if ((selections & BackgroundType.Video) > 0)
@@ -107,7 +126,12 @@ namespace YARG.Core.Song
                         foreach (var format in IIniMetadata.VIDEO_EXTENSIONS)
                         {
                             if (sngFile.TryGetValue(stem + format, out var listing))
-                                return (BackgroundType.Video, listing.CreateStream(sngInfo.FullName, sngFile.Mask));
+                            {
+                                return (
+                                    BackgroundType.Video,
+                                    listing.CreateStream(sngInfo.FullName, sngFile.Mask)
+                                );
+                            }
                         }
                     }
                 }
@@ -119,24 +143,33 @@ namespace YARG.Core.Song
                         foreach (var format in IIniMetadata.IMAGE_EXTENSIONS)
                         {
                             if (sngFile.TryGetValue(stem + format, out var listing))
-                                return (BackgroundType.Image, listing.CreateStream(sngInfo.FullName, sngFile.Mask));
+                            {
+                                return (
+                                    BackgroundType.Image,
+                                    listing.CreateStream(sngInfo.FullName, sngFile.Mask)
+                                );
+                            }
                         }
                     }
                 }
+
                 return (default, null);
             }
 
             public Stream? GetPreviewAudioStream()
             {
-                var sngFile = SngFile.TryLoadFile(sngInfo.FullName);
+                var sngFile = SngFile.TryLoadFromFile(sngInfo.FullName, isYARGSong);
                 if (sngFile == null)
                     return null;
 
                 foreach (var format in IniAudioChecker.SupportedFormats)
                 {
                     if (sngFile.TryGetValue("preview" + format, out var listing))
+                    {
                         return listing.CreateStream(sngInfo.FullName, sngFile.Mask);
+                    }
                 }
+
                 return null;
             }
 
@@ -149,37 +182,52 @@ namespace YARG.Core.Song
             }
         }
 
-        public static (ScanResult, SongMetadata?) FromSng(SngFile sng, AbridgedFileInfo sngInfo, IniChartNode chart)
+        public static (ScanResult, SongMetadata?) FromSng(bool isYARGSong, SngFile sng, AbridgedFileInfo sngInfo,
+            IniChartNode chart)
         {
             if (sng.Metadata.Count == 0 && !SngSubmetadata.DoesSoloChartHaveAudio(sng))
                 return (ScanResult.LooseChart_NoAudio, null);
 
-            SngSubmetadata metadata = new(sng.Version, sngInfo, chart);
+            var metadata = new SngSubmetadata(isYARGSong, sng.Version, sngInfo, chart);
+
             byte[] file = sng[chart.File].LoadAllBytes(sngInfo.FullName, sng.Mask);
             var result = ScanIniChartFile(file, chart.Type, sng.Metadata);
-            return (result.Item1, result.Item2 != null ? new(metadata, result.Item2, HashWrapper.Create(file), sng.Metadata) : null);
+
+            return (
+                result.Item1,
+                result.Item2 != null
+                    ? new SongMetadata(metadata, result.Item2, HashWrapper.Create(file), sng.Metadata)
+                    : null
+            );
         }
 
-        public static SongMetadata? SngFromCache(string baseDirectory, YARGBinaryReader reader, CategoryCacheStrings strings)
+        public static SongMetadata? SngFromCache(string baseDirectory, YARGBinaryReader reader,
+            CategoryCacheStrings strings)
         {
-            // Implement proper versioning in the future 
             uint version = reader.Read<uint>(Endianness.Little);
+
+            bool isYARGSong = reader.ReadBoolean();
 
             string sngPath = Path.Combine(baseDirectory, reader.ReadLEBString());
             var sngInfo = AbridgedFileInfo.TryParseInfo(sngPath, reader);
             if (sngInfo == null)
                 return null;
 
-            var sngfile = SngFile.TryLoadFile(sngPath);
-            // TODO: Implement Update-in-place functionality
-            if (sngfile == null || sngfile.Version != version)
+            var sngFile = SngFile.TryLoadFromFile(sngPath, isYARGSong);
+
+            if (sngFile == null || sngFile.Version != version)
+            {
+                // TODO: Implement Update-in-place functionality
                 return null;
+            }
 
             byte chartTypeIndex = reader.ReadByte();
             if (chartTypeIndex >= IIniMetadata.CHART_FILE_TYPES.Length)
                 return null;
 
-            SngSubmetadata sngData = new(sngfile.Version, sngInfo, IIniMetadata.CHART_FILE_TYPES[chartTypeIndex]);
+            var sngData = new SngSubmetadata(isYARGSong, sngFile.Version, sngInfo,
+                IIniMetadata.CHART_FILE_TYPES[chartTypeIndex]);
+
             return new SongMetadata(sngData, reader, strings)
             {
                 _directory = sngPath
@@ -188,8 +236,10 @@ namespace YARG.Core.Song
 
         public static SongMetadata? SngFromCache_Quick(string baseDirectory, YARGBinaryReader reader, CategoryCacheStrings strings)
         {
-            // Implement proper versioning in the future 
+            // Implement proper versioning in the future
             uint version = reader.Read<uint>(Endianness.Little);
+
+            bool isYARGSong = reader.ReadBoolean();
 
             string sngPath = Path.Combine(baseDirectory, reader.ReadLEBString());
             AbridgedFileInfo sngInfo = new(sngPath, DateTime.FromBinary(reader.Read<long>(Endianness.Little)));
@@ -197,11 +247,13 @@ namespace YARG.Core.Song
             byte chartTypeIndex = reader.ReadByte();
             if (chartTypeIndex >= IIniMetadata.CHART_FILE_TYPES.Length)
             {
-                YargTrace.DebugInfo($"Cache file was modified externally with a bad CHART_TYPE enum value");
+                YargTrace.DebugInfo("Cache file was modified externally with a bad CHART_TYPE enum value");
                 return null;
             }
 
-            SngSubmetadata sngData = new(version, sngInfo, IIniMetadata.CHART_FILE_TYPES[chartTypeIndex]);
+            var sngData = new SngSubmetadata(isYARGSong, version, sngInfo,
+                IIniMetadata.CHART_FILE_TYPES[chartTypeIndex]);
+
             return new SongMetadata(sngData, reader, strings)
             {
                 _directory = sngPath

@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
-using System.Threading.Tasks;
-using YARG.Core.Extensions;
+﻿using System.IO;
 
 namespace YARG.Core.IO
 {
@@ -12,20 +7,36 @@ namespace YARG.Core.IO
         public readonly long Position;
         public readonly long Length;
 
-        public SngFileListing(YARGBinaryReader reader)
+        public readonly bool IsYARGSong;
+
+        public SngFileListing(YARGBinaryReader reader, bool isYARGSong)
         {
             Length = reader.Read<long>(Endianness.Little);
             Position = reader.Read<long>(Endianness.Little);
+
+            IsYARGSong = isYARGSong;
         }
 
         public byte[] LoadAllBytes(string filename, SngMask mask)
         {
-            return SngFileStream.LoadFile(filename, Length, Position, mask.Clone());
+            var stream = CreateStreamInternal(filename);
+            return SngFileStream.LoadFile(stream, Length, Position, mask.Clone());
         }
 
         public SngFileStream CreateStream(string filename, SngMask mask)
         {
-            return new SngFileStream(filename, Length, Position, mask.Clone());
+            var stream = CreateStreamInternal(filename);
+            return new SngFileStream(stream, Length, Position, mask.Clone());
+        }
+
+        private Stream CreateStreamInternal(string path)
+        {
+            if (IsYARGSong)
+            {
+                return new YARGSongFileStream(path);
+            }
+
+            return new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
         }
     }
 }

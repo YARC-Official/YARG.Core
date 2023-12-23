@@ -91,6 +91,7 @@ namespace YARG.Core.IO
 
         public override int Read(byte[] buffer, int offset, int count)
         {
+            int pos = (int) Position;
             int read = _fileStream.Read(buffer, offset, count);
             var span = new Span<byte>(buffer, offset, read);
 
@@ -100,13 +101,12 @@ namespace YARG.Core.IO
                 int b = _values[1];
                 int c = _values[2];
 
-                long m = Position - count;
                 for (int i = 0; i < read; i++)
                 {
                     // This is a super dumbed down version of the algorithm.
                     // If problems are encountered with this, use the full
                     // cipher roller.
-                    span[i] = (byte) ((span[i] - (i + m) * c - b) ^ a);
+                    span[i] = (byte) ((span[i] - (i + pos) * c - b) ^ a);
                 }
             }
 
