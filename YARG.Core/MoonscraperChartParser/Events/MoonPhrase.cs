@@ -6,7 +6,7 @@ using System;
 namespace MoonscraperChartEditor.Song
 {
     [Serializable]
-    internal class SpecialPhrase : ChartObject
+    internal class MoonPhrase : MoonObject
     {
         public enum Type
         {
@@ -27,49 +27,32 @@ namespace MoonscraperChartEditor.Song
             Vocals_PercussionPhrase,
         }
 
-        private readonly ID _classID = ID.Special;
-        public override int classID => (int)_classID;
-
         public uint length;
         public Type type;
 
-        public SpecialPhrase(uint _position, uint _length, Type _type) : base(_position)
+        public MoonPhrase(uint _position, uint _length, Type _type)
+            : base(ID.Phrase, _position)
         {
             length = _length;
             type = _type;
         }
 
-        protected override bool Equals(SongObject b)
+        public override bool ValueEquals(MoonObject obj)
         {
-            if (b.GetType() == typeof(SpecialPhrase))
-            {
-                var realB = (SpecialPhrase) b;
-                if (tick == realB.tick && type == realB.type)
-                    return true;
-                else
-                    return false;
-            }
-            else
-                return base.Equals(b);
+            bool baseEq = base.ValueEquals(obj);
+            if (!baseEq || obj is not MoonPhrase phrase)
+                return baseEq;
+
+            return type == phrase.type;
         }
 
-        protected override bool LessThan(SongObject b)
+        public override int InsertionCompareTo(MoonObject obj)
         {
-            if (b.GetType() == typeof(SpecialPhrase))
-            {
-                var realB = (SpecialPhrase) b;
-                if (tick < b.tick)
-                    return true;
-                else if (tick == b.tick)
-                {
-                    if (type < realB.type)
-                        return true;
-                }
+            int baseComp = base.InsertionCompareTo(obj);
+            if (baseComp != 0 || obj is not MoonPhrase phrase)
+                return baseComp;
 
-                return false;
-            }
-            else
-                return base.LessThan(b);
+            return ((int) type).CompareTo((int) phrase.type);
         }
 
         public uint GetCappedLengthForPos(uint pos, MoonChart? chart)
@@ -80,11 +63,11 @@ namespace MoonscraperChartEditor.Song
             else
                 newLength = 0;
 
-            SpecialPhrase? nextSp = null;
+            MoonPhrase? nextSp = null;
             if (chart != null)
             {
-                int arrayPos = SongObjectHelper.FindClosestPosition(this, chart.specialPhrases);
-                if (arrayPos == SongObjectHelper.NOTFOUND)
+                int arrayPos = MoonObjectHelper.FindClosestPosition(this, chart.specialPhrases);
+                if (arrayPos == MoonObjectHelper.NOTFOUND)
                     return newLength;
 
                 while (arrayPos < chart.specialPhrases.Count - 1 && chart.specialPhrases[arrayPos].tick <= tick)
@@ -110,16 +93,16 @@ namespace MoonscraperChartEditor.Song
             return newLength;
         }
 
-        protected override ChartObject ChartClone() => Clone();
+        protected override MoonObject CloneImpl() => Clone();
 
-        public new SpecialPhrase Clone()
+        public new MoonPhrase Clone()
         {
-            return new SpecialPhrase(tick, length, type);
+            return new MoonPhrase(tick, length, type);
         }
 
         public override string ToString()
         {
-            return $"Special phrase at tick {tick} with type {type} and length {length}";
+            return $"Special phrase at tick {tick} with type {type}, length {length}";
         }
     }
 }

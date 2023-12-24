@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
 using NUnit.Framework;
@@ -59,24 +59,21 @@ namespace YARG.Core.UnitTests.Parsing
             { GameMode.GHLGuitar, GhlGuitarNoteLookup },
         };
 
-        private static readonly Dictionary<SpecialPhrase.Type, int> SpecialPhraseLookup = new()
+        private static readonly Dictionary<MoonPhrase.Type, int> SpecialPhraseLookup = new()
         {
-            { SpecialPhrase.Type.Starpower,           PHRASE_STARPOWER },
-            { SpecialPhrase.Type.Versus_Player1,      PHRASE_VERSUS_PLAYER_1 },
-            { SpecialPhrase.Type.Versus_Player2,      PHRASE_VERSUS_PLAYER_2 },
-            { SpecialPhrase.Type.TremoloLane,         PHRASE_TREMOLO_LANE },
-            { SpecialPhrase.Type.TrillLane,           PHRASE_TRILL_LANE },
-            { SpecialPhrase.Type.ProDrums_Activation, PHRASE_DRUM_FILL },
+            { MoonPhrase.Type.Starpower,           PHRASE_STARPOWER },
+            { MoonPhrase.Type.Versus_Player1,      PHRASE_VERSUS_PLAYER_1 },
+            { MoonPhrase.Type.Versus_Player2,      PHRASE_VERSUS_PLAYER_2 },
+            { MoonPhrase.Type.TremoloLane,         PHRASE_TREMOLO_LANE },
+            { MoonPhrase.Type.TrillLane,           PHRASE_TRILL_LANE },
+            { MoonPhrase.Type.ProDrums_Activation, PHRASE_DRUM_FILL },
         };
 
-        private static readonly List<SpecialPhrase.Type> DrumsOnlySpecialPhrases = new()
+        private static readonly List<MoonPhrase.Type> DrumsOnlySpecialPhrases = new()
         {
-            SpecialPhrase.Type.Starpower,
-            SpecialPhrase.Type.Versus_Player1,
-            SpecialPhrase.Type.Versus_Player2,
-            SpecialPhrase.Type.TremoloLane,
-            SpecialPhrase.Type.TrillLane,
-            SpecialPhrase.Type.ProDrums_Activation,
+            MoonPhrase.Type.TremoloLane,
+            MoonPhrase.Type.TrillLane,
+            MoonPhrase.Type.ProDrums_Activation,
         };
 
         private const string NEWLINE = "\r\n";
@@ -84,7 +81,7 @@ namespace YARG.Core.UnitTests.Parsing
         private static void GenerateSongSection(MoonSong sourceSong, StringBuilder builder)
         {
             builder.Append($"[{SECTION_SONG}]{NEWLINE}{{{NEWLINE}");
-            builder.Append($"  Resolution = {sourceSong.resolution}");
+            builder.Append($"  Resolution = {sourceSong.resolution}{NEWLINE}");
             builder.Append($"}}{NEWLINE}");
         }
 
@@ -106,7 +103,7 @@ namespace YARG.Core.UnitTests.Parsing
                     (bpmIndex == sourceSong.bpms.Count || sourceSong.timeSignatures[timeSigIndex].tick <= sourceSong.bpms[bpmIndex].tick))
                 {
                     var ts = sourceSong.timeSignatures[timeSigIndex++];
-                    builder.Append($"  {ts.tick} = TS {ts.numerator} {(int) Math.Log2(ts.denominator)}");
+                    builder.Append($"  {ts.tick} = TS {ts.numerator} {(int) Math.Log2(ts.denominator)}{NEWLINE}");
                 }
 
                 while (bpmIndex < sourceSong.bpms.Count &&
@@ -114,7 +111,8 @@ namespace YARG.Core.UnitTests.Parsing
                     (timeSigIndex == sourceSong.timeSignatures.Count || sourceSong.bpms[bpmIndex].tick < sourceSong.timeSignatures[timeSigIndex].tick))
                 {
                     var bpm = sourceSong.bpms[bpmIndex++];
-                    builder.Append($"  {bpm.tick} = B {bpm.value}");
+                    uint writtenBpm = (uint) (bpm.value * 1000);
+                    builder.Append($"  {bpm.tick} = B {writtenBpm}{NEWLINE}");
                 }
             }
             builder.Append($"}}{NEWLINE}");
@@ -138,7 +136,7 @@ namespace YARG.Core.UnitTests.Parsing
                     (eventIndex == sourceSong.events.Count || sourceSong.sections[sectionIndex].tick <= sourceSong.events[eventIndex].tick))
                 {
                     var section = sourceSong.sections[sectionIndex++];
-                    builder.Append($"  {section.tick} = E \"{section.title}\"");
+                    builder.Append($"  {section.tick} = E \"{section.text}\"");
                 }
 
                 while (eventIndex < sourceSong.events.Count &&
@@ -146,7 +144,7 @@ namespace YARG.Core.UnitTests.Parsing
                     (sectionIndex == sourceSong.sections.Count || sourceSong.bpms[eventIndex].tick < sourceSong.sections[sectionIndex].tick))
                 {
                     var ev = sourceSong.events[eventIndex++];
-                    builder.Append($"  {ev.tick} = E \"{ev.title}\"");
+                    builder.Append($"  {ev.tick} = E \"{ev.text}\"");
                 }
             }
             builder.Append($"}}{NEWLINE}");
@@ -155,7 +153,7 @@ namespace YARG.Core.UnitTests.Parsing
         private static void GenerateInstrumentSection(MoonSong sourceSong, StringBuilder builder, MoonInstrument instrument, Difficulty difficulty)
         {
             // Skip unsupported instruments
-            var gameMode = MoonSong.InstumentToChartGameMode(instrument);
+            var gameMode = MoonSong.InstrumentToChartGameMode(instrument);
             if (!InstrumentToNoteLookupLookup.ContainsKey(gameMode))
                 return;
 
@@ -165,60 +163,44 @@ namespace YARG.Core.UnitTests.Parsing
             string difficultyName = DifficultyToNameLookup[difficulty];
             builder.Append($"[{difficultyName}{instrumentName}]{NEWLINE}{{{NEWLINE}");
 
-            List<SpecialPhrase> phrasesToRemove = new();
+            // Combine all of the chart events into a single list and sort them according to insertion order
+            // Not very efficient, but adding a 4th list to the previous handling and
+            // quadratically increasing the number of checks is just not sane lol
+            List<MoonObject> combined = [..chart.notes, ..chart.specialPhrases, ..chart.events];
+            combined.Sort((obj1, obj2) => obj1.InsertionCompareTo(obj2));
 
-            // Indexing the separate lists is the only way to
-            // 1: Not allocate more space for a combined list, and
-            // 2: Not rely on polymorphic queries
-            int noteIndex = 0;
-            int phraseIndex = 0;
-            int eventIndex = 0;
-            while (noteIndex < chart.notes.Count ||
-                   phraseIndex < chart.specialPhrases.Count ||
-                   eventIndex < chart.events.Count)
+            List<MoonPhrase> phrasesToRemove = new();
+            for (int i = 0; i < combined.Count; i++)
             {
-                // Generate in this order: phrases, notes, then events
-                while (phraseIndex < chart.specialPhrases.Count &&
-                    // Phrase comes before or at the same time as a note
-                    (noteIndex  == chart.notes.Count  || chart.specialPhrases[phraseIndex].tick <= chart.notes[noteIndex].tick) &&
-                    // Phrase comes before or at the same time as an event
-                    (eventIndex == chart.events.Count || chart.specialPhrases[phraseIndex].tick <= chart.events[eventIndex].tick))
+                var chartObj = combined[i];
+
+                switch (chartObj)
                 {
-                    var phrase = chart.specialPhrases[phraseIndex++];
-                    // Drums-only phrases
-                    if (DrumsOnlySpecialPhrases.Contains(phrase.type) && gameMode is not GameMode.Drums)
-                    {
-                        phrasesToRemove.Add(phrase);
-                        continue;
-                    }
+                    case MoonNote note:
+                        AppendNote(builder, note, gameMode);
+                        break;
+                    case MoonPhrase phrase:
+                        // Drums-only phrases
+                        if (gameMode is not GameMode.Drums && DrumsOnlySpecialPhrases.Contains(phrase.type))
+                        {
+                            phrasesToRemove.Add(phrase);
+                            continue;
+                        }
 
-                    // Solos are written as text events in .chart
-                    if (phrase.type is SpecialPhrase.Type.Solo)
-                    {
-                        builder.Append($"  {phrase.tick} = E {SOLO_START}{NEWLINE}");
-                        builder.Append($"  {phrase.tick + phrase.length} = E {SOLO_END}{NEWLINE}");
-                        continue;
-                    }
+                        // Solos are written as text events in .chart
+                        if (phrase.type is MoonPhrase.Type.Solo)
+                        {
+                            builder.Append($"  {phrase.tick} = E {SOLO_START}{NEWLINE}");
+                            MoonObjectHelper.Insert(new MoonText(SOLO_END, phrase.tick + phrase.length), combined);
+                            continue;
+                        }
 
-                    int phraseNumber = SpecialPhraseLookup[phrase.type];
-                    builder.Append($"  {phrase.tick} = S {phraseNumber} {phrase.length}{NEWLINE}");
-                }
-
-                while (noteIndex < chart.notes.Count &&
-                    // Note comes before a phrase (equals does not count)
-                    (phraseIndex == chart.specialPhrases.Count || chart.notes[noteIndex].tick <  chart.specialPhrases[phraseIndex].tick) &&
-                    // Note comes before or at the same time as an event
-                    (eventIndex  == chart.events.Count         || chart.notes[noteIndex].tick <= chart.events[eventIndex].tick))
-                    AppendNote(builder, chart.notes[noteIndex++], gameMode);
-
-                while (eventIndex < chart.events.Count &&
-                    // Event comes before a phrase (equals does not count)
-                    (phraseIndex == chart.specialPhrases.Count || chart.events[eventIndex].tick < chart.specialPhrases[phraseIndex].tick) &&
-                    // Event comes before a note (equals does not count)
-                    (noteIndex   == chart.notes.Count          || chart.events[eventIndex].tick < chart.notes[noteIndex].tick))
-                {
-                    var ev = chart.events[eventIndex++];
-                    builder.Append($"  {ev.tick} = E {ev.eventName}{NEWLINE}");
+                        int phraseNumber = SpecialPhraseLookup[phrase.type];
+                        builder.Append($"  {phrase.tick} = S {phraseNumber} {phrase.length}{NEWLINE}");
+                        break;
+                    case MoonText text:
+                        builder.Append($"  {text.tick} = E {text.text}{NEWLINE}");
+                        break;
                 }
             }
 

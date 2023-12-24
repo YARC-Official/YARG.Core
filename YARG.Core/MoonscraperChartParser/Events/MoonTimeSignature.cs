@@ -6,15 +6,13 @@ using System;
 namespace MoonscraperChartEditor.Song
 {
     [Serializable]
-    internal class TimeSignature : SyncTrack
+    internal class MoonTimeSignature : MoonObject
     {
-        private readonly ID _classID = ID.TimeSignature;
-        public override int classID => (int)_classID;
-
         public uint numerator;
         public uint denominator;
 
-        public TimeSignature(uint _position = 0, uint _numerator = 4, uint _denominator = 4) : base(_position)
+        public MoonTimeSignature(uint _position = 0, uint _numerator = 4, uint _denominator = 4)
+            : base(ID.TimeSignature, _position)
         {
             numerator = _numerator;
             denominator = _denominator;
@@ -64,16 +62,25 @@ namespace MoonscraperChartEditor.Song
             return measureInfo;
         }
 
-        protected override SyncTrack SyncClone() => Clone();
-
-        public new TimeSignature Clone()
+        public override bool ValueEquals(MoonObject obj)
         {
-            return new TimeSignature(tick, numerator, denominator);
+            bool baseEq = base.ValueEquals(obj);
+            if (!baseEq || obj is not MoonTimeSignature ts)
+                return baseEq;
+
+            return numerator == ts.numerator || denominator == ts.denominator;
+        }
+
+        protected override MoonObject CloneImpl() => Clone();
+
+        public new MoonTimeSignature Clone()
+        {
+            return new MoonTimeSignature(tick, numerator, denominator);
         }
 
         public override string ToString()
         {
-            return $"Time signature at tick {tick} with numerator {numerator} and denominator {denominator}";
+            return $"Time signature {numerator}/{denominator} at tick {tick}";
         }
     }
 }

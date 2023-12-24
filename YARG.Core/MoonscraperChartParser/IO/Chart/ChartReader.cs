@@ -233,7 +233,7 @@ namespace MoonscraperChartEditor.Song.IO
                             // Get denominator
                             var denominatorText = remaining.GetNextWord(out remaining);
                             uint denominator = denominatorText.IsEmpty ? 2 : (uint)FastInt32Parse(denominatorText);
-                            song.timeSignatures.Add(new TimeSignature(tick, numerator, (uint) Math.Pow(2, denominator)));
+                            song.timeSignatures.Add(new MoonTimeSignature(tick, numerator, (uint) Math.Pow(2, denominator)));
                             break;
                         }
 
@@ -243,7 +243,7 @@ namespace MoonscraperChartEditor.Song.IO
                             var tempoText = remaining.GetNextWord(out remaining);
                             uint tempo = (uint)FastInt32Parse(tempoText);
 
-                            song.bpms.Add(new BPM(tick, tempo));
+                            song.bpms.Add(new MoonTempo(tick, tempo / 1000f));
                             break;
                         }
 
@@ -275,14 +275,14 @@ namespace MoonscraperChartEditor.Song.IO
 
             foreach (var anchor in anchorData)
             {
-                int arrayPos = SongObjectHelper.FindClosestPosition(anchor.tick, song.bpms);
+                int arrayPos = MoonObjectHelper.FindClosestPosition(anchor.tick, song.bpms);
                 if (song.bpms[arrayPos].tick == anchor.tick)
                     song.bpms[arrayPos].anchor = anchor.anchorTime;
                 // Create a new anchored bpm
                 else if (anchor.tick < song.bpms[arrayPos].tick)
-                    song.bpms.Insert(arrayPos, new BPM(anchor.tick, song.bpms[arrayPos - 1].value, anchor.anchorTime));
+                    song.bpms.Insert(arrayPos, new MoonTempo(anchor.tick, song.bpms[arrayPos - 1].value, anchor.anchorTime));
                 else
-                    song.bpms.Insert(arrayPos + 1, new BPM(anchor.tick, song.bpms[arrayPos].value, anchor.anchorTime));
+                    song.bpms.Insert(arrayPos + 1, new MoonTempo(anchor.tick, song.bpms[arrayPos].value, anchor.anchorTime));
             }
 
             song.UpdateBPMTimeValues();
@@ -329,11 +329,11 @@ namespace MoonscraperChartEditor.Song.IO
                         {
                             // This is a section, use the text grouped by the regex
                             string sectionText = sectionMatch.Groups[1].Value;
-                            song.sections.Add(new Section(sectionText, tick));
+                            song.sections.Add(new MoonText(sectionText, tick));
                         }
                         else
                         {
-                            song.events.Add(new Event(eventText, tick));
+                            song.events.Add(new MoonText(eventText, tick));
                         }
                     }
                     else
@@ -450,7 +450,7 @@ namespace MoonscraperChartEditor.Song.IO
                                     eventText = match.Groups[1].Value;
                                 }
 
-                                chart.events.Add(new ChartEvent(tick, eventText));
+                                chart.events.Add(new MoonText(eventText, tick));
                                 break;
                             }
 
@@ -497,10 +497,10 @@ namespace MoonscraperChartEditor.Song.IO
             uint sus = ApplySustainCutoff(noteProcessParams.settings, noteEvent.length);
 
             var newMoonNote = new MoonNote(tick, ingameFret, sus, defaultFlags);
-            SongObjectHelper.PushNote(newMoonNote, chart.notes);
+            MoonObjectHelper.PushNote(newMoonNote, chart.notes);
         }
 
-        private static void ProcessNoteOnEventAsSpecialPhrase(in NoteProcessParams noteProcessParams, SpecialPhrase.Type type)
+        private static void ProcessNoteOnEventAsSpecialPhrase(in NoteProcessParams noteProcessParams, MoonPhrase.Type type)
         {
             var chart = noteProcessParams.chart;
 
@@ -508,7 +508,7 @@ namespace MoonscraperChartEditor.Song.IO
             uint tick = noteEvent.tick;
             uint sus = noteEvent.length;
 
-            var newPhrase = new SpecialPhrase(tick, sus, type);
+            var newPhrase = new MoonPhrase(tick, sus, type);
             chart.specialPhrases.Add(newPhrase);
         }
 
@@ -526,7 +526,7 @@ namespace MoonscraperChartEditor.Song.IO
         private static void ProcessNoteOnEventAsChordFlagPostDelay(in NoteProcessParams noteProcessParams, NoteEvent noteEvent, NoteFlagPriority flagData)
         {
             var chart = noteProcessParams.chart;
-            SongObjectHelper.FindObjectsAtPosition(noteEvent.tick, chart.notes, out int index, out int length);
+            MoonObjectHelper.FindObjectsAtPosition(noteEvent.tick, chart.notes, out int index, out int length);
             if (length > 0)
             {
                 GroupAddFlags(chart.notes, flagData, index, length);
@@ -547,7 +547,7 @@ namespace MoonscraperChartEditor.Song.IO
         private static void ProcessNoteOnEventAsNoteFlagTogglePostDelay(in NoteProcessParams noteProcessParams, int rawNote, NoteEvent noteEvent, NoteFlagPriority flagData)
         {
             var chart = noteProcessParams.chart;
-            SongObjectHelper.FindObjectsAtPosition(noteEvent.tick, chart.notes, out int index, out int length);
+            MoonObjectHelper.FindObjectsAtPosition(noteEvent.tick, chart.notes, out int index, out int length);
             if (length > 0)
             {
                 for (int i = index; i < index + length; ++i)

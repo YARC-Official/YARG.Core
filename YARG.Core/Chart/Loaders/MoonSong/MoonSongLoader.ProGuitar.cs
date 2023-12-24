@@ -21,7 +21,7 @@ namespace YARG.Core.Chart
             return new(instrument, difficulties);
         }
 
-        private ProGuitarNote CreateProGuitarNote(MoonNote moonNote, Dictionary<SpecialPhrase.Type, SpecialPhrase> currentPhrases)
+        private ProGuitarNote CreateProGuitarNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases)
         {
             var proString = GetProGuitarString(moonNote);
             int proFret = GetProGuitarFret(moonNote);
@@ -54,7 +54,7 @@ namespace YARG.Core.Chart
 
         private ProGuitarNoteType GetProGuitarNoteType(MoonNote moonNote)
         {
-            var type = moonNote.GetGuitarType(_moonSong.hopoThreshold);
+            var type = moonNote.GetNoteType(MoonChart.GameMode.ProGuitar, _moonSong.hopoThreshold);
             return type switch
             {
                 MoonNote.MoonNoteType.Strum => ProGuitarNoteType.Strum,

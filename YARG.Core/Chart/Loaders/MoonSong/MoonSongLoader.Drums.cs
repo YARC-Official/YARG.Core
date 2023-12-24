@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using MoonscraperChartEditor.Song;
 
-using MoonChartEvent = MoonscraperChartEditor.Song.ChartEvent;
-
 namespace YARG.Core.Chart
 {
     internal partial class MoonSongLoader : ISongLoader
@@ -37,7 +35,7 @@ namespace YARG.Core.Chart
             return new(instrument, difficulties);
         }
 
-        private DrumNote CreateFourLaneDrumNote(MoonNote moonNote, Dictionary<SpecialPhrase.Type, SpecialPhrase> currentPhrases)
+        private DrumNote CreateFourLaneDrumNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases)
         {
             var pad = GetFourLaneDrumPad(moonNote);
             var noteType = GetDrumNoteType(moonNote);
@@ -48,7 +46,7 @@ namespace YARG.Core.Chart
             return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick);
         }
 
-        private DrumNote CreateFiveLaneDrumNote(MoonNote moonNote, Dictionary<SpecialPhrase.Type, SpecialPhrase> currentPhrases)
+        private DrumNote CreateFiveLaneDrumNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases)
         {
             var pad = GetFiveLaneDrumPad(moonNote);
             var noteType = GetDrumNoteType(moonNote);
@@ -59,14 +57,14 @@ namespace YARG.Core.Chart
             return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick);
         }
 
-        private void HandleTextEvent(MoonChartEvent text)
+        private void HandleTextEvent(MoonText text)
         {
             // Ignore on 5-lane or standard Drums
             if (_settings.DrumsType != DrumsType.FourLane && _currentInstrument is Instrument.FourLaneDrums)
                 return;
 
             // Parse out event data
-            if (_discoFlipEventRegex.Match(text.eventName) is not { Success: true } match)
+            if (_discoFlipEventRegex.Match(text.text) is not { Success: true } match)
                 return;
 
             char difficultyChar = match.Groups[1].Value[0];
@@ -303,12 +301,12 @@ namespace YARG.Core.Chart
             return noteType;
         }
 
-        private DrumNoteFlags GetDrumNoteFlags(MoonNote moonNote, Dictionary<SpecialPhrase.Type, SpecialPhrase> currentPhrases)
+        private DrumNoteFlags GetDrumNoteFlags(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases)
         {
             var flags = DrumNoteFlags.None;
 
             // SP activator
-            if (currentPhrases.TryGetValue(SpecialPhrase.Type.ProDrums_Activation, out var activationPhrase) &&
+            if (currentPhrases.TryGetValue(MoonPhrase.Type.ProDrums_Activation, out var activationPhrase) &&
                 IsNoteClosestToEndOfPhrase(_moonSong, moonNote, activationPhrase))
             {
                 flags |= DrumNoteFlags.StarPowerActivator;

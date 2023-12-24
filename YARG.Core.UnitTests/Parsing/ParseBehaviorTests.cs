@@ -1,6 +1,7 @@
 ﻿using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
 using NUnit.Framework;
+using YARG.Core.Chart;
 using YARG.Core.Extensions;
 
 namespace YARG.Core.UnitTests.Parsing
@@ -12,15 +13,13 @@ namespace YARG.Core.UnitTests.Parsing
     internal class ParseBehaviorTests
     {
         public const uint RESOLUTION = 192;
-        public const double TEMPO = 120.0;
+        public const float TEMPO = 120;
         public const int NUMERATOR = 4;
         public const int DENOMINATOR = 4;
 
-        public static readonly Chart.ParseSettings Settings = Chart.ParseSettings.Default;
+        public static readonly ParseSettings Settings = ParseSettings.Default;
 
-        public static readonly SongObjectComparer Comparer = new();
-
-        public static readonly List<Event> GlobalEvents = new()
+        public static readonly List<MoonText> GlobalEvents = new()
         {
         };
 
@@ -34,15 +33,15 @@ namespace YARG.Core.UnitTests.Parsing
             => NewNote(index, (int)pad, length, flags);
         private static MoonNote NewNote(int index, ProGuitarString str, int fret, uint length = 0, Flags flags = Flags.None)
             => NewNote(index, MoonNote.MakeProGuitarRawNote(str, fret), length, flags);
-        private static SpecialPhrase NewSpecial(int index, SpecialPhrase.Type type, uint length = 0)
+        private static MoonPhrase NewSpecial(int index, MoonPhrase.Type type, uint length = 0)
             => new((uint)(index * RESOLUTION), length, type);
 
         public class ParseBehavior
         {
             public MoonNote[] Notes;
-            public SpecialPhrase[] Phrases;
+            public MoonPhrase[] Phrases;
 
-            public ParseBehavior(MoonNote[] notes, SpecialPhrase[] phrases)
+            public ParseBehavior(MoonNote[] notes, MoonPhrase[] phrases)
             {
                 Notes = notes;
                 Phrases = phrases;
@@ -58,35 +57,47 @@ namespace YARG.Core.UnitTests.Parsing
                 NewNote(3, GuitarFret.Blue),
                 NewNote(4, GuitarFret.Orange),
                 NewNote(5, GuitarFret.Open),
+
+                // Versus_Player1
                 NewNote(6, GuitarFret.Green, flags: Flags.Forced),
                 NewNote(7, GuitarFret.Red, flags: Flags.Forced),
                 NewNote(8, GuitarFret.Yellow, flags: Flags.Forced),
                 NewNote(9, GuitarFret.Blue, flags: Flags.Forced),
                 NewNote(10, GuitarFret.Orange, flags: Flags.Forced),
                 NewNote(11, GuitarFret.Open, flags: Flags.Forced),
+
+                // Versus_Player2
                 NewNote(12, GuitarFret.Green, flags: Flags.Tap),
                 NewNote(13, GuitarFret.Red, flags: Flags.Tap),
                 NewNote(14, GuitarFret.Yellow, flags: Flags.Tap),
                 NewNote(15, GuitarFret.Blue, flags: Flags.Tap),
                 NewNote(16, GuitarFret.Orange, flags: Flags.Tap),
+
+                // Starpower
                 NewNote(17, GuitarFret.Green),
                 NewNote(18, GuitarFret.Red),
                 NewNote(19, GuitarFret.Yellow),
                 NewNote(20, GuitarFret.Blue),
                 NewNote(21, GuitarFret.Orange),
                 NewNote(22, GuitarFret.Open),
+
+                // TremoloLane
                 NewNote(23, GuitarFret.Yellow),
                 NewNote(24, GuitarFret.Yellow),
                 NewNote(25, GuitarFret.Yellow),
                 NewNote(26, GuitarFret.Yellow),
                 NewNote(27, GuitarFret.Yellow),
                 NewNote(28, GuitarFret.Yellow),
+
+                // TrillLane
                 NewNote(29, GuitarFret.Green),
                 NewNote(30, GuitarFret.Red),
                 NewNote(31, GuitarFret.Green),
                 NewNote(32, GuitarFret.Red),
                 NewNote(33, GuitarFret.Green),
                 NewNote(34, GuitarFret.Red),
+
+                // Solo
                 NewNote(35, GuitarFret.Green, flags: Flags.Forced),
                 NewNote(36, GuitarFret.Red, flags: Flags.Forced),
                 NewNote(37, GuitarFret.Yellow, flags: Flags.Forced),
@@ -96,12 +107,12 @@ namespace YARG.Core.UnitTests.Parsing
             },
             new[]
             {
-                NewSpecial(6, SpecialPhrase.Type.Versus_Player1, RESOLUTION * 6),
-                NewSpecial(12, SpecialPhrase.Type.Versus_Player2, RESOLUTION * 5),
-                NewSpecial(17, SpecialPhrase.Type.Starpower, RESOLUTION * 6),
-                NewSpecial(23, SpecialPhrase.Type.TremoloLane, RESOLUTION * 6),
-                NewSpecial(29, SpecialPhrase.Type.TrillLane, RESOLUTION * 6),
-                NewSpecial(35, SpecialPhrase.Type.Solo, RESOLUTION * 6),
+                NewSpecial(6, MoonPhrase.Type.Versus_Player1, RESOLUTION * 6),
+                NewSpecial(12, MoonPhrase.Type.Versus_Player2, RESOLUTION * 5),
+                NewSpecial(17, MoonPhrase.Type.Starpower, RESOLUTION * 6),
+                NewSpecial(23, MoonPhrase.Type.TremoloLane, RESOLUTION * 6),
+                NewSpecial(29, MoonPhrase.Type.TrillLane, RESOLUTION * 6),
+                NewSpecial(35, MoonPhrase.Type.Solo, RESOLUTION * 6),
             }
         );
 
@@ -131,6 +142,7 @@ namespace YARG.Core.UnitTests.Parsing
                 NewNote(18, GHLiveGuitarFret.White2, flags: Flags.Tap),
                 NewNote(19, GHLiveGuitarFret.White3, flags: Flags.Tap),
 
+                // Starpower
                 NewNote(20, GHLiveGuitarFret.Black1),
                 NewNote(21, GHLiveGuitarFret.Black2),
                 NewNote(22, GHLiveGuitarFret.Black3),
@@ -139,6 +151,7 @@ namespace YARG.Core.UnitTests.Parsing
                 NewNote(25, GHLiveGuitarFret.White3),
                 NewNote(26, GHLiveGuitarFret.Open),
 
+                // Solo
                 NewNote(27, GHLiveGuitarFret.Black1),
                 NewNote(28, GHLiveGuitarFret.Black2),
                 NewNote(29, GHLiveGuitarFret.Black3),
@@ -149,8 +162,8 @@ namespace YARG.Core.UnitTests.Parsing
             },
             new[]
             {
-                NewSpecial(20, SpecialPhrase.Type.Starpower, RESOLUTION * 7),
-                NewSpecial(27, SpecialPhrase.Type.Solo, RESOLUTION * 7),
+                NewSpecial(20, MoonPhrase.Type.Starpower, RESOLUTION * 7),
+                NewSpecial(27, MoonPhrase.Type.Solo, RESOLUTION * 7),
             }
         );
 
@@ -178,6 +191,7 @@ namespace YARG.Core.UnitTests.Parsing
                 NewNote(16, ProGuitarString.Yellow, 16, flags: Flags.ProGuitar_Muted),
                 NewNote(17, ProGuitarString.Purple, 17, flags: Flags.ProGuitar_Muted),
 
+                // Starpower
                 NewNote(18, ProGuitarString.Red, 0),
                 NewNote(19, ProGuitarString.Green, 1),
                 NewNote(20, ProGuitarString.Orange, 2),
@@ -185,6 +199,7 @@ namespace YARG.Core.UnitTests.Parsing
                 NewNote(22, ProGuitarString.Yellow, 4),
                 NewNote(23, ProGuitarString.Purple, 5),
 
+                // TremoloLane
                 NewNote(24, ProGuitarString.Red, 0),
                 NewNote(25, ProGuitarString.Red, 0),
                 NewNote(26, ProGuitarString.Red, 0),
@@ -192,6 +207,7 @@ namespace YARG.Core.UnitTests.Parsing
                 NewNote(28, ProGuitarString.Red, 0),
                 NewNote(29, ProGuitarString.Red, 0),
 
+                // TrillLane
                 NewNote(30, ProGuitarString.Yellow, 5),
                 NewNote(31, ProGuitarString.Yellow, 6),
                 NewNote(32, ProGuitarString.Yellow, 5),
@@ -199,6 +215,7 @@ namespace YARG.Core.UnitTests.Parsing
                 NewNote(34, ProGuitarString.Yellow, 5),
                 NewNote(35, ProGuitarString.Yellow, 6),
 
+                // Solo
                 NewNote(36, ProGuitarString.Red, 0),
                 NewNote(37, ProGuitarString.Green, 1),
                 NewNote(38, ProGuitarString.Orange, 2),
@@ -208,10 +225,10 @@ namespace YARG.Core.UnitTests.Parsing
             },
             new[]
             {
-                NewSpecial(18, SpecialPhrase.Type.Starpower, RESOLUTION * 6),
-                NewSpecial(24, SpecialPhrase.Type.TremoloLane, RESOLUTION * 6),
-                NewSpecial(30, SpecialPhrase.Type.TrillLane, RESOLUTION * 6),
-                NewSpecial(36, SpecialPhrase.Type.Solo, RESOLUTION * 6),
+                NewSpecial(18, MoonPhrase.Type.Starpower, RESOLUTION * 6),
+                NewSpecial(24, MoonPhrase.Type.TremoloLane, RESOLUTION * 6),
+                NewSpecial(30, MoonPhrase.Type.TrillLane, RESOLUTION * 6),
+                NewSpecial(36, MoonPhrase.Type.Solo, RESOLUTION * 6),
             }
         );
 
@@ -248,6 +265,7 @@ namespace YARG.Core.UnitTests.Parsing
                 NewNote(24, DrumPad.Blue, flags: Flags.ProDrums_Cymbal | Flags.ProDrums_Ghost),
                 NewNote(25, DrumPad.Orange, flags: Flags.ProDrums_Cymbal | Flags.ProDrums_Ghost),
 
+                // Starpower
                 NewNote(26, DrumPad.Red),
                 NewNote(27, DrumPad.Yellow),
                 NewNote(28, DrumPad.Blue),
@@ -257,6 +275,7 @@ namespace YARG.Core.UnitTests.Parsing
                 NewNote(32, DrumPad.Blue, flags: Flags.ProDrums_Cymbal),
                 NewNote(33, DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
 
+                // ProDrums_Activation
                 NewNote(34, DrumPad.Red),
                 NewNote(35, DrumPad.Yellow),
                 NewNote(36, DrumPad.Blue),
@@ -266,6 +285,7 @@ namespace YARG.Core.UnitTests.Parsing
                 NewNote(40, DrumPad.Blue, flags: Flags.ProDrums_Cymbal),
                 NewNote(41, DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
 
+                // Versus_Player1
                 NewNote(42, DrumPad.Red),
                 NewNote(43, DrumPad.Yellow),
                 NewNote(44, DrumPad.Blue),
@@ -275,6 +295,7 @@ namespace YARG.Core.UnitTests.Parsing
                 NewNote(48, DrumPad.Blue, flags: Flags.ProDrums_Cymbal),
                 NewNote(49, DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
 
+                // Versus_Player2
                 NewNote(50, DrumPad.Red),
                 NewNote(51, DrumPad.Yellow),
                 NewNote(52, DrumPad.Blue),
@@ -284,6 +305,7 @@ namespace YARG.Core.UnitTests.Parsing
                 NewNote(56, DrumPad.Blue, flags: Flags.ProDrums_Cymbal),
                 NewNote(57, DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
 
+                // TremoloLane
                 NewNote(58, DrumPad.Red),
                 NewNote(59, DrumPad.Red),
                 NewNote(60, DrumPad.Red),
@@ -291,6 +313,7 @@ namespace YARG.Core.UnitTests.Parsing
                 NewNote(62, DrumPad.Red),
                 NewNote(63, DrumPad.Red),
 
+                // TrillLane
                 NewNote(64, DrumPad.Yellow, flags: Flags.ProDrums_Cymbal),
                 NewNote(65, DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
                 NewNote(66, DrumPad.Yellow, flags: Flags.ProDrums_Cymbal),
@@ -298,6 +321,7 @@ namespace YARG.Core.UnitTests.Parsing
                 NewNote(68, DrumPad.Yellow, flags: Flags.ProDrums_Cymbal),
                 NewNote(69, DrumPad.Orange, flags: Flags.ProDrums_Cymbal),
 
+                // Solo
                 NewNote(70, DrumPad.Red),
                 NewNote(71, DrumPad.Yellow),
                 NewNote(72, DrumPad.Blue),
@@ -309,13 +333,13 @@ namespace YARG.Core.UnitTests.Parsing
             },
             new[]
             {
-                NewSpecial(26, SpecialPhrase.Type.Starpower, RESOLUTION * 8),
-                NewSpecial(34, SpecialPhrase.Type.ProDrums_Activation, RESOLUTION * 5),
-                NewSpecial(42, SpecialPhrase.Type.Versus_Player1, RESOLUTION * 8),
-                NewSpecial(50, SpecialPhrase.Type.Versus_Player2, RESOLUTION * 8),
-                NewSpecial(58, SpecialPhrase.Type.TremoloLane, RESOLUTION * 6),
-                NewSpecial(64, SpecialPhrase.Type.TrillLane, RESOLUTION * 6),
-                NewSpecial(70, SpecialPhrase.Type.Solo, RESOLUTION * 8),
+                NewSpecial(26, MoonPhrase.Type.Starpower, RESOLUTION * 8),
+                NewSpecial(34, MoonPhrase.Type.ProDrums_Activation, RESOLUTION * 5),
+                NewSpecial(42, MoonPhrase.Type.Versus_Player1, RESOLUTION * 8),
+                NewSpecial(50, MoonPhrase.Type.Versus_Player2, RESOLUTION * 8),
+                NewSpecial(58, MoonPhrase.Type.TremoloLane, RESOLUTION * 6),
+                NewSpecial(64, MoonPhrase.Type.TrillLane, RESOLUTION * 6),
+                NewSpecial(70, MoonPhrase.Type.Solo, RESOLUTION * 8),
             }
         );
 
@@ -324,6 +348,8 @@ namespace YARG.Core.UnitTests.Parsing
         public static readonly ParseBehavior VocalsNotes = new(
             new[]
             {
+                // Versus_Player1
+                // Vocals_LyricPhrase
                 NewNote(0, VOCALS_RANGE_START + 0, length: RESOLUTION / 2),
                 NewNote(1, VOCALS_RANGE_START + 1, length: RESOLUTION / 2),
                 NewNote(2, VOCALS_RANGE_START + 2, length: RESOLUTION / 2),
@@ -337,6 +363,9 @@ namespace YARG.Core.UnitTests.Parsing
                 NewNote(10, VOCALS_RANGE_START + 10, length: RESOLUTION / 2),
                 NewNote(11, VOCALS_RANGE_START + 11, length: RESOLUTION / 2),
 
+                // Versus_Player2
+                // Vocals_LyricPhrase
+                // Starpower
                 NewNote(12, VOCALS_RANGE_START + 12, length: RESOLUTION / 2),
                 NewNote(13, VOCALS_RANGE_START + 13, length: RESOLUTION / 2),
                 NewNote(14, VOCALS_RANGE_START + 14, length: RESOLUTION / 2),
@@ -350,6 +379,9 @@ namespace YARG.Core.UnitTests.Parsing
                 NewNote(22, VOCALS_RANGE_START + 22, length: RESOLUTION / 2),
                 NewNote(23, VOCALS_RANGE_START + 23, length: RESOLUTION / 2),
 
+                // Versus_Player1
+                // Vocals_LyricPhrase
+                // Versus_Player2
                 NewNote(24, VOCALS_RANGE_START + 24, length: RESOLUTION / 2),
                 NewNote(25, VOCALS_RANGE_START + 25, length: RESOLUTION / 2),
                 NewNote(26, VOCALS_RANGE_START + 26, length: RESOLUTION / 2),
@@ -363,6 +395,8 @@ namespace YARG.Core.UnitTests.Parsing
                 NewNote(34, VOCALS_RANGE_START + 34, length: RESOLUTION / 2),
                 NewNote(35, VOCALS_RANGE_START + 35, length: RESOLUTION / 2),
 
+                // Versus_Player2
+                // Vocals_LyricPhrase
                 NewNote(36, VOCALS_RANGE_START + 36, length: RESOLUTION / 2),
                 NewNote(37, VOCALS_RANGE_START + 37, length: RESOLUTION / 2),
                 NewNote(38, VOCALS_RANGE_START + 38, length: RESOLUTION / 2),
@@ -377,27 +411,28 @@ namespace YARG.Core.UnitTests.Parsing
                 NewNote(47, VOCALS_RANGE_START + 47, length: RESOLUTION / 2),
                 NewNote(48, VOCALS_RANGE_START + 48, length: RESOLUTION / 2),
 
+                // Versus_Player1
+                // Vocals_LyricPhrase
                 NewNote(49, 0, flags: Flags.Vocals_Percussion),
             },
             new[]
             {
-                NewSpecial(0, SpecialPhrase.Type.Versus_Player1, RESOLUTION * 12),
-                NewSpecial(0, SpecialPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 12),
+                NewSpecial(0, MoonPhrase.Type.Versus_Player1, RESOLUTION * 12),
+                NewSpecial(0, MoonPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 12),
 
-                NewSpecial(12, SpecialPhrase.Type.Versus_Player2, RESOLUTION * 12),
-                NewSpecial(12, SpecialPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 12),
+                NewSpecial(12, MoonPhrase.Type.Versus_Player2, RESOLUTION * 12),
+                NewSpecial(12, MoonPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 12),
+                NewSpecial(12, MoonPhrase.Type.Starpower, RESOLUTION * 12),
+
+                NewSpecial(24, MoonPhrase.Type.Versus_Player1, RESOLUTION * 12),
+                NewSpecial(24, MoonPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 12),
+                NewSpecial(24, MoonPhrase.Type.Versus_Player2, RESOLUTION * 12),
+
+                NewSpecial(36, MoonPhrase.Type.Versus_Player2, RESOLUTION * 13),
+                NewSpecial(36, MoonPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 13),
                 
-                NewSpecial(12, SpecialPhrase.Type.Starpower, RESOLUTION * 12),
-
-                NewSpecial(24, SpecialPhrase.Type.Versus_Player1, RESOLUTION * 12),
-                NewSpecial(24, SpecialPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 12),
-                NewSpecial(24, SpecialPhrase.Type.Versus_Player2, RESOLUTION * 12),
-
-                NewSpecial(36, SpecialPhrase.Type.Versus_Player2, RESOLUTION * 13),
-                NewSpecial(36, SpecialPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 13),
-                
-                NewSpecial(49, SpecialPhrase.Type.Versus_Player1, RESOLUTION * 1),
-                NewSpecial(49, SpecialPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 1),
+                NewSpecial(49, MoonPhrase.Type.Versus_Player1, RESOLUTION * 1),
+                NewSpecial(49, MoonPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 1),
             }
         );
 
@@ -411,7 +446,7 @@ namespace YARG.Core.UnitTests.Parsing
             PopulateGlobalEvents(song, GlobalEvents);
             foreach (var instrument in EnumExtensions<MoonInstrument>.Values)
             {
-                var gameMode = InstumentToChartGameMode(instrument);
+                var gameMode = InstrumentToChartGameMode(instrument);
                 var track = GameModeToChartData(gameMode);
                 PopulateInstrument(song, instrument, track);
             }
@@ -432,11 +467,11 @@ namespace YARG.Core.UnitTests.Parsing
 
         public static void PopulateSyncTrack(MoonSong song)
         {
-            song.bpms.Add(new BPM(0, (uint) (TEMPO * 1000)));
-            song.timeSignatures.Add(new TimeSignature(0, NUMERATOR, DENOMINATOR));
+            song.bpms.Add(new MoonTempo(0, TEMPO));
+            song.timeSignatures.Add(new MoonTimeSignature(0, NUMERATOR, DENOMINATOR));
         }
 
-        public static void PopulateGlobalEvents(MoonSong song, List<Event> events)
+        public static void PopulateGlobalEvents(MoonSong song, List<MoonText> events)
         {
             foreach (var text in events)
             {
@@ -475,7 +510,7 @@ namespace YARG.Core.UnitTests.Parsing
                 foreach (var instrument in EnumExtensions<MoonInstrument>.Values)
                 {
                     // Skip unsupported instruments
-                    var gameMode = MoonSong.InstumentToChartGameMode(instrument);
+                    var gameMode = MoonSong.InstrumentToChartGameMode(instrument);
                     if (!supportedModes.Contains(gameMode))
                         continue;
 
@@ -496,9 +531,9 @@ namespace YARG.Core.UnitTests.Parsing
         {
             Assert.Multiple(() =>
             {
-                CollectionAssert.AreEqual(sourceSong.bpms, parsedSong.bpms, Comparer, "BPMs do not match!");
-                CollectionAssert.AreEqual(sourceSong.timeSignatures, parsedSong.timeSignatures, Comparer, "Time signatures do not match!");
-                CollectionAssert.AreEqual(parsedSong.events, parsedSong.events, Comparer, "Global events do not match!");
+                CollectionAssert.AreEqual(sourceSong.bpms, parsedSong.bpms, "BPMs do not match!");
+                CollectionAssert.AreEqual(sourceSong.timeSignatures, parsedSong.timeSignatures, "Time signatures do not match!");
+                CollectionAssert.AreEqual(parsedSong.events, parsedSong.events, "Global events do not match!");
             });
         }
 
@@ -521,9 +556,9 @@ namespace YARG.Core.UnitTests.Parsing
 
                 var sourceChart = sourceSong.GetChart(instrument, difficulty);
                 var parsedChart = parsedSong.GetChart(instrument, difficulty);
-                CollectionAssert.AreEqual(sourceChart.notes, parsedChart.notes, Comparer, $"Notes on {difficulty} {instrument} do not match!");
-                CollectionAssert.AreEqual(sourceChart.specialPhrases, parsedChart.specialPhrases, Comparer, $"Special phrases on {difficulty} {instrument} do not match!");
-                CollectionAssert.AreEqual(sourceChart.events, parsedChart.events, Comparer, $"Local events on {difficulty} {instrument} do not match!");
+                CollectionAssert.AreEqual(sourceChart.notes, parsedChart.notes, $"Notes on {difficulty} {instrument} do not match!");
+                CollectionAssert.AreEqual(sourceChart.specialPhrases, parsedChart.specialPhrases, $"Special phrases on {difficulty} {instrument} do not match!");
+                CollectionAssert.AreEqual(sourceChart.events, parsedChart.events, $"Local events on {difficulty} {instrument} do not match!");
             });
         }
     }

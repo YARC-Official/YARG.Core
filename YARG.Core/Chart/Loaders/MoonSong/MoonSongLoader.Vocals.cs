@@ -91,12 +91,12 @@ namespace YARG.Core.Chart
             var phrases = new List<VocalsPhrase>();
 
             // Prefill with the valid phrases
-            var phraseTracker = new Dictionary<SpecialPhrase.Type, SpecialPhrase?>()
+            var phraseTracker = new Dictionary<MoonPhrase.Type, MoonPhrase?>()
             {
-                { SpecialPhrase.Type.Starpower , null },
-                { SpecialPhrase.Type.Versus_Player1 , null },
-                { SpecialPhrase.Type.Versus_Player2 , null },
-                { SpecialPhrase.Type.Vocals_PercussionPhrase , null },
+                { MoonPhrase.Type.Starpower , null },
+                { MoonPhrase.Type.Versus_Player1 , null },
+                { MoonPhrase.Type.Versus_Player2 , null },
+                { MoonPhrase.Type.Vocals_PercussionPhrase , null },
             };
 
             int moonNoteIndex = 0;
@@ -105,7 +105,7 @@ namespace YARG.Core.Chart
             for (int moonPhraseIndex = 0; moonPhraseIndex < moonChart.specialPhrases.Count;)
             {
                 var moonPhrase = moonChart.specialPhrases[moonPhraseIndex++];
-                if (moonPhrase.type != SpecialPhrase.Type.Vocals_LyricPhrase)
+                if (moonPhrase.type != MoonPhrase.Type.Vocals_LyricPhrase)
                 {
                     phraseTracker[moonPhrase.type] = moonPhrase;
                     continue;
@@ -150,7 +150,7 @@ namespace YARG.Core.Chart
                             break;
                         moonTextIndex++;
 
-                        var splitter = moonEvent.eventName.AsSpan().Split(' ');
+                        var splitter = moonEvent.text.AsSpan().Split(' ');
                         // Ignore non-lyric events
                         var start = splitter.GetNext();
                         var lyric = splitter.Remaining;
@@ -231,13 +231,13 @@ namespace YARG.Core.Chart
             return flags;
         }
 
-        private VocalsPhrase CreateVocalsPhrase(SpecialPhrase moonPhrase, Dictionary<SpecialPhrase.Type, SpecialPhrase?> phrasetracker,
+        private VocalsPhrase CreateVocalsPhrase(MoonPhrase moonPhrase, Dictionary<MoonPhrase.Type, MoonPhrase?> phrasetracker,
             List<VocalNote> notes, List<TextEvent> lyrics)
         {
             var bounds = GetVocalsPhraseBounds(moonPhrase);
             var phraseFlags = GetVocalsPhraseFlags(moonPhrase, phrasetracker);
 
-            // Convert to SpecialPhrase into a vocal note phrase
+            // Convert to MoonPhrase into a vocal note phrase
             var phraseNote = new VocalNote(phraseFlags, bounds.Time, bounds.TimeLength,
                 bounds.Tick, bounds.TickLength);
             foreach (var note in notes)
@@ -248,20 +248,20 @@ namespace YARG.Core.Chart
             return new VocalsPhrase(bounds, phraseNote, lyrics);
         }
 
-        private Phrase GetVocalsPhraseBounds(SpecialPhrase moonPhrase)
+        private Phrase GetVocalsPhraseBounds(MoonPhrase moonPhrase)
         {
             double time = _moonSong.TickToTime(moonPhrase.tick);
             return new Phrase(PhraseType.LyricPhrase, time, GetLengthInTime(moonPhrase),
                 moonPhrase.tick, moonPhrase.length);
         }
 
-        private NoteFlags GetVocalsPhraseFlags(SpecialPhrase moonPhrase, Dictionary<SpecialPhrase.Type, SpecialPhrase?> phrasetracker)
+        private NoteFlags GetVocalsPhraseFlags(MoonPhrase moonPhrase, Dictionary<MoonPhrase.Type, MoonPhrase?> phrasetracker)
         {
             var phraseFlags = NoteFlags.None;
 
             // No need to check the start of the phrase, as entering the function
             // already guarantees that condition *if* the below is true
-            var starPower = phrasetracker[SpecialPhrase.Type.Starpower];
+            var starPower = phrasetracker[MoonPhrase.Type.Starpower];
             if (starPower != null &&  moonPhrase.tick < starPower.tick + starPower.length)
             {
                 phraseFlags |= NoteFlags.StarPower;

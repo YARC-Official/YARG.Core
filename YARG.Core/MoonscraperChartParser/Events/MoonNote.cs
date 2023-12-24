@@ -8,40 +8,37 @@ using System.Collections.Generic;
 namespace MoonscraperChartEditor.Song
 {
     [Serializable]
-    internal class MoonNote : ChartObject
+    internal class MoonNote : MoonObject
     {
         public enum GuitarFret
         {
-            // Assign to the sprite array position
-            Green = 0,
-            Red = 1,
-            Yellow = 2,
-            Blue = 3,
-            Orange = 4,
-            Open = 5
+            Open,
+            Green,
+            Red,
+            Yellow,
+            Blue,
+            Orange,
         }
 
         public enum DrumPad
         {
-            // Wrapper to account for how the frets change colours between the drums and guitar tracks from the GH series  
-            Red = GuitarFret.Green,
-            Yellow = GuitarFret.Red,
-            Blue = GuitarFret.Yellow,
-            Orange = GuitarFret.Blue,
-            Green = GuitarFret.Orange,
-            Kick = GuitarFret.Open,
+            Kick,
+            Red,
+            Yellow,
+            Blue,
+            Orange,
+            Green,
         }
 
         public enum GHLiveGuitarFret
         {
-            // Assign to the sprite array position
+            Open,
             Black1,
             Black2,
             Black3,
             White1,
             White2,
             White3,
-            Open
         }
 
         public enum ProGuitarString
@@ -96,18 +93,20 @@ namespace MoonscraperChartEditor.Song
             ProDrums_Ghost = 1 << 13,
         }
 
-        private readonly ID _classID = ID.Note;
-        public override int classID => (int)_classID;
-
         public uint length;
         public int rawNote;
+
         public GuitarFret guitarFret
         {
             get => (GuitarFret)rawNote;
             set => rawNote = (int)value;
         }
 
-        public DrumPad drumPad => (DrumPad)guitarFret;
+        public DrumPad drumPad
+        {
+            get => (DrumPad)rawNote;
+            set => rawNote = (int)value;
+        }
 
         public GHLiveGuitarFret ghliveGuitarFret
         {
@@ -152,7 +151,8 @@ namespace MoonscraperChartEditor.Song
 
         public Chord chord => new(this);
 
-        public MoonNote(uint _position, int _rawNote, uint _sustain = 0, Flags _flags = Flags.None) : base(_position)
+        public MoonNote(uint _position, int _rawNote, uint _sustain = 0, Flags _flags = Flags.None)
+            : base(ID.Note, _position)
         {
             length = _sustain;
             flags = _flags;
@@ -205,37 +205,24 @@ namespace MoonscraperChartEditor.Song
             }
         }
 
-        protected override bool Equals(SongObject b)
+        public override bool ValueEquals(MoonObject obj)
         {
-            if (b.GetType() == typeof(MoonNote))
-            {
-                var realB = (MoonNote) b;
-                if (tick == realB.tick && rawNote == realB.rawNote)
-                    return true;
-                else
-                    return false;
-            }
-            else
-                return base.Equals(b);
+            bool baseEq = base.ValueEquals(obj);
+            if (!baseEq || obj is not MoonNote note)
+                return baseEq;
+
+            return rawNote == note.rawNote &&
+                length == note.length &&
+                flags == note.flags;
         }
 
-        protected override bool LessThan(SongObject b)
+        public override int InsertionCompareTo(MoonObject obj)
         {
-            if (b.GetType() == typeof(MoonNote))
-            {
-                var realB = (MoonNote) b;
-                if (tick < b.tick)
-                    return true;
-                else if (tick == b.tick)
-                {
-                    if (rawNote < realB.rawNote)
-                        return true;
-                }
+            int baseComp = base.InsertionCompareTo(obj);
+            if (baseComp != 0 || obj is not MoonNote note)
+                return baseComp;
 
-                return false;
-            }
-            else
-                return base.LessThan(b);
+            return rawNote.CompareTo(note.rawNote);
         }
 
         public bool isChord => (previous != null && previous.tick == tick) || (next != null && next.tick == tick);
@@ -306,29 +293,24 @@ namespace MoonscraperChartEditor.Song
         /// <summary>
         /// Live calculation of what Note_Type this note would currently be. 
         /// </summary>
-        public MoonNoteType GetGuitarType(float hopoThreshold)
+        public MoonNoteType GetGuitarNoteType(MoonChart.GameMode gameMode, float hopoThreshold)
         {
-            if (!IsOpenNote(MoonChart.GameMode.Guitar) && (flags & Flags.Tap) != 0)
+            if (!IsOpenNote(gameMode) && (flags & Flags.Tap) != 0)
             {
                 return MoonNoteType.Tap;
             }
             return IsHopo(hopoThreshold) ? MoonNoteType.Hopo : MoonNoteType.Strum;
         }
 
-        public MoonNoteType drumType
+        public MoonNoteType GetDrumsNoteType()
         {
-            get
+            if (drumPad is DrumPad.Yellow or DrumPad.Blue or DrumPad.Orange &&
+                (flags & Flags.ProDrums_Cymbal) != 0)
             {
-                if (drumPad is DrumPad.Yellow or DrumPad.Blue or DrumPad.Orange &&
-                           (flags & Flags.ProDrums_Cymbal) != 0)
-                {
-                    return MoonNoteType.Cymbal;
-                }
-                return MoonNoteType.Strum;
+                return MoonNoteType.Cymbal;
             }
+            return MoonNoteType.Strum;
         }
-
-        public MoonNoteType type => MoonNoteType.Natural;
 
         public class Chord : IEnumerable<MoonNote>
         {
@@ -382,7 +364,7 @@ namespace MoonscraperChartEditor.Song
             return rawNote;
         }
 
-        protected override ChartObject ChartClone() => Clone();
+        protected override MoonObject CloneImpl() => Clone();
 
         public new MoonNote Clone()
         {
@@ -391,7 +373,7 @@ namespace MoonscraperChartEditor.Song
 
         public override string ToString()
         {
-            return $"Note at tick {tick} with value {rawNote} and length {length}";
+            return $"Note at tick {tick} with value {rawNote}, length {length}, flags {flags}";
         }
     }
 }
