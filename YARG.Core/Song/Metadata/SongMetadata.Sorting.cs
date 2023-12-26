@@ -19,22 +19,19 @@ namespace YARG.Core.Song
         Instrument,
     };
 
-    public sealed partial class SongMetadata
+    public sealed partial class SongMetadata : IComparable<SongMetadata>
     {
-        public string GetStringAttribute(SongAttribute attribute)
+        public int CompareTo(SongMetadata other)
         {
-            return attribute switch
+            int strCmp;
+            if ((strCmp = Name.CompareTo(other.Name)) == 0 &&
+                (strCmp = Artist.CompareTo(other.Artist)) == 0 &&
+                (strCmp = Album.CompareTo(other.Album)) == 0 &&
+                (strCmp = Charter.CompareTo(other.Charter)) == 0)
             {
-                SongAttribute.Name => _name.Str,
-                SongAttribute.Artist => _artist.Str,
-                SongAttribute.Album => _album.Str,
-                SongAttribute.Genre => _genre.Str,
-                SongAttribute.Year => _unmodifiedYear,
-                SongAttribute.Charter => _charter.Str,
-                SongAttribute.Playlist => _playlist.Str,
-                SongAttribute.Source => _source.Str,
-                _ => throw new Exception("stoopid - only string attributes can be used here"),
-            };
+                strCmp = Directory.CompareTo(other.Directory);
+            }
+            return strCmp;
         }
     }
 
@@ -79,14 +76,7 @@ namespace YARG.Core.Song
                     break;
             }
 
-            int strCmp;
-            if ((strCmp = lhs.Name.CompareTo(rhs.Name)) != 0 ||
-                (strCmp = lhs.Artist.CompareTo(rhs.Artist)) != 0 ||
-                (strCmp = lhs.Album.CompareTo(rhs.Album)) != 0 ||
-                (strCmp = lhs.Charter.CompareTo(rhs.Charter)) != 0)
-                return strCmp < 0;
-            else
-                return lhs.Directory.CompareTo(rhs.Directory) < 0;
+            return lhs.CompareTo(rhs) < 0;
         }
     }
 

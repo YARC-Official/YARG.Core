@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 
 namespace YARG.Core.Song.Cache
@@ -138,7 +139,19 @@ namespace YARG.Core.Song.Cache
             {
                 foreach (var entry in element.Value)
                 {
-                    string str = entry.GetStringAttribute(attribute);
+                    string str = attribute switch
+                    {
+                        SongAttribute.Name => entry.Name.Str,
+                        SongAttribute.Artist => entry.Artist.Str,
+                        SongAttribute.Album => entry.Album.Str,
+                        SongAttribute.Genre => entry.Genre.Str,
+                        SongAttribute.Year => entry.UnmodifiedYear,
+                        SongAttribute.Charter => entry.Charter.Str,
+                        SongAttribute.Playlist => entry.Playlist.Str,
+                        SongAttribute.Source => entry.Source.Str,
+                        _ => throw new Exception("stoopid - only string attributes can be used here"),
+                    };
+
                     int index = strings.BinarySearch(str);
                     if (index < 0)
                     {
