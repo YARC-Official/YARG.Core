@@ -59,15 +59,12 @@ namespace YARG.Core.Chart
 
                 var lyric = text.AsSpan()
                     .Slice(TextEvents.LYRIC_PREFIX_WITH_SPACE.Length).TrimStartAscii();
-                // Ignore empty lyrics
-                // (2 characters for the quotes on each side)
-                if (lyric.Length < 2)
-                    return;
 
                 // Remove start/end quotes
-                if (lyric[0] == '"')
+                lyric.TrimAscii();
+                if (!lyric.IsEmpty && lyric[0] == '"')
                     lyric = lyric[1..];
-                if (lyric[^1] == '"')
+                if (!lyric.IsEmpty && lyric[^1] == '"')
                     lyric = lyric[..^1];
                 lyric.TrimAscii();
 
