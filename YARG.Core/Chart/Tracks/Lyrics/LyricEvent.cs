@@ -21,6 +21,8 @@ namespace YARG.Core.Chart
 
         public string Text { get; }
 
+        public LyricFlags Flags => _flags;
+
         public bool JoinWithNext => (_flags & LyricFlags.JoinWithNext) != 0;
 
         public LyricEvent(LyricFlags flags, string text, double time, uint tick)
@@ -38,6 +40,11 @@ namespace YARG.Core.Chart
         public LyricEvent Clone()
         {
             return new(this);
+        }
+
+        public override string ToString()
+        {
+            return $"Lyric event '{Text}' at {Time}s ({Tick}t) with flags {_flags}";
         }
     }
 }

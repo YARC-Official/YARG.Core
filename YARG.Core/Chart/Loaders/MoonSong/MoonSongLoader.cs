@@ -29,7 +29,7 @@ namespace YARG.Core.Chart
         private MoonSong.MoonInstrument _currentMoonInstrument;
         private MoonSong.Difficulty _currentMoonDifficulty;
 
-        private MoonSongLoader(MoonSong song, ParseSettings settings)
+        public MoonSongLoader(MoonSong song, ParseSettings settings)
         {
             if (settings.NoteSnapThreshold < 0)
                 settings.NoteSnapThreshold = 0;
