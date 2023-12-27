@@ -224,25 +224,21 @@ namespace YARG.Core.Chart
         private VocalsPhrase CreateVocalsPhrase(MoonPhrase moonPhrase, Dictionary<MoonPhrase.Type, MoonPhrase?> phrasetracker,
             List<VocalNote> notes, List<TextEvent> lyrics)
         {
-            var bounds = GetVocalsPhraseBounds(moonPhrase);
+            double time = _moonSong.TickToTime(moonPhrase.tick);
+            double timeLength = GetLengthInTime(moonPhrase);
+            uint tick = moonPhrase.tick;
+            uint tickLength = moonPhrase.length;
+
             var phraseFlags = GetVocalsPhraseFlags(moonPhrase, phrasetracker);
 
             // Convert to MoonPhrase into a vocal note phrase
-            var phraseNote = new VocalNote(phraseFlags, bounds.Time, bounds.TimeLength,
-                bounds.Tick, bounds.TickLength);
+            var phraseNote = new VocalNote(phraseFlags, time, timeLength, tick, tickLength);
             foreach (var note in notes)
             {
                 phraseNote.AddNoteToPhrase(note);
             }
 
-            return new VocalsPhrase(bounds, phraseNote, lyrics);
-        }
-
-        private Phrase GetVocalsPhraseBounds(MoonPhrase moonPhrase)
-        {
-            double time = _moonSong.TickToTime(moonPhrase.tick);
-            return new Phrase(PhraseType.LyricPhrase, time, GetLengthInTime(moonPhrase),
-                moonPhrase.tick, moonPhrase.length);
+            return new VocalsPhrase(time, timeLength, tick, tickLength, phraseNote, lyrics);
         }
 
         private NoteFlags GetVocalsPhraseFlags(MoonPhrase moonPhrase, Dictionary<MoonPhrase.Type, MoonPhrase?> phrasetracker)

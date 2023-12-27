@@ -7,28 +7,18 @@ namespace YARG.Core.Chart
     /// <summary>
     /// A phrase within the lyrics track.
     /// </summary>
-    public class LyricsPhrase : ICloneable<LyricsPhrase>
+    public class LyricsPhrase : ChartEvent, ICloneable<LyricsPhrase>
     {
-        public Phrase Bounds { get; }
-
-        public double Time       => Bounds.Time;
-        public double TimeLength => Bounds.TimeLength;
-        public double TimeEnd    => Bounds.TimeEnd;
-
-        public uint Tick       => Bounds.Tick;
-        public uint TickLength => Bounds.TickLength;
-        public uint TickEnd    => Bounds.TickEnd;
-
         public List<LyricEvent> Lyrics { get; } = new();
 
-        public LyricsPhrase(Phrase bounds, List<LyricEvent> lyrics)
+        public LyricsPhrase(double time, double timeLength, uint tick, uint tickLength, List<LyricEvent> lyrics)
+            : base(time, timeLength, tick, tickLength)
         {
-            Bounds = bounds;
             Lyrics = lyrics;
         }
 
         public LyricsPhrase(LyricsPhrase other)
-            : this(other.Bounds.Clone(), other.Lyrics.Duplicate())
+            : this(other.Time, other.TimeLength, other.Tick, other.TickLength, other.Lyrics.Duplicate())
         {
         }
 

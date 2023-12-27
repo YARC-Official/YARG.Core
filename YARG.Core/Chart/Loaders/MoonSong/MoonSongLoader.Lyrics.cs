@@ -48,8 +48,7 @@ namespace YARG.Core.Chart
 
                 double startTime = _moonSong.TickToTime(startTick);
                 double endTime = _moonSong.TickToTime(endTick);
-                var bounds = new Phrase(PhraseType.LyricPhrase, startTime, endTime - startTime, startTick, endTick - startTick);
-                Phrases.Add(new(bounds, lyrics));
+                Phrases.Add(new(startTime, endTime - startTime, startTick, endTick - startTick, lyrics));
             }
 
             public void AddPhraseEvent(string text, uint tick)
