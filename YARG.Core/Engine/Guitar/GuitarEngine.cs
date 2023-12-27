@@ -27,7 +27,6 @@ namespace YARG.Core.Engine.Guitar
             GuitarEngineParameters engineParameters)
             : base(chart, syncTrack, engineParameters)
         {
-            BaseScore = CalculateBaseScore();
             State.Initialize(engineParameters);
         }
 

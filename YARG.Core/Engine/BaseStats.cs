@@ -74,7 +74,6 @@ namespace YARG.Core.Engine
         /// <summary>
         /// The number of stars the player has achieved.
         /// </summary>
-        /// <remarks>This value should not be written to Replay files as Star Cutoffs may change over time.</remarks>
         public int Stars;
 
         protected BaseStats()

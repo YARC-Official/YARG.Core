@@ -6,14 +6,11 @@ using YARG.Core.Input;
 
 namespace YARG.Core.Engine
 {
-    // This is a hack lol
     public abstract class BaseEngine
     {
         public bool IsInputQueued => InputQueue.Count > 0;
 
         public int BaseScore { get; protected set; }
-
-        public int[] StarScoreThresholds { get; protected set; }
 
         public EngineEventLogger EventLogger { get; }
 
@@ -40,19 +37,12 @@ namespace YARG.Core.Engine
         /// </summary>
         public abstract bool TreatChordAsSeparate { get; }
 
-        protected BaseEngine(BaseEngineParameters parameters, SyncTrack syncTrack)
+        protected BaseEngine(SyncTrack syncTrack)
         {
             SyncTrack = syncTrack;
             Resolution = syncTrack.Resolution;
 
             TicksPerSustainPoint = Resolution / 25;
-
-            float[] multiplierThresholds = parameters.StarMultiplierThresholds;
-            StarScoreThresholds = new int[multiplierThresholds.Length];
-            for (int i = 0; i < multiplierThresholds.Length; i++)
-            {
-                StarScoreThresholds[i] = (int) (BaseScore * multiplierThresholds[i]);
-            }
 
             EventLogger = new EngineEventLogger();
             InputQueue = new Queue<GameInput>();
@@ -234,6 +224,8 @@ namespace YARG.Core.Engine
         public SoloStartEvent? OnSoloStart;
         public SoloEndEvent?   OnSoloEnd;
 
+        protected int[] StarScoreThresholds { get; }
+
         public readonly TEngineStats EngineStats;
 
         protected readonly InstrumentDifficulty<TNoteType> Chart;
@@ -246,7 +238,7 @@ namespace YARG.Core.Engine
         public override BaseEngineState BaseState => State;
 
         protected BaseEngine(InstrumentDifficulty<TNoteType> chart, SyncTrack syncTrack,
-            TEngineParams engineParameters) : base(engineParameters, syncTrack)
+            TEngineParams engineParameters) : base(syncTrack)
         {
             Chart = chart;
             Notes = Chart.Notes;
@@ -258,6 +250,17 @@ namespace YARG.Core.Engine
             State.Reset();
 
             EngineStats.ScoreMultiplier = 1;
+
+            // This method should only rely on the `Notes` property (which is assigned above).
+            // ReSharper disable once VirtualMemberCallInConstructor
+            BaseScore = CalculateBaseScore();
+
+            float[] multiplierThresholds = engineParameters.StarMultiplierThresholds;
+            StarScoreThresholds = new int[multiplierThresholds.Length];
+            for (int i = 0; i < multiplierThresholds.Length; i++)
+            {
+                StarScoreThresholds[i] = (int) (BaseScore * multiplierThresholds[i]);
+            }
 
             Solos = GetSoloSections();
         }
@@ -421,12 +424,8 @@ namespace YARG.Core.Engine
 
         protected void UpdateStars()
         {
-            if (State.CurrentStarIndex >= StarScoreThresholds.Length || StarScoreThresholds[0] == 0)
-            {
-                return;
-            }
-
-            if (EngineStats.Score >= StarScoreThresholds[State.CurrentStarIndex])
+            while (State.CurrentStarIndex < StarScoreThresholds.Length &&
+                EngineStats.Score > StarScoreThresholds[State.CurrentStarIndex])
             {
                 EngineStats.Stars++;
                 State.CurrentStarIndex++;
@@ -670,6 +669,14 @@ namespace YARG.Core.Engine
                 EngineParameters.HitWindow.GetBackEnd(hitWindow));
         }
 
+        /// <summary>
+        /// Calculates the base score of the chart, which can be used to calculate star thresholds.
+        /// </summary>
+        /// <remarks>
+        /// Please be mindful that this virtual method is called in the constructor of
+        /// <see cref="BaseEngine{TNoteType,TEngineParams,TEngineStats,TEngineState}"/>.
+        /// <b>ONLY</b> use the <see cref="Notes"/> property to calculate this.
+        /// </remarks>
         protected abstract int CalculateBaseScore();
 
         protected bool IsNoteInWindow(TNoteType note)

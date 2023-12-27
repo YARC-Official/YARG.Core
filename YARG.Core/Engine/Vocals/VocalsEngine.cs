@@ -20,7 +20,6 @@ namespace YARG.Core.Engine.Vocals
             VocalsEngineParameters engineParameters)
             : base(chart, syncTrack, engineParameters)
         {
-            BaseScore = CalculateBaseScore();
         }
 
         protected override bool HitNote(VocalNote note)

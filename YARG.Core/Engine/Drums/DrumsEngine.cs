@@ -20,7 +20,6 @@ namespace YARG.Core.Engine.Drums
             DrumsEngineParameters engineParameters)
             : base(chart, syncTrack, engineParameters)
         {
-            BaseScore = CalculateBaseScore();
         }
 
         public override void Reset(bool keepCurrentButtons = false)
