@@ -81,7 +81,7 @@ namespace YARG.Core.Chart
 
         private GuitarNoteType GetGuitarNoteType(MoonNote moonNote)
         {
-            var type = moonNote.GetNoteType(MoonChart.GameMode.Guitar, _moonSong.hopoThreshold);
+            var type = moonNote.GetGuitarNoteType(_currentMoonMode, _moonSong.hopoThreshold);
             return type switch
             {
                 MoonNote.MoonNoteType.Strum => GuitarNoteType.Strum,

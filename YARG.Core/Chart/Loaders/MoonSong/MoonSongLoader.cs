@@ -21,8 +21,13 @@ namespace YARG.Core.Chart
         private MoonSong _moonSong;
         private ParseSettings _settings;
 
+        private GameMode _currentMode;
         private Instrument _currentInstrument;
         private Difficulty _currentDifficulty;
+
+        private MoonChart.GameMode _currentMoonMode;
+        private MoonSong.MoonInstrument _currentMoonInstrument;
+        private MoonSong.Difficulty _currentMoonDifficulty;
 
         private MoonSongLoader(MoonSong song, ParseSettings settings)
         {
@@ -131,8 +136,13 @@ namespace YARG.Core.Chart
             CreateNoteDelegate<TNote> createNote, ProcessTextDelegate? processText = null)
             where TNote : Note<TNote>
         {
+            _currentMode = instrument.ToGameMode();
             _currentInstrument = instrument;
             _currentDifficulty = difficulty;
+
+            _currentMoonMode = YargGameModeToMoonGameMode(_currentMode);
+            _currentMoonInstrument = YargInstrumentToMoonInstrument(_currentInstrument);
+            _currentMoonDifficulty = YargDifficultyToMoonDifficulty(_currentDifficulty);
 
             var moonChart = GetMoonChart(instrument, difficulty);
             var notes = GetNotes(moonChart, difficulty, createNote, processText);
@@ -395,6 +405,22 @@ namespace YARG.Core.Chart
             var moonDifficulty = YargDifficultyToMoonDifficulty(difficulty);
             return _moonSong.GetChart(moonInstrument, moonDifficulty);
         }
+
+        private static MoonChart.GameMode YargGameModeToMoonGameMode(GameMode mode) => mode switch
+        {
+            GameMode.FiveFretGuitar => MoonChart.GameMode.Guitar,
+            GameMode.SixFretGuitar => MoonChart.GameMode.GHLGuitar,
+
+            GameMode.FourLaneDrums => MoonChart.GameMode.Drums,
+            GameMode.FiveLaneDrums => MoonChart.GameMode.Drums,
+
+            GameMode.ProGuitar => MoonChart.GameMode.ProGuitar,
+            // GameMode.ProKeys => MoonChart.GameMode.ProKeys,
+
+            GameMode.Vocals => MoonChart.GameMode.Vocals,
+
+            _ => throw new NotImplementedException($"Unhandled game mode {mode}!")
+        };
 
         private static MoonSong.MoonInstrument YargInstrumentToMoonInstrument(Instrument instrument) => instrument switch
         {
