@@ -42,6 +42,15 @@ namespace YARG.Core.Engine.Drums
                 return;
             }
 
+            if (State.NoteIndex < Notes.Count)
+            {
+                // Don't remove the phrase if the current note being overstrummed is the start of a phrase
+                if (!Notes[State.NoteIndex].IsStarPowerStart)
+                {
+                    StripStarPower(Notes[State.NoteIndex]);
+                }
+            }
+
             EngineStats.Combo = 0;
             EngineStats.Overhits++;
 
