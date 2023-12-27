@@ -132,11 +132,11 @@ namespace YARG.Core.Chart
 
                         string eventText = moonEvent.text;
                         // Ignore non-lyric events
-                        if (!eventText.StartsWith(TextEventDefinitions.LYRIC_PREFIX_WITH_SPACE))
+                        if (!eventText.StartsWith(TextEvents.LYRIC_PREFIX_WITH_SPACE))
                             continue;
 
                         var lyric = eventText.AsSpan()
-                            .Slice(TextEventDefinitions.LYRIC_PREFIX_WITH_SPACE.Length).TrimStartAscii();
+                            .Slice(TextEvents.LYRIC_PREFIX_WITH_SPACE.Length).TrimStartAscii();
                         // Ignore empty lyrics
                         if (lyric.IsEmpty)
                             continue;
