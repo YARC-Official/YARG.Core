@@ -31,15 +31,26 @@ namespace MoonscraperChartEditor.Song
         #endregion
 
         #region Text event to phrase conversion
+        private struct TextConversionState
+        {
+            public uint currentTick;
+            public uint? startTick;
+            public bool start;
+            public bool end;
+        }
+
         public static void ConvertToPhrases(List<MoonText> events, ITextPhraseConverter converter)
         {
             string startEvent = converter.StartEvent;
             string endEvent = converter.EndEvent;
 
-            uint currentTick = 0; 
-            uint? startTick = null;
-            bool start = false;
-            bool end = false;
+            var state = new TextConversionState()
+            {
+                currentTick = 0,
+                startTick = null,
+                start = false,
+                end = false,
+            };
 
             for (int i = 0; i < events.Count; i++)
             {
@@ -48,11 +59,11 @@ namespace MoonscraperChartEditor.Song
                 string text = textEv.text;
 
                 // Commit found events on start of next tick
-                if (tick != currentTick)
+                if (tick != state.currentTick)
                 {
-                    ProcessPhraseEvents(converter, currentTick, ref startTick, start, end);
-                    currentTick = tick;
-                    start = end = false;
+                    ProcessPhraseEvents(converter, ref state);
+                    state.currentTick = tick;
+                    state.start = state.end = false;
                 }
 
                 // Determine what events are present on the current tick
@@ -60,64 +71,63 @@ namespace MoonscraperChartEditor.Song
                 {
                     events.RemoveAt(i);
                     i--;
-                    start = true;
+                    state.start = true;
                 }
                 else if (text == endEvent)
                 {
                     events.RemoveAt(i);
                     i--;
-                    end = true;
+                    state.end = true;
                 }
                 // Only pass through other events if we're within a phrase
-                else if (startTick != null)
+                else if (state.startTick != null)
                 {
                     converter.AddPhraseEvent(text, tick);
                 }
             }
 
-            if (start && !end)
+            if (state.start && !state.end)
             {
                 // Unterminated start event
-                end = true;
-                currentTick = uint.MaxValue;
+                state.end = true;
+                state.currentTick = uint.MaxValue;
             }
 
             // Handle final event state
-            if (end)
-                ProcessPhraseEvents(converter, currentTick, ref startTick, start, end);
+            if (state.end)
+                ProcessPhraseEvents(converter, ref state);
         }
 
-        private static void ProcessPhraseEvents(ITextPhraseConverter converter, uint currentTick,
-            ref uint? startTick, bool start, bool end)
+        private static void ProcessPhraseEvents(ITextPhraseConverter converter, ref TextConversionState state)
         {
             // Phrase starts or ends on this tick
-            if (start ^ end)
+            if (state.start ^ state.end)
             {
-                if (startTick == null)
+                if (state.startTick == null)
                 {
                     // Phrase starts on this tick
-                    startTick = currentTick;
+                    state.startTick = state.currentTick;
                 }
                 else
                 {
                     // Phrase ends on this tick
-                    converter.AddPhrase(startTick.Value, currentTick, false);
+                    converter.AddPhrase(state.startTick.Value, state.currentTick, false);
                     // A new one may also start here
-                    startTick = start ? currentTick : null;
+                    state.startTick = state.start ? state.currentTick : null;
                 }
             }
-            else if (start && end)
+            else if (state.start && state.end)
             {
-                if (startTick == null)
+                if (state.startTick == null)
                 {
                     // Phrase starts and ends on this tick
-                    converter.AddPhrase(currentTick, currentTick, false);
+                    converter.AddPhrase(state.currentTick, state.currentTick, false);
                 }
                 else
                 {
                     // Phrase ends on this tick and a new one starts
-                    converter.AddPhrase(startTick.Value, currentTick, true);
-                    startTick = currentTick;
+                    converter.AddPhrase(state.startTick.Value, state.currentTick, true);
+                    state.startTick = state.currentTick;
                 }
             }
         }
