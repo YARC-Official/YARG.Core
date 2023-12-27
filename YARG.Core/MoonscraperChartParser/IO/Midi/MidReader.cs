@@ -171,11 +171,11 @@ namespace MoonscraperChartEditor.Song.IO
 
             foreach (var tempo in tempoMap.GetTempoChanges())
             {
-                song.bpms.Add(new MoonTempo((uint)tempo.Time, (uint)(tempo.Value.BeatsPerMinute * 1000)));
+                song.bpms.Add(new MoonTempo((uint) tempo.Time, (float) tempo.Value.BeatsPerMinute));
             }
             foreach (var timesig in tempoMap.GetTimeSignatureChanges())
             {
-                song.timeSignatures.Add(new MoonTimeSignature((uint)timesig.Time, (uint)timesig.Value.Numerator, (uint)timesig.Value.Denominator));
+                song.timeSignatures.Add(new MoonTimeSignature((uint) timesig.Time, (uint) timesig.Value.Numerator, (uint) timesig.Value.Denominator));
             }
             song.UpdateBPMTimeValues();
         }
