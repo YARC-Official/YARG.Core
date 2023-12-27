@@ -40,8 +40,6 @@ namespace YARG.Core.Engine
         /// </summary>
         public abstract bool TreatChordAsSeparate { get; }
 
-        private double _lastQueuedInputTime = double.MinValue;
-
         protected BaseEngine(BaseEngineParameters parameters, SyncTrack syncTrack)
         {
             SyncTrack = syncTrack;
