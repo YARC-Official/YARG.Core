@@ -41,16 +41,7 @@ namespace YARG.Core.Chart
                 if (!text.StartsWith(TextEvents.LYRIC_PREFIX_WITH_SPACE))
                     return;
 
-                var lyric = text.AsSpan()
-                    .Slice(TextEvents.LYRIC_PREFIX_WITH_SPACE.Length).TrimStartAscii();
-
-                // Remove start/end quotes
-                lyric.TrimAscii();
-                if (!lyric.IsEmpty && lyric[0] == '"')
-                    lyric = lyric[1..];
-                if (!lyric.IsEmpty && lyric[^1] == '"')
-                    lyric = lyric[..^1];
-                lyric.TrimAscii();
+                var lyric = text.AsSpan().Slice(TextEvents.LYRIC_PREFIX_WITH_SPACE.Length);
 
                 var flags = LyricFlags.None;
                 string strippedLyric = string.Empty;;
