@@ -86,6 +86,9 @@ namespace YARG.Core.Chart
             RANGE_SHIFT_SYMBOL,
             STATIC_SHIFT_SYMBOL,
             HARMONY_HIDE_SYMBOL,
+
+            // Don't display quotation marks in vocals
+            '"',
         };
 
         /// <summary>Symbols which should be stripped from lyrics in the lyrics track.</summary>
