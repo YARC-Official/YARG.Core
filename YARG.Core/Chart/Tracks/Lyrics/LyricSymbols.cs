@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using YARG.Core.Utility;
 
 namespace YARG.Core.Chart
 {
@@ -132,21 +134,92 @@ namespace YARG.Core.Chart
                     (pair) => pair.Value != '\0' ? pair.Value.ToString() : string.Empty);
         }
 
-        public static string StripForVocals(string lyric) => StripLyric(lyric, VOCALS_STRIP_REPLACEMENTS);
-        public static string StripForLyrics(string lyric) => StripLyric(lyric, LYRICS_STRIP_REPLACEMENTS);
+        // Rich text tags allowed by Clone Hero
+        // https://strikeline.myjetbrains.com/youtrack/issue/CH-226
+        public const RichTextTags LYRICS_ALLOWED_TAGS = RichTextTags.Italics | RichTextTags.Bold |
+            RichTextTags.Strikethrough | RichTextTags.Underline | RichTextTags.Superscript | RichTextTags.Subscript |
+            RichTextTags.VerticalOffset | RichTextTags.Lowercase | RichTextTags.Uppercase | RichTextTags.SmallCaps |
+            RichTextTags.CharSpace | RichTextTags.Color | RichTextTags.Monospace | RichTextTags.LineBreak;
 
-        private static readonly StringBuilder _lyricBuffer = new();
-
-        private static string StripLyric(string lyric, Dictionary<string, string> replace)
+        public static string StripForVocals(string lyric)
         {
-            _lyricBuffer.Clear().Append(lyric);
+            lyric = RichTextUtils.StripRichTextTags(lyric);
 
-            foreach (var (symbol, replacement) in replace)
+            var lyricBuffer = new StringBuilder(lyric);
+            foreach (var (symbol, replacement) in VOCALS_STRIP_REPLACEMENTS)
             {
-                _lyricBuffer.Replace(symbol, replacement);
+                lyricBuffer.Replace(symbol, replacement);
             }
 
-            return _lyricBuffer.ToString();
+            return lyricBuffer.ToString();
+        }
+
+        public static string StripForLyrics(string lyric)
+        {
+            lyric = RichTextUtils.StripRichTextTagsExcept(lyric, LYRICS_ALLOWED_TAGS);
+
+            var lyricBuffer = new StringBuilder();
+            var segmentBuffer = new StringBuilder();
+
+            // Need to ensure rich text tags are not stripped
+            int tagIndex;
+            var remaining = lyric.AsSpan();
+            while ((tagIndex = remaining.IndexOf('<')) >= 0)
+            {
+                // Split out segment before the tag
+                var segment = remaining[..tagIndex];
+                remaining = remaining[tagIndex..];
+
+                // Find end of the tag
+                var tag = ReadOnlySpan<char>.Empty;
+                int tagCloseIndex = remaining.IndexOf('>');
+                if (tagCloseIndex >= 0)
+                {
+                    // Include closing in tag split
+                    tagCloseIndex++;
+
+                    if (tagCloseIndex >= remaining.Length)
+                    {
+                        tag = remaining;
+                        remaining = ReadOnlySpan<char>.Empty;
+                    }
+                    else
+                    {
+                        tag = remaining[..tagCloseIndex];
+                        remaining = remaining[tagCloseIndex..];
+                    }
+                }
+
+                // Run through replacements on segment
+                if (!segment.IsEmpty)
+                {
+                    segmentBuffer.Append(segment);
+                    foreach (var (symbol, replacement) in LYRICS_STRIP_REPLACEMENTS)
+                    {
+                        segmentBuffer.Replace(symbol, replacement);
+                    }
+
+                    lyricBuffer.Append(segmentBuffer);
+                    segmentBuffer.Clear();
+                }
+
+                // Insert tag unmodified
+                lyricBuffer.Append(tag);
+            }
+
+            // Final segment of characters
+            if (!remaining.IsEmpty)
+            {
+                segmentBuffer.Append(remaining);
+                foreach (var (symbol, replacement) in LYRICS_STRIP_REPLACEMENTS)
+                {
+                    segmentBuffer.Replace(symbol, replacement);
+                }
+
+                lyricBuffer.Append(segmentBuffer);
+            }
+
+            return lyricBuffer.ToString();
         }
     }
 }
