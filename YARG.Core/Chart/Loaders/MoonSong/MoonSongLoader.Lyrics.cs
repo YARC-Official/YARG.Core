@@ -53,14 +53,8 @@ namespace YARG.Core.Chart
                 lyric.TrimAscii();
 
                 var flags = LyricFlags.None;
-                string strippedLyric;
-                if (lyric.IsEmpty)
-                {
-                    // Allow empty lyrics for lyric gimmick purposes
-                    flags |= LyricFlags.JoinWithNext;
-                    strippedLyric = string.Empty;
-                }
-                else
+                string strippedLyric = string.Empty;;
+                if (!lyric.IsEmpty)
                 {
                     // Handle modifier lyrics
                     char modifier = lyric[^1];
@@ -69,8 +63,13 @@ namespace YARG.Core.Chart
 
                     // Strip special symbols from lyrics
                     strippedLyric = LyricSymbols.StripForLyrics(lyric.ToString());
-                    if (string.IsNullOrWhiteSpace(strippedLyric))
-                        return;
+                }
+
+                if (string.IsNullOrWhiteSpace(strippedLyric))
+                {
+                    // Allow empty lyrics for lyric gimmick purposes
+                    flags |= LyricFlags.JoinWithNext;
+                    strippedLyric = string.Empty;
                 }
 
                 double time = _moonSong.TickToTime(tick);

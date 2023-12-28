@@ -27,7 +27,7 @@ namespace YARG.Core.UnitTests.Parsing
                 new(LyricFlags.None,         "chine",  SECONDS(8), TICKS(8)),
             ]),
             // Built to construct many different parts
-            new(SECONDS(9), SECONDS(10), TICKS(9), TICKS(10),
+            new(SECONDS(9), SECONDS(11), TICKS(9), TICKS(11),
             [
                 new(LyricFlags.None,         "Built",  SECONDS(9 + 0), TICKS(9 + 0)),
                 new(LyricFlags.None,         "to",     SECONDS(9 + 1), TICKS(9 + 1)),
@@ -38,26 +38,31 @@ namespace YARG.Core.UnitTests.Parsing
                 new(LyricFlags.JoinWithNext, "ma",     SECONDS(9 + 4), TICKS(9 + 4)),
                 new(LyricFlags.None,         "ny",     SECONDS(9 + 5), TICKS(9 + 5)),
 
-                new(LyricFlags.JoinWithNext, "dif",    SECONDS(9 + 6), TICKS(9 + 6)),
-                new(LyricFlags.JoinWithNext, "fer",    SECONDS(9 + 7), TICKS(9 + 7)),
-                new(LyricFlags.None,         "ent",    SECONDS(9 + 8), TICKS(9 + 8)),
+                // Ensure empty lyrics are handled correctly
+                new(LyricFlags.JoinWithNext, "",       SECONDS(9 + 6),   TICKS(9 + 6)),
+                new(LyricFlags.JoinWithNext, "",       SECONDS(9 + 6.5), TICKS(9 + 6.5)),
+                new(LyricFlags.JoinWithNext, "",       SECONDS(9 + 6.75), TICKS(9 + 6.75)),
 
-                new(LyricFlags.None,         "parts",  SECONDS(9 + 9), TICKS(9 + 9)),
+                new(LyricFlags.JoinWithNext, "dif",    SECONDS(9 + 7), TICKS(9 + 7)),
+                new(LyricFlags.JoinWithNext, "fer",    SECONDS(9 + 8), TICKS(9 + 8)),
+                new(LyricFlags.None,         "ent",    SECONDS(9 + 9), TICKS(9 + 9)),
+
+                new(LyricFlags.None,         "parts",  SECONDS(9 + 10), TICKS(9 + 10)),
             ]),
             // For a high-speed assembly line
-            new(SECONDS(19), SECONDS(8), TICKS(19), TICKS(8),
+            new(SECONDS(20), SECONDS(8), TICKS(20), TICKS(8),
             [
-                new(LyricFlags.None,         "For",   SECONDS(19 + 0), TICKS(19 + 0)),
-                new(LyricFlags.None,         "a",     SECONDS(19 + 1), TICKS(19 + 1)),
+                new(LyricFlags.None,         "For",   SECONDS(20 + 0), TICKS(20 + 0)),
+                new(LyricFlags.None,         "a",     SECONDS(20 + 1), TICKS(20 + 1)),
 
-                new(LyricFlags.JoinWithNext, "high-", SECONDS(19 + 2), TICKS(19 + 2)),
-                new(LyricFlags.None,         "speed", SECONDS(19 + 3), TICKS(19 + 3)),
+                new(LyricFlags.JoinWithNext, "high-", SECONDS(20 + 2), TICKS(20 + 2)),
+                new(LyricFlags.None,         "speed", SECONDS(20 + 3), TICKS(20 + 3)),
 
-                new(LyricFlags.JoinWithNext, "as",    SECONDS(19 + 4), TICKS(19 + 4)),
-                new(LyricFlags.JoinWithNext, "sem",   SECONDS(19 + 5), TICKS(19 + 5)),
-                new(LyricFlags.None,         "bly",   SECONDS(19 + 6), TICKS(19 + 6)),
+                new(LyricFlags.JoinWithNext, "as",    SECONDS(20 + 4), TICKS(20 + 4)),
+                new(LyricFlags.JoinWithNext, "sem",   SECONDS(20 + 5), TICKS(20 + 5)),
+                new(LyricFlags.None,         "bly",   SECONDS(20 + 6), TICKS(20 + 6)),
 
-                new(LyricFlags.None,         "line",  SECONDS(19 + 7), TICKS(19 + 7)),
+                new(LyricFlags.None,         "line",  SECONDS(20 + 7), TICKS(20 + 7)),
             ]),
         ];
 
@@ -81,6 +86,7 @@ namespace YARG.Core.UnitTests.Parsing
                 if (!startAfterFirst)
                     song.events.Add(new("phrase_start", phrase.Tick));
 
+                int emptyCount = 0;
                 for (int lyricIndex = 0; lyricIndex < phrase.Lyrics.Count; lyricIndex++)
                 {
                     var lyric = phrase.Lyrics[lyricIndex];
@@ -92,6 +98,17 @@ namespace YARG.Core.UnitTests.Parsing
                             text = text[..^1] + LyricSymbols.LYRIC_JOIN_HYPHEN_SYMBOL;
                         else
                             text += LyricSymbols.LYRIC_JOIN_SYMBOL;
+                    }
+
+                    // Test both empty lyrics and stripped-symbol-only lyrics
+                    if (string.IsNullOrEmpty(text))
+                    {
+                        text = (emptyCount++ % 3) switch
+                        {
+                            0 => "+",  // Pitch slide
+                            1 => "  ", // Extra whitespace
+                            _ => "",   // Empty lyric
+                        };
                     }
 
                     song.events.Add(new($"lyric {text}", lyric.Tick));
