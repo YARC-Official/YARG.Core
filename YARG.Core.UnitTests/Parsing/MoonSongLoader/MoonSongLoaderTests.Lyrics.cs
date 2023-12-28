@@ -27,37 +27,37 @@ namespace YARG.Core.UnitTests.Parsing
                 new(LyricFlags.None,         "chine",  SECONDS(8), TICKS(8)),
             ]),
             // Built to construct many different parts
-            new(SECONDS(10), SECONDS(10), TICKS(10), TICKS(10),
+            new(SECONDS(9), SECONDS(10), TICKS(9), TICKS(10),
             [
-                new(LyricFlags.None,         "Built",  SECONDS(0), TICKS(0)),
-                new(LyricFlags.None,         "to",     SECONDS(1), TICKS(1)),
+                new(LyricFlags.None,         "Built",  SECONDS(9 + 0), TICKS(9 + 0)),
+                new(LyricFlags.None,         "to",     SECONDS(9 + 1), TICKS(9 + 1)),
 
-                new(LyricFlags.JoinWithNext, "con",    SECONDS(2), TICKS(2)),
-                new(LyricFlags.None,         "struct", SECONDS(3), TICKS(3)),
+                new(LyricFlags.JoinWithNext, "con",    SECONDS(9 + 2), TICKS(9 + 2)),
+                new(LyricFlags.None,         "struct", SECONDS(9 + 3), TICKS(9 + 3)),
 
-                new(LyricFlags.JoinWithNext, "ma",     SECONDS(4), TICKS(4)),
-                new(LyricFlags.None,         "ny",     SECONDS(5), TICKS(5)),
+                new(LyricFlags.JoinWithNext, "ma",     SECONDS(9 + 4), TICKS(9 + 4)),
+                new(LyricFlags.None,         "ny",     SECONDS(9 + 5), TICKS(9 + 5)),
 
-                new(LyricFlags.JoinWithNext, "dif",    SECONDS(6), TICKS(6)),
-                new(LyricFlags.JoinWithNext, "fer",    SECONDS(7), TICKS(7)),
-                new(LyricFlags.None,         "ent",    SECONDS(8), TICKS(8)),
+                new(LyricFlags.JoinWithNext, "dif",    SECONDS(9 + 6), TICKS(9 + 6)),
+                new(LyricFlags.JoinWithNext, "fer",    SECONDS(9 + 7), TICKS(9 + 7)),
+                new(LyricFlags.None,         "ent",    SECONDS(9 + 8), TICKS(9 + 8)),
 
-                new(LyricFlags.None,         "parts",  SECONDS(9), TICKS(9)),
+                new(LyricFlags.None,         "parts",  SECONDS(9 + 9), TICKS(9 + 9)),
             ]),
             // For a high-speed assembly line
-            new(SECONDS(20), SECONDS(8), TICKS(20), TICKS(8),
+            new(SECONDS(19), SECONDS(8), TICKS(19), TICKS(8),
             [
-                new(LyricFlags.None,         "For",   SECONDS(0), TICKS(0)),
-                new(LyricFlags.None,         "a",     SECONDS(1), TICKS(1)),
+                new(LyricFlags.None,         "For",   SECONDS(19 + 0), TICKS(19 + 0)),
+                new(LyricFlags.None,         "a",     SECONDS(19 + 1), TICKS(19 + 1)),
 
-                new(LyricFlags.JoinWithNext, "high-", SECONDS(2), TICKS(2)),
-                new(LyricFlags.None,         "speed", SECONDS(3), TICKS(3)),
+                new(LyricFlags.JoinWithNext, "high-", SECONDS(19 + 2), TICKS(19 + 2)),
+                new(LyricFlags.None,         "speed", SECONDS(19 + 3), TICKS(19 + 3)),
 
-                new(LyricFlags.JoinWithNext, "as",    SECONDS(4), TICKS(4)),
-                new(LyricFlags.JoinWithNext, "sem",   SECONDS(5), TICKS(5)),
-                new(LyricFlags.None,         "bly",   SECONDS(6), TICKS(6)),
+                new(LyricFlags.JoinWithNext, "as",    SECONDS(19 + 4), TICKS(19 + 4)),
+                new(LyricFlags.JoinWithNext, "sem",   SECONDS(19 + 5), TICKS(19 + 5)),
+                new(LyricFlags.None,         "bly",   SECONDS(19 + 6), TICKS(19 + 6)),
 
-                new(LyricFlags.None,         "line",  SECONDS(7), TICKS(7)),
+                new(LyricFlags.None,         "line",  SECONDS(19 + 7), TICKS(19 + 7)),
             ]),
         ];
 
@@ -66,12 +66,25 @@ namespace YARG.Core.UnitTests.Parsing
         {
             var song = CreateSong();
 
-            foreach (var phrase in LyricPhrases)
+            for (int phraseIndex = 0; phraseIndex < LyricPhrases.Count; phraseIndex++)
             {
-                song.events.Add(new("phrase_start", phrase.Tick));
+                var phrase = LyricPhrases[phraseIndex];
 
-                foreach (var lyric in phrase.Lyrics)
+                // Variants for ensuring proper handling:
+                // - Start event after first lyric event
+                // - No end event starting the next phrase
+                int variant = phraseIndex % 3;
+                bool startAfterFirst = variant == 0;
+                bool noEndEvent = variant == 1;
+                // bool noVariant = variant == 2;
+
+                if (!startAfterFirst)
+                    song.events.Add(new("phrase_start", phrase.Tick));
+
+                for (int lyricIndex = 0; lyricIndex < phrase.Lyrics.Count; lyricIndex++)
                 {
+                    var lyric = phrase.Lyrics[lyricIndex];
+
                     string text = lyric.Text;
                     if (lyric.JoinWithNext)
                     {
@@ -82,15 +95,19 @@ namespace YARG.Core.UnitTests.Parsing
                     }
 
                     song.events.Add(new($"lyric {text}", lyric.Tick));
+
+                    if (lyricIndex == 0 && startAfterFirst)
+                        song.events.Add(new("phrase_start", phrase.Tick));
                 }
 
-                song.events.Add(new("phrase_end", phrase.TickEnd));
+                if (phraseIndex >= LyricPhrases.Count - 1 || !noEndEvent)
+                    song.events.Add(new("phrase_end", phrase.TickEnd));
             }
 
             var loader = new MoonSongLoader(song, ParseSettings.Default);
             var lyrics = loader.LoadLyrics();
 
-            Assert.That(LyricPhrases, Has.Count.EqualTo(lyrics.Phrases.Count), "Lyric phrase count does not match!");
+            Assert.That(lyrics.Phrases, Has.Count.EqualTo(LyricPhrases.Count), "Lyric phrase count does not match!");
 
             var comparer = new LyricEventComparer();
             for (int i = 0; i < lyrics.Phrases.Count; i++)

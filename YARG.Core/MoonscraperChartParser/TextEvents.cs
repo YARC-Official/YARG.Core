@@ -117,7 +117,6 @@ namespace MoonscraperChartEditor.Song
                 else
                 {
                     // Phrase ends on this tick
-                    FlushPendingEvents(converter, ref state);
                     converter.AddPhrase(state.startTick!.Value, state.currentTick);
                     // A new one may also start here
                     state.startTick = state.start ? state.currentTick : null;
