@@ -218,7 +218,7 @@ namespace MoonscraperChartEditor.Song.IO
                 _chart = chart;
             }
 
-            public void AddPhrase(uint startTick, uint endTick, bool _)
+            public void AddPhrase(uint startTick, uint endTick)
             {
                 _chart.Add(new MoonPhrase(startTick, endTick - startTick, MoonPhrase.Type.Solo));
             }

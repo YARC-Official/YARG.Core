@@ -24,31 +24,15 @@ namespace YARG.Core.Chart
                 _currentLyrics = new();
             }
 
-            public void AddPhrase(uint startTick, uint endTick, bool nextPhraseStarted)
+            public void AddPhrase(uint startTick, uint endTick)
             {
                 if (_currentLyrics.Count < 1)
                     return;
 
-                var lyrics = _currentLyrics;
-                _currentLyrics = new();
-
-                // Lyrics on the end tick are part of the next phrase
-                // if it is directly adjacent to this phrase
-                if (nextPhraseStarted && startTick != endTick)
-                {
-                    var lastLyric = lyrics[^1];
-                    if (lastLyric.Tick == endTick)
-                    {
-                        _currentLyrics.Add(lastLyric);
-                        lyrics.RemoveAt(lyrics.Count - 1);
-                        if (lyrics.Count < 1)
-                            return;
-                    }
-                }
-
                 double startTime = _moonSong.TickToTime(startTick);
                 double endTime = _moonSong.TickToTime(endTick);
-                Phrases.Add(new(startTime, endTime - startTime, startTick, endTick - startTick, lyrics));
+                Phrases.Add(new(startTime, endTime - startTime, startTick, endTick - startTick, _currentLyrics));
+                _currentLyrics = new();
             }
 
             public void AddPhraseEvent(string text, uint tick)
