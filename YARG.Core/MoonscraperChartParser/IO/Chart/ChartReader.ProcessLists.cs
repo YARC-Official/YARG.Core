@@ -206,91 +206,30 @@ namespace MoonscraperChartEditor.Song.IO
             };
         }
 
+        private class SoloPhraseConverter : ITextPhraseConverter
+        {
+            private readonly MoonChart _chart;
+
+            public string StartEvent => TextEvents.SOLO_START;
+            public string EndEvent => TextEvents.SOLO_END;
+
+            public SoloPhraseConverter(MoonChart chart)
+            {
+                _chart = chart;
+            }
+
+            public void AddPhrase(uint startTick, uint endTick)
+            {
+                _chart.Add(new MoonPhrase(startTick, endTick - startTick, MoonPhrase.Type.Solo));
+            }
+
+            public void AddPhraseEvent(string text, uint tick) { }
+        }
+
         private static void ConvertSoloEvents(in NoteProcessParams noteProcessParams)
         {
-            static void AddSolo(MoonChart chart, uint startTick, uint endTick)
-            {
-                chart.Add(new MoonPhrase(startTick, endTick - startTick, MoonPhrase.Type.Solo));
-            }
-
-            static void ProcessSoloMarkers(MoonChart chart, uint currentTick, ref uint? currentStartTick,
-                ref bool start, ref bool end)
-            {
-                // Four scenarios to handle:
-
-                // - Solo starts on this tick (start = true, end = false)
-                if (start && !end)
-                {
-                    if (currentStartTick == null)
-                        currentStartTick = currentTick;
-                    else
-                        YargTrace.DebugWarning($"Encountered duplicate solo start event on tick {currentTick}!");
-
-                    start = false;
-                }
-
-                // - Solo ends on this tick (start = false, end = true)
-                else if (!start && end)
-                {
-                    if (currentStartTick != null)
-                    {
-                        AddSolo(chart, currentStartTick.Value, currentTick);
-                        currentStartTick = null;
-                    }
-                    else
-                    {
-                        YargTrace.DebugWarning($"Encountered solo end with no solo start on tick {currentTick}!");
-                    }
-
-                    end = false;
-                }
-
-                // - Solo starts and ends on this tick (start = end = true, currentStartTick = null)
-                // - Solo ends on this tick and a new one starts (start = end = true, currentStartTick != null)
-                else if (start && end)
-                {
-                    currentStartTick ??= currentTick;
-                    AddSolo(chart, currentStartTick.Value, currentTick);
-
-                    start = end = false;
-                    currentStartTick = null;
-                }
-            }
-
             var chart = noteProcessParams.chart;
-
-            uint currentTick = 0; 
-            uint? currentStartTick = null;
-            bool start = false;
-            bool end = false;
-
-            for (int i = 0; i < chart.events.Count;)
-            {
-                var text = chart.events[i];
-                // Commit found events on next tick
-                if (text.tick != currentTick)
-                {
-                    ProcessSoloMarkers(chart, currentTick, ref currentStartTick, ref start, ref end);
-                    currentTick = text.tick;
-                }
-
-                // Determine what events are present on the current tick
-                if (text.text == TextEventDefinitions.SOLO_START)
-                {
-                    chart.events.RemoveAt(i);
-                    start = true;
-                }
-                else if (text.text == TextEventDefinitions.SOLO_END)
-                {
-                    chart.events.RemoveAt(i);
-                    end = true;
-                }
-                else
-                    ++i;
-            }
-
-            // Handle final set of events
-            ProcessSoloMarkers(chart, currentTick, ref currentStartTick, ref start, ref end);
+            TextEvents.ConvertToPhrases(chart.events, new SoloPhraseConverter(chart));
         }
 
         private static void DisambiguateDrumsType(in NoteProcessParams processParams)

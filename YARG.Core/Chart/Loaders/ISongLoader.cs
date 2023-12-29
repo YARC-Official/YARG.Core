@@ -8,9 +8,10 @@ namespace YARG.Core.Chart
     internal interface ISongLoader
     {
         List<TextEvent> LoadGlobalEvents();
+        List<Section> LoadSections();
         SyncTrack LoadSyncTrack();
         VenueTrack LoadVenueTrack();
-        List<Section> LoadSections();
+        LyricsTrack LoadLyrics();
 
         InstrumentTrack<GuitarNote> LoadGuitarTrack(Instrument instrument);
         InstrumentTrack<ProGuitarNote> LoadProGuitarTrack(Instrument instrument);

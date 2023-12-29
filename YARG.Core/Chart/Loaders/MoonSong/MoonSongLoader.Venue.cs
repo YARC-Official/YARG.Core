@@ -5,7 +5,7 @@ using YARG.Core.Utility;
 
 namespace YARG.Core.Chart
 {
-    using static TextEventDefinitions;
+    using static TextEvents;
     using static VenueLookup;
 
     internal partial class MoonSongLoader : ISongLoader

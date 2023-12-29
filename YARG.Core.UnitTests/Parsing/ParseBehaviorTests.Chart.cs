@@ -10,7 +10,7 @@ namespace YARG.Core.UnitTests.Parsing
     using static MoonChart;
     using static MoonNote;
     using static ChartIOHelper;
-    using static TextEventDefinitions;
+    using static TextEvents;
     using static ParseBehaviorTests;
 
     public class ChartParseBehaviorTests
