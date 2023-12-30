@@ -12,14 +12,14 @@ namespace YARG.Core.Chart
         public Instrument Instrument { get; }
 
         public List<VocalsPart> Parts { get; } = new();
-        public List<VocalsRangeShift> RangeShifts { get; } = new();
+        public List<VocalsPitchRange> RangeShifts { get; } = new();
 
         public VocalsTrack(Instrument instrument)
         {
             Instrument = instrument;
         }
 
-        public VocalsTrack(Instrument instrument, List<VocalsPart> parts, List<VocalsRangeShift> rangeShifts)
+        public VocalsTrack(Instrument instrument, List<VocalsPart> parts, List<VocalsPitchRange> rangeShifts)
             : this(instrument)
         {
             Parts = parts;

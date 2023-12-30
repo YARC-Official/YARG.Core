@@ -34,8 +34,8 @@ namespace YARG.Core.Chart
                 LoadVocalsPart(MoonSong.MoonInstrument.Vocals),
             };
 
-            var shifts = GetRangeShifts(parts[0]);
-            return new(instrument, parts, shifts);
+            var ranges = GetRangeShifts(parts[0]);
+            return new(instrument, parts, ranges);
         }
 
         private VocalsTrack LoadHarmonyVocals(Instrument instrument)
@@ -47,8 +47,8 @@ namespace YARG.Core.Chart
                 LoadVocalsPart(MoonSong.MoonInstrument.Harmony3),
             };
 
-            var shifts = GetRangeShifts(parts[0]);
-            return new(instrument, parts, shifts);
+            var ranges = GetRangeShifts(parts[0]);
+            return new(instrument, parts, ranges);
         }
 
         private VocalsPart LoadVocalsPart(MoonSong.MoonInstrument moonInstrument)
@@ -231,48 +231,24 @@ namespace YARG.Core.Chart
             lyrics.Add(new(lyricFlags, strippedLyric, time, lyricTick));
         }
 
-        private List<VocalsRangeShift> GetRangeShifts(VocalsPart referencePart)
+        private List<VocalsPitchRange> GetRangeShifts(VocalsPart mainPart)
         {
-            var shifts = new List<VocalsRangeShift>();
+            var ranges = new List<VocalsPitchRange>();
 
-            if (referencePart.NotePhrases.Count < 0)
-                return shifts;
+            if (mainPart.NotePhrases.Count < 0)
+                return ranges;
 
-            int partPhraseIndex = 0;
-            int nextNoteIndex = 0;
+            uint shiftStartTick = 0;
+
+            int phraseIndex = 0;
+            int noteIndex = 0;
             var chart = _moonSong.GetChart(MoonSong.MoonInstrument.Vocals, MoonSong.Difficulty.Expert);
             foreach (var moonEvent in chart.events)
             {
-                // Track the currently active or upcoming phrase
-                while (partPhraseIndex < referencePart.NotePhrases.Count)
-                {
-                    var phrase = referencePart.NotePhrases[partPhraseIndex];
-                    if (phrase.TickEnd > moonEvent.tick)
-                        break;
-                    partPhraseIndex++;
-                    nextNoteIndex = 0;
-                }
-                var currentPhrase = referencePart.NotePhrases[partPhraseIndex];
-
-                // Track the upcoming note
-                while (nextNoteIndex < currentPhrase.PhraseParentNote.ChildNotes.Count)
-                {
-                    var note = currentPhrase.PhraseParentNote.ChildNotes[nextNoteIndex];
-                    if (note.Tick > moonEvent.tick)
-                        break;
-                    nextNoteIndex++;
-                }
-                var nextNote = currentPhrase.PhraseParentNote.ChildNotes[nextNoteIndex];
-
-                uint shiftEndTick = moonEvent.tick < currentPhrase.Tick
-                    ? currentPhrase.Tick
-                    : nextNote.Tick;
-
                 var eventText = moonEvent.text;
                 if (eventText == "range_shift")
                 {
-                    var shift = CreateRangeShift(moonEvent.tick, shiftEndTick);
-                    shifts.Add(shift);
+                    AddPitchRange(ranges, mainPart, ref phraseIndex, ref noteIndex, ref shiftStartTick, moonEvent.tick);
                     continue;
                 }
                 else if (eventText.StartsWith(TextEvents.LYRIC_PREFIX_WITH_SPACE))
@@ -292,31 +268,72 @@ namespace YARG.Core.Chart
 
                         if (modifier == LyricSymbols.RANGE_SHIFT_SYMBOL)
                         {
-                            var shift = CreateRangeShift(moonEvent.tick, shiftEndTick);
-                            shifts.Add(shift);
+                            AddPitchRange(ranges, mainPart, ref phraseIndex, ref noteIndex, ref shiftStartTick, moonEvent.tick);
                             break;
                         }
                     }
                 }
             }
 
-            return shifts;
+            // Finish off last range
+            AddPitchRange(ranges, mainPart, ref phraseIndex, ref noteIndex, ref shiftStartTick, uint.MaxValue);
+            return ranges;
         }
 
-        private VocalsRangeShift CreateRangeShift(uint startTick, uint endTick)
+        private void AddPitchRange(List<VocalsPitchRange> ranges, VocalsPart part, ref int phraseIndex, ref int noteIndex,
+            ref uint startTick, uint endTick)
         {
+            // Determine pitch bounds for this range shift
+            float minPitch = float.MaxValue;
+            float maxPitch = float.MinValue;
+
+            for (; phraseIndex < part.NotePhrases.Count; phraseIndex++)
+            {
+                var phrase = part.NotePhrases[phraseIndex];
+                if (phrase.Tick >= endTick)
+                    break;
+
+                if (phrase.TickEnd < startTick || phrase.IsPercussion)
+                    // TODO: Percussion phrases should probably stop the range and start a new one afterwards
+                    continue;
+
+                for (; noteIndex < phrase.PhraseParentNote.ChildNotes.Count; noteIndex++)
+                {
+                    var note = phrase.PhraseParentNote.ChildNotes[noteIndex];
+                    if (note.Tick >= endTick)
+                        break;
+
+                    if (note.TickEnd < startTick || note.IsNonPitched)
+                        continue;
+
+                    minPitch = Math.Min(minPitch, note.Pitch);
+                    maxPitch = Math.Max(maxPitch, note.Pitch);
+                }
+
+                // Manual end due to reaching the last note in the range
+                if (noteIndex < phrase.PhraseParentNote.ChildNotes.Count)
+                    break;
+
+                noteIndex = 0;
+            }
+
+            if (minPitch == float.MaxValue || maxPitch == float.MinValue)
+                return;
+
             double startTime = _moonSong.TickToTime(startTick);
             double endTime = _moonSong.TickToTime(endTick);
 
-            // Limit range shift length to 1 second
-            const double maxShiftTime = 1.0;
-            if ((endTime - startTime) > maxShiftTime)
-            {
-                endTime = startTime + maxShiftTime;
-                endTick = _moonSong.TimeToTick(endTime);
-            }
+            // TODO: Shift duration
+            // // Limit range shift length to 1 second
+            // const double maxShiftTime = 1.0;
+            // if ((endTime - startTime) > maxShiftTime)
+            // {
+            //     endTime = startTime + maxShiftTime;
+            //     endTick = _moonSong.TimeToTick(endTime);
+            // }
 
-            return new(startTime, endTime - startTime, startTick, endTick - startTick);
+            ranges.Add(new(minPitch, maxPitch, startTime, endTime - startTime, startTick, endTick - startTick));
+            startTick = endTick;
         }
 
         private VocalNote CreateVocalNote(MoonNote moonNote, int harmonyPart, LyricType lyricType)
