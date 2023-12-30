@@ -134,14 +134,7 @@ namespace YARG.Core.Chart
                         // Non-lyric events
                         if (!eventText.StartsWith(TextEvents.LYRIC_PREFIX_WITH_SPACE))
                         {
-                            switch (eventText)
-                            {
-                                case "range_shift":
-                                    // Special meta-lyric with no text
-                                    lyrics.Add(new(LyricFlags.RangeShift, "",
-                                        _moonSong.TickToTime(moonEvent.tick), moonEvent.tick));
-                                    break;
-                            }
+                            ProcessTextEvent(lyrics, eventText, moonEvent.tick);
                             continue;
                         }
 
@@ -151,59 +144,7 @@ namespace YARG.Core.Chart
                         if (lyric.IsEmpty)
                             continue;
 
-                        // Workaround for a certain set of badly-formatted vocal tracks which place the hyphen
-                        // for pitch bend lyrics on the pitch bend and not the lyric itself
-                        // Not really necessary except to ensure the lyric displays correctly
-                        if (lyrics.Count > 0 && !lyrics[^1].Text.EndsWith('-') &&
-                            (lyric.Equals("+-", StringComparison.Ordinal) || lyric.Equals("-+", StringComparison.Ordinal)))
-                        {
-                            var other = lyrics[^1];
-                            lyrics[^1] = new(other.Flags, $"{other.Text}-", other.Time, other.Tick);
-                            lyric = "+";
-                        }
-
-                        // Handle lyric modifiers
-                        var lyricFlags = LyricFlags.None;
-                        for (var modifiers = lyric; !modifiers.IsEmpty; modifiers = modifiers[..^1])
-                        {
-                            char modifier = modifiers[^1];
-                            if (!LyricSymbols.ALL_SYMBOLS.Contains(modifier))
-                                break;
-
-                            if (modifier == LyricSymbols.STATIC_SHIFT_SYMBOL)
-                                lyricFlags |= LyricFlags.StaticShift;
-                            else if (modifier == LyricSymbols.RANGE_SHIFT_SYMBOL)
-                                lyricFlags |= LyricFlags.RangeShift;
-
-                            // Only process note modifiers for lyrics that match the current note
-                            if (moonEvent.tick == moonNote.tick)
-                            {
-                                LyricType type;
-                                if (modifier == LyricSymbols.PITCH_SLIDE_SYMBOL)
-                                    type = LyricType.PitchSlide;
-                                else if (LyricSymbols.NONPITCHED_SYMBOLS.Contains(modifier))
-                                    type = LyricType.NonPitched;
-                                else
-                                    continue;
-
-                                if (lyricType != LyricType.None && type != lyricType)
-                                {
-                                    YargTrace.DebugWarning($"Event '{eventText}' at tick {moonEvent.tick} specifies multiple lyric types ({lyricType} and {type})!");
-                                    continue;
-                                }
-                            }
-                        }
-
-                        if (lyric[0] == LyricSymbols.HARMONY_HIDE_SYMBOL)
-                            lyricFlags |= LyricFlags.HarmonyHidden;
-
-                        // Strip special symbols from lyrics
-                        string strippedLyric = LyricSymbols.StripForVocals(lyric.ToString());
-                        if (string.IsNullOrWhiteSpace(strippedLyric))
-                            continue;
-
-                        double time = _moonSong.TickToTime(moonEvent.tick);
-                        lyrics.Add(new(lyricFlags, strippedLyric, time, moonEvent.tick));
+                        ProcessLyric(lyrics, lyric, ref lyricType, moonEvent.tick, moonNote.tick);
                     }
 
                     // Create new note
@@ -231,6 +172,75 @@ namespace YARG.Core.Chart
 
             phrases.TrimExcess();
             return phrases;
+        }
+
+        private void ProcessTextEvent(List<LyricEvent> lyrics, string text, uint tick)
+        {
+            switch (text)
+            {
+                case "range_shift":
+                    // Special meta-lyric with no text
+                    lyrics.Add(new(LyricFlags.RangeShift, "", _moonSong.TickToTime(tick), tick));
+                    break;
+            }
+        }
+
+        private void ProcessLyric(List<LyricEvent> lyrics, ReadOnlySpan<char> lyric, ref LyricType lyricType,
+            uint lyricTick, uint noteTick)
+        {
+            // Workaround for a certain set of badly-formatted vocal tracks which place the hyphen
+            // for pitch bend lyrics on the pitch bend and not the lyric itself
+            // Not really necessary except to ensure the lyric displays correctly
+            if (lyrics.Count > 0 && !lyrics[^1].Text.EndsWith('-') &&
+                (lyric.Equals("+-", StringComparison.Ordinal) || lyric.Equals("-+", StringComparison.Ordinal)))
+            {
+                var other = lyrics[^1];
+                lyrics[^1] = new(other.Flags, $"{other.Text}-", other.Time, other.Tick);
+                lyric = "+";
+            }
+
+            // Handle lyric modifiers
+            var lyricFlags = LyricFlags.None;
+            for (var modifiers = lyric; !modifiers.IsEmpty; modifiers = modifiers[..^1])
+            {
+                char modifier = modifiers[^1];
+                if (!LyricSymbols.ALL_SYMBOLS.Contains(modifier))
+                    break;
+
+                if (modifier == LyricSymbols.STATIC_SHIFT_SYMBOL)
+                    lyricFlags |= LyricFlags.StaticShift;
+                else if (modifier == LyricSymbols.RANGE_SHIFT_SYMBOL)
+                    lyricFlags |= LyricFlags.RangeShift;
+
+                // Only process note modifiers for lyrics that match the current note
+                if (lyricTick == noteTick)
+                {
+                    LyricType type;
+                    if (modifier == LyricSymbols.PITCH_SLIDE_SYMBOL)
+                        type = LyricType.PitchSlide;
+                    else if (LyricSymbols.NONPITCHED_SYMBOLS.Contains(modifier))
+                        type = LyricType.NonPitched;
+                    else
+                        continue;
+
+                    if (lyricType != LyricType.None && type != lyricType)
+                    {
+                        YargTrace.DebugWarning($"Lyric '{lyric.ToString()}' at tick {lyricTick} specifies multiple lyric types ({lyricType} and {type})!");
+                        continue;
+                    }
+                }
+            }
+
+            if (lyric[0] == LyricSymbols.HARMONY_HIDE_SYMBOL)
+                lyricFlags |= LyricFlags.HarmonyHidden;
+
+            // Strip special symbols from lyrics
+            string strippedLyric = LyricSymbols.StripForVocals(lyric.ToString());
+            if (string.IsNullOrWhiteSpace(strippedLyric))
+                return;
+
+            double time = _moonSong.TickToTime(lyricTick);
+            lyrics.Add(new(lyricFlags, strippedLyric, time, lyricTick));
         }
 
         private VocalNote CreateVocalNote(MoonNote moonNote, int harmonyPart, LyricType lyricType)
