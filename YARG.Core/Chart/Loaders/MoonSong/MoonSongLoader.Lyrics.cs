@@ -43,6 +43,16 @@ namespace YARG.Core.Chart
 
                 var lyric = text.AsSpan().Slice(TextEvents.LYRIC_PREFIX_WITH_SPACE.Length);
 
+                // Workaround for a certain set of badly-formatted vocal tracks which place the hyphen
+                // for pitch bend lyrics on the pitch bend and not the lyric itself
+                if (_currentLyrics.Count > 0 && !_currentLyrics[^1].JoinWithNext &&
+                    (lyric.Equals("+-", StringComparison.Ordinal) || lyric.Equals("-+", StringComparison.Ordinal)))
+                {
+                    var other = _currentLyrics[^1];
+                    _currentLyrics[^1] = new(LyricFlags.JoinWithNext, other.Text, other.Time, other.Tick);
+                    return;
+                }
+
                 // Handle lyric modifiers
                 var flags = LyricFlags.None;
                 for (var modifiers = lyric; !modifiers.IsEmpty; modifiers = modifiers[..^1])

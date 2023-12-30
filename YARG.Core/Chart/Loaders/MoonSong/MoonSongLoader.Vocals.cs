@@ -141,6 +141,17 @@ namespace YARG.Core.Chart
                         if (lyric.IsEmpty)
                             continue;
 
+                        // Workaround for a certain set of badly-formatted vocal tracks which place the hyphen
+                        // for pitch bend lyrics on the pitch bend and not the lyric itself
+                        // Not really necessary except to ensure the lyric displays correctly
+                        if (lyrics.Count > 0 && !lyrics[^1].Text.EndsWith('-') &&
+                            (lyric.Equals("+-", StringComparison.Ordinal) || lyric.Equals("-+", StringComparison.Ordinal)))
+                        {
+                            var other = lyrics[^1];
+                            lyrics[^1] = new($"{other.Text}-", other.Time, other.Tick);
+                            lyric = "+";
+                        }
+
                         // Only process note modifiers for lyrics that match the current note
                         if (moonEvent.tick == moonNote.tick)
                         {
