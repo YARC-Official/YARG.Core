@@ -33,7 +33,9 @@ namespace YARG.Core.Chart
             {
                 LoadVocalsPart(MoonSong.MoonInstrument.Vocals),
             };
-            return new(instrument, parts);
+
+            var shifts = GetRangeShifts(parts[0]);
+            return new(instrument, parts, shifts);
         }
 
         private VocalsTrack LoadHarmonyVocals(Instrument instrument)
@@ -44,7 +46,9 @@ namespace YARG.Core.Chart
                 LoadVocalsPart(MoonSong.MoonInstrument.Harmony2),
                 LoadVocalsPart(MoonSong.MoonInstrument.Harmony3),
             };
-            return new(instrument, parts);
+
+            var shifts = GetRangeShifts(parts[0]);
+            return new(instrument, parts, shifts);
         }
 
         private VocalsPart LoadVocalsPart(MoonSong.MoonInstrument moonInstrument)
@@ -133,10 +137,7 @@ namespace YARG.Core.Chart
                         string eventText = moonEvent.text;
                         // Non-lyric events
                         if (!eventText.StartsWith(TextEvents.LYRIC_PREFIX_WITH_SPACE))
-                        {
-                            ProcessTextEvent(lyrics, eventText, moonEvent.tick);
                             continue;
-                        }
 
                         var lyric = eventText.AsSpan()
                             .Slice(TextEvents.LYRIC_PREFIX_WITH_SPACE.Length).TrimStartAscii();
@@ -174,17 +175,6 @@ namespace YARG.Core.Chart
             return phrases;
         }
 
-        private void ProcessTextEvent(List<LyricEvent> lyrics, string text, uint tick)
-        {
-            switch (text)
-            {
-                case "range_shift":
-                    // Special meta-lyric with no text
-                    lyrics.Add(new(LyricFlags.RangeShift, "", _moonSong.TickToTime(tick), tick));
-                    break;
-            }
-        }
-
         private void ProcessLyric(List<LyricEvent> lyrics, ReadOnlySpan<char> lyric, ref LyricType lyricType,
             uint lyricTick, uint noteTick)
         {
@@ -209,8 +199,6 @@ namespace YARG.Core.Chart
 
                 if (modifier == LyricSymbols.STATIC_SHIFT_SYMBOL)
                     lyricFlags |= LyricFlags.StaticShift;
-                else if (modifier == LyricSymbols.RANGE_SHIFT_SYMBOL)
-                    lyricFlags |= LyricFlags.RangeShift;
 
                 // Only process note modifiers for lyrics that match the current note
                 if (lyricTick == noteTick)
@@ -241,6 +229,94 @@ namespace YARG.Core.Chart
 
             double time = _moonSong.TickToTime(lyricTick);
             lyrics.Add(new(lyricFlags, strippedLyric, time, lyricTick));
+        }
+
+        private List<VocalsRangeShift> GetRangeShifts(VocalsPart referencePart)
+        {
+            var shifts = new List<VocalsRangeShift>();
+
+            if (referencePart.NotePhrases.Count < 0)
+                return shifts;
+
+            int partPhraseIndex = 0;
+            int nextNoteIndex = 0;
+            var chart = _moonSong.GetChart(MoonSong.MoonInstrument.Vocals, MoonSong.Difficulty.Expert);
+            foreach (var moonEvent in chart.events)
+            {
+                // Track the currently active or upcoming phrase
+                while (partPhraseIndex < referencePart.NotePhrases.Count)
+                {
+                    var phrase = referencePart.NotePhrases[partPhraseIndex];
+                    if (phrase.TickEnd > moonEvent.tick)
+                        break;
+                    partPhraseIndex++;
+                    nextNoteIndex = 0;
+                }
+                var currentPhrase = referencePart.NotePhrases[partPhraseIndex];
+
+                // Track the upcoming note
+                while (nextNoteIndex < currentPhrase.PhraseParentNote.ChildNotes.Count)
+                {
+                    var note = currentPhrase.PhraseParentNote.ChildNotes[nextNoteIndex];
+                    if (note.Tick > moonEvent.tick)
+                        break;
+                    nextNoteIndex++;
+                }
+                var nextNote = currentPhrase.PhraseParentNote.ChildNotes[nextNoteIndex];
+
+                uint shiftEndTick = moonEvent.tick < currentPhrase.Tick
+                    ? currentPhrase.Tick
+                    : nextNote.Tick;
+
+                var eventText = moonEvent.text;
+                if (eventText == "range_shift")
+                {
+                    var shift = CreateRangeShift(moonEvent.tick, shiftEndTick);
+                    shifts.Add(shift);
+                    continue;
+                }
+                else if (eventText.StartsWith(TextEvents.LYRIC_PREFIX_WITH_SPACE))
+                {
+                    var lyric = eventText.AsSpan()
+                        .Slice(TextEvents.LYRIC_PREFIX_WITH_SPACE.Length).TrimStartAscii();
+                    // Ignore empty lyrics
+                    if (lyric.IsEmpty)
+                        continue;
+
+                    // Search for the range shift symbol
+                    for (var modifiers = lyric; !modifiers.IsEmpty; modifiers = modifiers[..^1])
+                    {
+                        char modifier = modifiers[^1];
+                        if (!LyricSymbols.ALL_SYMBOLS.Contains(modifier))
+                            break;
+
+                        if (modifier == LyricSymbols.RANGE_SHIFT_SYMBOL)
+                        {
+                            var shift = CreateRangeShift(moonEvent.tick, shiftEndTick);
+                            shifts.Add(shift);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            return shifts;
+        }
+
+        private VocalsRangeShift CreateRangeShift(uint startTick, uint endTick)
+        {
+            double startTime = _moonSong.TickToTime(startTick);
+            double endTime = _moonSong.TickToTime(endTick);
+
+            // Limit range shift length to 1 second
+            const double maxShiftTime = 1.0;
+            if ((endTime - startTime) > maxShiftTime)
+            {
+                endTime = startTime + maxShiftTime;
+                endTick = _moonSong.TimeToTick(endTime);
+            }
+
+            return new(startTime, endTime - startTime, startTick, endTick - startTick);
         }
 
         private VocalNote CreateVocalNote(MoonNote moonNote, int harmonyPart, LyricType lyricType)
