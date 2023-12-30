@@ -131,9 +131,19 @@ namespace YARG.Core.Chart
                         moonTextIndex++;
 
                         string eventText = moonEvent.text;
-                        // Ignore non-lyric events
+                        // Non-lyric events
                         if (!eventText.StartsWith(TextEvents.LYRIC_PREFIX_WITH_SPACE))
+                        {
+                            switch (eventText)
+                            {
+                                case "range_shift":
+                                    // Special meta-lyric with no text
+                                    lyrics.Add(new(LyricFlags.RangeShift, "",
+                                        _moonSong.TickToTime(moonEvent.tick), moonEvent.tick));
+                                    break;
+                            }
                             continue;
+                        }
 
                         var lyric = eventText.AsSpan()
                             .Slice(TextEvents.LYRIC_PREFIX_WITH_SPACE.Length).TrimStartAscii();
@@ -152,17 +162,22 @@ namespace YARG.Core.Chart
                             lyric = "+";
                         }
 
-                        // Only process note modifiers for lyrics that match the current note
-                        if (moonEvent.tick == moonNote.tick)
+                        // Handle lyric modifiers
+                        var lyricFlags = LyricFlags.None;
+                        for (var modifiers = lyric; !modifiers.IsEmpty; modifiers = modifiers[..^1])
                         {
-                            // Handle lyric modifiers
-                            for (var modifiers = lyric; !modifiers.IsEmpty; modifiers = modifiers[..^1])
-                            {
-                                char modifier = modifiers[^1];
-                                if (!LyricSymbols.ALL_SYMBOLS.Contains(modifier))
-                                    break;
+                            char modifier = modifiers[^1];
+                            if (!LyricSymbols.ALL_SYMBOLS.Contains(modifier))
+                                break;
 
-                                // Handle modifier lyrics
+                            if (modifier == LyricSymbols.STATIC_SHIFT_SYMBOL)
+                                lyricFlags |= LyricFlags.StaticShift;
+                            else if (modifier == LyricSymbols.RANGE_SHIFT_SYMBOL)
+                                lyricFlags |= LyricFlags.RangeShift;
+
+                            // Only process note modifiers for lyrics that match the current note
+                            if (moonEvent.tick == moonNote.tick)
+                            {
                                 if (modifier == LyricSymbols.PITCH_SLIDE_SYMBOL)
                                     lyricType = LyricType.PitchSlide;
                                 else if (LyricSymbols.NONPITCHED_SYMBOLS.Contains(modifier))
@@ -170,13 +185,16 @@ namespace YARG.Core.Chart
                             }
                         }
 
+                        if (lyric[0] == LyricSymbols.HARMONY_HIDE_SYMBOL)
+                            lyricFlags |= LyricFlags.HarmonyHidden;
+
                         // Strip special symbols from lyrics
                         string strippedLyric = LyricSymbols.StripForVocals(lyric.ToString());
                         if (string.IsNullOrWhiteSpace(strippedLyric))
                             continue;
 
                         double time = _moonSong.TickToTime(moonEvent.tick);
-                        lyrics.Add(new(LyricFlags.None, strippedLyric, time, moonEvent.tick));
+                        lyrics.Add(new(lyricFlags, strippedLyric, time, moonEvent.tick));
                     }
 
                     // Create new note

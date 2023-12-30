@@ -61,7 +61,9 @@ namespace YARG.Core.Chart
                     if (!LyricSymbols.ALL_SYMBOLS.Contains(modifier))
                         break;
 
-                    if (LyricSymbols.LYRIC_JOIN_SYMBOLS.Contains(modifier))
+                    if (modifier == LyricSymbols.STATIC_SHIFT_SYMBOL)
+                        flags |= LyricFlags.StaticShift;
+                    else if (LyricSymbols.LYRIC_JOIN_SYMBOLS.Contains(modifier))
                         flags |= LyricFlags.JoinWithNext;
                 }
 

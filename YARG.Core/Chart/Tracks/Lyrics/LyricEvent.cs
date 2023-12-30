@@ -5,11 +5,15 @@ namespace YARG.Core.Chart
     /// <summary>
     /// Flags for lyric events.
     /// </summary>
+    [Flags]
     public enum LyricFlags
     {
         None = 0,
 
         JoinWithNext = 1 << 0,
+        HarmonyHidden = 1 << 1,
+        StaticShift = 1 << 1,
+        RangeShift = 1 << 1,
     }
 
     /// <summary>
@@ -24,6 +28,9 @@ namespace YARG.Core.Chart
         public LyricFlags Flags => _flags;
 
         public bool JoinWithNext => (_flags & LyricFlags.JoinWithNext) != 0;
+        public bool HarmonyHidden => (_flags & LyricFlags.HarmonyHidden) != 0;
+        public bool StaticShift => (_flags & LyricFlags.StaticShift) != 0;
+        public bool RangeShift => (_flags & LyricFlags.RangeShift) != 0;
 
         public LyricEvent(LyricFlags flags, string text, double time, uint tick)
             : base(time, 0, tick, 0)
@@ -34,6 +41,7 @@ namespace YARG.Core.Chart
 
         public LyricEvent(LyricEvent other) : base(other)
         {
+            _flags = other._flags;
             Text = other.Text;
         }
 
