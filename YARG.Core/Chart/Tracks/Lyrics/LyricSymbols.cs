@@ -61,6 +61,22 @@ namespace YARG.Core.Chart
         /// <remarks>Only intended for use in lyrics, but will also be replaced in vocals.</remarks>
         public const char SPACE_ESCAPE_SYMBOL = '_';
 
+        /// <summary>All possible lyric symbols.</summary>
+        public static readonly HashSet<char> ALL_SYMBOLS = new()
+        {
+            LYRIC_JOIN_SYMBOL,
+            LYRIC_JOIN_HYPHEN_SYMBOL,
+            PITCH_SLIDE_SYMBOL,
+            NONPITCHED_SYMBOL,
+            NONPITCHED_LENIENT_SYMBOL,
+            NONPITCHED_UNKNOWN_SYMBOL,
+            RANGE_SHIFT_SYMBOL,
+            STATIC_SHIFT_SYMBOL,
+            HARMONY_HIDE_SYMBOL,
+            JOINED_SYLLABLE_SYMBOL,
+            SPACE_ESCAPE_SYMBOL,
+        };
+
         /// <summary>Symbols which join two lyrics together.</summary>
         public static readonly HashSet<char> LYRIC_JOIN_SYMBOLS = new()
         {

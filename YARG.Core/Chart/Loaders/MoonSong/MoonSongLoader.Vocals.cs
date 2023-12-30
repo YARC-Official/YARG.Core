@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using MoonscraperChartEditor.Song;
 using YARG.Core.Extensions;
@@ -144,12 +144,19 @@ namespace YARG.Core.Chart
                         // Only process note modifiers for lyrics that match the current note
                         if (moonEvent.tick == moonNote.tick)
                         {
-                            // Handle modifier lyrics
-                            char modifier = lyric[^1];
-                            if (modifier == LyricSymbols.PITCH_SLIDE_SYMBOL)
-                                lyricType = LyricType.PitchSlide;
-                            else if (LyricSymbols.NONPITCHED_SYMBOLS.Contains(modifier))
-                                lyricType = LyricType.NonPitched;
+                            // Handle lyric modifiers
+                            for (var modifiers = lyric; !modifiers.IsEmpty; modifiers = modifiers[..^1])
+                            {
+                                char modifier = modifiers[^1];
+                                if (!LyricSymbols.ALL_SYMBOLS.Contains(modifier))
+                                    break;
+
+                                // Handle modifier lyrics
+                                if (modifier == LyricSymbols.PITCH_SLIDE_SYMBOL)
+                                    lyricType = LyricType.PitchSlide;
+                                else if (LyricSymbols.NONPITCHED_SYMBOLS.Contains(modifier))
+                                    lyricType = LyricType.NonPitched;
+                            }
                         }
 
                         // Strip special symbols from lyrics
