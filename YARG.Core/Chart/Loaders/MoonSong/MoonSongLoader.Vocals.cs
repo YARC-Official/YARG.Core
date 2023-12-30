@@ -13,8 +13,8 @@ namespace YARG.Core.Chart
         {
             None = 0,
 
-            NonPitched = 1 << 0,
-            PitchSlide = 1 << 1,
+            NonPitched = 1,
+            PitchSlide = 2,
         }
 
         public VocalsTrack LoadVocalsTrack(Instrument instrument)
@@ -178,10 +178,19 @@ namespace YARG.Core.Chart
                             // Only process note modifiers for lyrics that match the current note
                             if (moonEvent.tick == moonNote.tick)
                             {
+                                LyricType type;
                                 if (modifier == LyricSymbols.PITCH_SLIDE_SYMBOL)
-                                    lyricType = LyricType.PitchSlide;
+                                    type = LyricType.PitchSlide;
                                 else if (LyricSymbols.NONPITCHED_SYMBOLS.Contains(modifier))
-                                    lyricType = LyricType.NonPitched;
+                                    type = LyricType.NonPitched;
+                                else
+                                    continue;
+
+                                if (lyricType != LyricType.None && type != lyricType)
+                                {
+                                    YargTrace.DebugWarning($"Event '{eventText}' at tick {moonEvent.tick} specifies multiple lyric types ({lyricType} and {type})!");
+                                    continue;
+                                }
                             }
                         }
 
