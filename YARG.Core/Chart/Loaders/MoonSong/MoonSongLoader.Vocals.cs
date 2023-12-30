@@ -104,7 +104,7 @@ namespace YARG.Core.Chart
 
                 // Go through each note and lyric in the phrase
                 var notes = new List<VocalNote>();
-                var lyrics = new List<TextEvent>();
+                var lyrics = new List<LyricEvent>();
                 VocalNote? previousNote = null;
                 uint endOfPhrase = moonPhrase.tick + moonPhrase.length;
                 while (moonNoteIndex < moonChart.notes.Count)
@@ -148,7 +148,7 @@ namespace YARG.Core.Chart
                             (lyric.Equals("+-", StringComparison.Ordinal) || lyric.Equals("-+", StringComparison.Ordinal)))
                         {
                             var other = lyrics[^1];
-                            lyrics[^1] = new($"{other.Text}-", other.Time, other.Tick);
+                            lyrics[^1] = new(other.Flags, $"{other.Text}-", other.Time, other.Tick);
                             lyric = "+";
                         }
 
@@ -176,7 +176,7 @@ namespace YARG.Core.Chart
                             continue;
 
                         double time = _moonSong.TickToTime(moonEvent.tick);
-                        lyrics.Add(new(strippedLyric, time, moonEvent.tick));
+                        lyrics.Add(new(LyricFlags.None, strippedLyric, time, moonEvent.tick));
                     }
 
                     // Create new note
@@ -240,7 +240,7 @@ namespace YARG.Core.Chart
         }
 
         private VocalsPhrase CreateVocalsPhrase(MoonPhrase moonPhrase, Dictionary<MoonPhrase.Type, MoonPhrase?> phrasetracker,
-            List<VocalNote> notes, List<TextEvent> lyrics)
+            List<VocalNote> notes, List<LyricEvent> lyrics)
         {
             double time = _moonSong.TickToTime(moonPhrase.tick);
             double timeLength = GetLengthInTime(moonPhrase);
