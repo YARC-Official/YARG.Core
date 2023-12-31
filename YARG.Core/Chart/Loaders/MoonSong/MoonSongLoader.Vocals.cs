@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using MoonscraperChartEditor.Song;
 using YARG.Core.Extensions;
 
@@ -24,7 +25,7 @@ namespace YARG.Core.Chart
                 LoadVocalsPart(MoonSong.MoonInstrument.Vocals),
             };
 
-            var ranges = GetRangeShifts(parts[0]);
+            var ranges = GetRangeShifts(parts, MoonSong.MoonInstrument.Vocals);
             return new(instrument, parts, ranges);
         }
 
@@ -37,7 +38,7 @@ namespace YARG.Core.Chart
                 LoadVocalsPart(MoonSong.MoonInstrument.Harmony3),
             };
 
-            var ranges = GetRangeShifts(parts[0]);
+            var ranges = GetRangeShifts(parts, MoonSong.MoonInstrument.Harmony1);
             return new(instrument, parts, ranges);
         }
 
@@ -195,24 +196,24 @@ namespace YARG.Core.Chart
             lyrics.Add(new(lyricFlags, strippedLyric, time, lyricTick));
         }
 
-        private List<VocalsPitchRange> GetRangeShifts(VocalsPart mainPart)
+        private List<VocalsPitchRange> GetRangeShifts(List<VocalsPart> parts, MoonSong.MoonInstrument sourceInstrument)
         {
             var ranges = new List<VocalsPitchRange>();
 
-            if (mainPart.NotePhrases.Count < 0)
+            // Do nothing if no phrases were parsed in
+            if (parts.All((part) => part.NotePhrases.Count < 1))
                 return ranges;
 
             uint shiftStartTick = 0;
 
-            int phraseIndex = 0;
-            int noteIndex = 0;
-            var chart = _moonSong.GetChart(MoonSong.MoonInstrument.Vocals, MoonSong.Difficulty.Expert);
+            var indexes = new List<(int phraseIndex, int noteIndex)>(parts.Select((_) => (0, 0)));
+            var chart = _moonSong.GetChart(sourceInstrument, MoonSong.Difficulty.Expert);
             foreach (var moonEvent in chart.events)
             {
                 var eventText = moonEvent.text;
                 if (eventText == "range_shift")
                 {
-                    AddPitchRange(ranges, mainPart, ref phraseIndex, ref noteIndex, ref shiftStartTick, moonEvent.tick);
+                    AddPitchRange(moonEvent.tick);
                     continue;
                 }
                 else if (eventText.StartsWith(TextEvents.LYRIC_PREFIX_WITH_SPACE))
@@ -227,64 +228,72 @@ namespace YARG.Core.Chart
                     var flags = LyricSymbols.GetLyricFlags(lyric);
                     if ((flags & LyricSymbolFlags.RangeShift) != 0)
                     {
-                        AddPitchRange(ranges, mainPart, ref phraseIndex, ref noteIndex, ref shiftStartTick, moonEvent.tick);
+                        AddPitchRange(moonEvent.tick);
                         break;
                     }
                 }
             }
 
             // Finish off last range
-            AddPitchRange(ranges, mainPart, ref phraseIndex, ref noteIndex, ref shiftStartTick, uint.MaxValue);
+            AddPitchRange(uint.MaxValue);
             return ranges;
-        }
 
-        private void AddPitchRange(List<VocalsPitchRange> ranges, VocalsPart part, ref int phraseIndex, ref int noteIndex,
-            ref uint startTick, uint endTick)
-        {
-            // Determine pitch bounds for this range shift
-            float minPitch = float.MaxValue;
-            float maxPitch = float.MinValue;
-
-            for (; phraseIndex < part.NotePhrases.Count; phraseIndex++)
+            void AddPitchRange(uint endTick)
             {
-                var phrase = part.NotePhrases[phraseIndex];
-                if (phrase.Tick >= endTick)
-                    break;
+                // Determine pitch bounds for this range shift
+                float minPitch = float.MaxValue;
+                float maxPitch = float.MinValue;
 
-                if (phrase.TickEnd < startTick || phrase.IsPercussion)
-                    // TODO: Percussion phrases should probably stop the range and start a new one afterwards
-                    continue;
-
-                for (; noteIndex < phrase.PhraseParentNote.ChildNotes.Count; noteIndex++)
+                for (int i = 0; i < parts.Count; i++)
                 {
-                    var note = phrase.PhraseParentNote.ChildNotes[noteIndex];
-                    if (note.Tick >= endTick)
-                        break;
+                    var part = parts[i];
+                    var (phraseIndex, noteIndex) = indexes[i];
 
-                    foreach (var child in note.ChordEnumerator())
+                    for (; phraseIndex < part.NotePhrases.Count; phraseIndex++)
                     {
-                        if (note.TickEnd < startTick || note.IsNonPitched)
+                        var phrase = part.NotePhrases[phraseIndex];
+                        if (phrase.Tick >= endTick)
+                            break;
+
+                        if (phrase.TickEnd < shiftStartTick || phrase.IsPercussion)
+                            // TODO: Percussion phrases should probably stop the range and start a new one afterwards
                             continue;
 
-                        minPitch = Math.Min(minPitch, note.Pitch);
-                        maxPitch = Math.Max(maxPitch, note.Pitch);
+                        for (; noteIndex < phrase.PhraseParentNote.ChildNotes.Count; noteIndex++)
+                        {
+                            var note = phrase.PhraseParentNote.ChildNotes[noteIndex];
+                            if (note.Tick >= endTick)
+                                break;
+
+                            foreach (var child in note.ChordEnumerator())
+                            {
+                                if (note.TickEnd < shiftStartTick || note.IsNonPitched)
+                                    continue;
+
+                                minPitch = Math.Min(minPitch, note.Pitch);
+                                maxPitch = Math.Max(maxPitch, note.Pitch);
+                            }
+
+                        }
+
+                        // Manual end due to reaching the last note in the range
+                        if (noteIndex < phrase.PhraseParentNote.ChildNotes.Count)
+                            break;
+
+                        noteIndex = 0;
                     }
 
+                    indexes[i] = (phraseIndex, noteIndex);
                 }
 
-                // Manual end due to reaching the last note in the range
-                if (noteIndex < phrase.PhraseParentNote.ChildNotes.Count)
-                    break;
+                if (minPitch == float.MaxValue || maxPitch == float.MinValue)
+                    return;
 
-                noteIndex = 0;
+                ranges.Add(new(minPitch, maxPitch, _moonSong.TickToTime(shiftStartTick), shiftStartTick));
+                shiftStartTick = endTick;
             }
-
-            if (minPitch == float.MaxValue || maxPitch == float.MinValue)
-                return;
-
-            ranges.Add(new(minPitch, maxPitch, _moonSong.TickToTime(startTick), startTick));
-            startTick = endTick;
         }
+
 
         private VocalNote CreateVocalNote(MoonNote moonNote, int harmonyPart, LyricSymbolFlags lyricFlags)
         {
