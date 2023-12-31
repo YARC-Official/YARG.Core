@@ -155,16 +155,18 @@ namespace YARG.Core.Chart
             // This prevents issues with songs with no sections, such as in practice mode.
             if (Sections.Count <= 0)
             {
-                for (uint i = 0; i < AUTO_GEN_SECTION_COUNT; i++)
+                uint startTick = 0;
+                double startTime = SyncTrack.TickToTime(startTick);
+
+                // `i` is effectively the "ending index" since start tick and time is
+                // always one index behind.
+                for (uint i = 1; i <= AUTO_GEN_SECTION_COUNT; i++)
                 {
-                    uint startTick = lastTick / AUTO_GEN_SECTION_COUNT * i;
-                    uint endTick   = lastTick / AUTO_GEN_SECTION_COUNT * (i + 1);
+                    uint endTick = lastTick / AUTO_GEN_SECTION_COUNT * i;
+                    double endTime = SyncTrack.TickToTime(endTick);
 
-                    double startTime = SyncTrack.TickToTime(startTick);
-                    double endTime   = SyncTrack.TickToTime(endTick);
-
-                    // 10%, 20%, 30%, etc.
-                    var sectionName = $"{100f / AUTO_GEN_SECTION_COUNT * (i + 1):N0}%";
+                    // 10%, 20%, 30%, etc. (the ending percent)
+                    var sectionName = $"{100f / AUTO_GEN_SECTION_COUNT * i:N0}%";
 
                     var section = new Section(sectionName, startTime, startTick)
                     {
@@ -173,6 +175,10 @@ namespace YARG.Core.Chart
                     };
 
                     Sections.Add(section);
+
+                    // Set the start of the next section to the end of this one
+                    startTick = endTick;
+                    startTime = endTime;
                 }
             }
             else
