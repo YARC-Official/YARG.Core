@@ -10,17 +10,12 @@ namespace YARG.Core.Chart
         public float MinimumPitch { get; }
         public float MaximumPitch { get; }
 
-        // TODO
-        // public double ShiftTime { get; }
-
-        public VocalsPitchRange(float minPitch, float maxPitch, // double shiftTime,
-            double time, double timeLength, uint tick, uint tickLength)
-            : base(time, timeLength, tick, tickLength)
+        public VocalsPitchRange(float minPitch, float maxPitch,
+            double time, uint tick)
+            : base(time, 0, tick, 0)
         {
             MinimumPitch = minPitch;
             MaximumPitch = maxPitch;
-
-            // ShiftTime = shiftTime;
         }
 
         public VocalsPitchRange(ChartEvent other) : base(other)

@@ -261,11 +261,15 @@ namespace YARG.Core.Chart
                     if (note.Tick >= endTick)
                         break;
 
-                    if (note.TickEnd < startTick || note.IsNonPitched)
-                        continue;
+                    foreach (var child in note.ChordEnumerator())
+                    {
+                        if (note.TickEnd < startTick || note.IsNonPitched)
+                            continue;
 
-                    minPitch = Math.Min(minPitch, note.Pitch);
-                    maxPitch = Math.Max(maxPitch, note.Pitch);
+                        minPitch = Math.Min(minPitch, note.Pitch);
+                        maxPitch = Math.Max(maxPitch, note.Pitch);
+                    }
+
                 }
 
                 // Manual end due to reaching the last note in the range
@@ -278,19 +282,7 @@ namespace YARG.Core.Chart
             if (minPitch == float.MaxValue || maxPitch == float.MinValue)
                 return;
 
-            double startTime = _moonSong.TickToTime(startTick);
-            double endTime = _moonSong.TickToTime(endTick);
-
-            // TODO: Shift duration
-            // // Limit range shift length to 1 second
-            // const double maxShiftTime = 1.0;
-            // if ((endTime - startTime) > maxShiftTime)
-            // {
-            //     endTime = startTime + maxShiftTime;
-            //     endTick = _moonSong.TimeToTick(endTime);
-            // }
-
-            ranges.Add(new(minPitch, maxPitch, startTime, endTime - startTime, startTick, endTick - startTick));
+            ranges.Add(new(minPitch, maxPitch, _moonSong.TickToTime(startTick), startTick));
             startTick = endTick;
         }
 
