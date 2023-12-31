@@ -3,7 +3,7 @@ using System.IO;
 
 namespace YARG.Core.IO
 {
-    public class YARGSongFileStream : Stream
+    public class YARGSongFileStream : CloneableStream
     {
         private const int HEADER_SIZE = 24;
         private const int SET_LENGTH  = 15;
@@ -14,16 +14,16 @@ namespace YARG.Core.IO
             (byte) 'S', (byte) 'O', (byte) 'N', (byte) 'G'
         };
 
-        private readonly FileStream _fileStream;
+        private readonly CloneableFilestream _filestream;
 
-        public override bool CanRead  => _fileStream.CanRead;
-        public override bool CanSeek => _fileStream.CanSeek;
+        public override bool CanRead  => _filestream.CanRead;
+        public override bool CanSeek => _filestream.CanSeek;
         public override bool CanWrite => false;
 
         public override long Position
         {
-            get => _fileStream.Position - HEADER_SIZE;
-            set => _fileStream.Position = value + HEADER_SIZE;
+            get => _filestream.Position - HEADER_SIZE;
+            set => _filestream.Position = value + HEADER_SIZE;
         }
 
         public override long Length  { get; }
@@ -31,30 +31,28 @@ namespace YARG.Core.IO
         // These are very important values required to properly
         // decrypt the first layer of encryption (Crawford multi-
         // value cipher).
-        private readonly int[] _values = new int[4];
+        private readonly int[] _values;
 
-        public YARGSongFileStream(string path)
+        public static YARGSongFileStream? TryLoadYARGSong(string filename)
         {
-            _fileStream = new FileStream(path, FileMode.Open, FileAccess.Read);
-            Length = _fileStream.Length - HEADER_SIZE;
+            var filestream = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
 
-            // Check file signature
-
+            long length = filestream.Length - HEADER_SIZE;
             Span<byte> signature = stackalloc byte[FILE_SIGNATURE.Length];
-            if (_fileStream.Read(signature) != FILE_SIGNATURE.Length)
+            if (filestream.Read(signature) != FILE_SIGNATURE.Length)
             {
-                throw new EndOfStreamException();
+                return null;
             }
 
             if (!signature.SequenceEqual(FILE_SIGNATURE))
             {
-                throw new Exception("The specified file is not a YARG Song!");
+                return null;
             }
 
             // Get the Crawford special number
 
             // The main part
-            int z = _fileStream.ReadByte();
+            int z = filestream.ReadByte();
             z += 1679;                  // A large-ish prime
             int w = (z ^ 4) - z * 2;    // Exponent W value
             int n = 25 * w - 5;         // Aleph value
@@ -68,31 +66,46 @@ namespace YARG.Core.IO
             // We are using a SET_LENGTH-long Euler cipher set (I think?) for this
 
             Span<byte> set = stackalloc byte[SET_LENGTH];
-            if (_fileStream.Read(set) != SET_LENGTH)
+            if (filestream.Read(set) != SET_LENGTH)
             {
-                throw new EndOfStreamException();
+                throw new EndOfStreamException("YARGSong incomplete");
             }
 
             // Get the values using X
 
             x = (x + 5) % 255; // Convert to byte again
+
+            int[] values = new int[4];
             unchecked
             {
                 for (int i = 0, j = 0; i < 24; i++, j += x)
                 {
                     // Just use the standard numbers for this
-                    _values[0] += (byte) (set[j % 15] + i * 3298 + 88903);
-                    _values[1] -= set[(j + 7001) % 15];
-                    _values[2] += set[j % 15];
-                    _values[3] += j << 2;
+                    values[0] += (byte) (set[j % 15] + i * 3298 + 88903);
+                    values[1] -= set[(j + 7001) % 15];
+                    values[2] += set[j % 15];
+                    values[3] += j << 2;
                 }
             }
+            return new YARGSongFileStream(new CloneableFilestream(filestream), values, length);
+        }
+
+        private YARGSongFileStream(CloneableFilestream filestream, int[] values, long length)
+        {
+            _filestream = filestream;
+            _values = values;
+            Length = length;
+        }
+
+        public override CloneableStream Clone()
+        {
+            return new YARGSongFileStream((CloneableFilestream)_filestream.Clone(), _values, Length);
         }
 
         public override int Read(byte[] buffer, int offset, int count)
         {
             int pos = (int) Position;
-            int read = _fileStream.Read(buffer, offset, count);
+            int read = _filestream.Read(buffer, offset, count);
             var span = new Span<byte>(buffer, offset, read);
 
             unchecked
@@ -113,7 +126,7 @@ namespace YARG.Core.IO
             return read;
         }
 
-        public override void Flush() => _fileStream.Flush();
+        public override void Flush() => _filestream.Flush();
 
         public override long Seek(long offset, SeekOrigin origin)
         {
@@ -141,6 +154,12 @@ namespace YARG.Core.IO
         public override void Write(byte[] buffer, int offset, int count)
         {
             throw new InvalidOperationException();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            _filestream.Dispose();
+            base.Dispose(disposing);
         }
     }
 }
