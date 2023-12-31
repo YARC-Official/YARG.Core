@@ -654,6 +654,13 @@ namespace MoonscraperChartEditor.Song.IO
         {
             var processFnDict = new Dictionary<int, EventProcessFn>()
             {
+                { MidIOHelper.LYRIC_SHIFT_NOTE, (in EventProcessParams eventProcessParams) =>
+                    ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, MoonPhrase.Type.Vocals_LyricShift)
+                },
+                { MidIOHelper.RANGE_SHIFT_NOTE, (in EventProcessParams eventProcessParams) =>
+                    ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, MoonPhrase.Type.Vocals_RangeShift)
+                },
+
                 { MidIOHelper.LYRICS_PHRASE_1, (in EventProcessParams eventProcessParams) => {
                     ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, MoonPhrase.Type.Versus_Player1);
                     ProcessNoteOnEventAsSpecialPhrase(eventProcessParams, MoonPhrase.Type.Vocals_LyricPhrase);

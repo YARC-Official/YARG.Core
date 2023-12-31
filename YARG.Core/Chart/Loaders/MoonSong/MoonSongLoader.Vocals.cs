@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using MoonscraperChartEditor.Song;
 using YARG.Core.Extensions;
+using YARG.Core.Utility;
 
 namespace YARG.Core.Chart
 {
@@ -206,14 +207,33 @@ namespace YARG.Core.Chart
 
             uint shiftStartTick = 0;
 
+            int phraseIndex = 0;
             var indexes = new List<(int phraseIndex, int noteIndex)>(parts.Select((_) => (0, 0)));
             var chart = _moonSong.GetChart(sourceInstrument, MoonSong.Difficulty.Expert);
             foreach (var moonEvent in chart.events)
             {
-                var eventText = moonEvent.text;
-                if (eventText == "range_shift")
+                for (; phraseIndex < chart.specialPhrases.Count; phraseIndex++)
                 {
-                    AddPitchRange(moonEvent.tick);
+                    var phrase = chart.specialPhrases[phraseIndex];
+                    if (phrase.tick >= moonEvent.tick)
+                        break;
+
+                    if (phrase.type == MoonPhrase.Type.Vocals_RangeShift)
+                    {
+                        double shiftStart = _moonSong.TickToTime(phrase.tick);
+                        double shiftEnd = _moonSong.TickToTime(phrase.tick + phrase.length);
+                        AddPitchRange(moonEvent.tick, shiftEnd - shiftStart);
+                    }
+                }
+
+                var eventText = moonEvent.text;
+                if (eventText.StartsWith("range_shift"))
+                {
+                    eventText.SplitOnce(' ', out var time);
+                    if (time.IsEmpty || !double.TryParse(time, out double shiftLength))
+                        shiftLength = 0;
+
+                    AddPitchRange(moonEvent.tick, shiftLength);
                     continue;
                 }
                 else if (eventText.StartsWith(TextEvents.LYRIC_PREFIX_WITH_SPACE))
@@ -238,7 +258,7 @@ namespace YARG.Core.Chart
             AddPitchRange(uint.MaxValue);
             return ranges;
 
-            void AddPitchRange(uint endTick)
+            void AddPitchRange(uint endTick, double shiftLength = 0)
             {
                 // Determine pitch bounds for this range shift
                 float minPitch = float.MaxValue;
@@ -289,7 +309,7 @@ namespace YARG.Core.Chart
                 if (minPitch == float.MaxValue || maxPitch == float.MinValue)
                     return;
 
-                ranges.Add(new(minPitch, maxPitch, _moonSong.TickToTime(shiftStartTick), shiftStartTick));
+                ranges.Add(new(minPitch, maxPitch, shiftLength, _moonSong.TickToTime(shiftStartTick), shiftStartTick));
                 shiftStartTick = endTick;
             }
         }
