@@ -50,7 +50,7 @@ namespace YARG.Core.Song
                 if (sngFile == null)
                     return null;
 
-                return sngFile[chart.File].CreateStream(sngFile);
+                return sngFile.CreateStream(sngFile[chart.File]);
             }
 
             public Dictionary<SongStem, Stream> GetAudioStreams()
@@ -69,7 +69,7 @@ namespace YARG.Core.Song
                         {
                             streams.Add(
                                 AudioHelpers.SupportedStems[stem],
-                                listing.CreateStream(sngFile)
+                                sngFile.CreateStream(listing)
                             );
 
                             // Parse no duplicate stems
@@ -91,7 +91,7 @@ namespace YARG.Core.Song
                 {
                     if (sngFile.TryGetValue(albumFile, out var listing))
                     {
-                        return listing.LoadAllBytes(sngFile);
+                        return sngFile.LoadAllBytes(listing);
                     }
                 }
                 return null;
@@ -109,7 +109,7 @@ namespace YARG.Core.Song
                     {
                         return (
                             BackgroundType.Yarground,
-                            listing.CreateStream(sngFile)
+                            sngFile.CreateStream(listing)
                         );
                     }
                 }
@@ -124,7 +124,7 @@ namespace YARG.Core.Song
                             {
                                 return (
                                     BackgroundType.Video,
-                                    listing.CreateStream(sngFile)
+                                    sngFile.CreateStream(listing)
                                 );
                             }
                         }
@@ -141,7 +141,7 @@ namespace YARG.Core.Song
                             {
                                 return (
                                     BackgroundType.Image,
-                                    listing.CreateStream(sngFile)
+                                    sngFile.CreateStream(listing)
                                 );
                             }
                         }
@@ -161,7 +161,7 @@ namespace YARG.Core.Song
                 {
                     if (sngFile.TryGetValue("preview" + format, out var listing))
                     {
-                        return listing.CreateStream(sngFile);
+                        return sngFile.CreateStream(listing);
                     }
                 }
 
@@ -177,15 +177,14 @@ namespace YARG.Core.Song
             }
         }
 
-        public static (ScanResult, SongMetadata?) FromSng(SngFile sng, AbridgedFileInfo sngInfo,
-            IniChartNode chart)
+        public static (ScanResult, SongMetadata?) FromSng(SngFile sng, AbridgedFileInfo sngInfo, IniChartNode chart)
         {
             if (sng.Metadata.Count == 0 && !SngSubmetadata.DoesSoloChartHaveAudio(sng))
                 return (ScanResult.LooseChart_NoAudio, null);
 
             var metadata = new SngSubmetadata(sng.Version, sngInfo, chart);
 
-            byte[] file = sng[chart.File].LoadAllBytes(sng);
+            byte[] file = sng.LoadAllBytes(sng[chart.File]);
             var result = ScanIniChartFile(file, chart.Type, sng.Metadata);
 
             return (

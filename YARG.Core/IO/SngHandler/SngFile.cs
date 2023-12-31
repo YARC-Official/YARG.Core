@@ -13,20 +13,32 @@ namespace YARG.Core.IO
     /// </summary>
     public class SngFile : IDisposable, IEnumerable<KeyValuePair<string, SngFileListing>>
     {
-        public readonly Stream Stream;
         public readonly uint Version;
         public readonly SngMask Mask;
         public readonly IniSection Metadata;
 
         private readonly Dictionary<string, SngFileListing> _listings;
+        private readonly Stream _stream;
 
         private SngFile(Stream stream, uint version, byte[] mask, IniSection metadata, Dictionary<string, SngFileListing> listings)
         {
-            Stream = stream;
+            _stream = stream;
             Version = version;
             Mask = new SngMask(mask);
             Metadata = metadata;
             _listings = listings;
+        }
+
+        public byte[] LoadAllBytes(SngFileListing listing)
+        {
+            var stream = CloneStream();
+            return SngFileStream.LoadFile(stream, Mask.Clone(), listing.Length, listing.Position);
+        }
+
+        public SngFileStream CreateStream(SngFileListing listing)
+        {
+            var stream = CloneStream();
+            return new SngFileStream(stream, Mask.Clone(), listing.Length, listing.Position);
         }
 
         public SngFileListing this[string key] => _listings[key];
@@ -45,8 +57,19 @@ namespace YARG.Core.IO
 
         public void Dispose()
         {
-            Stream.Dispose();
+            _stream.Dispose();
             Mask.Dispose();
+        }
+
+        private Stream CloneStream()
+        {
+            if (_stream is YARGSongFileStream yargSongStream)
+            {
+                return yargSongStream.Clone();
+            }
+
+            var fs = _stream as FileStream;
+            return new FileStream(fs!.Name, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
         }
 
 
