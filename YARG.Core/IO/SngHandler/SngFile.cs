@@ -13,46 +13,39 @@ namespace YARG.Core.IO
     /// </summary>
     public class SngFile : IDisposable, IEnumerable<KeyValuePair<string, SngFileListing>>
     {
+        public readonly CloneableStream Stream;
         public readonly uint Version;
         public readonly SngMask Mask;
         public readonly IniSection Metadata;
 
-        /// <summary>
-        /// This is <b>not</b> part of the SNG spec.
-        /// Indicates whether or not the <see cref="YARGSongFileStream"/> should be used.
-        /// </summary>
-        public readonly bool IsYARGSong;
+        private readonly Dictionary<string, SngFileListing> _listings;
 
-        private readonly Dictionary<string, SngFileListing> listings;
-
-        private SngFile(uint version, byte[] mask, IniSection metadata, bool isYARGSong,
-            Dictionary<string, SngFileListing> listings)
+        private SngFile(CloneableStream stream, uint version, byte[] mask, IniSection metadata, Dictionary<string, SngFileListing> listings)
         {
+            Stream = stream;
             Version = version;
             Mask = new SngMask(mask);
             Metadata = metadata;
-
-            IsYARGSong = isYARGSong;
-
-            this.listings = listings;
+            _listings = listings;
         }
 
-        public SngFileListing this[string key] => listings[key];
-        public bool ContainsKey(string key) => listings.ContainsKey(key);
-        public bool TryGetValue(string key, out SngFileListing listing) => listings.TryGetValue(key, out listing);
+        public SngFileListing this[string key] => _listings[key];
+        public bool ContainsKey(string key) => _listings.ContainsKey(key);
+        public bool TryGetValue(string key, out SngFileListing listing) => _listings.TryGetValue(key, out listing);
 
         IEnumerator<KeyValuePair<string, SngFileListing>> IEnumerable<KeyValuePair<string, SngFileListing>>.GetEnumerator()
         {
-            return listings.GetEnumerator();
+            return _listings.GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
         {
-            return listings.GetEnumerator();
+            return _listings.GetEnumerator();
         }
 
         public void Dispose()
         {
+            Stream.Dispose();
             Mask.Dispose();
         }
 
@@ -64,11 +57,27 @@ namespace YARG.Core.IO
         private const int BYTES_16BIT = 2;
         private static readonly byte[] SNGPKG = { (byte)'S', (byte) 'N', (byte) 'G', (byte)'P', (byte)'K', (byte)'G' };
 
-        public static SngFile? TryLoadFromFile(string path, bool isYARGSong)
+        public static SngFile? TryLoadFile(string path)
         {
+            using var stream = InitStream_Internal(path);
+            if (stream == null)
+            {
+                return null;
+            }
+
+            Span<byte> tag = stackalloc byte[SNGPKG.Length];
+            if (stream.Read(tag) != tag.Length || !tag.SequenceEqual(SNGPKG))
+            {
+                return null;
+            }
+
             try
             {
-                return LoadFromFile(path, isYARGSong);
+                uint version = stream.Read<uint>(Endianness.Little);
+                var xorMask = stream.ReadBytes(XORMASK_SIZE);
+                var metadata = ReadMetadata(stream);
+                var listings = ReadListings(stream);
+                return new SngFile(stream.Clone(), version, xorMask, metadata, listings);
             }
             catch (Exception ex)
             {
@@ -77,30 +86,24 @@ namespace YARG.Core.IO
             }
         }
 
-        private static SngFile LoadFromFile(string path, bool isYARGSong)
+        private static CloneableStream? InitStream_Internal(string filename)
         {
-            using Stream stream = isYARGSong
-                ? new YARGSongFileStream(path)
-                : new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-
-            if (!isYARGSong)
+            try
             {
-                Span<byte> tag = stackalloc byte[SNGPKG.Length];
-                if (stream.Read(tag) != tag.Length || !tag.SequenceEqual(SNGPKG))
-                    throw new InvalidOperationException("`.sng` file signature does not match!");
-            }
-            else
-            {
-                // YARG SNGs replace the signature, so just skip it.
-                // File signature will be checked when decrypting
-                stream.Seek(SNGPKG.Length, SeekOrigin.Current);
-            }
+                var songStream = YARGSongFileStream.TryLoadYARGSong(filename);
+                if (songStream != null)
+                {
+                    return songStream;
+                }
 
-            uint version = stream.Read<uint>(Endianness.Little);
-            var xorMask = stream.ReadBytes(XORMASK_SIZE);
-            var metadata = ReadMetadata(stream);
-            var listings = ReadListings(stream, isYARGSong);
-            return new SngFile(version, xorMask, metadata, isYARGSong, listings);
+                var filestream = File.OpenRead(filename);
+                return new CloneableFilestream(filestream);
+            }
+            catch (Exception ex)
+            {
+                YargTrace.LogException(ex, $"Error loading {filename}");
+                return null;
+            }
         }
 
         private static IniSection ReadMetadata(Stream stream)
@@ -125,9 +128,13 @@ namespace YARG.Core.IO
                     text.Next = text.Position + size;
                     var mod = node.CreateSngModifier(text);
                     if (modifiers.TryGetValue(node.outputName, out var list))
+                    {
                         list.Add(mod);
+                    }
                     else
+                    {
                         modifiers.Add(node.outputName, new() { mod });
+                    }
                     text.Position = text.Next;
                 }
                 else
@@ -138,7 +145,7 @@ namespace YARG.Core.IO
             return new IniSection(modifiers);
         }
 
-        private static Dictionary<string, SngFileListing> ReadListings(Stream stream, bool isYARGSong)
+        private static Dictionary<string, SngFileListing> ReadListings(Stream stream)
         {
             ulong length = stream.Read<ulong>(Endianness.Little) - sizeof(ulong);
             ulong numListings = stream.Read<ulong>(Endianness.Little);
@@ -152,8 +159,10 @@ namespace YARG.Core.IO
                 string filename = Encoding.UTF8.GetString(reader.ReadBytes(strLen));
                 int idx = filename.LastIndexOf('/');
                 if (idx != -1)
+                {
                     filename = filename[idx..];
-                listings.Add(filename.ToLower(), new SngFileListing(reader, isYARGSong));
+                }
+                listings.Add(filename.ToLower(), new SngFileListing(reader));
             }
             return listings;
         }

@@ -146,16 +146,13 @@ namespace YARG.Core.Song.Cache
             return false;
         }
 
-        private void ScanSngFile(bool isYARGSong, string filename, IniGroup group)
+        private bool ScanSngFile(string filename, IniGroup group)
         {
-            if (!FindOrMarkFile(filename))
-                return;
-
-            var sngFile = SngFile.TryLoadFromFile(filename, isYARGSong);
+            var sngFile = SngFile.TryLoadFile(filename);
             if (sngFile == null)
             {
                 AddToBadSongs(filename, ScanResult.PossibleCorruption);
-                return;
+                return false;
             }
 
             var results = new SngCollector(sngFile);
@@ -167,7 +164,7 @@ namespace YARG.Core.Song.Cache
                 try
                 {
                     var fileInfo = new AbridgedFileInfo(filename);
-                    var entry = SongMetadata.FromSng(isYARGSong, sngFile, fileInfo, chart);
+                    var entry = SongMetadata.FromSng(sngFile, fileInfo, chart);
                     if (entry.Item2 != null)
                     {
                         if (AddEntry(entry.Item2))
@@ -185,23 +182,21 @@ namespace YARG.Core.Song.Cache
                     YargTrace.LogException(e, $"Error while scanning chart file {chart} within {filename}!");
                     AddToBadSongs(filename, ScanResult.IniEntryCorruption);
                 }
-
                 break;
             }
+            return true;
         }
 
-        private void AddPossibleCON(string filename)
+        private bool AddPossibleCON(string filename)
         {
-            if (!FindOrMarkFile(filename))
-                return;
-
             var conFile = CONFile.TryLoadFile(filename);
             if (conFile == null)
-                return;
+                return false;
 
             PackedCONGroup group = new(conFile);
             conGroups.Add(filename, group);
             TryParseUpgrades(filename, group);
+            return true;
         }
 
         private int GetCONIndex(Dictionary<string, int> indices, string name)
