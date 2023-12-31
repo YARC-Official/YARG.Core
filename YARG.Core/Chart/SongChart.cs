@@ -165,7 +165,7 @@ namespace YARG.Core.Chart
                     uint endTick = lastTick / AUTO_GEN_SECTION_COUNT * i;
                     double endTime = SyncTrack.TickToTime(endTick);
 
-                    // "0% to 10%", "10% to 20%", etc.
+                    // "0% - 10%", "10% - 20%", etc.
                     var sectionName =
                         $"{100f / AUTO_GEN_SECTION_COUNT * (i - 1):N0}% - {100f / AUTO_GEN_SECTION_COUNT * i:N0}%";
 
