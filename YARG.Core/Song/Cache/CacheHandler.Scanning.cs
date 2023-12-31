@@ -159,7 +159,10 @@ namespace YARG.Core.Song.Cache
             for (int i = sngFile.Metadata.Count != 0 ? 0 : 2; i < 3; ++i)
             {
                 var chart = results.charts[i];
-                if (chart == null) continue;
+                if (chart == null)
+                {
+                    continue;
+                }
 
                 try
                 {

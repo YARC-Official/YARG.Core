@@ -67,11 +67,7 @@ namespace YARG.Core.Song
                         var file = stem + format;
                         if (sngFile.TryGetValue(file, out var listing))
                         {
-                            streams.Add(
-                                AudioHelpers.SupportedStems[stem],
-                                sngFile.CreateStream(listing)
-                            );
-
+                            streams.Add(AudioHelpers.SupportedStems[stem], sngFile.CreateStream(listing));
                             // Parse no duplicate stems
                             break;
                         }
@@ -97,7 +93,7 @@ namespace YARG.Core.Song
                 return null;
             }
 
-            public (BackgroundType, Stream?) GetBackgroundStream(BackgroundType selections)
+            public (BackgroundType Type, Stream? Stream) GetBackgroundStream(BackgroundType selections)
             {
                 var sngFile = SngFile.TryLoadFile(sngInfo.FullName);
                 if (sngFile == null)
@@ -107,10 +103,7 @@ namespace YARG.Core.Song
                 {
                     if (sngFile.TryGetValue("bg.yarground", out var listing))
                     {
-                        return (
-                            BackgroundType.Yarground,
-                            sngFile.CreateStream(listing)
-                        );
+                        return (BackgroundType.Yarground, sngFile.CreateStream(listing));
                     }
                 }
 
@@ -122,10 +115,7 @@ namespace YARG.Core.Song
                         {
                             if (sngFile.TryGetValue(stem + format, out var listing))
                             {
-                                return (
-                                    BackgroundType.Video,
-                                    sngFile.CreateStream(listing)
-                                );
+                                return (BackgroundType.Video, sngFile.CreateStream(listing));
                             }
                         }
                     }
@@ -139,10 +129,7 @@ namespace YARG.Core.Song
                         {
                             if (sngFile.TryGetValue(stem + format, out var listing))
                             {
-                                return (
-                                    BackgroundType.Image,
-                                    sngFile.CreateStream(listing)
-                                );
+                                return (BackgroundType.Image, sngFile.CreateStream(listing));
                             }
                         }
                     }
@@ -187,12 +174,7 @@ namespace YARG.Core.Song
             byte[] file = sng.LoadAllBytes(sng[chart.File]);
             var result = ScanIniChartFile(file, chart.Type, sng.Metadata);
 
-            return (
-                result.Item1,
-                result.Item2 != null
-                    ? new SongMetadata(metadata, result.Item2, HashWrapper.Create(file), sng.Metadata)
-                    : null
-            );
+            return (result.Item1, result.Item2 != null ? new SongMetadata(metadata, result.Item2, HashWrapper.Create(file), sng.Metadata) : null );
         }
 
         public static SongMetadata? SngFromCache(string baseDirectory, YARGBinaryReader reader, CategoryCacheStrings strings)

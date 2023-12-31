@@ -104,7 +104,7 @@ namespace YARG.Core.Song
             public Stream? GetChartStream();
             public Dictionary<SongStem, Stream> GetAudioStreams();
             public byte[]? GetUnprocessedAlbumArt();
-            public (BackgroundType, Stream?) GetBackgroundStream(BackgroundType selection);
+            public (BackgroundType Type, Stream? Stream) GetBackgroundStream(BackgroundType selection);
             public Stream? GetPreviewAudioStream();
         }
 
