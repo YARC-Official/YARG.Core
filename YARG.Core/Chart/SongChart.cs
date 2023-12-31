@@ -141,6 +141,44 @@ namespace YARG.Core.Chart
             Harmony = loader.LoadVocalsTrack(Instrument.Harmony);
 
             // Dj = loader.LoadDjTrack(Instrument.Dj);
+
+            PostProcessSections();
+        }
+
+        private void PostProcessSections()
+        {
+            const uint AUTO_GEN_SECTION_COUNT = 10;
+
+            uint lastTick = GetLastTick();
+
+            // If there are no sections in the chart, auto-generate some sections.
+            // This prevents issues with songs with no sections, such as in practice mode.
+            if (Sections.Count <= 0)
+            {
+                for (uint i = 0; i < AUTO_GEN_SECTION_COUNT; i++)
+                {
+                    uint startTick = lastTick / AUTO_GEN_SECTION_COUNT * i;
+                    uint endTick   = lastTick / AUTO_GEN_SECTION_COUNT * (i + 1);
+
+                    double startTime = SyncTrack.TickToTime(startTick);
+                    double endTime   = SyncTrack.TickToTime(endTick);
+
+                    var section = new Section($"Section {i + 1}", startTime, startTick)
+                    {
+                        TickLength = endTick - startTick,
+                        TimeLength = endTime - startTime,
+                    };
+
+                    Sections.Add(section);
+                }
+            }
+            else
+            {
+                // Otherwise make sure the length of the last section is correct
+                var lastSection = Sections[^1];
+                lastSection.TickLength = lastSection.Tick - lastTick;
+                lastSection.TimeLength = lastSection.Time - SyncTrack.TickToTime(lastTick);
+            }
         }
 
         public void Append(SongChart song)
@@ -231,7 +269,6 @@ namespace YARG.Core.Chart
             };
         }
 
-
         public InstrumentTrack<GuitarNote> GetSixFretTrack(Instrument instrument)
         {
             return instrument switch
@@ -244,7 +281,6 @@ namespace YARG.Core.Chart
             };
         }
 
-
         public InstrumentTrack<DrumNote> GetDrumsTrack(Instrument instrument)
         {
             return instrument switch
@@ -255,7 +291,6 @@ namespace YARG.Core.Chart
                 _ => throw new ArgumentException($"Instrument {instrument} is not a drums instrument!")
             };
         }
-
 
         public InstrumentTrack<ProGuitarNote> GetProGuitarTrack(Instrument instrument)
         {
