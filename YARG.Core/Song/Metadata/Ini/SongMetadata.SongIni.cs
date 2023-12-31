@@ -108,7 +108,7 @@ namespace YARG.Core.Song
                 return null;
             }
 
-            public (BackgroundType, Stream?) GetBackgroundStream(BackgroundType selections)
+            public (BackgroundType Type, Stream? Stream) GetBackgroundStream(BackgroundType selections)
             {
                 Dictionary<string, string> files = new();
                 {
