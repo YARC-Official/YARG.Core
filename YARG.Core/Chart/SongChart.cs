@@ -176,8 +176,8 @@ namespace YARG.Core.Chart
             {
                 // Otherwise make sure the length of the last section is correct
                 var lastSection = Sections[^1];
-                lastSection.TickLength = lastSection.Tick - lastTick;
-                lastSection.TimeLength = lastSection.Time - SyncTrack.TickToTime(lastTick);
+                lastSection.TickLength = lastTick - lastSection.Tick;
+                lastSection.TimeLength = SyncTrack.TickToTime(lastTick) - lastSection.Time;
             }
         }
 
