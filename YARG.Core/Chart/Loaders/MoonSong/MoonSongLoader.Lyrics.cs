@@ -49,23 +49,12 @@ namespace YARG.Core.Chart
                     (lyric.Equals("+-", StringComparison.Ordinal) || lyric.Equals("-+", StringComparison.Ordinal)))
                 {
                     var other = _currentLyrics[^1];
-                    _currentLyrics[^1] = new(LyricFlags.JoinWithNext, other.Text, other.Time, other.Tick);
+                    _currentLyrics[^1] = new(LyricSymbolFlags.JoinWithNext, other.Text, other.Time, other.Tick);
                     return;
                 }
 
                 // Handle lyric modifiers
-                var flags = LyricFlags.None;
-                for (var modifiers = lyric; !modifiers.IsEmpty; modifiers = modifiers[..^1])
-                {
-                    char modifier = modifiers[^1];
-                    if (!LyricSymbols.ALL_SYMBOLS.Contains(modifier))
-                        break;
-
-                    if (modifier == LyricSymbols.STATIC_SHIFT_SYMBOL)
-                        flags |= LyricFlags.StaticShift;
-                    else if (LyricSymbols.LYRIC_JOIN_SYMBOLS.Contains(modifier))
-                        flags |= LyricFlags.JoinWithNext;
-                }
+                var flags = LyricSymbols.GetLyricFlags(lyric);
 
                 // Strip special symbols from lyrics
                 string strippedLyric = !lyric.IsEmpty
@@ -75,7 +64,7 @@ namespace YARG.Core.Chart
                 if (string.IsNullOrWhiteSpace(strippedLyric))
                 {
                     // Allow empty lyrics for lyric gimmick purposes
-                    flags |= LyricFlags.JoinWithNext;
+                    flags |= LyricSymbolFlags.JoinWithNext;
                     strippedLyric = string.Empty;
                 }
 

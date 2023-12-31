@@ -7,6 +7,22 @@ using YARG.Core.Utility;
 namespace YARG.Core.Chart
 {
     /// <summary>
+    /// Flags for lyric events.
+    /// </summary>
+    [Flags]
+    public enum LyricSymbolFlags
+    {
+        None = 0,
+
+        JoinWithNext = 1 << 0,
+        NonPitched = 1 << 1,
+        PitchSlide = 1 << 2,
+        HarmonyHidden = 1 << 3,
+        StaticShift = 1 << 4,
+        RangeShift = 1 << 5,
+    }
+
+    /// <summary>
     /// Definitions and utilities for special symbols in lyric events.
     /// </summary>
     public static class LyricSymbols
@@ -60,37 +76,6 @@ namespace YARG.Core.Chart
         /// <summary>Stands in for a space (' ').</summary>
         /// <remarks>Only intended for use in lyrics, but will also be replaced in vocals.</remarks>
         public const char SPACE_ESCAPE_SYMBOL = '_';
-
-        /// <summary>All possible lyric symbols.</summary>
-        public static readonly HashSet<char> ALL_SYMBOLS = new()
-        {
-            LYRIC_JOIN_SYMBOL,
-            LYRIC_JOIN_HYPHEN_SYMBOL,
-            PITCH_SLIDE_SYMBOL,
-            NONPITCHED_SYMBOL,
-            NONPITCHED_LENIENT_SYMBOL,
-            NONPITCHED_UNKNOWN_SYMBOL,
-            RANGE_SHIFT_SYMBOL,
-            STATIC_SHIFT_SYMBOL,
-            HARMONY_HIDE_SYMBOL,
-            JOINED_SYLLABLE_SYMBOL,
-            SPACE_ESCAPE_SYMBOL,
-        };
-
-        /// <summary>Symbols which join two lyrics together.</summary>
-        public static readonly HashSet<char> LYRIC_JOIN_SYMBOLS = new()
-        {
-            LYRIC_JOIN_SYMBOL,
-            LYRIC_JOIN_HYPHEN_SYMBOL,
-        };
-
-        /// <summary>Symbols which mark a lyric as nonpitched.</summary>
-        public static readonly HashSet<char> NONPITCHED_SYMBOLS = new()
-        {
-            NONPITCHED_SYMBOL,
-            NONPITCHED_LENIENT_SYMBOL,
-            NONPITCHED_UNKNOWN_SYMBOL,
-        };
 
         /// <summary>Symbols which should be stripped from lyrics in vocals.</summary>
         public static readonly HashSet<char> VOCALS_STRIP_SYMBOLS = new()
@@ -159,6 +144,47 @@ namespace YARG.Core.Chart
             RichTextTags.Strikethrough | RichTextTags.Underline | RichTextTags.Superscript | RichTextTags.Subscript |
             RichTextTags.VerticalOffset | RichTextTags.Lowercase | RichTextTags.Uppercase | RichTextTags.SmallCaps |
             RichTextTags.CharSpace | RichTextTags.Color | RichTextTags.Monospace | RichTextTags.LineBreak;
+
+        public static LyricSymbolFlags GetFlagForSymbol(char symbol) => symbol switch
+        {
+            LYRIC_JOIN_SYMBOL or
+            LYRIC_JOIN_HYPHEN_SYMBOL => LyricSymbolFlags.JoinWithNext,
+
+            PITCH_SLIDE_SYMBOL  => LyricSymbolFlags.PitchSlide,
+
+            NONPITCHED_SYMBOL or
+            NONPITCHED_LENIENT_SYMBOL or
+            NONPITCHED_UNKNOWN_SYMBOL => LyricSymbolFlags.NonPitched,
+
+            RANGE_SHIFT_SYMBOL => LyricSymbolFlags.RangeShift,
+
+            STATIC_SHIFT_SYMBOL => LyricSymbolFlags.StaticShift,
+            HARMONY_HIDE_SYMBOL => LyricSymbolFlags.HarmonyHidden,
+
+            _ => LyricSymbolFlags.None
+        };
+
+        public static LyricSymbolFlags GetLyricFlags(ReadOnlySpan<char> lyric)
+        {
+            var flags = LyricSymbolFlags.None;
+
+            // Flags at the start of the lyric
+            // Only the harmony hide symbol is valid here
+            if (lyric[0] == HARMONY_HIDE_SYMBOL)
+                flags |= LyricSymbolFlags.HarmonyHidden;
+
+            // Flags at the end of the lyric
+            for (; !lyric.IsEmpty; lyric = lyric[..^1])
+            {
+                var flag = GetFlagForSymbol(lyric[^1]);
+                if (flag == LyricSymbolFlags.None)
+                    break;
+
+                flags |= flag;
+            }
+
+            return flags;
+        }
 
         public static string StripForVocals(string lyric)
         {

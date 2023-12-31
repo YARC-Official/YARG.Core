@@ -3,20 +3,10 @@ using System.Collections.Generic;
 using MoonscraperChartEditor.Song;
 using YARG.Core.Extensions;
 
-// TODO: Better parsing/sanitization of lyric events
-
 namespace YARG.Core.Chart
 {
     internal partial class MoonSongLoader : ISongLoader
     {
-        private enum LyricType
-        {
-            None = 0,
-
-            NonPitched = 1,
-            PitchSlide = 2,
-        }
-
         public VocalsTrack LoadVocalsTrack(Instrument instrument)
         {
             return instrument switch
@@ -126,7 +116,7 @@ namespace YARG.Core.Chart
                     }
 
                     // Handle lyric events
-                    var lyricType = LyricType.None;
+                    var lyricFlags = LyricSymbolFlags.None;
                     while (moonTextIndex < moonChart.events.Count)
                     {
                         var moonEvent = moonChart.events[moonTextIndex];
@@ -145,12 +135,12 @@ namespace YARG.Core.Chart
                         if (lyric.IsEmpty)
                             continue;
 
-                        ProcessLyric(lyrics, lyric, ref lyricType, moonEvent.tick, moonNote.tick);
+                        ProcessLyric(lyrics, lyric, moonEvent.tick, out lyricFlags);
                     }
 
                     // Create new note
-                    var note = CreateVocalNote(moonNote, harmonyPart, lyricType);
-                    if (lyricType is LyricType.PitchSlide && previousNote is not null)
+                    var note = CreateVocalNote(moonNote, harmonyPart, lyricFlags);
+                    if ((lyricFlags & LyricSymbolFlags.PitchSlide) != 0 && previousNote is not null)
                     {
                         previousNote.AddChildNote(note);
                         continue;
@@ -175,8 +165,8 @@ namespace YARG.Core.Chart
             return phrases;
         }
 
-        private void ProcessLyric(List<LyricEvent> lyrics, ReadOnlySpan<char> lyric, ref LyricType lyricType,
-            uint lyricTick, uint noteTick)
+        private void ProcessLyric(List<LyricEvent> lyrics, ReadOnlySpan<char> lyric, uint lyricTick,
+            out LyricSymbolFlags lyricFlags)
         {
             // Workaround for a certain set of badly-formatted vocal tracks which place the hyphen
             // for pitch bend lyrics on the pitch bend and not the lyric itself
@@ -190,42 +180,25 @@ namespace YARG.Core.Chart
             }
 
             // Handle lyric modifiers
-            var lyricFlags = LyricFlags.None;
-            for (var modifiers = lyric; !modifiers.IsEmpty; modifiers = modifiers[..^1])
+            lyricFlags = LyricSymbols.GetLyricFlags(lyric);
+
+            const LyricSymbolFlags noteTypeMask = LyricSymbolFlags.NonPitched | LyricSymbolFlags.PitchSlide;
+            if ((lyricFlags & noteTypeMask) == noteTypeMask)
             {
-                char modifier = modifiers[^1];
-                if (!LyricSymbols.ALL_SYMBOLS.Contains(modifier))
-                    break;
+                YargTrace.DebugWarning($"Lyric '{lyric.ToString()}' at tick {lyricTick} specifies multiple lyric types! Flags: {lyricFlags}");
 
-                if (modifier == LyricSymbols.STATIC_SHIFT_SYMBOL)
-                    lyricFlags |= LyricFlags.StaticShift;
-
-                // Only process note modifiers for lyrics that match the current note
-                if (lyricTick == noteTick)
-                {
-                    LyricType type;
-                    if (modifier == LyricSymbols.PITCH_SLIDE_SYMBOL)
-                        type = LyricType.PitchSlide;
-                    else if (LyricSymbols.NONPITCHED_SYMBOLS.Contains(modifier))
-                        type = LyricType.NonPitched;
-                    else
-                        continue;
-
-                    if (lyricType != LyricType.None && type != lyricType)
-                    {
-                        YargTrace.DebugWarning($"Lyric '{lyric.ToString()}' at tick {lyricTick} specifies multiple lyric types ({lyricType} and {type})!");
-                        continue;
-                    }
-                }
+                // TODO: Should we prefer one over the other?
+                // lyricFlags &= ~LyricFlags.NonPitched;
+                // lyricFlags &= ~LyricFlags.PitchSlide;
             }
-
-            if (lyric[0] == LyricSymbols.HARMONY_HIDE_SYMBOL)
-                lyricFlags |= LyricFlags.HarmonyHidden;
 
             // Strip special symbols from lyrics
             string strippedLyric = LyricSymbols.StripForVocals(lyric.ToString());
             if (string.IsNullOrWhiteSpace(strippedLyric))
+            {
+                lyricFlags = LyricSymbolFlags.None;
                 return;
+            }
 
             double time = _moonSong.TickToTime(lyricTick);
             lyrics.Add(new(lyricFlags, strippedLyric, time, lyricTick));
@@ -259,18 +232,12 @@ namespace YARG.Core.Chart
                     if (lyric.IsEmpty)
                         continue;
 
-                    // Search for the range shift symbol
-                    for (var modifiers = lyric; !modifiers.IsEmpty; modifiers = modifiers[..^1])
+                    // Check for the range shift symbol
+                    var flags = LyricSymbols.GetLyricFlags(lyric);
+                    if ((flags & LyricSymbolFlags.RangeShift) != 0)
                     {
-                        char modifier = modifiers[^1];
-                        if (!LyricSymbols.ALL_SYMBOLS.Contains(modifier))
-                            break;
-
-                        if (modifier == LyricSymbols.RANGE_SHIFT_SYMBOL)
-                        {
-                            AddPitchRange(ranges, mainPart, ref phraseIndex, ref noteIndex, ref shiftStartTick, moonEvent.tick);
-                            break;
-                        }
+                        AddPitchRange(ranges, mainPart, ref phraseIndex, ref noteIndex, ref shiftStartTick, moonEvent.tick);
+                        break;
                     }
                 }
             }
@@ -336,21 +303,21 @@ namespace YARG.Core.Chart
             startTick = endTick;
         }
 
-        private VocalNote CreateVocalNote(MoonNote moonNote, int harmonyPart, LyricType lyricType)
+        private VocalNote CreateVocalNote(MoonNote moonNote, int harmonyPart, LyricSymbolFlags lyricFlags)
         {
             var vocalType = GetVocalNoteType(moonNote);
-            float pitch = GetVocalNotePitch(moonNote, lyricType);
+            float pitch = GetVocalNotePitch(moonNote, lyricFlags);
 
             double time = _moonSong.TickToTime(moonNote.tick);
             return new VocalNote(pitch, harmonyPart, vocalType, time, GetLengthInTime(moonNote), moonNote.tick, moonNote.length);
         }
 
-        private float GetVocalNotePitch(MoonNote moonNote, LyricType lyricType)
+        private float GetVocalNotePitch(MoonNote moonNote, LyricSymbolFlags lyricFlags)
         {
             float pitch = moonNote.vocalsPitch;
 
             // Unpitched/percussion notes
-            if (lyricType is LyricType.NonPitched || (moonNote.flags & MoonNote.Flags.Vocals_Percussion) != 0)
+            if ((lyricFlags & LyricSymbolFlags.NonPitched) != 0 || (moonNote.flags & MoonNote.Flags.Vocals_Percussion) != 0)
                 pitch = -1f;
 
             return pitch;
