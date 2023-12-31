@@ -186,6 +186,20 @@ namespace YARG.Core.Chart
             return flags;
         }
 
+        // Workaround for a certain set of badly-formatted vocal tracks which place the hyphen
+        // for pitch bend lyrics on the pitch bend and not the lyric itself
+        internal static void DeferredLyricJoinWorkaround(List<LyricEvent> lyrics, ref ReadOnlySpan<char> lyric, bool addHyphen)
+        {
+            if (lyrics.Count > 0 && !lyrics[^1].JoinWithNext &&
+                (lyric.Equals("+-", StringComparison.Ordinal) || lyric.Equals("-+", StringComparison.Ordinal)))
+            {
+                var other = lyrics[^1];
+                string text = addHyphen ? $"{other.Text}-" : other.Text;
+                lyrics[^1] = new(other.Flags | LyricSymbolFlags.JoinWithNext, text, other.Time, other.Tick);
+                lyric = "+";
+            }
+        }
+
         public static string StripForVocals(string lyric)
         {
             lyric = RichTextUtils.StripRichTextTags(lyric);

@@ -168,16 +168,7 @@ namespace YARG.Core.Chart
         private void ProcessLyric(List<LyricEvent> lyrics, ReadOnlySpan<char> lyric, uint lyricTick,
             out LyricSymbolFlags lyricFlags)
         {
-            // Workaround for a certain set of badly-formatted vocal tracks which place the hyphen
-            // for pitch bend lyrics on the pitch bend and not the lyric itself
-            // Not really necessary except to ensure the lyric displays correctly
-            if (lyrics.Count > 0 && !lyrics[^1].Text.EndsWith('-') &&
-                (lyric.Equals("+-", StringComparison.Ordinal) || lyric.Equals("-+", StringComparison.Ordinal)))
-            {
-                var other = lyrics[^1];
-                lyrics[^1] = new(other.Flags, $"{other.Text}-", other.Time, other.Tick);
-                lyric = "+";
-            }
+            LyricSymbols.DeferredLyricJoinWorkaround(lyrics, ref lyric, addHyphen: true);
 
             // Handle lyric modifiers
             lyricFlags = LyricSymbols.GetLyricFlags(lyric);
