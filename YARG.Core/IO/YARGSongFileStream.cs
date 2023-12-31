@@ -3,7 +3,7 @@ using System.IO;
 
 namespace YARG.Core.IO
 {
-    public class YARGSongFileStream : Stream, ICloneable<YARGSongFileStream>
+    public class YARGSongFileStream : Stream
     {
         private const int HEADER_SIZE = 24;
         private const int SET_LENGTH  = 15;
@@ -33,10 +33,8 @@ namespace YARG.Core.IO
         // value cipher).
         private readonly int[] _values;
 
-        public static YARGSongFileStream? TryLoadYARGSong(string filename)
+        public static int[]? TryParseYARGSongValues(FileStream filestream)
         {
-            var filestream = InitStream_Internal(filename);
-
             Span<byte> signature = stackalloc byte[FILE_SIGNATURE.Length];
             if (filestream.Read(signature) != FILE_SIGNATURE.Length)
             {
@@ -86,22 +84,16 @@ namespace YARG.Core.IO
                     values[3] += j << 2;
                 }
             }
-
-            long length = filestream.Length - HEADER_SIZE;
-            return new YARGSongFileStream(filestream, values, length);
+            return values;
         }
 
-        private YARGSongFileStream(FileStream filestream, int[] values, long length)
+        public YARGSongFileStream(FileStream filestream, int[] values)
         {
             _filestream = filestream;
             _values = values;
-            Length = length;
-        }
+            Length = filestream.Length - HEADER_SIZE;
 
-        public YARGSongFileStream Clone()
-        {
-            var stream = InitStream_Internal(_filestream.Name);
-            return new YARGSongFileStream(stream, _values, Length);
+            _filestream.Position = HEADER_SIZE;
         }
 
         private static FileStream InitStream_Internal(string filename)

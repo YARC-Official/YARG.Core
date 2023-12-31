@@ -148,7 +148,7 @@ namespace YARG.Core.Song.Cache
 
         private bool ScanSngFile(string filename, IniGroup group)
         {
-            var sngFile = SngFile.TryLoadFile(filename);
+            var sngFile = SngFile.TryLoadFromFile(filename);
             if (sngFile == null)
             {
                 AddToBadSongs(filename, ScanResult.PossibleCorruption);

@@ -46,7 +46,7 @@ namespace YARG.Core.Song
                 if (!sngInfo.IsStillValid())
                     return null;
 
-                var sngFile = SngFile.TryLoadFile(sngInfo.FullName);
+                var sngFile = SngFile.TryLoadFromFile(sngInfo.FullName);
                 if (sngFile == null)
                     return null;
 
@@ -57,29 +57,29 @@ namespace YARG.Core.Song
             {
                 Dictionary<SongStem, Stream> streams = new();
 
-                var sngFile = SngFile.TryLoadFile(sngInfo.FullName);
-                if (sngFile == null) return streams;
-
-                foreach (var stem in IniAudioChecker.SupportedStems)
+                var sngFile = SngFile.TryLoadFromFile(sngInfo.FullName);
+                if (sngFile != null)
                 {
-                    foreach (var format in IniAudioChecker.SupportedFormats)
+                    foreach (var stem in IniAudioChecker.SupportedStems)
                     {
-                        var file = stem + format;
-                        if (sngFile.TryGetValue(file, out var listing))
+                        foreach (var format in IniAudioChecker.SupportedFormats)
                         {
-                            streams.Add(AudioHelpers.SupportedStems[stem], sngFile.CreateStream(listing));
-                            // Parse no duplicate stems
-                            break;
+                            var file = stem + format;
+                            if (sngFile.TryGetValue(file, out var listing))
+                            {
+                                streams.Add(AudioHelpers.SupportedStems[stem], sngFile.CreateStream(listing));
+                                // Parse no duplicate stems
+                                break;
+                            }
                         }
                     }
                 }
-
                 return streams;
             }
 
             public byte[]? GetUnprocessedAlbumArt()
             {
-                var sngFile = SngFile.TryLoadFile(sngInfo.FullName);
+                var sngFile = SngFile.TryLoadFromFile(sngInfo.FullName);
                 if (sngFile == null)
                     return null;
 
@@ -95,9 +95,11 @@ namespace YARG.Core.Song
 
             public (BackgroundType Type, Stream? Stream) GetBackgroundStream(BackgroundType selections)
             {
-                var sngFile = SngFile.TryLoadFile(sngInfo.FullName);
+                var sngFile = SngFile.TryLoadFromFile(sngInfo.FullName);
                 if (sngFile == null)
+                {
                     return (default, null);
+                }
 
                 if ((selections & BackgroundType.Yarground) > 0)
                 {
@@ -140,7 +142,7 @@ namespace YARG.Core.Song
 
             public Stream? GetPreviewAudioStream()
             {
-                var sngFile = SngFile.TryLoadFile(sngInfo.FullName);
+                var sngFile = SngFile.TryLoadFromFile(sngInfo.FullName);
                 if (sngFile == null)
                     return null;
 
@@ -186,7 +188,7 @@ namespace YARG.Core.Song
             if (sngInfo == null)
                 return null;
 
-            var sngFile = SngFile.TryLoadFile(sngPath);
+            var sngFile = SngFile.TryLoadFromFile(sngPath);
             if (sngFile == null || sngFile.Version != version)
             {
                 // TODO: Implement Update-in-place functionality

@@ -17,27 +17,30 @@ namespace YARG.Core.IO
         public readonly SngMask Mask;
         public readonly IniSection Metadata;
 
+        private readonly string _filename;
         private readonly Dictionary<string, SngFileListing> _listings;
-        private readonly Stream _stream;
+        private readonly int[]? _values;
 
-        private SngFile(Stream stream, uint version, byte[] mask, IniSection metadata, Dictionary<string, SngFileListing> listings)
+        private SngFile(uint version, byte[] mask, IniSection metadata, string filename, Dictionary<string, SngFileListing> listings, int[]? values)
         {
-            _stream = stream;
             Version = version;
             Mask = new SngMask(mask);
             Metadata = metadata;
+
+            _filename = filename;
             _listings = listings;
+            _values = values;
         }
 
         public byte[] LoadAllBytes(SngFileListing listing)
         {
-            var stream = CloneStream();
+            var stream = LoadFileStream();
             return SngFileStream.LoadFile(stream, Mask.Clone(), listing.Length, listing.Position);
         }
 
         public SngFileStream CreateStream(SngFileListing listing)
         {
-            var stream = CloneStream();
+            var stream = LoadFileStream();
             return new SngFileStream(stream, Mask.Clone(), listing.Length, listing.Position);
         }
 
@@ -57,19 +60,17 @@ namespace YARG.Core.IO
 
         public void Dispose()
         {
-            _stream.Dispose();
             Mask.Dispose();
         }
 
-        private Stream CloneStream()
+        private Stream LoadFileStream()
         {
-            if (_stream is YARGSongFileStream yargSongStream)
+            var fs = new FileStream(_filename, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+            if (_values != null)
             {
-                return yargSongStream.Clone();
+                return new YARGSongFileStream(fs, _values);
             }
-
-            var fs = _stream as FileStream;
-            return new FileStream(fs!.Name, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+            return fs;
         }
 
 
@@ -80,9 +81,10 @@ namespace YARG.Core.IO
         private const int BYTES_16BIT = 2;
         private static readonly byte[] SNGPKG = { (byte)'S', (byte) 'N', (byte) 'G', (byte)'P', (byte)'K', (byte)'G' };
 
-        public static SngFile? TryLoadFile(string path)
+        public static SngFile? TryLoadFromFile(string path)
         {
-            using var stream = InitStream_Internal(path);
+            var result = InitStream_Internal(path);
+            using var stream = result.stream;
             if (stream == null)
             {
                 return null;
@@ -100,7 +102,7 @@ namespace YARG.Core.IO
                 var xorMask = stream.ReadBytes(XORMASK_SIZE);
                 var metadata = ReadMetadata(stream);
                 var listings = ReadListings(stream);
-                return new SngFile(stream, version, xorMask, metadata, listings);
+                return new SngFile(version, xorMask, metadata, path, listings, result.values);
             }
             catch (Exception ex)
             {
@@ -109,23 +111,24 @@ namespace YARG.Core.IO
             }
         }
 
-        private static Stream? InitStream_Internal(string filename)
+        private static (Stream? stream, int[]? values) InitStream_Internal(string filename)
         {
             try
             {
-                var songStream = YARGSongFileStream.TryLoadYARGSong(filename);
-                if (songStream != null)
+                var filestream = File.OpenRead(filename);
+                var values = YARGSongFileStream.TryParseYARGSongValues(filestream);
+                if (values != null)
                 {
-                    return songStream;
+                    return (new YARGSongFileStream(filestream, values), values);
                 }
 
-                var filestream = File.OpenRead(filename);
-                return filestream;
+                filestream.Position = 0;
+                return (filestream, null);
             }
             catch (Exception ex)
             {
                 YargTrace.LogException(ex, $"Error loading {filename}");
-                return null;
+                return (null, null);
             }
         }
 
