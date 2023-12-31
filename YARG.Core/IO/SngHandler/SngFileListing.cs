@@ -15,12 +15,25 @@ namespace YARG.Core.IO
 
         public byte[] LoadAllBytes(SngFile file)
         {
-            return SngFileStream.LoadFile(file.Stream.Clone(), file.Mask.Clone(), Length, Position);
+            var stream = CloneStream_Internal(file);
+            return SngFileStream.LoadFile(stream, file.Mask.Clone(), Length, Position);
         }
 
         public SngFileStream CreateStream(SngFile file)
         {
-            return new SngFileStream(file.Stream.Clone(), file.Mask.Clone(), Length, Position);
+            var stream = CloneStream_Internal(file);
+            return new SngFileStream(stream, file.Mask.Clone(), Length, Position);
+        }
+
+        private Stream CloneStream_Internal(SngFile file)
+        {
+            if (file.Stream is YARGSongFileStream yargSongStream)
+            {
+                return yargSongStream.Clone();
+            }
+
+            var fs = file.Stream as FileStream;
+            return new FileStream(fs!.Name, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
         }
     }
 }

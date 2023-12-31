@@ -3,7 +3,7 @@ using System.IO;
 
 namespace YARG.Core.IO
 {
-    public class YARGSongFileStream : CloneableStream
+    public class YARGSongFileStream : Stream, ICloneable<YARGSongFileStream>
     {
         private const int HEADER_SIZE = 24;
         private const int SET_LENGTH  = 15;
@@ -14,7 +14,7 @@ namespace YARG.Core.IO
             (byte) 'S', (byte) 'O', (byte) 'N', (byte) 'G'
         };
 
-        private readonly CloneableFilestream _filestream;
+        private readonly FileStream _filestream;
 
         public override bool CanRead  => _filestream.CanRead;
         public override bool CanSeek => _filestream.CanSeek;
@@ -35,9 +35,8 @@ namespace YARG.Core.IO
 
         public static YARGSongFileStream? TryLoadYARGSong(string filename)
         {
-            var filestream = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+            var filestream = InitStream_Internal(filename);
 
-            long length = filestream.Length - HEADER_SIZE;
             Span<byte> signature = stackalloc byte[FILE_SIGNATURE.Length];
             if (filestream.Read(signature) != FILE_SIGNATURE.Length)
             {
@@ -87,19 +86,27 @@ namespace YARG.Core.IO
                     values[3] += j << 2;
                 }
             }
-            return new YARGSongFileStream(new CloneableFilestream(filestream), values, length);
+
+            long length = filestream.Length - HEADER_SIZE;
+            return new YARGSongFileStream(filestream, values, length);
         }
 
-        private YARGSongFileStream(CloneableFilestream filestream, int[] values, long length)
+        private YARGSongFileStream(FileStream filestream, int[] values, long length)
         {
             _filestream = filestream;
             _values = values;
             Length = length;
         }
 
-        public override CloneableStream Clone()
+        public YARGSongFileStream Clone()
         {
-            return new YARGSongFileStream((CloneableFilestream)_filestream.Clone(), _values, Length);
+            var stream = InitStream_Internal(_filestream.Name);
+            return new YARGSongFileStream(stream, _values, Length);
+        }
+
+        private static FileStream InitStream_Internal(string filename)
+        {
+            return new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
         }
 
         public override int Read(byte[] buffer, int offset, int count)

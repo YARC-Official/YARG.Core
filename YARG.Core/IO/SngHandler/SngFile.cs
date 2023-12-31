@@ -13,14 +13,14 @@ namespace YARG.Core.IO
     /// </summary>
     public class SngFile : IDisposable, IEnumerable<KeyValuePair<string, SngFileListing>>
     {
-        public readonly CloneableStream Stream;
+        public readonly Stream Stream;
         public readonly uint Version;
         public readonly SngMask Mask;
         public readonly IniSection Metadata;
 
         private readonly Dictionary<string, SngFileListing> _listings;
 
-        private SngFile(CloneableStream stream, uint version, byte[] mask, IniSection metadata, Dictionary<string, SngFileListing> listings)
+        private SngFile(Stream stream, uint version, byte[] mask, IniSection metadata, Dictionary<string, SngFileListing> listings)
         {
             Stream = stream;
             Version = version;
@@ -77,7 +77,7 @@ namespace YARG.Core.IO
                 var xorMask = stream.ReadBytes(XORMASK_SIZE);
                 var metadata = ReadMetadata(stream);
                 var listings = ReadListings(stream);
-                return new SngFile(stream.Clone(), version, xorMask, metadata, listings);
+                return new SngFile(stream, version, xorMask, metadata, listings);
             }
             catch (Exception ex)
             {
@@ -86,7 +86,7 @@ namespace YARG.Core.IO
             }
         }
 
-        private static CloneableStream? InitStream_Internal(string filename)
+        private static Stream? InitStream_Internal(string filename)
         {
             try
             {
@@ -97,7 +97,7 @@ namespace YARG.Core.IO
                 }
 
                 var filestream = File.OpenRead(filename);
-                return new CloneableFilestream(filestream);
+                return filestream;
             }
             catch (Exception ex)
             {
