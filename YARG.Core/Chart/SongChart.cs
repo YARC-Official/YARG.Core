@@ -163,7 +163,10 @@ namespace YARG.Core.Chart
                     double startTime = SyncTrack.TickToTime(startTick);
                     double endTime   = SyncTrack.TickToTime(endTick);
 
-                    var section = new Section($"Section {i + 1}", startTime, startTick)
+                    // 10%, 20%, 30%, etc.
+                    var sectionName = $"{100f / AUTO_GEN_SECTION_COUNT * (i + 1):N0}%";
+
+                    var section = new Section(sectionName, startTime, startTick)
                     {
                         TickLength = endTick - startTick,
                         TimeLength = endTime - startTime,
