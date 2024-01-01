@@ -188,10 +188,7 @@ namespace YARG.Core.Chart
             // Strip special symbols from lyrics
             string strippedLyric = LyricSymbols.StripForVocals(lyric.ToString());
             if (string.IsNullOrWhiteSpace(strippedLyric))
-            {
-                lyricFlags = LyricSymbolFlags.None;
                 return;
-            }
 
             double time = _moonSong.TickToTime(lyricTick);
             lyrics.Add(new(lyricFlags, strippedLyric, time, lyricTick));
