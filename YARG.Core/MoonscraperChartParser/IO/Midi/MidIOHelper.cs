@@ -88,8 +88,8 @@ namespace MoonscraperChartEditor.Song.IO
         public const byte SOLO_NOTE_PRO_GUITAR = 115;
 
         // Vocals notes
-        public const byte LYRIC_SHIFT_NOTE = 0;
-        public const byte RANGE_SHIFT_NOTE = 1;
+        public const byte RANGE_SHIFT_NOTE = 0;
+        public const byte LYRIC_SHIFT_NOTE = 1;
         public const byte VOCALS_RANGE_START = 36;
         public const byte VOCALS_RANGE_END = 84;
         public const byte PERCUSSION_NOTE = 96;
