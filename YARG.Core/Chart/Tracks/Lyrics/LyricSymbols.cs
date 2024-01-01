@@ -15,11 +15,15 @@ namespace YARG.Core.Chart
         None = 0,
 
         JoinWithNext = 1 << 0,
+
         NonPitched = 1 << 1,
-        PitchSlide = 1 << 2,
-        HarmonyHidden = 1 << 3,
-        StaticShift = 1 << 4,
-        RangeShift = 1 << 5,
+        LenientScoring = 1 << 2,
+        // NonPitchedUnknown = 1 << 3, // Reserved for once '*' is figured out
+
+        PitchSlide = 1 << 4,
+        HarmonyHidden = 1 << 5,
+        StaticShift = 1 << 6,
+        RangeShift = 1 << 7,
     }
 
     /// <summary>
@@ -44,7 +48,7 @@ namespace YARG.Core.Chart
         /// <remarks>Stripped out in both vocals and lyrics.</remarks>
         public const char NONPITCHED_SYMBOL = '#';
 
-        /// <summary>Marks a note as non-pitched, with extra starting leniency.</summary>
+        /// <summary>Marks a note as non-pitched, with more generous scoring.</summary>
         /// <remarks>Stripped out in both vocals and lyrics.</remarks>
         public const char NONPITCHED_LENIENT_SYMBOL = '^';
 
@@ -152,9 +156,9 @@ namespace YARG.Core.Chart
 
             PITCH_SLIDE_SYMBOL  => LyricSymbolFlags.PitchSlide,
 
-            NONPITCHED_SYMBOL or
-            NONPITCHED_LENIENT_SYMBOL or
-            NONPITCHED_UNKNOWN_SYMBOL => LyricSymbolFlags.NonPitched,
+            NONPITCHED_SYMBOL => LyricSymbolFlags.NonPitched,
+            NONPITCHED_LENIENT_SYMBOL => LyricSymbolFlags.NonPitched | LyricSymbolFlags.LenientScoring,
+            NONPITCHED_UNKNOWN_SYMBOL => LyricSymbolFlags.NonPitched, // | LyricSymbolFlags.NonPitchedUnknown,
 
             RANGE_SHIFT_SYMBOL => LyricSymbolFlags.RangeShift,
 
