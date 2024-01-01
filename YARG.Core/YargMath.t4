@@ -70,6 +70,9 @@ foreach (var (percentType, percentSuffix) in percentTypes)
 #>
         public static <#= percentType #> InverseLerp<#= percentSuffix #>(<#= inputType #> start, <#= inputType #> end, <#= inputType #> value)
         {
+            if (start == end)
+                return value < start ? 0 : 1;
+
             return (<#= percentType #>) (value - start) / (<#= percentType #>) (end - start);
         }
 

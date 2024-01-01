@@ -96,41 +96,65 @@ namespace YARG.Core
         #region InverseLerp
         public static float InverseLerpF(int start, int end, int value)
         {
+            if (start == end)
+                return value < start ? 0 : 1;
+
             return (float) (value - start) / (float) (end - start);
         }
 
         public static float InverseLerpF(uint start, uint end, uint value)
         {
+            if (start == end)
+                return value < start ? 0 : 1;
+
             return (float) (value - start) / (float) (end - start);
         }
 
         public static float InverseLerpF(float start, float end, float value)
         {
+            if (start == end)
+                return value < start ? 0 : 1;
+
             return (float) (value - start) / (float) (end - start);
         }
 
         public static float InverseLerpF(double start, double end, double value)
         {
+            if (start == end)
+                return value < start ? 0 : 1;
+
             return (float) (value - start) / (float) (end - start);
         }
 
         public static double InverseLerpD(int start, int end, int value)
         {
+            if (start == end)
+                return value < start ? 0 : 1;
+
             return (double) (value - start) / (double) (end - start);
         }
 
         public static double InverseLerpD(uint start, uint end, uint value)
         {
+            if (start == end)
+                return value < start ? 0 : 1;
+
             return (double) (value - start) / (double) (end - start);
         }
 
         public static double InverseLerpD(float start, float end, float value)
         {
+            if (start == end)
+                return value < start ? 0 : 1;
+
             return (double) (value - start) / (double) (end - start);
         }
 
         public static double InverseLerpD(double start, double end, double value)
         {
+            if (start == end)
+                return value < start ? 0 : 1;
+
             return (double) (value - start) / (double) (end - start);
         }
 
