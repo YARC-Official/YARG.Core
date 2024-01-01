@@ -205,6 +205,7 @@ namespace YARG.Core.Chart
             if (parts.All((part) => part.NotePhrases.Count < 1))
                 return ranges;
 
+            double shiftLength = 0;
             uint shiftStartTick = 0;
 
             int phraseIndex = 0;
@@ -220,21 +221,31 @@ namespace YARG.Core.Chart
 
                     if (phrase.type == MoonPhrase.Type.Vocals_RangeShift)
                     {
+                        // Commit active shift
+                        AddPitchRange(shiftStartTick, moonEvent.tick, shiftLength);
+
+                        // Start new shift
+                        shiftStartTick = moonEvent.tick;
                         double shiftStart = _moonSong.TickToTime(phrase.tick);
                         double shiftEnd = _moonSong.TickToTime(phrase.tick + phrase.length);
-                        AddPitchRange(moonEvent.tick, shiftEnd - shiftStart);
+                        shiftLength = shiftEnd - shiftStart;
                     }
                 }
 
                 var eventText = moonEvent.text;
                 if (eventText.StartsWith("range_shift"))
                 {
-                    eventText.SplitOnce(' ', out var time);
-                    if (time.IsEmpty || !double.TryParse(time, out double shiftLength))
-                        shiftLength = 0;
+                    // Commit active shift
+                    AddPitchRange(shiftStartTick, moonEvent.tick, shiftLength);
 
-                    AddPitchRange(moonEvent.tick, shiftLength);
-                    continue;
+                    // Start new shift
+                    shiftStartTick = moonEvent.tick;
+
+                    // Two forms: [range_shift] and [range_shift 0.5]
+                    // The latter specifies the time of the shift in seconds
+                    eventText.SplitOnce(' ', out var time);
+                    if (time.IsEmpty || !double.TryParse(time, out shiftLength))
+                        shiftLength = 0;
                 }
                 else if (eventText.StartsWith(TextEvents.LYRIC_PREFIX_WITH_SPACE))
                 {
@@ -248,17 +259,20 @@ namespace YARG.Core.Chart
                     var flags = LyricSymbols.GetLyricFlags(lyric);
                     if ((flags & LyricSymbolFlags.RangeShift) != 0)
                     {
-                        AddPitchRange(moonEvent.tick);
-                        break;
+                        // Commit active shift
+                        AddPitchRange(shiftStartTick, moonEvent.tick, shiftLength);
+
+                        // Start new shift
+                        shiftStartTick = moonEvent.tick;
                     }
                 }
             }
 
             // Finish off last range
-            AddPitchRange(uint.MaxValue);
+            AddPitchRange(shiftStartTick, uint.MaxValue, shiftLength);
             return ranges;
 
-            void AddPitchRange(uint endTick, double shiftLength = 0)
+            void AddPitchRange(uint startTick, uint endTick, double shiftLength)
             {
                 // Determine pitch bounds for this range shift
                 float minPitch = float.MaxValue;
@@ -275,7 +289,7 @@ namespace YARG.Core.Chart
                         if (phrase.Tick >= endTick)
                             break;
 
-                        if (phrase.TickEnd < shiftStartTick || phrase.IsPercussion)
+                        if (phrase.TickEnd < startTick || phrase.IsPercussion)
                             // TODO: Percussion phrases should probably stop the range and start a new one afterwards
                             continue;
 
@@ -287,7 +301,7 @@ namespace YARG.Core.Chart
 
                             foreach (var child in note.ChordEnumerator())
                             {
-                                if (note.TickEnd < shiftStartTick || note.IsNonPitched)
+                                if (note.TickEnd < startTick || note.IsNonPitched)
                                     continue;
 
                                 minPitch = Math.Min(minPitch, note.Pitch);
@@ -309,8 +323,7 @@ namespace YARG.Core.Chart
                 if (minPitch == float.MaxValue || maxPitch == float.MinValue)
                     return;
 
-                ranges.Add(new(minPitch, maxPitch, shiftLength, _moonSong.TickToTime(shiftStartTick), shiftStartTick));
-                shiftStartTick = endTick;
+                ranges.Add(new(minPitch, maxPitch, shiftLength, _moonSong.TickToTime(startTick), startTick));
             }
         }
 
