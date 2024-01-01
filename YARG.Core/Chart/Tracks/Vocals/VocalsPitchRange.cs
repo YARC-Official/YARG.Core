@@ -22,8 +22,13 @@ namespace YARG.Core.Chart
             ShiftLength = shiftLength;
         }
 
-        public VocalsPitchRange(ChartEvent other) : base(other)
+        public VocalsPitchRange(VocalsPitchRange other)
+            : base(other)
         {
+            MinimumPitch = other.MinimumPitch;
+            MaximumPitch = other.MaximumPitch;
+
+            ShiftLength = other.ShiftLength;
         }
 
         public VocalsPitchRange Clone()

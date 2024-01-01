@@ -32,9 +32,10 @@ namespace YARG.Core.Chart
         }
 
         public VocalsPhrase(VocalsPhrase other)
-            : this(other.Time, other.TimeLength, other.Tick, other.TickLength,
-                other.PhraseParentNote.CloneAsPhrase(), other.Lyrics.Duplicate())
+            : base(other)
         {
+            PhraseParentNote = other.PhraseParentNote.CloneAsPhrase();
+            Lyrics = other.Lyrics.Duplicate();
         }
 
         public VocalsPhrase Clone()
