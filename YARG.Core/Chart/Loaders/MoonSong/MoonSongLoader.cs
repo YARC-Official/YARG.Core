@@ -208,7 +208,7 @@ namespace YARG.Core.Chart
             var phrases = new List<Phrase>(moonChart.specialPhrases.Count);
             foreach (var moonPhrase in moonChart.specialPhrases)
             {
-                var phraseType = moonPhrase.type switch
+                PhraseType? phraseType = moonPhrase.type switch
                 {
                     MoonPhrase.Type.Starpower           => PhraseType.StarPower,
                     MoonPhrase.Type.Solo                => PhraseType.Solo,
@@ -217,13 +217,15 @@ namespace YARG.Core.Chart
                     MoonPhrase.Type.TremoloLane         => PhraseType.TremoloLane,
                     MoonPhrase.Type.TrillLane           => PhraseType.TrillLane,
                     MoonPhrase.Type.ProDrums_Activation => PhraseType.DrumFill,
-                    MoonPhrase.Type.Vocals_LyricPhrase  => PhraseType.LyricPhrase,
-                    MoonPhrase.Type.Vocals_PercussionPhrase => PhraseType.PercussionPhrase,
-                    _ => throw new NotImplementedException($"Unhandled special phrase type {moonPhrase.type}!")
+
+                    _ => null
                 };
 
+                if (!phraseType.HasValue)
+                    continue;
+
                 double time = _moonSong.TickToTime(moonPhrase.tick);
-                var newPhrase = new Phrase(phraseType, time, GetLengthInTime(moonPhrase), moonPhrase.tick, moonPhrase.length);
+                var newPhrase = new Phrase(phraseType.Value, time, GetLengthInTime(moonPhrase), moonPhrase.tick, moonPhrase.length);
                 phrases.Add(newPhrase);
             }
 

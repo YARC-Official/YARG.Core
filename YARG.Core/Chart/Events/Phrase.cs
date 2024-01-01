@@ -17,10 +17,6 @@ namespace YARG.Core.Chart
         VersusPlayer1,
         VersusPlayer2,
 
-        // Vocals phrases
-        LyricPhrase,
-        PercussionPhrase,
-
         // Other events
         Solo, // Also for visuals
         BigRockEnding,
