@@ -6,7 +6,7 @@ namespace YARG.Core.Engine
 {
     public abstract class BaseEngineParameters : IBinarySerializable
     {
-        public HitWindowSettings HitWindow { get; private set;}
+        public HitWindowSettings HitWindow { get; private set; }
 
         public float[] StarMultiplierThresholds { get; private set; }
 
@@ -19,6 +19,15 @@ namespace YARG.Core.Engine
         {
             HitWindow = hitWindow;
             StarMultiplierThresholds = starMultiplierThresholds;
+        }
+
+        public void SetHitWindowScale(double scale)
+        {
+            // Since "HitWindow" is a property and returns
+            // a "temporary value," we gotta do this.
+            var hitWindow = HitWindow;
+            hitWindow.Scale = scale;
+            HitWindow = hitWindow;
         }
 
         public virtual void Serialize(BinaryWriter writer)
