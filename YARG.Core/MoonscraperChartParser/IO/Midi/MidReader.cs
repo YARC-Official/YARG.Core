@@ -785,9 +785,9 @@ namespace MoonscraperChartEditor.Song.IO
 
             uint startTick = (uint)timedEvent.startTick;
             uint endTick = (uint)timedEvent.endTick;
-            // Exclude the last tick of the phrase
-            if (endTick > startTick)
-                --endTick;
+            // Tap note phrases do *not* exclude the last tick, based on both Phase Shift and Clone Hero
+            // if (endTick > startTick)
+            //     --endTick;
 
             if (startEvent.difficulty == PhaseShiftSysEx.Difficulty.All)
             {
@@ -820,7 +820,7 @@ namespace MoonscraperChartEditor.Song.IO
 
             uint startTick = (uint)timedEvent.startTick;
             uint endTick = (uint)timedEvent.endTick;
-            // Exclude the last tick of the phrase
+            // Open note phrases *do* exclude the last tick, based on both Phase Shift and Clone Hero
             if (endTick > startTick)
                 --endTick;
 
