@@ -72,10 +72,12 @@ namespace YARG.Core.IO
         public static int GetMoggVersion(CONFileListing listing, CONFile file)
         {
             Debug.Assert(!listing.IsDirectory(), "Directory listing cannot be loaded as a file");
-            byte[] buffer;
+            long location = CONFileStream.CalculateBlockLocation(listing.firstBlock, listing.shift);
             lock (file.Lock)
-                buffer = CONFileStream.LoadFile(file.Stream, listing.IsContiguous(), 4, listing.firstBlock, listing.shift);
-            return BitConverter.ToInt32(buffer);
+            {
+                file.Stream.Seek(location, SeekOrigin.Begin);
+                return file.Stream.Read<int>(Endianness.Little);
+            }
         }
 
         public static DateTime FatTimeDT(int fatTime)
