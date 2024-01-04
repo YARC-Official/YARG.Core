@@ -20,7 +20,6 @@ namespace YARG.Core.Song.Cache
 
     public sealed class CategoryCacheStrings
     {
-        const int NUM_CATEGORIES = 8;
         public string[] titles = Array.Empty<string>();
         public string[] artists = Array.Empty<string>();
         public string[] albums = Array.Empty<string>();
@@ -32,6 +31,7 @@ namespace YARG.Core.Song.Cache
 
         public CategoryCacheStrings(FileStream stream, bool multithreaded)
         {
+            const int NUM_CATEGORIES = 8;
             if (multithreaded)
             {
                 var tasks = new Task[NUM_CATEGORIES];
