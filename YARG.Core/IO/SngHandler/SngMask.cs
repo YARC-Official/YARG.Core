@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Numerics;
 using System.Text;
 
@@ -19,15 +20,16 @@ namespace YARG.Core.IO
         public readonly DisposableArray<byte> Keys;
         public readonly unsafe Vector<byte>* Vectors;
 
-        public SngMask(byte[] mask)
+        public SngMask(Stream stream)
         {
-            Keys = new(NUM_KEYBYTES);
+            Keys = new DisposableArray<byte>(NUM_KEYBYTES);
 
             unsafe
             {
                 Vectors = (Vector<byte>*) Keys.Ptr;
             }
 
+            using var mask = DisposableArray<byte>.Create(stream, MASKLENGTH);
             for (int i = 0; i < NUM_KEYBYTES;)
                 for (int j = 0; j < MASKLENGTH; i++, j++)
                     Keys[i] = (byte) (mask[j] ^ i);

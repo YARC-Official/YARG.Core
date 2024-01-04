@@ -21,10 +21,10 @@ namespace YARG.Core.IO
         private readonly Dictionary<string, SngFileListing> _listings;
         private readonly int[]? _values;
 
-        private SngFile(uint version, byte[] mask, IniSection metadata, string filename, Dictionary<string, SngFileListing> listings, int[]? values)
+        private SngFile(uint version, SngMask mask, IniSection metadata, string filename, Dictionary<string, SngFileListing> listings, int[]? values)
         {
             Version = version;
-            Mask = new SngMask(mask);
+            Mask = mask;
             Metadata = metadata;
 
             _filename = filename;
@@ -74,7 +74,6 @@ namespace YARG.Core.IO
         }
 
 
-        private const int XORMASK_SIZE = 16;
         private const int BYTES_64BIT = 8;
         private const int BYTES_32BIT = 4;
         private const int BYTES_24BIT = 3;
@@ -99,10 +98,10 @@ namespace YARG.Core.IO
             try
             {
                 uint version = stream.Read<uint>(Endianness.Little);
-                var xorMask = stream.ReadBytes(XORMASK_SIZE);
+                var sngMask = new SngMask(stream);
                 var metadata = ReadMetadata(stream);
                 var listings = ReadListings(stream);
-                return new SngFile(version, xorMask, metadata, path, listings, result.values);
+                return new SngFile(version, sngMask, metadata, path, listings, result.values);
             }
             catch (Exception ex)
             {
