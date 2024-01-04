@@ -18,42 +18,49 @@ namespace YARG.Core.IO
 
     public sealed class YARGBinaryReader
     {
-        private readonly Memory<byte> data;
+        private readonly ReadOnlyMemory<byte> _data;
         private int _position;
 
-        public YARGBinaryReader(Memory<byte> data)
+        public YARGBinaryReader(ReadOnlyMemory<byte> data)
         {
-            this.data = data;
+            _data = data;
         }
 
         public YARGBinaryReader(Stream stream, int count)
         {
             if (stream is MemoryStream mem)
             {
-                data = new Memory<byte>(mem.GetBuffer(), (int) mem.Position, count);
+                _data = new ReadOnlyMemory<byte>(mem.GetBuffer(), (int) mem.Position, count);
                 mem.Position += count;
             }
             else
             {
-                data = stream.ReadBytes(count);
+                _data = stream.ReadBytes(count);
             }
+        }
+
+        public YARGBinaryReader Slice(int length)
+        {
+            var local = _position;
+            Move(length);
+            return new YARGBinaryReader(_data.Slice(local, length));
         }
 
         public void Move(int amount)
         {
             _position += amount;
-            if (_position > data.Length)
+            if (_position > _data.Length)
                 throw new ArgumentOutOfRangeException("amount");
         }
 
         public byte ReadByte()
         {
-            return data.Span[_position++];
+            return _data.Span[_position++];
         }
 
         public sbyte ReadSByte()
         {
-            return (sbyte) data.Span[_position++];
+            return (sbyte) _data.Span[_position++];
         }
 
         public bool ReadBoolean()
@@ -70,7 +77,7 @@ namespace YARG.Core.IO
                 // Will throw if invalid
                 Move(sizeof(TType));
 
-                fixed (byte* buf = data.Span)
+                fixed (byte* buf = _data.Span)
                 {
                     // If the memory layout of the host system matches the layout of
                     // the value to be parsed from the file, we only require a cast
@@ -93,10 +100,10 @@ namespace YARG.Core.IO
         public bool ReadBytes(Span<byte> bytes)
         {
             int endPos = _position + bytes.Length;
-            if (endPos > data.Length)
+            if (endPos > _data.Length)
                 return false;
 
-            Unsafe.CopyBlock(ref bytes[0], ref data.Span[_position], (uint) bytes.Length);
+            _data.Span.Slice(_position, bytes.Length).CopyTo(bytes);
             _position = endPos;
             return true;
         }
@@ -117,7 +124,7 @@ namespace YARG.Core.IO
 
         public int ReadLEB()
         {
-            var span = data.Span;
+            var span = _data.Span;
             uint result = 0;
             byte byteReadJustNow;
 
@@ -146,16 +153,9 @@ namespace YARG.Core.IO
         public ReadOnlySpan<byte> ReadSpan(int length)
         {
             int endPos = _position + length;
-            var span = data.Span.Slice(_position, length);
+            var span = _data.Span.Slice(_position, length);
             _position = endPos;
             return span;
-        }
-
-        public YARGBinaryReader Slice(int length)
-        {
-            var local = _position;
-            Move(length);
-            return new YARGBinaryReader(data.Slice(local, length));
         }
     }
 }

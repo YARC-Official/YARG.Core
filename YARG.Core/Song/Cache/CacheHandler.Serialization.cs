@@ -17,7 +17,7 @@ namespace YARG.Core.Song.Cache
             for (int i = 0; i < count; ++i)
             {
                 int length = stream.Read<int>(Endianness.Little);
-                YARGBinaryReader reader = new(stream.ReadBytes(length));
+                var reader = new YARGBinaryReader(stream.ReadBytes(length));
                 func(reader);
             }
         }
@@ -28,7 +28,7 @@ namespace YARG.Core.Song.Cache
             for (int i = 0; i < count; ++i)
             {
                 int length = stream.Read<int>(Endianness.Little);
-                YARGBinaryReader reader = new(stream.ReadBytes(length));
+                var reader = new YARGBinaryReader(stream.ReadBytes(length));
                 func(reader, strings);
             }
         }
@@ -39,7 +39,7 @@ namespace YARG.Core.Song.Cache
             for (int i = 0; i < count && !tracker.IsSet(); ++i)
             {
                 int length = stream.Read<int>(Endianness.Little);
-                YARGBinaryReader reader = new(stream.ReadBytes(length));
+                var reader = new YARGBinaryReader(stream.ReadBytes(length));
                 conTasks.Add(Task.Run(() =>
                 {
                     try
@@ -60,7 +60,7 @@ namespace YARG.Core.Song.Cache
             for (int i = 0; i < count && !tracker.IsSet(); ++i)
             {
                 int length = stream.Read<int>(Endianness.Little);
-                YARGBinaryReader reader = new(stream.ReadBytes(length));
+                var reader = new YARGBinaryReader(stream.ReadBytes(length));
                 entryTasks.Add(Task.Run(() => {
                     List<Task> tasks = new();
                     try
