@@ -30,10 +30,11 @@ namespace YARG.Core.IO
             if (length < SIZEOF_HEADER)
                 throw new Exception("Midi Header not of sufficient length");
 
-            YARGBinaryReader reader = new(stream, length);
-            _format = reader.Read<ushort>(Endianness.Big);
-            _numTracks = reader.Read<ushort>(Endianness.Big);
-            _tickRate = reader.Read<ushort>(Endianness.Big);
+            long next = stream.Position + length;
+            _format = stream.Read<ushort>(Endianness.Big);
+            _numTracks = stream.Read<ushort>(Endianness.Big);
+            _tickRate = stream.Read<ushort>(Endianness.Big);
+            stream.Position = next;
         }
 
         public YARGMidiFile(byte[] data) : this(new MemoryStream(data, 0, data.Length, false, true)) { }
