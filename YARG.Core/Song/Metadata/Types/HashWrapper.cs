@@ -54,14 +54,13 @@ namespace YARG.Core.Song
             _hash = hash;
             _hashcode = 0;
 
-            int count = hash.Length / 4;
-
             unsafe
             {
+                const int INT_COUNT = HASH_SIZE_IN_BYTES / 4;
                 fixed (byte* p = hash)
                 {
                     int* integers = (int*) p;
-                    for (int i = 0; i < count; i++)
+                    for (int i = 0; i < INT_COUNT; i++)
                     {
                         _hashcode ^= integers[i];
                     }
