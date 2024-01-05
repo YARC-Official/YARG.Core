@@ -15,6 +15,14 @@ namespace YARG.Core.Replays
     /// </summary>
     public class ReplayPresetContainer : IBinarySerializable
     {
+        private static readonly JsonSerializerSettings _jsonSettings = new()
+        {
+            Converters =
+            {
+                new JsonColorConverter()
+            }
+        };
+
         private const int CONTAINER_VERSION = 0;
 
         private readonly Dictionary<Guid, ColorProfile> _colorProfiles = new();
@@ -83,7 +91,7 @@ namespace YARG.Core.Replays
 
         private static void SerializeDict<T>(BinaryWriter writer, Dictionary<Guid, T> dict)
         {
-            var serializer = new JsonSerializer();
+            var serializer = JsonSerializer.Create(_jsonSettings);
 
             writer.Write(dict.Count);
             foreach (var (key, value) in dict)
@@ -104,7 +112,7 @@ namespace YARG.Core.Replays
 
         private static void DeserializeDict<T>(BinaryReader reader, Dictionary<Guid, T> dict)
         {
-            var serializer = new JsonSerializer();
+            var serializer = JsonSerializer.Create(_jsonSettings);
 
             dict.Clear();
             int len = reader.ReadInt32();
