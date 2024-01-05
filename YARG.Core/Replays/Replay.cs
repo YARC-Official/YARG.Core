@@ -44,8 +44,7 @@ namespace YARG.Core.Replays
         public DateTime    Date;
         public HashWrapper SongChecksum;
 
-        public int            ColorProfileCount;
-        public ColorProfile[] ColorProfiles;
+        public ReplayPresetContainer ReplayPresetContainer;
 
         public int      PlayerCount;
         public string[] PlayerNames;
@@ -58,7 +57,7 @@ namespace YARG.Core.Replays
             ArtistName = string.Empty;
             CharterName = string.Empty;
 
-            ColorProfiles = Array.Empty<ColorProfile>();
+            ReplayPresetContainer = new ReplayPresetContainer();
             PlayerNames = Array.Empty<string>();
             Frames = Array.Empty<ReplayFrame>();
         }
@@ -80,11 +79,7 @@ namespace YARG.Core.Replays
 
             SongChecksum.Serialize(writer);
 
-            writer.Write(ColorProfileCount);
-            for (int i = 0; i < ColorProfileCount; i++)
-            {
-                ColorProfiles[i].Serialize(writer);
-            }
+            ReplayPresetContainer.Serialize(writer);
 
             writer.Write(PlayerCount);
             for (int i = 0; i < PlayerCount; i++)
@@ -101,7 +96,7 @@ namespace YARG.Core.Replays
         [MemberNotNull(nameof(SongName))]
         [MemberNotNull(nameof(ArtistName))]
         [MemberNotNull(nameof(CharterName))]
-        [MemberNotNull(nameof(ColorProfiles))]
+        [MemberNotNull(nameof(ReplayPresetContainer))]
         [MemberNotNull(nameof(PlayerNames))]
         [MemberNotNull(nameof(Frames))]
         public void Deserialize(BinaryReader reader, int version = 0)
@@ -115,14 +110,9 @@ namespace YARG.Core.Replays
             Date = DateTime.FromBinary(reader.ReadInt64());
             SongChecksum = new HashWrapper(reader);
 
-            ColorProfileCount = reader.ReadInt32();
-            ColorProfiles = new ColorProfile[ColorProfileCount];
-
-            for (int i = 0; i < ColorProfileCount; i++)
-            {
-                ColorProfiles[i] = new ColorProfile("");
-                ColorProfiles[i].Deserialize(reader, version);
-            }
+            // TODO: Find a way to skip this step when analyzing replays
+            ReplayPresetContainer = new ReplayPresetContainer();
+            ReplayPresetContainer.Deserialize(reader, version);
 
             PlayerCount = reader.ReadInt32();
             PlayerNames = new string[PlayerCount];
