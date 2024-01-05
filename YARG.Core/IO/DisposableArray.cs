@@ -83,6 +83,8 @@ namespace YARG.Core.IO
 
         public IntPtr IntPtr => (IntPtr) Ptr;
         public Span<T> Span => new(Ptr, Length);
+        public ReadOnlySpan<T> ReadOnlySpan => new(Ptr, Length);
+
         public T[] ToArray()
         {
             var array = new T[Length];
