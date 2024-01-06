@@ -3,6 +3,7 @@ using System.IO;
 using Newtonsoft.Json;
 using YARG.Core.Chart;
 using YARG.Core.Utility;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.Game
 {
@@ -152,6 +153,12 @@ namespace YARG.Core.Game
 
             writer.Write(Name);
 
+            writer.Write(EnginePreset);
+
+            writer.Write(ThemePreset);
+            writer.Write(ColorProfile);
+            writer.Write(CameraPreset);
+
             writer.Write((byte) CurrentInstrument);
             writer.Write((byte) CurrentDifficulty);
             writer.Write((ulong) CurrentModifiers);
@@ -167,6 +174,12 @@ namespace YARG.Core.Game
             version = reader.ReadInt32();
 
             Name = reader.ReadString();
+
+            EnginePreset = reader.ReadGuid();
+
+            ThemePreset = reader.ReadGuid();
+            ColorProfile = reader.ReadGuid();
+            CameraPreset = reader.ReadGuid();
 
             CurrentInstrument = (Instrument) reader.ReadByte();
             CurrentDifficulty = (Difficulty) reader.ReadByte();
