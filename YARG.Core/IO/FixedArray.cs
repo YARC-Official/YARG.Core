@@ -1,11 +1,12 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.IO;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace YARG.Core.IO
 {
-    public sealed unsafe class FixedArray<T> : RefCounter<FixedArray<T>>
+    public sealed unsafe class FixedArray<T> : RefCounter<FixedArray<T>>, IEnumerable<T>
         where T : unmanaged
     {
         public readonly T* Ptr;
@@ -117,6 +118,45 @@ namespace YARG.Core.IO
             {
                 Marshal.FreeHGlobal((IntPtr) Ptr);
                 _disposedValue = true;
+            }
+        }
+
+        public IEnumerator GetEnumerator() { return new Enumerator(this); }
+
+        IEnumerator<T> IEnumerable<T>.GetEnumerator()
+        {
+            return ((IEnumerable<T>)this).GetEnumerator();
+        }
+
+        public struct Enumerator : IEnumerator<T>, IEnumerator
+        {
+            private readonly FixedArray<T> _arr;
+            private int _index;
+
+            internal Enumerator(FixedArray<T> arr)
+            {
+                _arr = arr.AddRef();
+                _index = -1;
+            }
+
+            public void Dispose()
+            {
+                _arr.Dispose();
+            }
+
+            public bool MoveNext()
+            {
+                ++_index;
+                return _index < _arr.Length;
+            }
+
+            public readonly T Current => _arr[_index];
+
+            readonly object IEnumerator.Current => Current;
+
+            void IEnumerator.Reset()
+            {
+                _index = -1;
             }
         }
     }
