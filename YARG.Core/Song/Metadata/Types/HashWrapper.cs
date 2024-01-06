@@ -31,10 +31,15 @@ namespace YARG.Core.Song
         {
         }
 
-        public static HashWrapper Create(byte[] buffer)
+        public static HashWrapper Create(ReadOnlySpan<byte> span)
         {
             using var algo = Algorithm;
-            return new HashWrapper(algo.ComputeHash(buffer));
+            byte[] hash = new byte[HASH_SIZE_IN_BYTES];
+            if (algo.TryComputeHash(span, hash, out int written))
+            {
+                return new HashWrapper(hash);
+            }
+            throw new Exception("fucking how? Hash generation error");
         }
 
         public static HashWrapper Create(Stream stream)
@@ -49,14 +54,13 @@ namespace YARG.Core.Song
             _hash = hash;
             _hashcode = 0;
 
-            int count = hash.Length / 4;
-
             unsafe
             {
+                const int INT_COUNT = HASH_SIZE_IN_BYTES / 4;
                 fixed (byte* p = hash)
                 {
                     int* integers = (int*) p;
-                    for (int i = 0; i < count; i++)
+                    for (int i = 0; i < INT_COUNT; i++)
                     {
                         _hashcode ^= integers[i];
                     }

@@ -119,10 +119,10 @@ namespace YARG.Core.IO
                     _event.Type    = _running.Type    = (MidiEventType) (tmp & EVENTTYPE_MASK);
                     _event.Length  = _running.Length  = _running.Type switch
                     {
-                        MidiEventType.Note_On => 2,
-                        MidiEventType.Note_Off => 2,
-                        MidiEventType.Control_Change => 2,
-                        MidiEventType.Key_Pressure => 2,
+                        MidiEventType.Note_On or
+                        MidiEventType.Note_Off or
+                        MidiEventType.Control_Change or
+                        MidiEventType.Key_Pressure or
                         MidiEventType.Pitch_Wheel => 2,
                         _ => 1
                     };

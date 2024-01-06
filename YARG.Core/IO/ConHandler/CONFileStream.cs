@@ -32,7 +32,7 @@ namespace YARG.Core.IO
                 int readSize = BYTES_PER_BLOCK * numBlocks;
                 int offset = 0;
 
-                filestream.Seek(FIRSTBLOCK_OFFSET + (long) CalculateBlockNum(blockNum, shift) * BYTES_PER_BLOCK, SeekOrigin.Begin);
+                filestream.Seek(CalculateBlockLocation(blockNum, shift), SeekOrigin.Begin);
                 while (true)
                 {
                     if (readSize > fileSize - offset)
@@ -69,8 +69,7 @@ namespace YARG.Core.IO
                 int offset = 0;
                 while (true)
                 {
-                    int block = CalculateBlockNum(blockNum, shift);
-                    long blockLocation = FIRSTBLOCK_OFFSET + (long) block * BYTES_PER_BLOCK;
+                    long blockLocation = CalculateBlockLocation(blockNum, shift);
 
                     int readSize = BYTES_PER_BLOCK;
                     if (readSize > fileSize - offset)
@@ -96,6 +95,18 @@ namespace YARG.Core.IO
                 }
             }
             return data;
+        }
+
+        public static long CalculateBlockLocation(int blockNum, int shift)
+        {
+            int blockAdjust = 0;
+            if (blockNum >= BLOCKS_PER_SECTION)
+            {
+                blockAdjust += blockNum / BLOCKS_PER_SECTION + 1 << shift;
+                if (blockNum >= NUM_BLOCKS_SQUARED)
+                    blockAdjust += blockNum / NUM_BLOCKS_SQUARED + 1 << shift;
+            }
+            return FIRSTBLOCK_OFFSET + (long) (blockAdjust + blockNum) * BYTES_PER_BLOCK;
         }
 
         private readonly FileStream _filestream;
@@ -168,7 +179,7 @@ namespace YARG.Core.IO
                 int byteMovement = blockMovement * BYTES_PER_BLOCK;
                 int skipVal = BYTES_PER_BLOCK << shift;
                 int threshold = firstBlock - firstBlock % NUM_BLOCKS_SQUARED + NUM_BLOCKS_SQUARED;
-                long location = FIRSTBLOCK_OFFSET + (long) CalculateBlockNum(block, shift) * BYTES_PER_BLOCK;
+                long location = CalculateBlockLocation(firstBlock, shift);
                 for (int i = 0; i < numBlocks; i++)
                 {
                     blockLocations[i] = location;
@@ -204,7 +215,7 @@ namespace YARG.Core.IO
                 initialOffset = 0;
                 for (int i = 0; i < numBlocks; i++)
                 {
-                    long location = FIRSTBLOCK_OFFSET + (long) CalculateBlockNum(block, shift) * BYTES_PER_BLOCK;
+                    long location = CalculateBlockLocation(block, shift);
                     blockLocations[i] = location;
 
                     if (i < numBlocks - 1)
