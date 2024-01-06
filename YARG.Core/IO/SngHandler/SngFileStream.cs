@@ -61,7 +61,7 @@ namespace YARG.Core.IO
         private readonly long initialOffset;
 
         private readonly SngMask mask;
-        private readonly DisposableArray<byte> dataBuffer = new(BUFFER_SIZE);
+        private readonly FixedArray<byte> dataBuffer = FixedArray<byte>.Alloc(BUFFER_SIZE);
 
 
         private int bufferPosition;

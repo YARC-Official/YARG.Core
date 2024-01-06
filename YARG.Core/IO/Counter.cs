@@ -4,22 +4,51 @@ using System.Text;
 
 namespace YARG.Core.IO
 {
-    public class Counter
+    public abstract class RefCounter<T> : IDisposable
+        where T : RefCounter<T>
     {
-        private int _count = 1;
-        private object _lock = new();
-        public int Count => _count;
+        private int _refCount;
+        private object _lock;
 
-        public void Increment()
+        protected RefCounter()
         {
-            lock (_lock)
-                ++_count;
+            _refCount = 1;
+            _lock = new();
         }
 
-        public void Decrement()
+        public T AddRef()
         {
             lock (_lock)
-                --_count;
+            {
+                if (_refCount == 0)
+                {
+                    throw new InvalidOperationException();
+                }
+                ++_refCount;
+            }
+            return (T)this;
+        }
+
+        public void Dispose()
+        {
+            lock (_lock)
+            {
+                --_refCount;
+                if (_refCount == 0)
+                {
+                    Dispose(disposing: true);
+                    GC.SuppressFinalize(this);
+                }
+            }
+        }
+
+        protected abstract void Dispose(bool disposing);
+
+        ~RefCounter()
+        {
+            // Forcibly dispose, regardless of RefCount
+            // because if we're here, there are no references
+            Dispose(disposing: false);
         }
     }
 }
