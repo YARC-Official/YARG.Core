@@ -100,13 +100,14 @@ namespace YARG.Core.Replays
                 writer.Write(key);
 
                 // Convert preset to BSON
-                using var stream = new MemoryStream();
-                using var bson = new BsonDataWriter(stream);
+                var stream = new MemoryStream();
+                var bson = new BsonDataWriter(stream);
                 serializer.Serialize(bson, value);
 
                 // Write preset
-                writer.Write(stream.Length);
-                writer.Write(stream.ToArray());
+                var bytes = stream.ToArray();
+                writer.Write(bytes.Length);
+                writer.Write(bytes);
             }
         }
 
@@ -126,8 +127,8 @@ namespace YARG.Core.Replays
                 var bytes = reader.ReadBytes(bytesLength);
 
                 // Convert BSON to preset
-                using var stream = new MemoryStream(bytes);
-                using var bson = new BsonDataReader(stream);
+                var stream = new MemoryStream(bytes);
+                var bson = new BsonDataReader(stream);
 
                 dict.Add(guid, serializer.Deserialize<T>(bson)!);
             }
