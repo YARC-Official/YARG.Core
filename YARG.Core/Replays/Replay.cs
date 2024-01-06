@@ -29,7 +29,7 @@ namespace YARG.Core.Replays
             Magic = EightCC.Read(reader);
             ReplayVersion = reader.ReadInt32();
             EngineVersion = reader.ReadInt32();
-            ReplayChecksum = new HashWrapper(reader);
+            ReplayChecksum = HashWrapper.Deserialize(reader);
         }
     }
 
@@ -108,7 +108,7 @@ namespace YARG.Core.Replays
             BandStars = (StarAmount) reader.ReadByte();
             ReplayLength = reader.ReadDouble();
             Date = DateTime.FromBinary(reader.ReadInt64());
-            SongChecksum = new HashWrapper(reader);
+            SongChecksum = HashWrapper.Deserialize(reader);
 
             // TODO: Find a way to skip this step when analyzing replays
             ReplayPresetContainer = new ReplayPresetContainer();

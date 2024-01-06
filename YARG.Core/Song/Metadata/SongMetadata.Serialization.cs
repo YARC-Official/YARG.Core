@@ -44,7 +44,7 @@ namespace YARG.Core.Song
             _parseSettings.DrumsType = (DrumsType)reader.Read<int>(Endianness.Little);
 
             _parts = new(reader);
-            _hash = new(reader);
+            _hash = HashWrapper.Deserialize(reader);
         }
 
         public void Serialize(BinaryWriter writer, CategoryCacheWriteNode node)

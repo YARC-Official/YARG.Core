@@ -176,7 +176,7 @@ namespace YARG.Core.Song
             byte[] file = sng.LoadAllBytes(sng[chart.File]);
             var result = ScanIniChartFile(file, chart.Type, sng.Metadata);
 
-            return (result.Item1, result.Item2 != null ? new SongMetadata(metadata, result.Item2, HashWrapper.Create(file), sng.Metadata) : null );
+            return (result.Item1, result.Item2 != null ? new SongMetadata(metadata, result.Item2, HashWrapper.Hash(file), sng.Metadata) : null );
         }
 
         public static SongMetadata? SngFromCache(string baseDirectory, YARGBinaryReader reader, CategoryCacheStrings strings)

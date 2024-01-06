@@ -339,7 +339,7 @@ namespace YARG.Core.Song
                 {
                     System.Runtime.CompilerServices.Unsafe.CopyBlock(ref buffer[offset], ref upgradeFile[0], (uint)upgradeFile.Length);
                 }
-                _hash = HashWrapper.Create(buffer);
+                _hash = HashWrapper.Hash(buffer);
                 return ScanResult.Success;
             }
             catch
