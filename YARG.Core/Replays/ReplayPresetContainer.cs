@@ -91,30 +91,20 @@ namespace YARG.Core.Replays
 
         private static void SerializeDict<T>(BinaryWriter writer, Dictionary<Guid, T> dict)
         {
-            var serializer = JsonSerializer.Create(_jsonSettings);
-
             writer.Write(dict.Count);
             foreach (var (key, value) in dict)
             {
                 // Write key
                 writer.Write(key);
 
-                // Convert preset to BSON
-                var stream = new MemoryStream();
-                var bson = new BsonDataWriter(stream);
-                serializer.Serialize(bson, value);
-
                 // Write preset
-                var bytes = stream.ToArray();
-                writer.Write(bytes.Length);
-                writer.Write(bytes);
+                var json = JsonConvert.SerializeObject(value, _jsonSettings);
+                writer.Write(json);
             }
         }
 
         private static void DeserializeDict<T>(BinaryReader reader, Dictionary<Guid, T> dict)
         {
-            var serializer = JsonSerializer.Create(_jsonSettings);
-
             dict.Clear();
             int len = reader.ReadInt32();
             for (int i = 0; i < len; i++)
@@ -123,14 +113,10 @@ namespace YARG.Core.Replays
                 var guid = reader.ReadGuid();
 
                 // Read preset
-                var bytesLength = reader.ReadInt32();
-                var bytes = reader.ReadBytes(bytesLength);
+                var json = reader.ReadString();
+                var preset = JsonConvert.DeserializeObject<T>(json, _jsonSettings)!;
 
-                // Convert BSON to preset
-                var stream = new MemoryStream(bytes);
-                var bson = new BsonDataReader(stream);
-
-                dict.Add(guid, serializer.Deserialize<T>(bson)!);
+                dict.Add(guid, preset);
             }
         }
     }
