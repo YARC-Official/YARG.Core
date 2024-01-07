@@ -6,12 +6,13 @@ using System.Runtime.InteropServices;
 
 namespace YARG.Core.IO
 {
-    public sealed unsafe class FixedArray<T> : RefCounter<FixedArray<T>>, IEnumerable<T>
+    public unsafe class FixedArray<T> : RefCounter<FixedArray<T>>, IEnumerable<T>
         where T : unmanaged
     {
         public readonly T* Ptr;
         public readonly int Length;
-        private bool _disposedValue;
+
+        protected bool _disposedValue;
 
         public static FixedArray<T> Load(string path)
         {
@@ -41,7 +42,7 @@ namespace YARG.Core.IO
             return new FixedArray<T>(ptr, length);
         }
 
-        private FixedArray(T* ptr, int length)
+        protected FixedArray(T* ptr, int length)
         {
             Ptr = ptr;
             Length = length;
