@@ -15,13 +15,28 @@ namespace YARG.Core.IO
         private int _refCount;
         private object _lock;
 
-        public T Value;
+        private T _value;
+
+        public ref T Value
+        {
+            get
+            {
+                lock (_lock)
+                {
+                    if (_refCount <= 0)
+                    {
+                        throw new InvalidOperationException();
+                    }
+                    return ref _value;
+                }
+            }
+        }
 
         public DisposableCounter(T value)
         {
             _refCount = 1;
             _lock = new();
-            Value = value;
+            _value = value;
         }
 
         /// <summary>
@@ -42,6 +57,16 @@ namespace YARG.Core.IO
             return this;
         }
 
+        public T Release()
+        {
+            lock (_lock)
+            {
+                _refCount = 0;
+                GC.SuppressFinalize(this);
+                return _value;
+            }
+        }
+
         /// <summary>
         /// Decrements the internal count of references by one.<br></br>
         /// If the count becomes 0, the counter will call the object's disposal method.
@@ -53,7 +78,7 @@ namespace YARG.Core.IO
                 --_refCount;
                 if (_refCount == 0)
                 {
-                    Value.Dispose();
+                    _value.Dispose();
                     GC.SuppressFinalize(this);
                 }
             }
@@ -63,7 +88,7 @@ namespace YARG.Core.IO
         {
             // Forcibly dispose, regardless of RefCount
             // because if we're here, there are no references
-            Value.Dispose();
+            _value.Dispose();
         }
     }
 
