@@ -6,18 +6,55 @@ using System.Runtime.InteropServices;
 
 namespace YARG.Core.IO
 {
-    public abstract unsafe class FixedArray<T> : RefCounter<FixedArray<T>>, IEnumerable<T>
+    public sealed unsafe class FixedArray<T> : RefCounter<FixedArray<T>>, IEnumerable<T>
         where T : unmanaged
     {
         public readonly T* Ptr;
         public readonly int Length;
 
-        protected bool _disposedValue;
+        private bool _disposedValue;
+        private readonly Action _disposal;
 
-        protected FixedArray(T* ptr, int length)
+        public static FixedArray<T> Load(string path)
+        {
+            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+            return Load(fs);
+        }
+
+        public static FixedArray<T> Load(Stream stream)
+        {
+            int length = (int)(stream.Length - stream.Position);
+            return Load(stream, length);
+        }
+
+        public static FixedArray<T> Load(Stream stream, int length)
+        {
+            if (stream.Position + length > stream.Length)
+                throw new EndOfStreamException();
+
+            byte* buffer = (byte*)Marshal.AllocHGlobal(length);
+            stream.Read(new Span<byte>(buffer, length));
+            return new FixedArray<T>((T*)buffer, length / sizeof(T), () => Marshal.FreeHGlobal((IntPtr)buffer));
+        }
+
+        public static FixedArray<T> Alloc(int length)
+        {
+            int bufferLength = length * sizeof(T);
+            var ptr = (T*)Marshal.AllocHGlobal(bufferLength);
+            return new FixedArray<T>(ptr, length, () => Marshal.FreeHGlobal((IntPtr)ptr));
+        }
+
+        public static FixedArray<T> Pin(T[] array)
+        {
+            var handle = GCHandle.Alloc(array, GCHandleType.Pinned);
+            return new FixedArray<T>((T*)handle.AddrOfPinnedObject(), array.Length, () => handle.Free());
+        }
+
+        public FixedArray(T* ptr, int length, Action disposal)
         {
             Ptr = ptr;
             Length = length;
+            _disposal = disposal;
         }
 
         public ref T this[int index]
@@ -95,6 +132,15 @@ namespace YARG.Core.IO
             var array = new T[Length];
             Span.CopyTo(array);
             return array;
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (!_disposedValue)
+            {
+                _disposal();
+                _disposedValue = true;
+            }
         }
 
         public IEnumerator GetEnumerator() { return new Enumerator(this); }
