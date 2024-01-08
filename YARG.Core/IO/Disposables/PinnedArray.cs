@@ -6,7 +6,7 @@ using System.Text;
 
 namespace YARG.Core.IO
 {
-    public sealed class PinnedArray<T> : FixedArray<T>
+    public sealed unsafe class PinnedArray<T> : FixedArray<T>
         where T : unmanaged
     {
         private readonly GCHandle _handle;
