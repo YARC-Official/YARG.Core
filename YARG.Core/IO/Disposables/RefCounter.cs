@@ -9,13 +9,13 @@ namespace YARG.Core.IO
     /// of said classes based on a explicitly kept count.
     /// </summary>
     /// <typeparam name="T">The disposable class to attach to</typeparam>
-    public abstract class RefCounter<T> : IDisposable
-        where T : RefCounter<T>
+    public abstract class DisposableCounter<T> : IDisposable
+        where T : DisposableCounter<T>
     {
         private int _refCount;
         private object _lock;
 
-        protected RefCounter()
+        protected DisposableCounter()
         {
             _refCount = 1;
             _lock = new();
@@ -58,7 +58,7 @@ namespace YARG.Core.IO
 
         protected abstract void Dispose(bool disposing);
 
-        ~RefCounter()
+        ~DisposableCounter()
         {
             // Forcibly dispose, regardless of RefCount
             // because if we're here, there are no references

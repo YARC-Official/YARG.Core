@@ -18,7 +18,7 @@ namespace YARG.Core.IO
     /// </summary>
     /// <remarks>DO NOT USE THIS AS AN ALTERNATIVE TO STACK-BASED ARRAYS</remarks>
     /// <typeparam name="T">The unmanaged type contained in the block of memory</typeparam>
-    public sealed unsafe class FixedArray<T> : RefCounter<FixedArray<T>>, IEnumerable<T>
+    public sealed unsafe class FixedArray<T> : DisposableCounter<FixedArray<T>>, IEnumerable<T>
         where T : unmanaged
     {
         /// <summary>
