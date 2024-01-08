@@ -53,20 +53,24 @@ namespace YARG.Core.IO
             get
             {
                 if (_disposedValue)
-                    throw new ObjectDisposedException(GetType().Name);
-
-                if (0 <= index && index < Length)
                 {
-                    return ref Ptr[index];
+                    throw new ObjectDisposedException(GetType().Name);
                 }
-                throw new IndexOutOfRangeException();
+
+                if (index < 0 || Length <= index )
+                {
+                    throw new IndexOutOfRangeException();
+                }
+                return ref Ptr[index];
             }
         }
 
         public Span<T> Slice(int offset, int count)
         {
             if (_disposedValue)
+            {
                 throw new ObjectDisposedException(GetType().Name);
+            }
 
             if (0 <= offset && offset + count <= Length)
                 return new Span<T>(Ptr + offset, count);
@@ -78,7 +82,9 @@ namespace YARG.Core.IO
             get
             {
                 if (_disposedValue)
+                {
                     throw new ObjectDisposedException(GetType().Name);
+                }
                 return (IntPtr)Ptr;
             }
         }
@@ -88,7 +94,9 @@ namespace YARG.Core.IO
             get
             {
                 if (_disposedValue)
+                {
                     throw new ObjectDisposedException(GetType().Name);
+                }
                 return new Span<T>(Ptr, Length);
             }
         }
@@ -98,7 +106,9 @@ namespace YARG.Core.IO
             get
             {
                 if (_disposedValue)
+                {
                     throw new ObjectDisposedException(GetType().Name);
+                }
                 return new ReadOnlySpan<T>(Ptr, Length);
             }
         }
@@ -106,7 +116,9 @@ namespace YARG.Core.IO
         public T[] ToArray()
         {
             if (_disposedValue)
+            {
                 throw new ObjectDisposedException(GetType().Name);
+            }
 
             var array = new T[Length];
             Span.CopyTo(array);
