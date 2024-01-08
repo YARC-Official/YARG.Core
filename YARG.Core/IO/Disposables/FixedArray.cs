@@ -6,27 +6,68 @@ using System.Runtime.InteropServices;
 
 namespace YARG.Core.IO
 {
+    /// <summary>
+    /// A wrapper interface over a fixed area of unmanaged memory.
+    /// Provides functions to create spans and span slices alongside
+    /// basic indexing and enumeration.<br></br><br></br>
+    /// 
+    /// For serious performance-critical code, the raw pointer to
+    /// the start of the memory block is also provided.<br></br>
+    /// However, code that uses the value directly should first check
+    /// for valid boundaries.
+    /// </summary>
+    /// <remarks>DO NOT USE THIS AS AN ALTERNATIVE TO STACK-BASED ARRAYS</remarks>
+    /// <typeparam name="T">The unmanaged type contained in the block of memory</typeparam>
     public sealed unsafe class FixedArray<T> : RefCounter<FixedArray<T>>, IEnumerable<T>
         where T : unmanaged
     {
+        /// <summary>
+        /// Pointer to the beginning of the memory block.<br></br>
+        /// DO NOT TOUCH UNLESS YOU ENSURE YOU'RE WITHIN BOUNDS
+        /// </summary>
         public readonly T* Ptr;
+
+        /// <summary>
+        /// Number of elements within the block
+        /// </summary>
         public readonly int Length;
 
         private bool _disposedValue;
         private readonly Action _disposal;
 
+        /// <summary>
+        /// Fully loads the data of a file into a fixed location in memory
+        /// </summary>
+        /// <remarks>Be wary of any file I/O related exceptions. Those will NOT be handled</remarks>
+        /// <param name="path">The file to grab</param>
+        /// <returns>A new FixedArray filled with the file's data</returns>
         public static FixedArray<T> Load(string path)
         {
             using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
             return Load(fs);
         }
 
+        /// <summary>
+        /// Fully loads the data of a stream (or whatever is leftover in the stream)
+        /// into a fixed location in memory
+        /// </summary>
+        /// <remarks>Any exceptions thrown from attempting to read the stream will NOT be handled</remarks>
+        /// <param name="stream">The stream to read from</param>
+        /// <returns>A new FixedArray filled with the stream's leftover data</returns>
         public static FixedArray<T> Load(Stream stream)
         {
             int length = (int)(stream.Length - stream.Position);
             return Load(stream, length);
         }
 
+        /// <summary>
+        /// Loads the given amount of data from a stream at its current position
+        /// into a fixed location in memory
+        /// </summary>
+        /// <remarks>Any exceptions thrown from attempting to read the stream will NOT be handled</remarks>
+        /// <param name="stream">The stream to read from</param>
+        /// <param name="length">The amount of data (in bytes) to read</param>
+        /// <returns>A new FixedArray filled with the requested amount of data</returns>
         public static FixedArray<T> Load(Stream stream, int length)
         {
             if (stream.Position + length > stream.Length)
@@ -37,6 +78,12 @@ namespace YARG.Core.IO
             return new FixedArray<T>((T*)buffer, length / sizeof(T), () => Marshal.FreeHGlobal((IntPtr)buffer));
         }
 
+        /// <summary>
+        /// Allocates an uninitialized block of memory
+        /// </summary>
+        /// <param name="length">The number of elements (of `T`) to allocate for</param>
+        /// <returns>A new FixedArray with the requested amount of allocated memory</returns>
+        /// <exception cref="OutOfMemoryException"></exception>
         public static FixedArray<T> Alloc(int length)
         {
             int bufferLength = length * sizeof(T);
@@ -44,12 +91,20 @@ namespace YARG.Core.IO
             return new FixedArray<T>(ptr, length, () => Marshal.FreeHGlobal((IntPtr)ptr));
         }
 
+        /// <summary>
+        /// Pins a managed array to a fixed location
+        /// </summary>
+        /// <remarks>PREFER STACK-ALLOCATED ARRAYS OVER THIS WHEN POSSIBLE</remarks>
+        /// <param name="array">The managed array to pin</param>
+        /// <returns>A FixedArray that points to the location of the now-pinned array</returns>
+        /// <exception cref="OutOfMemoryException"></exception>
         public static FixedArray<T> Pin(T[] array)
         {
             var handle = GCHandle.Alloc(array, GCHandleType.Pinned);
             return new FixedArray<T>((T*)handle.AddrOfPinnedObject(), array.Length, () => handle.Free());
         }
 
+        /// <param name="disposal">The function to use when the object needs to be disposed</param>
         public FixedArray(T* ptr, int length, Action disposal)
         {
             Ptr = ptr;
@@ -57,6 +112,13 @@ namespace YARG.Core.IO
             _disposal = disposal;
         }
 
+        /// <summary>
+        /// Indexer into the fixed block of memory
+        /// </summary>
+        /// <param name="index"></param>
+        /// <returns>A reference to the object at the provided index</returns>
+        /// <exception cref="ObjectDisposedException"></exception>
+        /// <exception cref="IndexOutOfRangeException"></exception>
         public ref T this[int index]
         {
             get
@@ -74,6 +136,14 @@ namespace YARG.Core.IO
             }
         }
 
+        /// <summary>
+        /// Creates a span over the requested slice of memory
+        /// </summary>
+        /// <param name="offset">Starting position of the slice</param>
+        /// <param name="count">Number of elements in the slice</param>
+        /// <returns></returns>
+        /// <exception cref="ObjectDisposedException"></exception>
+        /// <exception cref="IndexOutOfRangeException"></exception>
         public Span<T> Slice(int offset, int count)
         {
             if (_disposedValue)
@@ -86,6 +156,10 @@ namespace YARG.Core.IO
             throw new IndexOutOfRangeException();
         }
 
+        /// <summary>
+        /// Provides the pointer to the block of memory in IntPtr form
+        /// </summary>
+        /// <exception cref="ObjectDisposedException"></exception>
         public IntPtr IntPtr
         {
             get
@@ -98,6 +172,10 @@ namespace YARG.Core.IO
             }
         }
 
+        /// <summary>
+        /// Provides a Span over the block of memory
+        /// </summary>
+        /// <exception cref="ObjectDisposedException"></exception>
         public Span<T> Span
         {
             get
@@ -110,6 +188,10 @@ namespace YARG.Core.IO
             }
         }
 
+        /// <summary>
+        /// Provides a ReadOnlySpan over the block of memory
+        /// </summary>
+        /// <exception cref="ObjectDisposedException"></exception>
         public ReadOnlySpan<T> ReadOnlySpan
         {
             get
@@ -122,6 +204,11 @@ namespace YARG.Core.IO
             }
         }
 
+        /// <summary>
+        /// Provides a copy of the block of memory in a managed array
+        /// </summary>
+        /// <returns></returns>
+        /// <exception cref="ObjectDisposedException"></exception>
         public T[] ToArray()
         {
             if (_disposedValue)
