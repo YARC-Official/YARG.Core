@@ -9,16 +9,19 @@ namespace YARG.Core.IO
     /// of said classes based on a explicitly kept count.
     /// </summary>
     /// <typeparam name="T">The disposable class to attach to</typeparam>
-    public abstract class DisposableCounter<T> : IDisposable
-        where T : DisposableCounter<T>
+    public sealed class DisposableCounter<T> : IDisposable
+        where T : IDisposable
     {
         private int _refCount;
         private object _lock;
 
-        protected DisposableCounter()
+        public T Value;
+
+        public DisposableCounter(T value)
         {
             _refCount = 1;
             _lock = new();
+            Value = value;
         }
 
         /// <summary>
@@ -26,7 +29,7 @@ namespace YARG.Core.IO
         /// </summary>
         /// <returns>The object the counter is attached to</returns>
         /// <exception cref="InvalidOperationException">If the object was already disposed from reaching a count of 0</exception>
-        public T AddRef()
+        public DisposableCounter<T> AddRef()
         {
             lock (_lock)
             {
@@ -36,7 +39,7 @@ namespace YARG.Core.IO
                 }
                 ++_refCount;
             }
-            return (T)this;
+            return this;
         }
 
         /// <summary>
@@ -50,19 +53,26 @@ namespace YARG.Core.IO
                 --_refCount;
                 if (_refCount == 0)
                 {
-                    Dispose(disposing: true);
+                    Value.Dispose();
                     GC.SuppressFinalize(this);
                 }
             }
         }
 
-        protected abstract void Dispose(bool disposing);
-
         ~DisposableCounter()
         {
             // Forcibly dispose, regardless of RefCount
             // because if we're here, there are no references
-            Dispose(disposing: false);
+            Value.Dispose();
+        }
+    }
+
+    public static class DisposableCounter
+    {
+        public static DisposableCounter<T> Wrap<T>(T value)
+             where T : IDisposable
+        {
+            return new DisposableCounter<T>(value);
         }
     }
 }

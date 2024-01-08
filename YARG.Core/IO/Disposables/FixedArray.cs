@@ -18,7 +18,7 @@ namespace YARG.Core.IO
     /// </summary>
     /// <remarks>DO NOT USE THIS AS AN ALTERNATIVE TO STACK-BASED ARRAYS</remarks>
     /// <typeparam name="T">The unmanaged type contained in the block of memory</typeparam>
-    public sealed unsafe class FixedArray<T> : DisposableCounter<FixedArray<T>>, IEnumerable<T>
+    public sealed unsafe class FixedArray<T> : IEnumerable<T>, IDisposable
         where T : unmanaged
     {
         /// <summary>
@@ -33,7 +33,7 @@ namespace YARG.Core.IO
         public readonly int Length;
 
         private bool _disposedValue;
-        private readonly Action _disposal;
+        private readonly GCHandle _handle;
 
         /// <summary>
         /// Fully loads the data of a file into a fixed location in memory
@@ -75,7 +75,7 @@ namespace YARG.Core.IO
 
             byte* buffer = (byte*)Marshal.AllocHGlobal(length);
             stream.Read(new Span<byte>(buffer, length));
-            return new FixedArray<T>((T*)buffer, length / sizeof(T), () => Marshal.FreeHGlobal((IntPtr)buffer));
+            return new FixedArray<T>((T*)buffer, length / sizeof(T));
         }
 
         /// <summary>
@@ -88,7 +88,7 @@ namespace YARG.Core.IO
         {
             int bufferLength = length * sizeof(T);
             var ptr = (T*)Marshal.AllocHGlobal(bufferLength);
-            return new FixedArray<T>(ptr, length, () => Marshal.FreeHGlobal((IntPtr)ptr));
+            return new FixedArray<T>(ptr, length);
         }
 
         /// <summary>
@@ -101,15 +101,15 @@ namespace YARG.Core.IO
         public static FixedArray<T> Pin(T[] array)
         {
             var handle = GCHandle.Alloc(array, GCHandleType.Pinned);
-            return new FixedArray<T>((T*)handle.AddrOfPinnedObject(), array.Length, () => handle.Free());
+            return new FixedArray<T>((T*)handle.AddrOfPinnedObject(), array.Length, handle);
         }
 
         /// <param name="disposal">The function to use when the object needs to be disposed</param>
-        public FixedArray(T* ptr, int length, Action disposal)
+        private FixedArray(T* ptr, int length, GCHandle handle = default)
         {
             Ptr = ptr;
             Length = length;
-            _disposal = disposal;
+            _handle = handle;
         }
 
         /// <summary>
@@ -221,14 +221,30 @@ namespace YARG.Core.IO
             return array;
         }
 
-        protected override void Dispose(bool disposing)
+        private void Dispose(bool disposing)
         {
             if (!_disposedValue)
             {
-                _disposal();
+                if (!_handle.IsAllocated)
+                {
+                    Marshal.FreeHGlobal(IntPtr);
+                }
+                else
+                {
+                    _handle.Free();
+                }
                 _disposedValue = true;
             }
         }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        ~FixedArray() { Dispose(false); }
+
 
         public IEnumerator GetEnumerator() { return new Enumerator(this); }
 
@@ -244,13 +260,12 @@ namespace YARG.Core.IO
 
             internal Enumerator(FixedArray<T> arr)
             {
-                _arr = arr.AddRef();
+                _arr = arr;
                 _index = -1;
             }
 
             public void Dispose()
             {
-                _arr.Dispose();
             }
 
             public bool MoveNext()

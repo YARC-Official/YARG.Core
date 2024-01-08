@@ -17,22 +17,24 @@ namespace YARG.Core.IO
         public static readonly int VECTORBYTE_COUNT = Vector<byte>.Count;
         public static readonly int NUMVECTORS = NUM_KEYBYTES / VECTORBYTE_COUNT;
 
-        public readonly FixedArray<byte> Keys;
+        private readonly DisposableCounter<FixedArray<byte>> _keys;
+
+        public FixedArray<byte> Keys => _keys.Value;
         public readonly unsafe Vector<byte>* Vectors;
 
         public SngMask(Stream stream)
         {
-            Keys = FixedArray<byte>.Alloc(NUM_KEYBYTES);
+            _keys = DisposableCounter.Wrap(FixedArray<byte>.Alloc(NUM_KEYBYTES));
 
             unsafe
             {
-                Vectors = (Vector<byte>*) Keys.Ptr;
+                Vectors = (Vector<byte>*)_keys.Value.Ptr;
             }
 
             using var mask = FixedArray<byte>.Load(stream, MASKLENGTH);
             for (int i = 0; i < NUM_KEYBYTES;)
                 for (int j = 0; j < MASKLENGTH; i++, j++)
-                    Keys[i] = (byte) (mask[j] ^ i);
+                    _keys.Value[i] = (byte) (mask[j] ^ i);
         }
 
         public SngMask Clone()
@@ -42,7 +44,7 @@ namespace YARG.Core.IO
 
         private SngMask(SngMask other)
         {
-            Keys = other.Keys.AddRef();
+            _keys = other._keys.AddRef();
             unsafe
             {
                 Vectors = other.Vectors;
