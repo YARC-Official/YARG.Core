@@ -6,41 +6,13 @@ using System.Runtime.InteropServices;
 
 namespace YARG.Core.IO
 {
-    public unsafe class FixedArray<T> : RefCounter<FixedArray<T>>, IEnumerable<T>
+    public abstract unsafe class FixedArray<T> : RefCounter<FixedArray<T>>, IEnumerable<T>
         where T : unmanaged
     {
         public readonly T* Ptr;
         public readonly int Length;
 
         protected bool _disposedValue;
-
-        public static FixedArray<T> Load(string path)
-        {
-            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
-            return Load(fs);
-        }
-
-        public static FixedArray<T> Load(Stream stream)
-        {
-            return Load(stream, (int)stream.Length);
-        }
-
-        public static FixedArray<T> Load(Stream stream, int length)
-        {
-            if (stream.Position + length > stream.Length)
-                throw new EndOfStreamException();
-
-            byte* buffer = (byte*)Marshal.AllocHGlobal(length);
-            stream.Read(new Span<byte>(buffer, length));
-            return new FixedArray<T>((T*)buffer, length / sizeof(T));
-        }
-
-        public static FixedArray<T> Alloc(int length)
-        {
-            int bufferLength = length * sizeof(T);
-            var ptr = (T*)Marshal.AllocHGlobal(bufferLength);
-            return new FixedArray<T>(ptr, length);
-        }
 
         protected FixedArray(T* ptr, int length)
         {
@@ -123,15 +95,6 @@ namespace YARG.Core.IO
             var array = new T[Length];
             Span.CopyTo(array);
             return array;
-        }
-
-        protected override void Dispose(bool disposing)
-        {
-            if (!_disposedValue)
-            {
-                Marshal.FreeHGlobal((IntPtr) Ptr);
-                _disposedValue = true;
-            }
         }
 
         public IEnumerator GetEnumerator() { return new Enumerator(this); }

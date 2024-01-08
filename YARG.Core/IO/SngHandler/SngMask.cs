@@ -22,14 +22,14 @@ namespace YARG.Core.IO
 
         public SngMask(Stream stream)
         {
-            Keys = FixedArray<byte>.Alloc(NUM_KEYBYTES);
+            Keys = NativeArray<byte>.Alloc(NUM_KEYBYTES);
 
             unsafe
             {
                 Vectors = (Vector<byte>*) Keys.Ptr;
             }
 
-            using var mask = FixedArray<byte>.Load(stream, MASKLENGTH);
+            using var mask = NativeArray<byte>.Load(stream, MASKLENGTH);
             for (int i = 0; i < NUM_KEYBYTES;)
                 for (int j = 0; j < MASKLENGTH; i++, j++)
                     Keys[i] = (byte) (mask[j] ^ i);
