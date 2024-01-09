@@ -29,13 +29,13 @@ namespace YARG.Core.IO
             Keys = _counter.Value;
             unsafe
             {
-                Vectors = (Vector<byte>*)Keys.Ptr;
+                byte* mask = stackalloc byte[MASKLENGTH];
+                stream.Read(new Span<byte>(mask, MASKLENGTH));
+                for (int i = 0; i < NUM_KEYBYTES;)
+                    for (int j = 0; j < MASKLENGTH; i++, j++)
+                        Keys.Ptr[i] = (byte) (mask[j] ^ i);
+                Vectors = (Vector<byte>*) Keys.Ptr;
             }
-
-            using var mask = FixedArray<byte>.Load(stream, MASKLENGTH);
-            for (int i = 0; i < NUM_KEYBYTES;)
-                for (int j = 0; j < MASKLENGTH; i++, j++)
-                    Keys[i] = (byte) (mask[j] ^ i);
         }
 
         public SngMask Clone()
