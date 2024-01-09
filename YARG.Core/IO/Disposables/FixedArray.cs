@@ -73,9 +73,13 @@ namespace YARG.Core.IO
             if (stream.Position + length > stream.Length)
                 throw new EndOfStreamException();
 
-            byte* buffer = (byte*)Marshal.AllocHGlobal(length);
+            byte* buffer = (byte*) Marshal.AllocHGlobal(length);
+            var array = new FixedArray<T>((T*)buffer, length / sizeof(T));
+
+            // Use counter on the chance an exception occurs during read
+            using var counter = DisposableCounter.Wrap(array);
             stream.Read(new Span<byte>(buffer, length));
-            return new FixedArray<T>((T*)buffer, length / sizeof(T));
+            return counter.Release();
         }
 
         /// <summary>
