@@ -75,6 +75,8 @@ namespace YARG.Core.Song.Cache
         private readonly SortedDictionary<string, ScanResult> badSongs = new();
 
         private readonly bool allowDuplicates = true;
+        private readonly List<SongMetadata> duplicatesRejected = new();
+        private readonly List<SongMetadata> duplicatesToRemove = new();
 
         private CacheHandler(List<string> baseDirectories, bool allowDuplicates)
         {
@@ -385,10 +387,23 @@ namespace YARG.Core.Song.Cache
             var hash = entry.Hash;
             lock (entryLock)
             {
-                if (cache.Entries.TryGetValue(hash, out var list))
-                    list.Add(entry);
-                else
-                    cache.Entries.Add(hash, new() { entry });
+                if (!cache.Entries.TryGetValue(hash, out var list))
+                {
+                    cache.Entries.Add(hash, list = new List<SongMetadata>());
+                }
+                else if (!allowDuplicates)
+                {
+                    if (list[0].CompareTo(entry) < 0)
+                    {
+                        duplicatesRejected.Add(entry);
+                        return false;
+                    }
+
+                    duplicatesToRemove.Add(list[0]);
+                    list[0] = entry;
+                    return true;
+                }
+                list.Add(entry);
                 ++_progress.Count;
             }
             return true;
