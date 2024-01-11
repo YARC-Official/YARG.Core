@@ -36,18 +36,18 @@ namespace YARG.Core.Song.Cache
             return true;
         }
 
-        public bool RemoveEntry(string name, int index)
+        public void RemoveEntry(string name, int index)
         {
             lock (entryLock)
             {
-                if (!entries.TryGetValue(name, out var dict) || !dict.Remove(index))
-                    return false;
-
-                --_entryCount;
+                var dict = entries[name];
+                dict.Remove(index);
                 if (dict.Count == 0)
+                {
                     entries.Remove(name);
+                }
+                --_entryCount;
             }
-            return true;
         }
 
         public bool TryGetEntry(string name, int index, out SongMetadata? entry)
