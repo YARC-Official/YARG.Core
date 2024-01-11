@@ -446,7 +446,7 @@ namespace YARG.Core.Song.Cache
                 }
                 else if (!allowDuplicates)
                 {
-                    if (list[0].CompareTo(entry) < 0)
+                    if (list[0].IsPreferedOver(entry))
                     {
                         duplicatesRejected.Add(entry);
                         return false;
