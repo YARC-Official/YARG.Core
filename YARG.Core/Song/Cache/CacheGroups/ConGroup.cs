@@ -36,18 +36,18 @@ namespace YARG.Core.Song.Cache
             return true;
         }
 
-        public bool RemoveEntry(string name, int index)
+        public void RemoveEntry(string name, int index)
         {
             lock (entryLock)
             {
-                if (!entries.TryGetValue(name, out var dict) || !dict.Remove(index))
-                    return false;
-
-                --_entryCount;
+                var dict = entries[name];
+                dict.Remove(index);
                 if (dict.Count == 0)
+                {
                     entries.Remove(name);
+                }
+                --_entryCount;
             }
-            return true;
         }
 
         public bool TryGetEntry(string name, int index, out SongMetadata? entry)
@@ -55,6 +55,30 @@ namespace YARG.Core.Song.Cache
             entry = null;
             lock (entryLock)
                 return entries.TryGetValue(name, out var dict) && dict.TryGetValue(index, out entry);
+        }
+
+        public bool TryRemoveEntry(SongMetadata entryToRemove)
+        {
+            // No locking as the post-scan removal sequence
+            // cannot be parallelized
+            foreach (var dict in entries)
+            {
+                foreach (var entry in dict.Value)
+                {
+                    // Intentional compare by reference
+                    if (entry.Value == entryToRemove)
+                    {
+                        dict.Value.Remove(entry.Key);
+                        if (dict.Value.Count == 0)
+                        {
+                            entries.Remove(dict.Key);
+                        }
+                        --_entryCount;
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
 
         protected void Serialize(BinaryWriter writer, ref Dictionary<SongMetadata, CategoryCacheWriteNode> nodes)

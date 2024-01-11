@@ -9,6 +9,8 @@ namespace YARG.Core.Song.Cache
         public readonly Dictionary<HashWrapper, List<SongMetadata>> entries = new();
         private int _count;
 
+        public int Count => _count;
+
         public void AddEntry(SongMetadata entry)
         {
             var hash = entry.Hash;
@@ -20,6 +22,25 @@ namespace YARG.Core.Song.Cache
                     entries.Add(hash, new() { entry });
                 ++_count;
             }
+        }
+
+        public bool TryRemoveEntry(SongMetadata entry)
+        {
+            // No locking as the post-scan removal sequence
+            // cannot be parallelized
+            if (entries.TryGetValue(entry.Hash, out var list))
+            {
+                if (list.Remove(entry))
+                {
+                    if (list.Count == 0)
+                    {
+                        entries.Remove(entry.Hash);
+                    }
+                    --_count;
+                    return true;
+                }
+            }
+            return false;
         }
 
         public byte[] SerializeEntries(string directory, Dictionary<SongMetadata, CategoryCacheWriteNode> nodes)

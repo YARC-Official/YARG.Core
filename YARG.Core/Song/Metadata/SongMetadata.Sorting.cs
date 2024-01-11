@@ -33,6 +33,38 @@ namespace YARG.Core.Song
             }
             return strCmp;
         }
+
+        private enum EntryType
+        {
+            Ini,
+            Sng,
+            ExCON,
+            CON,
+        }
+
+        public bool IsPreferedOver(SongMetadata other)
+        {
+            static EntryType ParseType(SongMetadata entry)
+            {
+                if (entry._iniData != null)
+                {
+                    return entry._iniData is SngSubmetadata ? EntryType.Sng : EntryType.Ini;
+                }
+
+                return entry._rbData is RBPackedCONMetadata ? EntryType.CON : EntryType.ExCON;
+            }
+
+            var thisType = ParseType(this);
+            var otherType = ParseType(other);
+            if (thisType != otherType)
+            {
+                // CON > ExCON > Sng > Ini
+                return thisType > otherType;
+            }
+            // Otherwise, whatever would appear first
+            return CompareTo(other) < 0;
+        }
+
     }
 
     public sealed class EntryComparer : IComparer<SongMetadata>

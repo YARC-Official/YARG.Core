@@ -27,9 +27,9 @@ namespace YARG.Core.Song.Cache
     {
         public static ScanProgressTracker Progress => _progress;
         private static ScanProgressTracker _progress;
-        public static SongCache RunScan(bool fast, string cacheLocation, string badSongsLocation, bool multithreading, List<string> baseDirectories)
+        public static SongCache RunScan(bool fast, string cacheLocation, string badSongsLocation, bool multithreading, bool allowDuplicates, List<string> baseDirectories)
         {
-            CacheHandler handler = new(baseDirectories);
+            var handler = new CacheHandler(baseDirectories, allowDuplicates);
             try
             {
                 if (!fast || !handler.QuickScan(cacheLocation, multithreading))
@@ -74,12 +74,17 @@ namespace YARG.Core.Song.Cache
         private readonly HashSet<string> preScannedFiles = new();
         private readonly SortedDictionary<string, ScanResult> badSongs = new();
 
-        private CacheHandler(List<string> baseDirectories)
+        private readonly bool allowDuplicates = true;
+        private readonly List<SongMetadata> duplicatesRejected = new();
+        private readonly List<SongMetadata> duplicatesToRemove = new();
+
+        private CacheHandler(List<string> baseDirectories, bool allowDuplicates)
         {
             _progress = default;
             iniGroups = new(baseDirectories.Count);
             foreach (string dir in baseDirectories)
                 iniGroups.TryAdd(dir, new IniGroup());
+            this.allowDuplicates = allowDuplicates;
         }
 
         private IniGroup? GetBaseIniGroup(string path)
@@ -117,6 +122,7 @@ namespace YARG.Core.Song.Cache
                 return false;
             }
 
+            CleanupDuplicates();
             SortCategories(multithreading);
             return true;
         }
@@ -136,6 +142,7 @@ namespace YARG.Core.Song.Cache
             }
 
             FindNewEntries(multithreading);
+            CleanupDuplicates();
             SortCategories(multithreading);
 
             try
@@ -154,6 +161,57 @@ namespace YARG.Core.Song.Cache
             catch (Exception ex)
             {
                 YargTrace.LogException(ex, "Error when writing bad songs file!");
+            }
+        }
+
+        private void CleanupDuplicates()
+        {
+            static bool TryRemoveFromCONs<TGroup>(Dictionary<string, TGroup> groups, SongMetadata entry)
+                where TGroup : CONGroup
+            {
+                foreach (var group in groups)
+                {
+                    if (group.Value.TryRemoveEntry(entry))
+                    {
+                        if (group.Value.EntryCount == 0)
+                        {
+                            groups.Remove(group.Key);
+                        }
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            bool TryRemoveFromInis(SongMetadata entry)
+            {
+                foreach (var group in iniGroups)
+                {
+                    if (group.Value.TryRemoveEntry(entry))
+                    {
+                        if (group.Value.Count == 0)
+                        {
+                            iniGroups.Remove(group.Key);
+                        }
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            foreach (var entry in duplicatesToRemove)
+            {
+                if (TryRemoveFromInis(entry))
+                {
+                    continue;
+                }
+
+                if (TryRemoveFromCONs(conGroups.Values, entry))
+                {
+                    continue;
+                }
+
+                TryRemoveFromCONs(extractedConGroups.Values, entry);
             }
         }
 
@@ -382,10 +440,23 @@ namespace YARG.Core.Song.Cache
             var hash = entry.Hash;
             lock (entryLock)
             {
-                if (cache.Entries.TryGetValue(hash, out var list))
-                    list.Add(entry);
-                else
-                    cache.Entries.Add(hash, new() { entry });
+                if (!cache.Entries.TryGetValue(hash, out var list))
+                {
+                    cache.Entries.Add(hash, list = new List<SongMetadata>());
+                }
+                else if (!allowDuplicates)
+                {
+                    if (list[0].IsPreferedOver(entry))
+                    {
+                        duplicatesRejected.Add(entry);
+                        return false;
+                    }
+
+                    duplicatesToRemove.Add(list[0]);
+                    list[0] = entry;
+                    return true;
+                }
+                list.Add(entry);
                 ++_progress.Count;
             }
             return true;
