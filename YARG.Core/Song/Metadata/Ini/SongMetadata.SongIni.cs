@@ -187,7 +187,7 @@ namespace YARG.Core.Song
 
             byte[] file = File.ReadAllBytes(chart.File);
             var result = ScanIniChartFile(file, chart.Type, iniModifiers);
-            return (result.Item1, result.Item2 != null ? new(metadata, result.Item2, HashWrapper.Create(file), iniModifiers) : null);
+            return (result.Item1, result.Item2 != null ? new(metadata, result.Item2, HashWrapper.Hash(file), iniModifiers) : null);
         }
 
         public static SongMetadata? IniFromCache(string baseDirectory, YARGBinaryReader reader, CategoryCacheStrings strings)

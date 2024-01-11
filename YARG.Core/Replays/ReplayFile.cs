@@ -1,3 +1,4 @@
+﻿using System;
 using System.IO;
 using YARG.Core.Song;
 using YARG.Core.Utility;
@@ -51,11 +52,11 @@ namespace YARG.Core.Replays
             using var dataWriter = new NullStringBinaryWriter(dataStream);
 
             Replay.Serialize(dataWriter);
-            Header.ReplayChecksum = HashWrapper.Create(dataStream);
+            var data = new ReadOnlySpan<byte>(dataStream.GetBuffer(), 0, (int) dataStream.Length);
+            Header.ReplayChecksum = HashWrapper.Hash(data);
 
             Header.Serialize(writer);
-            dataStream.Position = 0;
-            dataStream.CopyTo(writer.BaseStream);
+            writer.Write(data);
         }
 
         public void Deserialize(BinaryReader reader, int version = 0)
