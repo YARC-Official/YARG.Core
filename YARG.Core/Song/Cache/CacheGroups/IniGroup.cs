@@ -22,6 +22,25 @@ namespace YARG.Core.Song.Cache
             }
         }
 
+        public bool TryRemoveEntry(SongMetadata entry)
+        {
+            // No locking as the post-scan removal sequence
+            // cannot be parallelized
+            if (entries.TryGetValue(entry.Hash, out var list))
+            {
+                if (list.Remove(entry))
+                {
+                    if (list.Count == 0)
+                    {
+                        entries.Remove(entry.Hash);
+                    }
+                    --_count;
+                    return true;
+                }
+            }
+            return false;
+        }
+
         public byte[] SerializeEntries(string directory, Dictionary<SongMetadata, CategoryCacheWriteNode> nodes)
         {
             using MemoryStream ms = new();

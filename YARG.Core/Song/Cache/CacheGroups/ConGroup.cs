@@ -57,6 +57,30 @@ namespace YARG.Core.Song.Cache
                 return entries.TryGetValue(name, out var dict) && dict.TryGetValue(index, out entry);
         }
 
+        public bool TryRemoveEntry(SongMetadata entryToRemove)
+        {
+            // No locking as the post-scan removal sequence
+            // cannot be parallelized
+            foreach (var dict in entries)
+            {
+                foreach (var entry in dict.Value)
+                {
+                    // Intentional compare by reference
+                    if (entry.Value == entryToRemove)
+                    {
+                        dict.Value.Remove(entry.Key);
+                        if (dict.Value.Count == 0)
+                        {
+                            entries.Remove(dict.Key);
+                        }
+                        --_entryCount;
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
         protected void Serialize(BinaryWriter writer, ref Dictionary<SongMetadata, CategoryCacheWriteNode> nodes)
         {
             writer.Write(_entryCount);
