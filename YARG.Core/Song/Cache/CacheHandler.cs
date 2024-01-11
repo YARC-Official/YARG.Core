@@ -27,9 +27,9 @@ namespace YARG.Core.Song.Cache
     {
         public static ScanProgressTracker Progress => _progress;
         private static ScanProgressTracker _progress;
-        public static SongCache RunScan(bool fast, string cacheLocation, string badSongsLocation, bool multithreading, List<string> baseDirectories)
+        public static SongCache RunScan(bool fast, string cacheLocation, string badSongsLocation, bool multithreading, bool allowDuplicates, List<string> baseDirectories)
         {
-            CacheHandler handler = new(baseDirectories);
+            var handler = new CacheHandler(baseDirectories, allowDuplicates);
             try
             {
                 if (!fast || !handler.QuickScan(cacheLocation, multithreading))
@@ -74,12 +74,15 @@ namespace YARG.Core.Song.Cache
         private readonly HashSet<string> preScannedFiles = new();
         private readonly SortedDictionary<string, ScanResult> badSongs = new();
 
-        private CacheHandler(List<string> baseDirectories)
+        private readonly bool allowDuplicates = true;
+
+        private CacheHandler(List<string> baseDirectories, bool allowDuplicates)
         {
             _progress = default;
             iniGroups = new(baseDirectories.Count);
             foreach (string dir in baseDirectories)
                 iniGroups.TryAdd(dir, new IniGroup());
+            this.allowDuplicates = allowDuplicates;
         }
 
         private IniGroup? GetBaseIniGroup(string path)

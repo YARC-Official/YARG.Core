@@ -7,6 +7,7 @@ namespace YARG.Core.UnitTests.Scanning
     {
         private List<string> songDirectories;
         private readonly bool MULTITHREADING = true;
+        private readonly bool ALLOW_DUPLICATES = true;
         private static readonly string SongCachePath = Path.Combine(Environment.CurrentDirectory, "songcache.bin");
         private static readonly string BadSongsPath = Path.Combine(Environment.CurrentDirectory, "badsongs.txt");
 
@@ -24,7 +25,7 @@ namespace YARG.Core.UnitTests.Scanning
         public void FullScan()
         {
             YargTrace.AddListener(new YargDebugTraceListener());
-            var cache = CacheHandler.RunScan(false, SongCachePath, BadSongsPath, MULTITHREADING, songDirectories);
+            var cache = CacheHandler.RunScan(false, SongCachePath, BadSongsPath, MULTITHREADING, ALLOW_DUPLICATES, songDirectories);
             // TODO: Any cache properties we want to check here?
             // Currently the only fail condition would be an unhandled exception
         }
@@ -33,7 +34,7 @@ namespace YARG.Core.UnitTests.Scanning
         public void QuickScan()
         {
             YargTrace.AddListener(new YargDebugTraceListener());
-            var cache = CacheHandler.RunScan(true, SongCachePath, BadSongsPath, MULTITHREADING, songDirectories);
+            var cache = CacheHandler.RunScan(true, SongCachePath, BadSongsPath, MULTITHREADING, ALLOW_DUPLICATES, songDirectories);
             // TODO: see above
         }
     }
