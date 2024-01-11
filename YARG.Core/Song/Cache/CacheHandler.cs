@@ -122,6 +122,7 @@ namespace YARG.Core.Song.Cache
                 return false;
             }
 
+            CleanupDuplicates();
             SortCategories(multithreading);
             return true;
         }
@@ -141,6 +142,7 @@ namespace YARG.Core.Song.Cache
             }
 
             FindNewEntries(multithreading);
+            CleanupDuplicates();
             SortCategories(multithreading);
 
             try
@@ -159,6 +161,57 @@ namespace YARG.Core.Song.Cache
             catch (Exception ex)
             {
                 YargTrace.LogException(ex, "Error when writing bad songs file!");
+            }
+        }
+
+        private void CleanupDuplicates()
+        {
+            static bool TryRemoveFromCONs<TGroup>(Dictionary<string, TGroup> groups, SongMetadata entry)
+                where TGroup : CONGroup
+            {
+                foreach (var group in groups)
+                {
+                    if (group.Value.TryRemoveEntry(entry))
+                    {
+                        if (group.Value.EntryCount == 0)
+                        {
+                            groups.Remove(group.Key);
+                        }
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            bool TryRemoveFromInis(SongMetadata entry)
+            {
+                foreach (var group in iniGroups)
+                {
+                    if (group.Value.TryRemoveEntry(entry))
+                    {
+                        if (group.Value.Count == 0)
+                        {
+                            iniGroups.Remove(group.Key);
+                        }
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            foreach (var entry in duplicatesToRemove)
+            {
+                if (TryRemoveFromInis(entry))
+                {
+                    continue;
+                }
+
+                if (TryRemoveFromCONs(conGroups.Values, entry))
+                {
+                    continue;
+                }
+
+                TryRemoveFromCONs(extractedConGroups.Values, entry);
             }
         }
 

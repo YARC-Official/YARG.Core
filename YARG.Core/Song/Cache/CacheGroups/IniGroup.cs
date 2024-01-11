@@ -9,6 +9,8 @@ namespace YARG.Core.Song.Cache
         public readonly Dictionary<HashWrapper, List<SongMetadata>> entries = new();
         private int _count;
 
+        public int Count => _count;
+
         public void AddEntry(SongMetadata entry)
         {
             var hash = entry.Hash;
