@@ -111,8 +111,8 @@ namespace YARG.Core.IO
 
         private readonly FileStream _filestream;
         private readonly int fileSize;
-        private readonly DisposableArray<byte> dataBuffer;
-        private readonly DisposableArray<long> blockLocations;
+        private readonly FixedArray<byte> dataBuffer;
+        private readonly FixedArray<long> blockLocations;
         private readonly int initialOffset;
 
         private int bufferPosition;
@@ -166,14 +166,14 @@ namespace YARG.Core.IO
             int block = firstBlock;
             if (isContinguous)
             {
-                dataBuffer = new DisposableArray<byte>(BYTES_PER_SECTION);
+                dataBuffer = FixedArray<byte>.Alloc(BYTES_PER_SECTION);
 
                 int blockOffset = firstBlock % BLOCKS_PER_SECTION;
                 initialOffset = blockOffset * BYTES_PER_BLOCK;
 
                 int totalSpace = fileSize + initialOffset;
                 int numBlocks = totalSpace % BYTES_PER_SECTION == 0 ? totalSpace / BYTES_PER_SECTION : totalSpace / BYTES_PER_SECTION + 1;
-                blockLocations = new DisposableArray<long>(numBlocks);
+                blockLocations = FixedArray<long>.Alloc(numBlocks);
 
                 int blockMovement = BLOCKS_PER_SECTION - blockOffset;
                 int byteMovement = blockMovement * BYTES_PER_BLOCK;
@@ -206,10 +206,10 @@ namespace YARG.Core.IO
             }
             else
             {
-                dataBuffer = new DisposableArray<byte>(BYTES_PER_BLOCK);
+                dataBuffer = FixedArray<byte>.Alloc(BYTES_PER_BLOCK);
 
                 int numBlocks = fileSize % BYTES_PER_BLOCK == 0 ? fileSize / BYTES_PER_BLOCK : fileSize / BYTES_PER_BLOCK + 1;
-                blockLocations = new DisposableArray<long>(numBlocks);
+                blockLocations = FixedArray<long>.Alloc(numBlocks);
 
                 Span<byte> buffer = stackalloc byte[3];
                 initialOffset = 0;
