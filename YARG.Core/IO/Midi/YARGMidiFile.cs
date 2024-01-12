@@ -37,10 +37,6 @@ namespace YARG.Core.IO
             stream.Position = next;
         }
 
-        public YARGMidiFile(byte[] data) : this(new MemoryStream(data, 0, data.Length, false, true)) { }
-
-        public YARGMidiFile(string path) : this(new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read)) { }
-
         public YARGMidiTrack? LoadNextTrack()
         {
             if (_trackNumber == _numTracks || _stream.Position == _stream.Length)
@@ -50,7 +46,15 @@ namespace YARG.Core.IO
             if (FourCC.Read(_stream) != TRACK_TAG)
                 throw new Exception($"Midi Track Tag 'MTrk' not found for Track '{_trackNumber}'");
 
-            return new YARGMidiTrack(_stream);
+            try
+            {
+                return new YARGMidiTrack(_stream);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                YargTrace.LogException(ex, "Coding note: Ensure that buffer access is enabled when you construct the memorystream");
+                return null;
+            }
         }
 
         public IEnumerator<YARGMidiTrack> GetEnumerator()

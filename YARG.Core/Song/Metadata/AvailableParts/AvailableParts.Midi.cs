@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.IO;
+using System.Text;
 using YARG.Core.Chart;
 using YARG.Core.IO;
 using YARG.Core.Song.Preparsers;
@@ -12,7 +13,8 @@ namespace YARG.Core.Song
         /// </summary>
         public bool ParseMidi(byte[] file, DrumPreparseHandler drums)
         {
-            YARGMidiFile midiFile = new(file);
+            using var stream = new MemoryStream(file, 0, file.Length, false, true);
+            var midiFile = new YARGMidiFile(stream);
             foreach (var track in midiFile)
             {
                 if (midiFile.TrackNumber == 1)
