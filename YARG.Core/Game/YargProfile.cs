@@ -139,7 +139,7 @@ namespace YARG.Core.Game
 
                     if (IsModifierActive(Modifier.NoKicks))
                     {
-                        // TODO
+                        drumsTrack.RemoveKickDrumNotes();
                     }
 
                     break;

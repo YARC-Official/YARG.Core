@@ -191,12 +191,25 @@ namespace YARG.Core.Chart
         /// </remarks>
         public TNote Clone()
         {
-            var newNote = CloneNote();
+            var newNote = CloneWithoutChildNotes();
             foreach (var child in _childNotes)
             {
                 newNote.AddChildNote(child.CloneNote());
             }
 
+            return newNote;
+        }
+
+        /// <summary>
+        /// Creates a copy of this note with the same set of values, but without the child notes
+        /// </summary>
+        /// <remarks>
+        /// NOTE: Next/previous references and changes in state are not preserved,
+        /// notes are re-created from scratch.
+        /// </remarks>
+        public TNote CloneWithoutChildNotes()
+        {
+            var newNote = CloneNote();
             return newNote;
         }
     }
