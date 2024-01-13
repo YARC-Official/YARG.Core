@@ -225,22 +225,6 @@ namespace YARG.Core.Engine.Guitar
             UpdateStars();
         }
 
-        protected override void UpdateMultiplier()
-        {
-            EngineStats.ScoreMultiplier = EngineStats.Combo switch
-            {
-                >= 30 => 4,
-                >= 20 => 3,
-                >= 10 => 2,
-                _     => 1
-            };
-
-            if (EngineStats.IsStarPowerActive)
-            {
-                EngineStats.ScoreMultiplier *= 2;
-            }
-        }
-
         protected override void RebaseStarPower(uint baseTick)
         {
             base.RebaseStarPower(baseTick);

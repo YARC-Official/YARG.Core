@@ -188,22 +188,6 @@ namespace YARG.Core.Engine.Drums
             UpdateStars();
         }
 
-        protected override void UpdateMultiplier()
-        {
-            EngineStats.ScoreMultiplier = EngineStats.Combo switch
-            {
-                >= 30 => 4,
-                >= 20 => 3,
-                >= 10 => 2,
-                _     => 1
-            };
-
-            if (EngineStats.IsStarPowerActive)
-            {
-                EngineStats.ScoreMultiplier *= 2;
-            }
-        }
-
         protected sealed override int CalculateBaseScore()
         {
             int score = 0;

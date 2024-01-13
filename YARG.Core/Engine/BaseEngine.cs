@@ -420,7 +420,15 @@ namespace YARG.Core.Engine
 
         protected abstract void AddScore(TNoteType note);
 
-        protected abstract void UpdateMultiplier();
+        protected virtual void UpdateMultiplier()
+        {
+            EngineStats.ScoreMultiplier = Math.Min(EngineStats.Combo / 10 + 1, 4);
+
+            if (EngineStats.IsStarPowerActive)
+            {
+                EngineStats.ScoreMultiplier *= 2;
+            }
+        }
 
         protected void UpdateStars()
         {

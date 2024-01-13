@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using YARG.Core.Chart;
 
 namespace YARG.Core.Engine.Vocals
@@ -150,11 +151,7 @@ namespace YARG.Core.Engine.Vocals
 
         protected override void UpdateMultiplier()
         {
-            EngineStats.ScoreMultiplier = EngineStats.Combo switch
-            {
-                >= 4 => 4,
-                _    => EngineStats.Combo + 1
-            };
+            EngineStats.ScoreMultiplier = Math.Min(EngineStats.Combo + 1, 4);
 
             if (EngineStats.IsStarPowerActive)
             {

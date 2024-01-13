@@ -6,7 +6,10 @@ namespace YARG.Core.Game
 {
     public partial class EnginePreset
     {
-        private const double DEFAULT_WHAMMY_BUFFER = 0.25;
+        public const double DEFAULT_WHAMMY_BUFFER = 0.25;
+
+        public const int DEFAULT_MAX_MULTIPLIER = 4;
+        public const int BASS_MAX_MULTIPLIER    = 6;
 
         /// <summary>
         /// A preset for a hit window. This should
@@ -61,11 +64,12 @@ namespace YARG.Core.Game
                 };
             }
 
-            public GuitarEngineParameters Create(float[] starMultiplierThresholds)
+            public GuitarEngineParameters Create(float[] starMultiplierThresholds, bool isBass)
             {
                 var hitWindow = HitWindow.Create();
                 return new GuitarEngineParameters(
                     hitWindow,
+                    isBass ? BASS_MAX_MULTIPLIER : DEFAULT_MAX_MULTIPLIER,
                     starMultiplierThresholds,
                     HopoLeniency,
                     StrumLeniency,
@@ -103,6 +107,7 @@ namespace YARG.Core.Game
                 var hitWindow = HitWindow.Create();
                 return new DrumsEngineParameters(
                     hitWindow,
+                    DEFAULT_MAX_MULTIPLIER,
                     starMultiplierThresholds,
                     mode);
             }

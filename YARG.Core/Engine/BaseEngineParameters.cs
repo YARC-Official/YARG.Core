@@ -8,6 +8,8 @@ namespace YARG.Core.Engine
     {
         public HitWindowSettings HitWindow { get; private set; }
 
+        public int MaxMultiplier { get; private set; }
+
         public float[] StarMultiplierThresholds { get; private set; }
 
         protected BaseEngineParameters()
@@ -15,9 +17,10 @@ namespace YARG.Core.Engine
             StarMultiplierThresholds = Array.Empty<float>();
         }
 
-        protected BaseEngineParameters(HitWindowSettings hitWindow, float[] starMultiplierThresholds)
+        protected BaseEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, float[] starMultiplierThresholds)
         {
             HitWindow = hitWindow;
+            MaxMultiplier = maxMultiplier;
             StarMultiplierThresholds = starMultiplierThresholds;
         }
 
@@ -34,6 +37,8 @@ namespace YARG.Core.Engine
         {
             HitWindow.Serialize(writer);
 
+            writer.Write(MaxMultiplier);
+
             // Write star multiplier thresholds
             writer.Write(StarMultiplierThresholds.Length);
             foreach (var f in StarMultiplierThresholds)
@@ -49,6 +54,8 @@ namespace YARG.Core.Engine
             var hitWindow = new HitWindowSettings();
             hitWindow.Deserialize(reader, version);
             HitWindow = hitWindow;
+
+            MaxMultiplier = reader.ReadInt32();
 
             // Read star multiplier thresholds
             StarMultiplierThresholds = new float[reader.ReadInt32()];
