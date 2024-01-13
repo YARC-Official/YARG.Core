@@ -102,7 +102,7 @@ namespace YARG.Core.Song
 
             public void Serialize(BinaryWriter writer, string groupDirectory);
             public Stream? GetChartStream();
-            public Dictionary<SongStem, Stream> GetAudioStreams();
+            public Dictionary<SongStem, Stream> GetAudioStreams(params SongStem[] ignoreStems);
             public byte[]? GetUnprocessedAlbumArt();
             public (BackgroundType Type, Stream? Stream) GetBackgroundStream(BackgroundType selection);
             public Stream? GetPreviewAudioStream();
