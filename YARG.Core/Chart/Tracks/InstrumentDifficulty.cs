@@ -81,7 +81,7 @@ namespace YARG.Core.Chart
 
             return totalLastTick;
         }
-        
+
         public bool IsOccupied()
         {
             return Notes.Count > 0 || Phrases.Count > 0 || TextEvents.Count > 0;
@@ -90,6 +90,17 @@ namespace YARG.Core.Chart
         public InstrumentDifficulty<TNote> Clone()
         {
             return new(this);
+        }
+
+        public int GetTotalNoteCount()
+        {
+            var noteCount = 0;
+            foreach (var note in Notes)
+            {
+                noteCount += note.ChildNotes.Count + 1;
+            }
+
+            return noteCount;
         }
     }
 }
