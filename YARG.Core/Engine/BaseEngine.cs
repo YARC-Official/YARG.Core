@@ -15,6 +15,8 @@ namespace YARG.Core.Engine
         public EngineEventLogger EventLogger { get; }
 
         public abstract BaseEngineState BaseState { get; }
+        public abstract BaseEngineParameters BaseParameters { get; }
+        public abstract BaseStats BaseStats { get; }
 
         protected bool IsInputUpdate { get; private set; }
         protected bool IsBotUpdate   { get; private set; }
@@ -236,6 +238,8 @@ namespace YARG.Core.Engine
         public TEngineState State;
 
         public override BaseEngineState BaseState => State;
+        public override BaseEngineParameters BaseParameters => EngineParameters;
+        public override BaseStats BaseStats => EngineStats;
 
         protected BaseEngine(InstrumentDifficulty<TNoteType> chart, SyncTrack syncTrack,
             TEngineParams engineParameters) : base(syncTrack)

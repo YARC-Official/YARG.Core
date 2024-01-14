@@ -135,7 +135,7 @@ public class Analyzer
         }
 
         // Done!
-        int score = GetScore(engine, replayFrame);
+        int score = engine.BaseStats.Score;
         Console.WriteLine($"> Done running for {replayFrame.PlayerInfo.Profile.Name}, final score: {score}");
         _currentBandScore += score;
 
@@ -202,19 +202,5 @@ public class Analyzer
             default:
                 throw new InvalidOperationException("Game mode not configured!");
         }
-    }
-
-    private int GetScore(BaseEngine engine, ReplayFrame replayFrame)
-    {
-        var gameMode = replayFrame.PlayerInfo.Profile.GameMode;
-
-        return gameMode switch
-        {
-            GameMode.FiveFretGuitar => ((GuitarEngine) engine).EngineStats.Score,
-            GameMode.FourLaneDrums or
-            GameMode.FiveLaneDrums  => ((DrumsEngine) engine).EngineStats.Score,
-            GameMode.Vocals         => ((VocalsEngine) engine).EngineStats.Score,
-            _                       => throw new InvalidOperationException("Game mode not configured!")
-        };
     }
 }
