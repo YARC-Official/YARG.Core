@@ -77,7 +77,8 @@ namespace YARG.Core.Engine.Guitar
                 ActiveSustains.RemoveAt(i);
                 i--;
 
-                EngineStats.CommittedScore += (int) CalculateSustainPoints(sustain, sustainBurst: true);
+                double finalScore = CalculateSustainPoints(sustain, sustainBurst: true);
+                EngineStats.CommittedScore += (int) Math.Ceiling(finalScore);
                 OnSustainEnd?.Invoke(sustain.Note, State.CurrentTime);
             }
 
@@ -326,7 +327,8 @@ namespace YARG.Core.Engine.Guitar
 
                 if (!CanNoteBeHit(note) || sustainEnded)
                 {
-                    EngineStats.CommittedScore += (int) CalculateSustainPoints(sustain, sustainBurst: true);
+                    double finalScore = CalculateSustainPoints(sustain, sustainBurst: true);
+                    EngineStats.CommittedScore += (int) Math.Ceiling(finalScore);
                     ActiveSustains.RemoveAt(i);
                     i--;
                     OnSustainEnd?.Invoke(note, State.CurrentTime);
