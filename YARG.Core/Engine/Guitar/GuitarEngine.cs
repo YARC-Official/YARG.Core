@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using YARG.Core.Chart;
 using YARG.Core.Engine.Logging;
@@ -9,6 +9,12 @@ namespace YARG.Core.Engine.Guitar
     public abstract class GuitarEngine : BaseEngine<GuitarNote, GuitarEngineParameters,
         GuitarStats, GuitarEngineState>
     {
+        protected struct ActiveSustain
+        {
+            public GuitarNote Note;
+            public uint BaseTick;
+        }
+
         public delegate void OverstrumEvent();
 
         public delegate void SustainStartEvent(GuitarNote note);
@@ -19,7 +25,7 @@ namespace YARG.Core.Engine.Guitar
         public SustainStartEvent? OnSustainStart;
         public SustainEndEvent?   OnSustainEnd;
 
-        protected List<GuitarNote> ActiveSustains = new();
+        protected List<ActiveSustain> ActiveSustains = new();
 
         public override bool TreatChordAsSeparate => false;
 
@@ -62,10 +68,10 @@ namespace YARG.Core.Engine.Guitar
             // Break all active sustains
             for (int i = 0; i < ActiveSustains.Count; i++)
             {
-                var note = ActiveSustains[i];
-                ActiveSustains.Remove(note);
+                var sustain = ActiveSustains[i];
+                ActiveSustains.RemoveAt(i);
                 i--;
-                OnSustainEnd?.Invoke(note, State.CurrentTime);
+                OnSustainEnd?.Invoke(sustain.Note, State.CurrentTime);
             }
 
             if (State.NoteIndex < Notes.Count)
@@ -153,13 +159,25 @@ namespace YARG.Core.Engine.Guitar
                         continue;
                     }
 
-                    ActiveSustains.Add(chordNote);
+                    var sustain = new ActiveSustain()
+                    {
+                        Note = chordNote,
+                        BaseTick = chordNote.Tick,
+                    };
+
+                    ActiveSustains.Add(sustain);
                     OnSustainStart?.Invoke(chordNote);
                 }
             }
             else if (note.IsSustain)
             {
-                ActiveSustains.Add(note);
+                var sustain = new ActiveSustain()
+                {
+                    Note = note,
+                    BaseTick = note.Tick,
+                };
+
+                ActiveSustains.Add(sustain);
                 OnSustainStart?.Invoke(note);
             }
 
