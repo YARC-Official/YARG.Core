@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using YARG.Core.Chart;
 using YARG.Core.Engine.Logging;
@@ -283,7 +283,13 @@ namespace YARG.Core.Engine.Guitar
             if (State.CurrentTick < sustain.Note.Tick)
                 return 0;
 
-            uint scoreTick = Math.Min(State.CurrentTick, sustain.Note.TickEnd);
+            // If we're close enough to the end of the sustain, calculate points for its entirety
+            // Provides leniency for sustains with no gap (and just in general)
+            uint currentTick = State.CurrentTick;
+            if (sustain.Note.TimeEnd - State.CurrentTime < EngineParameters.SustainBurstWindow)
+                currentTick = sustain.Note.TickEnd;
+
+            uint scoreTick = Math.Min(currentTick, sustain.Note.TickEnd);
             double deltaScore = CalculateBeatProgress(scoreTick, sustain.BaseTick, POINTS_PER_BEAT);
             return sustain.BaseScore + (deltaScore * EngineStats.ScoreMultiplier);
         }
