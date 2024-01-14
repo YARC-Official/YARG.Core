@@ -323,7 +323,7 @@ namespace YARG.Core.Engine.Guitar
                 var note = sustain.Note;
 
                 isStarPowerSustainActive |= note.IsStarPower;
-                bool sustainEnded = State.CurrentTick > note.TickEnd;
+                bool sustainEnded = State.CurrentTick >= note.TickEnd;
 
                 if (!CanNoteBeHit(note) || sustainEnded)
                 {
