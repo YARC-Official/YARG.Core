@@ -49,8 +49,6 @@ namespace YARG.Core.Engine.Guitar
             }
         }
 
-        protected abstract void UpdateSustains();
-
         protected virtual void Overstrum()
         {
             // Can't overstrum before first note is hit/missed
@@ -253,6 +251,28 @@ namespace YARG.Core.Engine.Guitar
         protected override double CalculateStarPowerGain(uint tick)
             => State.StarPowerWhammyTimer.IsActive(State.CurrentTime) ?
                 CalculateStarPowerBeatProgress(tick, State.StarPowerWhammyBaseTick) : 0;
+
+        protected void UpdateSustains()
+        {
+            bool isStarPowerSustainActive = false;
+            for (int i = 0; i < ActiveSustains.Count; i++)
+            {
+                var sustain = ActiveSustains[i];
+                var note = sustain.Note;
+
+                isStarPowerSustainActive |= note.IsStarPower;
+                bool sustainEnded = State.CurrentTick > note.TickEnd;
+
+                if (!CanNoteBeHit(note) || sustainEnded)
+                {
+                    ActiveSustains.RemoveAt(i);
+                    i--;
+                    OnSustainEnd?.Invoke(note, State.CurrentTime);
+                }
+            }
+
+            UpdateWhammyStarPower(isStarPowerSustainActive);
+        }
 
         protected void UpdateWhammyStarPower(bool spSustainsActive)
         {

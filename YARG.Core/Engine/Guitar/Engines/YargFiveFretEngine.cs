@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using YARG.Core.Chart;
 using YARG.Core.Engine.Logging;
 using YARG.Core.Input;
@@ -407,28 +407,6 @@ namespace YARG.Core.Engine.Guitar.Engines
 
             // Anchor buttons held are lower than the note mask
             return anchorButtons < noteMask;
-        }
-
-        protected override void UpdateSustains()
-        {
-            bool isStarPowerSustainActive = false;
-            for (int i = 0; i < ActiveSustains.Count; i++)
-            {
-                var sustain = ActiveSustains[i];
-                var note = sustain.Note;
-
-                isStarPowerSustainActive |= note.IsStarPower;
-                bool sustainEnded = State.CurrentTick > note.TickEnd;
-
-                if (!CanNoteBeHit(note) || sustainEnded)
-                {
-                    ActiveSustains.RemoveAt(i);
-                    i--;
-                    OnSustainEnd?.Invoke(note, State.CurrentTime);
-                }
-            }
-
-            UpdateWhammyStarPower(isStarPowerSustainActive);
         }
 
         protected override bool HitNote(GuitarNote note)
