@@ -96,6 +96,11 @@ namespace MoonscraperChartEditor.Song
             return GetChart(instrument, difficulty).IsOccupied();
         }
 
+        public uint TimeToTick(double time)
+        {
+            return TimeToTick(time, resolution);
+        }
+
         /// <summary>
         /// Converts a time value into a tick position value. May be inaccurate due to interger rounding.
         /// </summary>

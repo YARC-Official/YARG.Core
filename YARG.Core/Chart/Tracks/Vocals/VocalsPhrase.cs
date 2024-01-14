@@ -10,7 +10,7 @@ namespace YARG.Core.Chart
     public class VocalsPhrase : ChartEvent, ICloneable<VocalsPhrase>
     {
         public VocalNote PhraseParentNote { get; }
-        public List<TextEvent> Lyrics { get; } = new();
+        public List<LyricEvent> Lyrics { get; } = new();
 
         public bool IsLyric => !PhraseParentNote.IsPercussion;
         public bool IsPercussion => PhraseParentNote.IsPercussion;
@@ -18,7 +18,7 @@ namespace YARG.Core.Chart
         public bool IsStarPower => PhraseParentNote.IsStarPower;
 
         public VocalsPhrase(double time, double timeLength, uint tick, uint tickLength,
-            VocalNote phraseParentNote, List<TextEvent> lyrics)
+            VocalNote phraseParentNote, List<LyricEvent> lyrics)
             : base(time, timeLength, tick, tickLength)
         {
             if (!phraseParentNote.IsPhrase)
@@ -32,9 +32,10 @@ namespace YARG.Core.Chart
         }
 
         public VocalsPhrase(VocalsPhrase other)
-            : this(other.Time, other.TimeLength, other.Tick, other.TickLength,
-                other.PhraseParentNote.CloneAsPhrase(), other.Lyrics.Duplicate())
+            : base(other)
         {
+            PhraseParentNote = other.PhraseParentNote.CloneAsPhrase();
+            Lyrics = other.Lyrics.Duplicate();
         }
 
         public VocalsPhrase Clone()

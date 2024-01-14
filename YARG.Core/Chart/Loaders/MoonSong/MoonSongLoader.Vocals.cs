@@ -1,22 +1,14 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using MoonscraperChartEditor.Song;
 using YARG.Core.Extensions;
-
-// TODO: Better parsing/sanitization of lyric events
+using YARG.Core.Utility;
 
 namespace YARG.Core.Chart
 {
     internal partial class MoonSongLoader : ISongLoader
     {
-        private enum LyricType
-        {
-            None = 0,
-
-            NonPitched = 1 << 0,
-            PitchSlide = 1 << 1,
-        }
-
         public VocalsTrack LoadVocalsTrack(Instrument instrument)
         {
             return instrument switch
@@ -33,7 +25,9 @@ namespace YARG.Core.Chart
             {
                 LoadVocalsPart(MoonSong.MoonInstrument.Vocals),
             };
-            return new(instrument, parts);
+
+            var ranges = GetRangeShifts(parts, MoonSong.MoonInstrument.Vocals);
+            return new(instrument, parts, ranges);
         }
 
         private VocalsTrack LoadHarmonyVocals(Instrument instrument)
@@ -44,7 +38,9 @@ namespace YARG.Core.Chart
                 LoadVocalsPart(MoonSong.MoonInstrument.Harmony2),
                 LoadVocalsPart(MoonSong.MoonInstrument.Harmony3),
             };
-            return new(instrument, parts);
+
+            var ranges = GetRangeShifts(parts, MoonSong.MoonInstrument.Harmony1);
+            return new(instrument, parts, ranges);
         }
 
         private VocalsPart LoadVocalsPart(MoonSong.MoonInstrument moonInstrument)
@@ -104,7 +100,7 @@ namespace YARG.Core.Chart
 
                 // Go through each note and lyric in the phrase
                 var notes = new List<VocalNote>();
-                var lyrics = new List<TextEvent>();
+                var lyrics = new List<LyricEvent>();
                 VocalNote? previousNote = null;
                 uint endOfPhrase = moonPhrase.tick + moonPhrase.length;
                 while (moonNoteIndex < moonChart.notes.Count)
@@ -122,7 +118,7 @@ namespace YARG.Core.Chart
                     }
 
                     // Handle lyric events
-                    var lyricType = LyricType.None;
+                    var lyricFlags = LyricSymbolFlags.None;
                     while (moonTextIndex < moonChart.events.Count)
                     {
                         var moonEvent = moonChart.events[moonTextIndex];
@@ -131,7 +127,7 @@ namespace YARG.Core.Chart
                         moonTextIndex++;
 
                         string eventText = moonEvent.text;
-                        // Ignore non-lyric events
+                        // Non-lyric events
                         if (!eventText.StartsWith(TextEvents.LYRIC_PREFIX_WITH_SPACE))
                             continue;
 
@@ -141,29 +137,12 @@ namespace YARG.Core.Chart
                         if (lyric.IsEmpty)
                             continue;
 
-                        // Only process note modifiers for lyrics that match the current note
-                        if (moonEvent.tick == moonNote.tick)
-                        {
-                            // Handle modifier lyrics
-                            char modifier = lyric[^1];
-                            if (modifier == LyricSymbols.PITCH_SLIDE_SYMBOL)
-                                lyricType = LyricType.PitchSlide;
-                            else if (LyricSymbols.NONPITCHED_SYMBOLS.Contains(modifier))
-                                lyricType = LyricType.NonPitched;
-                        }
-
-                        // Strip special symbols from lyrics
-                        string strippedLyric = LyricSymbols.StripForVocals(lyric.ToString());
-                        if (string.IsNullOrWhiteSpace(strippedLyric))
-                            continue;
-
-                        double time = _moonSong.TickToTime(moonEvent.tick);
-                        lyrics.Add(new(strippedLyric, time, moonEvent.tick));
+                        ProcessLyric(lyrics, lyric, moonEvent.tick, out lyricFlags);
                     }
 
                     // Create new note
-                    var note = CreateVocalNote(moonNote, harmonyPart, lyricType);
-                    if (lyricType is LyricType.PitchSlide && previousNote is not null)
+                    var note = CreateVocalNote(moonNote, harmonyPart, lyricFlags);
+                    if ((lyricFlags & LyricSymbolFlags.PitchSlide) != 0 && previousNote is not null)
                     {
                         previousNote.AddChildNote(note);
                         continue;
@@ -188,21 +167,178 @@ namespace YARG.Core.Chart
             return phrases;
         }
 
-        private VocalNote CreateVocalNote(MoonNote moonNote, int harmonyPart, LyricType lyricType)
+        private void ProcessLyric(List<LyricEvent> lyrics, ReadOnlySpan<char> lyric, uint lyricTick,
+            out LyricSymbolFlags lyricFlags)
+        {
+            LyricSymbols.DeferredLyricJoinWorkaround(lyrics, ref lyric, addHyphen: true);
+
+            // Handle lyric modifiers
+            lyricFlags = LyricSymbols.GetLyricFlags(lyric);
+
+            const LyricSymbolFlags noteTypeMask = LyricSymbolFlags.NonPitched | LyricSymbolFlags.PitchSlide;
+            if ((lyricFlags & noteTypeMask) == noteTypeMask)
+            {
+                YargTrace.DebugWarning($"Lyric '{lyric.ToString()}' at tick {lyricTick} specifies multiple lyric types! Flags: {lyricFlags}");
+
+                // TODO: Should we prefer one over the other?
+                // lyricFlags &= ~LyricFlags.NonPitched;
+                // lyricFlags &= ~LyricFlags.PitchSlide;
+            }
+
+            // Strip special symbols from lyrics
+            string strippedLyric = LyricSymbols.StripForVocals(lyric.ToString());
+            if (string.IsNullOrWhiteSpace(strippedLyric))
+                return;
+
+            double time = _moonSong.TickToTime(lyricTick);
+            lyrics.Add(new(lyricFlags, strippedLyric, time, lyricTick));
+        }
+
+        private List<VocalsPitchRange> GetRangeShifts(List<VocalsPart> parts, MoonSong.MoonInstrument sourceInstrument)
+        {
+            var ranges = new List<VocalsPitchRange>();
+
+            // Do nothing if no phrases were parsed in
+            if (parts.All((part) => part.NotePhrases.Count < 1))
+                return ranges;
+
+            double shiftLength = 0;
+            uint shiftStartTick = 0;
+
+            int phraseIndex = 0;
+            var indexes = new List<(int phraseIndex, int noteIndex)>(parts.Select((_) => (0, 0)));
+            var chart = _moonSong.GetChart(sourceInstrument, MoonSong.Difficulty.Expert);
+            foreach (var moonEvent in chart.events)
+            {
+                for (; phraseIndex < chart.specialPhrases.Count; phraseIndex++)
+                {
+                    var phrase = chart.specialPhrases[phraseIndex];
+                    if (phrase.tick >= moonEvent.tick)
+                        break;
+
+                    if (phrase.type == MoonPhrase.Type.Vocals_RangeShift)
+                    {
+                        // Commit active shift
+                        AddPitchRange(shiftStartTick, moonEvent.tick, shiftLength);
+
+                        // Start new shift
+                        shiftStartTick = moonEvent.tick;
+                        double shiftStart = _moonSong.TickToTime(phrase.tick);
+                        double shiftEnd = _moonSong.TickToTime(phrase.tick + phrase.length);
+                        shiftLength = shiftEnd - shiftStart;
+                    }
+                }
+
+                var eventText = moonEvent.text;
+                if (eventText.StartsWith("range_shift"))
+                {
+                    // Commit active shift
+                    AddPitchRange(shiftStartTick, moonEvent.tick, shiftLength);
+
+                    // Start new shift
+                    shiftStartTick = moonEvent.tick;
+
+                    // Two forms: [range_shift] and [range_shift 0.5]
+                    // The latter specifies the time of the shift in seconds
+                    eventText.SplitOnce(' ', out var time);
+                    if (time.IsEmpty || !double.TryParse(time, out shiftLength))
+                        shiftLength = 0;
+                }
+                else if (eventText.StartsWith(TextEvents.LYRIC_PREFIX_WITH_SPACE))
+                {
+                    var lyric = eventText.AsSpan()
+                        .Slice(TextEvents.LYRIC_PREFIX_WITH_SPACE.Length).TrimStartAscii();
+                    // Ignore empty lyrics
+                    if (lyric.IsEmpty)
+                        continue;
+
+                    // Check for the range shift symbol
+                    var flags = LyricSymbols.GetLyricFlags(lyric);
+                    if ((flags & LyricSymbolFlags.RangeShift) != 0)
+                    {
+                        // Commit active shift
+                        AddPitchRange(shiftStartTick, moonEvent.tick, shiftLength);
+
+                        // Start new shift
+                        shiftStartTick = moonEvent.tick;
+                    }
+                }
+            }
+
+            // Finish off last range
+            AddPitchRange(shiftStartTick, uint.MaxValue, shiftLength);
+            return ranges;
+
+            void AddPitchRange(uint startTick, uint endTick, double shiftLength)
+            {
+                // Determine pitch bounds for this range shift
+                float minPitch = float.MaxValue;
+                float maxPitch = float.MinValue;
+
+                for (int i = 0; i < parts.Count; i++)
+                {
+                    var part = parts[i];
+                    var (phraseIndex, noteIndex) = indexes[i];
+
+                    for (; phraseIndex < part.NotePhrases.Count; phraseIndex++)
+                    {
+                        var phrase = part.NotePhrases[phraseIndex];
+                        if (phrase.Tick >= endTick)
+                            break;
+
+                        if (phrase.TickEnd < startTick || phrase.IsPercussion)
+                            // TODO: Percussion phrases should probably stop the range and start a new one afterwards
+                            continue;
+
+                        for (; noteIndex < phrase.PhraseParentNote.ChildNotes.Count; noteIndex++)
+                        {
+                            var note = phrase.PhraseParentNote.ChildNotes[noteIndex];
+                            if (note.Tick >= endTick || note.TickEnd < startTick)
+                                break;
+
+                            foreach (var child in note.ChordEnumerator())
+                            {
+                                if (child.Tick >= endTick || child.TickEnd < startTick || child.IsNonPitched)
+                                    continue;
+
+                                minPitch = Math.Min(minPitch, child.Pitch);
+                                maxPitch = Math.Max(maxPitch, child.Pitch);
+                            }
+                        }
+
+                        // Manual end due to reaching the last note in the range
+                        if (noteIndex < phrase.PhraseParentNote.ChildNotes.Count)
+                            break;
+
+                        noteIndex = 0;
+                    }
+
+                    indexes[i] = (phraseIndex, noteIndex);
+                }
+
+                if (minPitch == float.MaxValue || maxPitch == float.MinValue)
+                    return;
+
+                ranges.Add(new(minPitch, maxPitch, shiftLength, _moonSong.TickToTime(startTick), startTick));
+            }
+        }
+
+
+        private VocalNote CreateVocalNote(MoonNote moonNote, int harmonyPart, LyricSymbolFlags lyricFlags)
         {
             var vocalType = GetVocalNoteType(moonNote);
-            float pitch = GetVocalNotePitch(moonNote, lyricType);
+            float pitch = GetVocalNotePitch(moonNote, lyricFlags);
 
             double time = _moonSong.TickToTime(moonNote.tick);
             return new VocalNote(pitch, harmonyPart, vocalType, time, GetLengthInTime(moonNote), moonNote.tick, moonNote.length);
         }
 
-        private float GetVocalNotePitch(MoonNote moonNote, LyricType lyricType)
+        private float GetVocalNotePitch(MoonNote moonNote, LyricSymbolFlags lyricFlags)
         {
             float pitch = moonNote.vocalsPitch;
 
             // Unpitched/percussion notes
-            if (lyricType is LyricType.NonPitched || (moonNote.flags & MoonNote.Flags.Vocals_Percussion) != 0)
+            if ((lyricFlags & LyricSymbolFlags.NonPitched) != 0 || (moonNote.flags & MoonNote.Flags.Vocals_Percussion) != 0)
                 pitch = -1f;
 
             return pitch;
@@ -222,7 +358,7 @@ namespace YARG.Core.Chart
         }
 
         private VocalsPhrase CreateVocalsPhrase(MoonPhrase moonPhrase, Dictionary<MoonPhrase.Type, MoonPhrase?> phrasetracker,
-            List<VocalNote> notes, List<TextEvent> lyrics)
+            List<VocalNote> notes, List<LyricEvent> lyrics)
         {
             double time = _moonSong.TickToTime(moonPhrase.tick);
             double timeLength = GetLengthInTime(moonPhrase);

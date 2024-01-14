@@ -18,8 +18,9 @@ namespace YARG.Core.Chart
         }
 
         public LyricsPhrase(LyricsPhrase other)
-            : this(other.Time, other.TimeLength, other.Tick, other.TickLength, other.Lyrics.Duplicate())
+            : base(other)
         {
+            Lyrics = other.Lyrics.Duplicate();
         }
 
         public LyricsPhrase Clone()

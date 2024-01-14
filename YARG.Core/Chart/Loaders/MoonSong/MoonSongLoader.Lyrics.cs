@@ -43,23 +43,20 @@ namespace YARG.Core.Chart
 
                 var lyric = text.AsSpan().Slice(TextEvents.LYRIC_PREFIX_WITH_SPACE.Length);
 
-                var flags = LyricFlags.None;
-                string strippedLyric = string.Empty;;
-                if (!lyric.IsEmpty)
-                {
-                    // Handle modifier lyrics
-                    char modifier = lyric[^1];
-                    if (LyricSymbols.LYRIC_JOIN_SYMBOLS.Contains(modifier))
-                        flags |= LyricFlags.JoinWithNext;
+                LyricSymbols.DeferredLyricJoinWorkaround(_currentLyrics, ref lyric, false);
 
-                    // Strip special symbols from lyrics
-                    strippedLyric = LyricSymbols.StripForLyrics(lyric.ToString());
-                }
+                // Handle lyric modifiers
+                var flags = LyricSymbols.GetLyricFlags(lyric);
+
+                // Strip special symbols from lyrics
+                string strippedLyric = !lyric.IsEmpty
+                    ? LyricSymbols.StripForLyrics(lyric.ToString())
+                    : string.Empty;
 
                 if (string.IsNullOrWhiteSpace(strippedLyric))
                 {
                     // Allow empty lyrics for lyric gimmick purposes
-                    flags |= LyricFlags.JoinWithNext;
+                    flags |= LyricSymbolFlags.JoinWithNext;
                     strippedLyric = string.Empty;
                 }
 
