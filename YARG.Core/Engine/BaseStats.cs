@@ -6,9 +6,25 @@ namespace YARG.Core.Engine
     public abstract class BaseStats : IBinarySerializable
     {
         /// <summary>
-        /// The accumulated score (e.g from notes hit and sustains)
+        /// Finalized score (e.g from notes hit and sustains)
         /// </summary>
-        public int Score;
+        public int CommittedScore;
+
+        /// <summary>
+        /// Score that is currently pending addition (e.g. from active sustains).
+        /// These points are recalculated every update, and only get added once their
+        /// final condition has been met.
+        /// </summary>
+        /// <remarks>
+        /// These points are still earned, but their total value is not final yet.
+        /// Adding them immediately would result in problems such as precision errors.
+        /// </remarks>
+        public int PendingScore;
+
+        /// <summary>
+        /// Total score across finalized and pending score.
+        /// </summary>
+        public int TotalScore => CommittedScore + PendingScore;
 
         /// <summary>
         /// The player's current combo (such as 500 note streak)
@@ -82,7 +98,8 @@ namespace YARG.Core.Engine
 
         protected BaseStats(BaseStats stats)
         {
-            Score = stats.Score;
+            CommittedScore = stats.CommittedScore;
+            PendingScore = stats.PendingScore;
             Combo = stats.Combo;
             MaxCombo = stats.MaxCombo;
             ScoreMultiplier = stats.ScoreMultiplier;
@@ -101,7 +118,8 @@ namespace YARG.Core.Engine
 
         public virtual void Reset()
         {
-            Score = 0;
+            CommittedScore = 0;
+            PendingScore = 0;
             Combo = 0;
             MaxCombo = 0;
             ScoreMultiplier = 1;
@@ -120,7 +138,8 @@ namespace YARG.Core.Engine
 
         public virtual void Serialize(BinaryWriter writer)
         {
-            writer.Write(Score);
+            writer.Write(CommittedScore);
+            writer.Write(PendingScore);
             writer.Write(Combo);
             writer.Write(MaxCombo);
             writer.Write(ScoreMultiplier);
@@ -138,7 +157,8 @@ namespace YARG.Core.Engine
 
         public virtual void Deserialize(BinaryReader reader, int version = 0)
         {
-            Score = reader.ReadInt32();
+            CommittedScore = reader.ReadInt32();
+            PendingScore = reader.ReadInt32();
             Combo = reader.ReadInt32();
             MaxCombo = reader.ReadInt32();
             ScoreMultiplier = reader.ReadInt32();

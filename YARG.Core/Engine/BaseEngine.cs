@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using YARG.Core.Chart;
 using YARG.Core.Engine.Logging;
@@ -437,7 +437,7 @@ namespace YARG.Core.Engine
         protected void UpdateStars()
         {
             while (State.CurrentStarIndex < StarScoreThresholds.Length &&
-                EngineStats.Score > StarScoreThresholds[State.CurrentStarIndex])
+                EngineStats.TotalScore > StarScoreThresholds[State.CurrentStarIndex])
             {
                 EngineStats.Stars++;
                 State.CurrentStarIndex++;
