@@ -77,7 +77,7 @@ namespace YARG.Core.Engine.Guitar
                 ActiveSustains.RemoveAt(i);
                 i--;
 
-                EngineStats.CommittedScore += (int) CalculateSustainPoints(sustain);
+                EngineStats.CommittedScore += (int) CalculateSustainPoints(sustain, sustainBurst: true);
                 OnSustainEnd?.Invoke(sustain.Note, State.CurrentTime);
             }
 
@@ -264,7 +264,7 @@ namespace YARG.Core.Engine.Guitar
             EngineStats.PendingScore = 0;
             foreach (var sustain in ActiveSustains)
             {
-                EngineStats.PendingScore += (int) CalculateSustainPoints(sustain);
+                EngineStats.PendingScore += (int) CalculateSustainPoints(sustain, sustainBurst: false);
             }
         }
 
@@ -282,7 +282,7 @@ namespace YARG.Core.Engine.Guitar
             EngineStats.PendingScore = 0;
             foreach (var sustain in ActiveSustains)
             {
-                double sustainScore = CalculateSustainPoints(sustain);
+                double sustainScore = CalculateSustainPoints(sustain, sustainBurst: false);
 
                 sustain.BaseTick = baseTick;
                 sustain.BaseScore = sustainScore;
@@ -294,7 +294,7 @@ namespace YARG.Core.Engine.Guitar
             => State.StarPowerWhammyTimer.IsActive(State.CurrentTime) ?
                 CalculateStarPowerBeatProgress(tick, State.StarPowerWhammyBaseTick) : 0;
 
-        protected double CalculateSustainPoints(ActiveSustain sustain)
+        protected double CalculateSustainPoints(ActiveSustain sustain, bool sustainBurst)
         {
             // Sustains can be hit before their actual first tick
             if (State.CurrentTick < sustain.Note.Tick)
@@ -303,7 +303,7 @@ namespace YARG.Core.Engine.Guitar
             // If we're close enough to the end of the sustain, calculate points for its entirety
             // Provides leniency for sustains with no gap (and just in general)
             uint currentTick = State.CurrentTick;
-            if (sustain.Note.TimeEnd - State.CurrentTime < EngineParameters.SustainBurstWindow)
+            if (sustainBurst && sustain.Note.TimeEnd - State.CurrentTime < EngineParameters.SustainBurstWindow)
                 currentTick = sustain.Note.TickEnd;
 
             uint scoreTick = Math.Min(currentTick, sustain.Note.TickEnd);
@@ -324,18 +324,16 @@ namespace YARG.Core.Engine.Guitar
                 isStarPowerSustainActive |= note.IsStarPower;
                 bool sustainEnded = State.CurrentTick > note.TickEnd;
 
-                double sustainScore = CalculateSustainPoints(sustain);
-
                 if (!CanNoteBeHit(note) || sustainEnded)
                 {
-                    EngineStats.CommittedScore += (int) sustainScore;
+                    EngineStats.CommittedScore += (int) CalculateSustainPoints(sustain, sustainBurst: true);
                     ActiveSustains.RemoveAt(i);
                     i--;
                     OnSustainEnd?.Invoke(note, State.CurrentTime);
                 }
                 else
                 {
-                    EngineStats.PendingScore += (int) sustainScore;
+                    EngineStats.PendingScore += (int) CalculateSustainPoints(sustain, sustainBurst: false);
                 }
             }
 
