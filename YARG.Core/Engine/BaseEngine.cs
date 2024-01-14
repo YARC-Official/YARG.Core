@@ -338,10 +338,10 @@ namespace YARG.Core.Engine
             // Rebase SP on time signature change
             if (previousTimeSigIndex != State.CurrentTimeSigIndex)
             {
-                // Update SP drain to ensure the base is accurate, e.g. if a time signature change happens
+                // Update progresses to ensure values are accurate, e.g. if a time signature change happens
                 // after 4 measures of SP drainage, the base should be exactly 0.5
-                UpdateStarPowerAmount(currentTimeSig.Tick);
-                RebaseStarPower(currentTimeSig.Tick);
+                UpdateProgressValues(currentTimeSig.Tick);
+                RebaseProgressValues(currentTimeSig.Tick);
                 // Update ticks per beat/measure *after* rebasing, otherwise SP won't update correctly
                 State.TicksEveryBeat = currentTimeSig.GetTicksPerBeat(SyncTrack);
                 State.TicksEveryMeasure = currentTimeSig.GetTicksPerMeasure(SyncTrack);
@@ -365,8 +365,8 @@ namespace YARG.Core.Engine
                 // Rebase again on misaligned time signatures
                 if (currentMeasureTick != currentTimeSig.Tick)
                 {
-                    UpdateStarPowerAmount(currentMeasureTick);
-                    RebaseStarPower(currentMeasureTick);
+                    UpdateProgressValues(currentMeasureTick);
+                    RebaseProgressValues(currentMeasureTick);
                 }
                 State.TicksEveryMeasure = nextTimeSigTick - currentMeasureTick;
                 YargTrace.DebugAssert(State.TicksEveryMeasure != 0, "Ticks per measure is 0! Star Power will be NaN after this");
@@ -380,8 +380,8 @@ namespace YARG.Core.Engine
                 State.TicksEveryBeat != (nextTimeSigTick - currentBeatTick))
             {
                 // Rebase again on misaligned time signatures
-                UpdateStarPowerAmount(currentBeatTick);
-                RebaseStarPower(currentBeatTick);
+                UpdateProgressValues(currentBeatTick);
+                RebaseProgressValues(currentBeatTick);
                 State.TicksEveryBeat = nextTimeSigTick - currentBeatTick;
                 YargTrace.DebugAssert(State.TicksEveryBeat != 0, "Ticks per beat is 0! Star Power will be NaN after this");
             }
@@ -502,7 +502,12 @@ namespace YARG.Core.Engine
             OnStarPowerPhraseMissed?.Invoke(note);
         }
 
-        protected virtual void RebaseStarPower(uint baseTick)
+        protected virtual void RebaseProgressValues(uint baseTick)
+        {
+            RebaseStarPower(baseTick);
+        }
+
+        protected void RebaseStarPower(uint baseTick)
         {
             if (baseTick < State.StarPowerBaseTick)
                 YargTrace.Fail($"Star Power base tick cannot go backwards! Went from {State.StarPowerBaseTick} to {baseTick}");
@@ -528,6 +533,11 @@ namespace YARG.Core.Engine
         protected virtual double CalculateStarPowerDrain(uint tick)
             => EngineStats.IsStarPowerActive ? CalculateStarPowerMeasureProgress(tick, State.StarPowerBaseTick) : 0;
 
+        protected virtual void UpdateProgressValues(uint tick)
+        {
+            UpdateStarPowerAmount(tick);
+        }
+
         protected void UpdateStarPowerAmount(uint tick)
         {
             double gain = CalculateStarPowerGain(tick);
@@ -548,13 +558,13 @@ namespace YARG.Core.Engine
                 EngineStats.StarPowerAmount = 1;
             }
 
-            RebaseStarPower(State.CurrentTick);
+            RebaseProgressValues(State.CurrentTick);
             OnStarPowerPhraseHit?.Invoke(note);
         }
 
         protected void UpdateStarPower()
         {
-            UpdateStarPowerAmount(State.CurrentTick);
+            UpdateProgressValues(State.CurrentTick);
 
             if (EngineStats.IsStarPowerActive && EngineStats.StarPowerAmount <= 0)
             {
@@ -565,7 +575,7 @@ namespace YARG.Core.Engine
 
                 EngineStats.StarPowerAmount = 0;
                 EngineStats.IsStarPowerActive = false;
-                RebaseStarPower(State.CurrentTick);
+                RebaseProgressValues(State.CurrentTick);
 
                 UpdateMultiplier();
                 OnStarPowerStatus?.Invoke(false);
@@ -584,7 +594,7 @@ namespace YARG.Core.Engine
                 IsActive = true,
             });
 
-            RebaseStarPower(State.CurrentTick);
+            RebaseProgressValues(State.CurrentTick);
             EngineStats.IsStarPowerActive = true;
 
             UpdateMultiplier();
