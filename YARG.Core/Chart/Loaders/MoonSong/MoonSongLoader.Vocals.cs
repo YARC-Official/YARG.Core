@@ -293,18 +293,17 @@ namespace YARG.Core.Chart
                         for (; noteIndex < phrase.PhraseParentNote.ChildNotes.Count; noteIndex++)
                         {
                             var note = phrase.PhraseParentNote.ChildNotes[noteIndex];
-                            if (note.Tick >= endTick)
+                            if (note.Tick >= endTick || note.TickEnd < startTick)
                                 break;
 
                             foreach (var child in note.ChordEnumerator())
                             {
-                                if (note.TickEnd < startTick || note.IsNonPitched)
+                                if (child.Tick >= endTick || child.TickEnd < startTick || child.IsNonPitched)
                                     continue;
 
-                                minPitch = Math.Min(minPitch, note.Pitch);
-                                maxPitch = Math.Max(maxPitch, note.Pitch);
+                                minPitch = Math.Min(minPitch, child.Pitch);
+                                maxPitch = Math.Max(maxPitch, child.Pitch);
                             }
-
                         }
 
                         // Manual end due to reaching the last note in the range
