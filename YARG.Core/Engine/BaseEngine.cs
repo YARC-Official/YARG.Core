@@ -422,7 +422,7 @@ namespace YARG.Core.Engine
 
         protected virtual void UpdateMultiplier()
         {
-            EngineStats.ScoreMultiplier = Math.Min(EngineStats.Combo / 10 + 1, 4);
+            EngineStats.ScoreMultiplier = Math.Min((EngineStats.Combo / 10) + 1, EngineParameters.MaxMultiplier);
 
             if (EngineStats.IsStarPowerActive)
             {
