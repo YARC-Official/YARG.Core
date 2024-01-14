@@ -511,15 +511,17 @@ namespace YARG.Core.Engine
             State.StarPowerBaseTick = baseTick;
         }
 
+        protected double CalculateBeatProgress(uint tick, uint baseTick, double factor)
+            => (tick - baseTick) / (double) State.TicksEveryBeat * factor;
+
+        protected double CalculateMeasureProgress(uint tick, uint baseTick, double factor)
+            => (tick - baseTick) / (double) State.TicksEveryMeasure * factor;
+
         protected double CalculateStarPowerBeatProgress(uint tick, uint baseTick)
-        {
-            return (tick - baseTick) / (double) State.TicksEveryBeat * STAR_POWER_BEAT_AMOUNT;
-        }
+            => CalculateBeatProgress(tick, baseTick, STAR_POWER_BEAT_AMOUNT);
 
         protected double CalculateStarPowerMeasureProgress(uint tick, uint baseTick)
-        {
-            return (tick - baseTick) / (double) State.TicksEveryMeasure * STAR_POWER_MEASURE_AMOUNT;
-        }
+            => CalculateMeasureProgress(tick, baseTick, STAR_POWER_MEASURE_AMOUNT);
 
         protected virtual double CalculateStarPowerGain(uint tick) => 0;
 
