@@ -9,10 +9,17 @@ namespace YARG.Core.Engine.Guitar
     public abstract class GuitarEngine : BaseEngine<GuitarNote, GuitarEngineParameters,
         GuitarStats, GuitarEngineState>
     {
-        protected struct ActiveSustain
+        protected sealed class ActiveSustain
         {
             public GuitarNote Note;
             public uint BaseTick;
+            public double BaseScore;
+
+            public ActiveSustain(GuitarNote note)
+            {
+                Note = note;
+                BaseTick = note.Tick;
+            }
         }
 
         public delegate void OverstrumEvent();
@@ -69,6 +76,8 @@ namespace YARG.Core.Engine.Guitar
                 var sustain = ActiveSustains[i];
                 ActiveSustains.RemoveAt(i);
                 i--;
+
+                EngineStats.CommittedScore += (int) CalculateSustainPoints(sustain);
                 OnSustainEnd?.Invoke(sustain.Note, State.CurrentTime);
             }
 
@@ -157,24 +166,14 @@ namespace YARG.Core.Engine.Guitar
                         continue;
                     }
 
-                    var sustain = new ActiveSustain()
-                    {
-                        Note = chordNote,
-                        BaseTick = chordNote.Tick,
-                    };
-
+                    var sustain = new ActiveSustain(chordNote);
                     ActiveSustains.Add(sustain);
                     OnSustainStart?.Invoke(chordNote);
                 }
             }
             else if (note.IsSustain)
             {
-                var sustain = new ActiveSustain()
-                {
-                    Note = note,
-                    BaseTick = note.Tick,
-                };
-
+                var sustain = new ActiveSustain(note);
                 ActiveSustains.Add(sustain);
                 OnSustainStart?.Invoke(note);
             }
@@ -241,19 +240,58 @@ namespace YARG.Core.Engine.Guitar
             UpdateStars();
         }
 
+        protected override void UpdateProgressValues(uint tick)
+        {
+            base.UpdateProgressValues(tick);
+
+            EngineStats.PendingScore = 0;
+            foreach (var sustain in ActiveSustains)
+            {
+                EngineStats.PendingScore += (int) CalculateSustainPoints(sustain);
+            }
+        }
+
         protected override void RebaseProgressValues(uint baseTick)
         {
             base.RebaseProgressValues(baseTick);
 
             State.StarPowerWhammyBaseTick = baseTick;
+
+            RebaseSustains(baseTick);
+        }
+
+        protected void RebaseSustains(uint baseTick)
+        {
+            EngineStats.PendingScore = 0;
+            foreach (var sustain in ActiveSustains)
+            {
+                double sustainScore = CalculateSustainPoints(sustain);
+
+                sustain.BaseTick = baseTick;
+                sustain.BaseScore = sustainScore;
+                EngineStats.PendingScore += (int) sustainScore;
+            }
         }
 
         protected override double CalculateStarPowerGain(uint tick)
             => State.StarPowerWhammyTimer.IsActive(State.CurrentTime) ?
                 CalculateStarPowerBeatProgress(tick, State.StarPowerWhammyBaseTick) : 0;
 
+        protected double CalculateSustainPoints(ActiveSustain sustain)
+        {
+            // Sustains can be hit before their actual first tick
+            if (State.CurrentTick < sustain.Note.Tick)
+                return 0;
+
+            uint scoreTick = Math.Min(State.CurrentTick, sustain.Note.TickEnd);
+            double deltaScore = CalculateBeatProgress(scoreTick, sustain.BaseTick, POINTS_PER_BEAT);
+            return sustain.BaseScore + (deltaScore * EngineStats.ScoreMultiplier);
+        }
+
         protected void UpdateSustains()
         {
+            EngineStats.PendingScore = 0;
+
             bool isStarPowerSustainActive = false;
             for (int i = 0; i < ActiveSustains.Count; i++)
             {
@@ -263,11 +301,18 @@ namespace YARG.Core.Engine.Guitar
                 isStarPowerSustainActive |= note.IsStarPower;
                 bool sustainEnded = State.CurrentTick > note.TickEnd;
 
+                double sustainScore = CalculateSustainPoints(sustain);
+
                 if (!CanNoteBeHit(note) || sustainEnded)
                 {
+                    EngineStats.CommittedScore += (int) sustainScore;
                     ActiveSustains.RemoveAt(i);
                     i--;
                     OnSustainEnd?.Invoke(note, State.CurrentTime);
+                }
+                else
+                {
+                    EngineStats.PendingScore += (int) sustainScore;
                 }
             }
 
