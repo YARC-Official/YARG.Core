@@ -310,7 +310,7 @@ namespace YARG.Core.Engine.Guitar
             uint scoreTick = Math.Min(currentTick, sustain.Note.TickEnd);
             // Sustain points are awarded at a constant rate regardless of tempo
             // double deltaScore = CalculateBeatProgress(scoreTick, sustain.BaseTick, POINTS_PER_BEAT);
-            double deltaScore = (scoreTick - sustain.BaseTick) / (double) TicksPerSustainPoint * POINTS_PER_BEAT;
+            double deltaScore = (scoreTick - sustain.BaseTick) / TicksPerSustainPoint;
             return sustain.BaseScore + (deltaScore * EngineStats.ScoreMultiplier);
         }
 
@@ -385,14 +385,14 @@ namespace YARG.Core.Engine.Guitar
             foreach (var note in Notes)
             {
                 score += POINTS_PER_NOTE * (1 + note.ChildNotes.Count);
-                score += (int) Math.Ceiling((double) note.TickLength / TicksPerSustainPoint);
+                score += (int) Math.Ceiling(note.TickLength / TicksPerSustainPoint);
 
                 // If a note is disjoint, each sustain is counted separately.
                 if (note.IsDisjoint)
                 {
                     foreach (var child in note.ChildNotes)
                     {
-                        score += (int) Math.Ceiling((double) child.TickLength / TicksPerSustainPoint);
+                        score += (int) Math.Ceiling(child.TickLength / TicksPerSustainPoint);
                     }
                 }
             }

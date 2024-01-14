@@ -26,7 +26,7 @@ namespace YARG.Core.Engine
         protected readonly Queue<GameInput> InputQueue;
 
         protected readonly uint Resolution;
-        protected readonly uint TicksPerSustainPoint;
+        protected readonly double TicksPerSustainPoint;
 
         protected GameInput CurrentInput;
 
@@ -44,7 +44,7 @@ namespace YARG.Core.Engine
             SyncTrack = syncTrack;
             Resolution = syncTrack.Resolution;
 
-            TicksPerSustainPoint = Resolution / 25;
+            TicksPerSustainPoint = Resolution / 25.0;
 
             EventLogger = new EngineEventLogger();
             InputQueue = new Queue<GameInput>();
