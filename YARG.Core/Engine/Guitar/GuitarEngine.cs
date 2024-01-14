@@ -240,6 +240,23 @@ namespace YARG.Core.Engine.Guitar
             UpdateStars();
         }
 
+        protected override void UpdateMultiplier()
+        {
+            int previousMultiplier = EngineStats.ScoreMultiplier;
+            base.UpdateMultiplier();
+            int newMultiplier = EngineStats.ScoreMultiplier;
+
+            // Rebase sustains when the multiplier changes so that
+            // there aren't huge jumps in points on extended sustains
+            if (newMultiplier != previousMultiplier)
+            {
+                // Temporarily reset multiplier to calculate score correctly
+                EngineStats.ScoreMultiplier = previousMultiplier;
+                RebaseSustains(State.CurrentTick);
+                EngineStats.ScoreMultiplier = newMultiplier;
+            }
+        }
+
         protected override void UpdateProgressValues(uint tick)
         {
             base.UpdateProgressValues(tick);
