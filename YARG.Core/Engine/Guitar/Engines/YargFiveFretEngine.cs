@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using YARG.Core.Chart;
 using YARG.Core.Engine.Logging;
 using YARG.Core.Input;
@@ -411,13 +411,6 @@ namespace YARG.Core.Engine.Guitar.Engines
 
         protected override void UpdateSustains()
         {
-            // No sustains
-            if (ActiveSustains.Count == 0)
-            {
-                UpdateWhammyStarPower(spSustainsActive: false);
-                return;
-            }
-
             bool isStarPowerSustainActive = false;
             for (int i = 0; i < ActiveSustains.Count; i++)
             {
