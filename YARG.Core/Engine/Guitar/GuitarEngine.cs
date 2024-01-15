@@ -297,17 +297,14 @@ namespace YARG.Core.Engine.Guitar
 
         protected double CalculateSustainPoints(ActiveSustain sustain, bool sustainBurst)
         {
-            // Sustains can be hit before their actual first tick
-            if (State.CurrentTick < sustain.Note.Tick)
-                return 0;
-
             // If we're close enough to the end of the sustain, calculate points for its entirety
             // Provides leniency for sustains with no gap (and just in general)
             uint currentTick = State.CurrentTick;
             if (sustainBurst && sustain.Note.TimeEnd - State.CurrentTime < EngineParameters.SustainBurstWindow)
                 currentTick = sustain.Note.TickEnd;
 
-            uint scoreTick = Math.Min(currentTick, sustain.Note.TickEnd);
+            uint scoreTick = Math.Clamp(currentTick, sustain.Note.Tick, sustain.Note.TickEnd);
+
             // Sustain points are awarded at a constant rate regardless of tempo
             // double deltaScore = CalculateBeatProgress(scoreTick, sustain.BaseTick, POINTS_PER_BEAT);
             double deltaScore = (scoreTick - sustain.BaseTick) / TicksPerSustainPoint;

@@ -26,7 +26,6 @@ namespace YARG.Core.Engine
         protected readonly Queue<GameInput> InputQueue;
 
         protected readonly uint Resolution;
-        protected readonly double TicksPerSustainPoint;
 
         protected GameInput CurrentInput;
 
@@ -43,8 +42,6 @@ namespace YARG.Core.Engine
         {
             SyncTrack = syncTrack;
             Resolution = syncTrack.Resolution;
-
-            TicksPerSustainPoint = Resolution / 25.0;
 
             EventLogger = new EngineEventLogger();
             InputQueue = new Queue<GameInput>();
@@ -227,6 +224,7 @@ namespace YARG.Core.Engine
         public SoloEndEvent?   OnSoloEnd;
 
         protected int[] StarScoreThresholds { get; }
+        protected readonly double TicksPerSustainPoint;
 
         public readonly TEngineStats EngineStats;
 
@@ -254,6 +252,8 @@ namespace YARG.Core.Engine
             State.Reset();
 
             EngineStats.ScoreMultiplier = 1;
+
+            TicksPerSustainPoint = Resolution / (double) POINTS_PER_BEAT;
 
             // This method should only rely on the `Notes` property (which is assigned above).
             // ReSharper disable once VirtualMemberCallInConstructor
