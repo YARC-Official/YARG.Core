@@ -26,7 +26,7 @@ namespace YARG.Core.Engine.Guitar
 
         public delegate void SustainStartEvent(GuitarNote note);
 
-        public delegate void SustainEndEvent(GuitarNote note, double timeEnded);
+        public delegate void SustainEndEvent(GuitarNote note, double timeEnded, bool dropped);
 
         public OverstrumEvent?    OnOverstrum;
         public SustainStartEvent? OnSustainStart;
@@ -79,7 +79,7 @@ namespace YARG.Core.Engine.Guitar
 
                 double finalScore = CalculateSustainPoints(sustain, State.CurrentTick, sustainBurst: true);
                 EngineStats.CommittedScore += (int) Math.Ceiling(finalScore);
-                OnSustainEnd?.Invoke(sustain.Note, State.CurrentTime);
+                OnSustainEnd?.Invoke(sustain.Note, State.CurrentTime, dropped: true);
             }
 
             if (State.NoteIndex < Notes.Count)
@@ -324,14 +324,15 @@ namespace YARG.Core.Engine.Guitar
 
                 isStarPowerSustainActive |= note.IsStarPower;
                 bool sustainEnded = State.CurrentTick >= note.TickEnd;
+                bool dropped = !CanNoteBeHit(note);
 
-                if (!CanNoteBeHit(note) || sustainEnded)
+                if (dropped || sustainEnded)
                 {
                     double finalScore = CalculateSustainPoints(sustain, State.CurrentTick, sustainBurst: true);
                     EngineStats.CommittedScore += (int) Math.Ceiling(finalScore);
                     ActiveSustains.RemoveAt(i);
                     i--;
-                    OnSustainEnd?.Invoke(note, State.CurrentTime);
+                    OnSustainEnd?.Invoke(note, State.CurrentTime, dropped);
                 }
                 else
                 {
