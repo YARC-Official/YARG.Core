@@ -7,7 +7,6 @@ namespace YARG.Core.Game
     public partial class EnginePreset
     {
         public const double DEFAULT_WHAMMY_BUFFER = 0.25;
-        public const double DEFAULT_SUSTAIN_BURST = 0.075;
 
         public const int DEFAULT_MAX_MULTIPLIER = 4;
         public const int BASS_MAX_MULTIPLIER    = 6;
@@ -76,7 +75,6 @@ namespace YARG.Core.Game
                     StrumLeniency,
                     StrumLeniencySmall,
                     DEFAULT_WHAMMY_BUFFER,
-                    DEFAULT_SUSTAIN_BURST,
                     InfiniteFrontEnd,
                     AntiGhosting);
             }

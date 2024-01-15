@@ -10,7 +10,6 @@ namespace YARG.Core.Engine.Guitar
         public double StrumLeniencySmall { get; private set; }
 
         public double StarPowerWhammyBuffer { get; private set; }
-        public double SustainBurstWindow { get; private set; }
 
         public bool InfiniteFrontEnd { get; private set; }
         public bool AntiGhosting     { get; private set; }
@@ -19,10 +18,8 @@ namespace YARG.Core.Engine.Guitar
         {
         }
 
-        public GuitarEngineParameters(HitWindowSettings hitWindow,
-        int maxMultiplier, float[] starMultiplierThresholds,
-            double hopoLeniency, double strumLeniency, double strumLeniencySmall,
-            double spWhammyBuffer, double sustainBurstWindow,
+        public GuitarEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, float[] starMultiplierThresholds,
+            double hopoLeniency, double strumLeniency, double strumLeniencySmall, double spWhammyBuffer,
             bool infiniteFrontEnd, bool antiGhosting)
             : base(hitWindow, maxMultiplier, starMultiplierThresholds)
         {
@@ -32,7 +29,6 @@ namespace YARG.Core.Engine.Guitar
             StrumLeniencySmall = strumLeniencySmall;
 
             StarPowerWhammyBuffer = spWhammyBuffer;
-            SustainBurstWindow = sustainBurstWindow;
 
             InfiniteFrontEnd = infiniteFrontEnd;
             AntiGhosting = antiGhosting;

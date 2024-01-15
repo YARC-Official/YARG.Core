@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using YARG.Core.Chart;
 using YARG.Core.Engine.Logging;
@@ -199,6 +199,9 @@ namespace YARG.Core.Engine
         protected const int STAR_POWER_PHRASE_MEASURE_COUNT = 2;
         protected const double STAR_POWER_PHRASE_AMOUNT = STAR_POWER_PHRASE_MEASURE_COUNT * STAR_POWER_MEASURE_AMOUNT;
 
+        // Beat fraction to use for the sustain burst threshold
+        protected const int SUSTAIN_BURST_FRACTION = 4;
+
         public delegate void NoteHitEvent(int noteIndex, TNoteType note);
 
         public delegate void NoteMissedEvent(int noteIndex, TNoteType note);
@@ -225,6 +228,7 @@ namespace YARG.Core.Engine
 
         protected int[] StarScoreThresholds { get; }
         protected readonly double TicksPerSustainPoint;
+        protected readonly uint SustainBurstThreshold;
 
         public readonly TEngineStats EngineStats;
 
@@ -254,6 +258,7 @@ namespace YARG.Core.Engine
             EngineStats.ScoreMultiplier = 1;
 
             TicksPerSustainPoint = Resolution / (double) POINTS_PER_BEAT;
+            SustainBurstThreshold = Resolution / SUSTAIN_BURST_FRACTION;
 
             // This method should only rely on the `Notes` property (which is assigned above).
             // ReSharper disable once VirtualMemberCallInConstructor
