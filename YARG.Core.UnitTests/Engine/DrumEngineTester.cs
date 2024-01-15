@@ -4,6 +4,7 @@ using YARG.Core.Chart;
 using YARG.Core.Engine;
 using YARG.Core.Engine.Drums;
 using YARG.Core.Engine.Drums.Engines;
+using YARG.Core.Game;
 
 namespace YARG.Core.UnitTests.Engine;
 
@@ -14,8 +15,8 @@ public class DrumEngineTester
         0.21f, 0.46f, 0.77f, 1.85f, 3.08f, 4.29f
     };
 
-    private readonly DrumsEngineParameters _engineParams = new(new HitWindowSettings(0.15, 0.03, 1, false), StarMultiplierThresholds,
-        DrumsEngineParameters.DrumMode.ProFourLane);
+    private readonly DrumsEngineParameters _engineParams =
+        EnginePreset.Default.Drums.Create(StarMultiplierThresholds, DrumsEngineParameters.DrumMode.ProFourLane);
 
     private string? _chartsDirectory;
 
