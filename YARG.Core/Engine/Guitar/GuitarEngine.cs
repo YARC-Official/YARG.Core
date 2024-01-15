@@ -303,6 +303,8 @@ namespace YARG.Core.Engine.Guitar
                 tick = sustain.Note.TickEnd;
 
             uint scoreTick = Math.Clamp(tick, sustain.Note.Tick, sustain.Note.TickEnd);
+            // Do this here instead of in the usages, otherwise it's just duplicated code
+            sustain.Note.SustainTicksHeld = scoreTick - sustain.Note.Tick;
 
             // Sustain points are awarded at a constant rate regardless of tempo
             // double deltaScore = CalculateBeatProgress(scoreTick, sustain.BaseTick, POINTS_PER_BEAT);
