@@ -61,13 +61,13 @@ namespace YARG.Core.Song
 
         private string _directory = string.Empty;
 
-        private SortString _name = string.Empty;
+        private SortString _name = SortString.Empty;
         private SortString _artist = DEFAULT_ARTIST;
         private SortString _album = DEFAULT_ALBUM;
         private SortString _genre = DEFAULT_GENRE;
         private SortString _charter = DEFAULT_CHARTER;
         private SortString _source = DEFAULT_SOURCE;
-        private SortString _playlist = string.Empty;
+        private SortString _playlist = SortString.Empty;
 
         private string _unmodifiedYear = DEFAULT_YEAR;
         private string _parsedYear = DEFAULT_YEAR;

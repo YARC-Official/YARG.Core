@@ -8,6 +8,13 @@ namespace YARG.Core.Song
 {
     public struct SortString : IComparable<SortString>, IEquatable<SortString>
     {
+        public static readonly SortString Empty = new()
+        {
+            _str = string.Empty,
+            _sortStr = string.Empty,
+            _hashCode = string.Empty.GetHashCode()
+        };
+
         private string _str;
         private string _sortStr;
         private int _hashCode;
@@ -23,9 +30,9 @@ namespace YARG.Core.Song
             }
         }
 
-        public int Length => _str.Length;
+        public readonly int Length => _str.Length;
 
-        public string SortStr => _sortStr;
+        public readonly string SortStr => _sortStr;
 
         public SortString(string str)
         {
@@ -34,22 +41,22 @@ namespace YARG.Core.Song
             Str = str;
         }
 
-        public int CompareTo(SortString other)
+        public readonly int CompareTo(SortString other)
         {
             return _sortStr.CompareTo(other._sortStr);
         }
 
-        public override int GetHashCode()
+        public readonly override int GetHashCode()
         {
             return _hashCode;
         }
 
-        public bool Equals(SortString other)
+        public readonly bool Equals(SortString other)
         {
             return _sortStr.Equals(other._sortStr);
         }
 
-        public override string ToString()
+        public readonly override string ToString()
         {
             return _str;
         }
@@ -57,7 +64,7 @@ namespace YARG.Core.Song
         public static implicit operator SortString(string str) => new(str);
         public static implicit operator string(SortString str) => str.Str;
 
-        private static readonly List<(string, string)> SearchLeniency = new()
+        private static readonly (string, string)[] SearchLeniency =
         {
             ("Æ", "AE") // Tool - Ænema
         };
