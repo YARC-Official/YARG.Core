@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 
@@ -18,6 +19,8 @@ namespace YARG.Core.IO
     /// </summary>
     /// <remarks>DO NOT USE THIS AS AN ALTERNATIVE TO STACK-BASED ARRAYS</remarks>
     /// <typeparam name="T">The unmanaged type contained in the block of memory</typeparam>
+    [DebuggerDisplay("Length = {Length}")]
+    [DebuggerTypeProxy(typeof(FixedArray<>.FixedArrayDebugView))]
     public sealed unsafe class FixedArray<T> : IEnumerable<T>, IDisposable
         where T : unmanaged
     {
@@ -248,6 +251,18 @@ namespace YARG.Core.IO
         }
 
         ~FixedArray() { Dispose(false); }
+
+        private sealed class FixedArrayDebugView
+        {
+            private readonly FixedArray<T> array;
+            public FixedArrayDebugView(FixedArray<T> array)
+            {
+                this.array = array ?? throw new ArgumentNullException(nameof(array));
+            }
+
+            [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+            public Span<T> Items => array.Span;
+        }
 
 
         public IEnumerator GetEnumerator() { return new Enumerator(this); }
