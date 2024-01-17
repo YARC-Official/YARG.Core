@@ -135,7 +135,7 @@ public class Analyzer
         }
 
         // Done!
-        int score = engine.BaseStats.Score;
+        int score = engine.BaseStats.TotalScore;
         Console.WriteLine($"> Done running for {replayFrame.PlayerInfo.Profile.Name}, final score: {score}");
         _currentBandScore += score;
 

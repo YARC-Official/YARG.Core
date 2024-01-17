@@ -145,7 +145,7 @@ namespace YARG.Core.Engine.Vocals
 
         protected override void AddScore(VocalNote note)
         {
-            EngineStats.Score += 1000 * EngineStats.ScoreMultiplier;
+            EngineStats.CommittedScore += 1000 * EngineStats.ScoreMultiplier;
             UpdateStars();
         }
 

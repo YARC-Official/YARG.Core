@@ -32,8 +32,9 @@ namespace YARG.Core.Engine.Guitar.Engines
                 State.StrummedThisUpdate = true;
                 State.FrontEndStartTime = note.Time;
 
-                foreach (var sustainNote in ActiveSustains)
+                foreach (var sustain in ActiveSustains)
                 {
+                    var sustainNote = sustain.Note;
                     if (sustainNote.IsDisjoint)
                     {
                         State.ButtonMask |= (byte) sustainNote.DisjointMask;
@@ -316,8 +317,10 @@ namespace YARG.Core.Engine.Guitar.Engines
         protected override bool CanNoteBeHit(GuitarNote note)
         {
             byte buttonsMasked = State.ButtonMask;
-            foreach (var sustainNote in ActiveSustains)
+            foreach (var sustain in ActiveSustains)
             {
+                var sustainNote = sustain.Note;
+
                 // Don't want to mask off the note we're checking otherwise it'll always return false lol
                 if (note == sustainNote)
                 {
@@ -404,34 +407,6 @@ namespace YARG.Core.Engine.Guitar.Engines
 
             // Anchor buttons held are lower than the note mask
             return anchorButtons < noteMask;
-        }
-
-        protected override void UpdateSustains()
-        {
-            // No sustains
-            if (ActiveSustains.Count == 0)
-            {
-                UpdateWhammyStarPower(spSustainsActive: false);
-                return;
-            }
-
-            bool isStarPowerSustainActive = false;
-            for (int i = 0; i < ActiveSustains.Count; i++)
-            {
-                var note = ActiveSustains[i];
-
-                isStarPowerSustainActive |= note.IsStarPower;
-                bool sustainEnded = State.CurrentTick > note.TickEnd;
-
-                if (!CanNoteBeHit(note) || sustainEnded)
-                {
-                    ActiveSustains.Remove(note);
-                    i--;
-                    OnSustainEnd?.Invoke(note, State.CurrentTime);
-                }
-            }
-
-            UpdateWhammyStarPower(isStarPowerSustainActive);
         }
 
         protected override bool HitNote(GuitarNote note)
