@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using YARG.Core.Chart;
 using YARG.Core.Engine.Logging;
@@ -466,42 +466,45 @@ namespace YARG.Core.Engine
             }
 
             // Look back until finding the start of the phrase
-            var prevNote = note.PreviousNote;
-            while (prevNote is not null && prevNote.IsStarPower)
+            if (!note.IsStarPowerStart)
             {
-                prevNote.Flags &= ~NoteFlags.StarPower;
-                foreach (var childNote in prevNote.ChildNotes)
+                var prevNote = note.PreviousNote;
+                while (prevNote is not null && prevNote.IsStarPower)
                 {
-                    childNote.Flags &= ~NoteFlags.StarPower;
-                }
+                    prevNote.Flags &= ~NoteFlags.StarPower;
+                    foreach (var childNote in prevNote.ChildNotes)
+                    {
+                        childNote.Flags &= ~NoteFlags.StarPower;
+                    }
 
-                if (prevNote.IsStarPowerStart)
-                {
-                    break;
-                }
+                    if (prevNote.IsStarPowerStart)
+                    {
+                        break;
+                    }
 
-                prevNote = prevNote.PreviousNote;
+                    prevNote = prevNote.PreviousNote;
+                }
             }
 
-            // Do this to warn of a null reference if its used below
-            prevNote = null;
-
             // Look forward until finding the end of the phrase
-            var nextNote = note.NextNote;
-            while (nextNote is not null && nextNote.IsStarPower)
+            if (!note.IsStarPowerEnd)
             {
-                nextNote.Flags &= ~NoteFlags.StarPower;
-                foreach (var childNote in nextNote.ChildNotes)
+                var nextNote = note.NextNote;
+                while (nextNote is not null && nextNote.IsStarPower)
                 {
-                    childNote.Flags &= ~NoteFlags.StarPower;
-                }
+                    nextNote.Flags &= ~NoteFlags.StarPower;
+                    foreach (var childNote in nextNote.ChildNotes)
+                    {
+                        childNote.Flags &= ~NoteFlags.StarPower;
+                    }
 
-                if (nextNote.IsStarPowerEnd)
-                {
-                    break;
-                }
+                    if (nextNote.IsStarPowerEnd)
+                    {
+                        break;
+                    }
 
-                nextNote = nextNote.NextNote;
+                    nextNote = nextNote.NextNote;
+                }
             }
 
             OnStarPowerPhraseMissed?.Invoke(note);
