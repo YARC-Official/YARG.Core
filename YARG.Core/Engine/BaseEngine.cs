@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using YARG.Core.Chart;
 using YARG.Core.Engine.Logging;
@@ -548,14 +548,26 @@ namespace YARG.Core.Engine
 
         protected void UpdateStarPowerAmount(uint tick)
         {
+            double previous = EngineStats.StarPowerAmount;
             double gain = CalculateStarPowerGain(tick);
             double drain = CalculateStarPowerDrain(tick);
+
             EngineStats.StarPowerAmount = Math.Clamp(EngineStats.StarPowerBaseAmount + gain - drain, 0, 1);
 
             YargTrace.DebugAssert(!double.IsNaN(gain), "SP gain is NaN!");
             YargTrace.DebugAssert(!double.IsNaN(drain), "SP drain is NaN!");
             YargTrace.DebugAssert(!double.IsNaN(EngineStats.StarPowerBaseAmount), "SP base is NaN!");
             YargTrace.DebugAssert(!double.IsNaN(EngineStats.StarPowerAmount), "SP amount is NaN!");
+
+            if (tick > State.LastTick)
+            {
+                double delta = Math.Abs(EngineStats.StarPowerAmount - previous);
+                double beatDelta = CalculateStarPowerBeatProgress(tick, State.LastTick);
+                double measureDelta = CalculateStarPowerMeasureProgress(tick, State.LastTick);
+                double jumpThreshold = Math.Max(beatDelta, measureDelta) * 2;
+                if (delta > jumpThreshold)
+                    YargTrace.Fail($"Unexpected jump in SP amount! Went from {previous} to {EngineStats.StarPowerAmount}");
+            }
         }
 
         protected void AwardStarPower(TNoteType note)
