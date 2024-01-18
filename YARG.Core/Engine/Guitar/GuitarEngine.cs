@@ -292,8 +292,21 @@ namespace YARG.Core.Engine.Guitar
         }
 
         protected override double CalculateStarPowerGain(uint tick)
-            => State.StarPowerWhammyTimer.IsActive(State.CurrentTime) ?
-                CalculateStarPowerBeatProgress(tick, State.StarPowerWhammyBaseTick) : 0;
+        {
+            if (State.StarPowerWhammyTimer.IsExpired(State.CurrentTime))
+            {
+                // We need to clamp the tick value to the max possible time of the threshold,
+                // otherwise the whammy gain will incorrectly reset to 0 momentarily
+                double endTime = State.StarPowerWhammyTimer.EndTime;
+                tick = SyncTrack.TimeToTick(endTime);
+            }
+            else if (!State.StarPowerWhammyTimer.IsActive(State.CurrentTime))
+            {
+                return 0;
+            }
+
+            return CalculateStarPowerBeatProgress(tick, State.StarPowerWhammyBaseTick);
+        }
 
         protected double CalculateSustainPoints(ActiveSustain sustain, uint tick)
         {
@@ -358,8 +371,8 @@ namespace YARG.Core.Engine.Guitar
                 }
                 else if (State.StarPowerWhammyTimer.IsExpired(State.CurrentTime))
                 {
-                    // Temporarily re-start whammy timer so that whammy gain gets calculated
-                    State.StarPowerWhammyTimer.Start(State.CurrentTime);
+                    // No need to restart the timer, expiration is handled correctly in the gain calculation
+                    // State.StarPowerWhammyTimer.Start(State.CurrentTime);
 
                     // Commit final whammy gain amount
                     UpdateProgressValues(State.CurrentTick);

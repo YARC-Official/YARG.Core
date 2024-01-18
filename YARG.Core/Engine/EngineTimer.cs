@@ -5,28 +5,31 @@ namespace YARG.Core.Engine
     public struct EngineTimer
     {
         private double _startTime;
-        private double _timeThreshold;
+        public readonly double TimeThreshold;
+
+        public readonly double StartTime => _startTime;
+        public readonly double EndTime => _startTime + TimeThreshold;
 
         public EngineTimer(double threshold)
         {
             _startTime = double.MaxValue;
-            _timeThreshold = threshold;
+            TimeThreshold = threshold;
         }
 
         public void Start(double currentTime)
             => Start(ref _startTime, currentTime);
 
         public void StartWithOffset(double currentTime, double offset)
-            => StartWithOffset(ref _startTime, currentTime, _timeThreshold, offset);
+            => StartWithOffset(ref _startTime, currentTime, TimeThreshold, offset);
 
         public void Reset()
             => Reset(ref _startTime);
 
         public readonly bool IsActive(double currentTime)
-            => IsActive(_startTime, currentTime, _timeThreshold);
+            => IsActive(_startTime, currentTime, TimeThreshold);
 
         public readonly bool IsExpired(double currentTime)
-            => IsExpired(_startTime, currentTime, _timeThreshold);
+            => IsExpired(_startTime, currentTime, TimeThreshold);
 
         public static void Start(ref double startTime, double currentTime)
         {
