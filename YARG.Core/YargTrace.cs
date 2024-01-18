@@ -9,11 +9,11 @@ namespace YARG.Core
         Info,
         Warning,
         Error,
+        AssertFail,
     }
 
     public interface IYargTraceListener
     {
-        void Assert(bool condition, string? message);
         void LogMessage(YargTraceType type, string? message);
         void LogException(Exception ex, string? message);
     }
@@ -31,17 +31,6 @@ namespace YARG.Core
         {
             _listeners.Remove(listener);
         }
-
-        public static void Assert(bool condition, string? message)
-        {
-            foreach (var listener in _listeners)
-            {
-                listener.Assert(condition, message);
-            }
-        }
-
-        public static void Fail(string? message)
-            => Assert(false, message);
 
         public static void LogMessage(YargTraceType type, string? message)
         {
@@ -68,13 +57,19 @@ namespace YARG.Core
             }
         }
 
-        [Conditional("DEBUG")]
-        public static void DebugAssert(bool condition, string? message)
-            => Assert(condition, message);
+        public static void Assert(bool condition, string? message)
+        {
+            if (condition)
+                return;
 
-        [Conditional("DEBUG")]
-        public static void DebugFail(string? message)
-            => Fail(message);
+            foreach (var listener in _listeners)
+            {
+                listener.LogMessage(YargTraceType.AssertFail, message);
+            }
+        }
+
+        public static void Fail(string? message)
+            => Assert(false, message);
 
         [Conditional("DEBUG")]
         public static void DebugMessage(YargTraceType type, string? message)
@@ -95,5 +90,13 @@ namespace YARG.Core
         [Conditional("DEBUG")]
         public static void DebugException(Exception ex, string? message)
             => LogException(ex, message);
+
+        [Conditional("DEBUG")]
+        public static void DebugAssert(bool condition, string? message)
+            => Assert(condition, message);
+
+        [Conditional("DEBUG")]
+        public static void DebugFail(string? message)
+            => Fail(message);
     }
 }

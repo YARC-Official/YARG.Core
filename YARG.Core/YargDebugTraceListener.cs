@@ -5,14 +5,12 @@ namespace YARG.Core
 {
     public class YargDebugTraceListener : IYargTraceListener
     {
-        public void Assert(bool condition, string? message)
-        {
-            Debug.Assert(condition, message);
-        }
-
         public void LogMessage(YargTraceType type, string? message)
         {
-            Debug.WriteLine($"{type}: {message}");
+            if (type == YargTraceType.AssertFail)
+                Debug.Fail(message);
+            else
+                Debug.WriteLine($"[{type}] {message}");
         }
 
         public void LogException(Exception ex, string? message)
