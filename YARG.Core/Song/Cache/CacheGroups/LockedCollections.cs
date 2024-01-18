@@ -15,4 +15,17 @@ namespace YARG.Core.Song.Cache
                 Values.Add(key, value);
         }
     }
+
+    public class LockedConGroupList<TGroup>
+        where TGroup : CONGroup
+    {
+        public readonly object Lock = new();
+        public readonly List<(string Location, TGroup Group)> Values = new();
+
+        public void Add(string key, TGroup group)
+        {
+            lock (Lock)
+                Values.Add((key, group));
+        }
+    }
 }

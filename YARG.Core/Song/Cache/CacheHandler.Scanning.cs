@@ -48,29 +48,41 @@ namespace YARG.Core.Song.Cache
 
         private void FindNewEntries(bool multithreading)
         {
-            static void ParallelLoop<T>(Dictionary<string, T> groups, Action<string, T> action)
-            {
-                Parallel.ForEach(groups, group => action(group.Key, group.Value));
-            }
-
-            static void SequentialLoop<T>(Dictionary<string, T> groups, Action<string, T> action)
-            {
-                foreach (var group in groups)
-                    action(group.Key, group.Value);
-            }
-
             _progress.Stage = ScanStage.LoadingSongs;
             if (multithreading)
             {
-                ParallelLoop(iniGroups, ScanDirectory_Parallel);
-                Task.WaitAll(Task.Run(() => ParallelLoop(conGroups.Values, ScanCONGroup_Parallel)),
-                             Task.Run(() => ParallelLoop(extractedConGroups.Values, ScanExtractedCONGroup_Parallel)));
+                Parallel.ForEach(iniGroups, node => ScanDirectory_Parallel(node.Directory, node.Group));
+
+                var conTasks = new Task[conGroups.Values.Count + extractedConGroups.Values.Count];
+                int con = 0;
+                foreach (var (Location, Group) in conGroups.Values)
+                {
+                    conTasks[con++] = Task.Run(() => ScanCONGroup_Parallel(Location, Group));
+                }
+
+                foreach (var (Location, Group) in extractedConGroups.Values)
+                {
+                    conTasks[con++] = Task.Run(() => ScanExtractedCONGroup_Parallel(Location, Group));
+                }
+
+                Task.WaitAll(conTasks);
             }
             else
             {
-                SequentialLoop(iniGroups, ScanDirectory);
-                SequentialLoop(conGroups.Values, ScanCONGroup);
-                SequentialLoop(extractedConGroups.Values, ScanExtractedCONGroup);
+                foreach (var (Directory, Group) in iniGroups)
+                {
+                    ScanDirectory(Directory, Group);
+                }
+
+                foreach (var (Location, Group) in conGroups.Values)
+                {
+                    ScanCONGroup(Location, Group);
+                }
+
+                foreach (var (Location, Group) in extractedConGroups.Values)
+                {
+                    ScanExtractedCONGroup(Location, Group);
+                }
             }
         }
 

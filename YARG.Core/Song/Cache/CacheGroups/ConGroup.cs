@@ -4,13 +4,16 @@ using YARG.Core.IO;
 
 namespace YARG.Core.Song.Cache
 {
-    public abstract class CONGroup
+    public abstract class CONGroup : ICacheGroup
     {
         protected readonly Dictionary<string, SortedDictionary<int, SongMetadata>> entries = new();
         protected readonly object entryLock = new();
-        private int _entryCount;
-        public int EntryCount { get { lock (entryLock) return _entryCount; } }
+
+        private int _count;
+        public int Count { get { lock (entryLock) return _count; } }
+
         public abstract bool ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings);
+        public abstract byte[] SerializeEntries(string filename, Dictionary<SongMetadata, CategoryCacheWriteNode> nodes);
 
         public void AddEntry(string name, int index, SongMetadata entry)
         {
@@ -20,7 +23,7 @@ namespace YARG.Core.Song.Cache
                     dict.Add(index, entry);
                 else
                     entries.Add(name, new() { { index, entry } });
-                ++_entryCount;
+                ++_count;
             }
         }
 
@@ -31,7 +34,7 @@ namespace YARG.Core.Song.Cache
                 if (!entries.Remove(name, out var dict))
                     return false;
 
-                _entryCount -= dict.Count;
+                _count -= dict.Count;
             }
             return true;
         }
@@ -46,7 +49,7 @@ namespace YARG.Core.Song.Cache
                 {
                     entries.Remove(name);
                 }
-                --_entryCount;
+                --_count;
             }
         }
 
@@ -73,7 +76,7 @@ namespace YARG.Core.Song.Cache
                         {
                             entries.Remove(dict.Key);
                         }
-                        --_entryCount;
+                        --_count;
                         return true;
                     }
                 }
@@ -83,7 +86,7 @@ namespace YARG.Core.Song.Cache
 
         protected void Serialize(BinaryWriter writer, ref Dictionary<SongMetadata, CategoryCacheWriteNode> nodes)
         {
-            writer.Write(_entryCount);
+            writer.Write(_count);
             foreach (var entryList in entries)
             {
                 foreach (var entry in entryList.Value)

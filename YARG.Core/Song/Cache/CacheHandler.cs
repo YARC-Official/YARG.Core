@@ -65,9 +65,9 @@ namespace YARG.Core.Song.Cache
 
         private readonly LockedCacheDictionary<UpdateGroup> updateGroups = new();
         private readonly LockedCacheDictionary<UpgradeGroup> upgradeGroups = new();
-        private readonly LockedCacheDictionary<PackedCONGroup> conGroups = new();
-        private readonly LockedCacheDictionary<UnpackedCONGroup> extractedConGroups = new();
-        private readonly Dictionary<string, IniGroup> iniGroups;
+        private readonly LockedConGroupList<PackedCONGroup> conGroups = new();
+        private readonly LockedConGroupList<UnpackedCONGroup> extractedConGroups = new();
+        private readonly List<(string Directory, IniGroup Group)> iniGroups;
         private readonly Dictionary<string, List<(string, YARGDTAReader)>> updates = new();
         private readonly Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades = new();
         private readonly HashSet<string> preScannedDirectories = new();
@@ -81,22 +81,27 @@ namespace YARG.Core.Song.Cache
         private CacheHandler(List<string> baseDirectories, bool allowDuplicates)
         {
             _progress = default;
+            this.allowDuplicates = allowDuplicates;
             iniGroups = new(baseDirectories.Count);
             foreach (string dir in baseDirectories)
-                iniGroups.TryAdd(dir, new IniGroup());
-            this.allowDuplicates = allowDuplicates;
+            {
+                if (!iniGroups.Exists(((string Directory, IniGroup Group) obj) => { return obj.Directory == dir; }))
+                {
+                    iniGroups.Add((dir, new IniGroup()));
+                }
+            }
         }
 
         private IniGroup? GetBaseIniGroup(string path)
         {
-            foreach (var group in iniGroups)
+            foreach (var node in iniGroups)
             {
-                if (path.StartsWith(group.Key) &&
+                if (path.StartsWith(node.Directory) &&
                     // Ensures directories with similar names (previously separate bases)
-                    // that are consolidated in-gamne to a single base directory
+                    // that are consolidated in-game to a single base directory
                     // don't have conflicting "relative path" issues
-                    (path.Length == group.Key.Length || path[group.Key.Length] == Path.DirectorySeparatorChar))
-                    return group.Value;
+                    (path.Length == node.Directory.Length || path[node.Directory.Length] == Path.DirectorySeparatorChar))
+                    return node.Group;
             }
             return null;
         }
@@ -166,32 +171,17 @@ namespace YARG.Core.Song.Cache
 
         private void CleanupDuplicates()
         {
-            static bool TryRemoveFromCONs<TGroup>(Dictionary<string, TGroup> groups, SongMetadata entry)
-                where TGroup : CONGroup
+            static bool TryRemove<TGroup>(List<(string Location, TGroup Group)> groups, SongMetadata entry)
+                where TGroup : ICacheGroup
             {
-                foreach (var group in groups)
+                for (int i = 0; i < groups.Count; ++i)
                 {
-                    if (group.Value.TryRemoveEntry(entry))
+                    var group = groups[i].Group;
+                    if (group.TryRemoveEntry(entry))
                     {
-                        if (group.Value.EntryCount == 0)
+                        if (group.Count == 0)
                         {
-                            groups.Remove(group.Key);
-                        }
-                        return true;
-                    }
-                }
-                return false;
-            }
-
-            bool TryRemoveFromInis(SongMetadata entry)
-            {
-                foreach (var group in iniGroups)
-                {
-                    if (group.Value.TryRemoveEntry(entry))
-                    {
-                        if (group.Value.Count == 0)
-                        {
-                            iniGroups.Remove(group.Key);
+                            groups.RemoveAt(i);
                         }
                         return true;
                     }
@@ -201,17 +191,17 @@ namespace YARG.Core.Song.Cache
 
             foreach (var entry in duplicatesToRemove)
             {
-                if (TryRemoveFromInis(entry))
+                if (TryRemove(iniGroups, entry))
                 {
                     continue;
                 }
 
-                if (TryRemoveFromCONs(conGroups.Values, entry))
+                if (TryRemove(conGroups.Values, entry))
                 {
                     continue;
                 }
 
-                TryRemoveFromCONs(extractedConGroups.Values, entry);
+                TryRemove(extractedConGroups.Values, entry);
             }
         }
 
@@ -326,7 +316,7 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void CreateUpdateGroup(string directory, FileInfo dta, bool removeEntries = false)
+        private void CreateUpdateGroup(string directory, FileInfo dta, bool removeEntries)
         {
             var reader = YARGDTAReader.TryCreate(dta.FullName);
             if (reader == null)
@@ -338,7 +328,7 @@ namespace YARG.Core.Song.Cache
                 while (reader!.StartNode())
                 {
                     string name = reader.GetNameOfNode();
-                    group!.updates.Add(name);
+                    group.updates.Add(name);
                     AddUpdate(name, new(directory, new YARGDTAReader(reader)));
 
                     if (removeEntries)
@@ -351,13 +341,13 @@ namespace YARG.Core.Song.Cache
                 YargTrace.LogException(ex, $"Error while scanning CON update folder {directory}!");
             }
 
-            if (group!.updates.Count > 0)
+            if (group.updates.Count > 0)
                 updateGroups.Add(directory, group);
             else
                 YargTrace.LogWarning($"{directory} .dta file possibly malformed");
         }
 
-        private UpgradeGroup? CreateUpgradeGroup(string directory, FileInfo dta, bool removeEntries = false)
+        private UpgradeGroup? CreateUpgradeGroup(string directory, FileInfo dta, bool removeEntries)
         {
             var reader = YARGDTAReader.TryCreate(dta.FullName);
             if (reader == null)
@@ -375,7 +365,7 @@ namespace YARG.Core.Song.Cache
                         if (CanAddUpgrade(name, file.LastWriteTime))
                         {
                             IRBProUpgrade upgrade = new UnpackedRBProUpgrade(file.FullName, file.LastWriteTime);
-                            group!.upgrades[name] = upgrade;
+                            group.upgrades[name] = upgrade;
                             AddUpgrade(name, new YARGDTAReader(reader), upgrade);
 
                             if (removeEntries)
@@ -472,22 +462,23 @@ namespace YARG.Core.Song.Cache
         {
             lock (updateLock)
             {
-                if (updates.TryGetValue(name, out var list))
-                    list.Add(node);
-                else
-                    updates[name] = new() { node };
+                if (!updates.TryGetValue(name, out var list))
+                {
+                    updates.Add(name, list = new());
+                }
+                list.Add(node);
             }
         }
 
         private void RemoveCONEntry(string shortname)
         {
-            void Remove<T>(LockedCacheDictionary<T> dict) where T : CONGroup
+            void Remove<T>(LockedConGroupList<T> dict) where T : CONGroup
             {
                 lock (dict.Lock)
                 {
-                    foreach (var group in dict.Values)
-                        if (group.Value.RemoveEntries(shortname))
-                            YargTrace.DebugInfo($"{group.Key} - {shortname} pending rescan");
+                    foreach (var (Location, Group) in dict.Values)
+                        if (Group.RemoveEntries(shortname))
+                            YargTrace.DebugInfo($"{Location} - {shortname} pending rescan");
                 }
             }
             Remove(conGroups);
@@ -498,13 +489,13 @@ namespace YARG.Core.Song.Cache
         {
             lock (upgradeGroups.Lock)
             {
-                foreach (var group in upgradeGroups.Values)
+                foreach (var node in upgradeGroups.Values)
                 {
-                    if (group.Value.upgrades.TryGetValue(shortname, out var currUpgrade))
+                    if (node.Value.upgrades.TryGetValue(shortname, out var currUpgrade))
                     {
                         if (currUpgrade.LastWrite >= lastWrite)
                             return false;
-                        group.Value.upgrades.Remove(shortname);
+                        node.Value.upgrades.Remove(shortname);
                         break;
                     }
                 }
@@ -516,9 +507,9 @@ namespace YARG.Core.Song.Cache
         {
             lock (conGroups.Lock)
             {
-                foreach (var group in conGroups.Values)
+                foreach (var (Location, Group) in conGroups.Values)
                 {
-                    var upgrades = group.Value.Upgrades;
+                    var upgrades = Group.Upgrades;
                     if (upgrades.TryGetValue(shortname, out var currUpgrade))
                     {
                         if (currUpgrade!.LastWrite >= lastWrite)

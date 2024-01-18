@@ -5,7 +5,7 @@ using YARG.Core.IO;
 
 namespace YARG.Core.Song.Cache
 {
-    public sealed class PackedCONGroup : CONGroup, ICacheGroup, IModificationGroup
+    public sealed class PackedCONGroup : CONGroup, IModificationGroup
     {
         public const string SONGSFILEPATH = "songs/songs.dta";
         public const string UPGRADESFILEPATH = "songs_upgrades/upgrades.dta";
@@ -54,6 +54,17 @@ namespace YARG.Core.Song.Cache
             return true;
         }
 
+        public override byte[] SerializeEntries(string filename, Dictionary<SongMetadata, CategoryCacheWriteNode> nodes)
+        {
+            using MemoryStream ms = new();
+            using BinaryWriter writer = new(ms);
+
+            writer.Write(filename);
+            writer.Write(songDTA!.lastWrite.ToBinary());
+            Serialize(writer, ref nodes);
+            return ms.ToArray();
+        }
+
         public void AddUpgrade(string name, IRBProUpgrade upgrade) { lock (upgradeLock) Upgrades[name] = upgrade; }
 
         public YARGDTAReader? LoadUpgrades()
@@ -91,17 +102,6 @@ namespace YARG.Core.Song.Cache
                 writer.Write(upgrade.Key);
                 upgrade.Value.WriteToCache(writer);
             }
-            return ms.ToArray();
-        }
-
-        public byte[] SerializeEntries(string filename, Dictionary<SongMetadata, CategoryCacheWriteNode> nodes)
-        {
-            using MemoryStream ms = new();
-            using BinaryWriter writer = new(ms);
-
-            writer.Write(filename);
-            writer.Write(songDTA!.lastWrite.ToBinary());
-            Serialize(writer, ref nodes);
             return ms.ToArray();
         }
     }

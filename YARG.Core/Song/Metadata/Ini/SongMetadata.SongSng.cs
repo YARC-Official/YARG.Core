@@ -223,7 +223,6 @@ namespace YARG.Core.Song
             byte chartTypeIndex = reader.ReadByte();
             if (chartTypeIndex >= IIniMetadata.CHART_FILE_TYPES.Length)
             {
-                YargTrace.DebugInfo("Cache file was modified externally with a bad CHART_TYPE enum value");
                 return null;
             }
 

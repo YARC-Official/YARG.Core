@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.Serialization;
 using System.Threading.Tasks;
 using YARG.Core.IO;
 
@@ -8,7 +10,7 @@ namespace YARG.Core.Song.Cache
 {
     public sealed partial class CacheHandler
     {
-        private sealed class ParallelExceptionTracker
+        private sealed class ParallelExceptionTracker : Exception
         {
             private readonly object _lock = new object();
             private Exception? _exception = null;
@@ -29,6 +31,27 @@ namespace YARG.Core.Song.Cache
             }
 
             public Exception? Exception => _exception;
+
+            public override IDictionary? Data => _exception?.Data;
+
+            public override string Message => _exception?.Message ?? string.Empty;
+
+            public override string StackTrace => _exception?.StackTrace ?? string.Empty;
+
+            public override string ToString()
+            {
+                return _exception?.ToString() ?? string.Empty;
+            }
+
+            public override Exception? GetBaseException()
+            {
+                return _exception?.GetBaseException();
+            }
+
+            public override void GetObjectData(SerializationInfo info, StreamingContext context)
+            {
+                _exception?.GetObjectData(info, context);
+            }
         }
 
         private void ScanDirectory_Parallel(string directory, IniGroup group)

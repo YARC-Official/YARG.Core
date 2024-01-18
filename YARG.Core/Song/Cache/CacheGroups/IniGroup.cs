@@ -24,17 +24,17 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        public bool TryRemoveEntry(SongMetadata entry)
+        public bool TryRemoveEntry(SongMetadata entryToRemove)
         {
             // No locking as the post-scan removal sequence
             // cannot be parallelized
-            if (entries.TryGetValue(entry.Hash, out var list))
+            if (entries.TryGetValue(entryToRemove.Hash, out var list))
             {
-                if (list.Remove(entry))
+                if (list.Remove(entryToRemove))
                 {
                     if (list.Count == 0)
                     {
-                        entries.Remove(entry.Hash);
+                        entries.Remove(entryToRemove.Hash);
                     }
                     --_count;
                     return true;
