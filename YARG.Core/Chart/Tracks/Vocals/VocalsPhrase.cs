@@ -10,7 +10,7 @@ namespace YARG.Core.Chart
     public class VocalsPhrase : ChartEvent, ICloneable<VocalsPhrase>
     {
         public VocalNote PhraseParentNote { get; }
-        public List<LyricEvent> Lyrics { get; } = new();
+        public List<LyricEvent> Lyrics { get; }
 
         public bool IsLyric => !PhraseParentNote.IsPercussion;
         public bool IsPercussion => PhraseParentNote.IsPercussion;

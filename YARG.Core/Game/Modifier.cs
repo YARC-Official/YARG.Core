@@ -6,14 +6,15 @@ namespace YARG.Core.Game
     [Flags]
     public enum Modifier : ulong
     {
-        None        = 0,
-        AllStrums   = 1 << 0,
-        AllHopos    = 1 << 1,
-        AllTaps     = 1 << 2,
-        HoposToTaps = 1 << 3,
-        TapsToHopos = 1 << 4,
-        NoteShuffle = 1 << 5,
-        NoKicks     = 1 << 6,
+        None          = 0,
+        AllStrums     = 1 << 0,
+        AllHopos      = 1 << 1,
+        AllTaps       = 1 << 2,
+        HoposToTaps   = 1 << 3,
+        TapsToHopos   = 1 << 4,
+        NoteShuffle   = 1 << 5,
+        NoKicks       = 1 << 6,
+        UnpitchedOnly = 1 << 7,
     }
 
     public static class ModifierConflicts
@@ -44,16 +45,17 @@ namespace YARG.Core.Game
                     Modifier.TapsToHopos,
 
                 GameMode.FourLaneDrums =>
-                    // Modifier.None,
                     Modifier.NoKicks,
+
+                GameMode.Vocals =>
+                    Modifier.UnpitchedOnly,
 
                 GameMode.SixFretGuitar or
                 GameMode.FiveLaneDrums or
             //  GameMode.TrueDrums     or
                 GameMode.ProGuitar     or
-                GameMode.ProKeys       or
             //  GameMode.Dj            or
-                GameMode.Vocals        => Modifier.None,
+                GameMode.ProKeys       => Modifier.None,
 
                 _  => throw new NotImplementedException($"Unhandled game mode {gameMode}!")
             };

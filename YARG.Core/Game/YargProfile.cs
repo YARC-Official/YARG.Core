@@ -97,6 +97,12 @@ namespace YARG.Core.Game
             return (CurrentModifiers & modifier) == modifier;
         }
 
+        public void CopyModifiers(YargProfile profile)
+        {
+            // The modifiers of the other profile are guaranteed to be correct
+            CurrentModifiers = profile.CurrentModifiers;
+        }
+
         public void ApplyModifiers<TNote>(InstrumentDifficulty<TNote> track) where TNote : Note<TNote>
         {
             switch (CurrentInstrument.ToGameMode())
@@ -104,7 +110,7 @@ namespace YARG.Core.Game
                 case GameMode.FiveFretGuitar:
                     if (track is not InstrumentDifficulty<GuitarNote> guitarTrack)
                     {
-                        throw new InvalidOperationException($"Cannot apply guitar modifiers to non-guitar track " +
+                        throw new InvalidOperationException("Cannot apply guitar modifiers to non-guitar track " +
                             $"with notes of {typeof(TNote)}!");
                     }
 
@@ -133,7 +139,7 @@ namespace YARG.Core.Game
                 case GameMode.FourLaneDrums:
                     if (track is not InstrumentDifficulty<DrumNote> drumsTrack)
                     {
-                        throw new InvalidOperationException($"Cannot apply guitar modifiers to non-drums track " +
+                        throw new InvalidOperationException("Cannot apply drum modifiers to non-drums track " +
                             $"with notes of {typeof(TNote)}!");
                     }
 
@@ -143,6 +149,16 @@ namespace YARG.Core.Game
                     }
 
                     break;
+                case GameMode.Vocals:
+                    throw new InvalidOperationException("For vocals, use ApplyVocalModifiers instead!");
+            }
+        }
+
+        public void ApplyVocalModifiers(VocalsPart vocalsPart)
+        {
+            if (IsModifierActive(Modifier.UnpitchedOnly))
+            {
+                vocalsPart.ConvertAllToUnpitched();
             }
         }
 

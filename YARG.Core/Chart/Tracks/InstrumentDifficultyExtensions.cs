@@ -38,18 +38,20 @@ namespace YARG.Core.Chart
         {
             var kickDrumPadIndex = difficulty.Instrument switch
             {
-                Instrument.ProDrums => (int) FourLaneDrumPad.Kick,
+                Instrument.ProDrums      => (int) FourLaneDrumPad.Kick,
                 Instrument.FourLaneDrums => (int) FourLaneDrumPad.Kick,
                 Instrument.FiveLaneDrums => (int) FiveLaneDrumPad.Kick,
-                _ => throw new InvalidOperationException($"Cannot remove kick drum notes from non-drum track with instrument {difficulty.Instrument}!")
+                _ => throw new InvalidOperationException("Cannot remove kick drum notes from non-drum track with " +
+                    $"instrument {difficulty.Instrument}!")
             };
+
             DrumNote? previousNote = null;
             for (int index = 0; index < difficulty.Notes.Count; index++)
             {
                 var note = difficulty.Notes[index];
                 if (note.Pad != kickDrumPadIndex)
                 {
-                    //this is not a kick drum note, but we have to check it's children too
+                    // This is not a kick drum note, but we have to check it's children too
                     int? childNoteKickIndex = null;
                     for (int i = 0; i < note.ChildNotes.Count; i++)
                     {
@@ -77,8 +79,9 @@ namespace YARG.Core.Chart
                 }
                 else if (note.ChildNotes.Count > 0)
                 {
-                    //if the drum note has child notes, convert the first childnote to a parent note, then assign the other child notes to this parent note
-                    //finally, overwrite the drum note with the new parent note
+                    // If the drum note has child notes, convert the first child note to a parent note,
+                    // then assign the other child notes to this parent note.
+                    // Finally, overwrite the drum note with the new parent note.
                     var firstChild = note.ChildNotes[0].CloneWithoutChildNotes();
                     for (int i = 1; i < note.ChildNotes.Count; i++)
                     {
@@ -89,16 +92,17 @@ namespace YARG.Core.Chart
                 }
                 else
                 {
-                    //this is a single kick drum note
+                    // This is a single kick drum note
                     difficulty.Notes.RemoveAt(index);
 
                     if (note.IsStarPowerActivator)
                     {
-                        //this is a single kick drum note that is a star power activator, we have to move it to the NEXT note
+                        // This is a single kick drum note that is a star power activator,
+                        // we have to move it to the NEXT note.
                         if (index < difficulty.Notes.Count)
                         {
                             difficulty.Notes[index].DrumFlags |= DrumNoteFlags.StarPowerActivator;
-                            //also add it to the child notes
+                            // Also add it to the child notes
                             foreach (var childNote in difficulty.Notes[index].ChildNotes)
                             {
                                 childNote.DrumFlags |= DrumNoteFlags.StarPowerActivator;
@@ -108,11 +112,12 @@ namespace YARG.Core.Chart
 
                     if (note.IsSoloStart)
                     {
-                        //this is a single kick drum note that is a solo start, we have to move it to the NEXT note (we don't want to extend the solo)
+                        // This is a single kick drum note that is a solo start, we have to move it to the
+                        // NEXT note (we don't want to extend the solo).
                         if (index < difficulty.Notes.Count)
                         {
                             difficulty.Notes[index].Flags |= NoteFlags.SoloStart;
-                            //also add it to the child notes
+                            // Also add it to the child notes
                             foreach (var childNote in difficulty.Notes[index].ChildNotes)
                             {
                                 childNote.Flags |= NoteFlags.SoloStart;
@@ -122,11 +127,12 @@ namespace YARG.Core.Chart
 
                     if (note.IsSoloEnd)
                     {
-                        //this is a single kick drum note that is a solo end, we have to move it to the PREVIOUS note (we don't want to extend the solo)
+                        // This is a single kick drum note that is a solo end, we have to move it to the
+                        // PREVIOUS note (we don't want to extend the solo).
                         if (index > 0)
                         {
                             difficulty.Notes[index - 1].Flags |= NoteFlags.SoloEnd;
-                            //also add it to the child notes
+                            // Also add it to the child notes
                             foreach (var childNote in difficulty.Notes[index - 1].ChildNotes)
                             {
                                 childNote.Flags |= NoteFlags.SoloEnd;
@@ -137,7 +143,7 @@ namespace YARG.Core.Chart
                     index--;
                 }
 
-                //Since we modified and/or removed notes, we have to map the previous notes correctly again
+                // Since we modified and/or removed notes, we have to map the previous notes correctly again
                 if (index >= 0)
                 {
                     if (previousNote != null)
