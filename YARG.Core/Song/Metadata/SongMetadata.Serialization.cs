@@ -10,14 +10,14 @@ namespace YARG.Core.Song
     {
         public SongMetadata(YARGBinaryReader reader, CategoryCacheStrings strings)
         {
-            _name.Str = strings.titles[reader.Read<int>(Endianness.Little)];
-            _artist.Str = strings.artists[reader.Read<int>(Endianness.Little)];
-            _album.Str = strings.albums[reader.Read<int>(Endianness.Little)];
-            _genre.Str = strings.genres[reader.Read<int>(Endianness.Little)];
+            _name = strings.titles[reader.Read<int>(Endianness.Little)];
+            _artist = strings.artists[reader.Read<int>(Endianness.Little)];
+            _album = strings.albums[reader.Read<int>(Endianness.Little)];
+            _genre = strings.genres[reader.Read<int>(Endianness.Little)];
             Year = strings.years[reader.Read<int>(Endianness.Little)];
-            _charter.Str = strings.charters[reader.Read<int>(Endianness.Little)];
-            _playlist.Str = strings.playlists[reader.Read<int>(Endianness.Little)];
-            _source.Str = strings.sources[reader.Read<int>(Endianness.Little)];
+            _charter = strings.charters[reader.Read<int>(Endianness.Little)];
+            _playlist = strings.playlists[reader.Read<int>(Endianness.Little)];
+            _source = strings.sources[reader.Read<int>(Endianness.Little)];
 
             _isMaster = reader.ReadBoolean();
 

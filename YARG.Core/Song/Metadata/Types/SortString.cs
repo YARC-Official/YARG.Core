@@ -1,73 +1,55 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using YARG.Core.Utility;
 
 namespace YARG.Core.Song
 {
-    public struct SortString : IComparable<SortString>, IEquatable<SortString>
+    public readonly struct SortString : IComparable<SortString>, IEquatable<SortString>
     {
-        public static readonly SortString Empty = new()
-        {
-            _str = string.Empty,
-            _sortStr = string.Empty,
-            _hashCode = string.Empty.GetHashCode()
-        };
-
-        private string _str;
-        private string _sortStr;
-        private int _hashCode;
-
-        public string Str
-        {
-            get { return _str; }
-            set
-            {
-                _str = value;
-                _sortStr = RemoveDiacritics(RichTextUtils.StripRichTextTags(value));
-                _hashCode = _sortStr.GetHashCode();
-            }
-        }
-
-        public readonly int Length => _str.Length;
-
-        public readonly string SortStr => _sortStr;
-
-        public SortString(string str)
-        {
-            _sortStr = _str = string.Empty;
-            _hashCode = 0;
-            Str = str;
-        }
-
-        public readonly int CompareTo(SortString other)
-        {
-            return _sortStr.CompareTo(other._sortStr);
-        }
-
-        public readonly override int GetHashCode()
-        {
-            return _hashCode;
-        }
-
-        public readonly bool Equals(SortString other)
-        {
-            return _sortStr.Equals(other._sortStr);
-        }
-
-        public readonly override string ToString()
-        {
-            return _str;
-        }
-
-        public static implicit operator SortString(string str) => new(str);
-        public static implicit operator string(SortString str) => str.Str;
-
+        // Order of these static variables matters
         private static readonly (string, string)[] SearchLeniency =
         {
             ("Æ", "AE") // Tool - Ænema
         };
+
+        public static readonly SortString Empty = new(string.Empty);
+
+        public readonly string Str;
+        public readonly string SortStr;
+        public readonly int Length;
+        public readonly int HashCode;
+
+        public SortString(string str)
+        {
+            Str = str;
+            Length = Str.Length;
+            SortStr = RemoveDiacritics(RichTextUtils.StripRichTextTags(str));
+            HashCode = SortStr.GetHashCode();
+        }
+
+        public int CompareTo(SortString other)
+        {
+            return SortStr.CompareTo(other.SortStr);
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode;
+        }
+
+        public bool Equals(SortString other)
+        {
+            return SortStr.Equals(other.SortStr);
+        }
+
+        public override string ToString()
+        {
+            return Str;
+        }
+
+        public static implicit operator SortString(string str) => new(str);
+        public static implicit operator string(SortString str) => str.Str;
 
         public static string RemoveDiacritics(string text)
         {
