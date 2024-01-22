@@ -44,14 +44,14 @@ namespace YARG.Core.Game
                     Modifier.HoposToTaps |
                     Modifier.TapsToHopos,
 
-                GameMode.FourLaneDrums =>
+                GameMode.FourLaneDrums or
+                GameMode.FiveLaneDrums =>
                     Modifier.NoKicks,
 
                 GameMode.Vocals =>
                     Modifier.UnpitchedOnly,
 
                 GameMode.SixFretGuitar or
-                GameMode.FiveLaneDrums or
             //  GameMode.TrueDrums     or
                 GameMode.ProGuitar     or
             //  GameMode.Dj            or
