@@ -45,7 +45,6 @@ namespace YARG.Core.Chart
                     $"instrument {difficulty.Instrument}!")
             };
 
-            DrumNote? previousNote = null;
             for (int index = 0; index < difficulty.Notes.Count; index++)
             {
                 var note = difficulty.Notes[index];
@@ -176,9 +175,16 @@ namespace YARG.Core.Chart
                 // Since we modified and/or removed notes, we have to map the previous notes correctly again
                 if (index >= 0)
                 {
-                    if (previousNote != null)
+                    if (index > 1)
                     {
-                        previousNote.NextNote = difficulty.Notes[index];
+                        if (index < difficulty.Notes.Count)
+                        {
+                            difficulty.Notes[index - 1].NextNote = difficulty.Notes[index];
+                        }
+                        else
+                        {
+                            difficulty.Notes[index - 1].NextNote = null;
+                        }
                     }
 
                     if (index > 0)
@@ -189,8 +195,6 @@ namespace YARG.Core.Chart
                     {
                         difficulty.Notes[index].PreviousNote = null;
                     }
-
-                    previousNote = difficulty.Notes[index];
                 }
             }
         }

@@ -29,6 +29,7 @@ public class InstrumentDifficultyExtensionsTests
         Assert.That(notes.Notes.Count, Is.EqualTo(1));
         Assert.That(starPowerStartCount, Is.EqualTo(0));
         Assert.That(starPowerEndCount, Is.EqualTo(0));
+        Assert.That(notes.Notes.Last().NextNote, Is.Null);
     }
 
     [Test]
@@ -52,6 +53,7 @@ public class InstrumentDifficultyExtensionsTests
         Assert.That(notes.Notes.Count, Is.EqualTo(2));
         Assert.That(starPowerStartCount, Is.EqualTo(1));
         Assert.That(starPowerEndCount, Is.EqualTo(1));
+        Assert.That(notes.Notes.Last().NextNote, Is.Null);
     }
 
     [Test]
@@ -75,6 +77,7 @@ public class InstrumentDifficultyExtensionsTests
         Assert.That(notes.Notes.Count, Is.EqualTo(2));
         Assert.That(starPowerStartCount, Is.EqualTo(1));
         Assert.That(starPowerEndCount, Is.EqualTo(1));
+        Assert.That(notes.Notes.Last().NextNote, Is.Null);
     }
 
     private SongChart GetChartWithStarPowerSectionOfOnlyKickDrum()
