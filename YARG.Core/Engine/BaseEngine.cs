@@ -71,19 +71,19 @@ namespace YARG.Core.Engine
             // In the case that the queue is not in order...
             if (input.Time < BaseState.LastQueuedInputTime)
             {
-                input = new GameInput(BaseState.LastQueuedInputTime, input.Action, input.Integer);
-
                 YargTrace.LogWarning("Engine was forced to move an input time! " +
                     $"Previous queued input: {BaseState.LastQueuedInputTime}, input being queued: {input.Time}");
+
+                input = new GameInput(BaseState.LastQueuedInputTime, input.Action, input.Integer);
             }
 
             // In the case that the input is before the current time...
             if (input.Time < BaseState.CurrentTime)
             {
-                input = new GameInput(BaseState.CurrentTime, input.Action, input.Integer);
-
                 YargTrace.LogWarning("Engine was forced to move an input time! " +
                     $"Current time: {BaseState.CurrentTime}, input being queued: {input.Time}");
+
+                input = new GameInput(BaseState.CurrentTime, input.Action, input.Integer);
             }
 
             InputQueue.Enqueue(input);

@@ -45,7 +45,6 @@ namespace YARG.Core.Chart
                     $"instrument {difficulty.Instrument}!")
             };
 
-            DrumNote? previousNote = null;
             for (int index = 0; index < difficulty.Notes.Count; index++)
             {
                 var note = difficulty.Notes[index];
@@ -110,7 +109,7 @@ namespace YARG.Core.Chart
                         }
                     }
 
-                    if (note.IsSoloStart)
+                    if (note.IsSoloStart && !note.IsSoloEnd)
                     {
                         // This is a single kick drum note that is a solo start, we have to move it to the
                         // NEXT note (we don't want to extend the solo).
@@ -140,15 +139,52 @@ namespace YARG.Core.Chart
                         }
                     }
 
+                    if (note.IsStarPowerStart && !note.IsStarPowerEnd)
+                    {
+                        // This is a single kick drum note that is a starpower start, we have to move it to the
+                        // NEXT note (we don't want to extend the starpower section).
+                        if (index < difficulty.Notes.Count)
+                        {
+                            difficulty.Notes[index].Flags |= NoteFlags.StarPowerStart;
+                            // Also add it to the child notes
+                            foreach (var childNote in difficulty.Notes[index].ChildNotes)
+                            {
+                                childNote.Flags |= NoteFlags.StarPowerStart;
+                            }
+                        }
+                    }
+
+                    if (note.IsStarPowerEnd)
+                    {
+                        // This is a single kick drum note that is a starpower end, we have to move it to the
+                        // PREVIOUS note (we don't want to extend the starpower section).
+                        if (index > 0)
+                        {
+                            difficulty.Notes[index - 1].Flags |= NoteFlags.StarPowerEnd;
+                            // Also add it to the child notes
+                            foreach (var childNote in difficulty.Notes[index - 1].ChildNotes)
+                            {
+                                childNote.Flags |= NoteFlags.StarPowerEnd;
+                            }
+                        }
+                    }
+
                     index--;
                 }
 
                 // Since we modified and/or removed notes, we have to map the previous notes correctly again
                 if (index >= 0)
                 {
-                    if (previousNote != null)
+                    if (index > 1)
                     {
-                        previousNote.NextNote = difficulty.Notes[index];
+                        if (index < difficulty.Notes.Count)
+                        {
+                            difficulty.Notes[index - 1].NextNote = difficulty.Notes[index];
+                        }
+                        else
+                        {
+                            difficulty.Notes[index - 1].NextNote = null;
+                        }
                     }
 
                     if (index > 0)
@@ -159,8 +195,6 @@ namespace YARG.Core.Chart
                     {
                         difficulty.Notes[index].PreviousNote = null;
                     }
-
-                    previousNote = difficulty.Notes[index];
                 }
             }
         }
