@@ -110,7 +110,7 @@ namespace YARG.Core.Chart
                         }
                     }
 
-                    if (note.IsSoloStart)
+                    if (note.IsSoloStart && !note.IsSoloEnd)
                     {
                         // This is a single kick drum note that is a solo start, we have to move it to the
                         // NEXT note (we don't want to extend the solo).
@@ -136,6 +136,36 @@ namespace YARG.Core.Chart
                             foreach (var childNote in difficulty.Notes[index - 1].ChildNotes)
                             {
                                 childNote.Flags |= NoteFlags.SoloEnd;
+                            }
+                        }
+                    }
+
+                    if (note.IsStarPowerStart && !note.IsStarPowerEnd)
+                    {
+                        // This is a single kick drum note that is a starpower start, we have to move it to the
+                        // NEXT note (we don't want to extend the starpower section).
+                        if (index < difficulty.Notes.Count)
+                        {
+                            difficulty.Notes[index].Flags |= NoteFlags.StarPowerStart;
+                            // Also add it to the child notes
+                            foreach (var childNote in difficulty.Notes[index].ChildNotes)
+                            {
+                                childNote.Flags |= NoteFlags.StarPowerStart;
+                            }
+                        }
+                    }
+
+                    if (note.IsStarPowerEnd)
+                    {
+                        // This is a single kick drum note that is a starpower end, we have to move it to the
+                        // PREVIOUS note (we don't want to extend the starpower section).
+                        if (index > 0)
+                        {
+                            difficulty.Notes[index - 1].Flags |= NoteFlags.StarPowerEnd;
+                            // Also add it to the child notes
+                            foreach (var childNote in difficulty.Notes[index - 1].ChildNotes)
+                            {
+                                childNote.Flags |= NoteFlags.StarPowerEnd;
                             }
                         }
                     }
