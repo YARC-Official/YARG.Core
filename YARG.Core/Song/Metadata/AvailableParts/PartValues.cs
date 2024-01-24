@@ -17,7 +17,8 @@ namespace YARG.Core.Song
         {
             get
             {
-                if (subTrack >= 8)
+                const int BITS_IN_BYTE = 8;
+                if (subTrack >= BITS_IN_BYTE)
                     throw new System.Exception("Subtrack index out of range");
                 return ((byte) (1 << subTrack) & subTracks) > 0;
             }
