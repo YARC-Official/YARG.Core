@@ -11,14 +11,13 @@ namespace YARG.Core.Song.Cache
         public const string UPGRADESFILEPATH = "songs_upgrades/upgrades.dta";
 
         public readonly CONFile CONFile;
+        public readonly DateTime CONLastWrite;
         public readonly Dictionary<string, IRBProUpgrade> Upgrades = new();
 
         private readonly object upgradeLock = new();
 
         private CONFileListing? songDTA;
         private CONFileListing? upgradeDta;
-
-        public DateTime CONFileLastWrite => CONFile.Info.LastWriteTime;
 
         public DateTime DTALastWrite
         {
@@ -39,9 +38,11 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        public PackedCONGroup(CONFile file)
+        public PackedCONGroup(CONFile file, AbridgedFileInfo info)
+            : base(info.FullName)
         {
             CONFile = file;
+            CONLastWrite = info.LastWriteTime;
         }
 
         public override bool ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings)
@@ -54,12 +55,12 @@ namespace YARG.Core.Song.Cache
             return true;
         }
 
-        public override byte[] SerializeEntries(string filename, Dictionary<SongMetadata, CategoryCacheWriteNode> nodes)
+        public override byte[] SerializeEntries(Dictionary<SongMetadata, CategoryCacheWriteNode> nodes)
         {
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);
 
-            writer.Write(filename);
+            writer.Write(Location);
             writer.Write(songDTA!.lastWrite.ToBinary());
             Serialize(writer, ref nodes);
             return ms.ToArray();
@@ -88,13 +89,13 @@ namespace YARG.Core.Song.Cache
             return songDTA != null;
         }
 
-        public byte[] SerializeModifications(string filename)
+        public byte[] SerializeModifications()
         {
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);
 
-            writer.Write(filename);
-            writer.Write(CONFile.Info.LastWriteTime.ToBinary());
+            writer.Write(Location);
+            writer.Write(CONLastWrite.ToBinary());
             writer.Write(upgradeDta!.lastWrite.ToBinary());
             writer.Write(Upgrades.Count);
             foreach (var upgrade in Upgrades)

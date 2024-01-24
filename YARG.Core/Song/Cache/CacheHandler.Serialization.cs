@@ -231,15 +231,15 @@ namespace YARG.Core.Song.Cache
             CategoryWriter.WriteToCache(writer, cache.Playlists, SongAttribute.Playlist, ref nodes);
             CategoryWriter.WriteToCache(writer, cache.Sources  , SongAttribute.Source,   ref nodes);
 
-            List<KeyValuePair<string, PackedCONGroup>> upgradeCons = new();
-            List<(string Location, PackedCONGroup Group)> entryCons = new();
-            foreach (var node in conGroups.Values)
+            List<PackedCONGroup> upgradeCons = new();
+            List<PackedCONGroup> entryCons = new();
+            foreach (var group in conGroups.Values)
             {
-                if (node.Group.Upgrades.Count > 0)
-                    upgradeCons.Add(new KeyValuePair<string, PackedCONGroup>(node.Location, node.Group));
+                if (group.Upgrades.Count > 0)
+                    upgradeCons.Add(group);
 
-                if (node.Group.Count > 0)
-                    entryCons.Add(node);
+                if (group.Count > 0)
+                    entryCons.Add(group);
             }
 
             ICacheGroup.SerializeGroups(iniGroups, writer, nodes);
@@ -348,11 +348,11 @@ namespace YARG.Core.Song.Cache
                     goto Invalidate;
 
                 YargTrace.DebugInfo($"CON added in upgrade loop {filename}");
-                conGroups.Add(filename, group);
+                conGroups.Add(group);
 
                 if (TryParseUpgrades(filename, group) && group.UpgradeDTALastWrite == dtaLastWrite)
                 {
-                    if (group.CONFileLastWrite != conLastWrite)
+                    if (group.CONLastWrite != conLastWrite)
                     {
                         for (int i = 0; i < count; i++)
                         {
@@ -395,14 +395,14 @@ namespace YARG.Core.Song.Cache
 
                 MarkFile(filename);
 
-                var file = CONFile.TryLoadFile(info.FullName);
-                if (file == null)
+                var result = CONFile.TryLoadFile(info.FullName);
+                if (result == null)
                 {
                     return null;
                 }
 
-                group = new(file);
-                conGroups.Add(filename, group);
+                group = new PackedCONGroup(result.File, result.Info);
+                conGroups.Add(group);
             }
 
             if (!group.SetSongDTA() || group.DTALastWrite != dtaLastWrite)
@@ -427,9 +427,9 @@ namespace YARG.Core.Song.Cache
                 return null;
             }
 
-            UnpackedCONGroup group = new(dtaInfo);
+            var group = new UnpackedCONGroup(directory, dtaInfo);
             MarkDirectory(directory);
-            extractedConGroups.Add(directory, group);
+            extractedConGroups.Add(group);
 
             if (dtaInfo.LastWriteTime != DateTime.FromBinary(reader.Read<long>(Endianness.Little)))
             {
@@ -460,8 +460,8 @@ namespace YARG.Core.Song.Cache
             var dtaLastWrite = DateTime.FromBinary(reader.Read<long>(Endianness.Little));
             int count = reader.Read<int>(Endianness.Little);
 
-            UpgradeGroup group = new(dtaLastWrite);
-            upgradeGroups.Add(directory, group);
+            var group = new UpgradeGroup(directory, dtaLastWrite);
+            upgradeGroups.Add(group);
 
             for (int i = 0; i < count; i++)
             {
@@ -484,7 +484,7 @@ namespace YARG.Core.Song.Cache
             var group = CreateCONGroup(filename);
             if (group != null)
             {
-                conGroups.Add(filename, group);
+                conGroups.Add(group);
 
                 for (int i = 0; i < count; i++)
                 {
@@ -523,7 +523,7 @@ namespace YARG.Core.Song.Cache
                     return null;
                 }
 
-                conGroups.Add(filename, group);
+                conGroups.Add(group);
             }
 
             if (!group.SetSongDTA() || group.DTALastWrite != dtaLastWrite)
@@ -553,11 +553,11 @@ namespace YARG.Core.Song.Cache
 
             MarkFile(filename);
 
-            var file = CONFile.TryLoadFile(filename);
-            if (file == null)
+            var result = CONFile.TryLoadFile(filename);
+            if (result == null)
                 return null;
 
-            return new PackedCONGroup(file);
+            return new PackedCONGroup(result.File, result.Info);
         }
 
         private PackedCONGroup? FindCONGroup(string filename)
@@ -569,7 +569,7 @@ namespace YARG.Core.Song.Cache
                 {
                     return null;
                 }
-                return conGroups.Values[index].Group;
+                return conGroups.Values[index];
             }
         }
 

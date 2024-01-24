@@ -6,21 +6,23 @@ namespace YARG.Core.Song.Cache
 {
     public sealed class UpgradeGroup : IModificationGroup
     {
-        private readonly DateTime dtaLastWrite;
+        private readonly string _directory;
+        private readonly DateTime _dtaLastWrite;
         public readonly Dictionary<string, IRBProUpgrade> upgrades = new();
 
-        public UpgradeGroup(DateTime dtaLastWrite)
+        public UpgradeGroup(string directory, DateTime dtaLastWrite)
         {
-            this.dtaLastWrite = dtaLastWrite;
+            _directory = directory;
+            _dtaLastWrite = dtaLastWrite;
         }
 
-        public byte[] SerializeModifications(string directory)
+        public byte[] SerializeModifications()
         {
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);
 
-            writer.Write(directory);
-            writer.Write(dtaLastWrite.ToBinary());
+            writer.Write(_directory);
+            writer.Write(_dtaLastWrite.ToBinary());
             writer.Write(upgrades.Count);
             foreach (var upgrade in upgrades)
             {

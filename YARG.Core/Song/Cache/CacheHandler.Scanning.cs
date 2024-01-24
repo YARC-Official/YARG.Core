@@ -51,37 +51,37 @@ namespace YARG.Core.Song.Cache
             _progress.Stage = ScanStage.LoadingSongs;
             if (multithreading)
             {
-                Parallel.ForEach(iniGroups, node => ScanDirectory_Parallel(node.Directory, node.Group));
+                Parallel.ForEach(iniGroups, group => ScanDirectory_Parallel(group.Directory, group));
 
                 var conTasks = new Task[conGroups.Values.Count + extractedConGroups.Values.Count];
                 int con = 0;
-                foreach (var (Location, Group) in conGroups.Values)
+                foreach (var group in conGroups.Values)
                 {
-                    conTasks[con++] = Task.Run(() => ScanCONGroup_Parallel(Location, Group));
+                    conTasks[con++] = Task.Run(() => ScanCONGroup_Parallel(group));
                 }
 
-                foreach (var (Location, Group) in extractedConGroups.Values)
+                foreach (var group in extractedConGroups.Values)
                 {
-                    conTasks[con++] = Task.Run(() => ScanExtractedCONGroup_Parallel(Location, Group));
+                    conTasks[con++] = Task.Run(() => ScanExtractedCONGroup_Parallel(group));
                 }
 
                 Task.WaitAll(conTasks);
             }
             else
             {
-                foreach (var (Directory, Group) in iniGroups)
+                foreach (var group in iniGroups)
                 {
-                    ScanDirectory(Directory, Group);
+                    ScanDirectory(group.Directory, group);
                 }
 
-                foreach (var (Location, Group) in conGroups.Values)
+                foreach (var group in conGroups.Values)
                 {
-                    ScanCONGroup(Location, Group);
+                    ScanCONGroup(group);
                 }
 
-                foreach (var (Location, Group) in extractedConGroups.Values)
+                foreach (var group in extractedConGroups.Values)
                 {
-                    ScanExtractedCONGroup(Location, Group);
+                    ScanExtractedCONGroup(group);
                 }
             }
         }
@@ -115,7 +115,7 @@ namespace YARG.Core.Song.Cache
                 FileInfo dta = new(Path.Combine(directory, "songs.dta"));
                 if (dta.Exists)
                 {
-                    extractedConGroups.Add(directory, new(dta));
+                    extractedConGroups.Add(new UnpackedCONGroup(directory, dta));
                     return false;
                 }
             }
@@ -204,12 +204,12 @@ namespace YARG.Core.Song.Cache
 
         private bool AddPossibleCON(string filename)
         {
-            var conFile = CONFile.TryLoadFile(filename);
-            if (conFile == null)
+            var result = CONFile.TryLoadFile(filename);
+            if (result == null)
                 return false;
 
-            PackedCONGroup group = new(conFile);
-            conGroups.Add(filename, group);
+            var group = new PackedCONGroup(result.File, result.Info);
+            conGroups.Add(group);
             TryParseUpgrades(filename, group);
             return true;
         }
@@ -221,7 +221,7 @@ namespace YARG.Core.Song.Cache
             return indices[name] = 0;
         }
 
-        private void ScanPackedCONNode(string filename, PackedCONGroup group, string name, int index, YARGDTAReader node)
+        private void ScanPackedCONNode(PackedCONGroup group, string name, int index, YARGDTAReader node)
         {
             if (group.TryGetEntry(name, index, out var entry))
             {
@@ -230,7 +230,7 @@ namespace YARG.Core.Song.Cache
             }
             else
             {
-                var song = SongMetadata.FromPackedRBCON(group.CONFile, name, node, updates, upgrades);
+                var song = SongMetadata.FromPackedRBCON(group, name, node, updates, upgrades);
                 if (song.Item2 != null)
                 {
                     if (AddEntry(song.Item2))
@@ -238,12 +238,12 @@ namespace YARG.Core.Song.Cache
                 }
                 else
                 {
-                    AddToBadSongs(filename + $" - Node {name}", song.Item1);
+                    AddToBadSongs(group.Location + $" - Node {name}", song.Item1);
                 }
             }
         }
 
-        private void ScanUnpackedCONNode(string directory, UnpackedCONGroup group, string name, int index, YARGDTAReader node)
+        private void ScanUnpackedCONNode(UnpackedCONGroup group, string name, int index, YARGDTAReader node)
         {
             if (group.TryGetEntry(name, index, out var entry))
             {
@@ -252,7 +252,7 @@ namespace YARG.Core.Song.Cache
             }
             else
             {
-                var song = SongMetadata.FromUnpackedRBCON(directory, group.dta, name, node, updates, upgrades);
+                var song = SongMetadata.FromUnpackedRBCON(group, name, node, updates, upgrades);
                 if (song.Item2 != null)
                 {
                     if (AddEntry(song.Item2))
@@ -260,7 +260,7 @@ namespace YARG.Core.Song.Cache
                 }
                 else
                 {
-                    AddToBadSongs(directory + $" - Node {name}", song.Item1);
+                    AddToBadSongs(group.Location + $" - Node {name}", song.Item1);
                 }
             }
         }

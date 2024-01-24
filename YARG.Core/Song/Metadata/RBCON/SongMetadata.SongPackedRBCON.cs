@@ -24,28 +24,28 @@ namespace YARG.Core.Song
 
             public DateTime MidiLastWrite => _midiLastWrite;
 
-            public RBPackedCONMetadata(CONFile file, RBCONSubMetadata metadata, string nodeName, string location)
+            public RBPackedCONMetadata(PackedCONGroup group, RBCONSubMetadata metadata, string nodeName, string location)
             {
                 _metadata = metadata;
 
                 string midiPath = location + ".mid";
-                midiListing = file.TryGetListing(midiPath);
+                midiListing = group.CONFile.TryGetListing(midiPath);
                 if (midiListing == null)
                     throw new Exception($"Required midi file '{midiPath}' was not located");
                 _midiLastWrite = midiListing.lastWrite;
 
-                string midiDirectory = file.Listings[midiListing.pathIndex].Filename;
+                string midiDirectory = group.CONFile.Listings[midiListing.pathIndex].Filename;
 
-                moggListing = file.TryGetListing(location + ".mogg");
+                moggListing = group.CONFile.TryGetListing(location + ".mogg");
 
                 if (!location.StartsWith($"songs/{nodeName}"))
                     nodeName = midiDirectory.Split('/')[1];
 
                 string genPAth = $"songs/{nodeName}/gen/{nodeName}";
-                miloListing = file.TryGetListing(genPAth + ".milo_xbox");
-                imgListing = file.TryGetListing(genPAth + "_keep.png_xbox");
+                miloListing = group.CONFile.TryGetListing(genPAth + ".milo_xbox");
+                imgListing = group.CONFile.TryGetListing(genPAth + "_keep.png_xbox");
 
-                metadata.Directory = Path.Combine(midiListing.ConFile.FullName, midiDirectory);
+                metadata.Directory = Path.Combine(group.Location, midiDirectory);
             }
 
             public RBPackedCONMetadata(CONFile file, string nodeName, CONFileListing? midi, DateTime midiLastWrite, CONFileListing? moggListing, AbridgedFileInfo? moggInfo, AbridgedFileInfo? updateInfo, YARGBinaryReader reader)
@@ -192,28 +192,28 @@ namespace YARG.Core.Song
             }
         }
 
-        private SongMetadata(CONFile file, string nodeName, YARGDTAReader reader, Dictionary<string, List<(string, YARGDTAReader)>> updates, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades)
+        private SongMetadata(PackedCONGroup group, string nodeName, YARGDTAReader reader, Dictionary<string, List<(string, YARGDTAReader)>> updates, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades)
         {
             RBCONSubMetadata rbMetadata = new();
 
             var dtaResults = ParseDTA(nodeName, rbMetadata, reader);
-            _rbData = new RBPackedCONMetadata(file, rbMetadata, nodeName, dtaResults.location);
+            _rbData = new RBPackedCONMetadata(group, rbMetadata, nodeName, dtaResults.location);
             _directory = rbMetadata.Directory;
 
             if (_playlist.Length == 0)
-                _playlist = Path.GetFileName(file.Info.FullName);
+                _playlist = Path.GetFileName(group.Location);
 
             ApplyRBCONUpdates(nodeName, updates);
             ApplyRBProUpgrade(nodeName, upgrades);
             FinalizeRBCONAudioValues(rbMetadata, dtaResults.pans, dtaResults.volumes, dtaResults.cores);
         }
 
-        public static (ScanResult, SongMetadata?) FromPackedRBCON(CONFile file, string nodeName, YARGDTAReader reader, Dictionary<string, List<(string, YARGDTAReader)>> updates, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades)
+        public static (ScanResult, SongMetadata?) FromPackedRBCON(PackedCONGroup group, string nodeName, YARGDTAReader reader, Dictionary<string, List<(string, YARGDTAReader)>> updates, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades)
         {
             try
             {
-                SongMetadata song = new(file, nodeName, reader, updates, upgrades);
-                var result = song.ParseRBCONMidi(file);
+                SongMetadata song = new(group, nodeName, reader, updates, upgrades);
+                var result = song.ParseRBCONMidi(group.CONFile);
                 if (result != ScanResult.Success)
                     return (result, null);
                 return (result, song);

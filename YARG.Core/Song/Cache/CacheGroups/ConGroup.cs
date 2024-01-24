@@ -12,8 +12,15 @@ namespace YARG.Core.Song.Cache
         private int _count;
         public int Count { get { lock (entryLock) return _count; } }
 
+        public readonly string Location;
+
+        protected CONGroup(string location)
+        {
+            Location = location;
+        }
+
         public abstract bool ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings);
-        public abstract byte[] SerializeEntries(string filename, Dictionary<SongMetadata, CategoryCacheWriteNode> nodes);
+        public abstract byte[] SerializeEntries(Dictionary<SongMetadata, CategoryCacheWriteNode> nodes);
 
         public void AddEntry(string name, int index, SongMetadata entry)
         {
