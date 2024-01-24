@@ -7,16 +7,14 @@ namespace YARG.Core.IO
 {
     public class CONFile : IDisposable
     {
-        public readonly AbridgedFileInfo Info;
         public readonly List<CONFileListing> Listings;
         public readonly FileStream Stream;
         public readonly object Lock = new();
 
-        private CONFile(AbridgedFileInfo info, List<CONFileListing> listings)
+        private CONFile(string filename, List<CONFileListing> listings)
         {
-            Info = info;
             Listings = listings;
-            Stream = new FileStream(info.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+            Stream = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
         }
 
         public CONFileListing? TryGetListing(string filename)
@@ -50,7 +48,19 @@ namespace YARG.Core.IO
         private const int BYTES_PER_BLOCK = 0x1000;
         private const int SIZEOF_FILELISTING = 0x40;
 
-        public static CONFile? TryLoadFile(string filename)
+        public class CONFileResult
+        {
+            public readonly CONFile File;
+            public readonly AbridgedFileInfo Info;
+
+            public CONFileResult(CONFile file, AbridgedFileInfo info)
+            {
+                File = file;
+                Info = info;
+            }
+        }
+
+        public static CONFileResult? TryLoadFile(string filename)
         {
             using var stream = InitStream_Internal(filename);
             if (stream == null)
@@ -111,7 +121,9 @@ namespace YARG.Core.IO
                         listing.SetParentDirectory(listings[listing.pathIndex].Filename);
                     listings.Add(listing);
                 }
-                return new CONFile(fileInfo, listings);
+
+                var conFile = new CONFile(filename, listings);
+                return new CONFileResult(conFile, fileInfo);
             }
             catch (Exception ex)
             {

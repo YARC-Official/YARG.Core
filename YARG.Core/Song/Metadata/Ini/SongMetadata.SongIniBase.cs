@@ -108,7 +108,7 @@ namespace YARG.Core.Song
             public Stream? GetPreviewAudioStream();
         }
 
-        private SongMetadata(IIniMetadata iniData, AvailableParts parts, HashWrapper hash, IniSection modifiers)
+        private SongMetadata(IIniMetadata iniData, AvailableParts parts, HashWrapper hash, IniSection modifiers, string defaultPlaylist)
         {
             // .ini songs are assumed to be masters and not covers
             _isMaster = true;
@@ -118,7 +118,7 @@ namespace YARG.Core.Song
             _iniData = iniData;
 
             _parseSettings.DrumsType = parts.GetDrumType();
-            SetIniModifierData(modifiers);
+            SetIniModifierData(modifiers, defaultPlaylist);
         }
 
         private SongMetadata(IIniMetadata iniData, YARGBinaryReader reader, CategoryCacheStrings strings) : this(reader, strings)
@@ -126,7 +126,7 @@ namespace YARG.Core.Song
             _iniData = iniData;
         }
 
-        private void SetIniModifierData(IniSection section)
+        private void SetIniModifierData(IniSection section, string defaultPlaylist)
         {
             section.TryGet("name", out _name, DEFAULT_NAME);
             section.TryGet("artist", out _artist, DEFAULT_ARTIST);
@@ -135,7 +135,7 @@ namespace YARG.Core.Song
             if (!section.TryGet("charter", out _charter, DEFAULT_CHARTER))
                 section.TryGet("frets", out _charter, DEFAULT_CHARTER);
             section.TryGet("icon", out _source, DEFAULT_SOURCE);
-            section.TryGet("playlist", out _playlist, Path.GetFileName(Path.GetDirectoryName(_directory)));
+            section.TryGet("playlist", out _playlist, defaultPlaylist);
 
             if (section.TryGet("year", out _unmodifiedYear))
                 Year = _unmodifiedYear;

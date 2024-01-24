@@ -54,17 +54,18 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void ScanDirectory_Parallel(string directory, IniGroup group)
+        private void ScanDirectory_Parallel(string directory, IniGroup group, PlaylistTracker tracker)
         {
             try
             {
-                if (!TraversalPreTest(directory))
+                if (!TraversalPreTest(directory, tracker.Playlist))
                     return;
 
                 var result = new FileCollector(directory);
-                if (ScanIniEntry(result, group))
+                if (ScanIniEntry(result, group, tracker.Playlist))
                     return;
 
+                tracker.Append(directory);
                 Parallel.ForEach(result.subfiles, file =>
                 {
                     try
@@ -72,13 +73,13 @@ namespace YARG.Core.Song.Cache
                         var attributes = File.GetAttributes(file);
                         if ((attributes & FileAttributes.Directory) != 0)
                         {
-                            ScanDirectory_Parallel(file, group);
+                            ScanDirectory_Parallel(file, group, tracker);
                         }
                         else if (FindOrMarkFile(file))
                         {
-                            if (!AddPossibleCON(file) && (file.EndsWith(".sng") || file.EndsWith(".yargsong")))
+                            if (!AddPossibleCON(file, tracker.Playlist) && (file.EndsWith(".sng") || file.EndsWith(".yargsong")))
                             {
-                                ScanSngFile(file, group);
+                                ScanSngFile(file, group, tracker.Playlist);
                             }
                         }
                     }
@@ -102,7 +103,7 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void ScanCONGroup_Parallel(string filename, PackedCONGroup group)
+        private void ScanCONGroup_Parallel(PackedCONGroup group)
         {
             var reader = group.LoadSongs();
             if (reader == null)
@@ -118,7 +119,7 @@ namespace YARG.Core.Song.Cache
                     int index = GetCONIndex(indices, name);
 
                     var node = new YARGDTAReader(reader);
-                    tasks.Add(Task.Run(() => ScanPackedCONNode(filename, group, name, index, node)));
+                    tasks.Add(Task.Run(() => ScanPackedCONNode(group, name, index, node)));
                     reader.EndNode();
                 }
 
@@ -126,12 +127,12 @@ namespace YARG.Core.Song.Cache
             }
             catch (Exception e)
             {
-                YargTrace.LogException(e, $"Error while scanning packed CON group {filename}!");
+                YargTrace.LogException(e, $"Error while scanning packed CON group {group.Location}!");
             }
             group.CONFile.Dispose();
         }
 
-        private void ScanExtractedCONGroup_Parallel(string directory, UnpackedCONGroup group)
+        private void ScanExtractedCONGroup_Parallel(UnpackedCONGroup group)
         {
             var reader = group.LoadDTA();
             if (reader == null)
@@ -147,14 +148,14 @@ namespace YARG.Core.Song.Cache
                     int index = GetCONIndex(indices, name);
 
                     var node = new YARGDTAReader(reader);
-                    tasks.Add(Task.Run(() => ScanUnpackedCONNode(directory, group, name, index, node)));
+                    tasks.Add(Task.Run(() => ScanUnpackedCONNode(group, name, index, node)));
                     reader.EndNode();
                 }
                 Task.WaitAll(tasks.ToArray());
             }
             catch (Exception e)
             {
-                YargTrace.LogException(e, $"Error while scanning extracted CON group {directory}!");
+                YargTrace.LogException(e, $"Error while scanning extracted CON group {group.Location}!");
             }
         }
 

@@ -5,11 +5,19 @@ namespace YARG.Core.Song.Cache
 {
     public sealed class IniGroup : ICacheGroup
     {
-        public readonly object iniLock = new();
+        public readonly string Directory;
         public readonly Dictionary<HashWrapper, List<SongMetadata>> entries = new();
+
+        public readonly object iniLock = new();
         private int _count;
 
+        public string Location => Directory;
         public int Count => _count;
+
+        public IniGroup(string directory)
+        {
+            Directory = directory;
+        }
 
         public void AddEntry(SongMetadata entry)
         {
@@ -43,18 +51,18 @@ namespace YARG.Core.Song.Cache
             return false;
         }
 
-        public byte[] SerializeEntries(string directory, Dictionary<SongMetadata, CategoryCacheWriteNode> nodes)
+        public byte[] SerializeEntries(Dictionary<SongMetadata, CategoryCacheWriteNode> nodes)
         {
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);
 
-            writer.Write(directory);
+            writer.Write(Directory);
             writer.Write(_count);
             foreach (var shared in entries)
             {
                 foreach (var entry in shared.Value)
                 {
-                    byte[] buffer = SerializeEntry(directory, entry, nodes[entry]);
+                    byte[] buffer = SerializeEntry(entry, nodes[entry]);
                     writer.Write(buffer.Length);
                     writer.Write(buffer);
                 }
@@ -62,12 +70,12 @@ namespace YARG.Core.Song.Cache
             return ms.ToArray();
         }
 
-        private byte[] SerializeEntry(string directory, SongMetadata entry, CategoryCacheWriteNode node)
+        private byte[] SerializeEntry(SongMetadata entry, CategoryCacheWriteNode node)
         {
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);
 
-            entry.IniData!.Serialize(writer, directory);
+            entry.IniData!.Serialize(writer, Directory);
             entry.Serialize(writer, node);
 
             return ms.ToArray();

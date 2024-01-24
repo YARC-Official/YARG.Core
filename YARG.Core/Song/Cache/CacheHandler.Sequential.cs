@@ -8,17 +8,18 @@ namespace YARG.Core.Song.Cache
 {
     public sealed partial class CacheHandler
     {
-        private void ScanDirectory(string directory, IniGroup group)
+        private void ScanDirectory(string directory, IniGroup group, PlaylistTracker tracker)
         {
             try
             {
-                if (!TraversalPreTest(directory))
+                if (!TraversalPreTest(directory, tracker.Playlist))
                     return;
 
                 var result = new FileCollector(directory);
-                if (ScanIniEntry(result, group))
+                if (ScanIniEntry(result, group, tracker.Playlist))
                     return;
 
+                tracker.Append(directory);
                 foreach (string file in result.subfiles)
                 {
                     try
@@ -26,13 +27,13 @@ namespace YARG.Core.Song.Cache
                         var attributes = File.GetAttributes(file);
                         if ((attributes & FileAttributes.Directory) != 0)
                         {
-                            ScanDirectory(file, group);
+                            ScanDirectory(file, group, tracker);
                         }
                         else if (FindOrMarkFile(file))
                         {
-                            if (!AddPossibleCON(file) && (file.EndsWith(".sng") || file.EndsWith(".yargsong")))
+                            if (!AddPossibleCON(file, tracker.Playlist) && (file.EndsWith(".sng") || file.EndsWith(".yargsong")))
                             {
-                                ScanSngFile(file, group);
+                                ScanSngFile(file, group, tracker.Playlist);
                             }
                         }
                     }
@@ -56,7 +57,7 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void ScanCONGroup(string filename, PackedCONGroup group)
+        private void ScanCONGroup(PackedCONGroup group)
         {
             var reader = group.LoadSongs();
             if (reader == null)
@@ -70,18 +71,18 @@ namespace YARG.Core.Song.Cache
                     string name = reader.GetNameOfNode();
                     int index = GetCONIndex(indices, name);
 
-                    ScanPackedCONNode(filename, group, name, index, reader);
+                    ScanPackedCONNode(group, name, index, reader);
                     reader.EndNode();
                 }
             }
             catch (Exception e)
             {
-                YargTrace.LogException(e, $"Error while scanning packed CON group {filename}!");
+                YargTrace.LogException(e, $"Error while scanning packed CON group {group.Location}!");
             }
             group.CONFile.Dispose();
         }
 
-        private void ScanExtractedCONGroup(string directory, UnpackedCONGroup group)
+        private void ScanExtractedCONGroup(UnpackedCONGroup group)
         {
             var reader = group.LoadDTA();
             if (reader == null)
@@ -95,13 +96,13 @@ namespace YARG.Core.Song.Cache
                     string name = reader.GetNameOfNode();
                     int index = GetCONIndex(indices, name);
 
-                    ScanUnpackedCONNode(directory, group, name, index, reader);
+                    ScanUnpackedCONNode(group, name, index, reader);
                     reader.EndNode();
                 }
             }
             catch (Exception e)
             {
-                YargTrace.LogException(e, $"Error while scanning extracted CON group {directory}!");
+                YargTrace.LogException(e, $"Error while scanning extracted CON group {group.Location}!");
             }
         }
 

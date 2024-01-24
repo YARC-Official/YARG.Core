@@ -171,17 +171,21 @@ namespace YARG.Core.Song
             }
         }
 
-        public static (ScanResult, SongMetadata?) FromSng(SngFile sng, AbridgedFileInfo sngInfo, IniChartNode chart)
+        public static (ScanResult, SongMetadata?) FromSng(SngFile sng, AbridgedFileInfo sngInfo, IniChartNode chart, string defaultPlaylist)
         {
             if (sng.Metadata.Count == 0 && !SngSubmetadata.DoesSoloChartHaveAudio(sng))
                 return (ScanResult.LooseChart_NoAudio, null);
 
-            var metadata = new SngSubmetadata(sng.Version, sngInfo, chart);
-
             byte[] file = sng.LoadAllBytes(sng[chart.File]);
             var result = ScanIniChartFile(file, chart.Type, sng.Metadata);
+            if (result.Item2 == null)
+            {
+                return (result.Item1, null);
+            }
 
-            return (result.Item1, result.Item2 != null ? new SongMetadata(metadata, result.Item2, HashWrapper.Hash(file), sng.Metadata) : null );
+            var packed = new SngSubmetadata(sng.Version, sngInfo, chart);
+            var metadata = new SongMetadata(packed, result.Item2, HashWrapper.Hash(file), sng.Metadata, defaultPlaylist);
+            return (result.Item1, metadata);
         }
 
         public static SongMetadata? SngFromCache(string baseDirectory, YARGBinaryReader reader, CategoryCacheStrings strings)

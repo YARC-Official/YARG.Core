@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Runtime.CompilerServices;
 using YARG.Core.IO;
 
 namespace YARG.Core.Extensions
@@ -20,6 +21,12 @@ namespace YARG.Core.Extensions
                 CorrectByteOrder<TType>(buffer, endianness);
             }
             return value;
+        }
+
+        public static bool ReadBoolean(this Stream stream)
+        {
+            byte b = (byte)stream.ReadByte();
+            return Unsafe.As<byte, bool>(ref b);
         }
 
         public static byte[] ReadBytes(this Stream stream, int length)

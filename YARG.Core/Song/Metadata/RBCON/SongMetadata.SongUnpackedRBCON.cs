@@ -21,15 +21,15 @@ namespace YARG.Core.Song
 
             public DateTime MidiLastWrite => Midi.LastWriteTime;
 
-            public RBUnpackedCONMetadata(string folder, AbridgedFileInfo dta, RBCONSubMetadata metadata, string nodeName, string location)
+            public RBUnpackedCONMetadata(UnpackedCONGroup group, RBCONSubMetadata metadata, string nodeName, string location)
             {
                 _metadata = metadata;
-                DTA = dta;
+                DTA = group.DTA;
 
                 if (!location.StartsWith($"songs/{nodeName}"))
                     nodeName = location.Split('/')[1];
 
-                folder = Path.Combine(folder, nodeName);
+                string folder = Path.Combine(group.Location, nodeName);
                 string file = Path.Combine(folder, nodeName);
                 string midiPath = file + ".mid";
 
@@ -138,30 +138,31 @@ namespace YARG.Core.Song
             }
         }
 
-        private SongMetadata(string folder, AbridgedFileInfo dta, string nodeName, YARGDTAReader reader, Dictionary<string, List<(string, YARGDTAReader)>> updates, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades)
+        private SongMetadata(UnpackedCONGroup group, string nodeName, YARGDTAReader reader, Dictionary<string, List<(string, YARGDTAReader)>> updates, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades)
         {
             RBCONSubMetadata rbMetadata = new();
 
             var dtaResults = ParseDTA(nodeName, rbMetadata, reader);
-            _rbData = new RBUnpackedCONMetadata(folder, dta, rbMetadata, nodeName, dtaResults.location);
+            _rbData = new RBUnpackedCONMetadata(group, rbMetadata, nodeName, dtaResults.location);
             _directory = rbMetadata.Directory;
-
-            if (_playlist.Length == 0)
-                _playlist = Path.GetFileName(folder);
 
             ApplyRBCONUpdates(nodeName, updates);
             ApplyRBProUpgrade(nodeName, upgrades);
             FinalizeRBCONAudioValues(rbMetadata, dtaResults.pans, dtaResults.volumes, dtaResults.cores);
         }
 
-        public static (ScanResult, SongMetadata?) FromUnpackedRBCON(string folder, AbridgedFileInfo dta, string nodeName, YARGDTAReader reader, Dictionary<string, List<(string, YARGDTAReader)>> updates, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades)
+        public static (ScanResult, SongMetadata?) FromUnpackedRBCON(UnpackedCONGroup group, string nodeName, YARGDTAReader reader, Dictionary<string, List<(string, YARGDTAReader)>> updates, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades)
         {
             try
             {
-                SongMetadata song = new(folder, dta, nodeName, reader, updates, upgrades);
+                SongMetadata song = new(group, nodeName, reader, updates, upgrades);
                 var result = song.ParseRBCONMidi(null);
                 if (result != ScanResult.Success)
                     return (result, null);
+
+                if (song._playlist.Length == 0)
+                    song._playlist = group.DefaultPlaylist;
+
                 return (result, song);
             }
             catch (Exception ex)
