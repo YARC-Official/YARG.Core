@@ -103,8 +103,7 @@ namespace YARG.Core.Song.Cache
                 return null;
             }
 
-            byte fullDirectoryFlag = fs.Read<byte>(Endianness.Little);
-            if (Unsafe.As<byte, bool>(ref fullDirectoryFlag) != fullDirectoryPlaylists)
+            if (fs.ReadBoolean() != fullDirectoryPlaylists)
             {
                 YargTrace.DebugInfo($"FullDirectoryFlag flipped");
                 return null;
