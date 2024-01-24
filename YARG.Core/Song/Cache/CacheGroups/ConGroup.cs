@@ -13,10 +13,12 @@ namespace YARG.Core.Song.Cache
         public int Count { get { lock (entryLock) return _count; } }
 
         public readonly string Location;
+        public readonly string DefaultPlaylist;
 
-        protected CONGroup(string location)
+        protected CONGroup(string location, string defaultPlaylist)
         {
             Location = location;
+            DefaultPlaylist = defaultPlaylist;
         }
 
         public abstract bool ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings);

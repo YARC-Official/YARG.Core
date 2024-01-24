@@ -38,8 +38,8 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        public PackedCONGroup(CONFile file, AbridgedFileInfo info)
-            : base(info.FullName)
+        public PackedCONGroup(CONFile file, AbridgedFileInfo info, string defaultPlaylist)
+            : base(info.FullName, defaultPlaylist)
         {
             CONFile = file;
             CONLastWrite = info.LastWriteTime;

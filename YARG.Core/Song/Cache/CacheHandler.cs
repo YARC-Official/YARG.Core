@@ -27,9 +27,9 @@ namespace YARG.Core.Song.Cache
     {
         public static ScanProgressTracker Progress => _progress;
         private static ScanProgressTracker _progress;
-        public static SongCache RunScan(bool fast, string cacheLocation, string badSongsLocation, bool multithreading, bool allowDuplicates, List<string> baseDirectories)
+        public static SongCache RunScan(bool fast, string cacheLocation, string badSongsLocation, bool multithreading, bool allowDuplicates, bool fullDirectoryPlaylists, List<string> baseDirectories)
         {
-            var handler = new CacheHandler(baseDirectories, allowDuplicates);
+            var handler = new CacheHandler(baseDirectories, allowDuplicates, fullDirectoryPlaylists);
             try
             {
                 if (!fast || !handler.QuickScan(cacheLocation, multithreading))
@@ -48,7 +48,7 @@ namespace YARG.Core.Song.Cache
         /// Format is YY_MM_DD_RR: Y = year, M = month, D = day, R = revision (reset across dates, only increment
         /// if multiple cache version changes happen in a single day).
         /// </summary>
-        public const int CACHE_VERSION = 23_12_12_01;
+        public const int CACHE_VERSION = 24_01_24_03;
 
         private static readonly object dirLock = new();
         private static readonly object fileLock = new();
@@ -75,13 +75,16 @@ namespace YARG.Core.Song.Cache
         private readonly SortedDictionary<string, ScanResult> badSongs = new();
 
         private readonly bool allowDuplicates = true;
+        private readonly bool fullDirectoryPlaylists = false;
         private readonly List<SongMetadata> duplicatesRejected = new();
         private readonly List<SongMetadata> duplicatesToRemove = new();
 
-        private CacheHandler(List<string> baseDirectories, bool allowDuplicates)
+        private CacheHandler(List<string> baseDirectories, bool allowDuplicates, bool fullDirectoryPlaylists)
         {
             _progress = default;
             this.allowDuplicates = allowDuplicates;
+            this.fullDirectoryPlaylists = fullDirectoryPlaylists;
+
             iniGroups = new(baseDirectories.Count);
             foreach (string dir in baseDirectories)
             {

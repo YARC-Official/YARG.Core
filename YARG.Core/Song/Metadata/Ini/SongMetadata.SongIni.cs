@@ -174,7 +174,7 @@ namespace YARG.Core.Song
             }
         }
 
-        public static (ScanResult, SongMetadata?) FromIni(string directory, IniChartNode chart, string? iniFile)
+        public static (ScanResult, SongMetadata?) FromIni(string chartDirectory, IniChartNode chart, string? iniFile, string defaultPlaylist)
         {
             IniSection iniModifiers;
             AbridgedFileInfo? iniFileInfo = null;
@@ -183,16 +183,26 @@ namespace YARG.Core.Song
                 iniModifiers = SongIniHandler.ReadSongIniFile(iniFile);
                 iniFileInfo = new AbridgedFileInfo(iniFile);
             }
-            else if (UnpackedIniSubmetadata.DoesSoloChartHaveAudio(directory))
+            else 
+            {
+                if (!UnpackedIniSubmetadata.DoesSoloChartHaveAudio(chartDirectory))
+                {
+                    return (ScanResult.LooseChart_NoAudio, null);
+                }
                 iniModifiers = new();
-            else
-                return (ScanResult.LooseChart_NoAudio, null);
-
-            UnpackedIniSubmetadata metadata = new(directory, chart.Type, new AbridgedFileInfo(chart.File), iniFileInfo);
+            }
 
             byte[] file = File.ReadAllBytes(chart.File);
             var result = ScanIniChartFile(file, chart.Type, iniModifiers);
-            return (result.Item1, result.Item2 != null ? new(metadata, result.Item2, HashWrapper.Hash(file), iniModifiers) : null);
+            if (result.Item2 == null)
+            {
+                return (result.Item1, null);
+            }
+
+            var info = new AbridgedFileInfo(chart.File);
+            var unpacked = new UnpackedIniSubmetadata(chartDirectory, chart.Type, info, iniFileInfo);
+            var metadata = new SongMetadata(unpacked, result.Item2, HashWrapper.Hash(file), iniModifiers, defaultPlaylist);
+            return (result.Item1, metadata);
         }
 
         public static SongMetadata? IniFromCache(string baseDirectory, YARGBinaryReader reader, CategoryCacheStrings strings)

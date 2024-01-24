@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
@@ -94,14 +95,22 @@ namespace YARG.Core.Song.Cache
                 return null;
             }
 
-            FileStream fs = new(cacheLocation, FileMode.Open, FileAccess.Read);
+            var fs = new FileStream(cacheLocation, FileMode.Open, FileAccess.Read);
+            using var counter = DisposableCounter.Wrap(fs);
             if (fs.Read<int>(Endianness.Little) != CACHE_VERSION)
             {
                 YargTrace.DebugInfo($"Cache outdated");
-                fs.Dispose();
                 return null;
             }
-            return fs;
+
+            byte fullDirectoryFlag = fs.Read<byte>(Endianness.Little);
+            if (Unsafe.As<byte, bool>(ref fullDirectoryFlag) != fullDirectoryPlaylists)
+            {
+                YargTrace.DebugInfo($"FullDirectoryFlag flipped");
+                return null;
+            }
+
+            return counter.Release();
         }
 
         private void Deserialize(string cacheLocation, bool multithreading)
@@ -221,6 +230,7 @@ namespace YARG.Core.Song.Cache
             Dictionary<SongMetadata, CategoryCacheWriteNode> nodes = new();
 
             writer.Write(CACHE_VERSION);
+            writer.Write(fullDirectoryPlaylists);
 
             CategoryWriter.WriteToCache(writer, cache.Titles   , SongAttribute.Name,     ref nodes);
             CategoryWriter.WriteToCache(writer, cache.Artists  , SongAttribute.Artist,   ref nodes);
@@ -340,10 +350,12 @@ namespace YARG.Core.Song.Cache
             var dtaLastWrite = DateTime.FromBinary(cacheReader.Read<long>(Endianness.Little));
             int count = cacheReader.Read<int>(Endianness.Little);
 
-            // Functions as a "check base directory" call
-            if (GetBaseIniGroup(filename) != null)
+            var baseDirectory = GetBaseIniGroup(filename);
+            if (baseDirectory != null)
             {
-                var group = CreateCONGroup(filename);
+                // Make playlist as the group is only made once
+                string playlist = ConstructPlaylist(filename, baseDirectory.Directory);
+                var group = CreateCONGroup(filename, playlist);
                 if (group == null)
                     goto Invalidate;
 
@@ -374,11 +386,26 @@ namespace YARG.Core.Song.Cache
             }
         }
 
+        private string ConstructPlaylist(string filename, string baseDirectory)
+        {
+            string directory = Path.GetDirectoryName(filename);
+            if (directory.Length == baseDirectory.Length)
+            {
+                return "Unknown Playlist";
+            }
+
+            if (!fullDirectoryPlaylists)
+            {
+                return Path.GetFileName(directory);
+            }
+            return directory[(baseDirectory.Length + 1)..];
+        }
+
         private PackedCONGroup? ReadCONGroupHeader(YARGBinaryReader reader, out string filename)
         {
             filename = reader.ReadLEBString();
-            // Functions as a "check base directory" call
-            if (GetBaseIniGroup(filename) == null)
+            var baseDirectory = GetBaseIniGroup(filename);
+            if (baseDirectory == null)
             {
                 return null;
             }
@@ -387,21 +414,21 @@ namespace YARG.Core.Song.Cache
             var group = FindCONGroup(filename);
             if (group == null)
             {
-                FileInfo info = new(filename);
-                if (!info.Exists)
+                if (!File.Exists(filename))
                 {
                     return null;
                 }
 
                 MarkFile(filename);
 
-                var result = CONFile.TryLoadFile(info.FullName);
+                var result = CONFile.TryLoadFile(filename);
                 if (result == null)
                 {
                     return null;
                 }
 
-                group = new PackedCONGroup(result.File, result.Info);
+                string playlist = ConstructPlaylist(filename, baseDirectory.Directory);
+                group = new PackedCONGroup(result.File, result.Info, playlist);
                 conGroups.Add(group);
             }
 
@@ -415,8 +442,8 @@ namespace YARG.Core.Song.Cache
         private UnpackedCONGroup? ReadExtractedCONGroupHeader(YARGBinaryReader reader, out string directory)
         {
             directory = reader.ReadLEBString();
-            // Functions as a "check base directory" call
-            if (GetBaseIniGroup(directory) == null)
+            var baseDirectory = GetBaseIniGroup(directory);
+            if (baseDirectory == null)
             {
                 return null;
             }
@@ -427,8 +454,10 @@ namespace YARG.Core.Song.Cache
                 return null;
             }
 
-            var group = new UnpackedCONGroup(directory, dtaInfo);
             MarkDirectory(directory);
+
+            string playlist = ConstructPlaylist(directory, baseDirectory.Directory);
+            var group = new UnpackedCONGroup(directory, dtaInfo, playlist);
             extractedConGroups.Add(group);
 
             if (dtaInfo.LastWriteTime != DateTime.FromBinary(reader.Read<long>(Endianness.Little)))
@@ -481,7 +510,7 @@ namespace YARG.Core.Song.Cache
             reader.Move(2 * SongMetadata.SIZEOF_DATETIME);
             int count = reader.Read<int>(Endianness.Little);
 
-            var group = CreateCONGroup(filename);
+            var group = CreateCONGroup(filename, string.Empty);
             if (group != null)
             {
                 conGroups.Add(group);
@@ -517,7 +546,7 @@ namespace YARG.Core.Song.Cache
             var group = FindCONGroup(filename);
             if (group == null)
             {
-                group = CreateCONGroup(filename);
+                group = CreateCONGroup(filename, string.Empty);
                 if (group == null)
                 {
                     return null;
@@ -545,10 +574,9 @@ namespace YARG.Core.Song.Cache
             return new(dtaInfo);
         }
 
-        private PackedCONGroup? CreateCONGroup(string filename)
+        private PackedCONGroup? CreateCONGroup(string filename, string defaultPlaylist)
         {
-            FileInfo info = new(filename);
-            if (!info.Exists)
+            if (!File.Exists(filename))
                 return null;
 
             MarkFile(filename);
@@ -557,7 +585,7 @@ namespace YARG.Core.Song.Cache
             if (result == null)
                 return null;
 
-            return new PackedCONGroup(result.File, result.Info);
+            return new PackedCONGroup(result.File, result.Info, defaultPlaylist);
         }
 
         private PackedCONGroup? FindCONGroup(string filename)

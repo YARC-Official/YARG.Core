@@ -54,17 +54,18 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void ScanDirectory_Parallel(string directory, IniGroup group)
+        private void ScanDirectory_Parallel(string directory, IniGroup group, PlaylistTracker tracker)
         {
             try
             {
-                if (!TraversalPreTest(directory))
+                if (!TraversalPreTest(directory, tracker.Playlist))
                     return;
 
                 var result = new FileCollector(directory);
-                if (ScanIniEntry(result, group))
+                if (ScanIniEntry(result, group, tracker.Playlist))
                     return;
 
+                tracker.Append(directory);
                 Parallel.ForEach(result.subfiles, file =>
                 {
                     try
@@ -72,13 +73,13 @@ namespace YARG.Core.Song.Cache
                         var attributes = File.GetAttributes(file);
                         if ((attributes & FileAttributes.Directory) != 0)
                         {
-                            ScanDirectory_Parallel(file, group);
+                            ScanDirectory_Parallel(file, group, tracker);
                         }
                         else if (FindOrMarkFile(file))
                         {
-                            if (!AddPossibleCON(file) && (file.EndsWith(".sng") || file.EndsWith(".yargsong")))
+                            if (!AddPossibleCON(file, tracker.Playlist) && (file.EndsWith(".sng") || file.EndsWith(".yargsong")))
                             {
-                                ScanSngFile(file, group);
+                                ScanSngFile(file, group, tracker.Playlist);
                             }
                         }
                     }

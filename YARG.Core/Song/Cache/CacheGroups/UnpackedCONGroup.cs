@@ -8,8 +8,8 @@ namespace YARG.Core.Song.Cache
     {
         public readonly AbridgedFileInfo DTA;
 
-        public UnpackedCONGroup(string directory, FileInfo dta)
-            : base(directory)
+        public UnpackedCONGroup(string directory, FileInfo dta, string defaultPlaylist)
+            : base(directory, defaultPlaylist)
         {
             DTA = dta;
         }

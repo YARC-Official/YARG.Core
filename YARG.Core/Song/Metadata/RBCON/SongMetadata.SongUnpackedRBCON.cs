@@ -146,9 +146,6 @@ namespace YARG.Core.Song
             _rbData = new RBUnpackedCONMetadata(group, rbMetadata, nodeName, dtaResults.location);
             _directory = rbMetadata.Directory;
 
-            if (_playlist.Length == 0)
-                _playlist = Path.GetFileName(group.Location);
-
             ApplyRBCONUpdates(nodeName, updates);
             ApplyRBProUpgrade(nodeName, upgrades);
             FinalizeRBCONAudioValues(rbMetadata, dtaResults.pans, dtaResults.volumes, dtaResults.cores);
@@ -162,6 +159,10 @@ namespace YARG.Core.Song
                 var result = song.ParseRBCONMidi(null);
                 if (result != ScanResult.Success)
                     return (result, null);
+
+                if (song._playlist.Length == 0)
+                    song._playlist = group.DefaultPlaylist;
+
                 return (result, song);
             }
             catch (Exception ex)
