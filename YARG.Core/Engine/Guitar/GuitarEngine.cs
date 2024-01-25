@@ -34,11 +34,9 @@ namespace YARG.Core.Engine.Guitar
 
         protected List<ActiveSustain> ActiveSustains = new();
 
-        public override bool TreatChordAsSeparate => false;
-
         protected GuitarEngine(InstrumentDifficulty<GuitarNote> chart, SyncTrack syncTrack,
             GuitarEngineParameters engineParameters)
-            : base(chart, syncTrack, engineParameters)
+            : base(chart, syncTrack, engineParameters, false)
         {
             State.Initialize(engineParameters);
         }

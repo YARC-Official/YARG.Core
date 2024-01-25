@@ -15,11 +15,9 @@ namespace YARG.Core.Engine.Vocals
 
         public PhraseHitEvent? OnPhraseHit;
 
-        public override bool TreatChordAsSeparate => false;
-
         protected VocalsEngine(InstrumentDifficulty<VocalNote> chart, SyncTrack syncTrack,
             VocalsEngineParameters engineParameters)
-            : base(chart, syncTrack, engineParameters)
+            : base(chart, syncTrack, engineParameters, false)
         {
         }
 

@@ -36,12 +36,13 @@ namespace YARG.Core.Engine
         /// For example, guitars would treat each note as a chord, where as drums would treat them
         /// as singular pieces.
         /// </summary>
-        public abstract bool TreatChordAsSeparate { get; }
+        protected readonly bool TreatChordAsSeparate;
 
-        protected BaseEngine(SyncTrack syncTrack)
+        protected BaseEngine(SyncTrack syncTrack, bool isChordSeparate)
         {
             SyncTrack = syncTrack;
             Resolution = syncTrack.Resolution;
+            TreatChordAsSeparate = isChordSeparate;
 
             EventLogger = new EngineEventLogger();
             InputQueue = new Queue<GameInput>();
@@ -244,11 +245,10 @@ namespace YARG.Core.Engine
         public override BaseStats BaseStats => EngineStats;
 
         protected BaseEngine(InstrumentDifficulty<TNoteType> chart, SyncTrack syncTrack,
-            TEngineParams engineParameters) : base(syncTrack)
+            TEngineParams engineParameters, bool isChordSeparate) : base(syncTrack, isChordSeparate)
         {
             Chart = chart;
             Notes = Chart.Notes;
-
             EngineParameters = engineParameters;
 
             EngineStats = new TEngineStats();

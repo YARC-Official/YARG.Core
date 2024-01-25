@@ -14,11 +14,9 @@ namespace YARG.Core.Engine.Drums
         public OverhitEvent? OnOverhit;
         public PadHitEvent?  OnPadHit;
 
-        public override bool TreatChordAsSeparate => true;
-
         protected DrumsEngine(InstrumentDifficulty<DrumNote> chart, SyncTrack syncTrack,
             DrumsEngineParameters engineParameters)
-            : base(chart, syncTrack, engineParameters)
+            : base(chart, syncTrack, engineParameters, true)
         {
         }
 
