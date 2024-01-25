@@ -14,34 +14,30 @@ namespace YARG.Core.Engine.Drums.Engines
         {
             base.UpdateBot(songTime);
 
-            // Skip if there are no notes left
-            if (State.NoteIndex >= Notes.Count)
-            {
-                return;
-            }
-
-            var note = Notes[State.NoteIndex];
-
             bool updateToSongTime = true;
-            while (note is not null && songTime >= note.Time)
+            if (State.NoteIndex < Notes.Count)
             {
-                updateToSongTime = false;
-
-                // Make sure to hit each note in the "chord" individually
-                bool hit = true;
-                foreach (var chordNote in note.ChordEnumerator())
+                var note = Notes[State.NoteIndex];
+                while (note is not null && songTime >= note.Time)
                 {
-                    State.PadHitThisUpdate = chordNote.Pad;
+                    updateToSongTime = false;
 
-                    if (!UpdateHitLogic(chordNote.Time))
+                    // Make sure to hit each note in the "chord" individually
+                    bool hit = true;
+                    foreach (var chordNote in note.ChordEnumerator())
                     {
-                        hit = false;
+                        State.PadHitThisUpdate = chordNote.Pad;
+
+                        if (!UpdateHitLogic(chordNote.Time))
+                        {
+                            hit = false;
+                        }
                     }
+
+                    if (!hit) break;
+
+                    note = note.NextNote;
                 }
-
-                if (!hit) break;
-
-                note = note.NextNote;
             }
 
             State.PadHitThisUpdate = -1;

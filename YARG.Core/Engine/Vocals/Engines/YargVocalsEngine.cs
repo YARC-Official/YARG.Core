@@ -15,9 +15,6 @@ namespace YARG.Core.Engine.Vocals.Engines
         {
             base.UpdateBot(songTime);
 
-            // Skip if there are no notes left
-            if (State.NoteIndex >= Notes.Count) return;
-
             // Skip if the song hasn't started yet
             if (songTime < 0) return;
 
@@ -51,18 +48,21 @@ namespace YARG.Core.Engine.Vocals.Engines
                 // Skip all updates that are in the past
                 if (time <= State.CurrentTime) continue;
 
-                var phrase = Notes[State.NoteIndex];
-                var note = GetNoteInPhraseAtSongTick(phrase, State.CurrentTick);
+                if (State.NoteIndex < Notes.Count)
+                {
+                    var phrase = Notes[State.NoteIndex];
+                    var note = GetNoteInPhraseAtSongTick(phrase, State.CurrentTick);
 
-                if (note is not null && !note.IsPercussion)
-                {
-                    State.DidSing = true;
-                    State.PitchSang = note.PitchAtSongTime(State.CurrentTime);
-                    State.LastSingTime = time;
-                }
-                else
-                {
-                    State.DidSing = false;
+                    if (note is not null && !note.IsPercussion)
+                    {
+                        State.DidSing = true;
+                        State.PitchSang = note.PitchAtSongTime(State.CurrentTime);
+                        State.LastSingTime = time;
+                    }
+                    else
+                    {
+                        State.DidSing = false;
+                    }
                 }
 
                 UpdateHitLogic(time);

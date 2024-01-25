@@ -16,41 +16,38 @@ namespace YARG.Core.Engine.Guitar.Engines
         {
             base.UpdateBot(songTime);
 
-            if (State.NoteIndex >= Notes.Count)
-            {
-                return;
-            }
-
-            var note = Notes[State.NoteIndex];
-
             bool updateToSongTime = true;
-            while (note is not null && songTime >= note.Time)
+            if (State.NoteIndex < Notes.Count)
             {
-                updateToSongTime = false;
-
-                State.ButtonMask = (byte) note.NoteMask;
-                State.StrummedThisUpdate = true;
-                State.FrontEndStartTime = note.Time;
-
-                foreach (var sustain in ActiveSustains)
+                var note = Notes[State.NoteIndex];
+                while (note is not null && songTime >= note.Time)
                 {
-                    var sustainNote = sustain.Note;
-                    if (sustainNote.IsDisjoint)
-                    {
-                        State.ButtonMask |= (byte) sustainNote.DisjointMask;
-                    }
-                    else
-                    {
-                        State.ButtonMask |= (byte) sustainNote.NoteMask;
-                    }
-                }
+                    updateToSongTime = false;
 
-                if (!UpdateHitLogic(note.Time))
-                {
-                    break;
-                }
+                    State.ButtonMask = (byte) note.NoteMask;
+                    State.StrummedThisUpdate = true;
+                    State.FrontEndStartTime = note.Time;
 
-                note = note.NextNote;
+                    foreach (var sustain in ActiveSustains)
+                    {
+                        var sustainNote = sustain.Note;
+                        if (sustainNote.IsDisjoint)
+                        {
+                            State.ButtonMask |= (byte) sustainNote.DisjointMask;
+                        }
+                        else
+                        {
+                            State.ButtonMask |= (byte) sustainNote.NoteMask;
+                        }
+                    }
+
+                    if (!UpdateHitLogic(note.Time))
+                    {
+                        break;
+                    }
+
+                    note = note.NextNote;
+                }
             }
 
             State.StrummedThisUpdate = false;
