@@ -208,7 +208,7 @@ namespace YARG.Core.Song.Cache
         public void Add(SongMetadata entry)
         {
             if (entry.Parts.HasInstrument(comparer.instrument) ||
-                (comparer.instrument == Instrument.Band && entry.Parts.GetValues(Instrument.Band).intensity >= 0))
+                (comparer.instrument == Instrument.Band && entry.Parts.GetValues(Instrument.Band).Intensity >= 0))
             {
                 lock (entryLock)
                 {

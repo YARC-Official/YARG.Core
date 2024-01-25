@@ -1,51 +1,49 @@
 ﻿using System;
+using System.Runtime.InteropServices;
 
 namespace YARG.Core.Song
 {
     [Serializable]
+    [StructLayout(LayoutKind.Explicit)]
     public struct PartValues
     {
-        public byte subTracks;
-        public sbyte intensity;
+        [FieldOffset(0)] public byte SubTracks;
+        [FieldOffset(0)] public DifficultyMask Difficulties;
+
+        [FieldOffset(1)] public sbyte Intensity;
+
         public PartValues(sbyte baseIntensity)
         {
-            subTracks = 0;
-            intensity = baseIntensity;
+            SubTracks = 0;
+            Difficulties = DifficultyMask.None;
+            Intensity = baseIntensity;
         }
 
-        public bool this[int subTrack]
+        public readonly bool this[int subTrack]
         {
             get
             {
                 const int BITS_IN_BYTE = 8;
                 if (subTrack >= BITS_IN_BYTE)
-                    throw new System.Exception("Subtrack index out of range");
-                return ((byte) (1 << subTrack) & subTracks) > 0;
+                {
+                    throw new Exception("Subtrack index out of range");
+                }
+                return ((byte) (1 << subTrack) & SubTracks) > 0;
             }
         }
 
-        public bool this[Difficulty difficulty] => this[(int) difficulty];
-
-        public DifficultyMask Difficulties
-        {
-            get => (DifficultyMask) subTracks;
-            set => subTracks = (byte) value;
-        }
+        public readonly bool this[Difficulty difficulty] => this[(int) difficulty];
 
         public void SetSubtrack(int subTrack)
         {
-            subTracks |= (byte) (1 << subTrack);
+            SubTracks |= (byte) (1 << subTrack);
         }
 
         public void SetDifficulty(Difficulty difficulty)
-            => SetSubtrack((int) difficulty);
-
-        public bool WasParsed() { return subTracks > 0; }
-
-        public static PartValues operator |(PartValues lhs, PartValues rhs)
         {
-            lhs.subTracks |= rhs.subTracks;
-            return lhs;
+            Difficulties |= (DifficultyMask) (1 << (int)difficulty);
         }
+
+        public readonly bool WasParsed() { return SubTracks > 0; }
     }
 }

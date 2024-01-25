@@ -128,17 +128,17 @@ namespace YARG.Core.Song
 
             // This function only gets called if both entries have the instrument
             // That check is not necessary
-            if (lhsValues.intensity != rhsValues.intensity)
+            if (lhsValues.Intensity != rhsValues.Intensity)
             {
-                if (lhsValues.intensity != -1 && (rhsValues.intensity == -1 || lhsValues.intensity < rhsValues.intensity))
+                if (lhsValues.Intensity != -1 && (rhsValues.Intensity == -1 || lhsValues.Intensity < rhsValues.Intensity))
                     return -1;
                 return 1;
             }
             
-            if (lhsValues.subTracks > rhsValues.subTracks)
+            if (lhsValues.SubTracks > rhsValues.SubTracks)
                 return -1;
 
-            if (lhsValues.subTracks < rhsValues.subTracks)
+            if (lhsValues.SubTracks < rhsValues.SubTracks)
                 return 1;
 
             return baseComparer.Compare(lhs, rhs);

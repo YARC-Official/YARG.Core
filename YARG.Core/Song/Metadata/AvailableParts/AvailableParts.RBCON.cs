@@ -28,63 +28,63 @@ namespace YARG.Core.Song
                     case "drum":
                     case "drums":
                         condiffs.FourLaneDrums = (short) diff;
-                        SetRank(ref FourLaneDrums.intensity, diff, DrumDiffMap);
-                        if (ProDrums.intensity == -1)
-                            ProDrums.intensity = FourLaneDrums.intensity;
+                        SetRank(ref FourLaneDrums.Intensity, diff, DrumDiffMap);
+                        if (ProDrums.Intensity == -1)
+                            ProDrums.Intensity = FourLaneDrums.Intensity;
                         break;
                     case "guitar":
                         condiffs.FiveFretGuitar = (short) diff;
-                        SetRank(ref FiveFretGuitar.intensity, diff, GuitarDiffMap);
+                        SetRank(ref FiveFretGuitar.Intensity, diff, GuitarDiffMap);
                         break;
                     case "bass":
                         condiffs.FiveFretBass = (short) diff;
-                        SetRank(ref FiveFretBass.intensity, diff, BassDiffMap);
+                        SetRank(ref FiveFretBass.Intensity, diff, BassDiffMap);
                         break;
                     case "vocals":
                         condiffs.LeadVocals = (short) diff;
-                        SetRank(ref LeadVocals.intensity, diff, VocalsDiffMap);
-                        if (HarmonyVocals.intensity == -1)
-                            HarmonyVocals.intensity = LeadVocals.intensity;
+                        SetRank(ref LeadVocals.Intensity, diff, VocalsDiffMap);
+                        if (HarmonyVocals.Intensity == -1)
+                            HarmonyVocals.Intensity = LeadVocals.Intensity;
                         break;
                     case "keys":
                         condiffs.Keys = (short) diff;
-                        SetRank(ref Keys.intensity, diff, KeysDiffMap);
+                        SetRank(ref Keys.Intensity, diff, KeysDiffMap);
                         break;
                     case "realGuitar":
                     case "real_guitar":
                         condiffs.ProGuitar = (short) diff;
-                        SetRank(ref ProGuitar_17Fret.intensity, diff, RealGuitarDiffMap);
-                        ProBass_22Fret.intensity = ProGuitar_17Fret.intensity;
+                        SetRank(ref ProGuitar_17Fret.Intensity, diff, RealGuitarDiffMap);
+                        ProBass_22Fret.Intensity = ProGuitar_17Fret.Intensity;
                         break;
                     case "realBass":
                     case "real_bass":
                         condiffs.ProBass = (short) diff;
-                        SetRank(ref ProBass_17Fret.intensity, diff, RealBassDiffMap);
-                        ProBass_22Fret.intensity = ProBass_17Fret.intensity;
+                        SetRank(ref ProBass_17Fret.Intensity, diff, RealBassDiffMap);
+                        ProBass_22Fret.Intensity = ProBass_17Fret.Intensity;
                         break;
                     case "realKeys":
                     case "real_keys":
                         condiffs.ProKeys = (short) diff;
-                        SetRank(ref ProKeys.intensity, diff, RealKeysDiffMap);
+                        SetRank(ref ProKeys.Intensity, diff, RealKeysDiffMap);
                         break;
                     case "realDrums":
                     case "real_drums":
                         condiffs.ProDrums = (short) diff;
-                        SetRank(ref ProDrums.intensity, diff, RealDrumsDiffMap);
-                        if (FourLaneDrums.intensity == -1)
-                            FourLaneDrums.intensity = ProDrums.intensity;
+                        SetRank(ref ProDrums.Intensity, diff, RealDrumsDiffMap);
+                        if (FourLaneDrums.Intensity == -1)
+                            FourLaneDrums.Intensity = ProDrums.Intensity;
                         break;
                     case "harmVocals":
                     case "vocal_harm":
                         condiffs.HarmonyVocals = (short) diff;
-                        SetRank(ref HarmonyVocals.intensity, diff, HarmonyDiffMap);
-                        if (LeadVocals.intensity == -1)
-                            LeadVocals.intensity = HarmonyVocals.intensity;
+                        SetRank(ref HarmonyVocals.Intensity, diff, HarmonyDiffMap);
+                        if (LeadVocals.Intensity == -1)
+                            LeadVocals.Intensity = HarmonyVocals.Intensity;
                         break;
                     case "band":
                         condiffs.band = (short) diff;
-                        SetRank(ref _bandDifficulty.intensity, diff, BandDiffMap);
-                        _bandDifficulty.subTracks = 1;
+                        SetRank(ref _bandDifficulty.Intensity, diff, BandDiffMap);
+                        _bandDifficulty.SubTracks = 1;
                         break;
                 }
                 reader.EndNode();

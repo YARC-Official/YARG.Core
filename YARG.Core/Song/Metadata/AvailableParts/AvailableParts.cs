@@ -11,7 +11,7 @@ namespace YARG.Core.Song
     [Serializable]
     public sealed partial class AvailableParts
     {
-        public sbyte BandDifficulty => _bandDifficulty.intensity;
+        public sbyte BandDifficulty => _bandDifficulty.Intensity;
         public int VocalsCount { get; private set; }
 
         private PartValues _bandDifficulty;
@@ -84,14 +84,14 @@ namespace YARG.Core.Song
             {
                 return new PartValues
                 {
-                    subTracks = reader.ReadByte(),
-                    intensity = reader.ReadSByte()
+                    SubTracks = reader.ReadByte(),
+                    Intensity = reader.ReadSByte()
                 };
             }
 
-            _bandDifficulty.intensity = reader.ReadSByte();
-            if (_bandDifficulty.intensity != -1)
-                _bandDifficulty.subTracks = 1;
+            _bandDifficulty.Intensity = reader.ReadSByte();
+            if (_bandDifficulty.Intensity != -1)
+                _bandDifficulty.SubTracks = 1;
 
             FiveFretGuitar = DeserializeValues();
             FiveFretBass = DeserializeValues();
@@ -128,11 +128,11 @@ namespace YARG.Core.Song
         {
             void SerializeValues(ref PartValues values)
             {
-                writer.Write(values.subTracks);
-                writer.Write(values.intensity);
+                writer.Write(values.SubTracks);
+                writer.Write(values.Intensity);
             }
 
-            writer.Write(_bandDifficulty.intensity);
+            writer.Write(_bandDifficulty.Intensity);
             SerializeValues(ref FiveFretGuitar);
             SerializeValues(ref FiveFretBass);
             SerializeValues(ref FiveFretRhythm);
@@ -165,32 +165,32 @@ namespace YARG.Core.Song
 
         public bool CheckScanValidity()
         {
-            return FiveFretGuitar.subTracks > 0 ||
-                   FiveFretBass.subTracks > 0 ||
-                   FiveFretRhythm.subTracks > 0 ||
-                   FiveFretCoopGuitar.subTracks > 0 ||
-                   Keys.subTracks > 0 ||
+            return FiveFretGuitar.SubTracks > 0 ||
+                   FiveFretBass.SubTracks > 0 ||
+                   FiveFretRhythm.SubTracks > 0 ||
+                   FiveFretCoopGuitar.SubTracks > 0 ||
+                   Keys.SubTracks > 0 ||
 
-                   SixFretGuitar.subTracks > 0 ||
-                   SixFretBass.subTracks > 0 ||
-                   SixFretRhythm.subTracks > 0 ||
-                   SixFretCoopGuitar.subTracks > 0 ||
+                   SixFretGuitar.SubTracks > 0 ||
+                   SixFretBass.SubTracks > 0 ||
+                   SixFretRhythm.SubTracks > 0 ||
+                   SixFretCoopGuitar.SubTracks > 0 ||
 
-                   FourLaneDrums.subTracks > 0 ||
-                   ProDrums.subTracks > 0 ||
-                   FiveLaneDrums.subTracks > 0 ||
+                   FourLaneDrums.SubTracks > 0 ||
+                   ProDrums.SubTracks > 0 ||
+                   FiveLaneDrums.SubTracks > 0 ||
                    //TrueDrums.subTracks > 0 ||
-                   ProGuitar_17Fret.subTracks > 0 ||
-                   ProGuitar_22Fret.subTracks > 0 ||
-                   ProBass_17Fret.subTracks > 0 ||
-                   ProBass_22Fret.subTracks > 0 ||
+                   ProGuitar_17Fret.SubTracks > 0 ||
+                   ProGuitar_22Fret.SubTracks > 0 ||
+                   ProBass_17Fret.SubTracks > 0 ||
+                   ProBass_22Fret.SubTracks > 0 ||
 
-                   ProKeys.subTracks > 0 ||
+                   ProKeys.SubTracks > 0 ||
 
                    //Dj.subTracks > 0 ||
 
-                   LeadVocals.subTracks > 0 ||
-                   HarmonyVocals.subTracks > 0;
+                   LeadVocals.SubTracks > 0 ||
+                   HarmonyVocals.SubTracks > 0;
         }
 
         private static readonly Instrument[] ALL_INSTRUMENTS = (Instrument[]) Enum.GetValues(typeof(Instrument));
@@ -242,7 +242,7 @@ namespace YARG.Core.Song
         {
             try
             {
-                return instrument != Instrument.Band && GetValues(instrument).subTracks > 0;
+                return instrument != Instrument.Band && GetValues(instrument).SubTracks > 0;
             }
             catch
             {
@@ -276,10 +276,10 @@ namespace YARG.Core.Song
 
         public DrumsType GetDrumType()
         {
-            if (FourLaneDrums.subTracks > 0)
+            if (FourLaneDrums.SubTracks > 0)
                 return DrumsType.FourLane;
 
-            if (FiveLaneDrums.subTracks > 0)
+            if (FiveLaneDrums.SubTracks > 0)
                 return DrumsType.FiveLane;
 
             return DrumsType.Unknown;

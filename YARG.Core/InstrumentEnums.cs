@@ -94,6 +94,7 @@ namespace YARG.Core
 
     /// <summary>
     /// Available difficulty levels.
+    /// <remarks>DO NOT MAKE THIS LARGER THAN A BYTE!</remarks>
     /// </summary>
     [Flags]
     public enum DifficultyMask : byte
