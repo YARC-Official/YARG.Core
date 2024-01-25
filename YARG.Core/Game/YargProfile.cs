@@ -47,6 +47,15 @@ namespace YARG.Core.Game
         public Difficulty CurrentDifficulty;
 
         /// <summary>
+        /// The difficulty to be saved in the profile.
+        /// 
+        /// If a song does not contain this difficulty, so long as the player
+        /// does not *explicitly* and *manually* change the difficulty, this value
+        /// should remain unchanged.
+        /// </summary>
+        public Difficulty DifficultyFallback;
+
+        /// <summary>
         /// The harmony index, used for determining what harmony part the player selected.
         /// Does nothing if <see cref="CurrentInstrument"/> is not a harmony.
         /// </summary>
@@ -177,7 +186,7 @@ namespace YARG.Core.Game
             writer.Write(CameraPreset);
 
             writer.Write((byte) CurrentInstrument);
-            writer.Write((byte) CurrentDifficulty);
+            writer.Write((byte) DifficultyFallback);
             writer.Write((ulong) CurrentModifiers);
             writer.Write(HarmonyIndex);
 
@@ -199,7 +208,7 @@ namespace YARG.Core.Game
             CameraPreset = reader.ReadGuid();
 
             CurrentInstrument = (Instrument) reader.ReadByte();
-            CurrentDifficulty = (Difficulty) reader.ReadByte();
+            DifficultyFallback = (Difficulty) reader.ReadByte();
             CurrentModifiers = (Modifier) reader.ReadUInt64();
             HarmonyIndex = reader.ReadByte();
 
@@ -208,6 +217,7 @@ namespace YARG.Core.Game
             LeftyFlip = reader.ReadBoolean();
 
             GameMode = CurrentInstrument.ToGameMode();
+            CurrentDifficulty = DifficultyFallback;
         }
     }
 }
