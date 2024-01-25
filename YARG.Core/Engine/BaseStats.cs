@@ -47,9 +47,15 @@ namespace YARG.Core.Engine
         public int NotesHit;
 
         /// <summary>
+        /// Number of notes in the chart. This value should never be modified.
+        /// </summary>
+        public int TotalNotes;
+
+        /// <summary>
         /// Number of notes which have been missed.
         /// </summary>
-        public int NotesMissed;
+        /// <remarks>Value is calculated from <see cref="BaseStats.TotalNotes"/> - <see cref="BaseStats.NotesHit"/>.</remarks>
+        public int NotesMissed => TotalNotes - NotesHit;
 
         /// <summary>
         /// Amount of Star Power/Overdrive the player currently has.
@@ -104,7 +110,7 @@ namespace YARG.Core.Engine
             MaxCombo = stats.MaxCombo;
             ScoreMultiplier = stats.ScoreMultiplier;
             NotesHit = stats.NotesHit;
-            NotesMissed = stats.NotesMissed;
+            TotalNotes = stats.TotalNotes;
 
             StarPowerAmount = stats.StarPowerAmount;
             StarPowerBaseAmount = stats.StarPowerBaseAmount;
@@ -124,7 +130,8 @@ namespace YARG.Core.Engine
             MaxCombo = 0;
             ScoreMultiplier = 1;
             NotesHit = 0;
-            NotesMissed = 0;
+            // Don't reset TotalNotes
+            // TotalNotes = 0;
 
             StarPowerAmount = 0;
             StarPowerBaseAmount = 0;
@@ -144,7 +151,7 @@ namespace YARG.Core.Engine
             writer.Write(MaxCombo);
             writer.Write(ScoreMultiplier);
             writer.Write(NotesHit);
-            writer.Write(NotesMissed);
+            writer.Write(TotalNotes);
 
             writer.Write(StarPowerAmount);
             writer.Write(StarPowerBaseAmount);
@@ -163,7 +170,7 @@ namespace YARG.Core.Engine
             MaxCombo = reader.ReadInt32();
             ScoreMultiplier = reader.ReadInt32();
             NotesHit = reader.ReadInt32();
-            NotesMissed = reader.ReadInt32();
+            TotalNotes = reader.ReadInt32();
 
             StarPowerAmount = reader.ReadDouble();
             StarPowerBaseAmount = reader.ReadDouble();

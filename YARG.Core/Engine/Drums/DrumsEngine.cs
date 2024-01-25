@@ -81,7 +81,6 @@ namespace YARG.Core.Engine.Drums
                     }
 
                     chordNote.SetMissState(true, false);
-                    EngineStats.NotesMissed++;
                     OnNoteMissed?.Invoke(State.NoteIndex, prevNote);
                 }
 
@@ -168,7 +167,6 @@ namespace YARG.Core.Engine.Drums
             }
 
             EngineStats.Combo = 0;
-            EngineStats.NotesMissed++;
 
             UpdateMultiplier();
 

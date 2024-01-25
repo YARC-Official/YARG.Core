@@ -256,6 +256,17 @@ namespace YARG.Core.Engine
             State.Reset();
 
             EngineStats.ScoreMultiplier = 1;
+            if (TreatChordAsSeparate)
+            {
+                foreach(var note in Notes)
+                {
+                    EngineStats.TotalNotes += GetNumberOfNotes(note);
+                }
+            }
+            else
+            {
+                EngineStats.TotalNotes = Notes.Count;
+            }
 
             TicksPerSustainPoint = Resolution / (double) POINTS_PER_BEAT;
             SustainBurstThreshold = Resolution / SUSTAIN_BURST_FRACTION;

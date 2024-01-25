@@ -215,7 +215,6 @@ namespace YARG.Core.Engine.Guitar
             State.WasNoteGhosted = false;
 
             EngineStats.Combo = 0;
-            EngineStats.NotesMissed++;
 
             UpdateMultiplier();
 

@@ -84,7 +84,6 @@ namespace YARG.Core.Engine.Vocals
             }
 
             EngineStats.Combo = 0;
-            EngineStats.NotesMissed++;
 
             UpdateMultiplier();
 
