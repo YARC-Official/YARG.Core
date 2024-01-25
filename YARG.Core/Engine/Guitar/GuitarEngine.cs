@@ -283,6 +283,10 @@ namespace YARG.Core.Engine.Guitar
             EngineStats.PendingScore = 0;
             foreach (var sustain in ActiveSustains)
             {
+                // Don't rebase sustains that haven't started yet
+                if (sustain.BaseTick > baseTick)
+                    continue;
+
                 double sustainScore = CalculateSustainPoints(sustain, baseTick);
 
                 sustain.BaseTick = baseTick;
