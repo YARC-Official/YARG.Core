@@ -22,9 +22,21 @@ namespace YARG.Core.Engine
         public int PendingScore;
 
         /// <summary>
-        /// Total score across finalized and pending score.
+        /// Total score across all score values.
         /// </summary>
-        public int TotalScore => CommittedScore + PendingScore;
+        /// <remarks>
+        /// Calculated from <see cref="CommittedScore"/>, <see cref="PendingScore"/>, and <see cref="SoloBonuses"/>.
+        /// </remarks>
+        public int TotalScore => CommittedScore + PendingScore + SoloBonuses;
+
+        /// <summary>
+        /// The score used to calculate star progress.
+        /// </summary>
+        /// <remarks>
+        /// Calculated from <see cref="CommittedScore"/> and <see cref="PendingScore"/>.
+        /// <see cref="SoloBonuses"/> is not included in star progress.
+        /// </remarks>
+        public int StarScore => CommittedScore + PendingScore;
 
         /// <summary>
         /// The player's current combo (such as 500 note streak)

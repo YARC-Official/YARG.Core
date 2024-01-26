@@ -455,7 +455,7 @@ namespace YARG.Core.Engine
         protected void UpdateStars()
         {
             while (State.CurrentStarIndex < StarScoreThresholds.Length &&
-                EngineStats.TotalScore > StarScoreThresholds[State.CurrentStarIndex])
+                EngineStats.StarScore > StarScoreThresholds[State.CurrentStarIndex])
             {
                 EngineStats.Stars++;
                 State.CurrentStarIndex++;
