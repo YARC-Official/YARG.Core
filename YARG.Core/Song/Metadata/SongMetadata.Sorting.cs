@@ -123,8 +123,8 @@ namespace YARG.Core.Song
 
         public int Compare(SongMetadata lhs, SongMetadata rhs)
         {
-            var lhsValues = lhs.Parts.GetValues(instrument);
-            var rhsValues = rhs.Parts.GetValues(instrument);
+            var lhsValues = lhs.Parts[instrument];
+            var rhsValues = rhs.Parts[instrument];
 
             // This function only gets called if both entries have the instrument
             // That check is not necessary

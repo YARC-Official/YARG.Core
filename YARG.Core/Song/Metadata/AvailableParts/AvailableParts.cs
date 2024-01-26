@@ -195,83 +195,90 @@ namespace YARG.Core.Song
 
         private static readonly Instrument[] ALL_INSTRUMENTS = (Instrument[]) Enum.GetValues(typeof(Instrument));
 
-        public List<Instrument> GetInstruments()
+        public Instrument[] GetInstruments()
         {
-            return ALL_INSTRUMENTS.Where(instrument => HasInstrument(instrument)).ToList();
+            return ALL_INSTRUMENTS
+                .Where(instrument => instrument != Instrument.Band && HasInstrument(instrument))
+                .ToArray();
         }
 
-        public PartValues GetValues(Instrument instrument)
+        public PartValues this[Instrument instrument]
         {
-            return instrument switch
+            get
             {
-                Instrument.FiveFretGuitar => FiveFretGuitar,
-                Instrument.FiveFretBass => FiveFretBass,
-                Instrument.FiveFretRhythm => FiveFretRhythm,
-                Instrument.FiveFretCoopGuitar => FiveFretCoopGuitar,
-                Instrument.Keys => Keys,
+                return instrument switch
+                {
+                    Instrument.FiveFretGuitar => FiveFretGuitar,
+                    Instrument.FiveFretBass => FiveFretBass,
+                    Instrument.FiveFretRhythm => FiveFretRhythm,
+                    Instrument.FiveFretCoopGuitar => FiveFretCoopGuitar,
+                    Instrument.Keys => Keys,
 
-                Instrument.SixFretGuitar => SixFretGuitar,
-                Instrument.SixFretBass => SixFretBass,
-                Instrument.SixFretRhythm => SixFretRhythm,
-                Instrument.SixFretCoopGuitar => SixFretCoopGuitar,
+                    Instrument.SixFretGuitar => SixFretGuitar,
+                    Instrument.SixFretBass => SixFretBass,
+                    Instrument.SixFretRhythm => SixFretRhythm,
+                    Instrument.SixFretCoopGuitar => SixFretCoopGuitar,
 
-                Instrument.FourLaneDrums => FourLaneDrums,
-                Instrument.FiveLaneDrums => FiveLaneDrums,
-                Instrument.ProDrums => ProDrums,
+                    Instrument.FourLaneDrums => FourLaneDrums,
+                    Instrument.FiveLaneDrums => FiveLaneDrums,
+                    Instrument.ProDrums => ProDrums,
 
-                // Instrument.TrueDrums => TrueDrums,
+                    // Instrument.TrueDrums => TrueDrums,
 
-                Instrument.ProGuitar_17Fret => ProGuitar_17Fret,
-                Instrument.ProGuitar_22Fret => ProGuitar_22Fret,
-                Instrument.ProBass_17Fret => ProBass_17Fret,
-                Instrument.ProBass_22Fret => ProBass_22Fret,
+                    Instrument.ProGuitar_17Fret => ProGuitar_17Fret,
+                    Instrument.ProGuitar_22Fret => ProGuitar_22Fret,
+                    Instrument.ProBass_17Fret => ProBass_17Fret,
+                    Instrument.ProBass_22Fret => ProBass_22Fret,
 
-                Instrument.ProKeys => ProKeys,
+                    Instrument.ProKeys => ProKeys,
 
-                // Instrument.Dj => Dj,
+                    // Instrument.Dj => Dj,
 
-                Instrument.Vocals => LeadVocals,
-                Instrument.Harmony => HarmonyVocals,
-                Instrument.Band => _bandDifficulty,
+                    Instrument.Vocals => LeadVocals,
+                    Instrument.Harmony => HarmonyVocals,
+                    Instrument.Band => _bandDifficulty,
 
-                _ => throw new NotImplementedException($"Unhandled instrument {instrument}!")
-            };
+                    _ => throw new NotImplementedException($"Unhandled instrument {instrument}!")
+                };
+            }
         }
 
         public bool HasInstrument(Instrument instrument)
         {
-            try
+            return instrument switch
             {
-                return instrument != Instrument.Band && GetValues(instrument).SubTracks > 0;
-            }
-            catch
-            {
-                return false;
-            }
-        }
+                Instrument.FiveFretGuitar => FiveFretGuitar.SubTracks > 0,
+                Instrument.FiveFretBass => FiveFretBass.SubTracks > 0,
+                Instrument.FiveFretRhythm => FiveFretRhythm.SubTracks > 0,
+                Instrument.FiveFretCoopGuitar => FiveFretCoopGuitar.SubTracks > 0,
+                Instrument.Keys => Keys.SubTracks > 0,
 
-        public bool HasDifficulty(Instrument instrument, Difficulty difficulty)
-        {
-            try
-            {
-                return GetValues(instrument)[difficulty];
-            }
-            catch
-            {
-                return false;
-            }
-        }
+                Instrument.SixFretGuitar => SixFretGuitar.SubTracks > 0,
+                Instrument.SixFretBass => SixFretBass.SubTracks > 0,
+                Instrument.SixFretRhythm => SixFretRhythm.SubTracks > 0,
+                Instrument.SixFretCoopGuitar => SixFretCoopGuitar.SubTracks > 0,
 
-        public bool HasPart(Instrument instrument, int subtrack)
-        {
-            try
-            {
-                return GetValues(instrument)[subtrack];
-            }
-            catch
-            {
-                return false;
-            }
+                Instrument.FourLaneDrums => FourLaneDrums.SubTracks > 0,
+                Instrument.FiveLaneDrums => FiveLaneDrums.SubTracks > 0,
+                Instrument.ProDrums => ProDrums.SubTracks > 0,
+
+                // Instrument.TrueDrums => TrueDrums.SubTracks > 0,
+
+                Instrument.ProGuitar_17Fret => ProGuitar_17Fret.SubTracks > 0,
+                Instrument.ProGuitar_22Fret => ProGuitar_22Fret.SubTracks > 0,
+                Instrument.ProBass_17Fret => ProBass_17Fret.SubTracks > 0,
+                Instrument.ProBass_22Fret => ProBass_22Fret.SubTracks > 0,
+
+                Instrument.ProKeys => ProKeys.SubTracks > 0,
+
+                // Instrument.Dj => Dj.SubTracks > 0,
+
+                Instrument.Vocals => LeadVocals.SubTracks > 0,
+                Instrument.Harmony => HarmonyVocals.SubTracks > 0,
+                Instrument.Band => _bandDifficulty.SubTracks > 0,
+
+                _ => false
+            };
         }
 
         public DrumsType GetDrumType()
