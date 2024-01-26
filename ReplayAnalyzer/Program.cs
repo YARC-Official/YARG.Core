@@ -182,7 +182,7 @@ if (runMode is 0 or 1)
     }
     else
     {
-        var distinctScores = analyzer.BandScores.Distinct().ToList();
+        var distinctScores = analyzer.BandScores.Values.Distinct().ToList();
 
         if (distinctScores.Count != 1)
         {
