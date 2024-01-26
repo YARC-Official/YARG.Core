@@ -286,7 +286,7 @@ namespace YARG.Core.Engine.Guitar
 
                 double sustainScore = CalculateSustainPoints(sustain, baseTick);
 
-                sustain.BaseTick = baseTick;
+                sustain.BaseTick = Math.Clamp(baseTick, sustain.Note.Tick, sustain.Note.TickEnd);
                 sustain.BaseScore = sustainScore;
                 EngineStats.PendingScore += (int) sustainScore;
             }
