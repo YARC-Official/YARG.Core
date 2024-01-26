@@ -7,6 +7,8 @@ namespace YARG.Core.Engine.Drums
     public abstract class DrumsEngine : BaseEngine<DrumNote, DrumsEngineParameters,
         DrumsStats, DrumsEngineState>
     {
+        private const int POINTS_PER_PRO_NOTE = POINTS_PER_NOTE + 10;
+
         public delegate void OverhitEvent();
 
         public delegate void PadHitEvent(DrumsAction action, bool noteWasHit);
@@ -178,18 +180,28 @@ namespace YARG.Core.Engine.Drums
             }
         }
 
+        protected int GetPointsPerNote()
+        {
+            return EngineParameters.Mode == DrumsEngineParameters.DrumMode.ProFourLane
+                ? POINTS_PER_PRO_NOTE
+                : POINTS_PER_NOTE;
+        }
+
         protected override void AddScore(DrumNote note)
         {
-            EngineStats.CommittedScore += POINTS_PER_NOTE * EngineStats.ScoreMultiplier;
+            int pointsPerNote = GetPointsPerNote();
+            EngineStats.CommittedScore += pointsPerNote * EngineStats.ScoreMultiplier;
             UpdateStars();
         }
 
         protected sealed override int CalculateBaseScore()
         {
+            int pointsPerNote = GetPointsPerNote();
+
             int score = 0;
             foreach (var note in Notes)
             {
-                score += POINTS_PER_NOTE * (1 + note.ChildNotes.Count);
+                score += pointsPerNote * (1 + note.ChildNotes.Count);
             }
 
             return score;
