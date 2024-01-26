@@ -112,9 +112,9 @@ namespace YARG.Core.Engine
         public int SoloBonuses;
 
         /// <summary>
-        /// The number of stars the player has achieved.
+        /// The number of stars the player has achieved, along with the progress to the next star.
         /// </summary>
-        public int Stars;
+        public float Stars;
 
         protected BaseStats()
         {
