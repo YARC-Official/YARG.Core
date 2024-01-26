@@ -7,6 +7,8 @@ namespace YARG.Core.Engine.Vocals
     public abstract class VocalsEngine :
         BaseEngine<VocalNote, VocalsEngineParameters, VocalsStats, VocalsEngineState>
     {
+        protected const int POINTS_PER_PHRASE = 2000;
+
         public delegate void TargetNoteChangeEvent(VocalNote targetNote);
 
         public delegate void PhraseHitEvent(double hitPercentAfterParams, bool fullPoints);
@@ -67,6 +69,11 @@ namespace YARG.Core.Engine.Vocals
 
         protected override void MissNote(VocalNote note)
         {
+            MissNote(note, 0);
+        }
+
+        protected void MissNote(VocalNote note, double hitPercent)
+        {
             note.SetMissState(true, false);
 
             if (note.IsStarPower)
@@ -84,6 +91,8 @@ namespace YARG.Core.Engine.Vocals
             }
 
             EngineStats.Combo = 0;
+
+            AddPartialScore(hitPercent);
 
             UpdateMultiplier();
 
@@ -142,7 +151,14 @@ namespace YARG.Core.Engine.Vocals
 
         protected override void AddScore(VocalNote note)
         {
-            EngineStats.CommittedScore += 1000 * EngineStats.ScoreMultiplier;
+            EngineStats.CommittedScore += POINTS_PER_PHRASE * EngineStats.ScoreMultiplier;
+            UpdateStars();
+        }
+
+        protected void AddPartialScore(double hitPercent)
+        {
+            int score = (int) ((double) POINTS_PER_PHRASE * EngineStats.ScoreMultiplier * hitPercent);
+            EngineStats.CommittedScore += score;
             UpdateStars();
         }
 
@@ -158,7 +174,7 @@ namespace YARG.Core.Engine.Vocals
 
         protected sealed override int CalculateBaseScore()
         {
-            return Notes.Where(note => note.ChildNotes.Count > 0).Sum(_ => 1000);
+            return Notes.Where(note => note.ChildNotes.Count > 0).Sum(_ => POINTS_PER_PHRASE);
         }
     }
 }

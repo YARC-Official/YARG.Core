@@ -17,19 +17,19 @@ namespace YARG.Core.Engine.Vocals
         /// <summary>
         /// Whether or not the player can sing to activate starpower.
         /// </summary>
-        public bool SingToActivateStarpower { get; private set; }
+        public bool SingToActivateStarPower { get; private set; }
 
         public VocalsEngineParameters()
         {
         }
 
         public VocalsEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, float[] starMultiplierThresholds,
-            double phraseHitPercent, bool singToActivateStarpower, double approximateVocalFps)
+            double phraseHitPercent, bool singToActivateStarPower, double approximateVocalFps)
             : base(hitWindow, maxMultiplier, starMultiplierThresholds)
         {
             PhraseHitPercent = phraseHitPercent;
             ApproximateVocalFps = approximateVocalFps;
-            SingToActivateStarpower = singToActivateStarpower;
+            SingToActivateStarPower = singToActivateStarPower;
         }
 
         public override void Serialize(BinaryWriter writer)
@@ -38,7 +38,7 @@ namespace YARG.Core.Engine.Vocals
 
             writer.Write(PhraseHitPercent);
             writer.Write(ApproximateVocalFps);
-            writer.Write(SingToActivateStarpower);
+            writer.Write(SingToActivateStarPower);
         }
 
         public override void Deserialize(BinaryReader reader, int version = 0)
@@ -47,7 +47,7 @@ namespace YARG.Core.Engine.Vocals
 
             PhraseHitPercent = reader.ReadDouble();
             ApproximateVocalFps = reader.ReadDouble();
-            SingToActivateStarpower = reader.ReadBoolean();
+            SingToActivateStarPower = reader.ReadBoolean();
         }
     }
 }

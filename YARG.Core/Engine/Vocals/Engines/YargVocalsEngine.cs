@@ -119,7 +119,7 @@ namespace YARG.Core.Engine.Vocals.Engines
                 {
                     // If star power can activate, there is no note to hit, and the player
                     // hasn't sang in 0.25 seconds, then activate starpower.
-                    if (EngineParameters.SingToActivateStarpower &&
+                    if (EngineParameters.SingToActivateStarPower &&
                         GetNoteInPhraseAtSongTick(phrase, State.CurrentTick) is null &&
                         EngineStats.CanStarPowerActivate &&
                         State.CurrentTime - State.LastHitTime > 0.5)
@@ -153,7 +153,7 @@ namespace YARG.Core.Engine.Vocals.Engines
                     EngineStats.VocalTicksHit += State.PhraseTicksHit;
                     EngineStats.VocalTicksMissed += (uint) (State.PhraseTicksTotal.Value - State.PhraseTicksHit);
 
-                    MissNote(phrase);
+                    MissNote(phrase, percentHit);
                 }
 
                 UpdateStars();
