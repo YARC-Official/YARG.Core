@@ -125,7 +125,7 @@ namespace YARG.Core.Engine.Guitar
             if (note.IsStarPower && note.IsStarPowerEnd)
             {
                 AwardStarPower(note);
-                EngineStats.PhrasesHit++;
+                EngineStats.StarPowerPhrasesHit++;
             }
 
             if (note.IsSoloStart)

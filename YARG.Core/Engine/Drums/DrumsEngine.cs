@@ -97,7 +97,7 @@ namespace YARG.Core.Engine.Drums
             if (note.IsStarPower && note.IsStarPowerEnd && note.ParentOrSelf.WasFullyHit())
             {
                 AwardStarPower(note);
-                EngineStats.PhrasesHit++;
+                EngineStats.StarPowerPhrasesHit++;
             }
 
             if (note.IsSoloStart)

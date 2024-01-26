@@ -28,7 +28,7 @@ namespace YARG.Core.Engine.Vocals
             if (note.IsStarPower)
             {
                 AwardStarPower(note);
-                EngineStats.PhrasesHit++;
+                EngineStats.StarPowerPhrasesHit++;
             }
 
             if (note.IsSoloStart)

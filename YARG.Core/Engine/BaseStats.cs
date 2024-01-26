@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using YARG.Core.Utility;
 
 namespace YARG.Core.Engine
@@ -54,7 +54,7 @@ namespace YARG.Core.Engine
         /// <summary>
         /// Number of notes which have been missed.
         /// </summary>
-        /// <remarks>Value is calculated from <see cref="BaseStats.TotalNotes"/> - <see cref="BaseStats.NotesHit"/>.</remarks>
+        /// <remarks>Value is calculated from <see cref="TotalNotes"/> - <see cref="NotesHit"/>.</remarks>
         public int NotesMissed => TotalNotes - NotesHit;
 
         /// <summary>
@@ -81,12 +81,18 @@ namespace YARG.Core.Engine
         /// <summary>
         /// Number of Star Power phrases which have been hit.
         /// </summary>
-        public int PhrasesHit;
+        public int StarPowerPhrasesHit;
+
+        /// <summary>
+        /// Number of Star Power phrases in the chart. This value should never be modified.
+        /// </summary>
+        public int TotalStarPowerPhrases;
 
         /// <summary>
         /// Number of Star Power phrases which have been missed.
         /// </summary>
-        public int PhrasesMissed;
+        /// <remarks>Value is calculated from <see cref="TotalStarPowerPhrases"/> - <see cref="StarPowerPhrasesHit"/>.</remarks>
+        public int StarPowerPhrasesMissed => TotalStarPowerPhrases - StarPowerPhrasesHit;
 
         /// <summary>
         /// Amount of points earned from solo bonuses.
@@ -116,8 +122,9 @@ namespace YARG.Core.Engine
             StarPowerBaseAmount = stats.StarPowerBaseAmount;
             IsStarPowerActive = stats.IsStarPowerActive;
 
-            PhrasesHit = stats.PhrasesHit;
-            PhrasesMissed = stats.PhrasesMissed;
+            StarPowerPhrasesHit = stats.StarPowerPhrasesHit;
+            TotalStarPowerPhrases = stats.TotalStarPowerPhrases;
+
             SoloBonuses = stats.SoloBonuses;
             Stars = stats.Stars;
         }
@@ -137,8 +144,9 @@ namespace YARG.Core.Engine
             StarPowerBaseAmount = 0;
             IsStarPowerActive = false;
 
-            PhrasesHit = 0;
-            PhrasesMissed = 0;
+            StarPowerPhrasesHit = 0;
+            // TotalStarPowerPhrases = 0;
+
             SoloBonuses = 0;
             Stars = 0;
         }
@@ -147,9 +155,11 @@ namespace YARG.Core.Engine
         {
             writer.Write(CommittedScore);
             writer.Write(PendingScore);
+
             writer.Write(Combo);
             writer.Write(MaxCombo);
             writer.Write(ScoreMultiplier);
+
             writer.Write(NotesHit);
             writer.Write(TotalNotes);
 
@@ -157,8 +167,9 @@ namespace YARG.Core.Engine
             writer.Write(StarPowerBaseAmount);
             writer.Write(IsStarPowerActive);
 
-            writer.Write(PhrasesHit);
-            writer.Write(PhrasesMissed);
+            writer.Write(StarPowerPhrasesHit);
+            writer.Write(TotalStarPowerPhrases);
+
             writer.Write(SoloBonuses);
         }
 
@@ -166,9 +177,11 @@ namespace YARG.Core.Engine
         {
             CommittedScore = reader.ReadInt32();
             PendingScore = reader.ReadInt32();
+
             Combo = reader.ReadInt32();
             MaxCombo = reader.ReadInt32();
             ScoreMultiplier = reader.ReadInt32();
+
             NotesHit = reader.ReadInt32();
             TotalNotes = reader.ReadInt32();
 
@@ -176,8 +189,9 @@ namespace YARG.Core.Engine
             StarPowerBaseAmount = reader.ReadDouble();
             IsStarPowerActive = reader.ReadBoolean();
 
-            PhrasesHit = reader.ReadInt32();
-            PhrasesMissed = reader.ReadInt32();
+            StarPowerPhrasesHit = reader.ReadInt32();
+            TotalStarPowerPhrases = reader.ReadInt32();
+
             SoloBonuses = reader.ReadInt32();
         }
     }
