@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using YARG.Core.Utility;
 
 namespace YARG.Core.Engine
@@ -171,6 +171,9 @@ namespace YARG.Core.Engine
             writer.Write(TotalStarPowerPhrases);
 
             writer.Write(SoloBonuses);
+
+            // Deliberately not written so that stars can be re-calculated with different thresholds
+            // writer.Write(Stars);
         }
 
         public virtual void Deserialize(BinaryReader reader, int version = 0)
@@ -193,6 +196,9 @@ namespace YARG.Core.Engine
             TotalStarPowerPhrases = reader.ReadInt32();
 
             SoloBonuses = reader.ReadInt32();
+
+            // Deliberately not read so that stars can be re-calculated if thresholds change
+            // Stars = reader.ReadInt32();
         }
     }
 }
