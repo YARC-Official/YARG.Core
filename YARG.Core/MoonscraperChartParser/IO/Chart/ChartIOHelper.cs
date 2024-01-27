@@ -106,19 +106,12 @@ namespace MoonscraperChartEditor.Song.IO
         {
             // With a 192 resolution, .chart has a HOPO threshold of 65 ticks, not 64,
             // so we need to scale this factor to different resolutions (480 res = 162.5 threshold)
-            // This extra tick is meant for some slight leniency, .mid has it too but it's applied
-            // after factoring in the resolution there, not before
+            // This extra tick is meant for some slight leniency; .mid has it too, but it's applied
+            // after factoring in the resolution there, not before.
             const float DEFAULT_RESOLUTION = 192;
-            const float HOPO_THRESHOLD_FACTOR = ((DEFAULT_RESOLUTION / 3) + 1) / DEFAULT_RESOLUTION;
-            const float EIGHTHNOTE_HOPO_THRESHOLD_FACTOR = ((DEFAULT_RESOLUTION / 2) + 1) / DEFAULT_RESOLUTION;
+            const float THRESHOLD_LENIENCY_FACTOR = 1 / DEFAULT_RESOLUTION;
 
-            // Prefer explicit tick value to eighth-note HOPO value
-            if (settings.HopoThreshold > 0)
-                return settings.HopoThreshold;
-            else if (settings.EighthNoteHopo)
-                return resolution * EIGHTHNOTE_HOPO_THRESHOLD_FACTOR;
-            else
-                return resolution * HOPO_THRESHOLD_FACTOR;
+            return settings.GetHopoThreshold(resolution) + THRESHOLD_LENIENCY_FACTOR * resolution;
         }
     }
 }

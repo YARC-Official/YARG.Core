@@ -1,4 +1,6 @@
-﻿namespace YARG.Core.Chart
+using System;
+
+namespace YARG.Core.Chart
 {
     /// <summary>
     /// The type of drums contained in the chart.
@@ -41,5 +43,26 @@
         public long NoteSnapThreshold;
 
         public int StarPowerNote;
+
+        public float GetHopoThreshold(float resolution)
+        {
+            // Prefer in this order:
+            // 1. hopo_threshold
+            // 2. eighthnote_hopo
+            // 3. hopofreq
+
+            if (HopoThreshold > 0)
+            {
+                return HopoThreshold;
+            }
+            else if (EighthNoteHopo)
+            {
+                return resolution / 2;
+            }
+            else
+            {
+                return resolution / 3;
+            }
+        }
     }
 }
