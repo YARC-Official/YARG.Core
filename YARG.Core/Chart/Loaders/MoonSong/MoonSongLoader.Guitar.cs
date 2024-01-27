@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using MoonscraperChartEditor.Song;
 
 namespace YARG.Core.Chart
@@ -84,7 +85,7 @@ namespace YARG.Core.Chart
             var type = moonNote.GetGuitarNoteType(_currentMoonMode, _moonSong.hopoThreshold);
 
             // Apply chord HOPO cancellation, if enabled
-            if (_settings.ChordHopoCancellation && type == MoonNote.MoonNoteType.Hopo)
+            if (_settings.ChordHopoCancellation && type == MoonNote.MoonNoteType.Hopo && moonNote.chord.Count() < 2)
             {
                 var previous = moonNote.PreviousSeperateMoonNote;
                 if (previous is not null)
