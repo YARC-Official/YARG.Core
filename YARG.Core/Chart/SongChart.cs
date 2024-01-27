@@ -147,27 +147,27 @@ namespace YARG.Core.Chart
 
         private void PostProcessSections()
         {
-            const uint AUTO_GEN_SECTION_COUNT = 10;
-
             uint lastTick = GetLastTick();
 
             // If there are no sections in the chart, auto-generate some sections.
             // This prevents issues with songs with no sections, such as in practice mode.
-            if (Sections.Count <= 0)
+            if (Sections.Count == 0)
             {
+                const int AUTO_GEN_SECTION_COUNT = 10;
+                ReadOnlySpan<double> factors = stackalloc double[AUTO_GEN_SECTION_COUNT]{
+                    0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0
+                };
+                
                 uint startTick = 0;
-                double startTime = SyncTrack.TickToTime(startTick);
+                double startTime = SyncTrack.TickToTime(0);
 
-                // `i` is effectively the "ending index" since start tick and time is
-                // always one index behind.
-                for (uint i = 1; i <= AUTO_GEN_SECTION_COUNT; i++)
+                for (int i = 0; i < AUTO_GEN_SECTION_COUNT; i++)
                 {
-                    uint endTick = lastTick / AUTO_GEN_SECTION_COUNT * i;
+                    uint endTick = (uint)(lastTick * factors[i]);
                     double endTime = SyncTrack.TickToTime(endTick);
 
                     // "0% - 10%", "10% - 20%", etc.
-                    var sectionName =
-                        $"{100f / AUTO_GEN_SECTION_COUNT * (i - 1):N0}% - {100f / AUTO_GEN_SECTION_COUNT * i:N0}%";
+                    var sectionName = $"{i * 10}% - {i + 1}0%";
 
                     var section = new Section(sectionName, startTime, startTick)
                     {
