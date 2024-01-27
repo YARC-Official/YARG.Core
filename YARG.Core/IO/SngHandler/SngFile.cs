@@ -13,40 +13,38 @@ namespace YARG.Core.IO
     /// </summary>
     public class SngFile : IDisposable, IEnumerable<KeyValuePair<string, SngFileListing>>
     {
+        public readonly string Filename;
         public readonly uint Version;
         public readonly SngMask Mask;
         public readonly IniSection Metadata;
 
-        private readonly string _filename;
         private readonly Dictionary<string, SngFileListing> _listings;
         private readonly int[]? _values;
 
-        private SngFile(uint version, SngMask mask, IniSection metadata, string filename, Dictionary<string, SngFileListing> listings, int[]? values)
+        private SngFile(FileStream stream)
         {
-            Version = version;
-            Mask = mask;
-            Metadata = metadata;
+            Filename = stream.Name;
+            Version = stream.Read<uint>(Endianness.Little);
+            Mask = new SngMask(stream);
+            Metadata = ReadMetadata(stream);
+            _listings = ReadListings(stream);
 
-            _filename = filename;
-            _listings = listings;
-            _values = values;
-        }
-
-        public byte[] LoadAllBytes(SngFileListing listing)
-        {
-            var stream = LoadFileStream();
-            return SngFileStream.LoadFile(stream, Mask.Clone(), listing.Length, listing.Position);
-        }
-
-        public SngFileStream CreateStream(SngFileListing listing)
-        {
-            var stream = LoadFileStream();
-            return new SngFileStream(stream, Mask.Clone(), listing.Length, listing.Position);
+            if (stream is YARGSongFileStream yargSongStream)
+                _values = yargSongStream.Values;
         }
 
         public SngFileListing this[string key] => _listings[key];
         public bool ContainsKey(string key) => _listings.ContainsKey(key);
         public bool TryGetValue(string key, out SngFileListing listing) => _listings.TryGetValue(key, out listing);
+
+        public FileStream LoadFileStream()
+        {
+            if (_values != null)
+            {
+                return new YARGSongFileStream(Filename, _values);
+            }
+            return new FileStream(Filename, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+        }
 
         IEnumerator<KeyValuePair<string, SngFileListing>> IEnumerable<KeyValuePair<string, SngFileListing>>.GetEnumerator()
         {
@@ -63,16 +61,6 @@ namespace YARG.Core.IO
             Mask.Dispose();
         }
 
-        private Stream LoadFileStream()
-        {
-            var fs = new FileStream(_filename, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
-            if (_values != null)
-            {
-                return new YARGSongFileStream(fs, _values);
-            }
-            return fs;
-        }
-
 
         private const int BYTES_64BIT = 8;
         private const int BYTES_32BIT = 4;
@@ -82,26 +70,15 @@ namespace YARG.Core.IO
 
         public static SngFile? TryLoadFromFile(string path)
         {
-            var result = InitStream_Internal(path);
-            using var stream = result.stream;
+            using var stream = InitStream_Internal(path);
             if (stream == null)
-            {
-                return null;
-            }
-
-            Span<byte> tag = stackalloc byte[SNGPKG.Length];
-            if (stream.Read(tag) != tag.Length || !tag.SequenceEqual(SNGPKG))
             {
                 return null;
             }
 
             try
             {
-                uint version = stream.Read<uint>(Endianness.Little);
-                var sngMask = new SngMask(stream);
-                var metadata = ReadMetadata(stream);
-                var listings = ReadListings(stream);
-                return new SngFile(version, sngMask, metadata, path, listings, result.values);
+                return new SngFile(stream);
             }
             catch (Exception ex)
             {
@@ -110,24 +87,32 @@ namespace YARG.Core.IO
             }
         }
 
-        private static (Stream? stream, int[]? values) InitStream_Internal(string filename)
+        private static FileStream? InitStream_Internal(string filename)
         {
             try
             {
                 var filestream = File.OpenRead(filename);
-                var values = YARGSongFileStream.TryParseYARGSongValues(filestream);
-                if (values != null)
+                using var wrapper = DisposableCounter.Wrap(filestream);
+
+                var yargSongStream = YARGSongFileStream.TryLoad(filestream);
+                if (yargSongStream != null)
                 {
-                    return (new YARGSongFileStream(filestream, values), values);
+                    yargSongStream.Seek(SNGPKG.Length, SeekOrigin.Current);
+                    return yargSongStream;
                 }
 
                 filestream.Position = 0;
-                return (filestream, null);
+                Span<byte> tag = stackalloc byte[SNGPKG.Length];
+                if (filestream.Read(tag) != tag.Length || !tag.SequenceEqual(SNGPKG))
+                {
+                    return null;
+                }
+                return wrapper.Release();
             }
             catch (Exception ex)
             {
                 YargTrace.LogException(ex, $"Error loading {filename}");
-                return (null, null);
+                return null;
             }
         }
 
@@ -187,7 +172,7 @@ namespace YARG.Core.IO
                 {
                     filename = filename[idx..];
                 }
-                listings.Add(filename.ToLower(), new SngFileListing(reader));
+                listings.Add(filename.ToLower(), new SngFileListing(filename, reader));
             }
             return listings;
         }

@@ -27,7 +27,7 @@ namespace YARG.Core.IO
             }
         }
 
-        public static byte[] LoadFile(Stream stream, SngMask mask, long fileSize, long position)
+        public static byte[] LoadFile(FileStream stream, SngMask mask, long fileSize, long position)
         {
             if (stream.Seek(position, SeekOrigin.Begin) != position)
                 throw new EndOfStreamException();
@@ -56,12 +56,14 @@ namespace YARG.Core.IO
         private const int SEEK_MODULUS = BUFFER_SIZE - 1;
         private const int SEEK_MODULUS_MINUS = ~SEEK_MODULUS;
 
-        private readonly Stream _stream;
+        private readonly FileStream _stream;
         private readonly long fileSize;
         private readonly long initialOffset;
 
         private readonly SngMask mask;
         private readonly FixedArray<byte> dataBuffer = FixedArray<byte>.Alloc(BUFFER_SIZE);
+
+        public  readonly string Name;
 
 
         private int bufferPosition;
@@ -90,8 +92,9 @@ namespace YARG.Core.IO
             }
         }
 
-        public SngFileStream(Stream stream, SngMask mask, long fileSize, long position)
+        public SngFileStream(string name, FileStream stream, SngMask mask, long fileSize, long position)
         {
+            Name = name;
             _stream = stream;
 
             this.fileSize = fileSize;
