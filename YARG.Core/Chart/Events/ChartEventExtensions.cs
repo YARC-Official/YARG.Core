@@ -237,41 +237,34 @@ namespace YARG.Core.Chart
         public static TEvent? FindClosestEvent<TEvent>(this List<TEvent> events, double time)
             where TEvent : ChartEvent
         {
-            return events.BinarySearch(time, Compare);
-
-            static int Compare(TEvent currentEvent, double targetTime)
-            {
-                if (currentEvent.Time == targetTime)
-                    return 0;
-                else if (currentEvent.Time < targetTime)
-                    return -1;
-                else
-                    return 1;
-            }
+            return events.BinarySearch(time, EventComparer<TEvent>.CompareTime);
         }
 
         public static TEvent? FindClosestEvent<TEvent>(this List<TEvent> events, uint tick)
             where TEvent : ChartEvent
         {
-            return events.BinarySearch(tick, Compare);
-
-            static int Compare(TEvent currentEvent, uint targetTick)
-            {
-                if (currentEvent.Tick == targetTick)
-                    return 0;
-                else if (currentEvent.Tick < targetTick)
-                    return -1;
-                else
-                    return 1;
-            }
+            return events.BinarySearch(tick, EventComparer<TEvent>.CompareTick);
         }
 
         public static int FindClosestEventIndex<TEvent>(this List<TEvent> events, double time)
             where TEvent : ChartEvent
         {
-            return events.BinarySearchIndex(time, Compare);
+            return events.BinarySearchIndex(time, EventComparer<TEvent>.CompareTime);
+        }
 
-            static int Compare(TEvent currentEvent, double targetTime)
+        public static int FindClosestEventIndex<TEvent>(this List<TEvent> events, uint tick)
+            where TEvent : ChartEvent
+        {
+            return events.BinarySearchIndex(tick, EventComparer<TEvent>.CompareTick);
+        }
+
+        private static class EventComparer<TEvent>
+            where TEvent : ChartEvent
+        {
+            public static readonly Func<TEvent, double, int> CompareTime = _CompareTime;
+            public static readonly Func<TEvent, uint, int> CompareTick = _CompareTick;
+
+            private static int _CompareTime(TEvent currentEvent, double targetTime)
             {
                 if (currentEvent.Time == targetTime)
                     return 0;
@@ -280,14 +273,8 @@ namespace YARG.Core.Chart
                 else
                     return 1;
             }
-        }
 
-        public static int FindClosestEventIndex<TEvent>(this List<TEvent> events, uint tick)
-            where TEvent : ChartEvent
-        {
-            return events.BinarySearchIndex(tick, Compare);
-
-            static int Compare(TEvent currentEvent, uint targetTick)
+            private static int _CompareTick(TEvent currentEvent, uint targetTick)
             {
                 if (currentEvent.Tick == targetTick)
                     return 0;
