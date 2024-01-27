@@ -194,6 +194,9 @@ namespace MoonscraperChartEditor.Song.IO
             // Sustain cutoff threshold is not verified, sustains are not cut off by default in .chart
             // SP note is not verified, as it is only relevant for .mid
             // Note snap threshold is not verified, as the parser doesn't use it
+
+            // Chord HOPO cancellation does not apply in .chart
+            settings.ChordHopoCancellation = false;
         }
 
         private static void SubmitDataSync(MoonSong song, TrimSplitter sectionLines)

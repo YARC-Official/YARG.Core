@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace YARG.Core.Chart
 {
@@ -29,6 +29,8 @@ namespace YARG.Core.Chart
             HopoThreshold = SETTING_DEFAULT,
             HopoFreq_FoF = SETTING_DEFAULT,
             EighthNoteHopo = false,
+            ChordHopoCancellation = false,
+
             SustainCutoffThreshold = SETTING_DEFAULT,
             NoteSnapThreshold = 0,
 
@@ -71,6 +73,12 @@ namespace YARG.Core.Chart
         /// Uses the <c>eighthnote_hopo</c> tag from song.ini files.
         /// </remarks>
         public bool EighthNoteHopo;
+
+        /// <summary>
+        /// Skip marking single notes after chords as HOPOs
+        /// if the single note shares a fret with the chord.
+        /// </summary>
+        public bool ChordHopoCancellation;
 
         /// <summary>
         /// The tick threshold to use for sustain cutoffs.

@@ -163,6 +163,9 @@ namespace MoonscraperChartEditor.Song.IO
 
             // SP note is not verified, as it being set is checked for by SP fixups
             // Note snap threshold is also not verified, as the parser doesn't use it
+
+            // Enable chord HOPO cancellation
+            settings.ChordHopoCancellation = true;
         }
 
         private static void ReadSync(TempoMap tempoMap, MoonSong song)
