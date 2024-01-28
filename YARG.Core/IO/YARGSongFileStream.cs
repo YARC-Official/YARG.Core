@@ -3,7 +3,7 @@ using System.IO;
 
 namespace YARG.Core.IO
 {
-    public class YARGSongFileStream : Stream
+    public class YARGSongFileStream : FileStream
     {
         private const int HEADER_SIZE = 24;
         private const int SET_LENGTH  = 15;
@@ -14,16 +14,10 @@ namespace YARG.Core.IO
             (byte) 'S', (byte) 'O', (byte) 'N', (byte) 'G'
         };
 
-        private readonly FileStream _filestream;
-
-        public override bool CanRead  => _filestream.CanRead;
-        public override bool CanSeek => _filestream.CanSeek;
-        public override bool CanWrite => false;
-
-        public override long Position
+        public new long Position
         {
-            get => _filestream.Position - HEADER_SIZE;
-            set => _filestream.Position = value + HEADER_SIZE;
+            get => base.Position - HEADER_SIZE;
+            set => base.Position = value + HEADER_SIZE;
         }
 
         public override long Length  { get; }
@@ -33,7 +27,9 @@ namespace YARG.Core.IO
         // value cipher).
         private readonly int[] _values;
 
-        public static int[]? TryParseYARGSongValues(FileStream filestream)
+        public int[] Values => (int[])_values.Clone();
+
+        public static YARGSongFileStream? TryLoad(FileStream filestream)
         {
             Span<byte> signature = stackalloc byte[FILE_SIGNATURE.Length];
             if (filestream.Read(signature) != FILE_SIGNATURE.Length)
@@ -84,16 +80,15 @@ namespace YARG.Core.IO
                     values[3] += j << 2;
                 }
             }
-            return values;
+            return new YARGSongFileStream(filestream.Name, values);
         }
 
-        public YARGSongFileStream(FileStream filestream, int[] values)
+        public YARGSongFileStream(string filename, int[] values)
+            : base(filename, FileMode.Open, FileAccess.Read, FileShare.Read, 1)
         {
-            _filestream = filestream;
             _values = values;
-            Length = filestream.Length - HEADER_SIZE;
-
-            _filestream.Position = HEADER_SIZE;
+            Length = base.Length - HEADER_SIZE;
+            base.Seek(HEADER_SIZE, SeekOrigin.Begin);
         }
 
         private static FileStream InitStream_Internal(string filename)
@@ -104,7 +99,7 @@ namespace YARG.Core.IO
         public override int Read(byte[] buffer, int offset, int count)
         {
             int pos = (int) Position;
-            int read = _filestream.Read(buffer, offset, count);
+            int read = base.Read(buffer, offset, count);
             var span = new Span<byte>(buffer, offset, read);
 
             unchecked
@@ -125,24 +120,11 @@ namespace YARG.Core.IO
             return read;
         }
 
-        public override void Flush() => _filestream.Flush();
-
         public override long Seek(long offset, SeekOrigin origin)
         {
-            switch (origin)
-            {
-                case SeekOrigin.Begin:
-                    Position = offset;
-                    break;
-                case SeekOrigin.Current:
-                    Position += offset;
-                    break;
-                case SeekOrigin.End:
-                    Position = Length + offset;
-                    break;
-            }
-
-            return Position;
+            if (origin != SeekOrigin.Current)
+                offset += HEADER_SIZE;
+            return base.Seek(offset, origin) - HEADER_SIZE;
         }
 
         public override void SetLength(long value)
@@ -153,12 +135,6 @@ namespace YARG.Core.IO
         public override void Write(byte[] buffer, int offset, int count)
         {
             throw new InvalidOperationException();
-        }
-
-        protected override void Dispose(bool disposing)
-        {
-            _filestream.Dispose();
-            base.Dispose(disposing);
         }
     }
 }
