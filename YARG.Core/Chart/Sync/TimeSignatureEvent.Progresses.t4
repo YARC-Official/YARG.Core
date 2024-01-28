@@ -1,0 +1,85 @@
+<#@ template hostspecific="false" language="C#" #>
+<#@ import namespace="System.Linq" #>
+<#@ output extension=".cs" #>
+using System;
+
+namespace YARG.Core.Chart
+{
+    public partial class TimeSignatureChange
+    {
+        private void CheckTickStart(uint tick)
+        {
+            if (tick < Tick)
+                throw new ArgumentOutOfRangeException($"The given tick ({tick}) must be greater than this event's tick ({Tick})!");
+        }
+
+        private void CheckTimeStart(double time)
+        {
+            if (time < Time)
+                throw new ArgumentOutOfRangeException($"The given time ({time}) must be greater than this event's time ({Time})!");
+        }
+<#
+var names = new (string upper, string lower)[] {
+    ("Beat", "beat"),
+    ("Measure", "measure"),
+};
+
+foreach (var (upper, lower) in names)
+{
+#>
+        /// <summary>
+        /// Calculates the fractional number of <#= lower #>s that the given tick lies at, relative to this time signature.
+        /// </summary>
+        public double Get<#= upper #>Progress(uint tick, SyncTrack sync)
+        {
+            CheckTickStart(tick);
+            return (tick - Tick) / (double) GetTicksPer<#= upper #>(sync);
+        }
+
+        /// <summary>
+        /// Calculates the whole number of <#= lower #>s that the given tick lies at, relative to this time signature.
+        /// </summary>
+        public uint Get<#= upper #>Count(uint tick, SyncTrack sync)
+        {
+            CheckTickStart(tick);
+            return (tick - Tick) / GetTicksPer<#= upper #>(sync);
+        }
+
+        /// <summary>
+        /// Calculates the percent of a <#= lower #> that the given tick lies at, relative to this time signature.
+        /// </summary>
+        public double Get<#= upper #>Percentage(uint tick, SyncTrack sync)
+        {
+            CheckTickStart(tick);
+            uint tickRate = GetTicksPer<#= upper #>(sync);
+            return (tick % tickRate) / (double) tickRate;
+        }
+
+        /// <summary>
+        /// Calculates the fractional number of <#= lower #>s that the given time lies at, relative to this time signature.
+        /// </summary>
+        public double Get<#= upper #>Progress(double time, SyncTrack sync, TempoChange tempo)
+        {
+            return Get<#= upper #>Progress(sync.TimeToTick(time, tempo), sync);
+        }
+
+        /// <summary>
+        /// Calculates the whole number of <#= lower #>s that the given time lies at, relative to this time signature.
+        /// </summary>
+        public uint Get<#= upper #>Count(double time, SyncTrack sync, TempoChange tempo)
+        {
+            return Get<#= upper #>Count(sync.TimeToTick(time, tempo), sync);
+        }
+
+        /// <summary>
+        /// Calculates the percent of a <#= lower #> that the given time lies at, relative to this time signature.
+        /// </summary>
+        public double Get<#= upper #>Percentage(double time, SyncTrack sync, TempoChange tempo)
+        {
+            return Get<#= upper #>Percentage(sync.TimeToTick(time, tempo), sync);
+        }
+<#
+}
+#>
+    }
+}

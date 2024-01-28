@@ -374,7 +374,7 @@ namespace YARG.Core.Engine
                 nextTimeSigTick = uint.MaxValue;
 
             // Detect misaligned time signatures
-            uint measureCount = currentTimeSig.GetMeasureProgress(State.CurrentTick, SyncTrack).count;
+            uint measureCount = currentTimeSig.GetMeasureCount(State.CurrentTick, SyncTrack);
             uint currentMeasureTick = currentTimeSig.Tick + (State.TicksEveryMeasure * measureCount);
             if ((currentMeasureTick + State.TicksEveryMeasure) > nextTimeSigTick &&
                 // Only do this once for the misaligned TS, not every update
@@ -391,7 +391,7 @@ namespace YARG.Core.Engine
             }
 
             // Handle the last beat of misaligned time signatures correctly
-            uint beatCount = currentTimeSig.GetBeatProgress(State.CurrentTick, SyncTrack).count;
+            uint beatCount = currentTimeSig.GetBeatCount(State.CurrentTick, SyncTrack);
             uint currentBeatTick = currentTimeSig.Tick + (State.TicksEveryBeat * beatCount);
             if ((currentBeatTick + State.TicksEveryBeat) > nextTimeSigTick &&
                 // Only do this once for the misaligned TS, not every update
