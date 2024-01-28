@@ -4,6 +4,8 @@ namespace YARG.Core.Chart
 {
     public class TimeSignatureChange : SyncEvent, ICloneable<TimeSignatureChange>
     {
+        public const float QUARTER_NOTE_DENOMINATOR = 4f;
+
         public uint Numerator   { get; }
         public uint Denominator { get; }
 
@@ -23,8 +25,7 @@ namespace YARG.Core.Chart
         /// </summary>
         public uint GetTicksPerBeat(SyncTrack sync)
         {
-            const float QuarterNoteDenominator = 4f;
-            return (uint) (sync.Resolution * (QuarterNoteDenominator / Denominator));
+            return (uint) (sync.Resolution * (QUARTER_NOTE_DENOMINATOR / Denominator));
         }
 
         /// <summary>
@@ -38,19 +39,17 @@ namespace YARG.Core.Chart
         /// <summary>
         /// Calculates the number of seconds per beat for this time signature.
         /// </summary>
-        public double GetSecondsPerBeat(SyncTrack sync, TempoChange tempo)
+        public double GetSecondsPerBeat(TempoChange tempo)
         {
-            uint ticksPerBeat = GetTicksPerBeat(sync);
-            return SyncTrack.TickRangeToTimeDelta(0, ticksPerBeat, sync.Resolution, tempo);
+            return tempo.SecondsPerBeat * (QUARTER_NOTE_DENOMINATOR / Denominator);
         }
 
         /// <summary>
         /// Calculates the number of seconds per measure for this time signature.
         /// </summary>
-        public double GetSecondsPerMeasure(SyncTrack sync, TempoChange tempo)
+        public double GetSecondsPerMeasure(TempoChange tempo)
         {
-            uint ticksPerMeasure = GetTicksPerMeasure(sync);
-            return SyncTrack.TickRangeToTimeDelta(0, ticksPerMeasure, sync.Resolution, tempo);
+            return GetSecondsPerBeat(tempo) * Numerator;
         }
 
         /// <summary>
@@ -84,12 +83,12 @@ namespace YARG.Core.Chart
         /// <summary>
         /// Calculates the number of beats and percentage into a beat that the given time lies at.
         /// </summary>
-        public (uint count, float percent) GetBeatProgress(double time, SyncTrack sync, TempoChange tempo)
+        public (uint count, float percent) GetBeatProgress(double time, TempoChange tempo)
         {
             if (time < Time)
                 throw new ArgumentOutOfRangeException($"The given time ({time}) must be greater than this time signature's time ({Time})!");
 
-            double secsPerBeat = GetSecondsPerBeat(sync, tempo);
+            double secsPerBeat = GetSecondsPerBeat(tempo);
             uint count = (uint) ((time - Time) / secsPerBeat);
             float percent = (float) ((time % secsPerBeat) / secsPerBeat);
             return (count, percent);
@@ -98,12 +97,12 @@ namespace YARG.Core.Chart
         /// <summary>
         /// Calculates the number of measures and percentage into a measure that the given time lies at.
         /// </summary>
-        public (uint count, float percent) GetMeasureProgress(double time, SyncTrack sync, TempoChange tempo)
+        public (uint count, float percent) GetMeasureProgress(double time, TempoChange tempo)
         {
             if (time < Time)
                 throw new ArgumentOutOfRangeException($"The given time ({time}) must be greater than this time signature's time ({Time})!");
 
-            double secsPerMeasure = GetSecondsPerMeasure(sync, tempo);
+            double secsPerMeasure = GetSecondsPerMeasure(tempo);
             uint count = (uint) ((time - Time) / secsPerMeasure);
             float percent = (float) ((time % secsPerMeasure) / secsPerMeasure);
             return (count, percent);
