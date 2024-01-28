@@ -36,6 +36,12 @@ namespace YARG.Core.Chart
             return GetTicksPerBeat(sync) * Numerator;
         }
 
+        // For template generation purposes
+        private static uint GetTicksPerQuarterNote(SyncTrack sync)
+        {
+            return sync.Resolution;
+        }
+
         /// <summary>
         /// Calculates the number of seconds per beat for this time signature.
         /// </summary>

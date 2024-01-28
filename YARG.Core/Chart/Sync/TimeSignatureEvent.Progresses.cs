@@ -10,11 +10,6 @@ namespace YARG.Core.Chart
                 throw new ArgumentOutOfRangeException($"The given tick ({tick}) must be greater than this event's tick ({Tick})!");
         }
 
-        private void CheckTimeStart(double time)
-        {
-            if (time < Time)
-                throw new ArgumentOutOfRangeException($"The given time ({time}) must be greater than this event's time ({Time})!");
-        }
         /// <summary>
         /// Calculates the fractional number of beats that the given tick lies at, relative to this time signature.
         /// </summary>
@@ -66,6 +61,59 @@ namespace YARG.Core.Chart
         {
             return GetBeatPercentage(sync.TimeToTick(time, tempo), sync);
         }
+
+        /// <summary>
+        /// Calculates the fractional number of quarter notes that the given tick lies at, relative to this time signature.
+        /// </summary>
+        public double GetQuarterNoteProgress(uint tick, SyncTrack sync)
+        {
+            CheckTickStart(tick);
+            return (tick - Tick) / (double) GetTicksPerQuarterNote(sync);
+        }
+
+        /// <summary>
+        /// Calculates the whole number of quarter notes that the given tick lies at, relative to this time signature.
+        /// </summary>
+        public uint GetQuarterNoteCount(uint tick, SyncTrack sync)
+        {
+            CheckTickStart(tick);
+            return (tick - Tick) / GetTicksPerQuarterNote(sync);
+        }
+
+        /// <summary>
+        /// Calculates the percent of a quarter note that the given tick lies at, relative to this time signature.
+        /// </summary>
+        public double GetQuarterNotePercentage(uint tick, SyncTrack sync)
+        {
+            CheckTickStart(tick);
+            uint tickRate = GetTicksPerQuarterNote(sync);
+            return (tick % tickRate) / (double) tickRate;
+        }
+
+        /// <summary>
+        /// Calculates the fractional number of quarter notes that the given time lies at, relative to this time signature.
+        /// </summary>
+        public double GetQuarterNoteProgress(double time, SyncTrack sync, TempoChange tempo)
+        {
+            return GetQuarterNoteProgress(sync.TimeToTick(time, tempo), sync);
+        }
+
+        /// <summary>
+        /// Calculates the whole number of quarter notes that the given time lies at, relative to this time signature.
+        /// </summary>
+        public uint GetQuarterNoteCount(double time, SyncTrack sync, TempoChange tempo)
+        {
+            return GetQuarterNoteCount(sync.TimeToTick(time, tempo), sync);
+        }
+
+        /// <summary>
+        /// Calculates the percent of a quarter note that the given time lies at, relative to this time signature.
+        /// </summary>
+        public double GetQuarterNotePercentage(double time, SyncTrack sync, TempoChange tempo)
+        {
+            return GetQuarterNotePercentage(sync.TimeToTick(time, tempo), sync);
+        }
+
         /// <summary>
         /// Calculates the fractional number of measures that the given tick lies at, relative to this time signature.
         /// </summary>
