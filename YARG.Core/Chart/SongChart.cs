@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Melanchall.DryWetMidi.Core;
@@ -347,7 +347,13 @@ namespace YARG.Core.Chart
             totalStartTime = Math.Min(VoxMin(VocalsTracks), totalStartTime);
 
             // Global
-            totalStartTime = Math.Min(GlobalEvents.GetStartTime(), totalStartTime);
+            totalStartTime = Math.Min(Lyrics.GetStartTime(), totalStartTime);
+
+            // Deliberately excluded, as they're not major contributors to the chart bounds
+            // totalStartTime = Math.Min(GlobalEvents.GetStartTime(), totalStartTime);
+            // totalStartTime = Math.Min(Sections.GetStartTime(), totalStartTime);
+            // totalStartTime = Math.Min(SyncTrack.GetStartTime(), totalStartTime);
+            // totalStartTime = Math.Min(VenueTrack.GetStartTime(), totalStartTime);
 
             return totalStartTime;
         }
@@ -369,7 +375,13 @@ namespace YARG.Core.Chart
             totalEndTime = Math.Max(VoxMax(VocalsTracks), totalEndTime);
 
             // Global
-            totalEndTime = Math.Max(GlobalEvents.GetEndTime(), totalEndTime);
+            totalEndTime = Math.Max(Lyrics.GetEndTime(), totalEndTime);
+
+            // Deliberately excluded, as they're not major contributors to the chart bounds
+            // totalEndTime = Math.Max(GlobalEvents.GetEndTime(), totalEndTime);
+            // totalEndTime = Math.Max(Sections.GetEndTime(), totalEndTime);
+            // totalEndTime = Math.Max(SyncTrack.GetEndTime(), totalEndTime);
+            // totalEndTime = Math.Max(VenueTrack.GetEndTime(), totalEndTime);
 
             return totalEndTime;
         }
@@ -391,7 +403,13 @@ namespace YARG.Core.Chart
             totalFirstTick = Math.Min(VoxMin(VocalsTracks), totalFirstTick);
 
             // Global
-            totalFirstTick = Math.Min(GlobalEvents.GetFirstTick(), totalFirstTick);
+            totalFirstTick = Math.Min(Lyrics.GetFirstTick(), totalFirstTick);
+
+            // Deliberately excluded, as they're not major contributors to the chart bounds
+            // totalFirstTick = Math.Min(GlobalEvents.GetFirstTick(), totalFirstTick);
+            // totalFirstTick = Math.Min(Sections.GetFirstTick(), totalFirstTick);
+            // totalFirstTick = Math.Min(SyncTrack.GetFirstTick(), totalFirstTick);
+            // totalFirstTick = Math.Min(VenueTrack.GetFirstTick(), totalFirstTick);
 
             return totalFirstTick;
         }
@@ -413,7 +431,13 @@ namespace YARG.Core.Chart
             totalLastTick = Math.Max(VoxMax(VocalsTracks), totalLastTick);
 
             // Global
-            totalLastTick = Math.Max(GlobalEvents.GetLastTick(), totalLastTick);
+            totalLastTick = Math.Max(Lyrics.GetLastTick(), totalLastTick);
+
+            // Deliberately excluded, as they're not major contributors to the chart bounds
+            // totalLastTick = Math.Max(GlobalEvents.GetLastTick(), totalLastTick);
+            // totalLastTick = Math.Max(Sections.GetLastTick(), totalLastTick);
+            // totalLastTick = Math.Max(SyncTrack.GetLastTick(), totalLastTick);
+            // totalLastTick = Math.Max(VenueTrack.GetLastTick(), totalLastTick);
 
             return totalLastTick;
         }
