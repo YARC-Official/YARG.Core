@@ -441,5 +441,24 @@ namespace YARG.Core.Chart
 
             return totalLastTick;
         }
+
+        public TextEvent? GetEndEvent()
+        {
+            const string END_EVENT = "end";
+
+            // Reverse-search through a limited amount of events
+            for (int i = 1; i <= 10; i++)
+            {
+                int index = GlobalEvents.Count - i;
+                if (index < 0)
+                    break;
+
+                var text = GlobalEvents[index];
+                if (text.Text == END_EVENT)
+                    return text;
+            }
+
+            return null;
+        }
     }
 }
