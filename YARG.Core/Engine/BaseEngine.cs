@@ -547,10 +547,20 @@ namespace YARG.Core.Engine
         }
 
         protected double CalculateBeatProgress(uint tick, uint baseTick, double factor)
-            => (tick - baseTick) / (double) State.TicksEveryBeat * factor;
+        {
+            if (tick < baseTick)
+                YargTrace.Fail($"Beat progress cannot go backwards! Base tick: {baseTick}, target tick: {tick}");
+
+            return (tick - baseTick) / (double) State.TicksEveryBeat * factor;
+        }
 
         protected double CalculateMeasureProgress(uint tick, uint baseTick, double factor)
-            => (tick - baseTick) / (double) State.TicksEveryMeasure * factor;
+        {
+            if (tick < baseTick)
+                YargTrace.Fail($"Measure progress cannot go backwards! Base tick: {baseTick}, target tick: {tick}");
+
+            return (tick - baseTick) / (double) State.TicksEveryMeasure * factor;
+        }
 
         protected double CalculateStarPowerBeatProgress(uint tick, uint baseTick)
             => CalculateBeatProgress(tick, baseTick, STAR_POWER_BEAT_AMOUNT);
@@ -574,7 +584,11 @@ namespace YARG.Core.Engine
             double gain = CalculateStarPowerGain(tick);
             double drain = CalculateStarPowerDrain(tick);
 
-            EngineStats.StarPowerAmount = Math.Clamp(EngineStats.StarPowerBaseAmount + gain - drain, 0, 1);
+            double newAmount = EngineStats.StarPowerBaseAmount + gain - drain;
+            if (newAmount > 1.5)
+                YargTrace.LogWarning($"Excessive star power amount {newAmount}! Base: {EngineStats.StarPowerBaseAmount}, gain: {gain}, drain: {drain}");
+
+            EngineStats.StarPowerAmount = Math.Clamp(newAmount, 0, 1);
 
             YargTrace.DebugAssert(!double.IsNaN(gain), "SP gain is NaN!");
             YargTrace.DebugAssert(!double.IsNaN(drain), "SP drain is NaN!");
@@ -594,13 +608,20 @@ namespace YARG.Core.Engine
 
         protected void AwardStarPower(TNoteType note)
         {
-            EngineStats.StarPowerAmount += STAR_POWER_PHRASE_AMOUNT;
+            double previous = EngineStats.StarPowerAmount;
+            double expected = EngineStats.StarPowerAmount += STAR_POWER_PHRASE_AMOUNT;
             if (EngineStats.StarPowerAmount > 1)
             {
-                EngineStats.StarPowerAmount = 1;
+                expected = EngineStats.StarPowerAmount = 1;
             }
 
             RebaseProgressValues(State.CurrentTick);
+
+            if (EngineStats.StarPowerAmount - previous < 0)
+                YargTrace.Fail($"Unexpected jump in SP amount after awarding! Went from {previous} to {EngineStats.StarPowerAmount}, should not be decreasing");
+            if (Math.Abs(EngineStats.StarPowerAmount - expected) >= 0.001)
+                YargTrace.Fail($"Unexpected jump in SP amount after awarding! Went from {previous} to {EngineStats.StarPowerAmount}, should be {expected}");
+
             OnStarPowerPhraseHit?.Invoke(note);
         }
 
