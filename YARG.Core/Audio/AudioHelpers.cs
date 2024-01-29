@@ -37,6 +37,7 @@ namespace YARG.Core.Audio
             "overstrum_1",
             "overstrum_2",
             "overstrum_3",
+            "overstrum_4",
         };
 
         public static readonly IList<double> SfxVolume = new[]
@@ -46,12 +47,13 @@ namespace YARG.Core.Audio
             0.5,
             0.45,
             0.5,
-            0.17,
+            0.16,
             1.0,
             1.0,
-            0.75,
-            0.75,
-            0.75,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
         };
 
         public static readonly List<SongStem> PitchBendAllowedStems = new()
@@ -132,6 +134,7 @@ namespace YARG.Core.Audio
                 "overstrum_1"       => SfxSample.Overstrum1,
                 "overstrum_2"       => SfxSample.Overstrum2,
                 "overstrum_3"       => SfxSample.Overstrum3,
+                "overstrum_4"       => SfxSample.Overstrum4,
                 _                   => SfxSample.NoteMiss,
             };
         }

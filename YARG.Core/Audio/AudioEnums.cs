@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace YARG.Core.Audio
+﻿namespace YARG.Core.Audio
 {
     public enum SongStem
     {
@@ -38,6 +34,7 @@ namespace YARG.Core.Audio
         Overstrum1,
         Overstrum2,
         Overstrum3,
+        Overstrum4,
     }
 
     public enum DSPType
