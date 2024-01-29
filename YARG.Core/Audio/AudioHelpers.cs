@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Text;
 
 namespace YARG.Core.Audio
 {
@@ -36,6 +34,9 @@ namespace YARG.Core.Audio
             "clap",
             "star",
             "star_gold",
+            "overstrum_1",
+            "overstrum_2",
+            "overstrum_3",
         };
 
         public static readonly IList<double> SfxVolume = new[]
@@ -48,6 +49,9 @@ namespace YARG.Core.Audio
             0.15,
             1.0,
             1.0,
+            0.75,
+            0.75,
+            0.75,
         };
 
         public static readonly List<SongStem> PitchBendAllowedStems = new()
@@ -125,6 +129,9 @@ namespace YARG.Core.Audio
                 "clap"              => SfxSample.Clap,
                 "star"              => SfxSample.StarGain,
                 "star_gold"         => SfxSample.StarGold,
+                "overstrum_1"       => SfxSample.Overstrum1,
+                "overstrum_2"       => SfxSample.Overstrum2,
+                "overstrum_3"       => SfxSample.Overstrum3,
                 _                   => SfxSample.NoteMiss,
             };
         }

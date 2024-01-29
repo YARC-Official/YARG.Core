@@ -35,6 +35,9 @@ namespace YARG.Core.Audio
         Clap,
         StarGain,
         StarGold,
+        Overstrum1,
+        Overstrum2,
+        Overstrum3,
     }
 
     public enum DSPType
