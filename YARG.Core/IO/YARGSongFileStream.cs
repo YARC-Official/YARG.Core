@@ -17,7 +17,14 @@ namespace YARG.Core.IO
         public new long Position
         {
             get => base.Position - HEADER_SIZE;
-            set => base.Position = value + HEADER_SIZE;
+            set
+            {
+                if (value < 0 || Length < value)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(value));
+                }
+                base.Seek(value + HEADER_SIZE, SeekOrigin.Begin);
+            }
         }
 
         public override long Length  { get; }
