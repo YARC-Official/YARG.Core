@@ -40,7 +40,7 @@ namespace YARG.Core.Game
 
             public double HopoLeniency = 0.08;
 
-            public double StrumLeniency      = 0.06;
+            public double StrumLeniency      = 0.05;
             public double StrumLeniencySmall = 0.025;
 
             public HitWindowPreset HitWindow = new()

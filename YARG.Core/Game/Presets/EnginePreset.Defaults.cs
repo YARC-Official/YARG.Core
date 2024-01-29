@@ -13,7 +13,7 @@ namespace YARG.Core.Game
                 AntiGhosting = false,
                 InfiniteFrontEnd = true,
                 StrumLeniency = 0.07,
-                StrumLeniencySmall = 0.03
+                StrumLeniencySmall = 0.035
             }
         };
 
@@ -21,7 +21,7 @@ namespace YARG.Core.Game
         {
             FiveFretGuitar =
             {
-                StrumLeniency = 0.05,
+                StrumLeniency = 0.04,
                 StrumLeniencySmall = 0.02,
                 HitWindow =
                 {
