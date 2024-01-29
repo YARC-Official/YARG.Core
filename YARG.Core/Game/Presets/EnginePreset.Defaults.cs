@@ -12,8 +12,8 @@ namespace YARG.Core.Game
             {
                 AntiGhosting = false,
                 InfiniteFrontEnd = true,
-                StrumLeniency = 0.07,
-                StrumLeniencySmall = 0.035
+                StrumLeniency = 0.06,
+                StrumLeniencySmall = 0.03
             }
         };
 
