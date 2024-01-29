@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2016-2020 Alexander Ong
+// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
 using System;
@@ -691,6 +691,8 @@ namespace MoonscraperChartEditor.Song.IO
                 switch (newType)
                 {
                     case MoonNote.MoonNoteType.Strum:
+                        note.flags |= MoonNote.Flags.Forced_Strum;
+                        note.flags &= ~MoonNote.Flags.Forced_Hopo;
                         if (!note.isChord && note.IsNaturalHopo(song.hopoThreshold))
                             note.flags |= MoonNote.Flags.Forced;
                         else
@@ -698,6 +700,8 @@ namespace MoonscraperChartEditor.Song.IO
                         break;
 
                     case MoonNote.MoonNoteType.Hopo:
+                        note.flags |= MoonNote.Flags.Forced_Hopo;
+                        note.flags &= ~MoonNote.Flags.Forced_Strum;
                         if (note.isChord || !note.IsNaturalHopo(song.hopoThreshold))
                             note.flags |= MoonNote.Flags.Forced;
                         else

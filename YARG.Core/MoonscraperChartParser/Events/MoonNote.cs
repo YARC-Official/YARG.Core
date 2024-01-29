@@ -73,24 +73,24 @@ namespace MoonscraperChartEditor.Song
 
             // Guitar
             Forced = 1 << 0,
-            Tap = 1 << 1,
+            Forced_Strum = 1 << 1,
+            Forced_Hopo = 1 << 2,
+            Tap = 1 << 3,
 
-            // Pro Guitar
-            ProGuitar_Muted = 1 << 2,
-
-            // Vocals
-            Vocals_Percussion = 1 << 3,
-
-            // RB Pro Drums
-            ProDrums_Cymbal = 1 << 6,
+            // Pro Drums
+            ProDrums_Cymbal = 1 << 4,
+            ProDrums_Accent = 1 << 5,
+            ProDrums_Ghost = 1 << 6,
 
             // Generic flag that mainly represents mechanics from Guitar Hero's Expert+ filtered drum notes such as Double Kick. This may apply to any difficulty now though.
             InstrumentPlus = 1 << 7,
             DoubleKick = InstrumentPlus,
 
-            // FoF/PS Pro Drums
-            ProDrums_Accent = 1 << 12,
-            ProDrums_Ghost = 1 << 13,
+            // Pro Guitar
+            ProGuitar_Muted = 1 << 8,
+
+            // Vocals
+            Vocals_Percussion = 1 << 9,
         }
 
         public uint length;
