@@ -89,7 +89,7 @@ namespace YARG.Core.Chart
                 !moonNote.isChord && (moonNote.flags & MoonNote.Flags.Forced_Hopo) == 0)
             {
                 var previous = moonNote.PreviousSeperateMoonNote;
-                if (previous is not null)
+                if (previous is not null && previous.isChord)
                 {
                     foreach (var note in previous.chord)
                     {
