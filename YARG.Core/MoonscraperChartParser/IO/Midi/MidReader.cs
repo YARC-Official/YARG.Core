@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2020 Alexander Ong
+﻿// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
 using System;
@@ -159,7 +159,15 @@ namespace MoonscraperChartEditor.Song.IO
 
             // Verify sustain cutoff threshold
             if (settings.SustainCutoffThreshold < 0)
-                settings.SustainCutoffThreshold = (int)song.resolution / 3;
+            {
+                // Default to 1/12th step + 1
+                settings.SustainCutoffThreshold = (long) (song.resolution / 3) + 1;
+            }
+            else
+            {
+                // Limit minimum cutoff to 1 tick, non-sustain notes created by charting programs are 1 tick
+                settings.SustainCutoffThreshold = Math.Max(settings.SustainCutoffThreshold, 1);
+            }
 
             // SP note is not verified, as it being set is checked for by SP fixups
             // Note snap threshold is also not verified, as the parser doesn't use it
