@@ -198,7 +198,7 @@ namespace YARG.Core.Song
         public Instrument[] GetInstruments()
         {
             return ALL_INSTRUMENTS
-                .Where(instrument => instrument != Instrument.Band && HasInstrument(instrument))
+                .Where(instrument => HasInstrument(instrument))
                 .ToArray();
         }
 
