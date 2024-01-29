@@ -3,45 +3,78 @@ using System.IO;
 
 namespace YARG.Core.IO
 {
+    /// <summary>
+    /// A FileInfo structure that only contains the filename and time last added
+    /// </summary>
     public sealed class AbridgedFileInfo
     {
         public const FileAttributes RECALL_ON_DATA_ACCESS = (FileAttributes)0x00400000;
 
+        /// <summary>
+        /// The flie path
+        /// </summary>
         public readonly string FullName;
-        public readonly DateTime LastWriteTime;
 
-        public AbridgedFileInfo(string file) : this(file, File.GetLastWriteTime(file)) { }
+        /// <summary>
+        /// The time the file was last written or created on OS - whichever came later
+        /// </summary>
+        public readonly DateTime LastUpdatedTime;
 
-        public AbridgedFileInfo(FileInfo info) : this(info.FullName, info.LastWriteTime) { }
+        public AbridgedFileInfo(string file)
+            : this(new FileInfo(file)) { }
+
+        public AbridgedFileInfo(FileInfo info)
+        {
+            FullName = info.FullName;
+            LastUpdatedTime = info.LastWriteTime;
+            if (info.CreationTime > LastUpdatedTime)
+            {
+                LastUpdatedTime = info.CreationTime;
+            }
+        }
 
         /// <summary>
         /// Only used when validation of the underlying file is not required
         /// </summary>
         public AbridgedFileInfo(YARGBinaryReader reader)
+            : this(reader.ReadLEBString(), reader) { }
+
+        /// <summary>
+        /// Only used when validation of the underlying file is not required
+        /// </summary>
+        public AbridgedFileInfo(string filename, YARGBinaryReader reader)
         {
-            FullName = reader.ReadLEBString();
-            LastWriteTime = DateTime.FromBinary(reader.Read<long>(Endianness.Little));
+            FullName = filename;
+            LastUpdatedTime = DateTime.FromBinary(reader.Read<long>(Endianness.Little));
         }
 
-        public AbridgedFileInfo(string fullname, DateTime lastWrite)
+        public AbridgedFileInfo(string fullname, DateTime timeAdded)
         {
             FullName = fullname;
-            LastWriteTime = lastWrite;
+            LastUpdatedTime = timeAdded;
         }
 
         public void Serialize(BinaryWriter writer)
         {
             writer.Write(FullName);
-            writer.Write(LastWriteTime.ToBinary());
+            writer.Write(LastUpdatedTime.ToBinary());
         }
 
         public bool IsStillValid()
         {
-            FileInfo file = new(FullName);
-            return file.Exists && file.LastWriteTime == LastWriteTime;
-        }
+            var info = new FileInfo(FullName);
+            if (!info.Exists)
+            {
+                return false;
+            }
 
-        public static implicit operator AbridgedFileInfo(FileInfo info) => new(info);
+            var timeToCompare = info.LastWriteTime;
+            if (info.CreationTime > timeToCompare)
+            {
+                timeToCompare = info.CreationTime;
+            }
+            return timeToCompare == LastUpdatedTime;
+        }
 
         /// <summary>
         /// Used for cache validation
@@ -56,10 +89,18 @@ namespace YARG.Core.IO
         /// </summary>
         public static AbridgedFileInfo? TryParseInfo(string file, YARGBinaryReader reader)
         {
-            FileInfo midiInfo = new(file);
-            if (!midiInfo.Exists || midiInfo.LastWriteTime != DateTime.FromBinary(reader.Read<long>(Endianness.Little)))
+            var info = new FileInfo(file);
+            if (!info.Exists)
+            {
                 return null;
-            return midiInfo;
+            }
+
+            var abridged = new AbridgedFileInfo(info);
+            if (abridged.LastUpdatedTime != DateTime.FromBinary(reader.Read<long>(Endianness.Little)))
+            {
+                return null;
+            }
+            return abridged;
         }
     }
 }

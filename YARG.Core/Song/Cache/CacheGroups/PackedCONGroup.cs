@@ -11,7 +11,7 @@ namespace YARG.Core.Song.Cache
         public const string UPGRADESFILEPATH = "songs_upgrades/upgrades.dta";
 
         public readonly CONFile CONFile;
-        public readonly DateTime CONLastWrite;
+        public readonly DateTime CONLastUpdated;
         public readonly Dictionary<string, IRBProUpgrade> Upgrades = new();
 
         private readonly object upgradeLock = new();
@@ -42,7 +42,7 @@ namespace YARG.Core.Song.Cache
             : base(info.FullName, defaultPlaylist)
         {
             CONFile = file;
-            CONLastWrite = info.LastWriteTime;
+            CONLastUpdated = info.LastUpdatedTime;
         }
 
         public override void ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings)
@@ -94,7 +94,7 @@ namespace YARG.Core.Song.Cache
             using BinaryWriter writer = new(ms);
 
             writer.Write(Location);
-            writer.Write(CONLastWrite.ToBinary());
+            writer.Write(CONLastUpdated.ToBinary());
             writer.Write(upgradeDta!.lastWrite.ToBinary());
             writer.Write(Upgrades.Count);
             foreach (var upgrade in Upgrades)

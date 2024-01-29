@@ -193,7 +193,8 @@ namespace YARG.Core.Song.Cache
                 FileInfo dta = new(Path.Combine(directory, "songs_updates.dta"));
                 if (dta.Exists)
                 {
-                    CreateUpdateGroup(directory, dta, true);
+                    var abridged = new AbridgedFileInfo(dta);
+                    CreateUpdateGroup(directory, abridged, true);
                     return false;
                 }
             }
@@ -202,7 +203,8 @@ namespace YARG.Core.Song.Cache
                 FileInfo dta = new(Path.Combine(directory, "upgrades.dta"));
                 if (dta.Exists)
                 {
-                    CreateUpgradeGroup(directory, dta, true);
+                    var abridged = new AbridgedFileInfo(dta);
+                    CreateUpgradeGroup(directory, abridged, true);
                     return false;
                 }
             }
@@ -218,17 +220,18 @@ namespace YARG.Core.Song.Cache
             return true;
         }
         
-        private void ScanFile(FileInfo file, IniGroup group, ref PlaylistTracker tracker)
+        private void ScanFile(FileInfo info, IniGroup group, ref PlaylistTracker tracker)
         {
-            string filename = file.FullName;
+            string filename = info.FullName;
             try
             {
                 // Ensures only fully downloaded unmarked files are processed
-                if (FindOrMarkFile(filename) && (file.Attributes & AbridgedFileInfo.RECALL_ON_DATA_ACCESS) == 0)
+                if (FindOrMarkFile(filename) && (info.Attributes & AbridgedFileInfo.RECALL_ON_DATA_ACCESS) == 0)
                 {
-                    if (!AddPossibleCON(file, tracker.Playlist) && (filename.EndsWith(".sng") || filename.EndsWith(".yargsong")))
+                    var abridged = new AbridgedFileInfo(info);
+                    if (!AddPossibleCON(abridged, tracker.Playlist) && (filename.EndsWith(".sng") || filename.EndsWith(".yargsong")))
                     {
-                        ScanSngFile(file, group, tracker.Playlist);
+                        ScanSngFile(abridged, group, tracker.Playlist);
                     }
                 }
             }
@@ -286,12 +289,12 @@ namespace YARG.Core.Song.Cache
             return false;
         }
 
-        private bool ScanSngFile(FileInfo file, IniGroup group, string defaultPlaylist)
+        private bool ScanSngFile(AbridgedFileInfo info, IniGroup group, string defaultPlaylist)
         {
-            var sngFile = SngFile.TryLoadFromFile(file);
+            var sngFile = SngFile.TryLoadFromFile(info);
             if (sngFile == null)
             {
-                AddToBadSongs(file.FullName, ScanResult.PossibleCorruption);
+                AddToBadSongs(info.FullName, ScanResult.PossibleCorruption);
                 return false;
             }
 
@@ -306,7 +309,7 @@ namespace YARG.Core.Song.Cache
 
                 if (!collector.ContainsAudio())
                 {
-                    AddToBadSongs(file.FullName, ScanResult.NoAudio);
+                    AddToBadSongs(info.FullName, ScanResult.NoAudio);
                     break;
                 }
 
@@ -315,7 +318,7 @@ namespace YARG.Core.Song.Cache
                     var entry = SongMetadata.FromSng(sngFile, chart, defaultPlaylist);
                     if (entry.Item2 == null)
                     {
-                        AddToBadSongs(file.FullName, entry.Item1);
+                        AddToBadSongs(info.FullName, entry.Item1);
                     }
                     else if (AddEntry(entry.Item2))
                     {
@@ -324,18 +327,17 @@ namespace YARG.Core.Song.Cache
                 }
                 catch (Exception e)
                 {
-                    YargTrace.LogException(e, $"Error while scanning chart file {chart} within {file}!");
-                    AddToBadSongs(file.FullName, ScanResult.IniEntryCorruption);
+                    YargTrace.LogException(e, $"Error while scanning chart file {chart} within {info}!");
+                    AddToBadSongs(info.FullName, ScanResult.IniEntryCorruption);
                 }
                 break;
             }
             return true;
         }
 
-        private bool AddPossibleCON(FileInfo info, string defaultPlaylist)
+        private bool AddPossibleCON(AbridgedFileInfo info, string defaultPlaylist)
         {
-            var abridged = new AbridgedFileInfo(info);
-            var file = CONFile.TryLoadFile(abridged);
+            var file = CONFile.TryLoadFile(info);
             if (file == null)
                 return false;
 

@@ -11,7 +11,7 @@ namespace YARG.Core.Song.Cache
         public UnpackedCONGroup(string directory, FileInfo dta, string defaultPlaylist)
             : base(directory, defaultPlaylist)
         {
-            DTA = dta;
+            DTA = new AbridgedFileInfo(dta);
         }
 
         public YARGDTAReader? LoadDTA()
@@ -34,7 +34,7 @@ namespace YARG.Core.Song.Cache
             using BinaryWriter writer = new(ms);
 
             writer.Write(Location);
-            writer.Write(DTA.LastWriteTime.ToBinary());
+            writer.Write(DTA.LastUpdatedTime.ToBinary());
             Serialize(writer, ref nodes);
             return ms.ToArray();
         }

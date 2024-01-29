@@ -326,13 +326,13 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void CreateUpdateGroup(string directory, FileInfo dta, bool removeEntries)
+        private void CreateUpdateGroup(string directory, AbridgedFileInfo dta, bool removeEntries)
         {
             var reader = YARGDTAReader.TryCreate(dta.FullName);
             if (reader == null)
                 return;
 
-            var group = new UpdateGroup(directory, dta.LastWriteTime);
+            var group = new UpdateGroup(directory, dta.LastUpdatedTime);
             try
             {
                 while (reader!.StartNode())
@@ -357,24 +357,25 @@ namespace YARG.Core.Song.Cache
                 YargTrace.LogWarning($"{directory} .dta file possibly malformed");
         }
 
-        private UpgradeGroup? CreateUpgradeGroup(string directory, FileInfo dta, bool removeEntries)
+        private UpgradeGroup? CreateUpgradeGroup(string directory, AbridgedFileInfo dta, bool removeEntries)
         {
             var reader = YARGDTAReader.TryCreate(dta.FullName);
             if (reader == null)
                 return null;
 
-            var group = new UpgradeGroup(directory, dta.LastWriteTime);
+            var group = new UpgradeGroup(directory, dta.LastUpdatedTime);
             try
             {
                 while (reader.StartNode())
                 {
                     string name = reader.GetNameOfNode();
-                    FileInfo file = new(Path.Combine(directory, $"{name}_plus.mid"));
-                    if (file.Exists)
+                    FileInfo info = new(Path.Combine(directory, $"{name}_plus.mid"));
+                    if (info.Exists)
                     {
-                        if (CanAddUpgrade(name, file.LastWriteTime))
+                        var abridged = new AbridgedFileInfo(info);
+                        if (CanAddUpgrade(name, abridged.LastUpdatedTime))
                         {
-                            IRBProUpgrade upgrade = new UnpackedRBProUpgrade(file.FullName, file.LastWriteTime);
+                            IRBProUpgrade upgrade = new UnpackedRBProUpgrade(abridged);
                             group.upgrades[name] = upgrade;
                             AddUpgrade(name, new YARGDTAReader(reader), upgrade);
 
@@ -488,15 +489,19 @@ namespace YARG.Core.Song.Cache
                 lock (dict.Lock)
                 {
                     foreach (var group in dict.Values)
+                    {
                         if (group.RemoveEntries(shortname))
+                        {
                             YargTrace.DebugInfo($"{group.Location} - {shortname} pending rescan");
+                        }
+                    }
                 }
             }
             Remove(conGroups);
             Remove(extractedConGroups);
         }
 
-        private bool CanAddUpgrade(string shortname, DateTime lastWrite)
+        private bool CanAddUpgrade(string shortname, DateTime lastUpdated)
         {
             lock (upgradeGroups.Lock)
             {
@@ -504,8 +509,10 @@ namespace YARG.Core.Song.Cache
                 {
                     if (group.upgrades.TryGetValue(shortname, out var currUpgrade))
                     {
-                        if (currUpgrade.LastWrite >= lastWrite)
+                        if (currUpgrade.LastUpdatedTime >= lastUpdated)
+                        {
                             return false;
+                        }
                         group.upgrades.Remove(shortname);
                         break;
                     }
@@ -514,7 +521,7 @@ namespace YARG.Core.Song.Cache
             return true;
         }
 
-        private bool CanAddUpgrade_CONInclusive(string shortname, DateTime lastWrite)
+        private bool CanAddUpgrade_CONInclusive(string shortname, DateTime lastUpdated)
         {
             lock (conGroups.Lock)
             {
@@ -523,15 +530,17 @@ namespace YARG.Core.Song.Cache
                     var upgrades = group.Upgrades;
                     if (upgrades.TryGetValue(shortname, out var currUpgrade))
                     {
-                        if (currUpgrade!.LastWrite >= lastWrite)
+                        if (currUpgrade!.LastUpdatedTime >= lastUpdated)
+                        {
                             return false;
+                        }
                         upgrades.Remove(shortname);
                         return true;
                     }
                 }
             }
 
-            return CanAddUpgrade(shortname, lastWrite);
+            return CanAddUpgrade(shortname, lastUpdated);
         }
     }
 }

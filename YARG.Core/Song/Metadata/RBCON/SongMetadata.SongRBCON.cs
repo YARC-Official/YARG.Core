@@ -178,45 +178,63 @@ namespace YARG.Core.Song
             public void Update(string folder, string nodeName, DTAResult results)
             {
                 string dir = Path.Combine(folder, nodeName);
-                FileInfo info;
                 if (results.discUpdate)
                 {
                     string path = Path.Combine(dir, $"{nodeName}_update.mid");
-                    info = new(path);
-                    if (info.Exists)
+                    var updateInfo = new FileInfo(path);
+                    if (updateInfo.Exists)
                     {
-                        if (UpdateMidi == null || UpdateMidi.LastWriteTime < info.LastWriteTime)
-                            UpdateMidi = info;
+                        var abridged = new AbridgedFileInfo(updateInfo);
+                        if (UpdateMidi == null || abridged.LastUpdatedTime > UpdateMidi.LastUpdatedTime)
+                        {
+                            UpdateMidi = abridged;
+                        }
                     }
                     else
                         YargTrace.LogWarning($"Update midi expected at {path}");
                 }
 
-                info = new(Path.Combine(dir, $"{nodeName}_update.mogg"));
-                if (info.Exists && (Mogg == null || Mogg.LastWriteTime < info.LastWriteTime))
-                    Mogg = info;
+                var moggInfo = new FileInfo(Path.Combine(dir, $"{nodeName}_update.mogg"));
+                if (moggInfo.Exists)
+                {
+                    var abridged = new AbridgedFileInfo(moggInfo);
+                    if (Mogg == null || abridged.LastUpdatedTime > Mogg.LastUpdatedTime)
+                    {
+                        Mogg = abridged;
+                    }
+                }
                 dir = Path.Combine(dir, "gen");
 
-                info = new(Path.Combine(dir, $"{nodeName}.milo_xbox"));
-                if (info.Exists && (Milo == null || Milo.LastWriteTime < info.LastWriteTime))
-                    Milo = info;
+                var miloInfo = new FileInfo(Path.Combine(dir, $"{nodeName}.milo_xbox"));
+                if (miloInfo.Exists)
+                {
+                    var abridged = new AbridgedFileInfo(miloInfo);
+                    if (Milo == null || abridged.LastUpdatedTime > Milo.LastUpdatedTime)
+                    {
+                        Milo = abridged;
+                    }
+                }
 
                 if (HasAlbumArt && results.alternatePath)
                 {
-                    info = new(Path.Combine(dir, $"{nodeName}_keep.png_xbox"));
-                    if (info.Exists && (Image == null || Image.LastWriteTime < info.LastWriteTime))
-                        Image = info;
+                    var imageInfo = new FileInfo(Path.Combine(dir, $"{nodeName}_keep.png_xbox"));
+                    if (imageInfo.Exists)
+                    {
+                        var abridged = new AbridgedFileInfo(imageInfo);
+                        if (Image == null || abridged.LastUpdatedTime > Image.LastUpdatedTime)
+                        {
+                            Image = abridged;
+                        }
+                    }
                 }
             }
 
             public byte[]? LoadMidiUpdateFile()
             {
-                if (UpdateMidi == null)
+                if (UpdateMidi == null || !UpdateMidi.IsStillValid())
+                {
                     return null;
-
-                FileInfo info = new(UpdateMidi.FullName);
-                if (!info.Exists || info.LastWriteTime != UpdateMidi.LastWriteTime)
-                    return null;
+                }
                 return File.ReadAllBytes(UpdateMidi.FullName);
             }
 
@@ -234,7 +252,7 @@ namespace YARG.Core.Song
         public interface IRBCONMetadata
         {
             public RBCONSubMetadata SharedMetadata { get; }
-            public DateTime MidiLastWrite { get; }
+            public DateTime MidiLastUpdateTime { get; }
             public Stream? GetMidiStream();
             public byte[]? LoadMidiFile(CONFile? file);
             public byte[]? LoadMiloFile();

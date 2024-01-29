@@ -38,7 +38,7 @@ namespace YARG.Core.Song
 
                 writer.Write(version);
                 writer.Write(relative);
-                writer.Write(sngInfo.LastWriteTime.ToBinary());
+                writer.Write(sngInfo.LastUpdatedTime.ToBinary());
                 writer.Write((byte) chart.Type);
             }
 

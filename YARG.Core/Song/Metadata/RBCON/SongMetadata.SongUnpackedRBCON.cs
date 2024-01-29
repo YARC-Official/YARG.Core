@@ -19,7 +19,7 @@ namespace YARG.Core.Song
 
             public RBCONSubMetadata SharedMetadata => _metadata;
 
-            public DateTime MidiLastWrite => Midi.LastWriteTime;
+            public DateTime MidiLastUpdateTime => Midi.LastUpdatedTime;
 
             public RBUnpackedCONMetadata(UnpackedCONGroup group, RBCONSubMetadata metadata, string nodeName, string location)
             {
@@ -37,11 +37,18 @@ namespace YARG.Core.Song
                 if (!midiInfo.Exists)
                     throw new Exception($"Required midi file '{midiPath}' was not located");
 
-                Midi = midiInfo;
+                Midi = new AbridgedFileInfo(midiInfo);
                 metadata.Directory = folder;
 
                 FileInfo mogg = new(file + ".yarg_mogg");
-                metadata.Mogg = mogg.Exists ? mogg : new AbridgedFileInfo(file + ".mogg");
+                if (mogg.Exists)
+                {
+                    metadata.Mogg = new AbridgedFileInfo(mogg);
+                }
+                else
+                {
+                    metadata.Mogg = new AbridgedFileInfo(file + ".mogg");
+                }
 
                 file = Path.Combine(folder, "gen", nodeName);
                 metadata.Milo = new(file + ".milo_xbox");
@@ -53,11 +60,11 @@ namespace YARG.Core.Song
                 DTA = dta;
                 Midi = midi;
 
-                string str = reader.ReadLEBString();
-                AbridgedFileInfo? miloInfo = str.Length > 0 ? new(str) : null;
+                string miloname = reader.ReadLEBString();
+                var miloInfo = miloname.Length > 0 ? new AbridgedFileInfo(miloname) : null;
 
-                str = reader.ReadLEBString();
-                AbridgedFileInfo? imageInfo = str.Length > 0 ? new(str) : null;
+                string imagename = reader.ReadLEBString();
+                var imageInfo = imagename.Length > 0 ? new AbridgedFileInfo(imagename) : null;
 
                 _metadata = new(reader)
                 {
@@ -79,46 +86,48 @@ namespace YARG.Core.Song
                     _metadata.UpdateMidi.Serialize(writer);
                 }
                 else
+                {
                     writer.Write(false);
+                }
 
-                if (_metadata.Milo != null)
-                    writer.Write(_metadata.Milo.FullName);
-                else
-                    writer.Write(string.Empty);
-
-                if (_metadata.Image != null)
-                    writer.Write(_metadata.Image.FullName);
-                else
-                    writer.Write(string.Empty);
-
+                writer.Write(_metadata.Milo?.FullName ?? string.Empty);
+                writer.Write(_metadata.Image?.FullName ?? string.Empty);
                 _metadata.Serialize(writer);
             }
 
             public Stream? GetMidiStream()
             {
                 if (DTA == null || !DTA.IsStillValid() || !Midi.IsStillValid())
+                {
                     return null;
+                }
                 return new FileStream(Midi.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
             }
 
             public byte[]? LoadMidiFile(CONFile? _)
             {
                 if (DTA == null || !DTA.IsStillValid() || !Midi.IsStillValid())
+                {
                     return null;
+                }
                 return File.ReadAllBytes(Midi.FullName);
             }
 
             public byte[]? LoadMiloFile()
             {
                 if (_metadata.Milo == null || !File.Exists(_metadata.Milo.FullName))
+                {
                     return null;
+                }
                 return File.ReadAllBytes(_metadata.Milo.FullName);
             }
 
             public byte[]? LoadImgFile()
             {
                 if (_metadata.Image == null || !File.Exists(_metadata.Image.FullName))
+                {
                     return null;
+                }
                 return File.ReadAllBytes(_metadata.Image.FullName);
             }
 
@@ -131,7 +140,9 @@ namespace YARG.Core.Song
             {
                 using var stream = _metadata.GetMoggStream();
                 if (stream == null)
+                {
                     return false;
+                }
 
                 int version = stream.Read<int>(Endianness.Little);
                 return version == 0x0A || version == 0xf0;
