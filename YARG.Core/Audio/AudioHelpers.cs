@@ -41,12 +41,12 @@ namespace YARG.Core.Audio
 
         public static readonly IList<double> SfxVolume = new[]
         {
-            0.5,
+            0.65,
             0.45,
             0.5,
             0.45,
             0.5,
-            0.15,
+            0.17,
             1.0,
             1.0,
             0.75,
