@@ -143,6 +143,12 @@ namespace YARG.Core.Chart
             // Dj = loader.LoadDjTrack(Instrument.Dj);
 
             PostProcessSections();
+
+            // Ensure beatlines are present
+            if (SyncTrack.Beatlines is null or { Count: < 1 })
+            {
+                SyncTrack.GenerateBeatlines(GetLastTick());
+            }
         }
 
         private void PostProcessSections()
