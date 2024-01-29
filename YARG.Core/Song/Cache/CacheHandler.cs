@@ -115,7 +115,6 @@ namespace YARG.Core.Song.Cache
             {
                 if (!Deserialize_Quick(cacheLocation, multithreading))
                 {
-                    //ToastManager.ToastWarning("Song cache is not present or outdated - performing rescan");
                     return false;
                 }
             }
@@ -126,7 +125,6 @@ namespace YARG.Core.Song.Cache
 
             if (_progress.Count == 0)
             {
-                //ToastManager.ToastWarning("Song cache provided zero songs - performing rescan");
                 return false;
             }
 
@@ -272,6 +270,9 @@ namespace YARG.Core.Song.Cache
                     case ScanResult.IniEntryCorruption:
                         writer.WriteLine("Corruption of either the ini file or chart/mid file");
                         break;
+                    case ScanResult.NoAudio:
+                        writer.WriteLine("No audio accompanying the chart file");
+                        break;
                     case ScanResult.NoName:
                         writer.WriteLine("Name metadata not provided");
                         break;
@@ -295,6 +296,12 @@ namespace YARG.Core.Song.Cache
                         break;
                     case ScanResult.MissingUpgradeMidi:
                         writer.WriteLine("Upgrade Midi file queried for found missing");
+                        break;
+                    case ScanResult.IniNotDownloaded:
+                        writer.WriteLine("Ini file not fully downloaded - try again once it completes");
+                        break;
+                    case ScanResult.ChartNotDownloaded:
+                        writer.WriteLine("Chart file not fully downloaded - try again once it completes");
                         break;
                     case ScanResult.PossibleCorruption:
                         writer.WriteLine("Possible corruption of a queried midi file");

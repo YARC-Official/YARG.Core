@@ -45,14 +45,13 @@ namespace YARG.Core.Song.Cache
             CONLastWrite = info.LastWriteTime;
         }
 
-        public override bool ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings)
+        public override void ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings)
         {
             var song = SongMetadata.PackedRBCONFromCache(CONFile, nodeName, upgrades, reader, strings);
-            if (song == null)
-                return false;
-
-            AddEntry(nodeName, index, song);
-            return true;
+            if (song != null)
+            {
+                AddEntry(nodeName, index, song);
+            }
         }
 
         public override byte[] SerializeEntries(Dictionary<SongMetadata, CategoryCacheWriteNode> nodes)

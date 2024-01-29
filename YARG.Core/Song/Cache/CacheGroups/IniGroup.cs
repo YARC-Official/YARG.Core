@@ -56,7 +56,7 @@ namespace YARG.Core.Song.Cache
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);
 
-            writer.Write(Directory);
+            writer.Write(Location);
             writer.Write(_count);
             foreach (var shared in entries)
             {
@@ -75,7 +75,7 @@ namespace YARG.Core.Song.Cache
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);
 
-            entry.IniData!.Serialize(writer, Directory);
+            entry.IniData!.Serialize(writer, Location);
             entry.Serialize(writer, node);
 
             return ms.ToArray();

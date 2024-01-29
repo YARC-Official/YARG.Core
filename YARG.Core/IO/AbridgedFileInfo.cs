@@ -5,6 +5,8 @@ namespace YARG.Core.IO
 {
     public sealed class AbridgedFileInfo
     {
+        public const FileAttributes RECALL_ON_DATA_ACCESS = (FileAttributes)0x00400000;
+
         public readonly string FullName;
         public readonly DateTime LastWriteTime;
 
