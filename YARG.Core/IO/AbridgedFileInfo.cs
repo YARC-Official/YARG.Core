@@ -20,14 +20,14 @@ namespace YARG.Core.IO
         /// </summary>
         public readonly DateTime LastUpdatedTime;
 
-        public AbridgedFileInfo(string file)
-            : this(new FileInfo(file)) { }
+        public AbridgedFileInfo(string file, bool checkCreationTime = true)
+            : this(new FileInfo(file), checkCreationTime) { }
 
-        public AbridgedFileInfo(FileInfo info)
+        public AbridgedFileInfo(FileInfo info, bool checkCreationTime = true)
         {
             FullName = info.FullName;
             LastUpdatedTime = info.LastWriteTime;
-            if (info.CreationTime > LastUpdatedTime)
+            if (checkCreationTime && info.CreationTime > LastUpdatedTime)
             {
                 LastUpdatedTime = info.CreationTime;
             }
@@ -65,7 +65,7 @@ namespace YARG.Core.IO
             return File.Exists(FullName);
         }
 
-        public bool IsStillValid()
+        public bool IsStillValid(bool checkCreationTime = true)
         {
             var info = new FileInfo(FullName);
             if (!info.Exists)
@@ -74,7 +74,7 @@ namespace YARG.Core.IO
             }
 
             var timeToCompare = info.LastWriteTime;
-            if (info.CreationTime > timeToCompare)
+            if (checkCreationTime && info.CreationTime > timeToCompare)
             {
                 timeToCompare = info.CreationTime;
             }
@@ -84,15 +84,15 @@ namespace YARG.Core.IO
         /// <summary>
         /// Used for cache validation
         /// </summary>
-        public static AbridgedFileInfo? TryParseInfo(YARGBinaryReader reader)
+        public static AbridgedFileInfo? TryParseInfo(YARGBinaryReader reader, bool checkCreationTime = true)
         {
-            return TryParseInfo(reader.ReadLEBString(), reader);
+            return TryParseInfo(reader.ReadLEBString(), reader, checkCreationTime);
         }
 
         /// <summary>
         /// Used for cache validation
         /// </summary>
-        public static AbridgedFileInfo? TryParseInfo(string file, YARGBinaryReader reader)
+        public static AbridgedFileInfo? TryParseInfo(string file, YARGBinaryReader reader, bool checkCreationTime = true)
         {
             var info = new FileInfo(file);
             if (!info.Exists)
@@ -100,7 +100,7 @@ namespace YARG.Core.IO
                 return null;
             }
 
-            var abridged = new AbridgedFileInfo(info);
+            var abridged = new AbridgedFileInfo(info, checkCreationTime);
             if (abridged.LastUpdatedTime != DateTime.FromBinary(reader.Read<long>(Endianness.Little)))
             {
                 return null;

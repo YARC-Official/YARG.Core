@@ -149,7 +149,7 @@ namespace YARG.Core.Song
                 {
                     return null;
                 }
-                return new AbridgedFileInfo(reader.ReadLEBString());
+                return new AbridgedFileInfo(reader.ReadLEBString(), false);
             }
 
             private static int[] ReadIntArray(YARGBinaryReader reader)
@@ -212,7 +212,7 @@ namespace YARG.Core.Song
                     var updateInfo = new FileInfo(path);
                     if (updateInfo.Exists)
                     {
-                        var abridged = new AbridgedFileInfo(updateInfo);
+                        var abridged = new AbridgedFileInfo(updateInfo, false);
                         if (UpdateMidi == null || abridged.LastUpdatedTime > UpdateMidi.LastUpdatedTime)
                         {
                             UpdateMidi = abridged;
@@ -225,7 +225,7 @@ namespace YARG.Core.Song
                 var moggInfo = new FileInfo(Path.Combine(dir, $"{nodeName}_update.mogg"));
                 if (moggInfo.Exists)
                 {
-                    var abridged = new AbridgedFileInfo(moggInfo);
+                    var abridged = new AbridgedFileInfo(moggInfo, false);
                     if (Mogg == null || abridged.LastUpdatedTime > Mogg.LastUpdatedTime)
                     {
                         Mogg = abridged;
@@ -236,7 +236,7 @@ namespace YARG.Core.Song
                 var miloInfo = new FileInfo(Path.Combine(dir, $"{nodeName}.milo_xbox"));
                 if (miloInfo.Exists)
                 {
-                    var abridged = new AbridgedFileInfo(miloInfo);
+                    var abridged = new AbridgedFileInfo(miloInfo, false);
                     if (Milo == null || abridged.LastUpdatedTime > Milo.LastUpdatedTime)
                     {
                         Milo = abridged;
@@ -248,7 +248,7 @@ namespace YARG.Core.Song
                     var imageInfo = new FileInfo(Path.Combine(dir, $"{nodeName}_keep.png_xbox"));
                     if (imageInfo.Exists)
                     {
-                        var abridged = new AbridgedFileInfo(imageInfo);
+                        var abridged = new AbridgedFileInfo(imageInfo, false);
                         if (Image == null || abridged.LastUpdatedTime > Image.LastUpdatedTime)
                         {
                             Image = abridged;
@@ -259,7 +259,7 @@ namespace YARG.Core.Song
 
             public byte[]? LoadMidiUpdateFile()
             {
-                if (UpdateMidi == null || !UpdateMidi.IsStillValid())
+                if (UpdateMidi == null || !UpdateMidi.IsStillValid(false))
                 {
                     return null;
                 }

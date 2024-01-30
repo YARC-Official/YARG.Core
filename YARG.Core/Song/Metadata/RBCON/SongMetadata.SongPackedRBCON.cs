@@ -62,7 +62,7 @@ namespace YARG.Core.Song
                 AbridgedFileInfo? updateMidi = null;
                 if (reader.ReadBoolean())
                 {
-                    updateMidi = AbridgedFileInfo.TryParseInfo(reader);
+                    updateMidi = AbridgedFileInfo.TryParseInfo(reader, false);
                     if (updateMidi == null)
                     {
                         return null;
@@ -140,21 +140,27 @@ namespace YARG.Core.Song
             public byte[]? LoadMidiFile(CONFile? file)
             {
                 if (_midiListing == null || !_midiListing.IsStillValid())
+                {
                     return null;
+                }
                 return _midiListing.LoadAllBytes(file!);
             }
 
             public byte[]? LoadMiloFile()
             {
                 if (SharedMetadata.Milo != null && SharedMetadata.Milo.Exists())
+                {
                     return File.ReadAllBytes(SharedMetadata.Milo.FullName);
+                }
                 return _miloListing?.LoadAllBytes();
             }
 
             public byte[]? LoadImgFile()
             {
                 if (SharedMetadata.Image != null && SharedMetadata.Image.Exists())
+                {
                     return File.ReadAllBytes(SharedMetadata.Image.FullName);
+                }
                 return _imgListing?.LoadAllBytes();
             }
 

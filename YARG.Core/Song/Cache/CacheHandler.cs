@@ -372,7 +372,7 @@ namespace YARG.Core.Song.Cache
                     FileInfo info = new(Path.Combine(directory, $"{name}_plus.mid"));
                     if (info.Exists)
                     {
-                        var abridged = new AbridgedFileInfo(info);
+                        var abridged = new AbridgedFileInfo(info, false);
                         if (CanAddUpgrade(name, abridged.LastUpdatedTime))
                         {
                             IRBProUpgrade upgrade = new UnpackedRBProUpgrade(abridged);

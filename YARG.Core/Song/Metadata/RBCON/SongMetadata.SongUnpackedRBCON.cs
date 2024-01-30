@@ -56,7 +56,7 @@ namespace YARG.Core.Song
                 AbridgedFileInfo? updateMidi = null;
                 if (reader.ReadBoolean())
                 {
-                    updateMidi = AbridgedFileInfo.TryParseInfo(reader);
+                    updateMidi = AbridgedFileInfo.TryParseInfo(reader, false);
                     if (updateMidi == null)
                     {
                         return null;
