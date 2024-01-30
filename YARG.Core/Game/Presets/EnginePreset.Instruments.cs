@@ -88,8 +88,8 @@ namespace YARG.Core.Game
         {
             public HitWindowPreset HitWindow = new()
             {
-                MaxWindow = 0.15,
-                MinWindow = 0.15,
+                MaxWindow = 0.14,
+                MinWindow = 0.14,
                 IsDynamic = false,
                 FrontToBackRatio = 1.0
             };
