@@ -42,18 +42,18 @@ namespace YARG.Core.Audio
 
         public static readonly IList<double> SfxVolume = new[]
         {
-            0.65,
-            0.45,
+            0.55,
             0.5,
-            0.45,
+            0.5,
+            0.4,
             0.5,
             0.16,
             1.0,
             1.0,
-            0.5,
-            0.5,
-            0.5,
-            0.5,
+            0.4,
+            0.4,
+            0.4,
+            0.4,
         };
 
         public static readonly List<SongStem> PitchBendAllowedStems = new()
