@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
 using YARG.Core.Extensions;
@@ -13,190 +12,169 @@ namespace YARG.Core.Song
         [Serializable]
         public sealed class RBPackedCONMetadata : IRBCONMetadata
         {
-            public readonly CONFileListing? midiListing;
-            public readonly CONFileListing? moggListing;
-            public readonly CONFileListing? miloListing;
-            public readonly CONFileListing? imgListing;
-            public readonly RBCONSubMetadata _metadata;
-            public readonly DateTime _midiLastWrite;
+            private readonly CONFileListing? _midiListing;
+            private readonly CONFileListing? _moggListing;
+            private readonly CONFileListing? _miloListing;
+            private readonly CONFileListing? _imgListing;
+            
+            public RBCONSubMetadata SharedMetadata { get; }
 
-            public RBCONSubMetadata SharedMetadata => _metadata;
-
-            public DateTime MidiLastUpdateTime => _midiLastWrite;
+            public DateTime LastUpdateTime { get; }
 
             public RBPackedCONMetadata(PackedCONGroup group, RBCONSubMetadata metadata, string nodeName, string location)
             {
-                _metadata = metadata;
+                SharedMetadata = metadata;
 
                 string midiPath = location + ".mid";
-                midiListing = group.CONFile.TryGetListing(midiPath);
-                if (midiListing == null)
+                _midiListing = group.CONFile.TryGetListing(midiPath);
+                if (_midiListing == null)
                     throw new Exception($"Required midi file '{midiPath}' was not located");
-                _midiLastWrite = midiListing.lastWrite;
+                LastUpdateTime = _midiListing.lastWrite;
 
-                string midiDirectory = group.CONFile.Listings[midiListing.pathIndex].Filename;
-
-                moggListing = group.CONFile.TryGetListing(location + ".mogg");
-
+                _moggListing = group.CONFile.TryGetListing(location + ".mogg");
+                
                 if (!location.StartsWith($"songs/{nodeName}"))
-                    nodeName = midiDirectory.Split('/')[1];
+                    nodeName = _midiListing.Filename.Split('/')[1];
 
-                string genPAth = $"songs/{nodeName}/gen/{nodeName}";
-                miloListing = group.CONFile.TryGetListing(genPAth + ".milo_xbox");
-                imgListing = group.CONFile.TryGetListing(genPAth + "_keep.png_xbox");
+                string genPath = $"songs/{nodeName}/gen/{nodeName}";
+                _miloListing = group.CONFile.TryGetListing(genPath + ".milo_xbox");
+                _imgListing = group.CONFile.TryGetListing(genPath + "_keep.png_xbox");
 
+                string midiDirectory = group.CONFile.Listings[_midiListing.pathIndex].Filename;
                 metadata.Directory = Path.Combine(group.Location, midiDirectory);
             }
 
-            public RBPackedCONMetadata(CONFile file, string nodeName, CONFileListing? midi, DateTime midiLastWrite, CONFileListing? moggListing, AbridgedFileInfo? moggInfo, AbridgedFileInfo? updateInfo, YARGBinaryReader reader)
+            public static RBPackedCONMetadata? TryLoadFromCache(CONFile file, string nodename, YARGBinaryReader reader)
             {
-                midiListing = midi;
-                _midiLastWrite = midiLastWrite;
+                string midiFilename = reader.ReadLEBString();
+                var midiListing = file.TryGetListing(midiFilename);
+                if (midiListing == null)
+                {
+                    return null;
+                }
 
-                if (moggListing != null)
-                    this.moggListing = moggListing;
+                var midiLastWrite = DateTime.FromBinary(reader.Read<long>(Endianness.Little));
+                if (midiListing.lastWrite != midiLastWrite)
+                {
+                    return null;
+                }
 
-                if (midiListing != null && !midiListing.Filename.StartsWith($"songs/{nodeName}"))
-                    nodeName = file.Listings[midiListing.pathIndex].Filename.Split('/')[1];
-
-                string genPAth = $"songs/{nodeName}/gen/{nodeName}";
-
-                AbridgedFileInfo? miloInfo = null;
+                AbridgedFileInfo? updateMidi = null;
                 if (reader.ReadBoolean())
                 {
-                    miloListing = file.TryGetListing(genPAth + ".milo_xbox");
-                }
-                else
-                {
-                    string milopath = reader.ReadLEBString();
-                    if (milopath.Length > 0)
+                    updateMidi = AbridgedFileInfo.TryParseInfo(reader);
+                    if (updateMidi == null)
                     {
-                        var info = new FileInfo(milopath);
-                        if (info.Exists)
-                        {
-                            miloInfo = new AbridgedFileInfo(info);
-                        }
+                        return null;
                     }
                 }
 
-                AbridgedFileInfo? imageInfo = null;
-                if (reader.ReadBoolean())
-                {
-                    imgListing = file.TryGetListing(genPAth + "_keep.png_xbox");
-                }
-                else
-                {
-                    string imgpath = reader.ReadLEBString();
-                    if (imgpath != string.Empty)
-                    {
-                        var info = new FileInfo(imgpath);
-                        if (info.Exists)
-                        {
-                            imageInfo = new AbridgedFileInfo(info);
-                        }
-                    }
-                }
+                var moggListing = file.TryGetListing(Path.ChangeExtension(midiFilename, ".mogg"));
 
-                _metadata = new RBCONSubMetadata(reader)
-                {
-                    Mogg = moggInfo,
-                    UpdateMidi = updateInfo,
-                    Milo = miloInfo,
-                    Image = imageInfo,
-                };
+                if (!midiFilename.StartsWith($"songs/{nodename}"))
+                    nodename = midiFilename.Split('/')[1];
+
+                string genPath = $"songs/{nodename}/gen/{nodename}";
+                var miloListing = file.TryGetListing(genPath + ".milo_xbox");
+                var imgListing = file.TryGetListing(genPath + "_keep.png_xbox");
+
+                var baseMetadata = new RBCONSubMetadata(updateMidi, reader);
+                return new RBPackedCONMetadata(midiListing, midiLastWrite, moggListing, miloListing, imgListing, baseMetadata);
+            }
+
+            public static RBPackedCONMetadata LoadFromCache_Quick(CONFile file, string nodename, YARGBinaryReader reader)
+            {
+                string midiFilename = reader.ReadLEBString();
+                var midiListing = file.TryGetListing(midiFilename);
+                var midiLastWrite = DateTime.FromBinary(reader.Read<long>(Endianness.Little));
+
+                var updateMidi = reader.ReadBoolean() ? new AbridgedFileInfo(reader) : null;
+
+                var moggListing = file.TryGetListing(Path.ChangeExtension(midiFilename, ".mogg"));
+
+                if (!midiFilename.StartsWith($"songs/{nodename}"))
+                    nodename = midiFilename.Split('/')[1];
+
+                string genPath = $"songs/{nodename}/gen/{nodename}";
+                var miloListing = file.TryGetListing(genPath + ".milo_xbox");
+                var imgListing = file.TryGetListing(genPath + "_keep.png_xbox");
+
+                var baseMetadata = new RBCONSubMetadata(updateMidi, reader);
+                return new RBPackedCONMetadata(midiListing, midiLastWrite, moggListing, miloListing, imgListing, baseMetadata);
+            }
+
+            private RBPackedCONMetadata(CONFileListing? midi, DateTime midiLastWrite, CONFileListing? moggListing, CONFileListing? miloListing, CONFileListing? imgListing, RBCONSubMetadata baseMetadata)
+            {
+                _midiListing = midi;
+                _moggListing = moggListing;
+                _miloListing = miloListing;
+                _imgListing = imgListing;
+                
+                SharedMetadata = baseMetadata;
+                LastUpdateTime = midiLastWrite;
             }
 
             public void Serialize(BinaryWriter writer)
             {
-                writer.Write(midiListing!.Filename);
-                writer.Write(_midiLastWrite.ToBinary());
+                writer.Write(_midiListing!.Filename);
+                writer.Write(_midiListing.lastWrite.ToBinary());
 
-                if (_metadata.Mogg == null)
+                if (SharedMetadata.UpdateMidi != null)
                 {
                     writer.Write(true);
-                    writer.Write(moggListing!.Filename);
-                    writer.Write(moggListing.lastWrite.ToBinary());
-                }
-                else
-                {
-                    writer.Write(false);
-                    _metadata.Mogg.Serialize(writer);
-                }
-
-                if (_metadata.UpdateMidi != null)
-                {
-                    writer.Write(true);
-                    _metadata.UpdateMidi.Serialize(writer);
+                    SharedMetadata.UpdateMidi.Serialize(writer);
                 }
                 else
                     writer.Write(false);
 
-                if (_metadata.Milo != null)
-                {
-                    writer.Write(false);
-                    writer.Write(_metadata.Milo.FullName);
-                }
-                else
-                    writer.Write(true);
-
-                if (_metadata.Image != null)
-                {
-                    writer.Write(false);
-                    writer.Write(_metadata.Image.FullName);
-                }
-                else
-                    writer.Write(true);
-
-                _metadata.Serialize(writer);
+                SharedMetadata.Serialize(writer);
             }
 
             public Stream? GetMidiStream()
             {
-                if (midiListing == null || !midiListing.IsStillValid())
+                if (_midiListing == null || !_midiListing.IsStillValid())
                     return null;
-                return midiListing.CreateStream();
+                return _midiListing.CreateStream();
             }
 
             public byte[]? LoadMidiFile(CONFile? file)
             {
-                if (midiListing == null || !midiListing.IsStillValid())
+                if (_midiListing == null || !_midiListing.IsStillValid())
                     return null;
-                return midiListing.LoadAllBytes(file!);
+                return _midiListing.LoadAllBytes(file!);
             }
 
             public byte[]? LoadMiloFile()
             {
-                if (_metadata.Milo != null && File.Exists(_metadata.Milo.FullName))
-                    return File.ReadAllBytes(_metadata.Milo.FullName);
-                return miloListing?.LoadAllBytes();
+                if (SharedMetadata.Milo != null && SharedMetadata.Milo.Exists())
+                    return File.ReadAllBytes(SharedMetadata.Milo.FullName);
+                return _miloListing?.LoadAllBytes();
             }
 
             public byte[]? LoadImgFile()
             {
-                if (_metadata.Image != null && File.Exists(_metadata.Image.FullName))
-                    return File.ReadAllBytes(_metadata.Image.FullName);
-                return imgListing?.LoadAllBytes();
+                if (SharedMetadata.Image != null && SharedMetadata.Image.Exists())
+                    return File.ReadAllBytes(SharedMetadata.Image.FullName);
+                return _imgListing?.LoadAllBytes();
             }
 
             public Stream? GetMoggStream()
             {
-                var stream = _metadata.GetMoggStream();
+                var stream = SharedMetadata.GetMoggStream();
                 if (stream != null)
                     return stream;
-                return moggListing?.CreateStream();
+                return _moggListing?.CreateStream();
             }
 
             public bool IsMoggValid(CONFile? file)
             {
-                using var stream = _metadata.GetMoggStream();
+                using var stream = SharedMetadata.GetMoggStream();
                 if (stream != null)
                 {
                     int version = stream.Read<int>(Endianness.Little);
                     return version == 0x0A || version == 0xf0;
                 }
-                else if (moggListing != null)
-                    return CONFileListing.GetMoggVersion(moggListing, file!) == 0x0A;
-                return false;
+                return _moggListing != null && CONFileListing.GetMoggVersion(_moggListing, file!) == 0x0A;
             }
         }
 
@@ -234,78 +212,25 @@ namespace YARG.Core.Song
             }
         }
 
-        public static SongMetadata? PackedRBCONFromCache(CONFile file, string nodeName, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings)
+        public static SongMetadata? PackedRBCONFromCache(CONFile file, string nodename, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings)
         {
-            var midiListing = file.TryGetListing(reader.ReadLEBString());
-            if (midiListing == null)
+            var packedMeta = RBPackedCONMetadata.TryLoadFromCache(file, nodename, reader);
+            if (packedMeta == null)
             {
                 return null;
             }
 
-            var midiLastWrite = DateTime.FromBinary(reader.Read<long>(Endianness.Little));
-            if (midiListing.lastWrite != midiLastWrite)
-            {
-                return null;
-            }
-
-            CONFileListing? moggListing = null;
-            AbridgedFileInfo? moggInfo = null;
-            if (reader.ReadBoolean())
-            {
-                moggListing = file.TryGetListing(reader.ReadLEBString());
-                if (moggListing == null || moggListing.lastWrite != DateTime.FromBinary(reader.Read<long>(Endianness.Little)))
-                {
-                    return null;
-                }
-            }
-            else
-            {
-                moggInfo = AbridgedFileInfo.TryParseInfo(reader);
-                if (moggInfo == null)
-                {
-                    return null;
-                }
-            }
-
-            AbridgedFileInfo? updateInfo = null;
-            if (reader.ReadBoolean())
-            {
-                updateInfo = AbridgedFileInfo.TryParseInfo(reader);
-                if (updateInfo == null)
-                {
-                    return null;
-                }
-            }
-
-            RBPackedCONMetadata packedMeta = new(file, nodeName, midiListing, midiLastWrite, moggListing, moggInfo, updateInfo, reader);
-            if (upgrades.TryGetValue(nodeName, out var upgrade))
+            if (upgrades.TryGetValue(nodename, out var upgrade))
             {
                 packedMeta.SharedMetadata.Upgrade = upgrade.Item2;
             }
             return new SongMetadata(packedMeta, reader, strings);
         }
 
-        public static SongMetadata PackedRBCONFromCache_Quick(CONFile file, string nodeName, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings)
+        public static SongMetadata PackedRBCONFromCache_Quick(CONFile file, string nodename, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings)
         {
-            var midiListing = file.TryGetListing(reader.ReadLEBString());
-            var midiLastWrite = DateTime.FromBinary(reader.Read<long>(Endianness.Little));
-
-            CONFileListing? moggListing = null;
-            AbridgedFileInfo? moggInfo = null;
-            if (reader.ReadBoolean())
-            {
-                moggListing = file.TryGetListing(reader.ReadLEBString());
-                reader.Move(SIZEOF_DATETIME);
-            }
-            else
-            {
-                moggInfo = new AbridgedFileInfo(reader);
-            }
-
-            var updateInfo = reader.ReadBoolean() ? new AbridgedFileInfo(reader) : null;
-
-            RBPackedCONMetadata packedMeta = new(file, nodeName, midiListing, midiLastWrite, moggListing, moggInfo, updateInfo, reader);
-            if (upgrades.TryGetValue(nodeName, out var upgrade))
+            var packedMeta = RBPackedCONMetadata.LoadFromCache_Quick(file, nodename, reader);
+            if (upgrades.TryGetValue(nodename, out var upgrade))
             {
                 packedMeta.SharedMetadata.Upgrade = upgrade.Item2;
             }

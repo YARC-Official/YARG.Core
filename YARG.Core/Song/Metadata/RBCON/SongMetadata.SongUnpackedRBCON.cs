@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Buffers.Binary;
 using System.Collections.Generic;
 using YARG.Core.Extensions;
 using YARG.Core.Song.Cache;
@@ -13,132 +12,173 @@ namespace YARG.Core.Song
         [Serializable]
         public sealed class RBUnpackedCONMetadata : IRBCONMetadata
         {
-            private readonly AbridgedFileInfo? DTA;
-            private readonly RBCONSubMetadata _metadata;
-            private readonly AbridgedFileInfo Midi;
+            private readonly AbridgedFileInfo? _dta;
+            private readonly AbridgedFileInfo _midi;
+            private readonly string _moggPath;
+            private readonly string _miloPath;
+            private readonly string _imgPath;
 
-            public RBCONSubMetadata SharedMetadata => _metadata;
+            public RBCONSubMetadata SharedMetadata { get; }
 
-            public DateTime MidiLastUpdateTime => Midi.LastUpdatedTime;
+            public DateTime LastUpdateTime => _midi.LastUpdatedTime;
 
-            public RBUnpackedCONMetadata(UnpackedCONGroup group, RBCONSubMetadata metadata, string nodeName, string location)
+            public RBUnpackedCONMetadata(UnpackedCONGroup group, RBCONSubMetadata metadata, string nodename, string location)
             {
-                _metadata = metadata;
-                DTA = group.DTA;
+                _dta = group.DTA;
+                SharedMetadata = metadata;
 
-                if (!location.StartsWith($"songs/{nodeName}"))
-                    nodeName = location.Split('/')[1];
+                if (!location.StartsWith($"songs/{nodename}"))
+                    nodename = location.Split('/')[1];
 
-                string folder = Path.Combine(group.Location, nodeName);
-                string file = Path.Combine(folder, nodeName);
-                string midiPath = file + ".mid";
+                metadata.Directory = Path.Combine(group.Location, nodename);
+                string midiPath = Path.Combine(metadata.Directory, $"{nodename}.mid");
 
                 FileInfo midiInfo = new(midiPath);
                 if (!midiInfo.Exists)
                     throw new Exception($"Required midi file '{midiPath}' was not located");
 
-                Midi = new AbridgedFileInfo(midiInfo);
-                metadata.Directory = folder;
+                _midi = new AbridgedFileInfo(midiInfo);
+                _moggPath = Path.ChangeExtension(midiPath, null);
 
-                FileInfo mogg = new(file + ".yarg_mogg");
-                if (mogg.Exists)
-                {
-                    metadata.Mogg = new AbridgedFileInfo(mogg);
-                }
-                else
-                {
-                    metadata.Mogg = new AbridgedFileInfo(file + ".mogg");
-                }
-
-                file = Path.Combine(folder, "gen", nodeName);
-                metadata.Milo = new(file + ".milo_xbox");
-                metadata.Image = new(file + "_keep.png_xbox");
+                string file = Path.Combine(metadata.Directory, "gen", nodename);
+                _miloPath = file + ".milo_xbox";
+                _imgPath = file + "_keep.png_xbox";
             }
 
-            public RBUnpackedCONMetadata(AbridgedFileInfo? dta, AbridgedFileInfo midi, AbridgedFileInfo? moggInfo, AbridgedFileInfo? updateInfo, YARGBinaryReader reader)
+            public static RBUnpackedCONMetadata? TryLoadFromCache(AbridgedFileInfo dta, YARGBinaryReader reader)
             {
-                DTA = dta;
-                Midi = midi;
-
-                string miloname = reader.ReadLEBString();
-                var miloInfo = miloname.Length > 0 ? new AbridgedFileInfo(miloname) : null;
-
-                string imagename = reader.ReadLEBString();
-                var imageInfo = imagename.Length > 0 ? new AbridgedFileInfo(imagename) : null;
-
-                _metadata = new(reader)
+                var midiInfo = AbridgedFileInfo.TryParseInfo(reader);
+                if (midiInfo == null)
                 {
-                    Mogg = moggInfo,
-                    UpdateMidi = updateInfo,
-                    Milo = miloInfo,
-                    Image = imageInfo,
-                };
+                    return null;
+                }
+
+                AbridgedFileInfo? updateMidi = null;
+                if (reader.ReadBoolean())
+                {
+                    updateMidi = AbridgedFileInfo.TryParseInfo(reader);
+                    if (updateMidi == null)
+                    {
+                        return null;
+                    }
+                }
+
+                var baseMetadata = new RBCONSubMetadata(updateMidi, reader);
+                return new RBUnpackedCONMetadata(dta, midiInfo, baseMetadata);
+            }
+
+            public static RBUnpackedCONMetadata LoadFromCache_Quick(AbridgedFileInfo? dta, YARGBinaryReader reader)
+            {
+                var midiInfo = new AbridgedFileInfo(reader);
+                var updateMidi = reader.ReadBoolean() ? new AbridgedFileInfo(reader) : null;
+                var baseMetadata = new RBCONSubMetadata(updateMidi, reader);
+                return new RBUnpackedCONMetadata(dta, midiInfo, baseMetadata);
+            }
+
+            public RBUnpackedCONMetadata(AbridgedFileInfo? dta, AbridgedFileInfo midi, RBCONSubMetadata baseMetadata)
+            {
+                _dta = dta;
+                _midi = midi;
+
+                _moggPath = Path.ChangeExtension(midi.FullName, null);
+
+                string directory = Path.GetDirectoryName(midi.FullName);
+                string nodename = Path.GetFileNameWithoutExtension(midi.FullName);
+
+                string file = Path.Combine(directory, "gen", nodename);
+                _miloPath = file + ".milo_xbox";
+                _imgPath = file + "_keep.png_xbox";
+
+                SharedMetadata = baseMetadata;
             }
 
             public void Serialize(BinaryWriter writer)
             {
-                Midi.Serialize(writer);
-                _metadata.Mogg!.Serialize(writer);
+                _midi.Serialize(writer);
 
-                if (_metadata.UpdateMidi != null)
+                if (SharedMetadata.UpdateMidi != null)
                 {
                     writer.Write(true);
-                    _metadata.UpdateMidi.Serialize(writer);
+                    SharedMetadata.UpdateMidi.Serialize(writer);
                 }
                 else
                 {
                     writer.Write(false);
                 }
-
-                writer.Write(_metadata.Milo?.FullName ?? string.Empty);
-                writer.Write(_metadata.Image?.FullName ?? string.Empty);
-                _metadata.Serialize(writer);
+                SharedMetadata.Serialize(writer);
             }
 
             public Stream? GetMidiStream()
             {
-                if (DTA == null || !DTA.IsStillValid() || !Midi.IsStillValid())
+                if (_dta == null || !_dta.IsStillValid() || !_midi.IsStillValid())
                 {
                     return null;
                 }
-                return new FileStream(Midi.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
+                return new FileStream(_midi.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
             }
 
             public byte[]? LoadMidiFile(CONFile? _)
             {
-                if (DTA == null || !DTA.IsStillValid() || !Midi.IsStillValid())
+                if (_dta == null || !_dta.IsStillValid() || !_midi.IsStillValid())
                 {
                     return null;
                 }
-                return File.ReadAllBytes(Midi.FullName);
+                return File.ReadAllBytes(_midi.FullName);
             }
 
             public byte[]? LoadMiloFile()
             {
-                if (_metadata.Milo == null || !File.Exists(_metadata.Milo.FullName))
+                if (SharedMetadata.Milo != null && SharedMetadata.Milo.Exists())
+                {
+                    return File.ReadAllBytes(SharedMetadata.Milo.FullName);
+                }
+
+                if (!File.Exists(_miloPath))
                 {
                     return null;
                 }
-                return File.ReadAllBytes(_metadata.Milo.FullName);
+                return File.ReadAllBytes(_miloPath);
             }
 
             public byte[]? LoadImgFile()
             {
-                if (_metadata.Image == null || !File.Exists(_metadata.Image.FullName))
+                if (SharedMetadata.Image != null && SharedMetadata.Image.Exists())
+                {
+                    return File.ReadAllBytes(SharedMetadata.Image.FullName);
+                }
+
+                if (!File.Exists(_imgPath))
                 {
                     return null;
                 }
-                return File.ReadAllBytes(_metadata.Image.FullName);
+                return File.ReadAllBytes(_imgPath);
             }
 
             public Stream? GetMoggStream()
             {
-                return _metadata.GetMoggStream();
+                var stream = SharedMetadata.GetMoggStream();
+                if (stream != null)
+                {
+                    return stream;
+                }
+
+                string path = _moggPath + ".yarg_mogg";
+                if (File.Exists(path))
+                {
+                    return new YargMoggReadStream(path);
+                }
+
+                path = _moggPath + ".mogg";
+                if (!File.Exists(path))
+                {
+                    return null;
+                }
+                return new FileStream(path, FileMode.Open, FileAccess.Read);
             }
 
             public bool IsMoggValid(CONFile? _)
             {
-                using var stream = _metadata.GetMoggStream();
+                using var stream = GetMoggStream();
                 if (stream == null)
                 {
                     return false;
@@ -183,39 +223,28 @@ namespace YARG.Core.Song
             }
         }
 
-        public static SongMetadata? UnpackedRBCONFromCache(AbridgedFileInfo dta, string nodeName, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings)
+        public static SongMetadata? UnpackedRBCONFromCache(AbridgedFileInfo dta, string nodename, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings)
         {
-            var midiInfo = AbridgedFileInfo.TryParseInfo(reader);
-            if (midiInfo == null)
-                return null;
-
-            var moggInfo = AbridgedFileInfo.TryParseInfo(reader);
-            if (moggInfo == null)
-                return null;
-
-            AbridgedFileInfo? updateInfo = null;
-            if (reader.ReadBoolean())
+            var packedMeta = RBUnpackedCONMetadata.TryLoadFromCache(dta, reader);
+            if (packedMeta == null)
             {
-                updateInfo = AbridgedFileInfo.TryParseInfo(reader);
-                if (updateInfo == null)
-                    return null;
+                return null;
             }
 
-            RBUnpackedCONMetadata packedMeta = new(dta, midiInfo, moggInfo, updateInfo, reader);
-            if (upgrades.TryGetValue(nodeName, out var upgrade))
+            if (upgrades.TryGetValue(nodename, out var upgrade))
+            {
                 packedMeta.SharedMetadata.Upgrade = upgrade.Item2;
+            }
             return new SongMetadata(packedMeta, reader, strings);
         }
 
-        public static SongMetadata UnpackedRBCONFromCache_Quick(AbridgedFileInfo? dta, string nodeName, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings)
+        public static SongMetadata UnpackedRBCONFromCache_Quick(AbridgedFileInfo? dta, string nodename, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings)
         {
-            AbridgedFileInfo midiInfo = new(reader);
-            AbridgedFileInfo moggInfo = new(reader);
-            var updateInfo = reader.ReadBoolean() ? new AbridgedFileInfo(reader) : null;
-
-            RBUnpackedCONMetadata packedMeta = new(dta, midiInfo, moggInfo, updateInfo, reader);
-            if (upgrades.TryGetValue(nodeName, out var upgrade))
+            var packedMeta = RBUnpackedCONMetadata.LoadFromCache_Quick(dta, reader);
+            if (upgrades.TryGetValue(nodename, out var upgrade))
+            {
                 packedMeta.SharedMetadata.Upgrade = upgrade.Item2;
+            }
             return new SongMetadata(packedMeta, reader, strings);
         }
     }

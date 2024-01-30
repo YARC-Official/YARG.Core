@@ -60,6 +60,11 @@ namespace YARG.Core.IO
             writer.Write(LastUpdatedTime.ToBinary());
         }
 
+        public bool Exists()
+        {
+            return File.Exists(FullName);
+        }
+
         public bool IsStillValid()
         {
             var info = new FileInfo(FullName);

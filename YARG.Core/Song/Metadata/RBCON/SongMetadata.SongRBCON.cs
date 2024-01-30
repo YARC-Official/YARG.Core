@@ -3,9 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using Melanchall.DryWetMidi.Core;
 using YARG.Core.Chart;
-using YARG.Core.Extensions;
 using YARG.Core.Song.Cache;
 using YARG.Core.IO;
 using YARG.Core.Song.Preparsers;
@@ -65,8 +63,10 @@ namespace YARG.Core.Song
 
             public RBCONSubMetadata() { }
 
-            public RBCONSubMetadata(YARGBinaryReader reader)
+            public RBCONSubMetadata(AbridgedFileInfo? updateMidi, YARGBinaryReader reader)
             {
+                UpdateMidi = updateMidi;
+
                 RBDifficulties = new(reader);
                 Directory = reader.ReadLEBString();
                 AnimTempo = reader.Read<uint>(Endianness.Little);
@@ -79,6 +79,10 @@ namespace YARG.Core.Song
                 SongTonality = reader.ReadBoolean();
                 TuningOffsetCents = reader.Read<int>(Endianness.Little);
                 VenueVersion = reader.Read<uint>(Endianness.Little);
+
+                Mogg = ReadUpdateInfo(reader);
+                Milo = ReadUpdateInfo(reader);
+                Image = ReadUpdateInfo(reader);
 
                 RealGuitarTuning = ReadIntArray(reader);
                 RealBassTuning = ReadIntArray(reader);
@@ -115,6 +119,10 @@ namespace YARG.Core.Song
                 writer.Write(TuningOffsetCents);
                 writer.Write(VenueVersion);
 
+                WriteUpdateInfo(Mogg, writer);
+                WriteUpdateInfo(Milo, writer);
+                WriteUpdateInfo(Image, writer);
+
                 WriteArray(RealGuitarTuning, writer);
                 WriteArray(RealBassTuning, writer);
 
@@ -133,6 +141,15 @@ namespace YARG.Core.Song
                 WriteArray(VocalsStemValues, writer);
                 WriteArray(TrackStemValues, writer);
                 WriteArray(CrowdStemValues, writer);
+            }
+
+            private static AbridgedFileInfo? ReadUpdateInfo(YARGBinaryReader reader)
+            {
+                if (!reader.ReadBoolean())
+                {
+                    return null;
+                }
+                return new AbridgedFileInfo(reader.ReadLEBString());
             }
 
             private static int[] ReadIntArray(YARGBinaryReader reader)
@@ -157,6 +174,17 @@ namespace YARG.Core.Song
                 for (int i = 0; i < length; ++i)
                     values[i] = reader.Read<float>(Endianness.Little);
                 return values;
+            }
+
+            private static void WriteUpdateInfo(AbridgedFileInfo? info, BinaryWriter writer)
+            {
+                if (info != null)
+                {
+                    writer.Write(true);
+                    writer.Write(info.FullName);
+                }
+                else
+                    writer.Write(false);
             }
 
             private static void WriteArray(int[] values, BinaryWriter writer)
@@ -241,10 +269,14 @@ namespace YARG.Core.Song
             public Stream? GetMoggStream()
             {
                 if (Mogg == null || !File.Exists(Mogg.FullName))
+                {
                     return null;
+                }
 
                 if (Mogg.FullName.EndsWith(".yarg_mogg"))
+                {
                     return new YargMoggReadStream(Mogg.FullName);
+                }
                 return new FileStream(Mogg.FullName, FileMode.Open, FileAccess.Read);
             }
         }
@@ -252,7 +284,7 @@ namespace YARG.Core.Song
         public interface IRBCONMetadata
         {
             public RBCONSubMetadata SharedMetadata { get; }
-            public DateTime MidiLastUpdateTime { get; }
+            public DateTime LastUpdateTime { get; }
             public Stream? GetMidiStream();
             public byte[]? LoadMidiFile(CONFile? file);
             public byte[]? LoadMiloFile();
