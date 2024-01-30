@@ -49,7 +49,7 @@ namespace YARG.Core.IO
         public override string ToString() => $"STFS File Listing: {Filename}";
         public bool IsDirectory() { return (flags & CONFileListingFlag.Directory) > 0; }
         public bool IsContiguous() { return (flags & CONFileListingFlag.Contiguous) > 0; }
-        public bool IsStillValid() { return ConFile.IsStillValid(); }
+        public bool IsStillValid(in DateTime listingLastWrite) { return listingLastWrite == lastWrite && ConFile.IsStillValid(); }
 
         public CONFileStream CreateStream()
         {

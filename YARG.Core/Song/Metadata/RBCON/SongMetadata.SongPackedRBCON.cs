@@ -132,14 +132,14 @@ namespace YARG.Core.Song
 
             public Stream? GetMidiStream()
             {
-                if (_midiListing == null || !_midiListing.IsStillValid())
+                if (_midiListing == null || !_midiListing.IsStillValid(LastUpdateTime))
                     return null;
                 return _midiListing.CreateStream();
             }
 
             public byte[]? LoadMidiFile(CONFile? file)
             {
-                if (_midiListing == null || !_midiListing.IsStillValid())
+                if (_midiListing == null || !_midiListing.IsStillValid(LastUpdateTime))
                 {
                     return null;
                 }
