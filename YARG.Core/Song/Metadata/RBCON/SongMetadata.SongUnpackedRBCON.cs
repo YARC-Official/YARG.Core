@@ -108,6 +108,27 @@ namespace YARG.Core.Song
                 SharedMetadata.Serialize(writer);
             }
 
+            public DateTime GetAbsoluteLastUpdateTime()
+            {
+                var lastUpdateTime = _midi.LastUpdatedTime;
+                if (SharedMetadata.UpdateMidi != null)
+                {
+                    if (SharedMetadata.UpdateMidi.LastUpdatedTime > lastUpdateTime)
+                    {
+                        lastUpdateTime = SharedMetadata.UpdateMidi.LastUpdatedTime;
+                    }
+                }
+
+                if (SharedMetadata.Upgrade != null)
+                {
+                    if (SharedMetadata.Upgrade.LastUpdatedTime > lastUpdateTime)
+                    {
+                        lastUpdateTime = SharedMetadata.Upgrade.LastUpdatedTime;
+                    }
+                }
+                return lastUpdateTime;
+            }
+
             public Stream? GetMidiStream()
             {
                 if (_dta == null || !_dta.IsStillValid() || !_midi.IsStillValid())

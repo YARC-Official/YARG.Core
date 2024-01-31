@@ -284,7 +284,7 @@ namespace YARG.Core.Song
         public interface IRBCONMetadata
         {
             public RBCONSubMetadata SharedMetadata { get; }
-            public DateTime LastUpdateTime { get; }
+            public DateTime GetAbsoluteLastUpdateTime();
             public Stream? GetMidiStream();
             public byte[]? LoadMidiFile(CONFile? file);
             public byte[]? LoadMiloFile();

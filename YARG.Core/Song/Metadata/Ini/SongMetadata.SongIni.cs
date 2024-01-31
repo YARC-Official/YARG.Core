@@ -22,6 +22,7 @@ namespace YARG.Core.Song
 
             public string Root => directory;
             public ChartType Type => chartType;
+            public DateTime LastUpdatedTime => chartFile.LastUpdatedTime;
 
             public UnpackedIniSubmetadata(string directory, ChartType chartType, AbridgedFileInfo chartFile, AbridgedFileInfo? iniFile)
             {

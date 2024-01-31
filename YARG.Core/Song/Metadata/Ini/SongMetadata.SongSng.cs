@@ -19,6 +19,7 @@ namespace YARG.Core.Song
 
             public string Root => sngInfo.FullName;
             public ChartType Type => chart.Type;
+            public DateTime LastUpdatedTime => sngInfo.LastUpdatedTime;
 
             public SngSubmetadata(uint version, AbridgedFileInfo sngInfo, IniChartNode<string> chart)
             {

@@ -16,10 +16,9 @@ namespace YARG.Core.Song
             private readonly CONFileListing? _moggListing;
             private readonly CONFileListing? _miloListing;
             private readonly CONFileListing? _imgListing;
+            private readonly DateTime _lastMidiUpdate;
             
             public RBCONSubMetadata SharedMetadata { get; }
-
-            public DateTime LastUpdateTime { get; }
 
             public RBPackedCONMetadata(PackedCONGroup group, RBCONSubMetadata metadata, string nodeName, string location)
             {
@@ -29,7 +28,7 @@ namespace YARG.Core.Song
                 _midiListing = group.CONFile.TryGetListing(midiPath);
                 if (_midiListing == null)
                     throw new Exception($"Required midi file '{midiPath}' was not located");
-                LastUpdateTime = _midiListing.lastWrite;
+                _lastMidiUpdate = _midiListing.lastWrite;
 
                 _moggListing = group.CONFile.TryGetListing(location + ".mogg");
                 
@@ -109,9 +108,30 @@ namespace YARG.Core.Song
                 _moggListing = moggListing;
                 _miloListing = miloListing;
                 _imgListing = imgListing;
-                
+                _lastMidiUpdate = midiLastWrite;
+
                 SharedMetadata = baseMetadata;
-                LastUpdateTime = midiLastWrite;
+            }
+
+            public DateTime GetAbsoluteLastUpdateTime()
+            {
+                var lastUpdateTime = _midiListing?.ConFile.LastUpdatedTime ?? DateTime.MinValue;
+                if (SharedMetadata.UpdateMidi != null)
+                {
+                    if (SharedMetadata.UpdateMidi.LastUpdatedTime > lastUpdateTime)
+                    {
+                        lastUpdateTime = SharedMetadata.UpdateMidi.LastUpdatedTime;
+                    }
+                }
+
+                if (SharedMetadata.Upgrade != null)
+                {
+                    if (SharedMetadata.Upgrade.LastUpdatedTime > lastUpdateTime)
+                    {
+                        lastUpdateTime = SharedMetadata.Upgrade.LastUpdatedTime;
+                    }
+                }
+                return lastUpdateTime;
             }
 
             public void Serialize(BinaryWriter writer)
@@ -132,14 +152,14 @@ namespace YARG.Core.Song
 
             public Stream? GetMidiStream()
             {
-                if (_midiListing == null || !_midiListing.IsStillValid(LastUpdateTime))
+                if (_midiListing == null || !_midiListing.IsStillValid(_lastMidiUpdate))
                     return null;
                 return _midiListing.CreateStream();
             }
 
             public byte[]? LoadMidiFile(CONFile? file)
             {
-                if (_midiListing == null || !_midiListing.IsStillValid(LastUpdateTime))
+                if (_midiListing == null || !_midiListing.IsStillValid(_lastMidiUpdate))
                 {
                     return null;
                 }

@@ -99,6 +99,7 @@ namespace YARG.Core.Song
 
             public string Root { get; }
             public ChartType Type { get; }
+            public DateTime LastUpdatedTime { get; }
 
             public void Serialize(BinaryWriter writer, string groupDirectory);
             public Stream? GetChartStream();

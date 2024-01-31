@@ -16,6 +16,7 @@ namespace YARG.Core.Song
         Playlist,
         Source,
         SongLength,
+        DateAdded,
         Instrument,
     };
 
@@ -32,6 +33,11 @@ namespace YARG.Core.Song
                 strCmp = Directory.CompareTo(other.Directory);
             }
             return strCmp;
+        }
+
+        public DateTime GetAddTime()
+        {
+            return _iniData != null ? _iniData.LastUpdatedTime : _rbData!.GetAbsoluteLastUpdateTime();
         }
 
         private enum EntryType
