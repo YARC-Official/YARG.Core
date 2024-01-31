@@ -250,7 +250,10 @@ namespace YARG.Core.Song
             {
                 packedMeta.SharedMetadata.Upgrade = upgrade.Item2;
             }
-            return new SongMetadata(packedMeta, reader, strings);
+            return new SongMetadata(packedMeta, reader, strings)
+            {
+                _directory = packedMeta.SharedMetadata.Directory
+            };
         }
 
         public static SongMetadata PackedRBCONFromCache_Quick(CONFile file, string nodename, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings)
@@ -260,7 +263,10 @@ namespace YARG.Core.Song
             {
                 packedMeta.SharedMetadata.Upgrade = upgrade.Item2;
             }
-            return new SongMetadata(packedMeta, reader, strings);
+            return new SongMetadata(packedMeta, reader, strings)
+            {
+                _directory = packedMeta.SharedMetadata.Directory
+            };
         }
     }
 }
