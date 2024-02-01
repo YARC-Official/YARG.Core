@@ -24,12 +24,12 @@ namespace YARG.Core.Song
             Chart,
         };
 
-        public class IniChartNode
+        public class IniChartNode<T>
         {
             public readonly ChartType Type;
-            public readonly string File;
+            public readonly T File;
 
-            public IniChartNode(ChartType type, string file)
+            public IniChartNode(ChartType type, T file)
             {
                 Type = type;
                 File = file;
@@ -70,7 +70,7 @@ namespace YARG.Core.Song
 
         public interface IIniMetadata
         {
-            public static readonly IniChartNode[] CHART_FILE_TYPES =
+            public static readonly IniChartNode<string>[] CHART_FILE_TYPES =
             {
                 new(ChartType.Mid, "notes.mid"),
                 new(ChartType.Midi, "notes.midi"),
@@ -99,6 +99,7 @@ namespace YARG.Core.Song
 
             public string Root { get; }
             public ChartType Type { get; }
+            public DateTime LastUpdatedTime { get; }
 
             public void Serialize(BinaryWriter writer, string groupDirectory);
             public Stream? GetChartStream();

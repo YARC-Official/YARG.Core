@@ -66,6 +66,16 @@ namespace YARG.Core.Song.Cache
         }
     }
 
+    public readonly struct DateAddedConfig : CategoryConfig<DateTime>
+    {
+        private static readonly EntryComparer _COMPARER = new(SongAttribute.Name);
+        public EntryComparer Comparer => _COMPARER;
+        public DateTime GetKey(SongMetadata entry)
+        {
+            return entry.GetAddTime().Date;
+        }
+    }
+
     public readonly struct ArtistConfig : CategoryConfig<SortString>
     {
         private static readonly EntryComparer _COMPARER = new(SongAttribute.Artist);

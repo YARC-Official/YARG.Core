@@ -54,52 +54,41 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void ScanDirectory_Parallel(string directory, IniGroup group, PlaylistTracker tracker)
+        private void ScanDirectory_Parallel(DirectoryInfo directory, IniGroup group, PlaylistTracker tracker)
         {
             try
             {
                 if (!TraversalPreTest(directory, tracker.Playlist))
                     return;
 
-                var result = new FileCollector(directory);
-                if (ScanIniEntry(result, group, tracker.Playlist))
+                var collector = new FileCollector(directory);
+                if (ScanIniEntry(collector, group, tracker.Playlist))
                     return;
 
-                tracker.Append(directory);
-                Parallel.ForEach(result.subfiles, file =>
+                tracker.Append(directory.FullName);
+
+                var tasks = new Task[collector.subDirectories.Count + collector.subfiles.Count];
+                int index = 0;
+                foreach (var subDirectory in collector.subDirectories)
                 {
-                    try
-                    {
-                        var attributes = File.GetAttributes(file);
-                        if ((attributes & FileAttributes.Directory) != 0)
-                        {
-                            ScanDirectory_Parallel(file, group, tracker);
-                        }
-                        else if (FindOrMarkFile(file))
-                        {
-                            if (!AddPossibleCON(file, tracker.Playlist) && (file.EndsWith(".sng") || file.EndsWith(".yargsong")))
-                            {
-                                ScanSngFile(file, group, tracker.Playlist);
-                            }
-                        }
-                    }
-                    catch (PathTooLongException)
-                    {
-                        YargTrace.LogWarning($"Path {file} is too long for the file system!");
-                    }
-                    catch (Exception e)
-                    {
-                        YargTrace.LogException(e, $"Error while scanning file {file}!");
-                    }
-                });
+                    tasks[index++] = Task.Run(() => ScanDirectory_Parallel(subDirectory, group, tracker));
+                }
+
+                foreach (var file in collector.subfiles)
+                {
+                    tasks[index++] = Task.Run(() => ScanFile(file, group, ref tracker));
+                }
+                Task.WaitAll(tasks);
+                foreach(var task in tasks) task.Dispose();
             }
             catch (PathTooLongException)
             {
-                YargTrace.LogWarning($"Path {directory} is too long for the file system!");
+                YargTrace.LogError($"Path {directory.FullName} is too long for the file system!");
+                AddToBadSongs(directory.FullName, ScanResult.PathTooLong);
             }
             catch (Exception e)
             {
-                YargTrace.LogException(e, $"Error while scanning directory {directory}!");
+                YargTrace.LogException(e, $"Error while scanning directory {directory.FullName}!");
             }
         }
 
@@ -165,7 +154,6 @@ namespace YARG.Core.Song.Cache
             var group = GetBaseIniGroup(directory);
             if (group == null)
             {
-                YargTrace.DebugInfo($"INI group outside base directories: {directory}");
                 return;
             }
 
@@ -213,8 +201,7 @@ namespace YARG.Core.Song.Cache
                     // Error catching must be done per-thread
                     try
                     {
-                        if (!group.ReadEntry(name, index, upgrades, entryReader, strings))
-                            YargTrace.DebugInfo($"CON entry {name} in group {filename} is invalid!");
+                        group.ReadEntry(name, index, upgrades, entryReader, strings);
                     }
                     catch (Exception ex)
                     {
@@ -249,8 +236,7 @@ namespace YARG.Core.Song.Cache
                     // Error catching must be done per-thread
                     try
                     {
-                        if (!group.ReadEntry(name, index, upgrades, entryReader, strings))
-                            YargTrace.DebugInfo($"Extracted CON entry {name} in group {directory} is invalid!");
+                        group.ReadEntry(name, index, upgrades, entryReader, strings);
                     }
                     catch (Exception ex)
                     {

@@ -11,7 +11,7 @@ namespace YARG.Core.Song.Cache
         public UnpackedCONGroup(string directory, FileInfo dta, string defaultPlaylist)
             : base(directory, defaultPlaylist)
         {
-            DTA = dta;
+            DTA = new AbridgedFileInfo(dta);
         }
 
         public YARGDTAReader? LoadDTA()
@@ -19,14 +19,13 @@ namespace YARG.Core.Song.Cache
             return YARGDTAReader.TryCreate(DTA.FullName);
         }
 
-        public override bool ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings)
+        public override void ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings)
         {
             var song = SongMetadata.UnpackedRBCONFromCache(DTA, nodeName, upgrades, reader, strings);
-            if (song == null)
-                return false;
-
-            AddEntry(nodeName, index, song);
-            return true;
+            if (song != null)
+            {
+                AddEntry(nodeName, index, song);
+            }
         }
 
         public override byte[] SerializeEntries(Dictionary<SongMetadata, CategoryCacheWriteNode> nodes)
@@ -35,7 +34,7 @@ namespace YARG.Core.Song.Cache
             using BinaryWriter writer = new(ms);
 
             writer.Write(Location);
-            writer.Write(DTA.LastWriteTime.ToBinary());
+            writer.Write(DTA.LastUpdatedTime.ToBinary());
             Serialize(writer, ref nodes);
             return ms.ToArray();
         }

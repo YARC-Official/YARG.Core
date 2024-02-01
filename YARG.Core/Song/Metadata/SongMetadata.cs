@@ -9,6 +9,8 @@ namespace YARG.Core.Song
         Success,
         DirectoryError,
         IniEntryCorruption,
+        IniNotDownloaded,
+        ChartNotDownloaded,
         NoName,
         NoNotes,
         DTAError,
@@ -20,7 +22,7 @@ namespace YARG.Core.Song
         PossibleCorruption,
         FailedSngLoad,
 
-        LooseChart_NoAudio,
+        NoAudio,
         PathTooLong,
         MultipleMidiTrackNames,
         MultipleMidiTrackNames_Update,

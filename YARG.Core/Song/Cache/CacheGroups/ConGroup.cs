@@ -21,7 +21,7 @@ namespace YARG.Core.Song.Cache
             DefaultPlaylist = defaultPlaylist;
         }
 
-        public abstract bool ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings);
+        public abstract void ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings);
         public abstract byte[] SerializeEntries(Dictionary<SongMetadata, CategoryCacheWriteNode> nodes);
 
         public void AddEntry(string name, int index, SongMetadata entry)

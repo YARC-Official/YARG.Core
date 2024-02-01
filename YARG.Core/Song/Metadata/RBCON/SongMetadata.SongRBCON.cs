@@ -3,9 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using Melanchall.DryWetMidi.Core;
 using YARG.Core.Chart;
-using YARG.Core.Extensions;
 using YARG.Core.Song.Cache;
 using YARG.Core.IO;
 using YARG.Core.Song.Preparsers;
@@ -65,8 +63,10 @@ namespace YARG.Core.Song
 
             public RBCONSubMetadata() { }
 
-            public RBCONSubMetadata(YARGBinaryReader reader)
+            public RBCONSubMetadata(AbridgedFileInfo? updateMidi, YARGBinaryReader reader)
             {
+                UpdateMidi = updateMidi;
+
                 RBDifficulties = new(reader);
                 Directory = reader.ReadLEBString();
                 AnimTempo = reader.Read<uint>(Endianness.Little);
@@ -79,6 +79,10 @@ namespace YARG.Core.Song
                 SongTonality = reader.ReadBoolean();
                 TuningOffsetCents = reader.Read<int>(Endianness.Little);
                 VenueVersion = reader.Read<uint>(Endianness.Little);
+
+                Mogg = ReadUpdateInfo(reader);
+                Milo = ReadUpdateInfo(reader);
+                Image = ReadUpdateInfo(reader);
 
                 RealGuitarTuning = ReadIntArray(reader);
                 RealBassTuning = ReadIntArray(reader);
@@ -115,6 +119,10 @@ namespace YARG.Core.Song
                 writer.Write(TuningOffsetCents);
                 writer.Write(VenueVersion);
 
+                WriteUpdateInfo(Mogg, writer);
+                WriteUpdateInfo(Milo, writer);
+                WriteUpdateInfo(Image, writer);
+
                 WriteArray(RealGuitarTuning, writer);
                 WriteArray(RealBassTuning, writer);
 
@@ -133,6 +141,15 @@ namespace YARG.Core.Song
                 WriteArray(VocalsStemValues, writer);
                 WriteArray(TrackStemValues, writer);
                 WriteArray(CrowdStemValues, writer);
+            }
+
+            private static AbridgedFileInfo? ReadUpdateInfo(YARGBinaryReader reader)
+            {
+                if (!reader.ReadBoolean())
+                {
+                    return null;
+                }
+                return new AbridgedFileInfo(reader.ReadLEBString(), false);
             }
 
             private static int[] ReadIntArray(YARGBinaryReader reader)
@@ -159,6 +176,17 @@ namespace YARG.Core.Song
                 return values;
             }
 
+            private static void WriteUpdateInfo(AbridgedFileInfo? info, BinaryWriter writer)
+            {
+                if (info != null)
+                {
+                    writer.Write(true);
+                    writer.Write(info.FullName);
+                }
+                else
+                    writer.Write(false);
+            }
+
             private static void WriteArray(int[] values, BinaryWriter writer)
             {
                 int length = values.Length;
@@ -178,55 +206,77 @@ namespace YARG.Core.Song
             public void Update(string folder, string nodeName, DTAResult results)
             {
                 string dir = Path.Combine(folder, nodeName);
-                FileInfo info;
                 if (results.discUpdate)
                 {
                     string path = Path.Combine(dir, $"{nodeName}_update.mid");
-                    info = new(path);
-                    if (info.Exists)
+                    var updateInfo = new FileInfo(path);
+                    if (updateInfo.Exists)
                     {
-                        if (UpdateMidi == null || UpdateMidi.LastWriteTime < info.LastWriteTime)
-                            UpdateMidi = info;
+                        var abridged = new AbridgedFileInfo(updateInfo, false);
+                        if (UpdateMidi == null || abridged.LastUpdatedTime > UpdateMidi.LastUpdatedTime)
+                        {
+                            UpdateMidi = abridged;
+                        }
                     }
                     else
                         YargTrace.LogWarning($"Update midi expected at {path}");
                 }
 
-                info = new(Path.Combine(dir, $"{nodeName}_update.mogg"));
-                if (info.Exists && (Mogg == null || Mogg.LastWriteTime < info.LastWriteTime))
-                    Mogg = info;
+                var moggInfo = new FileInfo(Path.Combine(dir, $"{nodeName}_update.mogg"));
+                if (moggInfo.Exists)
+                {
+                    var abridged = new AbridgedFileInfo(moggInfo, false);
+                    if (Mogg == null || abridged.LastUpdatedTime > Mogg.LastUpdatedTime)
+                    {
+                        Mogg = abridged;
+                    }
+                }
                 dir = Path.Combine(dir, "gen");
 
-                info = new(Path.Combine(dir, $"{nodeName}.milo_xbox"));
-                if (info.Exists && (Milo == null || Milo.LastWriteTime < info.LastWriteTime))
-                    Milo = info;
+                var miloInfo = new FileInfo(Path.Combine(dir, $"{nodeName}.milo_xbox"));
+                if (miloInfo.Exists)
+                {
+                    var abridged = new AbridgedFileInfo(miloInfo, false);
+                    if (Milo == null || abridged.LastUpdatedTime > Milo.LastUpdatedTime)
+                    {
+                        Milo = abridged;
+                    }
+                }
 
                 if (HasAlbumArt && results.alternatePath)
                 {
-                    info = new(Path.Combine(dir, $"{nodeName}_keep.png_xbox"));
-                    if (info.Exists && (Image == null || Image.LastWriteTime < info.LastWriteTime))
-                        Image = info;
+                    var imageInfo = new FileInfo(Path.Combine(dir, $"{nodeName}_keep.png_xbox"));
+                    if (imageInfo.Exists)
+                    {
+                        var abridged = new AbridgedFileInfo(imageInfo, false);
+                        if (Image == null || abridged.LastUpdatedTime > Image.LastUpdatedTime)
+                        {
+                            Image = abridged;
+                        }
+                    }
                 }
             }
 
             public byte[]? LoadMidiUpdateFile()
             {
-                if (UpdateMidi == null)
+                if (UpdateMidi == null || !UpdateMidi.IsStillValid(false))
+                {
                     return null;
-
-                FileInfo info = new(UpdateMidi.FullName);
-                if (!info.Exists || info.LastWriteTime != UpdateMidi.LastWriteTime)
-                    return null;
+                }
                 return File.ReadAllBytes(UpdateMidi.FullName);
             }
 
             public Stream? GetMoggStream()
             {
                 if (Mogg == null || !File.Exists(Mogg.FullName))
+                {
                     return null;
+                }
 
                 if (Mogg.FullName.EndsWith(".yarg_mogg"))
+                {
                     return new YargMoggReadStream(Mogg.FullName);
+                }
                 return new FileStream(Mogg.FullName, FileMode.Open, FileAccess.Read);
             }
         }
@@ -234,7 +284,7 @@ namespace YARG.Core.Song
         public interface IRBCONMetadata
         {
             public RBCONSubMetadata SharedMetadata { get; }
-            public DateTime MidiLastWrite { get; }
+            public DateTime GetAbsoluteLastUpdateTime();
             public Stream? GetMidiStream();
             public byte[]? LoadMidiFile(CONFile? file);
             public byte[]? LoadMiloFile();

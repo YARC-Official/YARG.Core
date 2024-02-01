@@ -8,7 +8,7 @@ namespace YARG.Core.Song
 {
     public interface IRBProUpgrade
     {
-        public DateTime LastWrite { get; }
+        public DateTime LastUpdatedTime { get; }
         public void WriteToCache(BinaryWriter writer);
         public Stream? GetUpgradeMidiStream();
         public byte[]? LoadUpgradeMidi();
@@ -18,32 +18,36 @@ namespace YARG.Core.Song
     public sealed class PackedRBProUpgrade : IRBProUpgrade
     {
         private readonly CONFileListing? _midiListing;
-        private readonly DateTime _lastWrite;
+        private readonly DateTime _lastUpdatedTime;
 
-        public DateTime LastWrite => _lastWrite;
+        public DateTime LastUpdatedTime => _lastUpdatedTime;
 
         public PackedRBProUpgrade(CONFileListing? listing, DateTime lastWrite)
         {
             _midiListing = listing;
-            _lastWrite = listing != null ? listing.lastWrite : lastWrite;
+            _lastUpdatedTime = listing?.lastWrite ?? lastWrite;
         }
 
         public void WriteToCache(BinaryWriter writer)
         {
-            writer.Write(_lastWrite.ToBinary());
+            writer.Write(_lastUpdatedTime.ToBinary());
         }
 
         public Stream? GetUpgradeMidiStream()
         {
             if (_midiListing == null || !_midiListing.ConFile.IsStillValid())
+            {
                 return null;
+            }
             return _midiListing.CreateStream();
         }
 
         public byte[]? LoadUpgradeMidi()
         {
             if (_midiListing == null || !_midiListing.ConFile.IsStillValid())
+            {
                 return null;
+            }
             return _midiListing.LoadAllBytes();
         }
     }
@@ -53,16 +57,16 @@ namespace YARG.Core.Song
     {
         private AbridgedFileInfo _midiFile;
         public AbridgedFileInfo Midi => _midiFile;
-        public DateTime LastWrite => _midiFile.LastWriteTime;
+        public DateTime LastUpdatedTime => _midiFile.LastUpdatedTime;
 
-        public UnpackedRBProUpgrade(string filename, DateTime lastWrite)
+        public UnpackedRBProUpgrade(AbridgedFileInfo info)
         {
-            _midiFile = new(filename, lastWrite);
+            _midiFile = info;
         }
 
         public void WriteToCache(BinaryWriter writer)
         {
-            writer.Write(_midiFile.LastWriteTime.ToBinary());
+            writer.Write(_midiFile.LastUpdatedTime.ToBinary());
         }
 
         public Stream? GetUpgradeMidiStream()

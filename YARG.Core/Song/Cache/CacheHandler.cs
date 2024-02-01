@@ -48,7 +48,7 @@ namespace YARG.Core.Song.Cache
         /// Format is YY_MM_DD_RR: Y = year, M = month, D = day, R = revision (reset across dates, only increment
         /// if multiple cache version changes happen in a single day).
         /// </summary>
-        public const int CACHE_VERSION = 24_01_24_03;
+        public const int CACHE_VERSION = 24_01_29_02;
 
         private static readonly object dirLock = new();
         private static readonly object fileLock = new();
@@ -115,7 +115,6 @@ namespace YARG.Core.Song.Cache
             {
                 if (!Deserialize_Quick(cacheLocation, multithreading))
                 {
-                    //ToastManager.ToastWarning("Song cache is not present or outdated - performing rescan");
                     return false;
                 }
             }
@@ -126,7 +125,6 @@ namespace YARG.Core.Song.Cache
 
             if (_progress.Count == 0)
             {
-                //ToastManager.ToastWarning("Song cache provided zero songs - performing rescan");
                 return false;
             }
 
@@ -229,6 +227,7 @@ namespace YARG.Core.Song.Cache
                     CategorySorter<SortString, SourceConfig>.     Add(entry, cache.Sources);
                     CategorySorter<string,     ArtistAlbumConfig>.Add(entry, cache.ArtistAlbums);
                     CategorySorter<string,     SongLengthConfig>. Add(entry, cache.SongLengths);
+                    CategorySorter<DateTime,   DateAddedConfig>.  Add(entry, cache.DatesAdded);
 
                     foreach (var instrument in instruments)
                         instrument.Add(entry);
@@ -272,6 +271,9 @@ namespace YARG.Core.Song.Cache
                     case ScanResult.IniEntryCorruption:
                         writer.WriteLine("Corruption of either the ini file or chart/mid file");
                         break;
+                    case ScanResult.NoAudio:
+                        writer.WriteLine("No audio accompanying the chart file");
+                        break;
                     case ScanResult.NoName:
                         writer.WriteLine("Name metadata not provided");
                         break;
@@ -296,6 +298,12 @@ namespace YARG.Core.Song.Cache
                     case ScanResult.MissingUpgradeMidi:
                         writer.WriteLine("Upgrade Midi file queried for found missing");
                         break;
+                    case ScanResult.IniNotDownloaded:
+                        writer.WriteLine("Ini file not fully downloaded - try again once it completes");
+                        break;
+                    case ScanResult.ChartNotDownloaded:
+                        writer.WriteLine("Chart file not fully downloaded - try again once it completes");
+                        break;
                     case ScanResult.PossibleCorruption:
                         writer.WriteLine("Possible corruption of a queried midi file");
                         break;
@@ -319,13 +327,13 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void CreateUpdateGroup(string directory, FileInfo dta, bool removeEntries)
+        private void CreateUpdateGroup(string directory, AbridgedFileInfo dta, bool removeEntries)
         {
             var reader = YARGDTAReader.TryCreate(dta.FullName);
             if (reader == null)
                 return;
 
-            var group = new UpdateGroup(directory, dta.LastWriteTime);
+            var group = new UpdateGroup(directory, dta.LastUpdatedTime);
             try
             {
                 while (reader!.StartNode())
@@ -350,24 +358,25 @@ namespace YARG.Core.Song.Cache
                 YargTrace.LogWarning($"{directory} .dta file possibly malformed");
         }
 
-        private UpgradeGroup? CreateUpgradeGroup(string directory, FileInfo dta, bool removeEntries)
+        private UpgradeGroup? CreateUpgradeGroup(string directory, AbridgedFileInfo dta, bool removeEntries)
         {
             var reader = YARGDTAReader.TryCreate(dta.FullName);
             if (reader == null)
                 return null;
 
-            var group = new UpgradeGroup(directory, dta.LastWriteTime);
+            var group = new UpgradeGroup(directory, dta.LastUpdatedTime);
             try
             {
                 while (reader.StartNode())
                 {
                     string name = reader.GetNameOfNode();
-                    FileInfo file = new(Path.Combine(directory, $"{name}_plus.mid"));
-                    if (file.Exists)
+                    FileInfo info = new(Path.Combine(directory, $"{name}_plus.mid"));
+                    if (info.Exists)
                     {
-                        if (CanAddUpgrade(name, file.LastWriteTime))
+                        var abridged = new AbridgedFileInfo(info, false);
+                        if (CanAddUpgrade(name, abridged.LastUpdatedTime))
                         {
-                            IRBProUpgrade upgrade = new UnpackedRBProUpgrade(file.FullName, file.LastWriteTime);
+                            IRBProUpgrade upgrade = new UnpackedRBProUpgrade(abridged);
                             group.upgrades[name] = upgrade;
                             AddUpgrade(name, new YARGDTAReader(reader), upgrade);
 
@@ -481,15 +490,19 @@ namespace YARG.Core.Song.Cache
                 lock (dict.Lock)
                 {
                     foreach (var group in dict.Values)
+                    {
                         if (group.RemoveEntries(shortname))
+                        {
                             YargTrace.DebugInfo($"{group.Location} - {shortname} pending rescan");
+                        }
+                    }
                 }
             }
             Remove(conGroups);
             Remove(extractedConGroups);
         }
 
-        private bool CanAddUpgrade(string shortname, DateTime lastWrite)
+        private bool CanAddUpgrade(string shortname, DateTime lastUpdated)
         {
             lock (upgradeGroups.Lock)
             {
@@ -497,8 +510,10 @@ namespace YARG.Core.Song.Cache
                 {
                     if (group.upgrades.TryGetValue(shortname, out var currUpgrade))
                     {
-                        if (currUpgrade.LastWrite >= lastWrite)
+                        if (currUpgrade.LastUpdatedTime >= lastUpdated)
+                        {
                             return false;
+                        }
                         group.upgrades.Remove(shortname);
                         break;
                     }
@@ -507,7 +522,7 @@ namespace YARG.Core.Song.Cache
             return true;
         }
 
-        private bool CanAddUpgrade_CONInclusive(string shortname, DateTime lastWrite)
+        private bool CanAddUpgrade_CONInclusive(string shortname, DateTime lastUpdated)
         {
             lock (conGroups.Lock)
             {
@@ -516,15 +531,17 @@ namespace YARG.Core.Song.Cache
                     var upgrades = group.Upgrades;
                     if (upgrades.TryGetValue(shortname, out var currUpgrade))
                     {
-                        if (currUpgrade!.LastWrite >= lastWrite)
+                        if (currUpgrade!.LastUpdatedTime >= lastUpdated)
+                        {
                             return false;
+                        }
                         upgrades.Remove(shortname);
                         return true;
                     }
                 }
             }
 
-            return CanAddUpgrade(shortname, lastWrite);
+            return CanAddUpgrade(shortname, lastUpdated);
         }
     }
 }

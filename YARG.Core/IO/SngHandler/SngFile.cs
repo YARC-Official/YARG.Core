@@ -13,7 +13,7 @@ namespace YARG.Core.IO
     /// </summary>
     public class SngFile : IDisposable, IEnumerable<KeyValuePair<string, SngFileListing>>
     {
-        public readonly string Filename;
+        public readonly AbridgedFileInfo Info;
         public readonly uint Version;
         public readonly SngMask Mask;
         public readonly IniSection Metadata;
@@ -21,9 +21,9 @@ namespace YARG.Core.IO
         private readonly Dictionary<string, SngFileListing> _listings;
         private readonly int[]? _values;
 
-        private SngFile(FileStream stream)
+        private SngFile(AbridgedFileInfo info, FileStream stream)
         {
-            Filename = stream.Name;
+            Info = info;
             Version = stream.Read<uint>(Endianness.Little);
             Mask = new SngMask(stream);
             Metadata = ReadMetadata(stream);
@@ -41,9 +41,9 @@ namespace YARG.Core.IO
         {
             if (_values != null)
             {
-                return new YARGSongFileStream(Filename, _values);
+                return new YARGSongFileStream(Info.FullName, _values);
             }
-            return new FileStream(Filename, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+            return new FileStream(Info.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
         }
 
         IEnumerator<KeyValuePair<string, SngFileListing>> IEnumerable<KeyValuePair<string, SngFileListing>>.GetEnumerator()
@@ -68,9 +68,9 @@ namespace YARG.Core.IO
         private const int BYTES_16BIT = 2;
         private static readonly byte[] SNGPKG = { (byte)'S', (byte) 'N', (byte) 'G', (byte)'P', (byte)'K', (byte)'G' };
 
-        public static SngFile? TryLoadFromFile(string path)
+        public static SngFile? TryLoadFromFile(AbridgedFileInfo file)
         {
-            using var stream = InitStream_Internal(path);
+            using var stream = InitStream_Internal(file.FullName);
             if (stream == null)
             {
                 return null;
@@ -78,11 +78,11 @@ namespace YARG.Core.IO
 
             try
             {
-                return new SngFile(stream);
+                return new SngFile(file, stream);
             }
             catch (Exception ex)
             {
-                YargTrace.LogException(ex, $"Error loading {path}.");
+                YargTrace.LogException(ex, $"Error loading {file.FullName}.");
                 return null;
             }
         }

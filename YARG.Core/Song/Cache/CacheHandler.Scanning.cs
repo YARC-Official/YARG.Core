@@ -10,39 +10,80 @@ namespace YARG.Core.Song.Cache
     {
         private sealed class FileCollector
         {
-            public readonly string directory;
-            public readonly SongMetadata.IniChartNode?[] charts = new SongMetadata.IniChartNode?[3];
-            public string? ini = null;
-            public readonly List<string> subfiles = new();
+            public readonly DirectoryInfo directory;
+            public readonly SongMetadata.IniChartNode<FileInfo>?[] charts = new SongMetadata.IniChartNode<FileInfo>?[3];
+            public FileInfo? ini = null;
+            public readonly List<FileInfo> subfiles = new();
+            public readonly List<DirectoryInfo> subDirectories = new();
 
-            public FileCollector(string directory)
+            public FileCollector(DirectoryInfo directory)
             {
                 this.directory = directory;
-                foreach (string subFile in Directory.EnumerateFileSystemEntries(directory))
+                foreach (var info in directory.EnumerateFileSystemInfos())
                 {
-                    switch (Path.GetFileName(subFile).ToLower())
+                    switch (info)
                     {
-                        case "song.ini": ini = subFile; break;
-                        case "notes.mid": charts[0] = new(SongMetadata.ChartType.Mid, subFile); break;
-                        case "notes.midi": charts[1] = new(SongMetadata.ChartType.Midi, subFile); break;
-                        case "notes.chart": charts[2] = new(SongMetadata.ChartType.Chart, subFile); break;
-                        default: subfiles.Add(subFile); break;
+                        case FileInfo subFile:
+                        {
+                            switch (subFile.Name.ToLower())
+                            {
+                                case "song.ini": ini = subFile; break;
+                                case "notes.mid": charts[0] = new (SongMetadata.ChartType.Mid, subFile); break;
+                                case "notes.midi": charts[1] = new (SongMetadata.ChartType.Midi, subFile); break;
+                                case "notes.chart": charts[2] = new (SongMetadata.ChartType.Chart, subFile); break;
+                                default: subfiles.Add(subFile); break;
+                            }
+                            break;
+                        }
+                        case DirectoryInfo subDirectory:
+                        {
+                            subDirectories.Add(subDirectory);
+                            break;
+                        }
                     }
                 }
+            }
+
+            public bool ContainsAudio()
+            {
+                foreach (var subFile in subfiles)
+                {
+                    if (SongMetadata.IniAudioChecker.IsAudioFile(subFile.Name.ToLower()))
+                    {
+                        return true;
+                    }
+                }
+                return false;
             }
         }
 
         private sealed class SngCollector
         {
             public readonly SngFile sng;
-            public readonly SongMetadata.IniChartNode?[] charts = new SongMetadata.IniChartNode?[3];
+            public readonly SongMetadata.IniChartNode<string>?[] charts = new SongMetadata.IniChartNode<string>?[3];
 
             public SngCollector(SngFile sng)
             {
                 this.sng = sng;
                 for (int i = 0; i < SongMetadata.IIniMetadata.CHART_FILE_TYPES.Length; ++i)
+                {
                     if (sng.ContainsKey(SongMetadata.IIniMetadata.CHART_FILE_TYPES[i].File))
+                    {
                         charts[i] = SongMetadata.IIniMetadata.CHART_FILE_TYPES[i];
+                    }
+                }
+            }
+
+            public bool ContainsAudio()
+            {
+                foreach (var subFile in sng)
+                {
+                    if (SongMetadata.IniAudioChecker.IsAudioFile(subFile.Key))
+                    {
+                        return true;
+                    }
+                }
+                return false;
             }
         }
 
@@ -85,9 +126,26 @@ namespace YARG.Core.Song.Cache
         private void FindNewEntries(bool multithreading)
         {
             _progress.Stage = ScanStage.LoadingSongs;
+            var tracker = new PlaylistTracker(fullDirectoryPlaylists);
             if (multithreading)
             {
-                Parallel.ForEach(iniGroups, group => ScanDirectory_Parallel(group.Directory, group, new PlaylistTracker(fullDirectoryPlaylists)));
+                if (iniGroups.Count > 1)
+                {
+                    var iniTasks = new Task[iniGroups.Count];
+                    for (int i = 0; i < iniGroups.Count; ++i)
+                    {
+                        var group = iniGroups[i];
+                        var dirInfo = new DirectoryInfo(group.Directory);
+                        iniTasks[i] = Task.Run(() => ScanDirectory_Parallel(dirInfo, group, tracker));
+                    }
+                    Task.WaitAll(iniTasks);
+                }
+                else if (iniGroups.Count == 1)
+                {
+                    var group = iniGroups[0];
+                    var dirInfo = new DirectoryInfo(group.Directory);
+                    ScanDirectory_Parallel(dirInfo, group, tracker);
+                }
 
                 var conTasks = new Task[conGroups.Values.Count + extractedConGroups.Values.Count];
                 int con = 0;
@@ -107,7 +165,8 @@ namespace YARG.Core.Song.Cache
             {
                 foreach (var group in iniGroups)
                 {
-                    ScanDirectory(group.Directory, group, new PlaylistTracker(fullDirectoryPlaylists));
+                    var dirInfo = new DirectoryInfo(group.Directory);
+                    ScanDirectory(dirInfo, group, tracker);
                 }
 
                 foreach (var group in conGroups.Values)
@@ -122,18 +181,20 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private bool TraversalPreTest(string directory, string defaultPlaylist)
+        private bool TraversalPreTest(DirectoryInfo dirInfo, string defaultPlaylist)
         {
-            if (!FindOrMarkDirectory(directory) || (File.GetAttributes(directory) & FileAttributes.Hidden) != 0)
+            string directory = dirInfo.FullName;
+            if (!FindOrMarkDirectory(dirInfo.FullName) || (dirInfo.Attributes & FileAttributes.Hidden) != 0)
                 return false;
 
-            string filename = Path.GetFileName(directory);
+            string filename = dirInfo.Name;
             if (filename == "songs_updates")
             {
                 FileInfo dta = new(Path.Combine(directory, "songs_updates.dta"));
                 if (dta.Exists)
                 {
-                    CreateUpdateGroup(directory, dta, true);
+                    var abridged = new AbridgedFileInfo(dta);
+                    CreateUpdateGroup(directory, abridged, true);
                     return false;
                 }
             }
@@ -142,7 +203,8 @@ namespace YARG.Core.Song.Cache
                 FileInfo dta = new(Path.Combine(directory, "upgrades.dta"));
                 if (dta.Exists)
                 {
-                    CreateUpgradeGroup(directory, dta, true);
+                    var abridged = new AbridgedFileInfo(dta);
+                    CreateUpgradeGroup(directory, abridged, true);
                     return false;
                 }
             }
@@ -157,96 +219,131 @@ namespace YARG.Core.Song.Cache
             }
             return true;
         }
-
-        private bool ScanIniEntry(FileCollector results, IniGroup group, string defaultPlaylist)
+        
+        private void ScanFile(FileInfo info, IniGroup group, ref PlaylistTracker tracker)
         {
-            for (int i = results.ini != null ? 0 : 2; i < 3; ++i)
+            string filename = info.FullName;
+            try
             {
-                var chart = results.charts[i];
-                if (chart != null)
+                // Ensures only fully downloaded unmarked files are processed
+                if (FindOrMarkFile(filename) && (info.Attributes & AbridgedFileInfo.RECALL_ON_DATA_ACCESS) == 0)
                 {
-                    try
+                    var abridged = new AbridgedFileInfo(info);
+                    if (!AddPossibleCON(abridged, tracker.Playlist) && (filename.EndsWith(".sng") || filename.EndsWith(".yargsong")))
                     {
-                        var entry = SongMetadata.FromIni(results.directory, chart, results.ini, defaultPlaylist);
-                        if (entry.Item2 != null)
-                        {
-                            if (AddEntry(entry.Item2))
-                                group.AddEntry(entry.Item2);
-                        }
-                        else if (entry.Item1 != ScanResult.LooseChart_NoAudio)
-                            AddToBadSongs(chart.File, entry.Item1);
-                        else
-                            return false;
+                        ScanSngFile(abridged, group, tracker.Playlist);
                     }
-                    catch (PathTooLongException)
-                    {
-                        YargTrace.LogWarning($"Path {chart.File} is too long for the file system!");
-                        AddToBadSongs(chart.File, ScanResult.PathTooLong);
-                    }
-                    catch (Exception e)
-                    {
-                        YargTrace.LogException(e, $"Error while scanning chart file {chart.File}!");
-                        AddToBadSongs(Path.GetDirectoryName(chart.File), ScanResult.IniEntryCorruption);
-                    }
-                    return true;
                 }
             }
-            return false;
+            catch (PathTooLongException)
+            {
+                YargTrace.LogError($"Path {filename} is too long for the file system!");
+                AddToBadSongs(filename, ScanResult.PathTooLong);
+            }
+            catch (Exception e)
+            {
+                YargTrace.LogException(e, $"Error while scanning file {filename}!");
+            }
         }
 
-        private bool ScanSngFile(string filename, IniGroup group, string defaultPlaylist)
+        private bool ScanIniEntry(FileCollector collector, IniGroup group, string defaultPlaylist)
         {
-            var sngFile = SngFile.TryLoadFromFile(filename);
-            if (sngFile == null)
+            for (int i = collector.ini != null ? 0 : 2; i < 3; ++i)
             {
-                AddToBadSongs(filename, ScanResult.PossibleCorruption);
-                return false;
-            }
-
-            var results = new SngCollector(sngFile);
-            for (int i = sngFile.Metadata.Count != 0 ? 0 : 2; i < 3; ++i)
-            {
-                var chart = results.charts[i];
+                var chart = collector.charts[i];
                 if (chart == null)
                 {
                     continue;
                 }
 
+                if (!collector.ContainsAudio())
+                {
+                    AddToBadSongs(chart.File.FullName, ScanResult.NoAudio);
+                    break;
+                }
+
                 try
                 {
-                    var fileInfo = new AbridgedFileInfo(filename);
-                    var entry = SongMetadata.FromSng(sngFile, fileInfo, chart, defaultPlaylist);
-                    if (entry.Item2 != null)
+                    var entry = SongMetadata.FromIni(collector.directory.FullName, chart, collector.ini, defaultPlaylist);
+                    if (entry.Item2 == null)
                     {
-                        if (AddEntry(entry.Item2))
-                        {
-                            group.AddEntry(entry.Item2);
-                        }
+                        AddToBadSongs(chart.File.FullName, entry.Item1);
                     }
-                    else if (entry.Item1 != ScanResult.LooseChart_NoAudio)
+                    else if (AddEntry(entry.Item2))
                     {
-                        AddToBadSongs(filename, entry.Item1);
+                        group.AddEntry(entry.Item2);
+                    }
+                }
+                catch (PathTooLongException)
+                {
+                    YargTrace.LogError($"Path {chart.File} is too long for the file system!");
+                    AddToBadSongs(chart.File.FullName, ScanResult.PathTooLong);
+                }
+                catch (Exception e)
+                {
+                    YargTrace.LogException(e, $"Error while scanning chart file {chart.File}!");
+                    AddToBadSongs(collector.directory.FullName, ScanResult.IniEntryCorruption);
+                }
+                return true;
+            }
+            return false;
+        }
+
+        private bool ScanSngFile(AbridgedFileInfo info, IniGroup group, string defaultPlaylist)
+        {
+            var sngFile = SngFile.TryLoadFromFile(info);
+            if (sngFile == null)
+            {
+                AddToBadSongs(info.FullName, ScanResult.PossibleCorruption);
+                return false;
+            }
+
+            var collector = new SngCollector(sngFile);
+            for (int i = sngFile.Metadata.Count > 0 ? 0 : 2; i < 3; ++i)
+            {
+                var chart = collector.charts[i];
+                if (chart == null)
+                {
+                    continue;
+                }
+
+                if (!collector.ContainsAudio())
+                {
+                    AddToBadSongs(info.FullName, ScanResult.NoAudio);
+                    break;
+                }
+
+                try
+                {
+                    var entry = SongMetadata.FromSng(sngFile, chart, defaultPlaylist);
+                    if (entry.Item2 == null)
+                    {
+                        AddToBadSongs(info.FullName, entry.Item1);
+                    }
+                    else if (AddEntry(entry.Item2))
+                    {
+                        group.AddEntry(entry.Item2);
                     }
                 }
                 catch (Exception e)
                 {
-                    YargTrace.LogException(e, $"Error while scanning chart file {chart} within {filename}!");
-                    AddToBadSongs(filename, ScanResult.IniEntryCorruption);
+                    YargTrace.LogException(e, $"Error while scanning chart file {chart} within {info}!");
+                    AddToBadSongs(info.FullName, ScanResult.IniEntryCorruption);
                 }
                 break;
             }
             return true;
         }
 
-        private bool AddPossibleCON(string filename, string defaultPlaylist)
+        private bool AddPossibleCON(AbridgedFileInfo info, string defaultPlaylist)
         {
-            var result = CONFile.TryLoadFile(filename);
-            if (result == null)
+            var file = CONFile.TryLoadFile(info);
+            if (file == null)
                 return false;
 
-            var group = new PackedCONGroup(result.File, result.Info, defaultPlaylist);
+            var group = new PackedCONGroup(file, info, defaultPlaylist);
             conGroups.Add(group);
-            TryParseUpgrades(filename, group);
+            TryParseUpgrades(info.FullName, group);
             return true;
         }
 

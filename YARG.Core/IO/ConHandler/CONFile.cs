@@ -48,21 +48,9 @@ namespace YARG.Core.IO
         private const int BYTES_PER_BLOCK = 0x1000;
         private const int SIZEOF_FILELISTING = 0x40;
 
-        public class CONFileResult
+        public static CONFile? TryLoadFile(AbridgedFileInfo info)
         {
-            public readonly CONFile File;
-            public readonly AbridgedFileInfo Info;
-
-            public CONFileResult(CONFile file, AbridgedFileInfo info)
-            {
-                File = file;
-                Info = info;
-            }
-        }
-
-        public static CONFileResult? TryLoadFile(string filename)
-        {
-            using var stream = InitStream_Internal(filename);
+            using var stream = InitStream_Internal(info.FullName);
             if (stream == null)
                 return null;
 
@@ -99,7 +87,6 @@ namespace YARG.Core.IO
 
             try
             {
-                AbridgedFileInfo fileInfo = new(filename);
                 List<CONFileListing> listings = new();
 
                 using var conStream = new CONFileStream(stream, true, length, firstBlock, shift);
@@ -110,10 +97,10 @@ namespace YARG.Core.IO
                     if (listingBuffer[0] == 0)
                         break;
 
-                    CONFileListing listing = new(fileInfo, shift, listingBuffer);
+                    CONFileListing listing = new(info, shift, listingBuffer);
                     if (listing.pathIndex >= listings.Count)
                     {
-                        YargTrace.LogError($"Error while parsing {filename} - Filelisting blocks constructed out of spec");
+                        YargTrace.LogError($"Error while parsing {info.FullName} - Filelisting blocks constructed out of spec");
                         return null;
                     }
 
@@ -122,12 +109,11 @@ namespace YARG.Core.IO
                     listings.Add(listing);
                 }
 
-                var conFile = new CONFile(filename, listings);
-                return new CONFileResult(conFile, fileInfo);
+                return new CONFile(info.FullName, listings);
             }
             catch (Exception ex)
             {
-                YargTrace.LogException(ex, $"Error while parsing {filename}");
+                YargTrace.LogException(ex, $"Error while parsing {info.FullName}");
                 return null;
             }
         }

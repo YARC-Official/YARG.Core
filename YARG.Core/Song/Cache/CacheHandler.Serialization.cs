@@ -80,11 +80,12 @@ namespace YARG.Core.Song.Cache
         /// <summary>
         /// The sum of all "count" variables in a file
         /// 4 - (version number(4 bytes))
+        /// 1 - (FullDirectoryPlaylist flag(1 byte))
         /// 64 - (section size(4 bytes) + zero string count(4 bytes)) * # categories(8)
         /// 24 - (# groups(4 bytes) * # group types(6))
         /// 
         /// </summary>
-        private const int MIN_CACHEFILESIZE = 92;
+        private const int MIN_CACHEFILESIZE = 93;
 
         private FileStream? CheckCacheFile(string cacheLocation)
         {
@@ -283,20 +284,20 @@ namespace YARG.Core.Song.Cache
         private void ReadUpdateDirectory(YARGBinaryReader reader)
         {
             string directory = reader.ReadLEBString();
-            var dtaLastWrite = DateTime.FromBinary(reader.Read<long>(Endianness.Little));
+            var dtaLastUpdated = DateTime.FromBinary(reader.Read<long>(Endianness.Little));
             int count = reader.Read<int>(Endianness.Little);
 
             // Functions as a "check base directory" call
             if (GetBaseIniGroup(directory) != null)
             {
-                FileInfo dta = new(Path.Combine(directory, "songs_updates.dta"));
-                if (dta.Exists)
+                var dtaInfo = new FileInfo(Path.Combine(directory, "songs_updates.dta"));
+                if (dtaInfo.Exists)
                 {
-                    YargTrace.DebugInfo($"Update Directory added {directory}");
                     MarkDirectory(directory);
-                    CreateUpdateGroup(directory, dta, false);
 
-                    if (dta.LastWriteTime == dtaLastWrite)
+                    var abridged = new AbridgedFileInfo(dtaInfo);
+                    CreateUpdateGroup(directory, abridged, false);
+                    if (abridged.LastUpdatedTime == dtaLastUpdated)
                         return;
                 }
             }
@@ -308,26 +309,26 @@ namespace YARG.Core.Song.Cache
         private void ReadUpgradeDirectory(YARGBinaryReader reader)
         {
             string directory = reader.ReadLEBString();
-            var dtaLastWrite = DateTime.FromBinary(reader.Read<long>(Endianness.Little));
+            var dtaLastUpdated = DateTime.FromBinary(reader.Read<long>(Endianness.Little));
             int count = reader.Read<int>(Endianness.Little);
 
             // Functions as a "check base directory" call
             if (GetBaseIniGroup(directory) != null)
             {
-                FileInfo dta = new(Path.Combine(directory, "upgrades.dta"));
-                if (dta.Exists)
+                var dtaInfo = new FileInfo(Path.Combine(directory, "upgrades.dta"));
+                if (dtaInfo.Exists)
                 {
-                    YargTrace.DebugInfo($"Upgrade Directory added {directory}");
                     MarkDirectory(directory);
-                    var group = CreateUpgradeGroup(directory, dta, false);
 
-                    if (group != null && dta.LastWriteTime == dtaLastWrite)
+                    var abridged = new AbridgedFileInfo(dtaInfo);
+                    var group = CreateUpgradeGroup(directory, abridged, false);
+                    if (group != null && abridged.LastUpdatedTime == dtaLastUpdated)
                     {
                         for (int i = 0; i < count; i++)
                         {
                             string name = reader.ReadLEBString();
-                            var lastWrite = DateTime.FromBinary(reader.Read<long>(Endianness.Little));
-                            if (!group.upgrades.TryGetValue(name, out var upgrade) || upgrade!.LastWrite != lastWrite)
+                            var lastUpdated = DateTime.FromBinary(reader.Read<long>(Endianness.Little));
+                            if (!group.upgrades.TryGetValue(name, out var upgrade) || upgrade!.LastUpdatedTime != lastUpdated)
                                 AddInvalidSong(name);
                         }
                         return;
@@ -345,32 +346,36 @@ namespace YARG.Core.Song.Cache
         private void ReadUpgradeCON(YARGBinaryReader cacheReader)
         {
             string filename = cacheReader.ReadLEBString();
-            var conLastWrite = DateTime.FromBinary(cacheReader.Read<long>(Endianness.Little));
-            var dtaLastWrite = DateTime.FromBinary(cacheReader.Read<long>(Endianness.Little));
+            var conLastUpdated = DateTime.FromBinary(cacheReader.Read<long>(Endianness.Little));
+            var dtaLastWritten = DateTime.FromBinary(cacheReader.Read<long>(Endianness.Little));
             int count = cacheReader.Read<int>(Endianness.Little);
 
-            var baseDirectory = GetBaseIniGroup(filename);
-            if (baseDirectory != null)
+            var baseGroup = GetBaseIniGroup(filename);
+            if (baseGroup != null)
             {
                 // Make playlist as the group is only made once
-                string playlist = ConstructPlaylist(filename, baseDirectory.Directory);
+                string playlist = ConstructPlaylist(filename, baseGroup.Directory);
                 var group = CreateCONGroup(filename, playlist);
                 if (group == null)
+                {
                     goto Invalidate;
+                }
 
                 YargTrace.DebugInfo($"CON added in upgrade loop {filename}");
                 conGroups.Add(group);
 
-                if (TryParseUpgrades(filename, group) && group.UpgradeDTALastWrite == dtaLastWrite)
+                if (TryParseUpgrades(filename, group) && group.UpgradeDTALastWrite == dtaLastWritten)
                 {
-                    if (group.CONLastWrite != conLastWrite)
+                    if (group.CONLastUpdated != conLastUpdated)
                     {
                         for (int i = 0; i < count; i++)
                         {
                             string name = cacheReader.ReadLEBString();
                             var lastWrite = DateTime.FromBinary(cacheReader.Read<long>(Endianness.Little));
-                            if (group.Upgrades[name].LastWrite != lastWrite)
+                            if (group.Upgrades[name].LastUpdatedTime != lastWrite)
+                            {
                                 AddInvalidSong(name);
+                            }
                         }
                     }
                     return;
@@ -403,8 +408,8 @@ namespace YARG.Core.Song.Cache
         private PackedCONGroup? ReadCONGroupHeader(YARGBinaryReader reader, out string filename)
         {
             filename = reader.ReadLEBString();
-            var baseDirectory = GetBaseIniGroup(filename);
-            if (baseDirectory == null)
+            var baseGroup = GetBaseIniGroup(filename);
+            if (baseGroup == null)
             {
                 return null;
             }
@@ -413,21 +418,23 @@ namespace YARG.Core.Song.Cache
             var group = FindCONGroup(filename);
             if (group == null)
             {
-                if (!File.Exists(filename))
+                var info = new FileInfo(filename);
+                if (!info.Exists)
                 {
                     return null;
                 }
 
                 MarkFile(filename);
 
-                var result = CONFile.TryLoadFile(filename);
-                if (result == null)
+                var abridged = new AbridgedFileInfo(info);
+                var file = CONFile.TryLoadFile(abridged);
+                if (file == null)
                 {
                     return null;
                 }
 
-                string playlist = ConstructPlaylist(filename, baseDirectory.Directory);
-                group = new PackedCONGroup(result.File, result.Info, playlist);
+                string playlist = ConstructPlaylist(filename, baseGroup.Directory);
+                group = new PackedCONGroup(file, abridged, playlist);
                 conGroups.Add(group);
             }
 
@@ -441,8 +448,8 @@ namespace YARG.Core.Song.Cache
         private UnpackedCONGroup? ReadExtractedCONGroupHeader(YARGBinaryReader reader, out string directory)
         {
             directory = reader.ReadLEBString();
-            var baseDirectory = GetBaseIniGroup(directory);
-            if (baseDirectory == null)
+            var baseGroup = GetBaseIniGroup(directory);
+            if (baseGroup == null)
             {
                 return null;
             }
@@ -455,7 +462,7 @@ namespace YARG.Core.Song.Cache
 
             MarkDirectory(directory);
 
-            string playlist = ConstructPlaylist(directory, baseDirectory.Directory);
+            string playlist = ConstructPlaylist(directory, baseGroup.Directory);
             var group = new UnpackedCONGroup(directory, dtaInfo, playlist);
             extractedConGroups.Add(group);
 
@@ -485,19 +492,19 @@ namespace YARG.Core.Song.Cache
         private void QuickReadUpgradeDirectory(YARGBinaryReader reader)
         {
             string directory = reader.ReadLEBString();
-            var dtaLastWrite = DateTime.FromBinary(reader.Read<long>(Endianness.Little));
+            var dtaLastUpdated = DateTime.FromBinary(reader.Read<long>(Endianness.Little));
             int count = reader.Read<int>(Endianness.Little);
 
-            var group = new UpgradeGroup(directory, dtaLastWrite);
+            var group = new UpgradeGroup(directory, dtaLastUpdated);
             upgradeGroups.Add(group);
 
             for (int i = 0; i < count; i++)
             {
                 string name = reader.ReadLEBString();
-                var lastWrite = DateTime.FromBinary(reader.Read<long>(Endianness.Little));
                 string filename = Path.Combine(directory, $"{name}_plus.mid");
 
-                IRBProUpgrade upgrade = new UnpackedRBProUpgrade(filename, lastWrite);
+                var info = new AbridgedFileInfo(filename, reader);
+                IRBProUpgrade upgrade = new UnpackedRBProUpgrade(info);
                 group.upgrades.Add(name, upgrade);
                 AddUpgrade(name, null, upgrade);
             }
@@ -564,27 +571,23 @@ namespace YARG.Core.Song.Cache
         private AbridgedFileInfo? QuickReadExtractedCONGroupHeader(YARGBinaryReader reader)
         {
             string directory = reader.ReadLEBString();
-            FileInfo dtaInfo = new(Path.Combine(directory, "songs.dta"));
-            if (!dtaInfo.Exists || dtaInfo.LastWriteTime != DateTime.FromBinary(reader.Read<long>(Endianness.Little)))
-            {
-                YargTrace.DebugInfo($"EXCON dta missing");
-                return null;
-            }
-            return new(dtaInfo);
+            return AbridgedFileInfo.TryParseInfo(Path.Combine(directory, "songs.dta"), reader);
         }
 
         private PackedCONGroup? CreateCONGroup(string filename, string defaultPlaylist)
         {
-            if (!File.Exists(filename))
+            var info = new FileInfo(filename);
+            if (!info.Exists)
                 return null;
 
             MarkFile(filename);
 
-            var result = CONFile.TryLoadFile(filename);
-            if (result == null)
+            var abridged = new AbridgedFileInfo(info);
+            var conFile = CONFile.TryLoadFile(abridged);
+            if (conFile == null)
                 return null;
 
-            return new PackedCONGroup(result.File, result.Info, defaultPlaylist);
+            return new PackedCONGroup(conFile, abridged, defaultPlaylist);
         }
 
         private PackedCONGroup? FindCONGroup(string filename)

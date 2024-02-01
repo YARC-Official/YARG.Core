@@ -22,6 +22,7 @@ namespace YARG.Core.Song
 
             public string Root => directory;
             public ChartType Type => chartType;
+            public DateTime LastUpdatedTime => chartFile.LastUpdatedTime;
 
             public UnpackedIniSubmetadata(string directory, ChartType chartType, AbridgedFileInfo chartFile, AbridgedFileInfo? iniFile)
             {
@@ -41,11 +42,11 @@ namespace YARG.Core.Song
                 writer.Write(false);
                 writer.Write(relative);
                 writer.Write((byte) chartType);
-                writer.Write(chartFile.LastWriteTime.ToBinary());
+                writer.Write(chartFile.LastUpdatedTime.ToBinary());
                 if (iniFile != null)
                 {
                     writer.Write(true);
-                    writer.Write(iniFile.LastWriteTime.ToBinary());
+                    writer.Write(iniFile.LastUpdatedTime.ToBinary());
                 }
                 else
                     writer.Write(false);
@@ -56,13 +57,15 @@ namespace YARG.Core.Song
                 if (!chartFile.IsStillValid())
                     return null;
 
-                if (iniFile == null)
+                if (iniFile != null)
                 {
-                    if (File.Exists(Path.Combine(directory, "song.ini")))
+                    if (!iniFile.IsStillValid())
                         return null;
                 }
-                else if (!iniFile.IsStillValid())
+                else if (File.Exists(Path.Combine(directory, "song.ini")))
+                {
                     return null;
+                }
 
                 return new FileStream(chartFile.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
             }
@@ -164,43 +167,41 @@ namespace YARG.Core.Song
                 }
                 return null;
             }
-
-            public static bool DoesSoloChartHaveAudio(string directory)
-            {
-                foreach (string subFile in System.IO.Directory.EnumerateFileSystemEntries(directory))
-                    if (IniAudioChecker.IsAudioFile(Path.GetFileName(subFile).ToLower()))
-                        return true;
-                return false;
-            }
         }
 
-        public static (ScanResult, SongMetadata?) FromIni(string chartDirectory, IniChartNode chart, string? iniFile, string defaultPlaylist)
+        public static (ScanResult, SongMetadata?) FromIni(string chartDirectory, IniChartNode<FileInfo> chart, FileInfo? iniFile, string defaultPlaylist)
         {
             IniSection iniModifiers;
             AbridgedFileInfo? iniFileInfo = null;
             if (iniFile != null)
             {
-                iniModifiers = SongIniHandler.ReadSongIniFile(iniFile);
+                if ((iniFile.Attributes & AbridgedFileInfo.RECALL_ON_DATA_ACCESS) > 0)
+                {
+                    return (ScanResult.IniNotDownloaded, null);
+                }
+
+                iniModifiers = SongIniHandler.ReadSongIniFile(iniFile.FullName);
                 iniFileInfo = new AbridgedFileInfo(iniFile);
             }
             else 
             {
-                if (!UnpackedIniSubmetadata.DoesSoloChartHaveAudio(chartDirectory))
-                {
-                    return (ScanResult.LooseChart_NoAudio, null);
-                }
                 iniModifiers = new();
             }
 
-            byte[] file = File.ReadAllBytes(chart.File);
+            if ((chart.File.Attributes & AbridgedFileInfo.RECALL_ON_DATA_ACCESS) > 0)
+            {
+                return (ScanResult.ChartNotDownloaded, null);
+            }
+
+            byte[] file = File.ReadAllBytes(chart.File.FullName);
             var result = ScanIniChartFile(file, chart.Type, iniModifiers);
             if (result.Item2 == null)
             {
                 return (result.Item1, null);
             }
 
-            var info = new AbridgedFileInfo(chart.File);
-            var unpacked = new UnpackedIniSubmetadata(chartDirectory, chart.Type, info, iniFileInfo);
+            var abridged = new AbridgedFileInfo(chart.File);
+            var unpacked = new UnpackedIniSubmetadata(chartDirectory, chart.Type, abridged, iniFileInfo);
             var metadata = new SongMetadata(unpacked, result.Item2, HashWrapper.Hash(file), iniModifiers, defaultPlaylist);
             return (result.Item1, metadata);
         }
@@ -210,22 +211,31 @@ namespace YARG.Core.Song
             string directory = Path.Combine(baseDirectory, reader.ReadLEBString());
             byte chartTypeIndex = reader.ReadByte();
             if (chartTypeIndex >= IIniMetadata.CHART_FILE_TYPES.Length)
+            {
                 return null;
+            }
 
             var chart = IIniMetadata.CHART_FILE_TYPES[chartTypeIndex];
             var chartInfo = AbridgedFileInfo.TryParseInfo(Path.Combine(directory, chart.File), reader);
             if (chartInfo == null)
+            {
                 return null;
+            }
 
+            string iniFile = Path.Combine(directory, "song.ini");
             AbridgedFileInfo? iniInfo = null;
             if (reader.ReadBoolean())
             {
-                iniInfo = AbridgedFileInfo.TryParseInfo(Path.Combine(directory, "song.ini"), reader);
+                iniInfo = AbridgedFileInfo.TryParseInfo(iniFile, reader);
                 if (iniInfo == null)
+                {
                     return null;
+                }
             }
-            else if (!UnpackedIniSubmetadata.DoesSoloChartHaveAudio(directory))
+            else if (File.Exists(iniFile))
+            {
                 return null;
+            }
 
             UnpackedIniSubmetadata iniData = new(directory, chart.Type, chartInfo, iniInfo);
             return new SongMetadata(iniData, reader, strings)
@@ -239,17 +249,19 @@ namespace YARG.Core.Song
             string directory = Path.Combine(baseDirectory, reader.ReadLEBString());
             byte chartTypeIndex = reader.ReadByte();
             if (chartTypeIndex >= IIniMetadata.CHART_FILE_TYPES.Length)
+            {
                 return null;
+            }
 
             var chart = IIniMetadata.CHART_FILE_TYPES[chartTypeIndex];
-            var lastWrite = DateTime.FromBinary(reader.Read<long>(Endianness.Little));
+            var lastUpdated = DateTime.FromBinary(reader.Read<long>(Endianness.Little));
 
-            AbridgedFileInfo chartInfo = new(Path.Combine(directory, chart.File), lastWrite);
+            var chartInfo = new AbridgedFileInfo(Path.Combine(directory, chart.File), lastUpdated);
             AbridgedFileInfo? iniInfo = null;
             if (reader.ReadBoolean())
             {
-                lastWrite = DateTime.FromBinary(reader.Read<long>(Endianness.Little));
-                iniInfo = new(Path.Combine(directory, "song.ini"), lastWrite);
+                lastUpdated = DateTime.FromBinary(reader.Read<long>(Endianness.Little));
+                iniInfo = new AbridgedFileInfo(Path.Combine(directory, "song.ini"), lastUpdated);
             }
 
             UnpackedIniSubmetadata iniData = new(directory, chart.Type, chartInfo, iniInfo);
