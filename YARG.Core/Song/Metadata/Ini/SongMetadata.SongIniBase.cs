@@ -111,8 +111,6 @@ namespace YARG.Core.Song
 
         private SongMetadata(IIniMetadata iniData, AvailableParts parts, HashWrapper hash, IniSection modifiers, string defaultPlaylist)
         {
-            // .ini songs are assumed to be masters and not covers
-            _isMaster = true;
             _directory = iniData.Root;
             _parts = parts;
             _hash = hash;
@@ -202,6 +200,8 @@ namespace YARG.Core.Song
 
             if (!section.TryGet("multiplier_note", out _parseSettings.StarPowerNote))
                 _parseSettings.StarPowerNote = -1;
+
+            _isMaster = !section.TryGet("tags", out string tag) || tag.ToLower() != "cover";
         }
 
         private static (ScanResult, AvailableParts?) ScanIniChartFile(byte[] file, ChartType chartType, IniSection modifiers)
