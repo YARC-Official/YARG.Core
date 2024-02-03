@@ -4,9 +4,9 @@ using YARG.Core.IO;
 
 namespace YARG.Core.Song.Cache
 {
-    public abstract class CONGroup : ICacheGroup
+    public abstract class CONGroup : ICacheGroup<RBCONSubMetadata>
     {
-        protected readonly Dictionary<string, SortedDictionary<int, SongMetadata>> entries = new();
+        protected readonly Dictionary<string, SortedDictionary<int, RBCONSubMetadata>> entries = new();
         protected readonly object entryLock = new();
 
         private int _count;
@@ -24,7 +24,7 @@ namespace YARG.Core.Song.Cache
         public abstract void ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings);
         public abstract byte[] SerializeEntries(Dictionary<SongMetadata, CategoryCacheWriteNode> nodes);
 
-        public void AddEntry(string name, int index, SongMetadata entry)
+        public void AddEntry(string name, int index, RBCONSubMetadata entry)
         {
             lock (entryLock)
             {
@@ -62,7 +62,7 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        public bool TryGetEntry(string name, int index, out SongMetadata? entry)
+        public bool TryGetEntry(string name, int index, out RBCONSubMetadata? entry)
         {
             entry = null;
             lock (entryLock)
@@ -110,14 +110,11 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private static byte[] SerializeEntry(SongMetadata entry, CategoryCacheWriteNode node)
+        private static byte[] SerializeEntry(RBCONSubMetadata entry, CategoryCacheWriteNode node)
         {
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);
-
-            entry.RBData!.Serialize(writer);
             entry.Serialize(writer, node);
-
             return ms.ToArray();
         }
     }

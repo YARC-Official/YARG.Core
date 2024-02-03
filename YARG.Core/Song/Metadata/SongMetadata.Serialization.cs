@@ -7,9 +7,9 @@ using YARG.Core.Extensions;
 
 namespace YARG.Core.Song
 {
-    public sealed partial class SongMetadata
+    public partial class SongMetadata
     {
-        public SongMetadata(BinaryReader reader, CategoryCacheStrings strings)
+        protected SongMetadata(BinaryReader reader, CategoryCacheStrings strings)
         {
             _name = strings.titles[reader.ReadInt32()];
             _artist = strings.artists[reader.ReadInt32()];
@@ -48,7 +48,7 @@ namespace YARG.Core.Song
             _hash = HashWrapper.Deserialize(reader);
         }
 
-        public void Serialize(BinaryWriter writer, CategoryCacheWriteNode node)
+        public virtual void Serialize(BinaryWriter writer, CategoryCacheWriteNode node)
         {
             writer.Write(node.title);
             writer.Write(node.artist);

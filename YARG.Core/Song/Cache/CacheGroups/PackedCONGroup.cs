@@ -47,7 +47,7 @@ namespace YARG.Core.Song.Cache
 
         public override void ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
         {
-            var song = SongMetadata.PackedRBCONFromCache(CONFile, nodeName, upgrades, reader, strings);
+            var song = PackedRBCONMetadata.TryLoadFromCache(CONFile, nodeName, upgrades, reader, strings);
             if (song != null)
             {
                 AddEntry(nodeName, index, song);

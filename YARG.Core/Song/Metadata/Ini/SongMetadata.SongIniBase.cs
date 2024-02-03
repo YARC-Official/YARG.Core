@@ -1,7 +1,7 @@
-﻿using System;
+﻿using MoonscraperChartEditor.Song.IO;
+using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using YARG.Core.Audio;
 using YARG.Core.Chart;
 using YARG.Core.IO;
@@ -12,44 +12,20 @@ using YARG.Core.Venue;
 
 namespace YARG.Core.Song
 {
-    public partial class SongMetadata
+    public class IniChartNode<T>
     {
-        /// <summary>
-        /// The type of chart file to read.
-        /// </summary>
-        public enum ChartType
-        {
-            Mid,
-            Midi,
-            Chart,
-        };
+        public readonly ChartType Type;
+        public readonly T File;
 
-        public class IniChartNode<T>
+        public IniChartNode(ChartType type, T file)
         {
-            public readonly ChartType Type;
-            public readonly T File;
-
-            public IniChartNode(ChartType type, T file)
-            {
-                Type = type;
-                File = file;
-            }
+            Type = type;
+            File = file;
         }
+    }
 
-        private static readonly Dictionary<string, IniModifierCreator> CHART_MODIFIER_LIST = new()
-        {
-            { "Album",        new("album",        ModifierCreatorType.SortString_Chart ) },
-            { "Artist",       new("artist",       ModifierCreatorType.SortString_Chart ) },
-            { "Charter",      new("charter",      ModifierCreatorType.SortString_Chart ) },
-            { "Difficulty",   new("diff_band",    ModifierCreatorType.Int32 ) },
-            { "Genre",        new("genre",        ModifierCreatorType.SortString_Chart ) },
-            { "Name",         new("name",         ModifierCreatorType.SortString_Chart ) },
-            { "PreviewEnd",   new("previewEnd",   ModifierCreatorType.Double ) },
-            { "PreviewStart", new("previewStart", ModifierCreatorType.Double ) },
-            { "Year",         new("year_chart",   ModifierCreatorType.String_Chart ) },
-            { "Offset",       new("offset",       ModifierCreatorType.Double ) },
-        };
-
+    public abstract class IniSubMetadata : SongMetadata
+    {
         public static class IniAudioChecker
         {
             public static readonly string[] SupportedStems = { "song", "guitar", "bass", "rhythm", "keys", "vocals", "vocals_1", "vocals_2", "drums", "drums_1", "drums_2", "drums_3", "drums_4", "crowd", };
@@ -68,65 +44,80 @@ namespace YARG.Core.Song
             }
         }
 
-        public interface IIniMetadata
+        public static readonly IniChartNode<string>[] CHART_FILE_TYPES =
         {
-            public static readonly IniChartNode<string>[] CHART_FILE_TYPES =
-            {
-                new(ChartType.Mid, "notes.mid"),
-                new(ChartType.Midi, "notes.midi"),
-                new(ChartType.Chart, "notes.chart"),
-            };
+            new(ChartType.Mid, "notes.mid"),
+            new(ChartType.Midi, "notes.midi"),
+            new(ChartType.Chart, "notes.chart"),
+        };
 
-            protected static readonly string[] ALBUMART_FILES =
-            {
-                "album.png", "album.jpg", "album.jpeg",
-            };
+        protected static readonly Dictionary<string, IniModifierCreator> CHART_MODIFIER_LIST = new()
+        {
+            { "Album",        new("album",        ModifierCreatorType.SortString_Chart ) },
+            { "Artist",       new("artist",       ModifierCreatorType.SortString_Chart ) },
+            { "Charter",      new("charter",      ModifierCreatorType.SortString_Chart ) },
+            { "Difficulty",   new("diff_band",    ModifierCreatorType.Int32 ) },
+            { "Genre",        new("genre",        ModifierCreatorType.SortString_Chart ) },
+            { "Name",         new("name",         ModifierCreatorType.SortString_Chart ) },
+            { "PreviewEnd",   new("previewEnd",   ModifierCreatorType.Double ) },
+            { "PreviewStart", new("previewStart", ModifierCreatorType.Double ) },
+            { "Year",         new("year_chart",   ModifierCreatorType.String_Chart ) },
+            { "Offset",       new("offset",       ModifierCreatorType.Double ) },
+        };
 
-            protected static readonly string[] BACKGROUND_FILENAMES =
-            {
-                "bg", "background", "video"
-            };
+        protected static readonly string[] ALBUMART_FILES =
+        {
+            "album.png", "album.jpg", "album.jpeg",
+        };
 
-            protected static readonly string[] VIDEO_EXTENSIONS =
-            {
-                ".mp4", ".mov", ".webm",
-            };
+        protected static readonly string[] BACKGROUND_FILENAMES =
+        {
+            "bg", "background", "video"
+        };
 
-            protected static readonly string[] IMAGE_EXTENSIONS =
-            {
-                ".png", ".jpg", ".jpeg"
-            };
+        protected static readonly string[] VIDEO_EXTENSIONS =
+        {
+            ".mp4", ".mov", ".webm",
+        };
 
-            public string Root { get; }
-            public ChartType Type { get; }
-            public DateTime LastUpdatedTime { get; }
+        protected static readonly string[] IMAGE_EXTENSIONS =
+        {
+            ".png", ".jpg", ".jpeg"
+        };
 
-            public void Serialize(BinaryWriter writer, string groupDirectory);
-            public Stream? GetChartStream();
-            public Dictionary<SongStem, Stream> GetAudioStreams(params SongStem[] ignoreStems);
-            public byte[]? GetUnprocessedAlbumArt();
-            public (BackgroundType Type, Stream? Stream) GetBackgroundStream(BackgroundType selection);
-            public Stream? GetPreviewAudioStream();
+        public abstract ChartType Type { get; }
+
+        public abstract void Serialize(BinaryWriter writer, string groupDirectory);
+        protected abstract Stream? GetChartStream();
+        protected abstract Dictionary<SongStem, Stream> GetAudioStreams(params SongStem[] ignoreStems);
+        protected abstract byte[]? GetUnprocessedAlbumArt();
+        protected abstract (BackgroundType Type, Stream? Stream) GetBackgroundStream(BackgroundType selection);
+        protected abstract Stream? GetPreviewAudioStream();
+
+        public override SongChart? LoadChart()
+        {
+            using var stream = GetChartStream();
+            if (stream == null)
+                return null;
+
+            if (Type != ChartType.Chart)
+                return SongChart.FromMidi(_parseSettings, MidFileLoader.LoadMidiFile(stream));
+
+            using var reader = new StreamReader(stream);
+            return SongChart.FromDotChart(_parseSettings, reader.ReadToEnd());
         }
 
-        private SongMetadata(IIniMetadata iniData, AvailableParts parts, HashWrapper hash, IniSection modifiers, string defaultPlaylist)
+        public IniSubMetadata(BinaryReader reader, CategoryCacheStrings strings)
+            : base(reader, strings)
         {
-            _directory = iniData.Root;
+        }
+
+        public IniSubMetadata(AvailableParts parts, HashWrapper hash, IniSection section, string defaultPlaylist)
+        {
             _parts = parts;
             _hash = hash;
-            _iniData = iniData;
-
             _parseSettings.DrumsType = parts.GetDrumType();
-            SetIniModifierData(modifiers, defaultPlaylist);
-        }
 
-        private SongMetadata(IIniMetadata iniData, BinaryReader reader, CategoryCacheStrings strings) : this(reader, strings)
-        {
-            _iniData = iniData;
-        }
-
-        private void SetIniModifierData(IniSection section, string defaultPlaylist)
-        {
             section.TryGet("name", out _name, DEFAULT_NAME);
             section.TryGet("artist", out _artist, DEFAULT_ARTIST);
             section.TryGet("album", out _album, DEFAULT_ALBUM);
@@ -137,7 +128,9 @@ namespace YARG.Core.Song
             section.TryGet("playlist", out _playlist, defaultPlaylist);
 
             if (section.TryGet("year", out _unmodifiedYear))
+            {
                 Year = _unmodifiedYear;
+            }
             else if (section.TryGet("year_chart", out _unmodifiedYear))
             {
                 if (_unmodifiedYear.StartsWith(", "))
@@ -181,11 +174,8 @@ namespace YARG.Core.Song
                 }
             }
 
-
             section.TryGet("video_start_time", out _videoStartTime);
             _videoEndTime = section.TryGet("video_end_time", out long videoEndTime) ? videoEndTime : -1000;
-
-
 
             if (!section.TryGet("hopo_frequency", out _parseSettings.HopoThreshold))
                 _parseSettings.HopoThreshold = -1;
@@ -204,7 +194,7 @@ namespace YARG.Core.Song
             _isMaster = !section.TryGet("tags", out string tag) || tag.ToLower() != "cover";
         }
 
-        private static (ScanResult, AvailableParts?) ScanIniChartFile(byte[] file, ChartType chartType, IniSection modifiers)
+        protected static (ScanResult, AvailableParts?) ScanIniChartFile(byte[] file, ChartType chartType, IniSection modifiers)
         {
             AvailableParts parts = new();
             DrumPreparseHandler drums = new()

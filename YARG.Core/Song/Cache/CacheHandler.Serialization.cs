@@ -252,20 +252,20 @@ namespace YARG.Core.Song.Cache
                     entryCons.Add(group);
             }
 
-            ICacheGroup.SerializeGroups(iniGroups, writer, nodes);
+            ICacheGroup<IniSubMetadata>.SerializeGroups(iniGroups, writer, nodes);
             IModificationGroup.SerializeGroups(updateGroups.Values, writer);
             IModificationGroup.SerializeGroups(upgradeGroups.Values, writer);
             IModificationGroup.SerializeGroups(upgradeCons, writer);
-            ICacheGroup.SerializeGroups(entryCons, writer, nodes);
-            ICacheGroup.SerializeGroups(extractedConGroups.Values, writer, nodes);
+            ICacheGroup<RBCONSubMetadata>.SerializeGroups(entryCons, writer, nodes);
+            ICacheGroup<RBCONSubMetadata>.SerializeGroups(extractedConGroups.Values, writer, nodes);
         }
 
         private void ReadIniEntry(string baseDirectory, IniGroup group, BinaryReader reader, CategoryCacheStrings strings)
         {
             bool isSngEntry = reader.ReadBoolean();
             var entry = isSngEntry ?
-                SongMetadata.SngFromCache(baseDirectory, reader, strings) :
-                SongMetadata.IniFromCache(baseDirectory, reader, strings);
+                SngMetadata.TryLoadFromCache(baseDirectory, reader, strings) :
+                UnpackedIniMetadata.TryLoadFromCache(baseDirectory, reader, strings);
 
             if (entry == null)
             {
@@ -506,8 +506,8 @@ namespace YARG.Core.Song.Cache
         private void QuickReadIniEntry(string baseDirectory, BinaryReader reader, CategoryCacheStrings strings)
         {
             var entry = reader.ReadBoolean() ?
-                SongMetadata.SngFromCache_Quick(baseDirectory, reader, strings) :
-                SongMetadata.IniFromCache_Quick(baseDirectory, reader, strings);
+                SngMetadata.LoadFromCache_Quick(baseDirectory, reader, strings) :
+                UnpackedIniMetadata.IniFromCache_Quick(baseDirectory, reader, strings);
 
             if (entry != null)
             {
@@ -585,12 +585,6 @@ namespace YARG.Core.Song.Cache
                 return null;
             }
             return group;
-        }
-
-        private AbridgedFileInfo? QuickReadExtractedCONGroupHeader(BinaryReader reader)
-        {
-            string directory = reader.ReadString();
-            return AbridgedFileInfo.TryParseInfo(Path.Combine(directory, "songs.dta"), reader);
         }
 
         private PackedCONGroup? CreateCONGroup(string filename, string defaultPlaylist)

@@ -20,7 +20,7 @@ namespace YARG.Core.Song
         Instrument,
     };
 
-    public sealed partial class SongMetadata : IComparable<SongMetadata>
+    public partial class SongMetadata : IComparable<SongMetadata>
     {
         public int CompareTo(SongMetadata other)
         {
@@ -35,9 +35,9 @@ namespace YARG.Core.Song
             return strCmp;
         }
 
-        public DateTime GetAddTime()
+        public virtual DateTime GetAddTime()
         {
-            return _iniData != null ? _iniData.LastUpdatedTime : _rbData!.GetAbsoluteLastUpdateTime();
+            return DateTime.MinValue;
         }
 
         private enum EntryType
@@ -52,12 +52,17 @@ namespace YARG.Core.Song
         {
             static EntryType ParseType(SongMetadata entry)
             {
-                if (entry._iniData != null)
+                switch (entry)
                 {
-                    return entry._iniData is SngSubmetadata ? EntryType.Sng : EntryType.Ini;
+                    case UnpackedIniMetadata:
+                        return EntryType.Ini;
+                    case PackedRBCONMetadata:
+                        return EntryType.CON;
+                    case UnpackedRBCONMetadata:
+                        return EntryType.ExCON;
+                    default: //case SngMetadata:
+                        return EntryType.Sng;
                 }
-
-                return entry._rbData is RBPackedCONMetadata ? EntryType.CON : EntryType.ExCON;
             }
 
             var thisType = ParseType(this);
@@ -94,10 +99,10 @@ namespace YARG.Core.Song
                         return lhs.YearAsNumber < rhs.YearAsNumber;
                     break;
                 case SongAttribute.Playlist:
-                    if (lhs.RBData != null && rhs.RBData != null)
+                    if (lhs is RBCONSubMetadata rblhs && rhs is RBCONSubMetadata rbrhs)
                     {
-                        int lhsBand = lhs.RBData.SharedMetadata.RBDifficulties.band;
-                        int rhsBand = rhs.RBData.SharedMetadata.RBDifficulties.band;
+                        int lhsBand = rblhs.RBDifficulties.band;
+                        int rhsBand = rbrhs.RBDifficulties.band;
                         if (lhsBand != -1 && rhsBand != -1)
                             return lhsBand < rhsBand;
                     }

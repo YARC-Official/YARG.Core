@@ -48,7 +48,7 @@ namespace YARG.Core.Song.Cache
         /// Format is YY_MM_DD_RR: Y = year, M = month, D = day, R = revision (reset across dates, only increment
         /// if multiple cache version changes happen in a single day).
         /// </summary>
-        public const int CACHE_VERSION = 24_02_15_01;
+        public const int CACHE_VERSION = 24_02_15_02;
 
         private static readonly object dirLock = new();
         private static readonly object fileLock = new();
@@ -172,8 +172,9 @@ namespace YARG.Core.Song.Cache
 
         private void CleanupDuplicates()
         {
-            static bool TryRemove<TGroup>(List<TGroup> groups, SongMetadata entry)
-                where TGroup : ICacheGroup
+            static bool TryRemove<TGroup, TMetadata>(List<TGroup> groups, SongMetadata entry)
+                where TGroup : ICacheGroup<TMetadata>
+                where TMetadata : SongMetadata
             {
                 for (int i = 0; i < groups.Count; ++i)
                 {
@@ -192,17 +193,17 @@ namespace YARG.Core.Song.Cache
 
             foreach (var entry in duplicatesToRemove)
             {
-                if (TryRemove(iniGroups, entry))
+                if (TryRemove<IniGroup, IniSubMetadata>(iniGroups, entry))
                 {
                     continue;
                 }
 
-                if (TryRemove(conGroups.Values, entry))
+                if (TryRemove<PackedCONGroup, RBCONSubMetadata>(conGroups.Values, entry))
                 {
                     continue;
                 }
 
-                TryRemove(extractedConGroups.Values, entry);
+                TryRemove<UnpackedCONGroup, RBCONSubMetadata>(extractedConGroups.Values, entry);
             }
         }
 

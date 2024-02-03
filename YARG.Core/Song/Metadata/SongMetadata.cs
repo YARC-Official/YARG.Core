@@ -32,6 +32,16 @@ namespace YARG.Core.Song
     }
 
     /// <summary>
+    /// The type of chart file to read.
+    /// </summary>
+    public enum ChartType
+    {
+        Mid,
+        Midi,
+        Chart,
+    };
+
+    /// <summary>
     /// The metadata for a song.
     /// </summary>
     /// <remarks>
@@ -47,7 +57,7 @@ namespace YARG.Core.Song
     /// instance.
     /// </remarks>
     [Serializable]
-    public sealed partial class SongMetadata
+    public partial class SongMetadata
     {
         public const int SIZEOF_DATETIME = 8;
         public const double MILLISECOND_FACTOR = 1000.0;
@@ -63,46 +73,41 @@ namespace YARG.Core.Song
 
         private static readonly Regex s_YearRegex = new(@"(\d{4})");
 
-        private string _directory = string.Empty;
+        protected SortString _name = SortString.Empty;
+        protected SortString _artist = DEFAULT_ARTIST;
+        protected SortString _album = DEFAULT_ALBUM;
+        protected SortString _genre = DEFAULT_GENRE;
+        protected SortString _charter = DEFAULT_CHARTER;
+        protected SortString _source = DEFAULT_SOURCE;
+        protected SortString _playlist = SortString.Empty;
 
-        private SortString _name = SortString.Empty;
-        private SortString _artist = DEFAULT_ARTIST;
-        private SortString _album = DEFAULT_ALBUM;
-        private SortString _genre = DEFAULT_GENRE;
-        private SortString _charter = DEFAULT_CHARTER;
-        private SortString _source = DEFAULT_SOURCE;
-        private SortString _playlist = SortString.Empty;
+        protected string _unmodifiedYear = DEFAULT_YEAR;
+        protected string _parsedYear = DEFAULT_YEAR;
+        protected int _intYear = int.MaxValue;
 
-        private string _unmodifiedYear = DEFAULT_YEAR;
-        private string _parsedYear = DEFAULT_YEAR;
-        private int _intYear = int.MaxValue;
+        protected bool _isMaster = true;
 
-        private bool _isMaster = true;
+        protected int _albumTrack = 0;
+        protected int _playlistTrack = 0;
 
-        private int _albumTrack = 0;
-        private int _playlistTrack = 0;
+        protected string _loadingPhrase = string.Empty;
 
-        private string _loadingPhrase = string.Empty;
+        protected ulong _songLength = 0;
+        protected long _songOffset = 0;
 
-        private ulong _songLength = 0;
-        private long _songOffset = 0;
+        protected ulong _previewStart = 0;
+        protected ulong _previewEnd = 0;
 
-        private ulong _previewStart = 0;
-        private ulong _previewEnd = 0;
+        protected long _videoStartTime = 0;
+        protected long _videoEndTime = -1;
 
-        private long _videoStartTime = 0;
-        private long _videoEndTime = -1;
+        protected HashWrapper _hash = default;
 
-        private HashWrapper _hash = default;
+        protected AvailableParts _parts = new();
 
-        private AvailableParts _parts = new();
+        protected ParseSettings _parseSettings = ParseSettings.Default;
 
-        private ParseSettings _parseSettings = ParseSettings.Default;
-
-        private readonly IIniMetadata? _iniData = null;
-        private readonly IRBCONMetadata? _rbData = null;
-
-        public string Directory => _directory;
+        public virtual string Directory => string.Empty;
 
         public SortString Name => _name;
         public SortString Artist => _artist;
@@ -115,7 +120,7 @@ namespace YARG.Core.Song
         public string Year
         {
             get => _parsedYear;
-            private set
+            protected set
             {
                 _unmodifiedYear = value;
                 var match = s_YearRegex.Match(value);
@@ -134,7 +139,7 @@ namespace YARG.Core.Song
         public int YearAsNumber
         {
             get => _intYear;
-            private set
+            protected set
             {
                 _intYear = value;
                 _parsedYear = _unmodifiedYear = value.ToString();
@@ -151,73 +156,73 @@ namespace YARG.Core.Song
         public ulong SongLengthMilliseconds
         {
             get => _songLength;
-            private set => _songLength = value;
+            protected set => _songLength = value;
         }
 
         public long SongOffsetMilliseconds
         {
             get => _songOffset;
-            private set => _songOffset = value;
+            protected set => _songOffset = value;
         }
 
         public double SongLengthSeconds
         {
             get => SongLengthMilliseconds / MILLISECOND_FACTOR;
-            private set => SongLengthMilliseconds = (ulong) (value * MILLISECOND_FACTOR);
+            protected set => SongLengthMilliseconds = (ulong) (value * MILLISECOND_FACTOR);
         }
 
         public double SongOffsetSeconds
         {
             get => SongOffsetMilliseconds / MILLISECOND_FACTOR;
-            private set => SongOffsetMilliseconds = (long) (value * MILLISECOND_FACTOR);
+            protected set => SongOffsetMilliseconds = (long) (value * MILLISECOND_FACTOR);
         }
 
         public ulong PreviewStartMilliseconds
         {
             get => _previewStart;
-            private set => _previewStart = value;
+            protected set => _previewStart = value;
         }
 
         public ulong PreviewEndMilliseconds
         {
             get => _previewEnd;
-            private set => _previewEnd = value;
+            protected set => _previewEnd = value;
         }
 
         public double PreviewStartSeconds
         {
             get => PreviewStartMilliseconds / MILLISECOND_FACTOR;
-            private set => PreviewStartMilliseconds = (ulong) (value * MILLISECOND_FACTOR);
+            protected set => PreviewStartMilliseconds = (ulong) (value * MILLISECOND_FACTOR);
         }
 
         public double PreviewEndSeconds
         {
             get => PreviewEndMilliseconds / MILLISECOND_FACTOR;
-            private set => PreviewEndMilliseconds = (ulong) (value * MILLISECOND_FACTOR);
+            protected set => PreviewEndMilliseconds = (ulong) (value * MILLISECOND_FACTOR);
         }
 
         public long VideoStartTimeMilliseconds
         {
             get => _videoStartTime;
-            private set => _videoStartTime = value;
+            protected set => _videoStartTime = value;
         }
 
         public long VideoEndTimeMilliseconds
         {
             get => _videoEndTime;
-            private set => _videoEndTime = value;
+            protected set => _videoEndTime = value;
         }
 
         public double VideoStartTimeSeconds
         {
             get => VideoStartTimeMilliseconds / MILLISECOND_FACTOR;
-            private set => VideoStartTimeMilliseconds = (long) (value * MILLISECOND_FACTOR);
+            protected set => VideoStartTimeMilliseconds = (long) (value * MILLISECOND_FACTOR);
         }
 
         public double VideoEndTimeSeconds
         {
             get => VideoEndTimeMilliseconds >= 0 ? VideoEndTimeMilliseconds / MILLISECOND_FACTOR : -1;
-            private set => VideoEndTimeMilliseconds = value >= 0 ? (long) (value * MILLISECOND_FACTOR) : -1;
+            protected set => VideoEndTimeMilliseconds = value >= 0 ? (long) (value * MILLISECOND_FACTOR) : -1;
         }
 
         public HashWrapper Hash => _hash;
@@ -225,9 +230,6 @@ namespace YARG.Core.Song
         public AvailableParts Parts => _parts;
 
         public ParseSettings ParseSettings => _parseSettings;
-
-        public IIniMetadata? IniData => _iniData;
-        public IRBCONMetadata? RBData => _rbData;
 
         public SongMetadata() { }
 

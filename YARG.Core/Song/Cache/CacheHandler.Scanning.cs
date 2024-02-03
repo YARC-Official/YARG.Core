@@ -11,7 +11,7 @@ namespace YARG.Core.Song.Cache
         private sealed class FileCollector
         {
             public readonly DirectoryInfo directory;
-            public readonly SongMetadata.IniChartNode<FileInfo>?[] charts = new SongMetadata.IniChartNode<FileInfo>?[3];
+            public readonly IniChartNode<FileInfo>?[] charts = new IniChartNode<FileInfo>?[3];
             public FileInfo? ini = null;
             public readonly List<FileInfo> subfiles = new();
             public readonly List<DirectoryInfo> subDirectories = new();
@@ -28,9 +28,9 @@ namespace YARG.Core.Song.Cache
                             switch (subFile.Name.ToLower())
                             {
                                 case "song.ini": ini = subFile; break;
-                                case "notes.mid": charts[0] = new (SongMetadata.ChartType.Mid, subFile); break;
-                                case "notes.midi": charts[1] = new (SongMetadata.ChartType.Midi, subFile); break;
-                                case "notes.chart": charts[2] = new (SongMetadata.ChartType.Chart, subFile); break;
+                                case "notes.mid": charts[0] = new (ChartType.Mid, subFile); break;
+                                case "notes.midi": charts[1] = new (ChartType.Midi, subFile); break;
+                                case "notes.chart": charts[2] = new (ChartType.Chart, subFile); break;
                                 default: subfiles.Add(subFile); break;
                             }
                             break;
@@ -48,7 +48,7 @@ namespace YARG.Core.Song.Cache
             {
                 foreach (var subFile in subfiles)
                 {
-                    if (SongMetadata.IniAudioChecker.IsAudioFile(subFile.Name.ToLower()))
+                    if (IniSubMetadata.IniAudioChecker.IsAudioFile(subFile.Name.ToLower()))
                     {
                         return true;
                     }
@@ -60,16 +60,16 @@ namespace YARG.Core.Song.Cache
         private sealed class SngCollector
         {
             public readonly SngFile sng;
-            public readonly SongMetadata.IniChartNode<string>?[] charts = new SongMetadata.IniChartNode<string>?[3];
+            public readonly IniChartNode<string>?[] charts = new IniChartNode<string>?[3];
 
             public SngCollector(SngFile sng)
             {
                 this.sng = sng;
-                for (int i = 0; i < SongMetadata.IIniMetadata.CHART_FILE_TYPES.Length; ++i)
+                for (int i = 0; i < IniSubMetadata.CHART_FILE_TYPES.Length; ++i)
                 {
-                    if (sng.ContainsKey(SongMetadata.IIniMetadata.CHART_FILE_TYPES[i].File))
+                    if (sng.ContainsKey(IniSubMetadata.CHART_FILE_TYPES[i].File))
                     {
-                        charts[i] = SongMetadata.IIniMetadata.CHART_FILE_TYPES[i];
+                        charts[i] = IniSubMetadata.CHART_FILE_TYPES[i];
                     }
                 }
             }
@@ -78,7 +78,7 @@ namespace YARG.Core.Song.Cache
             {
                 foreach (var subFile in sng)
                 {
-                    if (SongMetadata.IniAudioChecker.IsAudioFile(subFile.Key))
+                    if (IniSubMetadata.IniAudioChecker.IsAudioFile(subFile.Key))
                     {
                         return true;
                     }
@@ -273,7 +273,7 @@ namespace YARG.Core.Song.Cache
 
                 try
                 {
-                    var entry = SongMetadata.FromIni(collector.directory.FullName, chart, collector.ini, defaultPlaylist);
+                    var entry = UnpackedIniMetadata.ProcessNewEntry(collector.directory.FullName, chart, collector.ini, defaultPlaylist);
                     if (entry.Item2 == null)
                     {
                         AddToBadSongs(chart.File.FullName, entry.Item1);
@@ -324,7 +324,7 @@ namespace YARG.Core.Song.Cache
 
                 try
                 {
-                    var entry = SongMetadata.FromSng(sngFile, chart, defaultPlaylist);
+                    var entry = SngMetadata.ProcessNewEntry(sngFile, chart, defaultPlaylist);
                     if (entry.Item2 == null)
                     {
                         AddToBadSongs(info.FullName, entry.Item1);
@@ -372,15 +372,15 @@ namespace YARG.Core.Song.Cache
             }
             else
             {
-                var song = SongMetadata.FromPackedRBCON(group, name, node, updates, upgrades);
-                if (song.Item2 != null)
+                var result = PackedRBCONMetadata.ProcessNewEntry(group, name, node, updates, upgrades);
+                if (result.Item2 != null)
                 {
-                    if (AddEntry(song.Item2))
-                        group.AddEntry(name, index, song.Item2);
+                    if (AddEntry(result.Item2))
+                        group.AddEntry(name, index, result.Item2);
                 }
                 else
                 {
-                    AddToBadSongs(group.Location + $" - Node {name}", song.Item1);
+                    AddToBadSongs(group.Location + $" - Node {name}", result.Item1);
                 }
             }
         }
@@ -394,15 +394,15 @@ namespace YARG.Core.Song.Cache
             }
             else
             {
-                var song = SongMetadata.FromUnpackedRBCON(group, name, node, updates, upgrades);
-                if (song.Item2 != null)
+                var result = UnpackedRBCONMetadata.ProcessNewEntry(group, name, node, updates, upgrades);
+                if (result.Item2 != null)
                 {
-                    if (AddEntry(song.Item2))
-                        group.AddEntry(name, index, song.Item2);
+                    if (AddEntry(result.Item2))
+                        group.AddEntry(name, index, result.Item2);
                 }
                 else
                 {
-                    AddToBadSongs(group.Location + $" - Node {name}", song.Item1);
+                    AddToBadSongs(group.Location + $" - Node {name}", result.Item1);
                 }
             }
         }
