@@ -58,7 +58,7 @@ namespace YARG.Core.Song
             return new FileStream(chartFile.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
         }
 
-        protected override Dictionary<SongStem, Stream> GetAudioStreams(params SongStem[] ignoreStems)
+        public override List<AudioChannel> LoadAudioStreams(params SongStem[] ignoreStems)
         {
             Dictionary<string, string> files = new();
             {
@@ -67,7 +67,7 @@ namespace YARG.Core.Song
                     files.Add(Path.GetFileName(file).ToLower(), file);
             }
 
-            Dictionary<SongStem, Stream> streams = new();
+            var channels = new List<AudioChannel>();
             foreach (var stem in IniAudioChecker.SupportedStems)
             {
                 var stemEnum = AudioHelpers.SupportedStems[stem];
@@ -80,16 +80,17 @@ namespace YARG.Core.Song
                     if (files.TryGetValue(audioFile, out var fullname))
                     {
                         // No file buffer
-                        streams.Add(stemEnum, new FileStream(fullname, FileMode.Open, FileAccess.Read, FileShare.Read, 1));
+                        var channel = new AudioChannel(stemEnum, new FileStream(fullname, FileMode.Open, FileAccess.Read, FileShare.Read, 1));
+                        channels.Add(channel);
                         // Parse no duplicate stems
                         break;
                     }
                 }
             }
-            return streams;
+            return channels;
         }
 
-        protected override byte[]? GetUnprocessedAlbumArt()
+        public override byte[]? LoadAlbumData()
         {
             Dictionary<string, string> files = new();
             {
@@ -104,7 +105,7 @@ namespace YARG.Core.Song
             return null;
         }
 
-        protected override (BackgroundType Type, Stream? Stream) GetBackgroundStream(BackgroundType selections)
+        public override BackgroundResult? LoadBackground(LoadingOptions options)
         {
             Dictionary<string, string> files = new();
             {
@@ -113,47 +114,52 @@ namespace YARG.Core.Song
                     files.Add(Path.GetFileName(file).ToLower(), file);
             }
 
-            if ((selections & BackgroundType.Yarground) > 0)
+            if ((options & LoadingOptions.BG_Venue) > 0)
             {
                 if (files.TryGetValue("bg.yarground", out var file))
-                    return (BackgroundType.Yarground, new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read));
+                    return new BackgroundResult(BackgroundType.Yarground, new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read));
             }
 
-            if ((selections & BackgroundType.Video) > 0)
+            if ((options & LoadingOptions.BG_Video) > 0)
             {
                 foreach (var stem in BACKGROUND_FILENAMES)
                 {
                     foreach (var format in VIDEO_EXTENSIONS)
                     {
                         if (files.TryGetValue(stem + format, out var fullname))
-                            return (BackgroundType.Video, new FileStream(fullname, FileMode.Open, FileAccess.Read, FileShare.Read));
+                            return new BackgroundResult(BackgroundType.Video, new FileStream(fullname, FileMode.Open, FileAccess.Read, FileShare.Read));
                     }
                 }
             }
 
-            if ((selections & BackgroundType.Image) > 0)
+            if ((options & LoadingOptions.BG_Image) > 0)
             {
                 foreach (var stem in BACKGROUND_FILENAMES)
                 {
                     foreach (var format in IMAGE_EXTENSIONS)
                     {
                         if (files.TryGetValue(stem + format, out var fullname))
-                            return (BackgroundType.Image, new FileStream(fullname, FileMode.Open, FileAccess.Read, FileShare.Read));
+                            return new BackgroundResult(BackgroundType.Image, new FileStream(fullname, FileMode.Open, FileAccess.Read, FileShare.Read));
                     }
                 }
             }
-            return (default, null);
+            return null;
         }
 
-        protected override Stream? GetPreviewAudioStream()
+        public override List<AudioChannel> LoadPreviewAudio()
         {
             foreach (var format in IniAudioChecker.SupportedFormats)
             {
                 var audioFile = Path.Combine(Directory, "preview" + format);
                 if (File.Exists(audioFile))
-                    return new FileStream(audioFile, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+                {
+                    return new List<AudioChannel>()
+                    {
+                        new(SongStem.Preview, new FileStream(audioFile, FileMode.Open, FileAccess.Read, FileShare.Read, 1))
+                    };
+                }
             }
-            return null;
+            return LoadAudioStreams(SongStem.Crowd);
         }
 
         private UnpackedIniMetadata(string directory, ChartType chartType, AbridgedFileInfo chartFile, AbridgedFileInfo? iniFile

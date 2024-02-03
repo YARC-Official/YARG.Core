@@ -9,6 +9,8 @@ using YARG.Core.IO;
 using YARG.Core.Song.Preparsers;
 using Melanchall.DryWetMidi.Core;
 using YARG.Core.Extensions;
+using System.Threading;
+using YARG.Core.Audio;
 
 namespace YARG.Core.Song
 {
@@ -62,8 +64,7 @@ namespace YARG.Core.Song
         protected abstract DateTime MidiLastWrite { get; }
         protected abstract Stream? GetMidiStream();
         protected abstract byte[]? LoadMidiFile(CONFile? file);
-        protected abstract byte[]? LoadMiloFile();
-        protected abstract byte[]? LoadImgFile();
+        protected abstract byte[]? LoadRawImageData();
         protected abstract Stream? GetMoggStream();
         protected abstract bool IsMoggValid(CONFile? file);
 
@@ -125,6 +126,102 @@ namespace YARG.Core.Song
             return SongChart.FromMidi(_parseSettings, midi);
         }
 
+        public override List<AudioChannel> LoadAudioStreams(params SongStem[] ignoreStems)
+        {
+            var channels = new List<AudioChannel>();
+            void Add(SongStem stem, int[] indices, float[]panning)
+            {
+                var stream = GetMoggStream();
+                if (stream == null)
+                {
+                    return;
+                }
+
+                var channel = new MoggChannel(stem, stream, indices, panning);
+                channels!.Add(channel);
+            }
+            
+            if (DrumIndices != Array.Empty<int>() && !ignoreStems.Contains(SongStem.Drums))
+            {
+                switch (DrumIndices.Length)
+                {
+                    //drum (0 1): stereo kit --> (0 1)
+                    case 2:
+                        Add(SongStem.Drums, DrumIndices, DrumStemValues);
+                        break;
+                    //drum (0 1 2): mono kick, stereo snare/kit --> (0) (1 2)
+                    case 3:
+                        Add(SongStem.Drums1, DrumIndices[0..1], DrumStemValues[0..2]);
+                        Add(SongStem.Drums2, DrumIndices[1..3], DrumStemValues[2..6]);
+                        break;
+                    //drum (0 1 2 3): mono kick, mono snare, stereo kit --> (0) (1) (2 3)
+                    case 4:
+                        Add(SongStem.Drums1, DrumIndices[0..1], DrumStemValues[0..2]);
+                        Add(SongStem.Drums2, DrumIndices[1..2], DrumStemValues[2..4]);
+                        Add(SongStem.Drums3, DrumIndices[2..4], DrumStemValues[4..8]);
+                        break;
+                    //drum (0 1 2 3 4): mono kick, stereo snare, stereo kit --> (0) (1 2) (3 4)
+                    case 5:
+                        Add(SongStem.Drums1, DrumIndices[0..1], DrumStemValues[0..2]);
+                        Add(SongStem.Drums2, DrumIndices[1..3], DrumStemValues[2..6]);
+                        Add(SongStem.Drums3, DrumIndices[3..5], DrumStemValues[6..10]);
+                        break;
+                    //drum (0 1 2 3 4 5): stereo kick, stereo snare, stereo kit --> (0 1) (2 3) (4 5)
+                    case 6:
+                        Add(SongStem.Drums1, DrumIndices[0..2], DrumStemValues[0..4]);
+                        Add(SongStem.Drums2, DrumIndices[2..4], DrumStemValues[4..8]);
+                        Add(SongStem.Drums3, DrumIndices[4..6], DrumStemValues[8..12]);
+                        break;
+                }
+            }
+
+            if (BassIndices != Array.Empty<int>() && !ignoreStems.Contains(SongStem.Bass))
+                Add(SongStem.Bass, BassIndices, BassStemValues);
+
+            if (GuitarIndices != Array.Empty<int>() && !ignoreStems.Contains(SongStem.Guitar))
+                Add(SongStem.Guitar, GuitarIndices, GuitarStemValues);
+
+            if (KeysIndices != Array.Empty<int>() && !ignoreStems.Contains(SongStem.Keys))
+                Add(SongStem.Keys, KeysIndices, KeysStemValues);
+
+            if (VocalsIndices != Array.Empty<int>() && !ignoreStems.Contains(SongStem.Vocals))
+                Add(SongStem.Vocals, VocalsIndices, VocalsStemValues);
+
+            if (TrackIndices != Array.Empty<int>() && !ignoreStems.Contains(SongStem.Song))
+                Add(SongStem.Song, TrackIndices, TrackStemValues);
+
+            if (CrowdIndices != Array.Empty<int>() && !ignoreStems.Contains(SongStem.Crowd))
+                Add(SongStem.Crowd, CrowdIndices, CrowdStemValues);
+            return channels;
+        }
+
+        public override List<AudioChannel> LoadPreviewAudio()
+        {
+            return LoadAudioStreams(SongStem.Crowd);
+        }
+
+        public override byte[]? LoadAlbumData()
+        {
+            var bytes = LoadRawImageData();
+            if (bytes == null)
+            {
+                return null;
+            }
+
+            for (int i = 32; i < bytes.Length; i += 2)
+            {
+                (bytes[i + 1], bytes[i]) = (bytes[i], bytes[i + 1]);
+            }
+            return bytes;
+        }
+
+        public override BackgroundResult? LoadBackground(LoadingOptions options)
+        {
+            return null;
+        }
+
+        public abstract override byte[]? LoadMiloData();
+
         protected RBCONSubMetadata() { }
 
         public RBCONSubMetadata(AbridgedFileInfo? updateMidi, BinaryReader reader, CategoryCacheStrings strings)
@@ -167,39 +264,6 @@ namespace YARG.Core.Song
             VocalsStemValues = ReadFloatArray(reader);
             TrackStemValues = ReadFloatArray(reader);
             CrowdStemValues = ReadFloatArray(reader);
-        }
-
-        private static AbridgedFileInfo? ReadUpdateInfo(BinaryReader reader)
-        {
-            if (!reader.ReadBoolean())
-            {
-                return null;
-            }
-            return new AbridgedFileInfo(reader.ReadString(), false);
-        }
-
-        private static int[] ReadIntArray(BinaryReader reader)
-        {
-            int length = reader.ReadInt32();
-            if (length == 0)
-                return Array.Empty<int>();
-
-            int[] values = new int[length];
-            for (int i = 0; i < length; ++i)
-                values[i] = reader.ReadInt32();
-            return values;
-        }
-
-        private static float[] ReadFloatArray(BinaryReader reader)
-        {
-            int length = reader.ReadInt32();
-            if (length == 0)
-                return Array.Empty<float>();
-
-            float[] values = new float[length];
-            for (int i = 0; i < length; ++i)
-                values[i] = reader.ReadSingle();
-            return values;
         }
 
         public override void Serialize(BinaryWriter writer, CategoryCacheWriteNode node)
@@ -250,6 +314,39 @@ namespace YARG.Core.Song
             WriteArray(VocalsStemValues, writer);
             WriteArray(TrackStemValues, writer);
             WriteArray(CrowdStemValues, writer);
+        }
+
+        private static AbridgedFileInfo? ReadUpdateInfo(BinaryReader reader)
+        {
+            if (!reader.ReadBoolean())
+            {
+                return null;
+            }
+            return new AbridgedFileInfo(reader.ReadString(), false);
+        }
+
+        private static int[] ReadIntArray(BinaryReader reader)
+        {
+            int length = reader.ReadInt32();
+            if (length == 0)
+                return Array.Empty<int>();
+
+            int[] values = new int[length];
+            for (int i = 0; i < length; ++i)
+                values[i] = reader.ReadInt32();
+            return values;
+        }
+
+        private static float[] ReadFloatArray(BinaryReader reader)
+        {
+            int length = reader.ReadInt32();
+            if (length == 0)
+                return Array.Empty<float>();
+
+            float[] values = new float[length];
+            for (int i = 0; i < length; ++i)
+                values[i] = reader.ReadSingle();
+            return values;
         }
 
         private static void WriteUpdateInfo(AbridgedFileInfo? info, BinaryWriter writer)

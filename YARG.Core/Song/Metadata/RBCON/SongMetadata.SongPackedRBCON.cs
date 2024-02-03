@@ -148,6 +148,15 @@ namespace YARG.Core.Song
             writer.Write(Directory);
         }
 
+        public override byte[]? LoadMiloData()
+        {
+            if (UpdateMilo != null && UpdateMilo.Exists())
+            {
+                return File.ReadAllBytes(UpdateMilo.FullName);
+            }
+            return _miloListing?.LoadAllBytes();
+        }
+
         protected override Stream? GetMidiStream()
         {
             if (_midiListing == null || !_midiListing.IsStillValid(_lastMidiUpdate))
@@ -164,16 +173,7 @@ namespace YARG.Core.Song
             return _midiListing.LoadAllBytes(file!);
         }
 
-        protected override byte[]? LoadMiloFile()
-        {
-            if (UpdateMilo != null && UpdateMilo.Exists())
-            {
-                return File.ReadAllBytes(UpdateMilo.FullName);
-            }
-            return _miloListing?.LoadAllBytes();
-        }
-
-        protected override byte[]? LoadImgFile()
+        protected override byte[]? LoadRawImageData()
         {
             if (UpdateImage != null && UpdateImage.Exists())
             {

@@ -120,6 +120,21 @@ namespace YARG.Core.Song
             base.Serialize(writer, node);
         }
 
+        public override byte[]? LoadMiloData()
+        {
+            if (UpdateMilo != null && UpdateMilo.Exists())
+            {
+                return File.ReadAllBytes(UpdateMilo.FullName);
+            }
+
+            string milo = Path.Combine(Directory, "gen", _nodename + ".milo_xbox");
+            if (!File.Exists(milo))
+            {
+                return null;
+            }
+            return File.ReadAllBytes(milo);
+        }
+
         protected override Stream? GetMidiStream()
         {
             if (_dta == null || !_dta.IsStillValid() || !_midi.IsStillValid())
@@ -138,22 +153,7 @@ namespace YARG.Core.Song
             return File.ReadAllBytes(_midi.FullName);
         }
 
-        protected override byte[]? LoadMiloFile()
-        {
-            if (UpdateMilo != null && UpdateMilo.Exists())
-            {
-                return File.ReadAllBytes(UpdateMilo.FullName);
-            }
-
-            string milo = Path.Combine(Directory, "gen", _nodename + ".milo_xbox");
-            if (!File.Exists(milo))
-            {
-                return null;
-            }
-            return File.ReadAllBytes(milo);
-        }
-
-        protected override byte[]? LoadImgFile()
+        protected override byte[]? LoadRawImageData()
         {
             if (UpdateImage != null && UpdateImage.Exists())
             {

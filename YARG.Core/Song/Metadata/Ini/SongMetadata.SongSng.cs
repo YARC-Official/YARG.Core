@@ -48,35 +48,18 @@ namespace YARG.Core.Song
             return sngFile[chart.File].CreateStream(sngFile);
         }
 
-        protected override Dictionary<SongStem, Stream> GetAudioStreams(params SongStem[] ignoreStems)
+        public override List<AudioChannel> LoadAudioStreams(params SongStem[] ignoreStems)
         {
-            Dictionary<SongStem, Stream> streams = new();
-
+            List<AudioChannel> channels = new();
             var sngFile = SngFile.TryLoadFromFile(sngInfo);
             if (sngFile != null)
             {
-                foreach (var stem in IniAudioChecker.SupportedStems)
-                {
-                    var stemEnum = AudioHelpers.SupportedStems[stem];
-                    if (ignoreStems.Contains(stemEnum))
-                        continue;
-
-                    foreach (var format in IniAudioChecker.SupportedFormats)
-                    {
-                        var file = stem + format;
-                        if (sngFile.TryGetValue(file, out var listing))
-                        {
-                            streams.Add(stemEnum, listing.CreateStream(sngFile));
-                            // Parse no duplicate stems
-                            break;
-                        }
-                    }
-                }
+                FillAudioStreams(sngFile, channels, ignoreStems);
             }
-            return streams;
+            return channels;
         }
 
-        protected override byte[]? GetUnprocessedAlbumArt()
+        public override byte[]? LoadAlbumData()
         {
             var sngFile = SngFile.TryLoadFromFile(sngInfo);
             if (sngFile == null)
@@ -92,23 +75,23 @@ namespace YARG.Core.Song
             return null;
         }
 
-        protected override (BackgroundType Type, Stream? Stream) GetBackgroundStream(BackgroundType selections)
+        public override BackgroundResult? LoadBackground(LoadingOptions options)
         {
             var sngFile = SngFile.TryLoadFromFile(sngInfo);
             if (sngFile == null)
             {
-                return (default, null);
+                return null;
             }
 
-            if ((selections & BackgroundType.Yarground) > 0)
+            if ((options & LoadingOptions.BG_Venue) > 0)
             {
                 if (sngFile.TryGetValue("bg.yarground", out var listing))
                 {
-                    return (BackgroundType.Yarground, listing.CreateStream(sngFile));
+                    return new(BackgroundType.Yarground, listing.CreateStream(sngFile));
                 }
             }
 
-            if ((selections & BackgroundType.Video) > 0)
+            if ((options & LoadingOptions.BG_Video) > 0)
             {
                 foreach (var stem in BACKGROUND_FILENAMES)
                 {
@@ -116,13 +99,13 @@ namespace YARG.Core.Song
                     {
                         if (sngFile.TryGetValue(stem + format, out var listing))
                         {
-                            return (BackgroundType.Video, listing.CreateStream(sngFile));
+                            return new (BackgroundType.Video, listing.CreateStream(sngFile));
                         }
                     }
                 }
             }
 
-            if ((selections & BackgroundType.Image) > 0)
+            if ((options & LoadingOptions.BG_Image) > 0)
             {
                 foreach (var stem in BACKGROUND_FILENAMES)
                 {
@@ -130,30 +113,56 @@ namespace YARG.Core.Song
                     {
                         if (sngFile.TryGetValue(stem + format, out var listing))
                         {
-                            return (BackgroundType.Image, listing.CreateStream(sngFile));
+                            return new(BackgroundType.Image, listing.CreateStream(sngFile));
                         }
                     }
                 }
             }
 
-            return (default, null);
+            return null;
         }
 
-        protected override Stream? GetPreviewAudioStream()
+        public override List<AudioChannel> LoadPreviewAudio()
         {
+            List<AudioChannel> channels = new();
             var sngFile = SngFile.TryLoadFromFile(sngInfo);
-            if (sngFile == null)
-                return null;
-
-            foreach (var format in IniAudioChecker.SupportedFormats)
+            if (sngFile != null)
             {
-                if (sngFile.TryGetValue("preview" + format, out var listing))
+                foreach (var format in IniAudioChecker.SupportedFormats)
                 {
-                    return listing.CreateStream(sngFile);
+                    if (sngFile.TryGetValue("preview" + format, out var listing))
+                    {
+                        var channel = new AudioChannel(SongStem.Preview, listing.CreateStream(sngFile));
+                        channels.Add(channel);
+                        return channels;
+                    }
+                }
+
+                FillAudioStreams(sngFile, channels, SongStem.Crowd);
+            }
+            return channels;
+        }
+
+        private void FillAudioStreams(SngFile sngFile, List<AudioChannel> channels, params SongStem[] ignoreStems)
+        {
+            foreach (var stem in IniAudioChecker.SupportedStems)
+            {
+                var stemEnum = AudioHelpers.SupportedStems[stem];
+                if (ignoreStems.Contains(stemEnum))
+                    continue;
+
+                foreach (var format in IniAudioChecker.SupportedFormats)
+                {
+                    var file = stem + format;
+                    if (sngFile.TryGetValue(file, out var listing))
+                    {
+                        var channel = new AudioChannel(stemEnum, listing.CreateStream(sngFile));
+                        channels.Add(channel);
+                        // Parse no duplicate stems
+                        break;
+                    }
                 }
             }
-
-            return null;
         }
 
         private SngMetadata(uint version, AbridgedFileInfo sngInfo, IniChartNode<string> chart

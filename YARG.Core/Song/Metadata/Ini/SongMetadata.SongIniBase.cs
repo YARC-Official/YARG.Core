@@ -89,10 +89,6 @@ namespace YARG.Core.Song
 
         public abstract void Serialize(BinaryWriter writer, string groupDirectory);
         protected abstract Stream? GetChartStream();
-        protected abstract Dictionary<SongStem, Stream> GetAudioStreams(params SongStem[] ignoreStems);
-        protected abstract byte[]? GetUnprocessedAlbumArt();
-        protected abstract (BackgroundType Type, Stream? Stream) GetBackgroundStream(BackgroundType selection);
-        protected abstract Stream? GetPreviewAudioStream();
 
         public override SongChart? LoadChart()
         {
@@ -106,6 +102,16 @@ namespace YARG.Core.Song
             using var reader = new StreamReader(stream);
             return SongChart.FromDotChart(_parseSettings, reader.ReadToEnd());
         }
+
+        public override byte[]? LoadMiloData()
+        {
+            return null;
+        }
+
+        public abstract override List<AudioChannel> LoadAudioStreams(params SongStem[] ignoreStems);
+        public abstract override List<AudioChannel> LoadPreviewAudio();
+        public abstract override byte[]? LoadAlbumData();
+        public abstract override BackgroundResult? LoadBackground(LoadingOptions options);
 
         public IniSubMetadata(BinaryReader reader, CategoryCacheStrings strings)
             : base(reader, strings)
