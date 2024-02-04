@@ -1,4 +1,4 @@
-using Melanchall.DryWetMidi.Core;
+﻿using Melanchall.DryWetMidi.Core;
 using MoonscraperChartEditor.Song.IO;
 using System;
 using System.Collections.Generic;
@@ -57,7 +57,7 @@ namespace YARG.Core.Song
             var shared = RBData.SharedMetadata;
             if (shared.UpdateMidi != null)
             {
-                if (!shared.UpdateMidi.IsStillValid())
+                if (!shared.UpdateMidi.IsStillValid(false))
                     return null;
 
                 using var midiStream = new FileStream(shared.UpdateMidi.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
