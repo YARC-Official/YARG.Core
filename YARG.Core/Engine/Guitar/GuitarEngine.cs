@@ -270,6 +270,9 @@ namespace YARG.Core.Engine.Guitar
         {
             base.RebaseProgressValues(baseTick);
 
+            if (baseTick < State.StarPowerWhammyBaseTick)
+                YargTrace.Fail($"Star Power whammy base tick cannot go backwards! Went from {State.StarPowerWhammyBaseTick} to {baseTick}");
+
             State.StarPowerWhammyBaseTick = baseTick;
 
             RebaseSustains(baseTick);
@@ -281,8 +284,14 @@ namespace YARG.Core.Engine.Guitar
             foreach (var sustain in ActiveSustains)
             {
                 // Don't rebase sustains that haven't started yet
-                if (sustain.BaseTick > baseTick)
+                if (baseTick < sustain.BaseTick)
+                {
+                    // Only fail when the sustain has actually started
+                    if (baseTick >= sustain.Note.Tick)
+                        YargTrace.Fail($"Sustain base tick cannot go backwards! Attempted to go from {sustain.BaseTick} to {baseTick}");
+
                     continue;
+                }
 
                 double sustainScore = CalculateSustainPoints(sustain, baseTick);
 
