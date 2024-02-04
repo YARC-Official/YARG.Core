@@ -172,6 +172,9 @@ namespace YARG.Core.Chart
         {
             var flags = LyricSymbolFlags.None;
 
+            if (lyric.IsEmpty)
+                return flags;
+
             // Flags at the start of the lyric
             // Only the harmony hide symbol is valid here
             if (lyric[0] == HARMONY_HIDE_SYMBOL)
