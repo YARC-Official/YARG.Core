@@ -186,7 +186,9 @@ namespace YARG.Core.Song
         {
             var stream = LoadUpdateMoggStream();
             if (stream != null)
+            {
                 return stream;
+            }
             return _moggListing?.CreateStream();
         }
 

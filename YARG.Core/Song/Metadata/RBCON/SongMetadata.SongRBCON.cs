@@ -126,21 +126,86 @@ namespace YARG.Core.Song
             return SongChart.FromMidi(_parseSettings, midi);
         }
 
+        private int GetMoggVersion()
+        {
+            using var stream = GetMoggStream();
+            return stream?.Read<int>(Endianness.Little) ?? 0;
+        }
+
+        private AudioChannel? MoggFunc(SongStem stem, int[] indices, float[] panning)
+        {
+            var stream = GetMoggStream();
+            if (stream == null)
+            {
+                YargTrace.LogError("Unknown error while loading Mogg");
+                return null;
+            }
+
+            using var wrapper = DisposableCounter.Wrap(stream);
+            if (stream.Read<int>(Endianness.Little) != 0x0A)
+            {
+                YargTrace.LogError("Mogg version changed somehow");
+                return null;
+            }
+
+            int start = stream.Read<int>(Endianness.Little);
+            stream.Seek(start, SeekOrigin.Begin);
+            return new AudioChannel(stem, wrapper.Release(), indices, panning);
+        }
+
+        private Func<SongStem, int[], float[], AudioChannel?>? InitYARGMoggFunc()
+        {
+            using var stream = GetMoggStream();
+            if (stream == null || stream.Read<int>(Endianness.Little) != 0xF0)
+            {
+                YargTrace.LogError("Unknown error while loading YARG mogg");
+                return null;
+            }
+
+            int start = stream.Read<int>(Endianness.Little);
+            stream.Seek(start, SeekOrigin.Begin);
+
+            var file = stream.ReadBytes((int)(stream.Length - start));
+            return (SongStem stem, int[] indices, float[] panning) =>
+            {
+                var memStream = new MemoryStream(file);
+                return new AudioChannel(stem, memStream, indices, panning);
+            };
+        }
+
         public override List<AudioChannel> LoadAudioStreams(params SongStem[] ignoreStems)
         {
             var channels = new List<AudioChannel>();
+            int version = GetMoggVersion();
+
+            Func<SongStem, int[], float[], AudioChannel?>? func = null;
+            switch (version)
+            {
+                case 0x0A:
+                    func = MoggFunc;
+                    break;
+                case 0xF0:
+                    func = InitYARGMoggFunc();
+                    break;
+                default:
+                    YargTrace.LogError("Original unencrypted mogg replaced by an encrypted mogg");
+                    break;
+            }
+
+            if (func == null)
+            {
+                return channels;
+            }
+
             void Add(SongStem stem, int[] indices, float[]panning)
             {
-                var stream = GetMoggStream();
-                if (stream == null)
+                var channel = func(stem, indices, panning);
+                if (channel != null)
                 {
-                    return;
+                    channels.Add(channel);
                 }
-
-                var channel = new MoggChannel(stem, stream, indices, panning);
-                channels!.Add(channel);
             }
-            
+
             if (DrumIndices != Array.Empty<int>() && !ignoreStems.Contains(SongStem.Drums))
             {
                 switch (DrumIndices.Length)
