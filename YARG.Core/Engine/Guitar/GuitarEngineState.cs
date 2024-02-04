@@ -43,6 +43,8 @@
             StarPowerWhammyTimer.Reset();
 
             FrontEndStartTime = 0;
+
+            StarPowerWhammyBaseTick = 0;
         }
     }
 }
