@@ -24,6 +24,7 @@
 
         public bool IsSoloActive;
 
+        public bool IsStarPowerInputActive;
         public uint StarPowerBaseTick;
 
         public virtual void Reset()
@@ -49,6 +50,7 @@
 
             IsSoloActive = false;
 
+            IsStarPowerInputActive = false;
             StarPowerBaseTick = 0;
         }
 
