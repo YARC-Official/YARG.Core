@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using YARG.Core.Chart;
 using YARG.Core.Engine.Logging;
@@ -378,6 +378,13 @@ namespace YARG.Core.Engine.Guitar
                     }
 
                     State.StarPowerWhammyTimer.Start(State.CurrentTime);
+
+                    EventLogger.LogEvent(new TimerEngineEvent(State.CurrentTime)
+                    {
+                        TimerName = "StarPowerWhammy",
+                        TimerStarted = true,
+                        TimerValue = State.StarPowerWhammyTimer.TimeThreshold,
+                    });
                 }
                 else if (State.StarPowerWhammyTimer.IsExpired(State.CurrentTime))
                 {
@@ -390,13 +397,29 @@ namespace YARG.Core.Engine.Guitar
 
                     // Stop whammy gain
                     State.StarPowerWhammyTimer.Reset();
+
+                    EventLogger.LogEvent(new TimerEngineEvent(State.CurrentTime)
+                    {
+                        TimerName = "StarPowerWhammy",
+                        TimerStopped = true,
+                        TimerValue = 0,
+                    });
                 }
             }
             // Rebase after SP whammy ends to commit the final amount to the base
             else if (State.StarPowerWhammyTimer.IsActive(State.CurrentTime))
             {
                 RebaseProgressValues(State.CurrentTick);
+
+                double remainingTime = Math.Max(State.StarPowerWhammyTimer.EndTime - State.CurrentTime, 0);
                 State.StarPowerWhammyTimer.Reset();
+
+                EventLogger.LogEvent(new TimerEngineEvent(State.CurrentTime)
+                {
+                    TimerName = "StarPowerWhammy",
+                    TimerStopped = true,
+                    TimerValue = remainingTime,
+                });
             }
         }
 
