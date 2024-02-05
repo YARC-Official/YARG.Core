@@ -410,7 +410,8 @@ namespace YARG.Core.Engine.Guitar
                 }
             }
             // Rebase after SP whammy ends to commit the final amount to the base
-            else if (State.StarPowerWhammyTimer.IsActive(State.CurrentTime))
+            else if (State.StarPowerWhammyTimer.IsActive(State.CurrentTime) ||
+                State.StarPowerWhammyTimer.IsExpired(State.CurrentTime))
             {
                 RebaseProgressValues(State.CurrentTick);
 
