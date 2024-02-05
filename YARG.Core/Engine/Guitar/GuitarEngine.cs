@@ -269,13 +269,16 @@ namespace YARG.Core.Engine.Guitar
         protected override void RebaseProgressValues(uint baseTick)
         {
             base.RebaseProgressValues(baseTick);
+            RebaseStarPowerWhammy(baseTick);
+            RebaseSustains(baseTick);
+        }
 
+        protected void RebaseStarPowerWhammy(uint baseTick)
+        {
             if (baseTick < State.StarPowerWhammyBaseTick)
                 YargTrace.Fail($"Star Power whammy base tick cannot go backwards! Went from {State.StarPowerWhammyBaseTick} to {baseTick}");
 
             State.StarPowerWhammyBaseTick = baseTick;
-
-            RebaseSustains(baseTick);
         }
 
         protected void RebaseSustains(uint baseTick)
