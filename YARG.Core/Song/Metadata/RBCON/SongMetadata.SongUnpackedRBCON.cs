@@ -16,6 +16,8 @@ namespace YARG.Core.Song
         public override string Directory { get; }
         protected override DateTime MidiLastWrite => _midi.LastUpdatedTime;
 
+        public override EntryType SubType => EntryType.ExCON;
+
         public static (ScanResult, UnpackedRBCONMetadata?) ProcessNewEntry(UnpackedCONGroup group, string nodeName, YARGDTAReader reader, Dictionary<string, List<SongUpdate>> updates, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades)
         {
             try

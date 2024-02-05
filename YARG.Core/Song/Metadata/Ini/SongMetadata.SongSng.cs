@@ -21,6 +21,8 @@ namespace YARG.Core.Song
         public override ChartType Type => chart.Type;
         public override DateTime GetAddTime() => sngInfo.LastUpdatedTime;
 
+        public override EntryType SubType => EntryType.Sng;
+
         public override void Serialize(BinaryWriter writer, string groupDirectory)
         {
             string relative = Path.GetRelativePath(groupDirectory, sngInfo.FullName);

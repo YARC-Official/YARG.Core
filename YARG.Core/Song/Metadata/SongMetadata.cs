@@ -109,6 +109,8 @@ namespace YARG.Core.Song
 
         public virtual string Directory => string.Empty;
 
+        public virtual EntryType SubType => EntryType.Basic;
+
         public SortString Name => _name;
         public SortString Artist => _artist;
         public SortString Album => _album;

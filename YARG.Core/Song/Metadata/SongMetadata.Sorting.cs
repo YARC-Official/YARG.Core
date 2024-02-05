@@ -40,8 +40,9 @@ namespace YARG.Core.Song
             return DateTime.MinValue;
         }
 
-        private enum EntryType
+        public enum EntryType
         {
+            Basic,
             Ini,
             Sng,
             ExCON,
@@ -50,27 +51,10 @@ namespace YARG.Core.Song
 
         public bool IsPreferedOver(SongMetadata other)
         {
-            static EntryType ParseType(SongMetadata entry)
-            {
-                switch (entry)
-                {
-                    case UnpackedIniMetadata:
-                        return EntryType.Ini;
-                    case PackedRBCONMetadata:
-                        return EntryType.CON;
-                    case UnpackedRBCONMetadata:
-                        return EntryType.ExCON;
-                    default: //case SngMetadata:
-                        return EntryType.Sng;
-                }
-            }
-
-            var thisType = ParseType(this);
-            var otherType = ParseType(other);
-            if (thisType != otherType)
+            if (SubType != other.SubType)
             {
                 // CON > ExCON > Sng > Ini
-                return thisType > otherType;
+                return SubType > other.SubType;
             }
             // Otherwise, whatever would appear first
             return CompareTo(other) < 0;

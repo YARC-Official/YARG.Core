@@ -20,6 +20,8 @@ namespace YARG.Core.Song
         public override ChartType Type { get; }
         public override DateTime GetAddTime() => chartFile.LastUpdatedTime;
 
+        public override EntryType SubType => EntryType.Ini;
+
         public override void Serialize(BinaryWriter writer, string groupDirectory)
         {
             string relative = Path.GetRelativePath(groupDirectory, Directory);
