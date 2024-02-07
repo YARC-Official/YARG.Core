@@ -113,6 +113,7 @@ namespace YARG.Core.IO
         private readonly int fileSize;
         private readonly FixedArray<byte> dataBuffer;
         private readonly FixedArray<long> blockLocations;
+        private readonly DisposableCounter<FixedArray<long>> locations_wrapper;
         private readonly int initialOffset;
 
         private int bufferPosition;
@@ -174,6 +175,7 @@ namespace YARG.Core.IO
                 int totalSpace = fileSize + initialOffset;
                 int numBlocks = totalSpace % BYTES_PER_SECTION == 0 ? totalSpace / BYTES_PER_SECTION : totalSpace / BYTES_PER_SECTION + 1;
                 blockLocations = FixedArray<long>.Alloc(numBlocks);
+                locations_wrapper = DisposableCounter.Wrap(blockLocations);
 
                 int blockMovement = BLOCKS_PER_SECTION - blockOffset;
                 int byteMovement = blockMovement * BYTES_PER_BLOCK;
@@ -210,6 +212,7 @@ namespace YARG.Core.IO
 
                 int numBlocks = fileSize % BYTES_PER_BLOCK == 0 ? fileSize / BYTES_PER_BLOCK : fileSize / BYTES_PER_BLOCK + 1;
                 blockLocations = FixedArray<long>.Alloc(numBlocks);
+                locations_wrapper = DisposableCounter.Wrap(blockLocations);
 
                 Span<byte> buffer = stackalloc byte[3];
                 initialOffset = 0;
@@ -229,7 +232,23 @@ namespace YARG.Core.IO
                     }
                 }
             }
+            
             UpdateBuffer();
+        }
+
+        public CONFileStream Clone()
+        {
+            return new CONFileStream(_filestream.Name, fileSize, dataBuffer.Length, locations_wrapper.AddRef(), initialOffset);
+        }
+
+        private CONFileStream(string file, int fileSize, int bufSize, DisposableCounter<FixedArray<long>> locations, int initial)
+        {
+            _filestream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+            this.fileSize = fileSize;
+            dataBuffer = FixedArray<byte>.Alloc(bufSize);
+            locations_wrapper = locations;
+            blockLocations = locations.Value;
+            initialOffset = initial;
         }
 
         public override void Flush()
@@ -311,7 +330,7 @@ namespace YARG.Core.IO
                 {
                     _filestream.Dispose();
                     dataBuffer.Dispose();
-                    blockLocations.Dispose();
+                    locations_wrapper.Dispose();
                 }
                 disposedStream = true;
             }

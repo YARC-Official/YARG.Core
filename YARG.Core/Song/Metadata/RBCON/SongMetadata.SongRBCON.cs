@@ -132,7 +132,7 @@ namespace YARG.Core.Song
             return stream?.Read<int>(Endianness.Little) ?? 0;
         }
 
-        private AudioChannel? MoggFunc(SongStem stem, int[] indices, float[] panning)
+        private Func<SongStem, int[], float[], AudioChannel?>? InitMoggFunc()
         {
             var stream = GetMoggStream();
             if (stream == null)
@@ -149,8 +149,19 @@ namespace YARG.Core.Song
             }
 
             int start = stream.Read<int>(Endianness.Little);
-            stream.Seek(start, SeekOrigin.Begin);
-            return new AudioChannel(stem, wrapper.Release(), indices, panning);
+            wrapper.Release();
+
+            return (SongStem stem, int[] indices, float[] panning) =>
+            {
+                Stream newStream = stream switch
+                {
+                    CONFileStream constream => constream.Clone(),
+                    FileStream fileStream => new FileStream(fileStream.Name, FileMode.Open, FileAccess.Read, FileShare.Read, 1),
+                    _ => throw new Exception()
+                };
+                newStream.Seek(start, SeekOrigin.Begin);
+                return new AudioChannel(stem, newStream, indices, panning);
+            };
         }
 
         private Func<SongStem, int[], float[], AudioChannel?>? InitYARGMoggFunc()
@@ -182,7 +193,7 @@ namespace YARG.Core.Song
             switch (version)
             {
                 case 0x0A:
-                    func = MoggFunc;
+                    func = InitMoggFunc();
                     break;
                 case 0xF0:
                     func = InitYARGMoggFunc();
