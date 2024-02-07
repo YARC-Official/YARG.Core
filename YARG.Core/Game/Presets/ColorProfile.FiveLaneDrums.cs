@@ -1,13 +1,10 @@
 ﻿using System.Drawing;
-using System.IO;
-using YARG.Core.Extensions;
-using YARG.Core.Utility;
 
 namespace YARG.Core.Game
 {
     public partial class ColorProfile
     {
-        public class FiveLaneDrumsColors : IFretColorProvider, IBinarySerializable
+        public class FiveLaneDrumsColors : IFretColorProvider
         {
             #region Frets
 
@@ -150,95 +147,11 @@ namespace YARG.Core.Game
 
             #endregion
 
-            #region Serialization
-
             public FiveLaneDrumsColors Copy()
             {
                 // Kinda yucky, but it's easier to maintain
                 return (FiveLaneDrumsColors) MemberwiseClone();
             }
-
-            public void Serialize(BinaryWriter writer)
-            {
-                writer.Write(KickFret);
-                writer.Write(RedFret);
-                writer.Write(YellowFret);
-                writer.Write(BlueFret);
-                writer.Write(OrangeFret);
-                writer.Write(GreenFret);
-
-                writer.Write(KickFretInner);
-                writer.Write(RedFretInner);
-                writer.Write(YellowFretInner);
-                writer.Write(BlueFretInner);
-                writer.Write(OrangeFretInner);
-                writer.Write(GreenFretInner);
-
-                writer.Write(KickParticles);
-                writer.Write(RedParticles);
-                writer.Write(YellowParticles);
-                writer.Write(BlueParticles);
-                writer.Write(OrangeParticles);
-                writer.Write(GreenParticles);
-
-                writer.Write(KickNote);
-                writer.Write(RedNote);
-                writer.Write(YellowNote);
-                writer.Write(BlueNote);
-                writer.Write(OrangeNote);
-                writer.Write(GreenNote);
-
-                writer.Write(KickStarpower);
-                writer.Write(RedStarpower);
-                writer.Write(YellowStarpower);
-                writer.Write(BlueStarpower);
-                writer.Write(OrangeStarpower);
-                writer.Write(GreenStarpower);
-
-                writer.Write(ActivationNote);
-            }
-
-            public void Deserialize(BinaryReader reader, int version = 0)
-            {
-                KickFret = reader.ReadColor();
-                RedFret = reader.ReadColor();
-                YellowFret = reader.ReadColor();
-                BlueFret = reader.ReadColor();
-                OrangeFret = reader.ReadColor();
-                GreenFret = reader.ReadColor();
-
-                KickFretInner = reader.ReadColor();
-                RedFretInner = reader.ReadColor();
-                YellowFretInner = reader.ReadColor();
-                BlueFretInner = reader.ReadColor();
-                OrangeFretInner = reader.ReadColor();
-                GreenFretInner = reader.ReadColor();
-
-                KickParticles = reader.ReadColor();
-                RedParticles = reader.ReadColor();
-                YellowParticles = reader.ReadColor();
-                BlueParticles = reader.ReadColor();
-                OrangeParticles = reader.ReadColor();
-                GreenParticles = reader.ReadColor();
-
-                KickNote = reader.ReadColor();
-                RedNote = reader.ReadColor();
-                YellowNote = reader.ReadColor();
-                BlueNote = reader.ReadColor();
-                OrangeNote = reader.ReadColor();
-                GreenNote = reader.ReadColor();
-
-                KickStarpower = reader.ReadColor();
-                RedStarpower = reader.ReadColor();
-                YellowStarpower = reader.ReadColor();
-                BlueStarpower = reader.ReadColor();
-                OrangeStarpower = reader.ReadColor();
-                GreenStarpower = reader.ReadColor();
-
-                ActivationNote = reader.ReadColor();
-            }
-
-            #endregion
         }
     }
 }
