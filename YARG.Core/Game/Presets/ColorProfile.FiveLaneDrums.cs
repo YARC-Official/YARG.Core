@@ -134,7 +134,7 @@ namespace YARG.Core.Game
             {
                 return index switch
                 {
-                    0 => KickNote,
+                    0 => KickStarpower,
 
                     1 => RedStarpower,
                     2 => YellowStarpower,
