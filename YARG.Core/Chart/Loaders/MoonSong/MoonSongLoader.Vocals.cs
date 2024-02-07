@@ -194,9 +194,9 @@ namespace YARG.Core.Chart
             lyrics.Add(new(lyricFlags, strippedLyric, time, lyricTick));
         }
 
-        private List<VocalsPitchRange> GetRangeShifts(List<VocalsPart> parts, MoonSong.MoonInstrument sourceInstrument)
+        private List<VocalsRangeShift> GetRangeShifts(List<VocalsPart> parts, MoonSong.MoonInstrument sourceInstrument)
         {
-            var ranges = new List<VocalsPitchRange>();
+            var ranges = new List<VocalsRangeShift>();
 
             // Do nothing if no phrases were parsed in
             if (parts.All((part) => part.NotePhrases.Count < 1))
