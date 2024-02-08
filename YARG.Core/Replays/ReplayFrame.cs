@@ -30,7 +30,7 @@ namespace YARG.Core.Replays
             EventLog = new EngineEventLogger();
         }
 
-        public void Serialize(BinaryWriter writer)
+        public void Serialize(IBinaryDataWriter writer)
         {
             PlayerInfo.Serialize(writer);
             EngineParameters.Serialize(writer);
@@ -43,14 +43,14 @@ namespace YARG.Core.Replays
                 writer.Write(Inputs[i].Action);
                 writer.Write(Inputs[i].Integer);
             }
-            
+
             EventLog.Serialize(writer);
         }
 
         [MemberNotNull(nameof(EngineParameters))]
         [MemberNotNull(nameof(Stats))]
         [MemberNotNull(nameof(Inputs))]
-        public void Deserialize(BinaryReader reader, int version = 0)
+        public void Deserialize(IBinaryDataReader reader, int version = 0)
         {
             PlayerInfo = new ReplayPlayerInfo(reader, version);
 
@@ -88,7 +88,7 @@ namespace YARG.Core.Replays
 
                 Inputs[i] = new GameInput(time, action, value);
             }
-            
+
             EventLog.Deserialize(reader, version);
         }
     }

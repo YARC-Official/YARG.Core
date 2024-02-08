@@ -16,13 +16,13 @@ namespace YARG.Core.Engine.Logging
             EventTime = eventTime;
         }
 
-        public virtual void Serialize(BinaryWriter writer)
+        public virtual void Serialize(IBinaryDataWriter writer)
         {
             writer.Write((int) EventType);
             writer.Write(EventTime);
         }
 
-        public virtual void Deserialize(BinaryReader reader, int version = 0)
+        public virtual void Deserialize(IBinaryDataReader reader, int version = 0)
         {
             // Don't deserialize event type as it's done manually to determine object type
 

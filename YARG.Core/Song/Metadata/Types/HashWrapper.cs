@@ -5,6 +5,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
+using YARG.Core.Utility;
 
 namespace YARG.Core.Song
 {
@@ -76,7 +77,7 @@ namespace YARG.Core.Song
             }
         }
 
-        public void Serialize(BinaryWriter writer)
+        public void Serialize(IBinaryDataWriter writer)
         {
             writer.Write(_hash.ReadOnlySpan);
         }

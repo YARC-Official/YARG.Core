@@ -150,7 +150,7 @@ namespace YARG.Core.Game
                 return (FiveFretGuitarColors) MemberwiseClone();
             }
 
-            public void Serialize(BinaryWriter writer)
+            public void Serialize(IBinaryDataWriter writer)
             {
                 writer.Write(OpenFret);
                 writer.Write(GreenFret);
@@ -188,7 +188,7 @@ namespace YARG.Core.Game
                 writer.Write(OrangeNoteStarPower);
             }
 
-            public void Deserialize(BinaryReader reader, int version = 0)
+            public void Deserialize(IBinaryDataReader reader, int version = 0)
             {
                 OpenFret = reader.ReadColor();
                 GreenFret = reader.ReadColor();

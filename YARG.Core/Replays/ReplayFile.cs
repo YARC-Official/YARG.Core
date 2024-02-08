@@ -28,7 +28,7 @@ namespace YARG.Core.Replays
             Replay = replay;
         }
 
-        public static ReplayFile Create(BinaryReader reader)
+        public static ReplayFile Create(IBinaryDataReader reader)
         {
             var replayFile = new ReplayFile
             {
@@ -40,16 +40,17 @@ namespace YARG.Core.Replays
             return replayFile;
         }
 
-        public void ReadData(BinaryReader reader, int version = 0)
+        public void ReadData(IBinaryDataReader reader, int version = 0)
         {
             Replay = new Replay();
             Replay.Deserialize(reader, version);
         }
 
-        public void Serialize(BinaryWriter writer)
+        public void Serialize(IBinaryDataWriter writer)
         {
             using var dataStream = new MemoryStream();
-            using var dataWriter = new NullStringBinaryWriter(dataStream);
+            using var bDataWriter = new NullStringBinaryWriter(dataStream);
+            using var dataWriter = new BinaryWriterWrapper(bDataWriter);
 
             Replay.Serialize(dataWriter);
             var data = new ReadOnlySpan<byte>(dataStream.GetBuffer(), 0, (int) dataStream.Length);
@@ -59,7 +60,7 @@ namespace YARG.Core.Replays
             writer.Write(data);
         }
 
-        public void Deserialize(BinaryReader reader, int version = 0)
+        public void Deserialize(IBinaryDataReader reader, int version = 0)
         {
             Header = new ReplayHeader();
             Replay = new Replay();

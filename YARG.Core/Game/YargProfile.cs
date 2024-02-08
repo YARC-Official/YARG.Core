@@ -48,7 +48,7 @@ namespace YARG.Core.Game
 
         /// <summary>
         /// The difficulty to be saved in the profile.
-        /// 
+        ///
         /// If a song does not contain this difficulty, so long as the player
         /// does not *explicitly* and *manually* change the difficulty, this value
         /// should remain unchanged.
@@ -173,7 +173,7 @@ namespace YARG.Core.Game
         }
 
         // For replay serialization
-        public void Serialize(BinaryWriter writer)
+        public void Serialize(IBinaryDataWriter writer)
         {
             writer.Write(PROFILE_VERSION);
 
@@ -195,7 +195,7 @@ namespace YARG.Core.Game
             writer.Write(LeftyFlip);
         }
 
-        public void Deserialize(BinaryReader reader, int version = 0)
+        public void Deserialize(IBinaryDataReader reader, int version = 0)
         {
             version = reader.ReadInt32();
 

@@ -44,7 +44,7 @@ namespace YARG.Core.Game
             };
         }
 
-        public void Serialize(BinaryWriter writer)
+        public void Serialize(IBinaryDataWriter writer)
         {
             writer.Write(Version);
             writer.Write(Name);
@@ -54,7 +54,7 @@ namespace YARG.Core.Game
             FiveLaneDrums.Serialize(writer);
         }
 
-        public void Deserialize(BinaryReader reader, int version = 0)
+        public void Deserialize(IBinaryDataReader reader, int version = 0)
         {
             version = reader.ReadInt32();
             Name = reader.ReadString();

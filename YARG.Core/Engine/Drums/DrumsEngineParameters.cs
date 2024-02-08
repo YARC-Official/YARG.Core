@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using YARG.Core.Utility;
 
 namespace YARG.Core.Engine.Drums
 {
@@ -27,14 +28,14 @@ namespace YARG.Core.Engine.Drums
             Mode = mode;
         }
 
-        public override void Serialize(BinaryWriter writer)
+        public override void Serialize(IBinaryDataWriter writer)
         {
             base.Serialize(writer);
 
             writer.Write((byte) Mode);
         }
 
-        public override void Deserialize(BinaryReader reader, int version = 0)
+        public override void Deserialize(IBinaryDataReader reader, int version = 0)
         {
             base.Deserialize(reader, version);
 

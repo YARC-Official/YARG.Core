@@ -163,7 +163,7 @@ namespace YARG.Core.Engine
             Stars = 0;
         }
 
-        public virtual void Serialize(BinaryWriter writer)
+        public virtual void Serialize(IBinaryDataWriter writer)
         {
             writer.Write(CommittedScore);
             writer.Write(PendingScore);
@@ -188,7 +188,7 @@ namespace YARG.Core.Engine
             // writer.Write(Stars);
         }
 
-        public virtual void Deserialize(BinaryReader reader, int version = 0)
+        public virtual void Deserialize(IBinaryDataReader reader, int version = 0)
         {
             CommittedScore = reader.ReadInt32();
             PendingScore = reader.ReadInt32();

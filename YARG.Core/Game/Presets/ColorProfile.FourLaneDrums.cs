@@ -164,7 +164,7 @@ namespace YARG.Core.Game
                 return (FourLaneDrumsColors) MemberwiseClone();
             }
 
-            public void Serialize(BinaryWriter writer)
+            public void Serialize(IBinaryDataWriter writer)
             {
                 writer.Write(KickFret);
                 writer.Write(RedFret);
@@ -207,7 +207,7 @@ namespace YARG.Core.Game
                 writer.Write(ActivationNote);
             }
 
-            public void Deserialize(BinaryReader reader, int version = 0)
+            public void Deserialize(IBinaryDataReader reader, int version = 0)
             {
                 KickFret = reader.ReadColor();
                 RedFret = reader.ReadColor();

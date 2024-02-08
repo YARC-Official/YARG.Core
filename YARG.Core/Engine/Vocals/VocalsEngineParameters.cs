@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using YARG.Core.Utility;
 
 namespace YARG.Core.Engine.Vocals
 {
@@ -32,7 +33,7 @@ namespace YARG.Core.Engine.Vocals
             SingToActivateStarPower = singToActivateStarPower;
         }
 
-        public override void Serialize(BinaryWriter writer)
+        public override void Serialize(IBinaryDataWriter writer)
         {
             base.Serialize(writer);
 
@@ -41,7 +42,7 @@ namespace YARG.Core.Engine.Vocals
             writer.Write(SingToActivateStarPower);
         }
 
-        public override void Deserialize(BinaryReader reader, int version = 0)
+        public override void Deserialize(IBinaryDataReader reader, int version = 0)
         {
             base.Deserialize(reader, version);
 

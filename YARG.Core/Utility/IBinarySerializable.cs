@@ -1,13 +1,11 @@
-using System.IO;
-
 namespace YARG.Core.Utility
 {
     public interface IBinarySerializable
     {
 
-        public void Serialize(BinaryWriter writer);
+        public void Serialize(IBinaryDataWriter writer);
 
-        public void Deserialize(BinaryReader reader, int version = 0);
+        public void Deserialize(IBinaryDataReader reader, int version = 0);
 
     }
 }

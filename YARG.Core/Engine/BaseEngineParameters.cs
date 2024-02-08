@@ -33,7 +33,7 @@ namespace YARG.Core.Engine
             HitWindow = hitWindow;
         }
 
-        public virtual void Serialize(BinaryWriter writer)
+        public virtual void Serialize(IBinaryDataWriter writer)
         {
             HitWindow.Serialize(writer);
 
@@ -47,7 +47,7 @@ namespace YARG.Core.Engine
             }
         }
 
-        public virtual void Deserialize(BinaryReader reader, int version = 0)
+        public virtual void Deserialize(IBinaryDataReader reader, int version = 0)
         {
             // Since "HitWindow" is a property and returns
             // a "temporary value," we gotta do this.

@@ -72,7 +72,7 @@ namespace YARG.Core.Replays
             _cameraPresets[cameraPreset.Id] = cameraPreset;
         }
 
-        public void Serialize(BinaryWriter writer)
+        public void Serialize(IBinaryDataWriter writer)
         {
             writer.Write(CONTAINER_VERSION);
 
@@ -80,7 +80,7 @@ namespace YARG.Core.Replays
             SerializeDict(writer, _cameraPresets);
         }
 
-        public void Deserialize(BinaryReader reader, int version = 0)
+        public void Deserialize(IBinaryDataReader reader, int version = 0)
         {
             // This container has separate versioning
             version = reader.ReadInt32();
@@ -89,7 +89,7 @@ namespace YARG.Core.Replays
             DeserializeDict(reader, _cameraPresets);
         }
 
-        private static void SerializeDict<T>(BinaryWriter writer, Dictionary<Guid, T> dict)
+        private static void SerializeDict<T>(IBinaryDataWriter writer, Dictionary<Guid, T> dict)
         {
             writer.Write(dict.Count);
             foreach (var (key, value) in dict)
@@ -103,7 +103,7 @@ namespace YARG.Core.Replays
             }
         }
 
-        private static void DeserializeDict<T>(BinaryReader reader, Dictionary<Guid, T> dict)
+        private static void DeserializeDict<T>(IBinaryDataReader reader, Dictionary<Guid, T> dict)
         {
             dict.Clear();
             int len = reader.ReadInt32();

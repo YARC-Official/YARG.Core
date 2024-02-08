@@ -15,7 +15,7 @@ namespace YARG.Core.Replays
         public int         EngineVersion;
         public HashWrapper ReplayChecksum;
 
-        public void Serialize(BinaryWriter writer)
+        public void Serialize(IBinaryDataWriter writer)
         {
             Magic.Serialize(writer);
             writer.Write(ReplayVersion);
@@ -24,7 +24,7 @@ namespace YARG.Core.Replays
             ReplayChecksum.Serialize(writer);
         }
 
-        public void Deserialize(BinaryReader reader, int version = 0)
+        public void Deserialize(IBinaryDataReader reader, int version = 0)
         {
             Magic = EightCC.Read(reader);
             ReplayVersion = reader.ReadInt32();
@@ -62,12 +62,12 @@ namespace YARG.Core.Replays
             Frames = Array.Empty<ReplayFrame>();
         }
 
-        public Replay(BinaryReader reader, int version = 0)
+        public Replay(IBinaryDataReader reader, int version = 0)
         {
             Deserialize(reader, version);
         }
 
-        public void Serialize(BinaryWriter writer)
+        public void Serialize(IBinaryDataWriter writer)
         {
             writer.Write(SongName);
             writer.Write(ArtistName);
@@ -99,7 +99,7 @@ namespace YARG.Core.Replays
         [MemberNotNull(nameof(ReplayPresetContainer))]
         [MemberNotNull(nameof(PlayerNames))]
         [MemberNotNull(nameof(Frames))]
-        public void Deserialize(BinaryReader reader, int version = 0)
+        public void Deserialize(IBinaryDataReader reader, int version = 0)
         {
             SongName = reader.ReadString();
             ArtistName = reader.ReadString();

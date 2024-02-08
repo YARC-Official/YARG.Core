@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using YARG.Core.IO;
 using YARG.Core.Song;
+using YARG.Core.Utility;
 
 namespace YARG.Core.Replays
 {
@@ -31,7 +32,8 @@ namespace YARG.Core.Replays
         public static ReplayReadResult ReadReplay(string path, out ReplayFile? replayFile)
         {
             using var stream = File.OpenRead(path);
-            using var reader = new BinaryReader(stream);
+            using var bReader = new BinaryReader(stream);
+            using var reader = new BinaryReaderWrapper(bReader);
 
             try
             {
@@ -57,7 +59,8 @@ namespace YARG.Core.Replays
         public static HashWrapper? WriteReplay(string path, Replay replay)
         {
             using var stream = File.OpenWrite(path);
-            using var writer = new BinaryWriter(stream);
+            using var bWriter = new BinaryWriter(stream);
+            using var writer = new BinaryWriterWrapper(bWriter);
 
             try
             {

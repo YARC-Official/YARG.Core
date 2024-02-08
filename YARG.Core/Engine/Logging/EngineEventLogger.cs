@@ -20,7 +20,7 @@ namespace YARG.Core.Engine.Logging
             _events.Clear();
         }
 
-        public void Serialize(BinaryWriter writer)
+        public void Serialize(IBinaryDataWriter writer)
         {
             writer.Write(_events.Count);
             foreach (var engineEvent in _events)
@@ -29,7 +29,7 @@ namespace YARG.Core.Engine.Logging
             }
         }
 
-        public void Deserialize(BinaryReader reader, int version = 0)
+        public void Deserialize(IBinaryDataReader reader, int version = 0)
         {
             int count = reader.ReadInt32();
             for (int i = 0; i < count; i++)

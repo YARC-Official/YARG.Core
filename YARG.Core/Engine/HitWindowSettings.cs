@@ -144,7 +144,7 @@ namespace YARG.Core.Engine
             }
         }
 
-        public void Serialize(BinaryWriter writer)
+        public void Serialize(IBinaryDataWriter writer)
         {
             writer.Write(MaxWindow);
             writer.Write(MinWindow);
@@ -152,7 +152,7 @@ namespace YARG.Core.Engine
             writer.Write(FrontToBackRatio);
         }
 
-        public void Deserialize(BinaryReader reader, int version = 0)
+        public void Deserialize(IBinaryDataReader reader, int version = 0)
         {
             MaxWindow = reader.ReadDouble();
             MinWindow = reader.ReadDouble();

@@ -103,13 +103,13 @@ namespace YARG.Core.IO
         public static EightCC Read(BinaryReader reader) => new(reader.BaseStream.Read<ulong>(Endianness.Big));
         public static EightCC Read(YARGBinaryReader reader) => new(reader.Read<ulong>(Endianness.Big));
 
-        public void Serialize(BinaryWriter writer)
+        public void Serialize(IBinaryDataWriter writer)
         {
             writer.BaseStream.Write(_code, Endianness.Big);
         }
 
         [Obsolete("EightCC is a readonly struct, use the Read static method instead.", true)]
-        public void Deserialize(BinaryReader reader, int version = 0)
+        public void Deserialize(IBinaryDataReader reader, int version = 0)
             => throw new InvalidOperationException("EightCC is a readonly struct, use the Read static method instead.");
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
