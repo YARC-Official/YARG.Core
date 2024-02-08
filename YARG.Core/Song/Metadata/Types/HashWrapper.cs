@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Security.Cryptography;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
@@ -38,7 +36,7 @@ namespace YARG.Core.Song
             return new HashWrapper(hash.Release());
         }
 
-        public static HashWrapper Deserialize(BinaryReader reader)
+        public static HashWrapper Deserialize(IBinaryDataReader reader)
         {
             using var hash = DisposableCounter.Wrap(FixedArray<byte>.Alloc(HASH_SIZE_IN_BYTES));
             if (reader.Read(hash.Value.Span) != HASH_SIZE_IN_BYTES)

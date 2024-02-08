@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using YARG.Core.IO;
+using YARG.Core.Utility;
 
 namespace YARG.Core.Song.Cache
 {
@@ -114,9 +115,10 @@ namespace YARG.Core.Song.Cache
         {
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);
+            using BinaryWriterWrapper writerWrapper = new(writer);
 
             entry.RBData!.Serialize(writer);
-            entry.Serialize(writer, node);
+            entry.Serialize(writerWrapper, node);
 
             return ms.ToArray();
         }

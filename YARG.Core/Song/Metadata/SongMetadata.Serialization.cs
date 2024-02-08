@@ -1,8 +1,7 @@
-﻿using System;
-using System.IO;
-using YARG.Core.Song.Cache;
+﻿using YARG.Core.Song.Cache;
 using YARG.Core.IO;
 using YARG.Core.Chart;
+using YARG.Core.Utility;
 
 namespace YARG.Core.Song
 {
@@ -47,7 +46,7 @@ namespace YARG.Core.Song
             _hash = HashWrapper.Deserialize(reader);
         }
 
-        public void Serialize(BinaryWriter writer, CategoryCacheWriteNode node)
+        public void Serialize(IBinaryDataWriter writer, CategoryCacheWriteNode node)
         {
             writer.Write(node.title);
             writer.Write(node.artist);

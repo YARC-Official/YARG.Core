@@ -1,10 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using YARG.Core.Chart;
 using YARG.Core.IO;
 using YARG.Core.Song.Preparsers;
+using YARG.Core.Utility;
 
 namespace YARG.Core.Song
 {
@@ -114,7 +113,7 @@ namespace YARG.Core.Song
             ProGuitar_22Fret = DeserializeValues();
             ProBass_17Fret = DeserializeValues();
             ProBass_22Fret = DeserializeValues();
-    
+
             ProKeys = DeserializeValues();
 
             // Dj = DeserializeValues();
@@ -124,7 +123,7 @@ namespace YARG.Core.Song
             SetVocalsCount();
         }
 
-        public void Serialize(BinaryWriter writer)
+        public void Serialize(IBinaryDataWriter writer)
         {
             void SerializeValues(ref PartValues values)
             {
