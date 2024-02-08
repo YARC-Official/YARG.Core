@@ -23,6 +23,17 @@ namespace YARG.Core.Extensions
             return value;
         }
 
+        public static void Write<TType>(this Stream stream, TType value, Endianness endianness)
+            where TType : unmanaged, IComparable, IComparable<TType>, IConvertible, IEquatable<TType>, IFormattable
+        {
+            unsafe
+            {
+                byte* buffer = (byte*) &value;
+                CorrectByteOrder<TType>(buffer, endianness);
+                stream.Write(new Span<byte>(buffer, sizeof(TType)));
+            }
+        }
+
         public static bool ReadBoolean(this Stream stream)
         {
             byte b = (byte)stream.ReadByte();
@@ -37,17 +48,6 @@ namespace YARG.Core.Extensions
                 throw new EndOfStreamException($"Not enough data in the stream to read {length} bytes!");
             }
             return buffer;
-        }
-
-        public static void Write<TType>(this Stream stream, TType value, Endianness endianness)
-            where TType : unmanaged, IComparable, IComparable<TType>, IConvertible, IEquatable<TType>, IFormattable
-        {
-            unsafe
-            {
-                byte* buffer = (byte*) &value;
-                CorrectByteOrder<TType>(buffer, endianness);
-                stream.Write(new Span<byte>(buffer, sizeof(TType)));
-            }
         }
 
         public static unsafe void CorrectByteOrder<TType>(byte* bytes, Endianness endianness)

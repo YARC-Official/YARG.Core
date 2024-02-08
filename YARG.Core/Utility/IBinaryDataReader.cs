@@ -1,4 +1,5 @@
 ﻿using System;
+using YARG.Core.IO;
 
 namespace YARG.Core.Utility
 {
@@ -25,5 +26,6 @@ namespace YARG.Core.Utility
         public ushort ReadUInt16();
         public uint ReadUInt32();
         public ulong ReadUInt64();
+        public T Read<T>(Endianness endianness) where T : unmanaged, IComparable, IComparable<T>, IConvertible, IEquatable<T>, IFormattable;
     }
 }

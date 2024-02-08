@@ -1,5 +1,7 @@
 ﻿using System;
 using System.IO;
+using YARG.Core.Extensions;
+using YARG.Core.IO;
 
 namespace YARG.Core.Utility
 {
@@ -58,5 +60,11 @@ namespace YARG.Core.Utility
         public uint ReadUInt32() => _reader.ReadUInt32();
 
         public ulong ReadUInt64() => _reader.ReadUInt64();
+
+        public T Read<T>(Endianness endianness)
+            where T : unmanaged, IComparable, IComparable<T>, IConvertible, IEquatable<T>, IFormattable
+        {
+            return _reader.BaseStream.Read<T>(endianness);
+        }
     }
 }

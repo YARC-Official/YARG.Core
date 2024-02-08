@@ -1,4 +1,5 @@
 ﻿using System;
+using YARG.Core.IO;
 
 namespace YARG.Core.Utility
 {
@@ -24,5 +25,6 @@ namespace YARG.Core.Utility
         public void Write(ushort value);
         public void Write(uint value);
         public void Write(ulong value);
+        public void Write<T>(T value, Endianness endianness) where T : unmanaged, IComparable, IComparable<T>, IConvertible, IEquatable<T>, IFormattable;
     }
 }
