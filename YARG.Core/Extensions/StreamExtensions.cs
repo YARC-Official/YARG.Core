@@ -50,7 +50,7 @@ namespace YARG.Core.Extensions
             }
         }
 
-        private static unsafe void CorrectByteOrder<TType>(byte* bytes, Endianness endianness)
+        public static unsafe void CorrectByteOrder<TType>(byte* bytes, Endianness endianness)
             where TType : unmanaged, IComparable, IComparable<TType>, IConvertible, IEquatable<TType>, IFormattable
         {
             // Have to flip bits if the OS uses the opposite Endian

@@ -40,13 +40,20 @@ namespace YARG.Core.IO
         public static FourCC Read(BinaryReader reader) => new(reader.BaseStream.Read<uint>(Endianness.Big));
         public static FourCC Read(YARGBinaryReader reader) => new(reader.Read<uint>(Endianness.Big));
 
-        public void Serialize(BinaryWriter writer)
+        public void Serialize(IBinaryDataWriter writer)
         {
-            writer.BaseStream.Write(_code, Endianness.Big);
+            uint code = _code;
+            unsafe
+            {
+                byte* pCode = (byte*) &code;
+                StreamExtensions.CorrectByteOrder<uint>(pCode, Endianness.Big);
+            }
+
+            writer.Write(code);
         }
 
         [Obsolete("FourCC is a readonly struct, use the Read static method instead.", true)]
-        public void Deserialize(BinaryReader reader, int version = 0)
+        public void Deserialize(IBinaryDataReader reader, int version = 0)
             => throw new InvalidOperationException("FourCC is a readonly struct, use the Read static method instead.");
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -105,7 +112,14 @@ namespace YARG.Core.IO
 
         public void Serialize(IBinaryDataWriter writer)
         {
-            writer.BaseStream.Write(_code, Endianness.Big);
+            ulong code = _code;
+            unsafe
+            {
+                byte* pCode = (byte*) &code;
+                StreamExtensions.CorrectByteOrder<ulong>(pCode, Endianness.Big);
+            }
+
+            writer.Write(code);
         }
 
         [Obsolete("EightCC is a readonly struct, use the Read static method instead.", true)]
