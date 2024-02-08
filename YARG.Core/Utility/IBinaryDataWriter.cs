@@ -1,5 +1,4 @@
 ﻿using System;
-using System.IO;
 
 namespace YARG.Core.Utility
 {
@@ -17,6 +16,8 @@ namespace YARG.Core.Utility
         public void Write(short value);
         public void Write(int value);
         public void Write(long value);
+        public void Write(ReadOnlySpan<byte> buffer);
+        public void Write(ReadOnlySpan<char> buffer);
         public void Write(sbyte value);
         public void Write(float value);
         public void Write(string value);

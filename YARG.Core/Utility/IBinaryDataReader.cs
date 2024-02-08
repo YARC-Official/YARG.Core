@@ -4,10 +4,11 @@ namespace YARG.Core.Utility
 {
     public interface IBinaryDataReader : IDisposable
     {
-
         public int Read();
         public int Read(byte[] buffer, int index, int count);
         public int Read(char[] buffer, int index, int count);
+        public int Read(Span<byte> buffer);
+        public int Read(Span<char> buffer);
         public bool ReadBoolean();
         public byte ReadByte();
         public byte[] ReadBytes(int count);
@@ -24,6 +25,5 @@ namespace YARG.Core.Utility
         public ushort ReadUInt16();
         public uint ReadUInt32();
         public ulong ReadUInt64();
-
     }
 }

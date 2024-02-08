@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 
 namespace YARG.Core.Utility
 {
@@ -36,6 +37,10 @@ namespace YARG.Core.Utility
         public void Write(int value) => _writer.Write(value);
 
         public void Write(long value) => _writer.Write(value);
+
+        public void Write(ReadOnlySpan<byte> buffer) => _writer.Write(buffer);
+
+        public void Write(ReadOnlySpan<char> buffer) => _writer.Write(buffer);
 
         public void Write(sbyte value) => _writer.Write(value);
 

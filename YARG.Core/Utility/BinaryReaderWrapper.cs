@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 
 namespace YARG.Core.Utility
 {
@@ -21,6 +22,10 @@ namespace YARG.Core.Utility
         public int Read(byte[] buffer, int index, int count) => _reader.Read(buffer, index, count);
 
         public int Read(char[] buffer, int index, int count) => _reader.Read(buffer, index, count);
+
+        public int Read(Span<byte> buffer) => _reader.Read(buffer);
+
+        public int Read(Span<char> buffer) => _reader.Read(buffer);
 
         public bool ReadBoolean() => _reader.ReadBoolean();
 
