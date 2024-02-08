@@ -48,7 +48,7 @@ namespace YARG.Core.Song.Cache
         /// Format is YY_MM_DD_RR: Y = year, M = month, D = day, R = revision (reset across dates, only increment
         /// if multiple cache version changes happen in a single day).
         /// </summary>
-        public const int CACHE_VERSION = 24_02_15_02;
+        public const int CACHE_VERSION = 24_02_15_03;
 
         private static readonly object dirLock = new();
         private static readonly object fileLock = new();
@@ -76,8 +76,8 @@ namespace YARG.Core.Song.Cache
 
         private readonly bool allowDuplicates = true;
         private readonly bool fullDirectoryPlaylists = false;
-        private readonly List<SongMetadata> duplicatesRejected = new();
-        private readonly List<SongMetadata> duplicatesToRemove = new();
+        private readonly List<SongEntry> duplicatesRejected = new();
+        private readonly List<SongEntry> duplicatesToRemove = new();
 
         private CacheHandler(List<string> baseDirectories, bool allowDuplicates, bool fullDirectoryPlaylists)
         {
@@ -172,9 +172,9 @@ namespace YARG.Core.Song.Cache
 
         private void CleanupDuplicates()
         {
-            static bool TryRemove<TGroup, TMetadata>(List<TGroup> groups, SongMetadata entry)
+            static bool TryRemove<TGroup, TMetadata>(List<TGroup> groups, SongEntry entry)
                 where TGroup : ICacheGroup<TMetadata>
-                where TMetadata : SongMetadata
+                where TMetadata : SongEntry
             {
                 for (int i = 0; i < groups.Count; ++i)
                 {
@@ -193,17 +193,17 @@ namespace YARG.Core.Song.Cache
 
             foreach (var entry in duplicatesToRemove)
             {
-                if (TryRemove<IniGroup, IniSubMetadata>(iniGroups, entry))
+                if (TryRemove<IniGroup, IniSubEntry>(iniGroups, entry))
                 {
                     continue;
                 }
 
-                if (TryRemove<PackedCONGroup, RBCONSubMetadata>(conGroups.Values, entry))
+                if (TryRemove<PackedCONGroup, RBCONEntry>(conGroups.Values, entry))
                 {
                     continue;
                 }
 
-                TryRemove<UnpackedCONGroup, RBCONSubMetadata>(extractedConGroups.Values, entry);
+                TryRemove<UnpackedCONGroup, RBCONEntry>(extractedConGroups.Values, entry);
             }
         }
 
@@ -214,7 +214,7 @@ namespace YARG.Core.Song.Cache
             for (int i = 0; i < instruments.Length; ++i)
                 instruments[i] = new InstrumentCategory(enums[i]);
 
-            void SortEntries(List<SongMetadata> entries)
+            void SortEntries(List<SongEntry> entries)
             {
                 foreach (var entry in entries)
                 {
@@ -421,14 +421,14 @@ namespace YARG.Core.Song.Cache
             return group.Upgrades.Count > 0;
         }
 
-        private bool AddEntry(SongMetadata entry)
+        private bool AddEntry(SongEntry entry)
         {
             var hash = entry.Hash;
             lock (entryLock)
             {
                 if (!cache.Entries.TryGetValue(hash, out var list))
                 {
-                    cache.Entries.Add(hash, list = new List<SongMetadata>());
+                    cache.Entries.Add(hash, list = new List<SongEntry>());
                 }
                 else if (!allowDuplicates)
                 {

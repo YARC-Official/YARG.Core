@@ -296,7 +296,7 @@ namespace YARG.Core.Song.Cache
                     // Error catching must be done per-thread
                     try
                     {
-                        AddEntry(PackedRBCONMetadata.LoadFromCache_Quick(group.CONFile, name, upgrades, entryReader, strings));
+                        AddEntry(PackedRBCONEntry.LoadFromCache_Quick(group.CONFile, name, upgrades, entryReader, strings));
                     }
                     catch (Exception ex)
                     {
@@ -326,7 +326,7 @@ namespace YARG.Core.Song.Cache
                     // Error catching must be done per-thread
                     try
                     {
-                        AddEntry(UnpackedRBCONMetadata.LoadFromCache_Quick(directory, dta, name, upgrades, entryReader, strings));
+                        AddEntry(UnpackedRBCONEntry.LoadFromCache_Quick(directory, dta, name, upgrades, entryReader, strings));
                     }
                     catch (Exception ex)
                     {

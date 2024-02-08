@@ -21,14 +21,14 @@ namespace YARG.Core.Song.Cache
 
         public override void ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
         {
-            var song = UnpackedRBCONMetadata.TryLoadFromCache(Location, DTA, nodeName, upgrades, reader, strings);
+            var song = UnpackedRBCONEntry.TryLoadFromCache(Location, DTA, nodeName, upgrades, reader, strings);
             if (song != null)
             {
                 AddEntry(nodeName, index, song);
             }
         }
 
-        public override byte[] SerializeEntries(Dictionary<SongMetadata, CategoryCacheWriteNode> nodes)
+        public override byte[] SerializeEntries(Dictionary<SongEntry, CategoryCacheWriteNode> nodes)
         {
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);

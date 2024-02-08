@@ -189,7 +189,7 @@ namespace YARG.Core.Song.Cache
 
                 int length = reader.ReadInt32();
                 var entryReader = reader.Slice(length);
-                AddEntry(PackedRBCONMetadata.LoadFromCache_Quick(group.CONFile, name, upgrades, entryReader, strings));
+                AddEntry(PackedRBCONEntry.LoadFromCache_Quick(group.CONFile, name, upgrades, entryReader, strings));
             }
         }
 
@@ -208,7 +208,7 @@ namespace YARG.Core.Song.Cache
 
                 int length = reader.ReadInt32();
                 var entryReader = reader.Slice(length);
-                AddEntry(UnpackedRBCONMetadata.LoadFromCache_Quick(directory, dta, name, upgrades, entryReader, strings));
+                AddEntry(UnpackedRBCONEntry.LoadFromCache_Quick(directory, dta, name, upgrades, entryReader, strings));
             }
         }
 

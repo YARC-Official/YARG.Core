@@ -24,7 +24,7 @@ namespace YARG.Core.Song
         }
     }
 
-    public abstract class IniSubMetadata : SongMetadata
+    public abstract class IniSubEntry : SongEntry
     {
         public static class IniAudioChecker
         {
@@ -87,8 +87,19 @@ namespace YARG.Core.Song
 
         public abstract ChartType Type { get; }
 
-        public abstract void Serialize(BinaryWriter writer, string groupDirectory);
+        protected abstract void Serialize(BinaryWriter writer, string groupDirectory);
         protected abstract Stream? GetChartStream();
+
+        public byte[] Serialize(CategoryCacheWriteNode node, string groupDirectory)
+        {
+            using MemoryStream ms = new();
+            using BinaryWriter writer = new(ms);
+
+            Metadata.Serialize(writer, node);
+            Serialize(writer, groupDirectory);
+
+            return ms.ToArray();
+        }
 
         public override SongChart? LoadChart()
         {
@@ -97,10 +108,10 @@ namespace YARG.Core.Song
                 return null;
 
             if (Type != ChartType.Chart)
-                return SongChart.FromMidi(_parseSettings, MidFileLoader.LoadMidiFile(stream));
+                return SongChart.FromMidi(ParseSettings, MidFileLoader.LoadMidiFile(stream));
 
             using var reader = new StreamReader(stream);
-            return SongChart.FromDotChart(_parseSettings, reader.ReadToEnd());
+            return SongChart.FromDotChart(ParseSettings, reader.ReadToEnd());
         }
 
         public override byte[]? LoadMiloData()
@@ -108,99 +119,7 @@ namespace YARG.Core.Song
             return null;
         }
 
-        public abstract override List<AudioChannel> LoadAudioStreams(params SongStem[] ignoreStems);
-        public abstract override List<AudioChannel> LoadPreviewAudio();
-        public abstract override byte[]? LoadAlbumData();
-        public abstract override BackgroundResult? LoadBackground(LoadingOptions options);
-
-        public IniSubMetadata(BinaryReader reader, CategoryCacheStrings strings)
-            : base(reader, strings)
-        {
-        }
-
-        public IniSubMetadata(AvailableParts parts, HashWrapper hash, IniSection section, string defaultPlaylist)
-        {
-            _parts = parts;
-            _hash = hash;
-            _parseSettings.DrumsType = parts.GetDrumType();
-
-            section.TryGet("name", out _name, DEFAULT_NAME);
-            section.TryGet("artist", out _artist, DEFAULT_ARTIST);
-            section.TryGet("album", out _album, DEFAULT_ALBUM);
-            section.TryGet("genre", out _genre, DEFAULT_GENRE);
-            if (!section.TryGet("charter", out _charter, DEFAULT_CHARTER))
-                section.TryGet("frets", out _charter, DEFAULT_CHARTER);
-            section.TryGet("icon", out _source, DEFAULT_SOURCE);
-            section.TryGet("playlist", out _playlist, defaultPlaylist);
-
-            if (section.TryGet("year", out _unmodifiedYear))
-            {
-                Year = _unmodifiedYear;
-            }
-            else if (section.TryGet("year_chart", out _unmodifiedYear))
-            {
-                if (_unmodifiedYear.StartsWith(", "))
-                    Year = _unmodifiedYear[2..];
-                else if (_unmodifiedYear.StartsWith(','))
-                    Year = _unmodifiedYear[1..];
-                else
-                    Year = _unmodifiedYear;
-            }
-            else
-                _unmodifiedYear = DEFAULT_YEAR;
-
-
-            section.TryGet("loading_phrase", out _loadingPhrase);
-
-            if (!section.TryGet("playlist_track", out _playlistTrack))
-                _playlistTrack = -1;
-
-            if (!section.TryGet("album_track", out _albumTrack))
-                _albumTrack = -1;
-
-            section.TryGet("song_length", out _songLength);
-
-            if (!section.TryGet("preview", out _previewStart, out _previewEnd))
-            {
-                if (!section.TryGet("preview_start_time", out _previewStart) &&
-                    section.TryGet("previewStart", out double previewStartSeconds))
-                    PreviewStartSeconds = previewStartSeconds;
-
-                if (!section.TryGet("preview_end_time", out _previewEnd) &&
-                    section.TryGet("previewEnd", out double previewEndSeconds))
-                    PreviewEndSeconds = previewEndSeconds;
-            }
-
-
-            if (!section.TryGet("delay", out _songOffset) || _songOffset == 0)
-            {
-                if (section.TryGet("offset", out double songOffsetSeconds))
-                {
-                    SongOffsetSeconds = songOffsetSeconds;
-                }
-            }
-
-            section.TryGet("video_start_time", out _videoStartTime);
-            _videoEndTime = section.TryGet("video_end_time", out long videoEndTime) ? videoEndTime : -1000;
-
-            if (!section.TryGet("hopo_frequency", out _parseSettings.HopoThreshold))
-                _parseSettings.HopoThreshold = -1;
-
-            if (!section.TryGet("hopofreq", out _parseSettings.HopoFreq_FoF))
-                _parseSettings.HopoFreq_FoF = -1;
-
-            section.TryGet("eighthnote_hopo", out _parseSettings.EighthNoteHopo);
-
-            if (!section.TryGet("sustain_cutoff_threshold", out _parseSettings.SustainCutoffThreshold))
-                _parseSettings.SustainCutoffThreshold = -1;
-
-            if (!section.TryGet("multiplier_note", out _parseSettings.StarPowerNote))
-                _parseSettings.StarPowerNote = -1;
-
-            _isMaster = !section.TryGet("tags", out string tag) || tag.ToLower() != "cover";
-        }
-
-        protected static (ScanResult, AvailableParts?) ScanIniChartFile(byte[] file, ChartType chartType, IniSection modifiers)
+        protected static (ScanResult Result, AvailableParts? Parts) ScanIniChartFile(byte[] file, ChartType chartType, IniSection modifiers)
         {
             AvailableParts parts = new();
             DrumPreparseHandler drums = new()
@@ -275,6 +194,108 @@ namespace YARG.Core.Song
             if (!modifiers.TryGet("five_lane_drums", out bool fivelane))
                 return DrumsType.Unknown;
             return fivelane ? DrumsType.FiveLane : DrumsType.FourLane;
+        }
+    }
+
+    public partial struct SongMetadata
+    {
+        public SongMetadata(AvailableParts parts, HashWrapper hash, IniSection section, string defaultPlaylist)
+        {
+            Parts = parts;
+            Hash = hash;
+            ParseSettings = ParseSettings.Default;
+            ParseSettings.DrumsType = parts.GetDrumType();
+
+            section.TryGet("name", out Name, DEFAULT_NAME);
+            section.TryGet("artist", out Artist, DEFAULT_ARTIST);
+            section.TryGet("album", out Album, DEFAULT_ALBUM);
+            section.TryGet("genre", out Genre, DEFAULT_GENRE);
+
+            if (!section.TryGet("charter", out Charter, DEFAULT_CHARTER))
+            {
+                section.TryGet("frets", out Charter, DEFAULT_CHARTER);
+            }
+
+            section.TryGet("icon", out Source, DEFAULT_SOURCE);
+            section.TryGet("playlist", out Playlist, defaultPlaylist);
+
+            _unmodifiedYear = DEFAULT_YEAR;
+            _parsedYear = DEFAULT_YEAR;
+            _intYear = int.MaxValue;
+
+            _songLength = 0;
+            _songOffset = 0;
+
+            _previewStart = 0;
+            _previewEnd = 0;
+
+            _videoStartTime = 0;
+            _videoEndTime = -1;
+
+            section.TryGet("loading_phrase", out LoadingPhrase);
+
+            if (!section.TryGet("playlist_track", out PlaylistTrack))
+                PlaylistTrack = -1;
+
+            if (!section.TryGet("album_track", out AlbumTrack))
+                AlbumTrack = -1;
+
+            section.TryGet("song_length", out _songLength);
+
+            section.TryGet("video_start_time", out _videoStartTime);
+            _videoEndTime = section.TryGet("video_end_time", out long videoEndTime) ? videoEndTime : -1000;
+
+            if (!section.TryGet("hopo_frequency", out ParseSettings.HopoThreshold))
+                ParseSettings.HopoThreshold = -1;
+
+            if (!section.TryGet("hopofreq", out ParseSettings.HopoFreq_FoF))
+                ParseSettings.HopoFreq_FoF = -1;
+
+            section.TryGet("eighthnote_hopo", out ParseSettings.EighthNoteHopo);
+
+            if (!section.TryGet("sustain_cutoff_threshold", out ParseSettings.SustainCutoffThreshold))
+                ParseSettings.SustainCutoffThreshold = -1;
+
+            if (!section.TryGet("multiplier_note", out ParseSettings.StarPowerNote))
+                ParseSettings.StarPowerNote = -1;
+
+            IsMaster = !section.TryGet("tags", out string tag) || tag.ToLower() != "cover";
+
+            if (section.TryGet("year", out _unmodifiedYear))
+            {
+                Year = _unmodifiedYear;
+            }
+            else if (section.TryGet("year_chart", out _unmodifiedYear))
+            {
+                if (_unmodifiedYear.StartsWith(", "))
+                    Year = _unmodifiedYear[2..];
+                else if (_unmodifiedYear.StartsWith(','))
+                    Year = _unmodifiedYear[1..];
+                else
+                    Year = _unmodifiedYear;
+            }
+            else
+                _unmodifiedYear = DEFAULT_YEAR;
+
+            if (!section.TryGet("preview", out _previewStart, out _previewEnd))
+            {
+                if (!section.TryGet("preview_start_time", out _previewStart) &&
+                    section.TryGet("previewStart", out double previewStartSeconds))
+                    PreviewStartSeconds = previewStartSeconds;
+
+                if (!section.TryGet("preview_end_time", out _previewEnd) &&
+                    section.TryGet("previewEnd", out double previewEndSeconds))
+                    PreviewEndSeconds = previewEndSeconds;
+            }
+
+
+            if (!section.TryGet("delay", out _songOffset) || _songOffset == 0)
+            {
+                if (section.TryGet("offset", out double songOffsetSeconds))
+                {
+                    SongOffsetSeconds = songOffsetSeconds;
+                }
+            }
         }
     }
 }

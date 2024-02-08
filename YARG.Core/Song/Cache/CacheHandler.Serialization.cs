@@ -227,7 +227,7 @@ namespace YARG.Core.Song.Cache
         {
             _progress.Stage = ScanStage.WritingCache;
             using var writer = new BinaryWriter(new FileStream(cacheLocation, FileMode.Create, FileAccess.Write));
-            Dictionary<SongMetadata, CategoryCacheWriteNode> nodes = new();
+            Dictionary<SongEntry, CategoryCacheWriteNode> nodes = new();
 
             writer.Write(CACHE_VERSION);
             writer.Write(fullDirectoryPlaylists);
@@ -252,20 +252,20 @@ namespace YARG.Core.Song.Cache
                     entryCons.Add(group);
             }
 
-            ICacheGroup<IniSubMetadata>.SerializeGroups(iniGroups, writer, nodes);
+            ICacheGroup<IniSubEntry>.SerializeGroups(iniGroups, writer, nodes);
             IModificationGroup.SerializeGroups(updateGroups.Values, writer);
             IModificationGroup.SerializeGroups(upgradeGroups.Values, writer);
             IModificationGroup.SerializeGroups(upgradeCons, writer);
-            ICacheGroup<RBCONSubMetadata>.SerializeGroups(entryCons, writer, nodes);
-            ICacheGroup<RBCONSubMetadata>.SerializeGroups(extractedConGroups.Values, writer, nodes);
+            ICacheGroup<RBCONEntry>.SerializeGroups(entryCons, writer, nodes);
+            ICacheGroup<RBCONEntry>.SerializeGroups(extractedConGroups.Values, writer, nodes);
         }
 
         private void ReadIniEntry(string baseDirectory, IniGroup group, BinaryReader reader, CategoryCacheStrings strings)
         {
             bool isSngEntry = reader.ReadBoolean();
             var entry = isSngEntry ?
-                SngMetadata.TryLoadFromCache(baseDirectory, reader, strings) :
-                UnpackedIniMetadata.TryLoadFromCache(baseDirectory, reader, strings);
+                SngEntry.TryLoadFromCache(baseDirectory, reader, strings) :
+                UnpackedIniEntry.TryLoadFromCache(baseDirectory, reader, strings);
 
             if (entry == null)
             {
@@ -506,8 +506,8 @@ namespace YARG.Core.Song.Cache
         private void QuickReadIniEntry(string baseDirectory, BinaryReader reader, CategoryCacheStrings strings)
         {
             var entry = reader.ReadBoolean() ?
-                SngMetadata.LoadFromCache_Quick(baseDirectory, reader, strings) :
-                UnpackedIniMetadata.IniFromCache_Quick(baseDirectory, reader, strings);
+                SngEntry.LoadFromCache_Quick(baseDirectory, reader, strings) :
+                UnpackedIniEntry.IniFromCache_Quick(baseDirectory, reader, strings);
 
             if (entry != null)
             {

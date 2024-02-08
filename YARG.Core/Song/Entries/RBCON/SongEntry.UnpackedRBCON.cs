@@ -7,7 +7,7 @@ using YARG.Core.IO;
 
 namespace YARG.Core.Song
 {
-    public class UnpackedRBCONMetadata : RBCONSubMetadata
+    public class UnpackedRBCONEntry : RBCONEntry
     {
         private readonly AbridgedFileInfo? _dta;
         private readonly AbridgedFileInfo _midi;
@@ -18,11 +18,11 @@ namespace YARG.Core.Song
 
         public override EntryType SubType => EntryType.ExCON;
 
-        public static (ScanResult, UnpackedRBCONMetadata?) ProcessNewEntry(UnpackedCONGroup group, string nodeName, YARGDTAReader reader, Dictionary<string, List<SongUpdate>> updates, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades)
+        public static (ScanResult, UnpackedRBCONEntry?) ProcessNewEntry(UnpackedCONGroup group, string nodeName, YARGDTAReader reader, Dictionary<string, List<SongUpdate>> updates, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades)
         {
             try
             {
-                var song = new UnpackedRBCONMetadata(group, nodeName, reader, updates, upgrades);
+                var song = new UnpackedRBCONEntry(group, nodeName, reader, updates, upgrades);
                 var result = song.ParseRBCONMidi(null);
                 if (result != ScanResult.Success)
                 {
@@ -37,7 +37,7 @@ namespace YARG.Core.Song
             }
         }
 
-        public static UnpackedRBCONMetadata? TryLoadFromCache(string directory, AbridgedFileInfo dta, string nodename, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
+        public static UnpackedRBCONEntry? TryLoadFromCache(string directory, AbridgedFileInfo dta, string nodename, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
         {
             string subname = reader.ReadString();
             string songDirectory = Path.Combine(directory, subname);
@@ -59,7 +59,8 @@ namespace YARG.Core.Song
                 }
             }
 
-            var song = new UnpackedRBCONMetadata(songDirectory, subname, dta, midiInfo, updateMidi, reader, strings);
+            var metadata = new SongMetadata(reader, strings);
+            var song = new UnpackedRBCONEntry(songDirectory, subname, dta, midiInfo, updateMidi, metadata, reader);
             if (upgrades.TryGetValue(nodename, out var upgrade))
             {
                 song.Upgrade = upgrade.Item2;
@@ -67,7 +68,7 @@ namespace YARG.Core.Song
             return song;
         }
 
-        public static UnpackedRBCONMetadata LoadFromCache_Quick(string directory, AbridgedFileInfo? dta, string nodename, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
+        public static UnpackedRBCONEntry LoadFromCache_Quick(string directory, AbridgedFileInfo? dta, string nodename, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
         {
             string subname = reader.ReadString();
             string songDirectory = Path.Combine(directory, subname);
@@ -77,7 +78,8 @@ namespace YARG.Core.Song
 
             var updateMidi = reader.ReadBoolean() ? new AbridgedFileInfo(reader) : null;
 
-            var song = new UnpackedRBCONMetadata(songDirectory, subname, dta, midiInfo, updateMidi, reader, strings);
+            var metadata = new SongMetadata(reader, strings);
+            var song = new UnpackedRBCONEntry(songDirectory, subname, dta, midiInfo, updateMidi, metadata, reader);
             if (upgrades.TryGetValue(nodename, out var upgrade))
             {
                 song.Upgrade = upgrade.Item2;
@@ -85,7 +87,7 @@ namespace YARG.Core.Song
             return song;
         }
 
-        private UnpackedRBCONMetadata(UnpackedCONGroup group, string nodename, YARGDTAReader reader, Dictionary<string, List<SongUpdate>> updates, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades)
+        private UnpackedRBCONEntry(UnpackedCONGroup group, string nodename, YARGDTAReader reader, Dictionary<string, List<SongUpdate>> updates, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades)
         {
             var results = Init(nodename, reader, updates, upgrades, group.DefaultPlaylist);
             
@@ -105,9 +107,9 @@ namespace YARG.Core.Song
             _dta = group.DTA;
         }
 
-        private UnpackedRBCONMetadata(string directory, string nodename, AbridgedFileInfo? dta, AbridgedFileInfo midi
-            , AbridgedFileInfo? updateMidi, BinaryReader reader, CategoryCacheStrings strings)
-            : base(updateMidi, reader, strings)
+        private UnpackedRBCONEntry(string directory, string nodename, AbridgedFileInfo? dta, AbridgedFileInfo midi,
+            AbridgedFileInfo? updateMidi, SongMetadata metadata, BinaryReader reader)
+            : base(updateMidi, metadata, reader)
         {
             Directory = directory;
             _nodename = nodename;
@@ -115,18 +117,18 @@ namespace YARG.Core.Song
             _midi = midi;
         }
 
-        public override void Serialize(BinaryWriter writer, CategoryCacheWriteNode node)
+        protected override void SerializeSubData(BinaryWriter writer)
         {
             writer.Write(_nodename);
             writer.Write(_midi.LastUpdatedTime.ToBinary());
-            base.Serialize(writer, node);
         }
 
         public override byte[]? LoadMiloData()
         {
-            if (UpdateMilo != null && UpdateMilo.Exists())
+            var bytes = base.LoadMiloData();
+            if (bytes != null)
             {
-                return File.ReadAllBytes(UpdateMilo.FullName);
+                return bytes;
             }
 
             string milo = Path.Combine(Directory, "gen", _nodename + ".milo_xbox");
@@ -157,9 +159,10 @@ namespace YARG.Core.Song
 
         protected override byte[]? LoadRawImageData()
         {
-            if (UpdateImage != null && UpdateImage.Exists())
+            var bytes = base.LoadRawImageData();
+            if (bytes != null)
             {
-                return File.ReadAllBytes(UpdateImage.FullName);
+                return bytes;
             }
 
             string image = Path.Combine(Directory, "gen", _nodename + "_keep.png_xbox");
@@ -172,7 +175,7 @@ namespace YARG.Core.Song
 
         protected override Stream? GetMoggStream()
         {
-            var stream = LoadUpdateMoggStream();
+            var stream = base.GetMoggStream();
             if (stream != null)
             {
                 return stream;

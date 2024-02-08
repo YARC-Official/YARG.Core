@@ -4,9 +4,9 @@ using YARG.Core.IO;
 
 namespace YARG.Core.Song.Cache
 {
-    public abstract class CONGroup : ICacheGroup<RBCONSubMetadata>
+    public abstract class CONGroup : ICacheGroup<RBCONEntry>
     {
-        protected readonly Dictionary<string, SortedDictionary<int, RBCONSubMetadata>> entries = new();
+        protected readonly Dictionary<string, SortedDictionary<int, RBCONEntry>> entries = new();
         protected readonly object entryLock = new();
 
         private int _count;
@@ -22,9 +22,9 @@ namespace YARG.Core.Song.Cache
         }
 
         public abstract void ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings);
-        public abstract byte[] SerializeEntries(Dictionary<SongMetadata, CategoryCacheWriteNode> nodes);
+        public abstract byte[] SerializeEntries(Dictionary<SongEntry, CategoryCacheWriteNode> nodes);
 
-        public void AddEntry(string name, int index, RBCONSubMetadata entry)
+        public void AddEntry(string name, int index, RBCONEntry entry)
         {
             lock (entryLock)
             {
@@ -62,14 +62,14 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        public bool TryGetEntry(string name, int index, out RBCONSubMetadata? entry)
+        public bool TryGetEntry(string name, int index, out RBCONEntry? entry)
         {
             entry = null;
             lock (entryLock)
                 return entries.TryGetValue(name, out var dict) && dict.TryGetValue(index, out entry);
         }
 
-        public bool TryRemoveEntry(SongMetadata entryToRemove)
+        public bool TryRemoveEntry(SongEntry entryToRemove)
         {
             // No locking as the post-scan removal sequence
             // cannot be parallelized
@@ -93,7 +93,7 @@ namespace YARG.Core.Song.Cache
             return false;
         }
 
-        protected void Serialize(BinaryWriter writer, ref Dictionary<SongMetadata, CategoryCacheWriteNode> nodes)
+        protected void Serialize(BinaryWriter writer, ref Dictionary<SongEntry, CategoryCacheWriteNode> nodes)
         {
             writer.Write(_count);
             foreach (var entryList in entries)
@@ -110,7 +110,7 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private static byte[] SerializeEntry(RBCONSubMetadata entry, CategoryCacheWriteNode node)
+        private static byte[] SerializeEntry(RBCONEntry entry, CategoryCacheWriteNode node)
         {
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);

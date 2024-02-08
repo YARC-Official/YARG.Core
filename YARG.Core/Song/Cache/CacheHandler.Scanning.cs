@@ -48,7 +48,7 @@ namespace YARG.Core.Song.Cache
             {
                 foreach (var subFile in subfiles)
                 {
-                    if (IniSubMetadata.IniAudioChecker.IsAudioFile(subFile.Name.ToLower()))
+                    if (IniSubEntry.IniAudioChecker.IsAudioFile(subFile.Name.ToLower()))
                     {
                         return true;
                     }
@@ -65,11 +65,11 @@ namespace YARG.Core.Song.Cache
             public SngCollector(SngFile sng)
             {
                 this.sng = sng;
-                for (int i = 0; i < IniSubMetadata.CHART_FILE_TYPES.Length; ++i)
+                for (int i = 0; i < IniSubEntry.CHART_FILE_TYPES.Length; ++i)
                 {
-                    if (sng.ContainsKey(IniSubMetadata.CHART_FILE_TYPES[i].File))
+                    if (sng.ContainsKey(IniSubEntry.CHART_FILE_TYPES[i].File))
                     {
-                        charts[i] = IniSubMetadata.CHART_FILE_TYPES[i];
+                        charts[i] = IniSubEntry.CHART_FILE_TYPES[i];
                     }
                 }
             }
@@ -78,7 +78,7 @@ namespace YARG.Core.Song.Cache
             {
                 foreach (var subFile in sng)
                 {
-                    if (IniSubMetadata.IniAudioChecker.IsAudioFile(subFile.Key))
+                    if (IniSubEntry.IniAudioChecker.IsAudioFile(subFile.Key))
                     {
                         return true;
                     }
@@ -273,7 +273,7 @@ namespace YARG.Core.Song.Cache
 
                 try
                 {
-                    var entry = UnpackedIniMetadata.ProcessNewEntry(collector.directory.FullName, chart, collector.ini, defaultPlaylist);
+                    var entry = UnpackedIniEntry.ProcessNewEntry(collector.directory.FullName, chart, collector.ini, defaultPlaylist);
                     if (entry.Item2 == null)
                     {
                         AddToBadSongs(chart.File.FullName, entry.Item1);
@@ -324,7 +324,7 @@ namespace YARG.Core.Song.Cache
 
                 try
                 {
-                    var entry = SngMetadata.ProcessNewEntry(sngFile, chart, defaultPlaylist);
+                    var entry = SngEntry.ProcessNewEntry(sngFile, chart, defaultPlaylist);
                     if (entry.Item2 == null)
                     {
                         AddToBadSongs(info.FullName, entry.Item1);
@@ -372,7 +372,7 @@ namespace YARG.Core.Song.Cache
             }
             else
             {
-                var result = PackedRBCONMetadata.ProcessNewEntry(group, name, node, updates, upgrades);
+                var result = PackedRBCONEntry.ProcessNewEntry(group, name, node, updates, upgrades);
                 if (result.Item2 != null)
                 {
                     if (AddEntry(result.Item2))
@@ -394,7 +394,7 @@ namespace YARG.Core.Song.Cache
             }
             else
             {
-                var result = UnpackedRBCONMetadata.ProcessNewEntry(group, name, node, updates, upgrades);
+                var result = UnpackedRBCONEntry.ProcessNewEntry(group, name, node, updates, upgrades);
                 if (result.Item2 != null)
                 {
                     if (AddEntry(result.Item2))
