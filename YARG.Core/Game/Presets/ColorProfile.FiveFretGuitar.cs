@@ -11,12 +11,12 @@ namespace YARG.Core.Game
         {
             #region Frets
 
-            public Color OpenFret   = DefaultPurpleFret;
-            public Color GreenFret  = DefaultGreenFret;
-            public Color RedFret    = DefaultRedFret;
-            public Color YellowFret = DefaultYellowFret;
-            public Color BlueFret   = DefaultBlueFret;
-            public Color OrangeFret = DefaultOrangeFret;
+            public Color OpenFret   = DefaultPurple;
+            public Color GreenFret  = DefaultGreen;
+            public Color RedFret    = DefaultRed;
+            public Color YellowFret = DefaultYellow;
+            public Color BlueFret   = DefaultBlue;
+            public Color OrangeFret = DefaultOrange;
 
             /// <summary>
             /// Gets the fret color for a specific note index.
@@ -36,12 +36,12 @@ namespace YARG.Core.Game
                 };
             }
 
-            public Color OpenFretInner   = DefaultPurpleFretInner;
-            public Color GreenFretInner  = DefaultGreenFretInner;
-            public Color RedFretInner    = DefaultRedFretInner;
-            public Color YellowFretInner = DefaultYellowFretInner;
-            public Color BlueFretInner   = DefaultBlueFretInner;
-            public Color OrangeFretInner = DefaultOrangeFretInner;
+            public Color OpenFretInner   = DefaultPurple;
+            public Color GreenFretInner  = DefaultGreen;
+            public Color RedFretInner    = DefaultRed;
+            public Color YellowFretInner = DefaultYellow;
+            public Color BlueFretInner   = DefaultBlue;
+            public Color OrangeFretInner = DefaultOrange;
 
             /// <summary>
             /// Gets the inner fret color for a specific note index.
@@ -61,12 +61,12 @@ namespace YARG.Core.Game
                 };
             }
 
-            public Color OpenParticles   = DefaultPurpleParticles;
-            public Color GreenParticles  = DefaultGreenParticles;
-            public Color RedParticles    = DefaultRedParticles;
-            public Color YellowParticles = DefaultYellowParticles;
-            public Color BlueParticles   = DefaultBlueParticles;
-            public Color OrangeParticles = DefaultOrangeParticles;
+            public Color OpenParticles   = DefaultPurple;
+            public Color GreenParticles  = DefaultGreen;
+            public Color RedParticles    = DefaultRed;
+            public Color YellowParticles = DefaultYellow;
+            public Color BlueParticles   = DefaultBlue;
+            public Color OrangeParticles = DefaultOrange;
 
             /// <summary>
             /// Gets the particle color for a specific note index.
@@ -90,12 +90,12 @@ namespace YARG.Core.Game
 
             #region Notes
 
-            public Color OpenNote   = DefaultPurpleNote;
-            public Color GreenNote  = DefaultGreenNote;
-            public Color RedNote    = DefaultRedNote;
-            public Color YellowNote = DefaultYellowNote;
-            public Color BlueNote   = DefaultBlueNote;
-            public Color OrangeNote = DefaultOrangeNote;
+            public Color OpenNote   = DefaultPurple;
+            public Color GreenNote  = DefaultGreen;
+            public Color RedNote    = DefaultRed;
+            public Color YellowNote = DefaultYellow;
+            public Color BlueNote   = DefaultBlue;
+            public Color OrangeNote = DefaultOrange;
 
             /// <summary>
             /// Gets the note color for a specific note index.
