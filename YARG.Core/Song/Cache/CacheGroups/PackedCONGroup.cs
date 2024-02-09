@@ -45,7 +45,7 @@ namespace YARG.Core.Song.Cache
             CONLastUpdated = info.LastUpdatedTime;
         }
 
-        public override void ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings)
+        public override void ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
         {
             var song = SongMetadata.PackedRBCONFromCache(CONFile, nodeName, upgrades, reader, strings);
             if (song != null)

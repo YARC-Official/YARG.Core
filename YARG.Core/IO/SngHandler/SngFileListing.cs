@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.IO
 {
@@ -8,7 +9,7 @@ namespace YARG.Core.IO
         public readonly long Position;
         public readonly long Length;
 
-        public SngFileListing(string name, YARGBinaryReader reader)
+        public SngFileListing(string name, BinaryReader reader)
         {
             Name = name;
             Length = reader.Read<long>(Endianness.Little);

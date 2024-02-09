@@ -78,7 +78,7 @@ namespace YARG.Core.Song
             HarmonyVocals = new(-1);
         }
 
-        public AvailableParts(YARGBinaryReader reader)
+        public AvailableParts(BinaryReader reader)
         {
             PartValues DeserializeValues()
             {

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using YARG.Core.Extensions;
 using YARG.Core.IO;
 
 namespace YARG.Core.Song
@@ -24,7 +25,7 @@ namespace YARG.Core.Song
         public short HarmonyVocals = -1;
 
         public RBCONDifficulties() { }
-        public RBCONDifficulties(YARGBinaryReader reader)
+        public RBCONDifficulties(BinaryReader reader)
         {
             band = reader.Read<short>(Endianness.Little);
             FiveFretGuitar = reader.Read<short>(Endianness.Little);

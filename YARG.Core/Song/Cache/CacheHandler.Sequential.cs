@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
+using YARG.Core.Extensions;
 using YARG.Core.IO;
 
 namespace YARG.Core.Song.Cache
@@ -90,9 +91,9 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void ReadIniGroup(YARGBinaryReader reader, CategoryCacheStrings strings)
+        private void ReadIniGroup(BinaryReader reader, CategoryCacheStrings strings)
         {
-            string directory = reader.ReadLEBString();
+            string directory = reader.ReadString();
             var group = GetBaseIniGroup(directory);
             if (group == null)
             {
@@ -108,7 +109,7 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void ReadCONGroup(YARGBinaryReader reader, CategoryCacheStrings strings)
+        private void ReadCONGroup(BinaryReader reader, CategoryCacheStrings strings)
         {
             var group = ReadCONGroupHeader(reader, out string filename);
             if (group == null)
@@ -117,7 +118,7 @@ namespace YARG.Core.Song.Cache
             int count = reader.Read<int>(Endianness.Little);
             for (int i = 0; i < count; ++i)
             {
-                string name = reader.ReadLEBString();
+                string name = reader.ReadString();
                 int index = reader.Read<int>(Endianness.Little);
                 int length = reader.Read<int>(Endianness.Little);
                 if (invalidSongsInCache.Contains(name))
@@ -131,7 +132,7 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void ReadExtractedCONGroup(YARGBinaryReader reader, CategoryCacheStrings strings)
+        private void ReadExtractedCONGroup(BinaryReader reader, CategoryCacheStrings strings)
         {
             var group = ReadExtractedCONGroupHeader(reader, out string directory);
             if (group == null)
@@ -140,7 +141,7 @@ namespace YARG.Core.Song.Cache
             int count = reader.Read<int>(Endianness.Little);
             for (int i = 0; i < count; ++i)
             {
-                string name = reader.ReadLEBString();
+                string name = reader.ReadString();
                 int index = reader.Read<int>(Endianness.Little);
                 int length = reader.Read<int>(Endianness.Little);
 
@@ -155,9 +156,9 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void QuickReadIniGroup(YARGBinaryReader reader, CategoryCacheStrings strings)
+        private void QuickReadIniGroup(BinaryReader reader, CategoryCacheStrings strings)
         {
-            string directory = reader.ReadLEBString();
+            string directory = reader.ReadString();
             int count = reader.Read<int>(Endianness.Little);
             for (int i = 0; i < count; ++i)
             {
@@ -167,7 +168,7 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void QuickReadCONGroup(YARGBinaryReader reader, CategoryCacheStrings strings)
+        private void QuickReadCONGroup(BinaryReader reader, CategoryCacheStrings strings)
         {
             var group = QuickReadCONGroupHeader(reader);
             if (group == null)
@@ -176,7 +177,7 @@ namespace YARG.Core.Song.Cache
             int count = reader.Read<int>(Endianness.Little);
             for (int i = 0; i < count; ++i)
             {
-                string name = reader.ReadLEBString();
+                string name = reader.ReadString();
                 // index
                 reader.Move(4);
 
@@ -186,7 +187,7 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void QuickReadExtractedCONGroup(YARGBinaryReader reader, CategoryCacheStrings strings)
+        private void QuickReadExtractedCONGroup(BinaryReader reader, CategoryCacheStrings strings)
         {
             var dta = QuickReadExtractedCONGroupHeader(reader);
             // Lack of null check by design
@@ -194,7 +195,7 @@ namespace YARG.Core.Song.Cache
             int count = reader.Read<int>(Endianness.Little);
             for (int i = 0; i < count; ++i)
             {
-                string name = reader.ReadLEBString();
+                string name = reader.ReadString();
                 // index
                 reader.Move(4);
 

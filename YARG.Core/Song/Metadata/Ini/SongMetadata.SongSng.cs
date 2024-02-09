@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using YARG.Core.Audio;
+using YARG.Core.Extensions;
 using YARG.Core.IO;
 using YARG.Core.Song.Cache;
 using YARG.Core.Venue;
@@ -178,11 +179,11 @@ namespace YARG.Core.Song
             return (result.Item1, metadata);
         }
 
-        public static SongMetadata? SngFromCache(string baseDirectory, YARGBinaryReader reader, CategoryCacheStrings strings)
+        public static SongMetadata? SngFromCache(string baseDirectory, BinaryReader reader, CategoryCacheStrings strings)
         {
             uint version = reader.Read<uint>(Endianness.Little);
 
-            string sngPath = Path.Combine(baseDirectory, reader.ReadLEBString());
+            string sngPath = Path.Combine(baseDirectory, reader.ReadString());
             var sngInfo = AbridgedFileInfo.TryParseInfo(sngPath, reader);
             if (sngInfo == null)
                 return null;
@@ -206,12 +207,12 @@ namespace YARG.Core.Song
             };
         }
 
-        public static SongMetadata? SngFromCache_Quick(string baseDirectory, YARGBinaryReader reader, CategoryCacheStrings strings)
+        public static SongMetadata? SngFromCache_Quick(string baseDirectory, BinaryReader reader, CategoryCacheStrings strings)
         {
             // Implement proper versioning in the future
             uint version = reader.Read<uint>(Endianness.Little);
 
-            string sngPath = Path.Combine(baseDirectory, reader.ReadLEBString());
+            string sngPath = Path.Combine(baseDirectory, reader.ReadString());
             AbridgedFileInfo sngInfo = new(sngPath, DateTime.FromBinary(reader.Read<long>(Endianness.Little)));
 
             byte chartTypeIndex = reader.ReadByte();

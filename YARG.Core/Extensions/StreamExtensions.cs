@@ -5,6 +5,12 @@ using YARG.Core.IO;
 
 namespace YARG.Core.Extensions
 {
+    public enum Endianness
+    {
+        Little = 0,
+        Big = 1,
+    };
+
     public static class StreamExtensions
     {
         public static TType Read<TType>(this Stream stream, Endianness endianness)

@@ -7,6 +7,7 @@ using YARG.Core.Chart;
 using YARG.Core.Song.Cache;
 using YARG.Core.IO;
 using YARG.Core.Song.Preparsers;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.Song
 {
@@ -63,15 +64,15 @@ namespace YARG.Core.Song
 
             public RBCONSubMetadata() { }
 
-            public RBCONSubMetadata(AbridgedFileInfo? updateMidi, YARGBinaryReader reader)
+            public RBCONSubMetadata(AbridgedFileInfo? updateMidi, BinaryReader reader)
             {
                 UpdateMidi = updateMidi;
 
                 RBDifficulties = new(reader);
-                Directory = reader.ReadLEBString();
+                Directory = reader.ReadString();
                 AnimTempo = reader.Read<uint>(Endianness.Little);
-                SongID = reader.ReadLEBString();
-                VocalPercussionBank = reader.ReadLEBString();
+                SongID = reader.ReadString();
+                VocalPercussionBank = reader.ReadString();
                 VocalSongScrollSpeed = reader.Read<uint>(Endianness.Little);
                 SongRating = reader.Read<uint>(Endianness.Little);
                 VocalGender = reader.ReadBoolean();
@@ -143,16 +144,16 @@ namespace YARG.Core.Song
                 WriteArray(CrowdStemValues, writer);
             }
 
-            private static AbridgedFileInfo? ReadUpdateInfo(YARGBinaryReader reader)
+            private static AbridgedFileInfo? ReadUpdateInfo(BinaryReader reader)
             {
                 if (!reader.ReadBoolean())
                 {
                     return null;
                 }
-                return new AbridgedFileInfo(reader.ReadLEBString(), false);
+                return new AbridgedFileInfo(reader.ReadString(), false);
             }
 
-            private static int[] ReadIntArray(YARGBinaryReader reader)
+            private static int[] ReadIntArray(BinaryReader reader)
             {
                 int length = reader.Read<int>(Endianness.Little);
                 if (length == 0)
@@ -164,7 +165,7 @@ namespace YARG.Core.Song
                 return values;
             }
 
-            private static float[] ReadFloatArray(YARGBinaryReader reader)
+            private static float[] ReadFloatArray(BinaryReader reader)
             {
                 int length = reader.Read<int>(Endianness.Little);
                 if (length == 0)
@@ -310,7 +311,7 @@ namespace YARG.Core.Song
             }
         }
 
-        private SongMetadata(IRBCONMetadata rbMeta, YARGBinaryReader reader, CategoryCacheStrings strings) : this(reader, strings)
+        private SongMetadata(IRBCONMetadata rbMeta, BinaryReader reader, CategoryCacheStrings strings) : this(reader, strings)
         {
             _rbData = rbMeta;
             _directory = rbMeta.SharedMetadata.Directory;

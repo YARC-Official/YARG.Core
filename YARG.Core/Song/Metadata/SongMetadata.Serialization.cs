@@ -3,12 +3,13 @@ using System.IO;
 using YARG.Core.Song.Cache;
 using YARG.Core.IO;
 using YARG.Core.Chart;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.Song
 {
     public sealed partial class SongMetadata
     {
-        public SongMetadata(YARGBinaryReader reader, CategoryCacheStrings strings)
+        public SongMetadata(BinaryReader reader, CategoryCacheStrings strings)
         {
             _name = strings.titles[reader.Read<int>(Endianness.Little)];
             _artist = strings.artists[reader.Read<int>(Endianness.Little)];
@@ -33,7 +34,7 @@ namespace YARG.Core.Song
             VideoStartTimeSeconds = reader.Read<double>(Endianness.Little);
             VideoEndTimeSeconds = reader.Read<double>(Endianness.Little);
 
-            _loadingPhrase = reader.ReadLEBString();
+            _loadingPhrase = reader.ReadString();
 
             _parseSettings.HopoThreshold = reader.Read<long>(Endianness.Little);
             _parseSettings.HopoFreq_FoF = reader.Read<int>(Endianness.Little);

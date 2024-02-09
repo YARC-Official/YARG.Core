@@ -37,8 +37,6 @@ namespace YARG.Core.IO
         }
 
         public static FourCC Read(Stream stream) => new(stream.Read<uint>(Endianness.Big));
-        public static FourCC Read(BinaryReader reader) => new(reader.BaseStream.Read<uint>(Endianness.Big));
-        public static FourCC Read(YARGBinaryReader reader) => new(reader.Read<uint>(Endianness.Big));
 
         public void Serialize(BinaryWriter writer)
         {
@@ -100,8 +98,6 @@ namespace YARG.Core.IO
         }
 
         public static EightCC Read(Stream stream) => new(stream.Read<ulong>(Endianness.Big));
-        public static EightCC Read(BinaryReader reader) => new(reader.BaseStream.Read<ulong>(Endianness.Big));
-        public static EightCC Read(YARGBinaryReader reader) => new(reader.Read<ulong>(Endianness.Big));
 
         public void Serialize(BinaryWriter writer)
         {

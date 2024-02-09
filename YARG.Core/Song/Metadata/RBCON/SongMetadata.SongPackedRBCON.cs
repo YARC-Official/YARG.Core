@@ -43,9 +43,9 @@ namespace YARG.Core.Song
                 metadata.Directory = Path.Combine(group.Location, midiDirectory);
             }
 
-            public static RBPackedCONMetadata? TryLoadFromCache(CONFile file, string nodename, YARGBinaryReader reader)
+            public static RBPackedCONMetadata? TryLoadFromCache(CONFile file, string nodename, BinaryReader reader)
             {
-                string midiFilename = reader.ReadLEBString();
+                string midiFilename = reader.ReadString();
                 var midiListing = file.TryGetListing(midiFilename);
                 if (midiListing == null)
                 {
@@ -81,9 +81,9 @@ namespace YARG.Core.Song
                 return new RBPackedCONMetadata(midiListing, midiLastWrite, moggListing, miloListing, imgListing, baseMetadata);
             }
 
-            public static RBPackedCONMetadata LoadFromCache_Quick(CONFile file, string nodename, YARGBinaryReader reader)
+            public static RBPackedCONMetadata LoadFromCache_Quick(CONFile file, string nodename, BinaryReader reader)
             {
-                string midiFilename = reader.ReadLEBString();
+                string midiFilename = reader.ReadString();
                 var midiListing = file.TryGetListing(midiFilename);
                 var midiLastWrite = DateTime.FromBinary(reader.Read<long>(Endianness.Little));
 
@@ -238,7 +238,7 @@ namespace YARG.Core.Song
             }
         }
 
-        public static SongMetadata? PackedRBCONFromCache(CONFile file, string nodename, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings)
+        public static SongMetadata? PackedRBCONFromCache(CONFile file, string nodename, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
         {
             var packedMeta = RBPackedCONMetadata.TryLoadFromCache(file, nodename, reader);
             if (packedMeta == null)
@@ -256,7 +256,7 @@ namespace YARG.Core.Song
             };
         }
 
-        public static SongMetadata PackedRBCONFromCache_Quick(CONFile file, string nodename, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings)
+        public static SongMetadata PackedRBCONFromCache_Quick(CONFile file, string nodename, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
         {
             var packedMeta = RBPackedCONMetadata.LoadFromCache_Quick(file, nodename, reader);
             if (upgrades.TryGetValue(nodename, out var upgrade))
