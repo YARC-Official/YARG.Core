@@ -284,8 +284,8 @@ namespace YARG.Core.Song.Cache
         private void ReadUpdateDirectory(BinaryReader reader)
         {
             string directory = reader.ReadString();
-            var dtaLastUpdated = DateTime.FromBinary(reader.Read<long>(Endianness.Little));
-            int count = reader.Read<int>(Endianness.Little);
+            var dtaLastUpdated = DateTime.FromBinary(reader.ReadInt64());
+            int count = reader.ReadInt32();
 
             // Functions as a "check base directory" call
             if (GetBaseIniGroup(directory) != null)
@@ -309,8 +309,8 @@ namespace YARG.Core.Song.Cache
         private void ReadUpgradeDirectory(BinaryReader reader)
         {
             string directory = reader.ReadString();
-            var dtaLastUpdated = DateTime.FromBinary(reader.Read<long>(Endianness.Little));
-            int count = reader.Read<int>(Endianness.Little);
+            var dtaLastUpdated = DateTime.FromBinary(reader.ReadInt64());
+            int count = reader.ReadInt32();
 
             // Functions as a "check base directory" call
             if (GetBaseIniGroup(directory) != null)
@@ -327,7 +327,7 @@ namespace YARG.Core.Song.Cache
                         for (int i = 0; i < count; i++)
                         {
                             string name = reader.ReadString();
-                            var lastUpdated = DateTime.FromBinary(reader.Read<long>(Endianness.Little));
+                            var lastUpdated = DateTime.FromBinary(reader.ReadInt64());
                             if (!group.upgrades.TryGetValue(name, out var upgrade) || upgrade!.LastUpdatedTime != lastUpdated)
                                 AddInvalidSong(name);
                         }
@@ -343,12 +343,12 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void ReadUpgradeCON(BinaryReader cacheReader)
+        private void ReadUpgradeCON(BinaryReader reader)
         {
-            string filename = cacheReader.ReadString();
-            var conLastUpdated = DateTime.FromBinary(cacheReader.Read<long>(Endianness.Little));
-            var dtaLastWritten = DateTime.FromBinary(cacheReader.Read<long>(Endianness.Little));
-            int count = cacheReader.Read<int>(Endianness.Little);
+            string filename = reader.ReadString();
+            var conLastUpdated = DateTime.FromBinary(reader.ReadInt64());
+            var dtaLastWritten = DateTime.FromBinary(reader.ReadInt64());
+            int count = reader.ReadInt32();
 
             var baseGroup = GetBaseIniGroup(filename);
             if (baseGroup != null)
@@ -370,8 +370,8 @@ namespace YARG.Core.Song.Cache
                     {
                         for (int i = 0; i < count; i++)
                         {
-                            string name = cacheReader.ReadString();
-                            var lastWrite = DateTime.FromBinary(cacheReader.Read<long>(Endianness.Little));
+                            string name = reader.ReadString();
+                            var lastWrite = DateTime.FromBinary(reader.ReadInt64());
                             if (group.Upgrades[name].LastUpdatedTime != lastWrite)
                             {
                                 AddInvalidSong(name);
@@ -385,8 +385,8 @@ namespace YARG.Core.Song.Cache
         Invalidate:
             for (int i = 0; i < count; i++)
             {
-                AddInvalidSong(cacheReader.ReadString());
-                cacheReader.Move(SongMetadata.SIZEOF_DATETIME);
+                AddInvalidSong(reader.ReadString());
+                reader.Move(SongMetadata.SIZEOF_DATETIME);
             }
         }
 
@@ -414,7 +414,7 @@ namespace YARG.Core.Song.Cache
                 return null;
             }
 
-            var dtaLastWrite = DateTime.FromBinary(reader.Read<long>(Endianness.Little));
+            var dtaLastWrite = DateTime.FromBinary(reader.ReadInt64());
             var group = FindCONGroup(filename);
             if (group == null)
             {
@@ -466,7 +466,7 @@ namespace YARG.Core.Song.Cache
             var group = new UnpackedCONGroup(directory, dtaInfo, playlist);
             extractedConGroups.Add(group);
 
-            if (dtaInfo.LastWriteTime != DateTime.FromBinary(reader.Read<long>(Endianness.Little)))
+            if (dtaInfo.LastWriteTime != DateTime.FromBinary(reader.ReadInt64()))
             {
                 return null;
             }
@@ -492,8 +492,8 @@ namespace YARG.Core.Song.Cache
         private void QuickReadUpgradeDirectory(BinaryReader reader)
         {
             string directory = reader.ReadString();
-            var dtaLastUpdated = DateTime.FromBinary(reader.Read<long>(Endianness.Little));
-            int count = reader.Read<int>(Endianness.Little);
+            var dtaLastUpdated = DateTime.FromBinary(reader.ReadInt64());
+            int count = reader.ReadInt32();
 
             var group = new UpgradeGroup(directory, dtaLastUpdated);
             upgradeGroups.Add(group);
@@ -514,7 +514,7 @@ namespace YARG.Core.Song.Cache
         {
             string filename = reader.ReadString();
             reader.Move(2 * SongMetadata.SIZEOF_DATETIME);
-            int count = reader.Read<int>(Endianness.Little);
+            int count = reader.ReadInt32();
 
             var group = CreateCONGroup(filename, string.Empty);
             if (group != null)
@@ -524,7 +524,7 @@ namespace YARG.Core.Song.Cache
                 for (int i = 0; i < count; i++)
                 {
                     string name = reader.ReadString();
-                    var lastWrite = DateTime.FromBinary(reader.Read<long>(Endianness.Little));
+                    var lastWrite = DateTime.FromBinary(reader.ReadInt64());
                     var listing = group.CONFile.TryGetListing($"songs_upgrades/{name}_plus.mid");
 
                     IRBProUpgrade upgrade = new PackedRBProUpgrade(listing, lastWrite);
@@ -536,7 +536,7 @@ namespace YARG.Core.Song.Cache
                 for (int i = 0; i < count; i++)
                 {
                     string name = reader.ReadString();
-                    var lastWrite = DateTime.FromBinary(reader.Read<long>(Endianness.Little));
+                    var lastWrite = DateTime.FromBinary(reader.ReadInt64());
 
                     IRBProUpgrade upgrade = new PackedRBProUpgrade(null, lastWrite);
                     AddUpgrade(name, null, upgrade);
@@ -547,7 +547,7 @@ namespace YARG.Core.Song.Cache
         private PackedCONGroup? QuickReadCONGroupHeader(BinaryReader reader)
         {
             string filename = reader.ReadString();
-            var dtaLastWrite = DateTime.FromBinary(reader.Read<long>(Endianness.Little));
+            var dtaLastWrite = DateTime.FromBinary(reader.ReadInt64());
 
             var group = FindCONGroup(filename);
             if (group == null)

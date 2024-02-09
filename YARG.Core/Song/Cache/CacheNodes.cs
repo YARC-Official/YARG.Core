@@ -57,7 +57,7 @@ namespace YARG.Core.Song.Cache
 
             static string[] ReadStrings(BinaryReader reader)
             {
-                int count = reader.Read<int>(Endianness.Little);
+                int count = reader.ReadInt32();
                 string[] strings = new string[count];
                 for (int i = 0; i < count; ++i)
                     strings[i] = reader.ReadString();

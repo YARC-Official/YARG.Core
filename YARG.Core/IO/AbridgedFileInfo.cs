@@ -46,7 +46,7 @@ namespace YARG.Core.IO
         public AbridgedFileInfo(string filename, BinaryReader reader)
         {
             FullName = filename;
-            LastUpdatedTime = DateTime.FromBinary(reader.Read<long>(Endianness.Little));
+            LastUpdatedTime = DateTime.FromBinary(reader.ReadInt64());
         }
 
         public AbridgedFileInfo(string fullname, DateTime timeAdded)
@@ -102,7 +102,7 @@ namespace YARG.Core.IO
             }
 
             var abridged = new AbridgedFileInfo(info, checkCreationTime);
-            if (abridged.LastUpdatedTime != DateTime.FromBinary(reader.Read<long>(Endianness.Little)))
+            if (abridged.LastUpdatedTime != DateTime.FromBinary(reader.ReadInt64()))
             {
                 return null;
             }

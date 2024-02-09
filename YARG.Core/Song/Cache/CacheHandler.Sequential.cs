@@ -100,10 +100,10 @@ namespace YARG.Core.Song.Cache
                 return;
             }
 
-            int count = reader.Read<int>(Endianness.Little);
+            int count = reader.ReadInt32();
             for (int i = 0; i < count; ++i)
             {
-                int length = reader.Read<int>(Endianness.Little);
+                int length = reader.ReadInt32();
                 var entryReader = reader.Slice(length);
                 ReadIniEntry(directory, group, entryReader, strings);
             }
@@ -115,12 +115,12 @@ namespace YARG.Core.Song.Cache
             if (group == null)
                 return;
 
-            int count = reader.Read<int>(Endianness.Little);
+            int count = reader.ReadInt32();
             for (int i = 0; i < count; ++i)
             {
                 string name = reader.ReadString();
-                int index = reader.Read<int>(Endianness.Little);
-                int length = reader.Read<int>(Endianness.Little);
+                int index = reader.ReadInt32();
+                int length = reader.ReadInt32();
                 if (invalidSongsInCache.Contains(name))
                 {
                     reader.Move(length);
@@ -138,12 +138,12 @@ namespace YARG.Core.Song.Cache
             if (group == null)
                 return;
 
-            int count = reader.Read<int>(Endianness.Little);
+            int count = reader.ReadInt32();
             for (int i = 0; i < count; ++i)
             {
                 string name = reader.ReadString();
-                int index = reader.Read<int>(Endianness.Little);
-                int length = reader.Read<int>(Endianness.Little);
+                int index = reader.ReadInt32();
+                int length = reader.ReadInt32();
 
                 if (invalidSongsInCache.Contains(name))
                 {
@@ -159,10 +159,10 @@ namespace YARG.Core.Song.Cache
         private void QuickReadIniGroup(BinaryReader reader, CategoryCacheStrings strings)
         {
             string directory = reader.ReadString();
-            int count = reader.Read<int>(Endianness.Little);
+            int count = reader.ReadInt32();
             for (int i = 0; i < count; ++i)
             {
-                int length = reader.Read<int>(Endianness.Little);
+                int length = reader.ReadInt32();
                 var entryReader = reader.Slice(length);
                 QuickReadIniEntry(directory, entryReader, strings);
             }
@@ -174,14 +174,14 @@ namespace YARG.Core.Song.Cache
             if (group == null)
                 return;
 
-            int count = reader.Read<int>(Endianness.Little);
+            int count = reader.ReadInt32();
             for (int i = 0; i < count; ++i)
             {
                 string name = reader.ReadString();
                 // index
                 reader.Move(4);
 
-                int length = reader.Read<int>(Endianness.Little);
+                int length = reader.ReadInt32();
                 var entryReader = reader.Slice(length);
                 AddEntry(SongMetadata.PackedRBCONFromCache_Quick(group.CONFile, name, upgrades, entryReader, strings));
             }
@@ -192,14 +192,14 @@ namespace YARG.Core.Song.Cache
             var dta = QuickReadExtractedCONGroupHeader(reader);
             // Lack of null check by design
 
-            int count = reader.Read<int>(Endianness.Little);
+            int count = reader.ReadInt32();
             for (int i = 0; i < count; ++i)
             {
                 string name = reader.ReadString();
                 // index
                 reader.Move(4);
 
-                int length = reader.Read<int>(Endianness.Little);
+                int length = reader.ReadInt32();
                 var entryReader = reader.Slice(length);
                 AddEntry(SongMetadata.UnpackedRBCONFromCache_Quick(dta, name, upgrades, entryReader, strings));
             }

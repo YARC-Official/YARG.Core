@@ -22,12 +22,6 @@ namespace YARG.Core.Extensions
             }
             return new Guid(span);
         }
-        
-        public static TType Read<TType>(this BinaryReader reader, Endianness endianness)
-            where TType : unmanaged, IComparable, IComparable<TType>, IConvertible, IEquatable<TType>, IFormattable
-        {
-            return reader.BaseStream.Read<TType>(endianness);
-        }
 
         public static void Move(this BinaryReader reader, int count)
         {

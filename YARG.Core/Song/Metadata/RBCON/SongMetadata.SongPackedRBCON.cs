@@ -52,7 +52,7 @@ namespace YARG.Core.Song
                     return null;
                 }
 
-                var midiLastWrite = DateTime.FromBinary(reader.Read<long>(Endianness.Little));
+                var midiLastWrite = DateTime.FromBinary(reader.ReadInt64());
                 if (midiListing.lastWrite != midiLastWrite)
                 {
                     return null;
@@ -85,7 +85,7 @@ namespace YARG.Core.Song
             {
                 string midiFilename = reader.ReadString();
                 var midiListing = file.TryGetListing(midiFilename);
-                var midiLastWrite = DateTime.FromBinary(reader.Read<long>(Endianness.Little));
+                var midiLastWrite = DateTime.FromBinary(reader.ReadInt64());
 
                 var updateMidi = reader.ReadBoolean() ? new AbridgedFileInfo(reader) : null;
 

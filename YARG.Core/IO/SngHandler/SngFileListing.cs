@@ -12,8 +12,8 @@ namespace YARG.Core.IO
         public SngFileListing(string name, BinaryReader reader)
         {
             Name = name;
-            Length = reader.Read<long>(Endianness.Little);
-            Position = reader.Read<long>(Endianness.Little);
+            Length = reader.ReadInt64();
+            Position = reader.ReadInt64();
         }
 
         public byte[] LoadAllBytes(SngFile sngFile)

@@ -255,13 +255,13 @@ namespace YARG.Core.Song
             }
 
             var chart = IIniMetadata.CHART_FILE_TYPES[chartTypeIndex];
-            var lastUpdated = DateTime.FromBinary(reader.Read<long>(Endianness.Little));
+            var lastUpdated = DateTime.FromBinary(reader.ReadInt64());
 
             var chartInfo = new AbridgedFileInfo(Path.Combine(directory, chart.File), lastUpdated);
             AbridgedFileInfo? iniInfo = null;
             if (reader.ReadBoolean())
             {
-                lastUpdated = DateTime.FromBinary(reader.Read<long>(Endianness.Little));
+                lastUpdated = DateTime.FromBinary(reader.ReadInt64());
                 iniInfo = new AbridgedFileInfo(Path.Combine(directory, "song.ini"), lastUpdated);
             }
 
