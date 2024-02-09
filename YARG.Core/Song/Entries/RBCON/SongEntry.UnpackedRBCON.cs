@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using YARG.Core.Extensions;
 using YARG.Core.Song.Cache;
 using YARG.Core.IO;
+using YARG.Core.Venue;
 
 namespace YARG.Core.Song
 {
@@ -121,6 +122,46 @@ namespace YARG.Core.Song
         {
             writer.Write(_nodename);
             writer.Write(_midi.LastUpdatedTime.ToBinary());
+        }
+
+        public override BackgroundResult? LoadBackground(BackgroundType options)
+        {
+            string backgroundPath = Path.Combine(Directory, YARGROUND_FULLNAME);
+            if (File.Exists(backgroundPath))
+            {
+                var stream = File.OpenRead(backgroundPath);
+                return new BackgroundResult(BackgroundType.Yarground, stream);
+            }
+
+            foreach (var name in BACKGROUND_FILENAMES)
+            {
+                var fileBase = Path.Combine(Directory, name);
+                foreach (var ext in VIDEO_EXTENSIONS)
+                {
+                    backgroundPath = fileBase + ext;
+                    if (File.Exists(backgroundPath))
+                    {
+                        var stream = File.OpenRead(backgroundPath);
+                        return new BackgroundResult(BackgroundType.Video, stream);
+                    }
+                }
+            }
+
+            foreach (var name in BACKGROUND_FILENAMES)
+            {
+                var fileBase = Path.Combine(Directory, name);
+                foreach (var ext in IMAGE_EXTENSIONS)
+                {
+                    backgroundPath = fileBase + ext;
+                    if (File.Exists(backgroundPath))
+                    {
+                        var stream = File.OpenRead(backgroundPath);
+                        return new BackgroundResult(BackgroundType.Image, stream);
+                    }
+                }
+            }
+
+            return null;
         }
 
         public override byte[]? LoadMiloData()

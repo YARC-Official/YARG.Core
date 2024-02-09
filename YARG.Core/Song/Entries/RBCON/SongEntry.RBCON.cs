@@ -242,11 +242,6 @@ namespace YARG.Core.Song
             return bytes;
         }
 
-        public override BackgroundResult? LoadBackground(BackgroundType options)
-        {
-            return null;
-        }
-
         public override byte[]? LoadMiloData()
         {
             if (UpdateMilo != null && UpdateMilo.Exists())

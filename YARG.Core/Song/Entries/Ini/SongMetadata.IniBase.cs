@@ -70,21 +70,6 @@ namespace YARG.Core.Song
             "album.png", "album.jpg", "album.jpeg",
         };
 
-        protected static readonly string[] BACKGROUND_FILENAMES =
-        {
-            "bg", "background", "video"
-        };
-
-        protected static readonly string[] VIDEO_EXTENSIONS =
-        {
-            ".mp4", ".mov", ".webm",
-        };
-
-        protected static readonly string[] IMAGE_EXTENSIONS =
-        {
-            ".png", ".jpg", ".jpeg"
-        };
-
         public abstract ChartType Type { get; }
 
         protected abstract void Serialize(BinaryWriter writer, string groupDirectory);

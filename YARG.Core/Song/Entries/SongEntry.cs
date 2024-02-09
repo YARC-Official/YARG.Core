@@ -1,6 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Text.RegularExpressions;
 using YARG.Core.Chart;
+using YARG.Core.Venue;
 
 namespace YARG.Core.Song
 {
@@ -69,6 +72,45 @@ namespace YARG.Core.Song
     [Serializable]
     public abstract partial class SongEntry
     {
+        protected static readonly string[] BACKGROUND_FILENAMES =
+        {
+            "bg", "background", "video"
+        };
+
+        protected static readonly string[] VIDEO_EXTENSIONS =
+        {
+            ".mp4", ".mov", ".webm",
+        };
+
+        protected static readonly string[] IMAGE_EXTENSIONS =
+        {
+            ".png", ".jpg", ".jpeg"
+        };
+
+        protected static readonly string YARGROUND_EXTENSION = ".yarground";
+        protected static readonly string YARGROUND_FULLNAME = "bg.yarground";
+
+        private static readonly Random YARGROUND_RNG = new();
+        protected static BackgroundResult? SelectRandomYarground(string directory)
+        {
+            var venues = new List<string>();
+            foreach (var file in System.IO.Directory.EnumerateFiles(directory))
+            {
+                if (Path.GetExtension(file) == YARGROUND_EXTENSION)
+                {
+                    venues.Add(file);
+                }
+            }
+
+            if (venues.Count == 0)
+            {
+                return null;
+            }
+            
+            var stream = File.OpenRead(venues[YARGROUND_RNG.Next(venues.Count)]);
+            return new BackgroundResult(BackgroundType.Yarground, stream);
+        }
+
         protected SongMetadata Metadata = SongMetadata.Default;
 
         public abstract string Directory { get; }

@@ -90,6 +90,22 @@ namespace YARG.Core.Song
                 {
                     return new(BackgroundType.Yarground, listing.CreateStream(sngFile));
                 }
+
+                // Try to find a yarground mapped to the specific .sng
+                string filepath = Path.ChangeExtension(sngInfo.FullName, YARGROUND_EXTENSION);
+                if (File.Exists(filepath))
+                {
+                    var stream = File.OpenRead(filepath);
+                    return new(BackgroundType.Yarground, stream);
+                }
+
+                // Otherwise, randomly select one that is present in the same folder
+                string directory = Path.GetDirectoryName(sngInfo.FullName);
+                var venue = SelectRandomYarground(directory);
+                if (venue != null)
+                {
+                    return venue;
+                }
             }
 
             if ((options & BackgroundType.Video) > 0)

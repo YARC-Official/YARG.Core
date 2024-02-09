@@ -4,6 +4,7 @@ using System.IO;
 using YARG.Core.Extensions;
 using YARG.Core.Song.Cache;
 using YARG.Core.IO;
+using YARG.Core.Venue;
 
 namespace YARG.Core.Song
 {
@@ -150,6 +151,55 @@ namespace YARG.Core.Song
             writer.Write(_midiListing!.Filename);
             writer.Write(_midiListing.lastWrite.ToBinary());
             writer.Write(Directory);
+        }
+
+        
+        public override BackgroundResult? LoadBackground(BackgroundType options)
+        {
+            if (_midiListing == null)
+            {
+                return null;
+            }
+
+            string actualDirectory = Path.GetDirectoryName(_midiListing.ConFile.FullName);
+
+            // Unlike other entry types, you can't assign venues to specific songs
+            // As a solution, instead, let users place a bunch of venues in the same folder and randomly select one
+            var venue = SelectRandomYarground(actualDirectory);
+            if (venue != null)
+            {
+                return venue;
+            }
+
+            foreach (var name in BACKGROUND_FILENAMES)
+            {
+                var fileBase = Path.Combine(actualDirectory, name);
+                foreach (var ext in VIDEO_EXTENSIONS)
+                {
+                    string backgroundPath = fileBase + ext;
+                    if (File.Exists(backgroundPath))
+                    {
+                        var stream = File.OpenRead(backgroundPath);
+                        return new BackgroundResult(BackgroundType.Video, stream);
+                    }
+                }
+            }
+
+            foreach (var name in BACKGROUND_FILENAMES)
+            {
+                var fileBase = Path.Combine(actualDirectory, name);
+                foreach (var ext in IMAGE_EXTENSIONS)
+                {
+                    string backgroundPath = fileBase + ext;
+                    if (File.Exists(backgroundPath))
+                    {
+                        var stream = File.OpenRead(backgroundPath);
+                        return new BackgroundResult(BackgroundType.Image, stream);
+                    }
+                }
+            }
+
+            return null;
         }
 
         public override byte[]? LoadMiloData()
