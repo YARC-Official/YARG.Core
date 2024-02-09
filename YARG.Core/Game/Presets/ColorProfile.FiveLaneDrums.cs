@@ -11,12 +11,12 @@ namespace YARG.Core.Game
         {
             #region Frets
 
-            public Color KickFret   = DefaultPurpleFret;
-            public Color RedFret    = DefaultRedFret;
-            public Color YellowFret = DefaultYellowFret;
-            public Color BlueFret   = DefaultBlueFret;
-            public Color OrangeFret = DefaultOrangeFret;
-            public Color GreenFret  = DefaultGreenFret;
+            public Color KickFret   = DefaultPurple;
+            public Color RedFret    = DefaultRed;
+            public Color YellowFret = DefaultYellow;
+            public Color BlueFret   = DefaultBlue;
+            public Color OrangeFret = DefaultOrange;
+            public Color GreenFret  = DefaultGreen;
 
             /// <summary>
             /// Gets the fret color for a specific note index.
@@ -36,12 +36,12 @@ namespace YARG.Core.Game
                 };
             }
 
-            public Color KickFretInner   = DefaultPurpleFret;
-            public Color RedFretInner    = DefaultRedFretInner;
-            public Color YellowFretInner = DefaultYellowFretInner;
-            public Color BlueFretInner   = DefaultBlueFretInner;
-            public Color OrangeFretInner = DefaultOrangeFretInner;
-            public Color GreenFretInner  = DefaultGreenFretInner;
+            public Color KickFretInner   = DefaultPurple;
+            public Color RedFretInner    = DefaultRed;
+            public Color YellowFretInner = DefaultYellow;
+            public Color BlueFretInner   = DefaultBlue;
+            public Color OrangeFretInner = DefaultOrange;
+            public Color GreenFretInner  = DefaultGreen;
 
             /// <summary>
             /// Gets the inner fret color for a specific note index.
@@ -61,12 +61,12 @@ namespace YARG.Core.Game
                 };
             }
 
-            public Color KickParticles   = Color.FromArgb(0xFF, 0xD5, 0x00, 0xFF); // #d500ff
-            public Color RedParticles    = DefaultRedParticles;
-            public Color YellowParticles = DefaultYellowParticles;
-            public Color BlueParticles   = DefaultBlueParticles;
-            public Color OrangeParticles = DefaultOrangeParticles;
-            public Color GreenParticles  = DefaultGreenParticles;
+            public Color KickParticles   = Color.FromArgb(0xFF, 0xD5, 0x00, 0xFF); // #D500FF
+            public Color RedParticles    = DefaultRed;
+            public Color YellowParticles = DefaultYellow;
+            public Color BlueParticles   = DefaultBlue;
+            public Color OrangeParticles = DefaultOrange;
+            public Color GreenParticles  = DefaultGreen;
 
             /// <summary>
             /// Gets the particle color for a specific note index.
@@ -90,13 +90,13 @@ namespace YARG.Core.Game
 
             #region Notes
 
-            public Color KickNote = DefaultPurpleNote;
+            public Color KickNote = DefaultPurple;
 
-            public Color RedNote    = DefaultRedNote;
-            public Color YellowNote = DefaultYellowNote;
-            public Color BlueNote   = DefaultBlueNote;
-            public Color OrangeNote = DefaultOrangeNote;
-            public Color GreenNote  = DefaultGreenNote;
+            public Color RedNote    = DefaultRed;
+            public Color YellowNote = DefaultYellow;
+            public Color BlueNote   = DefaultBlue;
+            public Color OrangeNote = DefaultOrange;
+            public Color GreenNote  = DefaultGreen;
 
             /// <summary>
             /// Gets the note color for a specific note index.
@@ -146,7 +146,7 @@ namespace YARG.Core.Game
                 };
             }
 
-            public Color ActivationNote = DefaultPurpleNote;
+            public Color ActivationNote = DefaultPurple;
 
             #endregion
 
