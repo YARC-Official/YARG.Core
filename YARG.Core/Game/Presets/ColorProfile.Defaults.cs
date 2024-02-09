@@ -7,7 +7,7 @@ namespace YARG.Core.Game
     {
         #region Default Colors
 
-        private static readonly Color DefaultPurple = Color.FromArgb(0xFF, 0xE6, 0x3F, 0xFF); // #E63FFF
+        private static readonly Color DefaultPurple = Color.FromArgb(0xFF, 0xC8, 0x00, 0xFF); // #C800FF
         private static readonly Color DefaultGreen  = Color.FromArgb(0xFF, 0x79, 0xD3, 0x04); // #79D304
         private static readonly Color DefaultRed    = Color.FromArgb(0xFF, 0xFF, 0x1D, 0x23); // #FF1D23
         private static readonly Color DefaultYellow = Color.FromArgb(0xFF, 0xFF, 0xE9, 0x00); // #FFE900
