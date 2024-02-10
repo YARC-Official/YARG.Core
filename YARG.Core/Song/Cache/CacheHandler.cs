@@ -88,7 +88,7 @@ namespace YARG.Core.Song.Cache
             iniGroups = new(baseDirectories.Count);
             foreach (string dir in baseDirectories)
             {
-                if (!iniGroups.Exists(group => { return group.Directory == dir; }))
+                if (!string.IsNullOrEmpty(dir) && !iniGroups.Exists(group => { return group.Directory == dir; }))
                 {
                     iniGroups.Add(new IniGroup(dir));
                 }
