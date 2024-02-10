@@ -175,8 +175,8 @@ namespace YARG.Core.Song
         }
 
         private SngEntry(uint version, AbridgedFileInfo sngInfo, IniChartNode<string> chart, in SongMetadata metadata)
+            : base(metadata)
         {
-            Metadata = metadata;
             this.version = version;
             this.sngInfo = sngInfo;
             this.chart = chart;

@@ -252,7 +252,7 @@ namespace YARG.Core.Song.Cache
         {
             if (reader.ReadBoolean())
             {
-                reader.Move(SongMetadata.SIZEOF_DATETIME);
+                reader.Move(CacheHandler.SIZEOF_DATETIME);
             }
         }
     }

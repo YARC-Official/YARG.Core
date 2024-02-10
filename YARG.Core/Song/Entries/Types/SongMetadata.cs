@@ -9,6 +9,8 @@ namespace YARG.Core.Song
 {
     public struct SongMetadata
     {
+        public const double MILLISECOND_FACTOR = 1000.0;
+
         public static readonly SortString DEFAULT_NAME = "Unknown Name";
         public static readonly SortString DEFAULT_ARTIST = "Unknown Artist";
         public static readonly SortString DEFAULT_ALBUM = "Unknown Album";
@@ -33,21 +35,14 @@ namespace YARG.Core.Song
             Parts = new(),
             ParseSettings = ParseSettings.Default,
             LoadingPhrase = string.Empty,
-            _unmodifiedYear = DEFAULT_YEAR,
-            _parsedYear = DEFAULT_YEAR,
-            _intYear = int.MaxValue,
-            _songLength = 0,
-            _songOffset = 0,
-            _previewStart = 0,
-            _previewEnd = 0,
-            _videoStartTime = 0,
-            _videoEndTime = -1,
+            Year = DEFAULT_YEAR,
+            SongLength = 0,
+            SongOffset = 0,
+            PreviewStart = 0,
+            PreviewEnd = 0,
+            VideoStartTime = 0,
+            VideoEndTime = -1,
         };
-
-        private static readonly Regex s_YearRegex = new(@"(\d{4})");
-
-        public const int SIZEOF_DATETIME = 8;
-        public const double MILLISECOND_FACTOR = 1000.0;
 
         public SortString Name;
         public SortString Artist;
@@ -56,6 +51,17 @@ namespace YARG.Core.Song
         public SortString Charter;
         public SortString Source;
         public SortString Playlist;
+
+        public string Year;
+
+        public ulong SongLength;
+        public long SongOffset;
+
+        public ulong PreviewStart;
+        public ulong PreviewEnd;
+
+        public long VideoStartTime;
+        public long VideoEndTime;
 
         public bool IsMaster;
 
@@ -69,120 +75,6 @@ namespace YARG.Core.Song
         public ParseSettings ParseSettings;
 
         public string LoadingPhrase;
-
-        private string _unmodifiedYear;
-        private string _parsedYear;
-        private int _intYear;
-
-        private ulong _songLength;
-        private long _songOffset;
-
-        private ulong _previewStart;
-        private ulong _previewEnd;
-
-        private long _videoStartTime;
-        private long _videoEndTime;
-
-        public string Year
-        {
-            readonly get => _parsedYear;
-            set
-            {
-                _unmodifiedYear = value;
-                var match = s_YearRegex.Match(value);
-                if (string.IsNullOrEmpty(match.Value))
-                    _parsedYear = value;
-                else
-                {
-                    _parsedYear = match.Value[..4];
-                    _intYear = int.Parse(_parsedYear);
-                }
-            }
-        }
-
-        public readonly string UnmodifiedYear => _unmodifiedYear;
-
-        public int YearAsNumber
-        {
-            readonly get => _intYear;
-            set
-            {
-                _intYear = value;
-                _parsedYear = _unmodifiedYear = value.ToString();
-            }
-        }
-
-        public ulong SongLengthMilliseconds
-        {
-            readonly get => _songLength;
-            set => _songLength = value;
-        }
-
-        public long SongOffsetMilliseconds
-        {
-            readonly get => _songOffset;
-            set => _songOffset = value;
-        }
-
-        public double SongLengthSeconds
-        {
-            readonly get => SongLengthMilliseconds / MILLISECOND_FACTOR;
-            set => SongLengthMilliseconds = (ulong) (value * MILLISECOND_FACTOR);
-        }
-
-        public double SongOffsetSeconds
-        {
-            readonly get => SongOffsetMilliseconds / MILLISECOND_FACTOR;
-            set => SongOffsetMilliseconds = (long) (value * MILLISECOND_FACTOR);
-        }
-
-        public ulong PreviewStartMilliseconds
-        {
-            readonly get => _previewStart;
-            set => _previewStart = value;
-        }
-
-        public ulong PreviewEndMilliseconds
-        {
-            readonly get => _previewEnd;
-            set => _previewEnd = value;
-        }
-
-        public double PreviewStartSeconds
-        {
-            readonly get => PreviewStartMilliseconds / MILLISECOND_FACTOR;
-            set => PreviewStartMilliseconds = (ulong) (value * MILLISECOND_FACTOR);
-        }
-
-        public double PreviewEndSeconds
-        {
-            readonly get => PreviewEndMilliseconds / MILLISECOND_FACTOR;
-            set => PreviewEndMilliseconds = (ulong) (value * MILLISECOND_FACTOR);
-        }
-
-        public long VideoStartTimeMilliseconds
-        {
-            readonly get => _videoStartTime;
-            set => _videoStartTime = value;
-        }
-
-        public long VideoEndTimeMilliseconds
-        {
-            readonly get => _videoEndTime;
-            set => _videoEndTime = value;
-        }
-
-        public double VideoStartTimeSeconds
-        {
-            readonly get => VideoStartTimeMilliseconds / MILLISECOND_FACTOR;
-            set => VideoStartTimeMilliseconds = (long) (value * MILLISECOND_FACTOR);
-        }
-
-        public double VideoEndTimeSeconds
-        {
-            readonly get => VideoEndTimeMilliseconds >= 0 ? VideoEndTimeMilliseconds / MILLISECOND_FACTOR : -1;
-            set => VideoEndTimeMilliseconds = value >= 0 ? (long) (value * MILLISECOND_FACTOR) : -1;
-        }
 
         public readonly override string ToString() { return Artist + " | " + Name; }
 
@@ -198,6 +90,25 @@ namespace YARG.Core.Song
             section.TryGet("album", out Album, DEFAULT_ALBUM);
             section.TryGet("genre", out Genre, DEFAULT_GENRE);
 
+            if (!section.TryGet("year", out Year))
+            {
+                if (section.TryGet("year_chart", out Year))
+                {
+                    if (Year.StartsWith(", "))
+                    {
+                        Year = Year[2..];
+                    }
+                    else if (Year.StartsWith(','))
+                    {
+                        Year = Year[1..];
+                    }
+                }
+                else
+                {
+                    Year = DEFAULT_YEAR;
+                }
+            }
+
             if (!section.TryGet("charter", out Charter, DEFAULT_CHARTER))
             {
                 section.TryGet("frets", out Charter, DEFAULT_CHARTER);
@@ -206,106 +117,80 @@ namespace YARG.Core.Song
             section.TryGet("icon", out Source, DEFAULT_SOURCE);
             section.TryGet("playlist", out Playlist, defaultPlaylist);
 
-            _unmodifiedYear = DEFAULT_YEAR;
-            _parsedYear = DEFAULT_YEAR;
-            _intYear = int.MaxValue;
-
-            _songLength = 0;
-            _songOffset = 0;
-
-            _previewStart = 0;
-            _previewEnd = 0;
-
-            _videoStartTime = 0;
-            _videoEndTime = -1;
-
             section.TryGet("loading_phrase", out LoadingPhrase);
 
             if (!section.TryGet("playlist_track", out PlaylistTrack))
+            {
                 PlaylistTrack = -1;
+            }
 
             if (!section.TryGet("album_track", out AlbumTrack))
+            {
                 AlbumTrack = -1;
+            }
 
-            section.TryGet("song_length", out _songLength);
+            section.TryGet("song_length", out SongLength);
 
-            section.TryGet("video_start_time", out _videoStartTime);
-            _videoEndTime = section.TryGet("video_end_time", out long videoEndTime) ? videoEndTime : -1000;
+            section.TryGet("video_start_time", out VideoStartTime);
+            if (!section.TryGet("video_end_time", out VideoEndTime))
+            {
+                VideoEndTime = -1;
+            }
+
+            if (!section.TryGet("preview", out PreviewStart, out PreviewEnd))
+            {
+                if (!section.TryGet("preview_start_time", out PreviewStart) && section.TryGet("previewStart", out double previewStartSeconds))
+                {
+                    PreviewStart = (ulong) (previewStartSeconds * MILLISECOND_FACTOR);
+                }
+
+                if (!section.TryGet("preview_end_time", out PreviewEnd) && section.TryGet("previewEnd", out double previewEndSeconds))
+                {
+                    PreviewEnd = (ulong) (previewEndSeconds * MILLISECOND_FACTOR);
+                }
+            }
+
+
+            if (!section.TryGet("delay", out SongOffset) || SongOffset == 0)
+            {
+                if (section.TryGet("offset", out double songOffsetSeconds))
+                {
+                    SongOffset = (long) (songOffsetSeconds * MILLISECOND_FACTOR);
+                }
+            }
 
             if (!section.TryGet("hopo_frequency", out ParseSettings.HopoThreshold))
+            {
                 ParseSettings.HopoThreshold = -1;
+            }
 
             if (!section.TryGet("hopofreq", out ParseSettings.HopoFreq_FoF))
+            {
                 ParseSettings.HopoFreq_FoF = -1;
+            }
 
             section.TryGet("eighthnote_hopo", out ParseSettings.EighthNoteHopo);
 
             if (!section.TryGet("sustain_cutoff_threshold", out ParseSettings.SustainCutoffThreshold))
+            {
                 ParseSettings.SustainCutoffThreshold = -1;
+            }
 
             if (!section.TryGet("multiplier_note", out ParseSettings.StarPowerNote))
+            {
                 ParseSettings.StarPowerNote = -1;
+            }
 
             IsMaster = !section.TryGet("tags", out string tag) || tag.ToLower() != "cover";
-
-            if (section.TryGet("year", out _unmodifiedYear))
-            {
-                Year = _unmodifiedYear;
-            }
-            else if (section.TryGet("year_chart", out _unmodifiedYear))
-            {
-                if (_unmodifiedYear.StartsWith(", "))
-                    Year = _unmodifiedYear[2..];
-                else if (_unmodifiedYear.StartsWith(','))
-                    Year = _unmodifiedYear[1..];
-                else
-                    Year = _unmodifiedYear;
-            }
-            else
-                _unmodifiedYear = DEFAULT_YEAR;
-
-            if (!section.TryGet("preview", out _previewStart, out _previewEnd))
-            {
-                if (!section.TryGet("preview_start_time", out _previewStart) &&
-                    section.TryGet("previewStart", out double previewStartSeconds))
-                    PreviewStartSeconds = previewStartSeconds;
-
-                if (!section.TryGet("preview_end_time", out _previewEnd) &&
-                    section.TryGet("previewEnd", out double previewEndSeconds))
-                    PreviewEndSeconds = previewEndSeconds;
-            }
-
-
-            if (!section.TryGet("delay", out _songOffset) || _songOffset == 0)
-            {
-                if (section.TryGet("offset", out double songOffsetSeconds))
-                {
-                    SongOffsetSeconds = songOffsetSeconds;
-                }
-            }
         }
 
         public SongMetadata(BinaryReader reader, CategoryCacheStrings strings)
         {
-            _unmodifiedYear = DEFAULT_YEAR;
-            _parsedYear = DEFAULT_YEAR;
-            _intYear = int.MaxValue;
-
             Name = strings.titles[reader.ReadInt32()];
             Artist = strings.artists[reader.ReadInt32()];
             Album = strings.albums[reader.ReadInt32()];
             Genre = strings.genres[reader.ReadInt32()];
-
-            _unmodifiedYear = strings.years[reader.ReadInt32()];
-            var match = s_YearRegex.Match(_unmodifiedYear);
-            if (string.IsNullOrEmpty(match.Value))
-                _parsedYear = _unmodifiedYear;
-            else
-            {
-                _parsedYear = match.Value[..4];
-                _intYear = int.Parse(_parsedYear);
-            }
-
+            Year = strings.years[reader.ReadInt32()];
             Charter = strings.charters[reader.ReadInt32()];
             Playlist = strings.playlists[reader.ReadInt32()];
             Source = strings.sources[reader.ReadInt32()];
@@ -315,14 +200,14 @@ namespace YARG.Core.Song
             AlbumTrack = reader.ReadInt32();
             PlaylistTrack = reader.ReadInt32();
 
-            _songLength = reader.ReadUInt64();
-            _songOffset = reader.ReadInt64();
+            SongLength = reader.ReadUInt64();
+            SongOffset = reader.ReadInt64();
 
-            _previewStart = reader.ReadUInt64();
-            _previewEnd = reader.ReadUInt64();
+            PreviewStart = reader.ReadUInt64();
+            PreviewEnd = reader.ReadUInt64();
 
-            _videoStartTime = reader.ReadInt64();
-            _videoEndTime = reader.ReadInt64();
+            VideoStartTime = reader.ReadInt64();
+            VideoEndTime = reader.ReadInt64();
 
             LoadingPhrase = reader.ReadString();
 
@@ -357,14 +242,14 @@ namespace YARG.Core.Song
             writer.Write(AlbumTrack);
             writer.Write(PlaylistTrack);
 
-            writer.Write(_songLength);
-            writer.Write(_songOffset);
+            writer.Write(SongLength);
+            writer.Write(SongOffset);
 
-            writer.Write(_previewStart);
-            writer.Write(_previewEnd);
+            writer.Write(PreviewStart);
+            writer.Write(PreviewEnd);
 
-            writer.Write(_videoStartTime);
-            writer.Write(_videoEndTime);
+            writer.Write(VideoStartTime);
+            writer.Write(VideoEndTime);
 
             writer.Write(LoadingPhrase);
 

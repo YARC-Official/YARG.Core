@@ -251,12 +251,12 @@ namespace YARG.Core.Song
             return null;
         }
 
+        protected abstract void SerializeSubData(BinaryWriter writer);
+
         public void Serialize(BinaryWriter writer, CategoryCacheWriteNode node)
         {
             SerializeSubData(writer);
-
-            writer.Write(UpdateMidi != null);
-            UpdateMidi?.Serialize(writer);
+            Metadata.Serialize(writer, node);
 
             RBDifficulties.Serialize(writer);
 
@@ -293,8 +293,6 @@ namespace YARG.Core.Song
             WriteArray(VocalsStemValues, writer);
             WriteArray(TrackStemValues, writer);
             WriteArray(CrowdStemValues, writer);
-
-            Metadata.Serialize(writer, node);
         }
 
         protected virtual byte[]? LoadRawImageData()
@@ -335,7 +333,10 @@ namespace YARG.Core.Song
 
         protected abstract Stream? GetMidiStream();
 
-        protected RBCONEntry(AbridgedFileInfo? updateMidi, BinaryReader reader, CategoryCacheStrings strings)
+        protected RBCONEntry() : base(SongMetadata.Default) { }
+
+        protected RBCONEntry(AbridgedFileInfo? updateMidi, in SongMetadata metadata, BinaryReader reader)
+            : base(metadata)
         {
             UpdateMidi = updateMidi;
 
@@ -374,11 +375,7 @@ namespace YARG.Core.Song
             VocalsStemValues = ReadFloatArray(reader);
             TrackStemValues = ReadFloatArray(reader);
             CrowdStemValues = ReadFloatArray(reader);
-
-            Metadata = new SongMetadata(reader, strings);
         }
-
-        protected RBCONEntry() { Metadata = SongMetadata.Default; }
 
         protected DTAResult Init(string nodeName, YARGDTAReader reader, Dictionary<string, List<SongUpdate>> updates, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, string defaultPlaylist)
         {
@@ -616,8 +613,8 @@ namespace YARG.Core.Song
                                 break;
                             }
                         case "preview":
-                            Metadata.PreviewStartMilliseconds = reader.ExtractUInt64();
-                            Metadata.PreviewEndMilliseconds = reader.ExtractUInt64();
+                            Metadata.PreviewStart = reader.ExtractUInt64();
+                            Metadata.PreviewEnd = reader.ExtractUInt64();
                             break;
                         case "rank": Metadata.Parts.SetIntensities(RBDifficulties, reader); break;
                         case "solo": Soloes = reader.ExtractList_String().ToArray(); break;
@@ -662,7 +659,7 @@ namespace YARG.Core.Song
                         case "base_points": /*BasePoints = reader.Read<uint>();*/ break;
                         case "band_fail_cue": /*BandFailCue = reader.ExtractText();*/ break;
                         case "drum_bank": DrumBank = reader.ExtractText(); break;
-                        case "song_length": Metadata.SongLengthMilliseconds = reader.ExtractUInt64(); break;
+                        case "song_length": Metadata.SongLength = reader.ExtractUInt64(); break;
                         case "sub_genre": /*Subgenre = reader.ExtractText();*/ break;
                         case "author": Metadata.Charter = reader.ExtractText(); break;
                         case "guide_pitch_volume": /*GuidePitchVolume = reader.ReadFloat();*/ break;

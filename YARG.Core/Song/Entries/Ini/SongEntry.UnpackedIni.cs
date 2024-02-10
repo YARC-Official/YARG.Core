@@ -158,8 +158,8 @@ namespace YARG.Core.Song
         }
 
         private UnpackedIniEntry(string directory, ChartType chartType, AbridgedFileInfo chartFile, AbridgedFileInfo? iniFile, in SongMetadata metadata)
+            : base(metadata)
         {
-            Metadata = metadata;
             Directory = directory;
             Type = chartType;
             _chartFile = chartFile;

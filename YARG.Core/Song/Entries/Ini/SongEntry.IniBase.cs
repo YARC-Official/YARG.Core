@@ -72,7 +72,12 @@ namespace YARG.Core.Song
 
         public abstract ChartType Type { get; }
 
+        protected IniSubEntry(in SongMetadata metadata)
+            : base(metadata) { }
+
         protected abstract Stream? GetChartStream();
+
+        protected abstract void SerializeSubData(BinaryWriter writer);
 
         public byte[] Serialize(CategoryCacheWriteNode node, string groupDirectory)
         {

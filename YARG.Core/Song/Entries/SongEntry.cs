@@ -44,8 +44,6 @@ namespace YARG.Core.Song
         Chart,
     };
 
-    
-
     public enum EntryType
     {
         Ini,
@@ -111,7 +109,10 @@ namespace YARG.Core.Song
             return new BackgroundResult(BackgroundType.Yarground, stream);
         }
 
-        protected SongMetadata Metadata = SongMetadata.Default;
+        private string _parsedYear;
+        private int _intYear;
+
+        protected SongMetadata Metadata;
 
         public abstract string Directory { get; }
 
@@ -125,97 +126,98 @@ namespace YARG.Core.Song
         public SortString Source => Metadata.Source;
         public SortString Playlist => Metadata.Playlist;
 
-        public string Year
-        {
-            get => Metadata.Year;
-            protected set => Metadata.Year = value;
-        }
+        public string Year => _parsedYear;
 
-        public string UnmodifiedYear => Metadata.UnmodifiedYear;
+        public string UnmodifiedYear => Metadata.Year;
 
         public int YearAsNumber
         {
-            get => Metadata.YearAsNumber;
-            protected set => Metadata.YearAsNumber = value;
+            get => _intYear;
+            set
+            {
+                _intYear = value;
+                _parsedYear = Metadata.Year = value.ToString();
+            }
         }
 
         public bool IsMaster => Metadata.IsMaster;
 
         public int AlbumTrack => Metadata.AlbumTrack;
+
         public int PlaylistTrack => Metadata.PlaylistTrack;
 
         public string LoadingPhrase => Metadata.LoadingPhrase;
 
         public ulong SongLengthMilliseconds
         {
-            get => Metadata.SongLengthMilliseconds;
-            protected set => Metadata.SongLengthMilliseconds = value;
+            get => Metadata.SongLength;
+            set => Metadata.SongLength = value;
         }
 
         public long SongOffsetMilliseconds
         {
-            get => Metadata.SongOffsetMilliseconds;
-            protected set => Metadata.SongOffsetMilliseconds = value;
+            get => Metadata.SongOffset;
+            set => Metadata.SongOffset = value;
         }
 
         public double SongLengthSeconds
         {
-            get => Metadata.SongLengthSeconds;
-            protected set => Metadata.SongLengthSeconds = value;
+            get => Metadata.SongLength / SongMetadata.MILLISECOND_FACTOR;
+            set => Metadata.SongLength = (ulong) (value * SongMetadata.MILLISECOND_FACTOR);
         }
 
         public double SongOffsetSeconds
         {
-            get => Metadata.SongOffsetSeconds;
-            protected set => Metadata.SongOffsetSeconds = value;
+            get => Metadata.SongOffset / SongMetadata.MILLISECOND_FACTOR;
+            set => Metadata.SongOffset = (long) (value * SongMetadata.MILLISECOND_FACTOR);
         }
 
         public ulong PreviewStartMilliseconds
         {
-            get => Metadata.PreviewStartMilliseconds;
-            protected set => Metadata.PreviewStartMilliseconds = value;
+            get => Metadata.PreviewStart;
+            set => Metadata.PreviewStart = value;
         }
 
         public ulong PreviewEndMilliseconds
         {
-            get => Metadata.PreviewEndMilliseconds;
-            protected set => Metadata.PreviewEndMilliseconds = value;
+            get => Metadata.PreviewEnd;
+            set => Metadata.PreviewEnd = value;
         }
 
         public double PreviewStartSeconds
         {
-            get => Metadata.PreviewStartSeconds;
-            protected set => Metadata.PreviewStartSeconds = value;
+            get => Metadata.PreviewStart / SongMetadata.MILLISECOND_FACTOR;
+            set => Metadata.PreviewStart = (ulong) (value * SongMetadata.MILLISECOND_FACTOR);
         }
 
         public double PreviewEndSeconds
         {
-            get => Metadata.PreviewEndSeconds;
-            protected set => Metadata.PreviewEndSeconds = value;
+            get => Metadata.PreviewEnd / SongMetadata.MILLISECOND_FACTOR;
+            set => Metadata.PreviewEnd = (ulong) (value * SongMetadata.MILLISECOND_FACTOR);
         }
 
         public long VideoStartTimeMilliseconds
         {
-            get => Metadata.VideoStartTimeMilliseconds;
-            protected set => Metadata.VideoStartTimeMilliseconds = value;
+            get => Metadata.VideoStartTime;
+            set => Metadata.VideoStartTime = value;
         }
 
         public long VideoEndTimeMilliseconds
         {
-            get => Metadata.VideoEndTimeMilliseconds;
-            protected set => Metadata.VideoEndTimeMilliseconds = value;
+            get => Metadata.VideoEndTime;
+            set => Metadata.VideoEndTime = value;
         }
 
         public double VideoStartTimeSeconds
         {
-            get => Metadata.VideoStartTimeSeconds;
-            protected set => Metadata.VideoStartTimeSeconds = value;
+            get => Metadata.VideoStartTime / SongMetadata.MILLISECOND_FACTOR;
+            set => Metadata.VideoStartTime = (long) (value * SongMetadata.MILLISECOND_FACTOR);
         }
 
         public double VideoEndTimeSeconds
         {
-            get => Metadata.VideoEndTimeSeconds;
-            protected set => Metadata.VideoEndTimeSeconds = value;
+            get => Metadata.VideoEndTime >= 0 ? Metadata.VideoEndTime / SongMetadata.MILLISECOND_FACTOR : -1;
+            set => Metadata.VideoEndTime = value >= 0 ? (long) (value * SongMetadata.MILLISECOND_FACTOR) : -1;
         }
 
         public HashWrapper Hash => Metadata.Hash;
@@ -226,6 +228,21 @@ namespace YARG.Core.Song
 
         public override string ToString() { return Metadata.ToString(); }
 
-        protected abstract void SerializeSubData(BinaryWriter writer);
+        private static readonly Regex s_YearRegex = new(@"(\d{4})");
+        protected SongEntry(in SongMetadata metadata)
+        {
+            Metadata = metadata;
+            var match = s_YearRegex.Match(Metadata.Year);
+            if (string.IsNullOrEmpty(match.Value))
+            {
+                _parsedYear = Metadata.Year;
+                _intYear = int.MaxValue;
+            }
+            else
+            {
+                _parsedYear = match.Value[..4];
+                _intYear = int.Parse(_parsedYear);
+            }
+        }
     }
 }

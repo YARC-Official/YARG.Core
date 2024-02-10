@@ -10,6 +10,7 @@ namespace YARG.Core.Song.Cache
 {
     public sealed partial class CacheHandler
     {
+        public const int SIZEOF_DATETIME = 8;
         private readonly HashSet<string> invalidSongsInCache = new();
 
         private static void RunCONTasks(FileStream stream, Action<BinaryReader> func)
@@ -370,7 +371,7 @@ namespace YARG.Core.Song.Cache
             for (int i = 0; i < count; i++)
             {
                 AddInvalidSong(reader.ReadString());
-                reader.Move(SongMetadata.SIZEOF_DATETIME);
+                reader.Move(SIZEOF_DATETIME);
             }
         }
 
@@ -416,7 +417,7 @@ namespace YARG.Core.Song.Cache
             for (int i = 0; i < count; i++)
             {
                 AddInvalidSong(reader.ReadString());
-                reader.Move(SongMetadata.SIZEOF_DATETIME);
+                reader.Move(SIZEOF_DATETIME);
             }
         }
 
@@ -543,7 +544,7 @@ namespace YARG.Core.Song.Cache
         private void QuickReadUpgradeCON(BinaryReader reader)
         {
             string filename = reader.ReadString();
-            reader.Move(2 * SongMetadata.SIZEOF_DATETIME);
+            reader.Move(2 * SIZEOF_DATETIME);
             int count = reader.ReadInt32();
 
             var group = CreateCONGroup(filename, string.Empty);

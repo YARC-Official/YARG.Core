@@ -76,7 +76,8 @@ namespace YARG.Core.Song
             var miloListing = file.TryGetListing(genPath + ".milo_xbox");
             var imgListing = file.TryGetListing(genPath + "_keep.png_xbox");
 
-            var song = new PackedRBCONEntry(midiListing, midiLastWrite, moggListing, miloListing, imgListing, psuedoDirectory, updateMidi, reader, strings);
+            var metadata = new SongMetadata(reader, strings);
+            var song = new PackedRBCONEntry(midiListing, midiLastWrite, moggListing, miloListing, imgListing, psuedoDirectory, updateMidi, metadata, reader);
             if (upgrades.TryGetValue(nodename, out var upgrade))
             {
                 song.Upgrade = upgrade.Item2;
@@ -103,7 +104,8 @@ namespace YARG.Core.Song
             var miloListing = file.TryGetListing(genPath + ".milo_xbox");
             var imgListing = file.TryGetListing(genPath + "_keep.png_xbox");
 
-            var song = new PackedRBCONEntry(midiListing, midiLastWrite, moggListing, miloListing, imgListing, psuedoDirectory, updateMidi, reader, strings);
+            var metadata = new SongMetadata(reader, strings);
+            var song = new PackedRBCONEntry(midiListing, midiLastWrite, moggListing, miloListing, imgListing, psuedoDirectory, updateMidi, metadata, reader);
             if (upgrades.TryGetValue(nodename, out var upgrade))
             {
                 song.Upgrade = upgrade.Item2;
@@ -135,8 +137,8 @@ namespace YARG.Core.Song
         }
 
         private PackedRBCONEntry(CONFileListing? midi, DateTime midiLastWrite, CONFileListing? moggListing, CONFileListing? miloListing, CONFileListing? imgListing, string directory,
-            AbridgedFileInfo? updateMidi, BinaryReader reader, CategoryCacheStrings strings)
-            : base(updateMidi, reader, strings)
+            AbridgedFileInfo? updateMidi, in SongMetadata metadata, BinaryReader reader)
+            : base(updateMidi, metadata, reader)
         {
             _midiListing = midi;
             _moggListing = moggListing;
@@ -151,6 +153,8 @@ namespace YARG.Core.Song
             writer.Write(Directory);
             writer.Write(_midiListing!.Filename);
             writer.Write(_midiListing.lastWrite.ToBinary());
+            writer.Write(UpdateMidi != null);
+            UpdateMidi?.Serialize(writer);
         }
 
         public override BackgroundResult? LoadBackground(BackgroundType options)
