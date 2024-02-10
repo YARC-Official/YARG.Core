@@ -267,6 +267,12 @@ namespace YARG.Core.Chart
 
             // Finish off last range
             AddPitchRange(shiftStartTick, uint.MaxValue, shiftLength);
+
+            // If a song is all talkies, there will be no ranges added
+            // so we add a dummy range here
+            if (ranges.Count < 1)
+                ranges.Add(new(48, 72, 0, 0, 0, 0));
+
             return ranges;
 
             void AddPitchRange(uint startTick, uint endTick, double shiftLength)
