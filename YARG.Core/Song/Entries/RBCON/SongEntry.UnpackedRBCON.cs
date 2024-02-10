@@ -60,7 +60,7 @@ namespace YARG.Core.Song
                 }
             }
 
-            var metadata = new SongMetadata(reader, strings);
+            var metadata = DeserializeMetadata(reader, strings);
             var song = new UnpackedRBCONEntry(songDirectory, subname, dta, midiInfo, updateMidi, metadata, reader);
             if (upgrades.TryGetValue(nodename, out var upgrade))
             {
@@ -79,7 +79,7 @@ namespace YARG.Core.Song
 
             var updateMidi = reader.ReadBoolean() ? new AbridgedFileInfo(reader) : null;
 
-            var metadata = new SongMetadata(reader, strings);
+            var metadata = DeserializeMetadata(reader, strings);
             var song = new UnpackedRBCONEntry(songDirectory, subname, dta, midiInfo, updateMidi, metadata, reader);
             if (upgrades.TryGetValue(nodename, out var upgrade))
             {
@@ -108,7 +108,7 @@ namespace YARG.Core.Song
         }
 
         private UnpackedRBCONEntry(string directory, string nodename, AbridgedFileInfo? dta, AbridgedFileInfo midi,
-            AbridgedFileInfo? updateMidi, in SongMetadata metadata, BinaryReader reader)
+            AbridgedFileInfo? updateMidi, SongMetadata metadata, BinaryReader reader)
             : base(updateMidi, metadata, reader)
         {
             Directory = directory;

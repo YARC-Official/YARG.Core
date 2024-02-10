@@ -91,7 +91,7 @@ namespace YARG.Core.Song
             writer.Write(SubType == EntryType.Sng);
             writer.Write(relativePath);
             SerializeSubData(writer);
-            Metadata.Serialize(writer, node);
+            SerializeMetadata(writer, node);
 
             return ms.ToArray();
         }
@@ -112,6 +112,113 @@ namespace YARG.Core.Song
         public override byte[]? LoadMiloData()
         {
             return null;
+        }
+
+        protected static SongMetadata SetMetadata(AvailableParts parts, HashWrapper hash, IniSection section, string defaultPlaylist)
+        {
+            SongMetadata metadata = default;
+            metadata.Parts = parts;
+            metadata.Hash = hash;
+            metadata.ParseSettings = ParseSettings.Default;
+            metadata.ParseSettings.DrumsType = parts.GetDrumType();
+
+            section.TryGet("name", out metadata.Name, SongMetadata.DEFAULT_NAME);
+            section.TryGet("artist", out metadata.Artist, SongMetadata.DEFAULT_ARTIST);
+            section.TryGet("album", out metadata.Album, SongMetadata.DEFAULT_ALBUM);
+            section.TryGet("genre", out metadata.Genre, SongMetadata.DEFAULT_GENRE);
+
+            if (!section.TryGet("year", out metadata.Year))
+            {
+                if (section.TryGet("year_chart", out metadata.Year))
+                {
+                    if (metadata.Year.StartsWith(", "))
+                    {
+                        metadata.Year = metadata.Year[2..];
+                    }
+                    else if (metadata.Year.StartsWith(','))
+                    {
+                        metadata.Year = metadata.Year[1..];
+                    }
+                }
+                else
+                {
+                    metadata.Year = SongMetadata.DEFAULT_YEAR;
+                }
+            }
+
+            if (!section.TryGet("charter", out metadata.Charter, SongMetadata.DEFAULT_CHARTER))
+            {
+                section.TryGet("frets", out metadata.Charter, SongMetadata.DEFAULT_CHARTER);
+            }
+
+            section.TryGet("icon", out metadata.Source, SongMetadata.DEFAULT_SOURCE);
+            section.TryGet("playlist", out metadata.Playlist, defaultPlaylist);
+
+            section.TryGet("loading_phrase", out metadata.LoadingPhrase);
+
+            if (!section.TryGet("playlist_track", out metadata.PlaylistTrack))
+            {
+                metadata.PlaylistTrack = -1;
+            }
+
+            if (!section.TryGet("album_track", out metadata.AlbumTrack))
+            {
+                metadata.AlbumTrack = -1;
+            }
+
+            section.TryGet("song_length", out metadata.SongLength);
+
+            section.TryGet("video_start_time", out metadata.VideoStartTime);
+            if (!section.TryGet("video_end_time", out metadata.VideoEndTime))
+            {
+                metadata.VideoEndTime = -1;
+            }
+
+            if (!section.TryGet("preview", out metadata.PreviewStart, out metadata.PreviewEnd))
+            {
+                if (!section.TryGet("preview_start_time", out metadata.PreviewStart) && section.TryGet("previewStart", out double previewStartSeconds))
+                {
+                    metadata.PreviewStart = (ulong) (previewStartSeconds * MILLISECOND_FACTOR);
+                }
+
+                if (!section.TryGet("preview_end_time", out metadata.PreviewEnd) && section.TryGet("previewEnd", out double previewEndSeconds))
+                {
+                    metadata.PreviewEnd = (ulong) (previewEndSeconds * MILLISECOND_FACTOR);
+                }
+            }
+
+            if (!section.TryGet("delay", out metadata.SongOffset) || metadata.SongOffset == 0)
+            {
+                if (section.TryGet("offset", out double songOffsetSeconds))
+                {
+                    metadata.SongOffset = (long) (songOffsetSeconds * MILLISECOND_FACTOR);
+                }
+            }
+
+            if (!section.TryGet("hopo_frequency", out metadata.ParseSettings.HopoThreshold))
+            {
+                metadata.ParseSettings.HopoThreshold = -1;
+            }
+
+            if (!section.TryGet("hopofreq", out metadata.ParseSettings.HopoFreq_FoF))
+            {
+                metadata.ParseSettings.HopoFreq_FoF = -1;
+            }
+
+            section.TryGet("eighthnote_hopo", out metadata.ParseSettings.EighthNoteHopo);
+
+            if (!section.TryGet("sustain_cutoff_threshold", out metadata.ParseSettings.SustainCutoffThreshold))
+            {
+                metadata.ParseSettings.SustainCutoffThreshold = -1;
+            }
+
+            if (!section.TryGet("multiplier_note", out metadata.ParseSettings.StarPowerNote))
+            {
+                metadata.ParseSettings.StarPowerNote = -1;
+            }
+
+            metadata.IsMaster = !section.TryGet("tags", out string tag) || tag.ToLower() != "cover";
+            return metadata;
         }
 
         protected static (ScanResult Result, AvailableParts? Parts) ScanIniChartFile(byte[] file, ChartType chartType, IniSection modifiers)

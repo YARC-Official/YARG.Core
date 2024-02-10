@@ -76,7 +76,7 @@ namespace YARG.Core.Song
             var miloListing = file.TryGetListing(genPath + ".milo_xbox");
             var imgListing = file.TryGetListing(genPath + "_keep.png_xbox");
 
-            var metadata = new SongMetadata(reader, strings);
+            var metadata = DeserializeMetadata(reader, strings);
             var song = new PackedRBCONEntry(midiListing, midiLastWrite, moggListing, miloListing, imgListing, psuedoDirectory, updateMidi, metadata, reader);
             if (upgrades.TryGetValue(nodename, out var upgrade))
             {
@@ -104,7 +104,7 @@ namespace YARG.Core.Song
             var miloListing = file.TryGetListing(genPath + ".milo_xbox");
             var imgListing = file.TryGetListing(genPath + "_keep.png_xbox");
 
-            var metadata = new SongMetadata(reader, strings);
+            var metadata = DeserializeMetadata(reader, strings);
             var song = new PackedRBCONEntry(midiListing, midiLastWrite, moggListing, miloListing, imgListing, psuedoDirectory, updateMidi, metadata, reader);
             if (upgrades.TryGetValue(nodename, out var upgrade))
             {
@@ -137,7 +137,7 @@ namespace YARG.Core.Song
         }
 
         private PackedRBCONEntry(CONFileListing? midi, DateTime midiLastWrite, CONFileListing? moggListing, CONFileListing? miloListing, CONFileListing? imgListing, string directory,
-            AbridgedFileInfo? updateMidi, in SongMetadata metadata, BinaryReader reader)
+            AbridgedFileInfo? updateMidi, SongMetadata metadata, BinaryReader reader)
             : base(updateMidi, metadata, reader)
         {
             _midiListing = midi;

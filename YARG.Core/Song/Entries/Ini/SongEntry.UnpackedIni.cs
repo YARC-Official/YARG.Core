@@ -198,7 +198,7 @@ namespace YARG.Core.Song
             }
 
             var abridged = new AbridgedFileInfo(chart.File);
-            var metadata = new SongMetadata(parts, HashWrapper.Hash(file), iniModifiers, defaultPlaylist);
+            var metadata = SetMetadata(parts, HashWrapper.Hash(file), iniModifiers, defaultPlaylist);
             var entry = new UnpackedIniEntry(chartDirectory, chart.Type, abridged, iniFileInfo, metadata);
             return (result, entry);
         }
@@ -234,7 +234,7 @@ namespace YARG.Core.Song
                 return null;
             }
 
-            var metadata = new SongMetadata(reader, strings);
+            var metadata = DeserializeMetadata(reader, strings);
             return new UnpackedIniEntry(directory, chart.Type, chartInfo, iniInfo, metadata);
         }
 
@@ -258,7 +258,7 @@ namespace YARG.Core.Song
                 iniInfo = new AbridgedFileInfo(Path.Combine(directory, "song.ini"), lastUpdated);
             }
 
-            var metadata = new SongMetadata(reader, strings);
+            var metadata = DeserializeMetadata(reader, strings);
             return new UnpackedIniEntry(directory, chart.Type, chartInfo, iniInfo, metadata);
         }
     }

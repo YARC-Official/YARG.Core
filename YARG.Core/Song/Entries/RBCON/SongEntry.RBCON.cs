@@ -256,7 +256,7 @@ namespace YARG.Core.Song
         public void Serialize(BinaryWriter writer, CategoryCacheWriteNode node)
         {
             SerializeSubData(writer);
-            Metadata.Serialize(writer, node);
+            SerializeMetadata(writer, node);
 
             RBDifficulties.Serialize(writer);
 

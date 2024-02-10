@@ -70,6 +70,7 @@ namespace YARG.Core.Song
     [Serializable]
     public abstract partial class SongEntry
     {
+        public const double MILLISECOND_FACTOR = 1000.0;
         protected static readonly string[] BACKGROUND_FILENAMES =
         {
             "bg", "background", "video"
@@ -162,14 +163,14 @@ namespace YARG.Core.Song
 
         public double SongLengthSeconds
         {
-            get => Metadata.SongLength / SongMetadata.MILLISECOND_FACTOR;
-            set => Metadata.SongLength = (ulong) (value * SongMetadata.MILLISECOND_FACTOR);
+            get => Metadata.SongLength / MILLISECOND_FACTOR;
+            set => Metadata.SongLength = (ulong) (value * MILLISECOND_FACTOR);
         }
 
         public double SongOffsetSeconds
         {
-            get => Metadata.SongOffset / SongMetadata.MILLISECOND_FACTOR;
-            set => Metadata.SongOffset = (long) (value * SongMetadata.MILLISECOND_FACTOR);
+            get => Metadata.SongOffset / MILLISECOND_FACTOR;
+            set => Metadata.SongOffset = (long) (value * MILLISECOND_FACTOR);
         }
 
         public ulong PreviewStartMilliseconds
@@ -186,14 +187,14 @@ namespace YARG.Core.Song
 
         public double PreviewStartSeconds
         {
-            get => Metadata.PreviewStart / SongMetadata.MILLISECOND_FACTOR;
-            set => Metadata.PreviewStart = (ulong) (value * SongMetadata.MILLISECOND_FACTOR);
+            get => Metadata.PreviewStart / MILLISECOND_FACTOR;
+            set => Metadata.PreviewStart = (ulong) (value * MILLISECOND_FACTOR);
         }
 
         public double PreviewEndSeconds
         {
-            get => Metadata.PreviewEnd / SongMetadata.MILLISECOND_FACTOR;
-            set => Metadata.PreviewEnd = (ulong) (value * SongMetadata.MILLISECOND_FACTOR);
+            get => Metadata.PreviewEnd / MILLISECOND_FACTOR;
+            set => Metadata.PreviewEnd = (ulong) (value * MILLISECOND_FACTOR);
         }
 
         public long VideoStartTimeMilliseconds
@@ -210,14 +211,14 @@ namespace YARG.Core.Song
 
         public double VideoStartTimeSeconds
         {
-            get => Metadata.VideoStartTime / SongMetadata.MILLISECOND_FACTOR;
-            set => Metadata.VideoStartTime = (long) (value * SongMetadata.MILLISECOND_FACTOR);
+            get => Metadata.VideoStartTime / MILLISECOND_FACTOR;
+            set => Metadata.VideoStartTime = (long) (value * MILLISECOND_FACTOR);
         }
 
         public double VideoEndTimeSeconds
         {
-            get => Metadata.VideoEndTime >= 0 ? Metadata.VideoEndTime / SongMetadata.MILLISECOND_FACTOR : -1;
-            set => Metadata.VideoEndTime = value >= 0 ? (long) (value * SongMetadata.MILLISECOND_FACTOR) : -1;
+            get => Metadata.VideoEndTime >= 0 ? Metadata.VideoEndTime / MILLISECOND_FACTOR : -1;
+            set => Metadata.VideoEndTime = value >= 0 ? (long) (value * MILLISECOND_FACTOR) : -1;
         }
 
         public HashWrapper Hash => Metadata.Hash;
