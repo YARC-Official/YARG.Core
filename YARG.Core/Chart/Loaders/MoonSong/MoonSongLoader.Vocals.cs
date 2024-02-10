@@ -319,7 +319,9 @@ namespace YARG.Core.Chart
                 if (minPitch == float.MaxValue || maxPitch == float.MinValue)
                     return;
 
-                ranges.Add(new(minPitch, maxPitch, shiftLength, _moonSong.TickToTime(startTick), startTick));
+                double startTime = _moonSong.TickToTime(startTick);
+                endTick = _moonSong.TimeToTick(startTime + shiftLength);
+                ranges.Add(new(minPitch, maxPitch, startTime, shiftLength, startTick, endTick - startTick));
             }
         }
 

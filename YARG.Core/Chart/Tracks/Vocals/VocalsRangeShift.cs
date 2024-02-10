@@ -10,16 +10,12 @@ namespace YARG.Core.Chart
         public float MinimumPitch { get; }
         public float MaximumPitch { get; }
 
-        public double ShiftLength { get; }
-
-        public VocalsRangeShift(float minPitch, float maxPitch, double shiftLength,
-            double time, uint tick)
-            : base(time, 0, tick, 0)
+        public VocalsRangeShift(float minPitch, float maxPitch,
+            double time, double timeLength, uint tick, uint tickLength)
+            : base(time, timeLength, tick, tickLength)
         {
             MinimumPitch = minPitch;
             MaximumPitch = maxPitch;
-
-            ShiftLength = shiftLength;
         }
 
         public VocalsRangeShift(VocalsRangeShift other)
@@ -27,8 +23,6 @@ namespace YARG.Core.Chart
         {
             MinimumPitch = other.MinimumPitch;
             MaximumPitch = other.MaximumPitch;
-
-            ShiftLength = other.ShiftLength;
         }
 
         public VocalsRangeShift Clone()
