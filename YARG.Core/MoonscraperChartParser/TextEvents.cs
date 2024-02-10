@@ -43,7 +43,7 @@ namespace MoonscraperChartEditor.Song
             public List<string> pendingEvents;
         }
 
-        public static void ConvertToPhrases(List<MoonText> events, ITextPhraseConverter converter)
+        public static void ConvertToPhrases(List<MoonText> events, ITextPhraseConverter converter, uint maxTick)
         {
             string startEvent = converter.StartEvent;
             string endEvent = converter.EndEvent;
@@ -94,9 +94,9 @@ namespace MoonscraperChartEditor.Song
 
             if (state.start && !state.end)
             {
-                // Unterminated start event
+                // Unterminated start event, we place it at the end of the song
                 state.end = true;
-                state.currentTick = uint.MaxValue;
+                state.currentTick = maxTick + 1;
             }
 
             // Handle final event state

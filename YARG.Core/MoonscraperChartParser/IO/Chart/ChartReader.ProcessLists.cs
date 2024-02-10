@@ -229,7 +229,8 @@ namespace MoonscraperChartEditor.Song.IO
         private static void ConvertSoloEvents(in NoteProcessParams noteProcessParams)
         {
             var chart = noteProcessParams.chart;
-            TextEvents.ConvertToPhrases(chart.events, new SoloPhraseConverter(chart));
+            var maxTick = chart.notes.LastOrDefault()?.tick ?? 0;
+            TextEvents.ConvertToPhrases(chart.events, new SoloPhraseConverter(chart), maxTick);
         }
 
         private static void DisambiguateDrumsType(in NoteProcessParams processParams)
