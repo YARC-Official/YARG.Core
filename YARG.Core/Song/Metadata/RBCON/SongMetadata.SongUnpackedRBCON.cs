@@ -45,7 +45,7 @@ namespace YARG.Core.Song
                 _imgPath = file + "_keep.png_xbox";
             }
 
-            public static RBUnpackedCONMetadata? TryLoadFromCache(AbridgedFileInfo dta, YARGBinaryReader reader)
+            public static RBUnpackedCONMetadata? TryLoadFromCache(AbridgedFileInfo dta, BinaryReader reader)
             {
                 var midiInfo = AbridgedFileInfo.TryParseInfo(reader);
                 if (midiInfo == null)
@@ -67,7 +67,7 @@ namespace YARG.Core.Song
                 return new RBUnpackedCONMetadata(dta, midiInfo, baseMetadata);
             }
 
-            public static RBUnpackedCONMetadata LoadFromCache_Quick(AbridgedFileInfo? dta, YARGBinaryReader reader)
+            public static RBUnpackedCONMetadata LoadFromCache_Quick(AbridgedFileInfo? dta, BinaryReader reader)
             {
                 var midiInfo = new AbridgedFileInfo(reader);
                 var updateMidi = reader.ReadBoolean() ? new AbridgedFileInfo(reader) : null;
@@ -244,7 +244,7 @@ namespace YARG.Core.Song
             }
         }
 
-        public static SongMetadata? UnpackedRBCONFromCache(AbridgedFileInfo dta, string nodename, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings)
+        public static SongMetadata? UnpackedRBCONFromCache(AbridgedFileInfo dta, string nodename, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
         {
             var packedMeta = RBUnpackedCONMetadata.TryLoadFromCache(dta, reader);
             if (packedMeta == null)
@@ -259,7 +259,7 @@ namespace YARG.Core.Song
             return new SongMetadata(packedMeta, reader, strings);
         }
 
-        public static SongMetadata UnpackedRBCONFromCache_Quick(AbridgedFileInfo? dta, string nodename, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, YARGBinaryReader reader, CategoryCacheStrings strings)
+        public static SongMetadata UnpackedRBCONFromCache_Quick(AbridgedFileInfo? dta, string nodename, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
         {
             var packedMeta = RBUnpackedCONMetadata.LoadFromCache_Quick(dta, reader);
             if (upgrades.TryGetValue(nodename, out var upgrade))

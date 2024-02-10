@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization;
 using System.Threading.Tasks;
+using YARG.Core.Extensions;
 using YARG.Core.IO;
 
 namespace YARG.Core.Song.Cache
@@ -148,19 +149,19 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void ReadIniGroup_Parallel(YARGBinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
+        private void ReadIniGroup_Parallel(BinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
         {
-            string directory = reader.ReadLEBString();
+            string directory = reader.ReadString();
             var group = GetBaseIniGroup(directory);
             if (group == null)
             {
                 return;
             }
 
-            int count = reader.Read<int>(Endianness.Little);
+            int count = reader.ReadInt32();
             for (int i = 0; i < count && !tracker.IsSet(); ++i)
             {
-                int length = reader.Read<int>(Endianness.Little);
+                int length = reader.ReadInt32();
                 var entryReader = reader.Slice(length);
                 entryTasks.Add(Task.Run(() =>
                 {
@@ -177,18 +178,18 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void ReadCONGroup_Parallel(YARGBinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
+        private void ReadCONGroup_Parallel(BinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
         {
             var group = ReadCONGroupHeader(reader, out string filename);
             if (group == null)
                 return;
 
-            int count = reader.Read<int>(Endianness.Little);
+            int count = reader.ReadInt32();
             for (int i = 0; i < count && !tracker.IsSet(); ++i)
             {
-                string name = reader.ReadLEBString();
-                int index = reader.Read<int>(Endianness.Little);
-                int length = reader.Read<int>(Endianness.Little);
+                string name = reader.ReadString();
+                int index = reader.ReadInt32();
+                int length = reader.ReadInt32();
                 if (invalidSongsInCache.Contains(name))
                 {
                     reader.Move(length);
@@ -211,18 +212,18 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void ReadExtractedCONGroup_Parallel(YARGBinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
+        private void ReadExtractedCONGroup_Parallel(BinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
         {
             var group = ReadExtractedCONGroupHeader(reader, out string directory);
             if (group == null)
                 return;
 
-            int count = reader.Read<int>(Endianness.Little);
+            int count = reader.ReadInt32();
             for (int i = 0; i < count && !tracker.IsSet(); ++i)
             {
-                string name = reader.ReadLEBString();
-                int index = reader.Read<int>(Endianness.Little);
-                int length = reader.Read<int>(Endianness.Little);
+                string name = reader.ReadString();
+                int index = reader.ReadInt32();
+                int length = reader.ReadInt32();
 
                 if (invalidSongsInCache.Contains(name))
                 {
@@ -246,13 +247,13 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void QuickReadIniGroup_Parallel(YARGBinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
+        private void QuickReadIniGroup_Parallel(BinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
         {
-            string directory = reader.ReadLEBString();
-            int count = reader.Read<int>(Endianness.Little);
+            string directory = reader.ReadString();
+            int count = reader.ReadInt32();
             for (int i = 0; i < count && !tracker.IsSet(); ++i)
             {
-                int length = reader.Read<int>(Endianness.Little);
+                int length = reader.ReadInt32();
                 var entryReader = reader.Slice(length);
                 entryTasks.Add(Task.Run(() =>
                 {
@@ -269,20 +270,20 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void QuickReadCONGroup_Parallel(YARGBinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
+        private void QuickReadCONGroup_Parallel(BinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
         {
             var group = QuickReadCONGroupHeader(reader);
             if (group == null)
                 return;
 
-            int count = reader.Read<int>(Endianness.Little);
+            int count = reader.ReadInt32();
             for (int i = 0; i < count && !tracker.IsSet(); ++i)
             {
-                string name = reader.ReadLEBString();
+                string name = reader.ReadString();
                 // index
                 reader.Move(4);
 
-                int length = reader.Read<int>(Endianness.Little);
+                int length = reader.ReadInt32();
                 var entryReader = reader.Slice(length);
                 entryTasks.Add(Task.Run(() =>
                 {
@@ -299,18 +300,18 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void QuickReadExtractedCONGroup_Parallel(YARGBinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
+        private void QuickReadExtractedCONGroup_Parallel(BinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
         {
             var dta = QuickReadExtractedCONGroupHeader(reader);
 
-            int count = reader.Read<int>(Endianness.Little);
+            int count = reader.ReadInt32();
             for (int i = 0; i < count && !tracker.IsSet(); ++i)
             {
-                string name = reader.ReadLEBString();
+                string name = reader.ReadString();
                 // index
                 reader.Move(4);
 
-                int length = reader.Read<int>(Endianness.Little);
+                int length = reader.ReadInt32();
                 var entryReader = reader.Slice(length);
                 entryTasks.Add(Task.Run(() =>
                 {

@@ -26,7 +26,7 @@ namespace YARG.Core.Replays
 
         public void Deserialize(BinaryReader reader, int version = 0)
         {
-            Magic = EightCC.Read(reader);
+            Magic = EightCC.Read(reader.BaseStream);
             ReplayVersion = reader.ReadInt32();
             EngineVersion = reader.ReadInt32();
             ReplayChecksum = HashWrapper.Deserialize(reader);

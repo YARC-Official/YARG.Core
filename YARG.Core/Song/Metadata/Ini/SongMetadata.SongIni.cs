@@ -7,6 +7,7 @@ using YARG.Core.IO.Ini;
 using YARG.Core.Audio;
 using YARG.Core.Venue;
 using System.Linq;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.Song
 {
@@ -206,9 +207,9 @@ namespace YARG.Core.Song
             return (result.Item1, metadata);
         }
 
-        public static SongMetadata? IniFromCache(string baseDirectory, YARGBinaryReader reader, CategoryCacheStrings strings)
+        public static SongMetadata? IniFromCache(string baseDirectory, BinaryReader reader, CategoryCacheStrings strings)
         {
-            string directory = Path.Combine(baseDirectory, reader.ReadLEBString());
+            string directory = Path.Combine(baseDirectory, reader.ReadString());
             byte chartTypeIndex = reader.ReadByte();
             if (chartTypeIndex >= IIniMetadata.CHART_FILE_TYPES.Length)
             {
@@ -244,9 +245,9 @@ namespace YARG.Core.Song
             };
         }
 
-        public static SongMetadata? IniFromCache_Quick(string baseDirectory, YARGBinaryReader reader, CategoryCacheStrings strings)
+        public static SongMetadata? IniFromCache_Quick(string baseDirectory, BinaryReader reader, CategoryCacheStrings strings)
         {
-            string directory = Path.Combine(baseDirectory, reader.ReadLEBString());
+            string directory = Path.Combine(baseDirectory, reader.ReadString());
             byte chartTypeIndex = reader.ReadByte();
             if (chartTypeIndex >= IIniMetadata.CHART_FILE_TYPES.Length)
             {
@@ -254,13 +255,13 @@ namespace YARG.Core.Song
             }
 
             var chart = IIniMetadata.CHART_FILE_TYPES[chartTypeIndex];
-            var lastUpdated = DateTime.FromBinary(reader.Read<long>(Endianness.Little));
+            var lastUpdated = DateTime.FromBinary(reader.ReadInt64());
 
             var chartInfo = new AbridgedFileInfo(Path.Combine(directory, chart.File), lastUpdated);
             AbridgedFileInfo? iniInfo = null;
             if (reader.ReadBoolean())
             {
-                lastUpdated = DateTime.FromBinary(reader.Read<long>(Endianness.Little));
+                lastUpdated = DateTime.FromBinary(reader.ReadInt64());
                 iniInfo = new AbridgedFileInfo(Path.Combine(directory, "song.ini"), lastUpdated);
             }
 

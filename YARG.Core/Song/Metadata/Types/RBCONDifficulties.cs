@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using YARG.Core.Extensions;
 using YARG.Core.IO;
 
 namespace YARG.Core.Song
@@ -24,21 +25,21 @@ namespace YARG.Core.Song
         public short HarmonyVocals = -1;
 
         public RBCONDifficulties() { }
-        public RBCONDifficulties(YARGBinaryReader reader)
+        public RBCONDifficulties(BinaryReader reader)
         {
-            band = reader.Read<short>(Endianness.Little);
-            FiveFretGuitar = reader.Read<short>(Endianness.Little);
-            FiveFretBass = reader.Read<short>(Endianness.Little);
-            FiveFretRhythm = reader.Read<short>(Endianness.Little);
-            FiveFretCoop = reader.Read<short>(Endianness.Little);
-            Keys = reader.Read<short>(Endianness.Little);
-            FourLaneDrums = reader.Read<short>(Endianness.Little);
-            ProDrums = reader.Read<short>(Endianness.Little);
-            ProGuitar = reader.Read<short>(Endianness.Little);
-            ProBass = reader.Read<short>(Endianness.Little);
-            ProKeys = reader.Read<short>(Endianness.Little);
-            LeadVocals = reader.Read<short>(Endianness.Little);
-            HarmonyVocals = reader.Read<short>(Endianness.Little);
+            band = reader.ReadInt16();
+            FiveFretGuitar = reader.ReadInt16();
+            FiveFretBass = reader.ReadInt16();
+            FiveFretRhythm = reader.ReadInt16();
+            FiveFretCoop = reader.ReadInt16();
+            Keys = reader.ReadInt16();
+            FourLaneDrums = reader.ReadInt16();
+            ProDrums = reader.ReadInt16();
+            ProGuitar = reader.ReadInt16();
+            ProBass = reader.ReadInt16();
+            ProKeys = reader.ReadInt16();
+            LeadVocals = reader.ReadInt16();
+            HarmonyVocals = reader.ReadInt16();
         }
 
         public void Serialize(BinaryWriter writer)

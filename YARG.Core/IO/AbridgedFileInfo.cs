@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.IO
 {
@@ -36,16 +37,16 @@ namespace YARG.Core.IO
         /// <summary>
         /// Only used when validation of the underlying file is not required
         /// </summary>
-        public AbridgedFileInfo(YARGBinaryReader reader)
-            : this(reader.ReadLEBString(), reader) { }
+        public AbridgedFileInfo(BinaryReader reader)
+            : this(reader.ReadString(), reader) { }
 
         /// <summary>
         /// Only used when validation of the underlying file is not required
         /// </summary>
-        public AbridgedFileInfo(string filename, YARGBinaryReader reader)
+        public AbridgedFileInfo(string filename, BinaryReader reader)
         {
             FullName = filename;
-            LastUpdatedTime = DateTime.FromBinary(reader.Read<long>(Endianness.Little));
+            LastUpdatedTime = DateTime.FromBinary(reader.ReadInt64());
         }
 
         public AbridgedFileInfo(string fullname, DateTime timeAdded)
@@ -84,15 +85,15 @@ namespace YARG.Core.IO
         /// <summary>
         /// Used for cache validation
         /// </summary>
-        public static AbridgedFileInfo? TryParseInfo(YARGBinaryReader reader, bool checkCreationTime = true)
+        public static AbridgedFileInfo? TryParseInfo(BinaryReader reader, bool checkCreationTime = true)
         {
-            return TryParseInfo(reader.ReadLEBString(), reader, checkCreationTime);
+            return TryParseInfo(reader.ReadString(), reader, checkCreationTime);
         }
 
         /// <summary>
         /// Used for cache validation
         /// </summary>
-        public static AbridgedFileInfo? TryParseInfo(string file, YARGBinaryReader reader, bool checkCreationTime = true)
+        public static AbridgedFileInfo? TryParseInfo(string file, BinaryReader reader, bool checkCreationTime = true)
         {
             var info = new FileInfo(file);
             if (!info.Exists)
@@ -101,7 +102,7 @@ namespace YARG.Core.IO
             }
 
             var abridged = new AbridgedFileInfo(info, checkCreationTime);
-            if (abridged.LastUpdatedTime != DateTime.FromBinary(reader.Read<long>(Endianness.Little)))
+            if (abridged.LastUpdatedTime != DateTime.FromBinary(reader.ReadInt64()))
             {
                 return null;
             }

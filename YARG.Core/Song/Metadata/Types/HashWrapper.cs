@@ -27,16 +27,6 @@ namespace YARG.Core.Song
             }
         }
 
-        public static HashWrapper Deserialize(YARGBinaryReader reader)
-        {
-            using var hash = DisposableCounter.Wrap(FixedArray<byte>.Alloc(HASH_SIZE_IN_BYTES));
-            if (!reader.ReadBytes(hash.Value.Span))
-            {
-                throw new EndOfStreamException();
-            }
-            return new HashWrapper(hash.Release());
-        }
-
         public static HashWrapper Deserialize(BinaryReader reader)
         {
             using var hash = DisposableCounter.Wrap(FixedArray<byte>.Alloc(HASH_SIZE_IN_BYTES));

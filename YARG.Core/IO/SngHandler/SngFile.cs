@@ -162,7 +162,7 @@ namespace YARG.Core.IO
 
             Dictionary<string, SngFileListing> listings = new((int)numListings);
 
-            YARGBinaryReader reader = new(stream, (int)length);
+            var reader = BinaryReaderExtensions.Load(stream, (int)length);
             for (ulong i = 0; i < numListings; i++)
             {
                 var strLen = reader.ReadByte();

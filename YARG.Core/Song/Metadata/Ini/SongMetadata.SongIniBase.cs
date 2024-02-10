@@ -120,7 +120,7 @@ namespace YARG.Core.Song
             SetIniModifierData(modifiers, defaultPlaylist);
         }
 
-        private SongMetadata(IIniMetadata iniData, YARGBinaryReader reader, CategoryCacheStrings strings) : this(reader, strings)
+        private SongMetadata(IIniMetadata iniData, BinaryReader reader, CategoryCacheStrings strings) : this(reader, strings)
         {
             _iniData = iniData;
         }
