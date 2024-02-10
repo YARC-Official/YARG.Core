@@ -5,33 +5,27 @@ namespace YARG.Core.Chart
     /// <summary>
     /// A range shift on the vocals track.
     /// </summary>
-    public class VocalsPitchRange : ChartEvent, ICloneable<VocalsPitchRange>
+    public class VocalsRangeShift : ChartEvent, ICloneable<VocalsRangeShift>
     {
         public float MinimumPitch { get; }
         public float MaximumPitch { get; }
 
-        public double ShiftLength { get; }
-
-        public VocalsPitchRange(float minPitch, float maxPitch, double shiftLength,
-            double time, uint tick)
-            : base(time, 0, tick, 0)
+        public VocalsRangeShift(float minPitch, float maxPitch,
+            double time, double timeLength, uint tick, uint tickLength)
+            : base(time, timeLength, tick, tickLength)
         {
             MinimumPitch = minPitch;
             MaximumPitch = maxPitch;
-
-            ShiftLength = shiftLength;
         }
 
-        public VocalsPitchRange(VocalsPitchRange other)
+        public VocalsRangeShift(VocalsRangeShift other)
             : base(other)
         {
             MinimumPitch = other.MinimumPitch;
             MaximumPitch = other.MaximumPitch;
-
-            ShiftLength = other.ShiftLength;
         }
 
-        public VocalsPitchRange Clone()
+        public VocalsRangeShift Clone()
         {
             return new(this);
         }
