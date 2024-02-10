@@ -219,10 +219,10 @@ namespace YARG.Core.Chart
                     if (phrase.type == MoonPhrase.Type.Vocals_RangeShift)
                     {
                         // Commit active shift
-                        AddPitchRange(shiftStartTick, moonEvent.tick, shiftLength);
+                        AddPitchRange(shiftStartTick, phrase.tick, shiftLength);
 
                         // Start new shift
-                        shiftStartTick = moonEvent.tick;
+                        shiftStartTick = phrase.tick;
                         double shiftStart = _moonSong.TickToTime(phrase.tick);
                         double shiftEnd = _moonSong.TickToTime(phrase.tick + phrase.length);
                         shiftLength = shiftEnd - shiftStart;
@@ -261,6 +261,7 @@ namespace YARG.Core.Chart
 
                         // Start new shift
                         shiftStartTick = moonEvent.tick;
+                        shiftLength = 0;
                     }
                 }
             }
