@@ -227,7 +227,7 @@ namespace YARG.Core.Song
 
         public ParseSettings ParseSettings => Metadata.ParseSettings;
 
-        public override string ToString() { return Metadata.ToString(); }
+        public override string ToString() { return Metadata.Artist + " | " + Metadata.Name; }
 
         private static readonly Regex s_YearRegex = new(@"(\d{4})");
         protected SongEntry(in SongMetadata metadata)

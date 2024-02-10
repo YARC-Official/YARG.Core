@@ -73,7 +73,5 @@ namespace YARG.Core.Song
         public ParseSettings ParseSettings;
 
         public string LoadingPhrase;
-
-        public readonly override string ToString() { return Artist + " | " + Name; }
     }
 }
