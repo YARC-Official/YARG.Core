@@ -22,18 +22,10 @@ namespace YARG.Core.Song
 
         public override EntryType SubType => EntryType.Sng;
 
-        protected override void Serialize(BinaryWriter writer, string groupDirectory)
+        protected override void SerializeSubData(BinaryWriter writer)
         {
-            string relative = Path.GetRelativePath(groupDirectory, sngInfo.FullName);
-            if (relative == ".")
-                relative = string.Empty;
-
-            // Flag that says "this IS a sng file"
-            writer.Write(true);
-
-            writer.Write(version);
-            writer.Write(relative);
             writer.Write(sngInfo.LastUpdatedTime.ToBinary());
+            writer.Write(version);
             writer.Write((byte) chart.Type);
         }
 
@@ -206,13 +198,12 @@ namespace YARG.Core.Song
 
         public static IniSubEntry? TryLoadFromCache(string baseDirectory, BinaryReader reader, CategoryCacheStrings strings)
         {
-            uint version = reader.ReadUInt32();
-
             string sngPath = Path.Combine(baseDirectory, reader.ReadString());
             var sngInfo = AbridgedFileInfo.TryParseInfo(sngPath, reader);
             if (sngInfo == null)
                 return null;
 
+            uint version = reader.ReadUInt32();
             var sngFile = SngFile.TryLoadFromFile(sngInfo);
             if (sngFile == null || sngFile.Version != version)
             {
@@ -232,12 +223,10 @@ namespace YARG.Core.Song
 
         public static IniSubEntry? LoadFromCache_Quick(string baseDirectory, BinaryReader reader, CategoryCacheStrings strings)
         {
-            // Implement proper versioning in the future
-            uint version = reader.ReadUInt32();
-
             string sngPath = Path.Combine(baseDirectory, reader.ReadString());
             AbridgedFileInfo sngInfo = new(sngPath, DateTime.FromBinary(reader.ReadInt64()));
 
+            uint version = reader.ReadUInt32();
             byte chartTypeIndex = reader.ReadByte();
             if (chartTypeIndex >= CHART_FILE_TYPES.Length)
             {

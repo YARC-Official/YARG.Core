@@ -258,7 +258,6 @@ namespace YARG.Core.Song
             writer.Write(UpdateMidi != null);
             UpdateMidi?.Serialize(writer);
 
-            Metadata.Serialize(writer, node);
             RBDifficulties.Serialize(writer);
 
             writer.Write(AnimTempo);
@@ -294,6 +293,8 @@ namespace YARG.Core.Song
             WriteArray(VocalsStemValues, writer);
             WriteArray(TrackStemValues, writer);
             WriteArray(CrowdStemValues, writer);
+
+            Metadata.Serialize(writer, node);
         }
 
         protected virtual byte[]? LoadRawImageData()
@@ -330,16 +331,13 @@ namespace YARG.Core.Song
             return false;
         }
 
-        protected abstract void SerializeSubData(BinaryWriter writer);
-
         protected abstract byte[]? LoadMidiFile(CONFile? file);
 
         protected abstract Stream? GetMidiStream();
 
-        protected RBCONEntry(AbridgedFileInfo? updateMidi, SongMetadata metadata, BinaryReader reader)
+        protected RBCONEntry(AbridgedFileInfo? updateMidi, BinaryReader reader, CategoryCacheStrings strings)
         {
             UpdateMidi = updateMidi;
-            Metadata = metadata;
 
             RBDifficulties = new RBCONDifficulties(reader);
 
@@ -376,6 +374,8 @@ namespace YARG.Core.Song
             VocalsStemValues = ReadFloatArray(reader);
             TrackStemValues = ReadFloatArray(reader);
             CrowdStemValues = ReadFloatArray(reader);
+
+            Metadata = new SongMetadata(reader, strings);
         }
 
         protected RBCONEntry() { Metadata = SongMetadata.Default; }

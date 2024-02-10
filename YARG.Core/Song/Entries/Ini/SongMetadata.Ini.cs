@@ -22,6 +22,19 @@ namespace YARG.Core.Song
 
         public override EntryType SubType => EntryType.Ini;
 
+        protected override void SerializeSubData(BinaryWriter writer)
+        {
+            writer.Write((byte) Type);
+            writer.Write(_chartFile.LastUpdatedTime.ToBinary());
+            if (_iniFile != null)
+            {
+                writer.Write(true);
+                writer.Write(_iniFile.LastUpdatedTime.ToBinary());
+            }
+            else
+                writer.Write(false);
+        }
+
         public override List<AudioChannel> LoadAudioStreams(params SongStem[] ignoreStems)
         {
             Dictionary<string, string> files = new();
@@ -124,26 +137,6 @@ namespace YARG.Core.Song
                 }
             }
             return LoadAudioStreams(SongStem.Crowd);
-        }
-
-        protected override void Serialize(BinaryWriter writer, string groupDirectory)
-        {
-            string relative = Path.GetRelativePath(groupDirectory, Directory);
-            if (relative == ".")
-                relative = string.Empty;
-
-            // Flag that says "this is NOT a sng file"
-            writer.Write(false);
-            writer.Write(relative);
-            writer.Write((byte) Type);
-            writer.Write(_chartFile.LastUpdatedTime.ToBinary());
-            if (_iniFile != null)
-            {
-                writer.Write(true);
-                writer.Write(_iniFile.LastUpdatedTime.ToBinary());
-            }
-            else
-                writer.Write(false);
         }
 
         protected override Stream? GetChartStream()

@@ -225,5 +225,7 @@ namespace YARG.Core.Song
         public ParseSettings ParseSettings => Metadata.ParseSettings;
 
         public override string ToString() { return Metadata.ToString(); }
+
+        protected abstract void SerializeSubData(BinaryWriter writer);
     }
 }

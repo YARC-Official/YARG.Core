@@ -72,16 +72,21 @@ namespace YARG.Core.Song
 
         public abstract ChartType Type { get; }
 
-        protected abstract void Serialize(BinaryWriter writer, string groupDirectory);
         protected abstract Stream? GetChartStream();
 
         public byte[] Serialize(CategoryCacheWriteNode node, string groupDirectory)
         {
+            string relativePath = Path.GetRelativePath(groupDirectory, Directory);
+            if (relativePath == ".")
+                relativePath = string.Empty;
+
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);
 
+            writer.Write(SubType == EntryType.Sng);
+            writer.Write(relativePath);
+            SerializeSubData(writer);
             Metadata.Serialize(writer, node);
-            Serialize(writer, groupDirectory);
 
             return ms.ToArray();
         }

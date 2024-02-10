@@ -42,6 +42,8 @@ namespace YARG.Core.Song
 
         public static PackedRBCONEntry? TryLoadFromCache(CONFile file, string nodename, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
         {
+            string psuedoDirectory = reader.ReadString();
+
             string midiFilename = reader.ReadString();
             var midiListing = file.TryGetListing(midiFilename);
             if (midiListing == null)
@@ -66,7 +68,6 @@ namespace YARG.Core.Song
             }
 
             var moggListing = file.TryGetListing(Path.ChangeExtension(midiFilename, ".mogg"));
-            string psuedoDirectory = reader.ReadString();
 
             if (!midiFilename.StartsWith($"songs/{nodename}"))
                 nodename = midiFilename.Split('/')[1];
@@ -75,8 +76,7 @@ namespace YARG.Core.Song
             var miloListing = file.TryGetListing(genPath + ".milo_xbox");
             var imgListing = file.TryGetListing(genPath + "_keep.png_xbox");
 
-            var metadata = new SongMetadata(reader, strings);
-            var song = new PackedRBCONEntry(midiListing, midiLastWrite, moggListing, miloListing, imgListing, psuedoDirectory, updateMidi, metadata, reader);
+            var song = new PackedRBCONEntry(midiListing, midiLastWrite, moggListing, miloListing, imgListing, psuedoDirectory, updateMidi, reader, strings);
             if (upgrades.TryGetValue(nodename, out var upgrade))
             {
                 song.Upgrade = upgrade.Item2;
@@ -86,6 +86,8 @@ namespace YARG.Core.Song
 
         public static PackedRBCONEntry LoadFromCache_Quick(CONFile file, string nodename, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
         {
+            string psuedoDirectory = reader.ReadString();
+
             string midiFilename = reader.ReadString();
             var midiListing = file.TryGetListing(midiFilename);
             var midiLastWrite = DateTime.FromBinary(reader.ReadInt64());
@@ -93,7 +95,6 @@ namespace YARG.Core.Song
             var updateMidi = reader.ReadBoolean() ? new AbridgedFileInfo(reader) : null;
 
             var moggListing = file.TryGetListing(Path.ChangeExtension(midiFilename, ".mogg"));
-            string psuedoDirectory = reader.ReadString();
 
             if (!midiFilename.StartsWith($"songs/{nodename}"))
                 nodename = midiFilename.Split('/')[1];
@@ -102,8 +103,7 @@ namespace YARG.Core.Song
             var miloListing = file.TryGetListing(genPath + ".milo_xbox");
             var imgListing = file.TryGetListing(genPath + "_keep.png_xbox");
 
-            var metadata = new SongMetadata(reader, strings);
-            var song = new PackedRBCONEntry(midiListing, midiLastWrite, moggListing, miloListing, imgListing, psuedoDirectory, updateMidi, metadata, reader);
+            var song = new PackedRBCONEntry(midiListing, midiLastWrite, moggListing, miloListing, imgListing, psuedoDirectory, updateMidi, reader, strings);
             if (upgrades.TryGetValue(nodename, out var upgrade))
             {
                 song.Upgrade = upgrade.Item2;
@@ -135,8 +135,8 @@ namespace YARG.Core.Song
         }
 
         private PackedRBCONEntry(CONFileListing? midi, DateTime midiLastWrite, CONFileListing? moggListing, CONFileListing? miloListing, CONFileListing? imgListing, string directory,
-            AbridgedFileInfo? updateMidi, SongMetadata metadata, BinaryReader reader)
-            : base(updateMidi, metadata, reader)
+            AbridgedFileInfo? updateMidi, BinaryReader reader, CategoryCacheStrings strings)
+            : base(updateMidi, reader, strings)
         {
             _midiListing = midi;
             _moggListing = moggListing;
@@ -148,12 +148,11 @@ namespace YARG.Core.Song
 
         protected override void SerializeSubData(BinaryWriter writer)
         {
+            writer.Write(Directory);
             writer.Write(_midiListing!.Filename);
             writer.Write(_midiListing.lastWrite.ToBinary());
-            writer.Write(Directory);
         }
 
-        
         public override BackgroundResult? LoadBackground(BackgroundType options)
         {
             if (_midiListing == null)
