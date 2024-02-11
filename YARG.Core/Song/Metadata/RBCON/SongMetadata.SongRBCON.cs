@@ -408,8 +408,8 @@ namespace YARG.Core.Song
                 {
                     try
                     {
-                        var updateResults = ParseDTA(nodeName, sharedMetadata, new YARGDTAReader(update.Item2));
                         sharedMetadata.Update(update.Item1, nodeName, updateResults);
+                        var updateResults = ParseDTA(nodeName, sharedMetadata, update.Item2.Clone());
                     }
                     catch (Exception ex)
                     {
@@ -426,7 +426,7 @@ namespace YARG.Core.Song
             {
                 try
                 {
-                    ParseDTA(nodeName, sharedMetadata, new YARGDTAReader(upgrade.Item1!));
+                    ParseDTA(nodeName, sharedMetadata, upgrade.Item1!.Clone());
                     sharedMetadata.Upgrade = upgrade.Item2;
                 }
                 catch (Exception ex)

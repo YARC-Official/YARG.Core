@@ -114,7 +114,7 @@ namespace YARG.Core.Song.Cache
                     string name = reader.GetNameOfNode();
                     int index = GetCONIndex(indices, name);
 
-                    var node = new YARGDTAReader(reader);
+                    var node = reader.Clone();
                     tasks.Add(Task.Run(() => ScanPackedCONNode(group, name, index, node)));
                     reader.EndNode();
                 }
@@ -143,7 +143,7 @@ namespace YARG.Core.Song.Cache
                     string name = reader.GetNameOfNode();
                     int index = GetCONIndex(indices, name);
 
-                    var node = new YARGDTAReader(reader);
+                    var node = reader.Clone();
                     tasks.Add(Task.Run(() => ScanUnpackedCONNode(group, name, index, node)));
                     reader.EndNode();
                 }

@@ -343,7 +343,7 @@ namespace YARG.Core.Song.Cache
                 {
                     string name = reader.GetNameOfNode();
                     group.updates.Add(name);
-                    AddUpdate(name, new(directory, new YARGDTAReader(reader)));
+                    AddUpdate(name, new(directory, reader.Clone()));
 
                     if (removeEntries)
                         RemoveCONEntry(name);
@@ -381,7 +381,7 @@ namespace YARG.Core.Song.Cache
                         {
                             IRBProUpgrade upgrade = new UnpackedRBProUpgrade(abridged);
                             group.upgrades[name] = upgrade;
-                            AddUpgrade(name, new YARGDTAReader(reader), upgrade);
+                            AddUpgrade(name, reader.Clone(), upgrade);
 
                             if (removeEntries)
                                 RemoveCONEntry(name);
@@ -425,7 +425,7 @@ namespace YARG.Core.Song.Cache
                         {
                             IRBProUpgrade upgrade = new PackedRBProUpgrade(listing, listing.lastWrite);
                             group.Upgrades[name] = upgrade;
-                            AddUpgrade(name, new YARGDTAReader(reader), upgrade);
+                            AddUpgrade(name, reader.Clone(), upgrade);
                             RemoveCONEntry(name);
                         }
                     }
