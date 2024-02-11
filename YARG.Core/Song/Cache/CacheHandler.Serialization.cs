@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using YARG.Core.Extensions;
@@ -273,10 +274,20 @@ namespace YARG.Core.Song.Cache
                 return;
             }
 
-            if (isSngEntry)
-                MarkFile(entry.Directory);
+            string root = entry.Directory;
+            if (!isSngEntry)
+            {
+                if (Directory.EnumerateDirectories(root).Any())
+                {
+                    AddToBadSongs(root, ScanResult.LooseChart_Warning);
+                }
+                MarkDirectory(root);
+            }
             else
-                MarkDirectory(entry.Directory);
+            {
+                MarkFile(root);
+            }
+
             AddEntry(entry);
             group.AddEntry(entry);
         }

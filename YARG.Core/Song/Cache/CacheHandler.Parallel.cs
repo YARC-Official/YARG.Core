@@ -64,7 +64,13 @@ namespace YARG.Core.Song.Cache
 
                 var collector = new FileCollector(directory);
                 if (ScanIniEntry(collector, group, tracker.Playlist))
+                {
+                    if (collector.subDirectories.Count > 0)
+                    {
+                        AddToBadSongs(directory.FullName, ScanResult.LooseChart_Warning);
+                    }
                     return;
+                }
 
                 tracker.Append(directory.FullName);
 

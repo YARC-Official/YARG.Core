@@ -322,6 +322,9 @@ namespace YARG.Core.Song.Cache
                     case ScanResult.MultipleMidiTrackNames_Upgrade:
                         writer.WriteLine("At least one track fails midi spec for containing multiple unique track names (thus making it ambiguous) - Thrown by a pro guitar upgrade");
                         break;
+                    case ScanResult.LooseChart_Warning:
+                        writer.WriteLine("Further subdirectory traversal halted by a possibly loose chart. To fix, if desired, place the loose chart files in their own dedicated folder.");
+                        break;
                 }
                 writer.WriteLine();
             }

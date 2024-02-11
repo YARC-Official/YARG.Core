@@ -27,6 +27,8 @@ namespace YARG.Core.Song
         MultipleMidiTrackNames,
         MultipleMidiTrackNames_Update,
         MultipleMidiTrackNames_Upgrade,
+
+        LooseChart_Warning
     }
 
     /// <summary>
