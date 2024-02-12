@@ -59,7 +59,7 @@ namespace YARG.Core.Song.Cache
         {
             try
             {
-                if (!TraversalPreTest(directory, tracker.Playlist))
+                if (!TraversalPreTest(directory, tracker.Playlist, CreateUpdateGroup_Parallel))
                     return;
 
                 var collector = new FileCollector(directory);
@@ -332,6 +332,20 @@ namespace YARG.Core.Song.Cache
                     }
                 }));
             }
+        }
+
+        private UpdateGroup? CreateUpdateGroup_Parallel(string directory, AbridgedFileInfo dta, bool removeEntries)
+        {
+            var nodes = FindUpdateNodes(directory, dta);
+            if (nodes == null)
+            {
+                return null;
+            }
+
+            var group = new UpdateGroup(directory, dta.LastUpdatedTime);
+            Parallel.ForEach(nodes, node => ScanUpdateNode(group, node.Key, node.Value.ToArray(), removeEntries));
+            updateGroups.Add(group);
+            return group;
         }
     }
 }

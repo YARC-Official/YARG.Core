@@ -6,52 +6,168 @@ using YARG.Core.IO;
 
 namespace YARG.Core.Song.Cache
 {
-    public class SongUpdate : IComparable<SongUpdate>
+    public sealed class UpdateGroup : IModificationGroup
+    {
+        private readonly string _directory;
+        private readonly DateTime _dtaLastWrite;
+        public readonly Dictionary<string, SongUpdate> Updates = new();
+
+        public UpdateGroup(string directory, DateTime dtaLastUpdate)
+        {
+            _directory = directory;
+            _dtaLastWrite = dtaLastUpdate;
+        }
+
+        public SongUpdate Add(string name, YARGDTAReader[] readers)
+        {
+            SongUpdateFiles? files = null;
+            var dirInfo = new DirectoryInfo(Path.Combine(_directory, name));
+            if (dirInfo.Exists)
+            {
+                files = new SongUpdateFiles(dirInfo, name);
+            }
+
+            var update = new SongUpdate(_directory, _dtaLastWrite, readers, files);
+            lock (Updates)
+            {
+                Updates.Add(name, update);
+            }
+            return update;
+        }
+
+        public byte[] SerializeModifications()
+        {
+            using MemoryStream ms = new();
+            using BinaryWriter writer = new(ms);
+
+            writer.Write(_directory);
+            writer.Write(_dtaLastWrite.ToBinary());
+            writer.Write(Updates.Count);
+            foreach (var (name, update) in Updates)
+            {
+                writer.Write(name);
+                update.Serialize(writer);
+            }
+            return ms.ToArray();
+        }
+    }
+
+    public sealed class SongUpdate : IComparable<SongUpdate>
     {
         private readonly DateTime _dtaLastWrite;
-        private readonly List<YARGDTAReader> _readers = new();
 
+        public readonly string Directory;
+        public readonly YARGDTAReader[] Readers;
+        public readonly SongUpdateFiles? Files;
+
+        public SongUpdate(string directory, in DateTime dtaLastWrite, YARGDTAReader[] readers, SongUpdateFiles? files)
+        {
+            Directory = directory;
+            _dtaLastWrite = dtaLastWrite;
+            
+            Readers = readers;
+            Files = files;
+        }
+
+        public void Serialize(BinaryWriter writer)
+        {
+            writer.Write(Files != null);
+            Files?.Serialize(writer);
+        }
+
+        public bool Validate(BinaryReader reader)
+        {
+            if (!reader.ReadBoolean())
+            {
+                return Files == null;
+            }
+
+            if (Files == null)
+            {
+                SongUpdateFiles.SkipInfo(reader);
+                SongUpdateFiles.SkipInfo(reader);
+                SongUpdateFiles.SkipInfo(reader);
+                SongUpdateFiles.SkipInfo(reader);
+                return false;
+            }
+            return Files.Validate(reader);
+        }
+
+        public int CompareTo(SongUpdate other)
+        {
+            return _dtaLastWrite.CompareTo(other._dtaLastWrite);
+        }
+
+        public static void SkipRead(BinaryReader reader)
+        {
+            if (reader.ReadBoolean())
+            {
+                SongUpdateFiles.SkipInfo(reader);
+                SongUpdateFiles.SkipInfo(reader);
+                SongUpdateFiles.SkipInfo(reader);
+                SongUpdateFiles.SkipInfo(reader);
+            }
+        }
+    }
+
+    public sealed class SongUpdateFiles
+    {
         public readonly string Directory;
         public readonly AbridgedFileInfo? Midi;
         public readonly AbridgedFileInfo? Mogg;
         public readonly AbridgedFileInfo? Milo;
         public readonly AbridgedFileInfo? Image;
 
-        public YARGDTAReader[] Readers
+        public SongUpdateFiles(DirectoryInfo directory, string name)
         {
-            get
+            Directory = directory.FullName;
+            var files = new (string Name, AbridgedFileInfo? Info)[]
             {
-                var readers = new YARGDTAReader[_readers.Count];
-                for (int i = 0; i < readers.Length; i++)
+                (name + "_update.mid", null),
+                (name + "_update.mogg", null),
+                (name + ".milo_xbox", null),
+                (name + "_keep.png_xbox", null)
+            };
+
+            foreach (var info in directory.EnumerateFileSystemInfos())
+            {
+                string filename = info.Name.ToLowerInvariant();
+                switch (info)
                 {
-                    readers[i] = _readers[i].Clone();
+                    case FileInfo file:
+                        if (filename == files[0].Name)
+                        {
+                            files[0].Info = new AbridgedFileInfo(file);
+                        }
+                        else if (filename == files[1].Name)
+                        {
+                            files[1].Info = new AbridgedFileInfo(file);
+                        }
+                        break;
+                    case DirectoryInfo subDirectory:
+                        if (filename != "gen")
+                            break;
+
+                        foreach (var file in subDirectory.EnumerateFiles())
+                        {
+                            filename = file.Name.ToLowerInvariant();
+                            if (filename == files[2].Name)
+                            {
+                                files[2].Info = new AbridgedFileInfo(file);
+                            }
+                            else if (filename == files[3].Name)
+                            {
+                                files[3].Info = new AbridgedFileInfo(file);
+                            }
+                        }
+                        break;
                 }
-                return readers;
             }
-        }
 
-        public SongUpdate(string directory, string name, in DateTime dtaLastWrite)
-        {
-            _dtaLastWrite = dtaLastWrite;
-
-            Directory = directory;
-            Midi = GetInfo(Path.Combine(directory, name + "_update.mid"));
-            Mogg = GetInfo(Path.Combine(directory, name + "_update.mogg"));
-
-            directory = Path.Combine(directory, "gen");
-            Milo = GetInfo(Path.Combine(directory, name + ".milo_xbox"));
-            Image = GetInfo(Path.Combine(directory, name + "_keep.png_xbox"));
-
-            static AbridgedFileInfo? GetInfo(string filename)
-            {
-                var info = new FileInfo(filename);
-                return info.Exists ? new AbridgedFileInfo(info, false) : null;
-            }
-        }
-
-        public void AddReader(YARGDTAReader reader)
-        {
-            _readers.Add(reader);
+            Midi = files[0].Info;
+            Mogg = files[1].Info;
+            Milo = files[2].Info;
+            Image = files[3].Info;
         }
 
         public void Serialize(BinaryWriter writer)
@@ -119,57 +235,12 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        public int CompareTo(SongUpdate other)
-        {
-            return _dtaLastWrite.CompareTo(other._dtaLastWrite);
-        }
-
         public static void SkipInfo(BinaryReader reader)
         {
             if (reader.ReadBoolean())
             {
                 reader.Move(SongMetadata.SIZEOF_DATETIME);
             }
-        }
-    }
-
-    public sealed class UpdateGroup : IModificationGroup
-    {
-        private readonly string _directory;
-        private readonly DateTime _dtaLastWrite;
-        public readonly Dictionary<string, SongUpdate> Updates = new();
-
-        public UpdateGroup(string directory, DateTime dtaLastUpdate)
-        {
-            _directory = directory;
-            _dtaLastWrite = dtaLastUpdate;
-        }
-
-        public SongUpdate Add(string name, YARGDTAReader reader)
-        {
-            if (!Updates.TryGetValue(name, out var update))
-            {
-                string dir = Path.Combine(_directory, name);
-                Updates.Add(name, update = new SongUpdate(dir, name, _dtaLastWrite));
-            }
-            update.AddReader(reader);
-            return update;
-        }
-
-        public byte[] SerializeModifications()
-        {
-            using MemoryStream ms = new();
-            using BinaryWriter writer = new(ms);
-
-            writer.Write(_directory);
-            writer.Write(_dtaLastWrite.ToBinary());
-            writer.Write(Updates.Count);
-            foreach (var (name, update) in Updates)
-            {
-                writer.Write(name);
-                update.Serialize(writer);
-            }
-            return ms.ToArray();
         }
     }
 }

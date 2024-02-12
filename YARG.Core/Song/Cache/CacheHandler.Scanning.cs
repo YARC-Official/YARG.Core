@@ -190,7 +190,7 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private bool TraversalPreTest(DirectoryInfo dirInfo, string defaultPlaylist)
+        private bool TraversalPreTest(DirectoryInfo dirInfo, string defaultPlaylist, Func<string, AbridgedFileInfo, bool, UpdateGroup?> updateFunc)
         {
             string directory = dirInfo.FullName;
             if (!FindOrMarkDirectory(dirInfo.FullName) || (dirInfo.Attributes & FileAttributes.Hidden) != 0)
@@ -203,7 +203,7 @@ namespace YARG.Core.Song.Cache
                 if (dta.Exists)
                 {
                     var abridged = new AbridgedFileInfo(dta, false);
-                    CreateUpdateGroup(directory, abridged, true);
+                    updateFunc(directory, abridged, true);
                     return false;
                 }
             }
@@ -228,7 +228,7 @@ namespace YARG.Core.Song.Cache
             }
             return true;
         }
-        
+
         private void ScanFile(FileInfo info, IniGroup group, ref PlaylistTracker tracker)
         {
             string filename = info.FullName;
@@ -439,6 +439,41 @@ namespace YARG.Core.Song.Cache
                 badSongs.Add(filePath, err);
                 _progress.BadSongCount++;
             }
+        }
+
+        private Dictionary<string, List<YARGDTAReader>>? FindUpdateNodes(string directory, AbridgedFileInfo dta)
+        {
+            var reader = YARGDTAReader.TryCreate(dta.FullName);
+            if (reader == null)
+                return null;
+
+            var nodes = new Dictionary<string, List<YARGDTAReader>>();
+            try
+            {
+                while (reader.StartNode())
+                {
+                    string name = reader.GetNameOfNode().ToLowerInvariant();
+                    if (!nodes.TryGetValue(name, out var list))
+                    {
+                        nodes.Add(name, list = new List<YARGDTAReader>());
+                    }
+                    list.Add(reader.Clone());
+                    reader.EndNode();
+                }
+                
+            }
+            catch (Exception ex)
+            {
+                YargTrace.LogException(ex, $"Error while scanning CON update folder {directory}!");
+                return null;
+            }
+
+            if (nodes.Count == 0)
+            {
+                YargTrace.LogWarning($"{directory} .dta file possibly malformed");
+                return null;
+            }
+            return nodes;
         }
     }
 }

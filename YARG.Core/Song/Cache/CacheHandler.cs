@@ -48,7 +48,7 @@ namespace YARG.Core.Song.Cache
         /// Format is YY_MM_DD_RR: Y = year, M = month, D = day, R = revision (reset across dates, only increment
         /// if multiple cache version changes happen in a single day).
         /// </summary>
-        public const int CACHE_VERSION = 24_02_11_02;
+        public const int CACHE_VERSION = 24_02_12_02;
 
         private static readonly object dirLock = new();
         private static readonly object fileLock = new();
@@ -330,40 +330,14 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private UpdateGroup? CreateUpdateGroup(string directory, AbridgedFileInfo dta, bool removeEntries)
+        private void ScanUpdateNode(UpdateGroup group, string name, YARGDTAReader[] readers, bool removeEntries)
         {
-            var reader = YARGDTAReader.TryCreate(dta.FullName);
-            if (reader == null)
-                return null;
-
-            var group = new UpdateGroup(directory, dta.LastUpdatedTime);
-            try
+            var update = group.Add(name, readers);
+            AddUpdate(name, update);
+            if (removeEntries)
             {
-                while (reader.StartNode())
-                {
-                    string name = reader.GetNameOfNode();
-                    var update = group.Add(name, reader.Clone());
-                    AddUpdate(name, update);
-
-                    if (removeEntries)
-                    {
-                        RemoveCONEntry(name);
-                    }
-                    reader.EndNode();
-                }
+                RemoveCONEntry(name);
             }
-            catch (Exception ex)
-            {
-                YargTrace.LogException(ex, $"Error while scanning CON update folder {directory}!");
-            }
-
-            if (group.Updates.Count == 0)
-            {
-                YargTrace.LogWarning($"{directory} .dta file possibly malformed");
-                return null;
-            }
-            updateGroups.Add(group);
-            return group;
         }
 
         private UpgradeGroup? CreateUpgradeGroup(string directory, AbridgedFileInfo dta, bool removeEntries)

@@ -204,7 +204,7 @@ namespace YARG.Core.Song
                     writer.Write(values[i]);
             }
 
-            public void Update(SongUpdate update, DTAResult results)
+            public void Update(SongUpdateFiles update, DTAResult results)
             {
                 if (results.discUpdate)
                 {
@@ -217,7 +217,7 @@ namespace YARG.Core.Song
                     }
                     else
                     {
-                        YargTrace.LogWarning($"Update midi expected inn directory {update.Directory}");
+                        YargTrace.LogWarning($"Update midi expected in directory {update.Directory}");
                     }
                 }
 
@@ -400,7 +400,14 @@ namespace YARG.Core.Song
                     try
                     {
                         var updateResults = ParseDTA(nodeName, sharedMetadata, update.Readers);
-                        sharedMetadata.Update(update, updateResults);
+                        if (update.Files != null)
+                        {
+                            sharedMetadata.Update(update.Files, updateResults);
+                        }
+                        else if (updateResults.discUpdate)
+                        {
+                            YargTrace.LogWarning($"Update midi expected with {update.Directory} - {nodeName}");
+                        }
                     }
                     catch (Exception ex)
                     {

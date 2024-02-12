@@ -13,7 +13,7 @@ namespace YARG.Core.Song.Cache
         {
             try
             {
-                if (!TraversalPreTest(directory, tracker.Playlist))
+                if (!TraversalPreTest(directory, tracker.Playlist, CreateUpdateGroup))
                     return;
 
                 var collector = new FileCollector(directory);
@@ -209,6 +209,23 @@ namespace YARG.Core.Song.Cache
                 var entryReader = reader.Slice(length);
                 AddEntry(SongMetadata.UnpackedRBCONFromCache_Quick(dta, name, upgrades, entryReader, strings));
             }
+        }
+
+        private UpdateGroup? CreateUpdateGroup(string directory, AbridgedFileInfo dta, bool removeEntries)
+        {
+            var nodes = FindUpdateNodes(directory, dta);
+            if (nodes == null)
+            {
+                return null;
+            }
+
+            var group = new UpdateGroup(directory, dta.LastUpdatedTime);
+            foreach (var node in nodes)
+            {
+                ScanUpdateNode(group, node.Key, node.Value.ToArray(), removeEntries);
+            }
+            updateGroups.Add(group);
+            return group;
         }
     }
 }
