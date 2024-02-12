@@ -24,7 +24,7 @@ namespace YARG.Core.IO
         public AbridgedFileInfo(string file, bool checkCreationTime = true)
             : this(new FileInfo(file), checkCreationTime) { }
 
-        public AbridgedFileInfo(FileInfo info, bool checkCreationTime = true)
+        public AbridgedFileInfo(FileSystemInfo info, bool checkCreationTime = true)
         {
             FullName = info.FullName;
             LastUpdatedTime = info.LastWriteTime;
