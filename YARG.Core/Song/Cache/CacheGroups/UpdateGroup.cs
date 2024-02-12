@@ -136,13 +136,24 @@ namespace YARG.Core.Song.Cache
     public sealed class UpdateGroup : IModificationGroup
     {
         private readonly string _directory;
-        private readonly DateTime _dtaLastUpdate;
-        public readonly List<string> updates = new();
+        private readonly DateTime _dtaLastWrite;
+        public readonly Dictionary<string, SongUpdate> Updates = new();
 
         public UpdateGroup(string directory, DateTime dtaLastUpdate)
         {
             _directory = directory;
-            _dtaLastUpdate = dtaLastUpdate;
+            _dtaLastWrite = dtaLastUpdate;
+        }
+
+        public SongUpdate Add(string name, YARGDTAReader reader)
+        {
+            if (!Updates.TryGetValue(name, out var update))
+            {
+                string dir = Path.Combine(_directory, name);
+                Updates.Add(name, update = new SongUpdate(dir, name, _dtaLastWrite));
+            }
+            update.AddReader(reader);
+            return update;
         }
 
         public byte[] SerializeModifications()
@@ -151,10 +162,13 @@ namespace YARG.Core.Song.Cache
             using BinaryWriter writer = new(ms);
 
             writer.Write(_directory);
-            writer.Write(_dtaLastUpdate.ToBinary());
-            writer.Write(updates.Count);
-            for (int i = 0; i < updates.Count; ++i)
-                writer.Write(updates[i]);
+            writer.Write(_dtaLastWrite.ToBinary());
+            writer.Write(Updates.Count);
+            foreach (var (name, update) in Updates)
+            {
+                writer.Write(name);
+                update.Serialize(writer);
+            }
             return ms.ToArray();
         }
     }

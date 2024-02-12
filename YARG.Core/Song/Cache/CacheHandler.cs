@@ -48,7 +48,7 @@ namespace YARG.Core.Song.Cache
         /// Format is YY_MM_DD_RR: Y = year, M = month, D = day, R = revision (reset across dates, only increment
         /// if multiple cache version changes happen in a single day).
         /// </summary>
-        public const int CACHE_VERSION = 24_02_02_01;
+        public const int CACHE_VERSION = 24_02_11_02;
 
         private static readonly object dirLock = new();
         private static readonly object fileLock = new();
@@ -68,7 +68,7 @@ namespace YARG.Core.Song.Cache
         private readonly LockedList<PackedCONGroup> conGroups = new();
         private readonly LockedList<UnpackedCONGroup> extractedConGroups = new();
         private readonly List<IniGroup> iniGroups;
-        private readonly Dictionary<string, List<(string, YARGDTAReader)>> updates = new();
+        private readonly Dictionary<string, List<SongUpdate>> updates = new();
         private readonly Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades = new();
         private readonly HashSet<string> preScannedDirectories = new();
         private readonly HashSet<string> preScannedFiles = new();
@@ -330,23 +330,25 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void CreateUpdateGroup(string directory, AbridgedFileInfo dta, bool removeEntries)
+        private UpdateGroup? CreateUpdateGroup(string directory, AbridgedFileInfo dta, bool removeEntries)
         {
             var reader = YARGDTAReader.TryCreate(dta.FullName);
             if (reader == null)
-                return;
+                return null;
 
             var group = new UpdateGroup(directory, dta.LastUpdatedTime);
             try
             {
-                while (reader!.StartNode())
+                while (reader.StartNode())
                 {
                     string name = reader.GetNameOfNode();
-                    group.updates.Add(name);
-                    AddUpdate(name, new(directory, reader.Clone()));
+                    var update = group.Add(name, reader.Clone());
+                    AddUpdate(name, update);
 
                     if (removeEntries)
+                    {
                         RemoveCONEntry(name);
+                    }
                     reader.EndNode();
                 }
             }
@@ -355,10 +357,13 @@ namespace YARG.Core.Song.Cache
                 YargTrace.LogException(ex, $"Error while scanning CON update folder {directory}!");
             }
 
-            if (group.updates.Count > 0)
-                updateGroups.Add(group);
-            else
+            if (group.Updates.Count == 0)
+            {
                 YargTrace.LogWarning($"{directory} .dta file possibly malformed");
+                return null;
+            }
+            updateGroups.Add(group);
+            return group;
         }
 
         private UpgradeGroup? CreateUpgradeGroup(string directory, AbridgedFileInfo dta, bool removeEntries)
@@ -379,12 +384,14 @@ namespace YARG.Core.Song.Cache
                         var abridged = new AbridgedFileInfo(info, false);
                         if (CanAddUpgrade(name, abridged.LastUpdatedTime))
                         {
-                            IRBProUpgrade upgrade = new UnpackedRBProUpgrade(abridged);
+                            var upgrade = new UnpackedRBProUpgrade(abridged);
                             group.upgrades[name] = upgrade;
                             AddUpgrade(name, reader.Clone(), upgrade);
 
                             if (removeEntries)
+                            {
                                 RemoveCONEntry(name);
+                            }
                         }
                     }
 
@@ -396,14 +403,13 @@ namespace YARG.Core.Song.Cache
                 YargTrace.LogException(ex, $"Error while scanning CON upgrade folder {directory}!");
             }
 
-            if (group.upgrades.Count > 0)
+            if (group.upgrades.Count == 0)
             {
-                upgradeGroups.Add(group);
-                return group;
+                YargTrace.LogWarning($"{directory} .dta file possibly malformed");
+                return null;
             }
-
-            YargTrace.LogWarning($"{directory} .dta file possibly malformed");
-            return null;
+            upgradeGroups.Add(group);
+            return group;
         }
 
         private bool TryParseUpgrades(string filename, PackedCONGroup group)
@@ -470,10 +476,12 @@ namespace YARG.Core.Song.Cache
         private void AddUpgrade(string name, YARGDTAReader? reader, IRBProUpgrade upgrade)
         {
             lock (upgradeLock)
+            {
                 upgrades[name] = new(reader, upgrade);
+            }
         }
 
-        private void AddUpdate(string name, (string, YARGDTAReader) node)
+        private void AddUpdate(string name, SongUpdate update)
         {
             lock (updateLock)
             {
@@ -481,7 +489,7 @@ namespace YARG.Core.Song.Cache
                 {
                     updates.Add(name, list = new());
                 }
-                list.Add(node);
+                list.Add(update);
             }
         }
 

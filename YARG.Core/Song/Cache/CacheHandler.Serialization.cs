@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
@@ -295,7 +294,7 @@ namespace YARG.Core.Song.Cache
         private void ReadUpdateDirectory(BinaryReader reader)
         {
             string directory = reader.ReadString();
-            var dtaLastUpdated = DateTime.FromBinary(reader.ReadInt64());
+            var dtaLastWritten = DateTime.FromBinary(reader.ReadInt64());
             int count = reader.ReadInt32();
 
             // Functions as a "check base directory" call
@@ -306,21 +305,49 @@ namespace YARG.Core.Song.Cache
                 {
                     MarkDirectory(directory);
 
-                    var abridged = new AbridgedFileInfo(dtaInfo);
-                    CreateUpdateGroup(directory, abridged, false);
-                    if (abridged.LastUpdatedTime == dtaLastUpdated)
+                    var abridged = new AbridgedFileInfo(dtaInfo, false);
+                    var group = CreateUpdateGroup(directory, abridged, false);
+                    if (group != null && abridged.LastUpdatedTime == dtaLastWritten)
+                    {
+                        for (int i = 0; i < count; i++)
+                        {
+                            string name = reader.ReadString();
+                            if (group.Updates.TryGetValue(name, out var update))
+                            {
+                                if (!update.Validate(reader))
+                                {
+                                    AddInvalidSong(name);
+                                }
+                            }
+                            else
+                            {
+                                Skip(name);
+                            }
+                        }
                         return;
+                    }
                 }
             }
 
             for (int i = 0; i < count; i++)
-                AddInvalidSong(reader.ReadString());
+            {
+                Skip(reader.ReadString());
+            }
+
+            void Skip(string name)
+            {
+                SongUpdate.SkipInfo(reader);
+                SongUpdate.SkipInfo(reader);
+                SongUpdate.SkipInfo(reader);
+                SongUpdate.SkipInfo(reader);
+                AddInvalidSong(name);
+            }
         }
 
         private void ReadUpgradeDirectory(BinaryReader reader)
         {
             string directory = reader.ReadString();
-            var dtaLastUpdated = DateTime.FromBinary(reader.ReadInt64());
+            var dtaLastWrritten = DateTime.FromBinary(reader.ReadInt64());
             int count = reader.ReadInt32();
 
             // Functions as a "check base directory" call
@@ -331,9 +358,9 @@ namespace YARG.Core.Song.Cache
                 {
                     MarkDirectory(directory);
 
-                    var abridged = new AbridgedFileInfo(dtaInfo);
+                    var abridged = new AbridgedFileInfo(dtaInfo, false);
                     var group = CreateUpgradeGroup(directory, abridged, false);
-                    if (group != null && abridged.LastUpdatedTime == dtaLastUpdated)
+                    if (group != null && abridged.LastUpdatedTime == dtaLastWrritten)
                     {
                         for (int i = 0; i < count; i++)
                         {
@@ -531,27 +558,16 @@ namespace YARG.Core.Song.Cache
             if (group != null)
             {
                 conGroups.Add(group);
-
-                for (int i = 0; i < count; i++)
-                {
-                    string name = reader.ReadString();
-                    var lastWrite = DateTime.FromBinary(reader.ReadInt64());
-                    var listing = group.CONFile.TryGetListing($"songs_upgrades/{name}_plus.mid");
-
-                    IRBProUpgrade upgrade = new PackedRBProUpgrade(listing, lastWrite);
-                    AddUpgrade(name, null, upgrade);
-                }
             }
-            else
-            {
-                for (int i = 0; i < count; i++)
-                {
-                    string name = reader.ReadString();
-                    var lastWrite = DateTime.FromBinary(reader.ReadInt64());
 
-                    IRBProUpgrade upgrade = new PackedRBProUpgrade(null, lastWrite);
-                    AddUpgrade(name, null, upgrade);
-                }
+            for (int i = 0; i < count; i++)
+            {
+                string name = reader.ReadString();
+                var lastWrite = DateTime.FromBinary(reader.ReadInt64());
+                var listing = group?.CONFile.TryGetListing($"songs_upgrades/{name}_plus.mid");
+
+                IRBProUpgrade upgrade = new PackedRBProUpgrade(listing, lastWrite);
+                AddUpgrade(name, null, upgrade);
             }
         }
 
@@ -630,6 +646,7 @@ namespace YARG.Core.Song.Cache
 
         private void AddInvalidSong(string name)
         {
+            YargTrace.DebugInfo(name + " invalidated");
             lock (invalidLock) invalidSongsInCache.Add(name);
         }
     }

@@ -147,6 +147,9 @@ namespace YARG.Core.Song.Cache
                     ScanDirectory_Parallel(dirInfo, group, tracker);
                 }
 
+                // Orders the updates from oldest to newest to apply more recent information last
+                Parallel.ForEach(updates, node => node.Value.Sort());
+
                 var conTasks = new Task[conGroups.Values.Count + extractedConGroups.Values.Count];
                 int con = 0;
                 foreach (var group in conGroups.Values)
@@ -167,6 +170,12 @@ namespace YARG.Core.Song.Cache
                 {
                     var dirInfo = new DirectoryInfo(group.Directory);
                     ScanDirectory(dirInfo, group, tracker);
+                }
+
+                foreach (var (_, list) in updates)
+                {
+                    // Orders the updates from oldest to newest to apply more recent information last
+                    list.Sort();
                 }
 
                 foreach (var group in conGroups.Values)
@@ -193,7 +202,7 @@ namespace YARG.Core.Song.Cache
                 FileInfo dta = new(Path.Combine(directory, "songs_updates.dta"));
                 if (dta.Exists)
                 {
-                    var abridged = new AbridgedFileInfo(dta);
+                    var abridged = new AbridgedFileInfo(dta, false);
                     CreateUpdateGroup(directory, abridged, true);
                     return false;
                 }
@@ -203,7 +212,7 @@ namespace YARG.Core.Song.Cache
                 FileInfo dta = new(Path.Combine(directory, "upgrades.dta"));
                 if (dta.Exists)
                 {
-                    var abridged = new AbridgedFileInfo(dta);
+                    var abridged = new AbridgedFileInfo(dta, false);
                     CreateUpgradeGroup(directory, abridged, true);
                     return false;
                 }
