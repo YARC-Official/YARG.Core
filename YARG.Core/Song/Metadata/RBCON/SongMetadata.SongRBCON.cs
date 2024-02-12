@@ -204,55 +204,46 @@ namespace YARG.Core.Song
                     writer.Write(values[i]);
             }
 
-            public void Update(string folder, string nodeName, DTAResult results)
+            public void Update(SongUpdateFiles update, DTAResult results)
             {
-                string dir = Path.Combine(folder, nodeName);
                 if (results.discUpdate)
                 {
-                    string path = Path.Combine(dir, $"{nodeName}_update.mid");
-                    var updateInfo = new FileInfo(path);
-                    if (updateInfo.Exists)
+                    if (update.Midi != null)
                     {
-                        var abridged = new AbridgedFileInfo(updateInfo, false);
-                        if (UpdateMidi == null || abridged.LastUpdatedTime > UpdateMidi.LastUpdatedTime)
+                        if (UpdateMidi == null || update.Midi.LastUpdatedTime > UpdateMidi.LastUpdatedTime)
                         {
-                            UpdateMidi = abridged;
+                            UpdateMidi = update.Midi;
                         }
                     }
                     else
-                        YargTrace.LogWarning($"Update midi expected at {path}");
-                }
-
-                var moggInfo = new FileInfo(Path.Combine(dir, $"{nodeName}_update.mogg"));
-                if (moggInfo.Exists)
-                {
-                    var abridged = new AbridgedFileInfo(moggInfo, false);
-                    if (Mogg == null || abridged.LastUpdatedTime > Mogg.LastUpdatedTime)
                     {
-                        Mogg = abridged;
+                        YargTrace.LogWarning($"Update midi expected in directory {update.Directory}");
                     }
                 }
-                dir = Path.Combine(dir, "gen");
 
-                var miloInfo = new FileInfo(Path.Combine(dir, $"{nodeName}.milo_xbox"));
-                if (miloInfo.Exists)
+                if (update.Mogg != null)
                 {
-                    var abridged = new AbridgedFileInfo(miloInfo, false);
-                    if (Milo == null || abridged.LastUpdatedTime > Milo.LastUpdatedTime)
+                    if (Mogg == null || update.Mogg.LastUpdatedTime > Mogg.LastUpdatedTime)
                     {
-                        Milo = abridged;
+                        Mogg = update.Mogg;
+                    }
+                }
+
+                if (update.Milo != null)
+                {
+                    if (Milo == null || update.Milo.LastUpdatedTime > Milo.LastUpdatedTime)
+                    {
+                        Milo = update.Milo;
                     }
                 }
 
                 if (HasAlbumArt && results.alternatePath)
                 {
-                    var imageInfo = new FileInfo(Path.Combine(dir, $"{nodeName}_keep.png_xbox"));
-                    if (imageInfo.Exists)
+                    if (update.Image != null)
                     {
-                        var abridged = new AbridgedFileInfo(imageInfo, false);
-                        if (Image == null || abridged.LastUpdatedTime > Image.LastUpdatedTime)
+                        if (Image == null || update.Image.LastUpdatedTime > Image.LastUpdatedTime)
                         {
-                            Image = abridged;
+                            Image = update.Image;
                         }
                     }
                 }
@@ -399,7 +390,7 @@ namespace YARG.Core.Song
             }
         }
 
-        private void ApplyRBCONUpdates(string nodeName, Dictionary<string, List<(string, YARGDTAReader)>> updates)
+        private void ApplyRBCONUpdates(string nodeName, Dictionary<string, List<SongUpdate>> updates)
         {
             var sharedMetadata = _rbData!.SharedMetadata;
             if (updates.TryGetValue(nodeName, out var updateList))
@@ -408,12 +399,19 @@ namespace YARG.Core.Song
                 {
                     try
                     {
-                        var updateResults = ParseDTA(nodeName, sharedMetadata, new YARGDTAReader(update.Item2));
-                        sharedMetadata.Update(update.Item1, nodeName, updateResults);
+                        var updateResults = ParseDTA(nodeName, sharedMetadata, update.Readers);
+                        if (update.Files != null)
+                        {
+                            sharedMetadata.Update(update.Files, updateResults);
+                        }
+                        else if (updateResults.discUpdate)
+                        {
+                            YargTrace.LogWarning($"Update midi expected with {update.Directory} - {nodeName}");
+                        }
                     }
                     catch (Exception ex)
                     {
-                        YargTrace.LogException(ex, $"Error processing CON Update {update.Item1} - {nodeName}!");
+                        YargTrace.LogException(ex, $"Error processing CON Update {update.Directory} - {nodeName}!");
                     }
                 }
             }
@@ -426,7 +424,7 @@ namespace YARG.Core.Song
             {
                 try
                 {
-                    ParseDTA(nodeName, sharedMetadata, new YARGDTAReader(upgrade.Item1!));
+                    ParseDTA(nodeName, sharedMetadata, upgrade.Item1!.Clone());
                     sharedMetadata.Upgrade = upgrade.Item2;
                 }
                 catch (Exception ex)
@@ -436,190 +434,192 @@ namespace YARG.Core.Song
             }
         }
 
-        private DTAResult ParseDTA(string nodeName, RBCONSubMetadata rbConMetadata, YARGDTAReader reader)
+        private DTAResult ParseDTA(string nodeName, RBCONSubMetadata rbConMetadata, params YARGDTAReader[] readers)
         {
             DTAResult result = new(nodeName);
-            while (reader.StartNode())
+            foreach (var reader in readers)
             {
-                string name = reader.GetNameOfNode();
-                switch (name)
+                while (reader.StartNode())
                 {
-                    case "name": _name = reader.ExtractText(); break;
-                    case "artist": _artist = reader.ExtractText(); break;
-                    case "master": _isMaster = reader.ExtractBoolean(); break;
-                    case "context": /*Context = reader.Read<uint>();*/ break;
-                    case "song": SongLoop(rbConMetadata, result, reader); break;
-                    case "song_vocals": while (reader.StartNode()) reader.EndNode(); break;
-                    case "song_scroll_speed": rbConMetadata.VocalSongScrollSpeed = reader.ExtractUInt32(); break;
-                    case "tuning_offset_cents": rbConMetadata.TuningOffsetCents = reader.ExtractInt32(); break;
-                    case "bank": rbConMetadata.VocalPercussionBank = reader.ExtractText(); break;
-                    case "anim_tempo":
-                        {
-                            string val = reader.ExtractText();
-                            rbConMetadata.AnimTempo = val switch
+                    string name = reader.GetNameOfNode();
+                    switch (name)
+                    {
+                        case "name": _name = reader.ExtractText(); break;
+                        case "artist": _artist = reader.ExtractText(); break;
+                        case "master": _isMaster = reader.ExtractBoolean(); break;
+                        case "context": /*Context = reader.Read<uint>();*/ break;
+                        case "song": SongLoop(rbConMetadata, result, reader); break;
+                        case "song_vocals": while (reader.StartNode()) reader.EndNode(); break;
+                        case "song_scroll_speed": rbConMetadata.VocalSongScrollSpeed = reader.ExtractUInt32(); break;
+                        case "tuning_offset_cents": rbConMetadata.TuningOffsetCents = reader.ExtractInt32(); break;
+                        case "bank": rbConMetadata.VocalPercussionBank = reader.ExtractText(); break;
+                        case "anim_tempo":
                             {
-                                "kTempoSlow" => 16,
-                                "kTempoMedium" => 32,
-                                "kTempoFast" => 64,
-                                _ => uint.Parse(val)
-                            };
-                            break;
-                        }
-                    case "preview":
-                        _previewStart = reader.ExtractUInt64();
-                        _previewEnd = reader.ExtractUInt64();
-                        break;
-                    case "rank": _parts.SetIntensities(rbConMetadata.RBDifficulties, reader); break;
-                    case "solo": rbConMetadata.Soloes = reader.ExtractList_String().ToArray(); break;
-                    case "genre": _genre = reader.ExtractText(); break;
-                    case "decade": /*Decade = reader.ExtractText();*/ break;
-                    case "vocal_gender": rbConMetadata.VocalGender = reader.ExtractText() == "male"; break;
-                    case "format": /*Format = reader.Read<uint>();*/ break;
-                    case "version": rbConMetadata.VenueVersion = reader.ExtractUInt32(); break;
-                    case "fake": /*IsFake = reader.ExtractText();*/ break;
-                    case "downloaded": /*Downloaded = reader.ExtractText();*/ break;
-                    case "game_origin":
-                        {
-                            string str = reader.ExtractText();
-                            if ((str == "ugc" || str == "ugc_plus"))
-                            {
-                                if (!nodeName.StartsWith("UGC_"))
-                                    _source = "customs";
-                            }
-                            else
-                                _source = str;
-
-                            //// if the source is any official RB game or its DLC, charter = Harmonix
-                            //if (SongSources.GetSource(str).Type == SongSources.SourceType.RB)
-                            //{
-                            //    _charter = "Harmonix";
-                            //}
-
-                            //// if the source is meant for usage in TBRB, it's a master track
-                            //// TODO: NEVER assume localized version contains "Beatles"
-                            //if (SongSources.SourceToGameName(str).Contains("Beatles")) _isMaster = true;
-                            break;
-                        }
-                    case "song_id": rbConMetadata.SongID = reader.ExtractText(); break;
-                    case "rating": rbConMetadata.SongRating = reader.ExtractUInt32(); break;
-                    case "short_version": /*ShortVersion = reader.Read<uint>();*/ break;
-                    case "album_art": rbConMetadata.HasAlbumArt = reader.ExtractBoolean(); break;
-                    case "year_released":
-                    case "year_recorded": YearAsNumber = reader.ExtractInt32(); break;
-                    case "album_name": _album = reader.ExtractText(); break;
-                    case "album_track_number": _albumTrack = reader.ExtractUInt16(); break;
-                    case "pack_name": _playlist = reader.ExtractText(); break;
-                    case "base_points": /*BasePoints = reader.Read<uint>();*/ break;
-                    case "band_fail_cue": /*BandFailCue = reader.ExtractText();*/ break;
-                    case "drum_bank": rbConMetadata.DrumBank = reader.ExtractText(); break;
-                    case "song_length": _songLength = reader.ExtractUInt64(); break;
-                    case "sub_genre": /*Subgenre = reader.ExtractText();*/ break;
-                    case "author": _charter = reader.ExtractText(); break;
-                    case "guide_pitch_volume": /*GuidePitchVolume = reader.ReadFloat();*/ break;
-                    case "encoding":
-                        var encoding = reader.ExtractText().ToLower() switch
-                        {
-                            "latin1" => YARGTextContainer.Latin1,
-                            "utf-8" or
-                            "utf8" => Encoding.UTF8,
-                            _ => reader.encoding
-                        };
-
-                        if (reader.encoding != encoding)
-                        {
-                            string Convert(string str)
-                            {
-                                byte[] bytes = reader.encoding.GetBytes(str);
-                                return encoding.GetString(bytes);
-                            }
-
-                            if (_name != DEFAULT_NAME)
-                                _name = Convert(_name);
-
-                            if (_artist != DEFAULT_ARTIST)
-                                _artist = Convert(_artist);
-
-                            if (_album != DEFAULT_ALBUM)
-                                _album = Convert(_album);
-
-                            if (_genre != DEFAULT_GENRE)
-                                _genre = Convert(_genre);
-
-                            if (_charter != DEFAULT_CHARTER)
-                                _charter = Convert(_charter);
-
-                            if (_source != DEFAULT_SOURCE)
-                                _source = Convert(_source);
-
-                            if (_playlist.Str.Length != 0)
-                                _playlist = Convert(_playlist);
-                            reader.encoding = encoding;
-                        }
-
-                        break;
-                    case "vocal_tonic_note": rbConMetadata.VocalTonicNote = reader.ExtractUInt32(); break;
-                    case "song_tonality": rbConMetadata.SongTonality = reader.ExtractBoolean(); break;
-                    case "alternate_path": result.alternatePath = reader.ExtractBoolean(); break;
-                    case "real_guitar_tuning":
-                        {
-                            if (reader.StartNode())
-                            {
-                                rbConMetadata.RealGuitarTuning = reader.ExtractList_Int().ToArray();
-                                reader.EndNode();
-                            }
-                            else
-                                rbConMetadata.RealGuitarTuning = new[] { reader.ExtractInt32() };
-                            break;
-                        }
-                    case "real_bass_tuning":
-                        {
-                            if (reader.StartNode())
-                            {
-                                rbConMetadata.RealBassTuning = reader.ExtractList_Int().ToArray();
-                                reader.EndNode();
-                            }
-                            else
-                                rbConMetadata.RealBassTuning = new[] { reader.ExtractInt32() };
-                            break;
-                        }
-                    case "video_venues":
-                        {
-                            if (reader.StartNode())
-                            {
-                                rbConMetadata.VideoVenues = reader.ExtractList_String().ToArray();
-                                reader.EndNode();
-                            }
-                            else
-                                rbConMetadata.VideoVenues = new[] { reader.ExtractText() };
-                            break;
-                        }
-                    case "extra_authoring":
-                        {
-                            StringBuilder authors = new();
-                            foreach (string str in reader.ExtractList_String())
-                            {
-                                if (str == "disc_update")
-                                    result.discUpdate = true;
-                                else if (authors.Length == 0 && _charter == DEFAULT_CHARTER)
-                                    authors.Append(str);
-                                else
+                                string val = reader.ExtractText();
+                                rbConMetadata.AnimTempo = val switch
                                 {
-                                    if (authors.Length == 0)
-                                        authors.Append(_charter);
-                                    authors.Append(", " + str);
+                                    "kTempoSlow" => 16,
+                                    "kTempoMedium" => 32,
+                                    "kTempoFast" => 64,
+                                    _ => uint.Parse(val)
+                                };
+                                break;
+                            }
+                        case "preview":
+                            _previewStart = reader.ExtractUInt64();
+                            _previewEnd = reader.ExtractUInt64();
+                            break;
+                        case "rank": _parts.SetIntensities(rbConMetadata.RBDifficulties, reader); break;
+                        case "solo": rbConMetadata.Soloes = reader.ExtractList_String().ToArray(); break;
+                        case "genre": _genre = reader.ExtractText(); break;
+                        case "decade": /*Decade = reader.ExtractText();*/ break;
+                        case "vocal_gender": rbConMetadata.VocalGender = reader.ExtractText() == "male"; break;
+                        case "format": /*Format = reader.Read<uint>();*/ break;
+                        case "version": rbConMetadata.VenueVersion = reader.ExtractUInt32(); break;
+                        case "fake": /*IsFake = reader.ExtractText();*/ break;
+                        case "downloaded": /*Downloaded = reader.ExtractText();*/ break;
+                        case "game_origin":
+                            {
+                                string str = reader.ExtractText();
+                                if ((str == "ugc" || str == "ugc_plus"))
+                                {
+                                    if (!nodeName.StartsWith("UGC_"))
+                                        _source = "customs";
                                 }
+                                else
+                                    _source = str;
+
+                                //// if the source is any official RB game or its DLC, charter = Harmonix
+                                //if (SongSources.GetSource(str).Type == SongSources.SourceType.RB)
+                                //{
+                                //    _charter = "Harmonix";
+                                //}
+
+                                //// if the source is meant for usage in TBRB, it's a master track
+                                //// TODO: NEVER assume localized version contains "Beatles"
+                                //if (SongSources.SourceToGameName(str).Contains("Beatles")) _isMaster = true;
+                                break;
+                            }
+                        case "song_id": rbConMetadata.SongID = reader.ExtractText(); break;
+                        case "rating": rbConMetadata.SongRating = reader.ExtractUInt32(); break;
+                        case "short_version": /*ShortVersion = reader.Read<uint>();*/ break;
+                        case "album_art": rbConMetadata.HasAlbumArt = reader.ExtractBoolean(); break;
+                        case "year_released":
+                        case "year_recorded": YearAsNumber = reader.ExtractInt32(); break;
+                        case "album_name": _album = reader.ExtractText(); break;
+                        case "album_track_number": _albumTrack = reader.ExtractUInt16(); break;
+                        case "pack_name": _playlist = reader.ExtractText(); break;
+                        case "base_points": /*BasePoints = reader.Read<uint>();*/ break;
+                        case "band_fail_cue": /*BandFailCue = reader.ExtractText();*/ break;
+                        case "drum_bank": rbConMetadata.DrumBank = reader.ExtractText(); break;
+                        case "song_length": _songLength = reader.ExtractUInt64(); break;
+                        case "sub_genre": /*Subgenre = reader.ExtractText();*/ break;
+                        case "author": _charter = reader.ExtractText(); break;
+                        case "guide_pitch_volume": /*GuidePitchVolume = reader.ReadFloat();*/ break;
+                        case "encoding":
+                            var encoding = reader.ExtractText().ToLower() switch
+                            {
+                                "latin1" => YARGTextContainer.Latin1,
+                                "utf-8" or
+                                "utf8" => Encoding.UTF8,
+                                _ => reader.encoding
+                            };
+
+                            if (reader.encoding != encoding)
+                            {
+                                string Convert(string str)
+                                {
+                                    byte[] bytes = reader.encoding.GetBytes(str);
+                                    return encoding.GetString(bytes);
+                                }
+
+                                if (_name != DEFAULT_NAME)
+                                    _name = Convert(_name);
+
+                                if (_artist != DEFAULT_ARTIST)
+                                    _artist = Convert(_artist);
+
+                                if (_album != DEFAULT_ALBUM)
+                                    _album = Convert(_album);
+
+                                if (_genre != DEFAULT_GENRE)
+                                    _genre = Convert(_genre);
+
+                                if (_charter != DEFAULT_CHARTER)
+                                    _charter = Convert(_charter);
+
+                                if (_source != DEFAULT_SOURCE)
+                                    _source = Convert(_source);
+
+                                if (_playlist.Str.Length != 0)
+                                    _playlist = Convert(_playlist);
+                                reader.encoding = encoding;
                             }
 
-                            if (authors.Length == 0)
-                                authors.Append(_charter);
+                            break;
+                        case "vocal_tonic_note": rbConMetadata.VocalTonicNote = reader.ExtractUInt32(); break;
+                        case "song_tonality": rbConMetadata.SongTonality = reader.ExtractBoolean(); break;
+                        case "alternate_path": result.alternatePath = reader.ExtractBoolean(); break;
+                        case "real_guitar_tuning":
+                            {
+                                if (reader.StartNode())
+                                {
+                                    rbConMetadata.RealGuitarTuning = reader.ExtractList_Int().ToArray();
+                                    reader.EndNode();
+                                }
+                                else
+                                    rbConMetadata.RealGuitarTuning = new[] { reader.ExtractInt32() };
+                                break;
+                            }
+                        case "real_bass_tuning":
+                            {
+                                if (reader.StartNode())
+                                {
+                                    rbConMetadata.RealBassTuning = reader.ExtractList_Int().ToArray();
+                                    reader.EndNode();
+                                }
+                                else
+                                    rbConMetadata.RealBassTuning = new[] { reader.ExtractInt32() };
+                                break;
+                            }
+                        case "video_venues":
+                            {
+                                if (reader.StartNode())
+                                {
+                                    rbConMetadata.VideoVenues = reader.ExtractList_String().ToArray();
+                                    reader.EndNode();
+                                }
+                                else
+                                    rbConMetadata.VideoVenues = new[] { reader.ExtractText() };
+                                break;
+                            }
+                        case "extra_authoring":
+                            {
+                                StringBuilder authors = new();
+                                foreach (string str in reader.ExtractList_String())
+                                {
+                                    if (str == "disc_update")
+                                        result.discUpdate = true;
+                                    else if (authors.Length == 0 && _charter == DEFAULT_CHARTER)
+                                        authors.Append(str);
+                                    else
+                                    {
+                                        if (authors.Length == 0)
+                                            authors.Append(_charter);
+                                        authors.Append(", " + str);
+                                    }
+                                }
 
-                            _charter = authors.ToString();
-                        }
-                        break;
+                                if (authors.Length == 0)
+                                    authors.Append(_charter);
+
+                                _charter = authors.ToString();
+                            }
+                            break;
+                    }
+                    reader.EndNode();
                 }
-                reader.EndNode();
             }
-
             return result;
         }
 

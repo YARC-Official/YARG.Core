@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
@@ -131,7 +130,7 @@ namespace YARG.Core.Song.Cache
                 try
                 {
                     AddParallelEntryTasks(stream, ref entryTasks, strings, ReadIniGroup_Parallel, tracker);
-                    AddParallelCONTasks(stream, ref conTasks, ReadUpdateDirectory, tracker);
+                    AddParallelCONTasks(stream, ref conTasks, (BinaryReader reader) => ReadUpdateDirectory(reader, CreateUpdateGroup_Parallel), tracker);
                     AddParallelCONTasks(stream, ref conTasks, ReadUpgradeDirectory, tracker);
                     AddParallelCONTasks(stream, ref conTasks, ReadUpgradeCON, tracker);
                     Task.WaitAll(conTasks.ToArray());
@@ -152,7 +151,7 @@ namespace YARG.Core.Song.Cache
             else
             {
                 RunEntryTasks(stream, strings, ReadIniGroup);
-                RunCONTasks(stream, ReadUpdateDirectory);
+                RunCONTasks(stream, (BinaryReader reader) => ReadUpdateDirectory(reader, CreateUpdateGroup));
                 RunCONTasks(stream, ReadUpgradeDirectory);
                 RunCONTasks(stream, ReadUpgradeCON);
                 RunEntryTasks(stream, strings, ReadCONGroup);
@@ -292,10 +291,10 @@ namespace YARG.Core.Song.Cache
             group.AddEntry(entry);
         }
 
-        private void ReadUpdateDirectory(BinaryReader reader)
+        private void ReadUpdateDirectory(BinaryReader reader, Func<string, AbridgedFileInfo, bool, UpdateGroup?> updateFunc)
         {
             string directory = reader.ReadString();
-            var dtaLastUpdated = DateTime.FromBinary(reader.ReadInt64());
+            var dtaLastWritten = DateTime.FromBinary(reader.ReadInt64());
             int count = reader.ReadInt32();
 
             // Functions as a "check base directory" call
@@ -306,21 +305,42 @@ namespace YARG.Core.Song.Cache
                 {
                     MarkDirectory(directory);
 
-                    var abridged = new AbridgedFileInfo(dtaInfo);
-                    CreateUpdateGroup(directory, abridged, false);
-                    if (abridged.LastUpdatedTime == dtaLastUpdated)
+                    var abridged = new AbridgedFileInfo(dtaInfo, false);
+                    var group = updateFunc(directory, abridged, false);
+                    if (group != null && abridged.LastUpdatedTime == dtaLastWritten)
+                    {
+                        for (int i = 0; i < count; i++)
+                        {
+                            string name = reader.ReadString();
+                            if (group.Updates.TryGetValue(name, out var update))
+                            {
+                                if (!update.Validate(reader))
+                                {
+                                    AddInvalidSong(name);
+                                }
+                            }
+                            else
+                            {
+                                AddInvalidSong(name);
+                                SongUpdate.SkipRead(reader);
+                            }
+                        }
                         return;
+                    }
                 }
             }
 
             for (int i = 0; i < count; i++)
+            {
                 AddInvalidSong(reader.ReadString());
+                SongUpdate.SkipRead(reader);
+            }
         }
 
         private void ReadUpgradeDirectory(BinaryReader reader)
         {
             string directory = reader.ReadString();
-            var dtaLastUpdated = DateTime.FromBinary(reader.ReadInt64());
+            var dtaLastWrritten = DateTime.FromBinary(reader.ReadInt64());
             int count = reader.ReadInt32();
 
             // Functions as a "check base directory" call
@@ -331,9 +351,9 @@ namespace YARG.Core.Song.Cache
                 {
                     MarkDirectory(directory);
 
-                    var abridged = new AbridgedFileInfo(dtaInfo);
+                    var abridged = new AbridgedFileInfo(dtaInfo, false);
                     var group = CreateUpgradeGroup(directory, abridged, false);
-                    if (group != null && abridged.LastUpdatedTime == dtaLastUpdated)
+                    if (group != null && abridged.LastUpdatedTime == dtaLastWrritten)
                     {
                         for (int i = 0; i < count; i++)
                         {
@@ -372,7 +392,6 @@ namespace YARG.Core.Song.Cache
                     goto Invalidate;
                 }
 
-                YargTrace.DebugInfo($"CON added in upgrade loop {filename}");
                 conGroups.Add(group);
 
                 if (TryParseUpgrades(filename, group) && group.UpgradeDTALastWrite == dtaLastWritten)
@@ -531,27 +550,16 @@ namespace YARG.Core.Song.Cache
             if (group != null)
             {
                 conGroups.Add(group);
-
-                for (int i = 0; i < count; i++)
-                {
-                    string name = reader.ReadString();
-                    var lastWrite = DateTime.FromBinary(reader.ReadInt64());
-                    var listing = group.CONFile.TryGetListing($"songs_upgrades/{name}_plus.mid");
-
-                    IRBProUpgrade upgrade = new PackedRBProUpgrade(listing, lastWrite);
-                    AddUpgrade(name, null, upgrade);
-                }
             }
-            else
-            {
-                for (int i = 0; i < count; i++)
-                {
-                    string name = reader.ReadString();
-                    var lastWrite = DateTime.FromBinary(reader.ReadInt64());
 
-                    IRBProUpgrade upgrade = new PackedRBProUpgrade(null, lastWrite);
-                    AddUpgrade(name, null, upgrade);
-                }
+            for (int i = 0; i < count; i++)
+            {
+                string name = reader.ReadString();
+                var lastWrite = DateTime.FromBinary(reader.ReadInt64());
+                var listing = group?.CONFile.TryGetListing($"songs_upgrades/{name}_plus.mid");
+
+                IRBProUpgrade upgrade = new PackedRBProUpgrade(listing, lastWrite);
+                AddUpgrade(name, null, upgrade);
             }
         }
 

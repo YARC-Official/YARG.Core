@@ -59,7 +59,12 @@ namespace YARG.Core.IO
             SkipWhitespace();
         }
 
-        public YARGDTAReader(YARGDTAReader reader)
+        public YARGDTAReader Clone()
+        {
+            return new YARGDTAReader(this);
+        }
+
+        private YARGDTAReader(YARGDTAReader reader)
         {
             container = new(reader.container);
             encoding = reader.encoding;
