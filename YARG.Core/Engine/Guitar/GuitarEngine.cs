@@ -15,6 +15,8 @@ namespace YARG.Core.Engine.Guitar
             public uint BaseTick;
             public double BaseScore;
 
+            public bool HasFinishedScoring;
+
             public ActiveSustain(GuitarNote note)
             {
                 Note = note;
@@ -26,7 +28,7 @@ namespace YARG.Core.Engine.Guitar
 
         public delegate void SustainStartEvent(GuitarNote note);
 
-        public delegate void SustainEndEvent(GuitarNote note, double timeEnded, bool dropped);
+        public delegate void SustainEndEvent(GuitarNote note, double timeEnded, bool finished);
 
         public OverstrumEvent?    OnOverstrum;
         public SustainStartEvent? OnSustainStart;
@@ -77,7 +79,7 @@ namespace YARG.Core.Engine.Guitar
 
                 double finalScore = CalculateSustainPoints(sustain, State.CurrentTick);
                 EngineStats.CommittedScore += (int) Math.Ceiling(finalScore);
-                OnSustainEnd?.Invoke(sustain.Note, State.CurrentTime, dropped: true);
+                OnSustainEnd?.Invoke(sustain.Note, State.CurrentTime, sustain.HasFinishedScoring);
             }
 
             if (State.NoteIndex < Notes.Count)
@@ -347,21 +349,39 @@ namespace YARG.Core.Engine.Guitar
 
                 // If we're close enough to the end of the sustain, finish it
                 // Provides leniency for sustains with no gap (and just in general)
-                bool sustainEnded = (int) (note.TickEnd - State.CurrentTick) <= SustainBurstThreshold;
-                uint sustainTick = sustainEnded ? note.TickEnd : State.CurrentTick;
-                bool dropped = !sustainEnded && !CanNoteBeHit(note);
+                bool isBurst = (int) (note.TickEnd - State.CurrentTick) <= SustainBurstThreshold;
+                bool isEndOfSustain = State.CurrentTick >= note.TickEnd;
 
-                if (dropped || sustainEnded)
+                uint sustainTick = isBurst || isEndOfSustain ? note.TickEnd : State.CurrentTick;
+                bool dropped = !CanNoteBeHit(note);
+
+                // If the sustain has not finished scoring, then we need to calculate the points
+                if (!sustain.HasFinishedScoring)
                 {
-                    double finalScore = CalculateSustainPoints(sustain, sustainTick);
-                    EngineStats.CommittedScore += (int) Math.Ceiling(finalScore);
+                    // Sustain has reached burst threshold, so all points have been given
+                    if (isBurst)
+                    {
+                        sustain.HasFinishedScoring = true;
+                    }
+
+                    // Sustain has ended, so commit the points
+                    if (dropped || isBurst)
+                    {
+                        double finalScore = CalculateSustainPoints(sustain, sustainTick);
+                        EngineStats.CommittedScore += (int) Math.Ceiling(finalScore);
+                    }
+                    else
+                    {
+                        EngineStats.PendingScore += (int) CalculateSustainPoints(sustain, sustainTick);
+                    }
+                }
+
+                // Only remove the sustain if its dropped or has reached the final tick
+                if (dropped || isEndOfSustain)
+                {
                     ActiveSustains.RemoveAt(i);
                     i--;
-                    OnSustainEnd?.Invoke(note, State.CurrentTime, dropped);
-                }
-                else
-                {
-                    EngineStats.PendingScore += (int) CalculateSustainPoints(sustain, sustainTick);
+                    OnSustainEnd?.Invoke(note, State.CurrentTime, sustain.HasFinishedScoring);
                 }
             }
 
