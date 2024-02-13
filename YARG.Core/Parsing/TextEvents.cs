@@ -66,26 +66,27 @@ namespace YARG.Core.Parsing
         /// All other methods that operate on text events expect them to be normalized.
         /// </remarks>
         // Equivalent to reading the capture of this regex: \[(.*?)\]
-        public static void NormalizeTextEvent(ref ReadOnlySpan<char> text, out bool strippedBrackets)
-        {
-            // Trim leading/trailing whitespace
-            text = text.Trim();
+        public static ReadOnlySpan<char> NormalizeTextEvent(ReadOnlySpan<char> text)
+            => NormalizeTextEvent(text, out _);
 
+        /// <inheritdoc cref="NormalizeTextEvent(ReadOnlySpan{char})"/>
+        public static ReadOnlySpan<char> NormalizeTextEvent(ReadOnlySpan<char> text, out bool strippedBrackets)
+        {
             // Isolate text inside brackets
             // Find the starting bracket
             strippedBrackets = false;
             int startIndex = text.IndexOf('[');
             if (startIndex < 0)
-                return;
+                return text.Trim();
             startIndex++;
 
             // Find the ending bracket
             int lastIndex = text[startIndex..].IndexOf(']');
             if (lastIndex < 0)
-                return;
+                return text.Trim();
 
-            text = text[startIndex..lastIndex].Trim();
             strippedBrackets = true;
+            return text[startIndex..lastIndex].Trim();
         }
 
         // For events that have either space or underscore separators

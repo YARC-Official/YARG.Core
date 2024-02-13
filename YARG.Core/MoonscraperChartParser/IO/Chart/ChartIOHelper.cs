@@ -2,7 +2,6 @@
 // See LICENSE in project root for license information.
 
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
 using YARG.Core.Chart;
 
 namespace MoonscraperChartEditor.Song.IO
@@ -12,10 +11,6 @@ namespace MoonscraperChartEditor.Song.IO
         public const string SECTION_SONG = "Song";
         public const string SECTION_SYNC_TRACK = "SyncTrack";
         public const string SECTION_EVENTS = "Events";
-
-        // See MidIOHelper for regex details
-        public static readonly Regex TextEventRegex = MidIOHelper.TextEventRegex;
-        public static readonly Regex SectionEventRegex = MidIOHelper.SectionEventRegex;
 
 
         public const int NOTE_OFFSET_PRO_DRUMS = 64;

@@ -235,26 +235,18 @@ namespace MoonscraperChartEditor.Song.IO
 
                 if (MidIOHelper.IsTextEvent(trackEvent, out var text))
                 {
-                    string eventText = text.Text;
-                    // Strip off brackets and any garbage outside of them
-                    var bracketMatch = MidIOHelper.TextEventRegex.Match(eventText);
-                    if (bracketMatch.Success)
-                    {
-                        eventText = bracketMatch.Groups[1].Value;
-                    }
+                    // Get event text
+                    var eventText = TextEvents.NormalizeTextEvent(text.Text);
 
                     // Check for section events
-                    var sectionMatch = MidIOHelper.SectionEventRegex.Match(eventText);
-                    if (sectionMatch.Success)
+                    if (TextEvents.TryParseSectionEvent(eventText, out var sectionName))
                     {
-                        // This is a section, use the text grouped by the regex
-                        string sectionText = sectionMatch.Groups[1].Value;
-                        song.sections.Add(new MoonText(sectionText, (uint)absoluteTime));
-                        continue;
+                        song.sections.Add(new MoonText(sectionName.ToString(), (uint)absoluteTime));
                     }
-
-                    // Add the event as-is
-                    song.events.Add(new MoonText(eventText, (uint)absoluteTime));
+                    else
+                    {
+                        song.events.Add(new MoonText(eventText.ToString(), (uint)absoluteTime));
+                    }
                 }
             }
         }
@@ -331,10 +323,7 @@ namespace MoonscraperChartEditor.Song.IO
                 }
                 else if (MidIOHelper.IsTextEvent(trackEvent, out var text))
                 {
-                    string eventText = text.Text;
-                    // Strip off brackets and any garbage outside of them
-                    if (MidIOHelper.TextEventRegex.Match(eventText) is { Success: true } bracketMatch)
-                        eventText = bracketMatch.Groups[1].Value;
+                    string eventText = TextEvents.NormalizeTextEvent(text.Text).ToString();
 
                     // Get new representation of the event
                     if (VenueLookup.VENUE_TEXT_CONVERSION_LOOKUP.TryGetValue(eventText, out var eventData))
@@ -489,32 +478,23 @@ namespace MoonscraperChartEditor.Song.IO
         {
             uint tick = (uint)absoluteTick;
 
-            string eventName = text.Text;
-            // Strip off brackets and any garbage outside of them
-            var bracketMatch = MidIOHelper.TextEventRegex.Match(eventName);
-            if (bracketMatch.Success)
+            string eventText = TextEvents.NormalizeTextEvent(text.Text, out bool strippedBrackets).ToString();
+            if (strippedBrackets && processParams.textProcessMap.TryGetValue(eventText, out var processFn))
             {
-                eventName = bracketMatch.Groups[1].Value;
+                // This text event affects parsing of the .mid file, run its function and don't parse it into the chart
+                processFn(ref processParams);
+                return;
             }
             // No brackets to strip off, on vocals this is most likely a lyric event
             else if (MoonSong.InstrumentToChartGameMode(processParams.instrument) is MoonChart.GameMode.Vocals)
             {
-                eventName = TextEvents.LYRIC_PREFIX_WITH_SPACE + text.Text;
+                eventText = TextEvents.LYRIC_PREFIX_WITH_SPACE + text.Text;
             }
 
-            if (processParams.textProcessMap.TryGetValue(eventName, out var processFn))
+            // Copy text event to all difficulties
+            foreach (var difficulty in EnumExtensions<MoonSong.Difficulty>.Values)
             {
-                // This text event affects parsing of the .mid file, run its function and don't parse it into the chart
-                processFn(ref processParams);
-            }
-            else
-            {
-                // Copy text event to all difficulties so that .chart format can store these properly. Midi writer will strip duplicate events just fine anyway.
-                foreach (var difficulty in EnumExtensions<MoonSong.Difficulty>.Values)
-                {
-                    var chartEvent = new MoonText(eventName, tick);
-                    processParams.song.GetChart(processParams.instrument, difficulty).events.Add(chartEvent);
-                }
+                processParams.song.GetChart(processParams.instrument, difficulty).events.Add(new MoonText(eventText, tick));
             }
         }
 

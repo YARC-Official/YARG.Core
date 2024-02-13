@@ -1,14 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
 using MoonscraperChartEditor.Song;
+using YARG.Core.Parsing;
 
 namespace YARG.Core.Chart
 {
     internal partial class MoonSongLoader : ISongLoader
     {
-        private static Regex _discoFlipEventRegex = new(@"mix\s+(\d)\s+drums\d(\w*)", RegexOptions.Compiled);
-
         private bool _discoFlip = false;
 
         public InstrumentTrack<DrumNote> LoadDrumsTrack(Instrument instrument)
@@ -64,20 +62,8 @@ namespace YARG.Core.Chart
                 return;
 
             // Parse out event data
-            if (_discoFlipEventRegex.Match(text.text) is not { Success: true } match)
+            if (!TextEvents.TryParseDrumsMixEvent(text.text, out var difficulty, out var config, out var setting))
                 return;
-
-            char difficultyChar = match.Groups[1].Value[0];
-            string flag = match.Groups[2].Value;
-
-            var difficulty = difficultyChar switch
-            {
-                '0' => Difficulty.Easy,
-                '1' => Difficulty.Medium,
-                '2' => Difficulty.Hard,
-                '3' => Difficulty.Expert,
-                _ => throw new InvalidOperationException($"Unexpected difficulty number {difficultyChar}!")
-            };
 
             // Ignore if event is not for the given difficulty
             var currentDiff = _currentDifficulty;
@@ -86,12 +72,7 @@ namespace YARG.Core.Chart
             if (difficulty != currentDiff)
                 return;
 
-            // Process flag value
-            _discoFlip = flag switch
-            {
-                "d" => true,
-                _ => false
-            };
+            _discoFlip = setting == DrumsMixSetting.DiscoFlip;
         }
 
         private FourLaneDrumPad GetFourLaneDrumPad(MoonNote moonNote)

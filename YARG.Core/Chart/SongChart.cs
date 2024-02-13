@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Melanchall.DryWetMidi.Core;
+using YARG.Core.Parsing;
 
 namespace YARG.Core.Chart
 {
@@ -444,8 +445,6 @@ namespace YARG.Core.Chart
 
         public TextEvent? GetEndEvent()
         {
-            const string END_EVENT = "end";
-
             // Reverse-search through a limited amount of events
             for (int i = 1; i <= 10; i++)
             {
@@ -454,7 +453,7 @@ namespace YARG.Core.Chart
                     break;
 
                 var text = GlobalEvents[index];
-                if (text.Text == END_EVENT)
+                if (text.Text == TextEvents.END_MARKER)
                     return text;
             }
 

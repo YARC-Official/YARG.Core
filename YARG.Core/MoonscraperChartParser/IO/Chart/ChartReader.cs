@@ -14,6 +14,8 @@ using System.Text;
 using System.Text.RegularExpressions;
 using YARG.Core;
 using YARG.Core.Chart;
+using YARG.Core.Extensions;
+using YARG.Core.Parsing;
 using YARG.Core.Song;
 using YARG.Core.Utility;
 
@@ -317,30 +319,22 @@ namespace MoonscraperChartEditor.Song.IO
                     if (typeCodeText[0] == 'E')
                     {
                         // Get event text
-                        string eventText = remaining.Trim().Trim('"').ToString();
-
-                        // Strip off brackets and any garbage outside of them
-                        var match = ChartIOHelper.TextEventRegex.Match(eventText);
-                        if (match.Success)
-                        {
-                            eventText = match.Groups[1].Value;
-                        }
+                        var eventText = TextEvents.NormalizeTextEvent(remaining.TrimOnce('"'));
 
                         // Check for section events
-                        var sectionMatch = ChartIOHelper.SectionEventRegex.Match(eventText);
-                        if (sectionMatch.Success)
+                        if (TextEvents.TryParseSectionEvent(eventText, out var sectionName))
                         {
-                            // This is a section, use the text grouped by the regex
-                            string sectionText = sectionMatch.Groups[1].Value;
-                            song.sections.Add(new MoonText(sectionText, tick));
+                            song.sections.Add(new MoonText(sectionName.ToString(), tick));
                         }
                         else
                         {
-                            song.events.Add(new MoonText(eventText, tick));
+                            song.events.Add(new MoonText(eventText.ToString(), tick));
                         }
                     }
                     else
+                    {
                         YargTrace.LogWarning($"Unrecognized type code '{typeCodeText[0]}'!");
+                    }
                 }
                 catch (Exception e)
                 {
@@ -443,17 +437,8 @@ namespace MoonscraperChartEditor.Song.IO
                             }
                             case 'E':
                             {
-                                // Get event text
-                                string eventText = remaining.Trim().Trim('"').ToString();
-
-                                // Strip off brackets and any garbage outside of them
-                                var match = ChartIOHelper.TextEventRegex.Match(eventText);
-                                if (match.Success)
-                                {
-                                    eventText = match.Groups[1].Value;
-                                }
-
-                                chart.events.Add(new MoonText(eventText, tick));
+                                var eventText = TextEvents.NormalizeTextEvent(remaining.TrimOnce('"'));
+                                chart.events.Add(new MoonText(eventText.ToString(), tick));
                                 break;
                             }
 
