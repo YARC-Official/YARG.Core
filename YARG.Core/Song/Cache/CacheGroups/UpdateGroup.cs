@@ -137,11 +137,11 @@ namespace YARG.Core.Song.Cache
                     case FileInfo file:
                         if (filename == files[0].Name)
                         {
-                            files[0].Info = new AbridgedFileInfo(file);
+                            files[0].Info = new AbridgedFileInfo(file, false);
                         }
                         else if (filename == files[1].Name)
                         {
-                            files[1].Info = new AbridgedFileInfo(file);
+                            files[1].Info = new AbridgedFileInfo(file, false);
                         }
                         break;
                     case DirectoryInfo subDirectory:
@@ -153,11 +153,11 @@ namespace YARG.Core.Song.Cache
                             filename = file.Name.ToLowerInvariant();
                             if (filename == files[2].Name)
                             {
-                                files[2].Info = new AbridgedFileInfo(file);
+                                files[2].Info = new AbridgedFileInfo(file, false);
                             }
                             else if (filename == files[3].Name)
                             {
-                                files[3].Info = new AbridgedFileInfo(file);
+                                files[3].Info = new AbridgedFileInfo(file, false);
                             }
                         }
                         break;
