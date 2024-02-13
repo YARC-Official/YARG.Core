@@ -45,9 +45,9 @@ namespace YARG.Core.Parsing
     }
 
     /// <summary>
-    /// Text events that can be found in both .chart and .mid.
+    /// Constants and utilities for handling text events.
     /// </summary>
-    public static class TextEvents
+    public static partial class TextEvents
     {
         public const string SECTION_PREFIX_1 = "section";
         public const string SECTION_PREFIX_2 = "prc";

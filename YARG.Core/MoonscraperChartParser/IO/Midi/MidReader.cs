@@ -3,16 +3,14 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 using YARG.Core;
 using YARG.Core.Chart;
-using YARG.Core.Song;
 using YARG.Core.Extensions;
-using System.Diagnostics.CodeAnalysis;
-using System.Text;
-using System.IO;
+using YARG.Core.Parsing;
 
 namespace MoonscraperChartEditor.Song.IO
 {

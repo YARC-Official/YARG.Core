@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using MoonscraperChartEditor.Song;
 using YARG.Core.Extensions;
+using YARG.Core.Parsing;
 using YARG.Core.Utility;
 
 namespace YARG.Core.Chart

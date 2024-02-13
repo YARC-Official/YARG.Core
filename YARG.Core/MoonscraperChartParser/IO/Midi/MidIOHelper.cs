@@ -10,7 +10,6 @@ using YARG.Core.Chart;
 
 namespace MoonscraperChartEditor.Song.IO
 {
-    using static TextEvents;
     using static VenueLookup;
 
     internal static class MidIOHelper
