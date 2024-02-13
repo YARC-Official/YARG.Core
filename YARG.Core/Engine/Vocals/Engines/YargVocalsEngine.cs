@@ -65,11 +65,11 @@ namespace YARG.Core.Engine.Vocals.Engines
                     }
                 }
 
-                UpdateHitLogic(time);
+                UpdateEngineLogic(time);
             }
         }
 
-        protected override bool UpdateHitLogic(double time)
+        protected override bool UpdateEngineLogic(double time)
         {
             UpdateTimeVariables(time);
 

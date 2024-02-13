@@ -41,7 +41,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                         }
                     }
 
-                    if (!UpdateHitLogic(note.Time))
+                    if (!UpdateEngineLogic(note.Time))
                     {
                         break;
                     }
@@ -54,11 +54,11 @@ namespace YARG.Core.Engine.Guitar.Engines
 
             if (updateToSongTime)
             {
-                UpdateHitLogic(songTime);
+                UpdateEngineLogic(songTime);
             }
         }
 
-        protected override bool UpdateHitLogic(double time)
+        protected override bool UpdateEngineLogic(double time)
         {
             UpdateTimeVariables(time);
             UpdateTimers();

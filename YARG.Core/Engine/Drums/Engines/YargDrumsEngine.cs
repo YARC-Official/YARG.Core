@@ -28,7 +28,7 @@ namespace YARG.Core.Engine.Drums.Engines
                     {
                         State.PadHitThisUpdate = chordNote.Pad;
 
-                        if (!UpdateHitLogic(chordNote.Time))
+                        if (!UpdateEngineLogic(chordNote.Time))
                         {
                             hit = false;
                         }
@@ -44,11 +44,11 @@ namespace YARG.Core.Engine.Drums.Engines
 
             if (updateToSongTime)
             {
-                UpdateHitLogic(songTime);
+                UpdateEngineLogic(songTime);
             }
         }
 
-        protected override bool UpdateHitLogic(double time)
+        protected override bool UpdateEngineLogic(double time)
         {
             UpdateTimeVariables(time);
 
