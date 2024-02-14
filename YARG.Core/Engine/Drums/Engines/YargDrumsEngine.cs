@@ -10,73 +10,29 @@ namespace YARG.Core.Engine.Drums.Engines
         {
         }
 
-        public override void UpdateBot(double songTime)
+        protected override void MutateStateWithInput(GameInput gameInput)
         {
-            base.UpdateBot(songTime);
-
-            bool updateToSongTime = true;
-            if (State.NoteIndex < Notes.Count)
+            if (gameInput.Button)
             {
-                var note = Notes[State.NoteIndex];
-                while (note is not null && songTime >= note.Time)
-                {
-                    updateToSongTime = false;
-
-                    // Make sure to hit each note in the "chord" individually
-                    bool hit = true;
-                    foreach (var chordNote in note.ChordEnumerator())
-                    {
-                        State.PadHitThisUpdate = chordNote.Pad;
-
-                        if (!UpdateEngineLogic(chordNote.Time))
-                        {
-                            hit = false;
-                        }
-                    }
-
-                    if (!hit) break;
-
-                    note = note.NextNote;
-                }
-            }
-
-            State.PadHitThisUpdate = -1;
-
-            if (updateToSongTime)
-            {
-                UpdateEngineLogic(songTime);
+                State.LastPadHit = ConvertInputToPad(EngineParameters.Mode, gameInput.GetAction<DrumsAction>());
             }
         }
 
         protected override bool UpdateEngineLogic(double time)
         {
             UpdateTimeVariables(time);
-
             UpdateStarPower();
 
-            // Get the pad hit this update
-            if (IsInputUpdate && CurrentInput.Button)
-            {
-                State.PadHitThisUpdate = ConvertInputToPad(
-                    EngineParameters.Mode,
-                    CurrentInput.GetAction<DrumsAction>());
-            }
-            else if (!IsBotUpdate)
-            {
-                State.PadHitThisUpdate = -1;
-            }
-
-            // Quits early if there are no notes left
+            // Quit early if there are no notes left
             if (State.NoteIndex >= Notes.Count)
             {
                 return false;
             }
 
             var note = Notes[State.NoteIndex];
-
             double hitWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
 
-            // Miss notes (back end)
+            // Check for note miss note (back end)
             if (State.CurrentTime > note.Time + EngineParameters.HitWindow.GetBackEnd(hitWindow))
             {
                 foreach (var chordNote in note.ChordEnumerator())
@@ -101,34 +57,33 @@ namespace YARG.Core.Engine.Drums.Engines
                 return true;
             }
 
-            bool isNoteHit = CheckForNoteHit();
-
-            // Check for over hits
-            if (State.PadHitThisUpdate != -1)
+            // Check for note hit
+            if (State.LastPadHit is not null)
             {
-                if (!isNoteHit)
+                var inputEaten = ProcessNoteHit(note);
+
+                if (!inputEaten)
                 {
+                    // If the input was not eaten, then overhit
                     Overhit();
+
+                    // At this point, either way, the input was eaten
                 }
 
-                OnPadHit?.Invoke(CurrentInput.GetAction<DrumsAction>(), isNoteHit);
+                OnPadHit?.Invoke((DrumsAction) State.LastPadHit.Value - 1, inputEaten);
+                State.LastPadHit = null;
             }
 
-            return isNoteHit;
+            return false;
         }
 
-        protected override bool CheckForNoteHit()
-        {
-            var note = Notes[State.NoteIndex];
-            return CheckForNoteHit(note);
-        }
-
-        protected bool CheckForNoteHit(DrumNote note)
+        private bool ProcessNoteHit(DrumNote note)
         {
             double hitWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
 
             if (State.CurrentTime < note.Time + EngineParameters.HitWindow.GetFrontEnd(hitWindow))
             {
+                // Pass on the input
                 return false;
             }
 
@@ -141,27 +96,34 @@ namespace YARG.Core.Engine.Drums.Engines
                     continue;
                 }
 
-                if (CanNoteBeHit(chordNote))
+                if (chordNote.Pad == State.LastPadHit)
                 {
                     HitNote(chordNote);
+
+                    // Eat the input
                     return true;
                 }
             }
 
             // If that fails, attempt to hit any of the other notes ahead of this one (in the hit window)
-            // This helps a lot with combo regain, especially with fast double bass
-            // Please note that this is recursive, so a loop is not required
-            if (note.NextNote is not null && CheckForNoteHit(note.NextNote))
+            // This helps a lot with combo regain, especially with fast double bass.
+            if (note.NextNote is not null && ProcessNoteHit(note.NextNote))
             {
+                // Eat the input
                 return true;
             }
 
+            // Pass on the input
             return false;
         }
 
-        protected override bool CanNoteBeHit(DrumNote note)
+        public override void UpdateBot(double songTime)
         {
-            return note.Pad == State.PadHitThisUpdate;
+            throw new System.NotImplementedException();
         }
+
+        protected override bool CheckForNoteHit() => throw new System.NotImplementedException();
+
+        protected override bool CanNoteBeHit(DrumNote note) => throw new System.NotImplementedException();
     }
 }
