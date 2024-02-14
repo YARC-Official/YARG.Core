@@ -38,7 +38,6 @@ namespace YARG.Core.Song
             metadata.VideoEndTime = reader.ReadInt64();
 
             metadata.LoadingPhrase = reader.ReadString();
-
             metadata.ParseSettings = new ParseSettings()
             {
                 HopoThreshold = reader.ReadInt64(),
