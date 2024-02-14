@@ -2,81 +2,15 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
 
 namespace YARG.Core.Song.Cache
 {
-    public sealed partial class CacheHandler
+    public abstract partial class CacheHandler
     {
         public const int SIZEOF_DATETIME = 8;
-        private readonly HashSet<string> invalidSongsInCache = new();
-
-        private static void RunCONTasks(FileStream stream, Action<BinaryReader> func)
-        {
-            int count = stream.Read<int>(Endianness.Little);
-            for (int i = 0; i < count; ++i)
-            {
-                int length = stream.Read<int>(Endianness.Little);
-                var reader = BinaryReaderExtensions.Load(stream, length);
-                func(reader);
-            }
-        }
-
-        private static void RunEntryTasks(FileStream stream, CategoryCacheStrings strings, Action<BinaryReader, CategoryCacheStrings> func)
-        {
-            int count = stream.Read<int>(Endianness.Little);
-            for (int i = 0; i < count; ++i)
-            {
-                int length = stream.Read<int>(Endianness.Little);
-                var reader = BinaryReaderExtensions.Load(stream, length);
-                func(reader, strings);
-            }
-        }
-
-        private static void AddParallelCONTasks(FileStream stream, ref List<Task> conTasks, Action<BinaryReader> func, ParallelExceptionTracker tracker)
-        {
-            int count = stream.Read<int>(Endianness.Little);
-            for (int i = 0; i < count && !tracker.IsSet(); ++i)
-            {
-                int length = stream.Read<int>(Endianness.Little);
-                var reader = BinaryReaderExtensions.Load(stream, length);
-                conTasks.Add(Task.Run(() =>
-                {
-                    try
-                    {
-                        func(reader);
-                    }
-                    catch (Exception ex)
-                    {
-                        tracker.Set(ex);
-                    }
-                }));
-            }
-        }
-
-        private static void AddParallelEntryTasks(FileStream stream, ref List<Task> entryTasks, CategoryCacheStrings strings, Action<BinaryReader, List<Task>, CategoryCacheStrings, ParallelExceptionTracker> func, ParallelExceptionTracker tracker)
-        {
-            int count = stream.Read<int>(Endianness.Little);
-            for (int i = 0; i < count && !tracker.IsSet(); ++i)
-            {
-                int length = stream.Read<int>(Endianness.Little);
-                var reader = BinaryReaderExtensions.Load(stream, length);
-                entryTasks.Add(Task.Run(() => {
-                    List<Task> tasks = new();
-                    try
-                    {
-                        func(reader, tasks, strings, tracker);
-                    }
-                    catch (Exception ex)
-                    {
-                        tracker.Set(ex);
-                    }
-                    Task.WaitAll(tasks.ToArray());
-                }));
-            }
-        }
+        protected readonly HashSet<string> invalidSongsInCache = new();
 
         /// <summary>
         /// The sum of all "count" variables in a file
@@ -88,163 +22,31 @@ namespace YARG.Core.Song.Cache
         /// </summary>
         private const int MIN_CACHEFILESIZE = 93;
 
-        private FileStream? CheckCacheFile(string cacheLocation)
-        {
-            FileInfo info = new(cacheLocation);
-            if (!info.Exists || info.Length < MIN_CACHEFILESIZE)
-            {
-                YargTrace.DebugInfo($"Cache invalid or not found");
-                return null;
-            }
-
-            var fs = new FileStream(cacheLocation, FileMode.Open, FileAccess.Read);
-            using var counter = DisposableCounter.Wrap(fs);
-            if (fs.Read<int>(Endianness.Little) != CACHE_VERSION)
-            {
-                YargTrace.DebugInfo($"Cache outdated");
-                return null;
-            }
-
-            if (fs.ReadBoolean() != fullDirectoryPlaylists)
-            {
-                YargTrace.DebugInfo($"FullDirectoryFlag flipped");
-                return null;
-            }
-
-            return counter.Release();
-        }
-
-        private void Deserialize(string cacheLocation, bool multithreading)
-        {
-            using var stream = CheckCacheFile(cacheLocation);
-            if (stream == null)
-                return;
-
-            YargTrace.DebugInfo("Full Read start");
-            CategoryCacheStrings strings = new(stream, multithreading);
-            if (multithreading)
-            {
-                var tracker = new ParallelExceptionTracker();
-                var entryTasks = new List<Task>();
-                var conTasks = new List<Task>();
-
-                try
-                {
-                    AddParallelEntryTasks(stream, ref entryTasks, strings, ReadIniGroup_Parallel, tracker);
-                    AddParallelCONTasks(stream, ref conTasks, (BinaryReader reader) => ReadUpdateDirectory(reader, CreateUpdateGroup_Parallel), tracker);
-                    AddParallelCONTasks(stream, ref conTasks, ReadUpgradeDirectory, tracker);
-                    AddParallelCONTasks(stream, ref conTasks, ReadUpgradeCON, tracker);
-                    Task.WaitAll(conTasks.ToArray());
-
-                    AddParallelEntryTasks(stream, ref entryTasks, strings, ReadCONGroup_Parallel, tracker);
-                    AddParallelEntryTasks(stream, ref entryTasks, strings, ReadExtractedCONGroup_Parallel, tracker);
-                }
-                catch (Exception ex)
-                {
-                    tracker.Set(ex);
-                    Task.WaitAll(conTasks.ToArray());
-                }
-                Task.WaitAll(entryTasks.ToArray());
-
-                if (tracker.IsSet())
-                    throw tracker;
-            }
-            else
-            {
-                RunEntryTasks(stream, strings, ReadIniGroup);
-                RunCONTasks(stream, (BinaryReader reader) => ReadUpdateDirectory(reader, CreateUpdateGroup));
-                RunCONTasks(stream, ReadUpgradeDirectory);
-                RunCONTasks(stream, ReadUpgradeCON);
-                RunEntryTasks(stream, strings, ReadCONGroup);
-                RunEntryTasks(stream, strings, ReadExtractedCONGroup);
-            }
-            YargTrace.DebugInfo($"Ini Entries read: {_progress.Count}");
-        }
-
-        private bool Deserialize_Quick(string cacheLocation, bool multithreading)
-        {
-            using var stream = CheckCacheFile(cacheLocation);
-            if (stream == null)
-                return false;
-
-            YargTrace.DebugInfo("Quick Read start");
-            CategoryCacheStrings strings = new(stream, multithreading);
-            if (multithreading)
-            {
-                var tracker = new ParallelExceptionTracker();
-                var entryTasks = new List<Task>();
-                var conTasks = new List<Task>();
-
-                try
-                {
-                    AddParallelEntryTasks(stream, ref entryTasks, strings, QuickReadIniGroup_Parallel, tracker);
-
-                    int count = stream.Read<int>(Endianness.Little);
-                    for (int i = 0; i < count; ++i)
-                    {
-                        int length = stream.Read<int>(Endianness.Little);
-                        stream.Position += length;
-                    }
-
-                    AddParallelCONTasks(stream, ref conTasks, QuickReadUpgradeDirectory, tracker);
-                    AddParallelCONTasks(stream, ref conTasks, QuickReadUpgradeCON, tracker);
-                    Task.WaitAll(conTasks.ToArray());
-
-                    AddParallelEntryTasks(stream, ref entryTasks, strings, QuickReadCONGroup_Parallel, tracker);
-                    AddParallelEntryTasks(stream, ref entryTasks, strings, QuickReadExtractedCONGroup_Parallel, tracker);
-                }
-                catch (Exception ex)
-                {
-                    tracker.Set(ex);
-                    Task.WaitAll(conTasks.ToArray());
-                }
-                Task.WaitAll(entryTasks.ToArray());
-
-                if (tracker.IsSet())
-                    throw tracker;
-            }
-            else
-            {
-                RunEntryTasks(stream, strings, QuickReadIniGroup);
-                YargTrace.DebugInfo($"Ini Entries quick read: {_progress.Count}");
-
-                int count = stream.Read<int>(Endianness.Little);
-                for (int i = 0; i < count; ++i)
-                {
-                    int length = stream.Read<int>(Endianness.Little);
-                    stream.Position += length;
-                }
-
-                RunCONTasks(stream, QuickReadUpgradeDirectory);
-                RunCONTasks(stream, QuickReadUpgradeCON);
-                RunEntryTasks(stream, strings, QuickReadCONGroup);
-                RunEntryTasks(stream, strings, QuickReadExtractedCONGroup);
-            }
-            YargTrace.DebugInfo($"Total Entries: {_progress.Count}");
-            return true;
-        }
+        protected abstract void Deserialize(FileStream stream);
+        protected abstract void Deserialize_Quick(FileStream stream);
+        protected abstract void AddInvalidSong(string name);
+        protected abstract PackedCONGroup? FindCONGroup(string filename);
 
         private void Serialize(string cacheLocation)
         {
-            _progress.Stage = ScanStage.WritingCache;
             using var writer = new BinaryWriter(new FileStream(cacheLocation, FileMode.Create, FileAccess.Write));
             Dictionary<SongEntry, CategoryCacheWriteNode> nodes = new();
 
             writer.Write(CACHE_VERSION);
             writer.Write(fullDirectoryPlaylists);
 
-            CategoryWriter.WriteToCache(writer, cache.Titles   , SongAttribute.Name,     ref nodes);
-            CategoryWriter.WriteToCache(writer, cache.Artists  , SongAttribute.Artist,   ref nodes);
-            CategoryWriter.WriteToCache(writer, cache.Albums   , SongAttribute.Album,    ref nodes);
-            CategoryWriter.WriteToCache(writer, cache.Genres   , SongAttribute.Genre,    ref nodes);
-            CategoryWriter.WriteToCache(writer, cache.Years    , SongAttribute.Year,     ref nodes);
-            CategoryWriter.WriteToCache(writer, cache.Charters , SongAttribute.Charter,  ref nodes);
+            CategoryWriter.WriteToCache(writer, cache.Titles, SongAttribute.Name, ref nodes);
+            CategoryWriter.WriteToCache(writer, cache.Artists, SongAttribute.Artist, ref nodes);
+            CategoryWriter.WriteToCache(writer, cache.Albums, SongAttribute.Album, ref nodes);
+            CategoryWriter.WriteToCache(writer, cache.Genres, SongAttribute.Genre, ref nodes);
+            CategoryWriter.WriteToCache(writer, cache.Years, SongAttribute.Year, ref nodes);
+            CategoryWriter.WriteToCache(writer, cache.Charters, SongAttribute.Charter, ref nodes);
             CategoryWriter.WriteToCache(writer, cache.Playlists, SongAttribute.Playlist, ref nodes);
-            CategoryWriter.WriteToCache(writer, cache.Sources  , SongAttribute.Source,   ref nodes);
+            CategoryWriter.WriteToCache(writer, cache.Sources, SongAttribute.Source, ref nodes);
 
             List<PackedCONGroup> upgradeCons = new();
             List<PackedCONGroup> entryCons = new();
-            foreach (var group in conGroups.Values)
+            foreach (var group in conGroups)
             {
                 if (group.Upgrades.Count > 0)
                     upgradeCons.Add(group);
@@ -254,14 +56,14 @@ namespace YARG.Core.Song.Cache
             }
 
             ICacheGroup<IniSubEntry>.SerializeGroups(iniGroups, writer, nodes);
-            IModificationGroup.SerializeGroups(updateGroups.Values, writer);
-            IModificationGroup.SerializeGroups(upgradeGroups.Values, writer);
+            IModificationGroup.SerializeGroups(updateGroups, writer);
+            IModificationGroup.SerializeGroups(upgradeGroups, writer);
             IModificationGroup.SerializeGroups(upgradeCons, writer);
             ICacheGroup<RBCONEntry>.SerializeGroups(entryCons, writer, nodes);
-            ICacheGroup<RBCONEntry>.SerializeGroups(extractedConGroups.Values, writer, nodes);
+            ICacheGroup<RBCONEntry>.SerializeGroups(extractedConGroups, writer, nodes);
         }
 
-        private void ReadIniEntry(string baseDirectory, IniGroup group, BinaryReader reader, CategoryCacheStrings strings)
+        protected void ReadIniEntry(string baseDirectory, IniGroup group, BinaryReader reader, CategoryCacheStrings strings)
         {
             bool isSngEntry = reader.ReadBoolean();
             var entry = isSngEntry ?
@@ -281,18 +83,18 @@ namespace YARG.Core.Song.Cache
                 {
                     AddToBadSongs(root, ScanResult.LooseChart_Warning);
                 }
-                MarkDirectory(root);
+                FindOrMarkDirectory(root);
             }
             else
             {
-                MarkFile(root);
+                FindOrMarkFile(root);
             }
 
             AddEntry(entry);
             group.AddEntry(entry);
         }
 
-        private void ReadUpdateDirectory(BinaryReader reader, Func<DirectoryInfo, AbridgedFileInfo, bool, UpdateGroup?> updateFunc)
+        protected void ReadUpdateDirectory(BinaryReader reader)
         {
             string directory = reader.ReadString();
             var dtaLastWritten = DateTime.FromBinary(reader.ReadInt64());
@@ -304,11 +106,11 @@ namespace YARG.Core.Song.Cache
                 var dtaInfo = new FileInfo(Path.Combine(directory, "songs_updates.dta"));
                 if (dtaInfo.Exists)
                 {
-                    MarkDirectory(directory);
+                    FindOrMarkDirectory(directory);
 
                     var abridged = new AbridgedFileInfo(dtaInfo, false);
                     var dirInfo = new DirectoryInfo(directory);
-                    var group = updateFunc(dirInfo, abridged, false);
+                    var group = CreateUpdateGroup(dirInfo, abridged, false);
                     if (group != null && abridged.LastUpdatedTime == dtaLastWritten)
                     {
                         for (int i = 0; i < count; i++)
@@ -339,7 +141,7 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void ReadUpgradeDirectory(BinaryReader reader)
+        protected void ReadUpgradeDirectory(BinaryReader reader)
         {
             string directory = reader.ReadString();
             var dtaLastWrritten = DateTime.FromBinary(reader.ReadInt64());
@@ -351,7 +153,7 @@ namespace YARG.Core.Song.Cache
                 var dtaInfo = new FileInfo(Path.Combine(directory, "upgrades.dta"));
                 if (dtaInfo.Exists)
                 {
-                    MarkDirectory(directory);
+                    FindOrMarkDirectory(directory);
 
                     var abridged = new AbridgedFileInfo(dtaInfo, false);
                     var group = CreateUpgradeGroup(directory, abridged, false);
@@ -376,7 +178,7 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void ReadUpgradeCON(BinaryReader reader)
+        protected void ReadUpgradeCON(BinaryReader reader)
         {
             string filename = reader.ReadString();
             var conLastUpdated = DateTime.FromBinary(reader.ReadInt64());
@@ -394,7 +196,7 @@ namespace YARG.Core.Song.Cache
                     goto Invalidate;
                 }
 
-                conGroups.Add(group);
+                AddPackedCONGroup(group);
 
                 if (TryParseUpgrades(filename, group) && group.UpgradeDTALastWrite == dtaLastWritten)
                 {
@@ -422,22 +224,7 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private string ConstructPlaylist(string filename, string baseDirectory)
-        {
-            string directory = Path.GetDirectoryName(filename);
-            if (directory.Length == baseDirectory.Length)
-            {
-                return "Unknown Playlist";
-            }
-
-            if (!fullDirectoryPlaylists)
-            {
-                return Path.GetFileName(directory);
-            }
-            return directory[(baseDirectory.Length + 1)..];
-        }
-
-        private PackedCONGroup? ReadCONGroupHeader(BinaryReader reader, out string filename)
+        protected PackedCONGroup? ReadCONGroupHeader(BinaryReader reader, out string filename)
         {
             filename = reader.ReadString();
             var baseGroup = GetBaseIniGroup(filename);
@@ -456,7 +243,7 @@ namespace YARG.Core.Song.Cache
                     return null;
                 }
 
-                MarkFile(filename);
+                FindOrMarkFile(filename);
 
                 var abridged = new AbridgedFileInfo(info);
                 var file = CONFile.TryLoadFile(abridged);
@@ -467,7 +254,7 @@ namespace YARG.Core.Song.Cache
 
                 string playlist = ConstructPlaylist(filename, baseGroup.Directory);
                 group = new PackedCONGroup(file, abridged, playlist);
-                conGroups.Add(group);
+                AddPackedCONGroup(group);
             }
 
             if (!group.SetSongDTA() || group.DTALastWrite != dtaLastWrite)
@@ -477,7 +264,7 @@ namespace YARG.Core.Song.Cache
             return group;
         }
 
-        private UnpackedCONGroup? ReadExtractedCONGroupHeader(BinaryReader reader, out string directory)
+        protected UnpackedCONGroup? ReadExtractedCONGroupHeader(BinaryReader reader, out string directory)
         {
             directory = reader.ReadString();
             var baseGroup = GetBaseIniGroup(directory);
@@ -492,11 +279,11 @@ namespace YARG.Core.Song.Cache
                 return null;
             }
 
-            MarkDirectory(directory);
+            FindOrMarkDirectory(directory);
 
             string playlist = ConstructPlaylist(directory, baseGroup.Directory);
             var group = new UnpackedCONGroup(directory, dtaInfo, playlist);
-            extractedConGroups.Add(group);
+            AddUnpackedCONGroup(group);
 
             if (dtaInfo.LastWriteTime != DateTime.FromBinary(reader.ReadInt64()))
             {
@@ -505,7 +292,26 @@ namespace YARG.Core.Song.Cache
             return group;
         }
 
-        private void QuickReadIniEntry(string baseDirectory, BinaryReader reader, CategoryCacheStrings strings)
+        protected void ReadCONGroup(BinaryReader reader, Action<string, int, BinaryReader> func)
+        {
+            int count = reader.ReadInt32();
+            for (int i = 0; i < count; ++i)
+            {
+                string name = reader.ReadString();
+                int index = reader.ReadInt32();
+                int length = reader.ReadInt32();
+                if (invalidSongsInCache.Contains(name))
+                {
+                    reader.Move(length);
+                    continue;
+                }
+
+                var entryReader = reader.Slice(length);
+                func(name, index, entryReader);
+            }
+        }
+
+        protected void QuickReadIniEntry(string baseDirectory, BinaryReader reader, CategoryCacheStrings strings)
         {
             var entry = reader.ReadBoolean() ?
                 SngEntry.LoadFromCache_Quick(baseDirectory, reader, strings) :
@@ -521,14 +327,14 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void QuickReadUpgradeDirectory(BinaryReader reader)
+        protected void QuickReadUpgradeDirectory(BinaryReader reader)
         {
             string directory = reader.ReadString();
             var dtaLastUpdated = DateTime.FromBinary(reader.ReadInt64());
             int count = reader.ReadInt32();
 
             var group = new UpgradeGroup(directory, dtaLastUpdated);
-            upgradeGroups.Add(group);
+            AddUpgradeGroup(group);
 
             for (int i = 0; i < count; i++)
             {
@@ -536,13 +342,13 @@ namespace YARG.Core.Song.Cache
                 string filename = Path.Combine(directory, $"{name}_plus.mid");
 
                 var info = new AbridgedFileInfo(filename, reader);
-                IRBProUpgrade upgrade = new UnpackedRBProUpgrade(info);
+                var upgrade = new UnpackedRBProUpgrade(info);
                 group.Upgrades.Add(name, upgrade);
                 AddUpgrade(name, null, upgrade);
             }
         }
 
-        private void QuickReadUpgradeCON(BinaryReader reader)
+        protected void QuickReadUpgradeCON(BinaryReader reader)
         {
             string filename = reader.ReadString();
             reader.Move(2 * SIZEOF_DATETIME);
@@ -551,7 +357,7 @@ namespace YARG.Core.Song.Cache
             var group = CreateCONGroup(filename, string.Empty);
             if (group != null)
             {
-                conGroups.Add(group);
+                AddPackedCONGroup(group);
             }
 
             for (int i = 0; i < count; i++)
@@ -560,12 +366,12 @@ namespace YARG.Core.Song.Cache
                 var lastWrite = DateTime.FromBinary(reader.ReadInt64());
                 var listing = group?.CONFile.TryGetListing($"songs_upgrades/{name}_plus.mid");
 
-                IRBProUpgrade upgrade = new PackedRBProUpgrade(listing, lastWrite);
+                var upgrade = new PackedRBProUpgrade(listing, lastWrite);
                 AddUpgrade(name, null, upgrade);
             }
         }
 
-        private PackedCONGroup? QuickReadCONGroupHeader(BinaryReader reader)
+        protected PackedCONGroup? QuickReadCONGroupHeader(BinaryReader reader)
         {
             string filename = reader.ReadString();
             var dtaLastWrite = DateTime.FromBinary(reader.ReadInt64());
@@ -579,7 +385,7 @@ namespace YARG.Core.Song.Cache
                     return null;
                 }
 
-                conGroups.Add(group);
+                AddPackedCONGroup(group);
             }
 
             if (!group.SetSongDTA() || group.DTALastWrite != dtaLastWrite)
@@ -595,7 +401,7 @@ namespace YARG.Core.Song.Cache
             if (!info.Exists)
                 return null;
 
-            MarkFile(filename);
+            FindOrMarkFile(filename);
 
             var abridged = new AbridgedFileInfo(info);
             var conFile = CONFile.TryLoadFile(abridged);
@@ -605,36 +411,19 @@ namespace YARG.Core.Song.Cache
             return new PackedCONGroup(conFile, abridged, defaultPlaylist);
         }
 
-        private PackedCONGroup? FindCONGroup(string filename)
+        private string ConstructPlaylist(string filename, string baseDirectory)
         {
-            lock (conGroups.Lock)
+            string directory = Path.GetDirectoryName(filename);
+            if (directory.Length == baseDirectory.Length)
             {
-                var index = conGroups.Values.FindIndex(node => node.Location == filename);
-                if (index == -1)
-                {
-                    return null;
-                }
-                return conGroups.Values[index];
+                return "Unknown Playlist";
             }
-        }
 
-        private void MarkDirectory(string directory)
-        {
-            lock (dirLock)
+            if (!fullDirectoryPlaylists)
             {
-                preScannedDirectories.Add(directory);
-                _progress.NumScannedDirectories++;
+                return Path.GetFileName(directory);
             }
-        }
-
-        private void MarkFile(string file)
-        {
-            lock (fileLock) preScannedFiles.Add(file);
-        }
-
-        private void AddInvalidSong(string name)
-        {
-            lock (invalidLock) invalidSongsInCache.Add(name);
+            return directory[(baseDirectory.Length + 1)..];
         }
     }
 }

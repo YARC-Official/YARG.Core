@@ -12,6 +12,7 @@ namespace YARG.Core.Song.Cache
 
         public readonly CONFile CONFile;
         public readonly DateTime CONLastUpdated;
+        
         public Dictionary<string, IRBProUpgrade> Upgrades { get; } = new();
 
         private readonly object upgradeLock = new();

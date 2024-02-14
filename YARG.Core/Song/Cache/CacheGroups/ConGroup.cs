@@ -7,10 +7,9 @@ namespace YARG.Core.Song.Cache
     public abstract class CONGroup : ICacheGroup<RBCONEntry>
     {
         protected readonly Dictionary<string, SortedDictionary<int, RBCONEntry>> entries = new();
-        protected readonly object entryLock = new();
 
         private int _count;
-        public int Count { get { lock (entryLock) return _count; } }
+        public int Count { get { lock (entries) return _count; } }
 
         public readonly string Location;
         public readonly string DefaultPlaylist;
@@ -26,7 +25,7 @@ namespace YARG.Core.Song.Cache
 
         public void AddEntry(string name, int index, RBCONEntry entry)
         {
-            lock (entryLock)
+            lock (entries)
             {
                 if (entries.TryGetValue(name, out var dict))
                     dict.Add(index, entry);
@@ -38,7 +37,7 @@ namespace YARG.Core.Song.Cache
 
         public bool RemoveEntries(string name)
         {
-            lock (entryLock)
+            lock (entries)
             {
                 if (!entries.Remove(name, out var dict))
                     return false;
@@ -50,7 +49,7 @@ namespace YARG.Core.Song.Cache
 
         public void RemoveEntry(string name, int index)
         {
-            lock (entryLock)
+            lock (entries)
             {
                 var dict = entries[name];
                 dict.Remove(index);
@@ -65,8 +64,10 @@ namespace YARG.Core.Song.Cache
         public bool TryGetEntry(string name, int index, out RBCONEntry? entry)
         {
             entry = null;
-            lock (entryLock)
+            lock (entries)
+            {
                 return entries.TryGetValue(name, out var dict) && dict.TryGetValue(index, out entry);
+            }
         }
 
         public bool TryRemoveEntry(SongEntry entryToRemove)

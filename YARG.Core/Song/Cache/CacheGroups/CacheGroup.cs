@@ -5,8 +5,8 @@ using System.Text;
 
 namespace YARG.Core.Song.Cache
 {
-    public interface ICacheGroup<TMetadata>
-        where TMetadata : SongEntry
+    public interface ICacheGroup<TEntry>
+        where TEntry : SongEntry
     {
         public int Count { get; }
 
@@ -14,7 +14,7 @@ namespace YARG.Core.Song.Cache
         public bool TryRemoveEntry(SongEntry entryToRemove);
 
         public static void SerializeGroups<TGroup>(List<TGroup> groups, BinaryWriter writer, Dictionary<SongEntry, CategoryCacheWriteNode> nodes)
-            where TGroup : ICacheGroup<TMetadata>
+            where TGroup : ICacheGroup<TEntry>
         {
             writer.Write(groups.Count);
             foreach (var group in groups)

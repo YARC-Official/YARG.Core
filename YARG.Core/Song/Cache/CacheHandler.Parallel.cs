@@ -9,7 +9,7 @@ using YARG.Core.IO;
 
 namespace YARG.Core.Song.Cache
 {
-    public sealed partial class CacheHandler
+    internal sealed class ParallelCacheHandler : CacheHandler
     {
         private sealed class ParallelExceptionTracker : Exception
         {
@@ -55,107 +55,370 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void ScanDirectory_Parallel(DirectoryInfo directory, IniGroup group, PlaylistTracker tracker)
-        {
-            try
-            {
-                if (!TraversalPreTest(directory, tracker.Playlist, CreateUpdateGroup_Parallel))
-                    return;
+        public ParallelCacheHandler(List<string> baseDirectories, bool allowDuplicates, bool fullDirectoryPlaylists)
+            : base(baseDirectories, allowDuplicates, fullDirectoryPlaylists) { }
 
-                var collector = new FileCollector(directory);
-                if (ScanIniEntry(collector, group, tracker.Playlist))
+        protected override void FindNewEntries(PlaylistTracker tracker)
+        {
+            Parallel.ForEach(iniGroups, group =>
+            {
+                var dirInfo = new DirectoryInfo(group.Directory);
+                ScanDirectory(dirInfo, group, tracker);
+            });
+
+            // Orders the updates from oldest to newest to apply more recent information last
+            Parallel.ForEach(updates, node => node.Value.Sort());
+
+            var conTasks = new Task[conGroups.Count + extractedConGroups.Count];
+            int con = 0;
+            foreach (var group in conGroups)
+            {
+                conTasks[con++] = Task.Run(() =>
                 {
-                    if (collector.subDirectories.Count > 0)
+                    var reader = group.LoadSongs();
+                    if (reader != null)
                     {
-                        AddToBadSongs(directory.FullName, ScanResult.LooseChart_Warning);
+                        ScanCONGroup(group, reader, ScanPackedCONNode);
                     }
-                    return;
+                    group.CONFile.Dispose();
                 }
-
-                tracker.Append(directory.FullName);
-
-                var tasks = new Task[collector.subDirectories.Count + collector.subfiles.Count];
-                int index = 0;
-                foreach (var subDirectory in collector.subDirectories)
-                {
-                    tasks[index++] = Task.Run(() => ScanDirectory_Parallel(subDirectory, group, tracker));
-                }
-
-                foreach (var file in collector.subfiles)
-                {
-                    tasks[index++] = Task.Run(() => ScanFile(file, group, ref tracker));
-                }
-                Task.WaitAll(tasks);
-                foreach(var task in tasks) task.Dispose();
+                );
             }
-            catch (PathTooLongException)
+
+            foreach (var group in extractedConGroups)
             {
-                YargTrace.LogError($"Path {directory.FullName} is too long for the file system!");
-                AddToBadSongs(directory.FullName, ScanResult.PathTooLong);
+                conTasks[con++] = Task.Run(() =>
+                {
+                    var reader = group.LoadDTA();
+                    if (reader != null)
+                    {
+                        ScanCONGroup(group, reader, ScanUnpackedCONNode);
+                    }
+                }
+                );
             }
-            catch (Exception e)
+
+            Task.WaitAll(conTasks);
+        }
+
+        protected override void TraverseDirectory(FileCollector collector, IniGroup group, PlaylistTracker tracker)
+        {
+            var tasks = new Task[collector.subDirectories.Count + collector.subfiles.Count];
+            int index = 0;
+            foreach (var subDirectory in collector.subDirectories)
             {
-                YargTrace.LogException(e, $"Error while scanning directory {directory.FullName}!");
+                tasks[index++] = Task.Run(() => ScanDirectory(subDirectory, group, tracker));
+            }
+
+            foreach (var file in collector.subfiles)
+            {
+                tasks[index++] = Task.Run(() => ScanFile(file, group, ref tracker));
+            }
+            Task.WaitAll(tasks);
+            foreach (var task in tasks) task.Dispose();
+        }
+
+        protected override bool AddEntry(SongEntry entry)
+        {
+            lock (cache.Entries)
+            {
+                var hash = entry.Hash;
+                if (cache.Entries.TryGetValue(hash, out var list) && !allowDuplicates)
+                {
+                    if (list[0].IsPreferedOver(entry))
+                    {
+                        duplicatesRejected.Add(entry);
+                        return false;
+                    }
+
+                    duplicatesToRemove.Add(list[0]);
+                    list[0] = entry;
+                }
+                else
+                {
+                    if (list == null)
+                    {
+                        cache.Entries.Add(hash, list = new List<SongEntry>());
+                    }
+
+                    list.Add(entry);
+                    ++_progress.Count;
+                }
+                return true;
             }
         }
 
-        private void ScanCONGroup_Parallel(PackedCONGroup group)
+        protected override void AddUpdates(UpdateGroup group, Dictionary<string, List<YARGDTAReader>> nodes, bool removeEntries)
         {
-            var reader = group.LoadSongs();
-            if (reader == null)
-                return;
-
-            try
+            Parallel.ForEach(nodes, node =>
             {
-                Dictionary<string, int> indices = new();
-                List<Task> tasks = new();
-                while (reader.StartNode())
+                var update = new SongUpdate(group, node.Key, group.DTALastWrite, node.Value.ToArray());
+                lock (group.Updates)
                 {
-                    string name = reader.GetNameOfNode();
-                    int index = GetCONIndex(indices, name);
-
-                    var node = reader.Clone();
-                    tasks.Add(Task.Run(() => ScanPackedCONNode(group, name, index, node)));
-                    reader.EndNode();
+                    group.Updates.Add(node.Key, update);
                 }
 
+                if (removeEntries)
+                {
+                    RemoveCONEntry(node.Key);
+                }
+
+                lock (updates)
+                {
+                    if (!updates.TryGetValue(node.Key, out var list))
+                    {
+                        updates.Add(node.Key, list = new());
+                    }
+                    list.Add(update);
+                }
+            });
+
+            lock (updateGroups)
+            {
+                updateGroups.Add(group);
+            }
+        }
+
+        private void ScanCONGroup<TGroup>(TGroup group, YARGDTAReader reader, Action<TGroup, string, int, YARGDTAReader> func)
+            where TGroup : CONGroup
+        {
+            try
+            {
+                List<Task> tasks = new();
+                TraverseCONGroup(reader, (string name, int index) =>
+                {
+                    var node = reader.Clone();
+                    tasks.Add(Task.Run(() => func(group, name, index, node)));
+                });
                 Task.WaitAll(tasks.ToArray());
             }
             catch (Exception e)
             {
-                YargTrace.LogException(e, $"Error while scanning packed CON group {group.Location}!");
+                YargTrace.LogException(e, $"Error while scanning CON group {group.Location}!");
             }
-            group.CONFile.Dispose();
         }
 
-        private void ScanExtractedCONGroup_Parallel(UnpackedCONGroup group)
+        protected override void SortEntries(InstrumentCategory[] instruments)
         {
-            var reader = group.LoadDTA();
-            if (reader == null)
-                return;
+            Parallel.ForEach(cache.Entries, node =>
+            {
+                foreach (var entry in node.Value)
+                {
+                    CategorySorter<string,     TitleConfig>.      Add(entry, cache.Titles);
+                    CategorySorter<SortString, ArtistConfig>.     Add(entry, cache.Artists);
+                    CategorySorter<SortString, AlbumConfig>.      Add(entry, cache.Albums);
+                    CategorySorter<SortString, GenreConfig>.      Add(entry, cache.Genres);
+                    CategorySorter<string,     YearConfig>.       Add(entry, cache.Years);
+                    CategorySorter<SortString, CharterConfig>.    Add(entry, cache.Charters);
+                    CategorySorter<SortString, PlaylistConfig>.   Add(entry, cache.Playlists);
+                    CategorySorter<SortString, SourceConfig>.     Add(entry, cache.Sources);
+                    CategorySorter<string,     ArtistAlbumConfig>.Add(entry, cache.ArtistAlbums);
+                    CategorySorter<string,     SongLengthConfig>. Add(entry, cache.SongLengths);
+                    CategorySorter<DateTime,   DateAddedConfig>.  Add(entry, cache.DatesAdded);
+
+                    foreach (var instrument in instruments)
+                        instrument.Add(entry);
+                }
+            });
+        }
+
+        protected override void Deserialize(FileStream stream)
+        {
+            CategoryCacheStrings strings = new(stream, true);
+            var tracker = new ParallelExceptionTracker();
+            var entryTasks = new List<Task>();
+            var conTasks = new List<Task>();
 
             try
             {
-                Dictionary<string, int> indices = new();
-                List<Task> tasks = new();
-                while (reader.StartNode())
-                {
-                    string name = reader.GetNameOfNode();
-                    int index = GetCONIndex(indices, name);
+                AddParallelEntryTasks(stream, ref entryTasks, strings, ReadIniGroup, tracker);
+                AddParallelCONTasks(stream, ref conTasks, ReadUpdateDirectory, tracker);
+                AddParallelCONTasks(stream, ref conTasks, ReadUpgradeDirectory, tracker);
+                AddParallelCONTasks(stream, ref conTasks, ReadUpgradeCON, tracker);
+                Task.WaitAll(conTasks.ToArray());
 
-                    var node = reader.Clone();
-                    tasks.Add(Task.Run(() => ScanUnpackedCONNode(group, name, index, node)));
-                    reader.EndNode();
-                }
-                Task.WaitAll(tasks.ToArray());
+                AddParallelEntryTasks(stream, ref entryTasks, strings, ReadPackedCONGroup, tracker);
+                AddParallelEntryTasks(stream, ref entryTasks, strings, ReadUnpackedCONGroup, tracker);
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                YargTrace.LogException(e, $"Error while scanning extracted CON group {group.Location}!");
+                tracker.Set(ex);
+                Task.WaitAll(conTasks.ToArray());
+            }
+            Task.WaitAll(entryTasks.ToArray());
+
+            if (tracker.IsSet())
+                throw tracker;
+        }
+
+        protected override void Deserialize_Quick(FileStream stream)
+        {
+            YargTrace.DebugInfo("Quick Read start");
+            CategoryCacheStrings strings = new(stream, true);
+            var tracker = new ParallelExceptionTracker();
+            var entryTasks = new List<Task>();
+            var conTasks = new List<Task>();
+
+            try
+            {
+                AddParallelEntryTasks(stream, ref entryTasks, strings, QuickReadIniGroup, tracker);
+
+                int count = stream.Read<int>(Endianness.Little);
+                for (int i = 0; i < count; ++i)
+                {
+                    int length = stream.Read<int>(Endianness.Little);
+                    stream.Position += length;
+                }
+
+                AddParallelCONTasks(stream, ref conTasks, QuickReadUpgradeDirectory, tracker);
+                AddParallelCONTasks(stream, ref conTasks, QuickReadUpgradeCON, tracker);
+                Task.WaitAll(conTasks.ToArray());
+
+                AddParallelEntryTasks(stream, ref entryTasks, strings, QuickReadCONGroup, tracker);
+                AddParallelEntryTasks(stream, ref entryTasks, strings, QuickReadExtractedCONGroup, tracker);
+            }
+            catch (Exception ex)
+            {
+                tracker.Set(ex);
+                Task.WaitAll(conTasks.ToArray());
+            }
+            Task.WaitAll(entryTasks.ToArray());
+
+            if (tracker.IsSet())
+            {
+                throw tracker;
             }
         }
 
-        private void ReadIniGroup_Parallel(BinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
+        protected override void AddUpgrade(string name, YARGDTAReader? reader, IRBProUpgrade upgrade)
+        {
+            lock (upgrades)
+            {
+                upgrades[name] = new(reader, upgrade);
+            }
+        }
+
+        protected override void AddPackedCONGroup(PackedCONGroup group)
+        {
+            lock (conGroups)
+            {
+                conGroups.Add(group);
+            }
+        }
+
+        protected override void AddUnpackedCONGroup(UnpackedCONGroup group)
+        {
+            lock (extractedConGroups)
+            {
+                extractedConGroups.Add(group);
+            }
+        }
+
+        protected override void AddUpgradeGroup(UpgradeGroup group)
+        {
+            lock (upgradeGroups)
+            {
+                upgradeGroups.Add(group);
+            }
+        }
+
+        protected override void RemoveCONEntry(string shortname)
+        {
+            lock (conGroups)
+            {
+                foreach (var group in conGroups)
+                {
+                    if (group.RemoveEntries(shortname))
+                    {
+                        YargTrace.DebugInfo($"{group.Location} - {shortname} pending rescan");
+                    }
+                }
+            }
+
+            lock (extractedConGroups)
+            {
+                foreach (var group in extractedConGroups)
+                {
+                    if (group.RemoveEntries(shortname))
+                    {
+                        YargTrace.DebugInfo($"{group.Location} - {shortname} pending rescan");
+                    }
+                }
+            }
+        }
+
+        protected override bool CanAddUpgrade(string shortname, DateTime lastUpdated)
+        {
+            lock (upgradeGroups)
+            {
+                return CanAddUpgrade(upgradeGroups, shortname, lastUpdated) ?? false;
+            }
+        }
+
+        protected override bool CanAddUpgrade_CONInclusive(string shortname, DateTime lastUpdated)
+        {
+            lock (conGroups)
+            {
+                var result = CanAddUpgrade(conGroups, shortname, lastUpdated);
+                if (result != null)
+                {
+                    return (bool)result;
+                }
+            }
+
+            lock (upgradeGroups)
+            {
+                return CanAddUpgrade(upgradeGroups, shortname, lastUpdated) ?? false;
+            }
+        }
+
+        protected override bool FindOrMarkDirectory(string directory)
+        {
+            lock (preScannedDirectories)
+            {
+                if (!preScannedDirectories.Add(directory))
+                {
+                    return false;
+                }
+                _progress.NumScannedDirectories++;
+                return true;
+            }
+        }
+
+        protected override bool FindOrMarkFile(string file)
+        {
+            lock (preScannedFiles)
+            {
+                return preScannedFiles.Add(file);
+            }
+        }
+
+        protected override void AddToBadSongs(string filePath, ScanResult err)
+        {
+            lock (badSongs)
+            {
+                badSongs.Add(filePath, err);
+                _progress.BadSongCount++;
+            }
+        }
+
+        protected override void AddInvalidSong(string name)
+        {
+            lock (invalidSongsInCache)
+            {
+                invalidSongsInCache.Add(name);
+            }
+        }
+
+        protected override PackedCONGroup? FindCONGroup(string filename)
+        {
+            lock (conGroups)
+            {
+                return conGroups.Find(node => node.Location == filename);
+            }
+        }
+
+        private void ReadIniGroup(BinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
         {
             string directory = reader.ReadString();
             var group = GetBaseIniGroup(directory);
@@ -184,60 +447,29 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void ReadCONGroup_Parallel(BinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
+        private void ReadPackedCONGroup(BinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
         {
             var group = ReadCONGroupHeader(reader, out string filename);
-            if (group == null)
-                return;
-
-            int count = reader.ReadInt32();
-            for (int i = 0; i < count && !tracker.IsSet(); ++i)
+            if (group != null)
             {
-                string name = reader.ReadString();
-                int index = reader.ReadInt32();
-                int length = reader.ReadInt32();
-                if (invalidSongsInCache.Contains(name))
-                {
-                    reader.Move(length);
-                    continue;
-                }
-
-                var entryReader = reader.Slice(length);
-                entryTasks.Add(Task.Run(() =>
-                {
-                    // Error catching must be done per-thread
-                    try
-                    {
-                        group.ReadEntry(name, index, upgrades, entryReader, strings);
-                    }
-                    catch (Exception ex)
-                    {
-                        tracker.Set(ex);
-                    }
-                }));
+                ReadCONGroup(group, reader, entryTasks, strings, tracker);
             }
         }
 
-        private void ReadExtractedCONGroup_Parallel(BinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
+        private void ReadUnpackedCONGroup(BinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
         {
             var group = ReadExtractedCONGroupHeader(reader, out string directory);
-            if (group == null)
-                return;
-
-            int count = reader.ReadInt32();
-            for (int i = 0; i < count && !tracker.IsSet(); ++i)
+            if (group != null)
             {
-                string name = reader.ReadString();
-                int index = reader.ReadInt32();
-                int length = reader.ReadInt32();
+                ReadCONGroup(group, reader, entryTasks, strings, tracker);
+            }
+        }
 
-                if (invalidSongsInCache.Contains(name))
-                {
-                    reader.Move(length);
-                    continue;
-                }
-
-                var entryReader = reader.Slice(length);
+        private void ReadCONGroup<TGroup>(TGroup group, BinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
+            where TGroup : CONGroup
+        {
+            ReadCONGroup(reader, (string name, int index, BinaryReader entryReader) =>
+            {
                 entryTasks.Add(Task.Run(() =>
                 {
                     // Error catching must be done per-thread
@@ -250,10 +482,10 @@ namespace YARG.Core.Song.Cache
                         tracker.Set(ex);
                     }
                 }));
-            }
+            });
         }
 
-        private void QuickReadIniGroup_Parallel(BinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
+        private void QuickReadIniGroup(BinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
         {
             string directory = reader.ReadString();
             int count = reader.ReadInt32();
@@ -276,7 +508,7 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void QuickReadCONGroup_Parallel(BinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
+        private void QuickReadCONGroup(BinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
         {
             var group = QuickReadCONGroupHeader(reader);
             if (group == null)
@@ -306,7 +538,7 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void QuickReadExtractedCONGroup_Parallel(BinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
+        private void QuickReadExtractedCONGroup(BinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
         {
             string directory = reader.ReadString();
             var dta = AbridgedFileInfo.TryParseInfo(Path.Combine(directory, "songs.dta"), reader);
@@ -336,31 +568,47 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private UpdateGroup? CreateUpdateGroup_Parallel(DirectoryInfo dirInfo, AbridgedFileInfo dta, bool removeEntries)
+        private static void AddParallelCONTasks(FileStream stream, ref List<Task> conTasks, Action<BinaryReader> func, ParallelExceptionTracker tracker)
         {
-            var nodes = FindUpdateNodes(dirInfo.FullName, dta);
-            if (nodes == null)
+            int count = stream.Read<int>(Endianness.Little);
+            for (int i = 0; i < count && !tracker.IsSet(); ++i)
             {
-                return null;
+                int length = stream.Read<int>(Endianness.Little);
+                var reader = BinaryReaderExtensions.Load(stream, length);
+                conTasks.Add(Task.Run(() =>
+                {
+                    try
+                    {
+                        func(reader);
+                    }
+                    catch (Exception ex)
+                    {
+                        tracker.Set(ex);
+                    }
+                }));
             }
-
-            var group = new UpdateGroup(dirInfo, dta.LastUpdatedTime);
-            Parallel.ForEach(nodes, node =>
+        }
+        
+        private static void AddParallelEntryTasks(FileStream stream, ref List<Task> entryTasks, CategoryCacheStrings strings, Action<BinaryReader, List<Task>, CategoryCacheStrings, ParallelExceptionTracker> func, ParallelExceptionTracker tracker)
+        {
+            int count = stream.Read<int>(Endianness.Little);
+            for (int i = 0; i < count && !tracker.IsSet(); ++i)
             {
-                var update = new SongUpdate(group, node.Key, group.DTALastWrite, node.Value.ToArray());
-                lock (group.Updates)
-                {
-                    group.Updates.Add(node.Key, update);
-                }
-
-                AddUpdate(node.Key, update);
-                if (removeEntries)
-                {
-                    RemoveCONEntry(node.Key);
-                }
-            });
-            updateGroups.Add(group);
-            return group;
+                int length = stream.Read<int>(Endianness.Little);
+                var reader = BinaryReaderExtensions.Load(stream, length);
+                entryTasks.Add(Task.Run(() => {
+                    List<Task> tasks = new();
+                    try
+                    {
+                        func(reader, tasks, strings, tracker);
+                    }
+                    catch (Exception ex)
+                    {
+                        tracker.Set(ex);
+                    }
+                    Task.WaitAll(tasks.ToArray());
+                }));
+            }
         }
     }
 }

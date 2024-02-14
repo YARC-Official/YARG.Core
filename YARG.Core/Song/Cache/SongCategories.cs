@@ -204,7 +204,6 @@ namespace YARG.Core.Song.Cache
     {
         private readonly InstrumentComparer comparer;
         private readonly List<SongEntry> _entries = new();
-        private readonly object entryLock = new();
 
         public readonly string Key;
         public List<SongEntry> Entries => _entries;
@@ -219,7 +218,7 @@ namespace YARG.Core.Song.Cache
         {
             if (entry.HasInstrument(comparer.instrument))
             {
-                lock (entryLock)
+                lock (_entries)
                 {
                     int index = _entries.BinarySearch(entry, comparer);
                     _entries.Insert(~index, entry);
