@@ -361,7 +361,7 @@ namespace YARG.Core.Song.Cache
                         {
                             string name = reader.ReadString();
                             var lastUpdated = DateTime.FromBinary(reader.ReadInt64());
-                            if (!group.upgrades.TryGetValue(name, out var upgrade) || upgrade!.LastUpdatedTime != lastUpdated)
+                            if (!group.Upgrades.TryGetValue(name, out var upgrade) || upgrade!.LastUpdatedTime != lastUpdated)
                                 AddInvalidSong(name);
                         }
                         return;
@@ -537,7 +537,7 @@ namespace YARG.Core.Song.Cache
 
                 var info = new AbridgedFileInfo(filename, reader);
                 IRBProUpgrade upgrade = new UnpackedRBProUpgrade(info);
-                group.upgrades.Add(name, upgrade);
+                group.Upgrades.Add(name, upgrade);
                 AddUpgrade(name, null, upgrade);
             }
         }

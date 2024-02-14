@@ -4,11 +4,16 @@ using System.IO;
 
 namespace YARG.Core.Song.Cache
 {
-    public sealed class UpgradeGroup : IModificationGroup
+    public interface IUpgradeGroup : IModificationGroup
+    {
+        public Dictionary<string, IRBProUpgrade> Upgrades { get; }
+    }
+
+    public sealed class UpgradeGroup : IUpgradeGroup
     {
         private readonly string _directory;
         private readonly DateTime _dtaLastUpdate;
-        public readonly Dictionary<string, IRBProUpgrade> upgrades = new();
+        public Dictionary<string, IRBProUpgrade> Upgrades { get; } = new();
 
         public UpgradeGroup(string directory, DateTime dtaLastUpdate)
         {
@@ -23,8 +28,8 @@ namespace YARG.Core.Song.Cache
 
             writer.Write(_directory);
             writer.Write(_dtaLastUpdate.ToBinary());
-            writer.Write(upgrades.Count);
-            foreach (var upgrade in upgrades)
+            writer.Write(Upgrades.Count);
+            foreach (var upgrade in Upgrades)
             {
                 writer.Write(upgrade.Key);
                 upgrade.Value.WriteToCache(writer);

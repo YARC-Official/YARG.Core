@@ -350,7 +350,7 @@ namespace YARG.Core.Song.Cache
                         if (CanAddUpgrade(name, abridged.LastUpdatedTime))
                         {
                             var upgrade = new UnpackedRBProUpgrade(abridged);
-                            group.upgrades[name] = upgrade;
+                            group.Upgrades[name] = upgrade;
                             AddUpgrade(name, reader.Clone(), upgrade);
 
                             if (removeEntries)
@@ -368,7 +368,7 @@ namespace YARG.Core.Song.Cache
                 YargTrace.LogException(ex, $"Error while scanning CON upgrade folder {directory}!");
             }
 
-            if (group.upgrades.Count == 0)
+            if (group.Upgrades.Count == 0)
             {
                 YargTrace.LogWarning($"{directory} .dta file possibly malformed");
                 return null;
@@ -480,29 +480,25 @@ namespace YARG.Core.Song.Cache
 
         private bool CanAddUpgrade(string shortname, DateTime lastUpdated)
         {
-            lock (upgradeGroups.Lock)
-            {
-                foreach (var group in upgradeGroups.Values)
-                {
-                    if (group.upgrades.TryGetValue(shortname, out var currUpgrade))
-                    {
-                        if (currUpgrade.LastUpdatedTime >= lastUpdated)
-                        {
-                            return false;
-                        }
-                        group.upgrades.Remove(shortname);
-                        break;
-                    }
-                }
-            }
-            return true;
+            return CanAddUpgrade(upgradeGroups, shortname, lastUpdated) ?? false;
         }
 
         private bool CanAddUpgrade_CONInclusive(string shortname, DateTime lastUpdated)
         {
-            lock (conGroups.Lock)
+            var result = CanAddUpgrade(conGroups, shortname, lastUpdated);
+            if (result != null)
             {
-                foreach (var group in conGroups.Values)
+                return (bool)result;
+            }
+            return CanAddUpgrade(upgradeGroups, shortname, lastUpdated) ?? false;
+        }
+
+        private static bool? CanAddUpgrade<TGroup>(LockedList<TGroup> groups, string shortname, DateTime lastUpdated)
+            where TGroup : IUpgradeGroup
+        {
+            lock (groups.Lock)
+            {
+                foreach (var group in groups.Values)
                 {
                     var upgrades = group.Upgrades;
                     if (upgrades.TryGetValue(shortname, out var currUpgrade))
@@ -515,9 +511,8 @@ namespace YARG.Core.Song.Cache
                         return true;
                     }
                 }
+                return null;
             }
-
-            return CanAddUpgrade(shortname, lastUpdated);
         }
     }
 }
