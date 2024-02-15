@@ -45,14 +45,14 @@ namespace YARG.Core.Engine.Guitar
 
         public override void Reset(bool keepCurrentButtons = false)
         {
-            byte buttons = State.ButtonMask;
+            byte buttons = State.FretMask;
             ActiveSustains.Clear();
 
             base.Reset(keepCurrentButtons);
 
             if (keepCurrentButtons)
             {
-                State.ButtonMask = buttons;
+                State.FretMask = buttons;
             }
         }
 
@@ -359,12 +359,12 @@ namespace YARG.Core.Engine.Guitar
 
         protected void ToggleFret(int fret, bool active)
         {
-            State.ButtonMask = (byte) (active ? State.ButtonMask | (1 << fret) : State.ButtonMask & ~(1 << fret));
+            State.FretMask = (byte) (active ? State.FretMask | (1 << fret) : State.FretMask & ~(1 << fret));
         }
 
         public bool IsFretHeld(GuitarAction fret)
         {
-            return (State.ButtonMask & (1 << (int) fret)) != 0;
+            return (State.FretMask & (1 << (int) fret)) != 0;
         }
 
         protected static bool IsFretInput(GameInput input)

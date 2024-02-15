@@ -30,6 +30,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             if (IsFretInput(gameInput))
             {
                 ToggleFret(gameInput.Action, gameInput.Button);
+                State.DidFret = true;
                 return;
             }
         }
@@ -58,10 +59,10 @@ namespace YARG.Core.Engine.Guitar.Engines
                 }
             }
 
-            // Check for note hit
+            // Check for strum hit
             if (State.DidStrum)
             {
-                var inputEaten = ProcessNoteHit(note);
+                var inputEaten = ProcessNoteStrum(note);
 
                 if (!inputEaten)
                 {
@@ -78,10 +79,28 @@ namespace YARG.Core.Engine.Guitar.Engines
                 }
             }
 
+            // Check for fret hit
+            if (State.DidFret)
+            {
+                var inputEaten = ProcessNoteTap(note);
+
+                if (!inputEaten)
+                {
+                    // TODO: Ghost
+
+                    State.DidFret = false;
+                }
+                else
+                {
+                    State.DidFret = false;
+                    return true;
+                }
+            }
+
             return false;
         }
 
-        private bool ProcessNoteHit(GuitarNote note)
+        private bool ProcessNoteStrum(GuitarNote note)
         {
             double hitWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
 
@@ -91,10 +110,40 @@ namespace YARG.Core.Engine.Guitar.Engines
                 return false;
             }
 
-            if (State.ButtonMask == note.NoteMask)
+            if (State.FretMask == note.NoteMask)
             {
                 HitNote(note);
                 return true;
+            }
+
+            // Pass on the input
+            return false;
+        }
+
+        private bool ProcessNoteTap(GuitarNote note)
+        {
+            double hitWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
+
+            if (!EngineParameters.InfiniteFrontEnd &&
+                State.CurrentTime < note.Time + EngineParameters.HitWindow.GetFrontEnd(hitWindow))
+            {
+                // Pass on the input
+                return false;
+            }
+
+            if (State.FretMask == note.NoteMask)
+            {
+                if (note.IsHopo && EngineStats.Combo > 0)
+                {
+                    HitNote(note);
+                    return true;
+                }
+
+                if (note.IsTap)
+                {
+                    HitNote(note);
+                    return true;
+                }
             }
 
             // Pass on the input
