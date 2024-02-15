@@ -72,6 +72,11 @@ namespace YARG.Core.Engine.Drums.Engines
 
                 OnPadHit?.Invoke((DrumsAction) State.LastPadHit.Value - 1, inputEaten);
                 State.LastPadHit = null;
+
+                if (inputEaten)
+                {
+                    return true;
+                }
             }
 
             return false;

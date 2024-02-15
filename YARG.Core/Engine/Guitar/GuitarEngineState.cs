@@ -6,7 +6,7 @@
         public byte LastButtonMask;
         public byte TapButtonMask;
 
-        public bool StrummedThisUpdate;
+        public bool DidStrum;
         public bool WasHopoStrummed;
         public bool WasNoteGhosted;
 
@@ -34,7 +34,7 @@
             LastButtonMask = 0;
             TapButtonMask = 0;
 
-            StrummedThisUpdate = false;
+            DidStrum = false;
             WasHopoStrummed = false;
             WasNoteGhosted = false;
 
