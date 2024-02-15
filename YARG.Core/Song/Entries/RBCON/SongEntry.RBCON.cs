@@ -764,6 +764,7 @@ namespace YARG.Core.Song
                             }
                             break;
                     }
+                    reader.EndNode();
                 }
             }
             return result;
