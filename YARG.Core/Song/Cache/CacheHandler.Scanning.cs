@@ -452,7 +452,7 @@ namespace YARG.Core.Song.Cache
             {
                 while (reader.StartNode())
                 {
-                    string name = reader.GetNameOfNode().ToLowerInvariant();
+                    string name = reader.GetNameOfNode();
                     if (!nodes.TryGetValue(name, out var list))
                     {
                         nodes.Add(name, list = new List<YARGDTAReader>());

@@ -24,7 +24,7 @@ namespace YARG.Core.Song.Cache
             var dirInfo = new DirectoryInfo(Path.Combine(_directory, name));
             if (dirInfo.Exists)
             {
-                files = new SongUpdateFiles(dirInfo, name);
+                files = new SongUpdateFiles(dirInfo, name.ToLowerInvariant());
             }
 
             var update = new SongUpdate(_directory, _dtaLastWrite, readers, files);
