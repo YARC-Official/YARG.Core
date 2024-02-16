@@ -2,16 +2,11 @@
 {
     public abstract class BaseEngineState
     {
-
         public int NoteIndex;
 
-        public double CurrentTime;
-        public double LastUpdateTime;
+        public TimeContext TimeContext;
 
         public double LastQueuedInputTime;
-
-        public uint CurrentTick;
-        public uint LastTick;
 
         public int CurrentTimeSigIndex;
         public int NextTimeSigIndex;
@@ -27,17 +22,16 @@
         public bool IsStarPowerInputActive;
         public uint StarPowerBaseTick;
 
+        public double CurrentTime => TimeContext.Time;
+        public uint CurrentTick => TimeContext.Tick;
+
         public virtual void Reset()
         {
             NoteIndex = 0;
 
-            CurrentTime = double.MinValue;
-            LastUpdateTime = double.MinValue;
+            TimeContext = TimeContext.Create();
 
             LastQueuedInputTime = double.MinValue;
-
-            CurrentTick = 0;
-            LastTick = 0;
 
             CurrentTimeSigIndex = 0;
             NextTimeSigIndex = 1;
@@ -53,6 +47,5 @@
             IsStarPowerInputActive = false;
             StarPowerBaseTick = 0;
         }
-
     }
 }
