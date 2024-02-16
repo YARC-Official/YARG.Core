@@ -9,11 +9,20 @@
         public bool DidFret;
 
         public bool DidStrum;
+
         public bool WasHopoStrummed;
         public bool WasNoteGhosted;
 
-        public EngineTimer StrumLeniencyTimer;
+        /// <summary>
+        /// The amount of time a hopo is allowed to take a strum input.
+        /// Strum after this time and it will overstrum.
+        /// </summary>
         public EngineTimer HopoLeniencyTimer;
+        /// <summary>
+        /// The amount of time a strum can be inputted before fretting the correct note.
+        /// Fretting after this time will overstrum.
+        /// </summary>
+        public EngineTimer StrumLeniencyTimer;
 
         public EngineTimer StarPowerWhammyTimer;
 

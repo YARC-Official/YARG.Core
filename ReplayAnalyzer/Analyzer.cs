@@ -40,7 +40,6 @@ public class Analyzer
 
     public void RunWithSimulatedUpdates()
     {
-        var random = new Random();
         for (int i = 0; i < ATTEMPTS; i++)
         {
             var randomValues = new List<double>();
@@ -56,7 +55,6 @@ public class Analyzer
 
     private List<double> GenerateFrameTimes(int fps)
     {
-        var random = new Random();
         var frameTimes = new List<double>();
 
         double secondsPerFrame = 1.0 / fps;
@@ -64,7 +62,7 @@ public class Analyzer
         for (double time = -2; time < endTime; time += secondsPerFrame)
         {
             // Add a little bit of inconsistency
-            frameTimes.Add(time + (random.NextDouble() - 0.5) * secondsPerFrame);
+            frameTimes.Add(time + (Random.Shared.NextDouble() - 0.5) * secondsPerFrame);
         }
 
         // Sort

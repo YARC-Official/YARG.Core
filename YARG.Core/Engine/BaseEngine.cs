@@ -111,7 +111,8 @@ namespace YARG.Core.Engine
             {
                 // This will update the engine to the time of the input.
                 // However, it does not use the input for the update.
-                UpdateUpToTime(input.Time);
+                // UpdateUpToTime(input.Time);
+                RunHitLogic(input.Time);
 
                 // Process the input and run hit logic for it.
                 MutateStateWithInput(input);

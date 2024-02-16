@@ -154,6 +154,8 @@ namespace YARG.Core.Engine
 
         public void Deserialize(BinaryReader reader, int version = 0)
         {
+            Scale = 1.0;
+
             MaxWindow = reader.ReadDouble();
             MinWindow = reader.ReadDouble();
             IsDynamic = reader.ReadBoolean();

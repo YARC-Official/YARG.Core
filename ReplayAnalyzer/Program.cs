@@ -205,30 +205,32 @@ if (runMode is 0 or 1)
         }
     }
 }
-// else
-// {
-//     Console.Write("Enter player number to analyze inputs: ");
-//     string playerId = Console.ReadLine();
-//
-//     if (!int.TryParse(playerId, out int selectedPlayer))
-//     {
-//         continue;
-//     }
-//
-//     Console.WriteLine("|       Time | Action |       Axis |    Integer | Button | Difference |");
-//     double lastTime = double.NegativeInfinity;
-//     foreach (var replayInput in replay.Frames[selectedPlayer].Inputs)
-//     {
-//         Console.WriteLine(
-//             $"| {replayInput.Time,10:0.0000} | {replayInput.Action,6} | {replayInput.Axis,10:0.00} | " +
-//             $"{replayInput.Integer,10} | {(replayInput.Button ? "Y" : "N"),6} | {replayInput.Time - lastTime,10:0.0000} |");
-//         lastTime = replayInput.Time;
-//     }
-//
-//     Console.WriteLine(
-//         $"{replay.Frames[selectedPlayer].Inputs.Length} input(s) were read from player {selectedPlayer}.");
-// }
-/*/
+else
+{
+    Console.Write("Enter player number to analyze inputs: ");
+    string playerId = Console.ReadLine();
+
+    if (!int.TryParse(playerId, out int selectedPlayer))
+    {
+        Console.WriteLine("ERROR: Invalid input.");
+        return;
+    }
+
+    Console.WriteLine("|       Time | Action |       Axis |    Integer | Button | Difference |");
+    double lastTime = double.NegativeInfinity;
+    foreach (var replayInput in replay.Frames[selectedPlayer].Inputs)
+    {
+        Console.WriteLine(
+            $"| {replayInput.Time,10:0.0000} | {replayInput.Action,6} | {replayInput.Axis,10:0.00} | " +
+            $"{replayInput.Integer,10} | {(replayInput.Button ? "Y" : "N"),6} | {replayInput.Time - lastTime,10:0.0000} |");
+        lastTime = replayInput.Time;
+    }
+
+    Console.WriteLine(
+        $"{replay.Frames[selectedPlayer].Inputs.Length} input(s) were read from player {selectedPlayer}.");
+}
+
+/*
 while (true)
 {
     ClearAndPrintHeader();
