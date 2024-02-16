@@ -694,8 +694,11 @@ namespace YARG.Core.Engine
             {
                 double multiplier = Math.Clamp((soloPercentage - 0.6) / 0.4, 0, 1);
 
+                // In case the solo is over 100% (some bugs can cause this), cap the notes hit to the note count
+                int notesHit = Math.Min(currentSolo.NotesHit, currentSolo.NoteCount);
+
                 // Old engine says this is 200 *, but I'm not sure that's right?? Isn't it 2x the note's worth, not 4x?
-                double points = 100 * currentSolo.NotesHit * multiplier;
+                double points = 100 * notesHit * multiplier;
 
                 // Round down to nearest 50 (kinda just makes sense I think?)
                 points -= points % 50;
