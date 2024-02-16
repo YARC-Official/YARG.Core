@@ -22,6 +22,13 @@ namespace YARG.Core.Engine
             };
         }
 
+        public static TimeContext CreateFromTimerEnd(SyncTrack syncTrack, EngineTimer timer)
+        {
+            var ctx = Create();
+            ctx.UpdateTime(syncTrack, timer.EndTime);
+            return ctx;
+        }
+
         public void UpdateTime(SyncTrack syncTrack, double time)
         {
             if (time < Time)
