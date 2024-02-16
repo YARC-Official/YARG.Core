@@ -20,9 +20,9 @@ namespace YARG.Core.Song
         public bool alternatePath = false;
         public bool discUpdate = false;
         public string location = string.Empty;
-        public float[] pans = Array.Empty<float>();
-        public float[] volumes = Array.Empty<float>();
-        public float[] cores = Array.Empty<float>();
+        public float[]? pans = null;
+        public float[]? volumes = null;
+        public float[]? cores = null;
 
         public DTAResult(string nodeName)
         {
@@ -367,8 +367,13 @@ namespace YARG.Core.Song
         protected DTAResult Init(string nodeName, YARGDTAReader reader, Dictionary<string, List<SongUpdate>> updates, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, string defaultPlaylist)
         {
             var dtaResults = ParseDTA(nodeName, reader);
-            ApplyRBCONUpdates(nodeName, updates);
+            ApplyRBCONUpdates(dtaResults, nodeName, updates);
             ApplyRBProUpgrade(nodeName, upgrades);
+
+            if (dtaResults.pans == null || dtaResults.volumes == null || dtaResults.cores == null)
+            {
+                throw new Exception("Panning & Volume mappings not set from DTA");
+            }
             FinalizeRBCONAudioValues(dtaResults.pans, dtaResults.volumes, dtaResults.cores);
 
             if (Metadata.Playlist.Length == 0)
@@ -526,7 +531,7 @@ namespace YARG.Core.Song
             return File.ReadAllBytes(UpdateMidi.FullName);
         }
 
-        private void ApplyRBCONUpdates(string nodeName, Dictionary<string, List<SongUpdate>> updates)
+        private void ApplyRBCONUpdates(DTAResult mainResult, string nodeName, Dictionary<string, List<SongUpdate>> updates)
         {
             if (updates.TryGetValue(nodeName, out var updateList))
             {
@@ -542,6 +547,21 @@ namespace YARG.Core.Song
                         else if (updateResults.discUpdate)
                         {
                             YargTrace.LogWarning($"Update midi expected with {update.Directory} - {nodeName}");
+                        }
+
+                        if (updateResults.cores != null)
+                        {
+                            mainResult.cores = updateResults.cores;
+                        }
+
+                        if (updateResults.volumes != null)
+                        {
+                            mainResult.volumes = updateResults.volumes;
+                        }
+
+                        if (updateResults.pans != null)
+                        {
+                            mainResult.pans = updateResults.pans;
                         }
                     }
                     catch (Exception ex)
@@ -922,22 +942,22 @@ namespace YARG.Core.Song
             for (int i = 0; i < pans.Length; i++)
                 pending.Add(i);
 
-            if (DrumIndices != Array.Empty<int>())
+            if (DrumIndices != null)
                 DrumStemValues = CalculateStemValues(DrumIndices);
 
-            if (BassIndices != Array.Empty<int>())
+            if (BassIndices != null)
                 BassStemValues = CalculateStemValues(BassIndices);
 
-            if (GuitarIndices != Array.Empty<int>())
+            if (GuitarIndices != null)
                 GuitarStemValues = CalculateStemValues(GuitarIndices);
 
-            if (KeysIndices != Array.Empty<int>())
+            if (KeysIndices != null)
                 KeysStemValues = CalculateStemValues(KeysIndices);
 
-            if (VocalsIndices != Array.Empty<int>())
+            if (VocalsIndices != null)
                 VocalsStemValues = CalculateStemValues(VocalsIndices);
 
-            if (CrowdIndices != Array.Empty<int>())
+            if (CrowdIndices != null)
                 CrowdStemValues = CalculateStemValues(CrowdIndices);
 
             TrackIndices = pending.ToArray();
