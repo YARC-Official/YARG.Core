@@ -55,17 +55,30 @@ namespace YARG.Core.Song.Cache
     public sealed class SongUpdate : IComparable<SongUpdate>
     {
         private readonly DateTime _dtaLastWrite;
+        private readonly YARGDTAReader[] _readers;
 
         public readonly string Directory;
-        public readonly YARGDTAReader[] Readers;
         public readonly SongUpdateFiles? Files;
+
+        public YARGDTAReader[] Readers
+        {
+            get
+            {
+                var readers = new YARGDTAReader[_readers.Length];
+                for (int i = 0; i < readers.Length; i++)
+                {
+                    readers[i] = _readers[i].Clone();
+                }
+                return readers;
+            }
+        }
 
         public SongUpdate(string directory, in DateTime dtaLastWrite, YARGDTAReader[] readers, SongUpdateFiles? files)
         {
-            Directory = directory;
             _dtaLastWrite = dtaLastWrite;
-            
-            Readers = readers;
+            _readers = readers;
+
+            Directory = directory;
             Files = files;
         }
 
