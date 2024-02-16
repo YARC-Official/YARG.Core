@@ -52,6 +52,13 @@ namespace YARG.Core.Engine.Guitar.Engines
             var note = Notes[State.NoteIndex];
             double hitWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
 
+            // Overstrum for strum leniency
+            if (State.StrumLeniencyTimer.IsExpired(State.CurrentTime))
+            {
+                // Overstrum(); problem
+                State.StrumLeniencyTimer.Reset();
+            }
+
             // Check for note miss note (back end)
             if (State.CurrentTime > note.Time + EngineParameters.HitWindow.GetBackEnd(hitWindow))
             {
@@ -69,10 +76,20 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                 if (!inputEaten)
                 {
+                    // If the input was NOT eaten, then attempt to overstrum
                     if (!State.HopoLeniencyTimer.IsActive(State.CurrentTime))
                     {
-                        // If the input was not eaten, then overstrum
-                        Overstrum();
+                        if (State.StrumLeniencyTimer.IsActive(State.CurrentTime))
+                        {
+                            // If the strum leniency timer was already active,
+                            // that means that the player is already in the leniency.
+                            Overstrum();
+                            // ... then start the strum leniency timer for *this*
+                            // strum.
+                        }
+
+                        // The engine will overstrum once this timer runs out
+                        State.StrumLeniencyTimer.Start(State.CurrentTime);
                     }
                     else
                     {
@@ -92,6 +109,23 @@ namespace YARG.Core.Engine.Guitar.Engines
             // Check for fret hit
             if (State.DidFret)
             {
+                if (State.StrumLeniencyTimer.IsActive(State.CurrentTime))
+                {
+                    // If the strum leniency timer is active, then attempt to hit a strum
+
+                    var strumEaten = ProcessNoteStrum(note);
+
+                    if (strumEaten)
+                    {
+                        State.StrumLeniencyTimer.Reset();
+
+                        State.DidFret = false;
+                        return true;
+                    }
+
+                    // ... otherwise attempt to hit a tap
+                }
+
                 var inputEaten = ProcessNoteTap(note);
 
                 if (!inputEaten)
