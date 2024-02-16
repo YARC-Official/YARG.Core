@@ -353,7 +353,10 @@ namespace YARG.Core.Engine.Guitar
                 bool isEndOfSustain = State.CurrentTick >= note.TickEnd;
 
                 uint sustainTick = isBurst || isEndOfSustain ? note.TickEnd : State.CurrentTick;
-                bool dropped = !CanNoteBeHit(note);
+
+                var mask = note.IsDisjoint ? note.DisjointMask : note.NoteMask;
+                bool extendedSustainHold = (mask & State.ButtonMask) == mask;
+                bool dropped = note.IsExtendedSustain ? !extendedSustainHold : !CanNoteBeHit(note);
 
                 // If the sustain has not finished scoring, then we need to calculate the points
                 if (!sustain.HasFinishedScoring)

@@ -303,7 +303,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             bool isHammerOn = GetMostSignificantBit(State.ButtonMask) > GetMostSignificantBit(State.LastButtonMask);
 
             // Input is a hammer-on and the button pressed is not part of the note mask (incorrect fret)
-            if(isHammerOn && (State.ButtonMask & note.NoteMask) == 0)
+            if (isHammerOn && (State.ButtonMask & note.NoteMask) == 0)
             {
                 return true;
             }
@@ -318,92 +318,88 @@ namespace YARG.Core.Engine.Guitar.Engines
             {
                 var sustainNote = sustain.Note;
 
-                // Don't want to mask off the note we're checking otherwise it'll always return false lol
-                if (note == sustainNote)
+                if (sustainNote.IsExtendedSustain)
                 {
-                    continue;
-                }
-
-                // Mask off the disjoint mask if its disjointed or extended disjointed
-                // This removes just the single fret of the disjoint note
-                if ((sustainNote.IsExtendedSustain && sustainNote.IsDisjoint) || sustainNote.IsDisjoint)
-                {
-                    buttonsMasked -= (byte) sustainNote.DisjointMask;
-                }
-                else if (sustainNote.IsExtendedSustain)
-                {
-                    // Remove the entire note mask if its an extended sustain
+                    // Remove the note mask if its an extended sustain
                     // Difference between NoteMask and DisjointMask is that DisjointMask is only a single fret
                     // while NoteMask is the entire chord
-                    buttonsMasked -= (byte) sustainNote.NoteMask;
+
+                    var maskToRemove = sustainNote.IsDisjoint ? sustainNote.DisjointMask : sustainNote.NoteMask;
+                    buttonsMasked -= (byte) maskToRemove;
                 }
             }
 
-            // Use the DisjointMask for comparison if disjointed and was hit (for sustain logic)
-            int noteMask = (note.IsDisjoint || note.IsExtendedSustain) && note.WasHit
-                ? note.DisjointMask
-                : note.NoteMask;
+            return IsNoteHittable(note, buttonsMasked);
 
-            // If disjointed and is sustain logic (was hit), can hit if disjoint mask matches
-            if ((note.IsDisjoint || note.IsExtendedSustain) && note.WasHit && (note.DisjointMask & buttonsMasked) != 0)
+            static bool IsNoteHittable(GuitarNote note, byte buttonsMasked)
             {
-                return true;
-            }
+                // Only used for sustain logic
+                bool useDisjointMask = note is { IsDisjoint: true, WasHit: true };
 
-            // If open, must not hold any frets
-            // If not open, must be holding at least 1 fret
-            if (noteMask == 0 && buttonsMasked != 0 || noteMask != 0 && buttonsMasked == 0)
-            {
-                return false;
-            }
+                // Use the DisjointMask for comparison if disjointed and was hit (for sustain logic)
+                int noteMask = useDisjointMask ? note.DisjointMask : note.NoteMask;
 
-            // If holding exact note mask, can hit
-            if (buttonsMasked == noteMask)
-            {
-                return true;
-            }
-
-            // Anchoring
-
-            // XORing the two masks will give the anchor (held frets) around the note.
-            int anchorButtons = buttonsMasked ^ noteMask;
-
-            // Chord logic
-            if (note.IsChord)
-            {
-                if (note.IsStrum)
+                // If disjointed and is sustain logic (was hit), can hit if disjoint mask matches
+                if (useDisjointMask && (note.DisjointMask & buttonsMasked) != 0)
                 {
-                    // Buttons must match note mask exactly for strum chords
-                    return buttonsMasked == noteMask;
+                    return true;
                 }
 
-                // Anchoring hopo/tap chords
-
-                // Gets the lowest fret of the chord.
-                var fretMask = 0;
-                for (var fret = GuitarAction.GreenFret; fret <= GuitarAction.OrangeFret; fret++)
+                // If open, must not hold any frets
+                // If not open, must be holding at least 1 fret
+                if (noteMask == 0 && buttonsMasked != 0 || noteMask != 0 && buttonsMasked == 0)
                 {
-                    fretMask = 1 << (int)fret;
+                    return false;
+                }
 
-                    // If the current fret mask is part of the chord, break
-                    if ((fretMask & note.NoteMask) == fretMask)
+                // If holding exact note mask, can hit
+                if (buttonsMasked == noteMask)
+                {
+                    return true;
+                }
+
+                // Anchoring
+
+                // XORing the two masks will give the anchor (held frets) around the note.
+                int anchorButtons = buttonsMasked ^ noteMask;
+
+                // Chord logic
+                if (note.IsChord)
+                {
+                    if (note.IsStrum)
                     {
-                        break;
+                        // Buttons must match note mask exactly for strum chords
+                        return buttonsMasked == noteMask;
                     }
+
+                    // Anchoring hopo/tap chords
+
+                    // Gets the lowest fret of the chord.
+                    var fretMask = 0;
+                    for (var fret = GuitarAction.GreenFret; fret <= GuitarAction.OrangeFret; fret++)
+                    {
+                        fretMask = 1 << (int) fret;
+
+                        // If the current fret mask is part of the chord, break
+                        if ((fretMask & note.NoteMask) == fretMask)
+                        {
+                            break;
+                        }
+                    }
+
+                    // Anchor part:
+                    // Lowest fret of chord must be bigger or equal to anchor buttons
+                    // (can't hold note higher than the highest fret of chord)
+
+                    // Button mask subtract the anchor must equal chord mask (all frets of chord held)
+                    return fretMask >= anchorButtons && buttonsMasked - anchorButtons == note.NoteMask;
                 }
 
-                // Anchor part:
-                // Lowest fret of chord must be bigger or equal to anchor buttons
-                // (can't hold note higher than the highest fret of chord)
+                // Anchoring single notes
 
-                // Button mask subtract the anchor must equal chord mask (all frets of chord held)
-                return fretMask >= anchorButtons && buttonsMasked - anchorButtons == note.NoteMask;
+                // Anchor buttons held are lower than the note mask
+                return anchorButtons < noteMask;
             }
-
-            // Anchoring single notes
-
-            // Anchor buttons held are lower than the note mask
-            return anchorButtons < noteMask;
         }
 
         protected override bool HitNote(GuitarNote note)
@@ -423,7 +419,8 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                 double frontEndAbs = Math.Abs(frontEnd);
                 bool frontEndExpired = EngineTimer.IsExpired(State.FrontEndStartTime, note.Time, frontEndAbs);
-                if (!EngineParameters.InfiniteFrontEnd && frontEndExpired && !strumLeniencyActive && State.NoteIndex > 0)
+                if (!EngineParameters.InfiniteFrontEnd && frontEndExpired && !strumLeniencyActive &&
+                    State.NoteIndex > 0)
                 {
                     return false;
                 }
