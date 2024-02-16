@@ -12,16 +12,15 @@ namespace YARG.Core.Audio
         public readonly int[]? Indices;
         public readonly float[]? Panning;
 
-        public AudioChannel(SongStem stem, Stream? stream)
+        public AudioChannel(SongStem stem, Stream stream)
         {
             Stem = stem;
             Stream = stream;
         }
 
-        public AudioChannel(SongStem stem, Stream? stream, int[] indices, float[] panning)
+        public AudioChannel(SongStem stem, int[] indices, float[] panning)
         {
             Stem = stem;
-            Stream = stream;
             Indices = indices;
             Panning = panning;
         }

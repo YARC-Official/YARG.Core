@@ -41,15 +41,14 @@ namespace YARG.Core.Song
             return sngFile[chart.File].CreateStream(sngFile);
         }
 
-        public override List<AudioChannel> LoadAudioStreams(params SongStem[] ignoreStems)
+        public override AudioMixer? LoadAudioStreams(params SongStem[] ignoreStems)
         {
-            List<AudioChannel> channels = new();
             var sngFile = SngFile.TryLoadFromFile(sngInfo);
-            if (sngFile != null)
+            if (sngFile == null)
             {
-                FillAudioStreams(sngFile, channels, ignoreStems);
+                return null;
             }
-            return channels;
+            return CreateAudioMixer(sngFile, ignoreStems);
         }
 
         public override byte[]? LoadAlbumData()
@@ -131,29 +130,31 @@ namespace YARG.Core.Song
             return null;
         }
 
-        public override List<AudioChannel> LoadPreviewAudio()
+        public override AudioMixer? LoadPreviewAudio()
         {
-            List<AudioChannel> channels = new();
             var sngFile = SngFile.TryLoadFromFile(sngInfo);
-            if (sngFile != null)
+            if (sngFile == null)
             {
-                foreach (var format in IniAudioChecker.SupportedFormats)
-                {
-                    if (sngFile.TryGetValue("preview" + format, out var listing))
-                    {
-                        var channel = new AudioChannel(SongStem.Preview, listing.CreateStream(sngFile));
-                        channels.Add(channel);
-                        return channels;
-                    }
-                }
-
-                FillAudioStreams(sngFile, channels, SongStem.Crowd);
+                return null;
             }
-            return channels;
+
+            foreach (var format in IniAudioChecker.SupportedFormats)
+            {
+                if (sngFile.TryGetValue("preview" + format, out var listing))
+                {
+                    var mixer = new AudioMixer();
+                    var channel = new AudioChannel(SongStem.Preview, listing.CreateStream(sngFile));
+                    mixer.Channels.Add(channel);
+                    return mixer;
+                }
+            }
+
+            return CreateAudioMixer(sngFile, SongStem.Crowd);
         }
 
-        private void FillAudioStreams(SngFile sngFile, List<AudioChannel> channels, params SongStem[] ignoreStems)
+        private AudioMixer CreateAudioMixer(SngFile sngFile, params SongStem[] ignoreStems)
         {
+            var mixer = new AudioMixer();
             foreach (var stem in IniAudioChecker.SupportedStems)
             {
                 var stemEnum = AudioHelpers.SupportedStems[stem];
@@ -166,12 +167,13 @@ namespace YARG.Core.Song
                     if (sngFile.TryGetValue(file, out var listing))
                     {
                         var channel = new AudioChannel(stemEnum, listing.CreateStream(sngFile));
-                        channels.Add(channel);
+                        mixer.Channels.Add(channel);
                         // Parse no duplicate stems
                         break;
                     }
                 }
             }
+            return mixer;
         }
 
         private SngEntry(uint version, AbridgedFileInfo sngInfo, IniChartNode<string> chart, in SongMetadata metadata)

@@ -35,7 +35,7 @@ namespace YARG.Core.Song
                 writer.Write(false);
         }
 
-        public override List<AudioChannel> LoadAudioStreams(params SongStem[] ignoreStems)
+        public override AudioMixer LoadAudioStreams(params SongStem[] ignoreStems)
         {
             Dictionary<string, string> files = new();
             {
@@ -44,7 +44,7 @@ namespace YARG.Core.Song
                     files.Add(Path.GetFileName(file).ToLower(), file);
             }
 
-            var channels = new List<AudioChannel>();
+            var mixer = new AudioMixer();
             foreach (var stem in IniAudioChecker.SupportedStems)
             {
                 var stemEnum = AudioHelpers.SupportedStems[stem];
@@ -58,13 +58,13 @@ namespace YARG.Core.Song
                     {
                         // No file buffer
                         var channel = new AudioChannel(stemEnum, new FileStream(fullname, FileMode.Open, FileAccess.Read, FileShare.Read, 1));
-                        channels.Add(channel);
+                        mixer.Channels.Add(channel);
                         // Parse no duplicate stems
                         break;
                     }
                 }
             }
-            return channels;
+            return mixer;
         }
 
         public override byte[]? LoadAlbumData()
@@ -123,17 +123,16 @@ namespace YARG.Core.Song
             return null;
         }
 
-        public override List<AudioChannel> LoadPreviewAudio()
+        public override AudioMixer LoadPreviewAudio()
         {
             foreach (var format in IniAudioChecker.SupportedFormats)
             {
                 var audioFile = Path.Combine(Directory, "preview" + format);
                 if (File.Exists(audioFile))
                 {
-                    return new List<AudioChannel>()
-                    {
-                        new(SongStem.Preview, new FileStream(audioFile, FileMode.Open, FileAccess.Read, FileShare.Read, 1))
-                    };
+                    var mixer = new AudioMixer();
+                    mixer.Channels.Add(new AudioChannel(SongStem.Preview, new FileStream(audioFile, FileMode.Open, FileAccess.Read, FileShare.Read, 1)));
+                    return mixer;
                 }
             }
             return LoadAudioStreams(SongStem.Crowd);

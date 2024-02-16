@@ -135,94 +135,81 @@ namespace YARG.Core.Song
             return SongChart.FromMidi(Metadata.ParseSettings, midi);
         }
 
-        public override List<AudioChannel> LoadAudioStreams(params SongStem[] ignoreStems)
+        public override AudioMixer? LoadAudioStreams(params SongStem[] ignoreStems)
         {
-            var channels = new List<AudioChannel>();
-            int version = GetMoggVersion();
-
-            Func<SongStem, int[], float[], AudioChannel?>? func = null;
-            switch (version)
+            var stream = GetMoggStream();
+            if (stream == null)
             {
-                case 0x0A:
-                    func = InitMoggFunc();
-                    break;
-                case 0xF0:
-                    func = InitYARGMoggFunc();
-                    break;
-                default:
-                    YargTrace.LogError("Original unencrypted mogg replaced by an encrypted mogg");
-                    break;
+                return null;
             }
 
-            if (func == null)
+            using var wrapper = DisposableCounter.Wrap(stream);
+            int version = stream.Read<int>(Endianness.Little);
+            if (version is not 0x0A and not 0xF0)
             {
-                return channels;
+                YargTrace.LogError("Original unencrypted mogg replaced by an encrypted mogg");
+                return null;
             }
 
-            void Add(SongStem stem, int[] indices, float[]panning)
-            {
-                var channel = func(stem, indices, panning);
-                if (channel != null)
-                {
-                    channels.Add(channel);
-                }
-            }
+            int start = stream.Read<int>(Endianness.Little);
+            stream.Seek(start, SeekOrigin.Begin);
 
+            var mixer = new AudioMixer(wrapper.Release());
             if (DrumIndices != Array.Empty<int>() && !ignoreStems.Contains(SongStem.Drums))
             {
                 switch (DrumIndices.Length)
                 {
                     //drum (0 1): stereo kit --> (0 1)
                     case 2:
-                        Add(SongStem.Drums, DrumIndices, DrumStemValues);
+                        mixer.Channels.Add(new AudioChannel(SongStem.Drums, DrumIndices, DrumStemValues));
                         break;
                     //drum (0 1 2): mono kick, stereo snare/kit --> (0) (1 2)
                     case 3:
-                        Add(SongStem.Drums1, DrumIndices[0..1], DrumStemValues[0..2]);
-                        Add(SongStem.Drums2, DrumIndices[1..3], DrumStemValues[2..6]);
+                        mixer.Channels.Add(new AudioChannel(SongStem.Drums1, DrumIndices[0..1], DrumStemValues[0..2]));
+                        mixer.Channels.Add(new AudioChannel(SongStem.Drums2, DrumIndices[1..3], DrumStemValues[2..6]));
                         break;
                     //drum (0 1 2 3): mono kick, mono snare, stereo kit --> (0) (1) (2 3)
                     case 4:
-                        Add(SongStem.Drums1, DrumIndices[0..1], DrumStemValues[0..2]);
-                        Add(SongStem.Drums2, DrumIndices[1..2], DrumStemValues[2..4]);
-                        Add(SongStem.Drums3, DrumIndices[2..4], DrumStemValues[4..8]);
+                        mixer.Channels.Add(new AudioChannel(SongStem.Drums1, DrumIndices[0..1], DrumStemValues[0..2]));
+                        mixer.Channels.Add(new AudioChannel(SongStem.Drums2, DrumIndices[1..2], DrumStemValues[2..4]));
+                        mixer.Channels.Add(new AudioChannel(SongStem.Drums3, DrumIndices[2..4], DrumStemValues[4..8]));
                         break;
                     //drum (0 1 2 3 4): mono kick, stereo snare, stereo kit --> (0) (1 2) (3 4)
                     case 5:
-                        Add(SongStem.Drums1, DrumIndices[0..1], DrumStemValues[0..2]);
-                        Add(SongStem.Drums2, DrumIndices[1..3], DrumStemValues[2..6]);
-                        Add(SongStem.Drums3, DrumIndices[3..5], DrumStemValues[6..10]);
+                        mixer.Channels.Add(new AudioChannel(SongStem.Drums1, DrumIndices[0..1], DrumStemValues[0..2]));
+                        mixer.Channels.Add(new AudioChannel(SongStem.Drums2, DrumIndices[1..3], DrumStemValues[2..6]));
+                        mixer.Channels.Add(new AudioChannel(SongStem.Drums3, DrumIndices[3..5], DrumStemValues[6..10]));
                         break;
                     //drum (0 1 2 3 4 5): stereo kick, stereo snare, stereo kit --> (0 1) (2 3) (4 5)
                     case 6:
-                        Add(SongStem.Drums1, DrumIndices[0..2], DrumStemValues[0..4]);
-                        Add(SongStem.Drums2, DrumIndices[2..4], DrumStemValues[4..8]);
-                        Add(SongStem.Drums3, DrumIndices[4..6], DrumStemValues[8..12]);
+                        mixer.Channels.Add(new AudioChannel(SongStem.Drums1, DrumIndices[0..2], DrumStemValues[0..4]));
+                        mixer.Channels.Add(new AudioChannel(SongStem.Drums2, DrumIndices[2..4], DrumStemValues[4..8]));
+                        mixer.Channels.Add(new AudioChannel(SongStem.Drums3, DrumIndices[4..6], DrumStemValues[8..12]));
                         break;
                 }
             }
 
             if (BassIndices != Array.Empty<int>() && !ignoreStems.Contains(SongStem.Bass))
-                Add(SongStem.Bass, BassIndices, BassStemValues);
+                mixer.Channels.Add(new AudioChannel(SongStem.Bass, BassIndices, BassStemValues));
 
             if (GuitarIndices != Array.Empty<int>() && !ignoreStems.Contains(SongStem.Guitar))
-                Add(SongStem.Guitar, GuitarIndices, GuitarStemValues);
+                mixer.Channels.Add(new AudioChannel(SongStem.Guitar, GuitarIndices, GuitarStemValues));
 
             if (KeysIndices != Array.Empty<int>() && !ignoreStems.Contains(SongStem.Keys))
-                Add(SongStem.Keys, KeysIndices, KeysStemValues);
+                mixer.Channels.Add(new AudioChannel(SongStem.Keys, KeysIndices, KeysStemValues));
 
             if (VocalsIndices != Array.Empty<int>() && !ignoreStems.Contains(SongStem.Vocals))
-                Add(SongStem.Vocals, VocalsIndices, VocalsStemValues);
+                mixer.Channels.Add(new AudioChannel(SongStem.Vocals, VocalsIndices, VocalsStemValues));
 
             if (TrackIndices != Array.Empty<int>() && !ignoreStems.Contains(SongStem.Song))
-                Add(SongStem.Song, TrackIndices, TrackStemValues);
+                mixer.Channels.Add(new AudioChannel(SongStem.Song, TrackIndices, TrackStemValues));
 
             if (CrowdIndices != Array.Empty<int>() && !ignoreStems.Contains(SongStem.Crowd))
-                Add(SongStem.Crowd, CrowdIndices, CrowdStemValues);
-            return channels;
+                mixer.Channels.Add(new AudioChannel(SongStem.Crowd, CrowdIndices, CrowdStemValues));
+            return mixer;
         }
 
-        public override List<AudioChannel> LoadPreviewAudio()
+        public override AudioMixer? LoadPreviewAudio()
         {
             return LoadAudioStreams(SongStem.Crowd);
         }
@@ -970,64 +957,6 @@ namespace YARG.Core.Song
                 }
                 return values;
             }
-        }
-
-        private int GetMoggVersion()
-        {
-            using var stream = GetMoggStream();
-            return stream?.Read<int>(Endianness.Little) ?? 0;
-        }
-
-        private Func<SongStem, int[], float[], AudioChannel?>? InitMoggFunc()
-        {
-            var stream = GetMoggStream();
-            if (stream == null)
-            {
-                YargTrace.LogError("Unknown error while loading Mogg");
-                return null;
-            }
-
-            using var wrapper = DisposableCounter.Wrap(stream);
-            if (stream.Read<int>(Endianness.Little) != 0x0A)
-            {
-                YargTrace.LogError("Mogg version changed somehow");
-                return null;
-            }
-
-            int start = stream.Read<int>(Endianness.Little);
-            wrapper.Release();
-
-            return (SongStem stem, int[] indices, float[] panning) =>
-            {
-                Stream newStream = stream switch
-                {
-                    CONFileStream constream => constream.Clone(),
-                    FileStream fileStream => new FileStream(fileStream.Name, FileMode.Open, FileAccess.Read, FileShare.Read, 1),
-                    _ => throw new Exception()
-                };
-                newStream.Seek(start, SeekOrigin.Begin);
-                return new AudioChannel(stem, newStream, indices, panning);
-            };
-        }
-
-        private Func<SongStem, int[], float[], AudioChannel?>? InitYARGMoggFunc()
-        {
-            using var stream = GetMoggStream();
-            if (stream == null || stream.Read<int>(Endianness.Little) != 0xF0)
-            {
-                YargTrace.LogError("Unknown error while loading YARG mogg");
-                return null;
-            }
-
-            int start = stream.Read<int>(Endianness.Little);
-            stream.Seek(start, SeekOrigin.Begin);
-
-            var file = stream.ReadBytes((int) (stream.Length - start));
-            return (SongStem stem, int[] indices, float[] panning) =>
-            {
-                var memStream = new MemoryStream(file);
-                return new AudioChannel(stem, memStream, indices, panning);
-            };
         }
     }
 }

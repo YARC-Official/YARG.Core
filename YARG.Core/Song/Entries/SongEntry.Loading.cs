@@ -23,8 +23,8 @@ namespace YARG.Core.Song
     public abstract partial class SongEntry
     {
         public abstract SongChart? LoadChart();
-        public abstract List<AudioChannel> LoadAudioStreams(params SongStem[] ignoreStems);
-        public abstract List<AudioChannel> LoadPreviewAudio();
+        public abstract AudioMixer? LoadAudioStreams(params SongStem[] ignoreStems);
+        public abstract AudioMixer? LoadPreviewAudio();
         public abstract byte[]? LoadAlbumData();
         public abstract BackgroundResult? LoadBackground(BackgroundType options);
         public abstract byte[]? LoadMiloData();
