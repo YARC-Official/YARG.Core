@@ -142,7 +142,18 @@ namespace YARG.Core.Engine
 
         protected abstract void MutateStateWithInput(GameInput gameInput);
 
-        protected abstract void UpdateUpToTime(double time);
+        protected virtual void UpdateUpToTime(double time)
+        {
+            RunHitLogic(time);
+        }
+
+        protected void TrackTimerEndTime(double time, EngineTimer timer)
+        {
+            if (timer.EndTime < time)
+            {
+                RunHitLogic(time);
+            }
+        }
 
         /// <summary>
         /// Executes engine logic with respect to the given time.

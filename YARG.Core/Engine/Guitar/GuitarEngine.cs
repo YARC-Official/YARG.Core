@@ -56,6 +56,13 @@ namespace YARG.Core.Engine.Guitar
             }
         }
 
+        protected override void UpdateUpToTime(double time)
+        {
+            TrackTimerEndTime(time, State.StrumLeniencyTimer);
+
+            base.UpdateUpToTime(time);
+        }
+
         protected virtual void Overstrum()
         {
             // Can't overstrum before first note is hit/missed
@@ -325,6 +332,8 @@ namespace YARG.Core.Engine.Guitar
 
         protected double CalculateSustainPoints(ActiveSustain sustain, uint tick)
         {
+            return 0;
+
             uint scoreTick = Math.Clamp(tick, sustain.Note.Tick, sustain.Note.TickEnd);
             // Do this here instead of in the usages, otherwise it's just duplicated code
             sustain.Note.SustainTicksHeld = scoreTick - sustain.Note.Tick;

@@ -55,7 +55,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             // Overstrum for strum leniency
             if (State.StrumLeniencyTimer.IsExpired(State.CurrentTime))
             {
-                // Overstrum(); problem
+                Overstrum();
                 State.StrumLeniencyTimer.Reset();
             }
 
@@ -89,7 +89,17 @@ namespace YARG.Core.Engine.Guitar.Engines
                         }
 
                         // The engine will overstrum once this timer runs out
-                        State.StrumLeniencyTimer.Start(State.CurrentTime);
+                        if (IsNoteInWindow(note))
+                        {
+                            // Use the normal leniency if there are notes in the hit window
+                            State.StrumLeniencyTimer.Start(State.CurrentTime);
+                        }
+                        else
+                        {
+                            // Use small leniency if there are no notes in the hit window
+                            State.StrumLeniencyTimer.StartWithOffset(State.CurrentTime,
+                                EngineParameters.StrumLeniencySmall);
+                        }
                     }
                     else
                     {

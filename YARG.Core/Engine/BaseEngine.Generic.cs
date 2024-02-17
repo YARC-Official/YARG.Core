@@ -116,36 +116,12 @@ namespace YARG.Core.Engine
             Solos = GetSoloSections();
         }
 
-        protected override void UpdateUpToTime(double time)
-        {
-            var currentTime = State.CurrentTime;
-
-            var noteUpdateIndex = State.NoteIndex;
-
-            // Get the index of the next note to update to
-            while (noteUpdateIndex < Notes.Count && currentTime > Notes[noteUpdateIndex].Time)
-            {
-                noteUpdateIndex++;
-            }
-
-            // Update the engine to the next note
-            while (noteUpdateIndex < Notes.Count && Notes[noteUpdateIndex].Time < time)
-            {
-                RunHitLogic(Notes[noteUpdateIndex].Time);
-
-                // Move to the next note
-                noteUpdateIndex++;
-            }
-
-            // Updated to the last note before the given time
-            // Now we update the engine to the given time
-            RunHitLogic(time);
-        }
-
         protected void UpdateTimeVariables(double time)
         {
             if (time < State.CurrentTime)
+            {
                 YargTrace.Fail($"Time cannot go backwards! Current time: {State.CurrentTime}, new time: {time}");
+            }
 
             // Only update the last time if the current time has changed
             if (Math.Abs(time - State.CurrentTime) > double.Epsilon)
@@ -167,19 +143,23 @@ namespace YARG.Core.Engine
 
             var currentTimeSig = timeSigs[State.CurrentTimeSigIndex];
 
-            YargTrace.Assert(currentTimeSig.Numerator != 0, "Time signature numerator is 0! Ticks per beat/measure will be 0 after this");
-            YargTrace.Assert(currentTimeSig.Denominator != 0, "Time signature denominator is 0! Ticks per beat/measure will be 0 after this");
+            YargTrace.Assert(currentTimeSig.Numerator != 0,
+                "Time signature numerator is 0! Ticks per beat/measure will be 0 after this");
+            YargTrace.Assert(currentTimeSig.Denominator != 0,
+                "Time signature denominator is 0! Ticks per beat/measure will be 0 after this");
 
             // Set ticks per beat/measure if they haven't been set yet
             if (State.TicksEveryBeat == 0)
             {
                 State.TicksEveryBeat = currentTimeSig.GetTicksPerBeat(SyncTrack);
-                YargTrace.Assert(State.TicksEveryBeat != 0, "Ticks per beat is 0! Star Power will be NaN after this");
+                YargTrace.Assert(State.TicksEveryBeat != 0,
+                    "Ticks per beat is 0! Star Power will be NaN after this");
             }
             if (State.TicksEveryMeasure == 0)
             {
                 State.TicksEveryMeasure = currentTimeSig.GetTicksPerMeasure(SyncTrack);
-                YargTrace.Assert(State.TicksEveryMeasure != 0, "Ticks per measure is 0! Star Power will be NaN after this");
+                YargTrace.Assert(State.TicksEveryMeasure != 0,
+                    "Ticks per measure is 0! Star Power will be NaN after this");
             }
 
             // Rebase SP on time signature change
@@ -189,6 +169,7 @@ namespace YARG.Core.Engine
                 // after 4 measures of SP drainage, the base should be exactly 0.5
                 UpdateProgressValues(currentTimeSig.Tick);
                 RebaseProgressValues(currentTimeSig.Tick);
+
                 // Update ticks per beat/measure *after* rebasing, otherwise SP won't update correctly
                 State.TicksEveryBeat = currentTimeSig.GetTicksPerBeat(SyncTrack);
                 State.TicksEveryMeasure = currentTimeSig.GetTicksPerMeasure(SyncTrack);
@@ -198,9 +179,13 @@ namespace YARG.Core.Engine
 
             uint nextTimeSigTick;
             if (State.NextTimeSigIndex < timeSigs.Count)
+            {
                 nextTimeSigTick = timeSigs[State.NextTimeSigIndex].Tick;
+            }
             else
+            {
                 nextTimeSigTick = uint.MaxValue;
+            }
 
             // Detect misaligned time signatures
             uint measureCount = currentTimeSig.GetMeasureCount(State.CurrentTick, SyncTrack);
