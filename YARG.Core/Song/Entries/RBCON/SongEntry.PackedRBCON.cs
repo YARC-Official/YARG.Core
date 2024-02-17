@@ -8,24 +8,29 @@ using YARG.Core.Venue;
 
 namespace YARG.Core.Song
 {
-    public class PackedRBCONEntry : RBCONEntry
+    public sealed class PackedRBCONEntry : RBCONEntry
     {
         private readonly CONFileListing? _midiListing;
         private readonly CONFileListing? _moggListing;
         private readonly CONFileListing? _miloListing;
         private readonly CONFileListing? _imgListing;
-        private readonly DateTime _lastMidiUpdate;
+        private readonly DateTime _lastMidiWrite;
 
-        protected override DateTime MidiLastWrite => _midiListing?.ConFile.LastUpdatedTime ?? DateTime.MinValue;
-
-        public override string Directory { get; }
+        protected override DateTime MidiLastUpdate => _midiListing?.ConFile.LastUpdatedTime ?? DateTime.MinValue;
+        public override string Directory { get; } = string.Empty;
         public override EntryType SubType => EntryType.CON;
 
-        public static (ScanResult, PackedRBCONEntry?) ProcessNewEntry(PackedCONGroup group, string nodeName, YARGDTAReader reader, Dictionary<string, List<SongUpdate>> updates, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades)
+        public static (ScanResult, PackedRBCONEntry?) ProcessNewEntry(PackedCONGroup group, string nodename, YARGDTAReader reader, Dictionary<string, List<SongUpdate>> updates, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades)
         {
             try
             {
-                var song = new PackedRBCONEntry(group, nodeName, reader, updates, upgrades);
+                var song = new PackedRBCONEntry(group, nodename, reader, updates, upgrades);
+                if (song._midiListing == null)
+                {
+                    YargTrace.LogError($"Required midi file for {group.CONFile.Stream.Name} - {nodename} was not located");
+                    return (ScanResult.MissingMidi, null);
+                }
+
                 var result = song.ParseRBCONMidi(group.CONFile);
                 if (result != ScanResult.Success)
                 {
@@ -42,7 +47,7 @@ namespace YARG.Core.Song
 
         public static PackedRBCONEntry? TryLoadFromCache(CONFile file, string nodename, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
         {
-            string psuedoDirectory = reader.ReadString();
+            var psuedoDirectory = reader.ReadString();
 
             string midiFilename = reader.ReadString();
             var midiListing = file.TryGetListing(midiFilename);
@@ -51,8 +56,8 @@ namespace YARG.Core.Song
                 return null;
             }
 
-            var midiLastWrite = DateTime.FromBinary(reader.ReadInt64());
-            if (midiListing.lastWrite != midiLastWrite)
+            var lastMidiWrite = DateTime.FromBinary(reader.ReadInt64());
+            if (midiListing.lastWrite != lastMidiWrite)
             {
                 return null;
             }
@@ -67,6 +72,8 @@ namespace YARG.Core.Song
                 }
             }
 
+            var upgrade = upgrades.TryGetValue(nodename, out var node) ? node.Item2 : null;
+
             var moggListing = file.TryGetListing(Path.ChangeExtension(midiFilename, ".mogg"));
 
             if (!midiFilename.StartsWith($"songs/{nodename}"))
@@ -75,25 +82,21 @@ namespace YARG.Core.Song
             string genPath = $"songs/{nodename}/gen/{nodename}";
             var miloListing = file.TryGetListing(genPath + ".milo_xbox");
             var imgListing = file.TryGetListing(genPath + "_keep.png_xbox");
-
-            var metadata = DeserializeMetadata(reader, strings);
-            var song = new PackedRBCONEntry(midiListing, midiLastWrite, moggListing, miloListing, imgListing, psuedoDirectory, updateMidi, metadata, reader);
-            if (upgrades.TryGetValue(nodename, out var upgrade))
-            {
-                song.Upgrade = upgrade.Item2;
-            }
-            return song;
+            
+            var baseMetadata = DeserializeMetadata(reader, strings);
+            return new PackedRBCONEntry(midiListing, lastMidiWrite, moggListing, miloListing, imgListing, psuedoDirectory, baseMetadata, updateMidi, upgrade, reader);
         }
 
         public static PackedRBCONEntry LoadFromCache_Quick(CONFile file, string nodename, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
         {
-            string psuedoDirectory = reader.ReadString();
+            var psuedoDirectory = reader.ReadString();
 
             string midiFilename = reader.ReadString();
             var midiListing = file.TryGetListing(midiFilename);
-            var midiLastWrite = DateTime.FromBinary(reader.ReadInt64());
+            var lastMidiWrite = DateTime.FromBinary(reader.ReadInt64());
 
             var updateMidi = reader.ReadBoolean() ? new AbridgedFileInfo(reader) : null;
+            var upgrade = upgrades.TryGetValue(nodename, out var node) ? node.Item2 : null;
 
             var moggListing = file.TryGetListing(Path.ChangeExtension(midiFilename, ".mogg"));
 
@@ -104,31 +107,29 @@ namespace YARG.Core.Song
             var miloListing = file.TryGetListing(genPath + ".milo_xbox");
             var imgListing = file.TryGetListing(genPath + "_keep.png_xbox");
 
-            var metadata = DeserializeMetadata(reader, strings);
-            var song = new PackedRBCONEntry(midiListing, midiLastWrite, moggListing, miloListing, imgListing, psuedoDirectory, updateMidi, metadata, reader);
-            if (upgrades.TryGetValue(nodename, out var upgrade))
-            {
-                song.Upgrade = upgrade.Item2;
-            }
-            return song;
+            var baseMetadata = DeserializeMetadata(reader, strings);
+            return new PackedRBCONEntry(midiListing, lastMidiWrite, moggListing, miloListing, imgListing, psuedoDirectory, baseMetadata, updateMidi, upgrade, reader);
         }
 
-        private PackedRBCONEntry(PackedCONGroup group, string nodeName, YARGDTAReader reader, Dictionary<string, List<SongUpdate>> updates, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades)
+        private PackedRBCONEntry(PackedCONGroup group, string nodename, YARGDTAReader reader, Dictionary<string, List<SongUpdate>> updates, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades)
+            : base()
         {
-            var results = Init(nodeName, reader, updates, upgrades, group.DefaultPlaylist);
-
+            var results = Init(nodename, reader, updates, upgrades, group.DefaultPlaylist);
             string midiPath = results.location + ".mid";
             _midiListing = group.CONFile.TryGetListing(midiPath);
             if (_midiListing == null)
-                throw new Exception($"Required midi file '{midiPath}' was not located");
-            _lastMidiUpdate = _midiListing.lastWrite;
+            {
+                return;
+            }
+
+            _lastMidiWrite = _midiListing.lastWrite;
 
             _moggListing = group.CONFile.TryGetListing(results.location + ".mogg");
 
-            if (!results.location.StartsWith($"songs/{nodeName}"))
-                nodeName = _midiListing.Filename.Split('/')[1];
+            if (!results.location.StartsWith($"songs/{nodename}"))
+                nodename = _midiListing.Filename.Split('/')[1];
 
-            string genPath = $"songs/{nodeName}/gen/{nodeName}";
+            string genPath = $"songs/{nodename}/gen/{nodename}";
             _miloListing = group.CONFile.TryGetListing(genPath + ".milo_xbox");
             _imgListing = group.CONFile.TryGetListing(genPath + "_keep.png_xbox");
 
@@ -137,24 +138,24 @@ namespace YARG.Core.Song
         }
 
         private PackedRBCONEntry(CONFileListing? midi, DateTime midiLastWrite, CONFileListing? moggListing, CONFileListing? miloListing, CONFileListing? imgListing, string directory,
-            AbridgedFileInfo? updateMidi, SongMetadata metadata, BinaryReader reader)
-            : base(updateMidi, metadata, reader)
+            in SongMetadata baseMetadata, AbridgedFileInfo? updateMidi, IRBProUpgrade? upgrade, BinaryReader reader)
+            : base(baseMetadata, updateMidi, upgrade, reader)
         {
             _midiListing = midi;
             _moggListing = moggListing;
             _miloListing = miloListing;
             _imgListing = imgListing;
-            _lastMidiUpdate = midiLastWrite;
+            _lastMidiWrite = midiLastWrite;
+
             Directory = directory;
         }
 
-        protected override void SerializeSubData(BinaryWriter writer)
+        public override void Serialize(BinaryWriter writer, CategoryCacheWriteNode node)
         {
             writer.Write(Directory);
             writer.Write(_midiListing!.Filename);
             writer.Write(_midiListing.lastWrite.ToBinary());
-            writer.Write(UpdateMidi != null);
-            UpdateMidi?.Serialize(writer);
+            base.Serialize(writer, node);
         }
 
         public override BackgroundResult? LoadBackground(BackgroundType options)
@@ -207,23 +208,24 @@ namespace YARG.Core.Song
 
         public override byte[]? LoadMiloData()
         {
-            if (UpdateMilo != null && UpdateMilo.Exists())
+            var bytes = base.LoadMiloData();
+            if (bytes != null)
             {
-                return File.ReadAllBytes(UpdateMilo.FullName);
+                return bytes;
             }
             return _miloListing?.LoadAllBytes();
         }
 
         protected override Stream? GetMidiStream()
         {
-            if (_midiListing == null || !_midiListing.IsStillValid(_lastMidiUpdate))
+            if (_midiListing == null || !_midiListing.IsStillValid(_lastMidiWrite))
                 return null;
             return _midiListing.CreateStream();
         }
 
         protected override byte[]? LoadMidiFile(CONFile? file)
         {
-            if (_midiListing == null || !_midiListing.IsStillValid(_lastMidiUpdate))
+            if (_midiListing == null || !_midiListing.IsStillValid(_lastMidiWrite))
             {
                 return null;
             }
@@ -232,12 +234,22 @@ namespace YARG.Core.Song
 
         protected override byte[]? LoadRawImageData()
         {
-            return base.LoadRawImageData() ?? _imgListing?.LoadAllBytes();
+            var bytes = base.LoadRawImageData();
+            if (bytes != null)
+            {
+                return bytes;
+            }
+            return _imgListing?.LoadAllBytes();
         }
 
         protected override Stream? GetMoggStream()
         {
-            return base.GetMoggStream() ?? _moggListing?.CreateStream();
+            var stream = base.GetMoggStream();
+            if (stream != null)
+            {
+                return stream;
+            }
+            return _moggListing?.CreateStream();
         }
 
         protected override bool IsMoggValid(CONFile? file)

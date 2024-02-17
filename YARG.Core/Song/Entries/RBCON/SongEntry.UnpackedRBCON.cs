@@ -8,22 +8,27 @@ using YARG.Core.Venue;
 
 namespace YARG.Core.Song
 {
-    public class UnpackedRBCONEntry : RBCONEntry
+    public sealed class UnpackedRBCONEntry : RBCONEntry
     {
-        private readonly AbridgedFileInfo? _dta;
-        private readonly AbridgedFileInfo _midi;
-        private readonly string _nodename;
+        private readonly string _nodename = string.Empty;
 
-        public override string Directory { get; }
-        protected override DateTime MidiLastWrite => _midi.LastUpdatedTime;
-
+        public readonly AbridgedFileInfo? _dta;
+        public readonly AbridgedFileInfo? _midi;
+        
+        protected override DateTime MidiLastUpdate => _midi!.LastUpdatedTime;
+        public override string Directory { get; } = string.Empty;
         public override EntryType SubType => EntryType.ExCON;
 
-        public static (ScanResult, UnpackedRBCONEntry?) ProcessNewEntry(UnpackedCONGroup group, string nodeName, YARGDTAReader reader, Dictionary<string, List<SongUpdate>> updates, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades)
+        public static (ScanResult, UnpackedRBCONEntry?) ProcessNewEntry(UnpackedCONGroup group, string nodename, YARGDTAReader reader, Dictionary<string, List<SongUpdate>> updates, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades)
         {
             try
             {
-                var song = new UnpackedRBCONEntry(group, nodeName, reader, updates, upgrades);
+                var song = new UnpackedRBCONEntry(group, nodename, reader, updates, upgrades);
+                if (song._midi == null)
+                {
+                    return (ScanResult.MissingMidi, null);
+                }
+
                 var result = song.ParseRBCONMidi(null);
                 if (result != ScanResult.Success)
                 {
@@ -33,7 +38,7 @@ namespace YARG.Core.Song
             }
             catch (Exception ex)
             {
-                YargTrace.LogError(ex.Message);
+                YargTrace.LogException(ex, null);
                 return (ScanResult.DTAError, null);
             }
         }
@@ -60,13 +65,9 @@ namespace YARG.Core.Song
                 }
             }
 
-            var metadata = DeserializeMetadata(reader, strings);
-            var song = new UnpackedRBCONEntry(songDirectory, subname, dta, midiInfo, updateMidi, metadata, reader);
-            if (upgrades.TryGetValue(nodename, out var upgrade))
-            {
-                song.Upgrade = upgrade.Item2;
-            }
-            return song;
+            var upgrade = upgrades.TryGetValue(nodename, out var node) ? node.Item2 : null;
+            var baseMetadata = DeserializeMetadata(reader, strings);
+            return new UnpackedRBCONEntry(midiInfo, dta, songDirectory, subname, baseMetadata, updateMidi, upgrade, reader);
         }
 
         public static UnpackedRBCONEntry LoadFromCache_Quick(string directory, AbridgedFileInfo? dta, string nodename, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
@@ -79,19 +80,26 @@ namespace YARG.Core.Song
 
             var updateMidi = reader.ReadBoolean() ? new AbridgedFileInfo(reader) : null;
 
-            var metadata = DeserializeMetadata(reader, strings);
-            var song = new UnpackedRBCONEntry(songDirectory, subname, dta, midiInfo, updateMidi, metadata, reader);
-            if (upgrades.TryGetValue(nodename, out var upgrade))
-            {
-                song.Upgrade = upgrade.Item2;
-            }
-            return song;
+            var upgrade = upgrades.TryGetValue(nodename, out var node) ? node.Item2 : null;
+            var baseMetadata = DeserializeMetadata(reader, strings);
+            return new UnpackedRBCONEntry(midiInfo, dta, songDirectory, subname, baseMetadata, updateMidi, upgrade, reader);
+        }
+
+        private UnpackedRBCONEntry(AbridgedFileInfo midi, AbridgedFileInfo? dta, string directory, string nodename,
+            in SongMetadata baseMetadata, AbridgedFileInfo? updateMidi, IRBProUpgrade? upgrade, BinaryReader reader)
+            : base(baseMetadata, updateMidi, upgrade, reader)
+        {
+            Directory = directory;
+
+            _midi = midi;
+            _dta = dta;
+            _nodename = nodename;
         }
 
         private UnpackedRBCONEntry(UnpackedCONGroup group, string nodename, YARGDTAReader reader, Dictionary<string, List<SongUpdate>> updates, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades)
+            : base()
         {
             var results = Init(nodename, reader, updates, upgrades, group.DefaultPlaylist);
-            
             if (!results.location.StartsWith($"songs/" + nodename))
                 nodename = results.location.Split('/')[1];
             _nodename = nodename;
@@ -101,28 +109,19 @@ namespace YARG.Core.Song
 
             FileInfo midiInfo = new(midiPath);
             if (!midiInfo.Exists)
-                throw new Exception($"Required midi file '{midiPath}' was not located");
+            {
+                return;
+            }
 
             _midi = new AbridgedFileInfo(midiInfo);
             _dta = group.DTA;
         }
 
-        private UnpackedRBCONEntry(string directory, string nodename, AbridgedFileInfo? dta, AbridgedFileInfo midi,
-            AbridgedFileInfo? updateMidi, SongMetadata metadata, BinaryReader reader)
-            : base(updateMidi, metadata, reader)
-        {
-            Directory = directory;
-            _nodename = nodename;
-            _dta = dta;
-            _midi = midi;
-        }
-
-        protected override void SerializeSubData(BinaryWriter writer)
+        public override void Serialize(BinaryWriter writer, CategoryCacheWriteNode node)
         {
             writer.Write(_nodename);
-            writer.Write(_midi.LastUpdatedTime.ToBinary());
-            writer.Write(UpdateMidi != null);
-            UpdateMidi?.Serialize(writer);
+            writer.Write(_midi!.LastUpdatedTime.ToBinary());
+            base.Serialize(writer, node);
         }
 
         public override BackgroundResult? LoadBackground(BackgroundType options)
@@ -183,16 +182,16 @@ namespace YARG.Core.Song
 
         protected override Stream? GetMidiStream()
         {
-            if (_dta == null || !_dta.IsStillValid() || !_midi.IsStillValid())
+            if (_dta == null || !_dta.IsStillValid() || !_midi!.IsStillValid())
             {
                 return null;
             }
             return new FileStream(_midi.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
         }
 
-        protected override byte[]? LoadMidiFile(CONFile? _)
+        protected override byte[]? LoadMidiFile(CONFile? file)
         {
-            if (_dta == null || !_dta.IsStillValid() || !_midi.IsStillValid())
+            if (_dta == null || !_dta.IsStillValid() || !_midi!.IsStillValid())
             {
                 return null;
             }
@@ -237,7 +236,7 @@ namespace YARG.Core.Song
             return new FileStream(path, FileMode.Open, FileAccess.Read);
         }
 
-        protected override bool IsMoggValid(CONFile? _)
+        protected override bool IsMoggValid(CONFile? file)
         {
             using var stream = GetMoggStream();
             if (stream == null)

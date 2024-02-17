@@ -76,8 +76,8 @@ namespace YARG.Core.Song
                 case SongAttribute.Playlist:
                     if (lhs is RBCONEntry rblhs && rhs is RBCONEntry rbrhs)
                     {
-                        int lhsBand = rblhs.RBDifficulties.band;
-                        int rhsBand = rbrhs.RBDifficulties.band;
+                        int lhsBand = rblhs.RBBandDiff;
+                        int rhsBand = rbrhs.RBBandDiff;
                         if (lhsBand != -1 && rhsBand != -1)
                             return lhsBand < rhsBand;
                     }

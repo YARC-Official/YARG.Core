@@ -14,86 +14,95 @@ using YARG.Core.Venue;
 
 namespace YARG.Core.Song
 {
-    public sealed class DTAResult
+    public struct RBMetadata
     {
-        public readonly string nodeName;
-        public bool alternatePath = false;
-        public bool discUpdate = false;
-        public string location = string.Empty;
-        public float[]? pans = null;
-        public float[]? volumes = null;
-        public float[]? cores = null;
-
-        public DTAResult(string nodeName)
+        public static readonly RBMetadata Default = new()
         {
-            this.nodeName = nodeName;
-        }
-    }
+            SongID = string.Empty,
+            DrumBank = string.Empty,
+            VocalPercussionBank = string.Empty,
+            VocalGender = true
+        };
 
-    public abstract class RBCONEntry : SongEntry
-    {
-        public readonly RBCONDifficulties RBDifficulties = new();
-
-        public string SongID = string.Empty;
+        public string SongID;
         public uint AnimTempo;
-        public string DrumBank = string.Empty;
-        public string VocalPercussionBank = string.Empty;
+        public string DrumBank;
+        public string VocalPercussionBank;
         public uint VocalSongScrollSpeed;
-        public uint SongRating; // 1 = FF; 2 = SR; 3 = M; 4 = NR
-        public bool VocalGender = true;//true for male, false for female
-        public bool HasAlbumArt;
+        public uint SongRating;  // 1 = FF; 2 = SR; 3 = M; 4 = NR
+        public bool VocalGender; //true for male, false for female
+        //public bool HasAlbumArt;
         //public bool IsFake;
         public uint VocalTonicNote;
         public bool SongTonality; // 0 = major, 1 = minor
         public int TuningOffsetCents;
         public uint VenueVersion;
 
-        public AbridgedFileInfo? UpdateMidi = null;
-        public AbridgedFileInfo? UpdateMogg = null;
-        public AbridgedFileInfo? UpdateMilo = null;
-        public AbridgedFileInfo? UpdateImage = null;
+        public string[]? Soloes;
+        public string[]? VideoVenues;
 
-        public IRBProUpgrade? Upgrade;
+        public int[]? RealGuitarTuning;
+        public int[]? RealBassTuning;
 
-        public string[] Soloes = Array.Empty<string>();
-        public string[] VideoVenues = Array.Empty<string>();
+        public int[]? DrumIndices;
+        public int[]? BassIndices;
+        public int[]? GuitarIndices;
+        public int[]? KeysIndices;
+        public int[]? VocalsIndices;
+        public int[]? CrowdIndices;
+        public int[]? TrackIndices;
 
-        public int[] RealGuitarTuning = Array.Empty<int>();
-        public int[] RealBassTuning = Array.Empty<int>();
+        public float[]? TrackStemValues;
+        public float[]? DrumStemValues;
+        public float[]? BassStemValues;
+        public float[]? GuitarStemValues;
+        public float[]? KeysStemValues;
+        public float[]? VocalsStemValues;
+        public float[]? CrowdStemValues;
+    }
 
-        public int[] DrumIndices = Array.Empty<int>();
-        public int[] BassIndices = Array.Empty<int>();
-        public int[] GuitarIndices = Array.Empty<int>();
-        public int[] KeysIndices = Array.Empty<int>();
-        public int[] VocalsIndices = Array.Empty<int>();
-        public int[] CrowdIndices = Array.Empty<int>();
-        public int[] TrackIndices = Array.Empty<int>();
-
-        public float[] TrackStemValues = Array.Empty<float>();
-        public float[] DrumStemValues = Array.Empty<float>();
-        public float[] BassStemValues = Array.Empty<float>();
-        public float[] GuitarStemValues = Array.Empty<float>();
-        public float[] KeysStemValues = Array.Empty<float>();
-        public float[] VocalsStemValues = Array.Empty<float>();
-        public float[] CrowdStemValues = Array.Empty<float>();
-
-        protected abstract DateTime MidiLastWrite { get; }
-
-        public DateTime GetAddTime(DateTime lastUpdateTime)
+    public abstract class RBCONEntry : SongEntry
+    {
+        protected struct DTAResult
         {
-            if (UpdateMidi != null)
+            public bool alternatePath;
+            public bool discUpdate;
+            public string location;
+            public float[]? pans;
+            public float[]? volumes;
+            public float[]? cores;
+        }
+
+        private RBMetadata _rbMetadata;
+        private RBCONDifficulties _rbDifficulties;
+
+        private AbridgedFileInfo? _updateMidi;
+        private IRBProUpgrade? _upgrade;
+
+        private AbridgedFileInfo? UpdateMogg;
+        private AbridgedFileInfo? UpdateMilo;
+        private AbridgedFileInfo? UpdateImage;
+
+        public int RBBandDiff => _rbDifficulties.Band;
+
+        protected abstract DateTime MidiLastUpdate { get; }
+
+        public override DateTime GetAddTime()
+        {
+            var lastUpdateTime = MidiLastUpdate;
+            if (_updateMidi != null)
             {
-                if (UpdateMidi.LastUpdatedTime > lastUpdateTime)
+                if (_updateMidi.LastUpdatedTime > lastUpdateTime)
                 {
-                    lastUpdateTime = UpdateMidi.LastUpdatedTime;
+                    lastUpdateTime = _updateMidi.LastUpdatedTime;
                 }
             }
 
-            if (Upgrade != null)
+            if (_upgrade != null)
             {
-                if (Upgrade.LastUpdatedTime > lastUpdateTime)
+                if (_upgrade.LastUpdatedTime > lastUpdateTime)
                 {
-                    lastUpdateTime = Upgrade.LastUpdatedTime;
+                    lastUpdateTime = _upgrade.LastUpdatedTime;
                 }
             }
             return lastUpdateTime;
@@ -112,20 +121,20 @@ namespace YARG.Core.Song
             }
 
             // Merge update MIDI
-            if (UpdateMidi != null)
+            if (_updateMidi != null)
             {
-                if (!UpdateMidi.IsStillValid(false))
+                if (!_updateMidi.IsStillValid(false))
                     return null;
 
-                using var midiStream = new FileStream(UpdateMidi.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
+                using var midiStream = new FileStream(_updateMidi.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
                 var update = MidiFile.Read(midiStream, readingSettings);
                 midi.Merge(update);
             }
 
             // Merge upgrade MIDI
-            if (Upgrade != null)
+            if (_upgrade != null)
             {
-                using var midiStream = Upgrade.GetUpgradeMidiStream();
+                using var midiStream = _upgrade.GetUpgradeMidiStream();
                 if (midiStream == null)
                     return null;
                 var update = MidiFile.Read(midiStream, readingSettings);
@@ -155,57 +164,57 @@ namespace YARG.Core.Song
             stream.Seek(start, SeekOrigin.Begin);
 
             var mixer = new AudioMixer(wrapper.Release());
-            if (DrumIndices != Array.Empty<int>() && !ignoreStems.Contains(SongStem.Drums))
+            if (_rbMetadata.DrumIndices != null && !ignoreStems.Contains(SongStem.Drums))
             {
-                switch (DrumIndices.Length)
+                switch (_rbMetadata.DrumIndices.Length)
                 {
                     //drum (0 1): stereo kit --> (0 1)
                     case 2:
-                        mixer.Channels.Add(new AudioChannel(SongStem.Drums, DrumIndices, DrumStemValues));
+                        mixer.Channels.Add(new AudioChannel(SongStem.Drums, _rbMetadata.DrumIndices, _rbMetadata.DrumStemValues!));
                         break;
                     //drum (0 1 2): mono kick, stereo snare/kit --> (0) (1 2)
                     case 3:
-                        mixer.Channels.Add(new AudioChannel(SongStem.Drums1, DrumIndices[0..1], DrumStemValues[0..2]));
-                        mixer.Channels.Add(new AudioChannel(SongStem.Drums2, DrumIndices[1..3], DrumStemValues[2..6]));
+                        mixer.Channels.Add(new AudioChannel(SongStem.Drums1, _rbMetadata.DrumIndices[0..1], _rbMetadata.DrumStemValues![0..2]));
+                        mixer.Channels.Add(new AudioChannel(SongStem.Drums2, _rbMetadata.DrumIndices[1..3], _rbMetadata.DrumStemValues[2..6]));
                         break;
                     //drum (0 1 2 3): mono kick, mono snare, stereo kit --> (0) (1) (2 3)
                     case 4:
-                        mixer.Channels.Add(new AudioChannel(SongStem.Drums1, DrumIndices[0..1], DrumStemValues[0..2]));
-                        mixer.Channels.Add(new AudioChannel(SongStem.Drums2, DrumIndices[1..2], DrumStemValues[2..4]));
-                        mixer.Channels.Add(new AudioChannel(SongStem.Drums3, DrumIndices[2..4], DrumStemValues[4..8]));
+                        mixer.Channels.Add(new AudioChannel(SongStem.Drums1, _rbMetadata.DrumIndices[0..1], _rbMetadata.DrumStemValues![0..2]));
+                        mixer.Channels.Add(new AudioChannel(SongStem.Drums2, _rbMetadata.DrumIndices[1..2], _rbMetadata.DrumStemValues[2..4]));
+                        mixer.Channels.Add(new AudioChannel(SongStem.Drums3, _rbMetadata.DrumIndices[2..4], _rbMetadata.DrumStemValues[4..8]));
                         break;
                     //drum (0 1 2 3 4): mono kick, stereo snare, stereo kit --> (0) (1 2) (3 4)
                     case 5:
-                        mixer.Channels.Add(new AudioChannel(SongStem.Drums1, DrumIndices[0..1], DrumStemValues[0..2]));
-                        mixer.Channels.Add(new AudioChannel(SongStem.Drums2, DrumIndices[1..3], DrumStemValues[2..6]));
-                        mixer.Channels.Add(new AudioChannel(SongStem.Drums3, DrumIndices[3..5], DrumStemValues[6..10]));
+                        mixer.Channels.Add(new AudioChannel(SongStem.Drums1, _rbMetadata.DrumIndices[0..1], _rbMetadata.DrumStemValues![0..2]));
+                        mixer.Channels.Add(new AudioChannel(SongStem.Drums2, _rbMetadata.DrumIndices[1..3], _rbMetadata.DrumStemValues[2..6]));
+                        mixer.Channels.Add(new AudioChannel(SongStem.Drums3, _rbMetadata.DrumIndices[3..5], _rbMetadata.DrumStemValues[6..10]));
                         break;
                     //drum (0 1 2 3 4 5): stereo kick, stereo snare, stereo kit --> (0 1) (2 3) (4 5)
                     case 6:
-                        mixer.Channels.Add(new AudioChannel(SongStem.Drums1, DrumIndices[0..2], DrumStemValues[0..4]));
-                        mixer.Channels.Add(new AudioChannel(SongStem.Drums2, DrumIndices[2..4], DrumStemValues[4..8]));
-                        mixer.Channels.Add(new AudioChannel(SongStem.Drums3, DrumIndices[4..6], DrumStemValues[8..12]));
+                        mixer.Channels.Add(new AudioChannel(SongStem.Drums1, _rbMetadata.DrumIndices[0..2], _rbMetadata.DrumStemValues![0..4]));
+                        mixer.Channels.Add(new AudioChannel(SongStem.Drums2, _rbMetadata.DrumIndices[2..4], _rbMetadata.DrumStemValues[4..8]));
+                        mixer.Channels.Add(new AudioChannel(SongStem.Drums3, _rbMetadata.DrumIndices[4..6], _rbMetadata.DrumStemValues[8..12]));
                         break;
                 }
             }
 
-            if (BassIndices != Array.Empty<int>() && !ignoreStems.Contains(SongStem.Bass))
-                mixer.Channels.Add(new AudioChannel(SongStem.Bass, BassIndices, BassStemValues));
+            if (_rbMetadata.BassIndices != null && !ignoreStems.Contains(SongStem.Bass))
+                mixer.Channels.Add(new AudioChannel(SongStem.Bass, _rbMetadata.BassIndices, _rbMetadata.BassStemValues!));
 
-            if (GuitarIndices != Array.Empty<int>() && !ignoreStems.Contains(SongStem.Guitar))
-                mixer.Channels.Add(new AudioChannel(SongStem.Guitar, GuitarIndices, GuitarStemValues));
+            if (_rbMetadata.GuitarIndices != null && !ignoreStems.Contains(SongStem.Guitar))
+                mixer.Channels.Add(new AudioChannel(SongStem.Guitar, _rbMetadata.GuitarIndices, _rbMetadata.GuitarStemValues!));
 
-            if (KeysIndices != Array.Empty<int>() && !ignoreStems.Contains(SongStem.Keys))
-                mixer.Channels.Add(new AudioChannel(SongStem.Keys, KeysIndices, KeysStemValues));
+            if (_rbMetadata.KeysIndices != null && !ignoreStems.Contains(SongStem.Keys))
+                mixer.Channels.Add(new AudioChannel(SongStem.Keys, _rbMetadata.KeysIndices, _rbMetadata.KeysStemValues!));
 
-            if (VocalsIndices != Array.Empty<int>() && !ignoreStems.Contains(SongStem.Vocals))
-                mixer.Channels.Add(new AudioChannel(SongStem.Vocals, VocalsIndices, VocalsStemValues));
+            if (_rbMetadata.VocalsIndices != null && !ignoreStems.Contains(SongStem.Vocals))
+                mixer.Channels.Add(new AudioChannel(SongStem.Vocals, _rbMetadata.VocalsIndices, _rbMetadata.VocalsStemValues!));
 
-            if (TrackIndices != Array.Empty<int>() && !ignoreStems.Contains(SongStem.Song))
-                mixer.Channels.Add(new AudioChannel(SongStem.Song, TrackIndices, TrackStemValues));
+            if (_rbMetadata.TrackIndices != null && !ignoreStems.Contains(SongStem.Song))
+                mixer.Channels.Add(new AudioChannel(SongStem.Song, _rbMetadata.TrackIndices, _rbMetadata.TrackStemValues!));
 
-            if (CrowdIndices != Array.Empty<int>() && !ignoreStems.Contains(SongStem.Crowd))
-                mixer.Channels.Add(new AudioChannel(SongStem.Crowd, CrowdIndices, CrowdStemValues));
+            if (_rbMetadata.CrowdIndices != null && !ignoreStems.Contains(SongStem.Crowd))
+                mixer.Channels.Add(new AudioChannel(SongStem.Crowd, _rbMetadata.CrowdIndices, _rbMetadata.CrowdStemValues!));
             return mixer;
         }
 
@@ -238,49 +247,142 @@ namespace YARG.Core.Song
             return null;
         }
 
-        protected abstract void SerializeSubData(BinaryWriter writer);
-
-        public void Serialize(BinaryWriter writer, CategoryCacheWriteNode node)
+        public virtual void Serialize(BinaryWriter writer, CategoryCacheWriteNode node)
         {
-            SerializeSubData(writer);
+            writer.Write(_updateMidi != null);
+            _updateMidi?.Serialize(writer);
+
             SerializeMetadata(writer, node);
-
-            RBDifficulties.Serialize(writer);
-
-            writer.Write(AnimTempo);
-            writer.Write(SongID);
-            writer.Write(VocalPercussionBank);
-            writer.Write(VocalSongScrollSpeed);
-            writer.Write(SongRating);
-            writer.Write(VocalGender);
-            writer.Write(VocalTonicNote);
-            writer.Write(SongTonality);
-            writer.Write(TuningOffsetCents);
-            writer.Write(VenueVersion);
 
             WriteUpdateInfo(UpdateMogg, writer);
             WriteUpdateInfo(UpdateMilo, writer);
             WriteUpdateInfo(UpdateImage, writer);
 
-            WriteArray(RealGuitarTuning, writer);
-            WriteArray(RealBassTuning, writer);
+            writer.Write(_rbMetadata.AnimTempo);
+            writer.Write(_rbMetadata.SongID);
+            writer.Write(_rbMetadata.VocalPercussionBank);
+            writer.Write(_rbMetadata.VocalSongScrollSpeed);
+            writer.Write(_rbMetadata.SongRating);
+            writer.Write(_rbMetadata.VocalGender);
+            writer.Write(_rbMetadata.VocalTonicNote);
+            writer.Write(_rbMetadata.SongTonality);
+            writer.Write(_rbMetadata.TuningOffsetCents);
+            writer.Write(_rbMetadata.VenueVersion);
+            writer.Write(_rbMetadata.DrumBank);
 
-            WriteArray(DrumIndices, writer);
-            WriteArray(BassIndices, writer);
-            WriteArray(GuitarIndices, writer);
-            WriteArray(KeysIndices, writer);
-            WriteArray(VocalsIndices, writer);
-            WriteArray(TrackIndices, writer);
-            WriteArray(CrowdIndices, writer);
+            WriteArray(_rbMetadata.RealGuitarTuning, writer);
+            WriteArray(_rbMetadata.RealBassTuning, writer);
 
-            WriteArray(DrumStemValues, writer);
-            WriteArray(BassStemValues, writer);
-            WriteArray(GuitarStemValues, writer);
-            WriteArray(KeysStemValues, writer);
-            WriteArray(VocalsStemValues, writer);
-            WriteArray(TrackStemValues, writer);
-            WriteArray(CrowdStemValues, writer);
+            WriteArray(_rbMetadata.DrumIndices, writer);
+            WriteArray(_rbMetadata.BassIndices, writer);
+            WriteArray(_rbMetadata.GuitarIndices, writer);
+            WriteArray(_rbMetadata.KeysIndices, writer);
+            WriteArray(_rbMetadata.VocalsIndices, writer);
+            WriteArray(_rbMetadata.TrackIndices, writer);
+            WriteArray(_rbMetadata.CrowdIndices, writer);
+
+            WriteArray(_rbMetadata.DrumStemValues, writer);
+            WriteArray(_rbMetadata.BassStemValues, writer);
+            WriteArray(_rbMetadata.GuitarStemValues, writer);
+            WriteArray(_rbMetadata.KeysStemValues, writer);
+            WriteArray(_rbMetadata.VocalsStemValues, writer);
+            WriteArray(_rbMetadata.TrackStemValues, writer);
+            WriteArray(_rbMetadata.CrowdStemValues, writer);
+
+            WriteStringArray(_rbMetadata.Soloes, writer);
+            WriteStringArray(_rbMetadata.VideoVenues, writer);
+
+            unsafe
+            {
+                fixed (RBCONDifficulties* ptr = &_rbDifficulties)
+                {
+                    var span = new ReadOnlySpan<byte>(ptr, sizeof(RBCONDifficulties));
+                    writer.Write(span);
+                }
+            }    
         }
+
+        protected abstract bool IsMoggValid(CONFile? file);
+        protected abstract byte[]? LoadMidiFile(CONFile? file);
+        protected abstract Stream? GetMidiStream();
+
+        protected RBCONEntry() : base()
+        {
+            _rbMetadata = RBMetadata.Default;
+            _rbDifficulties = RBCONDifficulties.Default;
+        }
+
+        protected RBCONEntry(in SongMetadata baseMetadata, AbridgedFileInfo? updateMidi, IRBProUpgrade? upgrade, BinaryReader reader)
+            : base(baseMetadata)
+        {
+            _updateMidi = updateMidi;
+            _upgrade = upgrade;
+
+            UpdateMogg = ReadUpdateInfo(reader);
+            UpdateMilo = ReadUpdateInfo(reader);
+            UpdateImage = ReadUpdateInfo(reader);
+
+            _rbMetadata.AnimTempo = reader.ReadUInt32();
+            _rbMetadata.SongID = reader.ReadString();
+            _rbMetadata.VocalPercussionBank = reader.ReadString();
+            _rbMetadata.VocalSongScrollSpeed = reader.ReadUInt32();
+            _rbMetadata.SongRating = reader.ReadUInt32();
+            _rbMetadata.VocalGender = reader.ReadBoolean();
+            _rbMetadata.VocalTonicNote = reader.ReadUInt32();
+            _rbMetadata.SongTonality = reader.ReadBoolean();
+            _rbMetadata.TuningOffsetCents = reader.ReadInt32();
+            _rbMetadata.VenueVersion = reader.ReadUInt32();
+            _rbMetadata.DrumBank = reader.ReadString();
+
+            ReadArray(out _rbMetadata.RealGuitarTuning, reader);
+            ReadArray(out _rbMetadata.RealBassTuning, reader);
+
+            ReadArray(out _rbMetadata.DrumIndices, reader);
+            ReadArray(out _rbMetadata.BassIndices, reader);
+            ReadArray(out _rbMetadata.GuitarIndices, reader);
+            ReadArray(out _rbMetadata.KeysIndices, reader);
+            ReadArray(out _rbMetadata.VocalsIndices, reader);
+            ReadArray(out _rbMetadata.TrackIndices, reader);
+            ReadArray(out _rbMetadata.CrowdIndices, reader);
+
+            ReadArray(out _rbMetadata.DrumStemValues, reader);
+            ReadArray(out _rbMetadata.BassStemValues, reader);
+            ReadArray(out _rbMetadata.GuitarStemValues, reader);
+            ReadArray(out _rbMetadata.KeysStemValues, reader);
+            ReadArray(out _rbMetadata.VocalsStemValues, reader);
+            ReadArray(out _rbMetadata.TrackStemValues, reader);
+            ReadArray(out _rbMetadata.CrowdStemValues, reader);
+
+            _rbMetadata.Soloes = ReadStringArray(reader);
+            _rbMetadata.VideoVenues = ReadStringArray(reader);
+
+            unsafe
+            {
+                fixed (RBCONDifficulties* ptr = &_rbDifficulties)
+                {
+                    var span = new Span<byte>(ptr, sizeof(RBCONDifficulties));
+                    reader.Read(span);
+                }
+            }
+        }
+
+        protected DTAResult Init(string nodeName, YARGDTAReader reader, Dictionary<string, List<SongUpdate>> updates, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, string defaultPlaylist)
+        {
+            var dtaResults = ParseDTA(nodeName, reader);
+            ApplyRBCONUpdates(ref dtaResults, nodeName, updates);
+            ApplyRBProUpgrade(nodeName, upgrades);
+
+            if (dtaResults.pans == null || dtaResults.volumes == null || dtaResults.cores == null)
+            {
+                throw new Exception("Panning & Volume mappings not set from DTA");
+            }
+            FinalizeRBCONAudioValues(dtaResults.pans, dtaResults.volumes, dtaResults.cores);
+
+            if (Metadata.Playlist.Length == 0)
+                Metadata.Playlist = defaultPlaylist;
+            return dtaResults;
+        }
+
 
         protected virtual byte[]? LoadRawImageData()
         {
@@ -305,80 +407,13 @@ namespace YARG.Core.Song
             return new FileStream(UpdateMogg.FullName, FileMode.Open, FileAccess.Read);
         }
 
-        protected virtual bool IsMoggValid(CONFile? file)
+        protected byte[]? LoadUpdateMidiFile()
         {
-            using var stream = GetMoggStream();
-            if (stream != null)
+            if (_updateMidi == null || !_updateMidi.IsStillValid(false))
             {
-                int version = stream.Read<int>(Endianness.Little);
-                return version == 0x0A || version == 0xf0;
+                return null;
             }
-            return false;
-        }
-
-        protected abstract byte[]? LoadMidiFile(CONFile? file);
-
-        protected abstract Stream? GetMidiStream();
-
-        protected RBCONEntry() : base(SongMetadata.Default) { }
-
-        protected RBCONEntry(AbridgedFileInfo? updateMidi, in SongMetadata metadata, BinaryReader reader)
-            : base(metadata)
-        {
-            UpdateMidi = updateMidi;
-
-            RBDifficulties = new RBCONDifficulties(reader);
-
-            AnimTempo = reader.ReadUInt32();
-            SongID = reader.ReadString();
-            VocalPercussionBank = reader.ReadString();
-            VocalSongScrollSpeed = reader.ReadUInt32();
-            SongRating = reader.ReadUInt32();
-            VocalGender = reader.ReadBoolean();
-            VocalTonicNote = reader.ReadUInt32();
-            SongTonality = reader.ReadBoolean();
-            TuningOffsetCents = reader.ReadInt32();
-            VenueVersion = reader.ReadUInt32();
-
-            UpdateMogg = ReadUpdateInfo(reader);
-            UpdateMilo = ReadUpdateInfo(reader);
-            UpdateImage = ReadUpdateInfo(reader);
-
-            RealGuitarTuning = ReadIntArray(reader);
-            RealBassTuning = ReadIntArray(reader);
-
-            DrumIndices = ReadIntArray(reader);
-            BassIndices = ReadIntArray(reader);
-            GuitarIndices = ReadIntArray(reader);
-            KeysIndices = ReadIntArray(reader);
-            VocalsIndices = ReadIntArray(reader);
-            TrackIndices = ReadIntArray(reader);
-            CrowdIndices = ReadIntArray(reader);
-
-            DrumStemValues = ReadFloatArray(reader);
-            BassStemValues = ReadFloatArray(reader);
-            GuitarStemValues = ReadFloatArray(reader);
-            KeysStemValues = ReadFloatArray(reader);
-            VocalsStemValues = ReadFloatArray(reader);
-            TrackStemValues = ReadFloatArray(reader);
-            CrowdStemValues = ReadFloatArray(reader);
-        }
-
-        protected DTAResult Init(string nodeName, YARGDTAReader reader, Dictionary<string, List<SongUpdate>> updates, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, string defaultPlaylist)
-        {
-            var dtaResults = ParseDTA(nodeName, reader);
-            ApplyRBCONUpdates(dtaResults, nodeName, updates);
-            ApplyRBProUpgrade(nodeName, upgrades);
-
-            if (dtaResults.pans == null || dtaResults.volumes == null || dtaResults.cores == null)
-            {
-                throw new Exception("Panning & Volume mappings not set from DTA");
-            }
-            FinalizeRBCONAudioValues(dtaResults.pans, dtaResults.volumes, dtaResults.cores);
-
-            if (Metadata.Playlist.Length == 0)
-                Metadata.Playlist = defaultPlaylist;
-            return dtaResults;
+            return File.ReadAllBytes(_updateMidi.FullName);
         }
 
         protected ScanResult ParseRBCONMidi(CONFile? file)
@@ -397,7 +432,7 @@ namespace YARG.Core.Song
             {
                 byte[]? chartFile = LoadMidiFile(file);
                 byte[]? updateFile = LoadUpdateMidiFile();
-                byte[]? upgradeFile = Upgrade?.LoadUpgradeMidi();
+                byte[]? upgradeFile = _upgrade?.LoadUpgradeMidi();
 
                 DrumPreparseHandler drumTracker = new()
                 {
@@ -405,7 +440,7 @@ namespace YARG.Core.Song
                 };
 
                 int bufLength = 0;
-                if (UpdateMidi != null)
+                if (_updateMidi != null)
                 {
                     if (updateFile == null)
                         return ScanResult.MissingUpdateMidi;
@@ -416,7 +451,7 @@ namespace YARG.Core.Song
                     bufLength += updateFile.Length;
                 }
 
-                if (Upgrade != null)
+                if (_upgrade != null)
                 {
                     if (upgradeFile == null)
                         return ScanResult.MissingUpgradeMidi;
@@ -462,76 +497,7 @@ namespace YARG.Core.Song
             }
         }
 
-        private static AbridgedFileInfo? ReadUpdateInfo(BinaryReader reader)
-        {
-            if (!reader.ReadBoolean())
-            {
-                return null;
-            }
-            return new AbridgedFileInfo(reader.ReadString(), false);
-        }
-
-        private static int[] ReadIntArray(BinaryReader reader)
-        {
-            int length = reader.ReadInt32();
-            if (length == 0)
-                return Array.Empty<int>();
-
-            int[] values = new int[length];
-            for (int i = 0; i < length; ++i)
-                values[i] = reader.ReadInt32();
-            return values;
-        }
-
-        private static float[] ReadFloatArray(BinaryReader reader)
-        {
-            int length = reader.ReadInt32();
-            if (length == 0)
-                return Array.Empty<float>();
-
-            float[] values = new float[length];
-            for (int i = 0; i < length; ++i)
-                values[i] = reader.ReadSingle();
-            return values;
-        }
-
-        private static void WriteUpdateInfo(AbridgedFileInfo? info, BinaryWriter writer)
-        {
-            if (info != null)
-            {
-                writer.Write(true);
-                writer.Write(info.FullName);
-            }
-            else
-                writer.Write(false);
-        }
-
-        private static void WriteArray(int[] values, BinaryWriter writer)
-        {
-            int length = values.Length;
-            writer.Write(length);
-            for (int i = 0; i < length; ++i)
-                writer.Write(values[i]);
-        }
-
-        private static void WriteArray(float[] values, BinaryWriter writer)
-        {
-            int length = values.Length;
-            writer.Write(length);
-            for (int i = 0; i < length; ++i)
-                writer.Write(values[i]);
-        }
-
-        private byte[]? LoadUpdateMidiFile()
-        {
-            if (UpdateMidi == null || !UpdateMidi.IsStillValid(false))
-            {
-                return null;
-            }
-            return File.ReadAllBytes(UpdateMidi.FullName);
-        }
-
-        private void ApplyRBCONUpdates(DTAResult mainResult, string nodeName, Dictionary<string, List<SongUpdate>> updates)
+        private void ApplyRBCONUpdates(ref DTAResult mainResult, string nodeName, Dictionary<string, List<SongUpdate>> updates)
         {
             if (updates.TryGetValue(nodeName, out var updateList))
             {
@@ -579,7 +545,7 @@ namespace YARG.Core.Song
                 try
                 {
                     ParseDTA(nodeName, upgrade.Item1!.Clone());
-                    Upgrade = upgrade.Item2;
+                    _upgrade = upgrade.Item2;
                 }
                 catch (Exception ex)
                 {
@@ -590,7 +556,7 @@ namespace YARG.Core.Song
 
         private DTAResult ParseDTA(string nodeName, params YARGDTAReader[] readers)
         {
-            DTAResult result = new(nodeName);
+            DTAResult result = default;
             foreach (var reader in readers)
             {
                 while (reader.StartNode())
@@ -602,15 +568,15 @@ namespace YARG.Core.Song
                         case "artist": Metadata.Artist = reader.ExtractText(); break;
                         case "master": Metadata.IsMaster = reader.ExtractBoolean(); break;
                         case "context": /*Context = reader.Read<uint>();*/ break;
-                        case "song": SongLoop(result, reader); break;
+                        case "song": SongLoop(ref result, reader); break;
                         case "song_vocals": while (reader.StartNode()) reader.EndNode(); break;
-                        case "song_scroll_speed": VocalSongScrollSpeed = reader.ExtractUInt32(); break;
-                        case "tuning_offset_cents": TuningOffsetCents = reader.ExtractInt32(); break;
-                        case "bank": VocalPercussionBank = reader.ExtractText(); break;
+                        case "song_scroll_speed": _rbMetadata.VocalSongScrollSpeed = reader.ExtractUInt32(); break;
+                        case "tuning_offset_cents": _rbMetadata.TuningOffsetCents = reader.ExtractInt32(); break;
+                        case "bank": _rbMetadata.VocalPercussionBank = reader.ExtractText(); break;
                         case "anim_tempo":
                             {
                                 string val = reader.ExtractText();
-                                AnimTempo = val switch
+                                _rbMetadata.AnimTempo = val switch
                                 {
                                     "kTempoSlow" => 16,
                                     "kTempoMedium" => 32,
@@ -623,13 +589,13 @@ namespace YARG.Core.Song
                             Metadata.PreviewStart = reader.ExtractUInt64();
                             Metadata.PreviewEnd = reader.ExtractUInt64();
                             break;
-                        case "rank": Metadata.Parts.SetIntensities(RBDifficulties, reader); break;
-                        case "solo": Soloes = reader.ExtractList_String().ToArray(); break;
+                        case "rank": Metadata.Parts.SetIntensities(ref _rbDifficulties, reader); break;
+                        case "solo": _rbMetadata.Soloes = reader.ExtractList_String().ToArray(); break;
                         case "genre": Metadata.Genre = reader.ExtractText(); break;
                         case "decade": /*Decade = reader.ExtractText();*/ break;
-                        case "vocal_gender": VocalGender = reader.ExtractText() == "male"; break;
+                        case "vocal_gender": _rbMetadata.VocalGender = reader.ExtractText() == "male"; break;
                         case "format": /*Format = reader.Read<uint>();*/ break;
-                        case "version": VenueVersion = reader.ExtractUInt32(); break;
+                        case "version": _rbMetadata.VenueVersion = reader.ExtractUInt32(); break;
                         case "fake": /*IsFake = reader.ExtractText();*/ break;
                         case "downloaded": /*Downloaded = reader.ExtractText();*/ break;
                         case "game_origin":
@@ -647,10 +613,10 @@ namespace YARG.Core.Song
                                 //if (SongSources.SourceToGameName(str).Contains("Beatles")) _isMaster = true;
                                 break;
                             }
-                        case "song_id": SongID = reader.ExtractText(); break;
-                        case "rating": SongRating = reader.ExtractUInt32(); break;
+                        case "song_id": _rbMetadata.SongID = reader.ExtractText(); break;
+                        case "rating": _rbMetadata.SongRating = reader.ExtractUInt32(); break;
                         case "short_version": /*ShortVersion = reader.Read<uint>();*/ break;
-                        case "album_art": HasAlbumArt = reader.ExtractBoolean(); break;
+                        case "album_art": /*HasAlbumArt = reader.ExtractBoolean();*/ break;
                         case "year_released":
                         case "year_recorded": YearAsNumber = reader.ExtractInt32(); break;
                         case "album_name": Metadata.Album = reader.ExtractText(); break;
@@ -658,7 +624,7 @@ namespace YARG.Core.Song
                         case "pack_name": Metadata.Playlist = reader.ExtractText(); break;
                         case "base_points": /*BasePoints = reader.Read<uint>();*/ break;
                         case "band_fail_cue": /*BandFailCue = reader.ExtractText();*/ break;
-                        case "drum_bank": DrumBank = reader.ExtractText(); break;
+                        case "drum_bank": _rbMetadata.DrumBank = reader.ExtractText(); break;
                         case "song_length": Metadata.SongLength = reader.ExtractUInt64(); break;
                         case "sub_genre": /*Subgenre = reader.ExtractText();*/ break;
                         case "author": Metadata.Charter = reader.ExtractText(); break;
@@ -704,40 +670,40 @@ namespace YARG.Core.Song
                             }
 
                             break;
-                        case "vocal_tonic_note": VocalTonicNote = reader.ExtractUInt32(); break;
-                        case "song_tonality": SongTonality = reader.ExtractBoolean(); break;
+                        case "vocal_tonic_note": _rbMetadata.VocalTonicNote = reader.ExtractUInt32(); break;
+                        case "song_tonality": _rbMetadata.SongTonality = reader.ExtractBoolean(); break;
                         case "alternate_path": result.alternatePath = reader.ExtractBoolean(); break;
                         case "real_guitar_tuning":
                             {
                                 if (reader.StartNode())
                                 {
-                                    RealGuitarTuning = reader.ExtractList_Int().ToArray();
+                                    _rbMetadata.RealGuitarTuning = reader.ExtractList_Int().ToArray();
                                     reader.EndNode();
                                 }
                                 else
-                                    RealGuitarTuning = new[] { reader.ExtractInt32() };
+                                    _rbMetadata.RealGuitarTuning = new[] { reader.ExtractInt32() };
                                 break;
                             }
                         case "real_bass_tuning":
                             {
                                 if (reader.StartNode())
                                 {
-                                    RealBassTuning = reader.ExtractList_Int().ToArray();
+                                    _rbMetadata.RealBassTuning = reader.ExtractList_Int().ToArray();
                                     reader.EndNode();
                                 }
                                 else
-                                    RealBassTuning = new[] { reader.ExtractInt32() };
+                                    _rbMetadata.RealBassTuning = new[] { reader.ExtractInt32() };
                                 break;
                             }
                         case "video_venues":
                             {
                                 if (reader.StartNode())
                                 {
-                                    VideoVenues = reader.ExtractList_String().ToArray();
+                                    _rbMetadata.VideoVenues = reader.ExtractList_String().ToArray();
                                     reader.EndNode();
                                 }
                                 else
-                                    VideoVenues = new[] { reader.ExtractText() };
+                                    _rbMetadata.VideoVenues = new[] { reader.ExtractText() };
                                 break;
                             }
                         case "extra_authoring":
@@ -770,7 +736,7 @@ namespace YARG.Core.Song
             return result;
         }
 
-        private void SongLoop(DTAResult result, YARGDTAReader reader)
+        private void SongLoop(ref DTAResult result, YARGDTAReader reader)
         {
             while (reader.StartNode())
             {
@@ -779,7 +745,7 @@ namespace YARG.Core.Song
                 {
                     case "name": result.location = reader.ExtractText(); break;
                     case "tracks": TracksLoop(reader); break;
-                    case "crowd_channels": CrowdIndices = reader.ExtractList_Int().ToArray(); break;
+                    case "crowd_channels": _rbMetadata.CrowdIndices = reader.ExtractList_Int().ToArray(); break;
                     //case "vocal_parts": VocalParts = reader.Read<ushort>(); break;
                     case "pans":
                         if (reader.StartNode())
@@ -826,55 +792,55 @@ namespace YARG.Core.Song
                             {
                                 if (reader.StartNode())
                                 {
-                                    DrumIndices = reader.ExtractList_Int().ToArray();
+                                    _rbMetadata.DrumIndices = reader.ExtractList_Int().ToArray();
                                     reader.EndNode();
                                 }
                                 else
-                                    DrumIndices = new[] { reader.ExtractInt32() };
+                                    _rbMetadata.DrumIndices = new[] { reader.ExtractInt32() };
                                 break;
                             }
                         case "bass":
                             {
                                 if (reader.StartNode())
                                 {
-                                    BassIndices = reader.ExtractList_Int().ToArray();
+                                    _rbMetadata.BassIndices = reader.ExtractList_Int().ToArray();
                                     reader.EndNode();
                                 }
                                 else
-                                    BassIndices = new[] { reader.ExtractInt32() };
+                                    _rbMetadata.BassIndices = new[] { reader.ExtractInt32() };
                                 break;
                             }
                         case "guitar":
                             {
                                 if (reader.StartNode())
                                 {
-                                    GuitarIndices = reader.ExtractList_Int().ToArray();
+                                    _rbMetadata.GuitarIndices = reader.ExtractList_Int().ToArray();
                                     reader.EndNode();
                                 }
                                 else
-                                    GuitarIndices = new[] { reader.ExtractInt32() };
+                                    _rbMetadata.GuitarIndices = new[] { reader.ExtractInt32() };
                                 break;
                             }
                         case "keys":
                             {
                                 if (reader.StartNode())
                                 {
-                                    KeysIndices = reader.ExtractList_Int().ToArray();
+                                    _rbMetadata.KeysIndices = reader.ExtractList_Int().ToArray();
                                     reader.EndNode();
                                 }
                                 else
-                                    KeysIndices = new[] { reader.ExtractInt32() };
+                                    _rbMetadata.KeysIndices = new[] { reader.ExtractInt32() };
                                 break;
                             }
                         case "vocals":
                             {
                                 if (reader.StartNode())
                                 {
-                                    VocalsIndices = reader.ExtractList_Int().ToArray();
+                                    _rbMetadata.VocalsIndices = reader.ExtractList_Int().ToArray();
                                     reader.EndNode();
                                 }
                                 else
-                                    VocalsIndices = new[] { reader.ExtractInt32() };
+                                    _rbMetadata.VocalsIndices = new[] { reader.ExtractInt32() };
                                 break;
                             }
                     }
@@ -884,15 +850,15 @@ namespace YARG.Core.Song
             }
         }
 
-        private void Update(SongUpdateFiles update, DTAResult results)
+        private void Update(SongUpdateFiles update, in DTAResult results)
         {
             if (results.discUpdate)
             {
                 if (update.Midi != null)
                 {
-                    if (UpdateMidi == null || update.Midi.LastUpdatedTime > UpdateMidi.LastUpdatedTime)
+                    if (_updateMidi == null || update.Midi.LastUpdatedTime > _updateMidi.LastUpdatedTime)
                     {
-                        UpdateMidi = update.Midi;
+                        _updateMidi = update.Midi;
                     }
                 }
                 else
@@ -917,7 +883,7 @@ namespace YARG.Core.Song
                 }
             }
 
-            if (HasAlbumArt && results.alternatePath)
+            if (results.alternatePath)
             {
                 if (update.Image != null)
                 {
@@ -935,26 +901,26 @@ namespace YARG.Core.Song
             for (int i = 0; i < pans.Length; i++)
                 pending.Add(i);
 
-            if (DrumIndices != null)
-                DrumStemValues = CalculateStemValues(DrumIndices);
+            if (_rbMetadata.DrumIndices != null)
+                _rbMetadata.DrumStemValues = CalculateStemValues(_rbMetadata.DrumIndices);
 
-            if (BassIndices != null)
-                BassStemValues = CalculateStemValues(BassIndices);
+            if (_rbMetadata.BassIndices != null)
+                _rbMetadata.BassStemValues = CalculateStemValues(_rbMetadata.BassIndices);
 
-            if (GuitarIndices != null)
-                GuitarStemValues = CalculateStemValues(GuitarIndices);
+            if (_rbMetadata.GuitarIndices != null)
+                _rbMetadata.GuitarStemValues = CalculateStemValues(_rbMetadata.GuitarIndices);
 
-            if (KeysIndices != null)
-                KeysStemValues = CalculateStemValues(KeysIndices);
+            if (_rbMetadata.KeysIndices != null)
+                _rbMetadata.KeysStemValues = CalculateStemValues(_rbMetadata.KeysIndices);
 
-            if (VocalsIndices != null)
-                VocalsStemValues = CalculateStemValues(VocalsIndices);
+            if (_rbMetadata.VocalsIndices != null)
+                _rbMetadata.VocalsStemValues = CalculateStemValues(_rbMetadata.VocalsIndices);
 
-            if (CrowdIndices != null)
-                CrowdStemValues = CalculateStemValues(CrowdIndices);
+            if (_rbMetadata.CrowdIndices != null)
+                _rbMetadata.CrowdStemValues = CalculateStemValues(_rbMetadata.CrowdIndices);
 
-            TrackIndices = pending.ToArray();
-            TrackStemValues = CalculateStemValues(TrackIndices);
+            _rbMetadata.TrackIndices = pending.ToArray();
+            _rbMetadata.TrackStemValues = CalculateStemValues(_rbMetadata.TrackIndices);
 
             float[] CalculateStemValues(int[] indices)
             {
@@ -969,6 +935,96 @@ namespace YARG.Core.Song
                     pending.Remove(index);
                 }
                 return values;
+            }
+        }
+
+        private static AbridgedFileInfo? ReadUpdateInfo(BinaryReader reader)
+        {
+            if (!reader.ReadBoolean())
+            {
+                return null;
+            }
+            return new AbridgedFileInfo(reader.ReadString(), false);
+        }
+
+        private static void ReadArray<T>(out T[]? values, BinaryReader reader)
+            where T : unmanaged
+        {
+            int length = reader.ReadInt32();
+            if (length == 0)
+            {
+                values = null;
+                return;
+            }
+
+            values = new T[length];
+            unsafe
+            {
+                fixed (T* ptr = values)
+                {
+                    var span = new Span<byte>(ptr, values.Length * sizeof(T));
+                    reader.Read(span);
+                }
+            }
+        }
+
+        private static string[]? ReadStringArray(BinaryReader reader)
+        {
+            int length = reader.ReadInt32();
+            if (length == 0)
+            {
+                return null;
+            }
+
+            var strings = new string[length];
+            for (int i = 0; i < length; ++i)
+                strings[i] = reader.ReadString();
+            return strings;
+        }
+
+        private static void WriteUpdateInfo(AbridgedFileInfo? info, BinaryWriter writer)
+        {
+            if (info != null)
+            {
+                writer.Write(true);
+                writer.Write(info.FullName);
+            }
+            else
+                writer.Write(false);
+        }
+
+        private static void WriteArray<T>(T[]? values, BinaryWriter writer)
+            where T : unmanaged
+        {
+            if (values != null)
+            {
+                writer.Write(values.Length);
+                unsafe
+                {
+                    fixed (T* ptr = values)
+                    {
+                        var span = new ReadOnlySpan<byte>(ptr, values.Length * sizeof(T));
+                        writer.Write(span);
+                    }
+                }
+            }
+            else
+            {
+                writer.Write(0);
+            }
+        }
+
+        private static void WriteStringArray(string[]? strings, BinaryWriter writer)
+        {
+            if (strings != null)
+            {
+                writer.Write(strings.Length);
+                for (int i = 0; i < strings.Length; ++i)
+                    writer.Write(strings[i]);
+            }
+            else
+            {
+                writer.Write(0);
             }
         }
     }

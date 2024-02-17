@@ -8,57 +8,37 @@ using YARG.Core.IO;
 namespace YARG.Core.Song
 {
     [Serializable]
-    public sealed class RBCONDifficulties
+    public struct RBCONDifficulties
     {
-        public short band = -1;
-        public short FiveFretGuitar = -1;
-        public short FiveFretBass = -1;
-        public short FiveFretRhythm = -1;
-        public short FiveFretCoop = -1;
-        public short Keys = -1;
-        public short FourLaneDrums = -1;
-        public short ProDrums = -1;
-        public short ProGuitar = -1;
-        public short ProBass = -1;
-        public short ProKeys = -1;
-        public short LeadVocals = -1;
-        public short HarmonyVocals = -1;
-
-        public RBCONDifficulties() { }
-        public RBCONDifficulties(BinaryReader reader)
+        public static readonly RBCONDifficulties Default = new()
         {
-            band = reader.ReadInt16();
-            FiveFretGuitar = reader.ReadInt16();
-            FiveFretBass = reader.ReadInt16();
-            FiveFretRhythm = reader.ReadInt16();
-            FiveFretCoop = reader.ReadInt16();
-            Keys = reader.ReadInt16();
-            FourLaneDrums = reader.ReadInt16();
-            ProDrums = reader.ReadInt16();
-            ProGuitar = reader.ReadInt16();
-            ProBass = reader.ReadInt16();
-            ProKeys = reader.ReadInt16();
-            LeadVocals = reader.ReadInt16();
-            HarmonyVocals = reader.ReadInt16();
-        }
+            Band = -1,
+            FiveFretGuitar = -1,
+            FiveFretBass = -1,
+            FiveFretRhythm = -1,
+            FiveFretCoop = -1,
+            Keys = -1,
+            FourLaneDrums = -1,
+            ProDrums = -1,
+            ProGuitar = -1,
+            ProBass = -1,
+            ProKeys = -1,
+            LeadVocals = -1,
+            HarmonyVocals = -1,
+        };
 
-        public void Serialize(BinaryWriter writer)
-        {
-            writer.Write(band);
-            writer.Write(FiveFretGuitar);
-            writer.Write(FiveFretBass);
-            writer.Write(FiveFretRhythm);
-            writer.Write(FiveFretCoop);
-            writer.Write(Keys);
-            writer.Write(FourLaneDrums);
-            writer.Write(ProDrums);
-            writer.Write(ProGuitar);
-            writer.Write(ProBass);
-            writer.Write(ProKeys);
-            writer.Write(LeadVocals);
-            writer.Write(HarmonyVocals);
-        }
+        public short Band;
+        public short FiveFretGuitar;
+        public short FiveFretBass;
+        public short FiveFretRhythm;
+        public short FiveFretCoop;
+        public short Keys;
+        public short FourLaneDrums;
+        public short ProDrums;
+        public short ProGuitar;
+        public short ProBass;
+        public short ProKeys;
+        public short LeadVocals;
+        public short HarmonyVocals;
     }
-
-
 }

@@ -230,6 +230,14 @@ namespace YARG.Core.Song
         public override string ToString() { return Metadata.Artist + " | " + Metadata.Name; }
 
         private static readonly Regex s_YearRegex = new(@"(\d{4})");
+
+        protected SongEntry()
+        {
+            Metadata = SongMetadata.Default;
+            _parsedYear = SongMetadata.DEFAULT_YEAR;
+            _intYear = int.MaxValue;
+        }
+
         protected SongEntry(in SongMetadata metadata)
         {
             Metadata = metadata;
