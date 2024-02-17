@@ -64,10 +64,10 @@ namespace YARG.Core.Engine.Drums.Engines
 
                 if (!inputEaten)
                 {
-                    // If the input was not eaten, then overhit
+                    // If the input was not consumed, then overhit
                     Overhit();
 
-                    // At this point, either way, the input was eaten
+                    // At this point, either way, the input was consumed
                 }
 
                 OnPadHit?.Invoke((DrumsAction) State.LastPadHit.Value - 1, inputEaten);

@@ -75,11 +75,11 @@ namespace YARG.Core.Engine.Guitar.Engines
             if (State.StrumState)
             {
                 State.StrumState = false;
-                var inputEaten = ProcessNote(note, true);
+                var inputConsumed = ProcessNote(note, true);
 
-                if (!inputEaten)
+                if (!inputConsumed)
                 {
-                    // If the input was NOT eaten, then attempt to overstrum
+                    // If the input was NOT consumed, then attempt to overstrum
                     if (!State.HopoLeniencyTimer.IsActive(State.CurrentTime))
                     {
                         if (State.StrumLeniencyTimer.IsActive(State.CurrentTime))
@@ -111,7 +111,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 }
                 else
                 {
-                    // If an input was eaten, a note was hit
+                    // If an input was consumed, a note was hit
                     return true;
                 }
             }
@@ -125,9 +125,9 @@ namespace YARG.Core.Engine.Guitar.Engines
                 {
                     // If the strum leniency timer is active, then attempt to hit a strum
 
-                    var strumEaten = ProcessNote(note, true);
+                    var strumConsumed = ProcessNote(note, true);
 
-                    if (strumEaten)
+                    if (strumConsumed)
                     {
                         State.StrumLeniencyTimer.Reset();
 
@@ -137,9 +137,9 @@ namespace YARG.Core.Engine.Guitar.Engines
                     // ... otherwise attempt to hit a tap
                 }
 
-                var inputEaten = ProcessNote(note, false);
+                var inputConsumed = ProcessNote(note, false);
 
-                if (!inputEaten)
+                if (!inputConsumed)
                 {
                     if (CheckForGhostInput(note))
                     {
