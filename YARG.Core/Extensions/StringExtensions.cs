@@ -174,5 +174,22 @@ namespace YARG.Core.Extensions
 
             return buffer;
         }
+
+        /// <summary>
+        /// Counts the number of times a given character occurs in the read-only character span.
+        /// </summary>
+        public static int Count(this ReadOnlySpan<char> buffer, char c)
+        {
+            int count = 0;
+
+            int index;
+            while ((index = buffer.IndexOf(c)) >= 0)
+            {
+                count++;
+                buffer = buffer[++index..];
+            }
+
+            return count;
+        }
     }
 }
