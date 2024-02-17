@@ -24,6 +24,8 @@ namespace YARG.Core.Engine
 
         protected readonly Queue<GameInput> InputQueue;
 
+        private readonly List<double> _consistencyAnchors = new();
+
         /// <summary>
         /// Whether or not the specified engine should treat a note as a chord, or separately.
         /// For example, guitars would treat each note as a chord, where as drums would treat them
@@ -111,8 +113,7 @@ namespace YARG.Core.Engine
             {
                 // This will update the engine to the time of the input.
                 // However, it does not use the input for the update.
-                // UpdateUpToTime(input.Time);
-                RunHitLogic(input.Time);
+                UpdateUpToTime(input.Time);
 
                 // Process the input and run hit logic for it.
                 MutateStateWithInput(input);
@@ -142,17 +143,44 @@ namespace YARG.Core.Engine
 
         protected abstract void MutateStateWithInput(GameInput gameInput);
 
-        protected virtual void UpdateUpToTime(double time)
+        protected void UpdateUpToTime(double time)
         {
+            if (time < BaseState.CurrentTime)
+            {
+                YargTrace.LogError($"Engine could not update up to time {time} as it is before the current time!");
+                return;
+            }
+
+            // Get consistency anchors
+            _consistencyAnchors.Clear();
+            AddConsistencyAnchors(_consistencyAnchors);
+            _consistencyAnchors.Sort();
+
+            // Run consistency anchors
+            foreach (var anchor in _consistencyAnchors)
+            {
+                // Skip until we reach the point that the anchor is ahead of the current time.
+                if (anchor < BaseState.CurrentTime)
+                {
+                    continue;
+                }
+
+                // Break when we reach a time that is ahead of the target time.
+                // We can safely break here since it's sorted.
+                if (anchor > time)
+                {
+                    break;
+                }
+
+                RunHitLogic(anchor);
+            }
+
+            // Run at the actual time
             RunHitLogic(time);
         }
 
-        protected void TrackTimerEndTime(double time, EngineTimer timer)
+        protected virtual void AddConsistencyAnchors(List<double> anchors)
         {
-            if (timer.EndTime < time)
-            {
-                RunHitLogic(time);
-            }
         }
 
         /// <summary>

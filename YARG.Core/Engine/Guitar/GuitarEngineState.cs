@@ -32,6 +32,11 @@
         /// Fretting after this time will overstrum.
         /// </summary>
         public EngineTimer StrumLeniencyTimer;
+        /// <summary>
+        /// The time at which the note should be hit for infinite front end. If null,
+        /// the note should not be hit without an input.
+        /// </summary>
+        public double? InfiniteFrontEndHitTime;
 
         public EngineTimer StarPowerWhammyTimer;
 

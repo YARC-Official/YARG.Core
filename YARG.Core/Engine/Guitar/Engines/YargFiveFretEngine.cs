@@ -1,4 +1,5 @@
-﻿using YARG.Core.Chart;
+﻿using System;
+using YARG.Core.Chart;
 using YARG.Core.Input;
 
 namespace YARG.Core.Engine.Guitar.Engines
@@ -71,10 +72,27 @@ namespace YARG.Core.Engine.Guitar.Engines
                 }
             }
 
+            // Infinite front end hit (this can happen regardless of if infinite front end is on or not)
+            if (State.InfiniteFrontEndHitTime <= State.CurrentTime)
+            {
+                State.InfiniteFrontEndHitTime = null;
+
+                var inputConsumed = ProcessNote(note, false);
+
+                if (inputConsumed)
+                {
+                    // If an input was consumed, a note was hit
+                    return true;
+                }
+            }
+
             // Check for strum hit
             if (State.StrumState)
             {
                 State.StrumState = false;
+
+                State.InfiniteFrontEndHitTime = null;
+
                 var inputConsumed = ProcessNote(note, true);
 
                 if (!inputConsumed)
@@ -121,6 +139,8 @@ namespace YARG.Core.Engine.Guitar.Engines
             {
                 State.FretState = FretState.None;
 
+                State.InfiniteFrontEndHitTime = null;
+
                 if (State.StrumLeniencyTimer.IsActive(State.CurrentTime))
                 {
                     // If the strum leniency timer is active, then attempt to hit a strum
@@ -141,7 +161,13 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                 if (!inputConsumed)
                 {
-                    if (CheckForGhostInput(note))
+                    // If the note *can* be hit with the current fret state, then
+                    // start the infinite front end
+                    if (EngineParameters.InfiniteFrontEnd && (note.IsHopo || note.IsTap) && CanNoteBeHit(note))
+                    {
+                        State.InfiniteFrontEndHitTime = note.Time + EngineParameters.HitWindow.GetFrontEnd(hitWindow);
+                    }
+                    else if (CheckForGhostInput(note))
                     {
                         EngineStats.GhostInputs++;
 
@@ -183,7 +209,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             else
             {
                 var hopoAndHittable = note.IsHopo && EngineStats.Combo > 0;
-                if ((note.IsTap || hopoAndHittable) && !State.WasNoteGhosted)
+                if (CanNoteBeHit(note) && (note.IsTap || hopoAndHittable) && !State.WasNoteGhosted)
                 {
                     State.HopoLeniencyTimer.Start(State.CurrentTime);
 
