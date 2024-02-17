@@ -2,7 +2,6 @@
 {
     public abstract class BaseEngineState
     {
-
         public int NoteIndex;
 
         public double CurrentTime;
@@ -53,6 +52,5 @@
             IsStarPowerInputActive = false;
             StarPowerBaseTick = 0;
         }
-
     }
 }

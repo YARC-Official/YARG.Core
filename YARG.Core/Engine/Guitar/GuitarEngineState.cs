@@ -1,14 +1,23 @@
 ﻿namespace YARG.Core.Engine.Guitar
 {
+    public enum FretState : byte
+    {
+        None,
+        Down,
+        Up
+    }
+
     public class GuitarEngineState : BaseEngineState
     {
         // Dummy variable for now
         public byte ButtonMask;
 
+        public byte LastFretMask;
         public byte FretMask;
-        public bool DidFret;
 
-        public bool DidStrum;
+        public FretState FretState;
+
+        public bool StrumState;
 
         public bool WasHopoStrummed;
         public bool WasNoteGhosted;
@@ -42,9 +51,9 @@
             base.Reset();
 
             FretMask = 0;
-            DidFret = false;
+            FretState = FretState.None;
 
-            DidStrum = false;
+            StrumState = false;
             WasHopoStrummed = false;
             WasNoteGhosted = false;
 

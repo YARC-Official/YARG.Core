@@ -16,7 +16,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             var action = gameInput.GetAction<GuitarAction>();
 
             // Star power
-            if (action == GuitarAction.StarPower && gameInput.Button && EngineStats.CanStarPowerActivate)
+            if (action is GuitarAction.StarPower && gameInput.Button && EngineStats.CanStarPowerActivate)
             {
                 ActivateStarPower();
                 return;
@@ -25,15 +25,17 @@ namespace YARG.Core.Engine.Guitar.Engines
             // Strumming
             if (action is GuitarAction.StrumDown or GuitarAction.StrumUp && gameInput.Button)
             {
-                State.DidStrum = true;
+                State.StrumState = true;
                 return;
             }
 
             // Fretting
             if (IsFretInput(gameInput))
             {
+                State.LastFretMask = State.FretMask;
+
                 ToggleFret(gameInput.Action, gameInput.Button);
-                State.DidFret = true;
+                State.FretState = gameInput.Button ? FretState.Down : FretState.Up;
                 return;
             }
         }
@@ -70,9 +72,10 @@ namespace YARG.Core.Engine.Guitar.Engines
             }
 
             // Check for strum hit
-            if (State.DidStrum)
+            if (State.StrumState)
             {
-                var inputEaten = ProcessNoteStrum(note);
+                State.StrumState = false;
+                var inputEaten = ProcessNote(note, true);
 
                 if (!inputEaten)
                 {
@@ -105,48 +108,48 @@ namespace YARG.Core.Engine.Guitar.Engines
                     {
                         State.HopoLeniencyTimer.Reset();
                     }
-
-                    State.DidStrum = false;
                 }
                 else
                 {
                     // If an input was eaten, a note was hit
-                    State.DidStrum = false;
                     return true;
                 }
             }
 
             // Check for fret hit
-            if (State.DidFret)
+            if (State.FretState == FretState.Down)
             {
+                State.FretState = FretState.None;
+
                 if (State.StrumLeniencyTimer.IsActive(State.CurrentTime))
                 {
                     // If the strum leniency timer is active, then attempt to hit a strum
 
-                    var strumEaten = ProcessNoteStrum(note);
+                    var strumEaten = ProcessNote(note, true);
 
                     if (strumEaten)
                     {
                         State.StrumLeniencyTimer.Reset();
 
-                        State.DidFret = false;
                         return true;
                     }
 
                     // ... otherwise attempt to hit a tap
                 }
 
-                var inputEaten = ProcessNoteTap(note);
+                var inputEaten = ProcessNote(note, false);
 
                 if (!inputEaten)
                 {
-                    // TODO: Ghost
+                    if (CheckForGhostInput(note))
+                    {
+                        EngineStats.GhostInputs++;
 
-                    State.DidFret = false;
+                        State.WasNoteGhosted = EngineParameters.AntiGhosting;
+                    }
                 }
                 else
                 {
-                    State.DidFret = false;
                     return true;
                 }
             }
@@ -154,8 +157,13 @@ namespace YARG.Core.Engine.Guitar.Engines
             return false;
         }
 
-        private bool ProcessNoteStrum(GuitarNote note)
+        private bool ProcessNote(GuitarNote note, bool strummed)
         {
+            if (note.WasHit || note.WasMissed)
+            {
+                return false;
+            }
+
             double hitWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
 
             if (State.CurrentTime < note.Time + EngineParameters.HitWindow.GetFrontEnd(hitWindow))
@@ -164,35 +172,22 @@ namespace YARG.Core.Engine.Guitar.Engines
                 return false;
             }
 
-            if (CanNoteBeHit(note))
+            if (strummed)
             {
-                HitNote(note);
-                return true;
-            }
-
-            // Pass on the input
-            return false;
-        }
-
-        private bool ProcessNoteTap(GuitarNote note)
-        {
-            double hitWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
-
-            if (!EngineParameters.InfiniteFrontEnd &&
-                State.CurrentTime < note.Time + EngineParameters.HitWindow.GetFrontEnd(hitWindow))
-            {
-                // Pass on the input
-                return false;
-            }
-
-            if (CanNoteBeHit(note))
-            {
-                if (note.IsTap || (note.IsHopo && EngineStats.Combo > 0))
+                if (CanNoteBeHit(note))
                 {
                     HitNote(note);
-
+                    return true;
+                }
+            }
+            else
+            {
+                var hopoAndHittable = note.IsHopo && EngineStats.Combo > 0;
+                if ((note.IsTap || hopoAndHittable) && !State.WasNoteGhosted)
+                {
                     State.HopoLeniencyTimer.Start(State.CurrentTime);
 
+                    HitNote(note);
                     return true;
                 }
             }
@@ -225,26 +220,25 @@ namespace YARG.Core.Engine.Guitar.Engines
             //     // This removes just the single fret of the disjoint note
             //     if ((sustainNote.IsExtendedSustain && sustainNote.IsDisjoint) || sustainNote.IsDisjoint)
             //     {
-            //         buttonsMasked -= (byte) sustainNote.DisjointMask;
+            //         fretMask -= (byte) sustainNote.DisjointMask;
             //     }
             //     else if (sustainNote.IsExtendedSustain)
             //     {
             //         // Remove the entire note mask if its an extended sustain
             //         // Difference between NoteMask and DisjointMask is that DisjointMask is only a single fret
             //         // while NoteMask is the entire chord
-            //         buttonsMasked -= (byte) sustainNote.NoteMask;
+            //         fretMask -= (byte) sustainNote.NoteMask;
             //     }
             // }
 
-            bool disjointOrExtended = note.IsDisjoint || note.IsExtendedSustain;
+            // Only used for sustain logic
+            bool useDisjointMask = note is { IsDisjoint: true, WasHit: true };
 
             // Use the DisjointMask for comparison if disjointed and was hit (for sustain logic)
-            int noteMask = disjointOrExtended && note.WasHit
-                ? note.DisjointMask
-                : note.NoteMask;
+            int noteMask = useDisjointMask ? note.DisjointMask : note.NoteMask;
 
             // If disjointed and is sustain logic (was hit), can hit if disjoint mask matches
-            if (disjointOrExtended && note.WasHit && (note.DisjointMask & fretMask) != 0)
+            if (useDisjointMask && (note.DisjointMask & fretMask) != 0)
             {
                 return true;
             }
@@ -279,7 +273,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 // Anchoring hopo/tap chords
 
                 // Gets the lowest fret of the chord.
-                int chordMask = 0;
+                var chordMask = 0;
                 for (var fret = GuitarAction.GreenFret; fret <= GuitarAction.OrangeFret; fret++)
                 {
                     chordMask = 1 << (int) fret;
@@ -303,6 +297,45 @@ namespace YARG.Core.Engine.Guitar.Engines
 
             // Anchor buttons held are lower than the note mask
             return anchorButtons < noteMask;
+        }
+
+        protected bool CheckForGhostInput(GuitarNote note)
+        {
+            // First note cannot be ghosted, nor can a note be ghosted if a button is unpressed (pulloff)
+            if (note.PreviousNote is null)
+            {
+                return false;
+            }
+
+            // Note can only be ghosted if it's in timing window
+            if (!IsNoteInWindow(note))
+            {
+                return false;
+            }
+
+            // Input is a hammer-on if the highest fret held is higher than the highest fret of the previous mask
+            bool isHammerOn = GetMostSignificantBit(State.FretMask) > GetMostSignificantBit(State.LastFretMask);
+
+            // Input is a hammer-on and the button pressed is not part of the note mask (incorrect fret)
+            if (isHammerOn && (State.FretMask & note.NoteMask) == 0)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private static int GetMostSignificantBit(int mask)
+        {
+            // Gets the most significant bit of the mask
+            var msbIndex = 0;
+            while (mask != 0)
+            {
+                mask >>= 1;
+                msbIndex++;
+            }
+
+            return msbIndex;
         }
     }
 }
