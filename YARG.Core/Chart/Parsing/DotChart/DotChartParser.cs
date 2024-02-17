@@ -29,6 +29,7 @@ namespace YARG.Core.Chart.Parsing
 
             // Check for the [Song] section first explicitly, need the Resolution property up-front
             ExpectSection(chartText, ref textIndex, SONG_SECTION, out var sectionBody);
+            var metadata = ParseMetadata(sectionBody);
 
             // Check for [SyncTrack] next, we need it for time conversions
             ExpectSection(chartText, ref textIndex, SYNC_TRACK_SECTION, out sectionBody);
