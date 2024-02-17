@@ -56,7 +56,7 @@ namespace YARG.Core.Engine.Guitar
             }
         }
 
-        protected virtual void Overstrum(TimeContext timeContext)
+        protected virtual void Overstrum()
         {
             // Can't overstrum before first note is hit/missed
             if (State.NoteIndex == 0)
@@ -77,9 +77,9 @@ namespace YARG.Core.Engine.Guitar
                 ActiveSustains.RemoveAt(i);
                 i--;
 
-                double finalScore = CalculateSustainPoints(sustain, timeContext.Tick);
+                double finalScore = CalculateSustainPoints(sustain, State.CurrentTick);
                 EngineStats.CommittedScore += (int) Math.Ceiling(finalScore);
-                OnSustainEnd?.Invoke(sustain.Note, timeContext.Time, sustain.HasFinishedScoring);
+                OnSustainEnd?.Invoke(sustain.Note, State.CurrentTime, sustain.HasFinishedScoring);
             }
 
             if (State.NoteIndex < Notes.Count)

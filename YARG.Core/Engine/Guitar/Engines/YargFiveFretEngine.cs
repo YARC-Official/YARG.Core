@@ -41,14 +41,6 @@ namespace YARG.Core.Engine.Guitar.Engines
         protected override bool UpdateEngineLogic(double time)
         {
             UpdateTimeVariables(time);
-
-            // Overstrum for strum leniency
-            if (State.StrumLeniencyTimer.IsExpired(State.CurrentTime))
-            {
-                Overstrum(TimeContext.CreateFromTimerEnd(SyncTrack, State.StrumLeniencyTimer));
-                State.StrumLeniencyTimer.Reset();
-            }
-
             UpdateStarPower();
 
             // Quit early if there are no notes left
@@ -59,6 +51,13 @@ namespace YARG.Core.Engine.Guitar.Engines
 
             var note = Notes[State.NoteIndex];
             double hitWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
+
+            // Overstrum for strum leniency
+            if (State.StrumLeniencyTimer.IsExpired(State.CurrentTime))
+            {
+                // Overstrum(); problem
+                State.StrumLeniencyTimer.Reset();
+            }
 
             // Check for note miss note (back end)
             if (State.CurrentTime > note.Time + EngineParameters.HitWindow.GetBackEnd(hitWindow))
@@ -84,7 +83,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                         {
                             // If the strum leniency timer was already active,
                             // that means that the player is already in the leniency.
-                            Overstrum(State.TimeContext);
+                            Overstrum();
                             // ... then start the strum leniency timer for *this*
                             // strum.
                         }

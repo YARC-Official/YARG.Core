@@ -50,6 +50,11 @@ namespace YARG.Core.Engine
             return TreatChordAsSeparate ? type.ChildNotes.Count + 1 : 1;
         }
 
+        protected uint GetCurrentTick(double time)
+        {
+            return SyncTrack.TimeToTick(time);
+        }
+
         /// <summary>
         /// Queue an input to be processed by the engine.
         /// </summary>
