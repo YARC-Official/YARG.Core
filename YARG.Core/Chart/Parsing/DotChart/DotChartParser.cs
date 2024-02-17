@@ -33,6 +33,7 @@ namespace YARG.Core.Chart.Parsing
 
             // Check for [SyncTrack] next, we need it for time conversions
             ExpectSection(chartText, ref textIndex, SYNC_TRACK_SECTION, out sectionBody);
+            ParseSyncTrack(sectionBody, chart, metadata.Resolution);
 
             // Lastly, check for [Events]
             // Not strictly necessary, but may as well handle it specifically

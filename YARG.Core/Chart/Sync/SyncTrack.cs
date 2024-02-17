@@ -21,6 +21,11 @@ namespace YARG.Core.Chart
 
         public SyncTrack() { }
 
+        public SyncTrack(uint resolution)
+        {
+            Resolution = resolution;
+        }
+
         public SyncTrack(uint resolution, List<TempoChange> tempos, List<TimeSignatureChange> timeSignatures,
             List<Beatline> beatlines)
         {
