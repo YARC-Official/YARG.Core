@@ -30,7 +30,9 @@ namespace YARG.Core.Song
                         rbDiffs.FourLaneDrums = (short) diff;
                         SetRank(ref FourLaneDrums.Intensity, diff, DrumDiffMap);
                         if (ProDrums.Intensity == -1)
+                        {
                             ProDrums.Intensity = FourLaneDrums.Intensity;
+                        }
                         break;
                     case "guitar":
                         rbDiffs.FiveFretGuitar = (short) diff;
@@ -69,17 +71,29 @@ namespace YARG.Core.Song
                         rbDiffs.ProGuitar = (short) diff;
                         SetRank(ref ProGuitar_17Fret.Intensity, diff, RealGuitarDiffMap);
                         ProGuitar_22Fret.Intensity = ProGuitar_17Fret.Intensity;
+                        if (FiveFretGuitar.Intensity == -1)
+                        {
+                            FiveFretGuitar.Intensity = ProGuitar_17Fret.Intensity;
+                        }
                         break;
                     case "realBass":
                     case "real_bass":
                         rbDiffs.ProBass = (short) diff;
                         SetRank(ref ProBass_17Fret.Intensity, diff, RealBassDiffMap);
                         ProBass_22Fret.Intensity = ProBass_17Fret.Intensity;
+                        if (FiveFretBass.Intensity == -1)
+                        {
+                            FiveFretBass.Intensity = ProBass_17Fret.Intensity;
+                        }
                         break;
                     case "realKeys":
                     case "real_keys":
                         rbDiffs.ProKeys = (short) diff;
                         SetRank(ref ProKeys.Intensity, diff, RealKeysDiffMap);
+                        if (Keys.Intensity == -1)
+                        {
+                            Keys.Intensity = ProKeys.Intensity;
+                        }
                         break;
                     case "realDrums":
                     case "real_drums":
