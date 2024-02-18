@@ -35,26 +35,40 @@ namespace YARG.Core.Song
                     case "guitar":
                         rbDiffs.FiveFretGuitar = (short) diff;
                         SetRank(ref FiveFretGuitar.Intensity, diff, GuitarDiffMap);
+                        if (ProGuitar_17Fret.Intensity == -1)
+                        {
+                            ProGuitar_22Fret.Intensity = ProGuitar_17Fret.Intensity = FiveFretGuitar.Intensity;
+                        }
                         break;
                     case "bass":
                         rbDiffs.FiveFretBass = (short) diff;
                         SetRank(ref FiveFretBass.Intensity, diff, BassDiffMap);
+                        if (ProBass_17Fret.Intensity == -1)
+                        {
+                            ProBass_22Fret.Intensity = ProBass_17Fret.Intensity = FiveFretBass.Intensity;
+                        }
                         break;
                     case "vocals":
                         rbDiffs.LeadVocals = (short) diff;
                         SetRank(ref LeadVocals.Intensity, diff, VocalsDiffMap);
                         if (HarmonyVocals.Intensity == -1)
+                        {
                             HarmonyVocals.Intensity = LeadVocals.Intensity;
+                        }
                         break;
                     case "keys":
                         rbDiffs.Keys = (short) diff;
                         SetRank(ref Keys.Intensity, diff, KeysDiffMap);
+                        if (ProKeys.Intensity == -1)
+                        {
+                            ProKeys.Intensity = Keys.Intensity;
+                        }
                         break;
                     case "realGuitar":
                     case "real_guitar":
                         rbDiffs.ProGuitar = (short) diff;
                         SetRank(ref ProGuitar_17Fret.Intensity, diff, RealGuitarDiffMap);
-                        ProBass_22Fret.Intensity = ProGuitar_17Fret.Intensity;
+                        ProGuitar_22Fret.Intensity = ProGuitar_17Fret.Intensity;
                         break;
                     case "realBass":
                     case "real_bass":
@@ -72,14 +86,18 @@ namespace YARG.Core.Song
                         rbDiffs.ProDrums = (short) diff;
                         SetRank(ref ProDrums.Intensity, diff, RealDrumsDiffMap);
                         if (FourLaneDrums.Intensity == -1)
+                        {
                             FourLaneDrums.Intensity = ProDrums.Intensity;
+                        }
                         break;
                     case "harmVocals":
                     case "vocal_harm":
                         rbDiffs.HarmonyVocals = (short) diff;
                         SetRank(ref HarmonyVocals.Intensity, diff, HarmonyDiffMap);
                         if (LeadVocals.Intensity == -1)
+                        {
                             LeadVocals.Intensity = HarmonyVocals.Intensity;
+                        }
                         break;
                     case "band":
                         rbDiffs.Band = (short) diff;
