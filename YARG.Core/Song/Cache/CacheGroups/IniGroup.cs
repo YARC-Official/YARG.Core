@@ -38,18 +38,14 @@ namespace YARG.Core.Song.Cache
             // cannot be parallelized
             if (entries.TryGetValue(entryToRemove.Hash, out var list))
             {
-                for (int i = 0; i < list.Count; ++i)
+                if (list.RemoveAll(entry => entry == entryToRemove) > 0)
                 {
-                    if (list[i] == entryToRemove)
+                    if (list.Count == 0)
                     {
-                        list.RemoveAt(i);
-                        if (list.Count == 0)
-                        {
-                            entries.Remove(entryToRemove.Hash);
-                        }
-                        --_count;
-                        return true;
+                        entries.Remove(entryToRemove.Hash);
                     }
+                    --_count;
+                    return true;
                 }
             }
             return false;
