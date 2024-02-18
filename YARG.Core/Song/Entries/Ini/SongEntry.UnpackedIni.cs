@@ -76,9 +76,18 @@ namespace YARG.Core.Song
                     files.Add(Path.GetFileName(file).ToLower(), file);
             }
 
+            if (!string.IsNullOrEmpty(_cover) && files.TryGetValue(_cover, out var cover))
+            {
+                return File.ReadAllBytes(cover);
+            }
+
             foreach (string albumFile in ALBUMART_FILES)
+            {
                 if (files.TryGetValue(albumFile, out var fullname))
+                {
                     return File.ReadAllBytes(fullname);
+                }
+            }
             return null;
         }
 
@@ -99,18 +108,30 @@ namespace YARG.Core.Song
 
             if ((options & BackgroundType.Video) > 0)
             {
+                if (!string.IsNullOrEmpty(_video) && files.TryGetValue(_video, out var video))
+                {
+                    return new BackgroundResult(BackgroundType.Video, new FileStream(video, FileMode.Open, FileAccess.Read, FileShare.Read));
+                }
+
                 foreach (var stem in BACKGROUND_FILENAMES)
                 {
                     foreach (var format in VIDEO_EXTENSIONS)
                     {
                         if (files.TryGetValue(stem + format, out var fullname))
+                        {
                             return new BackgroundResult(BackgroundType.Video, new FileStream(fullname, FileMode.Open, FileAccess.Read, FileShare.Read));
+                        }
                     }
                 }
             }
 
             if ((options & BackgroundType.Image) > 0)
             {
+                if (!string.IsNullOrEmpty(_background) && files.TryGetValue(_background, out var background))
+                {
+                    return new BackgroundResult(BackgroundType.Image, new FileStream(background, FileMode.Open, FileAccess.Read, FileShare.Read));
+                }
+
                 foreach (var stem in BACKGROUND_FILENAMES)
                 {
                     foreach (var format in IMAGE_EXTENSIONS)

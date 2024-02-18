@@ -69,16 +69,43 @@ namespace YARG.Core.Song
             "album.png", "album.jpg", "album.jpeg",
         };
 
+        protected readonly string _background;
+        protected readonly string _video;
+        protected readonly string _cover;
+        public readonly bool Video_Loop;
+
         public abstract ChartType Type { get; }
 
         protected IniSubEntry(AvailableParts parts, HashWrapper hash, IniSection modifiers, string defaultPlaylist)
             : base(parts, hash, modifiers, defaultPlaylist)
         {
+            if (modifiers.TryGet("background", out _background))
+            {
+                string ext = Path.GetExtension(_background).ToLower();
+                _background = IMAGE_EXTENSIONS.Contains(ext) ? _background.ToLowerInvariant() : string.Empty;
+            }
+
+            if (modifiers.TryGet("video", out _video))
+            {
+                string ext = Path.GetExtension(_video).ToLower();
+                _video = VIDEO_EXTENSIONS.Contains(ext) ? _video.ToLowerInvariant() : string.Empty;
+            }
+
+            if (modifiers.TryGet("cover", out _cover))
+            {
+                string ext = Path.GetExtension(_cover).ToLower();
+                _cover = IMAGE_EXTENSIONS.Contains(ext) ? _cover.ToLowerInvariant() : string.Empty;
+            }
+            modifiers.TryGet("video_loop", out Video_Loop);
         }
 
         protected IniSubEntry(BinaryReader reader, CategoryCacheStrings strings)
             : base(reader, strings)
         {
+            _background = reader.ReadString();
+            _video = reader.ReadString();
+            _cover = reader.ReadString();
+            Video_Loop = reader.ReadBoolean();
         }
 
         protected abstract Stream? GetChartStream();
@@ -96,9 +123,14 @@ namespace YARG.Core.Song
 
             writer.Write(SubType == EntryType.Sng);
             writer.Write(relativePath);
+
             SerializeSubData(writer);
             SerializeMetadata(writer, node);
 
+            writer.Write(_background);
+            writer.Write(_video);
+            writer.Write(_cover);
+            writer.Write(Video_Loop);
             return ms.ToArray();
         }
 
