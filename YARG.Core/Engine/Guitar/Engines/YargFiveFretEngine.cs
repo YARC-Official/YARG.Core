@@ -1,5 +1,4 @@
-﻿using System;
-using YARG.Core.Chart;
+﻿using YARG.Core.Chart;
 using YARG.Core.Input;
 
 namespace YARG.Core.Engine.Guitar.Engines
@@ -36,6 +35,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 State.LastFretMask = State.FretMask;
 
                 ToggleFret(gameInput.Action, gameInput.Button);
+
                 State.FretState = gameInput.Button ? FretState.Down : FretState.Up;
                 return;
             }
@@ -73,7 +73,8 @@ namespace YARG.Core.Engine.Guitar.Engines
             }
 
             // Infinite front end hit (this can happen regardless of if infinite front end is on or not)
-            if (State.InfiniteFrontEndHitTime <= State.CurrentTime)
+            if (State.InfiniteFrontEndHitTime is not null &&
+                State.InfiniteFrontEndHitTime <= State.CurrentTime)
             {
                 State.InfiniteFrontEndHitTime = null;
 
@@ -161,18 +162,7 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                 if (!inputConsumed)
                 {
-                    // If the note *can* be hit with the current fret state, then
-                    // start the infinite front end
-                    if (EngineParameters.InfiniteFrontEnd && (note.IsHopo || note.IsTap) && CanNoteBeHit(note))
-                    {
-                        State.InfiniteFrontEndHitTime = note.Time + EngineParameters.HitWindow.GetFrontEnd(hitWindow);
-                    }
-                    else if (CheckForGhostInput(note))
-                    {
-                        EngineStats.GhostInputs++;
-
-                        State.WasNoteGhosted = EngineParameters.AntiGhosting;
-                    }
+                    CheckInfiniteFrontEndAndGhost(note, hitWindow, true);
                 }
                 else
                 {
@@ -180,7 +170,42 @@ namespace YARG.Core.Engine.Guitar.Engines
                 }
             }
 
+            // Check for fret up
+            if (State.FretState == FretState.Up)
+            {
+                State.FretState = FretState.None;
+
+                State.InfiniteFrontEndHitTime = null;
+
+                // Update the infinite front end hit time here,
+                // as the fret mask has changed at this point
+                CheckInfiniteFrontEndAndGhost(note, hitWindow, false);
+            }
+
             return false;
+        }
+
+        private void CheckInfiniteFrontEndAndGhost(GuitarNote note, double hitWindow, bool fretDown)
+        {
+            // If the note *can* be hit with the current fret state, then
+            // start the infinite front end
+            if (EngineParameters.InfiniteFrontEnd && (note.IsHopo || note.IsTap) && CanNoteBeHit(note))
+            {
+                State.InfiniteFrontEndHitTime = note.Time + EngineParameters.HitWindow.GetFrontEnd(hitWindow);
+
+                // If we're already past this point, then it wouldn't be an infinite front-end,
+                // it'd just be a normal front-end.
+                if (State.CurrentTime > State.InfiniteFrontEndHitTime)
+                {
+                    State.InfiniteFrontEndHitTime = null;
+                }
+            }
+            else if (fretDown && CheckForGhostInput(note))
+            {
+                EngineStats.GhostInputs++;
+
+                State.WasNoteGhosted = EngineParameters.AntiGhosting;
+            }
         }
 
         private bool ProcessNote(GuitarNote note, bool strummed)

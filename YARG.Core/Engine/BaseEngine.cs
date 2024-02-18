@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using YARG.Core.Chart;
 using YARG.Core.Engine.Logging;
 using YARG.Core.Input;
@@ -153,7 +154,7 @@ namespace YARG.Core.Engine
 
             // Get consistency anchors
             _consistencyAnchors.Clear();
-            AddConsistencyAnchors(_consistencyAnchors);
+            AddConsistencyAnchors(_consistencyAnchors, BaseState.CurrentTime);
             _consistencyAnchors.Sort();
 
             // Run consistency anchors
@@ -179,7 +180,7 @@ namespace YARG.Core.Engine
             RunHitLogic(time);
         }
 
-        protected virtual void AddConsistencyAnchors(List<double> anchors)
+        protected virtual void AddConsistencyAnchors(List<double> anchors, double originalTime)
         {
         }
 

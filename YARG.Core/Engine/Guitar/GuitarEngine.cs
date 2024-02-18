@@ -56,9 +56,12 @@ namespace YARG.Core.Engine.Guitar
             }
         }
 
-        protected override void AddConsistencyAnchors(List<double> anchors)
+        protected override void AddConsistencyAnchors(List<double> anchors, double originalTime)
         {
-            anchors.Add(State.StrumLeniencyTimer.EndTime);
+            if (State.StrumLeniencyTimer.IsActive(originalTime))
+            {
+                anchors.Add(State.StrumLeniencyTimer.EndTime);
+            }
 
             if (State.InfiniteFrontEndHitTime is not null)
             {
