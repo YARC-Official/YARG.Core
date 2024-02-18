@@ -15,9 +15,8 @@
         public byte LastFretMask;
         public byte FretMask;
 
-        public FretState FretState;
-
-        public bool StrumState;
+        public bool HasFretted;
+        public bool HasStrummed;
 
         public bool WasHopoStrummed;
         public bool WasNoteGhosted;
@@ -56,9 +55,10 @@
             base.Reset();
 
             FretMask = 0;
-            FretState = FretState.None;
 
-            StrumState = false;
+            HasFretted = false;
+            HasStrummed = false;
+
             WasHopoStrummed = false;
             WasNoteGhosted = false;
 

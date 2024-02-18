@@ -25,7 +25,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             // Strumming
             if (action is GuitarAction.StrumDown or GuitarAction.StrumUp && gameInput.Button)
             {
-                State.StrumState = true;
+                State.HasStrummed = true;
                 return;
             }
 
@@ -33,11 +33,9 @@ namespace YARG.Core.Engine.Guitar.Engines
             if (IsFretInput(gameInput))
             {
                 State.LastFretMask = State.FretMask;
+                State.HasFretted = true;
 
                 ToggleFret(gameInput.Action, gameInput.Button);
-
-                State.FretState = gameInput.Button ? FretState.Down : FretState.Up;
-                return;
             }
         }
 
@@ -88,9 +86,9 @@ namespace YARG.Core.Engine.Guitar.Engines
             }
 
             // Check for strum hit
-            if (State.StrumState)
+            if (State.HasStrummed)
             {
-                State.StrumState = false;
+                State.HasStrummed = false;
 
                 State.InfiniteFrontEndHitTime = null;
 
@@ -136,9 +134,9 @@ namespace YARG.Core.Engine.Guitar.Engines
             }
 
             // Check for fret hit
-            if (State.FretState == FretState.Down)
+            if (State.HasFretted)
             {
-                State.FretState = FretState.None;
+                State.HasFretted = false;
 
                 State.InfiniteFrontEndHitTime = null;
 
@@ -162,7 +160,7 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                 if (!inputConsumed)
                 {
-                    CheckInfiniteFrontEndAndGhost(note, hitWindow, true);
+                    CheckInfiniteFrontEndAndGhost(note, hitWindow);
                 }
                 else
                 {
@@ -170,22 +168,10 @@ namespace YARG.Core.Engine.Guitar.Engines
                 }
             }
 
-            // Check for fret up
-            if (State.FretState == FretState.Up)
-            {
-                State.FretState = FretState.None;
-
-                State.InfiniteFrontEndHitTime = null;
-
-                // Update the infinite front end hit time here,
-                // as the fret mask has changed at this point
-                CheckInfiniteFrontEndAndGhost(note, hitWindow, false);
-            }
-
             return false;
         }
 
-        private void CheckInfiniteFrontEndAndGhost(GuitarNote note, double hitWindow, bool fretDown)
+        private void CheckInfiniteFrontEndAndGhost(GuitarNote note, double hitWindow)
         {
             // If the note *can* be hit with the current fret state, then
             // start the infinite front end
@@ -200,11 +186,14 @@ namespace YARG.Core.Engine.Guitar.Engines
                     State.InfiniteFrontEndHitTime = null;
                 }
             }
-            else if (fretDown && CheckForGhostInput(note))
+
+            bool ghosted = CheckForGhostInput(note);
+
+            if (ghosted)
             {
                 EngineStats.GhostInputs++;
 
-                State.WasNoteGhosted = EngineParameters.AntiGhosting;
+                State.WasNoteGhosted = EngineParameters.AntiGhosting && ghosted;
             }
         }
 
