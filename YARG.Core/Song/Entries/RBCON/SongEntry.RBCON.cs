@@ -506,14 +506,7 @@ namespace YARG.Core.Song
                     try
                     {
                         var updateResults = ParseDTA(nodeName, update.Readers);
-                        if (update.Files != null)
-                        {
-                            Update(update.Files, updateResults);
-                        }
-                        else if (updateResults.discUpdate)
-                        {
-                            YargTrace.LogWarning($"Update midi expected with {update.Directory} - {nodeName}");
-                        }
+                        Update(update, updateResults);
 
                         if (updateResults.cores != null)
                         {
@@ -532,7 +525,7 @@ namespace YARG.Core.Song
                     }
                     catch (Exception ex)
                     {
-                        YargTrace.LogException(ex, $"Error processing CON Update {update.Directory} - {nodeName}!");
+                        YargTrace.LogException(ex, $"Error processing CON Update {update.BaseDirectory} - {nodeName}!");
                     }
                 }
             }
@@ -850,7 +843,7 @@ namespace YARG.Core.Song
             }
         }
 
-        private void Update(SongUpdateFiles update, in DTAResult results)
+        private void Update(SongUpdate update, in DTAResult results)
         {
             if (results.discUpdate)
             {
@@ -863,7 +856,7 @@ namespace YARG.Core.Song
                 }
                 else
                 {
-                    YargTrace.LogWarning($"Update midi expected in directory {update.Directory}");
+                    YargTrace.LogWarning($"Update midi expected in directory {update.UpdateDirectory}");
                 }
             }
 
