@@ -12,12 +12,12 @@ namespace YARG.Core.IO.Ini
         public int Count => modifiers.Count;
 
         public IniSection() { modifiers = new(); }
-        public IniSection(Dictionary<string, List<IniModifier>> modifiers)
+        public IniSection(in Dictionary<string, List<IniModifier>> modifiers)
         {
             this.modifiers = modifiers;
         }
 
-        public void Append(Dictionary<string, List<IniModifier>> modsToAdd)
+        public void Append(in Dictionary<string, List<IniModifier>> modsToAdd)
         {
             foreach (var node in modsToAdd)
             {
@@ -28,12 +28,12 @@ namespace YARG.Core.IO.Ini
             }
         }
 
-        public bool Contains(string key)
+        public bool Contains(in string key)
         {
             return modifiers.ContainsKey(key);
         }
 
-        public bool TryGet(string key, out SortString str, string defaultStr)
+        public bool TryGet(in string key, out SortString str, in string defaultStr)
         {
             str = defaultStr;
             if (!modifiers.TryGetValue(key, out var results))
@@ -51,7 +51,7 @@ namespace YARG.Core.IO.Ini
             return true;
         }
 
-        public bool TryGet(string key, out string str)
+        public bool TryGet(in string key, out string str)
         {
             str = string.Empty;
             if (!modifiers.TryGetValue(key, out var results))
@@ -61,7 +61,7 @@ namespace YARG.Core.IO.Ini
             return true;
         }
 
-        public bool TryGet(string key, out ulong val)
+        public bool TryGet(in string key, out ulong val)
         {
             val = 0;
             if (!modifiers.TryGetValue(key, out var results))
@@ -71,7 +71,7 @@ namespace YARG.Core.IO.Ini
             return true;
         }
 
-        public bool TryGet(string key, out long val)
+        public bool TryGet(in string key, out long val)
         {
             val = 0;
             if (!modifiers.TryGetValue(key, out var results))
@@ -81,7 +81,7 @@ namespace YARG.Core.IO.Ini
             return true;
         }
 
-        public bool TryGet(string key, out uint val)
+        public bool TryGet(in string key, out uint val)
         {
             val = 0;
             if (!modifiers.TryGetValue(key, out var results))
@@ -91,7 +91,7 @@ namespace YARG.Core.IO.Ini
             return true;
         }
 
-        public bool TryGet(string key, out int val)
+        public bool TryGet(in string key, out int val)
         {
             val = 0;
             if (!modifiers.TryGetValue(key, out var results))
@@ -101,7 +101,7 @@ namespace YARG.Core.IO.Ini
             return true;
         }
 
-        public bool TryGet(string key, out ushort val)
+        public bool TryGet(in string key, out ushort val)
         {
             val = 0;
             if (!modifiers.TryGetValue(key, out var results))
@@ -111,7 +111,7 @@ namespace YARG.Core.IO.Ini
             return true;
         }
 
-        public bool TryGet(string key, out short val)
+        public bool TryGet(in string key, out short val)
         {
             val = 0;
             if (!modifiers.TryGetValue(key, out var results))
@@ -121,7 +121,7 @@ namespace YARG.Core.IO.Ini
             return true;
         }
 
-        public bool TryGet(string key, out float val)
+        public bool TryGet(in string key, out float val)
         {
             val = 0;
             if (!modifiers.TryGetValue(key, out var results))
@@ -131,7 +131,7 @@ namespace YARG.Core.IO.Ini
             return true;
         }
 
-        public bool TryGet(string key, out double val)
+        public bool TryGet(in string key, out double val)
         {
             val = 0;
             if (!modifiers.TryGetValue(key, out var results))
@@ -141,7 +141,7 @@ namespace YARG.Core.IO.Ini
             return true;
         }
 
-        public bool TryGet(string key, out ulong val1, out ulong val2)
+        public bool TryGet(in string key, out ulong val1, out ulong val2)
         {
             val1 = 0;
             val2 = 0;
@@ -154,7 +154,7 @@ namespace YARG.Core.IO.Ini
             return true;
         }
 
-        public bool TryGet(string key, out bool val)
+        public bool TryGet(in string key, out bool val)
         {
             val = false;
             if (!modifiers.TryGetValue(key, out var results))

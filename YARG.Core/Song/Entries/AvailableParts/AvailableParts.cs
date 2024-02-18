@@ -9,118 +9,119 @@ using YARG.Core.Song.Preparsers;
 namespace YARG.Core.Song
 {
     [Serializable]
-    public sealed partial class AvailableParts
+    public partial struct AvailableParts
     {
-        public sbyte BandDifficulty => _bandDifficulty.Intensity;
-        public int VocalsCount { get; private set; }
+        public static readonly AvailableParts Default = new()
+        {
+            _bandDifficulty = PartValues.Default,
+            _fiveFretGuitar = PartValues.Default,
+            _fiveFretBass = PartValues.Default,
+            _fiveFretRhythm = PartValues.Default,
+            _fiveFretCoopGuitar = PartValues.Default,
+            _keys = PartValues.Default,
+
+            _sixFretGuitar = PartValues.Default,
+            _sixFretBass = PartValues.Default,
+            _sixFretRhythm = PartValues.Default,
+            _sixFretCoopGuitar = PartValues.Default,
+
+            _fourLaneDrums = PartValues.Default,
+            _proDrums = PartValues.Default,
+            _fiveLaneDrums = PartValues.Default,
+
+            // _trueDrums = PartValues.Default,
+
+            _proGuitar_17Fret = PartValues.Default,
+            _proGuitar_22Fret = PartValues.Default,
+            _proBass_17Fret = PartValues.Default,
+            _proBass_22Fret = PartValues.Default,
+
+            _proKeys = PartValues.Default,
+
+            // _dj = PartValues.Default,
+
+            _leadVocals = PartValues.Default,
+            _harmonyVocals = PartValues.Default,
+        };
 
         private PartValues _bandDifficulty;
 
-        private PartValues FiveFretGuitar;
-        private PartValues FiveFretBass;
-        private PartValues FiveFretRhythm;
-        private PartValues FiveFretCoopGuitar;
-        private PartValues Keys;
+        private PartValues _fiveFretGuitar;
+        private PartValues _fiveFretBass;
+        private PartValues _fiveFretRhythm;
+        private PartValues _fiveFretCoopGuitar;
+        private PartValues _keys;
 
-        private PartValues SixFretGuitar;
-        private PartValues SixFretBass;
-        private PartValues SixFretRhythm;
-        private PartValues SixFretCoopGuitar;
+        private PartValues _sixFretGuitar;
+        private PartValues _sixFretBass;
+        private PartValues _sixFretRhythm;
+        private PartValues _sixFretCoopGuitar;
 
-        private PartValues FourLaneDrums;
-        private PartValues ProDrums;
-        private PartValues FiveLaneDrums;
+        private PartValues _fourLaneDrums;
+        private PartValues _proDrums;
+        private PartValues _fiveLaneDrums;
 
-        // private PartValues TrueDrums;
+        // private PartValues _trueDrums;
 
-        private PartValues ProGuitar_17Fret;
-        private PartValues ProGuitar_22Fret;
-        private PartValues ProBass_17Fret;
-        private PartValues ProBass_22Fret;
+        private PartValues _proGuitar_17Fret;
+        private PartValues _proGuitar_22Fret;
+        private PartValues _proBass_17Fret;
+        private PartValues _proBass_22Fret;
 
-        private PartValues ProKeys;
+        private PartValues _proKeys;
 
-        // private PartValues Dj;
+        // private PartValues _dj;
 
-        private PartValues LeadVocals;
-        private PartValues HarmonyVocals;
+        private PartValues _leadVocals;
+        private PartValues _harmonyVocals;
+        private int _vocalsCount;
 
-        public AvailableParts()
-        {
-            _bandDifficulty = new(-1);
-            FiveFretGuitar = new(-1);
-            FiveFretBass = new(-1);
-            FiveFretRhythm = new(-1);
-            FiveFretCoopGuitar = new(-1);
-            Keys = new(-1);
+        public readonly int VocalsCount => _vocalsCount;
 
-            SixFretGuitar = new(-1);
-            SixFretBass = new(-1);
-            SixFretRhythm = new(-1);
-            SixFretCoopGuitar = new(-1);
-
-            FourLaneDrums = new(-1);
-            ProDrums = new(-1);
-            FiveLaneDrums = new(-1);
-
-            // TrueDrums = new(-1);
-
-            ProGuitar_17Fret = new(-1);
-            ProGuitar_22Fret = new(-1);
-            ProBass_17Fret = new(-1);
-            ProBass_22Fret = new(-1);
-
-            ProKeys = new(-1);
-
-            // Dj = new(-1);
-
-            LeadVocals = new(-1);
-            HarmonyVocals = new(-1);
-        }
+        public readonly sbyte BandDifficulty => _bandDifficulty.Intensity;
 
         public AvailableParts(BinaryReader reader)
         {
-            PartValues DeserializeValues()
+            PartValues Deserialize()
             {
-                return new PartValues
-                {
-                    SubTracks = reader.ReadByte(),
-                    Intensity = reader.ReadSByte()
-                };
+                PartValues values = default;
+                values.SubTracks = reader.ReadByte();
+                values.Intensity = reader.ReadSByte();
+                return values;
             }
 
             _bandDifficulty.Intensity = reader.ReadSByte();
             if (_bandDifficulty.Intensity != -1)
                 _bandDifficulty.SubTracks = 1;
 
-            FiveFretGuitar = DeserializeValues();
-            FiveFretBass = DeserializeValues();
-            FiveFretRhythm = DeserializeValues();
-            FiveFretCoopGuitar = DeserializeValues();
-            Keys = DeserializeValues();
+            _fiveFretGuitar = Deserialize();
+            _fiveFretBass = Deserialize();
+            _fiveFretRhythm = Deserialize();
+            _fiveFretCoopGuitar = Deserialize();
+            _keys = Deserialize();
 
-            SixFretGuitar = DeserializeValues();
-            SixFretBass = DeserializeValues();
-            SixFretRhythm = DeserializeValues();
-            SixFretCoopGuitar = DeserializeValues();
+            _sixFretGuitar = Deserialize();
+            _sixFretBass = Deserialize();
+            _sixFretRhythm = Deserialize();
+            _sixFretCoopGuitar = Deserialize();
 
-            FourLaneDrums = DeserializeValues();
-            ProDrums = DeserializeValues();
-            FiveLaneDrums = DeserializeValues();
+            _fourLaneDrums = Deserialize();
+            _proDrums = Deserialize();
+            _fiveLaneDrums = Deserialize();
 
-            // TrueDrums = DeserializeValues();
+            // _trueDrums = Deserialize();
 
-            ProGuitar_17Fret = DeserializeValues();
-            ProGuitar_22Fret = DeserializeValues();
-            ProBass_17Fret = DeserializeValues();
-            ProBass_22Fret = DeserializeValues();
-    
-            ProKeys = DeserializeValues();
+            _proGuitar_17Fret = Deserialize();
+            _proGuitar_22Fret = Deserialize();
+            _proBass_17Fret = Deserialize();
+            _proBass_22Fret = Deserialize();
 
-            // Dj = DeserializeValues();
+            _proKeys = Deserialize();
 
-            LeadVocals = DeserializeValues();
-            HarmonyVocals = DeserializeValues();
+            // _dj = Deserialize();
+
+            _leadVocals = Deserialize();
+            _harmonyVocals = Deserialize();
             SetVocalsCount();
         }
 
@@ -133,109 +134,100 @@ namespace YARG.Core.Song
             }
 
             writer.Write(_bandDifficulty.Intensity);
-            SerializeValues(ref FiveFretGuitar);
-            SerializeValues(ref FiveFretBass);
-            SerializeValues(ref FiveFretRhythm);
-            SerializeValues(ref FiveFretCoopGuitar);
-            SerializeValues(ref Keys);
+            SerializeValues(ref _fiveFretGuitar);
+            SerializeValues(ref _fiveFretBass);
+            SerializeValues(ref _fiveFretRhythm);
+            SerializeValues(ref _fiveFretCoopGuitar);
+            SerializeValues(ref _keys);
 
-            SerializeValues(ref SixFretGuitar);
-            SerializeValues(ref SixFretBass);
-            SerializeValues(ref SixFretRhythm);
-            SerializeValues(ref SixFretCoopGuitar);
+            SerializeValues(ref _sixFretGuitar);
+            SerializeValues(ref _sixFretBass);
+            SerializeValues(ref _sixFretRhythm);
+            SerializeValues(ref _sixFretCoopGuitar);
 
-            SerializeValues(ref FourLaneDrums);
-            SerializeValues(ref ProDrums);
-            SerializeValues(ref FiveLaneDrums);
+            SerializeValues(ref _fourLaneDrums);
+            SerializeValues(ref _proDrums);
+            SerializeValues(ref _fiveLaneDrums);
 
-            // SerializeValues(TrueDrums);
+            // SerializeValues(ref _trueDrums);
 
-            SerializeValues(ref ProGuitar_17Fret);
-            SerializeValues(ref ProGuitar_22Fret);
-            SerializeValues(ref ProBass_17Fret);
-            SerializeValues(ref ProBass_22Fret);
+            SerializeValues(ref _proGuitar_17Fret);
+            SerializeValues(ref _proGuitar_22Fret);
+            SerializeValues(ref _proBass_17Fret);
+            SerializeValues(ref _proBass_22Fret);
 
-            SerializeValues(ref ProKeys);
+            SerializeValues(ref _proKeys);
 
-            // SerializeValues(Dj);
+            // SerializeValues(ref _dj);
 
-            SerializeValues(ref LeadVocals);
-            SerializeValues(ref HarmonyVocals);
+            SerializeValues(ref _leadVocals);
+            SerializeValues(ref _harmonyVocals);
         }
 
-        public bool CheckScanValidity()
+        public readonly bool CheckScanValidity()
         {
-            return FiveFretGuitar.SubTracks > 0 ||
-                   FiveFretBass.SubTracks > 0 ||
-                   FiveFretRhythm.SubTracks > 0 ||
-                   FiveFretCoopGuitar.SubTracks > 0 ||
-                   Keys.SubTracks > 0 ||
+            return _fiveFretGuitar.SubTracks > 0 ||
+                   _fiveFretBass.SubTracks > 0 ||
+                   _fiveFretRhythm.SubTracks > 0 ||
+                   _fiveFretCoopGuitar.SubTracks > 0 ||
+                   _keys.SubTracks > 0 ||
 
-                   SixFretGuitar.SubTracks > 0 ||
-                   SixFretBass.SubTracks > 0 ||
-                   SixFretRhythm.SubTracks > 0 ||
-                   SixFretCoopGuitar.SubTracks > 0 ||
+                   _sixFretGuitar.SubTracks > 0 ||
+                   _sixFretBass.SubTracks > 0 ||
+                   _sixFretRhythm.SubTracks > 0 ||
+                   _sixFretCoopGuitar.SubTracks > 0 ||
 
-                   FourLaneDrums.SubTracks > 0 ||
-                   ProDrums.SubTracks > 0 ||
-                   FiveLaneDrums.SubTracks > 0 ||
-                   //TrueDrums.subTracks > 0 ||
-                   ProGuitar_17Fret.SubTracks > 0 ||
-                   ProGuitar_22Fret.SubTracks > 0 ||
-                   ProBass_17Fret.SubTracks > 0 ||
-                   ProBass_22Fret.SubTracks > 0 ||
+                   _fourLaneDrums.SubTracks > 0 ||
+                   _proDrums.SubTracks > 0 ||
+                   _fiveLaneDrums.SubTracks > 0 ||
+                   //_trueDrums.subTracks > 0 ||
+                   _proGuitar_17Fret.SubTracks > 0 ||
+                   _proGuitar_22Fret.SubTracks > 0 ||
+                   _proBass_17Fret.SubTracks > 0 ||
+                   _proBass_22Fret.SubTracks > 0 ||
 
-                   ProKeys.SubTracks > 0 ||
+                   _proKeys.SubTracks > 0 ||
 
-                   //Dj.subTracks > 0 ||
+                   //_dj.subTracks > 0 ||
 
-                   LeadVocals.SubTracks > 0 ||
-                   HarmonyVocals.SubTracks > 0;
+                   _leadVocals.SubTracks > 0 ||
+                   _harmonyVocals.SubTracks > 0;
         }
 
-        private static readonly Instrument[] ALL_INSTRUMENTS = (Instrument[]) Enum.GetValues(typeof(Instrument));
-
-        public Instrument[] GetInstruments()
-        {
-            return ALL_INSTRUMENTS
-                .Where(instrument => HasInstrument(instrument))
-                .ToArray();
-        }
-
-        public PartValues this[Instrument instrument]
+        public readonly PartValues this[Instrument instrument]
         {
             get
             {
                 return instrument switch
                 {
-                    Instrument.FiveFretGuitar => FiveFretGuitar,
-                    Instrument.FiveFretBass => FiveFretBass,
-                    Instrument.FiveFretRhythm => FiveFretRhythm,
-                    Instrument.FiveFretCoopGuitar => FiveFretCoopGuitar,
-                    Instrument.Keys => Keys,
+                    Instrument.FiveFretGuitar => _fiveFretGuitar,
+                    Instrument.FiveFretBass => _fiveFretBass,
+                    Instrument.FiveFretRhythm => _fiveFretRhythm,
+                    Instrument.FiveFretCoopGuitar => _fiveFretCoopGuitar,
+                    Instrument.Keys => _keys,
 
-                    Instrument.SixFretGuitar => SixFretGuitar,
-                    Instrument.SixFretBass => SixFretBass,
-                    Instrument.SixFretRhythm => SixFretRhythm,
-                    Instrument.SixFretCoopGuitar => SixFretCoopGuitar,
+                    Instrument.SixFretGuitar => _sixFretGuitar,
+                    Instrument.SixFretBass => _sixFretBass,
+                    Instrument.SixFretRhythm => _sixFretRhythm,
+                    Instrument.SixFretCoopGuitar => _sixFretCoopGuitar,
 
-                    Instrument.FourLaneDrums => FourLaneDrums,
-                    Instrument.FiveLaneDrums => FiveLaneDrums,
-                    Instrument.ProDrums => ProDrums,
+                    Instrument.FourLaneDrums => _fourLaneDrums,
+                    Instrument.FiveLaneDrums => _fiveLaneDrums,
+                    Instrument.ProDrums => _proDrums,
 
-                    // Instrument.TrueDrums => TrueDrums,
+                    // Instrument.TrueDrums => _trueDrums,
 
-                    Instrument.ProGuitar_17Fret => ProGuitar_17Fret,
-                    Instrument.ProGuitar_22Fret => ProGuitar_22Fret,
-                    Instrument.ProBass_17Fret => ProBass_17Fret,
-                    Instrument.ProBass_22Fret => ProBass_22Fret,
+                    Instrument.ProGuitar_17Fret => _proGuitar_17Fret,
+                    Instrument.ProGuitar_22Fret => _proGuitar_22Fret,
+                    Instrument.ProBass_17Fret => _proBass_17Fret,
+                    Instrument.ProBass_22Fret => _proBass_22Fret,
 
-                    Instrument.ProKeys => ProKeys,
+                    Instrument.ProKeys => _proKeys,
 
-                    // Instrument.Dj => Dj,
+                    // Instrument.Dj => _dj,
 
-                    Instrument.Vocals => LeadVocals,
-                    Instrument.Harmony => HarmonyVocals,
+                    Instrument.Vocals => _leadVocals,
+                    Instrument.Harmony => _harmonyVocals,
                     Instrument.Band => _bandDifficulty,
 
                     _ => throw new NotImplementedException($"Unhandled instrument {instrument}!")
@@ -243,50 +235,50 @@ namespace YARG.Core.Song
             }
         }
 
-        public bool HasInstrument(Instrument instrument)
+        public readonly bool HasInstrument(Instrument instrument)
         {
             return instrument switch
             {
-                Instrument.FiveFretGuitar => FiveFretGuitar.SubTracks > 0,
-                Instrument.FiveFretBass => FiveFretBass.SubTracks > 0,
-                Instrument.FiveFretRhythm => FiveFretRhythm.SubTracks > 0,
-                Instrument.FiveFretCoopGuitar => FiveFretCoopGuitar.SubTracks > 0,
-                Instrument.Keys => Keys.SubTracks > 0,
+                Instrument.FiveFretGuitar => _fiveFretGuitar.SubTracks > 0,
+                Instrument.FiveFretBass => _fiveFretBass.SubTracks > 0,
+                Instrument.FiveFretRhythm => _fiveFretRhythm.SubTracks > 0,
+                Instrument.FiveFretCoopGuitar => _fiveFretCoopGuitar.SubTracks > 0,
+                Instrument.Keys => _keys.SubTracks > 0,
 
-                Instrument.SixFretGuitar => SixFretGuitar.SubTracks > 0,
-                Instrument.SixFretBass => SixFretBass.SubTracks > 0,
-                Instrument.SixFretRhythm => SixFretRhythm.SubTracks > 0,
-                Instrument.SixFretCoopGuitar => SixFretCoopGuitar.SubTracks > 0,
+                Instrument.SixFretGuitar => _sixFretGuitar.SubTracks > 0,
+                Instrument.SixFretBass => _sixFretBass.SubTracks > 0,
+                Instrument.SixFretRhythm => _sixFretRhythm.SubTracks > 0,
+                Instrument.SixFretCoopGuitar => _sixFretCoopGuitar.SubTracks > 0,
 
-                Instrument.FourLaneDrums => FourLaneDrums.SubTracks > 0,
-                Instrument.FiveLaneDrums => FiveLaneDrums.SubTracks > 0,
-                Instrument.ProDrums => ProDrums.SubTracks > 0,
+                Instrument.FourLaneDrums => _fourLaneDrums.SubTracks > 0,
+                Instrument.FiveLaneDrums => _fiveLaneDrums.SubTracks > 0,
+                Instrument.ProDrums => _proDrums.SubTracks > 0,
 
-                // Instrument.TrueDrums => TrueDrums.SubTracks > 0,
+                // Instrument.TrueDrums => _trueDrums.SubTracks > 0,
 
-                Instrument.ProGuitar_17Fret => ProGuitar_17Fret.SubTracks > 0,
-                Instrument.ProGuitar_22Fret => ProGuitar_22Fret.SubTracks > 0,
-                Instrument.ProBass_17Fret => ProBass_17Fret.SubTracks > 0,
-                Instrument.ProBass_22Fret => ProBass_22Fret.SubTracks > 0,
+                Instrument.ProGuitar_17Fret => _proGuitar_17Fret.SubTracks > 0,
+                Instrument.ProGuitar_22Fret => _proGuitar_22Fret.SubTracks > 0,
+                Instrument.ProBass_17Fret => _proBass_17Fret.SubTracks > 0,
+                Instrument.ProBass_22Fret => _proBass_22Fret.SubTracks > 0,
 
-                Instrument.ProKeys => ProKeys.SubTracks > 0,
+                Instrument.ProKeys => _proKeys.SubTracks > 0,
 
-                // Instrument.Dj => Dj.SubTracks > 0,
+                // Instrument.Dj => _dj.SubTracks > 0,
 
-                Instrument.Vocals => LeadVocals.SubTracks > 0,
-                Instrument.Harmony => HarmonyVocals.SubTracks > 0,
+                Instrument.Vocals => _leadVocals.SubTracks > 0,
+                Instrument.Harmony => _harmonyVocals.SubTracks > 0,
                 Instrument.Band => _bandDifficulty.SubTracks > 0,
 
                 _ => false
             };
         }
 
-        public DrumsType GetDrumType()
+        public readonly DrumsType GetDrumType()
         {
-            if (FourLaneDrums.SubTracks > 0)
+            if (_fourLaneDrums.SubTracks > 0)
                 return DrumsType.FourLane;
 
-            if (FiveLaneDrums.SubTracks > 0)
+            if (_fiveLaneDrums.SubTracks > 0)
                 return DrumsType.FiveLane;
 
             return DrumsType.Unknown;
@@ -295,25 +287,25 @@ namespace YARG.Core.Song
         public void SetDrums(DrumPreparseHandler drums)
         {
             if (drums.Type == DrumsType.FiveLane)
-                FiveLaneDrums.Difficulties = drums.ValidatedDiffs;
+                _fiveLaneDrums.Difficulties = drums.ValidatedDiffs;
             else
             {
-                FourLaneDrums.Difficulties = drums.ValidatedDiffs;
+                _fourLaneDrums.Difficulties = drums.ValidatedDiffs;
                 if (drums.Type == DrumsType.ProDrums)
-                    ProDrums.Difficulties = drums.ValidatedDiffs;
+                    _proDrums.Difficulties = drums.ValidatedDiffs;
             }
         }
 
         private void SetVocalsCount()
         {
-            if (HarmonyVocals[2])
-                VocalsCount = 3;
-            else if (HarmonyVocals[1])
-                VocalsCount = 2;
-            else if (HarmonyVocals[0] || LeadVocals[0])
-                VocalsCount = 1;
+            if (_harmonyVocals[2])
+                _vocalsCount = 3;
+            else if (_harmonyVocals[1])
+                _vocalsCount = 2;
+            else if (_harmonyVocals[0] || _leadVocals[0])
+                _vocalsCount = 1;
             else
-                VocalsCount = 0;
+                _vocalsCount = 0;
         }
     }
 }

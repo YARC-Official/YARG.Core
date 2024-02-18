@@ -190,8 +190,8 @@ namespace YARG.Core.Song
             return mixer;
         }
 
-        private SngEntry(SngFile sngFile, IniChartNode<string> chart, AvailableParts parts, HashWrapper hash, IniSection modifiers, string defaultPlaylist)
-            : base(parts, hash, modifiers, defaultPlaylist)
+        private SngEntry(SngFile sngFile, IniChartNode<string> chart, in AvailableParts parts, HashWrapper hash, IniSection modifiers, string defaultPlaylist)
+            : base(in parts, in hash, modifiers, defaultPlaylist)
         {
             _version = sngFile.Version;
             _sngInfo = sngFile.Info;
@@ -210,12 +210,12 @@ namespace YARG.Core.Song
         {
             byte[] file = sng[chart.File].LoadAllBytes(sng);
             var (result, parts) = ScanIniChartFile(file, chart.Type, sng.Metadata);
-            if (parts == null)
+            if (result != ScanResult.Success)
             {
                 return (result, null);
             }
 
-            var entry = new SngEntry(sng, chart, parts, HashWrapper.Hash(file), sng.Metadata, defaultPlaylist);
+            var entry = new SngEntry(sng, chart, in parts, HashWrapper.Hash(file), sng.Metadata, defaultPlaylist);
             return (result, entry);
         }
 

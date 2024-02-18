@@ -30,7 +30,7 @@ namespace YARG.Core.Song
             AlbumTrack = 0,
             PlaylistTrack = 0,
             Hash = default,
-            Parts = new(),
+            Parts = AvailableParts.Default,
             ParseSettings = ParseSettings.Default,
             LoadingPhrase = string.Empty,
             Year = DEFAULT_YEAR,

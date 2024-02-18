@@ -76,8 +76,8 @@ namespace YARG.Core.Song
 
         public abstract ChartType Type { get; }
 
-        protected IniSubEntry(AvailableParts parts, HashWrapper hash, IniSection modifiers, string defaultPlaylist)
-            : base(parts, hash, modifiers, defaultPlaylist)
+        protected IniSubEntry(in AvailableParts parts, in HashWrapper hash, IniSection modifiers, string defaultPlaylist)
+            : base(in parts, in hash, modifiers, defaultPlaylist)
         {
             if (modifiers.TryGet("background", out _background))
             {
@@ -152,7 +152,7 @@ namespace YARG.Core.Song
             return null;
         }
 
-        protected static SongMetadata SetMetadata(AvailableParts parts, HashWrapper hash, IniSection section, string defaultPlaylist)
+        protected static SongMetadata SetMetadata(in AvailableParts parts, HashWrapper hash, IniSection section, string defaultPlaylist)
         {
             SongMetadata metadata = default;
             metadata.Parts = parts;
@@ -259,46 +259,46 @@ namespace YARG.Core.Song
             return metadata;
         }
 
-        protected static (ScanResult Result, AvailableParts? Parts) ScanIniChartFile(byte[] file, ChartType chartType, IniSection modifiers)
+        protected static (ScanResult Result, AvailableParts Parts) ScanIniChartFile(byte[] file, ChartType chartType, IniSection modifiers)
         {
-            AvailableParts parts = new();
             DrumPreparseHandler drums = new()
             {
                 Type = GetDrumTypeFromModifier(modifiers)
             };
 
+            var parts = AvailableParts.Default;
             if (chartType == ChartType.Chart)
             {
                 var byteReader = YARGTextLoader.TryLoadByteText(file);
                 if (byteReader != null)
-                    ParseDotChart<byte, ByteStringDecoder, DotChartByte>(byteReader, modifiers, parts, drums);
+                    ParseDotChart<byte, ByteStringDecoder, DotChartByte>(byteReader, modifiers, ref parts, drums);
                 else
                 {
                     var charReader = YARGTextLoader.LoadCharText(file);
-                    ParseDotChart<char, CharStringDecoder, DotChartChar>(charReader, modifiers, parts, drums);
+                    ParseDotChart<char, CharStringDecoder, DotChartChar>(charReader, modifiers, ref parts, drums);
                 }
             }
             else // if (chartType == ChartType.Mid || chartType == ChartType.Midi) // Uncomment for any future file type
             {
-                if (!ParseDotMidi(file, modifiers, parts, drums))
+                if (!ParseDotMidi(file, modifiers, ref parts, drums))
                 {
-                    return (ScanResult.MultipleMidiTrackNames, null);
+                    return (ScanResult.MultipleMidiTrackNames, parts);
                 }
             }
 
             parts.SetDrums(drums);
 
             if (!parts.CheckScanValidity())
-                return (ScanResult.NoNotes, null);
+                return (ScanResult.NoNotes, parts);
 
             if (!modifiers.Contains("name"))
-                return (ScanResult.NoName, null);
+                return (ScanResult.NoName, parts);
 
             parts.SetIntensities(modifiers);
             return (ScanResult.Success, parts);
         }
 
-        private static void ParseDotChart<TChar, TDecoder, TBase>(YARGTextReader<TChar, TDecoder> textReader, IniSection modifiers, AvailableParts parts, DrumPreparseHandler drums)
+        private static void ParseDotChart<TChar, TDecoder, TBase>(YARGTextReader<TChar, TDecoder> textReader, IniSection modifiers, ref AvailableParts parts, DrumPreparseHandler drums)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
             where TDecoder : IStringDecoder<TChar>, new()
             where TBase : unmanaged, IDotChartBases<TChar>
@@ -315,7 +315,7 @@ namespace YARG.Core.Song
                 drums.Type = DrumsType.FourLane;
         }
 
-        private static bool ParseDotMidi(byte[] file, IniSection modifiers, AvailableParts parts, DrumPreparseHandler drums)
+        private static bool ParseDotMidi(byte[] file, IniSection modifiers, ref AvailableParts parts, DrumPreparseHandler drums)
         {
             bool usePro = !modifiers.TryGet("pro_drums", out bool proDrums) || proDrums;
             if (drums.Type == DrumsType.Unknown)

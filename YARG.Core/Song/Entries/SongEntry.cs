@@ -240,7 +240,7 @@ namespace YARG.Core.Song
             _intYear = int.MaxValue;
         }
 
-        protected SongEntry(AvailableParts parts, HashWrapper hash, IniSection modifiers, string defaultPlaylist)
+        protected SongEntry(in AvailableParts parts, in HashWrapper hash, IniSection modifiers, in string defaultPlaylist)
         {
             Metadata.Parts = parts;
             Metadata.Hash = hash;
@@ -357,7 +357,7 @@ namespace YARG.Core.Song
             Metadata.IsMaster = !modifiers.TryGet("tags", out string tag) || tag.ToLower() != "cover";
         }
 
-        protected SongEntry(BinaryReader reader, CategoryCacheStrings strings)
+        protected SongEntry(in BinaryReader reader, in CategoryCacheStrings strings)
         {
             Metadata.Name = strings.titles[reader.ReadInt32()];
             Metadata.Artist = strings.artists[reader.ReadInt32()];
@@ -411,7 +411,7 @@ namespace YARG.Core.Song
             }
         }
 
-        protected void SerializeMetadata(BinaryWriter writer, CategoryCacheWriteNode node)
+        protected void SerializeMetadata(in BinaryWriter writer, in CategoryCacheWriteNode node)
         {
             writer.Write(node.title);
             writer.Write(node.artist);

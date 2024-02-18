@@ -177,8 +177,8 @@ namespace YARG.Core.Song
             return new FileStream(_chartFile.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
         }
 
-        private UnpackedIniEntry(string directory, ChartType chartType, AbridgedFileInfo chartFile, AbridgedFileInfo? iniFile, AvailableParts parts, HashWrapper hash, IniSection modifiers, string defaultPlaylist)
-            : base(parts, hash, modifiers, defaultPlaylist)
+        private UnpackedIniEntry(string directory, ChartType chartType, AbridgedFileInfo chartFile, AbridgedFileInfo? iniFile, in AvailableParts parts, HashWrapper hash, IniSection modifiers, string defaultPlaylist)
+            : base(in parts, in hash, modifiers, defaultPlaylist)
         {
             Directory = directory;
             Type = chartType;
@@ -221,13 +221,13 @@ namespace YARG.Core.Song
 
             byte[] file = File.ReadAllBytes(chart.File.FullName);
             var (result, parts) = ScanIniChartFile(file, chart.Type, iniModifiers);
-            if (parts == null)
+            if (result != ScanResult.Success)
             {
                 return (result, null);
             }
 
             var abridged = new AbridgedFileInfo(chart.File);
-            var entry = new UnpackedIniEntry(chartDirectory, chart.Type, abridged, iniFileInfo, parts, HashWrapper.Hash(file), iniModifiers, defaultPlaylist);
+            var entry = new UnpackedIniEntry(chartDirectory, chart.Type, abridged, iniFileInfo, in parts, HashWrapper.Hash(file), iniModifiers, defaultPlaylist);
             return (result, entry);
         }
 
