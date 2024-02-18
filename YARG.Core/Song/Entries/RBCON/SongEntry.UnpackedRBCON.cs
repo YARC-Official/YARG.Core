@@ -66,8 +66,7 @@ namespace YARG.Core.Song
             }
 
             var upgrade = upgrades.TryGetValue(nodename, out var node) ? node.Item2 : null;
-            var baseMetadata = DeserializeMetadata(reader, strings);
-            return new UnpackedRBCONEntry(midiInfo, dta, songDirectory, subname, baseMetadata, updateMidi, upgrade, reader);
+            return new UnpackedRBCONEntry(midiInfo, dta, songDirectory, subname, updateMidi, upgrade, reader, strings);
         }
 
         public static UnpackedRBCONEntry LoadFromCache_Quick(string directory, AbridgedFileInfo? dta, string nodename, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
@@ -81,13 +80,12 @@ namespace YARG.Core.Song
             var updateMidi = reader.ReadBoolean() ? new AbridgedFileInfo(reader) : null;
 
             var upgrade = upgrades.TryGetValue(nodename, out var node) ? node.Item2 : null;
-            var baseMetadata = DeserializeMetadata(reader, strings);
-            return new UnpackedRBCONEntry(midiInfo, dta, songDirectory, subname, baseMetadata, updateMidi, upgrade, reader);
+            return new UnpackedRBCONEntry(midiInfo, dta, songDirectory, subname, updateMidi, upgrade, reader, strings);
         }
 
         private UnpackedRBCONEntry(AbridgedFileInfo midi, AbridgedFileInfo? dta, string directory, string nodename,
-            in SongMetadata baseMetadata, AbridgedFileInfo? updateMidi, IRBProUpgrade? upgrade, BinaryReader reader)
-            : base(baseMetadata, updateMidi, upgrade, reader)
+            AbridgedFileInfo? updateMidi, IRBProUpgrade? upgrade, BinaryReader reader, CategoryCacheStrings strings)
+            : base(updateMidi, upgrade, reader, strings)
         {
             Directory = directory;
 

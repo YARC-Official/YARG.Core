@@ -1,10 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using YARG.Core.Audio;
-using YARG.Core.Extensions;
 using YARG.Core.IO;
+using YARG.Core.IO.Ini;
 using YARG.Core.Song.Cache;
 using YARG.Core.Venue;
 
@@ -12,38 +11,38 @@ namespace YARG.Core.Song
 {
     public sealed class SngEntry : IniSubEntry
     {
-        private readonly uint version;
-        private readonly AbridgedFileInfo sngInfo;
-        private readonly IniChartNode<string> chart;
+        private readonly uint _version;
+        private readonly AbridgedFileInfo _sngInfo;
+        private readonly IniChartNode<string> _chart;
 
-        public override string Directory => sngInfo.FullName;
-        public override ChartType Type => chart.Type;
-        public override DateTime GetAddTime() => sngInfo.LastUpdatedTime;
+        public override string Directory => _sngInfo.FullName;
+        public override ChartType Type => _chart.Type;
+        public override DateTime GetAddTime() => _sngInfo.LastUpdatedTime;
 
         public override EntryType SubType => EntryType.Sng;
 
         protected override void SerializeSubData(BinaryWriter writer)
         {
-            writer.Write(sngInfo.LastUpdatedTime.ToBinary());
-            writer.Write(version);
-            writer.Write((byte) chart.Type);
+            writer.Write(_sngInfo.LastUpdatedTime.ToBinary());
+            writer.Write(_version);
+            writer.Write((byte) _chart.Type);
         }
 
         protected override Stream? GetChartStream()
         {
-            if (!sngInfo.IsStillValid())
+            if (!_sngInfo.IsStillValid())
                 return null;
 
-            var sngFile = SngFile.TryLoadFromFile(sngInfo);
+            var sngFile = SngFile.TryLoadFromFile(_sngInfo);
             if (sngFile == null)
                 return null;
 
-            return sngFile[chart.File].CreateStream(sngFile);
+            return sngFile[_chart.File].CreateStream(sngFile);
         }
 
         public override AudioMixer? LoadAudioStreams(params SongStem[] ignoreStems)
         {
-            var sngFile = SngFile.TryLoadFromFile(sngInfo);
+            var sngFile = SngFile.TryLoadFromFile(_sngInfo);
             if (sngFile == null)
             {
                 return null;
@@ -53,7 +52,7 @@ namespace YARG.Core.Song
 
         public override byte[]? LoadAlbumData()
         {
-            var sngFile = SngFile.TryLoadFromFile(sngInfo);
+            var sngFile = SngFile.TryLoadFromFile(_sngInfo);
             if (sngFile == null)
                 return null;
 
@@ -69,7 +68,7 @@ namespace YARG.Core.Song
 
         public override BackgroundResult? LoadBackground(BackgroundType options)
         {
-            var sngFile = SngFile.TryLoadFromFile(sngInfo);
+            var sngFile = SngFile.TryLoadFromFile(_sngInfo);
             if (sngFile == null)
             {
                 return null;
@@ -83,7 +82,7 @@ namespace YARG.Core.Song
                 }
 
                 // Try to find a yarground mapped to the specific .sng
-                string filepath = Path.ChangeExtension(sngInfo.FullName, YARGROUND_EXTENSION);
+                string filepath = Path.ChangeExtension(_sngInfo.FullName, YARGROUND_EXTENSION);
                 if (File.Exists(filepath))
                 {
                     var stream = File.OpenRead(filepath);
@@ -91,7 +90,7 @@ namespace YARG.Core.Song
                 }
 
                 // Otherwise, randomly select one that is present in the same folder
-                string directory = Path.GetDirectoryName(sngInfo.FullName);
+                string directory = Path.GetDirectoryName(_sngInfo.FullName);
                 var venue = SelectRandomYarground(directory);
                 if (venue != null)
                 {
@@ -132,7 +131,7 @@ namespace YARG.Core.Song
 
         public override AudioMixer? LoadPreviewAudio()
         {
-            var sngFile = SngFile.TryLoadFromFile(sngInfo);
+            var sngFile = SngFile.TryLoadFromFile(_sngInfo);
             if (sngFile == null)
             {
                 return null;
@@ -176,12 +175,20 @@ namespace YARG.Core.Song
             return mixer;
         }
 
-        private SngEntry(uint version, AbridgedFileInfo sngInfo, IniChartNode<string> chart, in SongMetadata metadata)
-            : base(metadata)
+        private SngEntry(SngFile sngFile, IniChartNode<string> chart, AvailableParts parts, HashWrapper hash, IniSection modifiers, string defaultPlaylist)
+            : base(parts, hash, modifiers, defaultPlaylist)
         {
-            this.version = version;
-            this.sngInfo = sngInfo;
-            this.chart = chart;
+            _version = sngFile.Version;
+            _sngInfo = sngFile.Info;
+            _chart = chart;
+        }
+
+        private SngEntry(uint version, AbridgedFileInfo sngInfo, IniChartNode<string> chart, BinaryReader reader, CategoryCacheStrings strings)
+            : base(reader, strings)
+        {
+            _version = version;
+            _sngInfo = sngInfo;
+            _chart = chart;
         }
 
         public static (ScanResult, SngEntry?) ProcessNewEntry(SngFile sng, IniChartNode<string> chart, string defaultPlaylist)
@@ -193,8 +200,7 @@ namespace YARG.Core.Song
                 return (result, null);
             }
 
-            var metadata = SetMetadata(parts, HashWrapper.Hash(file), sng.Metadata, defaultPlaylist);
-            var entry = new SngEntry(sng.Version, sng.Info, chart, metadata);
+            var entry = new SngEntry(sng, chart, parts, HashWrapper.Hash(file), sng.Metadata, defaultPlaylist);
             return (result, entry);
         }
 
@@ -218,9 +224,7 @@ namespace YARG.Core.Song
             {
                 return null;
             }
-
-            var metadata = DeserializeMetadata(reader, strings);
-            return new SngEntry(sngFile.Version, sngInfo, CHART_FILE_TYPES[chartTypeIndex], metadata);
+            return new SngEntry(sngFile.Version, sngInfo, CHART_FILE_TYPES[chartTypeIndex], reader, strings);
         }
 
         public static IniSubEntry? LoadFromCache_Quick(string baseDirectory, BinaryReader reader, CategoryCacheStrings strings)
@@ -234,9 +238,7 @@ namespace YARG.Core.Song
             {
                 return null;
             }
-
-            var metadata = DeserializeMetadata(reader, strings);
-            return new SngEntry(version, sngInfo, CHART_FILE_TYPES[chartTypeIndex], metadata);
+            return new SngEntry(version, sngInfo, CHART_FILE_TYPES[chartTypeIndex], reader, strings);
         }
     }
 }

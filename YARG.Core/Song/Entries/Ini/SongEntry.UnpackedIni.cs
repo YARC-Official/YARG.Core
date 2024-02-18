@@ -156,8 +156,17 @@ namespace YARG.Core.Song
             return new FileStream(_chartFile.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
         }
 
-        private UnpackedIniEntry(string directory, ChartType chartType, AbridgedFileInfo chartFile, AbridgedFileInfo? iniFile, in SongMetadata metadata)
-            : base(metadata)
+        private UnpackedIniEntry(string directory, ChartType chartType, AbridgedFileInfo chartFile, AbridgedFileInfo? iniFile, AvailableParts parts, HashWrapper hash, IniSection modifiers, string defaultPlaylist)
+            : base(parts, hash, modifiers, defaultPlaylist)
+        {
+            Directory = directory;
+            Type = chartType;
+            _chartFile = chartFile;
+            _iniFile = iniFile;
+        }
+
+        private UnpackedIniEntry(string directory, ChartType chartType, AbridgedFileInfo chartFile, AbridgedFileInfo? iniFile, BinaryReader reader, CategoryCacheStrings strings)
+            : base(reader, strings)
         {
             Directory = directory;
             Type = chartType;
@@ -197,8 +206,7 @@ namespace YARG.Core.Song
             }
 
             var abridged = new AbridgedFileInfo(chart.File);
-            var metadata = SetMetadata(parts, HashWrapper.Hash(file), iniModifiers, defaultPlaylist);
-            var entry = new UnpackedIniEntry(chartDirectory, chart.Type, abridged, iniFileInfo, metadata);
+            var entry = new UnpackedIniEntry(chartDirectory, chart.Type, abridged, iniFileInfo, parts, HashWrapper.Hash(file), iniModifiers, defaultPlaylist);
             return (result, entry);
         }
 
@@ -232,9 +240,7 @@ namespace YARG.Core.Song
             {
                 return null;
             }
-
-            var metadata = DeserializeMetadata(reader, strings);
-            return new UnpackedIniEntry(directory, chart.Type, chartInfo, iniInfo, metadata);
+            return new UnpackedIniEntry(directory, chart.Type, chartInfo, iniInfo, reader, strings);
         }
 
         public static IniSubEntry? IniFromCache_Quick(string baseDirectory, BinaryReader reader, CategoryCacheStrings strings)
@@ -256,9 +262,7 @@ namespace YARG.Core.Song
                 lastUpdated = DateTime.FromBinary(reader.ReadInt64());
                 iniInfo = new AbridgedFileInfo(Path.Combine(directory, "song.ini"), lastUpdated);
             }
-
-            var metadata = DeserializeMetadata(reader, strings);
-            return new UnpackedIniEntry(directory, chart.Type, chartInfo, iniInfo, metadata);
+            return new UnpackedIniEntry(directory, chart.Type, chartInfo, iniInfo, reader, strings);
         }
     }
 }

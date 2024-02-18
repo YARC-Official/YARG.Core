@@ -2,13 +2,12 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using YARG.Core.Audio;
+using System.Linq;
 using YARG.Core.Chart;
 using YARG.Core.IO;
 using YARG.Core.IO.Ini;
 using YARG.Core.Song.Cache;
 using YARG.Core.Song.Preparsers;
-using YARG.Core.Venue;
 
 namespace YARG.Core.Song
 {
@@ -72,8 +71,15 @@ namespace YARG.Core.Song
 
         public abstract ChartType Type { get; }
 
-        protected IniSubEntry(in SongMetadata metadata)
-            : base(metadata) { }
+        protected IniSubEntry(AvailableParts parts, HashWrapper hash, IniSection modifiers, string defaultPlaylist)
+            : base(parts, hash, modifiers, defaultPlaylist)
+        {
+        }
+
+        protected IniSubEntry(BinaryReader reader, CategoryCacheStrings strings)
+            : base(reader, strings)
+        {
+        }
 
         protected abstract Stream? GetChartStream();
 

@@ -312,8 +312,8 @@ namespace YARG.Core.Song
             _rbDifficulties = RBCONDifficulties.Default;
         }
 
-        protected RBCONEntry(in SongMetadata baseMetadata, AbridgedFileInfo? updateMidi, IRBProUpgrade? upgrade, BinaryReader reader)
-            : base(baseMetadata)
+        protected RBCONEntry(AbridgedFileInfo? updateMidi, IRBProUpgrade? upgrade, BinaryReader reader, CategoryCacheStrings strings)
+            : base(reader, strings)
         {
             _updateMidi = updateMidi;
             _upgrade = upgrade;

@@ -82,9 +82,7 @@ namespace YARG.Core.Song
             string genPath = $"songs/{nodename}/gen/{nodename}";
             var miloListing = file.TryGetListing(genPath + ".milo_xbox");
             var imgListing = file.TryGetListing(genPath + "_keep.png_xbox");
-            
-            var baseMetadata = DeserializeMetadata(reader, strings);
-            return new PackedRBCONEntry(midiListing, lastMidiWrite, moggListing, miloListing, imgListing, psuedoDirectory, baseMetadata, updateMidi, upgrade, reader);
+            return new PackedRBCONEntry(midiListing, lastMidiWrite, moggListing, miloListing, imgListing, psuedoDirectory, updateMidi, upgrade, reader, strings);
         }
 
         public static PackedRBCONEntry LoadFromCache_Quick(CONFile file, string nodename, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
@@ -106,9 +104,7 @@ namespace YARG.Core.Song
             string genPath = $"songs/{nodename}/gen/{nodename}";
             var miloListing = file.TryGetListing(genPath + ".milo_xbox");
             var imgListing = file.TryGetListing(genPath + "_keep.png_xbox");
-
-            var baseMetadata = DeserializeMetadata(reader, strings);
-            return new PackedRBCONEntry(midiListing, lastMidiWrite, moggListing, miloListing, imgListing, psuedoDirectory, baseMetadata, updateMidi, upgrade, reader);
+            return new PackedRBCONEntry(midiListing, lastMidiWrite, moggListing, miloListing, imgListing, psuedoDirectory, updateMidi, upgrade, reader, strings);
         }
 
         private PackedRBCONEntry(PackedCONGroup group, string nodename, YARGDTAReader reader, Dictionary<string, List<SongUpdate>> updates, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades)
@@ -138,8 +134,8 @@ namespace YARG.Core.Song
         }
 
         private PackedRBCONEntry(CONFileListing? midi, DateTime midiLastWrite, CONFileListing? moggListing, CONFileListing? miloListing, CONFileListing? imgListing, string directory,
-            in SongMetadata baseMetadata, AbridgedFileInfo? updateMidi, IRBProUpgrade? upgrade, BinaryReader reader)
-            : base(baseMetadata, updateMidi, upgrade, reader)
+            AbridgedFileInfo? updateMidi, IRBProUpgrade? upgrade, BinaryReader reader, CategoryCacheStrings strings)
+            : base(updateMidi, upgrade, reader, strings)
         {
             _midiListing = midi;
             _moggListing = moggListing;

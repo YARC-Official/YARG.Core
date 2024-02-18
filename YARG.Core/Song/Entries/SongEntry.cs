@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
 using YARG.Core.Chart;
+using YARG.Core.IO.Ini;
+using YARG.Core.Song.Cache;
 using YARG.Core.Venue;
 
 namespace YARG.Core.Song
@@ -238,9 +240,37 @@ namespace YARG.Core.Song
             _intYear = int.MaxValue;
         }
 
-        protected SongEntry(in SongMetadata metadata)
+        protected SongEntry(AvailableParts parts, HashWrapper hash, IniSection modifiers, string defaultPlaylist)
         {
-            Metadata = metadata;
+            Metadata.Parts = parts;
+            Metadata.Hash = hash;
+            Metadata.ParseSettings = ParseSettings.Default;
+            Metadata.ParseSettings.DrumsType = parts.GetDrumType();
+
+            modifiers.TryGet("name", out Metadata.Name, SongMetadata.DEFAULT_NAME);
+            modifiers.TryGet("artist", out Metadata.Artist, SongMetadata.DEFAULT_ARTIST);
+            modifiers.TryGet("album", out Metadata.Album, SongMetadata.DEFAULT_ALBUM);
+            modifiers.TryGet("genre", out Metadata.Genre, SongMetadata.DEFAULT_GENRE);
+
+            if (!modifiers.TryGet("year", out Metadata.Year))
+            {
+                if (modifiers.TryGet("year_chart", out Metadata.Year))
+                {
+                    if (Metadata.Year.StartsWith(", "))
+                    {
+                        Metadata.Year = Metadata.Year[2..];
+                    }
+                    else if (Metadata.Year.StartsWith(','))
+                    {
+                        Metadata.Year = Metadata.Year[1..];
+                    }
+                }
+                else
+                {
+                    Metadata.Year = SongMetadata.DEFAULT_YEAR;
+                }
+            }
+
             var match = s_YearRegex.Match(Metadata.Year);
             if (string.IsNullOrEmpty(match.Value))
             {
@@ -252,6 +282,172 @@ namespace YARG.Core.Song
                 _parsedYear = match.Value[..4];
                 _intYear = int.Parse(_parsedYear);
             }
+
+            if (!modifiers.TryGet("charter", out Metadata.Charter, SongMetadata.DEFAULT_CHARTER))
+            {
+                modifiers.TryGet("frets", out Metadata.Charter, SongMetadata.DEFAULT_CHARTER);
+            }
+
+            modifiers.TryGet("icon", out Metadata.Source, SongMetadata.DEFAULT_SOURCE);
+            modifiers.TryGet("playlist", out Metadata.Playlist, defaultPlaylist);
+
+            modifiers.TryGet("loading_phrase", out Metadata.LoadingPhrase);
+
+            if (!modifiers.TryGet("playlist_track", out Metadata.PlaylistTrack))
+            {
+                Metadata.PlaylistTrack = -1;
+            }
+
+            if (!modifiers.TryGet("album_track", out Metadata.AlbumTrack))
+            {
+                Metadata.AlbumTrack = -1;
+            }
+
+            modifiers.TryGet("song_length", out Metadata.SongLength);
+
+            modifiers.TryGet("video_start_time", out Metadata.VideoStartTime);
+            if (!modifiers.TryGet("video_end_time", out Metadata.VideoEndTime))
+            {
+                Metadata.VideoEndTime = -1;
+            }
+
+            if (!modifiers.TryGet("preview", out Metadata.PreviewStart, out Metadata.PreviewEnd))
+            {
+                if (!modifiers.TryGet("preview_start_time", out Metadata.PreviewStart) && modifiers.TryGet("previewStart", out double previewStartSeconds))
+                {
+                    Metadata.PreviewStart = (ulong) (previewStartSeconds * MILLISECOND_FACTOR);
+                }
+
+                if (!modifiers.TryGet("preview_end_time", out Metadata.PreviewEnd) && modifiers.TryGet("previewEnd", out double previewEndSeconds))
+                {
+                    Metadata.PreviewEnd = (ulong) (previewEndSeconds * MILLISECOND_FACTOR);
+                }
+            }
+
+            if (!modifiers.TryGet("delay", out Metadata.SongOffset) || Metadata.SongOffset == 0)
+            {
+                if (modifiers.TryGet("offset", out double songOffsetSeconds))
+                {
+                    Metadata.SongOffset = (long) (songOffsetSeconds * MILLISECOND_FACTOR);
+                }
+            }
+
+            if (!modifiers.TryGet("hopo_frequency", out Metadata.ParseSettings.HopoThreshold))
+            {
+                Metadata.ParseSettings.HopoThreshold = -1;
+            }
+
+            if (!modifiers.TryGet("hopofreq", out Metadata.ParseSettings.HopoFreq_FoF))
+            {
+                Metadata.ParseSettings.HopoFreq_FoF = -1;
+            }
+
+            modifiers.TryGet("eighthnote_hopo", out Metadata.ParseSettings.EighthNoteHopo);
+
+            if (!modifiers.TryGet("sustain_cutoff_threshold", out Metadata.ParseSettings.SustainCutoffThreshold))
+            {
+                Metadata.ParseSettings.SustainCutoffThreshold = -1;
+            }
+
+            if (!modifiers.TryGet("multiplier_note", out Metadata.ParseSettings.StarPowerNote))
+            {
+                Metadata.ParseSettings.StarPowerNote = -1;
+            }
+
+            Metadata.IsMaster = !modifiers.TryGet("tags", out string tag) || tag.ToLower() != "cover";
+        }
+
+        protected SongEntry(BinaryReader reader, CategoryCacheStrings strings)
+        {
+            Metadata.Name = strings.titles[reader.ReadInt32()];
+            Metadata.Artist = strings.artists[reader.ReadInt32()];
+            Metadata.Album = strings.albums[reader.ReadInt32()];
+            Metadata.Genre = strings.genres[reader.ReadInt32()];
+
+            Metadata.Year = strings.years[reader.ReadInt32()];
+            Metadata.Charter = strings.charters[reader.ReadInt32()];
+            Metadata.Playlist = strings.playlists[reader.ReadInt32()];
+            Metadata.Source = strings.sources[reader.ReadInt32()];
+
+            Metadata.IsMaster = reader.ReadBoolean();
+
+            Metadata.AlbumTrack = reader.ReadInt32();
+            Metadata.PlaylistTrack = reader.ReadInt32();
+
+            Metadata.SongLength = reader.ReadUInt64();
+            Metadata.SongOffset = reader.ReadInt64();
+
+            Metadata.PreviewStart = reader.ReadUInt64();
+            Metadata.PreviewEnd = reader.ReadUInt64();
+
+            Metadata.VideoStartTime = reader.ReadInt64();
+            Metadata.VideoEndTime = reader.ReadInt64();
+
+            Metadata.LoadingPhrase = reader.ReadString();
+            Metadata.ParseSettings = new ParseSettings()
+            {
+                HopoThreshold = reader.ReadInt64(),
+                HopoFreq_FoF = reader.ReadInt32(),
+                EighthNoteHopo = reader.ReadBoolean(),
+                SustainCutoffThreshold = reader.ReadInt64(),
+                NoteSnapThreshold = reader.ReadInt64(),
+                StarPowerNote = reader.ReadInt32(),
+                DrumsType = (DrumsType) reader.ReadInt32(),
+            };
+
+            Metadata.Parts = new(reader);
+            Metadata.Hash = HashWrapper.Deserialize(reader);
+
+            var match = s_YearRegex.Match(Metadata.Year);
+            if (string.IsNullOrEmpty(match.Value))
+            {
+                _parsedYear = Metadata.Year;
+                _intYear = int.MaxValue;
+            }
+            else
+            {
+                _parsedYear = match.Value[..4];
+                _intYear = int.Parse(_parsedYear);
+            }
+        }
+
+        protected void SerializeMetadata(BinaryWriter writer, CategoryCacheWriteNode node)
+        {
+            writer.Write(node.title);
+            writer.Write(node.artist);
+            writer.Write(node.album);
+            writer.Write(node.genre);
+            writer.Write(node.year);
+            writer.Write(node.charter);
+            writer.Write(node.playlist);
+            writer.Write(node.source);
+
+            writer.Write(Metadata.IsMaster);
+
+            writer.Write(Metadata.AlbumTrack);
+            writer.Write(Metadata.PlaylistTrack);
+
+            writer.Write(Metadata.SongLength);
+            writer.Write(Metadata.SongOffset);
+
+            writer.Write(Metadata.PreviewStart);
+            writer.Write(Metadata.PreviewEnd);
+
+            writer.Write(Metadata.VideoStartTime);
+            writer.Write(Metadata.VideoEndTime);
+
+            writer.Write(Metadata.LoadingPhrase);
+
+            writer.Write(Metadata.ParseSettings.HopoThreshold);
+            writer.Write(Metadata.ParseSettings.HopoFreq_FoF);
+            writer.Write(Metadata.ParseSettings.EighthNoteHopo);
+            writer.Write(Metadata.ParseSettings.SustainCutoffThreshold);
+            writer.Write(Metadata.ParseSettings.NoteSnapThreshold);
+            writer.Write(Metadata.ParseSettings.StarPowerNote);
+            writer.Write((int) Metadata.ParseSettings.DrumsType);
+
+            Metadata.Parts.Serialize(writer);
+            Metadata.Hash.Serialize(writer);
         }
     }
 }
