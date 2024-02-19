@@ -12,8 +12,9 @@ namespace YARG.Core.Song.Cache
         public SequentialCacheHandler(List<string> baseDirectories, bool allowDuplicates, bool fullDirectoryPlaylists)
             : base(baseDirectories, allowDuplicates, fullDirectoryPlaylists) { }
 
-        protected override void FindNewEntries(PlaylistTracker tracker)
+        protected override void FindNewEntries()
         {
+            var tracker = new PlaylistTracker(fullDirectoryPlaylists);
             foreach (var group in iniGroups)
             {
                 var dirInfo = new DirectoryInfo(group.Directory);

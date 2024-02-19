@@ -109,7 +109,7 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        protected abstract void FindNewEntries(PlaylistTracker tracker);
+        protected abstract void FindNewEntries();
         protected abstract void TraverseDirectory(FileCollector collector, IniGroup group, PlaylistTracker tracker);
         protected abstract bool FindOrMarkDirectory(string directory);
         protected abstract bool FindOrMarkFile(string file);

@@ -125,7 +125,7 @@ namespace YARG.Core.Song.Cache
             }
 
             _progress.Stage = ScanStage.LoadingSongs;
-            FindNewEntries(new PlaylistTracker(fullDirectoryPlaylists));
+            FindNewEntries();
             CleanupDuplicates();
 
             _progress.Stage = ScanStage.Sorting;

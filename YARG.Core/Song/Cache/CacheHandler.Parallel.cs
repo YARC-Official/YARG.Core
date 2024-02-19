@@ -58,8 +58,9 @@ namespace YARG.Core.Song.Cache
         public ParallelCacheHandler(List<string> baseDirectories, bool allowDuplicates, bool fullDirectoryPlaylists)
             : base(baseDirectories, allowDuplicates, fullDirectoryPlaylists) { }
 
-        protected override void FindNewEntries(PlaylistTracker tracker)
+        protected override void FindNewEntries()
         {
+            var tracker = new PlaylistTracker(fullDirectoryPlaylists);
             Parallel.ForEach(iniGroups, group =>
             {
                 var dirInfo = new DirectoryInfo(group.Directory);
