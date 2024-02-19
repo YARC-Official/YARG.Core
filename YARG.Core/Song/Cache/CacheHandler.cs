@@ -130,6 +130,7 @@ namespace YARG.Core.Song.Cache
 
             _progress.Stage = ScanStage.Sorting;
             SortCategories();
+            YargTrace.DebugInfo($"Total Entries: {_progress.Count}");
 
             try
             {
