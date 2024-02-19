@@ -171,26 +171,26 @@ namespace YARG.Core.Engine.Guitar
 
             AddScore(note);
 
-            if (note.IsDisjoint)
-            {
-                foreach (var chordNote in note.ChordEnumerator())
-                {
-                    if (!chordNote.IsSustain)
-                    {
-                        continue;
-                    }
-
-                    var sustain = new ActiveSustain(chordNote);
-                    ActiveSustains.Add(sustain);
-                    OnSustainStart?.Invoke(chordNote);
-                }
-            }
-            else if (note.IsSustain)
-            {
-                var sustain = new ActiveSustain(note);
-                ActiveSustains.Add(sustain);
-                OnSustainStart?.Invoke(note);
-            }
+            // if (note.IsDisjoint)
+            // {
+            //     foreach (var chordNote in note.ChordEnumerator())
+            //     {
+            //         if (!chordNote.IsSustain)
+            //         {
+            //             continue;
+            //         }
+            //
+            //         var sustain = new ActiveSustain(chordNote);
+            //         ActiveSustains.Add(sustain);
+            //         OnSustainStart?.Invoke(chordNote);
+            //     }
+            // }
+            // else if (note.IsSustain)
+            // {
+            //     var sustain = new ActiveSustain(note);
+            //     ActiveSustains.Add(sustain);
+            //     OnSustainStart?.Invoke(note);
+            // }
 
             State.WasNoteGhosted = false;
 
