@@ -29,7 +29,6 @@ namespace YARG.Core.Song
         public string DrumBank;
         public string VocalPercussionBank;
         public uint VocalSongScrollSpeed;
-        public uint SongRating;  // 1 = FF; 2 = SR; 3 = M; 4 = NR
         public bool VocalGender; //true for male, false for female
         //public bool HasAlbumArt;
         //public bool IsFake;
@@ -262,7 +261,6 @@ namespace YARG.Core.Song
             writer.Write(_rbMetadata.SongID);
             writer.Write(_rbMetadata.VocalPercussionBank);
             writer.Write(_rbMetadata.VocalSongScrollSpeed);
-            writer.Write(_rbMetadata.SongRating);
             writer.Write(_rbMetadata.VocalGender);
             writer.Write(_rbMetadata.VocalTonicNote);
             writer.Write(_rbMetadata.SongTonality);
@@ -326,7 +324,6 @@ namespace YARG.Core.Song
             _rbMetadata.SongID = reader.ReadString();
             _rbMetadata.VocalPercussionBank = reader.ReadString();
             _rbMetadata.VocalSongScrollSpeed = reader.ReadUInt32();
-            _rbMetadata.SongRating = reader.ReadUInt32();
             _rbMetadata.VocalGender = reader.ReadBoolean();
             _rbMetadata.VocalTonicNote = reader.ReadUInt32();
             _rbMetadata.SongTonality = reader.ReadBoolean();
@@ -607,7 +604,7 @@ namespace YARG.Core.Song
                                 break;
                             }
                         case "song_id": _rbMetadata.SongID = reader.ExtractText(); break;
-                        case "rating": _rbMetadata.SongRating = reader.ExtractUInt32(); break;
+                        case "rating": Metadata.SongRating = reader.ExtractUInt32(); break;
                         case "short_version": /*ShortVersion = reader.Read<uint>();*/ break;
                         case "album_art": /*HasAlbumArt = reader.ExtractBoolean();*/ break;
                         case "year_released":

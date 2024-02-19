@@ -304,6 +304,7 @@ namespace YARG.Core.Song
             }
 
             modifiers.TryGet("song_length", out Metadata.SongLength);
+            modifiers.TryGet("rating", out Metadata.SongRating);
 
             modifiers.TryGet("video_start_time", out Metadata.VideoStartTime);
             if (!modifiers.TryGet("video_end_time", out Metadata.VideoEndTime))
@@ -376,6 +377,7 @@ namespace YARG.Core.Song
 
             Metadata.SongLength = reader.ReadUInt64();
             Metadata.SongOffset = reader.ReadInt64();
+            Metadata.SongRating = reader.ReadUInt32();
 
             Metadata.PreviewStart = reader.ReadUInt64();
             Metadata.PreviewEnd = reader.ReadUInt64();
@@ -429,6 +431,7 @@ namespace YARG.Core.Song
 
             writer.Write(Metadata.SongLength);
             writer.Write(Metadata.SongOffset);
+            writer.Write(Metadata.SongRating);
 
             writer.Write(Metadata.PreviewStart);
             writer.Write(Metadata.PreviewEnd);
