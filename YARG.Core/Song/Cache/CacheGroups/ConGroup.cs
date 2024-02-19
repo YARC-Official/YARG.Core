@@ -77,8 +77,7 @@ namespace YARG.Core.Song.Cache
             {
                 foreach (var entry in dict.Value)
                 {
-                    // Intentional compare by reference
-                    if (entry.Value == entryToRemove)
+                    if (ReferenceEquals(entry.Value, entryToRemove))
                     {
                         dict.Value.Remove(entry.Key);
                         if (dict.Value.Count == 0)
