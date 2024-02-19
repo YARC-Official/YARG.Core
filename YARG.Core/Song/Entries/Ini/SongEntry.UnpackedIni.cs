@@ -45,13 +45,13 @@ namespace YARG.Core.Song
             }
 
             var mixer = new AudioMixer();
-            foreach (var stem in IniAudioChecker.SupportedStems)
+            foreach (var stem in IniAudio.SupportedStems)
             {
                 var stemEnum = AudioHelpers.SupportedStems[stem];
                 if (ignoreStems.Contains(stemEnum))
                     continue;
 
-                foreach (var format in IniAudioChecker.SupportedFormats)
+                foreach (var format in IniAudio.SupportedFormats)
                 {
                     var audioFile = stem + format;
                     if (files.TryGetValue(audioFile, out var fullname))
@@ -146,7 +146,7 @@ namespace YARG.Core.Song
 
         public override AudioMixer LoadPreviewAudio()
         {
-            foreach (var format in IniAudioChecker.SupportedFormats)
+            foreach (var format in IniAudio.SupportedFormats)
             {
                 var audioFile = Path.Combine(Directory, "preview" + format);
                 if (File.Exists(audioFile))

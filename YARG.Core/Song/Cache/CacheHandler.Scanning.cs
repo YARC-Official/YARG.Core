@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using YARG.Core.IO;
 
@@ -46,14 +47,7 @@ namespace YARG.Core.Song.Cache
 
             public bool ContainsAudio()
             {
-                foreach (var subFile in subfiles)
-                {
-                    if (IniSubEntry.IniAudioChecker.IsAudioFile(subFile.Name.ToLower()))
-                    {
-                        return true;
-                    }
-                }
-                return false;
+                return subfiles.Any(subFile => IniAudio.IsAudioFile(subFile.Name.ToLower()));
             }
         }
 
@@ -76,14 +70,7 @@ namespace YARG.Core.Song.Cache
 
             public bool ContainsAudio()
             {
-                foreach (var subFile in sng)
-                {
-                    if (IniSubEntry.IniAudioChecker.IsAudioFile(subFile.Key))
-                    {
-                        return true;
-                    }
-                }
-                return false;
+                return sng.Any(subFile => IniAudio.IsAudioFile(subFile.Key));
             }
         }
 

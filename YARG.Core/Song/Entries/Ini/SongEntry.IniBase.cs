@@ -23,26 +23,27 @@ namespace YARG.Core.Song
         }
     }
 
-    public abstract class IniSubEntry : SongEntry
+    public static class IniAudio
     {
-        public static class IniAudioChecker
-        {
-            public static readonly string[] SupportedStems = { "song", "guitar", "bass", "rhythm", "keys", "vocals", "vocals_1", "vocals_2", "drums", "drums_1", "drums_2", "drums_3", "drums_4", "crowd", };
-            public static readonly string[] SupportedFormats = { ".opus", ".ogg", ".mp3", ".wav", ".aiff", };
-            private static readonly HashSet<string> SupportedAudioFiles = new();
-            static IniAudioChecker()
-            {
-                foreach (string stem in SupportedStems)
-                    foreach (string format in SupportedFormats)
-                        SupportedAudioFiles.Add(stem + format);
-            }
+        public static readonly string[] SupportedStems = { "song", "guitar", "bass", "rhythm", "keys", "vocals", "vocals_1", "vocals_2", "drums", "drums_1", "drums_2", "drums_3", "drums_4", "crowd", };
+        public static readonly string[] SupportedFormats = { ".opus", ".ogg", ".mp3", ".wav", ".aiff", };
+        private static readonly HashSet<string> SupportedAudioFiles = new();
 
-            public static bool IsAudioFile(string file)
-            {
-                return SupportedAudioFiles.Contains(file);
-            }
+        static IniAudio()
+        {
+            foreach (string stem in SupportedStems)
+                foreach (string format in SupportedFormats)
+                    SupportedAudioFiles.Add(stem + format);
         }
 
+        public static bool IsAudioFile(string file)
+        {
+            return SupportedAudioFiles.Contains(file);
+        }
+    }
+
+    public abstract class IniSubEntry : SongEntry
+    {
         public static readonly IniChartNode<string>[] CHART_FILE_TYPES =
         {
             new(ChartType.Mid, "notes.mid"),

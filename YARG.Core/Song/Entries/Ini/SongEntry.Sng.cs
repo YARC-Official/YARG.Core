@@ -152,7 +152,7 @@ namespace YARG.Core.Song
                 return null;
             }
 
-            foreach (var format in IniAudioChecker.SupportedFormats)
+            foreach (var format in IniAudio.SupportedFormats)
             {
                 if (sngFile.TryGetValue("preview" + format, out var listing))
                 {
@@ -169,13 +169,13 @@ namespace YARG.Core.Song
         private AudioMixer CreateAudioMixer(SngFile sngFile, params SongStem[] ignoreStems)
         {
             var mixer = new AudioMixer();
-            foreach (var stem in IniAudioChecker.SupportedStems)
+            foreach (var stem in IniAudio.SupportedStems)
             {
                 var stemEnum = AudioHelpers.SupportedStems[stem];
                 if (ignoreStems.Contains(stemEnum))
                     continue;
 
-                foreach (var format in IniAudioChecker.SupportedFormats)
+                foreach (var format in IniAudio.SupportedFormats)
                 {
                     var file = stem + format;
                     if (sngFile.TryGetValue(file, out var listing))
