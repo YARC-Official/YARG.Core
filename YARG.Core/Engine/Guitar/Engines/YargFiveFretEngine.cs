@@ -81,6 +81,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             {
                 State.HasTapped = true;
                 State.InfiniteFrontEndHitTime = note.Time + EngineParameters.HitWindow.GetFrontEnd(hitWindow);
+                State.FrontEndStartTime = State.CurrentTime;
 
                 // Check for fret ghosting
                 // We want to run ghost logic regardless of the setting for the ghost counter
