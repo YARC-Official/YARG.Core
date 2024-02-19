@@ -124,41 +124,50 @@ namespace YARG.Core.Song
 
         public override BackgroundResult? LoadBackground(BackgroundType options)
         {
-            string backgroundPath = Path.Combine(Directory, YARGROUND_FULLNAME);
-            if (File.Exists(backgroundPath))
+            if ((options & BackgroundType.Yarground) > 0)
             {
-                var stream = File.OpenRead(backgroundPath);
-                return new BackgroundResult(BackgroundType.Yarground, stream);
+                string yarground = Path.Combine(Directory, YARGROUND_FULLNAME);
+                if (File.Exists(yarground))
+                {
+                    var stream = File.OpenRead(yarground);
+                    return new BackgroundResult(BackgroundType.Yarground, stream);
+                }
             }
 
-            foreach (var name in BACKGROUND_FILENAMES)
+            if ((options & BackgroundType.Video) > 0)
             {
-                var fileBase = Path.Combine(Directory, name);
-                foreach (var ext in VIDEO_EXTENSIONS)
+                foreach (var name in BACKGROUND_FILENAMES)
                 {
-                    backgroundPath = fileBase + ext;
-                    if (File.Exists(backgroundPath))
+                    var fileBase = Path.Combine(Directory, name);
+                    foreach (var ext in VIDEO_EXTENSIONS)
                     {
-                        var stream = File.OpenRead(backgroundPath);
-                        return new BackgroundResult(BackgroundType.Video, stream);
+                        string videoFile = fileBase + ext;
+                        if (File.Exists(videoFile))
+                        {
+                            var stream = File.OpenRead(videoFile);
+                            return new BackgroundResult(BackgroundType.Video, stream);
+                        }
                     }
                 }
             }
 
-            foreach (var name in BACKGROUND_FILENAMES)
+            if ((options & BackgroundType.Image) > 0)
             {
-                var fileBase = Path.Combine(Directory, name);
-                foreach (var ext in IMAGE_EXTENSIONS)
+                //                                     No "video"
+                foreach (var name in BACKGROUND_FILENAMES[..2])
                 {
-                    backgroundPath = fileBase + ext;
-                    if (File.Exists(backgroundPath))
+                    var fileBase = Path.Combine(Directory, name);
+                    foreach (var ext in IMAGE_EXTENSIONS)
                     {
-                        var stream = File.OpenRead(backgroundPath);
-                        return new BackgroundResult(BackgroundType.Image, stream);
+                        string imageFile = fileBase + ext;
+                        if (File.Exists(imageFile))
+                        {
+                            var stream = File.OpenRead(imageFile);
+                            return new BackgroundResult(BackgroundType.Image, stream);
+                        }
                     }
                 }
             }
-
             return null;
         }
 

@@ -132,7 +132,8 @@ namespace YARG.Core.Song
                     return new BackgroundResult(BackgroundType.Image, new FileStream(background, FileMode.Open, FileAccess.Read, FileShare.Read));
                 }
 
-                foreach (var stem in BACKGROUND_FILENAMES)
+                //                                     No "video"
+                foreach (var stem in BACKGROUND_FILENAMES[..2])
                 {
                     foreach (var format in IMAGE_EXTENSIONS)
                     {

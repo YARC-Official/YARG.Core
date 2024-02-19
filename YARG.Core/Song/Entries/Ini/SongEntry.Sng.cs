@@ -93,14 +93,6 @@ namespace YARG.Core.Song
                     var stream = File.OpenRead(filepath);
                     return new(BackgroundType.Yarground, stream);
                 }
-
-                // Otherwise, randomly select one that is present in the same folder
-                string directory = Path.GetDirectoryName(_sngInfo.FullName);
-                var venue = SelectRandomYarground(directory);
-                if (venue != null)
-                {
-                    return venue;
-                }
             }
 
             if ((options & BackgroundType.Video) > 0)
@@ -129,7 +121,8 @@ namespace YARG.Core.Song
                     return new(BackgroundType.Image, background.CreateStream(sngFile));
                 }
 
-                foreach (var stem in BACKGROUND_FILENAMES)
+                //                                     No "video"
+                foreach (var stem in BACKGROUND_FILENAMES[..2])
                 {
                     foreach (var format in IMAGE_EXTENSIONS)
                     {

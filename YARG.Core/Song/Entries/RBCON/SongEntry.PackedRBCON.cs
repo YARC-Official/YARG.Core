@@ -5,6 +5,7 @@ using YARG.Core.Extensions;
 using YARG.Core.Song.Cache;
 using YARG.Core.IO;
 using YARG.Core.Venue;
+using System.Linq;
 
 namespace YARG.Core.Song
 {
@@ -154,6 +155,7 @@ namespace YARG.Core.Song
             base.Serialize(writer, node);
         }
 
+        private static readonly Random YARGROUND_RNG = new();
         public override BackgroundResult? LoadBackground(BackgroundType options)
         {
             if (_midiListing == null)
@@ -162,43 +164,62 @@ namespace YARG.Core.Song
             }
 
             string actualDirectory = Path.GetDirectoryName(_midiListing.ConFile.FullName);
-
-            // Unlike other entry types, you can't assign venues to specific songs
-            // As a solution, instead, let users place a bunch of venues in the same folder and randomly select one
-            var venue = SelectRandomYarground(actualDirectory);
-            if (venue != null)
+            string nodename = _midiListing.Filename.Split('/')[1];
+            if ((options & BackgroundType.Yarground) > 0)
             {
-                return venue;
+                string specifcVenue = Path.Combine(actualDirectory, nodename + YARGROUND_EXTENSION);
+                if (File.Exists(specifcVenue))
+                {
+                    var stream = File.OpenRead(specifcVenue);
+                    return new BackgroundResult(BackgroundType.Yarground, stream);
+                }
+
+                var venues = System.IO.Directory.GetFiles(Directory)
+                    .Where(file => Path.GetExtension(file) == YARGROUND_EXTENSION)
+                    .ToArray();
+
+                if (venues.Length > 0)
+                {
+                    var stream = File.OpenRead(venues[YARGROUND_RNG.Next(venues.Length)]);
+                    return new BackgroundResult(BackgroundType.Yarground, stream);
+                }
             }
 
-            foreach (var name in BACKGROUND_FILENAMES)
+            if ((options & BackgroundType.Video) > 0)
             {
-                var fileBase = Path.Combine(actualDirectory, name);
-                foreach (var ext in VIDEO_EXTENSIONS)
+                string[] filenames = { nodename, "bg", "background", "video" };
+                foreach (var name in filenames)
                 {
-                    string backgroundPath = fileBase + ext;
-                    if (File.Exists(backgroundPath))
+                    string fileBase = Path.Combine(actualDirectory, name);
+                    foreach (var ext in VIDEO_EXTENSIONS)
                     {
-                        var stream = File.OpenRead(backgroundPath);
-                        return new BackgroundResult(BackgroundType.Video, stream);
+                        string backgroundPath = fileBase + ext;
+                        if (File.Exists(backgroundPath))
+                        {
+                            var stream = File.OpenRead(backgroundPath);
+                            return new BackgroundResult(BackgroundType.Video, stream);
+                        }
                     }
                 }
             }
 
-            foreach (var name in BACKGROUND_FILENAMES)
+            if ((options & BackgroundType.Image) > 0)
             {
-                var fileBase = Path.Combine(actualDirectory, name);
-                foreach (var ext in IMAGE_EXTENSIONS)
+                string[] filenames = { nodename, "bg", "background" };
+                foreach (var name in filenames)
                 {
-                    string backgroundPath = fileBase + ext;
-                    if (File.Exists(backgroundPath))
+                    var fileBase = Path.Combine(actualDirectory, name);
+                    foreach (var ext in IMAGE_EXTENSIONS)
                     {
-                        var stream = File.OpenRead(backgroundPath);
-                        return new BackgroundResult(BackgroundType.Image, stream);
+                        string backgroundPath = fileBase + ext;
+                        if (File.Exists(backgroundPath))
+                        {
+                            var stream = File.OpenRead(backgroundPath);
+                            return new BackgroundResult(BackgroundType.Image, stream);
+                        }
                     }
                 }
             }
-
             return null;
         }
 
