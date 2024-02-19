@@ -174,7 +174,7 @@ namespace YARG.Core.Song
                     return new BackgroundResult(BackgroundType.Yarground, stream);
                 }
 
-                var venues = System.IO.Directory.GetFiles(Directory)
+                var venues = System.IO.Directory.EnumerateFiles(actualDirectory)
                     .Where(file => Path.GetExtension(file) == YARGROUND_EXTENSION)
                     .ToArray();
 

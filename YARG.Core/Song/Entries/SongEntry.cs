@@ -91,27 +91,6 @@ namespace YARG.Core.Song
         protected static readonly string YARGROUND_EXTENSION = ".yarground";
         protected static readonly string YARGROUND_FULLNAME = "bg.yarground";
 
-        private static readonly Random YARGROUND_RNG = new();
-        protected static BackgroundResult? SelectRandomYarground(string directory)
-        {
-            var venues = new List<string>();
-            foreach (var file in System.IO.Directory.EnumerateFiles(directory))
-            {
-                if (Path.GetExtension(file) == YARGROUND_EXTENSION)
-                {
-                    venues.Add(file);
-                }
-            }
-
-            if (venues.Count == 0)
-            {
-                return null;
-            }
-            
-            var stream = File.OpenRead(venues[YARGROUND_RNG.Next(venues.Count)]);
-            return new BackgroundResult(BackgroundType.Yarground, stream);
-        }
-
         private string _parsedYear;
         private int _intYear;
 
