@@ -292,7 +292,7 @@ namespace YARG.Core.Song.Cache
             group.AddEntry(entry);
         }
 
-        private void ReadUpdateDirectory(BinaryReader reader, Func<string, AbridgedFileInfo, bool, UpdateGroup?> updateFunc)
+        private void ReadUpdateDirectory(BinaryReader reader, Func<DirectoryInfo, AbridgedFileInfo, bool, UpdateGroup?> updateFunc)
         {
             string directory = reader.ReadString();
             var dtaLastWritten = DateTime.FromBinary(reader.ReadInt64());
@@ -307,7 +307,8 @@ namespace YARG.Core.Song.Cache
                     MarkDirectory(directory);
 
                     var abridged = new AbridgedFileInfo(dtaInfo, false);
-                    var group = updateFunc(directory, abridged, false);
+                    var dirInfo = new DirectoryInfo(directory);
+                    var group = updateFunc(dirInfo, abridged, false);
                     if (group != null && abridged.LastUpdatedTime == dtaLastWritten)
                     {
                         for (int i = 0; i < count; i++)

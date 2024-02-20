@@ -331,16 +331,6 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void ScanUpdateNode(UpdateGroup group, string name, YARGDTAReader[] readers, bool removeEntries)
-        {
-            var update = group.Add(name, readers);
-            AddUpdate(name, update);
-            if (removeEntries)
-            {
-                RemoveCONEntry(name);
-            }
-        }
-
         private UpgradeGroup? CreateUpgradeGroup(string directory, AbridgedFileInfo dta, bool removeEntries)
         {
             var reader = YARGDTAReader.TryCreate(dta.FullName);

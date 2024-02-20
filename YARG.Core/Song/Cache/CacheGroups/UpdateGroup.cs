@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
 
@@ -8,24 +9,16 @@ namespace YARG.Core.Song.Cache
 {
     public sealed class UpdateGroup : IModificationGroup
     {
-        private readonly string _directory;
-        private readonly DateTime _dtaLastWrite;
+        public readonly DirectoryInfo Directory;
+        public readonly DateTime DTALastWrite;
+        public readonly Dictionary<string, DirectoryInfo> SubDirectories;
         public readonly Dictionary<string, SongUpdate> Updates = new();
 
-        public UpdateGroup(string directory, DateTime dtaLastUpdate)
+        public UpdateGroup(DirectoryInfo directory, DateTime dtaLastUpdate)
         {
-            _directory = directory;
-            _dtaLastWrite = dtaLastUpdate;
-        }
-
-        public SongUpdate Add(string name, YARGDTAReader[] readers)
-        {
-            var update = new SongUpdate(_directory, name, _dtaLastWrite, readers);
-            lock (Updates)
-            {
-                Updates.Add(name, update);
-            }
-            return update;
+            Directory = directory;
+            DTALastWrite = dtaLastUpdate;
+            SubDirectories = directory.EnumerateDirectories().ToDictionary(dir => dir.Name.ToLowerInvariant());
         }
 
         public byte[] SerializeModifications()
@@ -33,8 +26,8 @@ namespace YARG.Core.Song.Cache
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);
 
-            writer.Write(_directory);
-            writer.Write(_dtaLastWrite.ToBinary());
+            writer.Write(Directory.FullName);
+            writer.Write(DTALastWrite.ToBinary());
             writer.Write(Updates.Count);
             foreach (var (name, update) in Updates)
             {
@@ -70,38 +63,45 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        public SongUpdate(string directory, string name, DateTime dtaLastWrite, YARGDTAReader[] readers)
+        public SongUpdate(UpdateGroup group, string name, DateTime dtaLastWrite, YARGDTAReader[] readers)
         {
-            BaseDirectory = directory;
-            UpdateDirectory = Path.Combine(directory, name);
+            BaseDirectory = group.Directory.FullName;
+            UpdateDirectory = Path.Combine(BaseDirectory, name);
 
             _dtaLastWrite = dtaLastWrite;
             _readers = readers;
 
-            string basename = Path.Combine(UpdateDirectory, name);
-            var file = new FileInfo(basename + "_update.mid");
-            if (file.Exists)
+            string subname = name.ToLowerInvariant();
+            if (group.SubDirectories.TryGetValue(subname, out var subDirectory))
             {
-                Midi = new AbridgedFileInfo(file, false);
-            }
+                var filenames = new string[]
+                {
+                    subname + "_update.mid",
+                    subname + "_update.mogg",
+                    subname + ".milo_xbox",
+                    subname + "_keep.png_xbox"
+                };
 
-            file = new FileInfo(basename + "_update.mogg");
-            if (file.Exists)
-            {
-                Mogg = new AbridgedFileInfo(file, false);
-            }
-
-            basename = Path.Combine(UpdateDirectory, "gen", name);
-            file = new FileInfo(basename + ".milo_xbox");
-            if (file.Exists)
-            {
-                Milo = new AbridgedFileInfo(file, false);
-            }
-
-            file = new FileInfo(basename + "_keep.png_xbox");
-            if (file.Exists)
-            {
-                Image = new AbridgedFileInfo(file, false);
+                foreach (var file in subDirectory.EnumerateFiles("*", SearchOption.AllDirectories))
+                {
+                    string filename = file.Name.ToLowerInvariant();
+                    if (filename == filenames[0])
+                    {
+                        Midi ??= new AbridgedFileInfo(file, false);
+                    }
+                    else if (filename == filenames[1])
+                    {
+                        Mogg ??= new AbridgedFileInfo(file, false);
+                    }
+                    else if (filename == filenames[2])
+                    {
+                        Milo ??= new AbridgedFileInfo(file, false);
+                    }
+                    else if (filename == filenames[3])
+                    {
+                        Image ??= new AbridgedFileInfo(file, false);
+                    }
+                }
             }
         }
 

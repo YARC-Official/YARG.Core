@@ -177,7 +177,7 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private bool TraversalPreTest(DirectoryInfo dirInfo, string defaultPlaylist, Func<string, AbridgedFileInfo, bool, UpdateGroup?> updateFunc)
+        private bool TraversalPreTest(DirectoryInfo dirInfo, string defaultPlaylist, Func<DirectoryInfo, AbridgedFileInfo, bool, UpdateGroup?> updateFunc)
         {
             string directory = dirInfo.FullName;
             if (!FindOrMarkDirectory(dirInfo.FullName) || (dirInfo.Attributes & FileAttributes.Hidden) != 0)
@@ -190,7 +190,7 @@ namespace YARG.Core.Song.Cache
                 if (dta.Exists)
                 {
                     var abridged = new AbridgedFileInfo(dta, false);
-                    updateFunc(directory, abridged, true);
+                    updateFunc(dirInfo, abridged, true);
                     return false;
                 }
             }

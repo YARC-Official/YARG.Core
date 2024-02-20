@@ -336,16 +336,29 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private UpdateGroup? CreateUpdateGroup_Parallel(string directory, AbridgedFileInfo dta, bool removeEntries)
+        private UpdateGroup? CreateUpdateGroup_Parallel(DirectoryInfo dirInfo, AbridgedFileInfo dta, bool removeEntries)
         {
-            var nodes = FindUpdateNodes(directory, dta);
+            var nodes = FindUpdateNodes(dirInfo.FullName, dta);
             if (nodes == null)
             {
                 return null;
             }
 
-            var group = new UpdateGroup(directory, dta.LastUpdatedTime);
-            Parallel.ForEach(nodes, node => ScanUpdateNode(group, node.Key, node.Value.ToArray(), removeEntries));
+            var group = new UpdateGroup(dirInfo, dta.LastUpdatedTime);
+            Parallel.ForEach(nodes, node =>
+            {
+                var update = new SongUpdate(group, node.Key, group.DTALastWrite, node.Value.ToArray());
+                lock (group.Updates)
+                {
+                    group.Updates.Add(node.Key, update);
+                }
+
+                AddUpdate(node.Key, update);
+                if (removeEntries)
+                {
+                    RemoveCONEntry(node.Key);
+                }
+            });
             updateGroups.Add(group);
             return group;
         }
