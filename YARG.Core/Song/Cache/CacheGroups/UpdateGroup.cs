@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
 
@@ -8,31 +9,16 @@ namespace YARG.Core.Song.Cache
 {
     public sealed class UpdateGroup : IModificationGroup
     {
-        private readonly string _directory;
-        private readonly DateTime _dtaLastWrite;
+        public readonly DirectoryInfo Directory;
+        public readonly DateTime DTALastWrite;
+        public readonly Dictionary<string, DirectoryInfo> SubDirectories;
         public readonly Dictionary<string, SongUpdate> Updates = new();
 
-        public UpdateGroup(string directory, DateTime dtaLastUpdate)
+        public UpdateGroup(DirectoryInfo directory, DateTime dtaLastUpdate)
         {
-            _directory = directory;
-            _dtaLastWrite = dtaLastUpdate;
-        }
-
-        public SongUpdate Add(string name, YARGDTAReader[] readers)
-        {
-            SongUpdateFiles? files = null;
-            var dirInfo = new DirectoryInfo(Path.Combine(_directory, name));
-            if (dirInfo.Exists)
-            {
-                files = new SongUpdateFiles(dirInfo, name.ToLowerInvariant());
-            }
-
-            var update = new SongUpdate(_directory, _dtaLastWrite, readers, files);
-            lock (Updates)
-            {
-                Updates.Add(name, update);
-            }
-            return update;
+            Directory = directory;
+            DTALastWrite = dtaLastUpdate;
+            SubDirectories = directory.EnumerateDirectories().ToDictionary(dir => dir.Name.ToLowerInvariant());
         }
 
         public byte[] SerializeModifications()
@@ -40,8 +26,8 @@ namespace YARG.Core.Song.Cache
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);
 
-            writer.Write(_directory);
-            writer.Write(_dtaLastWrite.ToBinary());
+            writer.Write(Directory.FullName);
+            writer.Write(DTALastWrite.ToBinary());
             writer.Write(Updates.Count);
             foreach (var (name, update) in Updates)
             {
@@ -57,8 +43,12 @@ namespace YARG.Core.Song.Cache
         private readonly DateTime _dtaLastWrite;
         private readonly YARGDTAReader[] _readers;
 
-        public readonly string Directory;
-        public readonly SongUpdateFiles? Files;
+        public readonly string BaseDirectory;
+        public readonly string UpdateDirectory;
+        public readonly AbridgedFileInfo? Midi;
+        public readonly AbridgedFileInfo? Mogg;
+        public readonly AbridgedFileInfo? Milo;
+        public readonly AbridgedFileInfo? Image;
 
         public YARGDTAReader[] Readers
         {
@@ -73,114 +63,46 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        public SongUpdate(string directory, in DateTime dtaLastWrite, YARGDTAReader[] readers, SongUpdateFiles? files)
+        public SongUpdate(UpdateGroup group, string name, DateTime dtaLastWrite, YARGDTAReader[] readers)
         {
+            BaseDirectory = group.Directory.FullName;
+            UpdateDirectory = Path.Combine(BaseDirectory, name);
+
             _dtaLastWrite = dtaLastWrite;
             _readers = readers;
 
-            Directory = directory;
-            Files = files;
-        }
-
-        public void Serialize(BinaryWriter writer)
-        {
-            writer.Write(Files != null);
-            Files?.Serialize(writer);
-        }
-
-        public bool Validate(BinaryReader reader)
-        {
-            if (!reader.ReadBoolean())
+            string subname = name.ToLowerInvariant();
+            if (group.SubDirectories.TryGetValue(subname, out var subDirectory))
             {
-                return Files == null;
-            }
-
-            if (Files == null)
-            {
-                SongUpdateFiles.SkipInfo(reader);
-                SongUpdateFiles.SkipInfo(reader);
-                SongUpdateFiles.SkipInfo(reader);
-                SongUpdateFiles.SkipInfo(reader);
-                return false;
-            }
-            return Files.Validate(reader);
-        }
-
-        public int CompareTo(SongUpdate other)
-        {
-            return _dtaLastWrite.CompareTo(other._dtaLastWrite);
-        }
-
-        public static void SkipRead(BinaryReader reader)
-        {
-            if (reader.ReadBoolean())
-            {
-                SongUpdateFiles.SkipInfo(reader);
-                SongUpdateFiles.SkipInfo(reader);
-                SongUpdateFiles.SkipInfo(reader);
-                SongUpdateFiles.SkipInfo(reader);
-            }
-        }
-    }
-
-    public sealed class SongUpdateFiles
-    {
-        public readonly string Directory;
-        public readonly AbridgedFileInfo? Midi;
-        public readonly AbridgedFileInfo? Mogg;
-        public readonly AbridgedFileInfo? Milo;
-        public readonly AbridgedFileInfo? Image;
-
-        public SongUpdateFiles(DirectoryInfo directory, string name)
-        {
-            Directory = directory.FullName;
-            var files = new (string Name, AbridgedFileInfo? Info)[]
-            {
-                (name + "_update.mid", null),
-                (name + "_update.mogg", null),
-                (name + ".milo_xbox", null),
-                (name + "_keep.png_xbox", null)
-            };
-
-            foreach (var info in directory.EnumerateFileSystemInfos())
-            {
-                string filename = info.Name.ToLowerInvariant();
-                switch (info)
+                var filenames = new string[]
                 {
-                    case FileInfo file:
-                        if (filename == files[0].Name)
-                        {
-                            files[0].Info = new AbridgedFileInfo(file, false);
-                        }
-                        else if (filename == files[1].Name)
-                        {
-                            files[1].Info = new AbridgedFileInfo(file, false);
-                        }
-                        break;
-                    case DirectoryInfo subDirectory:
-                        if (filename != "gen")
-                            break;
+                    subname + "_update.mid",
+                    subname + "_update.mogg",
+                    subname + ".milo_xbox",
+                    subname + "_keep.png_xbox"
+                };
 
-                        foreach (var file in subDirectory.EnumerateFiles())
-                        {
-                            filename = file.Name.ToLowerInvariant();
-                            if (filename == files[2].Name)
-                            {
-                                files[2].Info = new AbridgedFileInfo(file, false);
-                            }
-                            else if (filename == files[3].Name)
-                            {
-                                files[3].Info = new AbridgedFileInfo(file, false);
-                            }
-                        }
-                        break;
+                foreach (var file in subDirectory.EnumerateFiles("*", SearchOption.AllDirectories))
+                {
+                    string filename = file.Name.ToLowerInvariant();
+                    if (filename == filenames[0])
+                    {
+                        Midi ??= new AbridgedFileInfo(file, false);
+                    }
+                    else if (filename == filenames[1])
+                    {
+                        Mogg ??= new AbridgedFileInfo(file, false);
+                    }
+                    else if (filename == filenames[2])
+                    {
+                        Milo ??= new AbridgedFileInfo(file, false);
+                    }
+                    else if (filename == filenames[3])
+                    {
+                        Image ??= new AbridgedFileInfo(file, false);
+                    }
                 }
             }
-
-            Midi = files[0].Info;
-            Mogg = files[1].Info;
-            Milo = files[2].Info;
-            Image = files[3].Info;
         }
 
         public void Serialize(BinaryWriter writer)
@@ -246,13 +168,28 @@ namespace YARG.Core.Song.Cache
                 }
                 return true;
             }
+
+            
         }
 
-        public static void SkipInfo(BinaryReader reader)
+        public int CompareTo(SongUpdate other)
+        {
+            return _dtaLastWrite.CompareTo(other._dtaLastWrite);
+        }
+
+        public static void SkipRead(BinaryReader reader)
+        {
+            SkipInfo(reader);
+            SkipInfo(reader);
+            SkipInfo(reader);
+            SkipInfo(reader);
+        }
+
+        private static void SkipInfo(BinaryReader reader)
         {
             if (reader.ReadBoolean())
             {
-                reader.Move(SongMetadata.SIZEOF_DATETIME);
+                reader.Move(CacheHandler.SIZEOF_DATETIME);
             }
         }
     }

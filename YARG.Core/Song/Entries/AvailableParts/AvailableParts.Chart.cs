@@ -5,7 +5,7 @@ using YARG.Core.Song.Preparsers;
 
 namespace YARG.Core.Song
 {
-    public sealed partial class AvailableParts
+    public partial struct AvailableParts
     {
         public void ParseChart<TChar, TDecoder, TBase>(YARGChartFileReader<TChar, TDecoder, TBase> reader, DrumPreparseHandler drums)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
@@ -30,15 +30,15 @@ namespace YARG.Core.Song
         {
             bool skip = reader.Instrument switch
             {
-                NoteTracks_Chart.Single =>       ChartPreparser.Preparse(reader, ref FiveFretGuitar,     ChartPreparser.ValidateFiveFret),
-                NoteTracks_Chart.DoubleBass =>   ChartPreparser.Preparse(reader, ref FiveFretBass,       ChartPreparser.ValidateFiveFret),
-                NoteTracks_Chart.DoubleRhythm => ChartPreparser.Preparse(reader, ref FiveFretRhythm,     ChartPreparser.ValidateFiveFret),
-                NoteTracks_Chart.DoubleGuitar => ChartPreparser.Preparse(reader, ref FiveFretCoopGuitar, ChartPreparser.ValidateFiveFret),
-                NoteTracks_Chart.GHLGuitar =>    ChartPreparser.Preparse(reader, ref SixFretGuitar,      ChartPreparser.ValidateSixFret),
-                NoteTracks_Chart.GHLBass =>      ChartPreparser.Preparse(reader, ref SixFretBass,        ChartPreparser.ValidateSixFret),
-                NoteTracks_Chart.GHLRhythm =>    ChartPreparser.Preparse(reader, ref SixFretRhythm,      ChartPreparser.ValidateSixFret),
-                NoteTracks_Chart.GHLCoop =>      ChartPreparser.Preparse(reader, ref SixFretCoopGuitar,  ChartPreparser.ValidateSixFret),
-                NoteTracks_Chart.Keys =>         ChartPreparser.Preparse(reader, ref Keys,               ChartPreparser.ValidateFiveFret),
+                NoteTracks_Chart.Single =>       ChartPreparser.Preparse(reader, ref _fiveFretGuitar,     ChartPreparser.ValidateFiveFret),
+                NoteTracks_Chart.DoubleBass =>   ChartPreparser.Preparse(reader, ref _fiveFretBass,       ChartPreparser.ValidateFiveFret),
+                NoteTracks_Chart.DoubleRhythm => ChartPreparser.Preparse(reader, ref _fiveFretRhythm,     ChartPreparser.ValidateFiveFret),
+                NoteTracks_Chart.DoubleGuitar => ChartPreparser.Preparse(reader, ref _fiveFretCoopGuitar, ChartPreparser.ValidateFiveFret),
+                NoteTracks_Chart.GHLGuitar =>    ChartPreparser.Preparse(reader, ref _sixFretGuitar,      ChartPreparser.ValidateSixFret),
+                NoteTracks_Chart.GHLBass =>      ChartPreparser.Preparse(reader, ref _sixFretBass,        ChartPreparser.ValidateSixFret),
+                NoteTracks_Chart.GHLRhythm =>    ChartPreparser.Preparse(reader, ref _sixFretRhythm,      ChartPreparser.ValidateSixFret),
+                NoteTracks_Chart.GHLCoop =>      ChartPreparser.Preparse(reader, ref _sixFretCoopGuitar,  ChartPreparser.ValidateSixFret),
+                NoteTracks_Chart.Keys =>         ChartPreparser.Preparse(reader, ref _keys,               ChartPreparser.ValidateFiveFret),
                 _ => true,
             };
 

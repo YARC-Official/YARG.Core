@@ -3,10 +3,10 @@ using System.IO;
 
 namespace YARG.Core.Song.Cache
 {
-    public sealed class IniGroup : ICacheGroup
+    public sealed class IniGroup : ICacheGroup<IniSubEntry>
     {
         public readonly string Directory;
-        public readonly Dictionary<HashWrapper, List<SongMetadata>> entries = new();
+        public readonly Dictionary<HashWrapper, List<IniSubEntry>> entries = new();
 
         public readonly object iniLock = new();
         private int _count;
@@ -19,7 +19,7 @@ namespace YARG.Core.Song.Cache
             Directory = directory;
         }
 
-        public void AddEntry(SongMetadata entry)
+        public void AddEntry(IniSubEntry entry)
         {
             var hash = entry.Hash;
             lock (iniLock)
@@ -32,13 +32,13 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        public bool TryRemoveEntry(SongMetadata entryToRemove)
+        public bool TryRemoveEntry(SongEntry entryToRemove)
         {
             // No locking as the post-scan removal sequence
             // cannot be parallelized
             if (entries.TryGetValue(entryToRemove.Hash, out var list))
             {
-                if (list.Remove(entryToRemove))
+                if (list.RemoveAll(entry => ReferenceEquals(entry, entryToRemove)) > 0)
                 {
                     if (list.Count == 0)
                     {
@@ -51,7 +51,7 @@ namespace YARG.Core.Song.Cache
             return false;
         }
 
-        public byte[] SerializeEntries(Dictionary<SongMetadata, CategoryCacheWriteNode> nodes)
+        public byte[] SerializeEntries(Dictionary<SongEntry, CategoryCacheWriteNode> nodes)
         {
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);
@@ -62,22 +62,11 @@ namespace YARG.Core.Song.Cache
             {
                 foreach (var entry in shared.Value)
                 {
-                    byte[] buffer = SerializeEntry(entry, nodes[entry]);
+                    byte[] buffer = entry.Serialize(nodes[entry], Location);
                     writer.Write(buffer.Length);
                     writer.Write(buffer);
                 }
             }
-            return ms.ToArray();
-        }
-
-        private byte[] SerializeEntry(SongMetadata entry, CategoryCacheWriteNode node)
-        {
-            using MemoryStream ms = new();
-            using BinaryWriter writer = new(ms);
-
-            entry.IniData!.Serialize(writer, Location);
-            entry.Serialize(writer, node);
-
             return ms.ToArray();
         }
     }

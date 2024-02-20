@@ -55,28 +55,27 @@ namespace YARG.Core.Song
     [Serializable]
     public sealed class UnpackedRBProUpgrade : IRBProUpgrade
     {
-        private AbridgedFileInfo _midiFile;
-        public AbridgedFileInfo Midi => _midiFile;
-        public DateTime LastUpdatedTime => _midiFile.LastUpdatedTime;
+        private readonly AbridgedFileInfo _midi;
+        public DateTime LastUpdatedTime => _midi.LastUpdatedTime;
 
         public UnpackedRBProUpgrade(AbridgedFileInfo info)
         {
-            _midiFile = info;
+            _midi = info;
         }
 
         public void WriteToCache(BinaryWriter writer)
         {
-            writer.Write(_midiFile.LastUpdatedTime.ToBinary());
+            writer.Write(_midi.LastUpdatedTime.ToBinary());
         }
 
         public Stream? GetUpgradeMidiStream()
         {
-            return _midiFile.IsStillValid() ? new FileStream(_midiFile.FullName, FileMode.Open, FileAccess.Read, FileShare.Read) : null;
+            return _midi.IsStillValid() ? new FileStream(_midi.FullName, FileMode.Open, FileAccess.Read, FileShare.Read) : null;
         }
 
         public byte[]? LoadUpgradeMidi()
         {
-            return _midiFile.IsStillValid() ? File.ReadAllBytes(_midiFile.FullName) : null;
+            return _midi.IsStillValid() ? File.ReadAllBytes(_midi.FullName) : null;
         }
     }
 }

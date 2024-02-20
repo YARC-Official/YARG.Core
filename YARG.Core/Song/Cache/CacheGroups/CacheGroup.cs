@@ -5,15 +5,16 @@ using System.Text;
 
 namespace YARG.Core.Song.Cache
 {
-    public interface ICacheGroup
+    public interface ICacheGroup<TMetadata>
+        where TMetadata : SongEntry
     {
         public int Count { get; }
 
-        public byte[] SerializeEntries(Dictionary<SongMetadata, CategoryCacheWriteNode> nodes);
-        public bool TryRemoveEntry(SongMetadata entryToRemove);
+        public byte[] SerializeEntries(Dictionary<SongEntry, CategoryCacheWriteNode> nodes);
+        public bool TryRemoveEntry(SongEntry entryToRemove);
 
-        public static void SerializeGroups<TGroup>(List<TGroup> groups, BinaryWriter writer, Dictionary<SongMetadata, CategoryCacheWriteNode> nodes)
-            where TGroup : ICacheGroup
+        public static void SerializeGroups<TGroup>(List<TGroup> groups, BinaryWriter writer, Dictionary<SongEntry, CategoryCacheWriteNode> nodes)
+            where TGroup : ICacheGroup<TMetadata>
         {
             writer.Write(groups.Count);
             foreach (var group in groups)

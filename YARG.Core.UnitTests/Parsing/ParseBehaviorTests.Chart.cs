@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
 using NUnit.Framework;
