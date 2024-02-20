@@ -591,7 +591,14 @@ namespace YARG.Core.Song
                         case "downloaded": /*Downloaded = reader.ExtractText();*/ break;
                         case "game_origin":
                             {
-                                _metadata.Source = reader.ExtractText();
+                                string str = reader.ExtractText();
+                                if ((str == "ugc" || str == "ugc_plus"))
+                                {
+                                    if (!nodeName.StartsWith("UGC_"))
+                                        _metadata.Source = "customs";
+                                }
+                                else
+                                    _metadata.Source = str;
 
                                 //// if the source is any official RB game or its DLC, charter = Harmonix
                                 //if (SongSources.GetSource(str).Type == SongSources.SourceType.RB)
