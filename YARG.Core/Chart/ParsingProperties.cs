@@ -17,12 +17,12 @@ namespace YARG.Core.Chart
     /// <summary>
     /// Settings used when parsing charts.
     /// </summary>
-    public class ParseSettings
+    public struct ParseSettings
     {
         /// <summary>
         /// The default settings to use for parsing.
         /// </summary>
-        public static ParseSettings Default => new()
+        public static readonly ParseSettings Default = new()
         {
             DrumsType = DrumsType.Unknown,
 
@@ -109,7 +109,7 @@ namespace YARG.Core.Chart
         /// <summary>
         /// Calculates the HOPO threshold to use from the various HOPO settings.
         /// </summary>
-        public float GetHopoThreshold(float resolution)
+        public readonly float GetHopoThreshold(float resolution)
         {
             // Prefer in this order:
             // 1. hopo_threshold

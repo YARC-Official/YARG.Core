@@ -17,8 +17,6 @@ namespace YARG.Core.UnitTests.Parsing
         public const int NUMERATOR = 4;
         public const int DENOMINATOR = 4;
 
-        public static readonly ParseSettings Settings = ParseSettings.Default;
-
         public static readonly List<MoonText> GlobalEvents = new()
         {
         };

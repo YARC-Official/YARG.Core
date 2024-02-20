@@ -42,8 +42,8 @@ namespace YARG.Core.Chart
         {
             var song = Path.GetExtension(filePath).ToLower() switch
             {
-                ".mid" => MidReader.ReadMidi(settings, filePath),
-                ".chart" => ChartReader.ReadFromFile(settings, filePath),
+                ".mid" => MidReader.ReadMidi(ref settings, filePath),
+                ".chart" => ChartReader.ReadFromFile(ref settings, filePath),
                 _ => throw new ArgumentException($"Unrecognized file extension for chart path '{filePath}'!", nameof(filePath))
             };
 
@@ -52,13 +52,13 @@ namespace YARG.Core.Chart
 
         public static MoonSongLoader LoadMidi(ParseSettings settings, MidiFile midi)
         {
-            var song = MidReader.ReadMidi(settings, midi);
+            var song = MidReader.ReadMidi(ref settings, midi);
             return new(song, settings);
         }
 
         public static MoonSongLoader LoadDotChart(ParseSettings settings, string chartText)
         {
-            var song = ChartReader.ReadFromText(settings, chartText);
+            var song = ChartReader.ReadFromText(ref settings, chartText);
             return new(song, settings);
         }
 

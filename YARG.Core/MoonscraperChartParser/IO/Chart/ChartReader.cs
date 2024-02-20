@@ -87,7 +87,19 @@ namespace MoonscraperChartEditor.Song.IO
             => buffer.SplitOnceTrimmed(' ', out remaining);
         #endregion
 
-        public static MoonSong ReadFromFile(ParseSettings settings, string filepath)
+        public static MoonSong ReadFromFile(string filepath)
+        {
+            var settings = ParseSettings.Default;
+            return ReadFromFile(ref settings, filepath);
+        }
+
+        public static MoonSong ReadFromText(ReadOnlySpan<char> chartText)
+        {
+            var settings = ParseSettings.Default;
+            return ReadFromText(ref settings, chartText);
+        }
+
+        public static MoonSong ReadFromFile(ref ParseSettings settings, string filepath)
         {
             try
             {
@@ -100,7 +112,7 @@ namespace MoonscraperChartEditor.Song.IO
                     throw new Exception("Bad file type");
 
                 string text = File.ReadAllText(filepath);
-                return ReadFromText(settings, text);
+                return ReadFromText(ref settings, text);
             }
             catch (Exception e)
             {
@@ -108,7 +120,7 @@ namespace MoonscraperChartEditor.Song.IO
             }
         }
 
-        public static MoonSong ReadFromText(ParseSettings settings, ReadOnlySpan<char> chartText)
+        public static MoonSong ReadFromText(ref ParseSettings settings, ReadOnlySpan<char> chartText)
         {
             var song = new MoonSong();
 
@@ -135,18 +147,18 @@ namespace MoonscraperChartEditor.Song.IO
                 chartText = chartText[sectionEndIndex..];
 
                 var splitter = sectionText.SplitTrimmed('\n');
-                SubmitChartData(settings, song, sectionName, splitter);
+                SubmitChartData(ref settings, song, sectionName, splitter);
             }
             return song;
         }
 
-        private static void SubmitChartData(ParseSettings settings, MoonSong song, ReadOnlySpan<char> sectionName,
+        private static void SubmitChartData(ref ParseSettings settings, MoonSong song, ReadOnlySpan<char> sectionName,
             TrimSplitter sectionLines)
         {
             if (sectionName.Equals(ChartIOHelper.SECTION_SONG, StringComparison.Ordinal))
             {
                 YargTrace.DebugInfo("Loading chart properties");
-                SubmitDataSong(song, settings, sectionLines);
+                SubmitDataSong(song, ref settings, sectionLines);
                 return;
             }
             else if (sectionName.Equals(ChartIOHelper.SECTION_SYNC_TRACK, StringComparison.Ordinal))
@@ -182,16 +194,16 @@ namespace MoonscraperChartEditor.Song.IO
             }
         }
 
-        private static void SubmitDataSong(MoonSong song, ParseSettings settings, TrimSplitter sectionLines)
+        private static void SubmitDataSong(MoonSong song, ref ParseSettings settings, TrimSplitter sectionLines)
         {
             ChartMetadata.ParseSongSection(song, sectionLines);
-            ValidateAndApplySettings(song, settings);
+            ValidateAndApplySettings(song, ref settings);
         }
 
-        private static void ValidateAndApplySettings(MoonSong song, ParseSettings settings)
+        private static void ValidateAndApplySettings(MoonSong song, ref ParseSettings settings)
         {
             // Apply HOPO threshold settings
-            song.hopoThreshold = ChartIOHelper.GetHopoThreshold(settings, song.resolution);
+            song.hopoThreshold = ChartIOHelper.GetHopoThreshold(in settings, song.resolution);
 
             // Sustain cutoff threshold is not verified, sustains are not cut off by default in .chart
             // SP note is not verified, as it is only relevant for .mid
@@ -468,21 +480,15 @@ namespace MoonscraperChartEditor.Song.IO
             }
         }
 
-        private static uint ApplySustainCutoff(ParseSettings settings, uint length)
-        {
-            if (length <= settings.SustainCutoffThreshold)
-                length = 0;
-
-            return length;
-        }
-
         private static void ProcessNoteOnEventAsNote(in NoteProcessParams noteProcessParams, int ingameFret, MoonNote.Flags defaultFlags = MoonNote.Flags.None)
         {
             var chart = noteProcessParams.chart;
 
             var noteEvent = noteProcessParams.noteEvent;
             uint tick = noteEvent.tick;
-            uint sus = ApplySustainCutoff(noteProcessParams.settings, noteEvent.length);
+            uint sus = noteEvent.length;
+            if (sus < noteProcessParams.settings.SustainCutoffThreshold)
+                sus = 0;
 
             var newMoonNote = new MoonNote(tick, ingameFret, sus, defaultFlags);
             MoonObjectHelper.PushNote(newMoonNote, chart.notes);
