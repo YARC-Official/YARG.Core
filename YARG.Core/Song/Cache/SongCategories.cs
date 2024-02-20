@@ -217,7 +217,7 @@ namespace YARG.Core.Song.Cache
 
         public void Add(SongEntry entry)
         {
-            if (entry.Parts.HasInstrument(comparer.instrument))
+            if (entry.HasInstrument(comparer.instrument))
             {
                 lock (entryLock)
                 {

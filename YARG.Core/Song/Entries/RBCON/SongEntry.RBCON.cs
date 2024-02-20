@@ -10,7 +10,6 @@ using YARG.Core.Song.Preparsers;
 using Melanchall.DryWetMidi.Core;
 using YARG.Core.Extensions;
 using YARG.Core.Audio;
-using YARG.Core.Venue;
 
 namespace YARG.Core.Song
 {
@@ -140,7 +139,7 @@ namespace YARG.Core.Song
                 midi.Merge(update);
             }
 
-            return SongChart.FromMidi(Metadata.ParseSettings, midi);
+            return SongChart.FromMidi(_metadata.ParseSettings, midi);
         }
 
         public override AudioMixer? LoadAudioStreams(params SongStem[] ignoreStems)
@@ -375,8 +374,8 @@ namespace YARG.Core.Song
             }
             FinalizeRBCONAudioValues(dtaResults.pans, dtaResults.volumes, dtaResults.cores);
 
-            if (Metadata.Playlist.Length == 0)
-                Metadata.Playlist = defaultPlaylist;
+            if (_metadata.Playlist.Length == 0)
+                _metadata.Playlist = defaultPlaylist;
             return dtaResults;
         }
 
@@ -415,7 +414,7 @@ namespace YARG.Core.Song
 
         protected ScanResult ParseRBCONMidi(CONFile? file)
         {
-            if (Metadata.Name.Length == 0)
+            if (_metadata.Name.Length == 0)
             {
                 return ScanResult.NoName;
             }
@@ -442,7 +441,7 @@ namespace YARG.Core.Song
                     if (updateFile == null)
                         return ScanResult.MissingUpdateMidi;
 
-                    if (!Metadata.Parts.ParseMidi(updateFile, drumTracker))
+                    if (!ParseMidi(updateFile, drumTracker, ref _parts))
                         return ScanResult.MultipleMidiTrackNames_Update;
 
                     bufLength += updateFile.Length;
@@ -453,7 +452,7 @@ namespace YARG.Core.Song
                     if (upgradeFile == null)
                         return ScanResult.MissingUpgradeMidi;
 
-                    if (!Metadata.Parts.ParseMidi(upgradeFile, drumTracker))
+                    if (!ParseMidi(upgradeFile, drumTracker, ref _parts))
                         return ScanResult.MultipleMidiTrackNames_Upgrade;
 
                     bufLength += upgradeFile.Length;
@@ -462,14 +461,16 @@ namespace YARG.Core.Song
                 if (chartFile == null)
                     return ScanResult.MissingMidi;
 
-                if (!Metadata.Parts.ParseMidi(chartFile, drumTracker))
+                if (!ParseMidi(chartFile, drumTracker, ref _parts))
                     return ScanResult.MultipleMidiTrackNames;
 
                 bufLength += chartFile.Length;
 
-                Metadata.Parts.SetDrums(drumTracker);
-                if (!Metadata.Parts.CheckScanValidity())
+                SetDrums(ref _parts, drumTracker);
+                if (!CheckScanValidity(in _parts))
+                {
                     return ScanResult.NoNotes;
+                }
 
                 byte[] buffer = new byte[bufLength];
                 System.Runtime.CompilerServices.Unsafe.CopyBlock(ref buffer[0], ref chartFile[0], (uint) chartFile.Length);
@@ -485,7 +486,7 @@ namespace YARG.Core.Song
                 {
                     System.Runtime.CompilerServices.Unsafe.CopyBlock(ref buffer[offset], ref upgradeFile[0], (uint) upgradeFile.Length);
                 }
-                Metadata.Hash = HashWrapper.Hash(buffer);
+                _hash = HashWrapper.Hash(buffer);
                 return ScanResult.Success;
             }
             catch
@@ -554,9 +555,9 @@ namespace YARG.Core.Song
                     string name = reader.GetNameOfNode();
                     switch (name)
                     {
-                        case "name": Metadata.Name = reader.ExtractText(); break;
-                        case "artist": Metadata.Artist = reader.ExtractText(); break;
-                        case "master": Metadata.IsMaster = reader.ExtractBoolean(); break;
+                        case "name": _metadata.Name = reader.ExtractText(); break;
+                        case "artist": _metadata.Artist = reader.ExtractText(); break;
+                        case "master": _metadata.IsMaster = reader.ExtractBoolean(); break;
                         case "context": /*Context = reader.Read<uint>();*/ break;
                         case "song": SongLoop(ref result, reader); break;
                         case "song_vocals": while (reader.StartNode()) reader.EndNode(); break;
@@ -576,12 +577,12 @@ namespace YARG.Core.Song
                                 break;
                             }
                         case "preview":
-                            Metadata.PreviewStart = reader.ExtractUInt64();
-                            Metadata.PreviewEnd = reader.ExtractUInt64();
+                            _metadata.PreviewStart = reader.ExtractUInt64();
+                            _metadata.PreviewEnd = reader.ExtractUInt64();
                             break;
-                        case "rank": Metadata.Parts.SetIntensities(ref _rbDifficulties, reader); break;
+                        case "rank": DifficultyLoop(reader); break;
                         case "solo": _rbMetadata.Soloes = reader.ExtractList_String().ToArray(); break;
-                        case "genre": Metadata.Genre = reader.ExtractText(); break;
+                        case "genre": _metadata.Genre = reader.ExtractText(); break;
                         case "decade": /*Decade = reader.ExtractText();*/ break;
                         case "vocal_gender": _rbMetadata.VocalGender = reader.ExtractText() == "male"; break;
                         case "format": /*Format = reader.Read<uint>();*/ break;
@@ -590,7 +591,7 @@ namespace YARG.Core.Song
                         case "downloaded": /*Downloaded = reader.ExtractText();*/ break;
                         case "game_origin":
                             {
-                                Metadata.Source = reader.ExtractText();
+                                _metadata.Source = reader.ExtractText();
 
                                 //// if the source is any official RB game or its DLC, charter = Harmonix
                                 //if (SongSources.GetSource(str).Type == SongSources.SourceType.RB)
@@ -604,20 +605,20 @@ namespace YARG.Core.Song
                                 break;
                             }
                         case "song_id": _rbMetadata.SongID = reader.ExtractText(); break;
-                        case "rating": Metadata.SongRating = reader.ExtractUInt32(); break;
+                        case "rating": _metadata.SongRating = reader.ExtractUInt32(); break;
                         case "short_version": /*ShortVersion = reader.Read<uint>();*/ break;
                         case "album_art": /*HasAlbumArt = reader.ExtractBoolean();*/ break;
                         case "year_released":
                         case "year_recorded": YearAsNumber = reader.ExtractInt32(); break;
-                        case "album_name": Metadata.Album = reader.ExtractText(); break;
-                        case "album_track_number": Metadata.AlbumTrack = reader.ExtractUInt16(); break;
-                        case "pack_name": Metadata.Playlist = reader.ExtractText(); break;
+                        case "album_name": _metadata.Album = reader.ExtractText(); break;
+                        case "album_track_number": _metadata.AlbumTrack = reader.ExtractUInt16(); break;
+                        case "pack_name": _metadata.Playlist = reader.ExtractText(); break;
                         case "base_points": /*BasePoints = reader.Read<uint>();*/ break;
                         case "band_fail_cue": /*BandFailCue = reader.ExtractText();*/ break;
                         case "drum_bank": _rbMetadata.DrumBank = reader.ExtractText(); break;
-                        case "song_length": Metadata.SongLength = reader.ExtractUInt64(); break;
+                        case "song_length": _metadata.SongLength = reader.ExtractUInt64(); break;
                         case "sub_genre": /*Subgenre = reader.ExtractText();*/ break;
-                        case "author": Metadata.Charter = reader.ExtractText(); break;
+                        case "author": _metadata.Charter = reader.ExtractText(); break;
                         case "guide_pitch_volume": /*GuidePitchVolume = reader.ReadFloat();*/ break;
                         case "encoding":
                             var encoding = reader.ExtractText().ToLower() switch
@@ -636,26 +637,26 @@ namespace YARG.Core.Song
                                     return encoding.GetString(bytes);
                                 }
 
-                                if (Metadata.Name != SongMetadata.DEFAULT_NAME)
-                                    Metadata.Name = Convert(Metadata.Name);
+                                if (_metadata.Name != SongMetadata.DEFAULT_NAME)
+                                    _metadata.Name = Convert(_metadata.Name);
 
-                                if (Metadata.Artist != SongMetadata.DEFAULT_ARTIST)
-                                    Metadata.Artist = Convert(Metadata.Artist);
+                                if (_metadata.Artist != SongMetadata.DEFAULT_ARTIST)
+                                    _metadata.Artist = Convert(_metadata.Artist);
 
-                                if (Metadata.Album != SongMetadata.DEFAULT_ALBUM)
-                                    Metadata.Album = Convert(Metadata.Album);
+                                if (_metadata.Album != SongMetadata.DEFAULT_ALBUM)
+                                    _metadata.Album = Convert(_metadata.Album);
 
-                                if (Metadata.Genre != SongMetadata.DEFAULT_GENRE)
-                                    Metadata.Genre = Convert(Metadata.Genre);
+                                if (_metadata.Genre != SongMetadata.DEFAULT_GENRE)
+                                    _metadata.Genre = Convert(_metadata.Genre);
 
-                                if (Metadata.Charter != SongMetadata.DEFAULT_CHARTER)
-                                    Metadata.Charter = Convert(Metadata.Charter);
+                                if (_metadata.Charter != SongMetadata.DEFAULT_CHARTER)
+                                    _metadata.Charter = Convert(_metadata.Charter);
 
-                                if (Metadata.Source != SongMetadata.DEFAULT_SOURCE)
-                                    Metadata.Source = Convert(Metadata.Source);
+                                if (_metadata.Source != SongMetadata.DEFAULT_SOURCE)
+                                    _metadata.Source = Convert(_metadata.Source);
 
-                                if (Metadata.Playlist.Str.Length != 0)
-                                    Metadata.Playlist = Convert(Metadata.Playlist);
+                                if (_metadata.Playlist.Str.Length != 0)
+                                    _metadata.Playlist = Convert(_metadata.Playlist);
                                 reader.encoding = encoding;
                             }
 
@@ -703,20 +704,20 @@ namespace YARG.Core.Song
                                 {
                                     if (str == "disc_update")
                                         result.discUpdate = true;
-                                    else if (authors.Length == 0 && Metadata.Charter == SongMetadata.DEFAULT_CHARTER)
+                                    else if (authors.Length == 0 && _metadata.Charter == SongMetadata.DEFAULT_CHARTER)
                                         authors.Append(str);
                                     else
                                     {
                                         if (authors.Length == 0)
-                                            authors.Append(Metadata.Charter);
+                                            authors.Append(_metadata.Charter);
                                         authors.Append(", " + str);
                                     }
                                 }
 
                                 if (authors.Length == 0)
-                                    authors.Append(Metadata.Charter);
+                                    authors.Append(_metadata.Charter);
 
-                                Metadata.Charter = authors.ToString();
+                                _metadata.Charter = authors.ToString();
                             }
                             break;
                     }
@@ -764,7 +765,7 @@ namespace YARG.Core.Song
                         else
                             result.cores = new[] { reader.ExtractFloat() };
                         break;
-                    case "hopo_threshold": Metadata.ParseSettings.HopoThreshold = reader.ExtractInt64(); break;
+                    case "hopo_threshold": _metadata.ParseSettings.HopoThreshold = reader.ExtractInt64(); break;
                 }
                 reader.EndNode();
             }
@@ -838,6 +839,133 @@ namespace YARG.Core.Song
                 }
                 reader.EndNode();
             }
+        }
+
+        private static readonly int[] BandDiffMap = { 163, 215, 243, 267, 292, 345 };
+        private static readonly int[] GuitarDiffMap = { 139, 176, 221, 267, 333, 409 };
+        private static readonly int[] BassDiffMap = { 135, 181, 228, 293, 364, 436 };
+        private static readonly int[] DrumDiffMap = { 124, 151, 178, 242, 345, 448 };
+        private static readonly int[] KeysDiffMap = { 153, 211, 269, 327, 385, 443 };
+        private static readonly int[] VocalsDiffMap = { 132, 175, 218, 279, 353, 427 };
+        private static readonly int[] RealGuitarDiffMap = { 150, 205, 264, 323, 382, 442 };
+        private static readonly int[] RealBassDiffMap = { 150, 208, 267, 325, 384, 442 };
+        private static readonly int[] RealDrumsDiffMap = { 124, 151, 178, 242, 345, 448 };
+        private static readonly int[] RealKeysDiffMap = { 153, 211, 269, 327, 385, 443 };
+        private static readonly int[] HarmonyDiffMap = { 132, 175, 218, 279, 353, 427 };
+
+        private void DifficultyLoop(YARGDTAReader reader)
+        {
+            int diff;
+            while (reader.StartNode())
+            {
+                string name = reader.GetNameOfNode();
+                diff = reader.ExtractInt32();
+                switch (name)
+                {
+                    case "drum":
+                    case "drums":
+                        _rbDifficulties.FourLaneDrums = (short) diff;
+                        SetRank(ref _parts.FourLaneDrums.Intensity, diff, DrumDiffMap);
+                        if (_parts.ProDrums.Intensity == -1)
+                        {
+                            _parts.ProDrums.Intensity = _parts.FourLaneDrums.Intensity;
+                        }
+                        break;
+                    case "guitar":
+                        _rbDifficulties.FiveFretGuitar = (short) diff;
+                        SetRank(ref _parts.FiveFretGuitar.Intensity, diff, GuitarDiffMap);
+                        if (_parts.ProGuitar_17Fret.Intensity == -1)
+                        {
+                            _parts.ProGuitar_22Fret.Intensity = _parts.ProGuitar_17Fret.Intensity = _parts.FiveFretGuitar.Intensity;
+                        }
+                        break;
+                    case "bass":
+                        _rbDifficulties.FiveFretBass = (short) diff;
+                        SetRank(ref _parts.FiveFretBass.Intensity, diff, BassDiffMap);
+                        if (_parts.ProBass_17Fret.Intensity == -1)
+                        {
+                            _parts.ProBass_22Fret.Intensity = _parts.ProBass_17Fret.Intensity = _parts.FiveFretBass.Intensity;
+                        }
+                        break;
+                    case "vocals":
+                        _rbDifficulties.LeadVocals = (short) diff;
+                        SetRank(ref _parts.LeadVocals.Intensity, diff, VocalsDiffMap);
+                        if (_parts.HarmonyVocals.Intensity == -1)
+                        {
+                            _parts.HarmonyVocals.Intensity = _parts.LeadVocals.Intensity;
+                        }
+                        break;
+                    case "keys":
+                        _rbDifficulties.Keys = (short) diff;
+                        SetRank(ref _parts.Keys.Intensity, diff, KeysDiffMap);
+                        if (_parts.ProKeys.Intensity == -1)
+                        {
+                            _parts.ProKeys.Intensity = _parts.Keys.Intensity;
+                        }
+                        break;
+                    case "realGuitar":
+                    case "real_guitar":
+                        _rbDifficulties.ProGuitar = (short) diff;
+                        SetRank(ref _parts.ProGuitar_17Fret.Intensity, diff, RealGuitarDiffMap);
+                        _parts.ProGuitar_22Fret.Intensity = _parts.ProGuitar_17Fret.Intensity;
+                        if (_parts.FiveFretGuitar.Intensity == -1)
+                        {
+                            _parts.FiveFretGuitar.Intensity = _parts.ProGuitar_17Fret.Intensity;
+                        }
+                        break;
+                    case "realBass":
+                    case "real_bass":
+                        _rbDifficulties.ProBass = (short) diff;
+                        SetRank(ref _parts.ProBass_17Fret.Intensity, diff, RealBassDiffMap);
+                        _parts.ProBass_22Fret.Intensity = _parts.ProBass_17Fret.Intensity;
+                        if (_parts.FiveFretBass.Intensity == -1)
+                        {
+                            _parts.FiveFretBass.Intensity = _parts.ProBass_17Fret.Intensity;
+                        }
+                        break;
+                    case "realKeys":
+                    case "real_keys":
+                        _rbDifficulties.ProKeys = (short) diff;
+                        SetRank(ref _parts.ProKeys.Intensity, diff, RealKeysDiffMap);
+                        if (_parts.Keys.Intensity == -1)
+                        {
+                            _parts.Keys.Intensity = _parts.ProKeys.Intensity;
+                        }
+                        break;
+                    case "realDrums":
+                    case "real_drums":
+                        _rbDifficulties.ProDrums = (short) diff;
+                        SetRank(ref _parts.ProDrums.Intensity, diff, RealDrumsDiffMap);
+                        if (_parts.FourLaneDrums.Intensity == -1)
+                        {
+                            _parts.FourLaneDrums.Intensity = _parts.ProDrums.Intensity;
+                        }
+                        break;
+                    case "harmVocals":
+                    case "vocal_harm":
+                        _rbDifficulties.HarmonyVocals = (short) diff;
+                        SetRank(ref _parts.HarmonyVocals.Intensity, diff, HarmonyDiffMap);
+                        if (_parts.LeadVocals.Intensity == -1)
+                        {
+                            _parts.LeadVocals.Intensity = _parts.HarmonyVocals.Intensity;
+                        }
+                        break;
+                    case "band":
+                        _rbDifficulties.Band = (short) diff;
+                        SetRank(ref _parts.BandDifficulty.Intensity, diff, BandDiffMap);
+                        _parts.BandDifficulty.SubTracks = 1;
+                        break;
+                }
+                reader.EndNode();
+            }
+        }
+
+        private static void SetRank(ref sbyte intensity, int rank, int[] values)
+        {
+            sbyte i = 0;
+            while (i < 6 && values[i] <= rank)
+                ++i;
+            intensity = i;
         }
 
         private void Update(SongUpdate update, in DTAResult results)

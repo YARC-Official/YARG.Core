@@ -29,8 +29,6 @@ namespace YARG.Core.Song
             IsMaster = true,
             AlbumTrack = 0,
             PlaylistTrack = 0,
-            Hash = default,
-            Parts = AvailableParts.Default,
             ParseSettings = ParseSettings.Default,
             LoadingPhrase = string.Empty,
             Year = DEFAULT_YEAR,
@@ -66,10 +64,6 @@ namespace YARG.Core.Song
 
         public int AlbumTrack;
         public int PlaylistTrack;
-
-        public HashWrapper Hash;
-
-        public AvailableParts Parts;
 
         public ParseSettings ParseSettings;
 

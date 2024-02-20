@@ -85,8 +85,8 @@ namespace YARG.Core.Song
                     if (lhs.PlaylistTrack != rhs.PlaylistTrack)
                         return lhs.PlaylistTrack < rhs.PlaylistTrack;
 
-                    if (lhs.Parts.BandDifficulty != rhs.Parts.BandDifficulty)
-                        return lhs.Parts.BandDifficulty < rhs.Parts.BandDifficulty;
+                    if (lhs.BandDifficulty != rhs.BandDifficulty)
+                        return lhs.BandDifficulty < rhs.BandDifficulty;
                     break;
                 case SongAttribute.SongLength:
                     if (lhs.SongLengthMilliseconds != rhs.SongLengthMilliseconds)
@@ -109,8 +109,8 @@ namespace YARG.Core.Song
 
         public int Compare(SongEntry lhs, SongEntry rhs)
         {
-            var lhsValues = lhs.Parts[instrument];
-            var rhsValues = rhs.Parts[instrument];
+            var lhsValues = lhs[instrument];
+            var rhsValues = rhs[instrument];
 
             // This function only gets called if both entries have the instrument
             // That check is not necessary
