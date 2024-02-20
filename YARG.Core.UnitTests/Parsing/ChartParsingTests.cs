@@ -1,4 +1,4 @@
-using MoonscraperChartEditor.Song;
+﻿using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
 using NUnit.Framework;
 using YARG.Core.Chart;
@@ -29,7 +29,7 @@ namespace YARG.Core.UnitTests.Parsing
             Assert.DoesNotThrow(() =>
             {
                 string chartPath = Path.Combine(chartsDirectory!, notesFile);
-                var song = ChartReader.ReadFromFile(ParseSettings.Default, chartPath);
+                var song = ChartReader.ReadFromFile(chartPath);
             });
         }
 
@@ -41,7 +41,7 @@ namespace YARG.Core.UnitTests.Parsing
             Assert.DoesNotThrow(() =>
             {
                 string chartPath = Path.Combine(chartsDirectory!, notesFile);
-                var song = MidReader.ReadMidi(ParseSettings.Default, chartPath);
+                var song = MidReader.ReadMidi(chartPath);
             });
         }
     }

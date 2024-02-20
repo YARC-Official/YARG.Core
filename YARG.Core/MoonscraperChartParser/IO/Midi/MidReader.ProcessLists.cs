@@ -168,9 +168,8 @@ namespace MoonscraperChartEditor.Song.IO
             };
         }
 
-        private static Dictionary<int, EventProcessFn> GetPhraseProcessDict(ParseSettings settings, MoonChart.GameMode gameMode)
+        private static Dictionary<int, EventProcessFn> GetPhraseProcessDict(int spNote, MoonChart.GameMode gameMode)
         {
-            int spNote = settings.StarPowerNote;
             // Set default if no override given
             if (spNote < 0)
                 spNote = MidIOHelper.STARPOWER_NOTE;

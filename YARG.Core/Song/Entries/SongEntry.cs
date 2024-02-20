@@ -322,19 +322,6 @@ namespace YARG.Core.Song
         {
             _parts = parts;
             _hash = hash;
-            _parseSettings = ParseSettings.Default;
-            if (parts.FourLaneDrums.SubTracks > 0)
-            {
-                _parseSettings.DrumsType = DrumsType.FourLane;
-            }
-            else if (parts.FiveLaneDrums.SubTracks > 0)
-            {
-                _parseSettings.DrumsType = DrumsType.FiveLane;
-            }
-            else
-            {
-                _parseSettings.DrumsType = DrumsType.Unknown;
-            }
 
             modifiers.TryGet("name", out _metadata.Name, SongMetadata.DEFAULT_NAME);
             modifiers.TryGet("artist", out _metadata.Artist, SongMetadata.DEFAULT_ARTIST);
@@ -422,6 +409,19 @@ namespace YARG.Core.Song
                 }
             }
 
+            if (parts.FourLaneDrums.SubTracks > 0)
+            {
+                _parseSettings.DrumsType = DrumsType.FourLane;
+            }
+            else if (parts.FiveLaneDrums.SubTracks > 0)
+            {
+                _parseSettings.DrumsType = DrumsType.FiveLane;
+            }
+            else
+            {
+                _parseSettings.DrumsType = DrumsType.Unknown;
+            }
+
             if (!modifiers.TryGet("hopo_frequency", out _parseSettings.HopoThreshold))
             {
                 _parseSettings.HopoThreshold = -1;
@@ -475,16 +475,14 @@ namespace YARG.Core.Song
             _metadata.VideoEndTime = reader.ReadInt64();
 
             _metadata.LoadingPhrase = reader.ReadString();
-            _parseSettings = new ParseSettings()
-            {
-                HopoThreshold = reader.ReadInt64(),
-                HopoFreq_FoF = reader.ReadInt32(),
-                EighthNoteHopo = reader.ReadBoolean(),
-                SustainCutoffThreshold = reader.ReadInt64(),
-                NoteSnapThreshold = reader.ReadInt64(),
-                StarPowerNote = reader.ReadInt32(),
-                DrumsType = (DrumsType) reader.ReadInt32(),
-            };
+
+            _parseSettings.HopoThreshold = reader.ReadInt64();
+            _parseSettings.HopoFreq_FoF = reader.ReadInt32();
+            _parseSettings.EighthNoteHopo = reader.ReadBoolean();
+            _parseSettings.SustainCutoffThreshold = reader.ReadInt64();
+            _parseSettings.NoteSnapThreshold = reader.ReadInt64();
+            _parseSettings.StarPowerNote = reader.ReadInt32();
+            _parseSettings.DrumsType = (DrumsType) reader.ReadInt32();
 
             unsafe
             {

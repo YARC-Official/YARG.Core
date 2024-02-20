@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Melanchall.DryWetMidi.Core;
@@ -255,19 +255,19 @@ namespace YARG.Core.Chart
                 Harmony = song.Harmony;
         }
 
-        public static SongChart FromFile(ParseSettings settings, string filePath)
+        public static SongChart FromFile(in ParseSettings settings, string filePath)
         {
             var loader = MoonSongLoader.LoadSong(settings, filePath);
             return new(loader);
         }
 
-        public static SongChart FromMidi(ParseSettings settings, MidiFile midi)
+        public static SongChart FromMidi(in ParseSettings settings, MidiFile midi)
         {
             var loader = MoonSongLoader.LoadMidi(settings, midi);
             return new(loader);
         }
 
-        public static SongChart FromDotChart(ParseSettings settings, string chartText)
+        public static SongChart FromDotChart(in ParseSettings settings, string chartText)
         {
             var loader = MoonSongLoader.LoadDotChart(settings, chartText);
             return new(loader);

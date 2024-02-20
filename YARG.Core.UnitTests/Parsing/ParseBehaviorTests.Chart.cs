@@ -3,6 +3,7 @@ using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
 using NUnit.Framework;
 using YARG.Core.Extensions;
+using YARG.Core.Parsing;
 
 namespace YARG.Core.UnitTests.Parsing
 {
@@ -283,7 +284,7 @@ namespace YARG.Core.UnitTests.Parsing
             MoonSong parsedSong;
             try
             {
-                parsedSong = ChartReader.ReadFromText(Settings, chartText);
+                parsedSong = ChartReader.ReadFromText(chartText);
             }
             catch (Exception ex)
             {

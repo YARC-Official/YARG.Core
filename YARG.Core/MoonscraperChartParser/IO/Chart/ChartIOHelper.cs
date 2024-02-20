@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2020 Alexander Ong
+﻿// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
 using System.Collections.Generic;
@@ -97,7 +97,7 @@ namespace MoonscraperChartEditor.Song.IO
             { "GHLCoop",        MoonSong.MoonInstrument.GHLiveCoop },
         };
 
-        public static float GetHopoThreshold(ParseSettings settings, float resolution)
+        public static float GetHopoThreshold(in ParseSettings settings, float resolution)
         {
             // With a 192 resolution, .chart has a HOPO threshold of 65 ticks, not 64,
             // so we need to scale this factor to different resolutions (480 res = 162.5 threshold)

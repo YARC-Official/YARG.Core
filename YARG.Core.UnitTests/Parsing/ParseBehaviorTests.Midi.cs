@@ -1,4 +1,4 @@
-using Melanchall.DryWetMidi.Common;
+﻿using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.Core;
 using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
@@ -19,7 +19,7 @@ namespace YARG.Core.UnitTests.Parsing
     public class MidiParseBehaviorTests
     {
         private const uint SUSTAIN_CUTOFF_THRESHOLD = RESOLUTION / 3;
-        private static readonly uint HopoThreshold = (uint)GetHopoThreshold(Settings, RESOLUTION);
+        private static readonly uint HopoThreshold = (uint)GetHopoThreshold(ParseSettings.Default, RESOLUTION);
 
         private static readonly Dictionary<MoonInstrument, string> InstrumentToNameLookup = new()
         {
@@ -560,7 +560,7 @@ namespace YARG.Core.UnitTests.Parsing
             MoonSong parsedSong;
             try
             {
-                parsedSong = MidReader.ReadMidi(Settings, midi);
+                parsedSong = MidReader.ReadMidi(midi);
             }
             catch (Exception ex)
             {

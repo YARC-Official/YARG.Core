@@ -63,17 +63,35 @@ namespace MoonscraperChartEditor.Song.IO
             public IReadOnlyList<EventProcessFn> postProcessList;
         }
 
-        public static MoonSong ReadMidi(ParseSettings settings, string path)
+        public static MoonSong ReadMidi(string path)
         {
-            return ReadMidi(settings, MidFileLoader.LoadMidiFile(path));
+            var settings = ParseSettings.Default;
+            return ReadMidi(ref settings, path);
         }
 
-        public static MoonSong ReadMidi(ParseSettings settings, Stream stream)
+        public static MoonSong ReadMidi(Stream stream)
         {
-            return ReadMidi(settings, MidFileLoader.LoadMidiFile(stream));
+            var settings = ParseSettings.Default;
+            return ReadMidi(ref settings, stream);
         }
 
-        public static MoonSong ReadMidi(ParseSettings settings, MidiFile midi)
+        public static MoonSong ReadMidi(MidiFile midi)
+        {
+            var settings = ParseSettings.Default;
+            return ReadMidi(ref settings, midi);
+        }
+
+        public static MoonSong ReadMidi(ref ParseSettings settings, string path)
+        {
+            return ReadMidi(ref settings, MidFileLoader.LoadMidiFile(path));
+        }
+
+        public static MoonSong ReadMidi(ref ParseSettings settings, Stream stream)
+        {
+            return ReadMidi(ref settings, MidFileLoader.LoadMidiFile(stream));
+        }
+
+        public static MoonSong ReadMidi(ref ParseSettings settings, MidiFile midi)
         {
             if (midi.Chunks == null || midi.Chunks.Count < 1)
                 throw new InvalidOperationException("MIDI file has no tracks, unable to parse.");
@@ -87,7 +105,7 @@ namespace MoonscraperChartEditor.Song.IO
             };
 
             // Apply settings
-            ValidateAndApplySettings(song, settings);
+            ValidateAndApplySettings(song, ref settings);
 
             // Read all bpm data in first. This will also allow song.TimeToTick to function properly.
             ReadSync(midi.GetTempoMap(), song);
@@ -150,7 +168,7 @@ namespace MoonscraperChartEditor.Song.IO
             return song;
         }
 
-        private static void ValidateAndApplySettings(MoonSong song, ParseSettings settings)
+        private static void ValidateAndApplySettings(MoonSong song, ref ParseSettings settings)
         {
             // Apply HOPO threshold settings
             song.hopoThreshold = MidIOHelper.GetHopoThreshold(settings, song.resolution);
@@ -380,7 +398,7 @@ namespace MoonscraperChartEditor.Song.IO
                 instrument = instrument,
                 settings = settings,
                 noteProcessMap = GetNoteProcessDict(gameMode),
-                phraseProcessMap = GetPhraseProcessDict(settings, gameMode),
+                phraseProcessMap = GetPhraseProcessDict(settings.StarPowerNote, gameMode),
                 textProcessMap = GetTextEventProcessDict(gameMode),
                 sysexProcessMap = GetSysExEventProcessDict(gameMode),
                 forcingProcessList = new(),
@@ -606,8 +624,10 @@ namespace MoonscraperChartEditor.Song.IO
             var timedEvent = eventProcessParams.timedEvent;
             uint tick = (uint)timedEvent.startTick;
             uint sus = (uint)timedEvent.length;
-            if (sustainCutoff)
-                sus = ApplySustainCutoff(eventProcessParams.settings, sus);
+            if (sustainCutoff && sus < eventProcessParams.settings.SustainCutoffThreshold)
+            {
+                sus = 0;
+            }
 
             var newMoonNote = new MoonNote(tick, ingameFret, sus, defaultFlags);
             if (chart.notes.Capacity == 0)
@@ -720,14 +740,6 @@ namespace MoonscraperChartEditor.Song.IO
                 var finalType = note.GetGuitarNoteType(gameMode, song.hopoThreshold);
                 YargTrace.Assert(finalType == newType, $"Failed to set forced type! Expected: {newType}  Actual: {finalType}\non {difficulty} {instrument} at tick {note.tick} ({TimeSpan.FromSeconds(time):mm':'ss'.'ff})");
             }
-        }
-
-        private static uint ApplySustainCutoff(ParseSettings settings, uint length)
-        {
-            if (length <= settings.SustainCutoffThreshold)
-                length = 0;
-
-            return length;
         }
 
         private static void ProcessNoteOnEventAsFlagToggle(in EventProcessParams eventProcessParams, MoonNote.Flags flags, int individualNoteSpecifier)
