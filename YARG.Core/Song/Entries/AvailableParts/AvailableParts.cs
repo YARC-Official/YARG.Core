@@ -90,6 +90,7 @@ namespace YARG.Core.Song
                 return values;
             }
 
+            _bandDifficulty = default;
             _bandDifficulty.Intensity = reader.ReadSByte();
             if (_bandDifficulty.Intensity != -1)
                 _bandDifficulty.SubTracks = 1;
@@ -122,6 +123,7 @@ namespace YARG.Core.Song
 
             _leadVocals = Deserialize();
             _harmonyVocals = Deserialize();
+            _vocalsCount = 0;
             SetVocalsCount();
         }
 
