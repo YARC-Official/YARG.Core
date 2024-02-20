@@ -142,10 +142,10 @@ namespace YARG.Core.Song
                 return null;
 
             if (Type != ChartType.Chart)
-                return SongChart.FromMidi(ParseSettings, MidFileLoader.LoadMidiFile(stream));
+                return SongChart.FromMidi(_parseSettings, MidFileLoader.LoadMidiFile(stream));
 
             using var reader = new StreamReader(stream);
-            return SongChart.FromDotChart(ParseSettings, reader.ReadToEnd());
+            return SongChart.FromDotChart(_parseSettings, reader.ReadToEnd());
         }
 
         public override byte[]? LoadMiloData()

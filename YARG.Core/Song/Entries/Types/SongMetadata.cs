@@ -29,7 +29,6 @@ namespace YARG.Core.Song
             IsMaster = true,
             AlbumTrack = 0,
             PlaylistTrack = 0,
-            ParseSettings = ParseSettings.Default,
             LoadingPhrase = string.Empty,
             Year = DEFAULT_YEAR,
             SongLength = 0,
@@ -64,8 +63,6 @@ namespace YARG.Core.Song
 
         public int AlbumTrack;
         public int PlaylistTrack;
-
-        public ParseSettings ParseSettings;
 
         public string LoadingPhrase;
     }

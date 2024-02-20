@@ -139,7 +139,7 @@ namespace YARG.Core.Song
                 midi.Merge(update);
             }
 
-            return SongChart.FromMidi(_metadata.ParseSettings, midi);
+            return SongChart.FromMidi(_parseSettings, midi);
         }
 
         public override AudioMixer? LoadAudioStreams(params SongStem[] ignoreStems)
@@ -772,7 +772,7 @@ namespace YARG.Core.Song
                         else
                             result.cores = new[] { reader.ExtractFloat() };
                         break;
-                    case "hopo_threshold": _metadata.ParseSettings.HopoThreshold = reader.ExtractInt64(); break;
+                    case "hopo_threshold": _parseSettings.HopoThreshold = reader.ExtractInt64(); break;
                 }
                 reader.EndNode();
             }

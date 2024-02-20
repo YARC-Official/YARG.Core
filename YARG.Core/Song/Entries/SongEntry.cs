@@ -95,6 +95,7 @@ namespace YARG.Core.Song
 
         protected SongMetadata _metadata;
         protected AvailableParts _parts;
+        protected ParseSettings _parseSettings;
         protected HashWrapper _hash;
 
         public abstract string Directory { get; }
@@ -205,8 +206,6 @@ namespace YARG.Core.Song
 
         public HashWrapper Hash => _hash;
 
-        public ParseSettings ParseSettings => _metadata.ParseSettings;
-
         public int VocalsCount
         {
             get
@@ -314,6 +313,7 @@ namespace YARG.Core.Song
         {
             _metadata = SongMetadata.Default;
             _parts = AvailableParts.Default;
+            _parseSettings = ParseSettings.Default;
             _parsedYear = SongMetadata.DEFAULT_YEAR;
             _intYear = int.MaxValue;
         }
@@ -322,18 +322,18 @@ namespace YARG.Core.Song
         {
             _parts = parts;
             _hash = hash;
-            _metadata.ParseSettings = ParseSettings.Default;
+            _parseSettings = ParseSettings.Default;
             if (parts.FourLaneDrums.SubTracks > 0)
             {
-                _metadata.ParseSettings.DrumsType = DrumsType.FourLane;
+                _parseSettings.DrumsType = DrumsType.FourLane;
             }
             else if (parts.FiveLaneDrums.SubTracks > 0)
             {
-                _metadata.ParseSettings.DrumsType = DrumsType.FiveLane;
+                _parseSettings.DrumsType = DrumsType.FiveLane;
             }
             else
             {
-                _metadata.ParseSettings.DrumsType = DrumsType.Unknown;
+                _parseSettings.DrumsType = DrumsType.Unknown;
             }
 
             modifiers.TryGet("name", out _metadata.Name, SongMetadata.DEFAULT_NAME);
@@ -422,26 +422,26 @@ namespace YARG.Core.Song
                 }
             }
 
-            if (!modifiers.TryGet("hopo_frequency", out _metadata.ParseSettings.HopoThreshold))
+            if (!modifiers.TryGet("hopo_frequency", out _parseSettings.HopoThreshold))
             {
-                _metadata.ParseSettings.HopoThreshold = -1;
+                _parseSettings.HopoThreshold = -1;
             }
 
-            if (!modifiers.TryGet("hopofreq", out _metadata.ParseSettings.HopoFreq_FoF))
+            if (!modifiers.TryGet("hopofreq", out _parseSettings.HopoFreq_FoF))
             {
-                _metadata.ParseSettings.HopoFreq_FoF = -1;
+                _parseSettings.HopoFreq_FoF = -1;
             }
 
-            modifiers.TryGet("eighthnote_hopo", out _metadata.ParseSettings.EighthNoteHopo);
+            modifiers.TryGet("eighthnote_hopo", out _parseSettings.EighthNoteHopo);
 
-            if (!modifiers.TryGet("sustain_cutoff_threshold", out _metadata.ParseSettings.SustainCutoffThreshold))
+            if (!modifiers.TryGet("sustain_cutoff_threshold", out _parseSettings.SustainCutoffThreshold))
             {
-                _metadata.ParseSettings.SustainCutoffThreshold = -1;
+                _parseSettings.SustainCutoffThreshold = -1;
             }
 
-            if (!modifiers.TryGet("multiplier_note", out _metadata.ParseSettings.StarPowerNote))
+            if (!modifiers.TryGet("multiplier_note", out _parseSettings.StarPowerNote))
             {
-                _metadata.ParseSettings.StarPowerNote = -1;
+                _parseSettings.StarPowerNote = -1;
             }
 
             _metadata.IsMaster = !modifiers.TryGet("tags", out string tag) || tag.ToLower() != "cover";
@@ -475,7 +475,7 @@ namespace YARG.Core.Song
             _metadata.VideoEndTime = reader.ReadInt64();
 
             _metadata.LoadingPhrase = reader.ReadString();
-            _metadata.ParseSettings = new ParseSettings()
+            _parseSettings = new ParseSettings()
             {
                 HopoThreshold = reader.ReadInt64(),
                 HopoFreq_FoF = reader.ReadInt32(),
@@ -536,13 +536,13 @@ namespace YARG.Core.Song
 
             writer.Write(_metadata.LoadingPhrase);
 
-            writer.Write(_metadata.ParseSettings.HopoThreshold);
-            writer.Write(_metadata.ParseSettings.HopoFreq_FoF);
-            writer.Write(_metadata.ParseSettings.EighthNoteHopo);
-            writer.Write(_metadata.ParseSettings.SustainCutoffThreshold);
-            writer.Write(_metadata.ParseSettings.NoteSnapThreshold);
-            writer.Write(_metadata.ParseSettings.StarPowerNote);
-            writer.Write((int) _metadata.ParseSettings.DrumsType);
+            writer.Write(_parseSettings.HopoThreshold);
+            writer.Write(_parseSettings.HopoFreq_FoF);
+            writer.Write(_parseSettings.EighthNoteHopo);
+            writer.Write(_parseSettings.SustainCutoffThreshold);
+            writer.Write(_parseSettings.NoteSnapThreshold);
+            writer.Write(_parseSettings.StarPowerNote);
+            writer.Write((int) _parseSettings.DrumsType);
 
             unsafe
             {
