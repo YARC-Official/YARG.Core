@@ -7,17 +7,17 @@ namespace YARG.Core.Song
     [StructLayout(LayoutKind.Explicit)]
     public struct PartValues
     {
+        public static readonly PartValues Default = new()
+        {
+            SubTracks = 0,
+            Difficulties = DifficultyMask.None,
+            Intensity = -1
+        };
+
         [FieldOffset(0)] public byte SubTracks;
         [FieldOffset(0)] public DifficultyMask Difficulties;
 
         [FieldOffset(1)] public sbyte Intensity;
-
-        public PartValues(sbyte baseIntensity)
-        {
-            SubTracks = 0;
-            Difficulties = DifficultyMask.None;
-            Intensity = baseIntensity;
-        }
 
         public readonly bool this[int subTrack]
         {

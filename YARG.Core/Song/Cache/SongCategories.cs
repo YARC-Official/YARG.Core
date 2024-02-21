@@ -7,7 +7,7 @@ namespace YARG.Core.Song.Cache
     public interface CategoryConfig<TKey>
     {
         public EntryComparer Comparer { get; }
-        public TKey GetKey(SongMetadata entry);
+        public TKey GetKey(SongEntry entry);
     }
 
     public readonly struct TitleConfig : CategoryConfig<string>
@@ -15,7 +15,7 @@ namespace YARG.Core.Song.Cache
         private static readonly EntryComparer _COMPARER = new(SongAttribute.Name);
         public EntryComparer Comparer => _COMPARER;
 
-        public string GetKey(SongMetadata entry)
+        public string GetKey(SongEntry entry)
         {
             string name = entry.Name.SortStr;
             int i = 0;
@@ -31,7 +31,7 @@ namespace YARG.Core.Song.Cache
     {
         private static readonly EntryComparer _COMPARER = new(SongAttribute.Year);
         public EntryComparer Comparer => _COMPARER;
-        public string GetKey(SongMetadata entry)
+        public string GetKey(SongEntry entry)
         {
             return entry.YearAsNumber != int.MaxValue ? entry.Year[..3] + "0s" : entry.Year;
         }
@@ -41,7 +41,7 @@ namespace YARG.Core.Song.Cache
     {
         private static readonly EntryComparer _COMPARER = new(SongAttribute.Album);
         public EntryComparer Comparer => _COMPARER;
-        public string GetKey(SongMetadata entry)
+        public string GetKey(SongEntry entry)
         {
             return $"{entry.Artist.Str} - {entry.Album.Str}";
         }
@@ -52,7 +52,7 @@ namespace YARG.Core.Song.Cache
         private const int MILLISECONDS_PER_MINUTE = 60 * 1000;
         private static readonly EntryComparer _COMPARER = new(SongAttribute.SongLength);
         public EntryComparer Comparer => _COMPARER;
-        public string GetKey(SongMetadata entry)
+        public string GetKey(SongEntry entry)
         {
             return (entry.SongLengthMilliseconds / MILLISECONDS_PER_MINUTE) switch
             {
@@ -70,7 +70,7 @@ namespace YARG.Core.Song.Cache
     {
         private static readonly EntryComparer _COMPARER = new(SongAttribute.Name);
         public EntryComparer Comparer => _COMPARER;
-        public DateTime GetKey(SongMetadata entry)
+        public DateTime GetKey(SongEntry entry)
         {
             return entry.GetAddTime().Date;
         }
@@ -80,42 +80,42 @@ namespace YARG.Core.Song.Cache
     {
         private static readonly EntryComparer _COMPARER = new(SongAttribute.Artist);
         public EntryComparer Comparer => _COMPARER;
-        public SortString GetKey(SongMetadata entry) => entry.Artist;
+        public SortString GetKey(SongEntry entry) => entry.Artist;
     }
 
     public readonly struct AlbumConfig : CategoryConfig<SortString>
     {
         private static readonly EntryComparer _COMPARER = new(SongAttribute.Album);
         public EntryComparer Comparer => _COMPARER;
-        public SortString GetKey(SongMetadata entry) => entry.Album;
+        public SortString GetKey(SongEntry entry) => entry.Album;
     }
 
     public readonly struct GenreConfig : CategoryConfig<SortString>
     {
         private static readonly EntryComparer _COMPARER = new(SongAttribute.Genre);
         public EntryComparer Comparer => _COMPARER;
-        public SortString GetKey(SongMetadata entry) => entry.Genre;
+        public SortString GetKey(SongEntry entry) => entry.Genre;
     }
 
     public readonly struct CharterConfig : CategoryConfig<SortString>
     {
         private static readonly EntryComparer _COMPARER = new(SongAttribute.Charter);
         public EntryComparer Comparer => _COMPARER;
-        public SortString GetKey(SongMetadata entry) => entry.Charter;
+        public SortString GetKey(SongEntry entry) => entry.Charter;
     }
 
     public readonly struct PlaylistConfig : CategoryConfig<SortString>
     {
         private static readonly EntryComparer _COMPARER = new(SongAttribute.Playlist);
         public EntryComparer Comparer => _COMPARER;
-        public SortString GetKey(SongMetadata entry) => entry.Playlist;
+        public SortString GetKey(SongEntry entry) => entry.Playlist;
     }
 
     public readonly struct SourceConfig : CategoryConfig<SortString>
     {
         private static readonly EntryComparer _COMPARER = new(SongAttribute.Source);
         public EntryComparer Comparer => _COMPARER;
-        public SortString GetKey(SongMetadata entry) => entry.Source;
+        public SortString GetKey(SongEntry entry) => entry.Source;
     }
 
     public static class CategorySorter<TKey, TConfig>
@@ -124,7 +124,7 @@ namespace YARG.Core.Song.Cache
         private static readonly object  _lock  = new();
         private static readonly TConfig CONFIG = default;
 
-        public static void Add(SongMetadata entry, SortedDictionary<TKey, List<SongMetadata>> sections)
+        public static void Add(SongEntry entry, SortedDictionary<TKey, List<SongEntry>> sections)
         {
             var key = CONFIG.GetKey(entry);
             lock (_lock)
@@ -142,7 +142,7 @@ namespace YARG.Core.Song.Cache
 
     public static class CategoryWriter
     {
-        public static void WriteToCache<TKey>(BinaryWriter fileWriter, SortedDictionary<TKey, List<SongMetadata>> sections, SongAttribute attribute, ref Dictionary<SongMetadata, CategoryCacheWriteNode> nodes)
+        public static void WriteToCache<TKey>(BinaryWriter fileWriter, SortedDictionary<TKey, List<SongEntry>> sections, SongAttribute attribute, ref Dictionary<SongEntry, CategoryCacheWriteNode> nodes)
         {
             List<string> strings = new();
             foreach (var element in sections)
@@ -203,11 +203,11 @@ namespace YARG.Core.Song.Cache
     public sealed class InstrumentCategory
     {
         private readonly InstrumentComparer comparer;
-        private readonly List<SongMetadata> _entries = new();
+        private readonly List<SongEntry> _entries = new();
         private readonly object entryLock = new();
 
         public readonly string Key;
-        public List<SongMetadata> Entries => _entries;
+        public List<SongEntry> Entries => _entries;
 
         public InstrumentCategory(Instrument instrument)
         {
@@ -215,9 +215,9 @@ namespace YARG.Core.Song.Cache
             Key = instrument.ToString();
         }
 
-        public void Add(SongMetadata entry)
+        public void Add(SongEntry entry)
         {
-            if (entry.Parts.HasInstrument(comparer.instrument))
+            if (entry.HasInstrument(comparer.instrument))
             {
                 lock (entryLock)
                 {

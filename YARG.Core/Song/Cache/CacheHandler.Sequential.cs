@@ -189,14 +189,15 @@ namespace YARG.Core.Song.Cache
 
                 int length = reader.ReadInt32();
                 var entryReader = reader.Slice(length);
-                AddEntry(SongMetadata.PackedRBCONFromCache_Quick(group.CONFile, name, upgrades, entryReader, strings));
+                AddEntry(PackedRBCONEntry.LoadFromCache_Quick(group.CONFile, name, upgrades, entryReader, strings));
             }
         }
 
         private void QuickReadExtractedCONGroup(BinaryReader reader, CategoryCacheStrings strings)
         {
-            var dta = QuickReadExtractedCONGroupHeader(reader);
-            // Lack of null check by design
+            string directory = reader.ReadString();
+            var dta = AbridgedFileInfo.TryParseInfo(Path.Combine(directory, "songs.dta"), reader);
+            // Lack of null check of dta by design
 
             int count = reader.ReadInt32();
             for (int i = 0; i < count; ++i)
@@ -207,22 +208,28 @@ namespace YARG.Core.Song.Cache
 
                 int length = reader.ReadInt32();
                 var entryReader = reader.Slice(length);
-                AddEntry(SongMetadata.UnpackedRBCONFromCache_Quick(dta, name, upgrades, entryReader, strings));
+                AddEntry(UnpackedRBCONEntry.LoadFromCache_Quick(directory, dta, name, upgrades, entryReader, strings));
             }
         }
 
-        private UpdateGroup? CreateUpdateGroup(string directory, AbridgedFileInfo dta, bool removeEntries)
+        private UpdateGroup? CreateUpdateGroup(DirectoryInfo dirInfo, AbridgedFileInfo dta, bool removeEntries)
         {
-            var nodes = FindUpdateNodes(directory, dta);
+            var nodes = FindUpdateNodes(dirInfo.FullName, dta);
             if (nodes == null)
             {
                 return null;
             }
 
-            var group = new UpdateGroup(directory, dta.LastUpdatedTime);
+            var group = new UpdateGroup(dirInfo, dta.LastUpdatedTime);
             foreach (var node in nodes)
             {
-                ScanUpdateNode(group, node.Key, node.Value.ToArray(), removeEntries);
+                var update = new SongUpdate(group, node.Key, group.DTALastWrite, node.Value.ToArray());
+                group.Updates.Add(node.Key, update);
+                AddUpdate(node.Key, update);
+                if (removeEntries)
+                {
+                    RemoveCONEntry(node.Key);
+                }
             }
             updateGroups.Add(group);
             return group;

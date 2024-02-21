@@ -16,24 +16,24 @@ namespace YARG.Core.Song.Cache
         }
 
         [NonSerialized]
-        public readonly Dictionary<HashWrapper, List<SongMetadata>> Entries = new();
+        public readonly Dictionary<HashWrapper, List<SongEntry>> Entries = new();
 
         [NonSerialized]
-        public readonly SortedDictionary<string,     List<SongMetadata>> ArtistAlbums = new();
+        public readonly SortedDictionary<string,     List<SongEntry>> ArtistAlbums = new();
         [NonSerialized]
-        public readonly SortedDictionary<string,     List<SongMetadata>> SongLengths  = new();
+        public readonly SortedDictionary<string,     List<SongEntry>> SongLengths  = new();
         [NonSerialized]
-        public readonly SortedDictionary<string,     List<SongMetadata>> Instruments  = new();
+        public readonly SortedDictionary<string,     List<SongEntry>> Instruments  = new();
         [NonSerialized]
-        public readonly SortedDictionary<DateTime,   List<SongMetadata>> DatesAdded   = new(DateFlippedComparer.COMPARER);
+        public readonly SortedDictionary<DateTime,   List<SongEntry>> DatesAdded   = new(DateFlippedComparer.COMPARER);
 
-        public readonly SortedDictionary<string,     List<SongMetadata>> Titles       = new();
-        public readonly SortedDictionary<string,     List<SongMetadata>> Years        = new();
-        public readonly SortedDictionary<SortString, List<SongMetadata>> Artists      = new();
-        public readonly SortedDictionary<SortString, List<SongMetadata>> Albums       = new();
-        public readonly SortedDictionary<SortString, List<SongMetadata>> Genres       = new();
-        public readonly SortedDictionary<SortString, List<SongMetadata>> Charters     = new();
-        public readonly SortedDictionary<SortString, List<SongMetadata>> Playlists    = new();
-        public readonly SortedDictionary<SortString, List<SongMetadata>> Sources      = new();
+        public readonly SortedDictionary<string,     List<SongEntry>> Titles       = new();
+        public readonly SortedDictionary<string,     List<SongEntry>> Years        = new();
+        public readonly SortedDictionary<SortString, List<SongEntry>> Artists      = new();
+        public readonly SortedDictionary<SortString, List<SongEntry>> Albums       = new();
+        public readonly SortedDictionary<SortString, List<SongEntry>> Genres       = new();
+        public readonly SortedDictionary<SortString, List<SongEntry>> Charters     = new();
+        public readonly SortedDictionary<SortString, List<SongEntry>> Playlists    = new();
+        public readonly SortedDictionary<SortString, List<SongEntry>> Sources      = new();
     }
 }

@@ -14,6 +14,8 @@ using System.Text;
 using System.Text.RegularExpressions;
 using YARG.Core;
 using YARG.Core.Chart;
+using YARG.Core.Extensions;
+using YARG.Core.Parsing;
 using YARG.Core.Song;
 using YARG.Core.Utility;
 
@@ -85,7 +87,19 @@ namespace MoonscraperChartEditor.Song.IO
             => buffer.SplitOnceTrimmed(' ', out remaining);
         #endregion
 
-        public static MoonSong ReadFromFile(ParseSettings settings, string filepath)
+        public static MoonSong ReadFromFile(string filepath)
+        {
+            var settings = ParseSettings.Default;
+            return ReadFromFile(ref settings, filepath);
+        }
+
+        public static MoonSong ReadFromText(ReadOnlySpan<char> chartText)
+        {
+            var settings = ParseSettings.Default;
+            return ReadFromText(ref settings, chartText);
+        }
+
+        public static MoonSong ReadFromFile(ref ParseSettings settings, string filepath)
         {
             try
             {
@@ -98,7 +112,7 @@ namespace MoonscraperChartEditor.Song.IO
                     throw new Exception("Bad file type");
 
                 string text = File.ReadAllText(filepath);
-                return ReadFromText(settings, text);
+                return ReadFromText(ref settings, text);
             }
             catch (Exception e)
             {
@@ -106,7 +120,7 @@ namespace MoonscraperChartEditor.Song.IO
             }
         }
 
-        public static MoonSong ReadFromText(ParseSettings settings, ReadOnlySpan<char> chartText)
+        public static MoonSong ReadFromText(ref ParseSettings settings, ReadOnlySpan<char> chartText)
         {
             var song = new MoonSong();
 
@@ -133,18 +147,18 @@ namespace MoonscraperChartEditor.Song.IO
                 chartText = chartText[sectionEndIndex..];
 
                 var splitter = sectionText.SplitTrimmed('\n');
-                SubmitChartData(settings, song, sectionName, splitter);
+                SubmitChartData(ref settings, song, sectionName, splitter);
             }
             return song;
         }
 
-        private static void SubmitChartData(ParseSettings settings, MoonSong song, ReadOnlySpan<char> sectionName,
+        private static void SubmitChartData(ref ParseSettings settings, MoonSong song, ReadOnlySpan<char> sectionName,
             TrimSplitter sectionLines)
         {
             if (sectionName.Equals(ChartIOHelper.SECTION_SONG, StringComparison.Ordinal))
             {
                 YargTrace.DebugInfo("Loading chart properties");
-                SubmitDataSong(song, settings, sectionLines);
+                SubmitDataSong(song, ref settings, sectionLines);
                 return;
             }
             else if (sectionName.Equals(ChartIOHelper.SECTION_SYNC_TRACK, StringComparison.Ordinal))
@@ -180,16 +194,16 @@ namespace MoonscraperChartEditor.Song.IO
             }
         }
 
-        private static void SubmitDataSong(MoonSong song, ParseSettings settings, TrimSplitter sectionLines)
+        private static void SubmitDataSong(MoonSong song, ref ParseSettings settings, TrimSplitter sectionLines)
         {
             ChartMetadata.ParseSongSection(song, sectionLines);
-            ValidateAndApplySettings(song, settings);
+            ValidateAndApplySettings(song, ref settings);
         }
 
-        private static void ValidateAndApplySettings(MoonSong song, ParseSettings settings)
+        private static void ValidateAndApplySettings(MoonSong song, ref ParseSettings settings)
         {
             // Apply HOPO threshold settings
-            song.hopoThreshold = ChartIOHelper.GetHopoThreshold(settings, song.resolution);
+            song.hopoThreshold = ChartIOHelper.GetHopoThreshold(in settings, song.resolution);
 
             // Sustain cutoff threshold is not verified, sustains are not cut off by default in .chart
             // SP note is not verified, as it is only relevant for .mid
@@ -317,30 +331,22 @@ namespace MoonscraperChartEditor.Song.IO
                     if (typeCodeText[0] == 'E')
                     {
                         // Get event text
-                        string eventText = remaining.Trim().Trim('"').ToString();
-
-                        // Strip off brackets and any garbage outside of them
-                        var match = ChartIOHelper.TextEventRegex.Match(eventText);
-                        if (match.Success)
-                        {
-                            eventText = match.Groups[1].Value;
-                        }
+                        var eventText = TextEvents.NormalizeTextEvent(remaining.TrimOnce('"'));
 
                         // Check for section events
-                        var sectionMatch = ChartIOHelper.SectionEventRegex.Match(eventText);
-                        if (sectionMatch.Success)
+                        if (TextEvents.TryParseSectionEvent(eventText, out var sectionName))
                         {
-                            // This is a section, use the text grouped by the regex
-                            string sectionText = sectionMatch.Groups[1].Value;
-                            song.sections.Add(new MoonText(sectionText, tick));
+                            song.sections.Add(new MoonText(sectionName.ToString(), tick));
                         }
                         else
                         {
-                            song.events.Add(new MoonText(eventText, tick));
+                            song.events.Add(new MoonText(eventText.ToString(), tick));
                         }
                     }
                     else
+                    {
                         YargTrace.LogWarning($"Unrecognized type code '{typeCodeText[0]}'!");
+                    }
                 }
                 catch (Exception e)
                 {
@@ -414,7 +420,7 @@ namespace MoonscraperChartEditor.Song.IO
                                         length = noteLength
                                     };
                                     processParams.noteEvent = noteEvent;
-                                    processFn(processParams);
+                                    processFn(ref processParams);
                                 }
                                 break;
                             }
@@ -437,23 +443,14 @@ namespace MoonscraperChartEditor.Song.IO
                                         length = phraseLength
                                     };
                                     processParams.noteEvent = noteEvent;
-                                    processFn(processParams);
+                                    processFn(ref processParams);
                                 }
                                 break;
                             }
                             case 'E':
                             {
-                                // Get event text
-                                string eventText = remaining.Trim().Trim('"').ToString();
-
-                                // Strip off brackets and any garbage outside of them
-                                var match = ChartIOHelper.TextEventRegex.Match(eventText);
-                                if (match.Success)
-                                {
-                                    eventText = match.Groups[1].Value;
-                                }
-
-                                chart.events.Add(new MoonText(eventText, tick));
+                                var eventText = TextEvents.NormalizeTextEvent(remaining.TrimOnce('"'));
+                                chart.events.Add(new MoonText(eventText.ToString(), tick));
                                 break;
                             }
 
@@ -471,7 +468,7 @@ namespace MoonscraperChartEditor.Song.IO
 
                 foreach (var fn in postNotesAddedProcessList)
                 {
-                    fn(processParams);
+                    fn(ref processParams);
                 }
                 chart.notes.TrimExcess();
             }
@@ -483,27 +480,21 @@ namespace MoonscraperChartEditor.Song.IO
             }
         }
 
-        private static uint ApplySustainCutoff(ParseSettings settings, uint length)
-        {
-            if (length <= settings.SustainCutoffThreshold)
-                length = 0;
-
-            return length;
-        }
-
-        private static void ProcessNoteOnEventAsNote(in NoteProcessParams noteProcessParams, int ingameFret, MoonNote.Flags defaultFlags = MoonNote.Flags.None)
+        private static void ProcessNoteOnEventAsNote(ref NoteProcessParams noteProcessParams, int ingameFret, MoonNote.Flags defaultFlags = MoonNote.Flags.None)
         {
             var chart = noteProcessParams.chart;
 
             var noteEvent = noteProcessParams.noteEvent;
             uint tick = noteEvent.tick;
-            uint sus = ApplySustainCutoff(noteProcessParams.settings, noteEvent.length);
+            uint sus = noteEvent.length;
+            if (sus < noteProcessParams.settings.SustainCutoffThreshold)
+                sus = 0;
 
             var newMoonNote = new MoonNote(tick, ingameFret, sus, defaultFlags);
             MoonObjectHelper.PushNote(newMoonNote, chart.notes);
         }
 
-        private static void ProcessNoteOnEventAsSpecialPhrase(in NoteProcessParams noteProcessParams, MoonPhrase.Type type)
+        private static void ProcessNoteOnEventAsSpecialPhrase(ref NoteProcessParams noteProcessParams, MoonPhrase.Type type)
         {
             var chart = noteProcessParams.chart;
 
@@ -515,18 +506,18 @@ namespace MoonscraperChartEditor.Song.IO
             chart.specialPhrases.Add(newPhrase);
         }
 
-        private static void ProcessNoteOnEventAsChordFlag(in NoteProcessParams noteProcessParams, NoteFlagPriority flagData)
+        private static void ProcessNoteOnEventAsChordFlag(ref NoteProcessParams noteProcessParams, NoteFlagPriority flagData)
         {
             var flagEvent = noteProcessParams.noteEvent;
 
             // Delay the actual processing once all the notes are actually in
-            noteProcessParams.postNotesAddedProcessList.Add((in NoteProcessParams processParams) =>
+            noteProcessParams.postNotesAddedProcessList.Add((ref NoteProcessParams processParams) =>
             {
-                ProcessNoteOnEventAsChordFlagPostDelay(processParams, flagEvent, flagData);
+                ProcessNoteOnEventAsChordFlagPostDelay(ref processParams, flagEvent, flagData);
             });
         }
 
-        private static void ProcessNoteOnEventAsChordFlagPostDelay(in NoteProcessParams noteProcessParams, NoteEvent noteEvent, NoteFlagPriority flagData)
+        private static void ProcessNoteOnEventAsChordFlagPostDelay(ref NoteProcessParams noteProcessParams, NoteEvent noteEvent, NoteFlagPriority flagData)
         {
             var chart = noteProcessParams.chart;
             MoonObjectHelper.FindObjectsAtPosition(noteEvent.tick, chart.notes, out int index, out int length);
@@ -536,18 +527,18 @@ namespace MoonscraperChartEditor.Song.IO
             }
         }
 
-        private static void ProcessNoteOnEventAsNoteFlagToggle(in NoteProcessParams noteProcessParams, int rawNote, NoteFlagPriority flagData)
+        private static void ProcessNoteOnEventAsNoteFlagToggle(ref NoteProcessParams noteProcessParams, int rawNote, NoteFlagPriority flagData)
         {
             var flagEvent = noteProcessParams.noteEvent;
 
             // Delay the actual processing once all the notes are actually in
-            noteProcessParams.postNotesAddedProcessList.Add((in NoteProcessParams processParams) =>
+            noteProcessParams.postNotesAddedProcessList.Add((ref NoteProcessParams processParams) =>
             {
-                ProcessNoteOnEventAsNoteFlagTogglePostDelay(processParams, rawNote, flagEvent, flagData);
+                ProcessNoteOnEventAsNoteFlagTogglePostDelay(ref processParams, rawNote, flagEvent, flagData);
             });
         }
 
-        private static void ProcessNoteOnEventAsNoteFlagTogglePostDelay(in NoteProcessParams noteProcessParams, int rawNote, NoteEvent noteEvent, NoteFlagPriority flagData)
+        private static void ProcessNoteOnEventAsNoteFlagTogglePostDelay(ref NoteProcessParams noteProcessParams, int rawNote, NoteEvent noteEvent, NoteFlagPriority flagData)
         {
             var chart = noteProcessParams.chart;
             MoonObjectHelper.FindObjectsAtPosition(noteEvent.tick, chart.notes, out int index, out int length);

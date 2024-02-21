@@ -20,9 +20,9 @@ namespace YARG.Core.Song
         Instrument,
     };
 
-    public sealed partial class SongMetadata : IComparable<SongMetadata>
+    public partial class SongEntry : IComparable<SongEntry>
     {
-        public int CompareTo(SongMetadata other)
+        public int CompareTo(SongEntry other)
         {
             int strCmp;
             if ((strCmp = Name.CompareTo(other.Name)) == 0 &&
@@ -35,37 +35,17 @@ namespace YARG.Core.Song
             return strCmp;
         }
 
-        public DateTime GetAddTime()
+        public virtual DateTime GetAddTime()
         {
-            return _iniData != null ? _iniData.LastUpdatedTime : _rbData!.GetAbsoluteLastUpdateTime();
+            return DateTime.MinValue;
         }
 
-        private enum EntryType
+        public bool IsPreferedOver(SongEntry other)
         {
-            Ini,
-            Sng,
-            ExCON,
-            CON,
-        }
-
-        public bool IsPreferedOver(SongMetadata other)
-        {
-            static EntryType ParseType(SongMetadata entry)
-            {
-                if (entry._iniData != null)
-                {
-                    return entry._iniData is SngSubmetadata ? EntryType.Sng : EntryType.Ini;
-                }
-
-                return entry._rbData is RBPackedCONMetadata ? EntryType.CON : EntryType.ExCON;
-            }
-
-            var thisType = ParseType(this);
-            var otherType = ParseType(other);
-            if (thisType != otherType)
+            if (SubType != other.SubType)
             {
                 // CON > ExCON > Sng > Ini
-                return thisType > otherType;
+                return SubType > other.SubType;
             }
             // Otherwise, whatever would appear first
             return CompareTo(other) < 0;
@@ -73,15 +53,15 @@ namespace YARG.Core.Song
 
     }
 
-    public sealed class EntryComparer : IComparer<SongMetadata>
+    public sealed class EntryComparer : IComparer<SongEntry>
     {
         private readonly SongAttribute attribute;
 
         public EntryComparer(SongAttribute attribute) { this.attribute = attribute; }
 
-        public int Compare(SongMetadata lhs, SongMetadata rhs) { return IsLowerOrdered(lhs, rhs) ? -1 : 1; }
+        public int Compare(SongEntry lhs, SongEntry rhs) { return IsLowerOrdered(lhs, rhs) ? -1 : 1; }
 
-        private bool IsLowerOrdered(SongMetadata lhs, SongMetadata rhs)
+        private bool IsLowerOrdered(SongEntry lhs, SongEntry rhs)
         {
             switch (attribute)
             {
@@ -94,10 +74,10 @@ namespace YARG.Core.Song
                         return lhs.YearAsNumber < rhs.YearAsNumber;
                     break;
                 case SongAttribute.Playlist:
-                    if (lhs.RBData != null && rhs.RBData != null)
+                    if (lhs is RBCONEntry rblhs && rhs is RBCONEntry rbrhs)
                     {
-                        int lhsBand = lhs.RBData.SharedMetadata.RBDifficulties.band;
-                        int rhsBand = rhs.RBData.SharedMetadata.RBDifficulties.band;
+                        int lhsBand = rblhs.RBBandDiff;
+                        int rhsBand = rbrhs.RBBandDiff;
                         if (lhsBand != -1 && rhsBand != -1)
                             return lhsBand < rhsBand;
                     }
@@ -105,8 +85,8 @@ namespace YARG.Core.Song
                     if (lhs.PlaylistTrack != rhs.PlaylistTrack)
                         return lhs.PlaylistTrack < rhs.PlaylistTrack;
 
-                    if (lhs.Parts.BandDifficulty != rhs.Parts.BandDifficulty)
-                        return lhs.Parts.BandDifficulty < rhs.Parts.BandDifficulty;
+                    if (lhs.BandDifficulty != rhs.BandDifficulty)
+                        return lhs.BandDifficulty < rhs.BandDifficulty;
                     break;
                 case SongAttribute.SongLength:
                     if (lhs.SongLengthMilliseconds != rhs.SongLengthMilliseconds)
@@ -118,7 +98,7 @@ namespace YARG.Core.Song
         }
     }
 
-    public sealed class InstrumentComparer : IComparer<SongMetadata>
+    public sealed class InstrumentComparer : IComparer<SongEntry>
     {
         private static readonly EntryComparer baseComparer = new(SongAttribute.Unspecified);
         public readonly Instrument instrument;
@@ -127,10 +107,10 @@ namespace YARG.Core.Song
             this.instrument = instrument;
         }
 
-        public int Compare(SongMetadata lhs, SongMetadata rhs)
+        public int Compare(SongEntry lhs, SongEntry rhs)
         {
-            var lhsValues = lhs.Parts[instrument];
-            var rhsValues = rhs.Parts[instrument];
+            var lhsValues = lhs[instrument];
+            var rhsValues = rhs[instrument];
 
             // This function only gets called if both entries have the instrument
             // That check is not necessary

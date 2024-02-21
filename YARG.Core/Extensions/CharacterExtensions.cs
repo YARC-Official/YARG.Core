@@ -74,6 +74,21 @@ namespace YARG.Core.Extensions
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static char ToAsciiLower(this char c)
             => (char) (c | ASCII_LOWERCASE_FLAG);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool TryAsciiToNumber(this char c, out int value)
+        {
+            uint converted = (uint) c - '0';
+            value = (int) converted;
+            return converted <= 9;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool TryAsciiToNumber(this char c, out uint value)
+        {
+            value = (uint) c - '0';
+            return value <= 9;
+        }
         #endregion
 
         #region Latin1

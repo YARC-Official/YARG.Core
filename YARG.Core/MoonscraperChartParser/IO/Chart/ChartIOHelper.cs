@@ -1,8 +1,7 @@
-// Copyright (c) 2016-2020 Alexander Ong
+﻿// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
 using YARG.Core.Chart;
 
 namespace MoonscraperChartEditor.Song.IO
@@ -12,10 +11,6 @@ namespace MoonscraperChartEditor.Song.IO
         public const string SECTION_SONG = "Song";
         public const string SECTION_SYNC_TRACK = "SyncTrack";
         public const string SECTION_EVENTS = "Events";
-
-        // See MidIOHelper for regex details
-        public static readonly Regex TextEventRegex = MidIOHelper.TextEventRegex;
-        public static readonly Regex SectionEventRegex = MidIOHelper.SectionEventRegex;
 
 
         public const int NOTE_OFFSET_PRO_DRUMS = 64;
@@ -102,7 +97,7 @@ namespace MoonscraperChartEditor.Song.IO
             { "GHLCoop",        MoonSong.MoonInstrument.GHLiveCoop },
         };
 
-        public static float GetHopoThreshold(ParseSettings settings, float resolution)
+        public static float GetHopoThreshold(in ParseSettings settings, float resolution)
         {
             // With a 192 resolution, .chart has a HOPO threshold of 65 ticks, not 64,
             // so we need to scale this factor to different resolutions (480 res = 162.5 threshold)

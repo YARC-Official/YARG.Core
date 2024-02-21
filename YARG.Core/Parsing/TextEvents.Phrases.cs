@@ -1,6 +1,7 @@
 using System.Collections.Generic;
+using MoonscraperChartEditor.Song;
 
-namespace MoonscraperChartEditor.Song
+namespace YARG.Core.Parsing
 {
     internal interface ITextPhraseConverter
     {
@@ -11,10 +12,7 @@ namespace MoonscraperChartEditor.Song
         void AddPhraseEvent(string text, uint tick);
     }
 
-    /// <summary>
-    /// Constants for possible text events.
-    /// </summary>
-    internal static class TextEvents
+    public static partial class TextEvents
     {
         #region Global lyric events
         public const string
@@ -43,7 +41,7 @@ namespace MoonscraperChartEditor.Song
             public List<string> pendingEvents;
         }
 
-        public static void ConvertToPhrases(List<MoonText> events, ITextPhraseConverter converter, uint maxTick)
+        internal static void ConvertToPhrases(List<MoonText> events, ITextPhraseConverter converter, uint maxTick)
         {
             string startEvent = converter.StartEvent;
             string endEvent = converter.EndEvent;

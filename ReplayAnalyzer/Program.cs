@@ -20,6 +20,8 @@ string songPath = string.Empty;
 string replayPath = string.Empty;
 int runMode = 0;
 
+var defaultColor = Console.ForegroundColor;
+
 for (int i = 0; i < args.Length; ++i)
 {
     var arg = args[i];
@@ -229,6 +231,8 @@ else
     Console.WriteLine(
         $"{replay.Frames[selectedPlayer].Inputs.Length} input(s) were read from player {selectedPlayer}.");
 }
+
+Console.ForegroundColor = defaultColor;
 
 /*
 while (true)

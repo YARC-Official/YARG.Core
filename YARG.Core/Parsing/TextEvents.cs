@@ -1,4 +1,5 @@
 using System;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.Parsing
 {
@@ -45,17 +46,12 @@ namespace YARG.Core.Parsing
     }
 
     /// <summary>
-    /// Text events that can be found in both .chart and .mid.
+    /// Constants and utilities for handling text events.
     /// </summary>
-    public static class TextEvents
+    public static partial class TextEvents
     {
-        public const string SECTION_PREFIX_1 = "section";
-        public const string SECTION_PREFIX_2 = "prc";
-
         public const string BIG_ROCK_ENDING_START = "coda";
         public const string END_MARKER = "end";
-
-        public const string DRUMS_MIX_PREFIX = "mix";
 
         /// <summary>
         /// Normalizes text events into a consistent format. This includes stripping any
@@ -66,27 +62,22 @@ namespace YARG.Core.Parsing
         /// All other methods that operate on text events expect them to be normalized.
         /// </remarks>
         // Equivalent to reading the capture of this regex: \[(.*?)\]
-        public static void NormalizeTextEvent(ref ReadOnlySpan<char> text, out bool strippedBrackets)
+        public static ReadOnlySpan<char> NormalizeTextEvent(ReadOnlySpan<char> text, out bool strippedBrackets)
         {
-            // Trim leading/trailing whitespace
-            text = text.Trim();
-
             // Isolate text inside brackets
-            // Find the starting bracket
             strippedBrackets = false;
             int startIndex = text.IndexOf('[');
-            if (startIndex < 0)
-                return;
-            startIndex++;
+            int lastIndex = text.IndexOf(']');
+            if (startIndex < 0 || lastIndex < 0 || lastIndex < startIndex)
+                return text.Trim();
 
-            // Find the ending bracket
-            int lastIndex = text[startIndex..].IndexOf(']');
-            if (lastIndex < 0)
-                return;
-
-            text = text[startIndex..lastIndex].Trim();
             strippedBrackets = true;
+            return text[++startIndex..lastIndex].Trim();
         }
+
+        /// <inheritdoc cref="NormalizeTextEvent(ReadOnlySpan{char}, out bool)"/>
+        public static ReadOnlySpan<char> NormalizeTextEvent(ReadOnlySpan<char> text)
+            => NormalizeTextEvent(text, out _);
 
         // For events that have either space or underscore separators
         private static ReadOnlySpan<char> SkipSpaceOrUnderscore(this ReadOnlySpan<char> text)
@@ -105,11 +96,14 @@ namespace YARG.Core.Parsing
         {
             name = ReadOnlySpan<char>.Empty;
 
+            const string SECTION_PREFIX = "section";
+            const string PRC_PREFIX = "prc";
+
             // Remove event prefix
-            if (text.StartsWith(SECTION_PREFIX_1))
-                text = text[SECTION_PREFIX_1.Length..];
-            else if (text.StartsWith(SECTION_PREFIX_2))
-                text = text[SECTION_PREFIX_2.Length..];
+            if (text.StartsWith(SECTION_PREFIX))
+                text = text[SECTION_PREFIX.Length..];
+            else if (text.StartsWith(PRC_PREFIX))
+                text = text[PRC_PREFIX.Length..];
             else
                 return false;
 
@@ -132,17 +126,17 @@ namespace YARG.Core.Parsing
             setting = DrumsMixSetting.None;
 
             // Remove event prefix
-            if (!text.StartsWith(DRUMS_MIX_PREFIX))
+            const string MIX_PREFIX = "mix";
+            if (!text.StartsWith(MIX_PREFIX))
                 return false;
-            text = text[DRUMS_MIX_PREFIX.Length..].SkipSpaceOrUnderscore();
+            text = text[MIX_PREFIX.Length..].SkipSpaceOrUnderscore();
             if (text.IsEmpty)
                 return false;
 
             // Parse difficulty number
-            var diffText = text[0..1];
-            text = text[1..].SkipSpaceOrUnderscore();
-            if (!uint.TryParse(diffText, out uint diffNumber))
+            if (!text[0].TryAsciiToNumber(out uint diffNumber))
                 return false;
+            text = text[1..].SkipSpaceOrUnderscore();
 
             switch (diffNumber)
             {
@@ -154,30 +148,29 @@ namespace YARG.Core.Parsing
             }
 
             // Skip 'drums' text
-            const string DrumsText = "drums";
-            if (!text.StartsWith(DrumsText))
+            const string DRUMS_PREFIX = "drums";
+            if (!text.StartsWith(DRUMS_PREFIX))
                 return false;
-            text = text[DrumsText.Length..].SkipSpaceOrUnderscore();
+            text = text[DRUMS_PREFIX.Length..].SkipSpaceOrUnderscore();
             if (text.IsEmpty)
                 return false;
 
             // Parse configuration number
-            var configText = text[0..1];
-            text = text[1..].SkipSpaceOrUnderscore();
-            if (!uint.TryParse(configText, out uint configNumber) || configNumber > 5)
+            if (!text[0].TryAsciiToNumber(out uint configNumber) || configNumber > 5)
                 return false;
+            text = text[1..].SkipSpaceOrUnderscore();
 
-            config = (DrumsMixConfiguration)configNumber;
+            config = (DrumsMixConfiguration) configNumber;
 
             // Parse settings
-            var settingsText = text;
-            if (settingsText.Equals("d", StringComparison.Ordinal))
+            var settingText = text;
+            if (settingText.Equals("d", StringComparison.Ordinal))
                 setting = DrumsMixSetting.DiscoFlip;
-            else if (settingsText.Equals("dnoflip", StringComparison.Ordinal))
+            else if (settingText.Equals("dnoflip", StringComparison.Ordinal))
                 setting = DrumsMixSetting.DiscoNoFlip;
-            else if (settingsText.Equals("easy", StringComparison.Ordinal))
+            else if (settingText.Equals("easy", StringComparison.Ordinal))
                 setting = DrumsMixSetting.Easy;
-            else if (settingsText.Equals("easynokick", StringComparison.Ordinal))
+            else if (settingText.Equals("easynokick", StringComparison.Ordinal))
                 setting = DrumsMixSetting.EasyNoKick;
             else
                 setting = DrumsMixSetting.None;
