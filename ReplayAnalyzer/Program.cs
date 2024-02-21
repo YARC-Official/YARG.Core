@@ -108,13 +108,16 @@ if (!File.Exists(songIni) || (!File.Exists(notesMid) && !File.Exists(notesChart)
 SongChart chart;
 try
 {
+    var parseSettings = ParseSettings.Default;
+    parseSettings.DrumsType = DrumsType.FourLane;
+
     if (File.Exists(notesMid))
     {
-        chart = SongChart.FromFile(ParseSettings.Default, notesMid);
+        chart = SongChart.FromFile(parseSettings, notesMid);
     }
     else
     {
-        chart = SongChart.FromFile(ParseSettings.Default, notesChart);
+        chart = SongChart.FromFile(parseSettings, notesChart);
     }
 }
 catch (Exception e)
