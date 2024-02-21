@@ -307,6 +307,7 @@ namespace YARG.Core.Song
         {
             _rbMetadata = RBMetadata.Default;
             _rbDifficulties = RBCONDifficulties.Default;
+            _parseSettings.DrumsType = DrumsType.FourLane;
         }
 
         protected RBCONEntry(AbridgedFileInfo? updateMidi, IRBProUpgrade? upgrade, BinaryReader reader, CategoryCacheStrings strings)
