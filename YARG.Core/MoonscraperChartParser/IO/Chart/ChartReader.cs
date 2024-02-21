@@ -420,7 +420,7 @@ namespace MoonscraperChartEditor.Song.IO
                                         length = noteLength
                                     };
                                     processParams.noteEvent = noteEvent;
-                                    processFn(processParams);
+                                    processFn(ref processParams);
                                 }
                                 break;
                             }
@@ -443,7 +443,7 @@ namespace MoonscraperChartEditor.Song.IO
                                         length = phraseLength
                                     };
                                     processParams.noteEvent = noteEvent;
-                                    processFn(processParams);
+                                    processFn(ref processParams);
                                 }
                                 break;
                             }
@@ -468,7 +468,7 @@ namespace MoonscraperChartEditor.Song.IO
 
                 foreach (var fn in postNotesAddedProcessList)
                 {
-                    fn(processParams);
+                    fn(ref processParams);
                 }
                 chart.notes.TrimExcess();
             }
@@ -480,7 +480,7 @@ namespace MoonscraperChartEditor.Song.IO
             }
         }
 
-        private static void ProcessNoteOnEventAsNote(in NoteProcessParams noteProcessParams, int ingameFret, MoonNote.Flags defaultFlags = MoonNote.Flags.None)
+        private static void ProcessNoteOnEventAsNote(ref NoteProcessParams noteProcessParams, int ingameFret, MoonNote.Flags defaultFlags = MoonNote.Flags.None)
         {
             var chart = noteProcessParams.chart;
 
@@ -494,7 +494,7 @@ namespace MoonscraperChartEditor.Song.IO
             MoonObjectHelper.PushNote(newMoonNote, chart.notes);
         }
 
-        private static void ProcessNoteOnEventAsSpecialPhrase(in NoteProcessParams noteProcessParams, MoonPhrase.Type type)
+        private static void ProcessNoteOnEventAsSpecialPhrase(ref NoteProcessParams noteProcessParams, MoonPhrase.Type type)
         {
             var chart = noteProcessParams.chart;
 
@@ -506,18 +506,18 @@ namespace MoonscraperChartEditor.Song.IO
             chart.specialPhrases.Add(newPhrase);
         }
 
-        private static void ProcessNoteOnEventAsChordFlag(in NoteProcessParams noteProcessParams, NoteFlagPriority flagData)
+        private static void ProcessNoteOnEventAsChordFlag(ref NoteProcessParams noteProcessParams, NoteFlagPriority flagData)
         {
             var flagEvent = noteProcessParams.noteEvent;
 
             // Delay the actual processing once all the notes are actually in
-            noteProcessParams.postNotesAddedProcessList.Add((in NoteProcessParams processParams) =>
+            noteProcessParams.postNotesAddedProcessList.Add((ref NoteProcessParams processParams) =>
             {
-                ProcessNoteOnEventAsChordFlagPostDelay(processParams, flagEvent, flagData);
+                ProcessNoteOnEventAsChordFlagPostDelay(ref processParams, flagEvent, flagData);
             });
         }
 
-        private static void ProcessNoteOnEventAsChordFlagPostDelay(in NoteProcessParams noteProcessParams, NoteEvent noteEvent, NoteFlagPriority flagData)
+        private static void ProcessNoteOnEventAsChordFlagPostDelay(ref NoteProcessParams noteProcessParams, NoteEvent noteEvent, NoteFlagPriority flagData)
         {
             var chart = noteProcessParams.chart;
             MoonObjectHelper.FindObjectsAtPosition(noteEvent.tick, chart.notes, out int index, out int length);
@@ -527,18 +527,18 @@ namespace MoonscraperChartEditor.Song.IO
             }
         }
 
-        private static void ProcessNoteOnEventAsNoteFlagToggle(in NoteProcessParams noteProcessParams, int rawNote, NoteFlagPriority flagData)
+        private static void ProcessNoteOnEventAsNoteFlagToggle(ref NoteProcessParams noteProcessParams, int rawNote, NoteFlagPriority flagData)
         {
             var flagEvent = noteProcessParams.noteEvent;
 
             // Delay the actual processing once all the notes are actually in
-            noteProcessParams.postNotesAddedProcessList.Add((in NoteProcessParams processParams) =>
+            noteProcessParams.postNotesAddedProcessList.Add((ref NoteProcessParams processParams) =>
             {
-                ProcessNoteOnEventAsNoteFlagTogglePostDelay(processParams, rawNote, flagEvent, flagData);
+                ProcessNoteOnEventAsNoteFlagTogglePostDelay(ref processParams, rawNote, flagEvent, flagData);
             });
         }
 
-        private static void ProcessNoteOnEventAsNoteFlagTogglePostDelay(in NoteProcessParams noteProcessParams, int rawNote, NoteEvent noteEvent, NoteFlagPriority flagData)
+        private static void ProcessNoteOnEventAsNoteFlagTogglePostDelay(ref NoteProcessParams noteProcessParams, int rawNote, NoteEvent noteEvent, NoteFlagPriority flagData)
         {
             var chart = noteProcessParams.chart;
             MoonObjectHelper.FindObjectsAtPosition(noteEvent.tick, chart.notes, out int index, out int length);
