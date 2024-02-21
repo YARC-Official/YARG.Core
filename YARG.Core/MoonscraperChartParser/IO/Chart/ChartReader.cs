@@ -186,7 +186,7 @@ namespace MoonscraperChartEditor.Song.IO
                         continue;
 
                     YargTrace.DebugInfo($"Loading data for {difficulty} {instrument}");
-                    LoadChart(settings, song, sectionLines, instrument, difficulty);
+                    LoadChart(ref settings, song, sectionLines, instrument, difficulty);
                     break;
                 }
 
@@ -358,7 +358,7 @@ namespace MoonscraperChartEditor.Song.IO
         #region Utility
         #endregion
 
-        private static void LoadChart(ParseSettings settings, MoonSong song, TrimSplitter sectionLines,
+        private static void LoadChart(ref ParseSettings settings, MoonSong song, TrimSplitter sectionLines,
             MoonSong.MoonInstrument instrument, MoonSong.Difficulty difficulty)
         {
             var chart = song.GetChart(instrument, difficulty);
@@ -471,6 +471,7 @@ namespace MoonscraperChartEditor.Song.IO
                     fn(ref processParams);
                 }
                 chart.notes.TrimExcess();
+                settings = processParams.settings;
             }
             catch (Exception e)
             {
