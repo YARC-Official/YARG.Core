@@ -442,14 +442,10 @@ namespace YARG.Core.Engine
 
         protected abstract void AddScore(TNoteType note);
 
-        protected virtual void UpdateMultiplier()
+        protected void AddScore(int score)
         {
-            EngineStats.ScoreMultiplier = Math.Min((EngineStats.Combo / 10) + 1, EngineParameters.MaxMultiplier);
-
-            if (EngineStats.IsStarPowerActive)
-            {
-                EngineStats.ScoreMultiplier *= 2;
-            }
+            EngineStats.CommittedScore += score;
+            UpdateStars();
         }
 
         protected void UpdateStars()
@@ -471,6 +467,16 @@ namespace YARG.Core.Engine
             }
 
             EngineStats.Stars = State.CurrentStarIndex + progress;
+        }
+
+        protected virtual void UpdateMultiplier()
+        {
+            EngineStats.ScoreMultiplier = Math.Min((EngineStats.Combo / 10) + 1, EngineParameters.MaxMultiplier);
+
+            if (EngineStats.IsStarPowerActive)
+            {
+                EngineStats.ScoreMultiplier *= 2;
+            }
         }
 
         protected virtual void StripStarPower(TNoteType? note)

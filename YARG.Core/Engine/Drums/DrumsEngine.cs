@@ -190,8 +190,7 @@ namespace YARG.Core.Engine.Drums
         protected override void AddScore(DrumNote note)
         {
             int pointsPerNote = GetPointsPerNote();
-            EngineStats.CommittedScore += pointsPerNote * EngineStats.ScoreMultiplier;
-            UpdateStars();
+            AddScore(pointsPerNote * EngineStats.ScoreMultiplier);
         }
 
         protected sealed override int CalculateBaseScore()

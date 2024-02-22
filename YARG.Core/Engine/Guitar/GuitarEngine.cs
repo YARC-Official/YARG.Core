@@ -236,8 +236,8 @@ namespace YARG.Core.Engine.Guitar
 
         protected override void AddScore(GuitarNote note)
         {
-            EngineStats.CommittedScore += POINTS_PER_NOTE * (1 + note.ChildNotes.Count) * EngineStats.ScoreMultiplier;
-            UpdateStars();
+            int notePoints = POINTS_PER_NOTE * (1 + note.ChildNotes.Count) * EngineStats.ScoreMultiplier;
+            AddScore(notePoints);
         }
 
         protected override void UpdateMultiplier()
@@ -371,7 +371,7 @@ namespace YARG.Core.Engine.Guitar
                     if (dropped || isBurst)
                     {
                         double finalScore = CalculateSustainPoints(sustain, sustainTick);
-                        EngineStats.CommittedScore += (int) Math.Ceiling(finalScore);
+                        AddScore((int) Math.Ceiling(finalScore));
                     }
                     else
                     {
@@ -388,6 +388,7 @@ namespace YARG.Core.Engine.Guitar
                 }
             }
 
+            UpdateStars();
             UpdateWhammyStarPower(isStarPowerSustainActive);
         }
 

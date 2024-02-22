@@ -151,15 +151,13 @@ namespace YARG.Core.Engine.Vocals
 
         protected override void AddScore(VocalNote note)
         {
-            EngineStats.CommittedScore += POINTS_PER_PHRASE * EngineStats.ScoreMultiplier;
-            UpdateStars();
+            AddScore(POINTS_PER_PHRASE * EngineStats.ScoreMultiplier);
         }
 
         protected void AddPartialScore(double hitPercent)
         {
             int score = (int) ((double) POINTS_PER_PHRASE * EngineStats.ScoreMultiplier * hitPercent);
-            EngineStats.CommittedScore += score;
-            UpdateStars();
+            AddScore(score);
         }
 
         protected override void UpdateMultiplier()
