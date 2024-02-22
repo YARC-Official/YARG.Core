@@ -29,15 +29,9 @@
         /// </summary>
         public EngineTimer StrumLeniencyTimer;
 
-        /// <summary>
-        /// The time at which the note should be hit when using infinite front end. If null,
-        /// the note should not be hit without an input.
-        /// </summary>
-        public double? InfiniteFrontEndHitTime;
-
         public EngineTimer StarPowerWhammyTimer;
 
-        public double FrontEndStartTime;
+        public double FrontEndExpireTime;
 
         public uint StarPowerWhammyBaseTick;
 
@@ -64,7 +58,7 @@
             HopoLeniencyTimer.Reset();
             StarPowerWhammyTimer.Reset();
 
-            FrontEndStartTime = 0;
+            FrontEndExpireTime = 0;
 
             StarPowerWhammyBaseTick = 0;
         }

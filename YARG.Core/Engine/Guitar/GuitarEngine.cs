@@ -56,19 +56,6 @@ namespace YARG.Core.Engine.Guitar
             }
         }
 
-        protected override void AddConsistencyAnchors(List<double> anchors, double originalTime)
-        {
-            if (State.StrumLeniencyTimer.IsActive(originalTime))
-            {
-                anchors.Add(State.StrumLeniencyTimer.EndTime);
-            }
-
-            if (State.InfiniteFrontEndHitTime is not null)
-            {
-                anchors.Add(State.InfiniteFrontEndHitTime.Value);
-            }
-        }
-
         protected virtual void Overstrum()
         {
             // Can't overstrum before first note is hit/missed

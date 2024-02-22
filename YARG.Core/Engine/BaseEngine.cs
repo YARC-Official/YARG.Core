@@ -140,6 +140,18 @@ namespace YARG.Core.Engine
             } while (noteUpdated);
         }
 
+        protected void StartTimer(EngineTimer timer, double startTime, double offset = 0)
+        {
+            timer.StartWithOffset(startTime, offset);
+            AddConsistencyAnchor(timer.EndTime);
+        }
+
+        protected void AddConsistencyAnchor(double time)
+        {
+            _consistencyAnchors.Add(time);
+            _consistencyAnchors.Sort();
+        }
+
         public abstract void Reset(bool keepCurrentButtons = false);
 
         protected abstract void MutateStateWithInput(GameInput gameInput);
@@ -152,19 +164,19 @@ namespace YARG.Core.Engine
                 return;
             }
 
-            // Get consistency anchors
-            _consistencyAnchors.Clear();
-            AddConsistencyAnchors(_consistencyAnchors, BaseState.CurrentTime);
-            _consistencyAnchors.Sort();
-
-            // Run consistency anchors
-            foreach (var anchor in _consistencyAnchors)
+            double lastAnchor = double.MinValue;
+            while (_consistencyAnchors.Count > 0)
             {
+                double anchor = _consistencyAnchors[0];
                 // Skip until we reach the point that the anchor is ahead of the current time.
-                if (anchor < BaseState.CurrentTime)
+                // Or if the anchor is the same as the last anchor (prevents infinite loop)
+                if (anchor < BaseState.CurrentTime || Math.Abs(anchor - lastAnchor) < double.Epsilon)
                 {
+                    _consistencyAnchors.RemoveAt(0);
                     continue;
                 }
+
+                lastAnchor = anchor;
 
                 // Break when we reach a time that is ahead of the target time.
                 // We can safely break here since it's sorted.
@@ -178,10 +190,6 @@ namespace YARG.Core.Engine
 
             // Run at the actual time
             RunHitLogic(time);
-        }
-
-        protected virtual void AddConsistencyAnchors(List<double> anchors, double originalTime)
-        {
         }
 
         /// <summary>
