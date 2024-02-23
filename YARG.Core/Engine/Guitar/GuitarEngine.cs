@@ -22,6 +22,11 @@ namespace YARG.Core.Engine.Guitar
                 Note = note;
                 BaseTick = note.Tick;
             }
+
+            public double GetEndTime(SyncTrack syncTrack, uint sustainBurstThreshold)
+            {
+                return syncTrack.TickToTime(Note.TickEnd - sustainBurstThreshold);
+            }
         }
 
         public delegate void OverstrumEvent();
@@ -168,14 +173,20 @@ namespace YARG.Core.Engine.Guitar
                     }
 
                     var sustain = new ActiveSustain(chordNote);
+
                     ActiveSustains.Add(sustain);
+                    AddConsistencyAnchor(sustain.GetEndTime(SyncTrack, SustainBurstThreshold));
+
                     OnSustainStart?.Invoke(chordNote);
                 }
             }
             else if (note.IsSustain)
             {
                 var sustain = new ActiveSustain(note);
+
                 ActiveSustains.Add(sustain);
+                AddConsistencyAnchor(sustain.GetEndTime(SyncTrack, SustainBurstThreshold));
+
                 OnSustainStart?.Invoke(note);
             }
 
