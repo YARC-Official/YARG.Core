@@ -158,26 +158,26 @@ namespace YARG.Core.Engine.Guitar
 
             AddScore(note);
 
-            // if (note.IsDisjoint)
-            // {
-            //     foreach (var chordNote in note.ChordEnumerator())
-            //     {
-            //         if (!chordNote.IsSustain)
-            //         {
-            //             continue;
-            //         }
-            //
-            //         var sustain = new ActiveSustain(chordNote);
-            //         ActiveSustains.Add(sustain);
-            //         OnSustainStart?.Invoke(chordNote);
-            //     }
-            // }
-            // else if (note.IsSustain)
-            // {
-            //     var sustain = new ActiveSustain(note);
-            //     ActiveSustains.Add(sustain);
-            //     OnSustainStart?.Invoke(note);
-            // }
+            if (note.IsDisjoint)
+            {
+                foreach (var chordNote in note.ChordEnumerator())
+                {
+                    if (!chordNote.IsSustain)
+                    {
+                        continue;
+                    }
+
+                    var sustain = new ActiveSustain(chordNote);
+                    ActiveSustains.Add(sustain);
+                    OnSustainStart?.Invoke(chordNote);
+                }
+            }
+            else if (note.IsSustain)
+            {
+                var sustain = new ActiveSustain(note);
+                ActiveSustains.Add(sustain);
+                OnSustainStart?.Invoke(note);
+            }
 
             State.WasNoteGhosted = false;
 
@@ -323,12 +323,126 @@ namespace YARG.Core.Engine.Guitar
             return CalculateStarPowerBeatProgress(tick, State.StarPowerWhammyBaseTick);
         }
 
+        protected void UpdateSustains()
+        {
+            EngineStats.PendingScore = 0;
+
+            bool isStarPowerSustainActive = false;
+            for (int i = 0; i < ActiveSustains.Count; i++)
+            {
+                var sustain = ActiveSustains[i];
+                var note = sustain.Note;
+
+                isStarPowerSustainActive |= note.IsStarPower;
+
+                // If we're close enough to the end of the sustain, finish it
+                // Provides leniency for sustains with no gap (and just in general)
+                bool isBurst = (int) (note.TickEnd - State.CurrentTick) <= SustainBurstThreshold;
+                bool isEndOfSustain = State.CurrentTick >= note.TickEnd;
+
+                uint sustainTick = isBurst || isEndOfSustain ? note.TickEnd : State.CurrentTick;
+
+                var mask = note.IsDisjoint ? note.DisjointMask : note.NoteMask;
+                bool extendedSustainHold = (mask & State.ButtonMask) == mask;
+                bool dropped = note.IsExtendedSustain ? !extendedSustainHold : !CanNoteBeHit(note);
+
+                // If the sustain has not finished scoring, then we need to calculate the points
+                if (!sustain.HasFinishedScoring)
+                {
+                    // Sustain has reached burst threshold, so all points have been given
+                    if (isBurst)
+                    {
+                        sustain.HasFinishedScoring = true;
+                    }
+
+                    // Sustain has ended, so commit the points
+                    if (dropped || isBurst)
+                    {
+                        double finalScore = CalculateSustainPoints(sustain, sustainTick);
+                        AddScore((int) Math.Ceiling(finalScore));
+                    }
+                    else
+                    {
+                        EngineStats.PendingScore += (int) CalculateSustainPoints(sustain, sustainTick);
+                    }
+                }
+
+                // Only remove the sustain if its dropped or has reached the final tick
+                if (dropped || isEndOfSustain)
+                {
+                    ActiveSustains.RemoveAt(i);
+                    i--;
+                    OnSustainEnd?.Invoke(note, State.CurrentTime, sustain.HasFinishedScoring);
+                }
+            }
+
+            UpdateStars();
+            UpdateWhammyStarPower(isStarPowerSustainActive);
+        }
+
+        protected void UpdateWhammyStarPower(bool spSustainsActive)
+        {
+            if (spSustainsActive)
+            {
+                if (IsInputUpdate && CurrentInput.GetAction<GuitarAction>() == GuitarAction.Whammy)
+                {
+                    // Rebase when beginning to SP whammy
+                    if (!State.StarPowerWhammyTimer.IsActive(State.CurrentTime))
+                    {
+                        RebaseProgressValues(State.CurrentTick);
+                    }
+
+                    State.StarPowerWhammyTimer.Start(State.CurrentTime);
+
+                    EventLogger.LogEvent(new TimerEngineEvent(State.CurrentTime)
+                    {
+                        TimerName = "StarPowerWhammy",
+                        TimerStarted = true,
+                        TimerValue = State.StarPowerWhammyTimer.TimeThreshold,
+                    });
+                }
+                else if (State.StarPowerWhammyTimer.IsExpired(State.CurrentTime))
+                {
+                    // No need to restart the timer, expiration is handled correctly in the gain calculation
+                    // State.StarPowerWhammyTimer.Start(State.CurrentTime);
+
+                    // Commit final whammy gain amount
+                    UpdateProgressValues(State.CurrentTick);
+                    RebaseProgressValues(State.CurrentTick);
+
+                    // Stop whammy gain
+                    State.StarPowerWhammyTimer.Reset();
+
+                    EventLogger.LogEvent(new TimerEngineEvent(State.CurrentTime)
+                    {
+                        TimerName = "StarPowerWhammy",
+                        TimerStopped = true,
+                        TimerValue = 0,
+                    });
+                }
+            }
+            // Rebase after SP whammy ends to commit the final amount to the base
+            else if (State.StarPowerWhammyTimer.IsActive(State.CurrentTime) ||
+                State.StarPowerWhammyTimer.IsExpired(State.CurrentTime))
+            {
+                RebaseProgressValues(State.CurrentTick);
+
+                double remainingTime = Math.Max(State.StarPowerWhammyTimer.EndTime - State.CurrentTime, 0);
+                State.StarPowerWhammyTimer.Reset();
+
+                EventLogger.LogEvent(new TimerEngineEvent(State.CurrentTime)
+                {
+                    TimerName = "StarPowerWhammy",
+                    TimerStopped = true,
+                    TimerValue = remainingTime,
+                });
+            }
+        }
+
         protected double CalculateSustainPoints(ActiveSustain sustain, uint tick)
         {
-            return 0;
-
             uint scoreTick = Math.Clamp(tick, sustain.Note.Tick, sustain.Note.TickEnd);
-            // Do this here instead of in the usages, otherwise it's just duplicated code
+
             sustain.Note.SustainTicksHeld = scoreTick - sustain.Note.Tick;
 
             // Sustain points are awarded at a constant rate regardless of tempo

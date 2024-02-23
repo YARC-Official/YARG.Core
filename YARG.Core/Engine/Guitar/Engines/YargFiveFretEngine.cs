@@ -44,7 +44,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             // This is up here so overstrumming still works when there are no notes left
             if (State.HasStrummed)
             {
-                if(State.HopoLeniencyTimer.IsActive(State.CurrentTime))
+                if (State.HopoLeniencyTimer.IsActive(State.CurrentTime))
                 {
                     State.StrumLeniencyTimer.Reset();
                     State.HopoLeniencyTimer.Reset();
@@ -122,7 +122,7 @@ namespace YARG.Core.Engine.Guitar.Engines
 
         public override void UpdateBot(double songTime)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         protected override bool CheckForNoteHit()
@@ -175,30 +175,30 @@ namespace YARG.Core.Engine.Guitar.Engines
         protected override bool CanNoteBeHit(GuitarNote note)
         {
             byte fretMask = State.FretMask;
-            // foreach (var sustain in ActiveSustains)
-            // {
-            //     var sustainNote = sustain.Note;
-            //
-            //     // Don't want to mask off the note we're checking otherwise it'll always return false lol
-            //     if (note == sustainNote)
-            //     {
-            //         continue;
-            //     }
-            //
-            //     // Mask off the disjoint mask if its disjointed or extended disjointed
-            //     // This removes just the single fret of the disjoint note
-            //     if ((sustainNote.IsExtendedSustain && sustainNote.IsDisjoint) || sustainNote.IsDisjoint)
-            //     {
-            //         fretMask -= (byte) sustainNote.DisjointMask;
-            //     }
-            //     else if (sustainNote.IsExtendedSustain)
-            //     {
-            //         // Remove the entire note mask if its an extended sustain
-            //         // Difference between NoteMask and DisjointMask is that DisjointMask is only a single fret
-            //         // while NoteMask is the entire chord
-            //         fretMask -= (byte) sustainNote.NoteMask;
-            //     }
-            // }
+            foreach (var sustain in ActiveSustains)
+            {
+                var sustainNote = sustain.Note;
+
+                // Don't want to mask off the note we're checking otherwise it'll always return false lol
+                if (note == sustainNote)
+                {
+                    continue;
+                }
+
+                // Mask off the disjoint mask if its disjointed or extended disjointed
+                // This removes just the single fret of the disjoint note
+                if ((sustainNote.IsExtendedSustain && sustainNote.IsDisjoint) || sustainNote.IsDisjoint)
+                {
+                    fretMask -= (byte) sustainNote.DisjointMask;
+                }
+                else if (sustainNote.IsExtendedSustain)
+                {
+                    // Remove the entire note mask if its an extended sustain
+                    // Difference between NoteMask and DisjointMask is that DisjointMask is only a single fret
+                    // while NoteMask is the entire chord
+                    fretMask -= (byte) sustainNote.NoteMask;
+                }
+            }
 
             // Only used for sustain logic
             bool useDisjointMask = note is { IsDisjoint: true, WasHit: true };
