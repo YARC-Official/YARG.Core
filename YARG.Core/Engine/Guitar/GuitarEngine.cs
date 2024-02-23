@@ -236,8 +236,8 @@ namespace YARG.Core.Engine.Guitar
 
         protected override void AddScore(GuitarNote note)
         {
-            EngineStats.CommittedScore += POINTS_PER_NOTE * (1 + note.ChildNotes.Count) * EngineStats.ScoreMultiplier;
-            UpdateStars();
+            int notePoints = POINTS_PER_NOTE * (1 + note.ChildNotes.Count) * EngineStats.ScoreMultiplier;
+            AddScore(notePoints);
         }
 
         protected override void UpdateMultiplier()

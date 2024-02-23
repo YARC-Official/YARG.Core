@@ -81,17 +81,16 @@ namespace YARG.Core.Song
 
             if ((options & BackgroundType.Yarground) > 0)
             {
-                if (sngFile.TryGetValue("bg.yarground", out var listing))
+                if (sngFile.TryGetValue(YARGROUND_FULLNAME, out var listing))
                 {
-                    return new(BackgroundType.Yarground, listing.CreateStream(sngFile));
+                    return new BackgroundResult(BackgroundType.Yarground, listing.CreateStream(sngFile));
                 }
 
-                // Try to find a yarground mapped to the specific .sng
-                string filepath = Path.ChangeExtension(_sngInfo.FullName, YARGROUND_EXTENSION);
-                if (File.Exists(filepath))
+                string file = Path.ChangeExtension(_sngInfo.FullName, YARGROUND_EXTENSION);
+                if (File.Exists(file))
                 {
-                    var stream = File.OpenRead(filepath);
-                    return new(BackgroundType.Yarground, stream);
+                    var stream = File.OpenRead(file);
+                    return new BackgroundResult(BackgroundType.Yarground, stream);
                 }
             }
 
@@ -99,7 +98,7 @@ namespace YARG.Core.Song
             {
                 if (!string.IsNullOrEmpty(_video) && sngFile.TryGetValue(_video, out var video))
                 {
-                    return new(BackgroundType.Video, video.CreateStream(sngFile));
+                    return new BackgroundResult(BackgroundType.Video, video.CreateStream(sngFile));
                 }
 
                 foreach (var stem in BACKGROUND_FILENAMES)
@@ -108,8 +107,18 @@ namespace YARG.Core.Song
                     {
                         if (sngFile.TryGetValue(stem + format, out var listing))
                         {
-                            return new (BackgroundType.Video, listing.CreateStream(sngFile));
+                            return new BackgroundResult(BackgroundType.Video, listing.CreateStream(sngFile));
                         }
+                    }
+                }
+
+                foreach (var format in VIDEO_EXTENSIONS)
+                {
+                    string file = Path.ChangeExtension(_sngInfo.FullName, format);
+                    if (File.Exists(file))
+                    {
+                        var stream = File.OpenRead(file);
+                        return new BackgroundResult(BackgroundType.Video, stream);
                     }
                 }
             }
@@ -118,7 +127,7 @@ namespace YARG.Core.Song
             {
                 if (!string.IsNullOrEmpty(_background) && sngFile.TryGetValue(_background, out var background))
                 {
-                    return new(BackgroundType.Image, background.CreateStream(sngFile));
+                    return new BackgroundResult(BackgroundType.Image, background.CreateStream(sngFile));
                 }
 
                 //                                     No "video"
@@ -128,8 +137,18 @@ namespace YARG.Core.Song
                     {
                         if (sngFile.TryGetValue(stem + format, out var listing))
                         {
-                            return new(BackgroundType.Image, listing.CreateStream(sngFile));
+                            return new BackgroundResult(BackgroundType.Image, listing.CreateStream(sngFile));
                         }
+                    }
+                }
+
+                foreach (var format in IMAGE_EXTENSIONS)
+                {
+                    string file = Path.ChangeExtension(_sngInfo.FullName, format);
+                    if (File.Exists(file))
+                    {
+                        var stream = File.OpenRead(file);
+                        return new BackgroundResult(BackgroundType.Image, stream);
                     }
                 }
             }

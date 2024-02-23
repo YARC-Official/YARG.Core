@@ -160,7 +160,7 @@ namespace MoonscraperChartEditor.Song.IO
                         }
 
                         YargTrace.DebugInfo($"Loading MIDI track {trackName}");
-                        ReadNotes(settings, track, song, instrument);
+                        ReadNotes(ref settings, track, song, instrument);
                         break;
                 }
             }
@@ -378,7 +378,7 @@ namespace MoonscraperChartEditor.Song.IO
             }
         }
 
-        private static void ReadNotes(ParseSettings settings, TrackChunk track, MoonSong song,
+        private static void ReadNotes(ref ParseSettings settings, TrackChunk track, MoonSong song,
             MoonSong.MoonInstrument instrument)
         {
             if (track == null || track.Events.Count < 1)
@@ -458,6 +458,8 @@ namespace MoonscraperChartEditor.Song.IO
 
             foreach (var difficulty in EnumExtensions<MoonSong.Difficulty>.Values)
                 song.GetChart(instrument, difficulty).notes.TrimExcess();
+
+            settings = processParams.settings;
         }
 
         private static void ProcessNoteEvent(ref EventProcessParams processParams, NoteEventQueue unpairedNotes,

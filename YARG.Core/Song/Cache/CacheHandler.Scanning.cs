@@ -194,7 +194,7 @@ namespace YARG.Core.Song.Cache
                     return false;
                 }
             }
-            else if (filename == "song_upgrades")
+            else if (filename == "songs_upgrades")
             {
                 FileInfo dta = new(Path.Combine(directory, "upgrades.dta"));
                 if (dta.Exists)
