@@ -21,6 +21,10 @@ namespace YARG.Core.Engine.Guitar.Engines
             {
                 ActivateStarPower();
             }
+            else if (action is GuitarAction.Whammy)
+            {
+                State.HasWhammied = true;
+            }
             else if (action is GuitarAction.StrumDown or GuitarAction.StrumUp && gameInput.Button)
             {
                 State.HasStrummed = true;
@@ -65,10 +69,11 @@ namespace YARG.Core.Engine.Guitar.Engines
             // Quit early if there are no notes left
             if (State.NoteIndex >= Notes.Count)
             {
-                // UpdateSustains();
+                UpdateSustains();
                 State.HasStrummed = false;
                 State.HasFretted = false;
                 State.IsFretPress = false;
+                State.HasWhammied = false;
                 return false;
             }
 
@@ -112,11 +117,12 @@ namespace YARG.Core.Engine.Guitar.Engines
 
             bool isNoteHit = CheckForNoteHit();
 
-            // UpdateSustains();
+            UpdateSustains();
 
             State.HasStrummed = false;
             State.HasFretted = false;
             State.IsFretPress = false;
+            State.HasWhammied = false;
             return isNoteHit;
         }
 

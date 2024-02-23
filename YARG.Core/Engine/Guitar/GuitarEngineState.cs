@@ -11,6 +11,7 @@
         public bool HasFretted;
         public bool HasStrummed;
         public bool HasTapped;
+        public bool HasWhammied;
 
         public bool IsFretPress;
 

@@ -384,7 +384,7 @@ namespace YARG.Core.Engine.Guitar
         {
             if (spSustainsActive)
             {
-                if (IsInputUpdate && CurrentInput.GetAction<GuitarAction>() == GuitarAction.Whammy)
+                if (State.HasWhammied)
                 {
                     // Rebase when beginning to SP whammy
                     if (!State.StarPowerWhammyTimer.IsActive(State.CurrentTime))
