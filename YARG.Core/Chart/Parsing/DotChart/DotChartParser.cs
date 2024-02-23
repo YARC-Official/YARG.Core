@@ -38,6 +38,7 @@ namespace YARG.Core.Chart.Parsing
             // Lastly, check for [Events]
             // Not strictly necessary, but may as well handle it specifically
             ExpectSection(chartText, ref textIndex, EVENTS_SECTION, out sectionBody);
+            new DotChartGlobalEventsHandler(chart).ParseSection(sectionBody);
 
             // Parse instrument tracks
             while (GetNextSection(chartText, ref textIndex, out var sectionName, out sectionBody))

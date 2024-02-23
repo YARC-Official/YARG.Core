@@ -16,6 +16,8 @@ namespace YARG.Core.Chart
         public List<TextEvent> GlobalEvents { get; set; } = new();
         public List<Section> Sections { get; set; } = new();
 
+        public uint? EndMarkerTick { get; set; }
+
         public SyncTrack SyncTrack { get; set; } = new();
         public VenueTrack VenueTrack { get; set; } = new();
         public LyricsTrack Lyrics { get; set; } = new();
