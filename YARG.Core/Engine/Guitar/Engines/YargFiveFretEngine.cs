@@ -84,8 +84,14 @@ namespace YARG.Core.Engine.Guitar.Engines
             if (State.HasFretted)
             {
                 State.HasTapped = true;
-                State.FrontEndExpireTime = State.CurrentTime + Math.Abs(EngineParameters.HitWindow.GetFrontEnd(hitWindow));
-                AddConsistencyAnchor(State.FrontEndExpireTime);
+
+                var frontEnd = EngineParameters.HitWindow.GetFrontEnd(hitWindow);
+
+                // This is the time the front end will expire. Used for hit logic with infinite front end
+                State.FrontEndExpireTime = State.CurrentTime + Math.Abs(frontEnd);
+
+                // This is the expected hit time of the note with infinite front end. Engine will update at this time
+                AddConsistencyAnchor(note.Time + frontEnd);
 
                 // Check for fret ghosting
                 // We want to run ghost logic regardless of the setting for the ghost counter
@@ -277,7 +283,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 bool frontEndExpired = note.Time > State.FrontEndExpireTime;
                 //bool frontEndExpired = EngineTimer.IsExpired(State.FrontEndNoteHitTime, note.Time, frontEndAbs);
 
-                // Tried to hit with infinite front end
+                // Try to hit with infinite front end
                 if (!EngineParameters.InfiniteFrontEnd && frontEndExpired && !strumLeniencyActive &&
                     State.NoteIndex > 0)
                 {
