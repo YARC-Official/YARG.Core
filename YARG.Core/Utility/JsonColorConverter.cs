@@ -7,7 +7,6 @@ namespace YARG.Core.Utility
 {
     public class JsonColorConverter : JsonConverter<Color>
     {
-
         public override void WriteJson(JsonWriter writer, Color value, JsonSerializer serializer)
         {
             int argb = value.ToArgb();
