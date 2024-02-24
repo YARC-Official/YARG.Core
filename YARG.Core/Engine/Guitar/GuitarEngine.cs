@@ -172,22 +172,12 @@ namespace YARG.Core.Engine.Guitar
                         continue;
                     }
 
-                    var sustain = new ActiveSustain(chordNote);
-
-                    ActiveSustains.Add(sustain);
-                    AddConsistencyAnchor(sustain.GetEndTime(SyncTrack, SustainBurstThreshold));
-
-                    OnSustainStart?.Invoke(chordNote);
+                    StartSustain(chordNote);
                 }
             }
             else if (note.IsSustain)
             {
-                var sustain = new ActiveSustain(note);
-
-                ActiveSustains.Add(sustain);
-                AddConsistencyAnchor(sustain.GetEndTime(SyncTrack, SustainBurstThreshold));
-
-                OnSustainStart?.Invoke(note);
+                StartSustain(note);
             }
 
             State.WasNoteGhosted = false;
@@ -332,6 +322,16 @@ namespace YARG.Core.Engine.Guitar
             }
 
             return CalculateStarPowerBeatProgress(tick, State.StarPowerWhammyBaseTick);
+        }
+
+        protected void StartSustain(GuitarNote note)
+        {
+            var sustain = new ActiveSustain(note);
+
+            ActiveSustains.Add(sustain);
+            AddConsistencyAnchor(sustain.GetEndTime(SyncTrack, SustainBurstThreshold));
+
+            OnSustainStart?.Invoke(note);
         }
 
         protected void UpdateSustains()
