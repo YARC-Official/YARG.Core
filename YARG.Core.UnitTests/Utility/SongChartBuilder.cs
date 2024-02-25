@@ -57,7 +57,7 @@ public class SongChartBuilder
         return this;
     }
 
-    public SongChartBuilder AddNote(FiveFretGuitarFret fret, GuitarNoteType noteType = GuitarNoteType.Strum, GuitarNoteFlags guitarFlags = GuitarNoteFlags.None,
+    public SongChartBuilder AddNote(GuitarFret fret, GuitarNoteType noteType = GuitarNoteType.Strum, GuitarNoteFlags guitarFlags = GuitarNoteFlags.None,
         NoteFlags flags = NoteFlags.None, double? time = null)
     {
         var guitarNote = new GuitarNote(fret, noteType, guitarFlags, flags, time ?? _currentTime, 1, _currentTick, 1);
@@ -68,7 +68,7 @@ public class SongChartBuilder
         return this;
     }
 
-    public SongChartBuilder AddChildNote(FiveFretGuitarFret fret)
+    public SongChartBuilder AddChildNote(GuitarFret fret)
     {
         if (_guitarNotes.Count == 0) throw new InvalidOperationException("You're trying to add a child note to a chart with no notes.");
         var lastNote = _guitarNotes.Last();
