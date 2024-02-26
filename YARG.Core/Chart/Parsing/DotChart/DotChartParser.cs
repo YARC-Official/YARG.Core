@@ -14,7 +14,6 @@ namespace YARG.Core.Chart.Parsing
 
         public static SongChart ParseChart(in ParseSettings settings, ReadOnlySpan<char> chartText)
         {
-            var chart = new SongChart();
             int textIndex = 0;
 
             static void ExpectSection(ReadOnlySpan<char> chartText, ref int textIndex,
@@ -30,10 +29,11 @@ namespace YARG.Core.Chart.Parsing
             // Check for the [Song] section first explicitly, need the Resolution property up-front
             ExpectSection(chartText, ref textIndex, SONG_SECTION, out var sectionBody);
             var metadata = ParseMetadata(sectionBody);
+            var chart = new SongChart(metadata.Resolution);
 
             // Check for [SyncTrack] next, we need it for time conversions
             ExpectSection(chartText, ref textIndex, SYNC_TRACK_SECTION, out sectionBody);
-            new DotChartSyncTrackHandler(chart, metadata.Resolution).ParseSection(sectionBody);
+            new DotChartSyncTrackHandler(chart).ParseSection(sectionBody);
 
             // Lastly, check for [Events]
             // Not strictly necessary, but may as well handle it specifically

@@ -12,11 +12,7 @@ namespace YARG.Core.Chart.Parsing
         private uint _numerator;
         private uint _denominator;
 
-        public DotChartSyncTrackHandler(SongChart chart, uint resolution)
-            : base(chart)
-        {
-            _chart.SyncTrack = new(resolution);
-        }
+        public DotChartSyncTrackHandler(SongChart chart) : base(chart) {}
 
         protected override void FinishTick(uint tick)
         {

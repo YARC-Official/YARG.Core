@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Melanchall.DryWetMidi.Core;
@@ -18,7 +18,7 @@ namespace YARG.Core.Chart
 
         public uint? EndMarkerTick { get; set; }
 
-        public SyncTrack SyncTrack { get; set; } = new();
+        public SyncTrack SyncTrack { get; set; }
         public VenueTrack VenueTrack { get; set; } = new();
         public LyricsTrack Lyrics { get; set; } = new();
 
@@ -106,7 +106,10 @@ namespace YARG.Core.Chart
         // public InstrumentTrack<DjNote> Dj { get; set; } = new(Instrument.Dj);
 
         // To explicitly allow creation without going through a file
-        public SongChart() { }
+        public SongChart(uint resolution)
+        {
+            SyncTrack = new(resolution);
+        }
 
         internal SongChart(ISongLoader loader)
         {

@@ -4,9 +4,9 @@ namespace YARG.Core.UnitTests.Utility;
 
 public class SongChartBuilder
 {
-    public static SongChartBuilder New()
+    public static SongChartBuilder New(uint resolution = 480)
     {
-        return new SongChartBuilder();
+        return new SongChartBuilder(resolution);
     }
 
     private readonly SongChart        _chart;
@@ -16,9 +16,9 @@ public class SongChartBuilder
     private double _currentTime;
     private uint   _currentTick;
 
-    private SongChartBuilder()
+    private SongChartBuilder(uint resolution)
     {
-        _chart = new SongChart();
+        _chart = new SongChart(resolution);
         _currentTime = 0;
         _currentTick = 0;
 
