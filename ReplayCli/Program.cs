@@ -1,7 +1,8 @@
-﻿using ReplayAnalyzer;
-using YARG.Core;
+﻿using ReplayCli;
 using YARG.Core.Chart;
+using YARG.Core.Engine.Guitar;
 using YARG.Core.Replays;
+using YARG.Core.Replays.Analyzer;
 
 void ClearAndPrintHeader()
 {
@@ -151,15 +152,9 @@ if (runMode is 0 or 1)
     // Analyze replay
 
     Console.WriteLine("Analyzing replay...");
-    var analyzer = new Analyzer(chart, replay);
-    if (runMode == 0)
-    {
-        analyzer.Run();
-    }
-    else
-    {
-        analyzer.RunWithSimulatedUpdates();
-    }
+
+    // TODO Reimplement frame updates
+    var results = ReplayAnalyzer.AnalyzeReplay(chart, replay);
 
     Console.WriteLine("Done!\n");
 
@@ -167,7 +162,8 @@ if (runMode is 0 or 1)
 
     if (runMode == 0)
     {
-        var bandScore = analyzer.BandScores[0];
+        var player1 = results[0];
+        var bandScore = results.Sum(x => x.Stats.TotalScore);
         if (bandScore != replay.BandScore)
         {
             Console.ForegroundColor = ConsoleColor.Red;
@@ -185,30 +181,32 @@ if (runMode is 0 or 1)
             Console.WriteLine($"Difference     : {Math.Abs(bandScore - replay.BandScore)}\n");
         }
     }
-    else
-    {
-        var distinctScores = analyzer.BandScores.Values.Distinct().ToList();
+    // Need to reimplement this later
 
-        if (distinctScores.Count != 1)
-        {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine("SCORES ARE NOT CONSISTENT!");
-            Console.WriteLine($"Chart runs      : {Analyzer.ATTEMPTS}");
-            Console.WriteLine($"Distinct scores : {distinctScores.Count}\n");
-            Console.WriteLine("Scores:");
-            foreach (var score in distinctScores)
-            {
-                Console.WriteLine($" - {score}");
-            }
-        }
-        else
-        {
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine("SCORES WERE CONSISTENT!");
-            Console.WriteLine($"Chart runs      : {Analyzer.ATTEMPTS}");
-            Console.WriteLine($"Distinct scores : {distinctScores.Count}");
-        }
-    }
+    // else
+    // {
+    //     var distinctScores = analyzer.BandScores.Values.Distinct().ToList();
+    //
+    //     if (distinctScores.Count != 1)
+    //     {
+    //         Console.ForegroundColor = ConsoleColor.Red;
+    //         Console.WriteLine("SCORES ARE NOT CONSISTENT!");
+    //         Console.WriteLine($"Chart runs      : {Analyzer.ATTEMPTS}");
+    //         Console.WriteLine($"Distinct scores : {distinctScores.Count}\n");
+    //         Console.WriteLine("Scores:");
+    //         foreach (var score in distinctScores)
+    //         {
+    //             Console.WriteLine($" - {score}");
+    //         }
+    //     }
+    //     else
+    //     {
+    //         Console.ForegroundColor = ConsoleColor.Green;
+    //         Console.WriteLine("SCORES WERE CONSISTENT!");
+    //         Console.WriteLine($"Chart runs      : {Analyzer.ATTEMPTS}");
+    //         Console.WriteLine($"Distinct scores : {distinctScores.Count}");
+    //     }
+    // }
 }
 else
 {

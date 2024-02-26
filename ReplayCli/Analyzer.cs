@@ -11,7 +11,7 @@ using YARG.Core.Engine.Vocals.Engines;
 using YARG.Core.Input;
 using YARG.Core.Replays;
 
-namespace ReplayAnalyzer;
+namespace ReplayCli;
 
 public class Analyzer
 {
@@ -26,6 +26,8 @@ public class Analyzer
     public IReadOnlyDictionary<int, int> BandScores => _bandScores;
 
     public EngineEventLogger EventLog;
+
+    public BaseEngine engine;
 
     public Analyzer(SongChart chart, Replay replay)
     {
@@ -87,7 +89,7 @@ public class Analyzer
 
     private void RunFrame(ReplayFrame replayFrame, IReadOnlyList<double> frameUpdates)
     {
-        var engine = CreateEngine(replayFrame);
+        engine = CreateEngine(replayFrame);
         engine.Reset();
 
         Console.WriteLine($"> Running for {replayFrame.PlayerInfo.Profile.Name}...");
