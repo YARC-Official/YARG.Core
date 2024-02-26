@@ -78,7 +78,7 @@ namespace YARG.Core.Replays.Analyzer
 
                 int inputIndex = 0;
 
-                while(inputIndex < frame.Inputs.Length)
+                while (inputIndex < frame.Inputs.Length)
                 {
                     currentTime = frame.Inputs[inputIndex].Time;
                     var nextTime = inputIndex + 1 < frame.Inputs.Length ? frame.Inputs[inputIndex + 1].Time : maxTime;
@@ -135,7 +135,7 @@ namespace YARG.Core.Replays.Analyzer
                 {
                     // Reset the notes
                     var notes = _chart.GetFiveFretTrack(profile.CurrentInstrument)
-                        .Difficulties[profile.CurrentDifficulty];
+                        .Difficulties[profile.CurrentDifficulty].Clone();
                     profile.ApplyModifiers(notes);
                     foreach (var note in notes.Notes)
                     {
@@ -155,7 +155,8 @@ namespace YARG.Core.Replays.Analyzer
                 case GameMode.FiveLaneDrums:
                 {
                     // Reset the notes
-                    var notes = _chart.GetDrumsTrack(profile.CurrentInstrument).Difficulties[profile.CurrentDifficulty];
+                    var notes = _chart.GetDrumsTrack(profile.CurrentInstrument).Difficulties[profile.CurrentDifficulty]
+                        .Clone();
                     profile.ApplyModifiers(notes);
                     foreach (var note in notes.Notes)
                     {
@@ -174,7 +175,8 @@ namespace YARG.Core.Replays.Analyzer
                 case GameMode.Vocals:
                 {
                     // Get the notes
-                    var notes = _chart.GetVocalsTrack(profile.CurrentInstrument).Parts[0].CloneAsInstrumentDifficulty();
+                    var notes = _chart.GetVocalsTrack(profile.CurrentInstrument).Parts[0].CloneAsInstrumentDifficulty()
+                        .Clone();
 
                     // No idea how vocals applies modifiers lol
                     //profile.ApplyModifiers(notes);
