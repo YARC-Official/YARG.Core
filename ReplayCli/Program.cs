@@ -1,102 +1,26 @@
 ﻿using ReplayCli;
-using YARG.Core.Chart;
-using YARG.Core.Engine.Guitar;
-using YARG.Core.Replays;
-using YARG.Core.Replays.Analyzer;
-
-void ClearAndPrintHeader()
-{
-    const string HEADER = "Welcome to the YARG.Core Replay Analyzer";
-
-    Console.Clear();
-    Console.ForegroundColor = ConsoleColor.Cyan;
-    Console.SetCursorPosition((Console.WindowWidth - HEADER.Length) / 2, Console.CursorTop + 1);
-    Console.WriteLine(HEADER);
-
-    Console.SetCursorPosition(Console.CursorLeft, Console.CursorTop + 1);
-    Console.ForegroundColor = ConsoleColor.White;
-}
-
-string songPath = string.Empty;
-string replayPath = string.Empty;
-int runMode = 0;
 
 var defaultColor = Console.ForegroundColor;
 
-for (int i = 0; i < args.Length; ++i)
+var cli = new Cli();
+
+if (!cli.ParseArguments(args))
 {
-    var arg = args[i];
-    switch (arg)
-    {
-        case "--song":
-        case "-s":
-        {
-            i++;
-            songPath = args[i].Trim();
-            if (!Directory.Exists(songPath))
-            {
-                Console.WriteLine("ERROR: Song directory does not exist.");
-                return;
-            }
-
-            break;
-        }
-        case "--replay":
-        case "-r":
-        {
-            i++;
-            replayPath = args[i].Trim();
-            if (!File.Exists(replayPath))
-            {
-                Console.WriteLine("ERROR: Replay file does not exist.");
-                return;
-            }
-
-            break;
-        }
-        case "--mode":
-        case "-m":
-        {
-            i++;
-            if (!int.TryParse(args[i], out runMode))
-            {
-                Console.WriteLine("ERROR: Invalid run mode.");
-                return;
-            }
-
-            break;
-        }
-        case "--help":
-        case "-h":
-        {
-            Console.WriteLine("Usage:");
-            Console.WriteLine("  --song     | -s   Path to song folder.");
-            Console.WriteLine("  --replay   | -r   Path to the replay file.");
-            Console.WriteLine("  --mode     | -m   Run mode (0 = normal, 1 = simulated fps, 2 = dump inputs).");
-            Console.WriteLine("  --help     | -h   Show this help message.");
-            return;
-        }
-    }
+    return -1;
 }
 
-if (string.IsNullOrEmpty(songPath))
+var runResult = cli.Run();
+
+Console.ForegroundColor = defaultColor;
+
+if (!runResult)
 {
-    Console.WriteLine("ERROR: A song directory must be specified.");
-    return;
+    return -1;
 }
 
-if (string.IsNullOrEmpty(replayPath))
-{
-    Console.WriteLine("ERROR: A replay file path must be specified.");
-    return;
-}
+return 0;
 
-if (runMode is < 0 or > 2)
-{
-    Console.WriteLine("ERROR: Invalid run mode.");
-    return;
-}
-
+/*
 string songIni = Path.Combine(songPath, "song.ini");
 string notesMid = Path.Combine(songPath, "notes.mid");
 string notesChart = Path.Combine(songPath, "notes.chart");
@@ -232,8 +156,7 @@ else
     Console.WriteLine(
         $"{replay.Frames[selectedPlayer].Inputs.Length} input(s) were read from player {selectedPlayer}.");
 }
-
-Console.ForegroundColor = defaultColor;
+*/
 
 /*
 while (true)
