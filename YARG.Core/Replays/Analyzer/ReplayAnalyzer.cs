@@ -80,19 +80,25 @@ namespace YARG.Core.Replays.Analyzer
 
                 while (inputIndex < frame.Inputs.Length)
                 {
-                    currentTime = frame.Inputs[inputIndex].Time;
+                    var input = frame.Inputs[inputIndex];
+
+                    // Do this before generating the frame times
+                    // in case the input time is changed.
+                    engine.QueueInput(ref input);
+
                     var nextTime = inputIndex + 1 < frame.Inputs.Length ? frame.Inputs[inputIndex + 1].Time : maxTime;
 
                     frameTimes.Clear();
-                    GenerateFrameTimes(frameTimes, currentTime, nextTime);
-                    inputIndex++;
+                    GenerateFrameTimes(frameTimes, input.Time, nextTime);
 
-                    engine.QueueInput(ref frame.Inputs[inputIndex]);
+                    engine.UpdateEngineInputs();
 
                     foreach (double time in frameTimes)
                     {
                         engine.UpdateEngineToTime(time);
                     }
+
+                    inputIndex++;
                 }
 
                 // End of song

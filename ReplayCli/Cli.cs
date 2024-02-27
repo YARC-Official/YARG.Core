@@ -99,6 +99,20 @@ public partial class Cli
             """);
     }
 
+    private void PrintReplayMetadata()
+    {
+        Console.WriteLine($"Players ({_replay.PlayerCount}):");
+        for (int i = 0; i < _replay.Frames.Length; i++)
+        {
+            var frame = _replay.Frames[i];
+            var profile = frame.PlayerInfo.Profile;
+
+            Console.WriteLine($"{i}. {profile.Name}, {profile.CurrentInstrument} ({profile.CurrentDifficulty})");
+        }
+
+        Console.WriteLine($"Band score: {_replay.BandScore} (as per metadata)\n");
+    }
+
     /// <summary>
     /// Runs the analyzer using the arguments parsed in <see cref="ParseArguments"/>.
     /// </summary>
@@ -115,8 +129,9 @@ public partial class Cli
 
         return _runMode switch
         {
-            AnalyzerMode.Verify => RunVerify(),
-            _                   => false
+            AnalyzerMode.Verify      => RunVerify(),
+            AnalyzerMode.SimulateFps => RunSimulateFps(),
+            _ => false
         };
     }
 

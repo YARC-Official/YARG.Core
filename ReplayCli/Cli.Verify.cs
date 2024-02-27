@@ -12,18 +12,7 @@ public partial class Cli
             return false;
         }
 
-        // Print metadata
-
-        Console.WriteLine($"Players ({_replay.PlayerCount}):");
-        for (int i = 0; i < _replay.Frames.Length; i++)
-        {
-            var frame = _replay.Frames[i];
-            var profile = frame.PlayerInfo.Profile;
-
-            Console.WriteLine($"{i}. {profile.Name}, {profile.CurrentInstrument} ({profile.CurrentDifficulty})");
-        }
-
-        Console.WriteLine($"Band score: {_replay.BandScore} (as per metadata)\n");
+        PrintReplayMetadata();
 
         // Analyze replay
 
