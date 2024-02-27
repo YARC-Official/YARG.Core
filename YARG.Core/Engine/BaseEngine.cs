@@ -140,9 +140,17 @@ namespace YARG.Core.Engine
             } while (noteUpdated);
         }
 
-        protected void StartTimer(EngineTimer timer, double startTime, double offset = 0)
+        protected void StartTimer(ref EngineTimer timer, double startTime, double offset = 0)
         {
-            timer.StartWithOffset(startTime, offset);
+            if (offset > 0)
+            {
+                timer.StartWithOffset(startTime, offset);
+            }
+            else
+            {
+                timer.Start(startTime);
+            }
+
             AddConsistencyAnchor(timer.EndTime);
         }
 

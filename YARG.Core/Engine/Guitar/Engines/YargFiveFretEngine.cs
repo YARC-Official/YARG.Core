@@ -62,7 +62,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                     }
 
                     // Start with small strum leniency in case there are no notes in the window
-                    StartTimer(State.StrumLeniencyTimer, State.CurrentTime, EngineParameters.StrumLeniencySmall);
+                    StartTimer(ref State.StrumLeniencyTimer, State.CurrentTime, EngineParameters.StrumLeniencySmall);
                 }
             }
 
@@ -83,7 +83,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             if (State.HasStrummed && IsNoteInWindow(note))
             {
                 // Start the strum leniency timer at full value
-                StartTimer(State.StrumLeniencyTimer, State.CurrentTime);
+                StartTimer(ref State.StrumLeniencyTimer, State.CurrentTime);
             }
 
             if (State.HasFretted)
@@ -303,7 +303,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 // Strummed a tap, or hopo while in combo
                 if (((note.IsHopo && EngineStats.Combo > 0) || note.IsTap) && strumLeniencyActive)
                 {
-                    StartTimer(State.StrumLeniencyTimer, State.CurrentTime, EngineParameters.StrumLeniencySmall);
+                    StartTimer(ref State.StrumLeniencyTimer, State.CurrentTime, EngineParameters.StrumLeniencySmall);
                 }
                 else
                 {
