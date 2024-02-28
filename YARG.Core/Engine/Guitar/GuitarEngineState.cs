@@ -15,7 +15,6 @@
 
         public bool IsFretPress;
 
-        public bool WasHopoStrummed;
         public bool WasNoteGhosted;
 
         /// <summary>
@@ -52,7 +51,6 @@
             HasFretted = false;
             HasStrummed = false;
 
-            WasHopoStrummed = false;
             WasNoteGhosted = false;
 
             StrumLeniencyTimer.Disable();
