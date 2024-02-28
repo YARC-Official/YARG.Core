@@ -48,21 +48,21 @@ namespace YARG.Core.Engine.Guitar.Engines
             // This is up here so overstrumming still works when there are no notes left
             if (State.HasStrummed)
             {
-                if (State.HopoLeniencyTimer.IsActive(State.CurrentTime))
+                // Hopo was hit recently, eat strum input
+                if (State.HopoLeniencyTimer.IsEnabled)
                 {
-                    State.StrumLeniencyTimer.Reset();
-                    State.HopoLeniencyTimer.Reset();
+                    State.StrumLeniencyTimer.Disable();
+
+                    // Disable hopo leniency as hopos can only eat one strum
+                    State.HopoLeniencyTimer.Disable();
                 }
                 else
                 {
                     // Strummed while strum leniency is active (double strum)
-                    if (State.StrumLeniencyTimer.IsActive(State.CurrentTime))
+                    if (State.StrumLeniencyTimer.IsEnabled)
                     {
                         Overstrum();
                     }
-
-                    // Start with small strum leniency in case there are no notes in the window
-                    StartTimer(ref State.StrumLeniencyTimer, State.CurrentTime, EngineParameters.StrumLeniencySmall);
                 }
             }
 
@@ -80,10 +80,13 @@ namespace YARG.Core.Engine.Guitar.Engines
             var note = Notes[State.NoteIndex];
             double hitWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
 
-            if (State.HasStrummed && IsNoteInWindow(note))
+            if (State.HasStrummed)
             {
+                // Offset timer by small strum leniency if there's no note in the hit window
+                double offset = IsNoteInWindow(note) ? EngineParameters.StrumLeniencySmall : 0;
+
                 // Start the strum leniency timer at full value
-                StartTimer(ref State.StrumLeniencyTimer, State.CurrentTime);
+                StartTimer(ref State.StrumLeniencyTimer, State.CurrentTime, offset);
             }
 
             if (State.HasFretted)
@@ -170,7 +173,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             }
 
             // If hopo/tap checks failed then the note can be hit if it was strummed
-            if (State.HasStrummed || State.StrumLeniencyTimer.IsActive(State.CurrentTime))
+            if (State.HasStrummed || State.StrumLeniencyTimer.IsEnabled)
             {
                 return HitNote(note);
             }
@@ -280,7 +283,7 @@ namespace YARG.Core.Engine.Guitar.Engines
 
             if (note.IsHopo || note.IsTap)
             {
-                bool strumLeniencyActive = State.StrumLeniencyTimer.IsActive(State.CurrentTime);
+                bool strumLeniencyActive = State.StrumLeniencyTimer.IsEnabled;
 
                 // Disallow hitting if front end timer is not in range of note time and didn't strum
                 // (tried to hit as a hammeron/pulloff)
@@ -308,7 +311,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 else
                 {
                     // Strummed a strum, or hopo with no combo
-                    State.StrumLeniencyTimer.Reset();
+                    State.StrumLeniencyTimer.Disable();
                 }
             }
             else
@@ -319,9 +322,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 // Does the same thing but ensures it still works when infinite front end is disabled
                 EngineTimer.Reset(ref State.FrontEndExpireTime);
 
-                State.WasHopoStrummed = false;
-
-                State.StrumLeniencyTimer.Reset();
+                State.StrumLeniencyTimer.Disable();
             }
 
             return base.HitNote(note);

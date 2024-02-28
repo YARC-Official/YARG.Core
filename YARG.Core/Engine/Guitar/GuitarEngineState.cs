@@ -55,9 +55,9 @@
             WasHopoStrummed = false;
             WasNoteGhosted = false;
 
-            StrumLeniencyTimer.Reset();
-            HopoLeniencyTimer.Reset();
-            StarPowerWhammyTimer.Reset();
+            StrumLeniencyTimer.Disable();
+            HopoLeniencyTimer.Disable();
+            StarPowerWhammyTimer.Disable();
 
             FrontEndExpireTime = 0;
 

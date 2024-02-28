@@ -10,23 +10,37 @@ namespace YARG.Core.Engine
         public readonly double StartTime => _startTime;
         public readonly double EndTime => _startTime + TimeThreshold;
 
+        public bool IsEnabled { get; private set; }
+
         public EngineTimer(double threshold)
         {
             _startTime = double.MaxValue;
             TimeThreshold = threshold;
+            IsEnabled = false;
         }
 
         public void Start(double currentTime)
-            => Start(ref _startTime, currentTime);
+        {
+            Start(ref _startTime, currentTime);
+            IsEnabled = true;
+        }
 
         public void StartWithOffset(double currentTime, double offset)
-            => StartWithOffset(ref _startTime, currentTime, TimeThreshold, offset);
+        {
+            StartWithOffset(ref _startTime, currentTime, TimeThreshold, offset);
+            IsEnabled = true;
+        }
 
-        public void Reset()
-            => Reset(ref _startTime);
+        public void Disable()
+        {
+            IsEnabled = false;
+        }
 
-        public readonly bool IsActive(double currentTime)
-            => IsActive(_startTime, currentTime, TimeThreshold);
+        // public void Reset()
+        //     => Reset(ref _startTime);
+
+        // public readonly bool IsActive(double currentTime)
+        //     => IsActive(_startTime, currentTime, TimeThreshold);
 
         public readonly bool IsExpired(double currentTime)
             => IsExpired(_startTime, currentTime, TimeThreshold);

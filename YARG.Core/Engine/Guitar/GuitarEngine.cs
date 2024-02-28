@@ -316,7 +316,7 @@ namespace YARG.Core.Engine.Guitar
                 double endTime = State.StarPowerWhammyTimer.EndTime;
                 tick = SyncTrack.TimeToTick(endTime);
             }
-            else if (!State.StarPowerWhammyTimer.IsActive(State.CurrentTime))
+            else if (!State.StarPowerWhammyTimer.IsEnabled)
             {
                 return 0;
             }
@@ -398,7 +398,7 @@ namespace YARG.Core.Engine.Guitar
                 if (State.HasWhammied)
                 {
                     // Rebase when beginning to SP whammy
-                    if (!State.StarPowerWhammyTimer.IsActive(State.CurrentTime))
+                    if (!State.StarPowerWhammyTimer.IsEnabled)
                     {
                         RebaseProgressValues(State.CurrentTick);
                     }
@@ -422,7 +422,7 @@ namespace YARG.Core.Engine.Guitar
                     RebaseProgressValues(State.CurrentTick);
 
                     // Stop whammy gain
-                    State.StarPowerWhammyTimer.Reset();
+                    State.StarPowerWhammyTimer.Disable();
 
                     EventLogger.LogEvent(new TimerEngineEvent(State.CurrentTime)
                     {
@@ -433,13 +433,13 @@ namespace YARG.Core.Engine.Guitar
                 }
             }
             // Rebase after SP whammy ends to commit the final amount to the base
-            else if (State.StarPowerWhammyTimer.IsActive(State.CurrentTime) ||
+            else if (State.StarPowerWhammyTimer.IsEnabled ||
                 State.StarPowerWhammyTimer.IsExpired(State.CurrentTime))
             {
                 RebaseProgressValues(State.CurrentTick);
 
                 double remainingTime = Math.Max(State.StarPowerWhammyTimer.EndTime - State.CurrentTime, 0);
-                State.StarPowerWhammyTimer.Reset();
+                State.StarPowerWhammyTimer.Disable();
 
                 EventLogger.LogEvent(new TimerEngineEvent(State.CurrentTime)
                 {
