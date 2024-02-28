@@ -187,7 +187,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             }
 
             // If hopo/tap checks failed then the note can be hit if it was strummed
-            if (State.HasStrummed || State.StrumLeniencyTimer.IsEnabled)
+            if (State.StrumLeniencyTimer.IsEnabled)
             {
                 HitNote(note);
                 return true;
@@ -294,26 +294,10 @@ namespace YARG.Core.Engine.Guitar.Engines
 
         protected override void HitNote(GuitarNote note)
         {
-            State.HasTapped = false;
-
             if (note.IsHopo || note.IsTap)
             {
-                bool strumLeniencyActive = State.StrumLeniencyTimer.IsEnabled;
-
-                // Note can hit now
-
-                State.HopoLeniencyTimer.Start(State.CurrentTime);
-
-                // Strummed a tap, or hopo while in combo
-                if (((note.IsHopo && EngineStats.Combo > 0) || note.IsTap) && strumLeniencyActive)
-                {
-                    StartTimer(ref State.StrumLeniencyTimer, State.CurrentTime, EngineParameters.StrumLeniencySmall);
-                }
-                else
-                {
-                    // Strummed a strum, or hopo with no combo
-                    State.StrumLeniencyTimer.Disable();
-                }
+                State.HasTapped = false;
+                StartTimer(ref State.HopoLeniencyTimer, State.CurrentTime);
             }
             else
             {
@@ -322,9 +306,9 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                 // Does the same thing but ensures it still works when infinite front end is disabled
                 EngineTimer.Reset(ref State.FrontEndExpireTime);
-
-                State.StrumLeniencyTimer.Disable();
             }
+
+            State.StrumLeniencyTimer.Disable();
 
             base.HitNote(note);
         }
