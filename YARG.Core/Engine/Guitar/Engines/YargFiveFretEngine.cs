@@ -169,7 +169,21 @@ namespace YARG.Core.Engine.Guitar.Engines
             bool hopoCondition = note.IsHopo && (EngineStats.Combo > 0 || State.NoteIndex == 0);
             if (State.HasTapped && (hopoCondition || note.IsTap) && !State.WasNoteGhosted)
             {
-                return HitNote(note);
+                // Disallow hitting if front end timer is not in range of note time and didn't strum
+                // (tried to hit as a hammeron/pulloff)
+                // Also allows first note to be hit without infinite front end
+
+                bool frontEndExpired = note.Time > State.FrontEndExpireTime;
+
+                // Try to hit with infinite front end
+                if (!EngineParameters.InfiniteFrontEnd && frontEndExpired &&
+                    State.NoteIndex > 0)
+                {
+                    return false;
+                }
+
+                HitNote(note);
+                return true;
             }
 
             // If hopo/tap checks failed then the note can be hit if it was strummed
@@ -284,20 +298,6 @@ namespace YARG.Core.Engine.Guitar.Engines
             if (note.IsHopo || note.IsTap)
             {
                 bool strumLeniencyActive = State.StrumLeniencyTimer.IsEnabled;
-
-                // Disallow hitting if front end timer is not in range of note time and didn't strum
-                // (tried to hit as a hammeron/pulloff)
-                // Also allows first note to be hit without infinite front end
-
-                bool frontEndExpired = note.Time > State.FrontEndExpireTime;
-                //bool frontEndExpired = EngineTimer.IsExpired(State.FrontEndNoteHitTime, note.Time, frontEndAbs);
-
-                // Try to hit with infinite front end
-                if (!EngineParameters.InfiniteFrontEnd && frontEndExpired && !strumLeniencyActive &&
-                    State.NoteIndex > 0)
-                {
-                    return false;
-                }
 
                 // Note can hit now
 
