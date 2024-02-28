@@ -336,21 +336,10 @@ namespace YARG.Core.Engine.Guitar.Engines
 
         protected void UpdateTimers()
         {
-            if (State.StrumLeniencyTimer.IsActive(State.LastUpdateTime))
+            if (State.StrumLeniencyTimer.IsEnabled && State.StrumLeniencyTimer.IsExpired(State.CurrentTime))
             {
-                if (State.HopoLeniencyTimer.IsActive(State.CurrentTime))
-                {
-                    // Hopo leniency eats the strum leniency
-                    State.StrumLeniencyTimer.Reset();
-                    State.HopoLeniencyTimer.Reset();
-                }
-                else
-                {
-                    if (State.StrumLeniencyTimer.IsExpired(State.CurrentTime))
-                    {
-                        Overstrum();
-                    }
-                }
+                Overstrum();
+                State.StrumLeniencyTimer.Disable();
             }
         }
 
