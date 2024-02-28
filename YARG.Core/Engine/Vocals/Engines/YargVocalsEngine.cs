@@ -26,7 +26,7 @@ namespace YARG.Core.Engine.Vocals.Engines
         protected override bool CheckForNoteHit() => throw new NotImplementedException();
 
         protected override bool CanNoteBeHit(VocalNote note) => throw new NotImplementedException();
-        protected override bool HitNote(VocalNote note) => throw new NotImplementedException();
+        protected override void HitNote(VocalNote note) => throw new NotImplementedException();
 
         protected override void MissNote(VocalNote note)
         {

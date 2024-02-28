@@ -58,12 +58,12 @@ namespace YARG.Core.Engine.Drums
             OnOverhit?.Invoke();
         }
 
-        protected override bool HitNote(DrumNote note)
+        protected override void HitNote(DrumNote note)
         {
-            return HitNote(note, false);
+            HitNote(note, false);
         }
 
-        protected bool HitNote(DrumNote note, bool activationAutoHit)
+        protected void HitNote(DrumNote note, bool activationAutoHit)
         {
             note.SetHitState(true, false);
 
@@ -146,8 +146,6 @@ namespace YARG.Core.Engine.Drums
             {
                 State.NoteIndex++;
             }
-
-            return true;
         }
 
         protected override void MissNote(DrumNote note)

@@ -189,7 +189,8 @@ namespace YARG.Core.Engine.Guitar.Engines
             // If hopo/tap checks failed then the note can be hit if it was strummed
             if (State.HasStrummed || State.StrumLeniencyTimer.IsEnabled)
             {
-                return HitNote(note);
+                HitNote(note);
+                return true;
             }
 
             return false;
@@ -291,7 +292,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             return anchorButtons < noteMask;
         }
 
-        protected override bool HitNote(GuitarNote note)
+        protected override void HitNote(GuitarNote note)
         {
             State.HasTapped = false;
 
@@ -325,7 +326,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 State.StrumLeniencyTimer.Disable();
             }
 
-            return base.HitNote(note);
+            base.HitNote(note);
         }
 
         protected override void MissNote(GuitarNote note)
