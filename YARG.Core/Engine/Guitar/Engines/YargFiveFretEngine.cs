@@ -161,7 +161,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 return true;
             }
 
-            State.HopoLeniencyTimer.Disable();
+            //State.HopoLeniencyTimer.Disable();
 
             // Note skipping, useful for combo regain
             if (!CanNoteBeHit(note))
@@ -177,6 +177,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             bool frontEndIsExpired = note.Time > State.FrontEndExpireTime;
             bool canUseInfFrontEnd = EngineParameters.InfiniteFrontEnd || !frontEndIsExpired || State.NoteIndex == 0;
 
+            // Attempt to hit with hopo/tap rules
             if (State.HasTapped && (hopoCondition || note.IsTap) && canUseInfFrontEnd && !State.WasNoteGhosted)
             {
                 HitNote(note);
@@ -184,7 +185,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             }
 
             // If hopo/tap checks failed then the note can be hit if it was strummed
-            if (State.StrumLeniencyTimer.IsEnabled)
+            if (State.HasStrummed || State.StrumLeniencyTimer.IsEnabled)
             {
                 HitNote(note);
                 return true;
