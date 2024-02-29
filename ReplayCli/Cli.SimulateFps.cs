@@ -23,7 +23,7 @@ public partial class Cli
         for (int i = 0; i < SIMULATED_FPS_ATTEMPTS; i++)
         {
             double fps = i * 2 + 1;
-            Console.WriteLine($"Analyzing reply at {fps} FPS...");
+            Console.WriteLine($"Analyzing replay at {fps} FPS...");
 
             var results = ReplayAnalyzer.AnalyzeReplay(chart, _replay, fps);
             long bandScore = results.Sum(x => (long) x.Stats.TotalScore);
@@ -50,9 +50,9 @@ public partial class Cli
             Console.WriteLine("NOT CONSISTENT!");
             Console.WriteLine($"Distinct scores: {scores.Count}");
 
-            foreach ((long score, int count) in scores)
+            foreach ((long score, int count) in scores.OrderBy(i => i.Key))
             {
-                Console.WriteLine($" - {score} ({count}x)");
+                Console.WriteLine($" - {score} {new string('|', count)}");
             }
 
             return false;
