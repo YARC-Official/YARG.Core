@@ -23,7 +23,6 @@ public partial class Cli
         for (int i = 0; i < SIMULATED_FPS_ATTEMPTS; i++)
         {
             double fps = i * 2 + 1;
-            Console.WriteLine($"Analyzing replay at {fps} FPS...");
 
             var results = ReplayAnalyzer.AnalyzeReplay(chart, _replay, fps);
             long bandScore = results.Sum(x => (long) x.Stats.TotalScore);
@@ -38,11 +37,11 @@ public partial class Cli
                 scores[bandScore] = 1;
             }
 
-            Console.WriteLine($"Done! Final score: {bandScore}");
-            Console.WriteLine();
+            Console.WriteLine($"Final score at {fps} FPS: {bandScore}");
         }
 
         // Print result data
+        Console.WriteLine();
         if (scores.Count != 1)
         {
             Console.ForegroundColor = ConsoleColor.Red;

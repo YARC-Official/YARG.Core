@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Globalization;
 using System.IO;
+using System.Linq;
 using YARG.Core.Utility;
 
 namespace YARG.Core.Engine
@@ -63,6 +65,18 @@ namespace YARG.Core.Engine
             {
                 StarMultiplierThresholds[i] = reader.ReadSingle();
             }
+        }
+
+        public override string ToString()
+        {
+            var thresholds = string.Join(", ",
+                StarMultiplierThresholds.Select(i => i.ToString(CultureInfo.InvariantCulture)));
+
+            return
+                $"Hit window: ({HitWindow.MinWindow}, {HitWindow.MaxWindow})\n" +
+                $"Hit window dynamic: {HitWindow.IsDynamic}\n" +
+                $"Max multiplier: {MaxMultiplier}\n" +
+                $"Star thresholds: {thresholds}";
         }
     }
 }

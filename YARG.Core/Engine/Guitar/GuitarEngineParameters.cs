@@ -63,5 +63,17 @@ namespace YARG.Core.Engine.Guitar
             InfiniteFrontEnd = reader.ReadBoolean();
             AntiGhosting = reader.ReadBoolean();
         }
+
+        public override string ToString()
+        {
+            return
+                $"{base.ToString()}\n" +
+                $"Infinite front-end: {InfiniteFrontEnd}\n" +
+                $"Anti-ghosting: {AntiGhosting}\n" +
+                $"Hopo leniency: {HopoLeniency}\n" +
+                $"Strum leniency: {StrumLeniency}\n" +
+                $"Strum leniency (small): {StrumLeniencySmall}\n" +
+                $"Star power whammy buffer: {StarPowerWhammyBuffer}";
+        }
     }
 }

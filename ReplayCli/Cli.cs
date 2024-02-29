@@ -108,6 +108,9 @@ public partial class Cli
             var profile = frame.PlayerInfo.Profile;
 
             Console.WriteLine($"{i}. {profile.Name}, {profile.CurrentInstrument} ({profile.CurrentDifficulty})");
+
+            // Indent the engine parameters
+            Console.WriteLine($"   {frame.EngineParameters.ToString()?.ReplaceLineEndings("\n   ")}");
         }
 
         Console.WriteLine($"Band score: {_replay.BandScore} (as per metadata)\n");
