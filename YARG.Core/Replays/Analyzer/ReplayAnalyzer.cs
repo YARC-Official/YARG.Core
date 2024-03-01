@@ -203,6 +203,12 @@ namespace YARG.Core.Replays.Analyzer
 
         private void GenerateFrameTimes(ICollection<double> times, double from, double to)
         {
+            // Skip if the times are basically the same
+            if (Math.Abs(from - to) < double.Epsilon)
+            {
+                return;
+            }
+
             YargTrace.Assert(to > from, "Invalid time range");
 
             double frameTime = 1.0 / _fps;

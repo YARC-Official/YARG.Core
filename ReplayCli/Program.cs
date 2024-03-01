@@ -1,6 +1,9 @@
 ﻿using ReplayCli;
+using YARG.Core;
 
 var defaultColor = Console.ForegroundColor;
+
+YargTrace.AddListener(new YargDebugTraceListener());
 
 var cli = new Cli();
 
