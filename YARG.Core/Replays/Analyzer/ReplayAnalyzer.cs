@@ -81,10 +81,13 @@ namespace YARG.Core.Replays.Analyzer
                 while (inputIndex < frame.Inputs.Length)
                 {
                     var input = frame.Inputs[inputIndex];
+                    var inputTime = input.Time;
 
-                    // Do this before generating the frame times
-                    // in case the input time is changed.
                     engine.QueueInput(ref input);
+
+                    // The input time SHOULD NOT have changed at all
+                    // ReSharper disable once CompareOfFloatsByEqualityOperator
+                    YargTrace.Assert(input.Time == inputTime, "Frame time generation is messed up");
 
                     var nextTime = inputIndex + 1 < frame.Inputs.Length ? frame.Inputs[inputIndex + 1].Time : maxTime;
 
@@ -216,6 +219,12 @@ namespace YARG.Core.Replays.Analyzer
                 }
 
                 double adjustedTime = time + frameTime * randomAdjustment;
+
+                if (adjustedTime > to)
+                {
+                    adjustedTime = to;
+                }
+
                 times.Add(adjustedTime);
             }
         }
