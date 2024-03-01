@@ -87,7 +87,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             if (State.HasStrummed && !strumEatenByHopo)
             {
                 // Offset timer by small strum leniency if there's no note in the hit window
-                double offset = IsNoteInWindow(note) ? EngineParameters.StrumLeniencySmall : 0;
+                double offset = !IsNoteInWindow(note) ? EngineParameters.StrumLeniencySmall : 0;
 
                 // Start the strum leniency timer at full value
                 StartTimer(ref State.StrumLeniencyTimer, State.CurrentTime, offset);
