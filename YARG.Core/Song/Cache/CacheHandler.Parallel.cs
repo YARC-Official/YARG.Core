@@ -123,29 +123,7 @@ namespace YARG.Core.Song.Cache
         {
             lock (cache.Entries)
             {
-                var hash = entry.Hash;
-                if (cache.Entries.TryGetValue(hash, out var list) && !allowDuplicates)
-                {
-                    if (list[0].IsPreferedOver(entry))
-                    {
-                        duplicatesRejected.Add(entry);
-                        return false;
-                    }
-
-                    duplicatesToRemove.Add(list[0]);
-                    list[0] = entry;
-                }
-                else
-                {
-                    if (list == null)
-                    {
-                        cache.Entries.Add(hash, list = new List<SongEntry>());
-                    }
-
-                    list.Add(entry);
-                    ++_progress.Count;
-                }
-                return true;
+                return base.AddEntry(entry);
             }
         }
 
@@ -377,12 +355,7 @@ namespace YARG.Core.Song.Cache
         {
             lock (preScannedDirectories)
             {
-                if (!preScannedDirectories.Add(directory))
-                {
-                    return false;
-                }
-                _progress.NumScannedDirectories++;
-                return true;
+                return base.FindOrMarkDirectory(directory);
             }
         }
 
@@ -390,7 +363,7 @@ namespace YARG.Core.Song.Cache
         {
             lock (preScannedFiles)
             {
-                return preScannedFiles.Add(file);
+                return base.FindOrMarkFile(file);
             }
         }
 
@@ -398,8 +371,7 @@ namespace YARG.Core.Song.Cache
         {
             lock (badSongs)
             {
-                badSongs.Add(filePath, err);
-                _progress.BadSongCount++;
+                base.AddToBadSongs(filePath, err);
             }
         }
 
@@ -407,7 +379,7 @@ namespace YARG.Core.Song.Cache
         {
             lock (invalidSongsInCache)
             {
-                invalidSongsInCache.Add(name);
+                base.AddInvalidSong(name);
             }
         }
 

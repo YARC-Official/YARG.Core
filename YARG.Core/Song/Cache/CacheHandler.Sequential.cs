@@ -61,33 +61,6 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        protected override bool AddEntry(SongEntry entry)
-        {
-            var hash = entry.Hash;
-            if (cache.Entries.TryGetValue(hash, out var list) && !allowDuplicates)
-            {
-                if (list[0].IsPreferedOver(entry))
-                {
-                    duplicatesRejected.Add(entry);
-                    return false;
-                }
-
-                duplicatesToRemove.Add(list[0]);
-                list[0] = entry;
-            }
-            else
-            {
-                if (list == null)
-                {
-                    cache.Entries.Add(hash, list = new List<SongEntry>());
-                }
-
-                list.Add(entry);
-                ++_progress.Count;
-            }
-            return true;
-        }
-
         protected override void AddUpdates(UpdateGroup group, Dictionary<string, List<YARGDTAReader>> nodes, bool removeEntries)
         {
             foreach (var node in nodes)
@@ -227,44 +200,6 @@ namespace YARG.Core.Song.Cache
                 return (bool) result;
             }
             return CanAddUpgrade(upgradeGroups, shortname, lastUpdated) ?? false;
-        }
-
-        protected override bool FindOrMarkDirectory(string directory)
-        {
-            lock (directory)
-            {
-                if (!preScannedDirectories.Add(directory))
-                {
-                    return false;
-                }
-                _progress.NumScannedDirectories++;
-                return true;
-            }
-        }
-
-        protected override bool FindOrMarkFile(string file)
-        {
-            lock (preScannedFiles)
-            {
-                return preScannedFiles.Add(file);
-            }
-        }
-
-        protected override void AddToBadSongs(string filePath, ScanResult err)
-        {
-            lock (badSongs)
-            {
-                badSongs.Add(filePath, err);
-                _progress.BadSongCount++;
-            }
-        }
-
-        protected override void AddInvalidSong(string name)
-        {
-            lock (invalidSongsInCache)
-            {
-                invalidSongsInCache.Add(name);
-            }
         }
 
         protected override PackedCONGroup? FindCONGroup(string filename)

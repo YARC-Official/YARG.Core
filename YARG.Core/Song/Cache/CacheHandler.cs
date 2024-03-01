@@ -26,7 +26,7 @@ namespace YARG.Core.Song.Cache
     public abstract partial class CacheHandler
     {
         public static ScanProgressTracker Progress => _progress;
-        protected static ScanProgressTracker _progress;
+        private static ScanProgressTracker _progress;
 
         public static SongCache RunScan(bool fast, string cacheLocation, string badSongsLocation, bool multithreading, bool allowDuplicates, bool fullDirectoryPlaylists, List<string> baseDirectories)
         {
@@ -186,7 +186,32 @@ namespace YARG.Core.Song.Cache
         protected abstract void RemoveCONEntry(string shortname);
         protected abstract bool CanAddUpgrade(string shortname, DateTime lastUpdated);
         protected abstract bool CanAddUpgrade_CONInclusive(string shortname, DateTime lastUpdated);
-        protected abstract bool AddEntry(SongEntry entry);
+        protected virtual bool AddEntry(SongEntry entry)
+        {
+            var hash = entry.Hash;
+            if (cache.Entries.TryGetValue(hash, out var list) && !allowDuplicates)
+            {
+                if (list[0].IsPreferedOver(entry))
+                {
+                    duplicatesRejected.Add(entry);
+                    return false;
+                }
+
+                duplicatesToRemove.Add(list[0]);
+                list[0] = entry;
+            }
+            else
+            {
+                if (list == null)
+                {
+                    cache.Entries.Add(hash, list = new List<SongEntry>());
+                }
+
+                list.Add(entry);
+                ++_progress.Count;
+            }
+            return true;
+        }
 
         protected IniGroup? GetBaseIniGroup(string path)
         {

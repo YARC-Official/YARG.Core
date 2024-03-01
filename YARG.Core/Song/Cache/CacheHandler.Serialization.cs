@@ -24,8 +24,12 @@ namespace YARG.Core.Song.Cache
 
         protected abstract void Deserialize(FileStream stream);
         protected abstract void Deserialize_Quick(FileStream stream);
-        protected abstract void AddInvalidSong(string name);
         protected abstract PackedCONGroup? FindCONGroup(string filename);
+
+        protected virtual void AddInvalidSong(string name)
+        {
+            invalidSongsInCache.Add(name);
+        }
 
         private void Serialize(string cacheLocation)
         {

@@ -111,9 +111,24 @@ namespace YARG.Core.Song.Cache
 
         protected abstract void FindNewEntries();
         protected abstract void TraverseDirectory(FileCollector collector, IniGroup group, PlaylistTracker tracker);
-        protected abstract bool FindOrMarkDirectory(string directory);
-        protected abstract bool FindOrMarkFile(string file);
-        protected abstract void AddToBadSongs(string filePath, ScanResult err);
+        protected virtual bool FindOrMarkDirectory(string directory)
+        {
+            if (!preScannedDirectories.Add(directory))
+            {
+                return false;
+            }
+            _progress.NumScannedDirectories++;
+            return true;
+        }
+        protected virtual bool FindOrMarkFile(string file)
+        {
+            return preScannedFiles.Add(file);
+        }
+        protected virtual void AddToBadSongs(string filePath, ScanResult err)
+        {
+            badSongs.Add(filePath, err);
+            _progress.BadSongCount++;
+        }
 
         protected void ScanDirectory(DirectoryInfo directory, IniGroup group, PlaylistTracker tracker)
         {
