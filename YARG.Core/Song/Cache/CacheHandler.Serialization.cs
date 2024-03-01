@@ -22,6 +22,32 @@ namespace YARG.Core.Song.Cache
         /// </summary>
         private const int MIN_CACHEFILESIZE = 93;
 
+        private static FileStream? CheckCacheFile(string cacheLocation, bool fullDirectoryPlaylists)
+        {
+            FileInfo info = new(cacheLocation);
+            if (!info.Exists || info.Length < MIN_CACHEFILESIZE)
+            {
+                YargTrace.DebugInfo($"Cache invalid or not found");
+                return null;
+            }
+
+            var fs = new FileStream(cacheLocation, FileMode.Open, FileAccess.Read);
+            using var counter = DisposableCounter.Wrap(fs);
+            if (fs.Read<int>(Endianness.Little) != CACHE_VERSION)
+            {
+                YargTrace.DebugInfo($"Cache outdated");
+                return null;
+            }
+
+            if (fs.ReadBoolean() != fullDirectoryPlaylists)
+            {
+                YargTrace.DebugInfo($"FullDirectoryFlag flipped");
+                return null;
+            }
+
+            return counter.Release();
+        }
+
         protected abstract void Deserialize(FileStream stream);
         protected abstract void Deserialize_Quick(FileStream stream);
         protected abstract PackedCONGroup? FindCONGroup(string filename);

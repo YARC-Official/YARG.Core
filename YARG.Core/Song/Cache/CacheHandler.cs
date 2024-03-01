@@ -36,8 +36,8 @@ namespace YARG.Core.Song.Cache
 
             try
             {
-                if (!fast || !handler.QuickScan(cacheLocation))
-                    handler.FullScan(!fast, cacheLocation, badSongsLocation);
+                if (!fast || !QuickScan(handler, cacheLocation))
+                    FullScan(handler, !fast, cacheLocation, badSongsLocation);
             }
             catch (Exception ex)
             {
@@ -45,6 +45,92 @@ namespace YARG.Core.Song.Cache
             }
 
             return handler.cache;
+        }
+
+        private static bool QuickScan(CacheHandler handler, string cacheLocation)
+        {
+            try
+            {
+                using var stream = CheckCacheFile(cacheLocation, handler.fullDirectoryPlaylists);
+                if (stream == null)
+                {
+                    return false;
+                }
+
+                _progress.Stage = ScanStage.LoadingCache;
+                YargTrace.DebugInfo("Quick Read start");
+                handler.Deserialize_Quick(stream);
+            }
+            catch (Exception ex)
+            {
+                YargTrace.LogException(ex, "Error occurred during quick cache file read!");
+            }
+
+            if (_progress.Count == 0)
+            {
+                return false;
+            }
+
+            handler.CleanupDuplicates();
+            handler.SortCategories();
+            YargTrace.DebugInfo($"Total Entries: {_progress.Count}");
+            return true;
+        }
+
+        private static void FullScan(CacheHandler handler, bool loadCache, string cacheLocation, string badSongsLocation)
+        {
+            if (loadCache)
+            {
+                try
+                {
+                    using var stream = CheckCacheFile(cacheLocation, handler.fullDirectoryPlaylists);
+                    if (stream != null)
+                    {
+                        _progress.Stage = ScanStage.LoadingCache;
+                        YargTrace.DebugInfo("Full Read start");
+                        handler.Deserialize(stream);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    YargTrace.LogException(ex, "Error occurred during full cache file read!");
+                }
+            }
+
+            _progress.Stage = ScanStage.LoadingSongs;
+            handler.FindNewEntries();
+            handler.CleanupDuplicates();
+
+            _progress.Stage = ScanStage.Sorting;
+            handler.SortCategories();
+            YargTrace.DebugInfo($"Total Entries: {_progress.Count}");
+
+            try
+            {
+                _progress.Stage = ScanStage.WritingCache;
+                handler.Serialize(cacheLocation);
+            }
+            catch (Exception ex)
+            {
+                YargTrace.LogException(ex, "Error when writing song cache!");
+            }
+
+            try
+            {
+                if (handler.badSongs.Count > 0)
+                {
+                    _progress.Stage = ScanStage.WritingBadSongs;
+                    handler.WriteBadSongs(badSongsLocation);
+                }
+                else
+                {
+                    File.Delete(badSongsLocation);
+                }
+            }
+            catch (Exception ex)
+            {
+                YargTrace.LogException(ex, "Error when writing bad songs file!");
+            }
         }
 
         /// <summary>
@@ -73,93 +159,6 @@ namespace YARG.Core.Song.Cache
         protected readonly List<SongEntry> duplicatesRejected = new();
         protected readonly List<SongEntry> duplicatesToRemove = new();
         protected readonly SortedDictionary<string, ScanResult> badSongs = new();
-
-        private bool QuickScan(string cacheLocation)
-        {
-            try
-            {
-                using var stream = CheckCacheFile(cacheLocation);
-                if (stream == null)
-                {
-                    return false;
-                }
-
-                _progress.Stage = ScanStage.LoadingCache;
-                YargTrace.DebugInfo("Quick Read start");
-                Deserialize_Quick(stream);
-            }
-            catch (Exception ex)
-            {
-                YargTrace.LogException(ex, "Error occurred during quick cache file read!");
-            }
-
-            if (_progress.Count == 0)
-            {
-                return false;
-            }
-
-            CleanupDuplicates();
-            SortCategories();
-            YargTrace.DebugInfo($"Total Entries: {_progress.Count}");
-            return true;
-        }
-
-        private void FullScan(bool loadCache, string cacheLocation, string badSongsLocation)
-        {
-            if (loadCache)
-            {
-                try
-                {
-                    using var stream = CheckCacheFile(cacheLocation);
-                    if (stream != null)
-                    {
-                        _progress.Stage = ScanStage.LoadingCache;
-                        YargTrace.DebugInfo("Full Read start");
-                        Deserialize(stream);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    YargTrace.LogException(ex, "Error occurred during full cache file read!");
-                }
-            }
-
-            _progress.Stage = ScanStage.LoadingSongs;
-            FindNewEntries();
-            CleanupDuplicates();
-
-            _progress.Stage = ScanStage.Sorting;
-            SortCategories();
-            YargTrace.DebugInfo($"Total Entries: {_progress.Count}");
-
-            try
-            {
-                _progress.Stage = ScanStage.WritingCache;
-                Serialize(cacheLocation);
-            }
-            catch (Exception ex)
-            {
-                YargTrace.LogException(ex, "Error when writing song cache!");
-            }
-
-            try
-            {
-                if (badSongs.Count > 0)
-                {
-                    _progress.Stage = ScanStage.WritingBadSongs;
-                    WriteBadSongs(badSongsLocation);
-                }
-                else
-                {
-                    File.Delete(badSongsLocation);
-                }
-            }
-            catch (Exception ex)
-            {
-                YargTrace.LogException(ex, "Error when writing bad songs file!");
-            }
-        }
-
 
         protected CacheHandler(List<string> baseDirectories, bool allowDuplicates, bool fullDirectoryPlaylists)
         {
@@ -225,32 +224,6 @@ namespace YARG.Core.Song.Cache
                     return group;
             }
             return null;
-        }
-
-        private FileStream? CheckCacheFile(string cacheLocation)
-        {
-            FileInfo info = new(cacheLocation);
-            if (!info.Exists || info.Length < MIN_CACHEFILESIZE)
-            {
-                YargTrace.DebugInfo($"Cache invalid or not found");
-                return null;
-            }
-
-            var fs = new FileStream(cacheLocation, FileMode.Open, FileAccess.Read);
-            using var counter = DisposableCounter.Wrap(fs);
-            if (fs.Read<int>(Endianness.Little) != CACHE_VERSION)
-            {
-                YargTrace.DebugInfo($"Cache outdated");
-                return null;
-            }
-
-            if (fs.ReadBoolean() != fullDirectoryPlaylists)
-            {
-                YargTrace.DebugInfo($"FullDirectoryFlag flipped");
-                return null;
-            }
-
-            return counter.Release();
         }
 
         private void CleanupDuplicates()
