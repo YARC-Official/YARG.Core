@@ -18,22 +18,27 @@ namespace YARG.Core.Replays.Analyzer
         private readonly Replay    _replay;
 
         private readonly double _fps;
-
         private readonly bool _doFrameUpdates;
+
+        private readonly bool _keepEngineLoggers;
 
         private readonly Random _random = new();
 
-        public ReplayAnalyzer(SongChart chart, Replay replay, double fps)
+        public ReplayAnalyzer(SongChart chart, Replay replay, double fps, bool keepEngineLoggers)
         {
             _chart = chart;
             _replay = replay;
+
             _fps = fps;
             _doFrameUpdates = _fps > 0;
+
+            _keepEngineLoggers = keepEngineLoggers;
         }
 
-        public static AnalysisResult[] AnalyzeReplay(SongChart chart, Replay replay, double fps = 0)
+        public static AnalysisResult[] AnalyzeReplay(SongChart chart,
+            Replay replay, double fps = 0, bool keepEngineLoggers = false)
         {
-            var analyzer = new ReplayAnalyzer(chart, replay, fps);
+            var analyzer = new ReplayAnalyzer(chart, replay, fps, keepEngineLoggers);
             return analyzer.Analyze();
         }
 
@@ -131,8 +136,7 @@ namespace YARG.Core.Replays.Analyzer
             {
                 Passed = passed,
                 Stats = engine.BaseStats,
-                NoteHitDifferences = new List<int>(),
-                NoteMissDifferences = new List<int>(),
+                EventLogger = _keepEngineLoggers ? engine.EventLogger : null,
             };
         }
 

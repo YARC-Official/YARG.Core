@@ -1,5 +1,6 @@
 ﻿using System;
 using YARG.Core.Chart;
+using YARG.Core.Engine.Logging;
 using YARG.Core.Input;
 
 namespace YARG.Core.Engine.Guitar.Engines
@@ -181,6 +182,12 @@ namespace YARG.Core.Engine.Guitar.Engines
             if (State.HasTapped && (hopoCondition || note.IsTap) && canUseInfFrontEnd && !State.WasNoteGhosted)
             {
                 HitNote(note);
+
+                EventLogger?.LogEvent(new ConsistentEngineEvent(State.CurrentTime)
+                {
+                    Message = $"Note ({State.NoteIndex}) hit via tap"
+                });
+
                 return true;
             }
 
@@ -188,6 +195,23 @@ namespace YARG.Core.Engine.Guitar.Engines
             if (State.HasStrummed || State.StrumLeniencyTimer.IsEnabled)
             {
                 HitNote(note);
+
+                if (State.HasStrummed)
+                {
+                    EventLogger?.LogEvent(new ConsistentEngineEvent(State.CurrentTime)
+                    {
+                        Message = $"Note ({State.NoteIndex}) hit via strum input"
+                    });
+                }
+                else
+                {
+                    EventLogger?.LogEvent(new ConsistentEngineEvent(State.CurrentTime)
+                    {
+                        Message = $"Note ({State.NoteIndex}) hit via strum leniency"
+                    });
+                }
+
+
                 return true;
             }
 

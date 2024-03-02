@@ -12,7 +12,7 @@ namespace YARG.Core.Engine
 
         public int BaseScore { get; protected set; }
 
-        public EngineEventLogger EventLogger { get; }
+        public EngineEventLogger? EventLogger { get; }
 
         public abstract BaseEngineState BaseState { get; }
         public abstract BaseEngineParameters BaseParameters { get; }

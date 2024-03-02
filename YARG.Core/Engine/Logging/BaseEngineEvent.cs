@@ -56,14 +56,14 @@ namespace YARG.Core.Engine.Logging
             return Math.Abs(EventTime - engineEvent.EventTime) < double.Epsilon;
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return Equals(obj as BaseEngineEvent);
         }
 
         public override int GetHashCode()
         {
-            return base.GetHashCode();
+            return HashCode.Combine(EventType, EventTime);
         }
     }
 
@@ -74,6 +74,7 @@ namespace YARG.Core.Engine.Logging
         Input,
         Timer,
         Score,
-        StarPower
+        StarPower,
+        Consistent
     }
 }

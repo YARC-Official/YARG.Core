@@ -9,6 +9,8 @@ public partial class Cli
     private string _replayPath;
     private AnalyzerMode _runMode;
 
+    private bool _searchForProblems;
+
     private Replay _replay;
 
     /// <summary>
@@ -68,6 +70,13 @@ public partial class Cli
 
                     break;
                 }
+                case "--problems":
+                case "-p":
+                {
+                    i++;
+                    _searchForProblems = true;
+                    break;
+                }
                 case "--help":
                 case "-h":
                 {
@@ -96,6 +105,7 @@ public partial class Cli
             Options:
               --song     | -s    Path to `song.ini` folder (required in `verify` and `simulate_fps` modes).
               --help     | -h    Show this help message.
+              --problems | -p    Search for engine consistency problems via engine logs.
             """);
     }
 

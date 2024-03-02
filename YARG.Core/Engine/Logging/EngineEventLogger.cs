@@ -48,12 +48,13 @@ namespace YARG.Core.Engine.Logging
         {
             return type switch
             {
-                EngineEventType.Note      => new NoteEngineEvent(0),
-                //EngineEventType.Sustain => new SustainEngineEvent(type, 0),
-                EngineEventType.Timer     => new TimerEngineEvent(0),
-                EngineEventType.Score     => new ScoreEngineEvent(0),
-                EngineEventType.StarPower => new StarPowerEngineEvent(0),
-                _                         => null
+                EngineEventType.Note       => new NoteEngineEvent(0),
+                //EngineEventType.Sustain  => new SustainEngineEvent(type, 0),
+                EngineEventType.Timer      => new TimerEngineEvent(0),
+                EngineEventType.Score      => new ScoreEngineEvent(0),
+                EngineEventType.StarPower  => new StarPowerEngineEvent(0),
+                EngineEventType.Consistent => new ConsistentEngineEvent(0),
+                _                          => null
             };
         }
     }
