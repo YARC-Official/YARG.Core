@@ -52,7 +52,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             if (State.HasStrummed)
             {
                 // Hopo was hit recently, eat strum input
-                if (State.HopoLeniencyTimer.IsEnabled)
+                if (State.HopoLeniencyTimer.IsActive)
                 {
                     State.StrumLeniencyTimer.Disable();
 
@@ -64,7 +64,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 else
                 {
                     // Strummed while strum leniency is active (double strum)
-                    if (State.StrumLeniencyTimer.IsEnabled)
+                    if (State.StrumLeniencyTimer.IsActive)
                     {
                         Overstrum();
                     }
@@ -192,7 +192,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             }
 
             // If hopo/tap checks failed then the note can be hit if it was strummed
-            if (State.HasStrummed || State.StrumLeniencyTimer.IsEnabled)
+            if (State.HasStrummed || State.StrumLeniencyTimer.IsActive)
             {
                 HitNote(note);
 
@@ -344,6 +344,7 @@ namespace YARG.Core.Engine.Guitar.Engines
         protected void UpdateTimers()
         {
             if (State.StrumLeniencyTimer.IsEnabled)
+            if (State.StrumLeniencyTimer.IsActive)
             {
                 //YargTrace.LogInfo("Strum Leniency: Enabled");
                 if (State.StrumLeniencyTimer.IsExpired(State.CurrentTime))

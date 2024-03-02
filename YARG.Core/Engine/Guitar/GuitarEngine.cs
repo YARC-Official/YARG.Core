@@ -315,7 +315,7 @@ namespace YARG.Core.Engine.Guitar
                 double endTime = State.StarPowerWhammyTimer.EndTime;
                 tick = SyncTrack.TimeToTick(endTime);
             }
-            else if (!State.StarPowerWhammyTimer.IsEnabled)
+            else if (!State.StarPowerWhammyTimer.IsActive)
             {
                 return 0;
             }
@@ -397,7 +397,7 @@ namespace YARG.Core.Engine.Guitar
                 if (State.HasWhammied)
                 {
                     // Rebase when beginning to SP whammy
-                    if (!State.StarPowerWhammyTimer.IsEnabled)
+                    if (!State.StarPowerWhammyTimer.IsActive)
                     {
                         RebaseProgressValues(State.CurrentTick);
                     }
@@ -432,7 +432,7 @@ namespace YARG.Core.Engine.Guitar
                 }
             }
             // Rebase after SP whammy ends to commit the final amount to the base
-            else if (State.StarPowerWhammyTimer.IsEnabled ||
+            else if (State.StarPowerWhammyTimer.IsActive ||
                 State.StarPowerWhammyTimer.IsExpired(State.CurrentTime))
             {
                 RebaseProgressValues(State.CurrentTick);
