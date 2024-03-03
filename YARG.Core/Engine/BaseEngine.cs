@@ -156,6 +156,11 @@ namespace YARG.Core.Engine
 
         protected void AddConsistencyAnchor(double time)
         {
+            if (_consistencyAnchors.Contains(time))
+            {
+                return;
+            }
+
             _consistencyAnchors.Add(time);
             _consistencyAnchors.Sort();
         }
