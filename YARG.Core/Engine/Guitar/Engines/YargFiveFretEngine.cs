@@ -343,7 +343,6 @@ namespace YARG.Core.Engine.Guitar.Engines
 
         protected void UpdateTimers()
         {
-            if (State.StrumLeniencyTimer.IsEnabled)
             if (State.StrumLeniencyTimer.IsActive)
             {
                 //YargTrace.LogInfo("Strum Leniency: Enabled");
