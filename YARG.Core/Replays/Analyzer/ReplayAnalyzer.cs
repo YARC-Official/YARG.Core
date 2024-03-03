@@ -89,6 +89,7 @@ namespace YARG.Core.Replays.Analyzer
                     var inputTime = input.Time;
 
                     engine.QueueInput(ref input);
+                    currentTime = inputTime;
 
                     // The input time SHOULD NOT have changed at all
                     // ReSharper disable once CompareOfFloatsByEqualityOperator
@@ -104,6 +105,7 @@ namespace YARG.Core.Replays.Analyzer
                     foreach (double time in frameTimes)
                     {
                         engine.UpdateEngineToTime(time);
+                        currentTime = time;
                     }
 
                     inputIndex++;
