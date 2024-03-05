@@ -194,6 +194,15 @@ namespace YARG.Core.Engine.Guitar
 
             OnNoteHit?.Invoke(State.NoteIndex, note);
             State.NoteIndex++;
+
+            if(State.NoteIndex < Notes.Count)
+            {
+                var dist = GetAverageNoteDistance(Notes[State.NoteIndex]);
+                var fullWindow = EngineParameters.HitWindow.CalculateHitWindow(dist);
+
+                var expectedMissTime = note.Time + EngineParameters.HitWindow.GetBackEnd(fullWindow);
+                AddConsistencyAnchor(expectedMissTime);
+            }
         }
 
         protected override void MissNote(GuitarNote note)

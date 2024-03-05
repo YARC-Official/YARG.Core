@@ -83,7 +83,16 @@ namespace YARG.Core.Engine.Guitar.Engines
             }
 
             var note = Notes[State.NoteIndex];
-            double hitWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
+
+            var hitWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
+            var frontEnd = EngineParameters.HitWindow.GetFrontEnd(hitWindow);
+
+            // Note is not in front end yet
+            if (State.CurrentTime < note.Time + frontEnd)
+            {
+                // This is the time when the note will enter the hit window in the front end. Engine will update at this time
+                AddConsistencyAnchor(note.Time + frontEnd);
+            }
 
             if (State.HasStrummed && !strumEatenByHopo)
             {
@@ -98,13 +107,8 @@ namespace YARG.Core.Engine.Guitar.Engines
             {
                 State.HasTapped = true;
 
-                var frontEnd = EngineParameters.HitWindow.GetFrontEnd(hitWindow);
-
                 // This is the time the front end will expire. Used for hit logic with infinite front end
                 State.FrontEndExpireTime = State.CurrentTime + Math.Abs(frontEnd);
-
-                // This is the expected hit time of the note with infinite front end. Engine will update at this time
-                AddConsistencyAnchor(note.Time + frontEnd);
 
                 // Check for fret ghosting
                 // We want to run ghost logic regardless of the setting for the ghost counter
@@ -343,6 +347,11 @@ namespace YARG.Core.Engine.Guitar.Engines
 
         protected void UpdateTimers()
         {
+            if (State.HopoLeniencyTimer.IsActive && State.HopoLeniencyTimer.IsExpired(State.CurrentTime))
+            {
+                State.HopoLeniencyTimer.Disable();
+            }
+
             if (State.StrumLeniencyTimer.IsActive)
             {
                 //YargTrace.LogInfo("Strum Leniency: Enabled");
