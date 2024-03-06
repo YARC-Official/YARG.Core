@@ -37,13 +37,7 @@ namespace YARG.Core.Song
 
         public override AudioMixer LoadAudioStreams(params SongStem[] ignoreStems)
         {
-            Dictionary<string, string> files = new();
-            {
-                var parsed = System.IO.Directory.GetFiles(Directory);
-                foreach (var file in parsed)
-                    files.Add(Path.GetFileName(file).ToLower(), file);
-            }
-
+            var subFiles = ParseSubFiles();
             var mixer = new AudioMixer();
             foreach (var stem in IniAudio.SupportedStems)
             {
@@ -54,7 +48,7 @@ namespace YARG.Core.Song
                 foreach (var format in IniAudio.SupportedFormats)
                 {
                     var audioFile = stem + format;
-                    if (files.TryGetValue(audioFile, out var fullname))
+                    if (subFiles.TryGetValue(audioFile, out var fullname))
                     {
                         // No file buffer
                         var channel = new AudioChannel(stemEnum, new FileStream(fullname, FileMode.Open, FileAccess.Read, FileShare.Read, 1));
@@ -69,21 +63,15 @@ namespace YARG.Core.Song
 
         public override byte[]? LoadAlbumData()
         {
-            Dictionary<string, string> files = new();
-            {
-                var parsed = System.IO.Directory.GetFiles(Directory);
-                foreach (var file in parsed)
-                    files.Add(Path.GetFileName(file).ToLower(), file);
-            }
-
-            if (!string.IsNullOrEmpty(_cover) && files.TryGetValue(_cover, out var cover))
+            var subFiles = ParseSubFiles();
+            if (!string.IsNullOrEmpty(_cover) && subFiles.TryGetValue(_cover, out var cover))
             {
                 return File.ReadAllBytes(cover);
             }
 
             foreach (string albumFile in ALBUMART_FILES)
             {
-                if (files.TryGetValue(albumFile, out var fullname))
+                if (subFiles.TryGetValue(albumFile, out var fullname))
                 {
                     return File.ReadAllBytes(fullname);
                 }
@@ -93,22 +81,16 @@ namespace YARG.Core.Song
 
         public override BackgroundResult? LoadBackground(BackgroundType options)
         {
-            Dictionary<string, string> files = new();
-            {
-                var parsed = System.IO.Directory.GetFiles(Directory);
-                foreach (var file in parsed)
-                    files.Add(Path.GetFileName(file).ToLower(), file);
-            }
-
+            var subFiles = ParseSubFiles();
             if ((options & BackgroundType.Yarground) > 0)
             {
-                if (files.TryGetValue("bg.yarground", out var file))
+                if (subFiles.TryGetValue("bg.yarground", out var file))
                     return new BackgroundResult(BackgroundType.Yarground, new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read));
             }
 
             if ((options & BackgroundType.Video) > 0)
             {
-                if (!string.IsNullOrEmpty(_video) && files.TryGetValue(_video, out var video))
+                if (!string.IsNullOrEmpty(_video) && subFiles.TryGetValue(_video, out var video))
                 {
                     return new BackgroundResult(BackgroundType.Video, new FileStream(video, FileMode.Open, FileAccess.Read, FileShare.Read));
                 }
@@ -117,7 +99,7 @@ namespace YARG.Core.Song
                 {
                     foreach (var format in VIDEO_EXTENSIONS)
                     {
-                        if (files.TryGetValue(stem + format, out var fullname))
+                        if (subFiles.TryGetValue(stem + format, out var fullname))
                         {
                             return new BackgroundResult(BackgroundType.Video, new FileStream(fullname, FileMode.Open, FileAccess.Read, FileShare.Read));
                         }
@@ -127,7 +109,7 @@ namespace YARG.Core.Song
 
             if ((options & BackgroundType.Image) > 0)
             {
-                if (!string.IsNullOrEmpty(_background) && files.TryGetValue(_background, out var background))
+                if (!string.IsNullOrEmpty(_background) && subFiles.TryGetValue(_background, out var background))
                 {
                     return new BackgroundResult(BackgroundType.Image, new FileStream(background, FileMode.Open, FileAccess.Read, FileShare.Read));
                 }
@@ -137,7 +119,7 @@ namespace YARG.Core.Song
                 {
                     foreach (var format in IMAGE_EXTENSIONS)
                     {
-                        if (files.TryGetValue(stem + format, out var fullname))
+                        if (subFiles.TryGetValue(stem + format, out var fullname))
                             return new BackgroundResult(BackgroundType.Image, new FileStream(fullname, FileMode.Open, FileAccess.Read, FileShare.Read));
                     }
                 }
@@ -176,6 +158,19 @@ namespace YARG.Core.Song
             }
 
             return new FileStream(_chartFile.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+        }
+
+        private Dictionary<string, string> ParseSubFiles()
+        {
+            Dictionary<string, string> files = new();
+            if (File.Exists(Directory))
+            {
+                foreach (var file in System.IO.Directory.EnumerateFiles(Directory))
+                {
+                    files.Add(Path.GetFileName(file).ToLower(), file);
+                }
+            }
+            return files;
         }
 
         private UnpackedIniEntry(string directory, ChartType chartType, AbridgedFileInfo chartFile, AbridgedFileInfo? iniFile, in AvailableParts parts, HashWrapper hash, IniSection modifiers, string defaultPlaylist)
