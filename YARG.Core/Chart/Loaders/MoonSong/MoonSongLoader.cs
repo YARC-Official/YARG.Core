@@ -326,7 +326,7 @@ namespace YARG.Core.Chart
         private double GetLengthInTime(MoonPhrase phrase)
         {
             double time = _moonSong.TickToTime(phrase.tick);
-            return GetLengthInTime(time, phrase.tick, phrase.length - 1);
+            return GetLengthInTime(time, phrase.tick, phrase.length);
         }
 
         private static bool IsEventInPhrase(MoonObject songObj, MoonPhrase phrase)
