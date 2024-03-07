@@ -9,6 +9,8 @@ using YARG.Core.Venue;
 using System.Linq;
 using YARG.Core.Extensions;
 
+using IODirectory = System.IO.Directory;
+
 namespace YARG.Core.Song
 {
     public sealed class UnpackedIniEntry : IniSubEntry
@@ -37,7 +39,7 @@ namespace YARG.Core.Song
 
         public override AudioMixer LoadAudioStreams(params SongStem[] ignoreStems)
         {
-            var subFiles = ParseSubFiles();
+            var subFiles = GetSubFiles();
             var mixer = new AudioMixer();
             foreach (var stem in IniAudio.SupportedStems)
             {
@@ -63,7 +65,7 @@ namespace YARG.Core.Song
 
         public override byte[]? LoadAlbumData()
         {
-            var subFiles = ParseSubFiles();
+            var subFiles = GetSubFiles();
             if (!string.IsNullOrEmpty(_cover) && subFiles.TryGetValue(_cover, out var cover))
             {
                 return File.ReadAllBytes(cover);
@@ -81,7 +83,7 @@ namespace YARG.Core.Song
 
         public override BackgroundResult? LoadBackground(BackgroundType options)
         {
-            var subFiles = ParseSubFiles();
+            var subFiles = GetSubFiles();
             if ((options & BackgroundType.Yarground) > 0)
             {
                 if (subFiles.TryGetValue("bg.yarground", out var file))
@@ -160,12 +162,12 @@ namespace YARG.Core.Song
             return new FileStream(_chartFile.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
         }
 
-        private Dictionary<string, string> ParseSubFiles()
+        private Dictionary<string, string> GetSubFiles()
         {
             Dictionary<string, string> files = new();
-            if (File.Exists(Directory))
+            if (IODirectory.Exists(Directory))
             {
-                foreach (var file in System.IO.Directory.EnumerateFiles(Directory))
+                foreach (var file in IODirectory.EnumerateFiles(Directory))
                 {
                     files.Add(Path.GetFileName(file).ToLower(), file);
                 }
