@@ -58,72 +58,36 @@ namespace YARG.Core.Engine
             return SyncTrack.TimeToTick(time);
         }
 
-        public void Update()
+        public void Update(double time)
         {
-            if (!IsInputQueued)
+            bool UpdateScheduled() => _scheduledUpdates.Count > 0;
+
+            while (IsInputQueued || (UpdateScheduled() && _scheduledUpdates[0] < time))
             {
-                // Run to last scheduled update
+                double nextInputTime = IsInputQueued ? InputQueue.Peek().Time : double.MaxValue;
+                double updateTime = UpdateScheduled() ? _scheduledUpdates[0] : double.MaxValue;
 
-                double lastTime = BaseState.CurrentTime;
-                while (_scheduledUpdates.Count > 0)
+                // Next scheduled update is before the current time so skip it
+                if (updateTime < BaseState.CurrentTime)
                 {
-                    double time = _scheduledUpdates[0];
+                    _scheduledUpdates.RemoveAt(0);
+                    continue;
+                }
 
-                    // Time to update to must be ahead of the engine's current time
-                    if (time > BaseState.CurrentTime && time > lastTime)
-                    {
-                        RunHitLogic(time);
-                    }
-
-                    lastTime = time;
+                if (nextInputTime <= updateTime)
+                {
+                    var input = InputQueue.Dequeue();
+                    MutateStateWithInput(input);
+                    RunHitLogic(input.Time);
+                }
+                else
+                {
+                    RunHitLogic(updateTime);
                     _scheduledUpdates.RemoveAt(0);
                 }
             }
 
-            if (_scheduledUpdates.Count > 0)
-            {
-                bool hasInput = IsInputQueued;
-                bool hasUpdate = _scheduledUpdates.Count > 0;
-                while (hasInput || hasUpdate)
-                {
-                    double inputTime;
-                    double updateTime = inputTime = BaseState.CurrentTime;
-
-                    if (hasUpdate)
-                    {
-                        updateTime = _scheduledUpdates[0];
-                    }
-
-                    if (hasInput)
-                    {
-                        inputTime = InputQueue.Peek().Time;
-                    }
-
-                    if (updateTime < inputTime)
-                    {
-                        RunHitLogic(updateTime);
-                        _scheduledUpdates.RemoveAt(0);
-                    }
-                    else
-                    {
-                        var input = InputQueue.Dequeue();
-                        MutateStateWithInput(input);
-                        RunHitLogic(input.Time);
-                    }
-
-                    hasInput = IsInputQueued;
-                    hasUpdate = _scheduledUpdates.Count > 0;
-                }
-            }
-            else
-            {
-                while(InputQueue.TryDequeue(out var input))
-                {
-                    UpdateEngineToTime(input.Time);
-                    MutateStateWithInput(input);
-                    RunHitLogic(input.Time);
-                }
-            }
+            RunHitLogic(time);
         }
 
         /// <summary>
