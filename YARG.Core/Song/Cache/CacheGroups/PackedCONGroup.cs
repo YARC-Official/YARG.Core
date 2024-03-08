@@ -5,14 +5,15 @@ using YARG.Core.IO;
 
 namespace YARG.Core.Song.Cache
 {
-    public sealed class PackedCONGroup : CONGroup, IModificationGroup
+    public sealed class PackedCONGroup : CONGroup, IUpgradeGroup
     {
         public const string SONGSFILEPATH = "songs/songs.dta";
         public const string UPGRADESFILEPATH = "songs_upgrades/upgrades.dta";
 
         public readonly CONFile CONFile;
         public readonly DateTime CONLastUpdated;
-        public readonly Dictionary<string, IRBProUpgrade> Upgrades = new();
+        
+        public Dictionary<string, IRBProUpgrade> Upgrades { get; } = new();
 
         private readonly object upgradeLock = new();
 
