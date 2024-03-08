@@ -261,6 +261,9 @@ namespace YARG.Core.Song.Cache
             using var stream = new FileStream(badSongsLocation, FileMode.Create, FileAccess.Write);
             using var writer = new StreamWriter(stream);
 
+            writer.WriteLine($"Total Errors: {badSongs.Count}");
+            writer.WriteLine();
+
             foreach (var error in badSongs)
             {
                 writer.WriteLine(error.Key);
