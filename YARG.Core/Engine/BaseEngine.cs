@@ -58,6 +58,74 @@ namespace YARG.Core.Engine
             return SyncTrack.TimeToTick(time);
         }
 
+        public void Update()
+        {
+            if (!IsInputQueued)
+            {
+                // Run to last scheduled update
+
+                double lastTime = BaseState.CurrentTime;
+                while (_scheduledUpdates.Count > 0)
+                {
+                    double time = _scheduledUpdates[0];
+
+                    // Time to update to must be ahead of the engine's current time
+                    if (time > BaseState.CurrentTime && time > lastTime)
+                    {
+                        RunHitLogic(time);
+                    }
+
+                    lastTime = time;
+                    _scheduledUpdates.RemoveAt(0);
+                }
+            }
+
+            if (_scheduledUpdates.Count > 0)
+            {
+                bool hasInput = IsInputQueued;
+                bool hasUpdate = _scheduledUpdates.Count > 0;
+                while (hasInput || hasUpdate)
+                {
+                    double inputTime;
+                    double updateTime = inputTime = BaseState.CurrentTime;
+
+                    if (hasUpdate)
+                    {
+                        updateTime = _scheduledUpdates[0];
+                    }
+
+                    if (hasInput)
+                    {
+                        inputTime = InputQueue.Peek().Time;
+                    }
+
+                    if (updateTime < inputTime)
+                    {
+                        RunHitLogic(updateTime);
+                        _scheduledUpdates.RemoveAt(0);
+                    }
+                    else
+                    {
+                        var input = InputQueue.Dequeue();
+                        MutateStateWithInput(input);
+                        RunHitLogic(input.Time);
+                    }
+
+                    hasInput = IsInputQueued;
+                    hasUpdate = _scheduledUpdates.Count > 0;
+                }
+            }
+            else
+            {
+                while(InputQueue.TryDequeue(out var input))
+                {
+                    UpdateEngineToTime(input.Time);
+                    MutateStateWithInput(input);
+                    RunHitLogic(input.Time);
+                }
+            }
+        }
+
         /// <summary>
         /// Queue an input to be processed by the engine.
         /// </summary>
