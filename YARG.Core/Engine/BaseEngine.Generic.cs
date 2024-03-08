@@ -251,42 +251,12 @@ namespace YARG.Core.Engine
 
         protected virtual void HitNote(TNoteType note)
         {
-            if (note.NextNote is null)
-            {
-                return;
-            }
-
-            note = note.NextNote;
-
-            double dist = GetAverageNoteDistance(note);
-            double fullWindow = EngineParameters.HitWindow.CalculateHitWindow(dist);
-
-            double frontEnd = EngineParameters.HitWindow.GetFrontEnd(fullWindow);
-            double backEnd = EngineParameters.HitWindow.GetBackEnd(fullWindow);
-
-            // This is the time when the note will enter the hit window in the front end. Engine will update at this time
-            QueueUpdateTime(note.Time + frontEnd);
-
-            // This is the time when the note will leave the hit window in the back end (miss)
-            QueueUpdateTime(note.Time + backEnd);
-
-            State.NoteIndex++;
+            AdvanceToNextNote(note);
         }
 
         protected virtual void MissNote(TNoteType note)
         {
-            if (note.NextNote is null)
-            {
-                return;
-            }
-
-            note = note.NextNote;
-
-            var dist = GetAverageNoteDistance(note);
-            var fullWindow = EngineParameters.HitWindow.CalculateHitWindow(dist);
-
-            var expectedMissTime = note.Time + EngineParameters.HitWindow.GetBackEnd(fullWindow);
-            QueueUpdateTime(expectedMissTime);
+            AdvanceToNextNote(note);
         }
 
         protected abstract void AddScore(TNoteType note);
@@ -599,6 +569,30 @@ namespace YARG.Core.Engine
 
             return note.Time - State.CurrentTime < EngineParameters.HitWindow.GetBackEnd(hitWindow) &&
                 note.Time - State.CurrentTime > EngineParameters.HitWindow.GetFrontEnd(hitWindow);
+        }
+
+        private void AdvanceToNextNote(TNoteType note)
+        {
+            if(note.NextNote is null)
+            {
+                return;
+            }
+
+            note = note.NextNote;
+
+            double dist = GetAverageNoteDistance(note);
+            double fullWindow = EngineParameters.HitWindow.CalculateHitWindow(dist);
+
+            double frontEnd = EngineParameters.HitWindow.GetFrontEnd(fullWindow);
+            double backEnd = EngineParameters.HitWindow.GetBackEnd(fullWindow);
+
+            // This is the time when the note will enter the hit window in the front end. Engine will update at this time
+            QueueUpdateTime(note.Time + frontEnd);
+
+            // This is the time when the note will leave the hit window in the back end (miss)
+            QueueUpdateTime(note.Time + backEnd);
+
+            State.NoteIndex++;
         }
 
         public double GetAverageNoteDistance(TNoteType note)
