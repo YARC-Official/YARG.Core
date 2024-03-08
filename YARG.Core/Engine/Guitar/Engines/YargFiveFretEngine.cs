@@ -105,18 +105,15 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                 // Check for fret ghosting
                 // We want to run ghost logic regardless of the setting for the ghost counter
-                if (note.PreviousNote is not null)
+                bool ghosted = CheckForGhostInput(note);
+
+                // This variable controls hit logic for ghosting
+                State.WasNoteGhosted = EngineParameters.AntiGhosting && (ghosted || State.WasNoteGhosted);
+
+                // Add ghost inputs to stats regardless of the setting for anti ghosting
+                if (ghosted)
                 {
-                    bool ghosted = CheckForGhostInput(note);
-
-                    // This variable controls hit logic for ghosting
-                    State.WasNoteGhosted = EngineParameters.AntiGhosting && (ghosted || State.WasNoteGhosted);
-
-                    // Add ghost inputs to stats regardless of the setting for anti ghosting
-                    if (ghosted)
-                    {
-                        EngineStats.GhostInputs++;
-                    }
+                    EngineStats.GhostInputs++;
                 }
             }
 
