@@ -186,7 +186,7 @@ namespace YARG.Core.Game
             writer.Write(CameraPreset);
 
             writer.Write((byte) CurrentInstrument);
-            writer.Write((byte) DifficultyFallback);
+            writer.Write((byte) CurrentDifficulty);
             writer.Write((ulong) CurrentModifiers);
             writer.Write(HarmonyIndex);
 
@@ -208,7 +208,7 @@ namespace YARG.Core.Game
             CameraPreset = reader.ReadGuid();
 
             CurrentInstrument = (Instrument) reader.ReadByte();
-            DifficultyFallback = (Difficulty) reader.ReadByte();
+            CurrentDifficulty = (Difficulty) reader.ReadByte();
             CurrentModifiers = (Modifier) reader.ReadUInt64();
             HarmonyIndex = reader.ReadByte();
 
@@ -217,7 +217,6 @@ namespace YARG.Core.Game
             LeftyFlip = reader.ReadBoolean();
 
             GameMode = CurrentInstrument.ToGameMode();
-            CurrentDifficulty = DifficultyFallback;
         }
     }
 }

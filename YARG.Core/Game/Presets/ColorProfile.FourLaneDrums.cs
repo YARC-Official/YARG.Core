@@ -91,6 +91,7 @@ namespace YARG.Core.Game
             public Color BlueDrum   = DefaultBlue;
             public Color GreenDrum  = DefaultGreen;
 
+            public Color RedCymbal    = DefaultRed;
             public Color YellowCymbal = DefaultYellow;
             public Color BlueCymbal   = DefaultBlue;
             public Color GreenCymbal  = DefaultGreen;
@@ -98,6 +99,7 @@ namespace YARG.Core.Game
             /// <summary>
             /// Gets the note color for a specific note index.
             /// 0 = kick note, 1 = red drum, 4 = green drum, 5 = yellow cymbal.
+            /// 8 is a special case: it is the red cymbal that is used in lefty-flip.
             /// </summary>
             public Color GetNoteColor(int index)
             {
@@ -113,6 +115,7 @@ namespace YARG.Core.Game
                     5 => YellowCymbal,
                     6 => BlueCymbal,
                     7 => GreenCymbal,
+                    8 => RedCymbal,
 
                     _ => default
                 };
@@ -125,6 +128,7 @@ namespace YARG.Core.Game
             public Color BlueDrumStarpower   = DefaultStarpower;
             public Color GreenDrumStarpower  = DefaultStarpower;
 
+            public Color RedCymbalStarpower    = DefaultStarpower;
             public Color YellowCymbalStarpower = DefaultStarpower;
             public Color BlueCymbalStarpower   = DefaultStarpower;
             public Color GreenCymbalStarpower  = DefaultStarpower;
@@ -132,6 +136,7 @@ namespace YARG.Core.Game
             /// <summary>
             /// Gets the Star Power note color for a specific note index.
             /// 0 = kick note, 1 = red drum, 4 = green drum, 5 = yellow cymbal.
+            /// 8 is a special case: it is the red cymbal that is used in lefty-flip.
             /// </summary>
             public Color GetNoteStarPowerColor(int index)
             {
@@ -147,6 +152,7 @@ namespace YARG.Core.Game
                     5 => YellowCymbalStarpower,
                     6 => BlueCymbalStarpower,
                     7 => GreenCymbalStarpower,
+                    8 => RedCymbalStarpower,
 
                     _ => default
                 };
@@ -190,6 +196,7 @@ namespace YARG.Core.Game
                 writer.Write(BlueDrum);
                 writer.Write(GreenDrum);
 
+                writer.Write(RedCymbal);
                 writer.Write(YellowCymbal);
                 writer.Write(BlueCymbal);
                 writer.Write(GreenCymbal);
@@ -200,6 +207,7 @@ namespace YARG.Core.Game
                 writer.Write(BlueDrumStarpower);
                 writer.Write(GreenDrumStarpower);
 
+                writer.Write(RedCymbalStarpower);
                 writer.Write(YellowCymbalStarpower);
                 writer.Write(BlueCymbalStarpower);
                 writer.Write(GreenCymbalStarpower);
@@ -233,6 +241,7 @@ namespace YARG.Core.Game
                 BlueDrum = reader.ReadColor();
                 GreenDrum = reader.ReadColor();
 
+                RedCymbal = reader.ReadColor();
                 YellowCymbal = reader.ReadColor();
                 BlueCymbal = reader.ReadColor();
                 GreenCymbal = reader.ReadColor();
@@ -243,6 +252,7 @@ namespace YARG.Core.Game
                 BlueDrumStarpower = reader.ReadColor();
                 GreenDrumStarpower = reader.ReadColor();
 
+                RedCymbalStarpower = reader.ReadColor();
                 YellowCymbalStarpower = reader.ReadColor();
                 BlueCymbalStarpower = reader.ReadColor();
                 GreenCymbalStarpower = reader.ReadColor();
