@@ -176,11 +176,7 @@ namespace YARG.Core.Engine
 
         protected void RunHitLogic(double time)
         {
-            bool noteUpdated;
-            do
-            {
-                noteUpdated = UpdateEngineLogic(time);
-            } while (noteUpdated);
+            UpdateEngineLogic(time);
         }
 
         protected void StartTimer(ref EngineTimer timer, double startTime, double offset = 0)

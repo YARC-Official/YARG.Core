@@ -411,11 +411,8 @@ namespace YARG.Core.Engine.Guitar
                         TimerValue = State.StarPowerWhammyTimer.TimeThreshold,
                     });
                 }
-                else if (State.StarPowerWhammyTimer.IsExpired(State.CurrentTime))
+                else if (State.StarPowerWhammyTimer.IsActive && State.StarPowerWhammyTimer.IsExpired(State.CurrentTime))
                 {
-                    // No need to restart the timer, expiration is handled correctly in the gain calculation
-                    // State.StarPowerWhammyTimer.Start(State.CurrentTime);
-
                     // Commit final whammy gain amount
                     UpdateProgressValues(State.CurrentTick);
                     RebaseProgressValues(State.CurrentTick);
@@ -432,8 +429,7 @@ namespace YARG.Core.Engine.Guitar
                 }
             }
             // Rebase after SP whammy ends to commit the final amount to the base
-            else if (State.StarPowerWhammyTimer.IsActive ||
-                State.StarPowerWhammyTimer.IsExpired(State.CurrentTime))
+            else if(State.StarPowerWhammyTimer.IsActive)
             {
                 RebaseProgressValues(State.CurrentTick);
 
