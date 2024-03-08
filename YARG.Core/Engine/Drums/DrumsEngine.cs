@@ -144,13 +144,7 @@ namespace YARG.Core.Engine.Drums
 
             if (note.ParentOrSelf.WasFullyHitOrMissed())
             {
-                State.NoteIndex++;
-
-                var dist = GetAverageNoteDistance(Notes[State.NoteIndex]);
-                var fullWindow = EngineParameters.HitWindow.CalculateHitWindow(dist);
-
-                var expectedMissTime = note.Time + EngineParameters.HitWindow.GetBackEnd(fullWindow);
-                AddConsistencyAnchor(expectedMissTime);
+                base.HitNote(note);
             }
         }
 
@@ -180,7 +174,7 @@ namespace YARG.Core.Engine.Drums
 
             if (note.ParentOrSelf.WasFullyHitOrMissed())
             {
-                State.NoteIndex++;
+                base.MissNote(note);
             }
         }
 

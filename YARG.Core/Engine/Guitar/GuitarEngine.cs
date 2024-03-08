@@ -193,16 +193,7 @@ namespace YARG.Core.Engine.Guitar
             });
 
             OnNoteHit?.Invoke(State.NoteIndex, note);
-            State.NoteIndex++;
-
-            if(State.NoteIndex < Notes.Count)
-            {
-                var dist = GetAverageNoteDistance(Notes[State.NoteIndex]);
-                var fullWindow = EngineParameters.HitWindow.CalculateHitWindow(dist);
-
-                var expectedMissTime = note.Time + EngineParameters.HitWindow.GetBackEnd(fullWindow);
-                AddConsistencyAnchor(expectedMissTime);
-            }
+            base.HitNote(note);
         }
 
         protected override void MissNote(GuitarNote note)
@@ -240,7 +231,7 @@ namespace YARG.Core.Engine.Guitar
             });
 
             OnNoteMissed?.Invoke(State.NoteIndex, note);
-            State.NoteIndex++;
+            base.MissNote(note);
         }
 
         protected override void AddScore(GuitarNote note)
@@ -337,7 +328,7 @@ namespace YARG.Core.Engine.Guitar
             var sustain = new ActiveSustain(note);
 
             ActiveSustains.Add(sustain);
-            AddConsistencyAnchor(sustain.GetEndTime(SyncTrack, SustainBurstThreshold));
+            QueueUpdateTime(sustain.GetEndTime(SyncTrack, SustainBurstThreshold));
 
             OnSustainStart?.Invoke(note);
         }

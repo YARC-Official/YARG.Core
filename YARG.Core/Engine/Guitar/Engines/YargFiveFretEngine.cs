@@ -87,13 +87,6 @@ namespace YARG.Core.Engine.Guitar.Engines
             var hitWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
             var frontEnd = EngineParameters.HitWindow.GetFrontEnd(hitWindow);
 
-            // Note is not in front end yet
-            if (State.CurrentTime < note.Time + frontEnd)
-            {
-                // This is the time when the note will enter the hit window in the front end. Engine will update at this time
-                AddConsistencyAnchor(note.Time + frontEnd);
-            }
-
             if (State.HasStrummed && !strumEatenByHopo)
             {
                 // Offset timer by small strum leniency if there's no note in the hit window

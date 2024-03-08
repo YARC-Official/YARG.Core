@@ -25,7 +25,7 @@ namespace YARG.Core.Engine
 
         protected readonly Queue<GameInput> InputQueue;
 
-        private readonly List<double> _consistencyAnchors = new();
+        private readonly List<double> _scheduledUpdates = new();
 
         /// <summary>
         /// Whether or not the specified engine should treat a note as a chord, or separately.
@@ -91,6 +91,17 @@ namespace YARG.Core.Engine
             BaseState.LastQueuedInputTime = input.Time;
         }
 
+        public void QueueUpdateTime(double time)
+        {
+            if (_scheduledUpdates.Contains(time))
+            {
+                return;
+            }
+
+            _scheduledUpdates.Add(time);
+            _scheduledUpdates.Sort();
+        }
+
         /// <summary>
         /// Updates the engine and processes all inputs currently queued.
         /// </summary>
@@ -151,18 +162,7 @@ namespace YARG.Core.Engine
                 timer.Start(startTime);
             }
 
-            AddConsistencyAnchor(timer.EndTime);
-        }
-
-        protected void AddConsistencyAnchor(double time)
-        {
-            if (_consistencyAnchors.Contains(time))
-            {
-                return;
-            }
-
-            _consistencyAnchors.Add(time);
-            _consistencyAnchors.Sort();
+            QueueUpdateTime(timer.EndTime);
         }
 
         public abstract void Reset(bool keepCurrentButtons = false);
@@ -178,14 +178,14 @@ namespace YARG.Core.Engine
             }
 
             double lastAnchor = double.MinValue;
-            while (_consistencyAnchors.Count > 0)
+            while (_scheduledUpdates.Count > 0)
             {
-                double anchor = _consistencyAnchors[0];
+                double anchor = _scheduledUpdates[0];
                 // Skip until we reach the point that the anchor is ahead of the current time.
                 // Or if the anchor is the same as the last anchor (prevents infinite loop)
                 if (anchor < BaseState.CurrentTime || Math.Abs(anchor - lastAnchor) < double.Epsilon)
                 {
-                    _consistencyAnchors.RemoveAt(0);
+                    _scheduledUpdates.RemoveAt(0);
                     continue;
                 }
 
