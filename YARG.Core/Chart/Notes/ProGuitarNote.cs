@@ -4,8 +4,7 @@ namespace YARG.Core.Chart
 {
     public class ProGuitarNote : Note<ProGuitarNote>
     {
-        private readonly ProGuitarNoteFlags _proFlags;
-
+        private ProGuitarNoteFlags _proFlags;
         public ProGuitarNoteFlags ProFlags;
 
         public int String   { get; }
@@ -54,6 +53,14 @@ namespace YARG.Core.Chart
         {
             base.ResetNoteState();
             ProFlags = _proFlags;
+        }
+
+        protected override void CopyFlags(ProGuitarNote other)
+        {
+            _proFlags = other._proFlags;
+            ProFlags = other.ProFlags;
+
+            Type = other.Type;
         }
 
         protected override ProGuitarNote CloneNote()

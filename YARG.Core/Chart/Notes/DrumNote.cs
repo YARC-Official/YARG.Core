@@ -4,8 +4,7 @@ namespace YARG.Core.Chart
 {
     public class DrumNote : Note<DrumNote>
     {
-        private readonly DrumNoteFlags _drumFlags;
-
+        private DrumNoteFlags _drumFlags;
         public DrumNoteFlags DrumFlags;
 
         public int Pad { get; }
@@ -51,6 +50,14 @@ namespace YARG.Core.Chart
         {
             base.ResetNoteState();
             DrumFlags = _drumFlags;
+        }
+
+        protected override void CopyFlags(DrumNote other)
+        {
+            _drumFlags = other._drumFlags;
+            DrumFlags = other.DrumFlags;
+
+            Type = other.Type;
         }
 
         protected override DrumNote CloneNote()

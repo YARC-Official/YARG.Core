@@ -4,8 +4,7 @@ namespace YARG.Core.Chart
 {
     public class GuitarNote : Note<GuitarNote>
     {
-        private readonly GuitarNoteFlags _guitarFlags;
-
+        private GuitarNoteFlags _guitarFlags;
         public GuitarNoteFlags GuitarFlags;
 
         public int Fret         { get; }
@@ -73,6 +72,14 @@ namespace YARG.Core.Chart
             base.ResetNoteState();
             GuitarFlags = _guitarFlags;
             SustainTicksHeld = 0;
+        }
+
+        protected override void CopyFlags(GuitarNote other)
+        {
+            _guitarFlags = other._guitarFlags;
+            GuitarFlags = other.GuitarFlags;
+
+            Type = other.Type;
         }
 
         protected override GuitarNote CloneNote()
