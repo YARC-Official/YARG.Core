@@ -177,7 +177,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             {
                 HitNote(note);
 
-                EventLogger?.LogEvent(new ConsistentEngineEvent(State.CurrentTime)
+                EventLogger.LogEvent(new ConsistentEngineEvent(State.CurrentTime)
                 {
                     Message = $"Note ({State.NoteIndex}) hit via tap"
                 });
@@ -192,14 +192,14 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                 if (State.HasStrummed)
                 {
-                    EventLogger?.LogEvent(new ConsistentEngineEvent(State.CurrentTime)
+                    EventLogger.LogEvent(new ConsistentEngineEvent(State.CurrentTime)
                     {
                         Message = $"Note ({State.NoteIndex}) hit via strum input"
                     });
                 }
                 else
                 {
-                    EventLogger?.LogEvent(new ConsistentEngineEvent(State.CurrentTime)
+                    EventLogger.LogEvent(new ConsistentEngineEvent(State.CurrentTime)
                     {
                         Message = $"Note ({State.NoteIndex}) hit via strum leniency"
                     });
