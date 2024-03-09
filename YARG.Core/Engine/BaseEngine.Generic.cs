@@ -564,11 +564,28 @@ namespace YARG.Core.Engine
         protected abstract int CalculateBaseScore();
 
         protected bool IsNoteInWindow(TNoteType note)
-        {
-            double hitWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
+            => IsNoteInWindow(note, out _);
 
-            return note.Time - State.CurrentTime < EngineParameters.HitWindow.GetBackEnd(hitWindow) &&
-                note.Time - State.CurrentTime > EngineParameters.HitWindow.GetFrontEnd(hitWindow);
+        protected bool IsNoteInWindow(TNoteType note, out bool missed)
+        {
+            missed = false;
+
+            double hitWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
+            double frontend = EngineParameters.HitWindow.GetFrontEnd(hitWindow);
+            double backend = EngineParameters.HitWindow.GetBackEnd(hitWindow);
+
+            if (note.Time + frontend > State.CurrentTime)
+            {
+                return false;
+            }
+
+            if (note.Time + backend <= State.CurrentTime)
+            {
+                missed = true;
+                return false;
+            }
+
+            return true;
         }
 
         private void AdvanceToNextNote(TNoteType note)

@@ -136,24 +136,21 @@ namespace YARG.Core.Engine.Guitar.Engines
         protected override bool CheckForNoteHit()
         {
             var note = Notes[State.NoteIndex];
-            double fullWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
 
             if (note.WasFullyHitOrMissed())
             {
                 return false;
             }
 
-            // Note not in window
-            if (State.CurrentTime < note.Time + EngineParameters.HitWindow.GetFrontEnd(fullWindow))
+            if (!IsNoteInWindow(note, out bool missed))
             {
-                return false;
-            }
+                if (missed)
+                {
+                    MissNote(note);
+                    return true;
+                }
 
-            // Check for note miss note (back end)
-            if (State.CurrentTime > note.Time + EngineParameters.HitWindow.GetBackEnd(fullWindow))
-            {
-                MissNote(note);
-                return true;
+                return false;
             }
 
             //State.HopoLeniencyTimer.Disable();

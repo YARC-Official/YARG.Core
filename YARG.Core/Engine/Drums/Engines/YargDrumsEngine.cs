@@ -33,7 +33,7 @@ namespace YARG.Core.Engine.Drums.Engines
             double hitWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
 
             // Check for note miss note (back end)
-            if (State.CurrentTime > note.Time + EngineParameters.HitWindow.GetBackEnd(hitWindow))
+            if (State.CurrentTime >= note.Time + EngineParameters.HitWindow.GetBackEnd(hitWindow))
             {
                 foreach (var chordNote in note.ChordEnumerator())
                 {
