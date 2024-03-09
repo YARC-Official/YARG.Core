@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using YARG.Core.Chart;
 using YARG.Core.Engine.Logging;
@@ -57,34 +57,71 @@ namespace YARG.Core.Engine
 
         public void Update(double time)
         {
-            bool UpdateScheduled() => _scheduledUpdates.Count > 0;
-
-            while (IsInputQueued || (UpdateScheduled() && _scheduledUpdates[0] < time))
+            while (InputQueue.TryDequeue(out var input))
             {
-                double nextInputTime = IsInputQueued ? InputQueue.Peek().Time : double.MaxValue;
-                double updateTime = UpdateScheduled() ? _scheduledUpdates[0] : double.MaxValue;
-
-                // Next scheduled update is before the current time so skip it
-                if (updateTime < BaseState.CurrentTime)
+                // Skip inputs that are in the past
+                if (input.Time < BaseState.CurrentTime)
                 {
-                    _scheduledUpdates.RemoveAt(0);
+                    YargTrace.Fail($"Queued input is in the past! Current time: {BaseState.CurrentTime}, input time: {input.Time}");
                     continue;
                 }
 
-                if (nextInputTime <= updateTime)
+                // Skip inputs that are in the future
+                if (input.Time > time)
                 {
-                    var input = InputQueue.Dequeue();
-                    MutateStateWithInput(input);
-                    RunHitLogic(input.Time);
+                    YargTrace.Fail($"Queued input is in the future! Time being updated to: {time}, input time: {input.Time}");
+                    break;
                 }
-                else
+
+                RunQueuedUpdates(input.Time);
+                MutateStateWithInput(input);
+                RunHitLogic(input.Time);
+
+                // Skip non-input update if possible
+                if (input.Time == time)
                 {
-                    RunHitLogic(updateTime);
-                    _scheduledUpdates.RemoveAt(0);
+                    YargTrace.Assert(InputQueue.Count == 0, "Input queue was not fully cleared! Remaining inputs are possibly in the future");
+                    return;
                 }
             }
 
+            // Update to the given time
+            YargTrace.Assert(InputQueue.Count == 0, "Input queue was not fully cleared!");
+            RunQueuedUpdates(time);
             RunHitLogic(time);
+        }
+
+        private void RunQueuedUpdates(double time)
+        {
+            // 'for' is used here to prevent enumeration exceptions,
+            // the list of scheduled updates will be modified by the updates we're running
+            int i = 0;
+            for (; i < _scheduledUpdates.Count; i++)
+            {
+                double updateTime = _scheduledUpdates[i];
+
+                // Skip updates that are in the past
+                if (updateTime < BaseState.CurrentTime)
+                {
+                    YargTrace.Fail($"Scheduled update is in the past! Current time: {BaseState.CurrentTime}, update time: {updateTime}");
+                    continue;
+                }
+
+                // Stop once we've processed everything up to the given time
+                if (updateTime >= time)
+                {
+                    // De-duplicate any updates for the given time
+                    if (updateTime == time)
+                        i++;
+
+                    break;
+                }
+
+                RunHitLogic(updateTime);
+            }
+
+            // Remove all processed updates
+            _scheduledUpdates.RemoveRange(0, i);
         }
 
         /// <summary>
@@ -101,7 +138,7 @@ namespace YARG.Core.Engine
             // In the case that the queue is not in order...
             if (input.Time < BaseState.LastQueuedInputTime)
             {
-                YargTrace.LogWarning("Engine was forced to move an input time! " +
+                YargTrace.LogWarning("Engine was forced to move an out-of-order input time! " +
                     $"Previous queued input: {BaseState.LastQueuedInputTime}, input being queued: {input.Time}");
 
                 input = new GameInput(BaseState.LastQueuedInputTime, input.Action, input.Integer);
@@ -110,7 +147,7 @@ namespace YARG.Core.Engine
             // In the case that the input is before the current time...
             if (input.Time < BaseState.CurrentTime)
             {
-                YargTrace.LogWarning("Engine was forced to move an input time! " +
+                YargTrace.LogWarning("Engine was forced to move an input time from the past! " +
                     $"Current time: {BaseState.CurrentTime}, input being queued: {input.Time}");
 
                 input = new GameInput(BaseState.CurrentTime, input.Action, input.Integer);
@@ -122,8 +159,18 @@ namespace YARG.Core.Engine
 
         public void QueueUpdateTime(double time)
         {
+            // Ignore duplicate updates
             if (_scheduledUpdates.Contains(time))
+                return;
+
+            // Ignore updates for the current time
+            if (time == BaseState.CurrentTime)
+                return;
+
+            // Disallow updates in the past
+            if (time < BaseState.CurrentTime)
             {
+                YargTrace.Fail($"Cannot queue update in the past! Current time: {BaseState.CurrentTime}, time being queued: {time}");
                 return;
             }
 
