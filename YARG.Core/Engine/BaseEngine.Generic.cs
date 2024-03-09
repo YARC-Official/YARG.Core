@@ -587,10 +587,18 @@ namespace YARG.Core.Engine
             double backEnd = EngineParameters.HitWindow.GetBackEnd(fullWindow);
 
             // This is the time when the note will enter the hit window in the front end. Engine will update at this time
-            QueueUpdateTime(note.Time + frontEnd);
+            double frontEndTime = note.Time + frontEnd;
+            // Only queue if the note is not already in the hit window, happens if
+            // multiple notes are in the hit window and the back-most one gets hit/missed
+            if (frontEndTime > State.CurrentTime)
+                QueueUpdateTime(frontEndTime);
 
             // This is the time when the note will leave the hit window in the back end (miss)
-            QueueUpdateTime(note.Time + backEnd);
+            double backEndTime = note.Time + backEnd;
+            // Only queue if note has not already been missed
+            // Very rare case; only happens when lagging enough to make a note skip the hit window entirely
+            if (backEndTime > State.CurrentTime)
+                QueueUpdateTime(backEndTime);
 
             State.NoteIndex++;
         }
