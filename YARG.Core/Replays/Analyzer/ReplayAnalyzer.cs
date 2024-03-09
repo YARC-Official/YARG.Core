@@ -62,75 +62,23 @@ namespace YARG.Core.Replays.Analyzer
             var engine = CreateEngine(frame.PlayerInfo.Profile, frame.EngineParameters);
             engine.Reset();
 
-            double maxTime = _chart.GetEndTime() + 1;
+            double maxTime = Math.Max(_chart.GetEndTime(), frame.Inputs[^1].Time) + 2;
 
-            var frameTimes = new List<double>();
+            foreach (var input in frame.Inputs)
+            {
+                var inp = input;
+                engine.QueueInput(ref inp);
+            }
 
             if (_doFrameUpdates)
             {
-                double currentTime = -2;
-
-                if (frame.Inputs.Length > 0)
+                foreach (double frameTime in GenerateFrameTimes(-2, maxTime))
                 {
-                    // Pre-song
-                    GenerateFrameTimes(frameTimes, currentTime, frame.Inputs[0].Time);
-
-                    foreach (double time in frameTimes)
-                    {
-                        engine.UpdateEngineToTime(time);
-                    }
-                }
-
-                int inputIndex = 0;
-
-                while (inputIndex < frame.Inputs.Length)
-                {
-                    var input = frame.Inputs[inputIndex];
-                    var inputTime = input.Time;
-
-                    engine.QueueInput(ref input);
-                    currentTime = inputTime;
-
-                    // The input time SHOULD NOT have changed at all
-                    // ReSharper disable once CompareOfFloatsByEqualityOperator
-                    YargTrace.Assert(input.Time == inputTime, "Frame time generation is messed up");
-
-                    var nextTime = inputIndex + 1 < frame.Inputs.Length ? frame.Inputs[inputIndex + 1].Time : maxTime;
-
-                    frameTimes.Clear();
-                    GenerateFrameTimes(frameTimes, input.Time, nextTime);
-
-                    engine.UpdateEngineInputs();
-
-                    foreach (double time in frameTimes)
-                    {
-                        engine.UpdateEngineToTime(time);
-                        currentTime = time;
-                    }
-
-                    inputIndex++;
-                }
-
-                // End of song
-                frameTimes.Clear();
-                GenerateFrameTimes(frameTimes, currentTime, maxTime);
-
-                foreach (double time in frameTimes)
-                {
-                    engine.UpdateEngineToTime(time);
+                    engine.QueueUpdateTime(frameTime);
                 }
             }
-            else
-            {
-                // Run each input through the engine
-                foreach (var input in frame.Inputs)
-                {
-                    var inp = input;
-                    engine.QueueInput(ref inp);
-                }
 
-                engine.UpdateEngineInputs();
-            }
+            engine.Update(maxTime);
 
             bool passed = IsPassResult(frame.Stats, engine.BaseStats);
 
@@ -207,18 +155,13 @@ namespace YARG.Core.Replays.Analyzer
             }
         }
 
-        private void GenerateFrameTimes(ICollection<double> times, double from, double to)
+        private List<double> GenerateFrameTimes(double from, double to)
         {
-            // Skip if the times are basically the same
-            if (Math.Abs(from - to) < double.Epsilon)
-            {
-                return;
-            }
-
             YargTrace.Assert(to > from, "Invalid time range");
 
             double frameTime = 1.0 / _fps;
 
+            var times = new List<double>();
             for (double time = from; time < to; time += frameTime)
             {
                 // Add up to 45% random adjustment to the frame time
@@ -239,6 +182,8 @@ namespace YARG.Core.Replays.Analyzer
 
                 times.Add(adjustedTime);
             }
+
+            return times;
         }
 
         private static bool IsPassResult(BaseStats original, BaseStats result)
