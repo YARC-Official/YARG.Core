@@ -178,46 +178,6 @@ namespace YARG.Core.Engine
             _scheduledUpdates.Sort();
         }
 
-        /// <summary>
-        /// Updates the engine and processes all inputs currently queued.
-        /// </summary>
-        public void UpdateEngineInputs()
-        {
-            if (!IsInputQueued)
-            {
-                return;
-            }
-
-            ProcessInputs();
-        }
-
-        /// <summary>
-        /// Loops through the input queue and processes each input. Invokes engine logic for each input.
-        /// </summary>
-        protected void ProcessInputs()
-        {
-            // Start to process inputs in queue.
-            while (InputQueue.TryDequeue(out var input))
-            {
-                // This will update the engine to the time of the input.
-                // However, it does not use the input for the update.
-                UpdateUpToTime(input.Time);
-
-                // Process the input and run hit logic for it.
-                MutateStateWithInput(input);
-                RunHitLogic(input.Time);
-            }
-        }
-
-        /// <summary>
-        /// Updates the engine with no input processing.
-        /// </summary>
-        /// <param name="time">The time to simulate hit logic at.</param>
-        public void UpdateEngineToTime(double time)
-        {
-            UpdateUpToTime(time);
-        }
-
         protected void RunHitLogic(double time)
         {
             UpdateEngineLogic(time);
@@ -241,42 +201,6 @@ namespace YARG.Core.Engine
 
         protected abstract void MutateStateWithInput(GameInput gameInput);
 
-        protected void UpdateUpToTime(double time)
-        {
-            if (time < BaseState.CurrentTime)
-            {
-                YargTrace.LogError($"Engine could not update up to time {time} as it is before the current time!");
-                return;
-            }
-
-            double lastAnchor = double.MinValue;
-            while (_scheduledUpdates.Count > 0)
-            {
-                double anchor = _scheduledUpdates[0];
-                // Skip until we reach the point that the anchor is ahead of the current time.
-                // Or if the anchor is the same as the last anchor (prevents infinite loop)
-                if (anchor < BaseState.CurrentTime || Math.Abs(anchor - lastAnchor) < double.Epsilon)
-                {
-                    _scheduledUpdates.RemoveAt(0);
-                    continue;
-                }
-
-                lastAnchor = anchor;
-
-                // Break when we reach a time that is ahead of the target time.
-                // We can safely break here since it's sorted.
-                if (anchor > time)
-                {
-                    break;
-                }
-
-                RunHitLogic(anchor);
-            }
-
-            // Run at the actual time
-            RunHitLogic(time);
-        }
-
         /// <summary>
         /// Executes engine logic with respect to the given time.
         /// </summary>
@@ -295,10 +219,8 @@ namespace YARG.Core.Engine
             Reset();
 
             var inputIndex = 0;
-            double lastInputTime = 0;
             foreach (var input in inputs)
             {
-                lastInputTime = input.Time;
                 if (input.Time > time)
                 {
                     break;
@@ -308,12 +230,7 @@ namespace YARG.Core.Engine
                 inputIndex++;
             }
 
-            ProcessInputs();
-
-            if (lastInputTime < time)
-            {
-                UpdateEngineToTime(time);
-            }
+            Update(time);
 
             return inputIndex;
         }
