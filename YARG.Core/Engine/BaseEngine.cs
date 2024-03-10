@@ -62,14 +62,16 @@ namespace YARG.Core.Engine
                 // Skip inputs that are in the past
                 if (input.Time < BaseState.CurrentTime)
                 {
-                    YargTrace.Fail($"Queued input is in the past! Current time: {BaseState.CurrentTime}, input time: {input.Time}");
+                    YargTrace.Fail(
+                        $"Queued input is in the past! Current time: {BaseState.CurrentTime}, input time: {input.Time}");
                     continue;
                 }
 
                 // Skip inputs that are in the future
                 if (input.Time > time)
                 {
-                    YargTrace.Fail($"Queued input is in the future! Time being updated to: {time}, input time: {input.Time}");
+                    YargTrace.Fail(
+                        $"Queued input is in the future! Time being updated to: {time}, input time: {input.Time}");
                     break;
                 }
 
@@ -80,7 +82,8 @@ namespace YARG.Core.Engine
                 // Skip non-input update if possible
                 if (input.Time == time)
                 {
-                    YargTrace.Assert(InputQueue.Count == 0, "Input queue was not fully cleared! Remaining inputs are possibly in the future");
+                    YargTrace.Assert(InputQueue.Count == 0,
+                        "Input queue was not fully cleared! Remaining inputs are possibly in the future");
                     return;
                 }
             }
@@ -103,7 +106,8 @@ namespace YARG.Core.Engine
                 // Skip updates that are in the past
                 if (updateTime < BaseState.CurrentTime)
                 {
-                    YargTrace.Fail($"Scheduled update is in the past! Current time: {BaseState.CurrentTime}, update time: {updateTime}");
+                    YargTrace.Fail(
+                        $"Scheduled update is in the past! Current time: {BaseState.CurrentTime}, update time: {updateTime}");
                     continue;
                 }
 
@@ -112,7 +116,9 @@ namespace YARG.Core.Engine
                 {
                     // De-duplicate any updates for the given time
                     if (updateTime == time)
+                    {
                         i++;
+                    }
 
                     break;
                 }
@@ -159,22 +165,33 @@ namespace YARG.Core.Engine
 
         public void QueueUpdateTime(double time)
         {
-            // Ignore duplicate updates
-            if (_scheduledUpdates.Contains(time))
-                return;
-
             // Ignore updates for the current time
             if (time == BaseState.CurrentTime)
+            {
                 return;
+            }
 
             // Disallow updates in the past
             if (time < BaseState.CurrentTime)
             {
-                YargTrace.Fail($"Cannot queue update in the past! Current time: {BaseState.CurrentTime}, time being queued: {time}");
+                YargTrace.Fail(
+                    $"Cannot queue update in the past! Current time: {BaseState.CurrentTime}, time being queued: {time}");
+                return;
+            }
+
+            // Ignore duplicate updates
+            if (_scheduledUpdates.Contains(time))
+            {
                 return;
             }
 
             _scheduledUpdates.Add(time);
+            _scheduledUpdates.Sort();
+        }
+
+        internal void QueueManyUpdateTimesNoChecks(IEnumerable<double> times)
+        {
+            _scheduledUpdates.AddRange(times);
             _scheduledUpdates.Sort();
         }
 

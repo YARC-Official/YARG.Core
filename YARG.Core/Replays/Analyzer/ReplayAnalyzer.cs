@@ -72,10 +72,7 @@ namespace YARG.Core.Replays.Analyzer
 
             if (_doFrameUpdates)
             {
-                foreach (double frameTime in GenerateFrameTimes(-2, maxTime))
-                {
-                    engine.QueueUpdateTime(frameTime);
-                }
+                engine.QueueManyUpdateTimesNoChecks(GenerateFrameTimes(-2, maxTime));
             }
 
             engine.Update(maxTime);
