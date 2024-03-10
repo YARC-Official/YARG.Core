@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Threading.Tasks;
+using YARG.Core.Extensions;
 using YARG.Core.IO;
 
 namespace YARG.Core.Song.Cache
@@ -23,17 +23,21 @@ namespace YARG.Core.Song.Cache
         public int BadSongCount;
     }
 
-    public sealed partial class CacheHandler
+    public abstract partial class CacheHandler
     {
         public static ScanProgressTracker Progress => _progress;
         private static ScanProgressTracker _progress;
+
         public static SongCache RunScan(bool fast, string cacheLocation, string badSongsLocation, bool multithreading, bool allowDuplicates, bool fullDirectoryPlaylists, List<string> baseDirectories)
         {
-            var handler = new CacheHandler(baseDirectories, allowDuplicates, fullDirectoryPlaylists);
+            CacheHandler handler = multithreading
+                ? new ParallelCacheHandler(baseDirectories, allowDuplicates, fullDirectoryPlaylists)
+                : new SequentialCacheHandler(baseDirectories, allowDuplicates, fullDirectoryPlaylists);
+
             try
             {
-                if (!fast || !handler.QuickScan(cacheLocation, multithreading))
-                    handler.FullScan(!fast, cacheLocation, badSongsLocation, multithreading);
+                if (!fast || !QuickScan(handler, cacheLocation))
+                    FullScan(handler, !fast, cacheLocation, badSongsLocation);
             }
             catch (Exception ex)
             {
@@ -43,6 +47,92 @@ namespace YARG.Core.Song.Cache
             return handler.cache;
         }
 
+        private static bool QuickScan(CacheHandler handler, string cacheLocation)
+        {
+            try
+            {
+                using var stream = CheckCacheFile(cacheLocation, handler.fullDirectoryPlaylists);
+                if (stream == null)
+                {
+                    return false;
+                }
+
+                _progress.Stage = ScanStage.LoadingCache;
+                YargTrace.DebugInfo("Quick Read start");
+                handler.Deserialize_Quick(stream);
+            }
+            catch (Exception ex)
+            {
+                YargTrace.LogException(ex, "Error occurred during quick cache file read!");
+            }
+
+            if (_progress.Count == 0)
+            {
+                return false;
+            }
+
+            handler.CleanupDuplicates();
+            handler.SortCategories();
+            YargTrace.DebugInfo($"Total Entries: {_progress.Count}");
+            return true;
+        }
+
+        private static void FullScan(CacheHandler handler, bool loadCache, string cacheLocation, string badSongsLocation)
+        {
+            if (loadCache)
+            {
+                try
+                {
+                    using var stream = CheckCacheFile(cacheLocation, handler.fullDirectoryPlaylists);
+                    if (stream != null)
+                    {
+                        _progress.Stage = ScanStage.LoadingCache;
+                        YargTrace.DebugInfo("Full Read start");
+                        handler.Deserialize(stream);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    YargTrace.LogException(ex, "Error occurred during full cache file read!");
+                }
+            }
+
+            _progress.Stage = ScanStage.LoadingSongs;
+            handler.FindNewEntries();
+            handler.CleanupDuplicates();
+
+            _progress.Stage = ScanStage.Sorting;
+            handler.SortCategories();
+            YargTrace.DebugInfo($"Total Entries: {_progress.Count}");
+
+            try
+            {
+                _progress.Stage = ScanStage.WritingCache;
+                handler.Serialize(cacheLocation);
+            }
+            catch (Exception ex)
+            {
+                YargTrace.LogException(ex, "Error when writing song cache!");
+            }
+
+            try
+            {
+                if (handler.badSongs.Count > 0)
+                {
+                    _progress.Stage = ScanStage.WritingBadSongs;
+                    handler.WriteBadSongs(badSongsLocation);
+                }
+                else
+                {
+                    File.Delete(badSongsLocation);
+                }
+            }
+            catch (Exception ex)
+            {
+                YargTrace.LogException(ex, "Error when writing bad songs file!");
+            }
+        }
+
         /// <summary>
         /// The date revision of the cache format, relative to UTC.
         /// Format is YY_MM_DD_RR: Y = year, M = month, D = day, R = revision (reset across dates, only increment
@@ -50,36 +140,27 @@ namespace YARG.Core.Song.Cache
         /// </summary>
         public const int CACHE_VERSION = 24_02_21_01;
 
-        private static readonly object dirLock = new();
-        private static readonly object fileLock = new();
-        private static readonly object updateLock = new();
-        private static readonly object upgradeLock = new();
-        private static readonly object entryLock = new();
-        private static readonly object badsongsLock = new();
-        private static readonly object invalidLock = new();
+        protected readonly SongCache cache = new();
 
-        static CacheHandler() { }
+        protected readonly List<IniGroup> iniGroups;
+        protected readonly List<UpdateGroup> updateGroups = new();
+        protected readonly List<UpgradeGroup> upgradeGroups = new();
+        protected readonly List<PackedCONGroup> conGroups = new();
+        protected readonly List<UnpackedCONGroup> extractedConGroups = new();
+        
+        protected readonly Dictionary<string, List<SongUpdate>> updates = new();
+        protected readonly Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades = new();
+        protected readonly HashSet<string> preScannedDirectories = new();
+        protected readonly HashSet<string> preScannedFiles = new();
+        
 
+        protected readonly bool allowDuplicates = true;
+        protected readonly bool fullDirectoryPlaylists;
+        protected readonly List<SongEntry> duplicatesRejected = new();
+        protected readonly List<SongEntry> duplicatesToRemove = new();
+        protected readonly SortedDictionary<string, ScanResult> badSongs = new();
 
-        private readonly SongCache cache = new();
-
-        private readonly LockedList<UpdateGroup> updateGroups = new();
-        private readonly LockedList<UpgradeGroup> upgradeGroups = new();
-        private readonly LockedList<PackedCONGroup> conGroups = new();
-        private readonly LockedList<UnpackedCONGroup> extractedConGroups = new();
-        private readonly List<IniGroup> iniGroups;
-        private readonly Dictionary<string, List<SongUpdate>> updates = new();
-        private readonly Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades = new();
-        private readonly HashSet<string> preScannedDirectories = new();
-        private readonly HashSet<string> preScannedFiles = new();
-        private readonly SortedDictionary<string, ScanResult> badSongs = new();
-
-        private readonly bool allowDuplicates = true;
-        private readonly bool fullDirectoryPlaylists = false;
-        private readonly List<SongEntry> duplicatesRejected = new();
-        private readonly List<SongEntry> duplicatesToRemove = new();
-
-        private CacheHandler(List<string> baseDirectories, bool allowDuplicates, bool fullDirectoryPlaylists)
+        protected CacheHandler(List<string> baseDirectories, bool allowDuplicates, bool fullDirectoryPlaylists)
         {
             _progress = default;
             this.allowDuplicates = allowDuplicates;
@@ -95,7 +176,43 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private IniGroup? GetBaseIniGroup(string path)
+        protected abstract void SortEntries(InstrumentCategory[] instruments);
+        protected abstract void AddUpdates(UpdateGroup group, Dictionary<string, List<YARGDTAReader>> nodes, bool removeEntries);
+        protected abstract void AddUpgrade(string name, YARGDTAReader? reader, IRBProUpgrade upgrade);
+        protected abstract void AddPackedCONGroup(PackedCONGroup group);
+        protected abstract void AddUnpackedCONGroup(UnpackedCONGroup group);
+        protected abstract void AddUpgradeGroup(UpgradeGroup group);
+        protected abstract void RemoveCONEntry(string shortname);
+        protected abstract bool CanAddUpgrade(string shortname, DateTime lastUpdated);
+        protected abstract bool CanAddUpgrade_CONInclusive(string shortname, DateTime lastUpdated);
+        protected virtual bool AddEntry(SongEntry entry)
+        {
+            var hash = entry.Hash;
+            if (cache.Entries.TryGetValue(hash, out var list) && !allowDuplicates)
+            {
+                if (list[0].IsPreferedOver(entry))
+                {
+                    duplicatesRejected.Add(entry);
+                    return false;
+                }
+
+                duplicatesToRemove.Add(list[0]);
+                list[0] = entry;
+            }
+            else
+            {
+                if (list == null)
+                {
+                    cache.Entries.Add(hash, list = new List<SongEntry>());
+                }
+
+                list.Add(entry);
+                ++_progress.Count;
+            }
+            return true;
+        }
+
+        protected IniGroup? GetBaseIniGroup(string path)
         {
             foreach (var group in iniGroups)
             {
@@ -109,72 +226,11 @@ namespace YARG.Core.Song.Cache
             return null;
         }
 
-        private bool QuickScan(string cacheLocation, bool multithreading)
-        {
-            try
-            {
-                if (!Deserialize_Quick(cacheLocation, multithreading))
-                {
-                    return false;
-                }
-            }
-            catch (Exception ex)
-            {
-                YargTrace.LogException(ex, "Error occurred during quick cache file read!");
-            }
-
-            if (_progress.Count == 0)
-            {
-                return false;
-            }
-
-            CleanupDuplicates();
-            SortCategories(multithreading);
-            return true;
-        }
-
-        private void FullScan(bool loadCache, string cacheLocation, string badSongsLocation, bool multithreading)
-        {
-            if (loadCache)
-            {
-                try
-                {
-                    Deserialize(cacheLocation, multithreading);
-                }
-                catch (Exception ex)
-                {
-                    YargTrace.LogException(ex, "Error occurred during full cache file read!");
-                }
-            }
-
-            FindNewEntries(multithreading);
-            CleanupDuplicates();
-            SortCategories(multithreading);
-
-            try
-            {
-                Serialize(cacheLocation);
-            }
-            catch (Exception ex)
-            {
-                YargTrace.LogException(ex, "Error when writing song cache!");
-            }
-
-            try
-            {
-                WriteBadSongs(badSongsLocation);
-            }
-            catch (Exception ex)
-            {
-                YargTrace.LogException(ex, "Error when writing bad songs file!");
-            }
-        }
-
         private void CleanupDuplicates()
         {
-            static bool TryRemove<TGroup, TMetadata>(List<TGroup> groups, SongEntry entry)
-                where TGroup : ICacheGroup<TMetadata>
-                where TMetadata : SongEntry
+            static bool TryRemove<TGroup, TEntry>(List<TGroup> groups, SongEntry entry)
+                where TGroup : ICacheGroup<TEntry>
+                where TEntry : SongEntry
             {
                 for (int i = 0; i < groups.Count; ++i)
                 {
@@ -198,51 +254,23 @@ namespace YARG.Core.Song.Cache
                     continue;
                 }
 
-                if (TryRemove<PackedCONGroup, RBCONEntry>(conGroups.Values, entry))
+                if (TryRemove<PackedCONGroup, RBCONEntry>(conGroups, entry))
                 {
                     continue;
                 }
 
-                TryRemove<UnpackedCONGroup, RBCONEntry>(extractedConGroups.Values, entry);
+                TryRemove<UnpackedCONGroup, RBCONEntry>(extractedConGroups, entry);
             }
         }
 
-        private void SortCategories(bool multithreading)
+        private void SortCategories()
         {
             var enums = (Instrument[])Enum.GetValues(typeof(Instrument));
             var instruments = new InstrumentCategory[enums.Length];
             for (int i = 0; i < instruments.Length; ++i)
                 instruments[i] = new InstrumentCategory(enums[i]);
 
-            void SortEntries(List<SongEntry> entries)
-            {
-                foreach (var entry in entries)
-                {
-                    CategorySorter<string,     TitleConfig>.      Add(entry, cache.Titles);
-                    CategorySorter<SortString, ArtistConfig>.     Add(entry, cache.Artists);
-                    CategorySorter<SortString, AlbumConfig>.      Add(entry, cache.Albums);
-                    CategorySorter<SortString, GenreConfig>.      Add(entry, cache.Genres);
-                    CategorySorter<string,     YearConfig>.       Add(entry, cache.Years);
-                    CategorySorter<SortString, CharterConfig>.    Add(entry, cache.Charters);
-                    CategorySorter<SortString, PlaylistConfig>.   Add(entry, cache.Playlists);
-                    CategorySorter<SortString, SourceConfig>.     Add(entry, cache.Sources);
-                    CategorySorter<string,     ArtistAlbumConfig>.Add(entry, cache.ArtistAlbums);
-                    CategorySorter<string,     SongLengthConfig>. Add(entry, cache.SongLengths);
-                    CategorySorter<DateTime,   DateAddedConfig>.  Add(entry, cache.DatesAdded);
-
-                    foreach (var instrument in instruments)
-                        instrument.Add(entry);
-                }
-            }
-
-            _progress.Stage = ScanStage.Sorting;
-            if (multithreading)
-                Parallel.ForEach(cache.Entries, node => SortEntries(node.Value));
-            else
-            {
-                foreach (var node in cache.Entries)
-                    SortEntries(node.Value);
-            }
+            SortEntries(instruments);
 
             foreach (var instrument in instruments)
                 if (instrument.Entries.Count > 0)
@@ -251,15 +279,11 @@ namespace YARG.Core.Song.Cache
 
         private void WriteBadSongs(string badSongsLocation)
         {
-            if (badSongs.Count == 0)
-            {
-                File.Delete(badSongsLocation);
-                return;
-            }
-
-            _progress.Stage = ScanStage.WritingBadSongs;
             using var stream = new FileStream(badSongsLocation, FileMode.Create, FileAccess.Write);
             using var writer = new StreamWriter(stream);
+
+            writer.WriteLine($"Total Errors: {badSongs.Count}");
+            writer.WriteLine();
 
             foreach (var error in badSongs)
             {
@@ -350,7 +374,7 @@ namespace YARG.Core.Song.Cache
                         if (CanAddUpgrade(name, abridged.LastUpdatedTime))
                         {
                             var upgrade = new UnpackedRBProUpgrade(abridged);
-                            group.upgrades[name] = upgrade;
+                            group.Upgrades[name] = upgrade;
                             AddUpgrade(name, reader.Clone(), upgrade);
 
                             if (removeEntries)
@@ -368,13 +392,61 @@ namespace YARG.Core.Song.Cache
                 YargTrace.LogException(ex, $"Error while scanning CON upgrade folder {directory}!");
             }
 
-            if (group.upgrades.Count == 0)
+            if (group.Upgrades.Count == 0)
             {
                 YargTrace.LogWarning($"{directory} .dta file possibly malformed");
                 return null;
             }
-            upgradeGroups.Add(group);
+            AddUpgradeGroup(group);
             return group;
+        }
+
+        private UpdateGroup? CreateUpdateGroup(DirectoryInfo dirInfo, AbridgedFileInfo dta, bool removeEntries)
+        {
+            var nodes = FindUpdateNodes(dirInfo.FullName, dta);
+            if (nodes == null)
+            {
+                return null;
+            }
+
+            var group = new UpdateGroup(dirInfo, dta.LastUpdatedTime);
+            AddUpdates(group, nodes, removeEntries);
+            return group;
+        }
+        
+        private Dictionary<string, List<YARGDTAReader>>? FindUpdateNodes(string directory, AbridgedFileInfo dta)
+        {
+            var reader = YARGDTAReader.TryCreate(dta.FullName);
+            if (reader == null)
+                return null;
+
+            var nodes = new Dictionary<string, List<YARGDTAReader>>();
+            try
+            {
+                while (reader.StartNode())
+                {
+                    string name = reader.GetNameOfNode();
+                    if (!nodes.TryGetValue(name, out var list))
+                    {
+                        nodes.Add(name, list = new List<YARGDTAReader>());
+                    }
+                    list.Add(reader.Clone());
+                    reader.EndNode();
+                }
+
+            }
+            catch (Exception ex)
+            {
+                YargTrace.LogException(ex, $"Error while scanning CON update folder {directory}!");
+                return null;
+            }
+
+            if (nodes.Count == 0)
+            {
+                YargTrace.LogWarning($"{directory} .dta file possibly malformed");
+                return null;
+            }
+            return nodes;
         }
 
         private bool TryParseUpgrades(string filename, PackedCONGroup group)
@@ -411,113 +483,23 @@ namespace YARG.Core.Song.Cache
             return group.Upgrades.Count > 0;
         }
 
-        private bool AddEntry(SongEntry entry)
+        protected static bool? CanAddUpgrade<TGroup>(List<TGroup> groups, string shortname, DateTime lastUpdated)
+            where TGroup : IUpgradeGroup
         {
-            var hash = entry.Hash;
-            lock (entryLock)
+            foreach (var group in groups)
             {
-                if (!cache.Entries.TryGetValue(hash, out var list))
+                var upgrades = group.Upgrades;
+                if (upgrades.TryGetValue(shortname, out var currUpgrade))
                 {
-                    cache.Entries.Add(hash, list = new List<SongEntry>());
-                }
-                else if (!allowDuplicates)
-                {
-                    if (list[0].IsPreferedOver(entry))
+                    if (currUpgrade.LastUpdatedTime >= lastUpdated)
                     {
-                        duplicatesRejected.Add(entry);
                         return false;
                     }
-
-                    duplicatesToRemove.Add(list[0]);
-                    list[0] = entry;
+                    upgrades.Remove(shortname);
                     return true;
                 }
-                list.Add(entry);
-                ++_progress.Count;
             }
-            return true;
-        }
-
-        private void AddUpgrade(string name, YARGDTAReader? reader, IRBProUpgrade upgrade)
-        {
-            lock (upgradeLock)
-            {
-                upgrades[name] = new(reader, upgrade);
-            }
-        }
-
-        private void AddUpdate(string name, SongUpdate update)
-        {
-            lock (updateLock)
-            {
-                if (!updates.TryGetValue(name, out var list))
-                {
-                    updates.Add(name, list = new());
-                }
-                list.Add(update);
-            }
-        }
-
-        private void RemoveCONEntry(string shortname)
-        {
-            void Remove<T>(LockedList<T> dict)
-                where T : CONGroup
-            {
-                lock (dict.Lock)
-                {
-                    foreach (var group in dict.Values)
-                    {
-                        if (group.RemoveEntries(shortname))
-                        {
-                            YargTrace.DebugInfo($"{group.Location} - {shortname} pending rescan");
-                        }
-                    }
-                }
-            }
-            Remove(conGroups);
-            Remove(extractedConGroups);
-        }
-
-        private bool CanAddUpgrade(string shortname, DateTime lastUpdated)
-        {
-            lock (upgradeGroups.Lock)
-            {
-                foreach (var group in upgradeGroups.Values)
-                {
-                    if (group.upgrades.TryGetValue(shortname, out var currUpgrade))
-                    {
-                        if (currUpgrade.LastUpdatedTime >= lastUpdated)
-                        {
-                            return false;
-                        }
-                        group.upgrades.Remove(shortname);
-                        break;
-                    }
-                }
-            }
-            return true;
-        }
-
-        private bool CanAddUpgrade_CONInclusive(string shortname, DateTime lastUpdated)
-        {
-            lock (conGroups.Lock)
-            {
-                foreach (var group in conGroups.Values)
-                {
-                    var upgrades = group.Upgrades;
-                    if (upgrades.TryGetValue(shortname, out var currUpgrade))
-                    {
-                        if (currUpgrade!.LastUpdatedTime >= lastUpdated)
-                        {
-                            return false;
-                        }
-                        upgrades.Remove(shortname);
-                        return true;
-                    }
-                }
-            }
-
-            return CanAddUpgrade(shortname, lastUpdated);
+            return null;
         }
     }
 }

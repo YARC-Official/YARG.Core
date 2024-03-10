@@ -2,14 +2,13 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using YARG.Core.IO;
 
 namespace YARG.Core.Song.Cache
 {
-    public sealed partial class CacheHandler
+    public abstract partial class CacheHandler
     {
-        private sealed class FileCollector
+        protected sealed class FileCollector
         {
             public readonly DirectoryInfo directory;
             public readonly IniChartNode<FileInfo>?[] charts = new IniChartNode<FileInfo>?[3];
@@ -51,30 +50,7 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private sealed class SngCollector
-        {
-            public readonly SngFile sng;
-            public readonly IniChartNode<string>?[] charts = new IniChartNode<string>?[3];
-
-            public SngCollector(SngFile sng)
-            {
-                this.sng = sng;
-                for (int i = 0; i < IniSubEntry.CHART_FILE_TYPES.Length; ++i)
-                {
-                    if (sng.ContainsKey(IniSubEntry.CHART_FILE_TYPES[i].File))
-                    {
-                        charts[i] = IniSubEntry.CHART_FILE_TYPES[i];
-                    }
-                }
-            }
-
-            public bool ContainsAudio()
-            {
-                return sng.Any(subFile => IniAudio.IsAudioFile(subFile.Key));
-            }
-        }
-
-        private struct PlaylistTracker
+        protected struct PlaylistTracker
         {
             private readonly bool _fullDirectoryFlag;
             private string? _tracker;
@@ -110,113 +86,82 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void FindNewEntries(bool multithreading)
+        private sealed class SngCollector
         {
-            _progress.Stage = ScanStage.LoadingSongs;
-            var tracker = new PlaylistTracker(fullDirectoryPlaylists);
-            if (multithreading)
+            public readonly SngFile sng;
+            public readonly IniChartNode<string>?[] charts = new IniChartNode<string>?[3];
+
+            public SngCollector(SngFile sng)
             {
-                if (iniGroups.Count > 1)
+                this.sng = sng;
+                for (int i = 0; i < IniSubEntry.CHART_FILE_TYPES.Length; ++i)
                 {
-                    var iniTasks = new Task[iniGroups.Count];
-                    for (int i = 0; i < iniGroups.Count; ++i)
+                    if (sng.ContainsKey(IniSubEntry.CHART_FILE_TYPES[i].File))
                     {
-                        var group = iniGroups[i];
-                        var dirInfo = new DirectoryInfo(group.Directory);
-                        iniTasks[i] = Task.Run(() => ScanDirectory_Parallel(dirInfo, group, tracker));
+                        charts[i] = IniSubEntry.CHART_FILE_TYPES[i];
                     }
-                    Task.WaitAll(iniTasks);
                 }
-                else if (iniGroups.Count == 1)
-                {
-                    var group = iniGroups[0];
-                    var dirInfo = new DirectoryInfo(group.Directory);
-                    ScanDirectory_Parallel(dirInfo, group, tracker);
-                }
-
-                // Orders the updates from oldest to newest to apply more recent information last
-                Parallel.ForEach(updates, node => node.Value.Sort());
-
-                var conTasks = new Task[conGroups.Values.Count + extractedConGroups.Values.Count];
-                int con = 0;
-                foreach (var group in conGroups.Values)
-                {
-                    conTasks[con++] = Task.Run(() => ScanCONGroup_Parallel(group));
-                }
-
-                foreach (var group in extractedConGroups.Values)
-                {
-                    conTasks[con++] = Task.Run(() => ScanExtractedCONGroup_Parallel(group));
-                }
-
-                Task.WaitAll(conTasks);
             }
-            else
+
+            public bool ContainsAudio()
             {
-                foreach (var group in iniGroups)
-                {
-                    var dirInfo = new DirectoryInfo(group.Directory);
-                    ScanDirectory(dirInfo, group, tracker);
-                }
-
-                foreach (var (_, list) in updates)
-                {
-                    // Orders the updates from oldest to newest to apply more recent information last
-                    list.Sort();
-                }
-
-                foreach (var group in conGroups.Values)
-                {
-                    ScanCONGroup(group);
-                }
-
-                foreach (var group in extractedConGroups.Values)
-                {
-                    ScanExtractedCONGroup(group);
-                }
+                return sng.Any(subFile => IniAudio.IsAudioFile(subFile.Key));
             }
         }
 
-        private bool TraversalPreTest(DirectoryInfo dirInfo, string defaultPlaylist, Func<DirectoryInfo, AbridgedFileInfo, bool, UpdateGroup?> updateFunc)
+        protected abstract void FindNewEntries();
+        protected abstract void TraverseDirectory(FileCollector collector, IniGroup group, PlaylistTracker tracker);
+        protected virtual bool FindOrMarkDirectory(string directory)
         {
-            string directory = dirInfo.FullName;
-            if (!FindOrMarkDirectory(dirInfo.FullName) || (dirInfo.Attributes & FileAttributes.Hidden) != 0)
+            if (!preScannedDirectories.Add(directory))
+            {
                 return false;
-
-            string filename = dirInfo.Name;
-            if (filename == "songs_updates")
-            {
-                FileInfo dta = new(Path.Combine(directory, "songs_updates.dta"));
-                if (dta.Exists)
-                {
-                    var abridged = new AbridgedFileInfo(dta, false);
-                    updateFunc(dirInfo, abridged, true);
-                    return false;
-                }
             }
-            else if (filename == "songs_upgrades")
-            {
-                FileInfo dta = new(Path.Combine(directory, "upgrades.dta"));
-                if (dta.Exists)
-                {
-                    var abridged = new AbridgedFileInfo(dta, false);
-                    CreateUpgradeGroup(directory, abridged, true);
-                    return false;
-                }
-            }
-            else if (filename == "songs")
-            {
-                FileInfo dta = new(Path.Combine(directory, "songs.dta"));
-                if (dta.Exists)
-                {
-                    extractedConGroups.Add(new UnpackedCONGroup(directory, dta, defaultPlaylist));
-                    return false;
-                }
-            }
+            _progress.NumScannedDirectories++;
             return true;
         }
+        protected virtual bool FindOrMarkFile(string file)
+        {
+            return preScannedFiles.Add(file);
+        }
+        protected virtual void AddToBadSongs(string filePath, ScanResult err)
+        {
+            badSongs.Add(filePath, err);
+            _progress.BadSongCount++;
+        }
 
-        private void ScanFile(FileInfo info, IniGroup group, ref PlaylistTracker tracker)
+        protected void ScanDirectory(DirectoryInfo directory, IniGroup group, PlaylistTracker tracker)
+        {
+            try
+            {
+                if (!TraversalPreTest(directory, tracker.Playlist))
+                    return;
+
+                var collector = new FileCollector(directory);
+                if (ScanIniEntry(collector, group, tracker.Playlist))
+                {
+                    if (collector.subDirectories.Count > 0)
+                    {
+                        AddToBadSongs(directory.FullName, ScanResult.LooseChart_Warning);
+                    }
+                    return;
+                }
+
+                tracker.Append(directory.FullName);
+                TraverseDirectory(collector, group, tracker);
+            }
+            catch (PathTooLongException)
+            {
+                YargTrace.LogError($"Path {directory.FullName} is too long for the file system!");
+                AddToBadSongs(directory.FullName, ScanResult.PathTooLong);
+            }
+            catch (Exception e)
+            {
+                YargTrace.LogException(e, $"Error while scanning directory {directory.FullName}!");
+            }
+        }
+
+        protected void ScanFile(FileInfo info, IniGroup group, ref PlaylistTracker tracker)
         {
             string filename = info.FullName;
             try
@@ -240,6 +185,106 @@ namespace YARG.Core.Song.Cache
             {
                 YargTrace.LogException(e, $"Error while scanning file {filename}!");
             }
+        }
+
+        protected void ScanPackedCONNode(PackedCONGroup group, string name, int index, YARGDTAReader node)
+        {
+            if (group.TryGetEntry(name, index, out var entry))
+            {
+                if (!AddEntry(entry!))
+                    group.RemoveEntry(name, index);
+            }
+            else
+            {
+                var song = PackedRBCONEntry.ProcessNewEntry(group, name, node, updates, upgrades);
+                if (song.Item2 != null)
+                {
+                    if (AddEntry(song.Item2))
+                        group.AddEntry(name, index, song.Item2);
+                }
+                else
+                {
+                    AddToBadSongs(group.Location + $" - Node {name}", song.Item1);
+                }
+            }
+        }
+
+        protected void ScanUnpackedCONNode(UnpackedCONGroup group, string name, int index, YARGDTAReader node)
+        {
+            if (group.TryGetEntry(name, index, out var entry))
+            {
+                if (!AddEntry(entry!))
+                    group.RemoveEntry(name, index);
+            }
+            else
+            {
+                var song = UnpackedRBCONEntry.ProcessNewEntry(group, name, node, updates, upgrades);
+                if (song.Item2 != null)
+                {
+                    if (AddEntry(song.Item2))
+                        group.AddEntry(name, index, song.Item2);
+                }
+                else
+                {
+                    AddToBadSongs(group.Location + $" - Node {name}", song.Item1);
+                }
+            }
+        }
+
+        protected void TraverseCONGroup(YARGDTAReader reader, Action<string, int> func)
+        {
+            Dictionary<string, int> indices = new();
+            while (reader.StartNode())
+            {
+                string name = reader.GetNameOfNode();
+                if (indices.TryGetValue(name, out int index))
+                {
+                    ++index;
+                }
+                indices[name] = index;
+
+                func(name, index);
+                reader.EndNode();
+            }
+        }
+
+        private bool TraversalPreTest(DirectoryInfo dirInfo, string defaultPlaylist)
+        {
+            string directory = dirInfo.FullName;
+            if (!FindOrMarkDirectory(dirInfo.FullName) || (dirInfo.Attributes & FileAttributes.Hidden) != 0)
+                return false;
+
+            string filename = dirInfo.Name;
+            if (filename == "songs_updates")
+            {
+                FileInfo dta = new(Path.Combine(directory, "songs_updates.dta"));
+                if (dta.Exists)
+                {
+                    var abridged = new AbridgedFileInfo(dta, false);
+                    CreateUpdateGroup(dirInfo, abridged, true);
+                    return false;
+                }
+            }
+            else if (filename == "songs_upgrades")
+            {
+                FileInfo dta = new(Path.Combine(directory, "upgrades.dta"));
+                if (dta.Exists)
+                {
+                    var abridged = new AbridgedFileInfo(dta, false);
+                    CreateUpgradeGroup(directory, abridged, true);
+                    return false;
+                }
+            }
+            else if (filename == "songs")
+            {
+                FileInfo dta = new(Path.Combine(directory, "songs.dta"));
+                if (dta.Exists)
+                {
+                    AddUnpackedCONGroup(new UnpackedCONGroup(directory, dta, defaultPlaylist));
+                    return false;
+                }
+            }
+            return true;
         }
 
         private bool ScanIniEntry(FileCollector collector, IniGroup group, string defaultPlaylist)
@@ -338,129 +383,9 @@ namespace YARG.Core.Song.Cache
                 return false;
 
             var group = new PackedCONGroup(file, info, defaultPlaylist);
-            conGroups.Add(group);
             TryParseUpgrades(info.FullName, group);
+            AddPackedCONGroup(group);
             return true;
-        }
-
-        private int GetCONIndex(Dictionary<string, int> indices, string name)
-        {
-            if (indices.ContainsKey(name))
-                return ++indices[name];
-            return indices[name] = 0;
-        }
-
-        private void ScanPackedCONNode(PackedCONGroup group, string name, int index, YARGDTAReader node)
-        {
-            if (group.TryGetEntry(name, index, out var entry))
-            {
-                if (!AddEntry(entry!))
-                    group.RemoveEntry(name, index);
-            }
-            else
-            {
-                var result = PackedRBCONEntry.ProcessNewEntry(group, name, node, updates, upgrades);
-                if (result.Item2 != null)
-                {
-                    if (AddEntry(result.Item2))
-                        group.AddEntry(name, index, result.Item2);
-                }
-                else
-                {
-                    AddToBadSongs(group.Location + $" - Node {name}", result.Item1);
-                }
-            }
-        }
-
-        private void ScanUnpackedCONNode(UnpackedCONGroup group, string name, int index, YARGDTAReader node)
-        {
-            if (group.TryGetEntry(name, index, out var entry))
-            {
-                if (!AddEntry(entry!))
-                    group.RemoveEntry(name, index);
-            }
-            else
-            {
-                var result = UnpackedRBCONEntry.ProcessNewEntry(group, name, node, updates, upgrades);
-                if (result.Item2 != null)
-                {
-                    if (AddEntry(result.Item2))
-                        group.AddEntry(name, index, result.Item2);
-                }
-                else
-                {
-                    AddToBadSongs(group.Location + $" - Node {name}", result.Item1);
-                }
-            }
-        }
-
-        private bool FindOrMarkDirectory(string directory)
-        {
-            lock (dirLock)
-            {
-                if (preScannedDirectories.Contains(directory))
-                    return false;
-
-                preScannedDirectories.Add(directory);
-                _progress.NumScannedDirectories++;
-                return true;
-            }
-        }
-
-        private bool FindOrMarkFile(string file)
-        {
-            lock (fileLock)
-            {
-                if (preScannedFiles.Contains(file))
-                    return false;
-
-                preScannedFiles.Add(file);
-                return true;
-            }
-        }
-
-        private void AddToBadSongs(string filePath, ScanResult err)
-        {
-            lock (badsongsLock)
-            {
-                badSongs.Add(filePath, err);
-                _progress.BadSongCount++;
-            }
-        }
-
-        private Dictionary<string, List<YARGDTAReader>>? FindUpdateNodes(string directory, AbridgedFileInfo dta)
-        {
-            var reader = YARGDTAReader.TryCreate(dta.FullName);
-            if (reader == null)
-                return null;
-
-            var nodes = new Dictionary<string, List<YARGDTAReader>>();
-            try
-            {
-                while (reader.StartNode())
-                {
-                    string name = reader.GetNameOfNode();
-                    if (!nodes.TryGetValue(name, out var list))
-                    {
-                        nodes.Add(name, list = new List<YARGDTAReader>());
-                    }
-                    list.Add(reader.Clone());
-                    reader.EndNode();
-                }
-                
-            }
-            catch (Exception ex)
-            {
-                YargTrace.LogException(ex, $"Error while scanning CON update folder {directory}!");
-                return null;
-            }
-
-            if (nodes.Count == 0)
-            {
-                YargTrace.LogWarning($"{directory} .dta file possibly malformed");
-                return null;
-            }
-            return nodes;
         }
     }
 }
