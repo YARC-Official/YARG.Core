@@ -10,7 +10,7 @@ namespace YARG.Core.Chart
         /// <summary>
         /// The type of vocals note (either a phrase, a lyrical note or a percussion hit).
         /// </summary>
-        public VocalNoteType Type { get; }
+        public VocalNoteType Type { get; private set; }
 
         /// <summary>
         /// 0-based index for the harmony part this note is a part of.
@@ -205,6 +205,11 @@ namespace YARG.Core.Chart
                 if (note1.Tick < note2.Tick) return -1;
                 return 0;
             });
+        }
+
+        protected override void CopyFlags(VocalNote other)
+        {
+            Type = other.Type;
         }
 
         protected override VocalNote CloneNote()

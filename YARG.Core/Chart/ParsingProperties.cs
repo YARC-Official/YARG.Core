@@ -93,7 +93,7 @@ namespace YARG.Core.Chart
         /// The tick threshold to use for snapping together single notes into chords.
         /// </summary>
         /// <remarks>
-        /// Defaults to 10 ticks in .mid, and 0 in .chart.
+        /// Defaults to 10 in CON files, and 0 in other charts.
         /// </remarks>
         public long NoteSnapThreshold;
 

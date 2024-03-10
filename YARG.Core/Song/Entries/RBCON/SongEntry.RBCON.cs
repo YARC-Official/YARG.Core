@@ -71,6 +71,8 @@ namespace YARG.Core.Song
             public float[]? cores;
         }
 
+        private const long NOTE_SNAP_THRESHOLD = 10;
+
         private RBMetadata _rbMetadata;
         private RBCONDifficulties _rbDifficulties;
 
@@ -308,6 +310,7 @@ namespace YARG.Core.Song
             _rbMetadata = RBMetadata.Default;
             _rbDifficulties = RBCONDifficulties.Default;
             _parseSettings.DrumsType = DrumsType.FourLane;
+            _parseSettings.NoteSnapThreshold = NOTE_SNAP_THRESHOLD;
         }
 
         protected RBCONEntry(AbridgedFileInfo? updateMidi, IRBProUpgrade? upgrade, BinaryReader reader, CategoryCacheStrings strings)

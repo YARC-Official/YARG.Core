@@ -286,13 +286,24 @@ namespace YARG.Core.Chart
             var previousParent = notes.Count > 1 ? notes[^2] : null;
 
             // Determine if this is part of a chord
-            if (currentParent != null && (note.Tick == currentParent.Tick ||
-                (note.Tick - currentParent.Tick) <= _settings.NoteSnapThreshold))
+            if (currentParent != null)
             {
-                // Same chord, assign previous and add as child
-                note.PreviousNote = previousParent;
-                currentParent.AddChildNote(note);
-                return;
+                if (note.Tick == currentParent.Tick)
+                {
+                    // Same chord, assign previous and add as child
+                    note.PreviousNote = previousParent;
+                    currentParent.AddChildNote(note);
+                    return;
+                }
+                else if ((note.Tick - currentParent.Tick) <= _settings.NoteSnapThreshold)
+                {
+                    // Chord needs to be snapped, copy values
+                    note.CopyValuesFrom(currentParent);
+
+                    note.PreviousNote = previousParent;
+                    currentParent.AddChildNote(note);
+                    return;
+                }
             }
 
             // New chord
