@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 
@@ -121,21 +122,71 @@ namespace YARG.Core.Song.Cache
     public static class CategorySorter<TKey, TConfig>
         where TConfig : struct, CategoryConfig<TKey>
     {
-        private static readonly object  _lock  = new();
         private static readonly TConfig CONFIG = default;
 
         public static void Add(SongEntry entry, SortedDictionary<TKey, List<SongEntry>> sections)
         {
             var key = CONFIG.GetKey(entry);
-            lock (_lock)
+
+            List<SongEntry> entries;
+            lock (sections)
             {
-                if (!sections.TryGetValue(key, out var entries))
+                if (!sections.TryGetValue(key, out entries))
                 {
-                    entries = new();
-                    sections.Add(key, entries);
+                    sections.Add(key, entries = new List<SongEntry>());
                 }
+            }
+
+            lock (entries)
+            {
                 int index = entries.BinarySearch(entry, CONFIG.Comparer);
                 entries.Insert(~index, entry);
+            }
+        }
+    }
+
+    public static class InstrumentSorter
+    {
+        private static readonly InstrumentComparer[] COMPARERS;
+        static InstrumentSorter()
+        {
+            var instruments = (Instrument[]) Enum.GetValues(typeof(Instrument));
+            COMPARERS = new InstrumentComparer[instruments.Length];
+            for (int i = 0; i < instruments.Length; i++)
+            {
+                COMPARERS[i] = new InstrumentComparer(instruments[i]);
+            }
+        }
+
+        public static void Add(SongEntry entry, SortedDictionary<Instrument, SortedDictionary<int, List<SongEntry>>> instruments)
+        {
+            foreach (var comparer in COMPARERS)
+            {
+                var part = entry[comparer.instrument];
+                if (part.SubTracks <= 0)
+                {
+                    continue;
+                }
+
+                var entries = instruments[comparer.instrument];
+                List<SongEntry> intensity;
+                lock (entries)
+                {
+                    if (!entries.TryGetValue(part.Intensity, out intensity))
+                    {
+                        entries.Add(part.Intensity, intensity = new List<SongEntry>());
+                    }
+                }
+
+                lock (intensity)
+                {
+                    // Necessary check since pro_17fret/22fret instruments map to same set of intensities
+                    if (!intensity.Contains(entry))
+                    {
+                        int index = intensity.BinarySearch(entry, comparer);
+                        intensity.Insert(~index, entry);
+                    }
+                }
             }
         }
     }
@@ -197,33 +248,6 @@ namespace YARG.Core.Song.Cache
 
             fileWriter.Write((int) ms.Length);
             ms.WriteTo(fileWriter.BaseStream);
-        }
-    }
-
-    public sealed class InstrumentCategory
-    {
-        private readonly InstrumentComparer comparer;
-        private readonly List<SongEntry> _entries = new();
-
-        public readonly string Key;
-        public List<SongEntry> Entries => _entries;
-
-        public InstrumentCategory(Instrument instrument)
-        {
-            comparer = new InstrumentComparer(instrument);
-            Key = instrument.ToString();
-        }
-
-        public void Add(SongEntry entry)
-        {
-            if (entry.HasInstrument(comparer.instrument))
-            {
-                lock (_entries)
-                {
-                    int index = _entries.BinarySearch(entry, comparer);
-                    _entries.Insert(~index, entry);
-                }    
-            }
         }
     }
 }
