@@ -21,8 +21,8 @@ namespace YARG.Core.Chart
         where TNote : Note<TNote>
     {
         protected readonly List<TNote> _childNotes = new();
-        private readonly NoteFlags  _flags;
 
+        private NoteFlags _flags;
         public NoteFlags Flags;
 
         private TNote? _originalPreviousNote;
@@ -65,9 +65,10 @@ namespace YARG.Core.Chart
 
         public virtual void AddChildNote(TNote note)
         {
-            if (note.Tick != Tick || note.ChildNotes.Count > 0) {
-                return;
-            }
+            if (note.Tick != Tick)
+                throw new InvalidOperationException("Child note being added is not on the same tick!");
+            if (note.ChildNotes.Count > 0)
+                throw new InvalidOperationException("Child note being added has its own children!");
 
             note.Parent = (TNote) this;
             _childNotes.Add(note);
@@ -180,6 +181,20 @@ namespace YARG.Core.Chart
             return mask;
         }
 
+        public void CopyValuesFrom(TNote other)
+        {
+            Time = other.Time;
+            TimeLength = other.TimeLength;
+            Tick = other.Tick;
+            TickLength = other.TickLength;
+
+            _flags = other._flags;
+            Flags = other.Flags;
+
+            CopyFlags(other);
+        }
+
+        protected abstract void CopyFlags(TNote other);
         protected abstract TNote CloneNote();
 
         /// <summary>
