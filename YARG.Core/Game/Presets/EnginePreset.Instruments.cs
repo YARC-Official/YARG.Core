@@ -112,5 +112,40 @@ namespace YARG.Core.Game
                     mode);
             }
         }
+    
+
+        /// <summary>
+        /// The engine preset for vocals/harmonies.
+        /// </summary>
+        public class VocalsPreset
+        {
+            // Hit window is in semitones (max. difference between correct pitch and sung pitch).
+            public double WindowSizeE = 1.7;
+            public double WindowSizeM = 1.4;
+            public double WindowSizeH = 1.1;
+            public double WindowSizeX = 0.8;
+
+            // These percentages may seem low, but accounting for delay,
+            // plosives not being detected, etc., it's pretty good.
+            public double HitPercentE = 0.325;
+            public double HitPercentM = 0.400;
+            public double HitPercentH = 0.450;
+            public double HitPercentX = 0.575;
+
+            public VocalsPreset Copy()
+            {
+                return new VocalsPreset
+                {
+                    WindowSizeE = WindowSizeE,
+                    WindowSizeM = WindowSizeM,
+                    WindowSizeH = WindowSizeH,
+                    WindowSizeX = WindowSizeX,
+                    HitPercentE = HitPercentE,
+                    HitPercentM = HitPercentM,
+                    HitPercentH = HitPercentH,
+                    HitPercentX = HitPercentX,
+                };
+            }
+        }
     }
 }
