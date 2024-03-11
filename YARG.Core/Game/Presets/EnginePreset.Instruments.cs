@@ -1,6 +1,8 @@
-﻿using YARG.Core.Engine;
+﻿using System;
+using YARG.Core.Engine;
 using YARG.Core.Engine.Drums;
 using YARG.Core.Engine.Guitar;
+using YARG.Core.Engine.Vocals;
 
 namespace YARG.Core.Game
 {
@@ -145,6 +147,36 @@ namespace YARG.Core.Game
                     HitPercentH = HitPercentH,
                     HitPercentX = HitPercentX,
                 };
+            }
+
+            public VocalsEngineParameters Create(float[] starMultiplierThresholds, Difficulty difficulty, float updatesPerSecond)
+            {
+                // Hit window is in semitones (max. difference between correct pitch and sung pitch).
+                double windowSize = difficulty switch
+                {
+                    Difficulty.Easy   => WindowSizeE,
+                    Difficulty.Medium => WindowSizeM,
+                    Difficulty.Hard   => WindowSizeH,
+                    Difficulty.Expert => WindowSizeX,
+                    _ => throw new InvalidOperationException("Unreachable")
+                };
+
+                double hitPercent = difficulty switch
+                {
+                    Difficulty.Easy   => HitPercentE,
+                    Difficulty.Medium => HitPercentM,
+                    Difficulty.Hard   => HitPercentH,
+                    Difficulty.Expert => HitPercentX,
+                    _ => throw new InvalidOperationException("Unreachable")
+                };
+                var hitWindow = new HitWindowSettings(windowSize, 0.03, 1, false);
+                return new VocalsEngineParameters(
+                    hitWindow, 
+                    EnginePreset.DEFAULT_MAX_MULTIPLIER,
+                    starMultiplierThresholds, 
+                    hitPercent, 
+                    true, 
+                    updatesPerSecond);
             }
         }
     }
