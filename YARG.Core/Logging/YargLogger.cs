@@ -82,7 +82,7 @@ namespace YARG.Core.Logging
                         {
                             _logBuilder.Clear();
                             listener.FormatLogItem(ref _logBuilder, item);
-                            listener.WriteLogItem(ref _logBuilder);
+                            listener.WriteLogItem(ref _logBuilder, item);
                         }
                     }
 
@@ -112,7 +112,7 @@ namespace YARG.Core.Logging
                         {
                             _logBuilder.Clear();
                             listener.FormatLogItem(ref _logBuilder, item);
-                            listener.WriteLogItem(ref _logBuilder);
+                            listener.WriteLogItem(ref _logBuilder, item);
                         }
 
                         LogPool.Add(item);

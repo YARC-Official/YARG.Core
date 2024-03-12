@@ -18,10 +18,13 @@ namespace YARG.Core.Logging
             _writer = new StreamWriter(_fileStream);
         }
 
-        public override void WriteLogItem(ref Utf16ValueStringBuilder output)
+        public override void WriteLogItem(ref Utf16ValueStringBuilder output, LogItem item)
         {
-            _writer.WriteLine(output.AsSpan());
-            _writer.Flush();
+            lock (_writer)
+            {
+                _writer.WriteLine(output.AsSpan());
+                _writer.Flush();
+            }
         }
 
         protected override void Dispose(bool disposing)
@@ -30,8 +33,11 @@ namespace YARG.Core.Logging
 
             if (disposing)
             {
-                _writer.Dispose();
-                _fileStream.Dispose();
+                lock (_writer)
+                {
+                    _writer.Dispose();
+                    _fileStream.Dispose();
+                }
             }
         }
     }

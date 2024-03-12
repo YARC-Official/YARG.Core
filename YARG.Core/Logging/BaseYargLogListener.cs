@@ -12,7 +12,7 @@ namespace YARG.Core.Logging
             _formatter = formatter;
         }
 
-        public abstract void WriteLogItem(ref Utf16ValueStringBuilder output);
+        public abstract void WriteLogItem(ref Utf16ValueStringBuilder output, LogItem item);
 
         public void FormatLogItem(ref Utf16ValueStringBuilder builder, LogItem item)
         {

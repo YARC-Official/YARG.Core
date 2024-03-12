@@ -9,7 +9,7 @@ namespace YARG.Core.Logging
         {
         }
 
-        public override void WriteLogItem(ref Utf16ValueStringBuilder output)
+        public override void WriteLogItem(ref Utf16ValueStringBuilder output, LogItem item)
         {
             // Creates a new (stack allocated) array segment of the buffer
             // This can be passed to Console.WriteLine as a char[] overload (as Console doesn't have span writeline!?!?)
