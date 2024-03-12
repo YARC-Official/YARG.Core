@@ -45,6 +45,20 @@ namespace YARG.Core.Logging
     public static partial class YargLogger
     {
 <#
+for(int i = 0; i < maxGenericArguments; i++)
+{
+        var functionSignature = functionSignatures[i];
+        var functionParameter = functionParameters[i];
+        var functionArgument = functionArguments[i];
+#>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void LogFormat<#= functionSignature #>(LogLevel level, string format, <#= functionParameter #>, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
+        {
+            AddLogItemToQueue(level, format, source, line, member, <#= functionArgument #>);
+        }
+
+<#
+}
 foreach (var type in logTypes)
 {
 #>

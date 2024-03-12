@@ -14,6 +14,66 @@ namespace YARG.Core.Logging
     public static partial class YargLogger
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void LogFormat<T1>(LogLevel level, string format, T1 item1, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
+        {
+            AddLogItemToQueue(level, format, source, line, member, item1);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void LogFormat<T1, T2>(LogLevel level, string format, T1 item1, T2 item2, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
+        {
+            AddLogItemToQueue(level, format, source, line, member, item1, item2);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void LogFormat<T1, T2, T3>(LogLevel level, string format, T1 item1, T2 item2, T3 item3, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
+        {
+            AddLogItemToQueue(level, format, source, line, member, item1, item2, item3);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void LogFormat<T1, T2, T3, T4>(LogLevel level, string format, T1 item1, T2 item2, T3 item3, T4 item4, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
+        {
+            AddLogItemToQueue(level, format, source, line, member, item1, item2, item3, item4);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void LogFormat<T1, T2, T3, T4, T5>(LogLevel level, string format, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
+        {
+            AddLogItemToQueue(level, format, source, line, member, item1, item2, item3, item4, item5);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void LogFormat<T1, T2, T3, T4, T5, T6>(LogLevel level, string format, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
+        {
+            AddLogItemToQueue(level, format, source, line, member, item1, item2, item3, item4, item5, item6);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void LogFormat<T1, T2, T3, T4, T5, T6, T7>(LogLevel level, string format, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
+        {
+            AddLogItemToQueue(level, format, source, line, member, item1, item2, item3, item4, item5, item6, item7);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void LogFormat<T1, T2, T3, T4, T5, T6, T7, T8>(LogLevel level, string format, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
+        {
+            AddLogItemToQueue(level, format, source, line, member, item1, item2, item3, item4, item5, item6, item7, item8);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void LogFormat<T1, T2, T3, T4, T5, T6, T7, T8, T9>(LogLevel level, string format, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8, T9 item9, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
+        {
+            AddLogItemToQueue(level, format, source, line, member, item1, item2, item3, item4, item5, item6, item7, item8, item9);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void LogFormat<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(LogLevel level, string format, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8, T9 item9, T10 item10, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
+        {
+            AddLogItemToQueue(level, format, source, line, member, item1, item2, item3, item4, item5, item6, item7, item8, item9, item10);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogTrace(string message, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
             AddLogItemToQueue(LogLevel.Trace, source, line, member, message);
