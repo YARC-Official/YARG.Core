@@ -14,26 +14,38 @@ namespace YARG.Core.Logging
             int lastSeparatorIndex = source.LastIndexOf(separator);
             var fileName = source[(lastSeparatorIndex + 1)..];
 
-            // "[Level] [Year-Month-Day HH:MM:SS File:Method:Line] Message"
-            output.Append("[");
+            if (item.Level != LogLevel.Exception)
+            {
+                // "[Level] [Year-Month-Day HH:MM:SS File:Method:Line] Message"
+                output.Append("[");
 
-            // Append Level
-            output.AppendFormat("{0}] [", item.Level.AsLevelString());
+                // Append Level
+                output.AppendFormat("{0}] [", item.Level.AsLevelString());
 
-            // Append DateTime in format "Year-Month-Day Hour:Minute:Second"
-            output.AppendFormat("{0:0000}-{1:00}-{2:00} {3:00}:{4:00}:{5:00} ",
-                item.Time.Year,
-                item.Time.Month,
-                item.Time.Day,
-                item.Time.Hour,
-                item.Time.Minute,
-                item.Time.Second);
+                // Append DateTime in format "Year-Month-Day Hour:Minute:Second"
+                output.AppendFormat("{0:0000}-{1:00}-{2:00} {3:00}:{4:00}:{5:00} ",
+                    item.Time.Year,
+                    item.Time.Month,
+                    item.Time.Day,
+                    item.Time.Hour,
+                    item.Time.Minute,
+                    item.Time.Second);
 
-            // Append File
-            output.Append(fileName);
+                // Append File
+                output.Append(fileName);
 
-            // Append :Method:Line
-            output.AppendFormat(":{0}:{1}] ", item.Method, item.Line);
+                // Append :Method:Line
+                output.AppendFormat(":{0}:{1}] ", item.Method, item.Line);
+            }
+            else
+            {
+                output.Append("--------------- EXCEPTION ---------------\nat ");
+
+                // Append File
+                output.Append(fileName);
+
+                output.AppendFormat(":{0}:{1}\n", item.Method, item.Line);
+            }
 
             if (!string.IsNullOrEmpty(item.Message))
             {
@@ -50,6 +62,11 @@ namespace YARG.Core.Logging
 
                 output.AppendFormat(item.Format, item.Args[0], item.Args[1], item.Args[2], item.Args[3], item.Args[4],
                     item.Args[5], item.Args[6], item.Args[7], item.Args[8], item.Args[9]);
+            }
+
+            if (item.Level == LogLevel.Exception)
+            {
+                output.AppendLine("\n-----------------------------------------");
             }
         }
     }
