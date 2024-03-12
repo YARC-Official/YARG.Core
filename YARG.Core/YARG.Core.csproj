@@ -23,4 +23,19 @@
     <Folder Include="Chart\Loaders\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Logging\YargLogger.Methods.t4">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>YargLogger.Methods.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Logging\YargLogger.Methods.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>YargLogger.Methods.t4</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
 </Project>
