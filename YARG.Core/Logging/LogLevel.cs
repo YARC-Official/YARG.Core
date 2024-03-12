@@ -2,7 +2,7 @@
 {
     public enum LogLevel
     {
-        //Exception,
+        Exception,
         Error,
         Warning,
         Info,
@@ -16,7 +16,7 @@
         {
             return level switch
             {
-                //LogLevel.Exception => "Exception",
+                LogLevel.Exception => "Exception",
                 LogLevel.Error     => "Error",
                 LogLevel.Warning   => "Warning",
                 LogLevel.Info      => "Info",
