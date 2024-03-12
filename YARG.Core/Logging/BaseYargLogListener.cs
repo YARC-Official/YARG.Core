@@ -1,8 +1,9 @@
-﻿using Cysharp.Text;
+﻿using System;
+using Cysharp.Text;
 
 namespace YARG.Core.Logging
 {
-    public abstract class BaseYargLogListener
+    public abstract class BaseYargLogListener : IDisposable
     {
         private readonly IYargLogFormatter _formatter;
 
@@ -16,6 +17,20 @@ namespace YARG.Core.Logging
         public void FormatLogItem(ref Utf16ValueStringBuilder builder, LogItem item)
         {
             _formatter.FormatLogItem(ref builder, item);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                // Release any managed resources here
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
     }
 }

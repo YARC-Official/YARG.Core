@@ -42,7 +42,10 @@ namespace YARG.Core.Logging
         /// </summary>
         public static void AddLogListener(BaseYargLogListener listener)
         {
-            Listeners.Add(listener);
+            lock (Listeners)
+            {
+                Listeners.Add(listener);
+            }
         }
 
         /// <summary>
@@ -50,7 +53,12 @@ namespace YARG.Core.Logging
         /// </summary>
         public static void RemoveLogListener(BaseYargLogListener listener)
         {
-            Listeners.Remove(listener);
+            lock (Listeners)
+            {
+                Listeners.Remove(listener);
+            }
+
+            listener.Dispose();
         }
 
         /// <summary>
@@ -62,6 +70,30 @@ namespace YARG.Core.Logging
         public static void KillLogger()
         {
             _isLoggingEnabled = false;
+
+            lock (LogQueue)
+            {
+                while (LogQueue.TryDequeue(out var item))
+                {
+                    // Send it to all listeners that are currently registered
+                    lock (Listeners)
+                    {
+                        foreach (var listener in Listeners)
+                        {
+                            _logBuilder.Clear();
+                            listener.FormatLogItem(ref _logBuilder, item);
+                            listener.WriteLogItem(ref _logBuilder);
+                        }
+                    }
+
+                    LogPool.Add(item);
+                }
+            }
+
+            foreach(var listener in Listeners)
+            {
+                listener.Dispose();
+            }
         }
 
         private static void LogOutputter()
