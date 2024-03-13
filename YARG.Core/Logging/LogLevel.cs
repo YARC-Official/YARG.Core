@@ -2,12 +2,12 @@
 {
     public enum LogLevel
     {
-        Exception,
-        Error,
-        Warning,
-        Info,
-        Debug,
         Trace,
+        Debug,
+        Info,
+        Warning,
+        Error,
+        Exception,
     }
 
     public static class LogLevelExtensions
@@ -16,12 +16,12 @@
         {
             return level switch
             {
-                LogLevel.Exception => "Exception",
-                LogLevel.Error     => "Error",
-                LogLevel.Warning   => "Warning",
-                LogLevel.Info      => "Info",
-                LogLevel.Debug     => "Debug",
                 LogLevel.Trace     => "Trace",
+                LogLevel.Debug     => "Debug",
+                LogLevel.Info      => "Info",
+                LogLevel.Warning   => "Warning",
+                LogLevel.Error     => "Error",
+                LogLevel.Exception => "Exception",
                 _                  => "UNKNOWN",
             };
         }
