@@ -153,56 +153,8 @@ namespace YARG.Core.Logging
             item.Line = line;
             item.Time = DateTime.Now;
 
-            item.Format = "";
-            item.Args[0] = null;
-
             // Lock while enqueuing. This prevents the log outputter from processing the queue while we're adding to it
             lock(LogQueue)
-            {
-                LogQueue.Enqueue(item);
-            }
-        }
-
-        private static void AddLogItemToQueue(LogLevel level, string format, string source, int line, string method,
-            object? arg1 = null,
-            object? arg2 = null, object? arg3 = null, object? arg4 = null, object? arg5 = null, object? arg6 = null,
-            object? arg7 = null, object? arg8 = null, object? arg9 = null,
-            object? arg10 = null)
-        {
-            // If logging is disabled, don't queue anymore log items
-            // This will usually happen when the application is shutting down
-            if (!_isLoggingEnabled)
-            {
-                return;
-            }
-
-            // If there's no available log items in the pool, create a new one
-            if (!LogPool.TryTake(out var item))
-            {
-                item = new LogItem();
-            }
-
-            item.Level = level;
-            item.Message = "";
-            item.Source = source;
-            item.Method = method;
-            item.Line = line;
-            item.Time = DateTime.Now;
-
-            item.Format = format;
-            item.Args[0] = arg1;
-            item.Args[1] = arg2;
-            item.Args[2] = arg3;
-            item.Args[3] = arg4;
-            item.Args[4] = arg5;
-            item.Args[5] = arg6;
-            item.Args[6] = arg7;
-            item.Args[7] = arg8;
-            item.Args[8] = arg9;
-            item.Args[9] = arg10;
-
-            // Lock while enqueuing. This prevents the log outputter from processing the queue while we're adding to it
-            lock (LogQueue)
             {
                 LogQueue.Enqueue(item);
             }

@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.CompilerServices;
+using Cysharp.Text;
 
 namespace YARG.Core.Logging
 {
@@ -9,7 +10,10 @@ namespace YARG.Core.Logging
         {
             const string exceptionLog = "{0}\n{1}";
             message ??= ex.Message;
-            AddLogItemToQueue(LogLevel.Exception, exceptionLog, source, line, member, message, ex);
+
+            var builder = ZString.CreateStringBuilder();
+            builder.AppendFormat(exceptionLog, message, ex);
+            AddLogItemToQueue(LogLevel.Exception, source, line, member, exceptionLog);
         }
     }
 }

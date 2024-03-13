@@ -14,7 +14,6 @@ namespace YARG.Core.Logging
 
         public DateTime Time;
 
-        public string Format = "";
-        public object?[] Args = new object[10];
+        //public string Format = "";
     }
 }
