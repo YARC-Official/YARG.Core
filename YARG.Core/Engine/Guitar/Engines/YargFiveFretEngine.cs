@@ -178,6 +178,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             if (EngineParameters.InfiniteFrontEnd && (note.IsHopo || note.IsTap) && CanNoteBeHit(note))
             {
                 State.InfiniteFrontEndHitTime = note.Time + EngineParameters.HitWindow.GetFrontEnd(hitWindow);
+                QueueUpdateTime(State.InfiniteFrontEndHitTime.Value);
 
                 // If we're already past this point, then it wouldn't be an infinite front-end,
                 // it'd just be a normal front-end.
@@ -212,24 +213,45 @@ namespace YARG.Core.Engine.Guitar.Engines
                 return false;
             }
 
+            // If the note cannot be hit, try to note skip
+            if (!CanNoteBeHit(note))
+            {
+                if (EngineStats.Combo != 0)
+                {
+                    return false;
+                }
+
+                // Skipping hopos or taps not allowed if its the first note
+                if ((note.IsHopo || note.IsTap) && State.NoteIndex == 0)
+                {
+                    return false;
+                }
+
+                // Recursively call
+                if (note.NextNote is not null)
+                {
+                    return ProcessNote(note.NextNote, strummed);
+                }
+
+                return false;
+            }
+
+            // At this point, CanNoteBeHit is true
+
+            // Strum hit
             if (strummed)
             {
-                if (CanNoteBeHit(note))
-                {
-                    HitNote(note);
-                    return true;
-                }
+                HitNote(note);
+                return true;
             }
-            else
-            {
-                var hopoAndHittable = note.IsHopo && EngineStats.Combo > 0;
-                if (CanNoteBeHit(note) && (note.IsTap || hopoAndHittable) && !State.WasNoteGhosted)
-                {
-                    State.HopoLeniencyTimer.Start(State.CurrentTime);
 
-                    HitNote(note);
-                    return true;
-                }
+            // HOPO hit
+            var hopoAndHittable = note.IsHopo && EngineStats.Combo > 0;
+            if ((note.IsTap || hopoAndHittable) && !State.WasNoteGhosted)
+            {
+                State.HopoLeniencyTimer.Start(State.CurrentTime);
+                HitNote(note);
+                return true;
             }
 
             // Pass on the input
