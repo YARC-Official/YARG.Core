@@ -18,6 +18,11 @@ namespace YARG.Core.Logging
 
         private static readonly ConcurrentBag<LogItem> LogPool;
 
+        /// <summary>
+        /// Any <see cref="LogItem"/> with a level lower than this will not be logged
+        /// </summary>
+        public static LogLevel MinimumLogLevel;
+
         private static Utf16ValueStringBuilder _logBuilder;
 
         private static bool _isLoggingEnabled;
@@ -34,6 +39,7 @@ namespace YARG.Core.Logging
             var logOutputterThread = new Thread(LogOutputter);
             logOutputterThread.Start();
 
+            MinimumLogLevel = LogLevel.Info;
             _isLoggingEnabled = true;
         }
 
