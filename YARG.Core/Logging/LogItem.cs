@@ -1,19 +1,25 @@
 ﻿using System;
+using Cysharp.Text;
 
 namespace YARG.Core.Logging
 {
-    public class LogItem
+    public abstract class LogItem
     {
         public LogLevel Level;
 
-        public string Message = "";
-        public string Source  = "";
-        public string Method  = "";
+        public string Source = "";
+        public string Method = "";
 
         public int Line = -1;
 
         public DateTime Time;
 
-        //public string Format = "";
+        public abstract void FormatMessage(ref Utf16ValueStringBuilder output);
+        protected abstract void ReturnToPool();
+
+        internal void ReturnItem()
+        {
+            ReturnToPool();
+        }
     }
 }

@@ -47,10 +47,7 @@ namespace YARG.Core.Logging
                 output.AppendFormat(":{0}:{1}\n", item.Method, item.Line);
             }
 
-            if (!string.IsNullOrEmpty(item.Message))
-            {
-                output.Append(item.Message);
-            }
+            item.FormatMessage(ref output);
 
             if (item.Level == LogLevel.Exception)
             {

@@ -10,7 +10,6 @@
 //------------------------------------------------------------------------------
 
 using System.Runtime.CompilerServices;
-using Cysharp.Text;
 
 <#
 const int maxGenericArguments = 10;
@@ -59,11 +58,8 @@ for(int i = 0; i < maxGenericArguments; i++)
                 return;
             }
 
-            var builder = ZString.CreateStringBuilder();
-            builder.AppendFormat(format, <#= functionArgument #>);
-            string message = builder.ToString();
-
-            AddLogItemToQueue(level, source, line, member, message);
+            var logItem = FormatLogItem.MakeItem(format, <#= functionArgument #>);
+            AddLogItemToQueue(level, source, line, member, logItem);
         }
 
 <#
@@ -74,7 +70,8 @@ foreach (var type in logTypes)
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Log<#= type #>(string message, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            AddLogItemToQueue(LogLevel.<#= type #>, source, line, member, message);
+            var logItem = MessageLogItem.MakeItem(message);
+            AddLogItemToQueue(LogLevel.<#= type #>, source, line, member, logItem);
         }
 
 <#
@@ -92,11 +89,8 @@ foreach (var type in logTypes)
                 return;
             }
 
-            var builder = ZString.CreateStringBuilder();
-            builder.AppendFormat(format, <#= functionArgument #>);
-            string message = builder.ToString();
-
-            AddLogItemToQueue(LogLevel.<#= type #>, source, line, member, message);
+            var logItem = FormatLogItem.MakeItem(format, <#= functionArgument #>);
+            AddLogItemToQueue(LogLevel.<#= type #>, source, line, member, logItem);
         }
 
 <#

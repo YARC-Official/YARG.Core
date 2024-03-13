@@ -11,36 +11,26 @@ namespace YARG.Core.Logging
         // How often the logging thread should output logs (milliseconds)
         private const int LOG_INTERVAL = 10;
 
-        private static readonly List<BaseYargLogListener> Listeners;
+        private static readonly List<BaseYargLogListener> Listeners = new();
 
         // Queue for log items. Maybe we should use a concurrent queue? Depends on how many threads will log at the same time
-        private static readonly Queue<LogItem> LogQueue;
-
-        private static readonly ConcurrentBag<LogItem> LogPool;
+        private static readonly Queue<LogItem> LogQueue = new();
 
         /// <summary>
-        /// Any <see cref="LogItem"/> with a level lower than this will not be logged
+        /// The minimum level required for a <see cref="LogItem"/> to be logged.
         /// </summary>
-        public static LogLevel MinimumLogLevel;
+        public static LogLevel MinimumLogLevel = LogLevel.Info;
 
         private static Utf16ValueStringBuilder _logBuilder;
 
-        private static bool _isLoggingEnabled;
+        private static bool _isLoggingEnabled = true;
 
         static YargLogger()
         {
-            Listeners = new List<BaseYargLogListener>();
-            LogQueue = new Queue<LogItem>();
-
-            LogPool = new ConcurrentBag<LogItem>();
-
             _logBuilder = ZString.CreateStringBuilder();
 
             var logOutputterThread = new Thread(LogOutputter);
             logOutputterThread.Start();
-
-            MinimumLogLevel = LogLevel.Info;
-            _isLoggingEnabled = true;
         }
 
         /// <summary>
@@ -92,7 +82,7 @@ namespace YARG.Core.Logging
                         }
                     }
 
-                    LogPool.Add(item);
+                    item.ReturnItem();
                 }
             }
 
@@ -121,7 +111,7 @@ namespace YARG.Core.Logging
                             listener.WriteLogItem(ref _logBuilder, item);
                         }
 
-                        LogPool.Add(item);
+                        item.ReturnItem();
                     }
                 }
 
@@ -130,8 +120,7 @@ namespace YARG.Core.Logging
             }
         }
 
-        private static void AddLogItemToQueue(LogLevel level, string source, int line, string method,
-            string message = "")
+        private static void AddLogItemToQueue(LogLevel level, string source, int line, string method, LogItem item)
         {
             // If logging is disabled, don't queue anymore log items
             // This will usually happen when the application is shutting down
@@ -140,14 +129,7 @@ namespace YARG.Core.Logging
                 return;
             }
 
-            // If there's no available log items in the pool, create a new one
-            if (!LogPool.TryTake(out var item))
-            {
-                item = new LogItem();
-            }
-
             item.Level = level;
-            item.Message = message;
             item.Source = source;
             item.Method = method;
             item.Line = line;
