@@ -4,6 +4,7 @@ using System.IO;
 using System.Threading.Tasks;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
+using YARG.Core.Logging;
 
 namespace YARG.Core.Song.Cache
 {
@@ -38,7 +39,7 @@ namespace YARG.Core.Song.Cache
                     }
                     catch (Exception e)
                     {
-                        YargTrace.LogException(e, $"Error while scanning packed CON group {group.Location}!");
+                        YargLogger.LogException(e, $"Error while scanning packed CON group {group.Location}!");
                     }
                 }
                 group.CONFile.Dispose();
@@ -55,7 +56,7 @@ namespace YARG.Core.Song.Cache
                     }
                     catch (Exception e)
                     {
-                        YargTrace.LogException(e, $"Error while scanning unpacked CON group {group.Location}!");
+                        YargLogger.LogException(e, $"Error while scanning unpacked CON group {group.Location}!");
                     }
                 }
             }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using YARG.Core.Extensions;
+using YARG.Core.Logging;
 
 namespace YARG.Core.IO
 {
@@ -17,7 +18,7 @@ namespace YARG.Core.IO
             }
             catch (Exception ex)
             {
-                YargTrace.LogException(ex, $"Error while loading {listing.ConFile.FullName}");
+                YargLogger.LogException(ex, $"Error while loading {listing.ConFile.FullName}");
                 return null;
             }
         }
@@ -31,7 +32,7 @@ namespace YARG.Core.IO
             }
             catch (Exception ex)
             {
-                YargTrace.LogException(ex, $"Error while loading {filename}");
+                YargLogger.LogException(ex, $"Error while loading {filename}");
                 return null;
             }
         }
@@ -40,7 +41,7 @@ namespace YARG.Core.IO
         {
             if ((data[0] == 0xFF && data[1] == 0xFE) || (data[0] == 0xFE && data[1] == 0xFF))
             {
-                YargTrace.LogError("UTF-16 & UTF-32 are not supported for .dta files");
+                YargLogger.LogError("UTF-16 & UTF-32 are not supported for .dta files");
                 return null;
             }
 
@@ -132,7 +133,7 @@ namespace YARG.Core.IO
             Quotes,
             Apostrophes
         }
-        
+
         public string ExtractText()
         {
             char ch = (char)container.Data[container.Position];

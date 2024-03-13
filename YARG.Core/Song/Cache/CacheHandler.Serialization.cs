@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
+using YARG.Core.Logging;
 
 namespace YARG.Core.Song.Cache
 {
@@ -18,7 +19,7 @@ namespace YARG.Core.Song.Cache
         /// 1 - (FullDirectoryPlaylist flag(1 byte))
         /// 64 - (section size(4 bytes) + zero string count(4 bytes)) * # categories(8)
         /// 24 - (# groups(4 bytes) * # group types(6))
-        /// 
+        ///
         /// </summary>
         private const int MIN_CACHEFILESIZE = 93;
 
@@ -353,7 +354,7 @@ namespace YARG.Core.Song.Cache
             }
             else
             {
-                YargTrace.LogError($"Cache file was modified externally with a bad CHART_TYPE enum value... or bigger error");
+                YargLogger.LogError("Cache file was modified externally with a bad CHART_TYPE enum value... or bigger error");
             }
         }
 

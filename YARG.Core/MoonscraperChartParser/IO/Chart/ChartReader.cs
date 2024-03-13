@@ -15,6 +15,7 @@ using System.Text.RegularExpressions;
 using YARG.Core;
 using YARG.Core.Chart;
 using YARG.Core.Extensions;
+using YARG.Core.Logging;
 using YARG.Core.Parsing;
 using YARG.Core.Song;
 using YARG.Core.Utility;
@@ -280,13 +281,13 @@ namespace MoonscraperChartEditor.Song.IO
                         }
 
                         default:
-                            YargTrace.LogWarning($"Unrecognized type code '{typeCode}'!");
+                            YargLogger.LogFormatWarning("Unrecognized type code '{0}'!", typeCode);
                             break;
                     }
                 }
                 catch (Exception e)
                 {
-                    YargTrace.LogException(e, $"Error parsing .chart line '{line.ToString()}'!");
+                    YargLogger.LogException(e, $"Error parsing .chart line '{line.ToString()}'!");
                 }
             }
 
@@ -345,12 +346,12 @@ namespace MoonscraperChartEditor.Song.IO
                     }
                     else
                     {
-                        YargTrace.LogWarning($"Unrecognized type code '{typeCodeText[0]}'!");
+                        YargLogger.LogFormatWarning("Unrecognized type code '{0}'!", typeCodeText[0]);
                     }
                 }
                 catch (Exception e)
                 {
-                    YargTrace.LogException(e, $"Error parsing .chart line '{line.ToString()}'!");
+                    YargLogger.LogException(e, $"Error parsing .chart line '{line.ToString()}'!");
                 }
             }
         }
@@ -455,14 +456,14 @@ namespace MoonscraperChartEditor.Song.IO
                             }
 
                             default:
-                                YargTrace.LogWarning($"Unrecognized type code '{typeCode}'!");
+                                YargLogger.LogFormatWarning("Unrecognized type code '{0}'!", typeCode);
                                 break;
                         }
 
                     }
                     catch (Exception e)
                     {
-                        YargTrace.LogException(e, $"Error parsing .chart line '{line.ToString()}'!");
+                        YargLogger.LogException(e, $"Error parsing .chart line '{line.ToString()}'!");
                     }
                 }
 
@@ -476,7 +477,7 @@ namespace MoonscraperChartEditor.Song.IO
             catch (Exception e)
             {
                 // Bad load, most likely a parsing error
-                YargTrace.LogException(e, $"Error parsing .chart section for {difficulty} {instrument}!");
+                YargLogger.LogException(e, $"Error parsing .chart section for {difficulty} {instrument}!");
                 chart.Clear();
             }
         }

@@ -6,6 +6,7 @@ using System.Runtime.Serialization;
 using System.Threading.Tasks;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
+using YARG.Core.Logging;
 
 namespace YARG.Core.Song.Cache
 {
@@ -173,7 +174,7 @@ namespace YARG.Core.Song.Cache
             }
             catch (Exception e)
             {
-                YargTrace.LogException(e, $"Error while scanning CON group {group.Location}!");
+                YargLogger.LogException(e, $"Error while scanning CON group {group.Location}!");
             }
         }
 
@@ -561,7 +562,7 @@ namespace YARG.Core.Song.Cache
                 }));
             }
         }
-        
+
         private static void AddParallelEntryTasks(FileStream stream, ref List<Task> entryTasks, CategoryCacheStrings strings, Action<BinaryReader, List<Task>, CategoryCacheStrings, ParallelExceptionTracker> func, ParallelExceptionTracker tracker)
         {
             int count = stream.Read<int>(Endianness.Little);

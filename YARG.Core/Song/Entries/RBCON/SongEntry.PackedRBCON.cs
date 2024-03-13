@@ -6,6 +6,7 @@ using YARG.Core.Song.Cache;
 using YARG.Core.IO;
 using YARG.Core.Venue;
 using System.Linq;
+using YARG.Core.Logging;
 
 namespace YARG.Core.Song
 {
@@ -28,7 +29,7 @@ namespace YARG.Core.Song
                 var song = new PackedRBCONEntry(group, nodename, reader, updates, upgrades);
                 if (song._midiListing == null)
                 {
-                    YargTrace.LogError($"Required midi file for {group.CONFile.Stream.Name} - {nodename} was not located");
+                    YargLogger.LogFormatError("Required midi file for {0} - {1} was not located", group.CONFile.Stream.Name, item2: nodename);
                     return (ScanResult.MissingMidi, null);
                 }
 
@@ -41,7 +42,7 @@ namespace YARG.Core.Song
             }
             catch (Exception ex)
             {
-                YargTrace.LogException(ex, null);
+                YargLogger.LogException(ex, null);
                 return (ScanResult.DTAError, null);
             }
         }
