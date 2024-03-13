@@ -12,8 +12,9 @@ namespace YARG.Core.Logging
             message ??= ex.Message;
 
             var builder = ZString.CreateStringBuilder();
-            builder.AppendFormat(exceptionLog, message, ex);
-            AddLogItemToQueue(LogLevel.Exception, source, line, member, exceptionLog);
+            builder.AppendFormat(exceptionLog, message, ex.StackTrace);
+
+            AddLogItemToQueue(LogLevel.Exception, source, line, member, builder.ToString());
         }
     }
 }
