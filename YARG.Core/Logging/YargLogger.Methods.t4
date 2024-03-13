@@ -54,7 +54,16 @@ for(int i = 0; i < maxGenericArguments; i++)
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormat<#= functionSignature #>(LogLevel level, string format, <#= functionParameter #>, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            AddLogItemToQueue(level, format, source, line, member, <#= functionArgument #>);
+            if(level < MinimumLogLevel)
+            {
+                return;
+            }
+
+            var builder = ZString.CreateStringBuilder();
+            builder.AppendFormat(format, <#= functionArgument #>);
+            string message = builder.ToString();
+
+            AddLogItemToQueue(level, source, line, member, message);
         }
 
 <#
@@ -78,7 +87,16 @@ foreach (var type in logTypes)
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormat<#= type #><#= functionSignature #>(string format, <#= functionParameter #>, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            AddLogItemToQueue(LogLevel.<#= type #>, format, source, line, member, <#= functionArgument #>);
+            if(LogLevel.<#= type #> < MinimumLogLevel)
+            {
+                return;
+            }
+
+            var builder = ZString.CreateStringBuilder();
+            builder.AppendFormat(format, <#= functionArgument #>);
+            string message = builder.ToString();
+
+            AddLogItemToQueue(LogLevel.<#= type #>, source, line, member, message);
         }
 
 <#
