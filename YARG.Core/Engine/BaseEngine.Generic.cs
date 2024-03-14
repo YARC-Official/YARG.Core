@@ -18,16 +18,16 @@ namespace YARG.Core.Engine
 
         // Max number of measures that SP will last when draining
         // SP draining is done based on measures
-        protected const int STAR_POWER_MAX_MEASURES = 8;
+        protected const int    STAR_POWER_MAX_MEASURES   = 8;
         protected const double STAR_POWER_MEASURE_AMOUNT = 1.0 / STAR_POWER_MAX_MEASURES;
 
         // Max number of beats that it takes to fill SP when gaining
         // SP gain from whammying is done based on beats
-        protected const int STAR_POWER_MAX_BEATS = (STAR_POWER_MAX_MEASURES * 4) - 2; // - 2 for leniency
+        protected const int    STAR_POWER_MAX_BEATS   = (STAR_POWER_MAX_MEASURES * 4) - 2; // - 2 for leniency
         protected const double STAR_POWER_BEAT_AMOUNT = 1.0 / STAR_POWER_MAX_BEATS;
 
         // Number of measures that SP phrases will grant when hit
-        protected const int STAR_POWER_PHRASE_MEASURE_COUNT = 2;
+        protected const int    STAR_POWER_PHRASE_MEASURE_COUNT = 2;
         protected const double STAR_POWER_PHRASE_AMOUNT = STAR_POWER_PHRASE_MEASURE_COUNT * STAR_POWER_MEASURE_AMOUNT;
 
         // Beat fraction to use for the sustain burst threshold
@@ -57,9 +57,9 @@ namespace YARG.Core.Engine
         public SoloStartEvent? OnSoloStart;
         public SoloEndEvent?   OnSoloEnd;
 
-        protected int[] StarScoreThresholds { get; }
+        protected          int[]  StarScoreThresholds { get; }
         protected readonly double TicksPerSustainPoint;
-        protected readonly uint SustainBurstThreshold;
+        protected readonly uint   SustainBurstThreshold;
 
         public readonly TEngineStats EngineStats;
 
@@ -70,9 +70,9 @@ namespace YARG.Core.Engine
 
         public TEngineState State;
 
-        public override BaseEngineState BaseState => State;
+        public override BaseEngineState      BaseState      => State;
         public override BaseEngineParameters BaseParameters => EngineParameters;
-        public override BaseStats BaseStats => EngineStats;
+        public override BaseStats            BaseStats      => EngineStats;
 
         protected BaseEngine(InstrumentDifficulty<TNoteType> chart, SyncTrack syncTrack,
             TEngineParams engineParameters, bool isChordSeparate) : base(syncTrack, isChordSeparate)
@@ -288,15 +288,15 @@ namespace YARG.Core.Engine
             EngineStats.Stars = State.CurrentStarIndex + progress;
         }
 
-         protected virtual void UpdateMultiplier()
-         {
-             EngineStats.ScoreMultiplier = Math.Min((EngineStats.Combo / 10) + 1, EngineParameters.MaxMultiplier);
+        protected virtual void UpdateMultiplier()
+        {
+            EngineStats.ScoreMultiplier = Math.Min((EngineStats.Combo / 10) + 1, EngineParameters.MaxMultiplier);
 
-             if (EngineStats.IsStarPowerActive)
-             {
-                 EngineStats.ScoreMultiplier *= 2;
-             }
-         }
+            if (EngineStats.IsStarPowerActive)
+            {
+                EngineStats.ScoreMultiplier *= 2;
+            }
+        }
 
         protected virtual void StripStarPower(TNoteType? note)
         {
@@ -603,6 +603,8 @@ namespace YARG.Core.Engine
             double frontEnd = EngineParameters.HitWindow.GetFrontEnd(fullWindow);
             double backEnd = EngineParameters.HitWindow.GetBackEnd(fullWindow);
 
+            // Add consistency anchors for the first note
+
             // This is the time when the note will enter the hit window in the front end. Engine will update at this time
             double frontEndTime = note.Time + frontEnd;
 
@@ -621,6 +623,34 @@ namespace YARG.Core.Engine
             if (backEndTime > State.CurrentTime)
             {
                 QueueUpdateTime(backEndTime);
+            }
+
+            // Add consistency anchors for the following notes in case of a note skip
+
+            var currentNote = note.NextNote;
+            while (currentNote is not null)
+            {
+                double currentFrontEndTime = currentNote.Time + frontEnd;
+
+                // If the distance between the first note's back-end and this note's front-end
+                // is more than the full hit window time, then that means that this method will
+                // be called for the missing of the first note, meaning a consistency anchor
+                // will be added for this note then.
+                if (Math.Abs(currentFrontEndTime - backEndTime) > fullWindow)
+                {
+                    break;
+                }
+
+                if (currentFrontEndTime > State.CurrentTime)
+                {
+                    QueueUpdateTime(currentFrontEndTime);
+                }
+
+                // We don't need to worry about the back end as the first note is guaranteed
+                // to exit before it, meaning new anchors will be added.
+
+                // Try to do the next note
+                currentNote = currentNote.NextNote;
             }
 
             State.NoteIndex++;

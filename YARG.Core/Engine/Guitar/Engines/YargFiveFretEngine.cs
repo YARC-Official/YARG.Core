@@ -1,6 +1,4 @@
-﻿using System;
-using YARG.Core.Chart;
-using YARG.Core.Engine.Logging;
+﻿using YARG.Core.Chart;
 using YARG.Core.Input;
 
 namespace YARG.Core.Engine.Guitar.Engines
@@ -54,8 +52,6 @@ namespace YARG.Core.Engine.Guitar.Engines
 
             var note = Notes[State.NoteIndex];
             double hitWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
-
-            var testIndex = State.NoteIndex is 196 or 197 or 198;
 
             // Overstrum for strum leniency
             if (State.StrumLeniencyTimer.IsExpired(State.CurrentTime))
@@ -133,6 +129,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 else
                 {
                     // If an input was consumed, a note was hit
+
                     return true;
                 }
             }
@@ -240,22 +237,23 @@ namespace YARG.Core.Engine.Guitar.Engines
             // If the note cannot be hit, try to note skip
             if (!CanNoteBeHit(note))
             {
-                // if (EngineStats.Combo != 0)
-                // {
-                //     return false;
-                // }
-                //
-                // // Skipping hopos or taps not allowed if its the first note
-                // if ((note.IsHopo || note.IsTap) && State.NoteIndex == 0)
-                // {
-                //     return false;
-                // }
-                //
-                // // Recursively call
-                // if (note.NextNote is not null)
-                // {
-                //     return ProcessNote(note.NextNote, strummed);
-                // }
+                if (EngineStats.Combo != 0)
+                {
+                    return false;
+                }
+
+                // Skipping hopos or taps not allowed if its the first note
+                if ((note.IsHopo || note.IsTap) && State.NoteIndex == 0)
+                {
+                    return false;
+                }
+
+                // Recursively call
+                if (note.NextNote is not null)
+                {
+                    var inputConsumed = ProcessNote(note.NextNote, strummed);
+                    return inputConsumed;
+                }
 
                 return false;
             }
