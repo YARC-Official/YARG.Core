@@ -73,6 +73,8 @@ namespace YARG.Core.Song.Cache
             }
 
             handler.CleanupDuplicates();
+
+            _progress.Stage = ScanStage.Sorting;
             handler.SortCategories();
             YargTrace.DebugInfo($"Total Entries: {_progress.Count}");
             return true;
