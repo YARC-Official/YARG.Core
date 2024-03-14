@@ -1,4 +1,6 @@
-﻿using YARG.Core.Chart;
+﻿using System;
+using YARG.Core.Chart;
+using YARG.Core.Engine.Logging;
 using YARG.Core.Input;
 
 namespace YARG.Core.Engine.Guitar.Engines
@@ -52,6 +54,8 @@ namespace YARG.Core.Engine.Guitar.Engines
 
             var note = Notes[State.NoteIndex];
             double hitWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
+
+            var testIndex = State.NoteIndex is 93 or 94 or 95;
 
             // Overstrum for strum leniency
             if (State.StrumLeniencyTimer.IsExpired(State.CurrentTime))
@@ -140,21 +144,21 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                 State.InfiniteFrontEndHitTime = null;
 
-                if (State.StrumLeniencyTimer.IsActive(State.CurrentTime))
-                {
-                    // If the strum leniency timer is active, then attempt to hit a strum
-
-                    var strumConsumed = ProcessNote(note, true);
-
-                    if (strumConsumed)
-                    {
-                        State.StrumLeniencyTimer.Reset();
-
-                        return true;
-                    }
-
-                    // ... otherwise attempt to hit a tap
-                }
+                // if (State.StrumLeniencyTimer.IsActive(State.CurrentTime))
+                // {
+                //     // If the strum leniency timer is active, then attempt to hit a strum
+                //
+                //     var strumConsumed = ProcessNote(note, true);
+                //
+                //     if (strumConsumed)
+                //     {
+                //         State.StrumLeniencyTimer.Reset();
+                //
+                //         return true;
+                //     }
+                //
+                //     // ... otherwise attempt to hit a tap
+                // }
 
                 var inputConsumed = ProcessNote(note, false);
 
@@ -164,6 +168,26 @@ namespace YARG.Core.Engine.Guitar.Engines
                 }
                 else
                 {
+                    return true;
+                }
+            }
+
+            // Strum leniency hit
+            var h = note.Time + EngineParameters.HitWindow.GetFrontEnd(hitWindow);
+            if (State.StrumLeniencyTimer.IsActive(State.CurrentTime) &&
+                State.CurrentTime >= h)
+            {
+                // If the strum leniency timer is active, then attempt to hit as strum
+                var strumConsumed = ProcessNote(note, true);
+
+                if (strumConsumed)
+                {
+                    EventLogger.LogEvent(new ConsistentEngineEvent(State.CurrentTime)
+                    {
+                        Message = $"Index = {State.NoteIndex - 1}"
+                    });
+
+                    State.StrumLeniencyTimer.Reset();
                     return true;
                 }
             }
@@ -216,22 +240,22 @@ namespace YARG.Core.Engine.Guitar.Engines
             // If the note cannot be hit, try to note skip
             if (!CanNoteBeHit(note))
             {
-                if (EngineStats.Combo != 0)
-                {
-                    return false;
-                }
-
-                // Skipping hopos or taps not allowed if its the first note
-                if ((note.IsHopo || note.IsTap) && State.NoteIndex == 0)
-                {
-                    return false;
-                }
-
-                // Recursively call
-                if (note.NextNote is not null)
-                {
-                    return ProcessNote(note.NextNote, strummed);
-                }
+                // if (EngineStats.Combo != 0)
+                // {
+                //     return false;
+                // }
+                //
+                // // Skipping hopos or taps not allowed if its the first note
+                // if ((note.IsHopo || note.IsTap) && State.NoteIndex == 0)
+                // {
+                //     return false;
+                // }
+                //
+                // // Recursively call
+                // if (note.NextNote is not null)
+                // {
+                //     return ProcessNote(note.NextNote, strummed);
+                // }
 
                 return false;
             }
