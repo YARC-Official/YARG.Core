@@ -55,7 +55,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             var note = Notes[State.NoteIndex];
             double hitWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
 
-            var testIndex = State.NoteIndex is 93 or 94 or 95;
+            var testIndex = State.NoteIndex is 196 or 197 or 198;
 
             // Overstrum for strum leniency
             if (State.StrumLeniencyTimer.IsExpired(State.CurrentTime))
@@ -65,7 +65,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             }
 
             // Check for note miss note (back end)
-            if (State.CurrentTime > note.Time + EngineParameters.HitWindow.GetBackEnd(hitWindow))
+            if (State.CurrentTime >= note.Time + EngineParameters.HitWindow.GetBackEnd(hitWindow))
             {
                 if (!note.WasFullyHitOrMissed())
                 {
@@ -182,10 +182,10 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                 if (strumConsumed)
                 {
-                    EventLogger.LogEvent(new ConsistentEngineEvent(State.CurrentTime)
-                    {
-                        Message = $"Index = {State.NoteIndex - 1}"
-                    });
+                    // EventLogger.LogEvent(new ConsistentEngineEvent(State.CurrentTime)
+                    // {
+                    //     Message = $"Index = {State.NoteIndex - 1}"
+                    // });
 
                     State.StrumLeniencyTimer.Reset();
                     return true;
