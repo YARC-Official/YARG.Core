@@ -10,19 +10,13 @@ namespace YARG.Core.Audio
         protected double _volume;
 
         public readonly SongStem Stem;
-        public readonly double LengthD;
-        public float LengthF => (float) LengthD;
         public double Volume => _volume;
 
-        public abstract event Action ChannelEnd;
-
-        protected StemChannel(AudioManager manager, SongStem stem, double length, double volume)
+        protected StemChannel(AudioManager manager, SongStem stem, double volume)
         {
             _manager = manager;
             _volume = volume;
-
             Stem = stem;
-            LengthD = length;
         }
 
         public abstract void FadeIn(float maxVolume);
