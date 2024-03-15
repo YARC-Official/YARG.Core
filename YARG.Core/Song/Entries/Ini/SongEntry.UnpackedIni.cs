@@ -57,7 +57,7 @@ namespace YARG.Core.Song
                     if (subFiles.TryGetValue(audioFile, out var fullname))
                     {
                         var stream = new FileStream(fullname, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
-                        if (mixer.AddChannel(stemEnum))
+                        if (mixer.AddChannel(stemEnum, stream))
                         {
                             // No duplicates
                             break;

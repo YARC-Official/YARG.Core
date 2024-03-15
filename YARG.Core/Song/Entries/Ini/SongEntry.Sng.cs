@@ -208,7 +208,7 @@ namespace YARG.Core.Song
                     if (sngFile.TryGetValue(file, out var listing))
                     {
                         var stream = listing.CreateStream(sngFile);
-                        if (mixer.AddChannel(stemEnum))
+                        if (mixer.AddChannel(stemEnum, stream))
                         {
                             // No duplicates
                             break;
