@@ -128,6 +128,8 @@ namespace YARG.Core.Engine.Guitar.Engines
                 }
                 else
                 {
+                    // TODO: Overstrum on double strum?
+
                     // If an input was consumed, a note was hit
 
                     return true;
@@ -141,49 +143,39 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                 State.InfiniteFrontEndHitTime = null;
 
-                // if (State.StrumLeniencyTimer.IsActive(State.CurrentTime))
-                // {
-                //     // If the strum leniency timer is active, then attempt to hit a strum
-                //
-                //     var strumConsumed = ProcessNote(note, true);
-                //
-                //     if (strumConsumed)
-                //     {
-                //         State.StrumLeniencyTimer.Reset();
-                //
-                //         return true;
-                //     }
-                //
-                //     // ... otherwise attempt to hit a tap
-                // }
-
-                var inputConsumed = ProcessNote(note, false);
+                // If the strum leniency is active, act as this is a strum
+                bool strummed = State.StrumLeniencyTimer.IsActive(State.CurrentTime);
+                var inputConsumed = ProcessNote(note, strummed);
 
                 if (!inputConsumed)
                 {
+                    // If strum leniency is active and the note was not hit,
+                    // then wait until the timer runs out to overstrum
+
                     CheckInfiniteFrontEndAndGhost(note, hitWindow);
                 }
                 else
                 {
+                    // If the strum leniency is active and a note hit was successful,
+                    // use up the strum leniency to prevent an extra overstrum.
+                    if (strummed)
+                    {
+                        State.StrumLeniencyTimer.Reset();
+                    }
+
                     return true;
                 }
             }
 
             // Strum leniency hit
-            var h = note.Time + EngineParameters.HitWindow.GetFrontEnd(hitWindow);
             if (State.StrumLeniencyTimer.IsActive(State.CurrentTime) &&
-                State.CurrentTime >= h)
+                State.CurrentTime >= note.Time + EngineParameters.HitWindow.GetFrontEnd(hitWindow))
             {
                 // If the strum leniency timer is active, then attempt to hit as strum
                 var strumConsumed = ProcessNote(note, true);
 
                 if (strumConsumed)
                 {
-                    // EventLogger.LogEvent(new ConsistentEngineEvent(State.CurrentTime)
-                    // {
-                    //     Message = $"Index = {State.NoteIndex - 1}"
-                    // });
-
                     State.StrumLeniencyTimer.Reset();
                     return true;
                 }
