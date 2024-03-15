@@ -15,17 +15,17 @@ namespace YARG.Core.Audio
         protected readonly List<StemChannel> _channels = new();
 
         protected float _speed;
+        protected double _length;
         protected bool _isPlaying = false;
+        protected StemChannel? _leadChannel;
 
         public IReadOnlyList<StemChannel> Channels => _channels;
-
-        public StemChannel? LeadChannel { get; protected set; }
 
         public bool IsPlaying
         {
             get
             {
-                return _isPlaying && LeadChannel!.GetPosition() < LeadChannel.LengthD;
+                return _isPlaying && GetPosition() < _length;
             }
         }
 
