@@ -19,6 +19,8 @@ namespace YARG.Core.Audio
         protected bool _isPlaying = false;
         protected StemChannel? _leadChannel;
 
+        public double Length => _length;
+
         public IReadOnlyList<StemChannel> Channels => _channels;
 
         public bool IsPlaying
