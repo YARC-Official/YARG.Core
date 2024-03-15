@@ -7,9 +7,7 @@ using YARG.Core.IO.Ini;
 using YARG.Core.Audio;
 using YARG.Core.Venue;
 using System.Linq;
-using YARG.Core.Extensions;
-
-using IODirectory = System.IO.Directory;
+using YARG.Core.Logging;
 
 namespace YARG.Core.Song
 {
@@ -37,10 +35,16 @@ namespace YARG.Core.Song
                 writer.Write(false);
         }
 
-        public override AudioMixer LoadAudioStreams(params SongStem[] ignoreStems)
+        public override StemMixer? LoadAudio(AudioManager manager, float speed, params SongStem[] ignoreStems)
         {
+            var mixer = manager.CreateMixer(speed);
+            if (mixer == null)
+            {
+                YargLogger.LogError("Failed to create mixer!");
+                return null;
+            }
+
             var subFiles = GetSubFiles();
-            var mixer = new AudioMixer();
             foreach (var stem in IniAudio.SupportedStems)
             {
                 var stemEnum = AudioHelpers.SupportedStems[stem];
@@ -52,15 +56,39 @@ namespace YARG.Core.Song
                     var audioFile = stem + format;
                     if (subFiles.TryGetValue(audioFile, out var fullname))
                     {
-                        // No file buffer
-                        var channel = new AudioChannel(stemEnum, new FileStream(fullname, FileMode.Open, FileAccess.Read, FileShare.Read, 1));
-                        mixer.Channels.Add(channel);
-                        // Parse no duplicate stems
-                        break;
+                        var stream = new FileStream(fullname, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+                        if (mixer.AddChannel(stemEnum))
+                        {
+                            // No duplicates
+                            break;
+                        }
+                        stream.Dispose();
+                        YargLogger.LogFormatError("Failed to load stem file {0}", fullname);
                     }
                 }
             }
+
+            if (mixer.Channels.Count == 0)
+            {
+                YargLogger.LogError("Failed to add any stems!");
+                mixer.Dispose();
+                return null;
+            }
+            YargLogger.LogFormatInfo("Loaded {0} stems", mixer.Channels.Count);
             return mixer;
+        }
+
+        public override StemMixer? LoadPreviewAudio(AudioManager manager, float speed)
+        {
+            foreach (var filename in PREVIEW_FILES)
+            {
+                var audioFile = Path.Combine(Directory, filename);
+                if (File.Exists(audioFile))
+                {
+                    return manager.LoadCustomFile(audioFile, speed, SongStem.Preview);
+                }
+            }
+            return LoadAudio(manager, speed, SongStem.Crowd);
         }
 
         public override byte[]? LoadAlbumData()
@@ -129,21 +157,6 @@ namespace YARG.Core.Song
             return null;
         }
 
-        public override AudioMixer LoadPreviewAudio()
-        {
-            foreach (var format in IniAudio.SupportedFormats)
-            {
-                var audioFile = Path.Combine(Directory, "preview" + format);
-                if (File.Exists(audioFile))
-                {
-                    var mixer = new AudioMixer();
-                    mixer.Channels.Add(new AudioChannel(SongStem.Preview, new FileStream(audioFile, FileMode.Open, FileAccess.Read, FileShare.Read, 1)));
-                    return mixer;
-                }
-            }
-            return LoadAudioStreams(SongStem.Crowd);
-        }
-
         protected override Stream? GetChartStream()
         {
             if (!_chartFile.IsStillValid())
@@ -165,9 +178,9 @@ namespace YARG.Core.Song
         private Dictionary<string, string> GetSubFiles()
         {
             Dictionary<string, string> files = new();
-            if (IODirectory.Exists(Directory))
+            if (System.IO.Directory.Exists(Directory))
             {
-                foreach (var file in IODirectory.EnumerateFiles(Directory))
+                foreach (var file in System.IO.Directory.EnumerateFiles(Directory))
                 {
                     files.Add(Path.GetFileName(file).ToLower(), file);
                 }

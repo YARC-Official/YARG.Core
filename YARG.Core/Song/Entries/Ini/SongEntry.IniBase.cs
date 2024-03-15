@@ -70,6 +70,16 @@ namespace YARG.Core.Song
             "album.png", "album.jpg", "album.jpeg",
         };
 
+        protected static readonly string[] PREVIEW_FILES;
+        static IniSubEntry()
+        {
+            PREVIEW_FILES = new string[IniAudio.SupportedFormats.Length];
+            for (int i = 0; i < PREVIEW_FILES.Length; i++ )
+            {
+                PREVIEW_FILES[i] = "preview" + IniAudio.SupportedFormats[i];
+            }
+        }
+
         protected readonly string _background;
         protected readonly string _video;
         protected readonly string _cover;

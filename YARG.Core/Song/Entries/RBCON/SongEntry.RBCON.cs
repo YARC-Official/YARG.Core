@@ -145,7 +145,7 @@ namespace YARG.Core.Song
             return SongChart.FromMidi(_parseSettings, midi);
         }
 
-        public override AudioMixer? LoadAudioStreams(params SongStem[] ignoreStems)
+        public override StemMixer? LoadAudio(AudioManager manager, float speed, params SongStem[] ignoreStems)
         {
             var stream = GetMoggStream();
             if (stream == null)
@@ -153,75 +153,91 @@ namespace YARG.Core.Song
                 return null;
             }
 
-            using var wrapper = DisposableCounter.Wrap(stream);
             int version = stream.Read<int>(Endianness.Little);
             if (version is not 0x0A and not 0xF0)
             {
-                YargLogger.LogError("Original unencrypted mogg replaced by an encrypted mogg");
+                YargLogger.LogError("Original unencrypted mogg replaced by an encrypted mogg!");
+                stream.Dispose();
                 return null;
             }
 
             int start = stream.Read<int>(Endianness.Little);
             stream.Seek(start, SeekOrigin.Begin);
 
-            var mixer = new AudioMixer(wrapper.Release());
+            var mixer = manager.CreateMixer(stream, speed);
+            if (mixer == null)
+            {
+                YargLogger.LogError("Mogg failed to load!");
+                stream.Dispose();
+                return null;
+            }
+
             if (_rbMetadata.DrumIndices != null && !ignoreStems.Contains(SongStem.Drums))
             {
                 switch (_rbMetadata.DrumIndices.Length)
                 {
                     //drum (0 1): stereo kit --> (0 1)
                     case 2:
-                        mixer.Channels.Add(new AudioChannel(SongStem.Drums, _rbMetadata.DrumIndices, _rbMetadata.DrumStemValues!));
+                        mixer.AddChannel(SongStem.Drums, _rbMetadata.DrumIndices, _rbMetadata.DrumStemValues!);
                         break;
                     //drum (0 1 2): mono kick, stereo snare/kit --> (0) (1 2)
                     case 3:
-                        mixer.Channels.Add(new AudioChannel(SongStem.Drums1, _rbMetadata.DrumIndices[0..1], _rbMetadata.DrumStemValues![0..2]));
-                        mixer.Channels.Add(new AudioChannel(SongStem.Drums2, _rbMetadata.DrumIndices[1..3], _rbMetadata.DrumStemValues[2..6]));
+                        mixer.AddChannel(SongStem.Drums1, _rbMetadata.DrumIndices[0..1], _rbMetadata.DrumStemValues![0..2]);
+                        mixer.AddChannel(SongStem.Drums2, _rbMetadata.DrumIndices[1..3], _rbMetadata.DrumStemValues[2..6]);
                         break;
                     //drum (0 1 2 3): mono kick, mono snare, stereo kit --> (0) (1) (2 3)
                     case 4:
-                        mixer.Channels.Add(new AudioChannel(SongStem.Drums1, _rbMetadata.DrumIndices[0..1], _rbMetadata.DrumStemValues![0..2]));
-                        mixer.Channels.Add(new AudioChannel(SongStem.Drums2, _rbMetadata.DrumIndices[1..2], _rbMetadata.DrumStemValues[2..4]));
-                        mixer.Channels.Add(new AudioChannel(SongStem.Drums3, _rbMetadata.DrumIndices[2..4], _rbMetadata.DrumStemValues[4..8]));
+                        mixer.AddChannel(SongStem.Drums1, _rbMetadata.DrumIndices[0..1], _rbMetadata.DrumStemValues![0..2]);
+                        mixer.AddChannel(SongStem.Drums2, _rbMetadata.DrumIndices[1..2], _rbMetadata.DrumStemValues[2..4]);
+                        mixer.AddChannel(SongStem.Drums3, _rbMetadata.DrumIndices[2..4], _rbMetadata.DrumStemValues[4..8]);
                         break;
                     //drum (0 1 2 3 4): mono kick, stereo snare, stereo kit --> (0) (1 2) (3 4)
                     case 5:
-                        mixer.Channels.Add(new AudioChannel(SongStem.Drums1, _rbMetadata.DrumIndices[0..1], _rbMetadata.DrumStemValues![0..2]));
-                        mixer.Channels.Add(new AudioChannel(SongStem.Drums2, _rbMetadata.DrumIndices[1..3], _rbMetadata.DrumStemValues[2..6]));
-                        mixer.Channels.Add(new AudioChannel(SongStem.Drums3, _rbMetadata.DrumIndices[3..5], _rbMetadata.DrumStemValues[6..10]));
+                        mixer.AddChannel(SongStem.Drums1, _rbMetadata.DrumIndices[0..1], _rbMetadata.DrumStemValues![0..2]);
+                        mixer.AddChannel(SongStem.Drums2, _rbMetadata.DrumIndices[1..3], _rbMetadata.DrumStemValues[2..6]);
+                        mixer.AddChannel(SongStem.Drums3, _rbMetadata.DrumIndices[3..5], _rbMetadata.DrumStemValues[6..10]);
                         break;
                     //drum (0 1 2 3 4 5): stereo kick, stereo snare, stereo kit --> (0 1) (2 3) (4 5)
                     case 6:
-                        mixer.Channels.Add(new AudioChannel(SongStem.Drums1, _rbMetadata.DrumIndices[0..2], _rbMetadata.DrumStemValues![0..4]));
-                        mixer.Channels.Add(new AudioChannel(SongStem.Drums2, _rbMetadata.DrumIndices[2..4], _rbMetadata.DrumStemValues[4..8]));
-                        mixer.Channels.Add(new AudioChannel(SongStem.Drums3, _rbMetadata.DrumIndices[4..6], _rbMetadata.DrumStemValues[8..12]));
+                        mixer.AddChannel(SongStem.Drums1, _rbMetadata.DrumIndices[0..2], _rbMetadata.DrumStemValues![0..4]);
+                        mixer.AddChannel(SongStem.Drums2, _rbMetadata.DrumIndices[2..4], _rbMetadata.DrumStemValues[4..8]);
+                        mixer.AddChannel(SongStem.Drums3, _rbMetadata.DrumIndices[4..6], _rbMetadata.DrumStemValues[8..12]);
                         break;
                 }
             }
 
             if (_rbMetadata.BassIndices != null && !ignoreStems.Contains(SongStem.Bass))
-                mixer.Channels.Add(new AudioChannel(SongStem.Bass, _rbMetadata.BassIndices, _rbMetadata.BassStemValues!));
+                mixer.AddChannel(SongStem.Bass, _rbMetadata.BassIndices, _rbMetadata.BassStemValues!);
 
             if (_rbMetadata.GuitarIndices != null && !ignoreStems.Contains(SongStem.Guitar))
-                mixer.Channels.Add(new AudioChannel(SongStem.Guitar, _rbMetadata.GuitarIndices, _rbMetadata.GuitarStemValues!));
+                mixer.AddChannel(SongStem.Guitar, _rbMetadata.GuitarIndices, _rbMetadata.GuitarStemValues!);
 
             if (_rbMetadata.KeysIndices != null && !ignoreStems.Contains(SongStem.Keys))
-                mixer.Channels.Add(new AudioChannel(SongStem.Keys, _rbMetadata.KeysIndices, _rbMetadata.KeysStemValues!));
+                mixer.AddChannel(SongStem.Keys, _rbMetadata.KeysIndices, _rbMetadata.KeysStemValues!);
 
             if (_rbMetadata.VocalsIndices != null && !ignoreStems.Contains(SongStem.Vocals))
-                mixer.Channels.Add(new AudioChannel(SongStem.Vocals, _rbMetadata.VocalsIndices, _rbMetadata.VocalsStemValues!));
+                mixer.AddChannel(SongStem.Vocals, _rbMetadata.VocalsIndices, _rbMetadata.VocalsStemValues!);
 
             if (_rbMetadata.TrackIndices != null && !ignoreStems.Contains(SongStem.Song))
-                mixer.Channels.Add(new AudioChannel(SongStem.Song, _rbMetadata.TrackIndices, _rbMetadata.TrackStemValues!));
+                mixer.AddChannel(SongStem.Song, _rbMetadata.TrackIndices, _rbMetadata.TrackStemValues!);
 
             if (_rbMetadata.CrowdIndices != null && !ignoreStems.Contains(SongStem.Crowd))
-                mixer.Channels.Add(new AudioChannel(SongStem.Crowd, _rbMetadata.CrowdIndices, _rbMetadata.CrowdStemValues!));
+                mixer.AddChannel(SongStem.Crowd, _rbMetadata.CrowdIndices, _rbMetadata.CrowdStemValues!);
+
+            if (mixer.Channels.Count == 0)
+            {
+                YargLogger.LogError("Failed to add any stems!");
+                stream.Dispose();
+                mixer.Dispose();
+                return null;
+            }
+            YargLogger.LogFormatInfo("Loaded {0} stems", mixer.Channels.Count);
             return mixer;
         }
 
-        public override AudioMixer? LoadPreviewAudio()
+        public override StemMixer? LoadPreviewAudio(AudioManager manager, float speed)
         {
-            return LoadAudioStreams(SongStem.Crowd);
+            return LoadAudio(manager, speed, SongStem.Crowd);
         }
 
         public override byte[]? LoadAlbumData()
