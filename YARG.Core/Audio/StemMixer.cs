@@ -37,6 +37,7 @@ namespace YARG.Core.Audio
         public abstract void FadeOut();
         public abstract int Pause();
         public abstract double GetPosition(bool bufferCompensation = true);
+        public abstract float GetVolume();
         public abstract void SetPosition(double position, bool bufferCompensation = true);
         public abstract void SetVolume(double volume);
         public abstract int GetData(float[] buffer);
