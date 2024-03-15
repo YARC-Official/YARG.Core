@@ -34,8 +34,6 @@ namespace YARG.Core.Audio
 
         public abstract void SetSpeed(float speed);
         public abstract void SetWhammyPitch(float percent);
-
-        public abstract double GetPosition(bool bufferCompensation = true);
         public abstract void SetPosition(double position, bool bufferCompensation = true);
 
         protected virtual void DisposeManagedResources() { }
