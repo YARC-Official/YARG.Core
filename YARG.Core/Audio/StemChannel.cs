@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace YARG.Core.Audio
 {
@@ -29,7 +26,7 @@ namespace YARG.Core.Audio
         }
 
         public abstract void FadeIn(float maxVolume);
-        public abstract Task FadeOut();
+        public abstract void FadeOut();
 
         public abstract void SetVolume(double newVolume);
 

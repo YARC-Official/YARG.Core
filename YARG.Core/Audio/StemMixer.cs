@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace YARG.Core.Audio
 {
@@ -45,7 +42,7 @@ namespace YARG.Core.Audio
 
         public abstract int Play(bool restart = false);
         public abstract void FadeIn(float maxVolume);
-        public abstract Task FadeOut(CancellationToken token = default);
+        public abstract void FadeOut();
         public abstract int Pause();
         public abstract double GetPosition(bool bufferCompensation = true);
         public abstract void SetPosition(double position, bool bufferCompensation = true);
