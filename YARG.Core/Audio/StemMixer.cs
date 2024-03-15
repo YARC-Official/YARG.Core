@@ -14,19 +14,11 @@ namespace YARG.Core.Audio
         protected float _speed;
         protected double _length;
         protected bool _isPlaying = false;
-        protected StemChannel? _leadChannel;
+        protected Action? _songEnd;
 
         public double Length => _length;
-
         public IReadOnlyList<StemChannel> Channels => _channels;
-
-        public bool IsPlaying
-        {
-            get
-            {
-                return _isPlaying && GetPosition() < _length;
-            }
-        }
+        public bool IsPlaying => _isPlaying && GetPosition() < _length;
 
         public abstract event Action SongEnd;
 
