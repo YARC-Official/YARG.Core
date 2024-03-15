@@ -28,15 +28,15 @@ namespace MoonscraperChartEditor.Song.IO
     {
         private struct Anchor
         {
-            public uint tick;
+            public uint   tick;
             public double anchorTime;
         }
 
         private struct NoteFlag
         {
-            public uint tick;
+            public uint           tick;
             public MoonNote.Flags flag;
-            public int noteNumber;
+            public int            noteNumber;
 
             public NoteFlag(uint tick, MoonNote.Flags flag, int noteNumber)
             {
@@ -49,26 +49,26 @@ namespace MoonscraperChartEditor.Song.IO
         private struct NoteEvent
         {
             public uint tick;
-            public int noteNumber;
+            public int  noteNumber;
             public uint length;
         }
 
         private struct NoteProcessParams
         {
-            public MoonChart chart;
-            public ParseSettings settings;
-            public NoteEvent noteEvent;
+            public MoonChart                chart;
+            public ParseSettings            settings;
+            public NoteEvent                noteEvent;
             public List<NoteEventProcessFn> postNotesAddedProcessList;
         }
 
         #region Utility
+
         // https://cc.davelozinski.com/c-sharp/fastest-way-to-convert-a-string-to-an-int
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int FastInt32Parse(ReadOnlySpan<char> text)
         {
             int value = 0;
-            foreach (char character in text)
-                value = value * 10 + (character - '0');
+            foreach (char character in text) value = value * 10 + (character - '0');
 
             return value;
         }
@@ -77,15 +77,16 @@ namespace MoonscraperChartEditor.Song.IO
         private static ulong FastUint64Parse(ReadOnlySpan<char> text)
         {
             ulong value = 0;
-            foreach (char character in text)
-                value = value * 10 + (ulong)(character - '0');
+            foreach (char character in text) value = value * 10 + (ulong) (character - '0');
 
             return value;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static ReadOnlySpan<char> GetNextWord(this ReadOnlySpan<char> buffer, out ReadOnlySpan<char> remaining)
-            => buffer.SplitOnceTrimmed(' ', out remaining);
+        private static ReadOnlySpan<char>
+            GetNextWord(this ReadOnlySpan<char> buffer, out ReadOnlySpan<char> remaining) =>
+            buffer.SplitOnceTrimmed(' ', out remaining);
+
         #endregion
 
         public static MoonSong ReadFromFile(string filepath)
@@ -104,13 +105,11 @@ namespace MoonscraperChartEditor.Song.IO
         {
             try
             {
-                if (!File.Exists(filepath))
-                    throw new Exception("File does not exist");
+                if (!File.Exists(filepath)) throw new Exception("File does not exist");
 
                 string extension = Path.GetExtension(filepath);
 
-                if (extension != ".chart")
-                    throw new Exception("Bad file type");
+                if (extension != ".chart") throw new Exception("Bad file type");
 
                 string text = File.ReadAllText(filepath);
                 return ReadFromText(ref settings, text);
@@ -130,8 +129,7 @@ namespace MoonscraperChartEditor.Song.IO
                 // Find section name
                 int nameIndex = chartText.IndexOf('[');
                 int nameEndIndex = chartText.IndexOf(']');
-                if (nameIndex < 0 || nameEndIndex < 0 || nameEndIndex < nameIndex)
-                    break;
+                if (nameIndex < 0 || nameEndIndex < 0 || nameEndIndex < nameIndex) break;
 
                 nameIndex++; // Exclude starting bracket
                 var sectionName = chartText[nameIndex..nameEndIndex];
@@ -140,8 +138,7 @@ namespace MoonscraperChartEditor.Song.IO
                 // Find section body
                 int sectionIndex = chartText.IndexOf('{');
                 int sectionEndIndex = chartText.IndexOf('}');
-                if (sectionIndex < 0 || sectionEndIndex < 0 || sectionEndIndex < sectionIndex)
-                    break;
+                if (sectionIndex < 0 || sectionEndIndex < 0 || sectionEndIndex < sectionIndex) break;
 
                 sectionIndex++; // Exclude starting bracket
                 var sectionText = chartText[sectionIndex..sectionEndIndex];
@@ -150,6 +147,7 @@ namespace MoonscraperChartEditor.Song.IO
                 var splitter = sectionText.SplitTrimmed('\n');
                 SubmitChartData(ref settings, song, sectionName, splitter);
             }
+
             return song;
         }
 
@@ -158,19 +156,19 @@ namespace MoonscraperChartEditor.Song.IO
         {
             if (sectionName.Equals(ChartIOHelper.SECTION_SONG, StringComparison.Ordinal))
             {
-                YargTrace.DebugInfo("Loading chart properties");
+                YargLogger.LogTrace("Loading chart properties");
                 SubmitDataSong(song, ref settings, sectionLines);
                 return;
             }
             else if (sectionName.Equals(ChartIOHelper.SECTION_SYNC_TRACK, StringComparison.Ordinal))
             {
-                YargTrace.DebugInfo("Loading sync data");
+                YargLogger.LogTrace("Loading sync data");
                 SubmitDataSync(song, sectionLines);
                 return;
             }
             else if (sectionName.Equals(ChartIOHelper.SECTION_EVENTS, StringComparison.Ordinal))
             {
-                YargTrace.DebugInfo("Loading events data");
+                YargLogger.LogTrace("Loading events data");
                 SubmitDataGlobals(song, sectionLines);
                 return;
             }
@@ -178,15 +176,13 @@ namespace MoonscraperChartEditor.Song.IO
             // Determine what difficulty
             foreach (var (diffName, difficulty) in ChartIOHelper.TrackNameToTrackDifficultyLookup)
             {
-                if (!sectionName.StartsWith(diffName, StringComparison.Ordinal))
-                    continue;
+                if (!sectionName.StartsWith(diffName, StringComparison.Ordinal)) continue;
 
                 foreach (var (instrumentName, instrument) in ChartIOHelper.InstrumentStrToEnumLookup)
                 {
-                    if (!sectionName.EndsWith(instrumentName, StringComparison.Ordinal))
-                        continue;
+                    if (!sectionName.EndsWith(instrumentName, StringComparison.Ordinal)) continue;
 
-                    YargTrace.DebugInfo($"Loading data for {difficulty} {instrument}");
+                    YargLogger.LogFormatDebug("Loading data for {0} {1}", difficulty, instrument);
                     LoadChart(ref settings, song, sectionLines, instrument, difficulty);
                     break;
                 }
@@ -222,8 +218,7 @@ namespace MoonscraperChartEditor.Song.IO
             foreach (var _line in sectionLines)
             {
                 var line = _line.Trim();
-                if (line.IsEmpty)
-                    continue;
+                if (line.IsEmpty) continue;
 
                 try
                 {
@@ -231,10 +226,9 @@ namespace MoonscraperChartEditor.Song.IO
                     var tickText = line.SplitOnceTrimmed('=', out var remaining);
 
                     // Get tick
-                    uint tick = (uint)FastInt32Parse(tickText);
+                    uint tick = (uint) FastInt32Parse(tickText);
 
-                    if (prevTick > tick)
-                        throw new Exception("Tick value not in ascending order");
+                    if (prevTick > tick) throw new Exception("Tick value not in ascending order");
                     prevTick = tick;
 
                     // Get event type
@@ -246,12 +240,13 @@ namespace MoonscraperChartEditor.Song.IO
                         {
                             // Get numerator
                             var numeratorText = remaining.GetNextWord(out remaining);
-                            uint numerator = (uint)FastInt32Parse(numeratorText);
+                            uint numerator = (uint) FastInt32Parse(numeratorText);
 
                             // Get denominator
                             var denominatorText = remaining.GetNextWord(out remaining);
-                            uint denominator = denominatorText.IsEmpty ? 2 : (uint)FastInt32Parse(denominatorText);
-                            song.timeSignatures.Add(new MoonTimeSignature(tick, numerator, (uint) Math.Pow(2, denominator)));
+                            uint denominator = denominatorText.IsEmpty ? 2 : (uint) FastInt32Parse(denominatorText);
+                            song.timeSignatures.Add(new MoonTimeSignature(tick, numerator,
+                                (uint) Math.Pow(2, denominator)));
                             break;
                         }
 
@@ -259,7 +254,7 @@ namespace MoonscraperChartEditor.Song.IO
                         {
                             // Get tempo value
                             var tempoText = remaining.GetNextWord(out remaining);
-                            uint tempo = (uint)FastInt32Parse(tempoText);
+                            uint tempo = (uint) FastInt32Parse(tempoText);
 
                             song.bpms.Add(new MoonTempo(tick, tempo / 1000f));
                             break;
@@ -298,9 +293,11 @@ namespace MoonscraperChartEditor.Song.IO
                     song.bpms[arrayPos].anchor = anchor.anchorTime;
                 // Create a new anchored bpm
                 else if (anchor.tick < song.bpms[arrayPos].tick)
-                    song.bpms.Insert(arrayPos, new MoonTempo(anchor.tick, song.bpms[arrayPos - 1].value, anchor.anchorTime));
+                    song.bpms.Insert(arrayPos,
+                        new MoonTempo(anchor.tick, song.bpms[arrayPos - 1].value, anchor.anchorTime));
                 else
-                    song.bpms.Insert(arrayPos + 1, new MoonTempo(anchor.tick, song.bpms[arrayPos].value, anchor.anchorTime));
+                    song.bpms.Insert(arrayPos + 1,
+                        new MoonTempo(anchor.tick, song.bpms[arrayPos].value, anchor.anchorTime));
             }
 
             song.UpdateBPMTimeValues();
@@ -312,8 +309,7 @@ namespace MoonscraperChartEditor.Song.IO
             foreach (var _line in sectionLines)
             {
                 var line = _line.Trim();
-                if (line.IsEmpty)
-                    continue;
+                if (line.IsEmpty) continue;
 
                 try
                 {
@@ -323,8 +319,7 @@ namespace MoonscraperChartEditor.Song.IO
                     // Get tick
                     uint tick = (uint) FastInt32Parse(tickText);
 
-                    if (prevTick > tick)
-                        throw new Exception("Tick value not in ascending order");
+                    if (prevTick > tick) throw new Exception("Tick value not in ascending order");
                     prevTick = tick;
 
                     // Get event type
@@ -357,6 +352,7 @@ namespace MoonscraperChartEditor.Song.IO
         }
 
         #region Utility
+
         #endregion
 
         private static void LoadChart(ref ParseSettings settings, MoonSong song, TrimSplitter sectionLines,
@@ -392,15 +388,15 @@ namespace MoonscraperChartEditor.Song.IO
                         var tickText = line.SplitOnceTrimmed('=', out var remaining);
 
                         // Get tick
-                        uint tick = (uint)FastInt32Parse(tickText);
+                        uint tick = (uint) FastInt32Parse(tickText);
 
-                        if (prevTick > tick)
-                            throw new Exception("Tick value not in ascending order");
+                        if (prevTick > tick) throw new Exception("Tick value not in ascending order");
                         prevTick = tick;
 
                         // Get event type
                         char typeCode = remaining.GetNextWord(out remaining)[0];
-                        switch (typeCode)    // Note this will need to be changed if keys are ever greater than 1 character long
+                        switch (
+                            typeCode) // Note this will need to be changed if keys are ever greater than 1 character long
                         {
                             case 'N':
                             {
@@ -409,7 +405,7 @@ namespace MoonscraperChartEditor.Song.IO
                                 int noteType = FastInt32Parse(noteTypeText);
 
                                 var noteLengthText = remaining.GetNextWord(out remaining);
-                                uint noteLength = (uint)FastInt32Parse(noteLengthText);
+                                uint noteLength = (uint) FastInt32Parse(noteLengthText);
 
                                 // Process the note
                                 if (noteProcessDict.TryGetValue(noteType, out var processFn))
@@ -423,6 +419,7 @@ namespace MoonscraperChartEditor.Song.IO
                                     processParams.noteEvent = noteEvent;
                                     processFn(ref processParams);
                                 }
+
                                 break;
                             }
 
@@ -433,7 +430,7 @@ namespace MoonscraperChartEditor.Song.IO
                                 int phraseType = FastInt32Parse(phraseTypeText);
 
                                 var phraseLengthText = remaining.GetNextWord(out remaining);
-                                uint phraseLength = (uint)FastInt32Parse(phraseLengthText);
+                                uint phraseLength = (uint) FastInt32Parse(phraseLengthText);
 
                                 if (specialPhraseProcessDict.TryGetValue(phraseType, out var processFn))
                                 {
@@ -446,6 +443,7 @@ namespace MoonscraperChartEditor.Song.IO
                                     processParams.noteEvent = noteEvent;
                                     processFn(ref processParams);
                                 }
+
                                 break;
                             }
                             case 'E':
@@ -459,7 +457,6 @@ namespace MoonscraperChartEditor.Song.IO
                                 YargLogger.LogFormatWarning("Unrecognized type code '{0}'!", typeCode);
                                 break;
                         }
-
                     }
                     catch (Exception e)
                     {
@@ -471,6 +468,7 @@ namespace MoonscraperChartEditor.Song.IO
                 {
                     fn(ref processParams);
                 }
+
                 chart.notes.TrimExcess();
                 settings = processParams.settings;
             }
@@ -482,21 +480,22 @@ namespace MoonscraperChartEditor.Song.IO
             }
         }
 
-        private static void ProcessNoteOnEventAsNote(ref NoteProcessParams noteProcessParams, int ingameFret, MoonNote.Flags defaultFlags = MoonNote.Flags.None)
+        private static void ProcessNoteOnEventAsNote(ref NoteProcessParams noteProcessParams, int ingameFret,
+            MoonNote.Flags defaultFlags = MoonNote.Flags.None)
         {
             var chart = noteProcessParams.chart;
 
             var noteEvent = noteProcessParams.noteEvent;
             uint tick = noteEvent.tick;
             uint sus = noteEvent.length;
-            if (sus < noteProcessParams.settings.SustainCutoffThreshold)
-                sus = 0;
+            if (sus < noteProcessParams.settings.SustainCutoffThreshold) sus = 0;
 
             var newMoonNote = new MoonNote(tick, ingameFret, sus, defaultFlags);
             MoonObjectHelper.PushNote(newMoonNote, chart.notes);
         }
 
-        private static void ProcessNoteOnEventAsSpecialPhrase(ref NoteProcessParams noteProcessParams, MoonPhrase.Type type)
+        private static void ProcessNoteOnEventAsSpecialPhrase(ref NoteProcessParams noteProcessParams,
+            MoonPhrase.Type type)
         {
             var chart = noteProcessParams.chart;
 
@@ -508,7 +507,8 @@ namespace MoonscraperChartEditor.Song.IO
             chart.specialPhrases.Add(newPhrase);
         }
 
-        private static void ProcessNoteOnEventAsChordFlag(ref NoteProcessParams noteProcessParams, NoteFlagPriority flagData)
+        private static void ProcessNoteOnEventAsChordFlag(ref NoteProcessParams noteProcessParams,
+            NoteFlagPriority flagData)
         {
             var flagEvent = noteProcessParams.noteEvent;
 
@@ -519,7 +519,8 @@ namespace MoonscraperChartEditor.Song.IO
             });
         }
 
-        private static void ProcessNoteOnEventAsChordFlagPostDelay(ref NoteProcessParams noteProcessParams, NoteEvent noteEvent, NoteFlagPriority flagData)
+        private static void ProcessNoteOnEventAsChordFlagPostDelay(ref NoteProcessParams noteProcessParams,
+            NoteEvent noteEvent, NoteFlagPriority flagData)
         {
             var chart = noteProcessParams.chart;
             MoonObjectHelper.FindObjectsAtPosition(noteEvent.tick, chart.notes, out int index, out int length);
@@ -529,7 +530,8 @@ namespace MoonscraperChartEditor.Song.IO
             }
         }
 
-        private static void ProcessNoteOnEventAsNoteFlagToggle(ref NoteProcessParams noteProcessParams, int rawNote, NoteFlagPriority flagData)
+        private static void ProcessNoteOnEventAsNoteFlagToggle(ref NoteProcessParams noteProcessParams, int rawNote,
+            NoteFlagPriority flagData)
         {
             var flagEvent = noteProcessParams.noteEvent;
 
@@ -540,7 +542,8 @@ namespace MoonscraperChartEditor.Song.IO
             });
         }
 
-        private static void ProcessNoteOnEventAsNoteFlagTogglePostDelay(ref NoteProcessParams noteProcessParams, int rawNote, NoteEvent noteEvent, NoteFlagPriority flagData)
+        private static void ProcessNoteOnEventAsNoteFlagTogglePostDelay(ref NoteProcessParams noteProcessParams,
+            int rawNote, NoteEvent noteEvent, NoteFlagPriority flagData)
         {
             var chart = noteProcessParams.chart;
             MoonObjectHelper.FindObjectsAtPosition(noteEvent.tick, chart.notes, out int index, out int length);
@@ -569,7 +572,8 @@ namespace MoonscraperChartEditor.Song.IO
         {
             if (!flagData.TryApplyToNote(note))
             {
-                YargTrace.DebugWarning($"Could not apply flag {flagData.flagToAdd} to a note. It was blocked by existing flag {flagData.blockingFlag}.");
+                YargLogger.LogFormatDebug("Could not apply flag {0} to a note. It was blocked by existing flag {1}.",
+                    flagData.flagToAdd, flagData.blockingFlag);
             }
         }
     }

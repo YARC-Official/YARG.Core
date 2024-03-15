@@ -59,7 +59,7 @@ namespace YARG.Core.Song.Cache
                 }
 
                 _progress.Stage = ScanStage.LoadingCache;
-                YargTrace.DebugInfo("Quick Read start");
+                YargLogger.LogDebug("Quick Read start");
                 handler.Deserialize_Quick(stream);
             }
             catch (Exception ex)
@@ -76,7 +76,7 @@ namespace YARG.Core.Song.Cache
 
             _progress.Stage = ScanStage.Sorting;
             handler.SortCategories();
-            YargTrace.DebugInfo($"Total Entries: {_progress.Count}");
+            YargLogger.LogDebug($"Total Entries: {_progress.Count}");
             return true;
         }
 
@@ -90,7 +90,7 @@ namespace YARG.Core.Song.Cache
                     if (stream != null)
                     {
                         _progress.Stage = ScanStage.LoadingCache;
-                        YargTrace.DebugInfo("Full Read start");
+                        YargLogger.LogDebug("Full Read start");
                         handler.Deserialize(stream);
                     }
                 }
@@ -106,7 +106,7 @@ namespace YARG.Core.Song.Cache
 
             _progress.Stage = ScanStage.Sorting;
             handler.SortCategories();
-            YargTrace.DebugInfo($"Total Entries: {_progress.Count}");
+            YargLogger.LogFormatDebug("Total Entries: {0}", _progress.Count);
 
             try
             {

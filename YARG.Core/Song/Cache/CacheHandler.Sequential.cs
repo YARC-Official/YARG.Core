@@ -175,7 +175,7 @@ namespace YARG.Core.Song.Cache
             {
                 if (group.RemoveEntries(shortname))
                 {
-                    YargTrace.DebugInfo($"{group.Location} - {shortname} pending rescan");
+                    YargLogger.LogFormatTrace("{0} - {1} pending rescan", group.Location, item2: shortname);
                 }
             }
 
@@ -183,7 +183,7 @@ namespace YARG.Core.Song.Cache
             {
                 if (group.RemoveEntries(shortname))
                 {
-                    YargTrace.DebugInfo($"{group.Location} - {shortname} pending rescan");
+                    YargLogger.LogFormatTrace("{0} - {1} pending rescan", group.Location, item2: shortname);
                 }
             }
         }

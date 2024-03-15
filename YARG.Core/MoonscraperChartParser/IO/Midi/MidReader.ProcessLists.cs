@@ -9,6 +9,7 @@ using Melanchall.DryWetMidi.Core;
 using YARG.Core;
 using YARG.Core.Chart;
 using YARG.Core.Extensions;
+using YARG.Core.Logging;
 
 namespace MoonscraperChartEditor.Song.IO
 {
@@ -316,7 +317,7 @@ namespace MoonscraperChartEditor.Song.IO
             var gameMode = MoonSong.InstrumentToChartGameMode(processParams.instrument);
             if (gameMode != MoonChart.GameMode.Guitar)
             {
-                YargTrace.DebugWarning($"Attempted to apply guitar enhanced opens process map to non-guitar instrument: {processParams.instrument}");
+                YargLogger.LogFormatDebug("Attempted to apply guitar enhanced opens process map to non-guitar instrument: {0}", processParams.instrument);
                 return;
             }
 
@@ -329,7 +330,7 @@ namespace MoonscraperChartEditor.Song.IO
             var gameMode = MoonSong.InstrumentToChartGameMode(processParams.instrument);
             if (gameMode != MoonChart.GameMode.Drums)
             {
-                YargTrace.DebugWarning($"Attempted to apply drums velocity process map to non-drums instrument: {processParams.instrument}");
+                YargLogger.LogFormatWarning("Attempted to apply drums velocity process map to non-drums instrument: {0}", processParams.instrument);
                 return;
             }
 
@@ -376,7 +377,7 @@ namespace MoonscraperChartEditor.Song.IO
             }
 
             return processMap;
-        } 
+        }
 
         private static Dictionary<int, EventProcessFn> BuildGuitarNoteProcessDict(bool enhancedOpens = false)
         {
@@ -515,7 +516,7 @@ namespace MoonscraperChartEditor.Song.IO
 
                         if (noteEvent.Velocity < 100)
                         {
-                            YargTrace.DebugWarning($"Encountered Pro Guitar note with invalid fret velocity {noteEvent.Velocity}! Must be at least 100");
+                            YargLogger.LogFormatDebug("Encountered Pro Guitar note with invalid fret velocity {0}! Must be at least 100", noteEvent.Velocity);
                             return;
                         }
 

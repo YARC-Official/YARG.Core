@@ -28,7 +28,7 @@ namespace YARG.Core.Song.Cache
             FileInfo info = new(cacheLocation);
             if (!info.Exists || info.Length < MIN_CACHEFILESIZE)
             {
-                YargTrace.DebugInfo($"Cache invalid or not found");
+                YargLogger.LogDebug("Cache invalid or not found");
                 return null;
             }
 
@@ -36,13 +36,13 @@ namespace YARG.Core.Song.Cache
             using var counter = DisposableCounter.Wrap(fs);
             if (fs.Read<int>(Endianness.Little) != CACHE_VERSION)
             {
-                YargTrace.DebugInfo($"Cache outdated");
+                YargLogger.LogDebug($"Cache outdated");
                 return null;
             }
 
             if (fs.ReadBoolean() != fullDirectoryPlaylists)
             {
-                YargTrace.DebugInfo($"FullDirectoryFlag flipped");
+                YargLogger.LogDebug($"FullDirectoryFlag flipped");
                 return null;
             }
 
@@ -103,7 +103,7 @@ namespace YARG.Core.Song.Cache
 
             if (entry == null)
             {
-                YargTrace.DebugInfo($"Ini entry invalid {baseDirectory}");
+                YargLogger.LogDebug($"Ini entry invalid {baseDirectory}");
                 return;
             }
 

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using MoonscraperChartEditor.Song;
 using YARG.Core.Extensions;
+using YARG.Core.Logging;
 using YARG.Core.Parsing;
 using YARG.Core.Utility;
 
@@ -114,7 +115,7 @@ namespace YARG.Core.Chart
                     // Don't process notes that occur before the phrase
                     if (moonNote.tick < moonPhrase.tick)
                     {
-                        YargTrace.DebugWarning($"Vocals note at {moonNote.tick} does not exist within a phrase!");
+                        YargLogger.LogFormatDebug("Vocals note at {0} does not exist within a phrase!", moonNote.tick);
                         continue;
                     }
 
@@ -179,7 +180,7 @@ namespace YARG.Core.Chart
             const LyricSymbolFlags noteTypeMask = LyricSymbolFlags.NonPitched | LyricSymbolFlags.PitchSlide;
             if ((lyricFlags & noteTypeMask) == noteTypeMask)
             {
-                YargTrace.DebugWarning($"Lyric '{lyric.ToString()}' at tick {lyricTick} specifies multiple lyric types! Flags: {lyricFlags}");
+                YargLogger.LogFormatDebug("Lyric '{0}' at tick {1} specifies multiple lyric types! Flags: {2}", lyric.ToString(), lyricTick, lyricFlags);
 
                 // TODO: Should we prefer one over the other?
                 // lyricFlags &= ~LyricFlags.NonPitched;
