@@ -41,7 +41,6 @@ namespace YARG.Core.Audio
         public abstract void SetPosition(double position, bool bufferCompensation = true);
         public abstract void SetVolume(double volume);
         public abstract int GetData(float[] buffer);
-        public abstract void SetPlayVolume(bool fadeIn);
         public abstract void SetSpeed(float speed);
         public abstract bool AddChannel(SongStem stem);
         public abstract bool AddChannel(SongStem stem, Stream stream);
