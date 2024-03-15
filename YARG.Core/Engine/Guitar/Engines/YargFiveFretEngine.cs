@@ -198,14 +198,14 @@ namespace YARG.Core.Engine.Guitar.Engines
             // start the infinite front end
             if (EngineParameters.InfiniteFrontEnd && (note.IsHopo || note.IsTap) && CanNoteBeHit(note))
             {
-                State.InfiniteFrontEndHitTime = note.Time + EngineParameters.HitWindow.GetFrontEnd(hitWindow);
-                QueueUpdateTime(State.InfiniteFrontEndHitTime.Value);
+                var hitTime = note.Time + EngineParameters.HitWindow.GetFrontEnd(hitWindow);
 
                 // If we're already past this point, then it wouldn't be an infinite front-end,
                 // it'd just be a normal front-end.
-                if (State.CurrentTime > State.InfiniteFrontEndHitTime)
+                if (State.CurrentTime <= hitTime)
                 {
-                    State.InfiniteFrontEndHitTime = null;
+                    State.InfiniteFrontEndHitTime = hitTime;
+                    QueueUpdateTime(hitTime);
                 }
             }
 
