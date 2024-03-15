@@ -128,9 +128,17 @@ namespace YARG.Core.Engine.Guitar.Engines
                 }
                 else
                 {
-                    // TODO: Overstrum on double strum?
-
                     // If an input was consumed, a note was hit
+
+                    // If the strum was successful and there strum leniency is active,
+                    // then that means that there was an extra strum done.
+                    if (State.StrumLeniencyTimer.IsActive(State.CurrentTime))
+                    {
+                        // If the strum leniency timer was already active,
+                        // that means that the player is already in the leniency.
+                        Overstrum();
+                        State.StrumLeniencyTimer.Reset();
+                    }
 
                     return true;
                 }
