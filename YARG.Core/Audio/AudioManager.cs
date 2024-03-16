@@ -5,33 +5,21 @@ using YARG.Core.Logging;
 
 namespace YARG.Core.Audio
 {
+    public enum StarPowerFxMode
+    {
+        Off,
+        MultitrackOnly,
+        On
+    }
+
     public abstract class AudioManager : IDisposable
     {
-        public static readonly AudioOptions Options = new();
+        public const int WHAMMY_FFT_DEFAULT = 2048;
+        public const int WHAMMY_OVERSAMPLE_DEFAULT = 8;
+
+        public const double MINIMUM_STEM_VOLUME = 0.15;
 
         private static AudioManager? _instance;
-        protected static SampleChannel[] _sfxSamples = new SampleChannel[AudioHelpers.SfxPaths.Count];
-
-        protected internal static readonly Dictionary<SongStem, StemVolume> StemVolumes = new()
-        {
-            { SongStem.Song    , new StemVolume() },
-            { SongStem.Guitar  , new StemVolume() },
-            { SongStem.Bass    , new StemVolume() },
-            { SongStem.Rhythm  , new StemVolume() },
-            { SongStem.Keys    , new StemVolume() },
-            { SongStem.Vocals  , new StemVolume() },
-            { SongStem.Vocals1 , new StemVolume() },
-            { SongStem.Vocals2 , new StemVolume() },
-            { SongStem.Drums   , new StemVolume() },
-            { SongStem.Drums1  , new StemVolume() },
-            { SongStem.Drums2  , new StemVolume() },
-            { SongStem.Drums3  , new StemVolume() },
-            { SongStem.Drums4  , new StemVolume() },
-            { SongStem.Crowd   , new StemVolume() },
-        };
-
-        public static double MasterVolume { get; protected set; } = 1;
-        public static double SfxVolume { get; protected set; } = 1;
 
         public static AudioManager Instance
         {
@@ -60,21 +48,93 @@ namespace YARG.Core.Audio
             _instance?.Dispose();
         }
 
+
+        protected static SampleChannel[] _sfxSamples = new SampleChannel[AudioHelpers.SfxPaths.Count];
         public static void PlaySoundEffect(SfxSample sample)
         {
             _sfxSamples[(int) sample]?.Play();
         }
 
-        public static double GetVolumeSetting(SongStem stem)
+        protected internal static readonly Dictionary<SongStem, StemSettings> StemSettings;
+
+        static AudioManager()
         {
-            return stem switch
+            var vocals = new StemSettings(AudioHelpers.SONG_VOLUME_MULTIPLIER);
+            var drums = new StemSettings(AudioHelpers.SONG_VOLUME_MULTIPLIER);
+
+            StemSettings = new()
             {
-                SongStem.Master or
-                SongStem.Preview => MasterVolume,
-                SongStem.Sfx => SfxVolume,
-                _ => StemVolumes[stem].Volume
+                { SongStem.Song,    new StemSettings(AudioHelpers.SONG_VOLUME_MULTIPLIER) },
+                { SongStem.Guitar,  new StemSettings(AudioHelpers.SONG_VOLUME_MULTIPLIER) },
+                { SongStem.Bass,    new StemSettings(AudioHelpers.SONG_VOLUME_MULTIPLIER) },
+                { SongStem.Rhythm,  new StemSettings(AudioHelpers.SONG_VOLUME_MULTIPLIER) },
+                { SongStem.Keys,    new StemSettings(AudioHelpers.SONG_VOLUME_MULTIPLIER) },
+                { SongStem.Vocals,  vocals },
+                { SongStem.Vocals1, vocals },
+                { SongStem.Vocals2, vocals },
+                { SongStem.Drums,   drums },
+                { SongStem.Drums1,  drums },
+                { SongStem.Drums2,  drums },
+                { SongStem.Drums3,  drums },
+                { SongStem.Drums4,  drums },
+                { SongStem.Crowd,   new StemSettings(AudioHelpers.SONG_VOLUME_MULTIPLIER) },
+                { SongStem.Sfx,     new StemSettings(1) },
+                { SongStem.Preview, new StemSettings(1) },
+                { SongStem.Master,  new StemSettings(1) },
             };
         }
+
+        public static double GetVolumeSetting(SongStem stem)
+        {
+            return StemSettings[stem].Volume;
+        }
+
+        public static void SetVolumeSetting(SongStem stem, double volume)
+        {
+            StemSettings[stem].Volume = volume;
+        }
+
+        public static bool GetReverbSetting(SongStem stem)
+        {
+            return StemSettings[stem].Reverb;
+        }
+
+        public static void SetReverbSetting(SongStem stem, bool reverb)
+        {
+            StemSettings[stem].Reverb = reverb;
+        }
+
+        public static bool UseWhammyFx;
+        public static bool IsChipmunkSpeedup;
+
+        public static bool UseMinimumStemVolume;
+
+        /// <summary>
+        /// The number of semitones to bend the pitch by. Must be at least 1;
+        /// </summary>
+        public static float WhammyPitchShiftAmount = 1f;
+
+        // Not implemented, as changing the FFT size causes BASS_FX to crash
+        // /// <summary>
+        // /// The size of the whammy FFT buffer. Must be a power of 2, up to 8192.
+        // /// </summary>
+        // /// <remarks>
+        // /// Changes to this value will not be applied until the next song plays.
+        // /// </remarks>
+        // public int WhammyFFTSize
+        // {
+        //     get => (int)Math.Pow(2, _whammyFFTSize);
+        //     set => _whammyFFTSize = (int)Math.Log(value, 2);
+        // }
+        // private int _whammyFFTSize = WHAMMY_FFT_DEFAULT;
+
+        /// <summary>
+        /// The oversampling factor of the whammy SFX. Must be at least 4.
+        /// </summary>
+        /// <remarks>
+        /// Changes to this value will not be applied until the next song plays.
+        /// </remarks>
+        public static int WhammyOversampleFactor = WHAMMY_OVERSAMPLE_DEFAULT;
 
         private bool _disposed;
         private List<StemMixer> _activeMixers = new();
@@ -82,6 +142,11 @@ namespace YARG.Core.Audio
         public double PlaybackBufferLength { get; protected set; }
 
         public abstract ReadOnlySpan<string> SupportedFormats { get; }
+
+        protected AudioManager()
+        {
+            StemSettings[SongStem.Master].OnVolumeChange += SetMasterVolume;
+        }
 
         public abstract StemMixer? CreateMixer(float speed);
 
@@ -118,13 +183,13 @@ namespace YARG.Core.Audio
             return mixer;
         }
 
-        public abstract void UpdateVolumeSetting(SongStem stem, double volume);
-
         public abstract MicDevice? GetInputDevice(string name);
 
         public abstract List<(int id, string name)> GetAllInputDevices();
 
         public abstract MicDevice? CreateDevice(int deviceId, string name);
+
+        protected abstract void SetMasterVolume(double volume);
 
         /// <summary>
         /// Communicates to the manager that the mixer is already disposed of.
@@ -170,6 +235,7 @@ namespace YARG.Core.Audio
                     sample?.Dispose();
                 }
 
+                StemSettings[SongStem.Master].OnVolumeChange -= SetMasterVolume;
                 if (disposing)
                 {
                     DisposeManagedResources();

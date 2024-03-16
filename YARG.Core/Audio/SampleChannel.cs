@@ -18,7 +18,11 @@ namespace YARG.Core.Audio
             Sample = sample;
             _path = path;
             _playbackCount = playbackCount;
+
+            AudioManager.StemSettings[SongStem.Sfx].OnVolumeChange += SetVolume;
         }
+
+        protected abstract void SetVolume(double volume);
 
         protected virtual void DisposeManagedResources() { }
         protected virtual void DisposeUnmanagedResources() { }
@@ -29,6 +33,7 @@ namespace YARG.Core.Audio
         {
             if (!disposedValue)
             {
+                AudioManager.StemSettings[SongStem.Sfx].OnVolumeChange -= SetVolume;
                 if (disposing)
                 {
                     DisposeManagedResources();

@@ -18,15 +18,16 @@ namespace YARG.Core.Audio
             _volume = volume;
             Stem = stem;
 
-            AudioManager.StemVolumes[Stem].Adjustments += SetVolume;
+            var settings = AudioManager.StemSettings[Stem];
+            settings.OnVolumeChange += SetVolume;
+            settings.OnReverbChange += SetReverb;
         }
-
-        public abstract void SetVolume(double newVolume);
-
-        public abstract void SetReverb(bool reverb);
 
         public abstract void SetWhammyPitch(float percent);
         public abstract void SetPosition(double position, bool bufferCompensation = true);
+
+        protected abstract void SetVolume(double newVolume);
+        protected abstract void SetReverb(bool reverb);
 
         protected virtual void DisposeManagedResources() { }
         protected virtual void DisposeUnmanagedResources() { }
@@ -35,7 +36,7 @@ namespace YARG.Core.Audio
         {
             if (!_disposed)
             {
-                AudioManager.StemVolumes[Stem].Adjustments -= SetVolume;
+                AudioManager.StemSettings[Stem].OnVolumeChange -= SetVolume;
                 if (disposing)
                 {
                     DisposeManagedResources();
