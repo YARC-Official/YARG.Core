@@ -19,14 +19,11 @@ namespace YARG.Core.Audio
             Stem = stem;
         }
 
-        public abstract void FadeIn(float maxVolume);
-        public abstract void FadeOut();
 
         public abstract void SetVolume(double newVolume);
 
         public abstract void SetReverb(bool reverb);
 
-        public abstract void SetSpeed(float speed);
         public abstract void SetWhammyPitch(float percent);
         public abstract void SetPosition(double position, bool bufferCompensation = true);
 
