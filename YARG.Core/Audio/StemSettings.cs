@@ -4,6 +4,8 @@ namespace YARG.Core.Audio
 {
     public class StemSettings
     {
+        private const double BASE = 2;
+        private const double FACTOR = BASE - 1;
         private readonly double _volumeScaling;
 
         private Action<double>? _onVolumeChange;
@@ -11,9 +13,10 @@ namespace YARG.Core.Audio
         private double _volume;
         private bool _reverb;
 
-        public StemSettings(double factor)
+        public StemSettings(double scaling)
         {
-            _volume = _volumeScaling = factor;
+            _volumeScaling = scaling;
+            _volume = Math.Log(scaling * FACTOR + 1, BASE);
         }
 
         public event Action<double> OnVolumeChange
@@ -33,7 +36,8 @@ namespace YARG.Core.Audio
             get => _volume;
             set
             {
-                _volume = Math.Clamp(value * _volumeScaling, 0, _volumeScaling);
+                double scaled = Math.Clamp(value * _volumeScaling, 0, _volumeScaling);
+                _volume = Math.Log(scaled * FACTOR + 1, BASE);
                 _onVolumeChange?.Invoke(_volume);
             }
         }
