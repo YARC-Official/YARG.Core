@@ -25,6 +25,7 @@ namespace YARG.Core.Audio
 
         public abstract void SetWhammyPitch(float percent);
         public abstract void SetPosition(double position, bool bufferCompensation = true);
+        public abstract void SetSpeed(float speed);
 
         protected abstract void SetVolume(double newVolume);
         protected abstract void SetReverb(bool reverb);
