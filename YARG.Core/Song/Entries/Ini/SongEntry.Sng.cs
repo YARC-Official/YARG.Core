@@ -52,35 +52,6 @@ namespace YARG.Core.Song
             return CreateAudioMixer(manager, speed, sngFile, ignoreStems);
         }
 
-        public override StemMixer? LoadPreviewAudio(AudioManager manager, float speed)
-        {
-            var sngFile = SngFile.TryLoadFromFile(_sngInfo);
-            if (sngFile == null)
-            {
-                YargLogger.LogFormatError("Failed to load sng file {0}", _sngInfo.FullName);
-                return null;
-            }
-
-            foreach (var filename in PREVIEW_FILES)
-            {
-                if (sngFile.TryGetValue(filename, out var listing))
-                {
-                    var stream = listing.CreateStream(sngFile);
-                    var mixer = manager.CreateMixer(stream, speed);
-                    if (mixer == null)
-                    {
-                        stream.Dispose();
-                        YargLogger.LogFormatError("Failed to load preview file {0}!", filename);
-                        return null;
-                    }
-                    mixer.AddChannel(SongStem.Preview);
-                    return mixer;
-                }
-            }
-
-            return CreateAudioMixer(manager, speed, sngFile, SongStem.Crowd);
-        }
-
         public override byte[]? LoadAlbumData()
         {
             var sngFile = SngFile.TryLoadFromFile(_sngInfo);
@@ -185,6 +156,35 @@ namespace YARG.Core.Song
             }
 
             return null;
+        }
+
+        protected override StemMixer? LoadPreviewMixer(AudioManager manager, float speed)
+        {
+            var sngFile = SngFile.TryLoadFromFile(_sngInfo);
+            if (sngFile == null)
+            {
+                YargLogger.LogFormatError("Failed to load sng file {0}", _sngInfo.FullName);
+                return null;
+            }
+
+            foreach (var filename in PREVIEW_FILES)
+            {
+                if (sngFile.TryGetValue(filename, out var listing))
+                {
+                    var stream = listing.CreateStream(sngFile);
+                    var mixer = manager.CreateMixer(stream, speed);
+                    if (mixer == null)
+                    {
+                        stream.Dispose();
+                        YargLogger.LogFormatError("Failed to load preview file {0}!", filename);
+                        return null;
+                    }
+                    mixer.AddChannel(SongStem.Preview);
+                    return mixer;
+                }
+            }
+
+            return CreateAudioMixer(manager, speed, sngFile, SongStem.Crowd);
         }
 
         private StemMixer? CreateAudioMixer(AudioManager manager, float speed, SngFile sngFile, params SongStem[] ignoreStems)

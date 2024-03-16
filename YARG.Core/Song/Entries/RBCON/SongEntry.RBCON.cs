@@ -189,11 +189,6 @@ namespace YARG.Core.Song
             return mixer;
         }
 
-        public override StemMixer? LoadPreviewAudio(AudioManager manager, float speed)
-        {
-            return LoadAudio(manager, speed, SongStem.Crowd);
-        }
-
         public override byte[]? LoadAlbumData()
         {
             var bytes = LoadRawImageData();
@@ -216,6 +211,11 @@ namespace YARG.Core.Song
                 return File.ReadAllBytes(UpdateMilo.FullName);
             }
             return null;
+        }
+
+        protected override StemMixer? LoadPreviewMixer(AudioManager manager, float speed)
+        {
+            return LoadAudio(manager, speed, SongStem.Crowd);
         }
 
         public virtual void Serialize(BinaryWriter writer, CategoryCacheWriteNode node)
