@@ -17,8 +17,9 @@ namespace YARG.Core.Audio
             _manager = manager;
             _volume = volume;
             Stem = stem;
-        }
 
+            AudioManager.StemVolumes[Stem].Adjustments += SetVolume;
+        }
 
         public abstract void SetVolume(double newVolume);
 
@@ -34,6 +35,7 @@ namespace YARG.Core.Audio
         {
             if (!_disposed)
             {
+                AudioManager.StemVolumes[Stem].Adjustments -= SetVolume;
                 if (disposing)
                 {
                     DisposeManagedResources();
