@@ -43,6 +43,7 @@ namespace YARG.Core.Engine.Guitar.Engines
         {
             UpdateTimeVariables(time);
             UpdateStarPower();
+            UpdateSustains();
 
             // Quit early if there are no notes left
             if (State.NoteIndex >= Notes.Count)

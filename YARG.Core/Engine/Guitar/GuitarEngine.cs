@@ -311,8 +311,6 @@ namespace YARG.Core.Engine.Guitar
 
         protected void StartSustain(GuitarNote note)
         {
-            return;
-
             var sustain = new ActiveSustain(note);
 
             ActiveSustains.Add(sustain);
