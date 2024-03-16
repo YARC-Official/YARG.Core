@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Text;
-using YARG.Core.IO;
 using YARG.Core.Logging;
 
 namespace YARG.Core.Audio
@@ -13,8 +10,25 @@ namespace YARG.Core.Audio
         public static readonly AudioOptions Options = new();
 
         private static AudioManager? _instance;
-        protected static double[] _stemVolumes = new double[AudioHelpers.SupportedStems.Count];
         protected static SampleChannel[] _sfxSamples = new SampleChannel[AudioHelpers.SfxPaths.Count];
+
+        protected internal static readonly Dictionary<SongStem, StemVolume> StemVolumes = new()
+        {
+            { SongStem.Song    , new StemVolume() },
+            { SongStem.Guitar  , new StemVolume() },
+            { SongStem.Bass    , new StemVolume() },
+            { SongStem.Rhythm  , new StemVolume() },
+            { SongStem.Keys    , new StemVolume() },
+            { SongStem.Vocals  , new StemVolume() },
+            { SongStem.Vocals1 , new StemVolume() },
+            { SongStem.Vocals2 , new StemVolume() },
+            { SongStem.Drums   , new StemVolume() },
+            { SongStem.Drums1  , new StemVolume() },
+            { SongStem.Drums2  , new StemVolume() },
+            { SongStem.Drums3  , new StemVolume() },
+            { SongStem.Drums4  , new StemVolume() },
+            { SongStem.Crowd   , new StemVolume() },
+        };
 
         public static double MasterVolume { get; protected set; } = 1;
         public static double SfxVolume { get; protected set; } = 1;
@@ -58,7 +72,7 @@ namespace YARG.Core.Audio
                 SongStem.Master or
                 SongStem.Preview => MasterVolume,
                 SongStem.Sfx => SfxVolume,
-                _ => _stemVolumes[(int) stem]
+                _ => StemVolumes[stem].Volume
             };
         }
 
