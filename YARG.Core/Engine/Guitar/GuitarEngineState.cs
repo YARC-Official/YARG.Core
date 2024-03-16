@@ -17,6 +17,7 @@
 
         public bool HasFretted;
         public bool HasStrummed;
+        public bool HasWhammied;
 
         public bool WasHopoStrummed;
         public bool WasNoteGhosted;

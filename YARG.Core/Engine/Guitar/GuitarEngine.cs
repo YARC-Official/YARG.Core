@@ -293,7 +293,9 @@ namespace YARG.Core.Engine.Guitar
                 {
                     // Only fail when the sustain has actually started
                     if (baseTick >= sustain.Note.Tick)
+                    {
                         YargTrace.Fail($"Sustain base tick cannot go backwards! Attempted to go from {sustain.BaseTick} to {baseTick}");
+                    }
 
                     continue;
                 }
@@ -380,7 +382,7 @@ namespace YARG.Core.Engine.Guitar
         {
             if (spSustainsActive)
             {
-                if (false)
+                if (State.HasWhammied)
                 {
                     // Rebase when beginning to SP whammy
                     if (!State.StarPowerWhammyTimer.IsActive(State.CurrentTime))
