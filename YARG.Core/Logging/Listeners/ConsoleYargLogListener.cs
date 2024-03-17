@@ -5,7 +5,7 @@ namespace YARG.Core.Logging
 {
     public class ConsoleYargLogListener : BaseYargLogListener
     {
-        public ConsoleYargLogListener() : this(new StandardYargLogFormatter())
+        public ConsoleYargLogListener() : this(new BasicYargLogFormatter())
         {
         }
 

@@ -3,7 +3,11 @@ using Cysharp.Text;
 
 namespace YARG.Core.Logging
 {
-    public class StandardYargLogFormatter : IYargLogFormatter
+    /// <summary>
+    /// A log formatter which includes as much information as possible in the log output.
+    /// Suitable for file logs, where available information is prioritized above all else.
+    /// </summary>
+    public class DetailedYargLogFormatter : IYargLogFormatter
     {
         public void FormatLogItem(ref Utf16ValueStringBuilder output, LogItem item)
         {

@@ -10,7 +10,7 @@ namespace YARG.Core.Logging
         private readonly FileStream   _fileStream;
         private readonly StreamWriter _writer;
 
-        public FileYargLogListener(string file) : this(file, new StandardYargLogFormatter())
+        public FileYargLogListener(string file) : this(file, new DetailedYargLogFormatter())
         {
         }
 
