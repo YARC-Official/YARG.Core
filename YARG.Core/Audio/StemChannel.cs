@@ -23,27 +23,85 @@ namespace YARG.Core.Audio
             settings.OnReverbChange += SetReverb;
         }
 
-        public abstract void SetWhammyPitch(float percent);
-        public abstract void SetPosition(double position, bool bufferCompensation = true);
-        public abstract void SetSpeed(float speed);
+        public void SetWhammyPitch(float percent)
+        {
+            lock (this)
+            {
+                if (!_disposed)
+                {
+                    SetWhammyPitch_Internal(percent);
+                }
+            }
+        }
 
-        protected abstract void SetVolume(double newVolume);
-        protected abstract void SetReverb(bool reverb);
+        public void SetPosition(double position, bool bufferCompensation = true)
+        {
+            lock (this)
+            {
+                if (!_disposed)
+                {
+                    SetPosition_Internal(position, bufferCompensation);
+                }
+            }
+        }
+
+        public void SetSpeed(float speed)
+        {
+            lock (this)
+            {
+                if (!_disposed)
+                {
+                    SetSpeed_Internal(speed);
+                }
+            }
+        }
+
+        private void SetVolume(double newVolume)
+        {
+            lock (this)
+            {
+                if (!_disposed)
+                {
+                    SetVolume_Internal(newVolume);
+                }
+            }
+        }
+
+        private void SetReverb(bool reverb)
+        {
+            lock (this)
+            {
+                if (!_disposed)
+                {
+                    SetReverb_Internal(reverb);
+                }
+            }
+        }
+
+        protected abstract void SetWhammyPitch_Internal(float percent);
+        protected abstract void SetPosition_Internal(double position, bool bufferCompensation);
+        protected abstract void SetSpeed_Internal(float speed);
+
+        protected abstract void SetVolume_Internal(double newVolume);
+        protected abstract void SetReverb_Internal(bool reverb);
 
         protected virtual void DisposeManagedResources() { }
         protected virtual void DisposeUnmanagedResources() { }
 
         private void Dispose(bool disposing)
         {
-            if (!_disposed)
+            lock (this)
             {
-                AudioManager.StemSettings[Stem].OnVolumeChange -= SetVolume;
-                if (disposing)
+                if (!_disposed)
                 {
-                    DisposeManagedResources();
+                    AudioManager.StemSettings[Stem].OnVolumeChange -= SetVolume;
+                    if (disposing)
+                    {
+                        DisposeManagedResources();
+                    }
+                    DisposeUnmanagedResources();
+                    _disposed = true;
                 }
-                DisposeUnmanagedResources();
-                _disposed = true;
             }
         }
 

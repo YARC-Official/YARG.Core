@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.InteropServices.ComTypes;
 
 namespace YARG.Core.Audio
 {
@@ -35,20 +36,181 @@ namespace YARG.Core.Audio
 
         public StemChannel? this[SongStem stem] => _channels.Find(x => x.Stem == stem);
 
-        public abstract int Play(bool restart = false);
-        public abstract void FadeIn(float maxVolume);
-        public abstract void FadeOut();
-        public abstract int Pause();
-        public abstract double GetPosition(bool bufferCompensation = true);
-        public abstract float GetVolume();
-        public abstract void SetPosition(double position, bool bufferCompensation = true);
-        public abstract void SetVolume(double volume);
-        public abstract int GetData(float[] buffer);
-        public abstract void SetSpeed(float speed);
-        public abstract bool AddChannel(SongStem stem);
-        public abstract bool AddChannel(SongStem stem, Stream stream);
-        public abstract bool AddChannel(SongStem stem, int[] indices, float[] panning);
-        public abstract bool RemoveChannel(SongStem stemToRemove);
+        public int Play(bool restart = false)
+        {
+            lock (this)
+            {
+                if (_disposed)
+                {
+                    return -1;
+                }
+                return Play_Internal(restart);
+            }
+        }
+
+        public void FadeIn(float maxVolume)
+        {
+            lock (this)
+            {
+                if (!_disposed)
+                {
+                    FadeIn_Internal(maxVolume);
+                }
+            }
+        }
+        public void FadeOut()
+        {
+            lock (this)
+            {
+                if (!_disposed)
+                {
+                    FadeOut_Internal();
+                }
+            }
+        }
+
+        public int Pause()
+        {
+            lock (this)
+            {
+                if (_disposed)
+                {
+                    return -1;
+                }
+                return Pause_Internal();
+            }
+        }
+
+        public double GetPosition(bool bufferCompensation = true)
+        {
+            lock (this)
+            {
+                if (_disposed)
+                {
+                    return 0;
+                }
+                return GetPosition_Internal(bufferCompensation);
+            }
+        }
+
+        public float GetVolume()
+        {
+            lock (this)
+            {
+                if (_disposed)
+                {
+                    return 0;
+                }
+                return GetVolume_Internal();
+            }
+        }
+        public void SetPosition(double position, bool bufferCompensation = true)
+        {
+            lock (this)
+            {
+                if (!_disposed)
+                {
+                    SetPosition_Internal(position, bufferCompensation);
+                }
+            }
+        }
+
+        public void SetVolume(double volume)
+        {
+            lock (this)
+            {
+                if (!_disposed)
+                {
+                    SetVolume_Internal(volume);
+                }
+            }
+        }
+
+        public int GetData(float[] buffer)
+        {
+            lock (this)
+            {
+                if (_disposed)
+                {
+                    return -1;
+                }
+                return GetData_Internal(buffer);
+            }
+        }
+
+        public void SetSpeed(float speed)
+        {
+            lock (this)
+            {
+                if (!_disposed)
+                {
+                    SetSpeed_Internal(speed);
+                }
+            }
+        }
+
+        public bool AddChannel(SongStem stem)
+        {
+            lock (this)
+            {
+                if (_disposed)
+                {
+                    return false;
+                }
+                return AddChannel_Internal(stem);
+            }
+        }
+
+        public bool AddChannel(SongStem stem, Stream stream)
+        {
+            lock (this)
+            {
+                if (_disposed)
+                {
+                    return false;
+                }
+                return AddChannel_Internal(stem, stream);
+            }
+        }
+
+        public bool AddChannel(SongStem stem, int[] indices, float[] panning)
+        {
+            lock (this)
+            {
+                if (_disposed)
+                {
+                    return false;
+                }
+                return AddChannel_Internal(stem, indices, panning);
+            }
+        }
+
+        public bool RemoveChannel(SongStem stemToRemove)
+        {
+            lock (this)
+            {
+                if (_disposed)
+                {
+                    return false;
+                }
+                return RemoveChannel_Internal(stemToRemove);
+            }
+        }
+
+        protected abstract int Play_Internal(bool restart);
+        protected abstract void FadeIn_Internal(float maxVolume);
+        protected abstract void FadeOut_Internal();
+        protected abstract int Pause_Internal();
+        protected abstract double GetPosition_Internal(bool bufferCompensation);
+        protected abstract float GetVolume_Internal();
+        protected abstract void SetPosition_Internal(double position, bool bufferCompensation);
+        protected abstract void SetVolume_Internal(double volume);
+        protected abstract int  GetData_Internal(float[] buffer);
+        protected abstract void SetSpeed_Internal(float speed);
+        protected abstract bool AddChannel_Internal(SongStem stem);
+        protected abstract bool AddChannel_Internal(SongStem stem, Stream stream);
+        protected abstract bool AddChannel_Internal(SongStem stem, int[] indices, float[] panning);
+        protected abstract bool RemoveChannel_Internal(SongStem stemToRemove);
 
         protected virtual void DisposeManagedResources() { }
         protected virtual void DisposeUnmanagedResources() { }
