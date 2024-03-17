@@ -510,7 +510,8 @@ namespace MoonscraperChartEditor.Song.IO
                     {
                         if (eventProcessParams.timedEvent.midiEvent is not NoteEvent noteEvent)
                         {
-                            YargTrace.Fail($"Wrong note event type passed to Pro Guitar note process. Expected: {typeof(NoteEvent)}, Actual: {eventProcessParams.timedEvent.midiEvent.GetType()}");
+                            YargLogger.FailFormat("Wrong note event type! Expected: {0}, Actual: {1}",
+                                typeof(NoteEvent), eventProcessParams.timedEvent.midiEvent.GetType());
                             return;
                         }
 
@@ -595,7 +596,8 @@ namespace MoonscraperChartEditor.Song.IO
                             {
                                 if (eventProcessParams.timedEvent.midiEvent is not NoteEvent noteEvent)
                                 {
-                                    YargTrace.Fail($"Wrong note event type passed to drums note process. Expected: {typeof(NoteEvent)}, Actual: {eventProcessParams.timedEvent.midiEvent.GetType()}");
+                                    YargLogger.FailFormat("Wrong note event type! Expected: {0}, Actual: {1}",
+                                        typeof(NoteEvent), eventProcessParams.timedEvent.midiEvent.GetType());
                                     return;
                                 }
 

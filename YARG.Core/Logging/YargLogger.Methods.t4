@@ -35,6 +35,7 @@ var logTypes = new[]
     "Warning",
     "Error",
     //"Exception",
+    //"Failure",
 };
 
 

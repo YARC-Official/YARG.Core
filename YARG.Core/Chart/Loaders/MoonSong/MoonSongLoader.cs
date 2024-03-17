@@ -4,6 +4,7 @@ using System.IO;
 using Melanchall.DryWetMidi.Core;
 using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
+using YARG.Core.Logging;
 
 namespace YARG.Core.Chart
 {
@@ -344,8 +345,8 @@ namespace YARG.Core.Chart
         {
             if (songObj == null || phrase == null)
             {
-                YargTrace.Assert(songObj != null, "IsEventInPhrase: songObj == null");
-                YargTrace.Assert(phrase != null, "IsEventInPhrase: phrase == null");
+                YargLogger.Assert(songObj != null);
+                YargLogger.Assert(phrase != null);
                 return false;
             }
 

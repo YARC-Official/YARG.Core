@@ -8,6 +8,7 @@
         Warning,
         Error,
         Exception,
+        Failure,
     }
 
     public static class LogLevelExtensions
@@ -22,6 +23,7 @@
                 LogLevel.Warning   => "Warning",
                 LogLevel.Error     => "Error",
                 LogLevel.Exception => "Exception",
+                LogLevel.Failure   => "Failure",
                 _                  => "UNKNOWN",
             };
         }

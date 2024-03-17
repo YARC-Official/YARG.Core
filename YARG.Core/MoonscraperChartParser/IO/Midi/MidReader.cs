@@ -434,8 +434,8 @@ namespace MoonscraperChartEditor.Song.IO
                 }
             }
 
-            YargTrace.Assert(unpairedNoteQueue.Count == 0, $"Note queue was not fully processed! Remaining event count: {unpairedNoteQueue.Count}");
-            YargTrace.Assert(unpairedSysexQueue.Count == 0, $"SysEx event queue was not fully processed! Remaining event count: {unpairedSysexQueue.Count}");
+            YargLogger.Assert(unpairedNoteQueue.Count == 0);
+            YargLogger.Assert(unpairedSysexQueue.Count == 0);
 
             // Apply SysEx events first
             // These are separate to prevent forcing issues on open notes marked via SysEx
@@ -735,13 +735,13 @@ namespace MoonscraperChartEditor.Song.IO
                         break;
 
                     default:
-                        YargTrace.Fail($"Unhandled note type {newType} in .mid forced type processing!");
+                        YargLogger.FailFormat("Unhandled note type {0} in .mid forced type processing!", newType);
                         continue;
                 }
 
                 double time = song.TickToTime(note.tick);
                 var finalType = note.GetGuitarNoteType(gameMode, song.hopoThreshold);
-                YargTrace.Assert(finalType == newType, $"Failed to set forced type! Expected: {newType}  Actual: {finalType}\non {difficulty} {instrument} at tick {note.tick} ({TimeSpan.FromSeconds(time):mm':'ss'.'ff})");
+                YargLogger.Assert(finalType == newType);
             }
         }
 
@@ -790,7 +790,8 @@ namespace MoonscraperChartEditor.Song.IO
             var timedEvent = eventProcessParams.timedEvent;
             if (eventProcessParams.timedEvent.midiEvent is not PhaseShiftSysEx startEvent)
             {
-                YargTrace.Fail($"Wrong note event type passed to {nameof(ProcessSysExEventPairAsGuitarForcedType)}. Expected: {typeof(PhaseShiftSysEx)}, Actual: {eventProcessParams.timedEvent.midiEvent.GetType()}");
+                YargLogger.FailFormat("Wrong note event type! Expected: {0}, Actual: {1}",
+                    typeof(PhaseShiftSysEx), eventProcessParams.timedEvent.midiEvent.GetType());
                 return;
             }
 
@@ -825,7 +826,8 @@ namespace MoonscraperChartEditor.Song.IO
             var timedEvent = eventProcessParams.timedEvent;
             if (eventProcessParams.timedEvent.midiEvent is not PhaseShiftSysEx startEvent)
             {
-                YargTrace.Fail($"Wrong note event type passed to {nameof(ProcessSysExEventPairAsOpenNoteModifier)}. Expected: {typeof(PhaseShiftSysEx)}, Actual: {eventProcessParams.timedEvent.midiEvent.GetType()}");
+                YargLogger.FailFormat("Wrong note event type! Expected: {0}, Actual: {1}",
+                    typeof(PhaseShiftSysEx), eventProcessParams.timedEvent.midiEvent.GetType());
                 return;
             }
 
@@ -877,7 +879,8 @@ namespace MoonscraperChartEditor.Song.IO
                         break;
 
                     default:
-                        YargTrace.Fail($"Unhandled game mode {gameMode} (instrument: {instrument}) for open note modifier!)");
+                        YargLogger.FailFormat("Unhandled game mode {0} (instrument: {1}) for open note modifier!)",
+                            gameMode, instrument);
                         break;
                 }
             }

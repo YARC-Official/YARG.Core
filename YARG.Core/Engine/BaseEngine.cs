@@ -319,8 +319,8 @@ namespace YARG.Core.Engine
 
         protected void UpdateTimeVariables(double time)
         {
-            if (time < State.CurrentTime)
-                YargTrace.Fail($"Time cannot go backwards! Current time: {State.CurrentTime}, new time: {time}");
+            YargLogger.AssertFormat(time >= State.CurrentTime,
+                "Time cannot go backwards! Current time: {0}, new time: {1}", State.CurrentTime, time);
 
             // Only update the last time if the current time has changed
             if (Math.Abs(time - State.CurrentTime) > double.Epsilon)
@@ -343,22 +343,23 @@ namespace YARG.Core.Engine
 
             var currentTimeSig = timeSigs[State.CurrentTimeSigIndex];
 
-            YargTrace.Assert(currentTimeSig.Numerator != 0,
+            YargLogger.Assert(currentTimeSig.Numerator != 0,
                 "Time signature numerator is 0! Ticks per beat/measure will be 0 after this");
-            YargTrace.Assert(currentTimeSig.Denominator != 0,
+            YargLogger.Assert(currentTimeSig.Denominator != 0,
                 "Time signature denominator is 0! Ticks per beat/measure will be 0 after this");
 
             // Set ticks per beat/measure if they haven't been set yet
             if (State.TicksEveryBeat == 0)
             {
                 State.TicksEveryBeat = currentTimeSig.GetTicksPerBeat(SyncTrack);
-                YargTrace.Assert(State.TicksEveryBeat != 0, "Ticks per beat is 0! Star Power will be NaN after this");
+                YargLogger.Assert(State.TicksEveryBeat != 0,
+                    "Ticks per beat is 0! Star Power will be NaN after this");
             }
 
             if (State.TicksEveryMeasure == 0)
             {
                 State.TicksEveryMeasure = currentTimeSig.GetTicksPerMeasure(SyncTrack);
-                YargTrace.Assert(State.TicksEveryMeasure != 0,
+                YargLogger.Assert(State.TicksEveryMeasure != 0,
                     "Ticks per measure is 0! Star Power will be NaN after this");
             }
 
@@ -372,8 +373,9 @@ namespace YARG.Core.Engine
                 // Update ticks per beat/measure *after* rebasing, otherwise SP won't update correctly
                 State.TicksEveryBeat = currentTimeSig.GetTicksPerBeat(SyncTrack);
                 State.TicksEveryMeasure = currentTimeSig.GetTicksPerMeasure(SyncTrack);
-                YargTrace.Assert(State.TicksEveryBeat != 0, "Ticks per beat is 0! Star Power will be NaN after this");
-                YargTrace.Assert(State.TicksEveryMeasure != 0,
+                YargLogger.Assert(State.TicksEveryBeat != 0,
+                    "Ticks per beat is 0! Star Power will be NaN after this");
+                YargLogger.Assert(State.TicksEveryMeasure != 0,
                     "Ticks per measure is 0! Star Power will be NaN after this");
             }
 
@@ -398,7 +400,7 @@ namespace YARG.Core.Engine
                 }
 
                 State.TicksEveryMeasure = nextTimeSigTick - currentMeasureTick;
-                YargTrace.Assert(State.TicksEveryMeasure != 0,
+                YargLogger.Assert(State.TicksEveryMeasure != 0,
                     "Ticks per measure is 0! Star Power will be NaN after this");
             }
 
@@ -413,7 +415,8 @@ namespace YARG.Core.Engine
                 UpdateProgressValues(currentBeatTick);
                 RebaseProgressValues(currentBeatTick);
                 State.TicksEveryBeat = nextTimeSigTick - currentBeatTick;
-                YargTrace.Assert(State.TicksEveryBeat != 0, "Ticks per beat is 0! Star Power will be NaN after this");
+                YargLogger.Assert(State.TicksEveryBeat != 0,
+                    "Ticks per beat is 0! Star Power will be NaN after this");
             }
         }
 
@@ -557,9 +560,8 @@ namespace YARG.Core.Engine
 
         protected void RebaseStarPower(uint baseTick)
         {
-            if (baseTick < State.StarPowerBaseTick)
-                YargTrace.Fail(
-                    $"Star Power base tick cannot go backwards! Went from {State.StarPowerBaseTick} to {baseTick}");
+            YargLogger.AssertFormat(baseTick >= State.StarPowerBaseTick,
+                "Star Power base tick cannot go backwards! Went from {0} to {1}", State.StarPowerBaseTick, baseTick);
 
             EngineStats.StarPowerBaseAmount = EngineStats.StarPowerAmount;
             State.StarPowerBaseTick = baseTick;
@@ -567,16 +569,16 @@ namespace YARG.Core.Engine
 
         protected double CalculateBeatProgress(uint tick, uint baseTick, double factor)
         {
-            if (tick < baseTick)
-                YargTrace.Fail($"Beat progress cannot go backwards! Base tick: {baseTick}, target tick: {tick}");
+            YargLogger.AssertFormat(tick >= baseTick,
+                "Beat progress cannot go backwards! Base tick: {0}, target tick: {1}", baseTick, tick);
 
             return (tick - baseTick) / (double) State.TicksEveryBeat * factor;
         }
 
         protected double CalculateMeasureProgress(uint tick, uint baseTick, double factor)
         {
-            if (tick < baseTick)
-                YargTrace.Fail($"Measure progress cannot go backwards! Base tick: {baseTick}, target tick: {tick}");
+            YargLogger.AssertFormat(tick >= baseTick,
+                "Measure progress cannot go backwards! Base tick: {0}, target tick: {1}", baseTick, tick);
 
             return (tick - baseTick) / (double) State.TicksEveryMeasure * factor;
         }
@@ -610,10 +612,10 @@ namespace YARG.Core.Engine
 
             EngineStats.StarPowerAmount = Math.Clamp(newAmount, 0, 1);
 
-            YargTrace.Assert(!double.IsNaN(gain), "SP gain is NaN!");
-            YargTrace.Assert(!double.IsNaN(drain), "SP drain is NaN!");
-            YargTrace.Assert(!double.IsNaN(EngineStats.StarPowerBaseAmount), "SP base is NaN!");
-            YargTrace.Assert(!double.IsNaN(EngineStats.StarPowerAmount), "SP amount is NaN!");
+            YargLogger.Assert(!double.IsNaN(gain), "SP gain is NaN!");
+            YargLogger.Assert(!double.IsNaN(drain), "SP drain is NaN!");
+            YargLogger.Assert(!double.IsNaN(EngineStats.StarPowerBaseAmount), "SP base is NaN!");
+            YargLogger.Assert(!double.IsNaN(EngineStats.StarPowerAmount), "SP amount is NaN!");
 
             if (tick > State.LastTick)
             {
@@ -621,9 +623,8 @@ namespace YARG.Core.Engine
                 double beatDelta = CalculateStarPowerBeatProgress(tick, State.LastTick);
                 double measureDelta = CalculateStarPowerMeasureProgress(tick, State.LastTick);
                 double jumpThreshold = Math.Max(beatDelta, measureDelta) * 2;
-                if (delta > jumpThreshold)
-                    YargTrace.Fail(
-                        $"Unexpected jump in SP amount! Went from {previous} to {EngineStats.StarPowerAmount}");
+                YargLogger.AssertFormat(delta <= jumpThreshold,
+                    "Unexpected jump in SP amount! Went from {0} to {1}", previous, EngineStats.StarPowerAmount);
             }
         }
 
@@ -638,12 +639,12 @@ namespace YARG.Core.Engine
 
             RebaseProgressValues(State.CurrentTick);
 
-            if (EngineStats.StarPowerAmount - previous < 0)
-                YargTrace.Fail(
-                    $"Unexpected jump in SP amount after awarding! Went from {previous} to {EngineStats.StarPowerAmount}, should not be decreasing");
-            if (Math.Abs(EngineStats.StarPowerAmount - expected) >= 0.001)
-                YargTrace.Fail(
-                    $"Unexpected jump in SP amount after awarding! Went from {previous} to {EngineStats.StarPowerAmount}, should be {expected}");
+            YargLogger.AssertFormat(EngineStats.StarPowerAmount - previous >= 0,
+                "Unexpected jump in SP amount after awarding! Went from {0} to {1}, should not be decreasing",
+                    previous, EngineStats.StarPowerAmount);
+            YargLogger.AssertFormat(Math.Abs(EngineStats.StarPowerAmount - expected) < 0.001,
+                "Unexpected jump in SP amount after awarding! Went from {0} to {1}, should be {2}",
+                    previous, EngineStats.StarPowerAmount, expected);
 
             OnStarPowerPhraseHit?.Invoke(note);
         }
