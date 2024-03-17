@@ -148,10 +148,6 @@ namespace YARG.Core.Audio
             StemSettings[SongStem.Master].OnVolumeChange += SetMasterVolume;
         }
 
-        public abstract StemMixer? CreateMixer(string name, float speed);
-
-        public abstract StemMixer? CreateMixer(string name, Stream stream, float speed);
-
         public StemMixer? LoadCustomFile(string name, Stream stream, float speed, SongStem stem = SongStem.Song)
         {
             YargLogger.LogInfo("Loading custom audio file");
@@ -183,13 +179,88 @@ namespace YARG.Core.Audio
             return mixer;
         }
 
-        public abstract MicDevice? GetInputDevice(string name);
+        public StemMixer? CreateMixer(string name, float speed)
+        {
+            lock (this)
+            {
+                if (_disposed)
+                {
+                    return null;
+                }
+                return CreateMixer_Internal(name, speed);
+            }
+        }
 
-        public abstract List<(int id, string name)> GetAllInputDevices();
+        public StemMixer? CreateMixer(string name, Stream stream, float speed)
+        {
+            lock (this)
+            {
+                if (_disposed)
+                {
+                    return null;
+                }
+                return CreateMixer_Internal(name, stream, speed);
+            }
+        }
 
-        public abstract MicDevice? CreateDevice(int deviceId, string name);
+        public MicDevice? GetInputDevice(string name)
+        {
+            lock (this)
+            {
+                if (_disposed)
+                {
+                    return null;
+                }
+                return GetInputDevice_Internal(name);
+            }
+        }
 
-        protected abstract void SetMasterVolume(double volume);
+        public List<(int id, string name)> GetAllInputDevices()
+        {
+            lock (this)
+            {
+                if (_disposed)
+                {
+                    return new();
+                }
+                return GetAllInputDevices_Internal();
+            }
+        }
+
+        public MicDevice? CreateDevice(int deviceId, string name)
+        {
+            lock (this)
+            {
+                if (_disposed)
+                {
+                    return null;
+                }
+                return CreateDevice_Internal(deviceId, name);
+            }
+        }
+
+        private void SetMasterVolume(double volume)
+        {
+            lock (this)
+            {
+                if (!_disposed)
+                {
+                    SetMasterVolume_Internal(volume);
+                }
+            }
+        }
+
+        protected abstract StemMixer? CreateMixer_Internal(string name, float speed);
+
+        protected abstract StemMixer? CreateMixer_Internal(string name, Stream stream, float speed);
+
+        protected abstract MicDevice? GetInputDevice_Internal(string name);
+
+        protected abstract List<(int id, string name)> GetAllInputDevices_Internal();
+
+        protected abstract MicDevice? CreateDevice_Internal(int deviceId, string name);
+
+        protected abstract void SetMasterVolume_Internal(double volume);
 
         /// <summary>
         /// Communicates to the manager that the mixer is already disposed of.
@@ -197,10 +268,19 @@ namespace YARG.Core.Audio
         /// <remarks>Should stay limited to the Audio namespace</remarks>
         internal void AddMixer(StemMixer mixer)
         {
-            lock (_activeMixers)
+            lock (this)
             {
-                YargLogger.LogFormatInfo("Mixer \"{0}\" created", mixer.Name);
-                _activeMixers.Add(mixer);
+                if (_disposed)
+                {
+                    mixer.Dispose();
+                    return;
+                }
+
+                lock (_activeMixers)
+                {
+                    YargLogger.LogFormatInfo("Mixer \"{0}\" created", mixer.Name);
+                    _activeMixers.Add(mixer);
+                }
             }
         }
 
@@ -222,31 +302,34 @@ namespace YARG.Core.Audio
 
         private void Dispose(bool disposing)
         {
-            if (!_disposed)
+            lock (this)
             {
-                StemMixer[] mixers;
-                lock (_activeMixers)
+                if (!_disposed)
                 {
-                    mixers = _activeMixers.ToArray();
-                }
+                    StemMixer[] mixers;
+                    lock (_activeMixers)
+                    {
+                        mixers = _activeMixers.ToArray();
+                    }
 
-                foreach (var mixer in mixers)
-                {
-                    mixer.Dispose();
-                }
+                    foreach (var mixer in mixers)
+                    {
+                        mixer.Dispose();
+                    }
 
-                foreach (var sample in _sfxSamples)
-                {
-                    sample?.Dispose();
-                }
+                    foreach (var sample in _sfxSamples)
+                    {
+                        sample?.Dispose();
+                    }
 
-                StemSettings[SongStem.Master].OnVolumeChange -= SetMasterVolume;
-                if (disposing)
-                {
-                    DisposeManagedResources();
+                    StemSettings[SongStem.Master].OnVolumeChange -= SetMasterVolume;
+                    if (disposing)
+                    {
+                        DisposeManagedResources();
+                    }
+                    DisposeUnmanagedResources();
+                    _disposed = true;
                 }
-                DisposeUnmanagedResources();
-                _disposed = true;
             }
         }
 

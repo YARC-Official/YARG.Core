@@ -7,7 +7,7 @@ namespace YARG.Core.Audio
     public abstract class SampleChannel : IDisposable
     {
         protected const double PLAYBACK_SUPPRESS_THRESHOLD = 0.05f;
-        private bool disposedValue;
+        private bool _disposed;
 
         protected readonly string _path;
         protected readonly int _playbackCount;
@@ -22,24 +22,48 @@ namespace YARG.Core.Audio
             AudioManager.StemSettings[SongStem.Sfx].OnVolumeChange += SetVolume;
         }
 
-        protected abstract void SetVolume(double volume);
+        public void Play()
+        {
+            lock (this)
+            {
+                if (!_disposed)
+                {
+                    Play_Internal();
+                }
+            }
+        }
+
+        private void SetVolume(double volume)
+        {
+            lock (this)
+            {
+                if (!_disposed)
+                {
+                    SetVolume_Internal(volume);
+                }
+            }
+        }
+
+        protected abstract void Play_Internal();
+        protected abstract void SetVolume_Internal(double volume);
 
         protected virtual void DisposeManagedResources() { }
         protected virtual void DisposeUnmanagedResources() { }
 
-        public abstract void Play();
-
         private void Dispose(bool disposing)
         {
-            if (!disposedValue)
+            lock (this)
             {
-                AudioManager.StemSettings[SongStem.Sfx].OnVolumeChange -= SetVolume;
-                if (disposing)
+                if (!_disposed)
                 {
-                    DisposeManagedResources();
+                    AudioManager.StemSettings[SongStem.Sfx].OnVolumeChange -= SetVolume;
+                    if (disposing)
+                    {
+                        DisposeManagedResources();
+                    }
+                    DisposeUnmanagedResources();
+                    _disposed = true;
                 }
-                DisposeUnmanagedResources();
-                disposedValue = true;
             }
         }
 
