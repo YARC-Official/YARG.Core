@@ -199,7 +199,7 @@ namespace YARG.Core.Audio
         {
             lock (_activeMixers)
             {
-                YargLogger.LogFormatInfo("Mixer \"{0}\" added", mixer.Name);
+                YargLogger.LogFormatInfo("Mixer \"{0}\" created", mixer.Name);
                 _activeMixers.Add(mixer);
             }
         }
@@ -212,7 +212,7 @@ namespace YARG.Core.Audio
         {
             lock (_activeMixers)
             {
-                YargLogger.LogFormatInfo($"Mixer \"{0}\" removed", mixer.Name);
+                YargLogger.LogFormatInfo($"Mixer \"{0}\" disposed", mixer.Name);
                 _activeMixers.Remove(mixer);
             }
         }
