@@ -224,12 +224,14 @@ namespace YARG.Core.Audio
         {
             if (!_disposed)
             {
+                StemMixer[] mixers;
                 lock (_activeMixers)
                 {
-                    foreach (var mixer in _activeMixers)
-                    {
-                        mixer.Dispose();
-                    }
+                    mixers = _activeMixers.ToArray();
+                }
+                foreach (var mixer in mixers)
+                {
+                    mixer.Dispose();
                 }
 
                 foreach (var sample in _sfxSamples)
