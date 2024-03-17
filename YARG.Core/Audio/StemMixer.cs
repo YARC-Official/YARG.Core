@@ -63,13 +63,13 @@ namespace YARG.Core.Audio
                     DisposeManagedResources();
                 }
                 DisposeUnmanagedResources();
+                _manager.RemoveMixer(this);
                 _disposed = true;
             }
         }
 
         ~StemMixer()
         {
-            _manager.RemoveMixer(this);
             Dispose(disposing: false);
         }
 
