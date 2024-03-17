@@ -139,6 +139,21 @@ namespace YARG.Core.Engine.Guitar.Engines
                         State.StrumLeniencyTimer.Reset();
                     }
 
+                    // Force infinite front end for the next note...
+                    if (State.NoteIndex < Notes.Count)
+                    {
+                        var nextNote = Notes[State.NoteIndex];
+
+                        // ...only if the current note is a strum
+                        if (note.IsStrum)
+                        {
+                            double newHitWindow =
+                                EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
+
+                            CheckInfiniteFrontEndAndGhost(nextNote, newHitWindow);
+                        }
+                    }
+
                     return true;
                 }
             }
