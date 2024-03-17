@@ -71,6 +71,11 @@ foreach (var type in logTypes)
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Log<#= type #>(string message, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
+            if(LogLevel.<#= type #> < MinimumLogLevel)
+            {
+                return;
+            }
+
             var logItem = MessageLogItem.MakeItem(message);
             AddLogItemToQueue(LogLevel.<#= type #>, source, line, member, logItem);
         }

@@ -135,6 +135,11 @@ namespace YARG.Core.Logging
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogTrace(string message, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
+            if(LogLevel.Trace < MinimumLogLevel)
+            {
+                return;
+            }
+
             var logItem = MessageLogItem.MakeItem(message);
             AddLogItemToQueue(LogLevel.Trace, source, line, member, logItem);
         }
@@ -262,6 +267,11 @@ namespace YARG.Core.Logging
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogDebug(string message, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
+            if(LogLevel.Debug < MinimumLogLevel)
+            {
+                return;
+            }
+
             var logItem = MessageLogItem.MakeItem(message);
             AddLogItemToQueue(LogLevel.Debug, source, line, member, logItem);
         }
@@ -389,6 +399,11 @@ namespace YARG.Core.Logging
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogInfo(string message, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
+            if(LogLevel.Info < MinimumLogLevel)
+            {
+                return;
+            }
+
             var logItem = MessageLogItem.MakeItem(message);
             AddLogItemToQueue(LogLevel.Info, source, line, member, logItem);
         }
@@ -516,6 +531,11 @@ namespace YARG.Core.Logging
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogWarning(string message, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
+            if(LogLevel.Warning < MinimumLogLevel)
+            {
+                return;
+            }
+
             var logItem = MessageLogItem.MakeItem(message);
             AddLogItemToQueue(LogLevel.Warning, source, line, member, logItem);
         }
@@ -643,6 +663,11 @@ namespace YARG.Core.Logging
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogError(string message, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
+            if(LogLevel.Error < MinimumLogLevel)
+            {
+                return;
+            }
+
             var logItem = MessageLogItem.MakeItem(message);
             AddLogItemToQueue(LogLevel.Error, source, line, member, logItem);
         }
