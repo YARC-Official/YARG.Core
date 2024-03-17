@@ -71,18 +71,19 @@ namespace YARG.Core.Logging
             {
                 while (LogQueue.TryDequeue(out var item))
                 {
-                    // Send it to all listeners that are currently registered
-                    lock (Listeners)
+                    using (item)
                     {
-                        foreach (var listener in Listeners)
+                        // Send it to all listeners that are currently registered
+                        lock (Listeners)
                         {
-                            _logBuilder.Clear();
-                            listener.FormatLogItem(ref _logBuilder, item);
-                            listener.WriteLogItem(ref _logBuilder, item);
+                            foreach (var listener in Listeners)
+                            {
+                                _logBuilder.Clear();
+                                listener.FormatLogItem(ref _logBuilder, item);
+                                listener.WriteLogItem(ref _logBuilder, item);
+                            }
                         }
                     }
-
-                    item.ReturnItem();
                 }
             }
 
@@ -103,15 +104,16 @@ namespace YARG.Core.Logging
                 {
                     while (LogQueue.TryDequeue(out var item))
                     {
-                        // Send it to all listeners that are currently registered
-                        foreach (var listener in Listeners)
+                        using (item)
                         {
-                            _logBuilder.Clear();
-                            listener.FormatLogItem(ref _logBuilder, item);
-                            listener.WriteLogItem(ref _logBuilder, item);
+                            // Send it to all listeners that are currently registered
+                            foreach (var listener in Listeners)
+                            {
+                                _logBuilder.Clear();
+                                listener.FormatLogItem(ref _logBuilder, item);
+                                listener.WriteLogItem(ref _logBuilder, item);
+                            }
                         }
-
-                        item.ReturnItem();
                     }
                 }
 

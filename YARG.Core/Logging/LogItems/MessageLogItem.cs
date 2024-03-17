@@ -3,7 +3,7 @@ using Cysharp.Text;
 
 namespace YARG.Core.Logging
 {
-    internal class MessageLogItem : LogItem
+    public class MessageLogItem : LogItem
     {
         private const int STARTING_INSTANCES = 5;
 

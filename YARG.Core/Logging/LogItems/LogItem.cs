@@ -3,7 +3,7 @@ using Cysharp.Text;
 
 namespace YARG.Core.Logging
 {
-    public abstract class LogItem
+    public abstract class LogItem : IDisposable
     {
         public LogLevel Level;
 
@@ -17,7 +17,7 @@ namespace YARG.Core.Logging
         public abstract void FormatMessage(ref Utf16ValueStringBuilder output);
         protected abstract void ReturnToPool();
 
-        internal void ReturnItem()
+        public void Dispose()
         {
             ReturnToPool();
         }

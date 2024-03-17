@@ -32,7 +32,7 @@ for (int i = 0; i < maxGenericArguments; i++)
     var functionSignature = string.Join(", ", functionParams);
     var functionArguments = string.Join(", ", functionArgs);
 #>
-    internal class FormatLogItem<<#= genericSignature #>> : LogItem
+    public class FormatLogItem<<#= genericSignature #>> : LogItem
     {
         private static ConcurrentBag<FormatLogItem<<#= genericSignature #>>> _instancePool = new();
 
@@ -83,7 +83,7 @@ for (int i = 0; i < maxGenericArguments; i++)
         }
     }
 
-    internal static partial class FormatLogItem
+    public static partial class FormatLogItem
     {
         public static FormatLogItem<<#= genericSignature #>> MakeItem<<#= genericSignature #>>(
             string format, <#= functionSignature #>)

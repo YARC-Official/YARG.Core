@@ -13,7 +13,7 @@ using Cysharp.Text;
 
 namespace YARG.Core.Logging
 {
-    internal class FormatLogItem<T1> : LogItem
+    public class FormatLogItem<T1> : LogItem
     {
         private static ConcurrentBag<FormatLogItem<T1>> _instancePool = new();
 
@@ -50,7 +50,7 @@ namespace YARG.Core.Logging
         }
     }
 
-    internal static partial class FormatLogItem
+    public static partial class FormatLogItem
     {
         public static FormatLogItem<T1> MakeItem<T1>(
             string format, T1? arg1)
@@ -60,7 +60,7 @@ namespace YARG.Core.Logging
         }
     }
 
-    internal class FormatLogItem<T1, T2> : LogItem
+    public class FormatLogItem<T1, T2> : LogItem
     {
         private static ConcurrentBag<FormatLogItem<T1, T2>> _instancePool = new();
 
@@ -99,7 +99,7 @@ namespace YARG.Core.Logging
         }
     }
 
-    internal static partial class FormatLogItem
+    public static partial class FormatLogItem
     {
         public static FormatLogItem<T1, T2> MakeItem<T1, T2>(
             string format, T1? arg1, T2? arg2)
@@ -109,7 +109,7 @@ namespace YARG.Core.Logging
         }
     }
 
-    internal class FormatLogItem<T1, T2, T3> : LogItem
+    public class FormatLogItem<T1, T2, T3> : LogItem
     {
         private static ConcurrentBag<FormatLogItem<T1, T2, T3>> _instancePool = new();
 
@@ -150,7 +150,7 @@ namespace YARG.Core.Logging
         }
     }
 
-    internal static partial class FormatLogItem
+    public static partial class FormatLogItem
     {
         public static FormatLogItem<T1, T2, T3> MakeItem<T1, T2, T3>(
             string format, T1? arg1, T2? arg2, T3? arg3)
@@ -160,7 +160,7 @@ namespace YARG.Core.Logging
         }
     }
 
-    internal class FormatLogItem<T1, T2, T3, T4> : LogItem
+    public class FormatLogItem<T1, T2, T3, T4> : LogItem
     {
         private static ConcurrentBag<FormatLogItem<T1, T2, T3, T4>> _instancePool = new();
 
@@ -203,7 +203,7 @@ namespace YARG.Core.Logging
         }
     }
 
-    internal static partial class FormatLogItem
+    public static partial class FormatLogItem
     {
         public static FormatLogItem<T1, T2, T3, T4> MakeItem<T1, T2, T3, T4>(
             string format, T1? arg1, T2? arg2, T3? arg3, T4? arg4)
@@ -213,7 +213,7 @@ namespace YARG.Core.Logging
         }
     }
 
-    internal class FormatLogItem<T1, T2, T3, T4, T5> : LogItem
+    public class FormatLogItem<T1, T2, T3, T4, T5> : LogItem
     {
         private static ConcurrentBag<FormatLogItem<T1, T2, T3, T4, T5>> _instancePool = new();
 
@@ -258,7 +258,7 @@ namespace YARG.Core.Logging
         }
     }
 
-    internal static partial class FormatLogItem
+    public static partial class FormatLogItem
     {
         public static FormatLogItem<T1, T2, T3, T4, T5> MakeItem<T1, T2, T3, T4, T5>(
             string format, T1? arg1, T2? arg2, T3? arg3, T4? arg4, T5? arg5)
@@ -268,7 +268,7 @@ namespace YARG.Core.Logging
         }
     }
 
-    internal class FormatLogItem<T1, T2, T3, T4, T5, T6> : LogItem
+    public class FormatLogItem<T1, T2, T3, T4, T5, T6> : LogItem
     {
         private static ConcurrentBag<FormatLogItem<T1, T2, T3, T4, T5, T6>> _instancePool = new();
 
@@ -315,7 +315,7 @@ namespace YARG.Core.Logging
         }
     }
 
-    internal static partial class FormatLogItem
+    public static partial class FormatLogItem
     {
         public static FormatLogItem<T1, T2, T3, T4, T5, T6> MakeItem<T1, T2, T3, T4, T5, T6>(
             string format, T1? arg1, T2? arg2, T3? arg3, T4? arg4, T5? arg5, T6? arg6)
@@ -325,7 +325,7 @@ namespace YARG.Core.Logging
         }
     }
 
-    internal class FormatLogItem<T1, T2, T3, T4, T5, T6, T7> : LogItem
+    public class FormatLogItem<T1, T2, T3, T4, T5, T6, T7> : LogItem
     {
         private static ConcurrentBag<FormatLogItem<T1, T2, T3, T4, T5, T6, T7>> _instancePool = new();
 
@@ -374,7 +374,7 @@ namespace YARG.Core.Logging
         }
     }
 
-    internal static partial class FormatLogItem
+    public static partial class FormatLogItem
     {
         public static FormatLogItem<T1, T2, T3, T4, T5, T6, T7> MakeItem<T1, T2, T3, T4, T5, T6, T7>(
             string format, T1? arg1, T2? arg2, T3? arg3, T4? arg4, T5? arg5, T6? arg6, T7? arg7)
@@ -384,7 +384,7 @@ namespace YARG.Core.Logging
         }
     }
 
-    internal class FormatLogItem<T1, T2, T3, T4, T5, T6, T7, T8> : LogItem
+    public class FormatLogItem<T1, T2, T3, T4, T5, T6, T7, T8> : LogItem
     {
         private static ConcurrentBag<FormatLogItem<T1, T2, T3, T4, T5, T6, T7, T8>> _instancePool = new();
 
@@ -435,7 +435,7 @@ namespace YARG.Core.Logging
         }
     }
 
-    internal static partial class FormatLogItem
+    public static partial class FormatLogItem
     {
         public static FormatLogItem<T1, T2, T3, T4, T5, T6, T7, T8> MakeItem<T1, T2, T3, T4, T5, T6, T7, T8>(
             string format, T1? arg1, T2? arg2, T3? arg3, T4? arg4, T5? arg5, T6? arg6, T7? arg7, T8? arg8)
@@ -445,7 +445,7 @@ namespace YARG.Core.Logging
         }
     }
 
-    internal class FormatLogItem<T1, T2, T3, T4, T5, T6, T7, T8, T9> : LogItem
+    public class FormatLogItem<T1, T2, T3, T4, T5, T6, T7, T8, T9> : LogItem
     {
         private static ConcurrentBag<FormatLogItem<T1, T2, T3, T4, T5, T6, T7, T8, T9>> _instancePool = new();
 
@@ -498,7 +498,7 @@ namespace YARG.Core.Logging
         }
     }
 
-    internal static partial class FormatLogItem
+    public static partial class FormatLogItem
     {
         public static FormatLogItem<T1, T2, T3, T4, T5, T6, T7, T8, T9> MakeItem<T1, T2, T3, T4, T5, T6, T7, T8, T9>(
             string format, T1? arg1, T2? arg2, T3? arg3, T4? arg4, T5? arg5, T6? arg6, T7? arg7, T8? arg8, T9? arg9)
@@ -508,7 +508,7 @@ namespace YARG.Core.Logging
         }
     }
 
-    internal class FormatLogItem<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> : LogItem
+    public class FormatLogItem<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> : LogItem
     {
         private static ConcurrentBag<FormatLogItem<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>> _instancePool = new();
 
@@ -563,7 +563,7 @@ namespace YARG.Core.Logging
         }
     }
 
-    internal static partial class FormatLogItem
+    public static partial class FormatLogItem
     {
         public static FormatLogItem<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> MakeItem<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(
             string format, T1? arg1, T2? arg2, T3? arg3, T4? arg4, T5? arg5, T6? arg6, T7? arg7, T8? arg8, T9? arg9, T10? arg10)
