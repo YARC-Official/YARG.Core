@@ -37,7 +37,7 @@ namespace YARG.Core.Song
 
         public override StemMixer? LoadAudio(AudioManager manager, float speed, params SongStem[] ignoreStems)
         {
-            var mixer = manager.CreateMixer(speed);
+            var mixer = manager.CreateMixer(ToString(), speed);
             if (mixer == null)
             {
                 YargLogger.LogError("Failed to create mixer!");
