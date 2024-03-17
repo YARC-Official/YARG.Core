@@ -148,14 +148,14 @@ namespace YARG.Core.Audio
             StemSettings[SongStem.Master].OnVolumeChange += SetMasterVolume;
         }
 
-        public abstract StemMixer? CreateMixer(float speed);
+        public abstract StemMixer? CreateMixer(string name, float speed);
 
-        public abstract StemMixer? CreateMixer(Stream stream, float speed);
+        public abstract StemMixer? CreateMixer(string name, Stream stream, float speed);
 
-        public StemMixer? LoadCustomFile(Stream stream, float speed, SongStem stem = SongStem.Song)
+        public StemMixer? LoadCustomFile(string name, Stream stream, float speed, SongStem stem = SongStem.Song)
         {
             YargLogger.LogInfo("Loading custom audio file");
-            var mixer = CreateMixer(stream, speed);
+            var mixer = CreateMixer(name, stream, speed);
             if (mixer == null)
             {
                 return null;
@@ -173,7 +173,7 @@ namespace YARG.Core.Audio
         public StemMixer? LoadCustomFile(string file, float speed, SongStem stem = SongStem.Song)
         {
             var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
-            var mixer = LoadCustomFile(stream, speed, stem);
+            var mixer = LoadCustomFile(file, stream, speed, stem);
             if (mixer == null)
             {
                 YargLogger.LogFormatError("Failed to load audio file{0}!", file);
@@ -199,6 +199,7 @@ namespace YARG.Core.Audio
         {
             lock (_activeMixers)
             {
+                YargLogger.LogFormatInfo("Mixer \"{0}\" added", mixer.Name);
                 _activeMixers.Add(mixer);
             }
         }
@@ -211,6 +212,7 @@ namespace YARG.Core.Audio
         {
             lock (_activeMixers)
             {
+                YargLogger.LogFormatInfo($"Mixer \"{0}\" removed", mixer.Name);
                 _activeMixers.Remove(mixer);
             }
         }

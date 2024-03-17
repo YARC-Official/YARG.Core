@@ -118,7 +118,7 @@ namespace YARG.Core.Song
             int start = stream.Read<int>(Endianness.Little);
             stream.Seek(start, SeekOrigin.Begin);
 
-            var mixer = manager.CreateMixer(stream, speed);
+            var mixer = manager.CreateMixer(ToString(), stream, speed);
             if (mixer == null)
             {
                 YargLogger.LogError("Mogg failed to load!");

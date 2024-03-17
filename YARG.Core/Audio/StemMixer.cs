@@ -16,14 +16,17 @@ namespace YARG.Core.Audio
         protected bool _isPlaying = false;
         protected Action? _songEnd;
 
+        public readonly string Name;
+
         public double Length => _length;
         public IReadOnlyList<StemChannel> Channels => _channels;
         public bool IsPlaying => _isPlaying && GetPosition() < _length;
 
         public abstract event Action SongEnd;
 
-        protected StemMixer(AudioManager manager, float speed)
+        protected StemMixer(string name, AudioManager manager, float speed)
         {
+            Name = name;
             _manager = manager;
             _speed = speed;
 
