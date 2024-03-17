@@ -1,4 +1,5 @@
 ﻿using NUnit.Framework;
+using YARG.Core.Logging;
 using YARG.Core.Song.Cache;
 
 namespace YARG.Core.UnitTests.Scanning
@@ -25,7 +26,7 @@ namespace YARG.Core.UnitTests.Scanning
         [TestCase]
         public void FullScan()
         {
-            YargTrace.AddListener(new YargDebugTraceListener());
+            YargLogger.AddLogListener(new DebugYargLogListener());
             var cache = CacheHandler.RunScan(false, SongCachePath, BadSongsPath, MULTITHREADING, ALLOW_DUPLICATES, FULL_DIRECTORY_PATHS, songDirectories);
             // TODO: Any cache properties we want to check here?
             // Currently the only fail condition would be an unhandled exception
@@ -34,7 +35,7 @@ namespace YARG.Core.UnitTests.Scanning
         [TestCase]
         public void QuickScan()
         {
-            YargTrace.AddListener(new YargDebugTraceListener());
+            YargLogger.AddLogListener(new DebugYargLogListener());
             var cache = CacheHandler.RunScan(true, SongCachePath, BadSongsPath, MULTITHREADING, ALLOW_DUPLICATES, FULL_DIRECTORY_PATHS, songDirectories);
             // TODO: see above
         }
