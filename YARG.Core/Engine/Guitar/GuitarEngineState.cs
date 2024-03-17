@@ -16,10 +16,11 @@
         public byte FretMask;
 
         public bool HasFretted;
+        public bool IsFretPress;
+
         public bool HasStrummed;
         public bool HasWhammied;
 
-        public bool WasHopoStrummed;
         public bool WasNoteGhosted;
 
         /// <summary>
@@ -40,8 +41,6 @@
 
         public EngineTimer StarPowerWhammyTimer;
 
-        public double FrontEndStartTime;
-
         public uint StarPowerWhammyBaseTick;
 
         public void Initialize(GuitarEngineParameters parameters)
@@ -55,19 +54,20 @@
         {
             base.Reset();
 
+            LastFretMask = 0;
             FretMask = 0;
 
             HasFretted = false;
-            HasStrummed = false;
+            IsFretPress = false;
 
-            WasHopoStrummed = false;
+            HasStrummed = false;
+            HasWhammied = false;
+
             WasNoteGhosted = false;
 
             StrumLeniencyTimer.Reset();
             HopoLeniencyTimer.Reset();
             StarPowerWhammyTimer.Reset();
-
-            FrontEndStartTime = 0;
 
             StarPowerWhammyBaseTick = 0;
         }

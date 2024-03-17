@@ -27,6 +27,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             {
                 State.LastFretMask = State.FretMask;
                 State.HasFretted = true;
+                State.IsFretPress = gameInput.Button;
 
                 ToggleFret(gameInput.Action, gameInput.Button);
             }
@@ -207,13 +208,17 @@ namespace YARG.Core.Engine.Guitar.Engines
                 }
             }
 
-            bool ghosted = CheckForGhostInput(note);
-
-            if (ghosted)
+            // Don't ghost before the first note
+            if (note.PreviousNote is not null)
             {
-                EngineStats.GhostInputs++;
+                bool ghosted = CheckForGhostInput(note);
 
-                State.WasNoteGhosted = EngineParameters.AntiGhosting && ghosted;
+                if (ghosted)
+                {
+                    EngineStats.GhostInputs++;
+
+                    State.WasNoteGhosted = EngineParameters.AntiGhosting && ghosted;
+                }
             }
         }
 
@@ -384,7 +389,7 @@ namespace YARG.Core.Engine.Guitar.Engines
         protected bool CheckForGhostInput(GuitarNote note)
         {
             // First note cannot be ghosted, nor can a note be ghosted if a button is unpressed (pulloff)
-            if (note.PreviousNote is null)
+            if (note.PreviousNote is null || !State.IsFretPress)
             {
                 return false;
             }
