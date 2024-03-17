@@ -229,6 +229,7 @@ namespace YARG.Core.Audio
                 {
                     mixers = _activeMixers.ToArray();
                 }
+
                 foreach (var mixer in mixers)
                 {
                     mixer.Dispose();

@@ -55,16 +55,19 @@ namespace YARG.Core.Audio
 
         private void Dispose(bool disposing)
         {
-            if (!_disposed)
+            lock (this)
             {
-                Pause();
-                if (disposing)
+                if (!_disposed)
                 {
-                    DisposeManagedResources();
+                    Pause();
+                    if (disposing)
+                    {
+                        DisposeManagedResources();
+                    }
+                    DisposeUnmanagedResources();
+                    _manager.RemoveMixer(this);
+                    _disposed = true;
                 }
-                DisposeUnmanagedResources();
-                _manager.RemoveMixer(this);
-                _disposed = true;
             }
         }
 
