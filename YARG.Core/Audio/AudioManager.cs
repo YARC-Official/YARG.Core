@@ -136,6 +136,16 @@ namespace YARG.Core.Audio
         /// </remarks>
         public static int WhammyOversampleFactor = WHAMMY_OVERSAMPLE_DEFAULT;
 
+        public static double ClampStemVolume(double volume)
+        {
+            // Limit minimum stem volume
+            if (UseMinimumStemVolume)
+            {
+                volume = Math.Max(volume, MINIMUM_STEM_VOLUME);
+            }
+            return volume;
+        }
+
         private bool _disposed;
         private List<StemMixer> _activeMixers = new();
 

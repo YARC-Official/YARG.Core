@@ -15,7 +15,7 @@ namespace YARG.Core.Audio
         protected StemChannel(AudioManager manager, SongStem stem, double volume)
         {
             _manager = manager;
-            _volume = volume;
+            _volume = AudioManager.ClampStemVolume(volume);
             Stem = stem;
 
             var settings = AudioManager.StemSettings[Stem];
@@ -56,13 +56,14 @@ namespace YARG.Core.Audio
             }
         }
 
-        private void SetVolume(double newVolume)
+        private void SetVolume(double volume)
         {
             lock (this)
             {
                 if (!_disposed)
                 {
-                    SetVolume_Internal(newVolume);
+                    volume = AudioManager.ClampStemVolume(volume);
+                    SetVolume_Internal(volume);
                 }
             }
         }
