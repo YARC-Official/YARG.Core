@@ -139,7 +139,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                         State.StrumLeniencyTimer.Reset();
                     }
 
-                    // Force infinite front end for the next note...
+                    // Force hit the next note if it's in any front end, and is a tappable...
                     if (State.NoteIndex < Notes.Count)
                     {
                         var nextNote = Notes[State.NoteIndex];
@@ -147,10 +147,18 @@ namespace YARG.Core.Engine.Guitar.Engines
                         // ...only if the current note is a strum
                         if (note.IsStrum)
                         {
-                            double newHitWindow =
-                                EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
+                            double newHitWindow = EngineParameters.HitWindow
+                                .CalculateHitWindow(GetAverageNoteDistance(note));
 
-                            CheckInfiniteFrontEndAndGhost(nextNote, newHitWindow);
+                            // We want to force infinite front end here, regardless of the setting
+                            bool noteInWindow = CheckInfiniteFrontEnd(nextNote, newHitWindow, true);
+
+                            // If it's already in the front end, hit it now!
+                            if (noteInWindow)
+                            {
+                                // We don't really care if the input was consumed or not
+                                ProcessNote(nextNote, false);
+                            }
                         }
                     }
 
@@ -174,7 +182,22 @@ namespace YARG.Core.Engine.Guitar.Engines
                     // If strum leniency is active and the note was not hit,
                     // then wait until the timer runs out to overstrum
 
-                    CheckInfiniteFrontEndAndGhost(note, hitWindow);
+                    // Don't force here
+                    CheckInfiniteFrontEnd(note, hitWindow, false);
+
+                    // Check for ghosting
+                    // Don't ghost before the first note
+                    if (note.PreviousNote is not null)
+                    {
+                        bool ghosted = CheckForGhostInput(note);
+
+                        if (ghosted)
+                        {
+                            EngineStats.GhostInputs++;
+
+                            State.WasNoteGhosted = EngineParameters.AntiGhosting && ghosted;
+                        }
+                    }
                 }
                 else
                 {
@@ -206,35 +229,46 @@ namespace YARG.Core.Engine.Guitar.Engines
             return false;
         }
 
-        private void CheckInfiniteFrontEndAndGhost(GuitarNote note, double hitWindow)
+        /// <summary>
+        /// Checks for infinite front end and sets up the appropriate timers for it.
+        /// </summary>
+        /// <returns>
+        /// Returns <c>true</c> if the next note is already in the hit window and is hittable without a strum
+        /// (normal front end). Returns <c>false</c> otherwise.
+        /// </returns>
+        private bool CheckInfiniteFrontEnd(GuitarNote note, double hitWindow, bool forced)
         {
+            // Only HOPOs and taps can have infinite front end
+            if (!note.IsHopo && !note.IsTap)
+            {
+                return false;
+            }
+
+            // Only allow with infinite front end on, or when it's forced
+            if (!EngineParameters.InfiniteFrontEnd && !forced)
+            {
+                return false;
+            }
+
             // If the note *can* be hit with the current fret state, then
             // start the infinite front end
-            if (EngineParameters.InfiniteFrontEnd && (note.IsHopo || note.IsTap) && CanNoteBeHit(note))
+            if (CanNoteBeHit(note))
             {
                 var hitTime = note.Time + EngineParameters.HitWindow.GetFrontEnd(hitWindow);
 
                 // If we're already past this point, then it wouldn't be an infinite front-end,
                 // it'd just be a normal front-end.
-                if (State.CurrentTime <= hitTime)
+                if (State.CurrentTime > hitTime)
                 {
-                    State.InfiniteFrontEndHitTime = hitTime;
-                    QueueUpdateTime(hitTime);
+                    return true;
                 }
+
+                State.InfiniteFrontEndHitTime = hitTime;
+                QueueUpdateTime(hitTime);
+                return false;
             }
 
-            // Don't ghost before the first note
-            if (note.PreviousNote is not null)
-            {
-                bool ghosted = CheckForGhostInput(note);
-
-                if (ghosted)
-                {
-                    EngineStats.GhostInputs++;
-
-                    State.WasNoteGhosted = EngineParameters.AntiGhosting && ghosted;
-                }
-            }
+            return false;
         }
 
         private bool ProcessNote(GuitarNote note, bool strummed)
