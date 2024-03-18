@@ -197,7 +197,11 @@ namespace YARG.Core.Engine
 
         protected void RunHitLogic(double time)
         {
-            UpdateEngineLogic(time);
+            bool exit = false;
+            while (!exit)
+            {
+                exit = !UpdateEngineLogic(time);
+            }
         }
 
         protected void StartTimer(ref EngineTimer timer, double startTime, double offset = 0)

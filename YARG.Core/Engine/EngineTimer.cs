@@ -10,36 +10,26 @@ namespace YARG.Core.Engine
         public readonly double StartTime => _startTime;
         public readonly double EndTime => _startTime + TimeThreshold;
 
-        public bool IsActive { get; private set; }
-
         public EngineTimer(double threshold)
         {
             _startTime = double.MaxValue;
             TimeThreshold = threshold;
-            IsActive = false;
         }
 
         public void Start(double currentTime)
-        {
-            Start(ref _startTime, currentTime);
-            IsActive = true;
-        }
+            => Start(ref _startTime, currentTime);
 
         public void StartWithOffset(double currentTime, double offset)
-        {
-            StartWithOffset(ref _startTime, currentTime, TimeThreshold, offset);
-            IsActive = true;
-        }
+            => StartWithOffset(ref _startTime, currentTime, TimeThreshold, offset);
 
-        public void Disable()
-        {
-            IsActive = false;
-        }
+        public void Reset()
+            => Reset(ref _startTime);
+
+        public readonly bool IsActive(double currentTime)
+            => IsActive(_startTime, currentTime, TimeThreshold);
 
         public readonly bool IsExpired(double currentTime)
-        {
-            return currentTime >= EndTime;
-        }
+            => IsExpired(_startTime, currentTime, TimeThreshold);
 
         public static void Start(ref double startTime, double currentTime)
         {
@@ -55,6 +45,17 @@ namespace YARG.Core.Engine
         public static void Reset(ref double startTime)
         {
             startTime = double.MaxValue;
+        }
+
+        public static bool IsActive(double startTime, double currentTime, double threshold)
+        {
+            double elapsed = currentTime - startTime;
+            return elapsed < threshold && elapsed >= 0;
+        }
+
+        public static bool IsExpired(double startTime, double currentTime, double threshold)
+        {
+            return currentTime - startTime >= threshold;
         }
     }
 }

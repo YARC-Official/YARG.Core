@@ -293,7 +293,9 @@ namespace YARG.Core.Engine.Guitar
                 {
                     // Only fail when the sustain has actually started
                     if (baseTick >= sustain.Note.Tick)
+                    {
                         YargTrace.Fail($"Sustain base tick cannot go backwards! Attempted to go from {sustain.BaseTick} to {baseTick}");
+                    }
 
                     continue;
                 }
@@ -307,7 +309,33 @@ namespace YARG.Core.Engine.Guitar
         }
 
         protected override double CalculateStarPowerGain(uint tick)
-            => State.StarPowerWhammyTimer.IsActive ? CalculateStarPowerBeatProgress(tick, State.StarPowerWhammyBaseTick) : 0;
+        {
+            if (State.StarPowerWhammyTimer.IsExpired(State.CurrentTime))
+            {
+                // We need to clamp the tick value to the max possible time of the threshold,
+                // otherwise the whammy gain will incorrectly reset to 0 momentarily
+                double endTime = State.StarPowerWhammyTimer.EndTime;
+                tick = SyncTrack.TimeToTick(endTime);
+            }
+            else if (!State.StarPowerWhammyTimer.IsActive(State.CurrentTime))
+            {
+                return 0;
+            }
+
+            return CalculateStarPowerBeatProgress(tick, State.StarPowerWhammyBaseTick);
+        }
+
+        protected double CalculateSustainPoints(ActiveSustain sustain, uint tick)
+        {
+            uint scoreTick = Math.Clamp(tick, sustain.Note.Tick, sustain.Note.TickEnd);
+
+            sustain.Note.SustainTicksHeld = scoreTick - sustain.Note.Tick;
+
+            // Sustain points are awarded at a constant rate regardless of tempo
+            // double deltaScore = CalculateBeatProgress(scoreTick, sustain.BaseTick, POINTS_PER_BEAT);
+            double deltaScore = (scoreTick - sustain.BaseTick) / TicksPerSustainPoint;
+            return sustain.BaseScore + (deltaScore * EngineStats.ScoreMultiplier);
+        }
 
         protected void StartSustain(GuitarNote note)
         {
@@ -383,12 +411,12 @@ namespace YARG.Core.Engine.Guitar
                 if (State.HasWhammied)
                 {
                     // Rebase when beginning to SP whammy
-                    if (!State.StarPowerWhammyTimer.IsActive)
+                    if (!State.StarPowerWhammyTimer.IsActive(State.CurrentTime))
                     {
                         RebaseProgressValues(State.CurrentTick);
                     }
 
-                    StartTimer(ref State.StarPowerWhammyTimer, State.CurrentTime);
+                    State.StarPowerWhammyTimer.Start(State.CurrentTime);
 
                     EventLogger.LogEvent(new TimerEngineEvent(State.CurrentTime)
                     {
@@ -396,15 +424,20 @@ namespace YARG.Core.Engine.Guitar
                         TimerStarted = true,
                         TimerValue = State.StarPowerWhammyTimer.TimeThreshold,
                     });
+
+                    State.HasWhammied = false;
                 }
-                else if (State.StarPowerWhammyTimer.IsActive && State.StarPowerWhammyTimer.IsExpired(State.CurrentTime))
+                else if (State.StarPowerWhammyTimer.IsExpired(State.CurrentTime))
                 {
+                    // No need to restart the timer, expiration is handled correctly in the gain calculation
+                    // State.StarPowerWhammyTimer.Start(State.CurrentTime);
+
                     // Commit final whammy gain amount
                     UpdateProgressValues(State.CurrentTick);
                     RebaseProgressValues(State.CurrentTick);
 
                     // Stop whammy gain
-                    State.StarPowerWhammyTimer.Disable();
+                    State.StarPowerWhammyTimer.Reset();
 
                     EventLogger.LogEvent(new TimerEngineEvent(State.CurrentTime)
                     {
@@ -415,12 +448,13 @@ namespace YARG.Core.Engine.Guitar
                 }
             }
             // Rebase after SP whammy ends to commit the final amount to the base
-            else if(State.StarPowerWhammyTimer.IsActive)
+            else if (State.StarPowerWhammyTimer.IsActive(State.CurrentTime) ||
+                State.StarPowerWhammyTimer.IsExpired(State.CurrentTime))
             {
                 RebaseProgressValues(State.CurrentTick);
 
                 double remainingTime = Math.Max(State.StarPowerWhammyTimer.EndTime - State.CurrentTime, 0);
-                State.StarPowerWhammyTimer.Disable();
+                State.StarPowerWhammyTimer.Reset();
 
                 EventLogger.LogEvent(new TimerEngineEvent(State.CurrentTime)
                 {
@@ -429,18 +463,6 @@ namespace YARG.Core.Engine.Guitar
                     TimerValue = remainingTime,
                 });
             }
-        }
-
-        protected double CalculateSustainPoints(ActiveSustain sustain, uint tick)
-        {
-            uint scoreTick = Math.Clamp(tick, sustain.Note.Tick, sustain.Note.TickEnd);
-
-            sustain.Note.SustainTicksHeld = scoreTick - sustain.Note.Tick;
-
-            // Sustain points are awarded at a constant rate regardless of tempo
-            // double deltaScore = CalculateBeatProgress(scoreTick, sustain.BaseTick, POINTS_PER_BEAT);
-            double deltaScore = (scoreTick - sustain.BaseTick) / TicksPerSustainPoint;
-            return sustain.BaseScore + (deltaScore * EngineStats.ScoreMultiplier);
         }
 
         protected sealed override int CalculateBaseScore()
