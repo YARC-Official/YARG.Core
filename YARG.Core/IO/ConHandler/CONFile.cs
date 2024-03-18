@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using YARG.Core.Logging;
 
 namespace YARG.Core.IO
 {
@@ -100,7 +101,7 @@ namespace YARG.Core.IO
                     CONFileListing listing = new(info, shift, listingBuffer);
                     if (listing.pathIndex >= listings.Count)
                     {
-                        YargTrace.LogError($"Error while parsing {info.FullName} - Filelisting blocks constructed out of spec");
+                        YargLogger.LogFormatError("Error while parsing {0} - Filelisting blocks constructed out of spec", info.FullName);
                         return null;
                     }
 
@@ -113,7 +114,7 @@ namespace YARG.Core.IO
             }
             catch (Exception ex)
             {
-                YargTrace.LogException(ex, $"Error while parsing {info.FullName}");
+                YargLogger.LogException(ex, $"Error while parsing {info.FullName}");
                 return null;
             }
         }
@@ -126,7 +127,7 @@ namespace YARG.Core.IO
             }
             catch (Exception ex)
             {
-                YargTrace.LogException(ex, $"Error loading {filename}");
+                YargLogger.LogException(ex, $"Error loading {filename}");
                 return null;
             }
         }

@@ -5,6 +5,7 @@ using MoonscraperChartEditor.Song.IO;
 using NUnit.Framework;
 using YARG.Core.Chart;
 using YARG.Core.Extensions;
+using YARG.Core.Logging;
 
 namespace YARG.Core.UnitTests.Parsing
 {
@@ -553,7 +554,7 @@ namespace YARG.Core.UnitTests.Parsing
         [TestCase]
         public void GenerateAndParseMidiFile()
         {
-            YargTrace.AddListener(new YargDebugTraceListener());
+            YargLogger.AddLogListener(new DebugYargLogListener());
 
             var sourceSong = GenerateSong();
             var midi = GenerateMidi(sourceSong);

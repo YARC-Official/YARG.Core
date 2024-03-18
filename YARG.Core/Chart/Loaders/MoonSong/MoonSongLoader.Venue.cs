@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using MoonscraperChartEditor.Song;
+using YARG.Core.Logging;
 using YARG.Core.Utility;
 
 namespace YARG.Core.Chart
@@ -90,7 +91,7 @@ namespace YARG.Core.Chart
 
                     default:
                     {
-                        YargTrace.DebugWarning($"Unrecognized venue text event '{text}'!");
+                        YargLogger.LogFormatDebug("Unrecognized venue text event '{0}'!", text);
                         continue;
                     }
                 }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using YARG.Core.Extensions;
+using YARG.Core.Logging;
 
 namespace YARG.Core.IO.Ini
 {
@@ -22,7 +23,7 @@ namespace YARG.Core.IO.Ini
             }
             catch (Exception ex)
             {
-                YargTrace.LogException(ex, ex.Message);
+                YargLogger.LogException(ex, ex.Message);
                 return new();
             }
         }

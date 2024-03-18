@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using YARG.Core.Extensions;
+using YARG.Core.Logging;
 
 namespace YARG.Core.IO
 {
@@ -52,7 +53,7 @@ namespace YARG.Core.IO
             }
             catch (UnauthorizedAccessException ex)
             {
-                YargTrace.LogException(ex, "Coding note: Ensure that buffer access is enabled when you construct the memorystream");
+                YargLogger.LogException(ex, "Coding note: Ensure that buffer access is enabled when you construct the memorystream");
                 return null;
             }
         }

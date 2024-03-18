@@ -10,6 +10,7 @@ using YARG.Core.Song.Preparsers;
 using Melanchall.DryWetMidi.Core;
 using YARG.Core.Extensions;
 using YARG.Core.Audio;
+using YARG.Core.Logging;
 
 namespace YARG.Core.Song
 {
@@ -156,7 +157,7 @@ namespace YARG.Core.Song
             int version = stream.Read<int>(Endianness.Little);
             if (version is not 0x0A and not 0xF0)
             {
-                YargTrace.LogError("Original unencrypted mogg replaced by an encrypted mogg");
+                YargLogger.LogError("Original unencrypted mogg replaced by an encrypted mogg");
                 return null;
             }
 
@@ -298,7 +299,7 @@ namespace YARG.Core.Song
                     var span = new ReadOnlySpan<byte>(ptr, sizeof(RBCONDifficulties));
                     writer.Write(span);
                 }
-            }    
+            }
         }
 
         protected abstract bool IsMoggValid(CONFile? file);
@@ -527,7 +528,7 @@ namespace YARG.Core.Song
                     }
                     catch (Exception ex)
                     {
-                        YargTrace.LogException(ex, $"Error processing CON Update {update.BaseDirectory} - {nodeName}!");
+                        YargLogger.LogException(ex, $"Error processing CON Update {update.BaseDirectory} - {nodeName}!");
                     }
                 }
             }
@@ -544,7 +545,7 @@ namespace YARG.Core.Song
                 }
                 catch (Exception ex)
                 {
-                    YargTrace.LogException(ex, $"Error processing CON Upgrade {nodeName}!");
+                    YargLogger.LogException(ex, $"Error processing CON Upgrade {nodeName}!");
                 }
             }
         }
@@ -992,7 +993,7 @@ namespace YARG.Core.Song
                 }
                 else
                 {
-                    YargTrace.LogWarning($"Update midi expected in directory {update.UpdateDirectory}");
+                    YargLogger.LogFormatWarning("Update midi expected in directory {0}", update.UpdateDirectory);
                 }
             }
 

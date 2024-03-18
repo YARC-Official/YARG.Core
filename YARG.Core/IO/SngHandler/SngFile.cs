@@ -5,6 +5,7 @@ using System.IO;
 using System.Text;
 using YARG.Core.Extensions;
 using YARG.Core.IO.Ini;
+using YARG.Core.Logging;
 
 namespace YARG.Core.IO
 {
@@ -82,7 +83,7 @@ namespace YARG.Core.IO
             }
             catch (Exception ex)
             {
-                YargTrace.LogException(ex, $"Error loading {file.FullName}.");
+                YargLogger.LogException(ex, $"Error loading {file.FullName}.");
                 return null;
             }
         }
@@ -111,7 +112,7 @@ namespace YARG.Core.IO
             }
             catch (Exception ex)
             {
-                YargTrace.LogException(ex, $"Error loading {filename}");
+                YargLogger.LogException(ex, $"Error loading {filename}");
                 return null;
             }
         }

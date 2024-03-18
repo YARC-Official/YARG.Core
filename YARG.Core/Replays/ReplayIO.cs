@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using YARG.Core.IO;
+using YARG.Core.Logging;
 using YARG.Core.Song;
 
 namespace YARG.Core.Replays
@@ -48,7 +49,7 @@ namespace YARG.Core.Replays
             }
             catch (Exception ex)
             {
-                YargTrace.LogException(ex, "Failed to read replay file");
+                YargLogger.LogException(ex, "Failed to read replay file");
                 replayFile = null;
                 return ReplayReadResult.Corrupted;
             }
@@ -68,7 +69,7 @@ namespace YARG.Core.Replays
             }
             catch (Exception ex)
             {
-                YargTrace.LogException(ex, "Failed to write replay file");
+                YargLogger.LogException(ex, "Failed to write replay file");
             }
 
             return null;
