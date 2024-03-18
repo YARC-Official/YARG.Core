@@ -21,7 +21,7 @@ namespace YARG.Core.Audio
 
         public double Length => _length;
         public IReadOnlyList<StemChannel> Channels => _channels;
-        public bool IsPlaying => _isPlaying && GetPosition() < _length;
+        public bool IsPlaying => _isPlaying && GetPosition(false) < _length;
 
         public abstract event Action SongEnd;
 
