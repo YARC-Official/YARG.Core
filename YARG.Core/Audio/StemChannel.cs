@@ -7,15 +7,11 @@ namespace YARG.Core.Audio
         private bool _disposed;
 
         protected readonly AudioManager _manager;
-        protected double _volume;
-
         public readonly SongStem Stem;
-        public double Volume => _volume;
 
-        protected StemChannel(AudioManager manager, SongStem stem, double volume)
+        protected StemChannel(AudioManager manager, SongStem stem)
         {
             _manager = manager;
-            _volume = AudioManager.ClampStemVolume(volume);
             Stem = stem;
 
             var settings = AudioManager.StemSettings[Stem];
