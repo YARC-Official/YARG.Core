@@ -37,7 +37,7 @@ namespace YARG.Core.Audio
             set
             {
                 double scaled = Math.Clamp(value * _volumeScaling, 0, _volumeScaling);
-                _volume = Math.Log(scaled * FACTOR + 1, BASE);
+                _volume = (Math.Pow(BASE, scaled) - 1) / FACTOR;
                 _onVolumeChange?.Invoke(_volume);
             }
         }
