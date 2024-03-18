@@ -167,7 +167,7 @@ namespace YARG.Core.Audio
                 return null;
             }
 
-            if (!mixer.AddChannel(SongStem.Song))
+            if (!mixer.AddChannel(stem))
             {
                 mixer.Dispose();
                 return null;
