@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
+using YARG.Core.Logging;
 
 namespace YARG.Core.Song.Cache
 {
@@ -41,7 +42,7 @@ namespace YARG.Core.Song.Cache
             }
             catch (Exception ex)
             {
-                YargTrace.LogException(ex, "Unknown error while running song scan!");
+                YargLogger.LogException(ex, "Unknown error while running song scan!");
             }
 
             return handler.cache;
@@ -58,12 +59,12 @@ namespace YARG.Core.Song.Cache
                 }
 
                 _progress.Stage = ScanStage.LoadingCache;
-                YargTrace.DebugInfo("Quick Read start");
+                YargLogger.LogDebug("Quick Read start");
                 handler.Deserialize_Quick(stream);
             }
             catch (Exception ex)
             {
-                YargTrace.LogException(ex, "Error occurred during quick cache file read!");
+                YargLogger.LogException(ex, "Error occurred during quick cache file read!");
             }
 
             if (_progress.Count == 0)
@@ -72,8 +73,10 @@ namespace YARG.Core.Song.Cache
             }
 
             handler.CleanupDuplicates();
+
+            _progress.Stage = ScanStage.Sorting;
             handler.SortCategories();
-            YargTrace.DebugInfo($"Total Entries: {_progress.Count}");
+            YargLogger.LogDebug($"Total Entries: {_progress.Count}");
             return true;
         }
 
@@ -87,13 +90,13 @@ namespace YARG.Core.Song.Cache
                     if (stream != null)
                     {
                         _progress.Stage = ScanStage.LoadingCache;
-                        YargTrace.DebugInfo("Full Read start");
+                        YargLogger.LogDebug("Full Read start");
                         handler.Deserialize(stream);
                     }
                 }
                 catch (Exception ex)
                 {
-                    YargTrace.LogException(ex, "Error occurred during full cache file read!");
+                    YargLogger.LogException(ex, "Error occurred during full cache file read!");
                 }
             }
 
@@ -103,7 +106,7 @@ namespace YARG.Core.Song.Cache
 
             _progress.Stage = ScanStage.Sorting;
             handler.SortCategories();
-            YargTrace.DebugInfo($"Total Entries: {_progress.Count}");
+            YargLogger.LogFormatDebug("Total Entries: {0}", _progress.Count);
 
             try
             {
@@ -112,7 +115,7 @@ namespace YARG.Core.Song.Cache
             }
             catch (Exception ex)
             {
-                YargTrace.LogException(ex, "Error when writing song cache!");
+                YargLogger.LogException(ex, "Error when writing song cache!");
             }
 
             try
@@ -129,7 +132,7 @@ namespace YARG.Core.Song.Cache
             }
             catch (Exception ex)
             {
-                YargTrace.LogException(ex, "Error when writing bad songs file!");
+                YargLogger.LogException(ex, "Error when writing bad songs file!");
             }
         }
 
@@ -147,12 +150,12 @@ namespace YARG.Core.Song.Cache
         protected readonly List<UpgradeGroup> upgradeGroups = new();
         protected readonly List<PackedCONGroup> conGroups = new();
         protected readonly List<UnpackedCONGroup> extractedConGroups = new();
-        
+
         protected readonly Dictionary<string, List<SongUpdate>> updates = new();
         protected readonly Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades = new();
         protected readonly HashSet<string> preScannedDirectories = new();
         protected readonly HashSet<string> preScannedFiles = new();
-        
+
 
         protected readonly bool allowDuplicates = true;
         protected readonly bool fullDirectoryPlaylists;
@@ -389,12 +392,12 @@ namespace YARG.Core.Song.Cache
             }
             catch (Exception ex)
             {
-                YargTrace.LogException(ex, $"Error while scanning CON upgrade folder {directory}!");
+                YargLogger.LogException(ex, $"Error while scanning CON upgrade folder {directory}!");
             }
 
             if (group.Upgrades.Count == 0)
             {
-                YargTrace.LogWarning($"{directory} .dta file possibly malformed");
+                YargLogger.LogFormatWarning("{0} .dta file possibly malformed", directory);
                 return null;
             }
             AddUpgradeGroup(group);
@@ -413,7 +416,7 @@ namespace YARG.Core.Song.Cache
             AddUpdates(group, nodes, removeEntries);
             return group;
         }
-        
+
         private Dictionary<string, List<YARGDTAReader>>? FindUpdateNodes(string directory, AbridgedFileInfo dta)
         {
             var reader = YARGDTAReader.TryCreate(dta.FullName);
@@ -437,13 +440,13 @@ namespace YARG.Core.Song.Cache
             }
             catch (Exception ex)
             {
-                YargTrace.LogException(ex, $"Error while scanning CON update folder {directory}!");
+                YargLogger.LogException(ex, $"Error while scanning CON update folder {directory}!");
                 return null;
             }
 
             if (nodes.Count == 0)
             {
-                YargTrace.LogWarning($"{directory} .dta file possibly malformed");
+                YargLogger.LogFormatWarning("{0} .dta file possibly malformed", directory);
                 return null;
             }
             return nodes;
@@ -478,7 +481,7 @@ namespace YARG.Core.Song.Cache
             }
             catch (Exception ex)
             {
-                YargTrace.LogException(ex, $"Error while scanning CON upgrades - {filename}!");
+                YargLogger.LogException(ex, $"Error while scanning CON upgrades - {filename}!");
             }
             return group.Upgrades.Count > 0;
         }

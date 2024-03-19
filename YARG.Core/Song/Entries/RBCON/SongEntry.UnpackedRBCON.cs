@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using YARG.Core.Extensions;
 using YARG.Core.Song.Cache;
 using YARG.Core.IO;
+using YARG.Core.Logging;
 using YARG.Core.Venue;
 
 namespace YARG.Core.Song
@@ -14,7 +15,7 @@ namespace YARG.Core.Song
 
         public readonly AbridgedFileInfo? _dta;
         public readonly AbridgedFileInfo? _midi;
-        
+
         protected override DateTime MidiLastUpdate => _midi!.LastUpdatedTime;
         public override string Directory { get; } = string.Empty;
         public override EntryType SubType => EntryType.ExCON;
@@ -38,7 +39,7 @@ namespace YARG.Core.Song
             }
             catch (Exception ex)
             {
-                YargTrace.LogException(ex, null);
+                YargLogger.LogException(ex, null);
                 return (ScanResult.DTAError, null);
             }
         }

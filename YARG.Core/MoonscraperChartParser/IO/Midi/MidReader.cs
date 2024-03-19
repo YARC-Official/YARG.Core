@@ -10,6 +10,7 @@ using Melanchall.DryWetMidi.Interaction;
 using YARG.Core;
 using YARG.Core.Chart;
 using YARG.Core.Extensions;
+using YARG.Core.Logging;
 using YARG.Core.Parsing;
 
 namespace MoonscraperChartEditor.Song.IO
@@ -114,7 +115,7 @@ namespace MoonscraperChartEditor.Song.IO
             {
                 if (track == null || track.Events.Count < 1)
                 {
-                    YargTrace.DebugWarning("Encountered an empty MIDI track!");
+                    YargLogger.LogTrace("Encountered an empty MIDI track!");
                     continue;
                 }
 
@@ -143,7 +144,7 @@ namespace MoonscraperChartEditor.Song.IO
                         if (!MidIOHelper.TrackNameToInstrumentMap.TryGetValue(trackName, out instrument))
                         {
                             // Ignore unrecognized tracks
-                            YargTrace.DebugInfo($"Skipping unrecognized track {trackName}");
+                            YargLogger.LogFormatTrace("Skipping unrecognized track {0}", trackName);
                             continue;
                         }
                         else if (song.ChartExistsForInstrument(instrument))
@@ -159,7 +160,7 @@ namespace MoonscraperChartEditor.Song.IO
                             }
                         }
 
-                        YargTrace.DebugInfo($"Loading MIDI track {trackName}");
+                        YargLogger.LogFormatTrace("Loading MIDI track {0}", trackName);
                         ReadNotes(ref settings, track, song, instrument);
                         break;
                 }
@@ -194,7 +195,7 @@ namespace MoonscraperChartEditor.Song.IO
 
         private static void ReadSync(TempoMap tempoMap, MoonSong song)
         {
-            YargTrace.DebugInfo("Reading sync track");
+            YargLogger.LogTrace("Reading sync track");
 
             foreach (var tempo in tempoMap.GetTempoChanges())
             {
@@ -212,7 +213,7 @@ namespace MoonscraperChartEditor.Song.IO
             if (track.Events.Count < 1)
                 return;
 
-            YargTrace.DebugInfo("Reading beat track");
+            YargLogger.LogTrace("Reading beat track");
             long absoluteTime = track.Events[0].DeltaTime;
             for (int i = 1; i < track.Events.Count; i++)
             {
@@ -244,7 +245,7 @@ namespace MoonscraperChartEditor.Song.IO
             if (track.Events.Count < 1)
                 return;
 
-            YargTrace.DebugInfo("Reading global events");
+            YargLogger.LogTrace("Reading global events");
             long absoluteTime = track.Events[0].DeltaTime;
             for (int i = 1; i < track.Events.Count; i++)
             {
@@ -274,7 +275,7 @@ namespace MoonscraperChartEditor.Song.IO
             if (track.Events.Count < 1)
                 return;
 
-            YargTrace.DebugInfo("Reading global lyrics");
+            YargLogger.LogTrace("Reading global lyrics");
             long absoluteTime = track.Events[0].DeltaTime;
             for (int i = 1; i < track.Events.Count; i++)
             {
@@ -301,7 +302,7 @@ namespace MoonscraperChartEditor.Song.IO
             if (track.Events.Count < 1)
                 return;
 
-            YargTrace.DebugInfo("Reading venue track");
+            YargLogger.LogTrace("Reading venue track");
 
             var unpairedNoteQueue = new NoteEventQueue();
 
@@ -317,7 +318,7 @@ namespace MoonscraperChartEditor.Song.IO
                     {
                         // Check for duplicates
                         if (TryFindMatchingNote(unpairedNoteQueue, note, out _, out _, out _))
-                            YargTrace.DebugWarning($"Found duplicate note on at tick {absoluteTime}!");
+                            YargLogger.LogTrace($"Found duplicate note on at tick {absoluteTime}!");
                         else
                             unpairedNoteQueue.Add((note, absoluteTime));
                     }
@@ -326,7 +327,7 @@ namespace MoonscraperChartEditor.Song.IO
                         // Find starting note
                         if (!TryFindMatchingNote(unpairedNoteQueue, note, out var noteStart, out long startTick, out int startIndex))
                         {
-                            YargTrace.DebugWarning($"Found note off with no corresponding note on at tick {absoluteTime}!");
+                            YargLogger.LogTrace($"Found note off with no corresponding note on at tick {absoluteTime}!");
                             return;
                         }
                         unpairedNoteQueue.RemoveAt(startIndex);
@@ -383,7 +384,7 @@ namespace MoonscraperChartEditor.Song.IO
         {
             if (track == null || track.Events.Count < 1)
             {
-                YargTrace.DebugError("Attempted to load an empty track!");
+                YargLogger.LogTrace("Attempted to load an empty track!");
                 return;
             }
 
@@ -433,8 +434,8 @@ namespace MoonscraperChartEditor.Song.IO
                 }
             }
 
-            YargTrace.Assert(unpairedNoteQueue.Count == 0, $"Note queue was not fully processed! Remaining event count: {unpairedNoteQueue.Count}");
-            YargTrace.Assert(unpairedSysexQueue.Count == 0, $"SysEx event queue was not fully processed! Remaining event count: {unpairedSysexQueue.Count}");
+            YargLogger.Assert(unpairedNoteQueue.Count == 0);
+            YargLogger.Assert(unpairedSysexQueue.Count == 0);
 
             // Apply SysEx events first
             // These are separate to prevent forcing issues on open notes marked via SysEx
@@ -469,7 +470,7 @@ namespace MoonscraperChartEditor.Song.IO
             {
                 // Check for duplicates
                 if (TryFindMatchingNote(unpairedNotes, note, out _, out _, out _))
-                    YargTrace.DebugWarning($"Found duplicate note on at tick {absoluteTick}!");
+                    YargLogger.LogTrace($"Found duplicate note on at tick {absoluteTick}!");
                 else
                     unpairedNotes.Add((note, absoluteTick));
             }
@@ -477,7 +478,7 @@ namespace MoonscraperChartEditor.Song.IO
             {
                 if (!TryFindMatchingNote(unpairedNotes, note, out var noteStart, out long startTick, out int startIndex))
                 {
-                    YargTrace.DebugWarning($"Found note off with no corresponding note on at tick {absoluteTick}!");
+                    YargLogger.LogTrace($"Found note off with no corresponding note on at tick {absoluteTick}!");
                     return;
                 }
                 unpairedNotes.RemoveAt(startIndex);
@@ -527,13 +528,13 @@ namespace MoonscraperChartEditor.Song.IO
             if (!PhaseShiftSysEx.TryParse(sysex, out var psEvent))
             {
                 // SysEx event is not a Phase Shift SysEx event
-                YargTrace.DebugWarning($"Encountered unknown SysEx event at tick {absoluteTick}: {sysex.Data.ToHexString()}");
+                YargLogger.LogTrace($"Encountered unknown SysEx event at tick {absoluteTick}: {sysex.Data.ToHexString()}");
                 return;
             }
 
             if (psEvent.type != PhaseShiftSysEx.Type.Phrase)
             {
-                YargTrace.DebugWarning($"Encountered unknown Phase Shift SysEx event type {psEvent.type} at tick {absoluteTick}!");
+                YargLogger.LogTrace($"Encountered unknown Phase Shift SysEx event type {psEvent.type} at tick {absoluteTick}!");
                 return;
             }
 
@@ -541,7 +542,7 @@ namespace MoonscraperChartEditor.Song.IO
             {
                 // Check for duplicates
                 if (TryFindMatchingSysEx(unpairedSysex, psEvent, out _, out _, out _))
-                    YargTrace.DebugWarning($"Found duplicate SysEx start event at tick {absoluteTick}!");
+                    YargLogger.LogTrace($"Found duplicate SysEx start event at tick {absoluteTick}!");
                 else
                     unpairedSysex.Add((psEvent, absoluteTick));
             }
@@ -549,7 +550,7 @@ namespace MoonscraperChartEditor.Song.IO
             {
                 if (!TryFindMatchingSysEx(unpairedSysex, psEvent, out var sysexStart, out long startTick, out int startIndex))
                 {
-                    YargTrace.DebugWarning($"Found PS SysEx end with no corresponding start at tick {absoluteTick}!");
+                    YargLogger.LogTrace($"Found PS SysEx end with no corresponding start at tick {absoluteTick}!");
                     return;
                 }
                 unpairedSysex.RemoveAt(startIndex);
@@ -734,13 +735,13 @@ namespace MoonscraperChartEditor.Song.IO
                         break;
 
                     default:
-                        YargTrace.Fail($"Unhandled note type {newType} in .mid forced type processing!");
+                        YargLogger.FailFormat("Unhandled note type {0} in .mid forced type processing!", newType);
                         continue;
                 }
 
                 double time = song.TickToTime(note.tick);
                 var finalType = note.GetGuitarNoteType(gameMode, song.hopoThreshold);
-                YargTrace.Assert(finalType == newType, $"Failed to set forced type! Expected: {newType}  Actual: {finalType}\non {difficulty} {instrument} at tick {note.tick} ({TimeSpan.FromSeconds(time):mm':'ss'.'ff})");
+                YargLogger.Assert(finalType == newType);
             }
         }
 
@@ -789,7 +790,8 @@ namespace MoonscraperChartEditor.Song.IO
             var timedEvent = eventProcessParams.timedEvent;
             if (eventProcessParams.timedEvent.midiEvent is not PhaseShiftSysEx startEvent)
             {
-                YargTrace.Fail($"Wrong note event type passed to {nameof(ProcessSysExEventPairAsGuitarForcedType)}. Expected: {typeof(PhaseShiftSysEx)}, Actual: {eventProcessParams.timedEvent.midiEvent.GetType()}");
+                YargLogger.FailFormat("Wrong note event type! Expected: {0}, Actual: {1}",
+                    typeof(PhaseShiftSysEx), eventProcessParams.timedEvent.midiEvent.GetType());
                 return;
             }
 
@@ -824,7 +826,8 @@ namespace MoonscraperChartEditor.Song.IO
             var timedEvent = eventProcessParams.timedEvent;
             if (eventProcessParams.timedEvent.midiEvent is not PhaseShiftSysEx startEvent)
             {
-                YargTrace.Fail($"Wrong note event type passed to {nameof(ProcessSysExEventPairAsOpenNoteModifier)}. Expected: {typeof(PhaseShiftSysEx)}, Actual: {eventProcessParams.timedEvent.midiEvent.GetType()}");
+                YargLogger.FailFormat("Wrong note event type! Expected: {0}, Actual: {1}",
+                    typeof(PhaseShiftSysEx), eventProcessParams.timedEvent.midiEvent.GetType());
                 return;
             }
 
@@ -876,7 +879,8 @@ namespace MoonscraperChartEditor.Song.IO
                         break;
 
                     default:
-                        YargTrace.Fail($"Unhandled game mode {gameMode} (instrument: {instrument}) for open note modifier!)");
+                        YargLogger.FailFormat("Unhandled game mode {0} (instrument: {1}) for open note modifier!)",
+                            gameMode, instrument);
                         break;
                 }
             }

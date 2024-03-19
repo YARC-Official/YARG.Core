@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using YARG.Core.IO;
+using YARG.Core.Logging;
 
 namespace YARG.Core.Song.Cache
 {
@@ -152,12 +153,12 @@ namespace YARG.Core.Song.Cache
             }
             catch (PathTooLongException)
             {
-                YargTrace.LogError($"Path {directory.FullName} is too long for the file system!");
+                YargLogger.LogFormatError("Path {0} is too long for the file system!", directory.FullName);
                 AddToBadSongs(directory.FullName, ScanResult.PathTooLong);
             }
             catch (Exception e)
             {
-                YargTrace.LogException(e, $"Error while scanning directory {directory.FullName}!");
+                YargLogger.LogException(e, $"Error while scanning directory {directory.FullName}!");
             }
         }
 
@@ -178,12 +179,12 @@ namespace YARG.Core.Song.Cache
             }
             catch (PathTooLongException)
             {
-                YargTrace.LogError($"Path {filename} is too long for the file system!");
+                YargLogger.LogFormatError("Path {0} is too long for the file system!", filename);
                 AddToBadSongs(filename, ScanResult.PathTooLong);
             }
             catch (Exception e)
             {
-                YargTrace.LogException(e, $"Error while scanning file {filename}!");
+                YargLogger.LogException(e, $"Error while scanning file {filename}!");
             }
         }
 
@@ -317,12 +318,12 @@ namespace YARG.Core.Song.Cache
                 }
                 catch (PathTooLongException)
                 {
-                    YargTrace.LogError($"Path {chart.File} is too long for the file system!");
+                    YargLogger.LogFormatError("Path {0} is too long for the file system!", chart.File);
                     AddToBadSongs(chart.File.FullName, ScanResult.PathTooLong);
                 }
                 catch (Exception e)
                 {
-                    YargTrace.LogException(e, $"Error while scanning chart file {chart.File}!");
+                    YargLogger.LogException(e, $"Error while scanning chart file {chart.File}!");
                     AddToBadSongs(collector.directory.FullName, ScanResult.IniEntryCorruption);
                 }
                 return true;
@@ -368,7 +369,7 @@ namespace YARG.Core.Song.Cache
                 }
                 catch (Exception e)
                 {
-                    YargTrace.LogException(e, $"Error while scanning chart file {chart} within {info}!");
+                    YargLogger.LogException(e, $"Error while scanning chart file {chart} within {info}!");
                     AddToBadSongs(info.FullName, ScanResult.IniEntryCorruption);
                 }
                 break;

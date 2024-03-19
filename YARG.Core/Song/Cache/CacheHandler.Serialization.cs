@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
+using YARG.Core.Logging;
 
 namespace YARG.Core.Song.Cache
 {
@@ -18,7 +19,7 @@ namespace YARG.Core.Song.Cache
         /// 1 - (FullDirectoryPlaylist flag(1 byte))
         /// 64 - (section size(4 bytes) + zero string count(4 bytes)) * # categories(8)
         /// 24 - (# groups(4 bytes) * # group types(6))
-        /// 
+        ///
         /// </summary>
         private const int MIN_CACHEFILESIZE = 93;
 
@@ -27,7 +28,7 @@ namespace YARG.Core.Song.Cache
             FileInfo info = new(cacheLocation);
             if (!info.Exists || info.Length < MIN_CACHEFILESIZE)
             {
-                YargTrace.DebugInfo($"Cache invalid or not found");
+                YargLogger.LogDebug("Cache invalid or not found");
                 return null;
             }
 
@@ -35,13 +36,13 @@ namespace YARG.Core.Song.Cache
             using var counter = DisposableCounter.Wrap(fs);
             if (fs.Read<int>(Endianness.Little) != CACHE_VERSION)
             {
-                YargTrace.DebugInfo($"Cache outdated");
+                YargLogger.LogDebug($"Cache outdated");
                 return null;
             }
 
             if (fs.ReadBoolean() != fullDirectoryPlaylists)
             {
-                YargTrace.DebugInfo($"FullDirectoryFlag flipped");
+                YargLogger.LogDebug($"FullDirectoryFlag flipped");
                 return null;
             }
 
@@ -102,7 +103,7 @@ namespace YARG.Core.Song.Cache
 
             if (entry == null)
             {
-                YargTrace.DebugInfo($"Ini entry invalid {baseDirectory}");
+                YargLogger.LogDebug($"Ini entry invalid {baseDirectory}");
                 return;
             }
 
@@ -353,7 +354,7 @@ namespace YARG.Core.Song.Cache
             }
             else
             {
-                YargTrace.LogError($"Cache file was modified externally with a bad CHART_TYPE enum value... or bigger error");
+                YargLogger.LogError("Cache file was modified externally with a bad CHART_TYPE enum value... or bigger error");
             }
         }
 

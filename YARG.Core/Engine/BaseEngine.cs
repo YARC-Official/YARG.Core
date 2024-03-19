@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using YARG.Core.Chart;
 using YARG.Core.Engine.Logging;
 using YARG.Core.Input;
+using YARG.Core.Logging;
 
 namespace YARG.Core.Engine
 {
@@ -14,9 +15,9 @@ namespace YARG.Core.Engine
 
         public EngineEventLogger EventLogger { get; } = new();
 
-        public abstract BaseEngineState BaseState { get; }
+        public abstract BaseEngineState      BaseState      { get; }
         public abstract BaseEngineParameters BaseParameters { get; }
-        public abstract BaseStats BaseStats { get; }
+        public abstract BaseStats            BaseStats      { get; }
 
         protected readonly SyncTrack SyncTrack;
         protected readonly uint Resolution;
@@ -62,16 +63,16 @@ namespace YARG.Core.Engine
                 // Skip inputs that are in the past
                 if (input.Time < BaseState.CurrentTime)
                 {
-                    YargTrace.Fail(
-                        $"Queued input is in the past! Current time: {BaseState.CurrentTime}, input time: {input.Time}");
+                    YargLogger.FailFormat(
+                        "Queued input is in the past! Current time: {0}, input time: {1}", BaseState.CurrentTime, input.Time);
                     continue;
                 }
 
                 // Skip inputs that are in the future
                 if (input.Time > time)
                 {
-                    YargTrace.Fail(
-                        $"Queued input is in the future! Time being updated to: {time}, input time: {input.Time}");
+                    YargLogger.FailFormat(
+                        "Queued input is in the future! Time being updated to: {0}, input time: {1}", time, input.Time);
                     break;
                 }
 
@@ -82,14 +83,14 @@ namespace YARG.Core.Engine
                 // Skip non-input update if possible
                 if (input.Time == time)
                 {
-                    YargTrace.Assert(InputQueue.Count == 0,
+                    YargLogger.Assert(InputQueue.Count == 0,
                         "Input queue was not fully cleared! Remaining inputs are possibly in the future");
                     return;
                 }
             }
 
             // Update to the given time
-            YargTrace.Assert(InputQueue.Count == 0, "Input queue was not fully cleared!");
+            YargLogger.Assert(InputQueue.Count == 0, "Input queue was not fully cleared!");
             RunQueuedUpdates(time);
             RunHitLogic(time);
         }
@@ -106,8 +107,8 @@ namespace YARG.Core.Engine
                 // Skip updates that are in the past
                 if (updateTime < BaseState.CurrentTime)
                 {
-                    YargTrace.Fail(
-                        $"Scheduled update is in the past! Current time: {BaseState.CurrentTime}, update time: {updateTime}");
+                    YargLogger.FailFormat(
+                        "Scheduled update is in the past! Current time: {0}, update time: {1}", BaseState.CurrentTime, updateTime);
                     continue;
                 }
 
@@ -144,8 +145,9 @@ namespace YARG.Core.Engine
             // In the case that the queue is not in order...
             if (input.Time < BaseState.LastQueuedInputTime)
             {
-                YargTrace.LogWarning("Engine was forced to move an out-of-order input time! " +
-                    $"Previous queued input: {BaseState.LastQueuedInputTime}, input being queued: {input.Time}");
+                YargLogger.LogFormatWarning(
+                    "Engine was forced to move an input time! Previous queued input: {0}, input being queued: {1}",
+                    BaseState.LastQueuedInputTime, input.Time);
 
                 input = new GameInput(BaseState.LastQueuedInputTime, input.Action, input.Integer);
             }
@@ -153,8 +155,9 @@ namespace YARG.Core.Engine
             // In the case that the input is before the current time...
             if (input.Time < BaseState.CurrentTime)
             {
-                YargTrace.LogWarning("Engine was forced to move an input time from the past! " +
-                    $"Current time: {BaseState.CurrentTime}, input being queued: {input.Time}");
+                YargLogger.LogFormatWarning(
+                    "Engine was forced to move an input time! Current time: {0}, input being queued: {1}",
+                    BaseState.CurrentTime, input.Time);
 
                 input = new GameInput(BaseState.CurrentTime, input.Action, input.Integer);
             }
@@ -174,8 +177,8 @@ namespace YARG.Core.Engine
             // Disallow updates in the past
             if (time < BaseState.CurrentTime)
             {
-                YargTrace.Fail(
-                    $"Cannot queue update in the past! Current time: {BaseState.CurrentTime}, time being queued: {time}");
+                YargLogger.FailFormat(
+                    "Cannot queue update in the past! Current time: {0}, time being queued: {1}", BaseState.CurrentTime, time);
                 return;
             }
 

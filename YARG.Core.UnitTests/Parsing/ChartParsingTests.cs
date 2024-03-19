@@ -2,6 +2,7 @@
 using MoonscraperChartEditor.Song.IO;
 using NUnit.Framework;
 using YARG.Core.Chart;
+using YARG.Core.Logging;
 
 namespace YARG.Core.UnitTests.Parsing
 {
@@ -24,7 +25,7 @@ namespace YARG.Core.UnitTests.Parsing
         [TestCase("test.chart")]
         public void ParseChartFile(string notesFile)
         {
-            YargTrace.AddListener(new YargDebugTraceListener());
+            YargLogger.AddLogListener(new DebugYargLogListener());
 
             Assert.DoesNotThrow(() =>
             {
@@ -36,7 +37,7 @@ namespace YARG.Core.UnitTests.Parsing
         [TestCase("test.mid")]
         public void ParseMidiFile(string notesFile)
         {
-            YargTrace.AddListener(new YargDebugTraceListener());
+            YargLogger.AddLogListener(new DebugYargLogListener());
 
             Assert.DoesNotThrow(() =>
             {

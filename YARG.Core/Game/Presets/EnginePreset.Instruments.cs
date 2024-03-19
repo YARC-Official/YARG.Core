@@ -1,6 +1,8 @@
-﻿using YARG.Core.Engine;
+﻿using System;
+using YARG.Core.Engine;
 using YARG.Core.Engine.Drums;
 using YARG.Core.Engine.Guitar;
+using YARG.Core.Engine.Vocals;
 
 namespace YARG.Core.Game
 {
@@ -110,6 +112,71 @@ namespace YARG.Core.Game
                     DEFAULT_MAX_MULTIPLIER,
                     starMultiplierThresholds,
                     mode);
+            }
+        }
+    
+
+        /// <summary>
+        /// The engine preset for vocals/harmonies.
+        /// </summary>
+        public class VocalsPreset
+        {
+            // Hit window is in semitones (max. difference between correct pitch and sung pitch).
+            public double WindowSizeE = 1.7;
+            public double WindowSizeM = 1.4;
+            public double WindowSizeH = 1.1;
+            public double WindowSizeX = 0.8;
+
+            // These percentages may seem low, but accounting for delay,
+            // plosives not being detected, etc., it's pretty good.
+            public double HitPercentE = 0.325;
+            public double HitPercentM = 0.400;
+            public double HitPercentH = 0.450;
+            public double HitPercentX = 0.575;
+
+            public VocalsPreset Copy()
+            {
+                return new VocalsPreset
+                {
+                    WindowSizeE = WindowSizeE,
+                    WindowSizeM = WindowSizeM,
+                    WindowSizeH = WindowSizeH,
+                    WindowSizeX = WindowSizeX,
+                    HitPercentE = HitPercentE,
+                    HitPercentM = HitPercentM,
+                    HitPercentH = HitPercentH,
+                    HitPercentX = HitPercentX,
+                };
+            }
+
+            public VocalsEngineParameters Create(float[] starMultiplierThresholds, Difficulty difficulty, float updatesPerSecond)
+            {
+                // Hit window is in semitones (max. difference between correct pitch and sung pitch).
+                double windowSize = difficulty switch
+                {
+                    Difficulty.Easy   => WindowSizeE,
+                    Difficulty.Medium => WindowSizeM,
+                    Difficulty.Hard   => WindowSizeH,
+                    Difficulty.Expert => WindowSizeX,
+                    _ => throw new InvalidOperationException("Unreachable")
+                };
+
+                double hitPercent = difficulty switch
+                {
+                    Difficulty.Easy   => HitPercentE,
+                    Difficulty.Medium => HitPercentM,
+                    Difficulty.Hard   => HitPercentH,
+                    Difficulty.Expert => HitPercentX,
+                    _ => throw new InvalidOperationException("Unreachable")
+                };
+                var hitWindow = new HitWindowSettings(windowSize, 0.03, 1, false);
+                return new VocalsEngineParameters(
+                    hitWindow, 
+                    EnginePreset.DEFAULT_MAX_MULTIPLIER,
+                    starMultiplierThresholds, 
+                    hitPercent, 
+                    true, 
+                    updatesPerSecond);
             }
         }
     }

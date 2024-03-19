@@ -3,6 +3,7 @@ using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
 using NUnit.Framework;
 using YARG.Core.Extensions;
+using YARG.Core.Logging;
 using YARG.Core.Parsing;
 
 namespace YARG.Core.UnitTests.Parsing
@@ -277,7 +278,7 @@ namespace YARG.Core.UnitTests.Parsing
         [TestCase]
         public void GenerateAndParseChartFile()
         {
-            YargTrace.AddListener(new YargDebugTraceListener());
+            YargLogger.AddLogListener(new DebugYargLogListener());
 
             var sourceSong = GenerateSong();
             string chartText = GenerateChartFile(sourceSong);

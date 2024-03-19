@@ -9,6 +9,7 @@ using YARG.Core.Engine.Guitar.Engines;
 using YARG.Core.Engine.Vocals;
 using YARG.Core.Engine.Vocals.Engines;
 using YARG.Core.Game;
+using YARG.Core.Logging;
 
 namespace YARG.Core.Replays.Analyzer
 {
@@ -154,7 +155,7 @@ namespace YARG.Core.Replays.Analyzer
 
         private List<double> GenerateFrameTimes(double from, double to)
         {
-            YargTrace.Assert(to > from, "Invalid time range");
+            YargLogger.Assert(to > from, "Invalid time range");
 
             double frameTime = 1.0 / _fps;
 

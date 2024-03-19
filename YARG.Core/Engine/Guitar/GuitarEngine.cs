@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using YARG.Core.Chart;
 using YARG.Core.Engine.Logging;
 using YARG.Core.Input;
+using YARG.Core.Logging;
 
 namespace YARG.Core.Engine.Guitar
 {
@@ -277,8 +278,9 @@ namespace YARG.Core.Engine.Guitar
 
         protected void RebaseStarPowerWhammy(uint baseTick)
         {
-            if (baseTick < State.StarPowerWhammyBaseTick)
-                YargTrace.Fail($"Star Power whammy base tick cannot go backwards! Went from {State.StarPowerWhammyBaseTick} to {baseTick}");
+            YargLogger.AssertFormat(baseTick >= State.StarPowerWhammyBaseTick,
+                "Star Power whammy base tick cannot go backwards! Went from {0} to {1}",
+                    State.StarPowerWhammyBaseTick, baseTick);
 
             State.StarPowerWhammyBaseTick = baseTick;
         }
@@ -291,9 +293,9 @@ namespace YARG.Core.Engine.Guitar
                 // Don't rebase sustains that haven't started yet
                 if (baseTick < sustain.BaseTick)
                 {
-                    // Only fail when the sustain has actually started
-                    if (baseTick >= sustain.Note.Tick)
-                        YargTrace.Fail($"Sustain base tick cannot go backwards! Attempted to go from {sustain.BaseTick} to {baseTick}");
+                    YargLogger.AssertFormat(baseTick < sustain.Note.Tick,
+                        "Sustain base tick cannot go backwards! Attempted to go from {0} to {1}",
+                            sustain.BaseTick, baseTick);
 
                     continue;
                 }
