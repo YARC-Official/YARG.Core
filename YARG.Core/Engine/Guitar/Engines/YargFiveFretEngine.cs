@@ -40,7 +40,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             }
         }
 
-        protected override bool UpdateEngineLogic(double time)
+        protected override void UpdateHitLogic(double time)
         {
             UpdateTimeVariables(time);
             UpdateStarPower();
@@ -79,7 +79,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 State.HasFretted = false;
                 State.IsFretPress = false;
                 State.HasWhammied = false;
-                return false;
+                return;
             }
 
             var note = Notes[State.NoteIndex];
@@ -117,15 +117,13 @@ namespace YARG.Core.Engine.Guitar.Engines
                 }
             }
 
-            bool isNoteHit = CheckForNoteHit();
-
+            CheckForNoteHit();
             UpdateSustains();
 
             State.HasStrummed = false;
             State.HasFretted = false;
             State.IsFretPress = false;
             State.HasWhammied = false;
-            return isNoteHit;
         }
 
         public override void UpdateBot(double songTime)
@@ -133,13 +131,13 @@ namespace YARG.Core.Engine.Guitar.Engines
             throw new NotImplementedException();
         }
 
-        protected override bool CheckForNoteHit()
+        protected override void CheckForNoteHit()
         {
             var note = Notes[State.NoteIndex];
 
             if (note.WasFullyHitOrMissed())
             {
-                return false;
+                return;
             }
 
             if (!IsNoteInWindow(note, out bool missed))
@@ -147,10 +145,10 @@ namespace YARG.Core.Engine.Guitar.Engines
                 if (missed)
                 {
                     MissNote(note);
-                    return true;
+                    return;
                 }
 
-                return false;
+                return;
             }
 
             //State.HopoLeniencyTimer.Disable();
@@ -159,7 +157,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             if (!CanNoteBeHit(note))
             {
                 // TODO Add note skipping logic
-                return false;
+                return;
             }
 
             // Handles hitting a hopo/tap notes
@@ -179,7 +177,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                     Message = $"Note ({State.NoteIndex}) hit via tap"
                 });
 
-                return true;
+                return;
             }
 
             // If hopo/tap checks failed then the note can be hit if it was strummed
@@ -201,12 +199,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                         Message = $"Note ({State.NoteIndex}) hit via strum leniency"
                     });
                 }
-
-
-                return true;
             }
-
-            return false;
         }
 
         protected override bool CanNoteBeHit(GuitarNote note)

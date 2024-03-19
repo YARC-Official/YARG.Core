@@ -78,7 +78,7 @@ namespace YARG.Core.Engine
 
                 RunQueuedUpdates(input.Time);
                 MutateStateWithInput(input);
-                RunHitLogic(input.Time);
+                UpdateHitLogic(input.Time);
 
                 // Skip non-input update if possible
                 if (input.Time == time)
@@ -92,7 +92,7 @@ namespace YARG.Core.Engine
             // Update to the given time
             YargLogger.Assert(InputQueue.Count == 0, "Input queue was not fully cleared!");
             RunQueuedUpdates(time);
-            RunHitLogic(time);
+            UpdateHitLogic(time);
         }
 
         private void RunQueuedUpdates(double time)
@@ -124,7 +124,7 @@ namespace YARG.Core.Engine
                     break;
                 }
 
-                RunHitLogic(updateTime);
+                UpdateHitLogic(updateTime);
             }
 
             // Remove all processed updates
@@ -198,11 +198,6 @@ namespace YARG.Core.Engine
             _scheduledUpdates.Sort();
         }
 
-        protected void RunHitLogic(double time)
-        {
-            UpdateEngineLogic(time);
-        }
-
         protected void StartTimer(ref EngineTimer timer, double startTime, double offset = 0)
         {
             if (offset > 0)
@@ -226,7 +221,7 @@ namespace YARG.Core.Engine
         /// </summary>
         /// <param name="time">The time in which to simulate hit logic at.</param>
         /// <returns>True if a note was updated (hit or missed). False if no changes.</returns>
-        protected abstract bool UpdateEngineLogic(double time);
+        protected abstract void UpdateHitLogic(double time);
 
         /// <summary>
         /// Resets the engine's state back to default and then processes the list of inputs up to the given time.

@@ -16,14 +16,14 @@ namespace YARG.Core.Engine.Vocals.Engines
             throw new NotImplementedException();
         }
 
-        protected override bool UpdateEngineLogic(double time) => throw new NotImplementedException();
+        protected override void UpdateHitLogic(double time) => throw new NotImplementedException();
 
         public override void UpdateBot(double songTime)
         {
             throw new NotImplementedException();
         }
 
-        protected override bool CheckForNoteHit() => throw new NotImplementedException();
+        protected override void CheckForNoteHit() => throw new NotImplementedException();
 
         protected override bool CanNoteBeHit(VocalNote note) => throw new NotImplementedException();
         protected override void HitNote(VocalNote note) => throw new NotImplementedException();

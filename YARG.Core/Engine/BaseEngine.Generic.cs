@@ -248,7 +248,7 @@ namespace YARG.Core.Engine
             }
         }
 
-        protected abstract bool CheckForNoteHit();
+        protected abstract void CheckForNoteHit();
 
         /// <summary>
         /// Checks if the given note can be hit with the current input state.

@@ -18,7 +18,7 @@ namespace YARG.Core.Engine.Drums.Engines
             }
         }
 
-        protected override bool UpdateEngineLogic(double time)
+        protected override void UpdateHitLogic(double time)
         {
             UpdateTimeVariables(time);
             UpdateStarPower();
@@ -26,7 +26,7 @@ namespace YARG.Core.Engine.Drums.Engines
             // Quit early if there are no notes left
             if (State.NoteIndex >= Notes.Count)
             {
-                return false;
+                return;
             }
 
             var note = Notes[State.NoteIndex];
@@ -54,7 +54,7 @@ namespace YARG.Core.Engine.Drums.Engines
                     MissNote(chordNote);
                 }
 
-                return true;
+                return;
             }
 
             // Check for note hit
@@ -75,11 +75,11 @@ namespace YARG.Core.Engine.Drums.Engines
 
                 if (inputEaten)
                 {
-                    return true;
+                    return;
                 }
             }
 
-            return false;
+            return;
         }
 
         private bool ProcessNoteHit(DrumNote note)
@@ -127,7 +127,7 @@ namespace YARG.Core.Engine.Drums.Engines
             throw new System.NotImplementedException();
         }
 
-        protected override bool CheckForNoteHit() => throw new System.NotImplementedException();
+        protected override void CheckForNoteHit() => throw new System.NotImplementedException();
 
         protected override bool CanNoteBeHit(DrumNote note) => throw new System.NotImplementedException();
     }
