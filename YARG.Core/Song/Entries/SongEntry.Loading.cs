@@ -25,12 +25,12 @@ namespace YARG.Core.Song
     public abstract partial class SongEntry
     {
         public abstract SongChart? LoadChart();
-        public abstract StemMixer? LoadAudio(AudioManager manager, float speed, params SongStem[] ignoreStems);
+        public abstract StemMixer? LoadAudio(float speed, params SongStem[] ignoreStems);
         public abstract byte[]? LoadAlbumData();
         public abstract BackgroundResult? LoadBackground(BackgroundType options);
         public abstract byte[]? LoadMiloData();
 
-        public async Task<PreviewContext?> LoadPreview(float volume, CancellationTokenSource token)
+        public async Task<PreviewContext?> LoadPreview(float volume, float speed, CancellationTokenSource token)
         {
             try
             {
@@ -44,7 +44,7 @@ namespace YARG.Core.Song
                 }
 
                 // Load the song
-                var mixer = await Task.Run(() => LoadPreviewMixer(AudioManager.Instance, 1f));
+                var mixer = await Task.Run(() => LoadPreviewMixer(speed));
                 if (mixer == null || token.IsCancellationRequested)
                 {
                     mixer?.Dispose();
@@ -87,6 +87,6 @@ namespace YARG.Core.Song
             }
         }
 
-        protected abstract StemMixer? LoadPreviewMixer(AudioManager manager, float speed);
+        protected abstract StemMixer? LoadPreviewMixer(float speed);
     }
 }

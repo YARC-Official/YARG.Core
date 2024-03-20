@@ -41,7 +41,7 @@ namespace YARG.Core.Song
             return sngFile[_chart.File].CreateStream(sngFile);
         }
 
-        public override StemMixer? LoadAudio(AudioManager manager, float speed, params SongStem[] ignoreStems)
+        public override StemMixer? LoadAudio(float speed, params SongStem[] ignoreStems)
         {
             var sngFile = SngFile.TryLoadFromFile(_sngInfo);
             if (sngFile == null)
@@ -49,7 +49,7 @@ namespace YARG.Core.Song
                 YargLogger.LogFormatError("Failed to load sng file {0}", _sngInfo.FullName);
                 return null;
             }
-            return CreateAudioMixer(manager, speed, sngFile, ignoreStems);
+            return CreateAudioMixer(speed, sngFile, ignoreStems);
         }
 
         public override byte[]? LoadAlbumData()
@@ -158,7 +158,7 @@ namespace YARG.Core.Song
             return null;
         }
 
-        protected override StemMixer? LoadPreviewMixer(AudioManager manager, float speed)
+        protected override StemMixer? LoadPreviewMixer(float speed)
         {
             var sngFile = SngFile.TryLoadFromFile(_sngInfo);
             if (sngFile == null)
@@ -173,11 +173,11 @@ namespace YARG.Core.Song
                 {
                     string fakename = Path.Combine(_sngInfo.FullName, filename);
                     var stream = listing.CreateStream(sngFile);
-                    var mixer = manager.CreateMixer(filename, stream, speed);
+                    var mixer = GlobalAudioHandler.CreateMixer(fakename, stream, speed);
                     if (mixer == null)
                     {
                         stream.Dispose();
-                        YargLogger.LogFormatError("Failed to load preview file {0}!", filename);
+                        YargLogger.LogFormatError("Failed to load preview file {0}!", fakename);
                         return null;
                     }
                     mixer.AddChannel(SongStem.Preview);
@@ -185,12 +185,12 @@ namespace YARG.Core.Song
                 }
             }
 
-            return CreateAudioMixer(manager, speed, sngFile, SongStem.Crowd);
+            return CreateAudioMixer(speed, sngFile, SongStem.Crowd);
         }
 
-        private StemMixer? CreateAudioMixer(AudioManager manager, float speed, SngFile sngFile, params SongStem[] ignoreStems)
+        private StemMixer? CreateAudioMixer(float speed, SngFile sngFile, params SongStem[] ignoreStems)
         {
-            var mixer = manager.CreateMixer(ToString(), speed);
+            var mixer = GlobalAudioHandler.CreateMixer(ToString(), speed);
             if (mixer == null)
             {
                 YargLogger.LogError("Failed to create mixer");

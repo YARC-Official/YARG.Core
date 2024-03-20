@@ -35,9 +35,9 @@ namespace YARG.Core.Song
                 writer.Write(false);
         }
 
-        public override StemMixer? LoadAudio(AudioManager manager, float speed, params SongStem[] ignoreStems)
+        public override StemMixer? LoadAudio(float speed, params SongStem[] ignoreStems)
         {
-            var mixer = manager.CreateMixer(ToString(), speed);
+            var mixer = GlobalAudioHandler.CreateMixer(ToString(), speed);
             if (mixer == null)
             {
                 YargLogger.LogError("Failed to create mixer!");
@@ -144,17 +144,17 @@ namespace YARG.Core.Song
             return null;
         }
 
-        protected override StemMixer? LoadPreviewMixer(AudioManager manager, float speed)
+        protected override StemMixer? LoadPreviewMixer(float speed)
         {
             foreach (var filename in PREVIEW_FILES)
             {
                 var audioFile = Path.Combine(Directory, filename);
                 if (File.Exists(audioFile))
                 {
-                    return manager.LoadCustomFile(audioFile, speed, SongStem.Preview);
+                    return GlobalAudioHandler.LoadCustomFile(audioFile, speed, SongStem.Preview);
                 }
             }
-            return LoadAudio(manager, speed, SongStem.Crowd);
+            return LoadAudio(speed, SongStem.Crowd);
         }
 
         protected override Stream? GetChartStream()
