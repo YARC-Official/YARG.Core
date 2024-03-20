@@ -202,7 +202,6 @@ namespace YARG.Core.Engine
             }
 
             _scheduledUpdates.Add(time);
-            _scheduledUpdates.Sort();
         }
 
         internal void QueueManyUpdateTimesNoChecks(IEnumerable<double> times)
