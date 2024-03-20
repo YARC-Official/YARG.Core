@@ -253,5 +253,10 @@ namespace YARG.Core.Engine
         public abstract void UpdateBot(double songTime);
 
         public abstract (double FrontEnd, double BackEnd) CalculateHitWindow();
+
+        protected static bool IsTimeBetween(double time, double prevTime, double nextTime)
+        {
+            return time > prevTime && time < nextTime;
+        }
     }
 }
