@@ -5,160 +5,16 @@ using YARG.Core.Logging;
 
 namespace YARG.Core.Audio
 {
-    public enum StarPowerFxMode
+    public abstract class AudioManager
     {
-        Off,
-        MultitrackOnly,
-        On
-    }
-
-    public abstract class AudioManager : IDisposable
-    {
-        public const int WHAMMY_FFT_DEFAULT = 2048;
-        public const int WHAMMY_OVERSAMPLE_DEFAULT = 8;
-
-        public const double MINIMUM_STEM_VOLUME = 0.15;
-
-        private static AudioManager? _instance;
-
-        public static AudioManager Instance
-        {
-            get
-            {
-                if (_instance == null)
-                {
-                    throw new InvalidOperationException("Audio manager not initialized");
-                }
-                return _instance;
-            }
-        }
-
-        public static AudioManager Initialize<TAudioManager>()
-            where TAudioManager : AudioManager, new()
-        {
-            if (_instance is not TAudioManager)
-            {
-                _instance?.Dispose();
-            }
-            return _instance = new TAudioManager();
-        }
-
-        public static void Close()
-        {
-            _instance?.Dispose();
-        }
-
-
-        protected static SampleChannel[] _sfxSamples = new SampleChannel[AudioHelpers.SfxPaths.Count];
-        public static void PlaySoundEffect(SfxSample sample)
-        {
-            _sfxSamples[(int) sample]?.Play();
-        }
-
-        protected internal static readonly Dictionary<SongStem, StemSettings> StemSettings;
-
-        static AudioManager()
-        {
-            var vocals = new StemSettings(AudioHelpers.SONG_VOLUME_MULTIPLIER);
-            var drums = new StemSettings(AudioHelpers.SONG_VOLUME_MULTIPLIER);
-
-            StemSettings = new()
-            {
-                { SongStem.Song,    new StemSettings(AudioHelpers.SONG_VOLUME_MULTIPLIER) },
-                { SongStem.Guitar,  new StemSettings(AudioHelpers.SONG_VOLUME_MULTIPLIER) },
-                { SongStem.Bass,    new StemSettings(AudioHelpers.SONG_VOLUME_MULTIPLIER) },
-                { SongStem.Rhythm,  new StemSettings(AudioHelpers.SONG_VOLUME_MULTIPLIER) },
-                { SongStem.Keys,    new StemSettings(AudioHelpers.SONG_VOLUME_MULTIPLIER) },
-                { SongStem.Vocals,  vocals },
-                { SongStem.Vocals1, vocals },
-                { SongStem.Vocals2, vocals },
-                { SongStem.Drums,   drums },
-                { SongStem.Drums1,  drums },
-                { SongStem.Drums2,  drums },
-                { SongStem.Drums3,  drums },
-                { SongStem.Drums4,  drums },
-                { SongStem.Crowd,   new StemSettings(AudioHelpers.SONG_VOLUME_MULTIPLIER) },
-                { SongStem.Sfx,     new StemSettings(1) },
-                { SongStem.Preview, new StemSettings(1) },
-                { SongStem.Master,  new StemSettings(1) },
-            };
-        }
-
-        public static double GetVolumeSetting(SongStem stem)
-        {
-            return StemSettings[stem].Volume;
-        }
-
-        public static void SetVolumeSetting(SongStem stem, double volume)
-        {
-            StemSettings[stem].Volume = volume;
-        }
-
-        public static bool GetReverbSetting(SongStem stem)
-        {
-            return StemSettings[stem].Reverb;
-        }
-
-        public static void SetReverbSetting(SongStem stem, bool reverb)
-        {
-            StemSettings[stem].Reverb = reverb;
-        }
-
-        public static bool UseWhammyFx;
-        public static bool IsChipmunkSpeedup;
-
-        public static bool UseMinimumStemVolume;
-
-        /// <summary>
-        /// The number of semitones to bend the pitch by. Must be at least 1;
-        /// </summary>
-        public static float WhammyPitchShiftAmount = 1f;
-
-        // Not implemented, as changing the FFT size causes BASS_FX to crash
-        // /// <summary>
-        // /// The size of the whammy FFT buffer. Must be a power of 2, up to 8192.
-        // /// </summary>
-        // /// <remarks>
-        // /// Changes to this value will not be applied until the next song plays.
-        // /// </remarks>
-        // public int WhammyFFTSize
-        // {
-        //     get => (int)Math.Pow(2, _whammyFFTSize);
-        //     set => _whammyFFTSize = (int)Math.Log(value, 2);
-        // }
-        // private int _whammyFFTSize = WHAMMY_FFT_DEFAULT;
-
-        /// <summary>
-        /// The oversampling factor of the whammy SFX. Must be at least 4.
-        /// </summary>
-        /// <remarks>
-        /// Changes to this value will not be applied until the next song plays.
-        /// </remarks>
-        public static int WhammyOversampleFactor = WHAMMY_OVERSAMPLE_DEFAULT;
-
-        public static double ClampStemVolume(double volume)
-        {
-            // Limit minimum stem volume
-            if (UseMinimumStemVolume)
-            {
-                volume = Math.Max(volume, MINIMUM_STEM_VOLUME);
-            }
-            return volume;
-        }
-
         private bool _disposed;
-        private List<StemMixer> _activeMixers = new();
+        private static List<StemMixer> _activeMixers = new();
+        protected internal readonly SampleChannel[] SfxSamples = new SampleChannel[AudioHelpers.SfxPaths.Count];
+        protected internal double PlaybackBufferLength;
 
-        public double PlaybackBufferLength { get; protected set; }
+        protected internal abstract ReadOnlySpan<string> SupportedFormats { get; }
 
-        public abstract ReadOnlySpan<string> SupportedFormats { get; }
-
-        protected AudioManager()
-        {
-            StemSettings[SongStem.Master].OnVolumeChange += SetMasterVolume;
-        }
-
-        public StemMixer? LoadCustomFile(string name, Stream stream, float speed, SongStem stem = SongStem.Song)
+        internal StemMixer? LoadCustomFile(string name, Stream stream, float speed, SongStem stem = SongStem.Song)
         {
             YargLogger.LogInfo("Loading custom audio file");
             var mixer = CreateMixer(name, stream, speed);
@@ -176,7 +32,7 @@ namespace YARG.Core.Audio
             return mixer;
         }
 
-        public StemMixer? LoadCustomFile(string file, float speed, SongStem stem = SongStem.Song)
+        internal StemMixer? LoadCustomFile(string file, float speed, SongStem stem = SongStem.Song)
         {
             var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
             var mixer = LoadCustomFile(file, stream, speed, stem);
@@ -189,88 +45,17 @@ namespace YARG.Core.Audio
             return mixer;
         }
 
-        public StemMixer? CreateMixer(string name, float speed)
-        {
-            lock (this)
-            {
-                if (_disposed)
-                {
-                    return null;
-                }
-                return CreateMixer_Internal(name, speed);
-            }
-        }
+        protected internal abstract StemMixer? CreateMixer(string name, float speed);
 
-        public StemMixer? CreateMixer(string name, Stream stream, float speed)
-        {
-            lock (this)
-            {
-                if (_disposed)
-                {
-                    return null;
-                }
-                return CreateMixer_Internal(name, stream, speed);
-            }
-        }
+        protected internal abstract StemMixer? CreateMixer(string name, Stream stream, float speed);
 
-        public MicDevice? GetInputDevice(string name)
-        {
-            lock (this)
-            {
-                if (_disposed)
-                {
-                    return null;
-                }
-                return GetInputDevice_Internal(name);
-            }
-        }
+        protected internal abstract MicDevice? GetInputDevice(string name);
 
-        public List<(int id, string name)> GetAllInputDevices()
-        {
-            lock (this)
-            {
-                if (_disposed)
-                {
-                    return new();
-                }
-                return GetAllInputDevices_Internal();
-            }
-        }
+        protected internal abstract List<(int id, string name)> GetAllInputDevices();
 
-        public MicDevice? CreateDevice(int deviceId, string name)
-        {
-            lock (this)
-            {
-                if (_disposed)
-                {
-                    return null;
-                }
-                return CreateDevice_Internal(deviceId, name);
-            }
-        }
+        protected internal abstract MicDevice? CreateDevice(int deviceId, string name);
 
-        private void SetMasterVolume(double volume)
-        {
-            lock (this)
-            {
-                if (!_disposed)
-                {
-                    SetMasterVolume_Internal(volume);
-                }
-            }
-        }
-
-        protected abstract StemMixer? CreateMixer_Internal(string name, float speed);
-
-        protected abstract StemMixer? CreateMixer_Internal(string name, Stream stream, float speed);
-
-        protected abstract MicDevice? GetInputDevice_Internal(string name);
-
-        protected abstract List<(int id, string name)> GetAllInputDevices_Internal();
-
-        protected abstract MicDevice? CreateDevice_Internal(int deviceId, string name);
-
-        protected abstract void SetMasterVolume_Internal(double volume);
+        protected internal abstract void SetMasterVolume(double volume);
 
         /// <summary>
         /// Communicates to the manager that the mixer is already disposed of.
@@ -327,12 +112,11 @@ namespace YARG.Core.Audio
                         mixer.Dispose();
                     }
 
-                    foreach (var sample in _sfxSamples)
+                    foreach (var sample in SfxSamples)
                     {
                         sample?.Dispose();
                     }
 
-                    StemSettings[SongStem.Master].OnVolumeChange -= SetMasterVolume;
                     if (disposing)
                     {
                         DisposeManagedResources();

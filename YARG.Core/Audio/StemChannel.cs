@@ -14,7 +14,7 @@ namespace YARG.Core.Audio
             _manager = manager;
             Stem = stem;
 
-            var settings = AudioManager.StemSettings[Stem];
+            var settings = GlobalAudioHandler.StemSettings[Stem];
             settings.OnVolumeChange += SetVolume;
             settings.OnReverbChange += SetReverb;
         }
@@ -58,7 +58,7 @@ namespace YARG.Core.Audio
             {
                 if (!_disposed)
                 {
-                    volume = AudioManager.ClampStemVolume(volume);
+                    volume = GlobalAudioHandler.ClampStemVolume(volume);
                     SetVolume_Internal(volume);
                 }
             }
@@ -91,7 +91,7 @@ namespace YARG.Core.Audio
             {
                 if (!_disposed)
                 {
-                    AudioManager.StemSettings[Stem].OnVolumeChange -= SetVolume;
+                    GlobalAudioHandler.StemSettings[Stem].OnVolumeChange -= SetVolume;
                     if (disposing)
                     {
                         DisposeManagedResources();
