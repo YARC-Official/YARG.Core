@@ -13,8 +13,8 @@ namespace YARG.Core.Engine.Guitar
         protected sealed class ActiveSustain
         {
             public GuitarNote Note;
-            public uint BaseTick;
-            public double BaseScore;
+            public uint       BaseTick;
+            public double     BaseScore;
 
             public bool HasFinishedScoring;
 
@@ -49,6 +49,54 @@ namespace YARG.Core.Engine.Guitar
             State.Initialize(engineParameters);
         }
 
+        protected override void GenerateQueuedUpdates(double nextTime)
+        {
+            base.GenerateQueuedUpdates(nextTime);
+            var previousTime = State.CurrentTime;
+
+            foreach (var sustain in ActiveSustains)
+            {
+                var endTime = sustain.GetEndTime(SyncTrack, SustainBurstThreshold);
+
+                if (IsTimeBetween(endTime, previousTime, nextTime))
+                {
+                    YargLogger.LogFormatInfo("Queuing note (mask: {0}) sustain end time at {1}", sustain.Note.NoteMask,
+                        endTime);
+                    QueueUpdateTime(endTime);
+                }
+            }
+
+            // Check all timers
+            if (State.HopoLeniencyTimer.IsActive)
+            {
+                if (IsTimeBetween(State.HopoLeniencyTimer.EndTime, previousTime, nextTime))
+                {
+                    YargLogger.LogFormatInfo("Queuing hopo leniency end time at {0}", State.HopoLeniencyTimer.EndTime);
+                    QueueUpdateTime(State.HopoLeniencyTimer.EndTime);
+                }
+            }
+
+            if (State.StrumLeniencyTimer.IsActive)
+            {
+                if (IsTimeBetween(State.StrumLeniencyTimer.EndTime, previousTime, nextTime))
+                {
+                    YargLogger.LogFormatInfo("Queuing strum leniency end time at {0}",
+                        State.StrumLeniencyTimer.EndTime);
+                    QueueUpdateTime(State.StrumLeniencyTimer.EndTime);
+                }
+            }
+
+            if (State.StarPowerWhammyTimer.IsActive)
+            {
+                if (IsTimeBetween(State.StarPowerWhammyTimer.EndTime, previousTime, nextTime))
+                {
+                    YargLogger.LogFormatInfo("Queuing star power whammy end time at {0}",
+                        State.StarPowerWhammyTimer.EndTime);
+                    QueueUpdateTime(State.StarPowerWhammyTimer.EndTime);
+                }
+            }
+        }
+
         public override void Reset(bool keepCurrentButtons = false)
         {
             byte buttons = State.FretMask;
@@ -75,6 +123,8 @@ namespace YARG.Core.Engine.Guitar
             {
                 return;
             }
+
+            YargLogger.LogFormatInfo("Overstrummed at {0}", State.CurrentTime);
 
             // Break all active sustains
             for (int i = 0; i < ActiveSustains.Count; i++)
@@ -210,6 +260,7 @@ namespace YARG.Core.Engine.Guitar
             {
                 EndSolo();
             }
+
             if (note.IsSoloStart)
             {
                 StartSolo();
@@ -280,7 +331,7 @@ namespace YARG.Core.Engine.Guitar
         {
             YargLogger.AssertFormat(baseTick >= State.StarPowerWhammyBaseTick,
                 "Star Power whammy base tick cannot go backwards! Went from {0} to {1}",
-                    State.StarPowerWhammyBaseTick, baseTick);
+                State.StarPowerWhammyBaseTick, baseTick);
 
             State.StarPowerWhammyBaseTick = baseTick;
         }
@@ -295,7 +346,7 @@ namespace YARG.Core.Engine.Guitar
                 {
                     YargLogger.AssertFormat(baseTick < sustain.Note.Tick,
                         "Sustain base tick cannot go backwards! Attempted to go from {0} to {1}",
-                            sustain.BaseTick, baseTick);
+                        sustain.BaseTick, baseTick);
 
                     continue;
                 }
@@ -308,15 +359,16 @@ namespace YARG.Core.Engine.Guitar
             }
         }
 
-        protected override double CalculateStarPowerGain(uint tick)
-            => State.StarPowerWhammyTimer.IsActive ? CalculateStarPowerBeatProgress(tick, State.StarPowerWhammyBaseTick) : 0;
+        protected override double CalculateStarPowerGain(uint tick) =>
+            State.StarPowerWhammyTimer.IsActive
+                ? CalculateStarPowerBeatProgress(tick, State.StarPowerWhammyBaseTick)
+                : 0;
 
         protected void StartSustain(GuitarNote note)
         {
             var sustain = new ActiveSustain(note);
 
             ActiveSustains.Add(sustain);
-            QueueUpdateTime(sustain.GetEndTime(SyncTrack, SustainBurstThreshold));
 
             OnSustainStart?.Invoke(note);
         }
@@ -417,7 +469,7 @@ namespace YARG.Core.Engine.Guitar
                 }
             }
             // Rebase after SP whammy ends to commit the final amount to the base
-            else if(State.StarPowerWhammyTimer.IsActive)
+            else if (State.StarPowerWhammyTimer.IsActive)
             {
                 RebaseProgressValues(State.CurrentTick);
 
@@ -465,7 +517,6 @@ namespace YARG.Core.Engine.Guitar
 
             return score;
         }
-
 
         protected void ToggleFret(int fret, bool active)
         {

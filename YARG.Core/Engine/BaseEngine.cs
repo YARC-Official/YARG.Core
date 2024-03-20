@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using YARG.Core.Chart;
 using YARG.Core.Engine.Logging;
@@ -71,7 +70,7 @@ namespace YARG.Core.Engine
                 // Skip inputs that are in the future
                 if (input.Time > time)
                 {
-                    YargLogger.FailFormat(
+                    YargLogger.LogFormatWarning(
                         "Queued input is in the future! Time being updated to: {0}, input time: {1}", time, input.Time);
                     break;
                 }
@@ -83,14 +82,19 @@ namespace YARG.Core.Engine
                 // Skip non-input update if possible
                 if (input.Time == time)
                 {
-                    YargLogger.Assert(InputQueue.Count == 0,
-                        "Input queue was not fully cleared! Remaining inputs are possibly in the future");
+                    if (InputQueue.Count > 0)
+                    {
+                        YargLogger.LogWarning("Input queue was not fully cleared! Remaining inputs are possibly in the future");
+                    }
                     return;
                 }
             }
 
             // Update to the given time
-            YargLogger.Assert(InputQueue.Count == 0, "Input queue was not fully cleared!");
+            if (InputQueue.Count > 0)
+            {
+                YargLogger.LogWarning("Input queue was not fully cleared!");
+            }
             RunQueuedUpdates(time);
             UpdateHitLogic(time);
         }
@@ -99,6 +103,14 @@ namespace YARG.Core.Engine
         {
             // 'for' is used here to prevent enumeration exceptions,
             // the list of scheduled updates will be modified by the updates we're running
+
+            GenerateQueuedUpdates(time);
+            _scheduledUpdates.Sort();
+
+            if (_scheduledUpdates.Count > 0)
+            {
+                YargLogger.LogFormatInfo("{0} updates ready to be simulated", _scheduledUpdates.Count);
+            }
             int i = 0;
             for (; i < _scheduledUpdates.Count; i++)
             {
@@ -112,23 +124,24 @@ namespace YARG.Core.Engine
                     continue;
                 }
 
-                // Stop once we've processed everything up to the given time
+                // There should be no scheduled updates for times beyond the one we want to update to
                 if (updateTime >= time)
                 {
-                    // De-duplicate any updates for the given time
-                    if (updateTime == time)
-                    {
-                        i++;
-                    }
-
-                    break;
+                    YargLogger.FailFormat("Update time is >= than the given time! Update time: {0}, given time: {1}", updateTime, time);
+                    continue;
                 }
 
+                YargLogger.LogFormatInfo("Running scheduled update at {0}", updateTime);
                 UpdateHitLogic(updateTime);
             }
 
             // Remove all processed updates
             _scheduledUpdates.RemoveRange(0, i);
+        }
+
+        protected virtual void GenerateQueuedUpdates(double nextTime)
+        {
+
         }
 
         /// <summary>
@@ -208,8 +221,6 @@ namespace YARG.Core.Engine
             {
                 timer.Start(startTime);
             }
-
-            QueueUpdateTime(timer.EndTime);
         }
 
         public abstract void Reset(bool keepCurrentButtons = false);
