@@ -56,11 +56,22 @@ namespace YARG.Core.Engine.Guitar
 
             foreach (var sustain in ActiveSustains)
             {
-                var endTime = sustain.GetEndTime(SyncTrack, SustainBurstThreshold);
+                var burstTime = sustain.GetEndTime(SyncTrack, SustainBurstThreshold);
+                var endTime = sustain.GetEndTime(SyncTrack, 0);
 
+                // Burst time is for scoring, so that scoring finishes at the correct time
+                if (IsTimeBetween(burstTime, previousTime, nextTime))
+                {
+                    YargLogger.LogFormatInfo("Queuing sustain (mask: {0}) burst time at {1}", sustain.Note.NoteMask,
+                        burstTime);
+                    QueueUpdateTime(burstTime);
+                }
+
+                // The true end of the sustain is for hit logic. Sustains are "kept" even after the burst ticks so must
+                // also be handled.
                 if (IsTimeBetween(endTime, previousTime, nextTime))
                 {
-                    YargLogger.LogFormatInfo("Queuing note (mask: {0}) sustain end time at {1}", sustain.Note.NoteMask,
+                    YargLogger.LogFormatInfo("Queuing sustain (mask: {0}) end time at {1}", sustain.Note.NoteMask,
                         endTime);
                     QueueUpdateTime(endTime);
                 }
@@ -131,6 +142,7 @@ namespace YARG.Core.Engine.Guitar
             {
                 var sustain = ActiveSustains[i];
                 ActiveSustains.RemoveAt(i);
+                YargLogger.LogFormatInfo("Ended sustain at {0}", State.CurrentTime);
                 i--;
 
                 double finalScore = CalculateSustainPoints(sustain, State.CurrentTick);
@@ -370,6 +382,8 @@ namespace YARG.Core.Engine.Guitar
 
             ActiveSustains.Add(sustain);
 
+            YargLogger.LogFormatInfo("Started sustain at {0} (tick len: {1}, time len: {2})", State.CurrentTime, note.TickLength, note.TimeLength);
+
             OnSustainStart?.Invoke(note);
         }
 
@@ -408,6 +422,7 @@ namespace YARG.Core.Engine.Guitar
                     // Sustain has ended, so commit the points
                     if (dropped || isBurst)
                     {
+                        YargLogger.LogFormatInfo("Finished scoring sustain at {0} (dropped: {1}, burst: {2})", State.CurrentTime, dropped, isBurst);
                         double finalScore = CalculateSustainPoints(sustain, sustainTick);
                         AddScore((int) Math.Ceiling(finalScore));
                     }
@@ -420,6 +435,7 @@ namespace YARG.Core.Engine.Guitar
                 // Only remove the sustain if its dropped or has reached the final tick
                 if (dropped || isEndOfSustain)
                 {
+                    YargLogger.LogFormatInfo("Ended sustain at {0} (dropped: {1}, end: {2})", State.CurrentTime, dropped, isEndOfSustain);
                     ActiveSustains.RemoveAt(i);
                     i--;
                     OnSustainEnd?.Invoke(note, State.CurrentTime, sustain.HasFinishedScoring);

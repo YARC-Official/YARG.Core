@@ -77,6 +77,7 @@ namespace YARG.Core.Engine
 
                 RunQueuedUpdates(input.Time);
                 MutateStateWithInput(input);
+                YargLogger.LogFormatInfo("Processing input at {0}", input.Time);
                 UpdateHitLogic(input.Time);
 
                 // Skip non-input update if possible
@@ -210,18 +211,6 @@ namespace YARG.Core.Engine
             _scheduledUpdates.Sort();
         }
 
-        protected void StartTimer(ref EngineTimer timer, double startTime, double offset = 0)
-        {
-            if (offset > 0)
-            {
-                timer.StartWithOffset(startTime, offset);
-            }
-            else
-            {
-                timer.Start(startTime);
-            }
-        }
-
         public abstract void Reset(bool keepCurrentButtons = false);
 
         protected abstract void MutateStateWithInput(GameInput gameInput);
@@ -263,6 +252,18 @@ namespace YARG.Core.Engine
         public abstract void UpdateBot(double songTime);
 
         public abstract (double FrontEnd, double BackEnd) CalculateHitWindow();
+
+        protected static void StartTimer(ref EngineTimer timer, double startTime, double offset = 0)
+        {
+            if (offset > 0)
+            {
+                timer.StartWithOffset(startTime, offset);
+            }
+            else
+            {
+                timer.Start(startTime);
+            }
+        }
 
         protected static bool IsTimeBetween(double time, double prevTime, double nextTime)
         {
