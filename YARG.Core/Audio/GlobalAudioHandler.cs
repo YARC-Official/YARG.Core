@@ -132,11 +132,12 @@ namespace YARG.Core.Audio
             // Two locks to allow other things to happen
             lock (_instanceLock)
             {
-                if (_instance is not TAudioManager)
+                if (_instance == null || _instance is not TAudioManager)
                 {
                     _instance?.Dispose();
+                    _instance = new TAudioManager();
                 }
-                return _instance = new TAudioManager();
+                return _instance;
             }
         }
 
