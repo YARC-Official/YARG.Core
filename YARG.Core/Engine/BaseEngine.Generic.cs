@@ -135,14 +135,14 @@ namespace YARG.Core.Engine
                 // Note will not reach front end yet
                 if (nextTime < noteFrontEnd)
                 {
-                    //YargLogger.LogFormatInfo("Note {0} front end will not be reached at {1}", i, nextTime);
+                    //YargLogger.LogFormatTrace("Note {0} front end will not be reached at {1}", i, nextTime);
                     break;
                 }
 
                 // Earliest the note can be hit
                 if(IsTimeBetween(noteFrontEnd, previousTime, nextTime))
                 {
-                    YargLogger.LogFormatInfo("Queuing note {0} front end hit time at {1}", i, noteFrontEnd);
+                    YargLogger.LogFormatTrace("Queuing note {0} front end hit time at {1}", i, noteFrontEnd);
                     QueueUpdateTime(noteFrontEnd);
                 }
 
@@ -153,7 +153,7 @@ namespace YARG.Core.Engine
 
                 if (IsTimeBetween(noteBackEndIncrement, previousTime, nextTime))
                 {
-                    YargLogger.LogFormatInfo("Queuing note {0} back end miss time at {1} (back end time is {2})", i, noteBackEndIncrement, noteBackEnd);
+                    YargLogger.LogFormatTrace("Queuing note {0} back end miss time at {1} (back end time is {2})", i, noteBackEndIncrement, noteBackEnd);
                     QueueUpdateTime(noteBackEndIncrement);
                 }
             }
@@ -300,13 +300,13 @@ namespace YARG.Core.Engine
 
         protected virtual void HitNote(TNoteType note)
         {
-            YargLogger.LogFormatInfo("Hit note at {0}", BaseState.CurrentTime);
+            YargLogger.LogFormatTrace("Hit note at {0}", BaseState.CurrentTime);
             AdvanceToNextNote(note);
         }
 
         protected virtual void MissNote(TNoteType note)
         {
-            YargLogger.LogFormatInfo("Missed note at {0}", BaseState.CurrentTime);
+            YargLogger.LogFormatTrace("Missed note at {0}", BaseState.CurrentTime);
             AdvanceToNextNote(note);
         }
 

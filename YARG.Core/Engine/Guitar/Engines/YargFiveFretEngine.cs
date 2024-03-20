@@ -156,6 +156,10 @@ namespace YARG.Core.Engine.Guitar.Engines
             // Note skipping, useful for combo regain
             if (!CanNoteBeHit(note))
             {
+                if (State is { HasStrummed: true, StrumLeniencyTimer: { IsActive: true } })
+                {
+                    YargLogger.LogFormatTrace("Starting strum leniency at {0}, will end at {1}", State.CurrentTime, State.StrumLeniencyTimer.EndTime);
+                }
                 // TODO Add note skipping logic
                 return;
             }

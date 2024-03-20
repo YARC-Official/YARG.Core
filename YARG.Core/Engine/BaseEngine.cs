@@ -77,7 +77,7 @@ namespace YARG.Core.Engine
 
                 RunQueuedUpdates(input.Time);
                 MutateStateWithInput(input);
-                YargLogger.LogFormatInfo("Processing input at {0}", input.Time);
+                YargLogger.LogFormatTrace("Processing input {0} ({1}) at {2}", input.GetAction<GuitarAction>(), input.Button, input.Time);
                 UpdateHitLogic(input.Time);
 
                 // Skip non-input update if possible
@@ -110,7 +110,7 @@ namespace YARG.Core.Engine
 
             if (_scheduledUpdates.Count > 0)
             {
-                YargLogger.LogFormatInfo("{0} updates ready to be simulated", _scheduledUpdates.Count);
+                YargLogger.LogFormatTrace("{0} updates ready to be simulated", _scheduledUpdates.Count);
             }
             int i = 0;
             for (; i < _scheduledUpdates.Count; i++)
@@ -132,7 +132,7 @@ namespace YARG.Core.Engine
                     continue;
                 }
 
-                YargLogger.LogFormatInfo("Running scheduled update at {0}", updateTime);
+                YargLogger.LogFormatTrace("Running scheduled update at {0}", updateTime);
                 UpdateHitLogic(updateTime);
             }
 

@@ -62,7 +62,7 @@ namespace YARG.Core.Engine.Guitar
                 // Burst time is for scoring, so that scoring finishes at the correct time
                 if (IsTimeBetween(burstTime, previousTime, nextTime))
                 {
-                    YargLogger.LogFormatInfo("Queuing sustain (mask: {0}) burst time at {1}", sustain.Note.NoteMask,
+                    YargLogger.LogFormatTrace("Queuing sustain (mask: {0}) burst time at {1}", sustain.Note.NoteMask,
                         burstTime);
                     QueueUpdateTime(burstTime);
                 }
@@ -71,7 +71,7 @@ namespace YARG.Core.Engine.Guitar
                 // also be handled.
                 if (IsTimeBetween(endTime, previousTime, nextTime))
                 {
-                    YargLogger.LogFormatInfo("Queuing sustain (mask: {0}) end time at {1}", sustain.Note.NoteMask,
+                    YargLogger.LogFormatTrace("Queuing sustain (mask: {0}) end time at {1}", sustain.Note.NoteMask,
                         endTime);
                     QueueUpdateTime(endTime);
                 }
@@ -82,7 +82,7 @@ namespace YARG.Core.Engine.Guitar
             {
                 if (IsTimeBetween(State.HopoLeniencyTimer.EndTime, previousTime, nextTime))
                 {
-                    YargLogger.LogFormatInfo("Queuing hopo leniency end time at {0}", State.HopoLeniencyTimer.EndTime);
+                    YargLogger.LogFormatTrace("Queuing hopo leniency end time at {0}", State.HopoLeniencyTimer.EndTime);
                     QueueUpdateTime(State.HopoLeniencyTimer.EndTime);
                 }
             }
@@ -91,7 +91,7 @@ namespace YARG.Core.Engine.Guitar
             {
                 if (IsTimeBetween(State.StrumLeniencyTimer.EndTime, previousTime, nextTime))
                 {
-                    YargLogger.LogFormatInfo("Queuing strum leniency end time at {0}",
+                    YargLogger.LogFormatTrace("Queuing strum leniency end time at {0}",
                         State.StrumLeniencyTimer.EndTime);
                     QueueUpdateTime(State.StrumLeniencyTimer.EndTime);
                 }
@@ -101,7 +101,7 @@ namespace YARG.Core.Engine.Guitar
             {
                 if (IsTimeBetween(State.StarPowerWhammyTimer.EndTime, previousTime, nextTime))
                 {
-                    YargLogger.LogFormatInfo("Queuing star power whammy end time at {0}",
+                    YargLogger.LogFormatTrace("Queuing star power whammy end time at {0}",
                         State.StarPowerWhammyTimer.EndTime);
                     QueueUpdateTime(State.StarPowerWhammyTimer.EndTime);
                 }
@@ -135,14 +135,14 @@ namespace YARG.Core.Engine.Guitar
                 return;
             }
 
-            YargLogger.LogFormatInfo("Overstrummed at {0}", State.CurrentTime);
+            YargLogger.LogFormatTrace("Overstrummed at {0}", State.CurrentTime);
 
             // Break all active sustains
             for (int i = 0; i < ActiveSustains.Count; i++)
             {
                 var sustain = ActiveSustains[i];
                 ActiveSustains.RemoveAt(i);
-                YargLogger.LogFormatInfo("Ended sustain at {0}", State.CurrentTime);
+                YargLogger.LogFormatTrace("Ended sustain at {0}", State.CurrentTime);
                 i--;
 
                 double finalScore = CalculateSustainPoints(sustain, State.CurrentTick);
@@ -382,7 +382,7 @@ namespace YARG.Core.Engine.Guitar
 
             ActiveSustains.Add(sustain);
 
-            YargLogger.LogFormatInfo("Started sustain at {0} (tick len: {1}, time len: {2})", State.CurrentTime, note.TickLength, note.TimeLength);
+            YargLogger.LogFormatTrace("Started sustain at {0} (tick len: {1}, time len: {2})", State.CurrentTime, note.TickLength, note.TimeLength);
 
             OnSustainStart?.Invoke(note);
         }
@@ -422,7 +422,7 @@ namespace YARG.Core.Engine.Guitar
                     // Sustain has ended, so commit the points
                     if (dropped || isBurst)
                     {
-                        YargLogger.LogFormatInfo("Finished scoring sustain at {0} (dropped: {1}, burst: {2})", State.CurrentTime, dropped, isBurst);
+                        YargLogger.LogFormatTrace("Finished scoring sustain at {0} (dropped: {1}, burst: {2})", State.CurrentTime, dropped, isBurst);
                         double finalScore = CalculateSustainPoints(sustain, sustainTick);
                         AddScore((int) Math.Ceiling(finalScore));
                     }
@@ -435,7 +435,7 @@ namespace YARG.Core.Engine.Guitar
                 // Only remove the sustain if its dropped or has reached the final tick
                 if (dropped || isEndOfSustain)
                 {
-                    YargLogger.LogFormatInfo("Ended sustain at {0} (dropped: {1}, end: {2})", State.CurrentTime, dropped, isEndOfSustain);
+                    YargLogger.LogFormatTrace("Ended sustain at {0} (dropped: {1}, end: {2})", State.CurrentTime, dropped, isEndOfSustain);
                     ActiveSustains.RemoveAt(i);
                     i--;
                     OnSustainEnd?.Invoke(note, State.CurrentTime, sustain.HasFinishedScoring);
