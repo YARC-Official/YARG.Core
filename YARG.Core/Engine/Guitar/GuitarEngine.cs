@@ -387,7 +387,7 @@ namespace YARG.Core.Engine.Guitar
 
                 // If we're close enough to the end of the sustain, finish it
                 // Provides leniency for sustains with no gap (and just in general)
-                bool isBurst = (int) (note.TickEnd - State.CurrentTick) <= SustainBurstThreshold;
+                bool isBurst = (int) State.CurrentTick >= note.TickEnd - SustainBurstThreshold;
                 bool isEndOfSustain = State.CurrentTick >= note.TickEnd;
 
                 uint sustainTick = isBurst || isEndOfSustain ? note.TickEnd : State.CurrentTick;
