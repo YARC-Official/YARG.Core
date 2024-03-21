@@ -138,67 +138,81 @@ namespace YARG.Core.Engine.Guitar.Engines
 
         protected override void CheckForNoteHit()
         {
-            var note = Notes[State.NoteIndex];
-
-            if (note.WasFullyHitOrMissed())
+            for (int i = State.NoteIndex; i < Notes.Count; i++)
             {
-                return;
-            }
+                // Local function so it can't be modified
+                bool IsFirstNoteInWindow() => i == State.NoteIndex;
 
-            if (!IsNoteInWindow(note, out bool missed))
-            {
-                if (missed)
+                var note = Notes[i];
+
+                if (note.WasFullyHitOrMissed())
                 {
-                    MissNote(note);
-                    YargLogger.LogFormatTrace("Missed note (Index: {0}, Mask: {1}) at {2}", State.NoteIndex - 1, note.NoteMask, State.CurrentTime);
-                    return;
+                    break;
                 }
 
-                return;
-            }
-
-            //State.HopoLeniencyTimer.Disable();
-
-            // Note skipping, useful for combo regain
-            if (!CanNoteBeHit(note))
-            {
-                if (State is { HasStrummed: true, StrumLeniencyTimer: { IsActive: true } })
+                if (!IsNoteInWindow(note, out bool missed))
                 {
-                    YargLogger.LogFormatTrace("Starting strum leniency at {0}, will end at {1}", State.CurrentTime, State.StrumLeniencyTimer.EndTime);
+                    if (missed)
+                    {
+                        MissNote(note);
+                        YargLogger.LogFormatTrace("Missed note (Index: {0}, Mask: {1}) at {2}", State.NoteIndex - 1, note.NoteMask, State.CurrentTime);
+                    }
+
+                    break;
                 }
-                // TODO Add note skipping logic
-                return;
-            }
 
-            // Handles hitting a hopo/tap notes
-            // If first note is a hopo then it can be hit without combo (for practice mode)
-            bool hopoCondition = note.IsHopo && (EngineStats.Combo > 0 || State.NoteIndex == 0);
-
-            bool frontEndIsExpired = note.Time > State.FrontEndExpireTime;
-            bool canUseInfFrontEnd = EngineParameters.InfiniteFrontEnd || !frontEndIsExpired || State.NoteIndex == 0;
-
-            // Attempt to hit with hopo/tap rules
-            if (State.HasTapped && (hopoCondition || note.IsTap) && canUseInfFrontEnd && !State.WasNoteGhosted)
-            {
-                HitNote(note);
-                if (State.HasStrummed)
+                // Cannot hit the note
+                if (!CanNoteBeHit(note))
                 {
+                    // This does nothing special, it's just logging strum leniency
+                    if (IsFirstNoteInWindow() && State is { HasStrummed: true, StrumLeniencyTimer: { IsActive: true } })
+                    {
+                        YargLogger.LogFormatTrace("Starting strum leniency at {0}, will end at {1}", State.CurrentTime, State.StrumLeniencyTimer.EndTime);
+                    }
+
+                    // Note skipping not allowed on the first note if hopo/tap
+                    if ((note.IsHopo || note.IsTap) && State.NoteIndex == 0)
+                    {
+                        break;
+                    }
+
+                    // Continue to the next note (skipping the current one)
+                    continue;
+                }
+
+                // Handles hitting a hopo notes
+                // If first note is a hopo then it can be hit without combo (for practice mode)
+                bool hopoCondition = note.IsHopo && IsFirstNoteInWindow() && (EngineStats.Combo > 0 || State.NoteIndex == 0);
+
+                // If a note is a tap then it can be hit only if it is the closest note, unless
+                // the combo is 0 then it can be hit regardless of the distance (note skipping)
+                bool tapCondition = note.IsTap && (IsFirstNoteInWindow() || EngineStats.Combo == 0);
+
+                bool frontEndIsExpired = note.Time > State.FrontEndExpireTime;
+                bool canUseInfFrontEnd = EngineParameters.InfiniteFrontEnd || !frontEndIsExpired || State.NoteIndex == 0;
+
+                // Attempt to hit with hopo/tap rules
+                if (State.HasTapped && (hopoCondition || tapCondition) && canUseInfFrontEnd && !State.WasNoteGhosted)
+                {
+                    HitNote(note);
                     YargLogger.LogFormatTrace("Hit note (Index: {0}, Mask: {1}) at {2} with hopo rules", State.NoteIndex - 1, note.NoteMask, State.CurrentTime);
+                    break;
                 }
-                return;
-            }
 
-            // If hopo/tap checks failed then the note can be hit if it was strummed
-            if (State.HasStrummed || State.StrumLeniencyTimer.IsActive)
-            {
-                HitNote(note);
-                if (State.HasStrummed)
+                // If hopo/tap checks failed then the note can be hit if it was strummed
+                if ((State.HasStrummed || State.StrumLeniencyTimer.IsActive) && (IsFirstNoteInWindow() || (State.NoteIndex > 0 && EngineStats.Combo == 0)))
                 {
-                    YargLogger.LogFormatTrace("Hit note (Index: {0}, Mask: {1}) at {2} with strum input", State.NoteIndex - 1, note.NoteMask, State.CurrentTime);
-                }
-                else
-                {
-                    YargLogger.LogFormatTrace("Hit note (Index: {0}, Mask: {1}) at {2} with strum leniency", State.NoteIndex - 1, note.NoteMask, State.CurrentTime);
+                    HitNote(note);
+                    if (State.HasStrummed)
+                    {
+                        YargLogger.LogFormatTrace("Hit note (Index: {0}, Mask: {1}) at {2} with strum input", State.NoteIndex - 1, note.NoteMask, State.CurrentTime);
+                    }
+                    else
+                    {
+                        YargLogger.LogFormatTrace("Hit note (Index: {0}, Mask: {1}) at {2} with strum leniency", State.NoteIndex - 1, note.NoteMask, State.CurrentTime);
+                    }
+
+                    break;
                 }
             }
         }
