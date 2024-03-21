@@ -114,19 +114,7 @@ namespace YARG.Core.Audio
         private static object _instanceLock = new();
         private static AudioManager? _instance;
 
-        public static AudioManager Instance
-        {
-            get
-            {
-                if (_instance == null)
-                {
-                    throw new InvalidOperationException("Audio manager not initialized");
-                }
-                return _instance;
-            }
-        }
-
-        public static AudioManager Initialize<TAudioManager>()
+        public static void Initialize<TAudioManager>()
             where TAudioManager : AudioManager, new()
         {
             // Two locks to allow other things to happen
@@ -137,7 +125,6 @@ namespace YARG.Core.Audio
                     _instance?.Dispose();
                     _instance = new TAudioManager();
                 }
-                return _instance;
             }
         }
 
@@ -150,6 +137,12 @@ namespace YARG.Core.Audio
             }
         }
 
+        private class NotInitializedException : Exception
+        {
+            public NotInitializedException()
+                : base("Audio manager not initialized") { }
+        }
+
         public static ReadOnlySpan<string> SupportedFormats
         {
             get
@@ -158,7 +151,7 @@ namespace YARG.Core.Audio
                 {
                     if (_instance == null)
                     {
-                        return ReadOnlySpan<string>.Empty;
+                        throw new NotInitializedException();
                     }
                     return _instance.SupportedFormats;
                 }
@@ -173,7 +166,7 @@ namespace YARG.Core.Audio
                 {
                     if (_instance == null)
                     {
-                        throw new InvalidOperationException();
+                        throw new NotInitializedException();
                     }
                     return _instance.PlaybackBufferLength;
                 }
@@ -184,10 +177,11 @@ namespace YARG.Core.Audio
         {
             lock (_instanceLock)
             {
-                if (_instance != null)
+                if (_instance == null)
                 {
-                    _instance.SfxSamples[(int) sample]?.Play();
+                    throw new NotInitializedException();
                 }
+                _instance.SfxSamples[(int) sample]?.Play();
             }
         }
 
@@ -197,7 +191,7 @@ namespace YARG.Core.Audio
             {
                 if (_instance == null)
                 {
-                    return null;
+                    throw new NotInitializedException();
                 }
                 return _instance.LoadCustomFile(name, stream, speed, stem);
             }
@@ -209,7 +203,7 @@ namespace YARG.Core.Audio
             {
                 if (_instance == null)
                 {
-                    return null;
+                    throw new NotInitializedException();
                 }
                 return _instance.LoadCustomFile(file, speed, stem);
             }
@@ -221,7 +215,7 @@ namespace YARG.Core.Audio
             {
                 if (_instance == null)
                 {
-                    return null;
+                    throw new NotInitializedException();
                 }
                 return _instance.CreateMixer(name, speed);
             }
@@ -233,7 +227,7 @@ namespace YARG.Core.Audio
             {
                 if (_instance == null)
                 {
-                    return null;
+                    throw new NotInitializedException();
                 }
                 return _instance.CreateMixer(name, stream, speed);
             }
@@ -245,7 +239,7 @@ namespace YARG.Core.Audio
             {
                 if (_instance == null)
                 {
-                    return null;
+                    throw new NotInitializedException();
                 }
                 return _instance.GetInputDevice(name);
             }
@@ -257,7 +251,7 @@ namespace YARG.Core.Audio
             {
                 if (_instance == null)
                 {
-                    return new();
+                    throw new NotInitializedException();
                 }
                 return _instance.GetAllInputDevices();
             }
@@ -269,7 +263,7 @@ namespace YARG.Core.Audio
             {
                 if (_instance == null)
                 {
-                    return null;
+                    throw new NotInitializedException();
                 }
                 return _instance.CreateDevice(deviceId, name);
             }
@@ -279,10 +273,11 @@ namespace YARG.Core.Audio
         {
             lock (_instanceLock)
             {
-                if (_instance != null)
+                if (_instance == null)
                 {
-                    _instance.SetMasterVolume(volume);
+                    throw new NotInitializedException();
                 }
+                _instance.SetMasterVolume(volume);
             }
         }
     }
