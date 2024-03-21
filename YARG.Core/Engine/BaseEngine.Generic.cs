@@ -650,6 +650,7 @@ namespace YARG.Core.Engine
         private void AdvanceToNextNote(TNoteType note)
         {
             State.NoteIndex++;
+            ReRunHitLogic = true;
 
             if (note.NextNote is null)
             {

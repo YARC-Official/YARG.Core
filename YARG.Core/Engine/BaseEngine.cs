@@ -34,6 +34,8 @@ namespace YARG.Core.Engine
         /// </summary>
         protected readonly bool TreatChordAsSeparate;
 
+        protected bool ReRunHitLogic;
+
         protected BaseEngine(SyncTrack syncTrack, bool isChordSeparate)
         {
             SyncTrack = syncTrack;
@@ -77,10 +79,10 @@ namespace YARG.Core.Engine
                     break;
                 }
 
-                RunQueuedUpdates(input.Time);
                 YargLogger.LogFormatTrace("Processing input {0} ({1}) update at {2}", input.GetAction<GuitarAction>(), input.Button, input.Time);
+                RunQueuedUpdates(input.Time);
                 MutateStateWithInput(input);
-                UpdateHitLogic(input.Time);
+                RunEngineLoop(input.Time);
 
                 // Skip non-input update if possible
                 if (input.Time == time)
@@ -100,7 +102,7 @@ namespace YARG.Core.Engine
             }
             YargLogger.LogFormatTrace("Running frame update at {0}", time);
             RunQueuedUpdates(time);
-            UpdateHitLogic(time);
+            RunEngineLoop(time);
         }
 
         private void RunQueuedUpdates(double time)
@@ -113,7 +115,7 @@ namespace YARG.Core.Engine
 
             if (_scheduledUpdates.Count > 0)
             {
-                YargLogger.LogFormatTrace("-- {0} updates ready to be simulated --", _scheduledUpdates.Count);
+                YargLogger.LogFormatTrace("{0} updates ready to be simulated", _scheduledUpdates.Count);
             }
             int i = 0;
             for (; i < _scheduledUpdates.Count; i++)
@@ -136,7 +138,7 @@ namespace YARG.Core.Engine
                 }
 
                 YargLogger.LogFormatTrace("Running scheduled update at {0}", updateTime);
-                UpdateHitLogic(updateTime);
+                RunEngineLoop(updateTime);
             }
 
             // Remove all processed updates
@@ -206,6 +208,15 @@ namespace YARG.Core.Engine
             }
 
             _scheduledUpdates.Add(time);
+        }
+
+        private void RunEngineLoop(double time)
+        {
+            do
+            {
+                ReRunHitLogic = false;
+                UpdateHitLogic(time);
+            } while (ReRunHitLogic);
         }
 
         internal void QueueManyUpdateTimesNoChecks(IEnumerable<double> times)

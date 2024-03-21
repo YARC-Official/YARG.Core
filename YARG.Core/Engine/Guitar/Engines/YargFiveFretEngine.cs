@@ -62,6 +62,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                     State.HopoLeniencyTimer.Disable();
 
                     strumEatenByHopo = true;
+                    ReRunHitLogic = true;
                 }
                 else
                 {
@@ -96,6 +97,8 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                 // Start the strum leniency timer at full value
                 StartTimer(ref State.StrumLeniencyTimer, State.CurrentTime, offset);
+
+                ReRunHitLogic = true;
             }
 
             if (State.HasFretted)
@@ -328,6 +331,8 @@ namespace YARG.Core.Engine.Guitar.Engines
             if (State.HopoLeniencyTimer.IsActive && State.HopoLeniencyTimer.IsExpired(State.CurrentTime))
             {
                 State.HopoLeniencyTimer.Disable();
+
+                ReRunHitLogic = true;
             }
 
             if (State.StrumLeniencyTimer.IsActive)
@@ -338,6 +343,8 @@ namespace YARG.Core.Engine.Guitar.Engines
                     //YargTrace.LogInfo("Strum Leniency: Expired. Overstrumming");
                     Overstrum();
                     State.StrumLeniencyTimer.Disable();
+
+                    ReRunHitLogic = true;
                 }
             }
         }
