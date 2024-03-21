@@ -57,6 +57,8 @@ namespace YARG.Core.Engine
 
         public void Update(double time)
         {
+            YargLogger.LogFormatTrace("---- Starting update loop with time {0} ----", time);
+
             while (InputQueue.TryDequeue(out var input))
             {
                 // Skip inputs that are in the past
@@ -76,8 +78,8 @@ namespace YARG.Core.Engine
                 }
 
                 RunQueuedUpdates(input.Time);
+                YargLogger.LogFormatTrace("Processing input {0} ({1}) update at {2}", input.GetAction<GuitarAction>(), input.Button, input.Time);
                 MutateStateWithInput(input);
-                YargLogger.LogFormatTrace("Processing input {0} ({1}) at {2}", input.GetAction<GuitarAction>(), input.Button, input.Time);
                 UpdateHitLogic(input.Time);
 
                 // Skip non-input update if possible
@@ -96,6 +98,7 @@ namespace YARG.Core.Engine
             {
                 YargLogger.LogWarning("Input queue was not fully cleared!");
             }
+            YargLogger.LogFormatTrace("Running frame update at {0}", time);
             RunQueuedUpdates(time);
             UpdateHitLogic(time);
         }
@@ -110,7 +113,7 @@ namespace YARG.Core.Engine
 
             if (_scheduledUpdates.Count > 0)
             {
-                YargLogger.LogFormatTrace("{0} updates ready to be simulated", _scheduledUpdates.Count);
+                YargLogger.LogFormatTrace("-- {0} updates ready to be simulated --", _scheduledUpdates.Count);
             }
             int i = 0;
             for (; i < _scheduledUpdates.Count; i++)
@@ -142,7 +145,7 @@ namespace YARG.Core.Engine
 
         protected virtual void GenerateQueuedUpdates(double nextTime)
         {
-
+            YargLogger.LogFormatTrace("Generating queued updates up to {0}", nextTime);
         }
 
         /// <summary>

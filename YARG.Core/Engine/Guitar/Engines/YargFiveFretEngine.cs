@@ -2,6 +2,7 @@
 using YARG.Core.Chart;
 using YARG.Core.Engine.Logging;
 using YARG.Core.Input;
+using YARG.Core.Logging;
 
 namespace YARG.Core.Engine.Guitar.Engines
 {
@@ -38,6 +39,7 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                 ToggleFret(gameInput.Action, gameInput.Button);
             }
+            YargLogger.LogFormatTrace("Mutated input state: Button Mask: {0}, HasFretted: {1}, HasStrummed: {2}", State.FretMask, State.HasFretted, State.HasStrummed);
         }
 
         protected override void UpdateHitLogic(double time)
@@ -145,6 +147,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 if (missed)
                 {
                     MissNote(note);
+                    YargLogger.LogFormatTrace("Missed note (Index: {0}, Mask: {1}) at {2}", State.NoteIndex - 1, note.NoteMask, State.CurrentTime);
                     return;
                 }
 
@@ -175,12 +178,10 @@ namespace YARG.Core.Engine.Guitar.Engines
             if (State.HasTapped && (hopoCondition || note.IsTap) && canUseInfFrontEnd && !State.WasNoteGhosted)
             {
                 HitNote(note);
-
-                EventLogger.LogEvent(new ConsistentEngineEvent(State.CurrentTime)
+                if (State.HasStrummed)
                 {
-                    Message = $"Note ({State.NoteIndex}) hit via tap"
-                });
-
+                    YargLogger.LogFormatTrace("Hit note (Index: {0}, Mask: {1}) at {2} with hopo rules", State.NoteIndex - 1, note.NoteMask, State.CurrentTime);
+                }
                 return;
             }
 
@@ -188,20 +189,13 @@ namespace YARG.Core.Engine.Guitar.Engines
             if (State.HasStrummed || State.StrumLeniencyTimer.IsActive)
             {
                 HitNote(note);
-
                 if (State.HasStrummed)
                 {
-                    EventLogger.LogEvent(new ConsistentEngineEvent(State.CurrentTime)
-                    {
-                        Message = $"Note ({State.NoteIndex}) hit via strum input"
-                    });
+                    YargLogger.LogFormatTrace("Hit note (Index: {0}, Mask: {1}) at {2} with strum input", State.NoteIndex - 1, note.NoteMask, State.CurrentTime);
                 }
                 else
                 {
-                    EventLogger.LogEvent(new ConsistentEngineEvent(State.CurrentTime)
-                    {
-                        Message = $"Note ({State.NoteIndex}) hit via strum leniency"
-                    });
+                    YargLogger.LogFormatTrace("Hit note (Index: {0}, Mask: {1}) at {2} with strum leniency", State.NoteIndex - 1, note.NoteMask, State.CurrentTime);
                 }
             }
         }

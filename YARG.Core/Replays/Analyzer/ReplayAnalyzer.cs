@@ -186,6 +186,17 @@ namespace YARG.Core.Replays.Analyzer
 
         private static bool IsPassResult(BaseStats original, BaseStats result)
         {
+            YargLogger.LogFormatDebug("Score: {0} == {1}\nHit: {2} == {3}\nMissed: {4} == {5}\nCombo: {6} == {7}\nMaxCombo: {8} == {9}\n",
+                original.CommittedScore, result.CommittedScore,
+                original.NotesHit, result.NotesHit,
+                original.NotesMissed, result.NotesMissed,
+                original.Combo, result.Combo,
+                original.MaxCombo, result.MaxCombo);
+
+            YargLogger.LogFormatDebug("Solo: {0} == {1}\nSP: {2} == {3}",
+                original.SoloBonuses, result.SoloBonuses,
+                original.StarPowerPhrasesHit, result.StarPowerPhrasesHit);
+
             return original.CommittedScore == result.CommittedScore &&
                 original.NotesHit == result.NotesHit &&
                 original.NotesMissed == result.NotesMissed &&

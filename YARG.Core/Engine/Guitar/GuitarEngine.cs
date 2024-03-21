@@ -178,16 +178,7 @@ namespace YARG.Core.Engine.Guitar
             {
                 skipped = true;
                 MissNote(prevNote);
-
-                EventLogger.LogEvent(new NoteEngineEvent(State.CurrentTime)
-                {
-                    NoteTime = prevNote.Time,
-                    NoteLength = prevNote.TimeLength,
-                    NoteIndex = State.NoteIndex,
-                    NoteMask = prevNote.NoteMask,
-                    WasHit = false,
-                    WasSkipped = true,
-                });
+                YargLogger.LogFormatTrace("Missed note {0} due to note skip at {1}", State.NoteIndex - 1, State.CurrentTime);
 
                 prevNote = prevNote.PreviousNote;
             }
@@ -245,16 +236,6 @@ namespace YARG.Core.Engine.Guitar
 
             State.WasNoteGhosted = false;
 
-            EventLogger.LogEvent(new NoteEngineEvent(State.CurrentTime)
-            {
-                NoteTime = note.Time,
-                NoteLength = note.TimeLength,
-                NoteIndex = State.NoteIndex,
-                NoteMask = note.NoteMask,
-                WasHit = true,
-                WasSkipped = skipped,
-            });
-
             OnNoteHit?.Invoke(State.NoteIndex, note);
             base.HitNote(note);
         }
@@ -283,16 +264,6 @@ namespace YARG.Core.Engine.Guitar
             EngineStats.Combo = 0;
 
             UpdateMultiplier();
-
-            EventLogger.LogEvent(new NoteEngineEvent(State.CurrentTime)
-            {
-                NoteTime = note.Time,
-                NoteLength = note.TimeLength,
-                NoteIndex = State.NoteIndex,
-                NoteMask = note.NoteMask,
-                WasHit = false,
-                WasSkipped = false,
-            });
 
             OnNoteMissed?.Invoke(State.NoteIndex, note);
             base.MissNote(note);
@@ -378,6 +349,7 @@ namespace YARG.Core.Engine.Guitar
 
         protected void StartSustain(GuitarNote note)
         {
+            return;
             var sustain = new ActiveSustain(note);
 
             ActiveSustains.Add(sustain);

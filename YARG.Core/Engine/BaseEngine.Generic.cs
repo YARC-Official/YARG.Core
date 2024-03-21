@@ -153,7 +153,7 @@ namespace YARG.Core.Engine
 
                 if (IsTimeBetween(noteBackEndIncrement, previousTime, nextTime))
                 {
-                    YargLogger.LogFormatTrace("Queuing note {0} back end miss time at {1} (back end time is {2})", i, noteBackEndIncrement, noteBackEnd);
+                    YargLogger.LogFormatTrace("Queuing note {0} back end miss time at {1}", i, noteBackEndIncrement);
                     QueueUpdateTime(noteBackEndIncrement);
                 }
             }
@@ -300,13 +300,11 @@ namespace YARG.Core.Engine
 
         protected virtual void HitNote(TNoteType note)
         {
-            YargLogger.LogFormatTrace("Hit note at {0}", BaseState.CurrentTime);
             AdvanceToNextNote(note);
         }
 
         protected virtual void MissNote(TNoteType note)
         {
-            YargLogger.LogFormatTrace("Missed note at {0}", BaseState.CurrentTime);
             AdvanceToNextNote(note);
         }
 
