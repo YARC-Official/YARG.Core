@@ -222,6 +222,7 @@ namespace YARG.Core.Audio
                 if (!_disposed)
                 {
                     Pause();
+                    _songEnd = null;
                     if (disposing)
                     {
                         DisposeManagedResources();
