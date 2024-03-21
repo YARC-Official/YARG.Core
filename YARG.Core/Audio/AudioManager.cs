@@ -87,7 +87,7 @@ namespace YARG.Core.Audio
         {
             lock (_activeMixers)
             {
-                YargLogger.LogFormatInfo($"Mixer \"{0}\" disposed", mixer.Name);
+                YargLogger.LogFormatInfo("Mixer \"{0}\" disposed", mixer.Name);
                 _activeMixers.Remove(mixer);
             }
         }
