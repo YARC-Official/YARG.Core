@@ -234,26 +234,24 @@ namespace YARG.Core.Chart
             {
                 // Split out segment before the tag
                 var segment = remaining[..tagIndex];
-                remaining = remaining[tagIndex..];
+                var tag = remaining[tagIndex..];
 
                 // Find end of the tag
-                var tag = ReadOnlySpan<char>.Empty;
-                int tagCloseIndex = remaining.IndexOf('>');
-                if (tagCloseIndex >= 0)
-                {
-                    // Include closing in tag split
-                    tagCloseIndex++;
+                int tagCloseIndex = tag.IndexOf('>');
+                if (tagCloseIndex < 0)
+                    break;
 
-                    if (tagCloseIndex >= remaining.Length)
-                    {
-                        tag = remaining;
-                        remaining = ReadOnlySpan<char>.Empty;
-                    }
-                    else
-                    {
-                        tag = remaining[..tagCloseIndex];
-                        remaining = remaining[tagCloseIndex..];
-                    }
+                // Include closing in tag split
+                tagCloseIndex++;
+
+                if (tagCloseIndex >= tag.Length)
+                {
+                    remaining = ReadOnlySpan<char>.Empty;
+                }
+                else
+                {
+                    tag = tag[..tagCloseIndex];
+                    remaining = tag[tagCloseIndex..];
                 }
 
                 // Run through replacements on segment
