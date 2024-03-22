@@ -43,7 +43,7 @@ namespace YARG.Core.Audio
             FadeOut
         }
 
-        private void Loop()
+        private async void Loop()
         {
             try
             {
@@ -83,7 +83,7 @@ namespace YARG.Core.Audio
                             stage = LoopStage.FadeIn;
                             break;
                     }
-                    Task.Delay(25);
+                    await Task.Delay(25);
                 }
             }
             catch (Exception ex)
