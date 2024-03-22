@@ -602,8 +602,22 @@ namespace YARG.Core.Song
                                     if (!nodeName.StartsWith("UGC_"))
                                         _metadata.Source = "customs";
                                 }
+                                else if (str == "#ifdef")
+                                {
+                                    string conditional = reader.ExtractText();
+                                    if (conditional == "CUSTOMSOURCE")
+                                    {
+                                        _metadata.Source = reader.ExtractText();
+                                    }
+                                    else
+                                    {
+                                        _metadata.Source = "customs";
+                                    }
+                                }
                                 else
+                                {
                                     _metadata.Source = str;
+                                }
 
                                 //// if the source is any official RB game or its DLC, charter = Harmonix
                                 //if (SongSources.GetSource(str).Type == SongSources.SourceType.RB)
