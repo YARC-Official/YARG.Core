@@ -250,8 +250,8 @@ namespace YARG.Core.Chart
                 }
                 else
                 {
-                    tag = tag[..tagCloseIndex];
                     remaining = tag[tagCloseIndex..];
+                    tag = tag[..tagCloseIndex];
                 }
 
                 // Run through replacements on segment
