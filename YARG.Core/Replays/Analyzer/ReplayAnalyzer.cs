@@ -197,13 +197,29 @@ namespace YARG.Core.Replays.Analyzer
                 original.SoloBonuses, result.SoloBonuses,
                 original.StarPowerPhrasesHit, result.StarPowerPhrasesHit);
 
-            return original.CommittedScore == result.CommittedScore &&
+            bool instrumentPass = true;
+
+            if(original is GuitarStats originalGuitar && result is GuitarStats resultGuitar)
+            {
+                instrumentPass = originalGuitar.Overstrums == resultGuitar.Overstrums &&
+                    originalGuitar.GhostInputs == resultGuitar.GhostInputs &&
+                    originalGuitar.HoposStrummed == resultGuitar.HoposStrummed;
+
+                YargLogger.LogFormatDebug("Guitar:\nOverstrums: {0} == {1}\nGhost Inputs: {2} == {3}\nHOPOs Strummed: {4} == {5}",
+                    originalGuitar.Overstrums, resultGuitar.Overstrums,
+                    originalGuitar.GhostInputs, resultGuitar.GhostInputs,
+                    originalGuitar.HoposStrummed, resultGuitar.HoposStrummed);
+            }
+
+            bool generalPass = original.CommittedScore == result.CommittedScore &&
                 original.NotesHit == result.NotesHit &&
                 original.NotesMissed == result.NotesMissed &&
                 original.Combo == result.Combo &&
                 original.MaxCombo == result.MaxCombo &&
                 original.SoloBonuses == result.SoloBonuses &&
                 original.StarPowerPhrasesHit == result.StarPowerPhrasesHit;
+
+            return generalPass && instrumentPass;
         }
     }
 }
