@@ -22,7 +22,7 @@ namespace YARG.Core.Song
 
         public SortString(string str)
         {
-            Str = str;
+            Str = RichTextUtils.ReplaceColorNames(str);
             Length = Str.Length;
             SortStr = RemoveDiacritics(RichTextUtils.StripRichTextTags(str));
             HashCode = SortStr.GetHashCode();
