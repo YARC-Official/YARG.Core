@@ -21,7 +21,7 @@ namespace YARG.Core.Audio
 
         public double Length => _length;
         public IReadOnlyList<StemChannel> Channels => _channels;
-        public bool IsPlaying => _isPlaying && GetPosition(false) < _length;
+        public bool IsPlaying => _isPlaying && GetPosition() < _length;
 
         public abstract event Action SongEnd;
 
@@ -81,7 +81,7 @@ namespace YARG.Core.Audio
             }
         }
 
-        public double GetPosition(bool bufferCompensation = true)
+        public double GetPosition()
         {
             lock (this)
             {
@@ -89,7 +89,7 @@ namespace YARG.Core.Audio
                 {
                     return 0;
                 }
-                return GetPosition_Internal(bufferCompensation);
+                return GetPosition_Internal();
             }
         }
 
@@ -104,13 +104,13 @@ namespace YARG.Core.Audio
                 return GetVolume_Internal();
             }
         }
-        public void SetPosition(double position, bool bufferCompensation = true)
+        public void SetPosition(double position)
         {
             lock (this)
             {
                 if (!_disposed)
                 {
-                    SetPosition_Internal(position, bufferCompensation);
+                    SetPosition_Internal(position);
                 }
             }
         }
@@ -201,9 +201,9 @@ namespace YARG.Core.Audio
         protected abstract void FadeIn_Internal(float maxVolume);
         protected abstract void FadeOut_Internal();
         protected abstract int Pause_Internal();
-        protected abstract double GetPosition_Internal(bool bufferCompensation);
+        protected abstract double GetPosition_Internal();
         protected abstract float GetVolume_Internal();
-        protected abstract void SetPosition_Internal(double position, bool bufferCompensation);
+        protected abstract void SetPosition_Internal(double position);
         protected abstract void SetVolume_Internal(double volume);
         protected abstract int  GetData_Internal(float[] buffer);
         protected abstract void SetSpeed_Internal(float speed);
