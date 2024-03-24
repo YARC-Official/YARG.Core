@@ -69,8 +69,11 @@ namespace YARG.Core.Song
                     if (previewEndTime <= 0.0 || previewEndTime + 1 >= audioLength)
                     {
                         previewEndTime = previewStartTime + PreviewContext.DEFAULT_PREVIEW_DURATION;
-                        if (previewEndTime + 1 > audioLength)
-                            previewEndTime = audioLength - 1;
+                        if (previewEndTime > audioLength)
+                        {
+                            previewEndTime = audioLength;
+                        }
+                        previewEndTime -= 1;
                     }
                 }
                 else
