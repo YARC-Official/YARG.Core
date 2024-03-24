@@ -137,11 +137,25 @@ namespace YARG.Core.Utility
 
         private static readonly ConcurrentDictionary<RichTextTags, Regex> REGEX_CACHE = new();
 
-        private static readonly Regex ALL_TAGS_REGEX = ConstructRegex(RichTextTags.AllTags);
-
         public static string StripRichTextTags(string text)
         {
-            return ALL_TAGS_REGEX.Replace(text, "");
+            using var builder = ZString.CreateStringBuilder(notNested: true);
+
+            var textSpan = text.AsSpan();
+            bool tagsFound = false;
+            while (FindNextTag(textSpan, out var beforeTag, out _, out var remaining))
+            {
+                textSpan = remaining;
+                tagsFound = true;
+                builder.Append(beforeTag);
+            }
+
+            // Return unmodified if no modifications were made
+            if (!tagsFound)
+                return text;
+
+            builder.Append(textSpan);
+            return builder.ToString();
         }
 
         public static string StripRichTextTags(string text, RichTextTags excludeTags)

@@ -87,6 +87,22 @@ namespace YARG.Core.UnitTests.Utility
             });
         }
 
+        // Separate test since the implementation is different
+        [TestCase]
+        public void ReplacesAllTags()
+        {
+            string expectedText = "";
+            string testText = "";
+            foreach (var (tagText, tag) in TEXT_TO_TAG)
+            {
+                expectedText += "Some formatting with trailing text\n";
+                testText += $"Some <{tagText}=50vb>formatting</{tagText}> with trailing text\n";
+            }
+
+            string stripped = RichTextUtils.StripRichTextTags(testText);
+            Assert.That(stripped, Is.EqualTo(expectedText), "Some tags were not stripped!");
+        }
+
         [TestCase]
         public void ReplacesColors()
         {
