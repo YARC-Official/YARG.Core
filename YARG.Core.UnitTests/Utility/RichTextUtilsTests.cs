@@ -78,8 +78,8 @@ namespace YARG.Core.UnitTests.Utility
             {
                 foreach (var (tagText, tag) in TEXT_TO_TAG)
                 {
-                    const string expectedText = "Some formatting";
-                    string testText = $"Some <{tagText}=50vb>formatting</{tagText}>";
+                    const string expectedText = "Some formatting with trailing text";
+                    string testText = $"Some <{tagText}=50vb>formatting</{tagText}> with trailing text";
 
                     string stripped = RichTextUtils.StripRichTextTags(testText, tag);
                     Assert.That(stripped, Is.EqualTo(expectedText), $"Tag '{tagText}' was not stripped!");
@@ -94,8 +94,8 @@ namespace YARG.Core.UnitTests.Utility
             {
                 foreach (var (name, hex) in COLOR_NAMES)
                 {
-                    string expectedText = $"Some <color={hex}>formatting</color>";
-                    string testText = $"Some <color={name}>formatting</color>";
+                    string expectedText = $"Some <color={hex}>formatting</color> with trailing text";
+                    string testText = $"Some <color={name}>formatting</color> with trailing text";
 
                     string stripped = RichTextUtils.ReplaceColorNames(testText);
                     Assert.That(stripped, Is.EqualTo(expectedText), $"Color name '{name}' was not replaced!");
