@@ -11,12 +11,13 @@ namespace YARG.Core.Audio
         private Action<double>? _onVolumeChange;
         private Action<bool>? _onReverbChange;
         private double _volume;
+        private double _trueVolume;
         private bool _reverb;
 
         public StemSettings(double scaling)
         {
-            _volumeScaling = scaling;
-            _volume = Math.Log(scaling * FACTOR + 1, BASE);
+            _trueVolume = _volumeScaling = scaling;
+            _volume = 1;
         }
 
         public event Action<double> OnVolumeChange
@@ -31,16 +32,19 @@ namespace YARG.Core.Audio
             remove { _onReverbChange -= value; }
         }
 
-        public double Volume
+        public double VolumeSetting
         {
             get => _volume;
             set
             {
-                double scaled = Math.Clamp(value * _volumeScaling, 0, _volumeScaling);
-                _volume = (Math.Pow(BASE, scaled) - 1) / FACTOR;
-                _onVolumeChange?.Invoke(_volume);
+                _volume = Math.Clamp(value, 0, 1);
+                double scaled = _volume * _volumeScaling;
+                _trueVolume = (Math.Pow(BASE, scaled) - 1) / FACTOR;
+                _onVolumeChange?.Invoke(_trueVolume);
             }
         }
+
+        public double TrueVolume => _trueVolume;
 
         public bool Reverb
         {

@@ -91,14 +91,19 @@ namespace YARG.Core.Audio
             return volume;
         }
 
+        public static double GetTrueVolume(SongStem stem)
+        {
+            return StemSettings[stem].TrueVolume;
+        }
+
         public static double GetVolumeSetting(SongStem stem)
         {
-            return StemSettings[stem].Volume;
+            return StemSettings[stem].VolumeSetting;
         }
 
         public static void SetVolumeSetting(SongStem stem, double volume)
         {
-            StemSettings[stem].Volume = volume;
+            StemSettings[stem].VolumeSetting = volume;
         }
 
         public static bool GetReverbSetting(SongStem stem)
