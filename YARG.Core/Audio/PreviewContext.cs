@@ -54,13 +54,13 @@ namespace YARG.Core.Audio
                     switch (stage)
                     {
                         case LoopStage.FadeIn:
-                            _mixer.SetPosition(_previewStartTime, false);
+                            _mixer.SetPosition(_previewStartTime);
                             _mixer.FadeIn(_volume);
                             _mixer.Play();
                             stage = LoopStage.Main;
                             break;
                         case LoopStage.Main:
-                            if (_mixer.GetPosition(false) < _previewEndTime && !_token.IsCancellationRequested)
+                            if (_mixer.GetPosition() < _previewEndTime && !_token.IsCancellationRequested)
                             {
                                 break;
                             }

@@ -30,13 +30,13 @@ namespace YARG.Core.Audio
             }
         }
 
-        public void SetPosition(double position, bool bufferCompensation = true)
+        public void SetPosition(double position)
         {
             lock (this)
             {
                 if (!_disposed)
                 {
-                    SetPosition_Internal(position, bufferCompensation);
+                    SetPosition_Internal(position);
                 }
             }
         }
@@ -76,7 +76,7 @@ namespace YARG.Core.Audio
         }
 
         protected abstract void SetWhammyPitch_Internal(float percent);
-        protected abstract void SetPosition_Internal(double position, bool bufferCompensation);
+        protected abstract void SetPosition_Internal(double position);
         protected abstract void SetSpeed_Internal(float speed);
 
         protected abstract void SetVolume_Internal(double newVolume);
