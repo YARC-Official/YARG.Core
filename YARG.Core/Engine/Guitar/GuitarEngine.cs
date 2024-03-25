@@ -142,7 +142,7 @@ namespace YARG.Core.Engine.Guitar
             {
                 var sustain = ActiveSustains[i];
                 ActiveSustains.RemoveAt(i);
-                YargLogger.LogFormatTrace("Ended sustain at {0}", State.CurrentTime);
+                YargLogger.LogFormatTrace("Ended sustain (end time: {0}) at {1}", sustain.GetEndTime(SyncTrack, 0), State.CurrentTime);
                 i--;
 
                 double finalScore = CalculateSustainPoints(sustain, State.CurrentTick);
