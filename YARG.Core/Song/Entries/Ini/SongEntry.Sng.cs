@@ -4,6 +4,7 @@ using System.Linq;
 using YARG.Core.Audio;
 using YARG.Core.IO;
 using YARG.Core.IO.Ini;
+using YARG.Core.Logging;
 using YARG.Core.Song.Cache;
 using YARG.Core.Venue;
 
@@ -40,14 +41,15 @@ namespace YARG.Core.Song
             return sngFile[_chart.File].CreateStream(sngFile);
         }
 
-        public override AudioMixer? LoadAudioStreams(params SongStem[] ignoreStems)
+        public override StemMixer? LoadAudio(float speed, params SongStem[] ignoreStems)
         {
             var sngFile = SngFile.TryLoadFromFile(_sngInfo);
             if (sngFile == null)
             {
+                YargLogger.LogFormatError("Failed to load sng file {0}", _sngInfo.FullName);
                 return null;
             }
-            return CreateAudioMixer(sngFile, ignoreStems);
+            return CreateAudioMixer(speed, sngFile, ignoreStems);
         }
 
         public override byte[]? LoadAlbumData()
@@ -156,31 +158,45 @@ namespace YARG.Core.Song
             return null;
         }
 
-        public override AudioMixer? LoadPreviewAudio()
+        protected override StemMixer? LoadPreviewMixer(float speed)
         {
             var sngFile = SngFile.TryLoadFromFile(_sngInfo);
             if (sngFile == null)
             {
+                YargLogger.LogFormatError("Failed to load sng file {0}", _sngInfo.FullName);
                 return null;
             }
 
-            foreach (var format in IniAudio.SupportedFormats)
+            foreach (var filename in PREVIEW_FILES)
             {
-                if (sngFile.TryGetValue("preview" + format, out var listing))
+                if (sngFile.TryGetValue(filename, out var listing))
                 {
-                    var mixer = new AudioMixer();
-                    var channel = new AudioChannel(SongStem.Preview, listing.CreateStream(sngFile));
-                    mixer.Channels.Add(channel);
+                    string fakename = Path.Combine(_sngInfo.FullName, filename);
+                    var stream = listing.CreateStream(sngFile);
+                    var mixer = GlobalAudioHandler.CreateMixer(fakename, stream, speed);
+                    if (mixer == null)
+                    {
+                        stream.Dispose();
+                        YargLogger.LogFormatError("Failed to load preview file {0}!", fakename);
+                        return null;
+                    }
+                    mixer.AddChannel(SongStem.Preview);
                     return mixer;
                 }
             }
 
-            return CreateAudioMixer(sngFile, SongStem.Crowd);
+            return CreateAudioMixer(speed, sngFile, SongStem.Crowd);
         }
 
-        private AudioMixer CreateAudioMixer(SngFile sngFile, params SongStem[] ignoreStems)
+        private StemMixer? CreateAudioMixer(float speed, SngFile sngFile, params SongStem[] ignoreStems)
         {
-            var mixer = new AudioMixer();
+            var mixer = GlobalAudioHandler.CreateMixer(ToString(), speed);
+            if (mixer == null)
+            {
+                YargLogger.LogError("Failed to create mixer");
+                return null;
+            }
+
             foreach (var stem in IniAudio.SupportedStems)
             {
                 var stemEnum = AudioHelpers.SupportedStems[stem];
@@ -192,13 +208,25 @@ namespace YARG.Core.Song
                     var file = stem + format;
                     if (sngFile.TryGetValue(file, out var listing))
                     {
-                        var channel = new AudioChannel(stemEnum, listing.CreateStream(sngFile));
-                        mixer.Channels.Add(channel);
-                        // Parse no duplicate stems
-                        break;
+                        var stream = listing.CreateStream(sngFile);
+                        if (mixer.AddChannel(stemEnum, stream))
+                        {
+                            // No duplicates
+                            break;
+                        }
+                        stream.Dispose();
+                        YargLogger.LogFormatError("Failed to load stem file {0}", file);
                     }
                 }
             }
+
+            if (mixer.Channels.Count == 0)
+            {
+                YargLogger.LogError("Failed to add any stems!");
+                mixer.Dispose();
+                return null;
+            }
+            YargLogger.LogFormatInfo("Loaded {0} stems", mixer.Channels.Count);
             return mixer;
         }
 
