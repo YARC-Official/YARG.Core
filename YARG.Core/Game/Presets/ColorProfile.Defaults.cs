@@ -33,11 +33,11 @@ namespace YARG.Core.Game
 
         #region April Fools Colors
 
-        private static readonly Color AprilFoolsGreen  = Color.FromArgb(0xFF, 0x49, 0xB9, 0x2E); // #49B92E
-        private static readonly Color AprilFoolsRed    = Color.FromArgb(0xFF, 0xD1, 0x56, 0x4A); // #D1564A
-        private static readonly Color AprilFoolsYellow = Color.FromArgb(0xFF, 0xD1, 0xB6, 0x4A); // #D1B64A
-        private static readonly Color AprilFoolsBlue   = Color.FromArgb(0xFF, 0x52, 0x62, 0xDC); // #5262DC
-        private static readonly Color AprilFoolsPurple = Color.FromArgb(0xFF, 0xEB, 0x7D, 0xDF); // #EB7DDF
+        private static readonly Color AprilFoolsGreen  = Color.FromArgb(0xFF, 0x24, 0xB9, 0x00); // #24B900
+        private static readonly Color AprilFoolsRed    = Color.FromArgb(0xFF, 0xD1, 0x13, 0x00); // #D11300
+        private static readonly Color AprilFoolsYellow = Color.FromArgb(0xFF, 0xD1, 0xA7, 0x00); // #D1A700
+        private static readonly Color AprilFoolsBlue   = Color.FromArgb(0xFF, 0x00, 0x1A, 0xDC); // #001ADC
+        private static readonly Color AprilFoolsPurple = Color.FromArgb(0xFF, 0xEB, 0x00, 0xD1); // #EB00D1
 
         #endregion
 
