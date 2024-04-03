@@ -81,7 +81,7 @@ namespace YARG.Core.Song
             return CreateAudioMixer(speed, 0, sngFile, SongStem.Crowd);
         }
 
-        public override byte[]? LoadAlbumData()
+        public override YARGImage? LoadAlbumData()
         {
             var sngFile = SngFile.TryLoadFromFile(_sngInfo);
             if (sngFile == null)
@@ -89,14 +89,24 @@ namespace YARG.Core.Song
 
             if (!string.IsNullOrEmpty(_cover) && sngFile.TryGetValue(_video, out var cover))
             {
-                return cover.LoadAllBytes(sngFile);
+                var image = YARGImage.Load(cover, sngFile);
+                if (image != null)
+                {
+                    return image;
+                }
+                YargLogger.LogFormatError("SNG Image mapped to {0} failed to load", cover.Name);
             }
 
             foreach (string albumFile in ALBUMART_FILES)
             {
                 if (sngFile.TryGetValue(albumFile, out var listing))
                 {
-                    return listing.LoadAllBytes(sngFile);
+                    var image = YARGImage.Load(listing, sngFile);
+                    if (image != null)
+                    {
+                        return image;
+                    }
+                    YargLogger.LogFormatError("SNG Image mapped to {0} failed to load", listing.Name);
                 }
             }
             return null;

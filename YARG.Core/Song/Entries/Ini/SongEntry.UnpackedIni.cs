@@ -92,19 +92,29 @@ namespace YARG.Core.Song
             return LoadAudio(speed, 0, SongStem.Crowd);
         }
 
-        public override byte[]? LoadAlbumData()
+        public override YARGImage? LoadAlbumData()
         {
             var subFiles = GetSubFiles();
             if (!string.IsNullOrEmpty(_cover) && subFiles.TryGetValue(_cover, out var cover))
             {
-                return File.ReadAllBytes(cover);
+                var image = YARGImage.Load(cover);
+                if (image != null)
+                {
+                    return image;
+                }
+                YargLogger.LogFormatError("Image at {0} failed to load", cover);
             }
 
             foreach (string albumFile in ALBUMART_FILES)
             {
                 if (subFiles.TryGetValue(albumFile, out var fullname))
                 {
-                    return File.ReadAllBytes(fullname);
+                    var image = YARGImage.Load(fullname);
+                    if (image != null)
+                    {
+                        return image;
+                    }
+                    YargLogger.LogFormatError("Image at {0} failed to load", fullname);
                 }
             }
             return null;

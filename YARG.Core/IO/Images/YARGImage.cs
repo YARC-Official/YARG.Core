@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Buffers.Binary;
-using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
 namespace YARG.Core.IO
@@ -24,7 +23,7 @@ namespace YARG.Core.IO
         public readonly int Height;
         public readonly ImageFormat Format;
 
-        private readonly FixedArray<byte>? Managed = null;
+        private readonly GCHandle Handle;
         private bool _disposed;
 
         public static YARGImage? Load(string file)
@@ -39,12 +38,13 @@ namespace YARG.Core.IO
 
         public static YARGImage? Load(SngFileListing listing, SngFile sngFile)
         {
-            using var bytes = listing.LoadAllBytes(sngFile);
+            var bytes = listing.LoadAllBytes(sngFile);
             if (bytes == null)
             {
                 return null;
             }
-            return Load(bytes);
+            using var arr = FixedArray<byte>.Pin(bytes);
+            return Load(arr);
         }
 
         private static unsafe YARGImage? Load(FixedArray<byte> file)
@@ -57,22 +57,23 @@ namespace YARG.Core.IO
             return new YARGImage(result, width, height, components);
         }
 
-        public unsafe YARGImage(FixedArray<byte> managed)
+        public unsafe YARGImage(byte[] bytes)
         {
-            Managed = managed;
-            Data = (IntPtr)managed.Ptr + 32;
-            Length = managed.Length - 32;
+            Handle = GCHandle.Alloc(bytes, GCHandleType.Pinned);
+            Data = Handle.AddrOfPinnedObject() + 32;
+            Length = bytes.Length - 32;
 
-            for (int i = 32; i < managed.Length; i += 2)
+            var ptr = (byte*) Data;
+            for (int i = 0; i < Length; i += 2)
             {
-                (managed.Ptr[i + 1], managed.Ptr[i]) = (managed.Ptr[i], managed.Ptr[i + 1]);
+                (ptr[i + 1], ptr[i]) = (ptr[i], ptr[i + 1]);
             }
 
-            Width = BinaryPrimitives.ReadInt16LittleEndian(managed.Slice(7, 2));
-            Height = BinaryPrimitives.ReadInt16LittleEndian(managed.Slice(9, 2));
+            Width = BinaryPrimitives.ReadInt16LittleEndian(bytes[7..9]);
+            Height = BinaryPrimitives.ReadInt16LittleEndian(bytes[9..11]);
 
-            byte bitsPerPixel = managed[1];
-            int format = BinaryPrimitives.ReadInt32LittleEndian(managed.Slice(2, 4));
+            byte bitsPerPixel = bytes[1];
+            int format = BinaryPrimitives.ReadInt32LittleEndian(bytes[2..6]);
             bool isDXT1 = bitsPerPixel == 0x04 && format == 0x08;
             Format = isDXT1 ? ImageFormat.DXT1 : ImageFormat.DXT5;
         }
@@ -91,12 +92,9 @@ namespace YARG.Core.IO
         {
             if (!_disposed)
             {
-                if (Managed != null)
+                if (Handle.IsAllocated)
                 {
-                    if (disposing)
-                    {
-                        Managed.Dispose();
-                    }
+                    Handle.Free();
                 }
                 else
                 {
