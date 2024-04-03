@@ -18,7 +18,7 @@ namespace YARG.Core.Engine.Vocals.Engines
 
         protected override void UpdateHitLogic(double time) => throw new NotImplementedException();
 
-        public override void UpdateBot(double songTime)
+        protected override void UpdateBot(double songTime)
         {
             throw new NotImplementedException();
         }

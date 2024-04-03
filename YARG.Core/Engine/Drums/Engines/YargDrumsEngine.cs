@@ -122,7 +122,7 @@ namespace YARG.Core.Engine.Drums.Engines
             return false;
         }
 
-        public override void UpdateBot(double songTime)
+        protected override void UpdateBot(double songTime)
         {
             throw new System.NotImplementedException();
         }

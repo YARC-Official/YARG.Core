@@ -64,7 +64,7 @@ namespace YARG.Core.Engine.Guitar
                 {
                     YargLogger.LogFormatTrace("Queuing sustain (mask: {0}) burst time at {1}", sustain.Note.NoteMask,
                         burstTime);
-                    QueueUpdateTime(burstTime);
+                    QueueUpdateTime(burstTime, "Sustain Burst");
                 }
 
                 // The true end of the sustain is for hit logic. Sustains are "kept" even after the burst ticks so must
@@ -73,7 +73,7 @@ namespace YARG.Core.Engine.Guitar
                 {
                     YargLogger.LogFormatTrace("Queuing sustain (mask: {0}) end time at {1}", sustain.Note.NoteMask,
                         endTime);
-                    QueueUpdateTime(endTime);
+                    QueueUpdateTime(endTime, "Sustain End");
                 }
             }
 
@@ -83,7 +83,7 @@ namespace YARG.Core.Engine.Guitar
                 if (IsTimeBetween(State.HopoLeniencyTimer.EndTime, previousTime, nextTime))
                 {
                     YargLogger.LogFormatTrace("Queuing hopo leniency end time at {0}", State.HopoLeniencyTimer.EndTime);
-                    QueueUpdateTime(State.HopoLeniencyTimer.EndTime);
+                    QueueUpdateTime(State.HopoLeniencyTimer.EndTime, "HOPO Leniency End");
                 }
             }
 
@@ -93,7 +93,7 @@ namespace YARG.Core.Engine.Guitar
                 {
                     YargLogger.LogFormatTrace("Queuing strum leniency end time at {0}",
                         State.StrumLeniencyTimer.EndTime);
-                    QueueUpdateTime(State.StrumLeniencyTimer.EndTime);
+                    QueueUpdateTime(State.StrumLeniencyTimer.EndTime, "Strum Leniency End");
                 }
             }
 
@@ -103,7 +103,7 @@ namespace YARG.Core.Engine.Guitar
                 {
                     YargLogger.LogFormatTrace("Queuing star power whammy end time at {0}",
                         State.StarPowerWhammyTimer.EndTime);
-                    QueueUpdateTime(State.StarPowerWhammyTimer.EndTime);
+                    QueueUpdateTime(State.StarPowerWhammyTimer.EndTime, "Star Power Whammy End");
                 }
             }
         }
@@ -349,7 +349,7 @@ namespace YARG.Core.Engine.Guitar
 
         protected void StartSustain(GuitarNote note)
         {
-            return;
+            //return;
             var sustain = new ActiveSustain(note);
 
             ActiveSustains.Add(sustain);

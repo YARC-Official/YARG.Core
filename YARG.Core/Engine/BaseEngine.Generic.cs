@@ -139,11 +139,22 @@ namespace YARG.Core.Engine
                     break;
                 }
 
-                // Earliest the note can be hit
-                if(IsTimeBetween(noteFrontEnd, previousTime, nextTime))
+                if (!IsBot)
                 {
-                    YargLogger.LogFormatTrace("Queuing note {0} front end hit time at {1}", i, noteFrontEnd);
-                    QueueUpdateTime(noteFrontEnd);
+                    // Earliest the note can be hit
+                    if(IsTimeBetween(noteFrontEnd, previousTime, nextTime))
+                    {
+                        YargLogger.LogFormatTrace("Queuing note {0} front end hit time at {1}", i, noteFrontEnd);
+                        QueueUpdateTime(noteFrontEnd, "Note Front End");
+                    }
+                }
+                else
+                {
+                    if (IsTimeBetween(note.Time, previousTime, nextTime))
+                    {
+                        YargLogger.LogFormatTrace("Queuing bot note {0} at {1}", i, note.Time);
+                        QueueUpdateTime(note.Time, "Bot Note Time");
+                    }
                 }
 
                 // Note will not be out of time on the exact back end
@@ -154,7 +165,7 @@ namespace YARG.Core.Engine
                 if (IsTimeBetween(noteBackEndIncrement, previousTime, nextTime))
                 {
                     YargLogger.LogFormatTrace("Queuing note {0} back end miss time at {1}", i, noteBackEndIncrement);
-                    QueueUpdateTime(noteBackEndIncrement);
+                    QueueUpdateTime(noteBackEndIncrement, "Note Back End");
                 }
             }
         }

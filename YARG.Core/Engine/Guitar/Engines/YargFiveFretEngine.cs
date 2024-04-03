@@ -13,6 +13,54 @@ namespace YARG.Core.Engine.Guitar.Engines
         {
         }
 
+        protected override void UpdateBot(double time)
+        {
+            if (!IsBot || State.NoteIndex >= Notes.Count)
+            {
+                return;
+            }
+
+            var note = Notes[State.NoteIndex];
+
+            if (time < note.Time)
+            {
+                return;
+            }
+
+            State.LastButtonMask = State.ButtonMask;
+            State.ButtonMask = (byte) note.NoteMask;
+
+            YargLogger.LogFormatTrace("[Bot] Set button mask to: {0}", State.ButtonMask);
+
+            State.HasTapped = State.ButtonMask != State.LastButtonMask;
+            State.IsFretPress = true;
+            State.HasStrummed = false;
+            State.StrumLeniencyTimer.Start(time);
+
+            foreach (var sustain in ActiveSustains)
+            {
+                var sustainNote = sustain.Note;
+
+                if (!sustainNote.IsExtendedSustain)
+                {
+                    continue;
+                }
+
+                if (sustainNote.IsDisjoint)
+                {
+                    State.ButtonMask |= (byte) sustainNote.DisjointMask;
+
+                    YargLogger.LogFormatTrace("[Bot] Added Disjoint Sustain Mask {0} to button mask. {1}", sustainNote.DisjointMask, State.ButtonMask);
+                }
+                else
+                {
+                    State.ButtonMask |= (byte) sustainNote.NoteMask;
+
+                    YargLogger.LogFormatTrace("[Bot] Added Sustain Mask {0} to button mask. {1}", sustainNote.NoteMask, State.ButtonMask);
+                }
+            }
+        }
+
         protected override void MutateStateWithInput(GameInput gameInput)
         {
             var action = gameInput.GetAction<GuitarAction>();
@@ -75,10 +123,16 @@ namespace YARG.Core.Engine.Guitar.Engines
                 }
             }
 
+            // First update all the active sustains (ones which were started before this update)
+            // This can drop any sustains which end at this time
+            // UpdateSustains(false);
+
+            // Update bot (will return if not enabled)
+            UpdateBot(time);
+
             // Quit early if there are no notes left
             if (State.NoteIndex >= Notes.Count)
             {
-                UpdateSustains();
                 State.HasStrummed = false;
                 State.HasFretted = false;
                 State.IsFretPress = false;
@@ -130,11 +184,6 @@ namespace YARG.Core.Engine.Guitar.Engines
             State.HasFretted = false;
             State.IsFretPress = false;
             State.HasWhammied = false;
-        }
-
-        public override void UpdateBot(double songTime)
-        {
-            throw new NotImplementedException();
         }
 
         protected override void CheckForNoteHit()

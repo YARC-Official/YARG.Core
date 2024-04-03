@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using YARG.Core.Chart;
 using YARG.Core.Engine.Logging;
 using YARG.Core.Input;
@@ -25,7 +26,13 @@ namespace YARG.Core.Engine
 
         protected readonly Queue<GameInput> InputQueue = new();
 
-        private readonly List<double> _scheduledUpdates = new();
+        private readonly List<EngineFrameUpdate> _scheduledUpdates = new();
+
+        public struct EngineFrameUpdate
+        {
+            public double Time;
+            public string Reason;
+        }
 
         /// <summary>
         /// Whether or not the specified engine should treat a note as a chord, or separately.
@@ -35,6 +42,8 @@ namespace YARG.Core.Engine
         protected readonly bool TreatChordAsSeparate;
 
         protected bool ReRunHitLogic;
+
+        protected readonly bool IsBot = false;
 
         protected BaseEngine(SyncTrack syncTrack, bool isChordSeparate)
         {
@@ -61,6 +70,23 @@ namespace YARG.Core.Engine
         {
             YargLogger.LogFormatTrace("---- Starting update loop with time {0} ----", time);
 
+            if (!IsBot)
+            {
+                ProcessInputs(time);
+            }
+
+            // Update to the given time
+            if (InputQueue.Count > 0)
+            {
+                YargLogger.LogWarning("Input queue was not fully cleared!");
+            }
+            YargLogger.LogFormatTrace("Running frame update at {0}", time);
+            RunQueuedUpdates(time);
+            RunEngineLoop(time);
+        }
+
+        private void ProcessInputs(double time)
+        {
             while (InputQueue.TryDequeue(out var input))
             {
                 // Skip inputs that are in the past
@@ -94,15 +120,6 @@ namespace YARG.Core.Engine
                     return;
                 }
             }
-
-            // Update to the given time
-            if (InputQueue.Count > 0)
-            {
-                YargLogger.LogWarning("Input queue was not fully cleared!");
-            }
-            YargLogger.LogFormatTrace("Running frame update at {0}", time);
-            RunQueuedUpdates(time);
-            RunEngineLoop(time);
         }
 
         private void RunQueuedUpdates(double time)
@@ -111,7 +128,7 @@ namespace YARG.Core.Engine
             // the list of scheduled updates will be modified by the updates we're running
 
             GenerateQueuedUpdates(time);
-            _scheduledUpdates.Sort();
+            _scheduledUpdates.Sort((x, y) => x.Time.CompareTo(y.Time));
 
             if (_scheduledUpdates.Count > 0)
             {
@@ -120,7 +137,7 @@ namespace YARG.Core.Engine
             int i = 0;
             for (; i < _scheduledUpdates.Count; i++)
             {
-                double updateTime = _scheduledUpdates[i];
+                double updateTime = _scheduledUpdates[i].Time;
 
                 // Skip updates that are in the past
                 if (updateTime < BaseState.CurrentTime)
@@ -137,13 +154,15 @@ namespace YARG.Core.Engine
                     continue;
                 }
 
-                YargLogger.LogFormatTrace("Running scheduled update at {0}", updateTime);
+                YargLogger.LogFormatTrace("Running scheduled update at {0} ({1})", updateTime, item2: _scheduledUpdates[i].Reason);
                 RunEngineLoop(updateTime);
             }
 
             // Remove all processed updates
             _scheduledUpdates.RemoveRange(0, i);
         }
+
+        protected abstract void UpdateBot(double time);
 
         protected virtual void GenerateQueuedUpdates(double nextTime)
         {
@@ -185,7 +204,7 @@ namespace YARG.Core.Engine
             BaseState.LastQueuedInputTime = input.Time;
         }
 
-        public void QueueUpdateTime(double time)
+        public void QueueUpdateTime(double time, string reason)
         {
             // Ignore updates for the current time
             if (time == BaseState.CurrentTime)
@@ -202,12 +221,13 @@ namespace YARG.Core.Engine
             }
 
             // Ignore duplicate updates
-            if (_scheduledUpdates.Contains(time))
+            if (_scheduledUpdates.Any(i => i.Time == time))
             {
                 return;
             }
 
-            _scheduledUpdates.Add(time);
+            _scheduledUpdates.Add(new EngineFrameUpdate
+                { Time = time, Reason = reason });
         }
 
         private void RunEngineLoop(double time)
@@ -221,7 +241,7 @@ namespace YARG.Core.Engine
 
         internal void QueueManyUpdateTimesNoChecks(IEnumerable<double> times)
         {
-            _scheduledUpdates.AddRange(times);
+            //_scheduledUpdates.AddRange(times);
             _scheduledUpdates.Sort();
         }
 
@@ -262,8 +282,6 @@ namespace YARG.Core.Engine
 
             return inputIndex;
         }
-
-        public abstract void UpdateBot(double songTime);
 
         public abstract (double FrontEnd, double BackEnd) CalculateHitWindow();
 
