@@ -16,8 +16,6 @@ namespace YARG.Core.Audio
         public const int WHAMMY_FFT_DEFAULT = 2048;
         public const int WHAMMY_OVERSAMPLE_DEFAULT = 8;
 
-        public const double MINIMUM_STEM_VOLUME = 0.15;
-
         internal static readonly Dictionary<SongStem, StemSettings> StemSettings;
 
         static GlobalAudioHandler()
@@ -52,8 +50,6 @@ namespace YARG.Core.Audio
         public static bool UseWhammyFx;
         public static bool IsChipmunkSpeedup;
 
-        public static bool UseMinimumStemVolume;
-
         /// <summary>
         /// The number of semitones to bend the pitch by. Must be at least 1;
         /// </summary>
@@ -80,16 +76,6 @@ namespace YARG.Core.Audio
         /// Changes to this value will not be applied until the next song plays.
         /// </remarks>
         public static int WhammyOversampleFactor = WHAMMY_OVERSAMPLE_DEFAULT;
-
-        public static double ClampStemVolume(double volume)
-        {
-            // Limit minimum stem volume
-            if (UseMinimumStemVolume)
-            {
-                volume = Math.Max(volume, MINIMUM_STEM_VOLUME);
-            }
-            return volume;
-        }
 
         public static double GetTrueVolume(SongStem stem)
         {
@@ -214,7 +200,7 @@ namespace YARG.Core.Audio
             }
         }
 
-        public static StemMixer? CreateMixer(string name, float speed)
+        public static StemMixer? CreateMixer(string name, float speed, bool clampStemVolume)
         {
             lock (_instanceLock)
             {
@@ -222,11 +208,11 @@ namespace YARG.Core.Audio
                 {
                     throw new NotInitializedException();
                 }
-                return _instance.CreateMixer(name, speed);
+                return _instance.CreateMixer(name, speed, clampStemVolume);
             }
         }
 
-        public static StemMixer? CreateMixer(string name, Stream stream, float speed)
+        public static StemMixer? CreateMixer(string name, Stream stream, float speed, bool clampStemVolume)
         {
             lock (_instanceLock)
             {
@@ -234,7 +220,7 @@ namespace YARG.Core.Audio
                 {
                     throw new NotInitializedException();
                 }
-                return _instance.CreateMixer(name, stream, speed);
+                return _instance.CreateMixer(name, stream, speed, clampStemVolume);
             }
         }
 

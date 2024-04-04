@@ -118,7 +118,8 @@ namespace YARG.Core.Song
             int start = stream.Read<int>(Endianness.Little);
             stream.Seek(start, SeekOrigin.Begin);
 
-            var mixer = GlobalAudioHandler.CreateMixer(ToString(), stream, speed);
+            bool clampStemVolume = _metadata.Source.Str.ToLowerInvariant() == "yarg";
+            var mixer = GlobalAudioHandler.CreateMixer(ToString(), stream, speed, clampStemVolume);
             if (mixer == null)
             {
                 YargLogger.LogError("Mogg failed to load!");
@@ -126,6 +127,7 @@ namespace YARG.Core.Song
                 return null;
             }
 
+            
             if (_rbMetadata.Indices.Drums != null && !ignoreStems.Contains(SongStem.Drums))
             {
                 switch (_rbMetadata.Indices.Drums.Length)

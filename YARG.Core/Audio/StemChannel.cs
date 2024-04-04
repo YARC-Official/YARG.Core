@@ -4,13 +4,17 @@ namespace YARG.Core.Audio
 {
     public abstract class StemChannel : IDisposable
     {
+        public const double MINIMUM_STEM_VOLUME = 0.15;
+
         private bool _disposed;
 
+        private readonly bool _clampVolume;
         protected readonly AudioManager _manager;
         public readonly SongStem Stem;
 
-        protected StemChannel(AudioManager manager, SongStem stem)
+        protected StemChannel(AudioManager manager, SongStem stem, bool clampVolume)
         {
+            _clampVolume = clampVolume;
             _manager = manager;
             Stem = stem;
 
@@ -58,7 +62,10 @@ namespace YARG.Core.Audio
             {
                 if (!_disposed)
                 {
-                    volume = GlobalAudioHandler.ClampStemVolume(volume);
+                    if (_clampVolume && volume < MINIMUM_STEM_VOLUME)
+                    {
+                        volume = MINIMUM_STEM_VOLUME;
+                    }
                     SetVolume_Internal(volume);
                 }
             }

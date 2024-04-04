@@ -8,9 +8,10 @@ namespace YARG.Core.Audio
     public abstract class StemMixer : IDisposable
     {
         private bool _disposed;
-
+        
         protected readonly AudioManager _manager;
         protected readonly List<StemChannel> _channels = new();
+        protected readonly bool _clampStemVolume;
 
         protected float _speed;
         protected double _length;
@@ -25,11 +26,12 @@ namespace YARG.Core.Audio
 
         public abstract event Action SongEnd;
 
-        protected StemMixer(string name, AudioManager manager, float speed)
+        protected StemMixer(string name, AudioManager manager, float speed, bool clampStemVolume)
         {
             Name = name;
             _manager = manager;
             _speed = speed;
+            _clampStemVolume = clampStemVolume;
 
             _manager.AddMixer(this);
         }

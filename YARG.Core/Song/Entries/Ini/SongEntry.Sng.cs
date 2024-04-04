@@ -173,14 +173,13 @@ namespace YARG.Core.Song
                 {
                     string fakename = Path.Combine(_sngInfo.FullName, filename);
                     var stream = listing.CreateStream(sngFile);
-                    var mixer = GlobalAudioHandler.CreateMixer(fakename, stream, speed);
+                    var mixer = GlobalAudioHandler.LoadCustomFile(fakename, stream, speed, SongStem.Preview);
                     if (mixer == null)
                     {
                         stream.Dispose();
                         YargLogger.LogFormatError("Failed to load preview file {0}!", fakename);
                         return null;
                     }
-                    mixer.AddChannel(SongStem.Preview);
                     return mixer;
                 }
             }
@@ -190,7 +189,8 @@ namespace YARG.Core.Song
 
         private StemMixer? CreateAudioMixer(float speed, SngFile sngFile, params SongStem[] ignoreStems)
         {
-            var mixer = GlobalAudioHandler.CreateMixer(ToString(), speed);
+            bool clampStemVolume = _metadata.Source.Str.ToLowerInvariant() == "yarg";
+            var mixer = GlobalAudioHandler.CreateMixer(ToString(), speed, clampStemVolume);
             if (mixer == null)
             {
                 YargLogger.LogError("Failed to create mixer");

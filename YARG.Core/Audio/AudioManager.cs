@@ -17,7 +17,7 @@ namespace YARG.Core.Audio
         internal StemMixer? LoadCustomFile(string name, Stream stream, float speed, SongStem stem = SongStem.Song)
         {
             YargLogger.LogInfo("Loading custom audio file");
-            var mixer = CreateMixer(name, stream, speed);
+            var mixer = CreateMixer(name, stream, speed, false);
             if (mixer == null)
             {
                 return null;
@@ -45,9 +45,9 @@ namespace YARG.Core.Audio
             return mixer;
         }
 
-        protected internal abstract StemMixer? CreateMixer(string name, float speed);
+        protected internal abstract StemMixer? CreateMixer(string name, float speed, bool clampStemVolume);
 
-        protected internal abstract StemMixer? CreateMixer(string name, Stream stream, float speed);
+        protected internal abstract StemMixer? CreateMixer(string name, Stream stream, float speed, bool clampStemVolume);
 
         protected internal abstract MicDevice? GetInputDevice(string name);
 
