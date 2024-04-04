@@ -61,7 +61,12 @@ namespace YARG.Core.Audio
                     else if (0 <= entry.PreviewStartSeconds && entry.PreviewStartSeconds < audioLength)
                     {
                         previewStartTime = entry.PreviewStartSeconds;
-                        previewEndTime = previewStartTime + DEFAULT_PREVIEW_DURATION;
+                        previewEndTime = entry.PreviewEndSeconds;
+                        if (previewEndTime <= previewStartTime)
+                        {
+                            previewEndTime = previewStartTime + DEFAULT_PREVIEW_DURATION;
+                        }
+
                         if (previewEndTime > audioLength)
                         {
                             previewEndTime = audioLength;
