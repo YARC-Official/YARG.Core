@@ -45,6 +45,32 @@ namespace YARG.Core.UnitTests.Utility
             ("width",       RichTextTags.Width),
         ];
 
+        internal static List<(string name, string hex)> COLOR_NAMES =
+        [
+            ("aqua",      "#00ffff"),
+            ("black",     "#000000"),
+            ("blue",      "#0000ff"),
+            ("brown",     "#a52a2a"),
+            ("cyan",      "#00ffff"),
+            ("darkblue",  "#0000a0"),
+            ("fuchsia",   "#ff00ff"),
+            ("green",     "#008000"),
+            ("grey",      "#808080"),
+            ("lightblue", "#add8e6"),
+            ("lime",      "#00ff00"),
+            ("magenta",   "#ff00ff"),
+            ("maroon",    "#800000"),
+            ("navy",      "#000080"),
+            ("olive",     "#808000"),
+            ("orange",    "#ffa500"),
+            ("purple",    "#800080"),
+            ("red",       "#ff0000"),
+            ("silver",    "#c0c0c0"),
+            ("teal",      "#008080"),
+            ("white",     "#ffffff"),
+            ("yellow",    "#ffff00"),
+        ];
+
         [TestCase]
         public void ReplacesTags()
         {
@@ -52,11 +78,43 @@ namespace YARG.Core.UnitTests.Utility
             {
                 foreach (var (tagText, tag) in TEXT_TO_TAG)
                 {
-                    const string expectedText = "Some formatting";
-                    string testText = $"Some <{tagText}=50vb>formatting</{tagText}>";
+                    const string expectedText = "Some formatting with trailing text";
+                    string testText = $"Some <{tagText}=50vb>formatting</{tagText}> with trailing text";
 
                     string stripped = RichTextUtils.StripRichTextTags(testText, tag);
                     Assert.That(stripped, Is.EqualTo(expectedText), $"Tag '{tagText}' was not stripped!");
+                }
+            });
+        }
+
+        // Separate test since the implementation is different
+        [TestCase]
+        public void ReplacesAllTags()
+        {
+            string expectedText = "";
+            string testText = "";
+            foreach (var (tagText, tag) in TEXT_TO_TAG)
+            {
+                expectedText += "Some formatting with trailing text\n";
+                testText += $"Some <{tagText}=50vb>formatting</{tagText}> with trailing text\n";
+            }
+
+            string stripped = RichTextUtils.StripRichTextTags(testText);
+            Assert.That(stripped, Is.EqualTo(expectedText), "Some tags were not stripped!");
+        }
+
+        [TestCase]
+        public void ReplacesColors()
+        {
+            Assert.Multiple(() =>
+            {
+                foreach (var (name, hex) in COLOR_NAMES)
+                {
+                    string expectedText = $"Some <color={hex}>formatting</color> with trailing text";
+                    string testText = $"Some <color={name}>formatting</color> with trailing text";
+
+                    string stripped = RichTextUtils.ReplaceColorNames(testText);
+                    Assert.That(stripped, Is.EqualTo(expectedText), $"Color name '{name}' was not replaced!");
                 }
             });
         }

@@ -186,13 +186,40 @@ namespace YARG.Core.Replays.Analyzer
 
         private static bool IsPassResult(BaseStats original, BaseStats result)
         {
-            return original.CommittedScore == result.CommittedScore &&
+            YargLogger.LogFormatDebug("Score: {0} == {1}\nHit: {2} == {3}\nMissed: {4} == {5}\nCombo: {6} == {7}\nMaxCombo: {8} == {9}\n",
+                original.CommittedScore, result.CommittedScore,
+                original.NotesHit, result.NotesHit,
+                original.NotesMissed, result.NotesMissed,
+                original.Combo, result.Combo,
+                original.MaxCombo, result.MaxCombo);
+
+            YargLogger.LogFormatDebug("Solo: {0} == {1}\nSP: {2} == {3}",
+                original.SoloBonuses, result.SoloBonuses,
+                original.StarPowerPhrasesHit, result.StarPowerPhrasesHit);
+
+            bool instrumentPass = true;
+
+            if(original is GuitarStats originalGuitar && result is GuitarStats resultGuitar)
+            {
+                instrumentPass = originalGuitar.Overstrums == resultGuitar.Overstrums &&
+                    originalGuitar.GhostInputs == resultGuitar.GhostInputs &&
+                    originalGuitar.HoposStrummed == resultGuitar.HoposStrummed;
+
+                YargLogger.LogFormatDebug("Guitar:\nOverstrums: {0} == {1}\nGhost Inputs: {2} == {3}\nHOPOs Strummed: {4} == {5}",
+                    originalGuitar.Overstrums, resultGuitar.Overstrums,
+                    originalGuitar.GhostInputs, resultGuitar.GhostInputs,
+                    originalGuitar.HoposStrummed, resultGuitar.HoposStrummed);
+            }
+
+            bool generalPass = original.CommittedScore == result.CommittedScore &&
                 original.NotesHit == result.NotesHit &&
                 original.NotesMissed == result.NotesMissed &&
                 original.Combo == result.Combo &&
                 original.MaxCombo == result.MaxCombo &&
                 original.SoloBonuses == result.SoloBonuses &&
                 original.StarPowerPhrasesHit == result.StarPowerPhrasesHit;
+
+            return generalPass && instrumentPass;
         }
     }
 }

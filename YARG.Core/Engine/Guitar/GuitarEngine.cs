@@ -13,8 +13,8 @@ namespace YARG.Core.Engine.Guitar
         protected sealed class ActiveSustain
         {
             public GuitarNote Note;
-            public uint BaseTick;
-            public double BaseScore;
+            public uint       BaseTick;
+            public double     BaseScore;
 
             public bool HasFinishedScoring;
 
@@ -49,16 +49,75 @@ namespace YARG.Core.Engine.Guitar
             State.Initialize(engineParameters);
         }
 
+        protected override void GenerateQueuedUpdates(double nextTime)
+        {
+            base.GenerateQueuedUpdates(nextTime);
+            var previousTime = State.CurrentTime;
+
+            foreach (var sustain in ActiveSustains)
+            {
+                var burstTime = sustain.GetEndTime(SyncTrack, SustainBurstThreshold);
+                var endTime = sustain.GetEndTime(SyncTrack, 0);
+
+                // Burst time is for scoring, so that scoring finishes at the correct time
+                if (IsTimeBetween(burstTime, previousTime, nextTime))
+                {
+                    YargLogger.LogFormatTrace("Queuing sustain (mask: {0}) burst time at {1}", sustain.Note.NoteMask,
+                        burstTime);
+                    QueueUpdateTime(burstTime, "Sustain Burst");
+                }
+
+                // The true end of the sustain is for hit logic. Sustains are "kept" even after the burst ticks so must
+                // also be handled.
+                if (IsTimeBetween(endTime, previousTime, nextTime))
+                {
+                    YargLogger.LogFormatTrace("Queuing sustain (mask: {0}) end time at {1}", sustain.Note.NoteMask,
+                        endTime);
+                    QueueUpdateTime(endTime, "Sustain End");
+                }
+            }
+
+            // Check all timers
+            if (State.HopoLeniencyTimer.IsActive)
+            {
+                if (IsTimeBetween(State.HopoLeniencyTimer.EndTime, previousTime, nextTime))
+                {
+                    YargLogger.LogFormatTrace("Queuing hopo leniency end time at {0}", State.HopoLeniencyTimer.EndTime);
+                    QueueUpdateTime(State.HopoLeniencyTimer.EndTime, "HOPO Leniency End");
+                }
+            }
+
+            if (State.StrumLeniencyTimer.IsActive)
+            {
+                if (IsTimeBetween(State.StrumLeniencyTimer.EndTime, previousTime, nextTime))
+                {
+                    YargLogger.LogFormatTrace("Queuing strum leniency end time at {0}",
+                        State.StrumLeniencyTimer.EndTime);
+                    QueueUpdateTime(State.StrumLeniencyTimer.EndTime, "Strum Leniency End");
+                }
+            }
+
+            if (State.StarPowerWhammyTimer.IsActive)
+            {
+                if (IsTimeBetween(State.StarPowerWhammyTimer.EndTime, previousTime, nextTime))
+                {
+                    YargLogger.LogFormatTrace("Queuing star power whammy end time at {0}",
+                        State.StarPowerWhammyTimer.EndTime);
+                    QueueUpdateTime(State.StarPowerWhammyTimer.EndTime, "Star Power Whammy End");
+                }
+            }
+        }
+
         public override void Reset(bool keepCurrentButtons = false)
         {
-            byte buttons = State.FretMask;
+            byte buttons = State.ButtonMask;
             ActiveSustains.Clear();
 
             base.Reset(keepCurrentButtons);
 
             if (keepCurrentButtons)
             {
-                State.FretMask = buttons;
+                State.ButtonMask = buttons;
             }
         }
 
@@ -76,11 +135,14 @@ namespace YARG.Core.Engine.Guitar
                 return;
             }
 
+            YargLogger.LogFormatTrace("Overstrummed at {0}", State.CurrentTime);
+
             // Break all active sustains
             for (int i = 0; i < ActiveSustains.Count; i++)
             {
                 var sustain = ActiveSustains[i];
                 ActiveSustains.RemoveAt(i);
+                YargLogger.LogFormatTrace("Ended sustain (end time: {0}) at {1}", sustain.GetEndTime(SyncTrack, 0), State.CurrentTime);
                 i--;
 
                 double finalScore = CalculateSustainPoints(sustain, State.CurrentTick);
@@ -116,16 +178,7 @@ namespace YARG.Core.Engine.Guitar
             {
                 skipped = true;
                 MissNote(prevNote);
-
-                EventLogger.LogEvent(new NoteEngineEvent(State.CurrentTime)
-                {
-                    NoteTime = prevNote.Time,
-                    NoteLength = prevNote.TimeLength,
-                    NoteIndex = State.NoteIndex,
-                    NoteMask = prevNote.NoteMask,
-                    WasHit = false,
-                    WasSkipped = true,
-                });
+                YargLogger.LogFormatTrace("Missed note {0} due to note skip at {1}", State.NoteIndex - 1, State.CurrentTime);
 
                 prevNote = prevNote.PreviousNote;
             }
@@ -183,16 +236,6 @@ namespace YARG.Core.Engine.Guitar
 
             State.WasNoteGhosted = false;
 
-            EventLogger.LogEvent(new NoteEngineEvent(State.CurrentTime)
-            {
-                NoteTime = note.Time,
-                NoteLength = note.TimeLength,
-                NoteIndex = State.NoteIndex,
-                NoteMask = note.NoteMask,
-                WasHit = true,
-                WasSkipped = skipped,
-            });
-
             OnNoteHit?.Invoke(State.NoteIndex, note);
             base.HitNote(note);
         }
@@ -210,6 +253,7 @@ namespace YARG.Core.Engine.Guitar
             {
                 EndSolo();
             }
+
             if (note.IsSoloStart)
             {
                 StartSolo();
@@ -220,16 +264,6 @@ namespace YARG.Core.Engine.Guitar
             EngineStats.Combo = 0;
 
             UpdateMultiplier();
-
-            EventLogger.LogEvent(new NoteEngineEvent(State.CurrentTime)
-            {
-                NoteTime = note.Time,
-                NoteLength = note.TimeLength,
-                NoteIndex = State.NoteIndex,
-                NoteMask = note.NoteMask,
-                WasHit = false,
-                WasSkipped = false,
-            });
 
             OnNoteMissed?.Invoke(State.NoteIndex, note);
             base.MissNote(note);
@@ -280,7 +314,7 @@ namespace YARG.Core.Engine.Guitar
         {
             YargLogger.AssertFormat(baseTick >= State.StarPowerWhammyBaseTick,
                 "Star Power whammy base tick cannot go backwards! Went from {0} to {1}",
-                    State.StarPowerWhammyBaseTick, baseTick);
+                State.StarPowerWhammyBaseTick, baseTick);
 
             State.StarPowerWhammyBaseTick = baseTick;
         }
@@ -295,7 +329,7 @@ namespace YARG.Core.Engine.Guitar
                 {
                     YargLogger.AssertFormat(baseTick < sustain.Note.Tick,
                         "Sustain base tick cannot go backwards! Attempted to go from {0} to {1}",
-                            sustain.BaseTick, baseTick);
+                        sustain.BaseTick, baseTick);
 
                     continue;
                 }
@@ -308,15 +342,19 @@ namespace YARG.Core.Engine.Guitar
             }
         }
 
-        protected override double CalculateStarPowerGain(uint tick)
-            => State.StarPowerWhammyTimer.IsActive ? CalculateStarPowerBeatProgress(tick, State.StarPowerWhammyBaseTick) : 0;
+        protected override double CalculateStarPowerGain(uint tick) =>
+            State.StarPowerWhammyTimer.IsActive
+                ? CalculateStarPowerBeatProgress(tick, State.StarPowerWhammyBaseTick)
+                : 0;
 
         protected void StartSustain(GuitarNote note)
         {
+            //return;
             var sustain = new ActiveSustain(note);
 
             ActiveSustains.Add(sustain);
-            QueueUpdateTime(sustain.GetEndTime(SyncTrack, SustainBurstThreshold));
+
+            YargLogger.LogFormatTrace("Started sustain at {0} (tick len: {1}, time len: {2})", State.CurrentTime, note.TickLength, note.TimeLength);
 
             OnSustainStart?.Invoke(note);
         }
@@ -335,7 +373,7 @@ namespace YARG.Core.Engine.Guitar
 
                 // If we're close enough to the end of the sustain, finish it
                 // Provides leniency for sustains with no gap (and just in general)
-                bool isBurst = (int) (note.TickEnd - State.CurrentTick) <= SustainBurstThreshold;
+                bool isBurst = (int) State.CurrentTick >= note.TickEnd - SustainBurstThreshold;
                 bool isEndOfSustain = State.CurrentTick >= note.TickEnd;
 
                 uint sustainTick = isBurst || isEndOfSustain ? note.TickEnd : State.CurrentTick;
@@ -356,6 +394,7 @@ namespace YARG.Core.Engine.Guitar
                     // Sustain has ended, so commit the points
                     if (dropped || isBurst)
                     {
+                        YargLogger.LogFormatTrace("Finished scoring sustain at {0} (dropped: {1}, burst: {2})", State.CurrentTime, dropped, isBurst);
                         double finalScore = CalculateSustainPoints(sustain, sustainTick);
                         AddScore((int) Math.Ceiling(finalScore));
                     }
@@ -368,6 +407,7 @@ namespace YARG.Core.Engine.Guitar
                 // Only remove the sustain if its dropped or has reached the final tick
                 if (dropped || isEndOfSustain)
                 {
+                    YargLogger.LogFormatTrace("Ended sustain at {0} (dropped: {1}, end: {2})", State.CurrentTime, dropped, isEndOfSustain);
                     ActiveSustains.RemoveAt(i);
                     i--;
                     OnSustainEnd?.Invoke(note, State.CurrentTime, sustain.HasFinishedScoring);
@@ -417,7 +457,7 @@ namespace YARG.Core.Engine.Guitar
                 }
             }
             // Rebase after SP whammy ends to commit the final amount to the base
-            else if(State.StarPowerWhammyTimer.IsActive)
+            else if (State.StarPowerWhammyTimer.IsActive)
             {
                 RebaseProgressValues(State.CurrentTick);
 
@@ -466,15 +506,14 @@ namespace YARG.Core.Engine.Guitar
             return score;
         }
 
-
         protected void ToggleFret(int fret, bool active)
         {
-            State.FretMask = (byte) (active ? State.FretMask | (1 << fret) : State.FretMask & ~(1 << fret));
+            State.ButtonMask = (byte) (active ? State.ButtonMask | (1 << fret) : State.ButtonMask & ~(1 << fret));
         }
 
         public bool IsFretHeld(GuitarAction fret)
         {
-            return (State.FretMask & (1 << (int) fret)) != 0;
+            return (State.ButtonMask & (1 << (int) fret)) != 0;
         }
 
         protected static bool IsFretInput(GameInput input)

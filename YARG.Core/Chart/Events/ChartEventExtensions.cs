@@ -164,7 +164,7 @@ namespace YARG.Core.Chart
             while (closestIndex < count && events[closestIndex].Time <= time)
                 closestIndex++;
 
-            return closestIndex < count ? count : -1;
+            return closestIndex < count ? closestIndex : -1;
         }
 
         public static int GetIndexOfNext<TEvent>(this List<TEvent> events, uint tick)
@@ -179,7 +179,7 @@ namespace YARG.Core.Chart
             while (closestIndex < count && events[closestIndex].Tick <= tick)
                 closestIndex++;
 
-            return closestIndex < count ? count : -1;
+            return closestIndex < count ? closestIndex : -1;
         }
 
         public static bool GetEventRange<TEvent>(this List<TEvent> events, double startTime, double endTime,

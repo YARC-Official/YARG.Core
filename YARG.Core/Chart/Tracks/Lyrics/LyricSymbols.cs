@@ -223,6 +223,7 @@ namespace YARG.Core.Chart
         public static string StripForLyrics(string lyric)
         {
             lyric = RichTextUtils.StripRichTextTagsExcept(lyric, LYRICS_ALLOWED_TAGS);
+            lyric = RichTextUtils.ReplaceColorNames(lyric);
 
             var lyricBuffer = new StringBuilder();
             var segmentBuffer = new StringBuilder();
@@ -234,26 +235,24 @@ namespace YARG.Core.Chart
             {
                 // Split out segment before the tag
                 var segment = remaining[..tagIndex];
-                remaining = remaining[tagIndex..];
+                var tag = remaining[tagIndex..];
 
                 // Find end of the tag
-                var tag = ReadOnlySpan<char>.Empty;
-                int tagCloseIndex = remaining.IndexOf('>');
-                if (tagCloseIndex >= 0)
-                {
-                    // Include closing in tag split
-                    tagCloseIndex++;
+                int tagCloseIndex = tag.IndexOf('>');
+                if (tagCloseIndex < 0)
+                    break;
 
-                    if (tagCloseIndex >= remaining.Length)
-                    {
-                        tag = remaining;
-                        remaining = ReadOnlySpan<char>.Empty;
-                    }
-                    else
-                    {
-                        tag = remaining[..tagCloseIndex];
-                        remaining = remaining[tagCloseIndex..];
-                    }
+                // Include closing in tag split
+                tagCloseIndex++;
+
+                if (tagCloseIndex >= tag.Length)
+                {
+                    remaining = ReadOnlySpan<char>.Empty;
+                }
+                else
+                {
+                    remaining = tag[tagCloseIndex..];
+                    tag = tag[..tagCloseIndex];
                 }
 
                 // Run through replacements on segment

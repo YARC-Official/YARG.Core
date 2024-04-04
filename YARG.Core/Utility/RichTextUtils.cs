@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
+using Cysharp.Text;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.Utility
 {
@@ -106,13 +109,53 @@ namespace YARG.Core.Utility
             "u", "uppercase", "voffset", "width",
         };
 
-        private static readonly ConcurrentDictionary<RichTextTags, Regex> REGEX_CACHE = new();
+        internal static Dictionary<string, string> COLOR_TO_HEX = new()
+        {
+            { "aqua",      "#00ffff" },
+            { "black",     "#000000" },
+            { "blue",      "#0000ff" },
+            { "brown",     "#a52a2a" },
+            { "cyan",      "#00ffff" },
+            { "darkblue",  "#0000a0" },
+            { "fuchsia",   "#ff00ff" },
+            { "green",     "#008000" },
+            { "grey",      "#808080" },
+            { "lightblue", "#add8e6" },
+            { "lime",      "#00ff00" },
+            { "magenta",   "#ff00ff" },
+            { "maroon",    "#800000" },
+            { "navy",      "#000080" },
+            { "olive",     "#808000" },
+            { "orange",    "#ffa500" },
+            { "purple",    "#800080" },
+            { "red",       "#ff0000" },
+            { "silver",    "#c0c0c0" },
+            { "teal",      "#008080" },
+            { "white",     "#ffffff" },
+            { "yellow",    "#ffff00" },
+        };
 
-        private static readonly Regex ALL_TAGS_REGEX = ConstructRegex(RichTextTags.AllTags);
+        private static readonly ConcurrentDictionary<RichTextTags, Regex> REGEX_CACHE = new();
 
         public static string StripRichTextTags(string text)
         {
-            return ALL_TAGS_REGEX.Replace(text, "");
+            using var builder = ZString.CreateStringBuilder(notNested: true);
+
+            var textSpan = text.AsSpan();
+            bool tagsFound = false;
+            while (FindNextTag(textSpan, out var beforeTag, out _, out var remaining))
+            {
+                textSpan = remaining;
+                tagsFound = true;
+                builder.Append(beforeTag);
+            }
+
+            // Return unmodified if no modifications were made
+            if (!tagsFound)
+                return text;
+
+            builder.Append(textSpan);
+            return builder.ToString();
         }
 
         public static string StripRichTextTags(string text, RichTextTags excludeTags)
@@ -146,6 +189,69 @@ namespace YARG.Core.Utility
             var regex = new Regex(regexFormat, RegexOptions.Compiled);
             REGEX_CACHE[tags] = regex;
             return regex;
+        }
+
+        public static string ReplaceColorNames(string text)
+        {
+            using var builder = ZString.CreateStringBuilder(notNested: true);
+
+            var textSpan = text.AsSpan();
+            bool tagsFound = false;
+            while (FindNextTag(textSpan, out var beforeTag, out var tag, out var remaining))
+            {
+                textSpan = remaining;
+                tagsFound = true;
+                builder.Append(beforeTag);
+
+                const string colorTag = "<color=";
+                if (tag.StartsWith(colorTag))
+                {
+                    var name = tag[colorTag.Length..].TrimEndOnce('>').TrimOnce('"');
+
+                    // Allocation is taken because it is significantly faster to use
+                    // a Dictionary than it is to manually enumerate each possible value
+                    if (COLOR_TO_HEX.TryGetValue(name.ToString(), out string hexCode))
+                    {
+                        builder.Append(colorTag);
+                        builder.Append(hexCode);
+                        builder.Append('>');
+                    }
+                }
+                else
+                {
+                    builder.Append(tag);
+                }
+            }
+
+            // Return unmodified if no modifications were made
+            if (!tagsFound)
+                return text;
+
+            builder.Append(textSpan);
+            return builder.ToString();
+        }
+
+        private static bool FindNextTag(ReadOnlySpan<char> text,
+            out ReadOnlySpan<char> beforeTag, out ReadOnlySpan<char> tag, out ReadOnlySpan<char> remaining)
+        {
+            beforeTag = ReadOnlySpan<char>.Empty;
+            tag = ReadOnlySpan<char>.Empty;
+            remaining = ReadOnlySpan<char>.Empty;
+
+            int tagIndex = text.IndexOf('<');
+            if (tagIndex < 0)
+                return false;
+
+            beforeTag = text[..tagIndex];
+            tag = text[tagIndex..];
+
+            int tagCloseIndex = tag.IndexOf('>');
+            if (tagCloseIndex < 0)
+                return false;
+
+            remaining = tag[++tagCloseIndex..];
+            tag = tag[..tagCloseIndex];
+            return true;
         }
     }
 }

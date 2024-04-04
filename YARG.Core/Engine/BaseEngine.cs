@@ -1,5 +1,5 @@
-using System;
 using System.Collections.Generic;
+using System.Linq;
 using YARG.Core.Chart;
 using YARG.Core.Engine.Logging;
 using YARG.Core.Input;
@@ -26,7 +26,13 @@ namespace YARG.Core.Engine
 
         protected readonly Queue<GameInput> InputQueue = new();
 
-        private readonly List<double> _scheduledUpdates = new();
+        private readonly List<EngineFrameUpdate> _scheduledUpdates = new();
+
+        public struct EngineFrameUpdate
+        {
+            public double Time;
+            public string Reason;
+        }
 
         /// <summary>
         /// Whether or not the specified engine should treat a note as a chord, or separately.
@@ -34,6 +40,10 @@ namespace YARG.Core.Engine
         /// as singular pieces.
         /// </summary>
         protected readonly bool TreatChordAsSeparate;
+
+        protected bool ReRunHitLogic;
+
+        protected readonly bool IsBot = false;
 
         protected BaseEngine(SyncTrack syncTrack, bool isChordSeparate)
         {
@@ -58,6 +68,25 @@ namespace YARG.Core.Engine
 
         public void Update(double time)
         {
+            YargLogger.LogFormatTrace("---- Starting update loop with time {0} ----", time);
+
+            if (!IsBot)
+            {
+                ProcessInputs(time);
+            }
+
+            // Update to the given time
+            if (InputQueue.Count > 0)
+            {
+                YargLogger.LogWarning("Input queue was not fully cleared!");
+            }
+            YargLogger.LogFormatTrace("Running frame update at {0}", time);
+            RunQueuedUpdates(time);
+            RunEngineLoop(time);
+        }
+
+        private void ProcessInputs(double time)
+        {
             while (InputQueue.TryDequeue(out var input))
             {
                 // Skip inputs that are in the past
@@ -71,38 +100,44 @@ namespace YARG.Core.Engine
                 // Skip inputs that are in the future
                 if (input.Time > time)
                 {
-                    YargLogger.FailFormat(
+                    YargLogger.LogFormatWarning(
                         "Queued input is in the future! Time being updated to: {0}, input time: {1}", time, input.Time);
                     break;
                 }
 
+                YargLogger.LogFormatTrace("Processing input {0} ({1}) update at {2}", input.GetAction<GuitarAction>(), input.Button, input.Time);
                 RunQueuedUpdates(input.Time);
                 MutateStateWithInput(input);
-                RunHitLogic(input.Time);
+                RunEngineLoop(input.Time);
 
                 // Skip non-input update if possible
                 if (input.Time == time)
                 {
-                    YargLogger.Assert(InputQueue.Count == 0,
-                        "Input queue was not fully cleared! Remaining inputs are possibly in the future");
+                    if (InputQueue.Count > 0)
+                    {
+                        YargLogger.LogWarning("Input queue was not fully cleared! Remaining inputs are possibly in the future");
+                    }
                     return;
                 }
             }
-
-            // Update to the given time
-            YargLogger.Assert(InputQueue.Count == 0, "Input queue was not fully cleared!");
-            RunQueuedUpdates(time);
-            RunHitLogic(time);
         }
 
         private void RunQueuedUpdates(double time)
         {
             // 'for' is used here to prevent enumeration exceptions,
             // the list of scheduled updates will be modified by the updates we're running
+
+            GenerateQueuedUpdates(time);
+            _scheduledUpdates.Sort((x, y) => x.Time.CompareTo(y.Time));
+
+            if (_scheduledUpdates.Count > 0)
+            {
+                YargLogger.LogFormatTrace("{0} updates ready to be simulated", _scheduledUpdates.Count);
+            }
             int i = 0;
             for (; i < _scheduledUpdates.Count; i++)
             {
-                double updateTime = _scheduledUpdates[i];
+                double updateTime = _scheduledUpdates[i].Time;
 
                 // Skip updates that are in the past
                 if (updateTime < BaseState.CurrentTime)
@@ -112,23 +147,26 @@ namespace YARG.Core.Engine
                     continue;
                 }
 
-                // Stop once we've processed everything up to the given time
+                // There should be no scheduled updates for times beyond the one we want to update to
                 if (updateTime >= time)
                 {
-                    // De-duplicate any updates for the given time
-                    if (updateTime == time)
-                    {
-                        i++;
-                    }
-
-                    break;
+                    YargLogger.FailFormat("Update time is >= than the given time! Update time: {0}, given time: {1}", updateTime, time);
+                    continue;
                 }
 
-                RunHitLogic(updateTime);
+                YargLogger.LogFormatTrace("Running scheduled update at {0} ({1})", updateTime, item2: _scheduledUpdates[i].Reason);
+                RunEngineLoop(updateTime);
             }
 
             // Remove all processed updates
             _scheduledUpdates.RemoveRange(0, i);
+        }
+
+        protected abstract void UpdateBot(double time);
+
+        protected virtual void GenerateQueuedUpdates(double nextTime)
+        {
+            YargLogger.LogFormatTrace("Generating queued updates up to {0}", nextTime);
         }
 
         /// <summary>
@@ -166,7 +204,7 @@ namespace YARG.Core.Engine
             BaseState.LastQueuedInputTime = input.Time;
         }
 
-        public void QueueUpdateTime(double time)
+        public void QueueUpdateTime(double time, string reason)
         {
             // Ignore updates for the current time
             if (time == BaseState.CurrentTime)
@@ -183,38 +221,28 @@ namespace YARG.Core.Engine
             }
 
             // Ignore duplicate updates
-            if (_scheduledUpdates.Contains(time))
+            if (_scheduledUpdates.Any(i => i.Time == time))
             {
                 return;
             }
 
-            _scheduledUpdates.Add(time);
-            _scheduledUpdates.Sort();
+            _scheduledUpdates.Add(new EngineFrameUpdate
+                { Time = time, Reason = reason });
+        }
+
+        private void RunEngineLoop(double time)
+        {
+            do
+            {
+                ReRunHitLogic = false;
+                UpdateHitLogic(time);
+            } while (ReRunHitLogic);
         }
 
         internal void QueueManyUpdateTimesNoChecks(IEnumerable<double> times)
         {
-            _scheduledUpdates.AddRange(times);
+            //_scheduledUpdates.AddRange(times);
             _scheduledUpdates.Sort();
-        }
-
-        protected void RunHitLogic(double time)
-        {
-            UpdateEngineLogic(time);
-        }
-
-        protected void StartTimer(ref EngineTimer timer, double startTime, double offset = 0)
-        {
-            if (offset > 0)
-            {
-                timer.StartWithOffset(startTime, offset);
-            }
-            else
-            {
-                timer.Start(startTime);
-            }
-
-            QueueUpdateTime(timer.EndTime);
         }
 
         public abstract void Reset(bool keepCurrentButtons = false);
@@ -226,7 +254,7 @@ namespace YARG.Core.Engine
         /// </summary>
         /// <param name="time">The time in which to simulate hit logic at.</param>
         /// <returns>True if a note was updated (hit or missed). False if no changes.</returns>
-        protected abstract bool UpdateEngineLogic(double time);
+        protected abstract void UpdateHitLogic(double time);
 
         /// <summary>
         /// Resets the engine's state back to default and then processes the list of inputs up to the given time.
@@ -255,8 +283,23 @@ namespace YARG.Core.Engine
             return inputIndex;
         }
 
-        public abstract void UpdateBot(double songTime);
-
         public abstract (double FrontEnd, double BackEnd) CalculateHitWindow();
+
+        protected static void StartTimer(ref EngineTimer timer, double startTime, double offset = 0)
+        {
+            if (offset > 0)
+            {
+                timer.StartWithOffset(startTime, offset);
+            }
+            else
+            {
+                timer.Start(startTime);
+            }
+        }
+
+        protected static bool IsTimeBetween(double time, double prevTime, double nextTime)
+        {
+            return time > prevTime && time < nextTime;
+        }
     }
 }

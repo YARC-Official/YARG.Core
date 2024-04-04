@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using YARG.Core.Chart;
 using YARG.Core.Engine.Logging;
-using YARG.Core.Input;
 using YARG.Core.Logging;
+using YARG.Core.Utility;
 
 namespace YARG.Core.Engine
 {
@@ -116,6 +116,58 @@ namespace YARG.Core.Engine
             }
 
             Solos = GetSoloSections();
+        }
+
+        protected override void GenerateQueuedUpdates(double nextTime)
+        {
+            base.GenerateQueuedUpdates(nextTime);
+            var previousTime = BaseState.CurrentTime;
+
+            for (int i = State.NoteIndex; i < Notes.Count; i++)
+            {
+                var note = Notes[i];
+
+                var hitWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
+
+                var noteFrontEnd = note.Time + EngineParameters.HitWindow.GetFrontEnd(hitWindow);
+                var noteBackEnd = note.Time + EngineParameters.HitWindow.GetBackEnd(hitWindow);
+
+                // Note will not reach front end yet
+                if (nextTime < noteFrontEnd)
+                {
+                    //YargLogger.LogFormatTrace("Note {0} front end will not be reached at {1}", i, nextTime);
+                    break;
+                }
+
+                if (!IsBot)
+                {
+                    // Earliest the note can be hit
+                    if(IsTimeBetween(noteFrontEnd, previousTime, nextTime))
+                    {
+                        YargLogger.LogFormatTrace("Queuing note {0} front end hit time at {1}", i, noteFrontEnd);
+                        QueueUpdateTime(noteFrontEnd, "Note Front End");
+                    }
+                }
+                else
+                {
+                    if (IsTimeBetween(note.Time, previousTime, nextTime))
+                    {
+                        YargLogger.LogFormatTrace("Queuing bot note {0} at {1}", i, note.Time);
+                        QueueUpdateTime(note.Time, "Bot Note Time");
+                    }
+                }
+
+                // Note will not be out of time on the exact back end
+                // So we increment the back end by 1 bit exactly
+                // (essentially just 1 epsilon bigger)
+                var noteBackEndIncrement = MathUtil.BitIncrement(noteBackEnd);
+
+                if (IsTimeBetween(noteBackEndIncrement, previousTime, nextTime))
+                {
+                    YargLogger.LogFormatTrace("Queuing note {0} back end miss time at {1}", i, noteBackEndIncrement);
+                    QueueUpdateTime(noteBackEndIncrement, "Note Back End");
+                }
+            }
         }
 
         protected void UpdateTimeVariables(double time)
@@ -248,7 +300,7 @@ namespace YARG.Core.Engine
             }
         }
 
-        protected abstract bool CheckForNoteHit();
+        protected abstract void CheckForNoteHit();
 
         /// <summary>
         /// Checks if the given note can be hit with the current input state.
@@ -590,12 +642,14 @@ namespace YARG.Core.Engine
             double frontend = EngineParameters.HitWindow.GetFrontEnd(hitWindow);
             double backend = EngineParameters.HitWindow.GetBackEnd(hitWindow);
 
-            if (note.Time + frontend > State.CurrentTime)
+            // Time has not reached the front end of this note
+            if (State.CurrentTime < note.Time + frontend)
             {
                 return false;
             }
 
-            if (note.Time + backend <= State.CurrentTime)
+            // Time has surpassed the back end of this note
+            if (State.CurrentTime > note.Time + backend)
             {
                 missed = true;
                 return false;
@@ -606,32 +660,33 @@ namespace YARG.Core.Engine
 
         private void AdvanceToNextNote(TNoteType note)
         {
+            State.NoteIndex++;
+            ReRunHitLogic = true;
+
             if (note.NextNote is null)
             {
                 return;
             }
 
-            note = note.NextNote;
+            //note = note.NextNote;
 
-            double dist = GetAverageNoteDistance(note);
-            double fullWindow = EngineParameters.HitWindow.CalculateHitWindow(dist);
-
-            double frontEnd = EngineParameters.HitWindow.GetFrontEnd(fullWindow);
-            double backEnd = EngineParameters.HitWindow.GetBackEnd(fullWindow);
-
-            // This is the time when the note will enter the hit window in the front end. Engine will update at this time
-            double frontEndTime = note.Time + frontEnd;
-            // Only queue if the note is not already in the hit window, happens if
-            // multiple notes are in the hit window and the back-most one gets hit/missed
-            if (frontEndTime > State.CurrentTime) QueueUpdateTime(frontEndTime);
-
-            // This is the time when the note will leave the hit window in the back end (miss)
-            double backEndTime = note.Time + backEnd;
-            // Only queue if note has not already been missed
-            // Very rare case; only happens when lagging enough to make a note skip the hit window entirely
-            if (backEndTime > State.CurrentTime) QueueUpdateTime(backEndTime);
-
-            State.NoteIndex++;
+            // double dist = GetAverageNoteDistance(note);
+            // double fullWindow = EngineParameters.HitWindow.CalculateHitWindow(dist);
+            //
+            // double frontEnd = EngineParameters.HitWindow.GetFrontEnd(fullWindow);
+            // double backEnd = EngineParameters.HitWindow.GetBackEnd(fullWindow);
+            //
+            // // This is the time when the note will enter the hit window in the front end. Engine will update at this time
+            // double frontEndTime = note.Time + frontEnd;
+            // // Only queue if the note is not already in the hit window, happens if
+            // // multiple notes are in the hit window and the back-most one gets hit/missed
+            // if (frontEndTime > State.CurrentTime) QueueUpdateTime(frontEndTime);
+            //
+            // // This is the time when the note will leave the hit window in the back end (miss)
+            // double backEndTime = note.Time + backEnd;
+            // // Only queue if note has not already been missed
+            // // Very rare case; only happens when lagging enough to make a note skip the hit window entirely
+            // if (backEndTime > State.CurrentTime) QueueUpdateTime(backEndTime);
         }
 
         public double GetAverageNoteDistance(TNoteType note)

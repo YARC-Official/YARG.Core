@@ -2,11 +2,8 @@
 {
     public class GuitarEngineState : BaseEngineState
     {
-        // Dummy variable for now
+        public byte LastButtonMask;
         public byte ButtonMask;
-
-        public byte LastFretMask;
-        public byte FretMask;
 
         public bool HasFretted;
         public bool HasStrummed;
@@ -46,7 +43,7 @@
         {
             base.Reset();
 
-            FretMask = 0;
+            ButtonMask = 0;
 
             HasFretted = false;
             HasStrummed = false;
