@@ -19,7 +19,7 @@ namespace YARG.Core.Replays.Analyzer
         private readonly Replay    _replay;
 
         private readonly double _fps;
-        private readonly bool _doFrameUpdates;
+        private readonly bool   _doFrameUpdates;
 
         private readonly bool _keepEngineLoggers;
 
@@ -65,18 +65,39 @@ namespace YARG.Core.Replays.Analyzer
 
             double maxTime = Math.Max(_chart.GetEndTime(), frame.Inputs[^1].Time) + 2;
 
-            foreach (var input in frame.Inputs)
+            if (!_doFrameUpdates)
             {
-                var inp = input;
-                engine.QueueInput(ref inp);
-            }
+                // If we're not doing frame updates, just queue all of the inputs at once
+                foreach (var input in frame.Inputs)
+                {
+                    var inp = input;
+                    engine.QueueInput(ref inp);
+                }
 
-            if (_doFrameUpdates)
+                // Run the engine updates
+                engine.Update(maxTime);
+            }
+            else
             {
-                engine.QueueManyUpdateTimesNoChecks(GenerateFrameTimes(-2, maxTime));
-            }
+                // If we're doing frame updates, the inputs and frame times must be
+                // "interweaved" so nothing gets queued in the future
+                int currentInput = 0;
+                foreach (var time in GenerateFrameTimes(-2, maxTime))
+                {
+                    for (; currentInput < frame.Inputs.Length; currentInput++)
+                    {
+                        var input = frame.Inputs[currentInput];
+                        if (input.Time > time)
+                        {
+                            break;
+                        }
 
-            engine.Update(maxTime);
+                        engine.QueueInput(ref input);
+                    }
+
+                    engine.Update(time);
+                }
+            }
 
             bool passed = IsPassResult(frame.Stats, engine.BaseStats);
 
@@ -180,6 +201,9 @@ namespace YARG.Core.Replays.Analyzer
 
                 times.Add(adjustedTime);
             }
+
+            // Add the end time just in case
+            times.Add(to);
 
             return times;
         }

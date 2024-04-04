@@ -239,12 +239,6 @@ namespace YARG.Core.Engine
             } while (ReRunHitLogic);
         }
 
-        internal void QueueManyUpdateTimesNoChecks(IEnumerable<double> times)
-        {
-            //_scheduledUpdates.AddRange(times);
-            _scheduledUpdates.Sort();
-        }
-
         public abstract void Reset(bool keepCurrentButtons = false);
 
         protected abstract void MutateStateWithInput(GameInput gameInput);

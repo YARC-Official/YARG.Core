@@ -12,7 +12,7 @@ public partial class Cli
         public int    Count;
     }
 
-    private const int SIMULATED_FPS_ATTEMPTS = 25;
+    private const int SIMULATED_FPS_ATTEMPTS = 50;
 
     private bool RunSimulateFps()
     {
@@ -31,7 +31,7 @@ public partial class Cli
         // Run each a replay at each FPS
         for (int i = 0; i < SIMULATED_FPS_ATTEMPTS; i++)
         {
-            double fps = i * 8 + 1;
+            double fps = i * 4 + 1;
 
             var analyzerResults = ReplayAnalyzer.AnalyzeReplay(chart, _replay, fps, _searchForProblems);
             long bandScore = analyzerResults.Sum(x => (long) x.Stats.TotalScore);
