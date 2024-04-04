@@ -24,7 +24,7 @@ namespace YARG.Core.IO.Ini
         Bool,
         Float,
         Double,
-        UInt64Array,
+        Int64Array,
     };
 
     public sealed class IniModifier
@@ -41,7 +41,7 @@ namespace YARG.Core.IO.Ini
             [FieldOffset(0)] public double d;
             [FieldOffset(0)] public float f;
             [FieldOffset(0)] public bool b;
-            [FieldOffset(0)] public fixed ulong ulArr[2];
+            [FieldOffset(0)] public fixed long lArr[2];
         }
 
         private readonly ModifierType type;
@@ -105,13 +105,13 @@ namespace YARG.Core.IO.Ini
             type = ModifierType.Double;
             union.d = value;
         }
-        public IniModifier(ulong dub1, ulong dub2)
+        public IniModifier(long dub1, long dub2)
         {
-            type = ModifierType.UInt64Array;
+            type = ModifierType.Int64Array;
             unsafe
             {
-                union.ulArr[0] = dub1;
-                union.ulArr[1] = dub2;
+                union.lArr[0] = dub1;
+                union.lArr[1] = dub2;
             }
         }
 
@@ -291,26 +291,26 @@ namespace YARG.Core.IO.Ini
             }
         }
 
-        public ulong[] UInt64Array
+        public long[] Int64Array
         {
             get
             {
-                if (type != ModifierType.UInt64Array)
+                if (type != ModifierType.Int64Array)
                     throw new ArgumentException("Modifier is not a UINT64ARRAY");
                 unsafe
                 {
-                    return new ulong[] { union.ulArr[0], union.ulArr[1] };
+                    return new long[] { union.lArr[0], union.lArr[1] };
                 }
             }
             set
             {
-                if (type != ModifierType.UInt64Array)
+                if (type != ModifierType.Int64Array)
                     throw new ArgumentException("Modifier is not a UINT64ARRAY");
 
                 unsafe
                 {
-                    union.ulArr[0] = value[0];
-                    union.ulArr[1] = value[1];
+                    union.lArr[0] = value[0];
+                    union.lArr[1] = value[1];
                 }
             }
         }

@@ -191,6 +191,11 @@ namespace YARG.Core.Song
             return mixer;
         }
 
+        public override StemMixer? LoadPreviewAudio(float speed)
+        {
+            return LoadAudio(speed, 0, SongStem.Crowd);
+        }
+
         public override byte[]? LoadAlbumData()
         {
             var bytes = LoadRawImageData();
@@ -213,11 +218,6 @@ namespace YARG.Core.Song
                 return File.ReadAllBytes(UpdateMilo.FullName);
             }
             return null;
-        }
-
-        protected override StemMixer? LoadPreviewMixer(float speed)
-        {
-            return LoadAudio(speed, 0, SongStem.Crowd);
         }
 
         public virtual void Serialize(BinaryWriter writer, CategoryCacheWriteNode node)
@@ -528,8 +528,8 @@ namespace YARG.Core.Song
                                 break;
                             }
                         case "preview":
-                            _metadata.PreviewStart = reader.ExtractUInt64();
-                            _metadata.PreviewEnd = reader.ExtractUInt64();
+                            _metadata.PreviewStart = reader.ExtractInt64();
+                            _metadata.PreviewEnd = reader.ExtractInt64();
                             break;
                         case "rank": DifficultyLoop(reader); break;
                         case "solo": _rbMetadata.Soloes = reader.ExtractList_String().ToArray(); break;

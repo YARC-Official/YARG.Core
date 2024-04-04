@@ -79,6 +79,19 @@ namespace YARG.Core.Song
             return mixer;
         }
 
+        public override StemMixer? LoadPreviewAudio(float speed)
+        {
+            foreach (var filename in PREVIEW_FILES)
+            {
+                var audioFile = Path.Combine(Directory, filename);
+                if (File.Exists(audioFile))
+                {
+                    return GlobalAudioHandler.LoadCustomFile(audioFile, speed, 0, SongStem.Preview);
+                }
+            }
+            return LoadAudio(speed, 0, SongStem.Crowd);
+        }
+
         public override byte[]? LoadAlbumData()
         {
             var subFiles = GetSubFiles();
@@ -143,19 +156,6 @@ namespace YARG.Core.Song
                 }
             }
             return null;
-        }
-
-        protected override StemMixer? LoadPreviewMixer(float speed)
-        {
-            foreach (var filename in PREVIEW_FILES)
-            {
-                var audioFile = Path.Combine(Directory, filename);
-                if (File.Exists(audioFile))
-                {
-                    return GlobalAudioHandler.LoadCustomFile(audioFile, speed, 0, SongStem.Preview);
-                }
-            }
-            return LoadAudio(speed, 0, SongStem.Crowd);
         }
 
         protected override Stream? GetChartStream()

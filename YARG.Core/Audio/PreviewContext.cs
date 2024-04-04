@@ -2,12 +2,93 @@
 using System.Threading.Tasks;
 using System.Threading;
 using YARG.Core.Logging;
+using YARG.Core.Song;
 
 namespace YARG.Core.Audio
 {
     public class PreviewContext : IDisposable
     {
-        public const double DEFAULT_PREVIEW_DURATION = 30.0;
+        private const double DEFAULT_PREVIEW_DURATION = 30.0;
+        private const double DEFAULT_START_TIME = 20.0;
+        private const double DEFAULT_END_TIME = 50.0;
+
+        public static async Task<PreviewContext?> Create(SongEntry entry, float volume, float speed, CancellationTokenSource token)
+        {
+            try
+            {
+                // Wait for a X milliseconds to prevent spam loading (no one likes Music Library lag)
+                await Task.Delay(TimeSpan.FromMilliseconds(400.0));
+
+                // Check if cancelled
+                if (token.IsCancellationRequested)
+                {
+                    return null;
+                }
+
+                // Load the song
+                var mixer = await Task.Run(() => entry.LoadPreviewAudio(speed));
+                if (mixer == null || token.IsCancellationRequested)
+                {
+                    mixer?.Dispose();
+                    return null;
+                }
+
+                double audioLength = mixer.Length;
+                double previewStartTime, previewEndTime;
+                if (mixer.Channels.Count > 0)
+                {
+                    if ((entry.PreviewStartSeconds < 0 || entry.PreviewStartSeconds >= audioLength)
+                    &&  (entry.PreviewEndSeconds < 0   || entry.PreviewEndSeconds >= audioLength))
+                    {
+                        if (DEFAULT_END_TIME <= audioLength)
+                        {
+                            previewStartTime = DEFAULT_START_TIME;
+                            previewEndTime = DEFAULT_END_TIME;
+                        }
+                        else if (DEFAULT_PREVIEW_DURATION <= audioLength)
+                        {
+                            previewStartTime = (audioLength - DEFAULT_PREVIEW_DURATION) / 2;
+                            previewEndTime = previewStartTime + DEFAULT_PREVIEW_DURATION;
+                        }
+                        else
+                        {
+                            previewStartTime = 0;
+                            previewEndTime = DEFAULT_PREVIEW_DURATION;
+                        }
+                    }
+                    else if (0 <= entry.PreviewStartSeconds && entry.PreviewStartSeconds < audioLength)
+                    {
+                        previewStartTime = entry.PreviewStartSeconds;
+                        previewEndTime = previewStartTime + DEFAULT_PREVIEW_DURATION;
+                        if (previewEndTime > audioLength)
+                        {
+                            previewEndTime = audioLength;
+                        }
+                    }
+                    else
+                    {
+                        previewEndTime = entry.PreviewEndSeconds;
+                        previewStartTime = previewEndTime - DEFAULT_PREVIEW_DURATION;
+                        if (previewStartTime < 0)
+                        {
+                            previewStartTime = 0;
+                        }
+                    }
+                }
+                else
+                {
+                    previewStartTime = 0;
+                    previewEndTime = audioLength;
+                }
+                previewEndTime -= 1;
+                return new PreviewContext(mixer, previewStartTime, previewEndTime, volume, token);
+            }
+            catch (Exception ex)
+            {
+                YargLogger.LogException(ex, "Error while loading song preview!");
+                return null;
+            }
+        }
 
         private StemMixer _mixer;
         private Task _task;
@@ -19,7 +100,7 @@ namespace YARG.Core.Audio
 
         public bool IsPlaying => !_token.IsCancellationRequested;
 
-        public PreviewContext(StemMixer mixer, double previewStartTime, double previewEndTime, float volume, CancellationTokenSource token)
+        private PreviewContext(StemMixer mixer, double previewStartTime, double previewEndTime, float volume, CancellationTokenSource token)
         {
             _mixer = mixer;
             _previewStartTime = previewStartTime;
@@ -104,14 +185,8 @@ namespace YARG.Core.Audio
             }
         }
 
-        ~PreviewContext()
-        {
-            Dispose(false);
-        }
-
         public void Dispose()
         {
-            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
         }
