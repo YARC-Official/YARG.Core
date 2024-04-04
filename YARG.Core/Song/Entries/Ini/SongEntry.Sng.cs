@@ -41,7 +41,7 @@ namespace YARG.Core.Song
             return sngFile[_chart.File].CreateStream(sngFile);
         }
 
-        public override StemMixer? LoadAudio(float speed, params SongStem[] ignoreStems)
+        public override StemMixer? LoadAudio(float speed, double volume, params SongStem[] ignoreStems)
         {
             var sngFile = SngFile.TryLoadFromFile(_sngInfo);
             if (sngFile == null)
@@ -49,7 +49,7 @@ namespace YARG.Core.Song
                 YargLogger.LogFormatError("Failed to load sng file {0}", _sngInfo.FullName);
                 return null;
             }
-            return CreateAudioMixer(speed, sngFile, ignoreStems);
+            return CreateAudioMixer(speed, volume, sngFile, ignoreStems);
         }
 
         public override byte[]? LoadAlbumData()
@@ -173,7 +173,7 @@ namespace YARG.Core.Song
                 {
                     string fakename = Path.Combine(_sngInfo.FullName, filename);
                     var stream = listing.CreateStream(sngFile);
-                    var mixer = GlobalAudioHandler.LoadCustomFile(fakename, stream, speed, SongStem.Preview);
+                    var mixer = GlobalAudioHandler.LoadCustomFile(fakename, stream, speed, 0, SongStem.Preview);
                     if (mixer == null)
                     {
                         stream.Dispose();
@@ -184,13 +184,13 @@ namespace YARG.Core.Song
                 }
             }
 
-            return CreateAudioMixer(speed, sngFile, SongStem.Crowd);
+            return CreateAudioMixer(speed, 0, sngFile, SongStem.Crowd);
         }
 
-        private StemMixer? CreateAudioMixer(float speed, SngFile sngFile, params SongStem[] ignoreStems)
+        private StemMixer? CreateAudioMixer(float speed, double volume, SngFile sngFile, params SongStem[] ignoreStems)
         {
             bool clampStemVolume = _metadata.Source.Str.ToLowerInvariant() == "yarg";
-            var mixer = GlobalAudioHandler.CreateMixer(ToString(), speed, clampStemVolume);
+            var mixer = GlobalAudioHandler.CreateMixer(ToString(), speed, volume, clampStemVolume);
             if (mixer == null)
             {
                 YargLogger.LogError("Failed to create mixer");

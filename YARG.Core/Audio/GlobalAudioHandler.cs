@@ -176,7 +176,7 @@ namespace YARG.Core.Audio
             }
         }
 
-        public static StemMixer? LoadCustomFile(string name, Stream stream, float speed, SongStem stem = SongStem.Song)
+        public static StemMixer? LoadCustomFile(string name, Stream stream, float speed, double volume, SongStem stem = SongStem.Song)
         {
             lock (_instanceLock)
             {
@@ -184,11 +184,11 @@ namespace YARG.Core.Audio
                 {
                     throw new NotInitializedException();
                 }
-                return _instance.LoadCustomFile(name, stream, speed, stem);
+                return _instance.LoadCustomFile(name, stream, speed, volume, stem);
             }
         }
 
-        public static StemMixer? LoadCustomFile(string file, float speed, SongStem stem = SongStem.Song)
+        public static StemMixer? LoadCustomFile(string file, float speed, double volume, SongStem stem = SongStem.Song)
         {
             lock (_instanceLock)
             {
@@ -196,11 +196,11 @@ namespace YARG.Core.Audio
                 {
                     throw new NotInitializedException();
                 }
-                return _instance.LoadCustomFile(file, speed, stem);
+                return _instance.LoadCustomFile(file, speed, volume, stem);
             }
         }
 
-        public static StemMixer? CreateMixer(string name, float speed, bool clampStemVolume)
+        public static StemMixer? CreateMixer(string name, float speed, double mixerVolume, bool clampStemVolume)
         {
             lock (_instanceLock)
             {
@@ -208,11 +208,11 @@ namespace YARG.Core.Audio
                 {
                     throw new NotInitializedException();
                 }
-                return _instance.CreateMixer(name, speed, clampStemVolume);
+                return _instance.CreateMixer(name, speed, mixerVolume, clampStemVolume);
             }
         }
 
-        public static StemMixer? CreateMixer(string name, Stream stream, float speed, bool clampStemVolume)
+        public static StemMixer? CreateMixer(string name, Stream stream, float speed, double mixerVolume, bool clampStemVolume)
         {
             lock (_instanceLock)
             {
@@ -220,7 +220,7 @@ namespace YARG.Core.Audio
                 {
                     throw new NotInitializedException();
                 }
-                return _instance.CreateMixer(name, stream, speed, clampStemVolume);
+                return _instance.CreateMixer(name, stream, speed, mixerVolume, clampStemVolume);
             }
         }
 

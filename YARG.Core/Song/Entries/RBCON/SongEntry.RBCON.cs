@@ -99,7 +99,7 @@ namespace YARG.Core.Song
             return SongChart.FromMidi(_parseSettings, midi);
         }
 
-        public override StemMixer? LoadAudio(float speed, params SongStem[] ignoreStems)
+        public override StemMixer? LoadAudio(float speed, double volume, params SongStem[] ignoreStems)
         {
             var stream = GetMoggStream();
             if (stream == null)
@@ -119,7 +119,7 @@ namespace YARG.Core.Song
             stream.Seek(start, SeekOrigin.Begin);
 
             bool clampStemVolume = _metadata.Source.Str.ToLowerInvariant() == "yarg";
-            var mixer = GlobalAudioHandler.CreateMixer(ToString(), stream, speed, clampStemVolume);
+            var mixer = GlobalAudioHandler.CreateMixer(ToString(), stream, speed, volume, clampStemVolume);
             if (mixer == null)
             {
                 YargLogger.LogError("Mogg failed to load!");
@@ -217,7 +217,7 @@ namespace YARG.Core.Song
 
         protected override StemMixer? LoadPreviewMixer(float speed)
         {
-            return LoadAudio(speed, SongStem.Crowd);
+            return LoadAudio(speed, 0, SongStem.Crowd);
         }
 
         public virtual void Serialize(BinaryWriter writer, CategoryCacheWriteNode node)

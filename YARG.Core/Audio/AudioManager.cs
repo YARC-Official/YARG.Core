@@ -14,10 +14,10 @@ namespace YARG.Core.Audio
 
         protected internal abstract ReadOnlySpan<string> SupportedFormats { get; }
 
-        internal StemMixer? LoadCustomFile(string name, Stream stream, float speed, SongStem stem = SongStem.Song)
+        internal StemMixer? LoadCustomFile(string name, Stream stream, float speed, double volume, SongStem stem = SongStem.Song)
         {
             YargLogger.LogInfo("Loading custom audio file");
-            var mixer = CreateMixer(name, stream, speed, false);
+            var mixer = CreateMixer(name, stream, speed, volume, false);
             if (mixer == null)
             {
                 return null;
@@ -32,10 +32,10 @@ namespace YARG.Core.Audio
             return mixer;
         }
 
-        internal StemMixer? LoadCustomFile(string file, float speed, SongStem stem = SongStem.Song)
+        internal StemMixer? LoadCustomFile(string file, float speed, double volume, SongStem stem = SongStem.Song)
         {
             var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
-            var mixer = LoadCustomFile(file, stream, speed, stem);
+            var mixer = LoadCustomFile(file, stream, speed, volume, stem);
             if (mixer == null)
             {
                 YargLogger.LogFormatError("Failed to load audio file{0}!", file);
@@ -45,9 +45,9 @@ namespace YARG.Core.Audio
             return mixer;
         }
 
-        protected internal abstract StemMixer? CreateMixer(string name, float speed, bool clampStemVolume);
+        protected internal abstract StemMixer? CreateMixer(string name, float speed, double volume, bool clampStemVolume);
 
-        protected internal abstract StemMixer? CreateMixer(string name, Stream stream, float speed, bool clampStemVolume);
+        protected internal abstract StemMixer? CreateMixer(string name, Stream stream, float speed, double volume, bool clampStemVolume);
 
         protected internal abstract MicDevice? GetInputDevice(string name);
 

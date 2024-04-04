@@ -47,8 +47,8 @@ namespace YARG.Core.Audio
         {
             try
             {
+                // Preview mixers start at a volume of zero
                 var stage = LoopStage.FadeIn;
-                _mixer.SetVolume(0);
                 while (!_disposed)
                 {
                     switch (stage)

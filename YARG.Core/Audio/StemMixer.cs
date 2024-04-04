@@ -95,7 +95,7 @@ namespace YARG.Core.Audio
             }
         }
 
-        public float GetVolume()
+        public double GetVolume()
         {
             lock (this)
             {
@@ -204,7 +204,7 @@ namespace YARG.Core.Audio
         protected abstract void FadeOut_Internal();
         protected abstract int Pause_Internal();
         protected abstract double GetPosition_Internal();
-        protected abstract float GetVolume_Internal();
+        protected abstract double GetVolume_Internal();
         protected abstract void SetPosition_Internal(double position);
         protected abstract void SetVolume_Internal(double volume);
         protected abstract int  GetData_Internal(float[] buffer);
