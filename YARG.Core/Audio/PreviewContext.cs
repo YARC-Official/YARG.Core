@@ -11,14 +11,15 @@ namespace YARG.Core.Audio
         private const double DEFAULT_PREVIEW_DURATION = 30.0;
         private const double DEFAULT_START_TIME = 20.0;
         private const double DEFAULT_END_TIME = 50.0;
-        private const double FADE_DURATION = 1.25;
 
-        public static async Task<PreviewContext?> Create(SongEntry entry, float volume, float speed, CancellationTokenSource token)
+        public static async Task<PreviewContext?> Create(SongEntry entry, float volume, float speed, double delaySeconds, double fadeDuration, CancellationTokenSource token)
         {
             try
             {
-                // Wait for a X milliseconds to prevent spam loading (no one likes Music Library lag)
-                await Task.Delay(TimeSpan.FromMilliseconds(500.0));
+                if (delaySeconds > 0)
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(delaySeconds));
+                }
 
                 // Check if cancelled
                 if (token.IsCancellationRequested)
@@ -81,8 +82,8 @@ namespace YARG.Core.Audio
                     previewStartTime = 0;
                     previewEndTime = audioLength;
                 }
-                previewEndTime -= FADE_DURATION;
-                return new PreviewContext(mixer, previewStartTime, previewEndTime, volume, token);
+                previewEndTime -= fadeDuration;
+                return new PreviewContext(mixer, previewStartTime, previewEndTime, fadeDuration, volume, token);
             }
             catch (Exception ex)
             {
@@ -95,17 +96,19 @@ namespace YARG.Core.Audio
         private Task _task;
         private readonly double _previewStartTime;
         private readonly double _previewEndTime;
+        private readonly double _fadeDruation;
         private readonly float _volume;
         private readonly CancellationTokenSource _token;
         private bool _disposed;
 
         public bool IsPlaying => !_token.IsCancellationRequested;
 
-        private PreviewContext(StemMixer mixer, double previewStartTime, double previewEndTime, float volume, CancellationTokenSource token)
+        private PreviewContext(StemMixer mixer, double previewStartTime, double previewEndTime, double fadeDuration, float volume, CancellationTokenSource token)
         {
             _mixer = mixer;
             _previewStartTime = previewStartTime;
             _previewEndTime = previewEndTime;
+            _fadeDruation = fadeDuration;
             _volume = volume;
             _token = token;
 
@@ -137,7 +140,7 @@ namespace YARG.Core.Audio
                     {
                         case LoopStage.FadeIn:
                             _mixer.SetPosition(_previewStartTime);
-                            _mixer.FadeIn(_volume, FADE_DURATION);
+                            _mixer.FadeIn(_volume, _fadeDruation);
                             _mixer.Play();
                             stage = LoopStage.Main;
                             break;
@@ -147,7 +150,7 @@ namespace YARG.Core.Audio
                                 break;
                             }
 
-                            _mixer.FadeOut(FADE_DURATION);
+                            _mixer.FadeOut(_fadeDruation);
                             stage = LoopStage.FadeOut;
                             break;
                         case LoopStage.FadeOut:
