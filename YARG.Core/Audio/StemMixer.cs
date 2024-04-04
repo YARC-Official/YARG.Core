@@ -50,23 +50,23 @@ namespace YARG.Core.Audio
             }
         }
 
-        public void FadeIn(float maxVolume)
+        public void FadeIn(float maxVolume, double duration)
         {
             lock (this)
             {
                 if (!_disposed)
                 {
-                    FadeIn_Internal(maxVolume);
+                    FadeIn_Internal(maxVolume, duration);
                 }
             }
         }
-        public void FadeOut()
+        public void FadeOut(double duration)
         {
             lock (this)
             {
                 if (!_disposed)
                 {
-                    FadeOut_Internal();
+                    FadeOut_Internal(duration);
                 }
             }
         }
@@ -200,8 +200,8 @@ namespace YARG.Core.Audio
         }
 
         protected abstract int Play_Internal(bool restart);
-        protected abstract void FadeIn_Internal(float maxVolume);
-        protected abstract void FadeOut_Internal();
+        protected abstract void FadeIn_Internal(float maxVolume, double duration);
+        protected abstract void FadeOut_Internal(double duration);
         protected abstract int Pause_Internal();
         protected abstract double GetPosition_Internal();
         protected abstract double GetVolume_Internal();

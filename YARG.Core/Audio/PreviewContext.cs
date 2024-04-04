@@ -11,13 +11,14 @@ namespace YARG.Core.Audio
         private const double DEFAULT_PREVIEW_DURATION = 30.0;
         private const double DEFAULT_START_TIME = 20.0;
         private const double DEFAULT_END_TIME = 50.0;
+        private const double FADE_DURATION = 1.25;
 
         public static async Task<PreviewContext?> Create(SongEntry entry, float volume, float speed, CancellationTokenSource token)
         {
             try
             {
                 // Wait for a X milliseconds to prevent spam loading (no one likes Music Library lag)
-                await Task.Delay(TimeSpan.FromMilliseconds(400.0));
+                await Task.Delay(TimeSpan.FromMilliseconds(500.0));
 
                 // Check if cancelled
                 if (token.IsCancellationRequested)
@@ -80,7 +81,7 @@ namespace YARG.Core.Audio
                     previewStartTime = 0;
                     previewEndTime = audioLength;
                 }
-                previewEndTime -= 1;
+                previewEndTime -= FADE_DURATION;
                 return new PreviewContext(mixer, previewStartTime, previewEndTime, volume, token);
             }
             catch (Exception ex)
@@ -136,7 +137,7 @@ namespace YARG.Core.Audio
                     {
                         case LoopStage.FadeIn:
                             _mixer.SetPosition(_previewStartTime);
-                            _mixer.FadeIn(_volume);
+                            _mixer.FadeIn(_volume, FADE_DURATION);
                             _mixer.Play();
                             stage = LoopStage.Main;
                             break;
@@ -146,7 +147,7 @@ namespace YARG.Core.Audio
                                 break;
                             }
 
-                            _mixer.FadeOut();
+                            _mixer.FadeOut(FADE_DURATION);
                             stage = LoopStage.FadeOut;
                             break;
                         case LoopStage.FadeOut:
