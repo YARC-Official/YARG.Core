@@ -112,13 +112,20 @@ namespace YARG.Core.IO.Ini
                     }
                 case ModifierCreatorType.UInt64Array:
                     {
-                        ulong ul2 = 0;
-                        if (container.ExtractUInt64(out ulong ul1))
+                        long l2 = -1;
+                        if (container.ExtractInt64(out long l1))
                         {
                             YARGTextReader.SkipWhitespace(container);
-                            container.ExtractUInt64(out ul2);
+                            if (!container.ExtractInt64(out l2))
+                            {
+                                l2 = -1;
+                            }
                         }
-                        return new IniModifier(ul1, ul2);
+                        else
+                        {
+                            l1 = -1;
+                        }
+                        return new IniModifier(l1, l2);
                     }
                 default:
                     throw new NotImplementedException();

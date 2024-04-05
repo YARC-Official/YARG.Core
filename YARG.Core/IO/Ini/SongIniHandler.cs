@@ -92,8 +92,8 @@ namespace YARG.Core.IO.Ini
                 { "playlist",                             new("playlist", ModifierCreatorType.SortString) },
                 { "playlist_track",                       new("playlist_track", ModifierCreatorType.Int32) },
                 { "preview",                              new("preview", ModifierCreatorType.UInt64Array) },
-                { "preview_end_time",                     new("preview_end_time", ModifierCreatorType.UInt64) },
-                { "preview_start_time",                   new("preview_start_time", ModifierCreatorType.UInt64) },
+                { "preview_end_time",                     new("preview_end_time", ModifierCreatorType.Int64) },
+                { "preview_start_time",                   new("preview_start_time", ModifierCreatorType.Int64) },
 
                 { "pro_drum",                             new("pro_drums", ModifierCreatorType.Bool) },
                 { "pro_drums",                            new("pro_drums", ModifierCreatorType.Bool) },
