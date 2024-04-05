@@ -4,7 +4,7 @@ using System.IO;
 
 namespace YARG.Core.Audio
 {
-    public enum StarPowerFxMode
+    public enum AudioFxMode
     {
         Off,
         MultitrackOnly,
