@@ -106,8 +106,6 @@ namespace YARG.Core.Audio
         private readonly CancellationTokenSource _token;
         private bool _disposed;
 
-        public bool IsPlaying => !_token.IsCancellationRequested;
-
         private PreviewContext(StemMixer mixer, double previewStartTime, double previewEndTime, double fadeDuration, float volume, CancellationTokenSource token)
         {
             _mixer = mixer;
