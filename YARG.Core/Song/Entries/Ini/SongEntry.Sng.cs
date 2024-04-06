@@ -256,6 +256,14 @@ namespace YARG.Core.Song
             }
 
             var entry = new SngEntry(sng, chart, in parts, HashWrapper.Hash(file), sng.Metadata, defaultPlaylist);
+            if (!sng.Metadata.Contains("song_length"))
+            {
+                using var mixer = entry.LoadAudio(0, 0);
+                if (mixer != null)
+                {
+                    entry.SongLengthSeconds = mixer.Length;
+                }
+            }
             return (result, entry);
         }
 

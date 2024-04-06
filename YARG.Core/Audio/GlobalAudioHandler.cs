@@ -47,6 +47,8 @@ namespace YARG.Core.Audio
             StemSettings[SongStem.Master].OnVolumeChange += SetMasterVolume;
         }
 
+        internal static bool LogMixerStatus;
+
         public static bool UseWhammyFx;
         public static bool IsChipmunkSpeedup;
 

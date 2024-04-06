@@ -240,6 +240,14 @@ namespace YARG.Core.Song
 
             var abridged = new AbridgedFileInfo(chart.File);
             var entry = new UnpackedIniEntry(chartDirectory, chart.Type, abridged, iniFileInfo, in parts, HashWrapper.Hash(file), iniModifiers, defaultPlaylist);
+            if (!iniModifiers.Contains("song_length"))
+            {
+                using var mixer = entry.LoadAudio(0, 0);
+                if (mixer != null)
+                {
+                    entry.SongLengthSeconds = mixer.Length;
+                }
+            }
             return (result, entry);
         }
 
