@@ -144,7 +144,7 @@ namespace YARG.Core.Audio
                         case LoopStage.FadeIn:
                             _mixer.SetPosition(_previewStartTime);
                             _mixer.FadeIn(_volume, _fadeDruation);
-                            _mixer.Play();
+                            _mixer.Play(true);
                             stage = LoopStage.Main;
                             break;
                         case LoopStage.Main:
