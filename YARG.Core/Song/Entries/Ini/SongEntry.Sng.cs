@@ -161,18 +161,13 @@ namespace YARG.Core.Song
                     return new BackgroundResult(BackgroundType.Image, background.CreateStream(sngFile));
                 }
 
-                //                                     No "video"
-                foreach (var stem in BACKGROUND_FILENAMES[..2])
+                var listing = GetRandomBackgroundImage(sngFile);
+                if (listing != null)
                 {
-                    foreach (var format in IMAGE_EXTENSIONS)
-                    {
-                        if (sngFile.TryGetValue(stem + format, out var listing))
-                        {
-                            return new BackgroundResult(BackgroundType.Image, listing.CreateStream(sngFile));
-                        }
-                    }
+                    return new BackgroundResult(BackgroundType.Image, listing.CreateStream(sngFile));
                 }
 
+                // Fallback to a potential external image mapped specifically to the sng
                 foreach (var format in IMAGE_EXTENSIONS)
                 {
                     string file = Path.ChangeExtension(_sngInfo.FullName, format);

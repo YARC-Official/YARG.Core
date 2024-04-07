@@ -383,5 +383,39 @@ namespace YARG.Core.Song
                 }
             }
         }
+
+        protected static T? GetRandomBackgroundImage<T>(IEnumerable<KeyValuePair<string, T>> collection)
+            where T : class
+        {
+            // Choose a valid image background present in the folder at random
+            var images = new List<T>();
+            foreach (var format in IMAGE_EXTENSIONS)
+            {
+                var (_, image) = collection.FirstOrDefault(node => node.Key == "bg" + format);
+                if (image != null)
+                {
+                    images.Add(image);
+                }
+            }
+
+            foreach (var (shortname, image) in collection)
+            {
+                if (!shortname.StartsWith("background"))
+                {
+                    continue;
+                }
+
+                foreach (var format in IMAGE_EXTENSIONS)
+                {
+                    if (shortname.EndsWith(format))
+                    {
+                        images.Add(image);
+                        break;
+                    }
+                }
+            }
+
+            return images.Count > 0 ? images[BACKROUND_RNG.Next(images.Count)] : null;
+        }
     }
 }

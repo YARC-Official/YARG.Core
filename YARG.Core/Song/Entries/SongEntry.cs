@@ -89,6 +89,7 @@ namespace YARG.Core.Song
 
         protected static readonly string YARGROUND_EXTENSION = ".yarground";
         protected static readonly string YARGROUND_FULLNAME = "bg.yarground";
+        protected static readonly Random BACKROUND_RNG = new();
 
         private string _parsedYear;
         private int _intYear;

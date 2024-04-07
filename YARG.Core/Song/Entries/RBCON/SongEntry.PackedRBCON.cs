@@ -156,7 +156,6 @@ namespace YARG.Core.Song
             base.Serialize(writer, node);
         }
 
-        private static readonly Random YARGROUND_RNG = new();
         public override BackgroundResult? LoadBackground(BackgroundType options)
         {
             if (_midiListing == null)
@@ -181,7 +180,7 @@ namespace YARG.Core.Song
 
                 if (venues.Length > 0)
                 {
-                    var stream = File.OpenRead(venues[YARGROUND_RNG.Next(venues.Length)]);
+                    var stream = File.OpenRead(venues[BACKROUND_RNG.Next(venues.Length)]);
                     return new BackgroundResult(BackgroundType.Yarground, stream);
                 }
             }

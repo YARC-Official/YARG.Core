@@ -145,14 +145,10 @@ namespace YARG.Core.Song
                     return new BackgroundResult(BackgroundType.Image, new FileStream(background, FileMode.Open, FileAccess.Read, FileShare.Read));
                 }
 
-                //                                     No "video"
-                foreach (var stem in BACKGROUND_FILENAMES[..2])
+                var file = GetRandomBackgroundImage(subFiles);
+                if (file != null)
                 {
-                    foreach (var format in IMAGE_EXTENSIONS)
-                    {
-                        if (subFiles.TryGetValue(stem + format, out var fullname))
-                            return new BackgroundResult(BackgroundType.Image, new FileStream(fullname, FileMode.Open, FileAccess.Read, FileShare.Read));
-                    }
+                    return new BackgroundResult(BackgroundType.Image, File.OpenRead(file));
                 }
             }
             return null;
