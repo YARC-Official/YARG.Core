@@ -8,6 +8,7 @@ namespace YARG.Core.Audio
     public abstract class StemMixer : IDisposable
     {
         private bool _disposed;
+        private bool _isPaused = true;
         
         protected readonly AudioManager _manager;
         protected readonly List<StemChannel> _channels = new();
@@ -15,14 +16,13 @@ namespace YARG.Core.Audio
 
         protected float _speed;
         protected double _length;
-        protected bool _isPlaying = false;
         protected Action? _songEnd;
 
         public readonly string Name;
 
         public double Length => _length;
         public IReadOnlyList<StemChannel> Channels => _channels;
-        public bool IsPlaying => _isPlaying && GetPosition() < _length;
+        public bool IsPaused => _isPaused;
 
         public abstract event Action SongEnd;
 
@@ -46,7 +46,14 @@ namespace YARG.Core.Audio
                 {
                     return -1;
                 }
-                return Play_Internal(restart);
+
+                int ret = Play_Internal(restart);
+                if (ret != 0)
+                {
+                    return ret;
+                }
+                _isPaused = false;
+                return 0;
             }
         }
 
@@ -79,7 +86,14 @@ namespace YARG.Core.Audio
                 {
                     return -1;
                 }
-                return Pause_Internal();
+
+                int ret = Pause_Internal();
+                if (ret != 0)
+                {
+                    return ret;
+                }
+                _isPaused = true;
+                return 0;
             }
         }
 
