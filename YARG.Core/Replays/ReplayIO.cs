@@ -19,7 +19,7 @@ namespace YARG.Core.Replays
     {
         public static readonly EightCC REPLAY_MAGIC_HEADER = new('Y', 'A', 'R', 'G', 'P', 'L', 'A', 'Y');
 
-        public const int REPLAY_VERSION = 4;
+        public const int REPLAY_VERSION = 5;
 
         // Some versions may be invalidated (such as significant format changes)
         private static readonly int[] InvalidVersions =

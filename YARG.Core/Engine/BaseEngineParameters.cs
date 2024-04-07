@@ -57,7 +57,10 @@ namespace YARG.Core.Engine
                 StarMultiplierThresholds[i] = reader.ReadSingle();
             }
 
-            SongSpeed = reader.ReadDouble();
+            if (version >= 5)
+            {
+                SongSpeed = reader.ReadDouble();
+            }
         }
     }
 }
