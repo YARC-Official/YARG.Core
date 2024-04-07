@@ -154,13 +154,13 @@ namespace YARG.Core.Audio
             }
         }
 
-        public void SetSpeed(float speed)
+        public void SetSpeed(float speed, bool shiftPitch)
         {
             lock (this)
             {
                 if (!_disposed)
                 {
-                    SetSpeed_Internal(speed);
+                    SetSpeed_Internal(speed, shiftPitch);
                 }
             }
         }
@@ -222,7 +222,7 @@ namespace YARG.Core.Audio
         protected abstract void SetPosition_Internal(double position);
         protected abstract void SetVolume_Internal(double volume);
         protected abstract int  GetData_Internal(float[] buffer);
-        protected abstract void SetSpeed_Internal(float speed);
+        protected abstract void SetSpeed_Internal(float speed, bool shiftPitch);
         protected abstract bool AddChannel_Internal(SongStem stem);
         protected abstract bool AddChannel_Internal(SongStem stem, Stream stream);
         protected abstract bool AddChannel_Internal(SongStem stem, int[] indices, float[] panning);

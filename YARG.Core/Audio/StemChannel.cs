@@ -45,13 +45,13 @@ namespace YARG.Core.Audio
             }
         }
 
-        public void SetSpeed(float speed)
+        public void SetSpeed(float speed, bool shiftPitch)
         {
             lock (this)
             {
                 if (!_disposed)
                 {
-                    SetSpeed_Internal(speed);
+                    SetSpeed_Internal(speed, shiftPitch);
                 }
             }
         }
@@ -84,7 +84,7 @@ namespace YARG.Core.Audio
 
         protected abstract void SetWhammyPitch_Internal(float percent);
         protected abstract void SetPosition_Internal(double position);
-        protected abstract void SetSpeed_Internal(float speed);
+        protected abstract void SetSpeed_Internal(float speed, bool shiftPitch);
 
         protected abstract void SetVolume_Internal(double newVolume);
         protected abstract void SetReverb_Internal(bool reverb);
