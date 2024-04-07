@@ -6,14 +6,17 @@ namespace YARG.Core.Engine
 {
     public abstract class BaseEngineParameters : IBinarySerializable
     {
-        public HitWindowSettings HitWindow { get; private set; }
+        public readonly HitWindowSettings HitWindow;
 
         public int MaxMultiplier { get; private set; }
 
         public float[] StarMultiplierThresholds { get; private set; }
 
+        public double SongSpeed;
+
         protected BaseEngineParameters()
         {
+            HitWindow = new HitWindowSettings();
             StarMultiplierThresholds = Array.Empty<float>();
         }
 
@@ -22,15 +25,6 @@ namespace YARG.Core.Engine
             HitWindow = hitWindow;
             MaxMultiplier = maxMultiplier;
             StarMultiplierThresholds = starMultiplierThresholds;
-        }
-
-        public void SetHitWindowScale(double scale)
-        {
-            // Since "HitWindow" is a property and returns
-            // a "temporary value," we gotta do this.
-            var hitWindow = HitWindow;
-            hitWindow.Scale = scale;
-            HitWindow = hitWindow;
         }
 
         public virtual void Serialize(BinaryWriter writer)
@@ -45,15 +39,14 @@ namespace YARG.Core.Engine
             {
                 writer.Write(f);
             }
+
+            writer.Write(SongSpeed);
         }
 
         public virtual void Deserialize(BinaryReader reader, int version = 0)
         {
-            // Since "HitWindow" is a property and returns
-            // a "temporary value," we gotta do this.
             var hitWindow = new HitWindowSettings();
             hitWindow.Deserialize(reader, version);
-            HitWindow = hitWindow;
 
             MaxMultiplier = reader.ReadInt32();
 
@@ -63,6 +56,8 @@ namespace YARG.Core.Engine
             {
                 StarMultiplierThresholds[i] = reader.ReadSingle();
             }
+
+            SongSpeed = reader.ReadDouble();
         }
     }
 }

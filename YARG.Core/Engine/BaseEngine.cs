@@ -179,6 +179,12 @@ namespace YARG.Core.Engine
         public abstract int ProcessUpToTime(double time, IEnumerable<GameInput> inputs);
 
         public abstract (double FrontEnd, double BackEnd) CalculateHitWindow();
+
+        public virtual void SetSpeed(double speed)
+        {
+            BaseParameters.SongSpeed = speed;
+            BaseParameters.HitWindow.Scale = speed;
+        }
     }
 
     public abstract class BaseEngine<TNoteType, TEngineParams, TEngineStats, TEngineState> : BaseEngine
@@ -231,7 +237,7 @@ namespace YARG.Core.Engine
         public SoloStartEvent? OnSoloStart;
         public SoloEndEvent?   OnSoloEnd;
 
-        protected          int[]  StarScoreThresholds { get; }
+        protected readonly int[]  StarScoreThresholds;
         protected readonly double TicksPerSustainPoint;
         protected readonly uint   SustainBurstThreshold;
 

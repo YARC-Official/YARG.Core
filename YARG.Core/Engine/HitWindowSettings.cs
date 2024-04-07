@@ -4,7 +4,7 @@ using YARG.Core.Utility;
 
 namespace YARG.Core.Engine
 {
-    public struct HitWindowSettings : IBinarySerializable
+    public class HitWindowSettings : IBinarySerializable
     {
         /// <summary>
         /// The scale factor of the hit window. This should be used to scale the window
@@ -37,6 +37,10 @@ namespace YARG.Core.Engine
         public double FrontToBackRatio { get; private set; }
 
         private double _minMaxWindowRatio;
+
+        public HitWindowSettings()
+        {
+        }
 
         public HitWindowSettings(double maxWindow, double minWindow, double frontToBackRatio, bool isDynamic)
         {

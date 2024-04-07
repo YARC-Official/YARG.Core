@@ -418,7 +418,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 double frontEnd = EngineParameters.HitWindow.GetFrontEnd(hitWindow);
 
                 double frontEndAbs = Math.Abs(frontEnd);
-                bool frontEndExpired = EngineTimer.IsExpired(State.FrontEndStartTime, note.Time, frontEndAbs);
+                bool frontEndExpired = EngineTimer.IsExpired(State.FrontEndStartTime, note.Time, frontEndAbs * EngineParameters.SongSpeed);
                 if (!EngineParameters.InfiniteFrontEnd && frontEndExpired && !strumLeniencyActive &&
                     State.NoteIndex > 0)
                 {
