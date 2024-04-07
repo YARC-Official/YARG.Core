@@ -70,5 +70,7 @@ namespace YARG.Core.Chart
         //YARG internal
         Menu,
         Score,
+        //None to be used instead of checks against null
+        None,
     }
 }
