@@ -151,7 +151,7 @@ namespace YARG.Core.Audio
             }
         }
 
-        public static double PlaybackBufferLength
+        public static int PlaybackLatency
         {
             get
             {
@@ -161,7 +161,7 @@ namespace YARG.Core.Audio
                     {
                         throw new NotInitializedException();
                     }
-                    return _instance.PlaybackBufferLength;
+                    return _instance.PlaybackLatency;
                 }
             }
         }

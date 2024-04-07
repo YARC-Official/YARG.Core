@@ -10,7 +10,7 @@ namespace YARG.Core.Audio
         private bool _disposed;
         private static List<StemMixer> _activeMixers = new();
         protected internal readonly SampleChannel[] SfxSamples = new SampleChannel[AudioHelpers.SfxPaths.Count];
-        protected internal double PlaybackBufferLength;
+        protected internal int PlaybackLatency;
 
         protected internal abstract ReadOnlySpan<string> SupportedFormats { get; }
 
