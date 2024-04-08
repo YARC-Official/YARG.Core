@@ -45,8 +45,7 @@ namespace YARG.Core.Engine
 
         public virtual void Deserialize(BinaryReader reader, int version = 0)
         {
-            var hitWindow = new HitWindowSettings();
-            hitWindow.Deserialize(reader, version);
+            HitWindow.Deserialize(reader, version);
 
             MaxMultiplier = reader.ReadInt32();
 
