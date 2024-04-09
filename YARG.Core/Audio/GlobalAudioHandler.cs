@@ -40,11 +40,7 @@ namespace YARG.Core.Audio
                 { SongStem.Drums4,  drums },
                 { SongStem.Crowd,   new StemSettings(AudioHelpers.SONG_VOLUME_MULTIPLIER) },
                 { SongStem.Sfx,     new StemSettings(1) },
-                { SongStem.Preview, new StemSettings(1) },
-                { SongStem.Master,  new StemSettings(1) },
             };
-
-            StemSettings[SongStem.Master].OnVolumeChange += SetMasterVolume;
         }
 
         internal static bool LogMixerStatus;
@@ -262,7 +258,7 @@ namespace YARG.Core.Audio
             }
         }
 
-        private static void SetMasterVolume(double volume)
+        public static void SetMasterVolume(double volume)
         {
             lock (_instanceLock)
             {
