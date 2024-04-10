@@ -162,6 +162,32 @@ namespace YARG.Core.Audio
             }
         }
 
+        public static float GlobalSpeed
+        {
+            get
+            {
+                lock (_instanceLock)
+                {
+                    if (_instance == null)
+                    {
+                        throw new NotInitializedException();
+                    }
+                    return _instance.GlobalSpeed;
+                }
+            }
+            set
+            {
+                lock (_instanceLock)
+                {
+                    if (_instance == null)
+                    {
+                        throw new NotInitializedException();
+                    }
+                    _instance.GlobalSpeed = value;
+                }
+            }
+        }
+
         public static void PlaySoundEffect(SfxSample sample)
         {
             lock (_instanceLock)

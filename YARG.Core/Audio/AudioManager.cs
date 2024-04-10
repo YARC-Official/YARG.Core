@@ -9,6 +9,8 @@ namespace YARG.Core.Audio
     {
         private bool _disposed;
         private static List<StemMixer> _activeMixers = new();
+        private static float _globalSpeed = 1f;
+
         protected internal readonly SampleChannel[] SfxSamples = new SampleChannel[AudioHelpers.SfxPaths.Count];
         protected internal int PlaybackLatency;
 
@@ -56,6 +58,30 @@ namespace YARG.Core.Audio
         protected internal abstract MicDevice? CreateDevice(int deviceId, string name);
 
         protected internal abstract void SetMasterVolume(double volume);
+
+        internal float GlobalSpeed
+        {
+            get => _globalSpeed;
+            set
+            {
+                lock (this)
+                {
+                    if (_disposed || _globalSpeed == value)
+                    {
+                        return;
+                    }
+
+                    _globalSpeed = value;
+                    lock (_activeMixers)
+                    {
+                        foreach (var mixer in _activeMixers)
+                        {
+                            mixer.SetSpeed(value, true);
+                        }
+                    }
+                }
+            }
+        }
 
         /// <summary>
         /// Communicates to the manager that the mixer is already disposed of.
