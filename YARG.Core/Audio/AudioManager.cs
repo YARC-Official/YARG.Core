@@ -7,9 +7,10 @@ namespace YARG.Core.Audio
 {
     public abstract class AudioManager
     {
-        private bool _disposed;
-        private static List<StemMixer> _activeMixers = new();
         private static float _globalSpeed = 1f;
+
+        private bool _disposed;
+        private List<StemMixer> _activeMixers = new();
 
         protected internal readonly SampleChannel[] SfxSamples = new SampleChannel[AudioHelpers.SfxPaths.Count];
         protected internal int PlaybackLatency;
