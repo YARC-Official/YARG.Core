@@ -188,10 +188,9 @@ namespace YARG.Core.Engine.Guitar.Engines
 
         protected override void CheckForNoteHit()
         {
-            int initialNoteIndex = State.NoteIndex;
-            for (int i = initialNoteIndex; i < Notes.Count; i++)
+            for (int i = State.NoteIndex; i < Notes.Count; i++)
             {
-                bool isFirstNoteInWindow = i == initialNoteIndex;
+                bool isFirstNoteInWindow = i == State.NoteIndex;
                 var note = Notes[i];
 
                 if (note.WasFullyHitOrMissed())
