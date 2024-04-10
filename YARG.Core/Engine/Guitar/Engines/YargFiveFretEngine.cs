@@ -188,11 +188,10 @@ namespace YARG.Core.Engine.Guitar.Engines
 
         protected override void CheckForNoteHit()
         {
-            for (int i = State.NoteIndex; i < Notes.Count; i++)
+            int initialNoteIndex = State.NoteIndex;
+            for (int i = initialNoteIndex; i < Notes.Count; i++)
             {
-                // Local function so it can't be modified
-                bool IsFirstNoteInWindow() => i == State.NoteIndex;
-
+                bool isFirstNoteInWindow = i == initialNoteIndex;
                 var note = Notes[i];
 
                 if (note.WasFullyHitOrMissed())
@@ -218,7 +217,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                     YargLogger.LogFormatTrace("Cant hit note (Index: {0}, Mask {1}) at {2}. Buttons: {3}", i,
                         note.NoteMask, State.CurrentTime, State.ButtonMask);
                     // This does nothing special, it's just logging strum leniency
-                    if (IsFirstNoteInWindow() && State is { HasStrummed: true, StrumLeniencyTimer: { IsActive: true } })
+                    if (isFirstNoteInWindow && State is { HasStrummed: true, StrumLeniencyTimer: { IsActive: true } })
                     {
                         YargLogger.LogFormatTrace("Starting strum leniency at {0}, will end at {1}", State.CurrentTime,
                             State.StrumLeniencyTimer.EndTime);
@@ -236,12 +235,12 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                 // Handles hitting a hopo notes
                 // If first note is a hopo then it can be hit without combo (for practice mode)
-                bool hopoCondition = note.IsHopo && IsFirstNoteInWindow() &&
+                bool hopoCondition = note.IsHopo && isFirstNoteInWindow &&
                     (EngineStats.Combo > 0 || State.NoteIndex == 0);
 
                 // If a note is a tap then it can be hit only if it is the closest note, unless
                 // the combo is 0 then it can be hit regardless of the distance (note skipping)
-                bool tapCondition = note.IsTap && (IsFirstNoteInWindow() || EngineStats.Combo == 0);
+                bool tapCondition = note.IsTap && (isFirstNoteInWindow || EngineStats.Combo == 0);
 
                 bool frontEndIsExpired = note.Time > State.FrontEndExpireTime;
                 bool canUseInfFrontEnd =
@@ -258,7 +257,7 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                 // If hopo/tap checks failed then the note can be hit if it was strummed
                 if ((State.HasStrummed || State.StrumLeniencyTimer.IsActive) &&
-                    (IsFirstNoteInWindow() || (State.NoteIndex > 0 && EngineStats.Combo == 0)))
+                    (isFirstNoteInWindow || (State.NoteIndex > 0 && EngineStats.Combo == 0)))
                 {
                     HitNote(note);
                     if (State.HasStrummed)

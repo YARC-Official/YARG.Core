@@ -1,5 +1,6 @@
 using YARG.Core.Chart;
 using YARG.Core.Input;
+using YARG.Core.Logging;
 
 namespace YARG.Core.Engine.Drums.Engines
 {
@@ -14,7 +15,7 @@ namespace YARG.Core.Engine.Drums.Engines
         {
             if (gameInput.Button)
             {
-                State.LastPadHit = ConvertInputToPad(EngineParameters.Mode, gameInput.GetAction<DrumsAction>());
+                State.PadHit = ConvertInputToPad(EngineParameters.Mode, gameInput.GetAction<DrumsAction>());
             }
         }
 
@@ -23,112 +24,86 @@ namespace YARG.Core.Engine.Drums.Engines
             UpdateTimeVariables(time);
             UpdateStarPower();
 
+            // Update bot (will return if not enabled)
+            // UpdateBot(time);
+
             // Quit early if there are no notes left
             if (State.NoteIndex >= Notes.Count)
             {
+                State.PadHit = null;
                 return;
             }
 
-            var note = Notes[State.NoteIndex];
-            double hitWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
-
-            // Check for note miss note (back end)
-            if (State.CurrentTime >= note.Time + EngineParameters.HitWindow.GetBackEnd(hitWindow))
-            {
-                foreach (var chordNote in note.ChordEnumerator())
-                {
-                    if (chordNote.WasHit || chordNote.WasMissed)
-                    {
-                        continue;
-                    }
-
-                    // Check for activation notes that weren't hit, and auto-hit them.
-                    // This may seem weird, but it prevents issues from arising when scoring
-                    // activation notes.
-                    if (chordNote.IsStarPowerActivator && EngineStats.CanStarPowerActivate)
-                    {
-                        HitNote(chordNote, true);
-                        continue;
-                    }
-
-                    MissNote(chordNote);
-                }
-
-                return;
-            }
-
-            // Check for note hit
-            if (State.LastPadHit is not null)
-            {
-                var inputEaten = ProcessNoteHit(note);
-
-                if (!inputEaten)
-                {
-                    // If the input was not consumed, then overhit
-                    Overhit();
-
-                    // At this point, either way, the input was consumed
-                }
-
-                OnPadHit?.Invoke((DrumsAction) State.LastPadHit.Value - 1, inputEaten);
-                State.LastPadHit = null;
-
-                if (inputEaten)
-                {
-                    return;
-                }
-            }
-
-            return;
+            CheckForNoteHit();
         }
 
-        private bool ProcessNoteHit(DrumNote note)
+        protected override void CheckForNoteHit()
         {
-            double hitWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
-
-            if (State.CurrentTime < note.Time + EngineParameters.HitWindow.GetFrontEnd(hitWindow))
+            for (int i = State.NoteIndex; i < Notes.Count; i++)
             {
-                // Pass on the input
-                return false;
-            }
+                bool stopSkipping = false;
 
-            // Remember that while playing drums, all notes of a chord don't have to be hit.
-            // Treat all notes separately.
-            foreach (var chordNote in note.ChordEnumerator())
-            {
-                if (chordNote.WasHit || chordNote.WasMissed)
+                var parentNote = Notes[i];
+
+                // For drums, each note in the chord are treated separately
+                foreach (var note in parentNote.ChordEnumerator())
                 {
-                    continue;
+                    // Miss out the back end
+                    if (!IsNoteInWindow(note, out bool missed))
+                    {
+                        if (missed)
+                        {
+                            // If one of the notes in the chord was missed out the back end,
+                            // that means all of them would miss.
+                            foreach (var missedNote in parentNote.ChordEnumerator())
+                            {
+                                MissNote(missedNote);
+                            }
+                        }
+
+                        // You can't skip ahead if the note is not in the hit window to begin with
+                        stopSkipping = true;
+                        break;
+                    }
+
+                    // Hit note
+                    if (CanNoteBeHit(note))
+                    {
+                        HitNote(note);
+                        State.PadHit = null;
+
+                        // You can't hit more than one note with the same input
+                        stopSkipping = true;
+                        break;
+                    }
+                    else
+                    {
+                        YargLogger.LogFormatTrace("Cant hit note (Index: {0}) at {1}.", i, State.CurrentTime);
+                    }
                 }
 
-                if (chordNote.Pad == State.LastPadHit)
+                if (stopSkipping)
                 {
-                    HitNote(chordNote);
-
-                    // Eat the input
-                    return true;
+                    break;
                 }
             }
 
-            // If that fails, attempt to hit any of the other notes ahead of this one (in the hit window)
-            // This helps a lot with combo regain, especially with fast double bass.
-            if (note.NextNote is not null && ProcessNoteHit(note.NextNote))
+            // If no note was hit but the user hit a pad, then over hit
+            if (State.PadHit != null)
             {
-                // Eat the input
-                return true;
+                Overhit();
+                State.PadHit = null;
             }
+        }
 
-            // Pass on the input
-            return false;
+        protected override bool CanNoteBeHit(DrumNote note)
+        {
+            return note.Pad == State.PadHit;
         }
 
         protected override void UpdateBot(double songTime)
         {
             throw new System.NotImplementedException();
         }
-
-        protected override void CheckForNoteHit() => throw new System.NotImplementedException();
-
-        protected override bool CanNoteBeHit(DrumNote note) => throw new System.NotImplementedException();
     }
 }

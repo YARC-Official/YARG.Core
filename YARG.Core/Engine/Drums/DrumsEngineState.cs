@@ -8,13 +8,13 @@ namespace YARG.Core.Engine.Drums
         /// The integer value for the pad that was inputted this update. <c>null</c> is none, and the value can
         /// be based off of <see cref="FourLaneDrumPad"/> or <see cref="FiveLaneDrumPad"/>.
         /// </summary>
-        public int? LastPadHit;
+        public int? PadHit;
 
         public override void Reset()
         {
             base.Reset();
 
-            LastPadHit = null;
+            PadHit = null;
         }
     }
 }
