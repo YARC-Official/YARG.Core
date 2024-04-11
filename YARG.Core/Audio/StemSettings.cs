@@ -4,6 +4,7 @@ namespace YARG.Core.Audio
 {
     public class StemSettings
     {
+        public static bool ApplySettings = true;
         private readonly double _volumeScaling;
 
         private Action<double>? _onVolumeChange;
@@ -39,7 +40,7 @@ namespace YARG.Core.Audio
             }
         }
 
-        public double TrueVolume => _volume * _volumeScaling;
+        public double TrueVolume => (ApplySettings ? _volume : 1) * _volumeScaling;
 
         public bool Reverb
         {
