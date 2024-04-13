@@ -1,6 +1,7 @@
 ﻿using System;
 using YARG.Core.Chart;
 using YARG.Core.Input;
+using YARG.Core.Logging;
 
 namespace YARG.Core.Engine.Vocals.Engines
 {

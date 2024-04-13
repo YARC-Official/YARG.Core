@@ -382,7 +382,7 @@ namespace YARG.Core.Chart
             var phraseNote = new VocalNote(phraseFlags, time, timeLength, tick, tickLength);
             foreach (var note in notes)
             {
-                phraseNote.AddNoteToPhrase(note);
+                phraseNote.AddChildNote(note);
             }
 
             return new VocalsPhrase(time, timeLength, tick, tickLength, phraseNote, lyrics);
