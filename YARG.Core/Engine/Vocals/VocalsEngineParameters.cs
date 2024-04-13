@@ -56,6 +56,7 @@ namespace YARG.Core.Engine.Vocals
             writer.Write(PitchWindow);
             writer.Write(PitchWindowPerfect);
             writer.Write(PhraseHitPercent);
+            writer.Write(ApproximateVocalFps);
             writer.Write(SingToActivateStarPower);
         }
 
@@ -66,6 +67,7 @@ namespace YARG.Core.Engine.Vocals
             PitchWindow = reader.ReadSingle();
             PitchWindowPerfect = reader.ReadSingle();
             PhraseHitPercent = reader.ReadDouble();
+            ApproximateVocalFps = reader.ReadDouble();
             SingToActivateStarPower = reader.ReadBoolean();
         }
     }
