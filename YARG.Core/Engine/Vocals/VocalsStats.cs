@@ -7,12 +7,12 @@ namespace YARG.Core.Engine.Vocals
         /// <summary>
         /// The amount of note ticks that was hit by the vocalist.
         /// </summary>
-        public uint VocalTicksHit;
+        public uint TicksHit;
 
         /// <summary>
         /// The amount of note ticks that were missed by the vocalist.
         /// </summary>
-        public uint VocalTicksMissed;
+        public uint TicksMissed;
 
         public VocalsStats()
         {
@@ -20,31 +20,31 @@ namespace YARG.Core.Engine.Vocals
 
         public VocalsStats(VocalsStats stats) : base(stats)
         {
-            VocalTicksHit = stats.VocalTicksHit;
-            VocalTicksMissed = stats.VocalTicksMissed;
+            TicksHit = stats.TicksHit;
+            TicksMissed = stats.TicksMissed;
         }
 
         public override void Reset()
         {
             base.Reset();
-            VocalTicksHit = 0;
-            VocalTicksMissed = 0;
+            TicksHit = 0;
+            TicksMissed = 0;
         }
 
         public override void Serialize(BinaryWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write(VocalTicksHit);
-            writer.Write(VocalTicksMissed);
+            writer.Write(TicksHit);
+            writer.Write(TicksMissed);
         }
 
         public override void Deserialize(BinaryReader reader, int version = 0)
         {
             base.Deserialize(reader, version);
 
-            VocalTicksHit = reader.ReadUInt32();
-            VocalTicksMissed = reader.ReadUInt32();
+            TicksHit = reader.ReadUInt32();
+            TicksMissed = reader.ReadUInt32();
         }
     }
 }

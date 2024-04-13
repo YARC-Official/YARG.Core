@@ -5,7 +5,7 @@
         /// <summary>
         /// Whether or not the player/bot sang in the current update.
         /// </summary>
-        public bool DidSing;
+        public bool HasSang;
 
         /// <summary>
         /// The float value for the last pitch sang (as a MIDI note).
@@ -13,38 +13,32 @@
         public float PitchSang;
 
         /// <summary>
-        /// The amount of vocal ticks in the current phrase. Is decimal.<br/>
-        /// A vocal tick is the amount of vocal updates per second.
+        /// The amount of ticks in the current phrase.
         /// </summary>
-        public double? PhraseTicksTotal;
+        public uint? PhraseTicksTotal;
 
         /// <summary>
-        /// The amount of vocals ticks hit in the current phrase. Is not decimal.<br/>
-        /// A vocal tick is the amount of vocal updates per second.
+        /// The amount of ticks hit in the current phrase.
+        /// This is a decimal since you can get fractions of a point for singing slightly off.
         /// </summary>
-        public uint PhraseTicksHit;
+        public double PhraseTicksHit;
 
         /// <summary>
-        /// The last time there was a pitch update.
+        /// The last tick where there was a successful sing input.
         /// </summary>
-        public double LastSingTime;
-
-        /// <summary>
-        /// The last time a note was hit.
-        /// </summary>
-        public double LastHitTime;
+        public uint LastSingTick;
 
         public override void Reset()
         {
             base.Reset();
 
+            HasSang = false;
             PitchSang = 0f;
 
             PhraseTicksTotal = null;
             PhraseTicksHit = 0;
 
-            LastSingTime = double.NegativeInfinity;
-            LastHitTime = double.NegativeInfinity;
+            LastSingTick = 0;
         }
     }
 }

@@ -114,34 +114,41 @@ namespace YARG.Core.Game
                     mode);
             }
         }
-    
+
 
         /// <summary>
         /// The engine preset for vocals/harmonies.
         /// </summary>
         public class VocalsPreset
         {
-            // Hit window is in semitones (max. difference between correct pitch and sung pitch).
-            public double WindowSizeE = 1.7;
-            public double WindowSizeM = 1.4;
-            public double WindowSizeH = 1.1;
-            public double WindowSizeX = 0.8;
+            // Pitch window is in semitones (max. difference between correct pitch and sung pitch).
+            public float PitchWindowE = 1.7f;
+            public float PitchWindowM = 1.4f;
+            public float PitchWindowH = 1.1f;
+            public float PitchWindowX = 0.8f;
+
+            /// <summary>
+            /// The perfect pitch window is equal to the pitch window times the perfect pitch percent,
+            /// for all difficulties.
+            /// </summary>
+            public float PerfectPitchPercent = 0.6f;
 
             // These percentages may seem low, but accounting for delay,
             // plosives not being detected, etc., it's pretty good.
-            public double HitPercentE = 0.325;
-            public double HitPercentM = 0.400;
-            public double HitPercentH = 0.450;
-            public double HitPercentX = 0.575;
+            public float HitPercentE = 0.325f;
+            public float HitPercentM = 0.400f;
+            public float HitPercentH = 0.450f;
+            public float HitPercentX = 0.575f;
 
             public VocalsPreset Copy()
             {
                 return new VocalsPreset
                 {
-                    WindowSizeE = WindowSizeE,
-                    WindowSizeM = WindowSizeM,
-                    WindowSizeH = WindowSizeH,
-                    WindowSizeX = WindowSizeX,
+                    PitchWindowE = PitchWindowE,
+                    PitchWindowM = PitchWindowM,
+                    PitchWindowH = PitchWindowH,
+                    PitchWindowX = PitchWindowX,
+                    PerfectPitchPercent = PerfectPitchPercent,
                     HitPercentE = HitPercentE,
                     HitPercentM = HitPercentM,
                     HitPercentH = HitPercentH,
@@ -149,34 +156,31 @@ namespace YARG.Core.Game
                 };
             }
 
-            public VocalsEngineParameters Create(float[] starMultiplierThresholds, Difficulty difficulty, float updatesPerSecond)
+            public VocalsEngineParameters Create(float[] starMultiplierThresholds, Difficulty difficulty,
+                float updatesPerSecond)
             {
                 // Hit window is in semitones (max. difference between correct pitch and sung pitch).
-                double windowSize = difficulty switch
+                var (pitchWindow, hitPercent) = difficulty switch
                 {
-                    Difficulty.Easy   => WindowSizeE,
-                    Difficulty.Medium => WindowSizeM,
-                    Difficulty.Hard   => WindowSizeH,
-                    Difficulty.Expert => WindowSizeX,
+                    Difficulty.Easy   => (PitchWindowE, HitPercentE),
+                    Difficulty.Medium => (PitchWindowM, HitPercentM),
+                    Difficulty.Hard   => (PitchWindowH, HitPercentH),
+                    Difficulty.Expert => (PitchWindowX, HitPercentX),
                     _ => throw new InvalidOperationException("Unreachable")
                 };
 
-                double hitPercent = difficulty switch
-                {
-                    Difficulty.Easy   => HitPercentE,
-                    Difficulty.Medium => HitPercentM,
-                    Difficulty.Hard   => HitPercentH,
-                    Difficulty.Expert => HitPercentX,
-                    _ => throw new InvalidOperationException("Unreachable")
-                };
-                var hitWindow = new HitWindowSettings(windowSize, 0.03, 1, false);
+                // TODO: This is for percussion
+                var hitWindow = new HitWindowSettings(pitchWindow, 0.03, 1, false);
+
                 return new VocalsEngineParameters(
-                    hitWindow, 
-                    EnginePreset.DEFAULT_MAX_MULTIPLIER,
-                    starMultiplierThresholds, 
-                    hitPercent, 
-                    true, 
-                    updatesPerSecond);
+                    hitWindow,
+                    DEFAULT_MAX_MULTIPLIER,
+                    starMultiplierThresholds,
+                    pitchWindow,
+                    pitchWindow * PerfectPitchPercent,
+                    hitPercent,
+                    updatesPerSecond,
+                    true);
             }
         }
     }

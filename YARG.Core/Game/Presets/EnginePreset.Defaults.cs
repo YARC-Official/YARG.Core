@@ -17,10 +17,7 @@ namespace YARG.Core.Game
             },
             Vocals =
             {
-                WindowSizeE = 2.2,
-                WindowSizeM = 1.8,
-                WindowSizeH = 1.4,
-                WindowSizeX = 1
+                PerfectPitchPercent = 0.85f
             }
         };
 
@@ -48,10 +45,11 @@ namespace YARG.Core.Game
             },
             Vocals =
             {
-                WindowSizeE = 1.2,
-                WindowSizeM = 1,
-                WindowSizeH = 0.8,
-                WindowSizeX = 0.6
+                PitchWindowE = 1.4f,
+                PitchWindowM = 1.1f,
+                PitchWindowH = 0.8f,
+                PitchWindowX = 0.6f,
+                PerfectPitchPercent = 0.55f
             }
         };
 
