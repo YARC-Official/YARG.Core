@@ -15,8 +15,8 @@ namespace YARG.Core.Engine.Vocals
 
         public TargetNoteChangeEvent? OnTargetNoteChanged;
 
-        public Action? OnSing;
-        public Action? OnHit;
+        public Action<bool>? OnSing;
+        public Action<bool>? OnHit;
 
         public PhraseHitEvent? OnPhraseHit;
 

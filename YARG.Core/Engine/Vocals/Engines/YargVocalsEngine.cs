@@ -1,7 +1,6 @@
 ﻿using System;
 using YARG.Core.Chart;
 using YARG.Core.Input;
-using YARG.Core.Logging;
 
 namespace YARG.Core.Engine.Vocals.Engines
 {
@@ -19,7 +18,7 @@ namespace YARG.Core.Engine.Vocals.Engines
                 State.HasSang = true;
                 State.PitchSang = gameInput.Axis;
 
-                OnSing?.Invoke();
+                OnSing?.Invoke(true);
             }
         }
 
@@ -96,6 +95,9 @@ namespace YARG.Core.Engine.Vocals.Engines
             var note = GetNoteInPhraseAtSongTick(phrase, State.CurrentTick);
             if (note is null)
             {
+                // If we're not on a note, we cannot be hitting a note
+                OnHit?.Invoke(false);
+
                 return;
             }
 
@@ -119,7 +121,11 @@ namespace YARG.Core.Engine.Vocals.Engines
                     var ticksSinceLast = State.CurrentTick - lastTick;
                     State.PhraseTicksHit += ticksSinceLast * hitPercent;
 
-                    OnHit?.Invoke();
+                    OnHit?.Invoke(true);
+                }
+                else
+                {
+                    OnHit?.Invoke(false);
                 }
             }
         }
