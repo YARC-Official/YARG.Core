@@ -137,6 +137,13 @@ namespace YARG.Core.Engine.Vocals.Engines
 
         protected override bool CanVocalNoteBeHit(VocalNote note, out float hitPercent)
         {
+            // If it is non-pitched, it is always hittable
+            if (note.IsNonPitched)
+            {
+                hitPercent = 1f;
+                return true;
+            }
+
             var expectedPitch = note.PitchAtSongTime(State.CurrentTime);
 
             // Formula for calculating the distance to the expected pitch, while ignoring octaves
