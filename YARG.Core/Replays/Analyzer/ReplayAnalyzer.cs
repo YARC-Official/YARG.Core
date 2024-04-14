@@ -137,8 +137,8 @@ namespace YARG.Core.Replays.Analyzer
                 case GameMode.FiveLaneDrums:
                 {
                     // Reset the notes
-                    var notes = _chart.GetDrumsTrack(profile.CurrentInstrument).Difficulties[profile.CurrentDifficulty]
-                        .Clone();
+                    var notes = _chart.GetDrumsTrack(profile.CurrentInstrument)
+                        .Difficulties[profile.CurrentDifficulty].Clone();
                     profile.ApplyModifiers(notes);
                     foreach (var note in notes.Notes)
                     {
@@ -157,8 +157,8 @@ namespace YARG.Core.Replays.Analyzer
                 case GameMode.Vocals:
                 {
                     // Get the notes
-                    var notes = _chart.GetVocalsTrack(profile.CurrentInstrument).Parts[0].CloneAsInstrumentDifficulty()
-                        .Clone();
+                    var notes = _chart.GetVocalsTrack(profile.CurrentInstrument)
+                        .Parts[profile.HarmonyIndex].CloneAsInstrumentDifficulty();
 
                     // No idea how vocals applies modifiers lol
                     //profile.ApplyModifiers(notes);
