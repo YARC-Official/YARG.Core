@@ -33,8 +33,8 @@ namespace YARG.Core.Song
             Year = DEFAULT_YEAR,
             SongLength = 0,
             SongOffset = 0,
-            PreviewStart = 0,
-            PreviewEnd = 0,
+            PreviewStart = -1,
+            PreviewEnd = -1,
             VideoStartTime = 0,
             VideoEndTime = -1,
         };
@@ -53,8 +53,8 @@ namespace YARG.Core.Song
         public long SongOffset;
         public uint SongRating;  // 1 = FF; 2 = SR; 3 = M; 4 = NR
 
-        public ulong PreviewStart;
-        public ulong PreviewEnd;
+        public long PreviewStart;
+        public long PreviewEnd;
 
         public long VideoStartTime;
         public long VideoEndTime;

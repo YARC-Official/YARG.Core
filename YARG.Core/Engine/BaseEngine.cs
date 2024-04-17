@@ -279,6 +279,12 @@ namespace YARG.Core.Engine
 
         public abstract (double FrontEnd, double BackEnd) CalculateHitWindow();
 
+        public virtual void SetSpeed(double speed)
+        {
+            BaseParameters.SongSpeed = speed;
+            BaseParameters.HitWindow.Scale = speed;
+        }
+
         protected static void StartTimer(ref EngineTimer timer, double startTime, double offset = 0)
         {
             if (offset > 0)

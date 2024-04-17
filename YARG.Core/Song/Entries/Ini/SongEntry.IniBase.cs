@@ -70,6 +70,16 @@ namespace YARG.Core.Song
             "album.png", "album.jpg", "album.jpeg",
         };
 
+        protected static readonly string[] PREVIEW_FILES;
+        static IniSubEntry()
+        {
+            PREVIEW_FILES = new string[IniAudio.SupportedFormats.Length];
+            for (int i = 0; i < PREVIEW_FILES.Length; i++ )
+            {
+                PREVIEW_FILES[i] = "preview" + IniAudio.SupportedFormats[i];
+            }
+        }
+
         protected readonly string _background;
         protected readonly string _video;
         protected readonly string _cover;
@@ -372,6 +382,40 @@ namespace YARG.Core.Song
                     parts.LeadVocals.Intensity = parts.HarmonyVocals.Intensity;
                 }
             }
+        }
+
+        protected static T? GetRandomBackgroundImage<T>(IEnumerable<KeyValuePair<string, T>> collection)
+            where T : class
+        {
+            // Choose a valid image background present in the folder at random
+            var images = new List<T>();
+            foreach (var format in IMAGE_EXTENSIONS)
+            {
+                var (_, image) = collection.FirstOrDefault(node => node.Key == "bg" + format);
+                if (image != null)
+                {
+                    images.Add(image);
+                }
+            }
+
+            foreach (var (shortname, image) in collection)
+            {
+                if (!shortname.StartsWith("background"))
+                {
+                    continue;
+                }
+
+                foreach (var format in IMAGE_EXTENSIONS)
+                {
+                    if (shortname.EndsWith(format))
+                    {
+                        images.Add(image);
+                        break;
+                    }
+                }
+            }
+
+            return images.Count > 0 ? images[BACKROUND_RNG.Next(images.Count)] : null;
         }
     }
 }

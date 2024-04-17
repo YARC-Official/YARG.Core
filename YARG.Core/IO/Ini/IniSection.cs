@@ -141,14 +141,14 @@ namespace YARG.Core.IO.Ini
             return true;
         }
 
-        public bool TryGet(in string key, out ulong val1, out ulong val2)
+        public bool TryGet(in string key, out long val1, out long val2)
         {
-            val1 = 0;
-            val2 = 0;
+            val1 = -1;
+            val2 = -1;
             if (!modifiers.TryGetValue(key, out var results))
                 return false;
 
-            ulong[] dub = results[0].UInt64Array;
+            long[] dub = results[0].Int64Array;
             val1 = dub[0];
             val2 = dub[1];
             return true;

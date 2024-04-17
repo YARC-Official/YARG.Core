@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using YARG.Core.Extensions;
+using YARG.Core.Audio;
 using YARG.Core.IO;
 using YARG.Core.Logging;
 
@@ -35,6 +35,7 @@ namespace YARG.Core.Song.Cache
                 ? new ParallelCacheHandler(baseDirectories, allowDuplicates, fullDirectoryPlaylists)
                 : new SequentialCacheHandler(baseDirectories, allowDuplicates, fullDirectoryPlaylists);
 
+            GlobalAudioHandler.LogMixerStatus = false;
             try
             {
                 if (!fast || !QuickScan(handler, cacheLocation))
@@ -44,7 +45,7 @@ namespace YARG.Core.Song.Cache
             {
                 YargLogger.LogException(ex, "Unknown error while running song scan!");
             }
-
+            GlobalAudioHandler.LogMixerStatus = true;
             return handler.cache;
         }
 
@@ -141,7 +142,7 @@ namespace YARG.Core.Song.Cache
         /// Format is YY_MM_DD_RR: Y = year, M = month, D = day, R = revision (reset across dates, only increment
         /// if multiple cache version changes happen in a single day).
         /// </summary>
-        public const int CACHE_VERSION = 24_03_23_01;
+        public const int CACHE_VERSION = 24_04_06_01;
 
         protected readonly SongCache cache = new();
 

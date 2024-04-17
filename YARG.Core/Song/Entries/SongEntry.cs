@@ -89,6 +89,7 @@ namespace YARG.Core.Song
 
         protected static readonly string YARGROUND_EXTENSION = ".yarground";
         protected static readonly string YARGROUND_FULLNAME = "bg.yarground";
+        protected static readonly Random BACKROUND_RNG = new();
 
         private string _parsedYear;
         private int _intYear;
@@ -156,13 +157,13 @@ namespace YARG.Core.Song
             set => _metadata.SongOffset = (long) (value * MILLISECOND_FACTOR);
         }
 
-        public ulong PreviewStartMilliseconds
+        public long PreviewStartMilliseconds
         {
             get => _metadata.PreviewStart;
             set => _metadata.PreviewStart = value;
         }
 
-        public ulong PreviewEndMilliseconds
+        public long PreviewEndMilliseconds
         {
             get => _metadata.PreviewEnd;
             set => _metadata.PreviewEnd = value;
@@ -171,13 +172,13 @@ namespace YARG.Core.Song
         public double PreviewStartSeconds
         {
             get => _metadata.PreviewStart / MILLISECOND_FACTOR;
-            set => _metadata.PreviewStart = (ulong) (value * MILLISECOND_FACTOR);
+            set => _metadata.PreviewStart = (long) (value * MILLISECOND_FACTOR);
         }
 
         public double PreviewEndSeconds
         {
             get => _metadata.PreviewEnd / MILLISECOND_FACTOR;
-            set => _metadata.PreviewEnd = (ulong) (value * MILLISECOND_FACTOR);
+            set => _metadata.PreviewEnd = (long) (value * MILLISECOND_FACTOR);
         }
 
         public long VideoStartTimeMilliseconds
@@ -390,14 +391,28 @@ namespace YARG.Core.Song
 
             if (!modifiers.TryGet("preview", out _metadata.PreviewStart, out _metadata.PreviewEnd))
             {
-                if (!modifiers.TryGet("preview_start_time", out _metadata.PreviewStart) && modifiers.TryGet("previewStart", out double previewStartSeconds))
+                if (!modifiers.TryGet("preview_start_time", out _metadata.PreviewStart))
                 {
-                    _metadata.PreviewStart = (ulong) (previewStartSeconds * MILLISECOND_FACTOR);
+                    if (modifiers.TryGet("previewStart", out double previewStartSeconds))
+                    {
+                        _metadata.PreviewStart = (long) (previewStartSeconds * MILLISECOND_FACTOR);
+                    }
+                    else
+                    {
+                        _metadata.PreviewStart = -1;
+                    }
                 }
 
-                if (!modifiers.TryGet("preview_end_time", out _metadata.PreviewEnd) && modifiers.TryGet("previewEnd", out double previewEndSeconds))
+                if (!modifiers.TryGet("preview_end_time", out _metadata.PreviewEnd))
                 {
-                    _metadata.PreviewEnd = (ulong) (previewEndSeconds * MILLISECOND_FACTOR);
+                    if (modifiers.TryGet("previewEnd", out double previewEndSeconds))
+                    {
+                        _metadata.PreviewEnd = (long) (previewEndSeconds * MILLISECOND_FACTOR);
+                    }
+                    else
+                    {
+                        _metadata.PreviewEnd = -1;
+                    }
                 }
             }
 
@@ -468,8 +483,8 @@ namespace YARG.Core.Song
             _metadata.SongOffset = reader.ReadInt64();
             _metadata.SongRating = reader.ReadUInt32();
 
-            _metadata.PreviewStart = reader.ReadUInt64();
-            _metadata.PreviewEnd = reader.ReadUInt64();
+            _metadata.PreviewStart = reader.ReadInt64();
+            _metadata.PreviewEnd = reader.ReadInt64();
 
             _metadata.VideoStartTime = reader.ReadInt64();
             _metadata.VideoEndTime = reader.ReadInt64();

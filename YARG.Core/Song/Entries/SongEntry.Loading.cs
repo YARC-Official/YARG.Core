@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using YARG.Core.Audio;
 using YARG.Core.Chart;
+using YARG.Core.Logging;
 using YARG.Core.Venue;
 
 namespace YARG.Core.Song
@@ -23,8 +25,8 @@ namespace YARG.Core.Song
     public abstract partial class SongEntry
     {
         public abstract SongChart? LoadChart();
-        public abstract AudioMixer? LoadAudioStreams(params SongStem[] ignoreStems);
-        public abstract AudioMixer? LoadPreviewAudio();
+        public abstract StemMixer? LoadAudio(float speed, double volume, params SongStem[] ignoreStems);
+        public abstract StemMixer? LoadPreviewAudio(float speed);
         public abstract byte[]? LoadAlbumData();
         public abstract BackgroundResult? LoadBackground(BackgroundType options);
         public abstract byte[]? LoadMiloData();

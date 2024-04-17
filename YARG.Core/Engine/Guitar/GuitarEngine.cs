@@ -485,6 +485,14 @@ namespace YARG.Core.Engine.Guitar
             return sustain.BaseScore + (deltaScore * EngineStats.ScoreMultiplier);
         }
 
+        public override void SetSpeed(double speed)
+        {
+            base.SetSpeed(speed);
+            State.HopoLeniencyTimer.SetSpeed(speed);
+            State.StrumLeniencyTimer.SetSpeed(speed);
+            State.StarPowerWhammyTimer.SetSpeed(speed);
+        }
+
         protected sealed override int CalculateBaseScore()
         {
             int score = 0;
