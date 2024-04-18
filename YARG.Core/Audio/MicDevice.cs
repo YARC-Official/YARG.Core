@@ -7,7 +7,7 @@ namespace YARG.Core.Audio
     public readonly struct MicOutputFrame
     {
         /// <summary>
-        /// The time of the input.
+        /// The time of the input. This is NOT relative!
         /// </summary>
         public readonly double Time;
 
