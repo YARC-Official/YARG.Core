@@ -114,7 +114,7 @@ namespace YARG.Core.Engine.Vocals.Engines
                     // We will apply a leniency here and assume that it will also hit all other
                     // ticks, since the user cannot change pitch between inputs.
                     var maxLeniency = 1.0 / EngineParameters.ApproximateVocalFps;
-                    var lastTick = Math.Min(
+                    var lastTick = Math.Max(
                         SyncTrack.TimeToTick(State.CurrentTime - maxLeniency),
                         lastSingTick);
 
