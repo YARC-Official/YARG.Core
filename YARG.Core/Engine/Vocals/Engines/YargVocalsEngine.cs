@@ -166,8 +166,8 @@ namespace YARG.Core.Engine.Vocals.Engines
             }
 
             hitPercent = YargMath.InverseLerpF(
-                EngineParameters.PitchWindowPerfect,
                 EngineParameters.PitchWindow,
+                EngineParameters.PitchWindowPerfect,
                 distanceToExpected);
             return true;
 
