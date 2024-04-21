@@ -13,7 +13,16 @@ namespace YARG.Core.Engine.Vocals.Engines
 
         protected override void MutateStateWithInput(GameInput gameInput)
         {
-            if (gameInput.GetAction<VocalsAction>() == VocalsAction.Pitch)
+            var action = gameInput.GetAction<VocalsAction>();
+
+            if (action is VocalsAction.Hit && gameInput.Button)
+            {
+                if (EngineParameters.SingToActivateStarPower && EngineStats.CanStarPowerActivate)
+                {
+                    ActivateStarPower();
+                }
+            }
+            else if (action is VocalsAction.Pitch)
             {
                 State.HasSang = true;
                 State.PitchSang = gameInput.Axis;
