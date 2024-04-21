@@ -97,7 +97,6 @@
     public enum VocalsAction : byte
     {
         Pitch = 0,
-
-        StarPower = 1,
+        Hit   = 1,
     }
 }
