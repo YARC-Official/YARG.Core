@@ -14,6 +14,8 @@ namespace YARG.Core.Audio
 
         protected internal readonly SampleChannel[] SfxSamples = new SampleChannel[AudioHelpers.SfxPaths.Count];
         protected internal int PlaybackLatency;
+        protected internal int MinimumBufferLength;
+        protected internal int MaximumBufferLength;
 
         protected internal abstract ReadOnlySpan<string> SupportedFormats { get; }
 
@@ -59,6 +61,20 @@ namespace YARG.Core.Audio
         protected internal abstract MicDevice? CreateDevice(int deviceId, string name);
 
         protected internal abstract void SetMasterVolume(double volume);
+
+        internal void SetBufferLength(int length)
+        {
+            SetBufferLength_Internal(length);
+            lock (_activeMixers)
+            {
+                foreach (var mixer in _activeMixers)
+                {
+                    mixer.SetBufferLength(length);
+                }
+            }
+        }
+
+        protected abstract void SetBufferLength_Internal(int length);
 
         internal float GlobalSpeed
         {
