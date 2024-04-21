@@ -12,25 +12,25 @@ namespace YARG.Core.Audio
         public readonly double Time;
 
         /// <summary>
+        /// Whether or not this output frame is a mic hit, or a sing output.
+        /// </summary>
+        public readonly bool IsHit;
+
+        /// <summary>
         /// Pitch (in hertz) of the microphone.
         /// </summary>
         public readonly float Pitch;
-
-        /// <summary>
-        /// Volume (in dB) of the microphone.
-        /// </summary>
-        public readonly float Volume;
 
         /// <summary>
         /// Gets the pitch as a MIDI note.
         /// </summary>
         public float PitchAsMidiNote => 12f * MathF.Log(Pitch / 440f, 2f) + 69f;
 
-        public MicOutputFrame(double time, float pitch, float volume)
+        public MicOutputFrame(double time, bool isHit, float pitch)
         {
             Time = time;
+            IsHit = isHit;
             Pitch = pitch;
-            Volume = volume;
         }
     }
 
