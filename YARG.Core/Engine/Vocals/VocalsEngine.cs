@@ -7,7 +7,8 @@ namespace YARG.Core.Engine.Vocals
     public abstract class VocalsEngine :
         BaseEngine<VocalNote, VocalsEngineParameters, VocalsStats, VocalsEngineState>
     {
-        protected const int POINTS_PER_PHRASE = 2000;
+        protected const int POINTS_PER_PERCUSSION = 100;
+        protected const int POINTS_PER_PHRASE     = 2000;
 
         public delegate void TargetNoteChangeEvent(VocalNote targetNote);
 
@@ -131,13 +132,51 @@ namespace YARG.Core.Engine.Vocals
             return phrase
                 .ChildNotes
                 .FirstOrDefault(phraseNote =>
+                    !phraseNote.IsPercussion &&
                     tick >= phraseNote.Tick &&
                     tick <= phraseNote.TotalTickEnd);
         }
 
+        protected static VocalNote? GetNextPercussionNote(VocalNote phrase, uint tick)
+        {
+            foreach (var note in phrase.ChildNotes)
+            {
+                // Skip sang vocal notes
+                if (!note.IsPercussion && note.Tick < tick)
+                {
+                    continue;
+                }
+
+                // Skip hit/missed percussion notes
+                if (note.IsPercussion && (note.WasHit || note.WasMissed))
+                {
+                    continue;
+                }
+
+                // If the next note in the phrase is not a percussion note, then
+                // we can't hit the note until the note before it is done.
+                if (!note.IsPercussion)
+                {
+                    return null;
+                }
+
+                // Otherwise, we found it!
+                return note;
+            }
+
+            return null;
+        }
+
         protected override void AddScore(VocalNote note)
         {
-            AddScore(POINTS_PER_PHRASE * EngineStats.ScoreMultiplier);
+            if (note.IsPercussion)
+            {
+                AddScore(POINTS_PER_PERCUSSION * EngineStats.ScoreMultiplier);
+            }
+            else
+            {
+                AddScore(POINTS_PER_PHRASE * EngineStats.ScoreMultiplier);
+            }
         }
 
         protected void AddPartialScore(double hitPercent)

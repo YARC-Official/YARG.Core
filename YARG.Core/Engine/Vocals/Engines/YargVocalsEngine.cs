@@ -17,10 +17,7 @@ namespace YARG.Core.Engine.Vocals.Engines
 
             if (action is VocalsAction.Hit && gameInput.Button)
             {
-                if (EngineParameters.SingToActivateStarPower && EngineStats.CanStarPowerActivate)
-                {
-                    ActivateStarPower();
-                }
+                State.HasHit = true;
             }
             else if (action is VocalsAction.Pitch)
             {
@@ -82,6 +79,12 @@ namespace YARG.Core.Engine.Vocals.Engines
 
         protected override void CheckForNoteHit()
         {
+            CheckSingingHit();
+            CheckHittingHit();
+        }
+
+        private void CheckSingingHit()
+        {
             if (!State.HasSang)
             {
                 return;
@@ -110,32 +113,58 @@ namespace YARG.Core.Engine.Vocals.Engines
                 return;
             }
 
-            if (note.IsPercussion)
+            OnTargetNoteChanged?.Invoke(note);
+
+            // This will never be a percussion note here
+            if (CanVocalNoteBeHit(note, out float hitPercent))
             {
-                // TODO: Implement vocal percussion
+                // We will apply a leniency here and assume that it will also hit all other
+                // ticks, since the user cannot change pitch between inputs.
+                var maxLeniency = 1.0 / EngineParameters.ApproximateVocalFps;
+                var lastTick = Math.Max(
+                    SyncTrack.TimeToTick(State.CurrentTime - maxLeniency),
+                    lastSingTick);
+
+                var ticksSinceLast = State.CurrentTick - lastTick;
+                State.PhraseTicksHit += ticksSinceLast * hitPercent;
+
+                OnHit?.Invoke(true);
             }
             else
             {
-                OnTargetNoteChanged?.Invoke(note);
+                OnHit?.Invoke(false);
+            }
+        }
 
-                if (CanVocalNoteBeHit(note, out float hitPercent))
+        private void CheckHittingHit()
+        {
+            if (!State.HasHit)
+            {
+                return;
+            }
+
+            State.HasHit = false;
+
+            var phrase = Notes[State.NoteIndex];
+            var note = GetNextPercussionNote(phrase, State.CurrentTick);
+
+            if (note is null)
+            {
+                if (EngineStats.CanStarPowerActivate)
                 {
-                    // We will apply a leniency here and assume that it will also hit all other
-                    // ticks, since the user cannot change pitch between inputs.
-                    var maxLeniency = 1.0 / EngineParameters.ApproximateVocalFps;
-                    var lastTick = Math.Max(
-                        SyncTrack.TimeToTick(State.CurrentTime - maxLeniency),
-                        lastSingTick);
-
-                    var ticksSinceLast = State.CurrentTick - lastTick;
-                    State.PhraseTicksHit += ticksSinceLast * hitPercent;
-
-                    OnHit?.Invoke(true);
+                    ActivateStarPower();
                 }
-                else
-                {
-                    OnHit?.Invoke(false);
-                }
+
+                return;
+            }
+
+            if (IsNoteInWindow(note))
+            {
+                HitNote(note);
+            }
+            else
+            {
+                // TODO: Some kind of overhitting
             }
         }
 

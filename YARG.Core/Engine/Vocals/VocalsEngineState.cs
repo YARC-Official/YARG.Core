@@ -3,6 +3,11 @@
     public class VocalsEngineState : BaseEngineState
     {
         /// <summary>
+        /// Whether or not the player/bot has hit their mic in the current update.
+        /// </summary>
+        public bool HasHit;
+
+        /// <summary>
         /// Whether or not the player/bot sang in the current update.
         /// </summary>
         public bool HasSang;
