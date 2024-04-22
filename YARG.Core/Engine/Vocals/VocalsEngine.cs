@@ -31,47 +31,64 @@ namespace YARG.Core.Engine.Vocals
         {
             note.SetHitState(true, false);
 
-            if (note.IsStarPower)
+            if (note.IsPercussion)
             {
-                AwardStarPower(note);
-                EngineStats.StarPowerPhrasesHit++;
+                AddScore(note);
+                OnNoteHit?.Invoke(State.NoteIndex, note);
             }
-
-            if (note.IsSoloStart)
+            else
             {
-                StartSolo();
+                if (note.IsStarPower)
+                {
+                    AwardStarPower(note);
+                    EngineStats.StarPowerPhrasesHit++;
+                }
+
+                if (note.IsSoloStart)
+                {
+                    StartSolo();
+                }
+
+                if (State.IsSoloActive)
+                {
+                    Solos[State.CurrentSoloIndex].NotesHit++;
+                }
+
+                if (note.IsSoloEnd)
+                {
+                    EndSolo();
+                }
+
+                EngineStats.Combo++;
+
+                if (EngineStats.Combo > EngineStats.MaxCombo)
+                {
+                    EngineStats.MaxCombo = EngineStats.Combo;
+                }
+
+                EngineStats.NotesHit++;
+
+                AddScore(note);
+
+                UpdateMultiplier();
+
+                OnNoteHit?.Invoke(State.NoteIndex, note);
+
+                State.NoteIndex++;
             }
-
-            if (State.IsSoloActive)
-            {
-                Solos[State.CurrentSoloIndex].NotesHit++;
-            }
-
-            if (note.IsSoloEnd)
-            {
-                EndSolo();
-            }
-
-            EngineStats.Combo++;
-
-            if (EngineStats.Combo > EngineStats.MaxCombo)
-            {
-                EngineStats.MaxCombo = EngineStats.Combo;
-            }
-
-            EngineStats.NotesHit++;
-
-            AddScore(note);
-
-            UpdateMultiplier();
-
-            OnNoteHit?.Invoke(State.NoteIndex, note);
-            State.NoteIndex++;
         }
 
         protected override void MissNote(VocalNote note)
         {
-            MissNote(note, 0);
+            if (note.IsPercussion)
+            {
+                note.SetMissState(true, false);
+                OnNoteMissed?.Invoke(State.NoteIndex, note);
+            }
+            else
+            {
+                MissNote(note, 0);
+            }
         }
 
         protected void MissNote(VocalNote note, double hitPercent)

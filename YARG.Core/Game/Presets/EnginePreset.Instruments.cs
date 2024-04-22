@@ -140,6 +140,11 @@ namespace YARG.Core.Game
             public float HitPercentH = 0.450f;
             public float HitPercentX = 0.575f;
 
+            /// <summary>
+            /// The hit window of percussion notes.
+            /// </summary>
+            public float PercussionHitWindow = 0.16f;
+
             public VocalsPreset Copy()
             {
                 return new VocalsPreset
@@ -169,8 +174,8 @@ namespace YARG.Core.Game
                     _ => throw new InvalidOperationException("Unreachable")
                 };
 
-                // TODO: This is for percussion
-                var hitWindow = new HitWindowSettings(pitchWindow, 0.03, 1, false);
+                var hitWindow = new HitWindowSettings(
+                    PercussionHitWindow, PercussionHitWindow, 1, false);
 
                 return new VocalsEngineParameters(
                     hitWindow,

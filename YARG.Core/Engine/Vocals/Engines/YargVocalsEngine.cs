@@ -1,6 +1,7 @@
 ﻿using System;
 using YARG.Core.Chart;
 using YARG.Core.Input;
+using YARG.Core.Logging;
 
 namespace YARG.Core.Engine.Vocals.Engines
 {
@@ -80,7 +81,7 @@ namespace YARG.Core.Engine.Vocals.Engines
         protected override void CheckForNoteHit()
         {
             CheckSingingHit();
-            CheckHittingHit();
+            CheckPercussionHit();
         }
 
         private void CheckSingingHit()
@@ -136,36 +137,35 @@ namespace YARG.Core.Engine.Vocals.Engines
             }
         }
 
-        private void CheckHittingHit()
+        private void CheckPercussionHit()
         {
-            if (!State.HasHit)
-            {
-                return;
-            }
-
-            State.HasHit = false;
-
             var phrase = Notes[State.NoteIndex];
             var note = GetNextPercussionNote(phrase, State.CurrentTick);
 
-            if (note is null)
+            if (note is not null)
             {
-                if (EngineStats.CanStarPowerActivate)
+                if (IsNoteInWindow(note, out var missed))
                 {
-                    ActivateStarPower();
+                    if (State.HasHit)
+                    {
+                        HitNote(note);
+                    }
                 }
-
-                return;
-            }
-
-            if (IsNoteInWindow(note))
-            {
-                HitNote(note);
+                else if (missed)
+                {
+                    // Miss out the back end
+                    MissNote(note);
+                }
             }
             else
             {
-                // TODO: Some kind of overhitting
+                if (State.HasHit && EngineStats.CanStarPowerActivate)
+                {
+                    ActivateStarPower();
+                }
             }
+
+            State.HasHit = false;
         }
 
         protected override void UpdateBot(double songTime)
