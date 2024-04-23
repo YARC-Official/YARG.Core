@@ -59,18 +59,25 @@ namespace YARG.Core.Engine.Vocals
                     EndSolo();
                 }
 
-                EngineStats.Combo++;
-
-                if (EngineStats.Combo > EngineStats.MaxCombo)
+                // If there aren't any ticks in the phrase, then don't add
+                // any score or update the multiplier.
+                var ticks = GetTicksInPhrase(note);
+                if (ticks != 0)
                 {
-                    EngineStats.MaxCombo = EngineStats.Combo;
+                    EngineStats.Combo++;
+
+                    if (EngineStats.Combo > EngineStats.MaxCombo)
+                    {
+                        EngineStats.MaxCombo = EngineStats.Combo;
+                    }
+
+                    AddScore(note);
+
+                    UpdateMultiplier();
                 }
 
+                // No matter what, we still wanna count this as a phrase hit though
                 EngineStats.NotesHit++;
-
-                AddScore(note);
-
-                UpdateMultiplier();
 
                 OnNoteHit?.Invoke(State.NoteIndex, note);
 
@@ -130,11 +137,16 @@ namespace YARG.Core.Engine.Vocals
         /// <returns>
         /// Gets the amount of ticks in the phrase.
         /// </returns>
-        protected uint GetTicksInPhrase(VocalNote phrase)
+        protected static uint GetTicksInPhrase(VocalNote phrase)
         {
             uint totalTime = 0;
             foreach (var phraseNote in phrase.ChildNotes)
             {
+                if (phraseNote.IsPercussion)
+                {
+                    continue;
+                }
+
                 totalTime += phraseNote.TotalTickLength;
             }
 

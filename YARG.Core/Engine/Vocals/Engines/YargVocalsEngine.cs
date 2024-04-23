@@ -49,8 +49,10 @@ namespace YARG.Core.Engine.Vocals.Engines
             // Check for the end of a phrase
             if (State.CurrentTick > phrase.TickEnd)
             {
+                bool hasNotes = State.PhraseTicksTotal.Value != 0;
+
                 var percentHit = State.PhraseTicksHit / State.PhraseTicksTotal.Value;
-                if (State.PhraseTicksTotal.Value == 0)
+                if (!hasNotes)
                 {
                     percentHit = 1.0;
                 }
@@ -74,7 +76,10 @@ namespace YARG.Core.Engine.Vocals.Engines
                 State.PhraseTicksHit = 0;
                 State.PhraseTicksTotal = null;
 
-                OnPhraseHit?.Invoke(percentHit / EngineParameters.PhraseHitPercent, hit);
+                if (hasNotes)
+                {
+                    OnPhraseHit?.Invoke(percentHit / EngineParameters.PhraseHitPercent, hit);
+                }
             }
         }
 
