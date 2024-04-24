@@ -213,7 +213,18 @@ namespace YARG.Core.Audio
             }
         }
 
-        public void SetBufferLength(int length)
+        internal void ToggleBuffer(bool enable)
+        {
+            lock (this)
+            {
+                if (!_disposed)
+                {
+                    ToggleBuffer_Internal(enable);
+                }
+            }
+        }
+
+        internal void SetBufferLength(int length)
         {
             lock (this)
             {
@@ -238,6 +249,7 @@ namespace YARG.Core.Audio
         protected abstract bool AddChannel_Internal(SongStem stem, Stream stream);
         protected abstract bool AddChannel_Internal(SongStem stem, int[] indices, float[] panning);
         protected abstract bool RemoveChannel_Internal(SongStem stemToRemove);
+        protected abstract void ToggleBuffer_Internal(bool enable);
         protected abstract void SetBufferLength_Internal(int length);
 
         protected virtual void DisposeManagedResources() { }

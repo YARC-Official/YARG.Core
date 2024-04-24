@@ -326,6 +326,18 @@ namespace YARG.Core.Audio
             }
         }
 
+        public static void TogglePlaybackBuffer(bool enable)
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+                _instance.ToggleBuffer(enable);
+            }
+        }
+
         public static void SetBufferLength(int length)
         {
             lock (_instanceLock)
