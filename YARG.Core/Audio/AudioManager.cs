@@ -95,20 +95,17 @@ namespace YARG.Core.Audio
             get => _globalSpeed;
             set
             {
-                lock (this)
+                if (_disposed || _globalSpeed == value)
                 {
-                    if (_disposed || _globalSpeed == value)
-                    {
-                        return;
-                    }
+                    return;
+                }
 
-                    _globalSpeed = value;
-                    lock (_activeMixers)
+                _globalSpeed = value;
+                lock (_activeMixers)
+                {
+                    foreach (var mixer in _activeMixers)
                     {
-                        foreach (var mixer in _activeMixers)
-                        {
-                            mixer.SetSpeed(value, true);
-                        }
+                        mixer.SetSpeed(value, true);
                     }
                 }
             }
