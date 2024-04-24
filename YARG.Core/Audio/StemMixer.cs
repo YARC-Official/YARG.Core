@@ -38,7 +38,7 @@ namespace YARG.Core.Audio
 
         public StemChannel? this[SongStem stem] => _channels.Find(x => x.Stem == stem);
 
-        public int Play(bool restart = false)
+        public int Play(bool restartBuffer)
         {
             lock (this)
             {
@@ -47,7 +47,7 @@ namespace YARG.Core.Audio
                     return -1;
                 }
 
-                int ret = Play_Internal(restart);
+                int ret = Play_Internal(restartBuffer);
                 if (ret != 0)
                 {
                     return ret;
@@ -235,7 +235,7 @@ namespace YARG.Core.Audio
             }
         }
 
-        protected abstract int Play_Internal(bool restart);
+        protected abstract int Play_Internal(bool restartBuffer);
         protected abstract void FadeIn_Internal(double maxVolume, double duration);
         protected abstract void FadeOut_Internal(double duration);
         protected abstract int Pause_Internal();
