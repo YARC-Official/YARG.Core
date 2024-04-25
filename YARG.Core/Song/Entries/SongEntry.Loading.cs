@@ -11,15 +11,28 @@ using YARG.Core.Venue;
 
 namespace YARG.Core.Song
 {
-    public class BackgroundResult
+    public class BackgroundResult : IDisposable
     {
         public readonly BackgroundType Type;
         public readonly Stream? Stream;
+        public readonly YARGImage? Image;
 
-        public BackgroundResult(BackgroundType type, Stream? stream)
+        public BackgroundResult(BackgroundType type, Stream stream)
         {
             Type = type;
             Stream = stream;
+        }
+
+        public BackgroundResult(YARGImage? image)
+        {
+            Type = BackgroundType.Image;
+            Image = image;
+        }
+
+        public void Dispose()
+        {
+            Stream?.Dispose();
+            Image?.Dispose();
         }
     }
 
