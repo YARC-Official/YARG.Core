@@ -87,7 +87,6 @@ namespace YARG.Core.Audio
                     previewStartTime = 0;
                     previewEndTime = audioLength;
                 }
-                previewEndTime -= fadeDuration;
                 return new PreviewContext(mixer, previewStartTime, previewEndTime, fadeDuration, volume, token);
             }
             catch (Exception ex)
@@ -124,54 +123,34 @@ namespace YARG.Core.Audio
             await _task;
         }
 
-        private enum LoopStage
-        {
-            FadeIn,
-            Main,
-            FadeOut
-        }
-
         private async void Loop()
         {
             try
             {
-                // Preview mixers start at a volume of zero
-                var stage = LoopStage.FadeIn;
-                while (!_disposed)
+                // We must use a boolean flag and manually seek to dodge race conditions
+                bool doSet = true;
+                _mixer.Play(true);
+                _mixer.SetLoop(_previewEndTime, _fadeDruation, _volume, () => doSet = true);
+                while (!_disposed && !_token.IsCancellationRequested)
                 {
-                    switch (stage)
+                    if (doSet)
                     {
-                        case LoopStage.FadeIn:
-                            _mixer.SetPosition(_previewStartTime);
-                            _mixer.FadeIn(_volume, _fadeDruation);
-                            _mixer.Play(true);
-                            stage = LoopStage.Main;
-                            break;
-                        case LoopStage.Main:
-                            if (_mixer.GetPosition() < _previewEndTime && !_token.IsCancellationRequested)
-                            {
-                                break;
-                            }
-
-                            _mixer.FadeOut(_fadeDruation);
-                            stage = LoopStage.FadeOut;
-                            break;
-                        case LoopStage.FadeOut:
-                            if (_mixer.GetVolume() >= 0.01f)
-                            {
-                                break;
-                            }
-
-                            _mixer.Pause();
-                            if (_token.IsCancellationRequested)
-                            {
-                                Dispose();
-                                return;
-                            }
-                            stage = LoopStage.FadeIn;
-                            break;
+                        _mixer.SetPosition(_previewStartTime);
+                        doSet = false;
                     }
-                    await Task.Delay(25);
+                    await Task.Delay(1);
+                }
+
+                _mixer.EndLoop();
+                _mixer.FadeOut(_fadeDruation);
+                while (!_disposed && _mixer.GetVolume() >= 0.01f)
+                {
+                    await Task.Delay(1);
+                }
+
+                if (!_disposed)
+                {
+                    Dispose();
                 }
             }
             catch (Exception ex)

@@ -14,6 +14,8 @@ namespace YARG.Core.Audio
 
         protected internal readonly SampleChannel[] SfxSamples = new SampleChannel[AudioHelpers.SfxPaths.Count];
         protected internal int PlaybackLatency;
+        protected internal int MinimumBufferLength;
+        protected internal int MaximumBufferLength;
 
         protected internal abstract ReadOnlySpan<string> SupportedFormats { get; }
 
@@ -60,25 +62,50 @@ namespace YARG.Core.Audio
 
         protected internal abstract void SetMasterVolume(double volume);
 
+        internal void ToggleBuffer(bool enable)
+        {
+            ToggleBuffer_Internal(enable);
+            lock (_activeMixers)
+            {
+                foreach (var mixer in _activeMixers)
+                {
+                    mixer.ToggleBuffer(enable);
+                }
+            }
+        }
+
+        internal void SetBufferLength(int length)
+        {
+            SetBufferLength_Internal(length);
+            lock (_activeMixers)
+            {
+                foreach (var mixer in _activeMixers)
+                {
+                    mixer.SetBufferLength(length);
+                }
+            }
+        }
+
+        protected abstract void ToggleBuffer_Internal(bool enable);
+
+        protected abstract void SetBufferLength_Internal(int length);
+
         internal float GlobalSpeed
         {
             get => _globalSpeed;
             set
             {
-                lock (this)
+                if (_disposed || _globalSpeed == value)
                 {
-                    if (_disposed || _globalSpeed == value)
-                    {
-                        return;
-                    }
+                    return;
+                }
 
-                    _globalSpeed = value;
-                    lock (_activeMixers)
+                _globalSpeed = value;
+                lock (_activeMixers)
+                {
+                    foreach (var mixer in _activeMixers)
                     {
-                        foreach (var mixer in _activeMixers)
-                        {
-                            mixer.SetSpeed(value, true);
-                        }
+                        mixer.SetSpeed(value, true);
                     }
                 }
             }

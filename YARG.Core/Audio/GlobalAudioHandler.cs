@@ -162,6 +162,36 @@ namespace YARG.Core.Audio
             }
         }
 
+        public static int MinimumBufferLength
+        {
+            get
+            {
+                lock (_instanceLock)
+                {
+                    if (_instance == null)
+                    {
+                        throw new NotInitializedException();
+                    }
+                    return _instance.MinimumBufferLength;
+                }
+            }
+        }
+
+        public static int MaximumBufferLength
+        {
+            get
+            {
+                lock (_instanceLock)
+                {
+                    if (_instance == null)
+                    {
+                        throw new NotInitializedException();
+                    }
+                    return _instance.MaximumBufferLength;
+                }
+            }
+        }
+
         public static float GlobalSpeed
         {
             get
@@ -293,6 +323,30 @@ namespace YARG.Core.Audio
                     throw new NotInitializedException();
                 }
                 _instance.SetMasterVolume(volume);
+            }
+        }
+
+        public static void TogglePlaybackBuffer(bool enable)
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+                _instance.ToggleBuffer(enable);
+            }
+        }
+
+        public static void SetBufferLength(int length)
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+                _instance.SetBufferLength(length);
             }
         }
     }
