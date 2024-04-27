@@ -1,4 +1,4 @@
-using System.Drawing;
+﻿using System.Drawing;
 using System.IO;
 using YARG.Core.Extensions;
 using YARG.Core.Utility;
@@ -7,22 +7,60 @@ namespace YARG.Core.Game
 {
     public partial class ColorProfile
     {
-        public class FiveFretGuitarColors : IFretColorProvider, IBinarySerializable
+        public struct FiveFretGuitarColors : IFretColorProvider, IBinarySerializable
         {
+            public static readonly FiveFretGuitarColors Default = new()
+            {
+                OpenFret = DefaultPurple,
+                GreenFret = DefaultGreen,
+                RedFret = DefaultRed,
+                YellowFret = DefaultYellow,
+                BlueFret = DefaultBlue,
+                OrangeFret = DefaultOrange,
+
+                OpenFretInner = DefaultPurple,
+                GreenFretInner = DefaultGreen,
+                RedFretInner = DefaultRed,
+                YellowFretInner = DefaultYellow,
+                BlueFretInner = DefaultBlue,
+                OrangeFretInner = DefaultOrange,
+
+                OpenParticles = DefaultPurple,
+                GreenParticles = DefaultGreen,
+                RedParticles = DefaultRed,
+                YellowParticles = DefaultYellow,
+                BlueParticles = DefaultBlue,
+                OrangeParticles = DefaultOrange,
+
+                OpenNote = DefaultPurple,
+                GreenNote = DefaultGreen,
+                RedNote = DefaultRed,
+                YellowNote = DefaultYellow,
+                BlueNote = DefaultBlue,
+                OrangeNote = DefaultOrange,
+
+                OpenNoteStarPower = DefaultStarpower,
+                GreenNoteStarPower = DefaultStarpower,
+                RedNoteStarPower = DefaultStarpower,
+                YellowNoteStarPower = DefaultStarpower,
+                BlueNoteStarPower = DefaultStarpower,
+                OrangeNoteStarPower = DefaultStarpower,
+            };
+
             #region Frets
 
-            public Color OpenFret   = DefaultPurple;
-            public Color GreenFret  = DefaultGreen;
-            public Color RedFret    = DefaultRed;
-            public Color YellowFret = DefaultYellow;
-            public Color BlueFret   = DefaultBlue;
-            public Color OrangeFret = DefaultOrange;
+            public Color OpenFret;
+            public Color GreenFret;
+            public Color RedFret;
+            public Color YellowFret;
+            public Color BlueFret;
+            public Color OrangeFret;
 
             /// <summary>
             /// Gets the fret color for a specific note index.
             /// 0 = open note, 1 = green, 5 = orange.
             /// </summary>
-            public Color GetFretColor(int index)
+            public readonly Color GetFretColor(int index)
             {
                 return index switch
                 {
@@ -36,18 +74,18 @@ namespace YARG.Core.Game
                 };
             }
 
-            public Color OpenFretInner   = DefaultPurple;
-            public Color GreenFretInner  = DefaultGreen;
-            public Color RedFretInner    = DefaultRed;
-            public Color YellowFretInner = DefaultYellow;
-            public Color BlueFretInner   = DefaultBlue;
-            public Color OrangeFretInner = DefaultOrange;
+            public Color OpenFretInner;
+            public Color GreenFretInner;
+            public Color RedFretInner;
+            public Color YellowFretInner;
+            public Color BlueFretInner;
+            public Color OrangeFretInner;
 
             /// <summary>
             /// Gets the inner fret color for a specific note index.
             /// 0 = open note, 1 = green, 5 = orange.
             /// </summary>
-            public Color GetFretInnerColor(int index)
+            public readonly Color GetFretInnerColor(int index)
             {
                 return index switch
                 {
@@ -61,18 +99,18 @@ namespace YARG.Core.Game
                 };
             }
 
-            public Color OpenParticles   = DefaultPurple;
-            public Color GreenParticles  = DefaultGreen;
-            public Color RedParticles    = DefaultRed;
-            public Color YellowParticles = DefaultYellow;
-            public Color BlueParticles   = DefaultBlue;
-            public Color OrangeParticles = DefaultOrange;
+            public Color OpenParticles;
+            public Color GreenParticles;
+            public Color RedParticles;
+            public Color YellowParticles;
+            public Color BlueParticles;
+            public Color OrangeParticles;
 
             /// <summary>
             /// Gets the particle color for a specific note index.
             /// 0 = open note, 1 = green, 5 = orange.
             /// </summary>
-            public Color GetParticleColor(int index)
+            public readonly Color GetParticleColor(int index)
             {
                 return index switch
                 {
@@ -90,18 +128,18 @@ namespace YARG.Core.Game
 
             #region Notes
 
-            public Color OpenNote   = DefaultPurple;
-            public Color GreenNote  = DefaultGreen;
-            public Color RedNote    = DefaultRed;
-            public Color YellowNote = DefaultYellow;
-            public Color BlueNote   = DefaultBlue;
-            public Color OrangeNote = DefaultOrange;
+            public Color OpenNote;
+            public Color GreenNote;
+            public Color RedNote;
+            public Color YellowNote;
+            public Color BlueNote;
+            public Color OrangeNote;
 
             /// <summary>
             /// Gets the note color for a specific note index.
             /// 0 = open note, 1 = green, 5 = orange.
             /// </summary>
-            public Color GetNoteColor(int index)
+            public readonly Color GetNoteColor(int index)
             {
                 return index switch
                 {
@@ -115,18 +153,18 @@ namespace YARG.Core.Game
                 };
             }
 
-            public Color OpenNoteStarPower   = DefaultStarpower;
-            public Color GreenNoteStarPower  = DefaultStarpower;
-            public Color RedNoteStarPower    = DefaultStarpower;
-            public Color YellowNoteStarPower = DefaultStarpower;
-            public Color BlueNoteStarPower   = DefaultStarpower;
-            public Color OrangeNoteStarPower = DefaultStarpower;
+            public Color OpenNoteStarPower;
+            public Color GreenNoteStarPower;
+            public Color RedNoteStarPower;
+            public Color YellowNoteStarPower;
+            public Color BlueNoteStarPower;
+            public Color OrangeNoteStarPower;
 
             /// <summary>
             /// Gets the Star Power note color for a specific note index.
             /// 0 = open note, 1 = green, 5 = orange.
             /// </summary>
-            public Color GetNoteStarPowerColor(int index)
+            public readonly Color GetNoteStarPowerColor(int index)
             {
                 return index switch
                 {
@@ -144,13 +182,7 @@ namespace YARG.Core.Game
 
             #region Serialization
 
-            public FiveFretGuitarColors Copy()
-            {
-                // Kinda yucky, but it's easier to maintain
-                return (FiveFretGuitarColors) MemberwiseClone();
-            }
-
-            public void Serialize(BinaryWriter writer)
+            public readonly void Serialize(BinaryWriter writer)
             {
                 writer.Write(OpenFret);
                 writer.Write(GreenFret);

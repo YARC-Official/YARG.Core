@@ -1,4 +1,4 @@
-using System.Drawing;
+﻿using System.Drawing;
 using System.IO;
 using Newtonsoft.Json;
 using YARG.Core.Utility;
@@ -27,21 +27,22 @@ namespace YARG.Core.Game
         public FourLaneDrumsColors  FourLaneDrums;
         public FiveLaneDrumsColors  FiveLaneDrums;
 
-        public ColorProfile(string name, bool defaultPreset = false) : base(name, defaultPreset)
+        public ColorProfile(string name, bool defaultPreset)
+            : this(name, defaultPreset, in FiveFretGuitarColors.Default, in FourLaneDrumsColors.Default, in FiveLaneDrumsColors.Default)
         {
-            FiveFretGuitar = new FiveFretGuitarColors();
-            FourLaneDrums = new FourLaneDrumsColors();
-            FiveLaneDrums = new FiveLaneDrumsColors();
+        }
+
+        private ColorProfile(string name, bool defaultPreset, in FiveFretGuitarColors fivefret, in FourLaneDrumsColors fourlane, in FiveLaneDrumsColors fivelane)
+            : base(name, defaultPreset)
+        {
+            FiveFretGuitar = fivefret;
+            FourLaneDrums = fourlane;
+            FiveLaneDrums = fivelane;
         }
 
         public override BasePreset CopyWithNewName(string name)
         {
-            return new ColorProfile(name)
-            {
-                FiveFretGuitar = FiveFretGuitar.Copy(),
-                FourLaneDrums = FourLaneDrums.Copy(),
-                FiveLaneDrums = FiveLaneDrums.Copy()
-            };
+            return new ColorProfile(name, false, in FiveFretGuitar, in FourLaneDrums, in FiveLaneDrums);
         }
 
         public void Serialize(BinaryWriter writer)

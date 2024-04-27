@@ -1,4 +1,4 @@
-using System.Drawing;
+﻿using System.Drawing;
 using System.IO;
 using YARG.Core.Extensions;
 using YARG.Core.Utility;
@@ -7,21 +7,67 @@ namespace YARG.Core.Game
 {
     public partial class ColorProfile
     {
-        public class FourLaneDrumsColors : IFretColorProvider, IBinarySerializable
+        public struct FourLaneDrumsColors : IFretColorProvider, IBinarySerializable
         {
+            public static readonly FourLaneDrumsColors Default = new()
+            {
+                KickFret   = DefaultOrange,
+                RedFret    = DefaultRed,
+                YellowFret = DefaultYellow,
+                BlueFret   = DefaultBlue,
+                GreenFret  = DefaultGreen,
+
+                KickFretInner   = DefaultOrange,
+                RedFretInner    = DefaultRed,
+                YellowFretInner = DefaultYellow,
+                BlueFretInner   = DefaultBlue,
+                GreenFretInner  = DefaultGreen,
+
+                KickParticles   = Color.FromArgb(0xFF, 0xFF, 0xB6, 0x00),
+                RedParticles    = DefaultRed,
+                YellowParticles = DefaultYellow,
+                BlueParticles   = DefaultBlue,
+                GreenParticles  = DefaultGreen,
+
+                KickNote = DefaultOrange,
+                
+                RedDrum    = DefaultRed,
+                YellowDrum = DefaultYellow,
+                BlueDrum   = DefaultBlue,
+                GreenDrum  = DefaultGreen,
+                
+                RedCymbal    = DefaultRed,
+                YellowCymbal = DefaultYellow,
+                BlueCymbal   = DefaultBlue,
+                GreenCymbal  = DefaultGreen,
+
+                KickStarpower = DefaultStarpower,
+                
+                RedDrumStarpower    = DefaultStarpower,
+                YellowDrumStarpower = DefaultStarpower,
+                BlueDrumStarpower   = DefaultStarpower,
+                GreenDrumStarpower  = DefaultStarpower,
+                
+                RedCymbalStarpower    = DefaultStarpower,
+                YellowCymbalStarpower = DefaultStarpower,
+                BlueCymbalStarpower   = DefaultStarpower,
+                GreenCymbalStarpower  = DefaultStarpower,
+            };
+
+
             #region Frets
 
-            public Color KickFret   = DefaultOrange;
-            public Color RedFret    = DefaultRed;
-            public Color YellowFret = DefaultYellow;
-            public Color BlueFret   = DefaultBlue;
-            public Color GreenFret  = DefaultGreen;
+            public Color KickFret;
+            public Color RedFret;
+            public Color YellowFret;
+            public Color BlueFret;
+            public Color GreenFret;
 
             /// <summary>
             /// Gets the fret color for a specific note index.
             /// 0 = kick note, 1 = red, 4 = green.
             /// </summary>
-            public Color GetFretColor(int index)
+            public readonly Color GetFretColor(int index)
             {
                 return index switch
                 {
@@ -34,17 +80,17 @@ namespace YARG.Core.Game
                 };
             }
 
-            public Color KickFretInner   = DefaultOrange;
-            public Color RedFretInner    = DefaultRed;
-            public Color YellowFretInner = DefaultYellow;
-            public Color BlueFretInner   = DefaultBlue;
-            public Color GreenFretInner  = DefaultGreen;
+            public Color KickFretInner;
+            public Color RedFretInner;
+            public Color YellowFretInner;
+            public Color BlueFretInner;
+            public Color GreenFretInner;
 
             /// <summary>
             /// Gets the inner fret color for a specific note index.
             /// 0 = kick note, 1 = red, 4 = green.
             /// </summary>
-            public Color GetFretInnerColor(int index)
+            public readonly Color GetFretInnerColor(int index)
             {
                 return index switch
                 {
@@ -57,17 +103,17 @@ namespace YARG.Core.Game
                 };
             }
 
-            public Color KickParticles   = Color.FromArgb(0xFF, 0xFF, 0xB6, 0x00); // #FFB600
-            public Color RedParticles    = DefaultRed;
-            public Color YellowParticles = DefaultYellow;
-            public Color BlueParticles   = DefaultBlue;
-            public Color GreenParticles  = DefaultGreen;
+            public Color KickParticles; // #FFB600
+            public Color RedParticles;
+            public Color YellowParticles;
+            public Color BlueParticles;
+            public Color GreenParticles;
 
             /// <summary>
             /// Gets the particle color for a specific note index.
             /// 0 = kick note, 1 = red, 4 = green.
             /// </summary>
-            public Color GetParticleColor(int index)
+            public readonly Color GetParticleColor(int index)
             {
                 return index switch
                 {
@@ -84,24 +130,24 @@ namespace YARG.Core.Game
 
             #region Notes
 
-            public Color KickNote = DefaultOrange;
+            public Color KickNote;
 
-            public Color RedDrum    = DefaultRed;
-            public Color YellowDrum = DefaultYellow;
-            public Color BlueDrum   = DefaultBlue;
-            public Color GreenDrum  = DefaultGreen;
+            public Color RedDrum;
+            public Color YellowDrum;
+            public Color BlueDrum;
+            public Color GreenDrum;
 
-            public Color RedCymbal    = DefaultRed;
-            public Color YellowCymbal = DefaultYellow;
-            public Color BlueCymbal   = DefaultBlue;
-            public Color GreenCymbal  = DefaultGreen;
+            public Color RedCymbal;
+            public Color YellowCymbal;
+            public Color BlueCymbal;
+            public Color GreenCymbal;
 
             /// <summary>
             /// Gets the note color for a specific note index.
             /// 0 = kick note, 1 = red drum, 4 = green drum, 5 = yellow cymbal.
             /// 8 is a special case: it is the red cymbal that is used in lefty-flip.
             /// </summary>
-            public Color GetNoteColor(int index)
+            public readonly Color GetNoteColor(int index)
             {
                 return index switch
                 {
@@ -121,24 +167,24 @@ namespace YARG.Core.Game
                 };
             }
 
-            public Color KickStarpower = DefaultStarpower;
+            public Color KickStarpower;
 
-            public Color RedDrumStarpower    = DefaultStarpower;
-            public Color YellowDrumStarpower = DefaultStarpower;
-            public Color BlueDrumStarpower   = DefaultStarpower;
-            public Color GreenDrumStarpower  = DefaultStarpower;
+            public Color RedDrumStarpower;
+            public Color YellowDrumStarpower;
+            public Color BlueDrumStarpower;
+            public Color GreenDrumStarpower;
 
-            public Color RedCymbalStarpower    = DefaultStarpower;
-            public Color YellowCymbalStarpower = DefaultStarpower;
-            public Color BlueCymbalStarpower   = DefaultStarpower;
-            public Color GreenCymbalStarpower  = DefaultStarpower;
+            public Color RedCymbalStarpower;
+            public Color YellowCymbalStarpower;
+            public Color BlueCymbalStarpower;
+            public Color GreenCymbalStarpower;
 
             /// <summary>
             /// Gets the Star Power note color for a specific note index.
             /// 0 = kick note, 1 = red drum, 4 = green drum, 5 = yellow cymbal.
             /// 8 is a special case: it is the red cymbal that is used in lefty-flip.
             /// </summary>
-            public Color GetNoteStarPowerColor(int index)
+            public readonly Color GetNoteStarPowerColor(int index)
             {
                 return index switch
                 {
@@ -158,17 +204,11 @@ namespace YARG.Core.Game
                 };
             }
 
-            public Color ActivationNote = DefaultPurple;
+            public Color ActivationNote;
 
             #endregion
 
             #region Serialization
-
-            public FourLaneDrumsColors Copy()
-            {
-                // Kinda yucky, but it's easier to maintain
-                return (FourLaneDrumsColors) MemberwiseClone();
-            }
 
             public void Serialize(BinaryWriter writer)
             {

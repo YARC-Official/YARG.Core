@@ -41,9 +41,9 @@ namespace YARG.Core.Game
 
         #endregion
 
-        public static ColorProfile Default = new("Default", true);
+        public static readonly ColorProfile Default = new("Default", true);
 
-        public static ColorProfile CircularDefault = new("Circular", true)
+        public static readonly ColorProfile CircularDefault = new("Circular", true)
         {
             FiveFretGuitar = new FiveFretGuitarColors
             {
@@ -77,7 +77,7 @@ namespace YARG.Core.Game
             }
         };
 
-        public static ColorProfile AprilFoolsDefault = new("YARG on Fire", true)
+        public static readonly ColorProfile AprilFoolsDefault = new("YARG on Fire", true)
         {
             FiveFretGuitar = new FiveFretGuitarColors
             {
@@ -179,7 +179,7 @@ namespace YARG.Core.Game
             }
         };
 
-        public static readonly List<ColorProfile> Defaults = new()
+        public static readonly ColorProfile[] Defaults =
         {
             Default,
             CircularDefault,
