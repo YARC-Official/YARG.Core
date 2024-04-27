@@ -70,6 +70,11 @@ namespace YARG.Core.Engine
         public int NotesMissed => TotalNotes - NotesHit;
 
         /// <summary>
+        /// The percent of notes hit.
+        /// </summary>
+        public virtual float Percent => (float) NotesHit / TotalNotes;
+
+        /// <summary>
         /// Amount of Star Power/Overdrive the player currently has.
         /// </summary>
         public double StarPowerAmount;

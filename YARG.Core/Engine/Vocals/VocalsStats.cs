@@ -14,6 +14,13 @@ namespace YARG.Core.Engine.Vocals
         /// </summary>
         public uint TicksMissed;
 
+        /// <summary>
+        /// The total amount of note ticks.
+        /// </summary>
+        public uint TotalTicks => TicksHit + TicksMissed;
+
+        public override float Percent => (float) TicksHit / TotalTicks;
+
         public VocalsStats()
         {
         }
