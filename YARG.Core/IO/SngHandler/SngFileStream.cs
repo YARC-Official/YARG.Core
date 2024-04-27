@@ -14,8 +14,9 @@ namespace YARG.Core.IO
         private const int KEY_MASK = 0xFF;
 
         private static readonly int VECTOR_MASK = SngMask.VECTORBYTE_COUNT - 1;
-        private static readonly int VECTOR_SHIFT;
         private static readonly int NUM_VECTORS_MASK = SngMask.NUMVECTORS - 1;
+        private static readonly int VECTOR_SHIFT;
+        private static readonly int VECTOR_INDEX_MASK;
 
         static SngFileStream()
         {
@@ -25,6 +26,7 @@ namespace YARG.Core.IO
                 VECTOR_SHIFT++;
                 val >>= 1;
             }
+            VECTOR_INDEX_MASK = NUM_VECTORS_MASK << VECTOR_SHIFT;
         }
 
         public static byte[] LoadFile(FileStream stream, SngMask mask, long fileSize, long position)
@@ -33,21 +35,31 @@ namespace YARG.Core.IO
                 throw new EndOfStreamException();
 
             byte[] buffer = stream.ReadBytes((int)fileSize);
-            int loopCount = (buffer.Length - SngMask.VECTORBYTE_COUNT) >> VECTOR_SHIFT;
-            Parallel.For(0, loopCount, i =>
+            unsafe
             {
-                int loc = (i << VECTOR_SHIFT);
-                var vec = new Vector<byte>(buffer, loc);
-                unsafe
+                fixed (byte* ptr = buffer)
                 {
-                    var result = Vector.Xor(vec, mask.Vectors[i & NUM_VECTORS_MASK]);
-                    result.CopyTo(buffer, loc);
+                    var buffEnd = ptr + buffer.Length;
+                    var buffIndex = buffer.Length & ~VECTOR_MASK;
+                    var buffPosition = ptr + buffIndex;
+
+                    var vecPtr = (Vector<byte>*) ptr;
+                    Parallel.For(0, SngMask.NUMVECTORS, i =>
+                    {
+                        var xor = mask.Vectors[i];
+                        for (var loc = vecPtr + i; loc < buffPosition; loc += SngMask.NUMVECTORS)
+                        {
+                            *loc ^= xor;
+                        }
+                    });
+
+                    long keyIndex = buffIndex & KEY_MASK;
+                    while (buffPosition < buffEnd)
+                    {
+                        *buffPosition++ ^= mask.Keys.Ptr[keyIndex++];
+                    }
                 }
-            });
-
-            for (int buffIndex = loopCount << VECTOR_SHIFT; buffIndex < buffer.Length; buffIndex++)
-                buffer[buffIndex] ^= mask.Keys[buffIndex & KEY_MASK];
-
+            }
             return buffer;
         }
 
@@ -194,7 +206,7 @@ namespace YARG.Core.IO
         }
 
 
-        private long UpdateBuffer()
+        private unsafe long UpdateBuffer()
         {
             int readCount = BUFFER_SIZE - bufferPosition;
             if (readCount > fileSize - _position)
@@ -205,45 +217,49 @@ namespace YARG.Core.IO
                 throw new Exception("Seek error in SNGPKG subfile");
 
             int buffIndex = bufferPosition;
-            int key = buffIndex & KEY_MASK;
+            int count = SngMask.VECTORBYTE_COUNT - (buffIndex & VECTOR_MASK);
+            if (count > readCount)
+                count = readCount;
+
+            // Line up to a vector boundary
+            if (count != SngMask.VECTORBYTE_COUNT)
             {
-                int count = SngMask.VECTORBYTE_COUNT - (buffIndex & VECTOR_MASK);
-                if (count > readCount)
-                    count = readCount;
-
-                if (count != SngMask.VECTORBYTE_COUNT)
+                int key = buffIndex & KEY_MASK;
+                for (int i = 0; i < count; ++i)
                 {
-                    for (int i = 0; i < count; ++i)
-                        dataBuffer[buffIndex++] ^= mask.Keys[key++];
+                    dataBuffer.Ptr[buffIndex++] ^= mask.Keys.Ptr[key++];
+                }
 
-                    if (key == 256)
-                        key = 0;
+                // No need to do anything else
+                if (count == readCount)
+                {
+                    return readCount;
                 }
             }
 
-            int vectorIndex = (key & ~VECTOR_MASK) >> VECTOR_SHIFT;
-            int end = bufferPosition + readCount;
-            int vectorMax = end - SngMask.VECTORBYTE_COUNT;
-            int loopCount = (vectorMax - buffIndex) >> VECTOR_SHIFT;
+            int endIndex = bufferPosition + readCount;
+            var endPtr = dataBuffer.Ptr + endIndex;
 
-            Parallel.For(0, loopCount, i =>
+            int vectorIndex = (buffIndex & VECTOR_INDEX_MASK) >> VECTOR_SHIFT;
+            int vectorMax = endIndex & ~VECTOR_MASK;
+            
+            var buffPosition = dataBuffer.Ptr + vectorMax;
+            var vecPtr = (Vector<byte>*) (dataBuffer.Ptr + buffIndex);
+            Parallel.For(0, SngMask.NUMVECTORS, i =>
             {
-                int loc = (i << VECTOR_SHIFT) + buffIndex;
-                var vec = new Vector<byte>(dataBuffer.Slice(loc, SngMask.VECTORBYTE_COUNT));
-                unsafe
+                // Faster "% NUM_VECTORS"
+                var xor = mask.Vectors[(i + vectorIndex) & NUM_VECTORS_MASK];
+                for (var loc = vecPtr + i; loc < buffPosition; loc += SngMask.NUMVECTORS)
                 {
-                    var result = Vector.Xor(vec, mask.Vectors[(vectorIndex + i) & NUM_VECTORS_MASK]);
-                    Unsafe.CopyBlock(dataBuffer.Ptr + loc, &result, (uint) SngMask.VECTORBYTE_COUNT);
+                    *loc ^= xor;
                 }
             });
 
-            buffIndex += loopCount << VECTOR_SHIFT;
-            while (buffIndex < end)
+            long keyIndex = vectorMax & KEY_MASK;
+            while (buffPosition < endPtr)
             {
-                dataBuffer[buffIndex] ^= mask.Keys[buffIndex & 255];
-                buffIndex++;
+                *buffPosition++ ^= mask.Keys.Ptr[keyIndex++];
             }
-
             return readCount;
         }
     }
