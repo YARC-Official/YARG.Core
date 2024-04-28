@@ -200,7 +200,7 @@ namespace YARG.Core.Engine.Vocals
         {
             if (note.IsPercussion)
             {
-                AddScore(POINTS_PER_PERCUSSION * EngineStats.ScoreMultiplier);
+                AddScore(POINTS_PER_PERCUSSION);
             }
             else
             {
