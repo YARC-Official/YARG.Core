@@ -19,7 +19,7 @@ namespace YARG.Core.Engine.Vocals
         /// </summary>
         public uint TotalTicks => TicksHit + TicksMissed;
 
-        public override float Percent => (float) TicksHit / TotalTicks;
+        public override float Percent => TotalTicks == 0 ? 1f : (float) TicksHit / TotalTicks;
 
         public VocalsStats()
         {

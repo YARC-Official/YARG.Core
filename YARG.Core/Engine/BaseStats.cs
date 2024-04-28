@@ -72,7 +72,7 @@ namespace YARG.Core.Engine
         /// <summary>
         /// The percent of notes hit.
         /// </summary>
-        public virtual float Percent => (float) NotesHit / TotalNotes;
+        public virtual float Percent => TotalNotes == 0 ? 1f : (float) NotesHit / TotalNotes;
 
         /// <summary>
         /// Amount of Star Power/Overdrive the player currently has.
