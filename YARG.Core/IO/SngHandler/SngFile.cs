@@ -124,20 +124,18 @@ namespace YARG.Core.IO
             ulong numPairs = stream.Read<ulong>(Endianness.Little);
 
             var validNodes = SongIniHandler.SONG_INI_DICTIONARY["[song]"];
-            YARGTextContainer<byte> text = new(stream.ReadBytes((int)length), 0);
+            var text = new YARGTextContainer<byte>(stream.ReadBytes((int)length), 0);
             for (ulong i = 0; i < numPairs; i++)
             {
-                int size = BitConverter.ToInt32(text.Data, text.Position);
-                text.Position += sizeof(int);
+                int strLength = GetLength(text);
+                var key = Encoding.UTF8.GetString(text.Data, text.Position, strLength);
+                text.Position += strLength;
 
-                var key = Encoding.UTF8.GetString(text.ExtractSpan(size));
-                size = BitConverter.ToInt32(text.Data, text.Position);
-                text.Position += sizeof(int);
-
+                strLength = GetLength(text);
+                var next = text.Position + strLength;
                 if (validNodes.TryGetValue(key, out var node))
                 {
-                    text.Next = text.Position + size;
-                    var mod = node.CreateSngModifier(text);
+                    var mod = node.CreateSngModifier(text, strLength);
                     if (modifiers.TryGetValue(node.outputName, out var list))
                     {
                         list.Add(mod);
@@ -146,12 +144,8 @@ namespace YARG.Core.IO
                     {
                         modifiers.Add(node.outputName, new() { mod });
                     }
-                    text.Position = text.Next;
                 }
-                else
-                {
-                    text.Position += size;
-                }
+                text.Position = next;
             }
             return new IniSection(modifiers);
         }
@@ -176,6 +170,17 @@ namespace YARG.Core.IO
                 listings.Add(filename.ToLower(), new SngFileListing(filename, reader));
             }
             return listings;
+        }
+
+        private static int GetLength(YARGTextContainer<byte> container)
+        {
+            int length = BitConverter.ToInt32(container.Data, container.Position);
+            container.Position += sizeof(int);
+            if (container.Position + length > container.Length)
+            {
+                throw new EndOfStreamException();
+            }
+            return length;
         }
     }
 }

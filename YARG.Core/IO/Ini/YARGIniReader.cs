@@ -57,7 +57,7 @@ namespace YARG.Core.IO.Ini
                 if (reader.Container.IsEndOfFile())
                     return false;
             }
-            section = reader.ExtractLine().ToLower();
+            section = reader.PeekLine().ToLower();
             return true;
         }
 

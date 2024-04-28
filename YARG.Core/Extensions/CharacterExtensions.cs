@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Runtime.CompilerServices;
 
 namespace YARG.Core.Extensions
@@ -32,8 +32,8 @@ namespace YARG.Core.Extensions
             => (uint) (c - minInclusive) <= (uint) (maxInclusive - minInclusive);
 
         #region ASCII
-        private const byte ASCII_LOWERCASE_FLAG = 0x20;
-        private const byte ASCII_MAX_VALUE = 0x7F;
+        public const byte ASCII_LOWERCASE_FLAG = 0x20;
+        public const byte ASCII_MAX_VALUE = 0x7F;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static byte GetAsciiCharacterInfo(this char c)
