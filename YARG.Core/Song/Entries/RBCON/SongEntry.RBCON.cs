@@ -261,8 +261,8 @@ namespace YARG.Core.Song
             }
         }
 
-        protected abstract bool IsMoggValid(CONFile? file);
-        protected abstract byte[]? LoadMidiFile(CONFile? file);
+        protected abstract bool IsMoggValid(Stream? file);
+        protected abstract byte[]? LoadMidiFile(Stream? file);
         protected abstract Stream? GetMidiStream();
 
         protected RBCONEntry() : base()
@@ -363,7 +363,7 @@ namespace YARG.Core.Song
             return File.ReadAllBytes(_updateMidi.FullName);
         }
 
-        protected ScanResult ParseRBCONMidi(CONFile? file)
+        protected ScanResult ParseRBCONMidi(Stream? file)
         {
             if (_metadata.Name.Length == 0)
             {

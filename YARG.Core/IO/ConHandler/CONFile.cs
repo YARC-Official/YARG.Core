@@ -1,38 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using YARG.Core.Logging;
 
 namespace YARG.Core.IO
 {
-    public class CONFile : IDisposable
+    public static class CONFile
     {
-        public readonly List<CONFileListing> Listings;
-        public readonly FileStream Stream;
-        public readonly object Lock = new();
-
-        private CONFile(string filename, List<CONFileListing> listings)
+        public static CONFileListing? Find(this CONFileListing[] listings, string filename)
         {
-            Listings = listings;
-            Stream = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
-        }
-
-        public CONFileListing? TryGetListing(string filename)
-        {
-            for (int i = 0; i < Listings.Count; ++i)
+            for (int i = 0; i < listings.Length; ++i)
             {
-                var listing = Listings[i];
+                var listing = listings[i];
                 if (filename == listing.Filename)
                     return listing;
             }
             return null;
-        }
-
-        public void Dispose()
-        {
-            Listings.Clear();
-            Stream.Dispose();
         }
 
         private static readonly FourCC CON_TAG = new('C', 'O', 'N', ' ');
@@ -49,7 +32,7 @@ namespace YARG.Core.IO
         private const int BYTES_PER_BLOCK = 0x1000;
         private const int SIZEOF_FILELISTING = 0x40;
 
-        public static CONFile? TryLoadFile(AbridgedFileInfo info)
+        public static CONFileListing[]? TryParseListings(AbridgedFileInfo info)
         {
             using var stream = InitStream_Internal(info.FullName);
             if (stream == null)
@@ -109,8 +92,7 @@ namespace YARG.Core.IO
                         listing.SetParentDirectory(listings[listing.pathIndex].Filename);
                     listings.Add(listing);
                 }
-
-                return new CONFile(info.FullName, listings);
+                return listings.ToArray();
             }
             catch (Exception ex)
             {

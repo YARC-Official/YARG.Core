@@ -42,7 +42,7 @@ namespace YARG.Core.Song.Cache
                         YargLogger.LogException(e, $"Error while scanning packed CON group {group.Location}!");
                     }
                 }
-                group.CONFile.Dispose();
+                group.Stream!.Dispose();
             }
 
             foreach (var group in extractedConGroups)
@@ -271,7 +271,7 @@ namespace YARG.Core.Song.Cache
 
                 int length = reader.ReadInt32();
                 var entryReader = reader.Slice(length);
-                AddEntry(PackedRBCONEntry.LoadFromCache_Quick(group.CONFile, name, upgrades, entryReader, strings));
+                AddEntry(PackedRBCONEntry.LoadFromCache_Quick(group.Listings, name, upgrades, entryReader, strings));
             }
         }
 
