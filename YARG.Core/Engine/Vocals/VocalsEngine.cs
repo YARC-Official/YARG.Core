@@ -22,8 +22,8 @@ namespace YARG.Core.Engine.Vocals
         public PhraseHitEvent? OnPhraseHit;
 
         protected VocalsEngine(InstrumentDifficulty<VocalNote> chart, SyncTrack syncTrack,
-            VocalsEngineParameters engineParameters)
-            : base(chart, syncTrack, engineParameters, false)
+            VocalsEngineParameters engineParameters, bool isBot)
+            : base(chart, syncTrack, engineParameters, false, isBot)
         {
         }
 

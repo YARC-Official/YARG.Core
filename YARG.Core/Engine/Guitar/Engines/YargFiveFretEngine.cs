@@ -8,8 +8,8 @@ namespace YARG.Core.Engine.Guitar.Engines
     public class YargFiveFretEngine : GuitarEngine
     {
         public YargFiveFretEngine(InstrumentDifficulty<GuitarNote> chart, SyncTrack syncTrack,
-            GuitarEngineParameters engineParameters)
-            : base(chart, syncTrack, engineParameters)
+            GuitarEngineParameters engineParameters, bool isBot)
+            : base(chart, syncTrack, engineParameters, isBot)
         {
         }
 

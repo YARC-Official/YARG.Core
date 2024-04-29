@@ -17,8 +17,8 @@ namespace YARG.Core.Engine.Drums
         public PadHitEvent?  OnPadHit;
 
         protected DrumsEngine(InstrumentDifficulty<DrumNote> chart, SyncTrack syncTrack,
-            DrumsEngineParameters engineParameters)
-            : base(chart, syncTrack, engineParameters, true)
+            DrumsEngineParameters engineParameters, bool isBot)
+            : base(chart, syncTrack, engineParameters, true, isBot)
         {
         }
 

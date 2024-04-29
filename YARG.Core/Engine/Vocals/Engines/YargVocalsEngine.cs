@@ -7,8 +7,9 @@ namespace YARG.Core.Engine.Vocals.Engines
 {
     public class YargVocalsEngine : VocalsEngine
     {
-        public YargVocalsEngine(InstrumentDifficulty<VocalNote> chart, SyncTrack syncTrack, VocalsEngineParameters engineParameters)
-            : base(chart, syncTrack, engineParameters)
+        public YargVocalsEngine(InstrumentDifficulty<VocalNote> chart, SyncTrack syncTrack,
+            VocalsEngineParameters engineParameters, bool isBot)
+            : base(chart, syncTrack, engineParameters, isBot)
         {
         }
 

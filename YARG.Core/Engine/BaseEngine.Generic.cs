@@ -76,7 +76,8 @@ namespace YARG.Core.Engine
         public override BaseStats            BaseStats      => EngineStats;
 
         protected BaseEngine(InstrumentDifficulty<TNoteType> chart, SyncTrack syncTrack,
-            TEngineParams engineParameters, bool isChordSeparate) : base(syncTrack, isChordSeparate)
+            TEngineParams engineParameters, bool isChordSeparate, bool isBot)
+            : base(syncTrack, isChordSeparate, isBot)
         {
             Chart = chart;
             Notes = Chart.Notes;

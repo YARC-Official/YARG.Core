@@ -43,13 +43,15 @@ namespace YARG.Core.Engine
 
         protected bool ReRunHitLogic;
 
-        protected readonly bool IsBot = false;
+        protected readonly bool IsBot;
 
-        protected BaseEngine(SyncTrack syncTrack, bool isChordSeparate)
+        protected BaseEngine(SyncTrack syncTrack, bool isChordSeparate, bool isBot)
         {
             SyncTrack = syncTrack;
             Resolution = syncTrack.Resolution;
+
             TreatChordAsSeparate = isChordSeparate;
+            IsBot = isBot;
         }
 
         /// <summary>

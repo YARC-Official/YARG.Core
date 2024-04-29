@@ -43,8 +43,8 @@ namespace YARG.Core.Engine.Guitar
         protected List<ActiveSustain> ActiveSustains = new();
 
         protected GuitarEngine(InstrumentDifficulty<GuitarNote> chart, SyncTrack syncTrack,
-            GuitarEngineParameters engineParameters)
-            : base(chart, syncTrack, engineParameters, false)
+            GuitarEngineParameters engineParameters, bool isBot)
+            : base(chart, syncTrack, engineParameters, false, isBot)
         {
             State.Initialize(engineParameters);
         }
