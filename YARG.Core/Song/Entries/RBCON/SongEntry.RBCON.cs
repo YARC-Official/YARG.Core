@@ -503,7 +503,7 @@ namespace YARG.Core.Song
             {
                 while (reader.StartNode())
                 {
-                    string name = reader.GetNameOfNode();
+                    string name = reader.GetNameOfNode(false);
                     switch (name)
                     {
                         case "name": _metadata.Name = reader.ExtractText(); break;
@@ -532,7 +532,7 @@ namespace YARG.Core.Song
                             _metadata.PreviewEnd = reader.ExtractInt64();
                             break;
                         case "rank": DifficultyLoop(reader); break;
-                        case "solo": _rbMetadata.Soloes = reader.ExtractList_String().ToArray(); break;
+                        case "solo": _rbMetadata.Soloes = reader.ExtractArray_String(); break;
                         case "genre": _metadata.Genre = reader.ExtractText(); break;
                         case "decade": /*Decade = reader.ExtractText();*/ break;
                         case "vocal_gender": _rbMetadata.VocalGender = reader.ExtractText() == "male"; break;
@@ -636,43 +636,13 @@ namespace YARG.Core.Song
                         case "vocal_tonic_note": _rbMetadata.VocalTonicNote = reader.ExtractUInt32(); break;
                         case "song_tonality": _rbMetadata.SongTonality = reader.ExtractBoolean(); break;
                         case "alternate_path": result.alternatePath = reader.ExtractBoolean(); break;
-                        case "real_guitar_tuning":
-                            {
-                                if (reader.StartNode())
-                                {
-                                    _rbMetadata.RealGuitarTuning = reader.ExtractList_Int().ToArray();
-                                    reader.EndNode();
-                                }
-                                else
-                                    _rbMetadata.RealGuitarTuning = new[] { reader.ExtractInt32() };
-                                break;
-                            }
-                        case "real_bass_tuning":
-                            {
-                                if (reader.StartNode())
-                                {
-                                    _rbMetadata.RealBassTuning = reader.ExtractList_Int().ToArray();
-                                    reader.EndNode();
-                                }
-                                else
-                                    _rbMetadata.RealBassTuning = new[] { reader.ExtractInt32() };
-                                break;
-                            }
-                        case "video_venues":
-                            {
-                                if (reader.StartNode())
-                                {
-                                    _rbMetadata.VideoVenues = reader.ExtractList_String().ToArray();
-                                    reader.EndNode();
-                                }
-                                else
-                                    _rbMetadata.VideoVenues = new[] { reader.ExtractText() };
-                                break;
-                            }
+                        case "real_guitar_tuning": _rbMetadata.RealGuitarTuning = reader.ExtractArray_Int(); break;
+                        case "real_bass_tuning": _rbMetadata.RealBassTuning = reader.ExtractArray_Int(); break;
+                        case "video_venues": _rbMetadata.VideoVenues = reader.ExtractArray_String(); break;
                         case "extra_authoring":
                             {
                                 StringBuilder authors = new();
-                                foreach (string str in reader.ExtractList_String())
+                                foreach (string str in reader.ExtractArray_String())
                                 {
                                     if (str == "disc_update")
                                         result.discUpdate = true;
@@ -703,40 +673,16 @@ namespace YARG.Core.Song
         {
             while (reader.StartNode())
             {
-                string descriptor = reader.GetNameOfNode();
+                string descriptor = reader.GetNameOfNode(false);
                 switch (descriptor)
                 {
                     case "name": result.location = reader.ExtractText(); break;
                     case "tracks": TracksLoop(reader); break;
-                    case "crowd_channels": _rbMetadata.Indices.Crowd = reader.ExtractList_Int().ToArray(); break;
+                    case "crowd_channels": _rbMetadata.Indices.Crowd = reader.ExtractArray_Int();  break;
                     //case "vocal_parts": VocalParts = reader.Read<ushort>(); break;
-                    case "pans":
-                        if (reader.StartNode())
-                        {
-                            result.pans = reader.ExtractList_Float().ToArray();
-                            reader.EndNode();
-                        }
-                        else
-                            result.pans = new[] { reader.ExtractFloat() };
-                        break;
-                    case "vols":
-                        if (reader.StartNode())
-                        {
-                            result.volumes = reader.ExtractList_Float().ToArray();
-                            reader.EndNode();
-                        }
-                        else
-                            result.volumes = new[] { reader.ExtractFloat() };
-                        break;
-                    case "cores":
-                        if (reader.StartNode())
-                        {
-                            result.cores = reader.ExtractList_Float().ToArray();
-                            reader.EndNode();
-                        }
-                        else
-                            result.cores = new[] { reader.ExtractFloat() };
-                        break;
+                    case "pans":  result.pans =    reader.ExtractArray_Float(); break;
+                    case "vols":  result.volumes = reader.ExtractArray_Float(); break;
+                    case "cores": result.cores =   reader.ExtractArray_Float(); break;
                     case "hopo_threshold": _parseSettings.HopoThreshold = reader.ExtractInt64(); break;
                 }
                 reader.EndNode();
@@ -750,63 +696,13 @@ namespace YARG.Core.Song
             {
                 while (reader.StartNode())
                 {
-                    switch (reader.GetNameOfNode())
+                    switch (reader.GetNameOfNode(false))
                     {
-                        case "drum":
-                            {
-                                if (reader.StartNode())
-                                {
-                                    _rbMetadata.Indices.Drums = reader.ExtractList_Int().ToArray();
-                                    reader.EndNode();
-                                }
-                                else
-                                    _rbMetadata.Indices.Drums = new[] { reader.ExtractInt32() };
-                                break;
-                            }
-                        case "bass":
-                            {
-                                if (reader.StartNode())
-                                {
-                                    _rbMetadata.Indices.Bass = reader.ExtractList_Int().ToArray();
-                                    reader.EndNode();
-                                }
-                                else
-                                    _rbMetadata.Indices.Bass = new[] { reader.ExtractInt32() };
-                                break;
-                            }
-                        case "guitar":
-                            {
-                                if (reader.StartNode())
-                                {
-                                    _rbMetadata.Indices.Guitar = reader.ExtractList_Int().ToArray();
-                                    reader.EndNode();
-                                }
-                                else
-                                    _rbMetadata.Indices.Guitar = new[] { reader.ExtractInt32() };
-                                break;
-                            }
-                        case "keys":
-                            {
-                                if (reader.StartNode())
-                                {
-                                    _rbMetadata.Indices.Keys = reader.ExtractList_Int().ToArray();
-                                    reader.EndNode();
-                                }
-                                else
-                                    _rbMetadata.Indices.Keys = new[] { reader.ExtractInt32() };
-                                break;
-                            }
-                        case "vocals":
-                            {
-                                if (reader.StartNode())
-                                {
-                                    _rbMetadata.Indices.Vocals = reader.ExtractList_Int().ToArray();
-                                    reader.EndNode();
-                                }
-                                else
-                                    _rbMetadata.Indices.Vocals = new[] { reader.ExtractInt32() };
-                                break;
-                            }
+                        case "drum"  : _rbMetadata.Indices.Drums  = reader.ExtractArray_Int(); break;
+                        case "bass"  : _rbMetadata.Indices.Bass   = reader.ExtractArray_Int(); break;
+                        case "guitar": _rbMetadata.Indices.Guitar = reader.ExtractArray_Int(); break;
+                        case "keys"  : _rbMetadata.Indices.Keys   = reader.ExtractArray_Int(); break;
+                        case "vocals": _rbMetadata.Indices.Vocals = reader.ExtractArray_Int(); break;
                     }
                     reader.EndNode();
                 }
@@ -831,7 +727,7 @@ namespace YARG.Core.Song
             int diff;
             while (reader.StartNode())
             {
-                string name = reader.GetNameOfNode();
+                string name = reader.GetNameOfNode(false);
                 diff = reader.ExtractInt32();
                 switch (name)
                 {

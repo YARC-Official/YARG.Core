@@ -237,7 +237,7 @@ namespace YARG.Core.Song.Cache
             Dictionary<string, int> indices = new();
             while (reader.StartNode())
             {
-                string name = reader.GetNameOfNode();
+                string name = reader.GetNameOfNode(true);
                 if (indices.TryGetValue(name, out int index))
                 {
                     ++index;

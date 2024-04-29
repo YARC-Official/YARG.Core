@@ -297,9 +297,14 @@ namespace YARG.Core.IO
 
         private bool DoesStringMatch(ReadOnlySpan<TChar> str)
         {
-            if (reader.Container.Next - reader.Container.Position < str.Length)
-                return false;
-            return reader.Container.Slice(reader.Container.Position, str.Length).SequenceEqual(str);
+            int index = 0;
+            while (index < str.Length
+                && reader.Container.Position + index < reader.Container.Length
+                && reader.Container.Data[reader.Container.Position + index].Equals(str[index]))
+            {
+                ++index;
+            }
+            return index == str.Length;
         }
 
         public bool IsStillCurrentTrack()
@@ -324,18 +329,19 @@ namespace YARG.Core.IO
 
             ev.Position = reader.ExtractInt64();
 
-            int start = reader.Container.Position;
-            int end = start;
-            while (true)
+            var curr = reader.Container.Position;
+            while (curr < reader.Container.Length)
             {
-                char curr = reader.Container.Data[end].ToChar(null);
-                if (!curr.IsAsciiLetter())
+                int c = reader.Container.Data[curr].ToChar(null) | CharacterExtensions.ASCII_LOWERCASE_FLAG;
+                if (c < 'a' || 'z' < c)
+                {
                     break;
-                ++end;
+                }
+                ++curr;
             }
-            reader.Container.Position = end;
 
-            ReadOnlySpan<TChar> span = reader.Container.Slice(start, end - start);
+            var span = new ReadOnlySpan<TChar>(reader.Container.Data, reader.Container.Position, (curr - reader.Container.Position));
+            reader.Container.Position = curr;
             foreach (var combo in eventSet)
             {
                 if (combo.DoesEventMatch(span))
