@@ -13,6 +13,38 @@ namespace YARG.Core.Engine.Vocals.Engines
         {
         }
 
+        protected override void UpdateBot(double songTime)
+        {
+            if (!IsBot)
+            {
+                return;
+            }
+
+            var phrase = Notes[State.NoteIndex];
+
+            // Handle singing notes
+            var singNote = GetNoteInPhraseAtSongTick(phrase, State.CurrentTick);
+            if (singNote is not null)
+            {
+                // Bots are queued extra updates to account for in-between "inputs"
+                State.PitchSang = singNote.PitchAtSongTime(songTime);
+                State.HasSang = true;
+                OnSing?.Invoke(true);
+            }
+            else
+            {
+                // Stop hitting to prevent the hit particles from showing up too much
+                OnHit?.Invoke(false);
+            }
+
+            // Handle percussion notes
+            var percussion = GetNextPercussionNote(phrase, State.CurrentTick);
+            if (percussion is not null && songTime >= percussion.Time)
+            {
+                State.HasHit = true;
+            }
+        }
+
         protected override void MutateStateWithInput(GameInput gameInput)
         {
             var action = gameInput.GetAction<VocalsAction>();
@@ -41,6 +73,8 @@ namespace YARG.Core.Engine.Vocals.Engines
                 State.HasSang = false;
                 return;
             }
+
+            UpdateBot(time);
 
             var phrase = Notes[State.NoteIndex];
             State.PhraseTicksTotal ??= GetTicksInPhrase(phrase);
@@ -172,11 +206,6 @@ namespace YARG.Core.Engine.Vocals.Engines
             }
 
             State.HasHit = false;
-        }
-
-        protected override void UpdateBot(double songTime)
-        {
-            throw new NotImplementedException();
         }
 
         protected override bool CanVocalNoteBeHit(VocalNote note, out float hitPercent)

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using YARG.Core.Chart;
+using YARG.Core.Logging;
 
 namespace YARG.Core.Engine.Vocals
 {
@@ -25,6 +26,26 @@ namespace YARG.Core.Engine.Vocals
             VocalsEngineParameters engineParameters, bool isBot)
             : base(chart, syncTrack, engineParameters, false, isBot)
         {
+        }
+
+        protected override void GenerateQueuedUpdates(double nextTime)
+        {
+            base.GenerateQueuedUpdates(nextTime);
+            var previousTime = State.CurrentTime;
+
+            // For bots, queue up updates every approximate vocal input frame to simulate
+            // a stream of inputs. Make sure that the previous time has been properly set.
+            if (IsBot && previousTime > 0.0)
+            {
+                double timeForFrame = 1.0 / EngineParameters.ApproximateVocalFps;
+                int nextUpdateIndex = (int) Math.Floor(previousTime / timeForFrame) + 1;
+                double nextUpdateTime = nextUpdateIndex * EngineParameters.ApproximateVocalFps;
+
+                for (double time = nextUpdateTime; time < nextTime; time += timeForFrame)
+                {
+                    QueueUpdateTime(time, "Bot Input");
+                }
+            }
         }
 
         protected override void HitNote(VocalNote note)
