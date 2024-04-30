@@ -212,29 +212,6 @@ namespace YARG.Core.Audio
             }
         }
 
-        public bool SetLoop(double end, double fadeDuration, double volume, Action LoopFunc)
-        {
-            lock (this)
-            {
-                if (_disposed)
-                {
-                    return false;
-                }
-                return SetLoop_Internal(end, fadeDuration, volume, LoopFunc);
-            }
-        }
-
-        public void EndLoop()
-        {
-            lock (this)
-            {
-                if (!_disposed)
-                {
-                    EndLoop_Internal();
-                }
-            }
-        }
-
         internal void ToggleBuffer(bool enable)
         {
             lock (this)
@@ -271,8 +248,6 @@ namespace YARG.Core.Audio
         protected abstract bool AddChannel_Internal(SongStem stem, Stream stream);
         protected abstract bool AddChannel_Internal(SongStem stem, int[] indices, float[] panning);
         protected abstract bool RemoveChannel_Internal(SongStem stemToRemove);
-        protected abstract bool SetLoop_Internal(double end, double fadeDuration, double volume, Action LoopFunc);
-        protected abstract void EndLoop_Internal();
         protected abstract void ToggleBuffer_Internal(bool enable);
         protected abstract void SetBufferLength_Internal(int length);
 
