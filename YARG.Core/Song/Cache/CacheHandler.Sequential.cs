@@ -42,7 +42,7 @@ namespace YARG.Core.Song.Cache
                         YargLogger.LogException(e, $"Error while scanning packed CON group {group.Location}!");
                     }
                 }
-                group.Stream!.Dispose();
+                group.Stream?.Dispose();
             }
 
             foreach (var group in extractedConGroups)
