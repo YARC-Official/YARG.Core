@@ -57,7 +57,7 @@ namespace YARG.Core.Audio
                         else
                         {
                             previewStartTime = 0;
-                            previewEndTime = DEFAULT_PREVIEW_DURATION;
+                            previewEndTime = previewLength;
                         }
                     }
                     else if (0 <= entry.PreviewStartSeconds && entry.PreviewStartSeconds < previewLength)
