@@ -1,19 +1,19 @@
 ﻿using System.IO;
 
-namespace YARG.Core.Engine.Drums
+namespace YARG.Core.Engine.ProKeys
 {
-    public class DrumsStats : BaseStats
+    public class ProKeysStats : BaseStats
     {
         /// <summary>
         /// Number of overhits which have occurred.
         /// </summary>
         public int Overhits;
 
-        public DrumsStats()
+        public ProKeysStats()
         {
         }
 
-        public DrumsStats(DrumsStats stats) : base(stats)
+        public ProKeysStats(ProKeysStats stats) : base(stats)
         {
             Overhits = stats.Overhits;
         }
