@@ -180,10 +180,14 @@ namespace YARG.Core.IO
                         break;
                     }
 
-                    if (ch == '\r'
-                    || (ch == '\"' && (Container.Position == stringBegin || Container.Data[Container.Position - 1].ToChar(null) != '\\')))
+                    if (stringEnd == -1)
                     {
-                        if (stringEnd == -1)
+                        if (ch == '\"' && Container.Data[Container.Position - 1].ToChar(null) != '\\')
+                        {
+                            ++stringBegin;
+                            stringEnd = Container.Position;
+                        }
+                        else if (ch == '\r')
                         {
                             stringEnd = Container.Position;
                         }
