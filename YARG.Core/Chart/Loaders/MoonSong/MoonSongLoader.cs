@@ -458,7 +458,7 @@ namespace YARG.Core.Chart
             Instrument.ProBass_17Fret   => MoonSong.MoonInstrument.ProBass_17Fret,
             Instrument.ProBass_22Fret   => MoonSong.MoonInstrument.ProBass_22Fret,
 
-            // Instrument.ProKeys => MoonSong.MoonInstrument.ProKeys,
+            Instrument.ProKeys => MoonSong.MoonInstrument.ProKeys,
 
             // Vocals and harmony need to be handled specially
             // Instrument.Vocals  => MoonSong.MoonInstrument.Vocals,
