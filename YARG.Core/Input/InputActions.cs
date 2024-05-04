@@ -70,6 +70,38 @@
         StarPower = 12,
     }
 
+    public enum ProKeysAction : byte
+    {
+        Key1 = 0,
+        Key2 = 1,
+        Key3 = 2,
+        Key4 = 3,
+        Key5 = 4,
+        Key6 = 5,
+        Key7 = 6,
+        Key8 = 7,
+        Key9 = 8,
+        Key10 = 9,
+        Key11 = 10,
+        Key12 = 11,
+        Key13 = 12,
+        Key14 = 13,
+        Key15 = 14,
+        Key16 = 15,
+        Key17 = 16,
+        Key18 = 17,
+        Key19 = 18,
+        Key20 = 19,
+        Key21 = 20,
+        Key22 = 21,
+        Key23 = 22,
+        Key24 = 23,
+        Key25 = 24,
+
+        StarPower = 25,
+        TouchEffects = 26,
+    }
+
     public enum DrumsAction : byte
     {
         Drum1 = 0,
