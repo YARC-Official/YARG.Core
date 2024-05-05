@@ -34,7 +34,7 @@ namespace YARG.Core.IO
             Filename = Encoding.UTF8.GetString(data[..0x28]).TrimEnd('\0');
             flags = (CONFileListingFlag) data[0x28];
 
-            numBlocks = data[0x29] << 16 | data[0x2A] << 8 | data[0x2B];
+            numBlocks = data[0x2B] << 16 | data[0x2A] << 8 | data[0x29];
             firstBlock = data[0x31] << 16 | data[0x30] << 8 | data[0x2F];
             pathIndex = (short) (data[0x32] << 8 | data[0x33]);
             size = data[0x34] << 24 | data[0x35] << 16 | data[0x36] << 8 | data[0x37];

@@ -61,7 +61,7 @@ namespace YARG.Core.IO
             if (stream.Read(int32Buffer[..BYTES_16BIT]) != BYTES_16BIT)
                 return null;
 
-            int length = BYTES_PER_BLOCK * (int32Buffer[0] << 8 | int32Buffer[1]);
+            int length = BYTES_PER_BLOCK * (int32Buffer[0] | int32Buffer[1] << 8);
 
             stream.Seek(FILETABLEFIRSTBLOCK_POSITION, SeekOrigin.Begin);
             if (stream.Read(int32Buffer[..BYTES_24BIT]) != BYTES_24BIT)
