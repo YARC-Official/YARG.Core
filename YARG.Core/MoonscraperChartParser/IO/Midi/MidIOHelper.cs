@@ -43,6 +43,11 @@ namespace MoonscraperChartEditor.Song.IO
         public const string HARMONY_1_TRACK_2 = "PART HARM1";
         public const string HARMONY_2_TRACK_2 = "PART HARM2";
         public const string HARMONY_3_TRACK_2 = "PART HARM3";
+        public const string PRO_KEYS_EXPERT = "PART REAL_KEYS_X";
+        public const string PRO_KEYS_HARD = "PART REAL_KEYS_H";
+        public const string PRO_KEYS_MEDIUM = "PART REAL_KEYS_M";
+        public const string PRO_KEYS_EASY = "PART REAL_KEYS_E";
+
 
         // Matches venue lighting events and groups the text inside (parentheses), not including the parentheses
         // 'lighting (verse)' -> 'verse'
@@ -154,6 +159,11 @@ namespace MoonscraperChartEditor.Song.IO
             { HARMONY_1_TRACK_2,   MoonSong.MoonInstrument.Harmony1 },
             { HARMONY_2_TRACK_2,   MoonSong.MoonInstrument.Harmony2 },
             { HARMONY_3_TRACK_2,   MoonSong.MoonInstrument.Harmony3 },
+
+            { PRO_KEYS_EXPERT, MoonSong.MoonInstrument.ProKeys },
+            // { PRO_KEYS_HARD,   MoonSong.MoonInstrument.ProKeys },
+            // { PRO_KEYS_MEDIUM, MoonSong.MoonInstrument.ProKeys },
+            // { PRO_KEYS_EASY,   MoonSong.MoonInstrument.ProKeys },
         };
 
         public static readonly Dictionary<MoonSong.Difficulty, int> GUITAR_DIFF_START_LOOKUP = new()
