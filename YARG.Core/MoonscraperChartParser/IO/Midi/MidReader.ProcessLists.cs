@@ -44,6 +44,7 @@ namespace MoonscraperChartEditor.Song.IO
         private static readonly Dictionary<int, EventProcessFn> DrumsNoteProcessMap = BuildDrumsNoteProcessDict(enableVelocity: false);
         private static readonly Dictionary<int, EventProcessFn> DrumsNoteProcessMap_Velocity = BuildDrumsNoteProcessDict(enableVelocity: true);
         private static readonly Dictionary<int, EventProcessFn> VocalsNoteProcessMap = BuildVocalsNoteProcessDict();
+        private static readonly Dictionary<int, EventProcessFn> ProKeysNoteProcessMap = BuildProKeysNoteProcessDict();
 
         private static readonly CommonPhraseSettings GuitarPhraseSettings = new()
         {
@@ -165,6 +166,7 @@ namespace MoonscraperChartEditor.Song.IO
                 MoonChart.GameMode.ProGuitar => ProGuitarNoteProcessMap,
                 MoonChart.GameMode.Drums => DrumsNoteProcessMap,
                 MoonChart.GameMode.Vocals => VocalsNoteProcessMap,
+                MoonChart.GameMode.ProKeys => ProKeysNoteProcessMap,
                 _ => throw new NotImplementedException($"No process map for game mode {gameMode}!")
             };
         }
@@ -690,6 +692,25 @@ namespace MoonscraperChartEditor.Song.IO
                     {
                         ProcessNoteOnEventAsNote(ref eventProcessParams, difficulty, rawNote, sustainCutoff: false);
                     };
+                });
+            }
+
+            return processFnDict;
+        }
+
+        private static Dictionary<int, EventProcessFn> BuildProKeysNoteProcessDict()
+        {
+            // TODO: Other difficulties???
+
+            var processFnDict = new Dictionary<int, EventProcessFn>();
+
+            for (int key = MidIOHelper.PRO_KEYS_RANGE_START; key < MidIOHelper.PRO_KEYS_RANGE_END; key++)
+            {
+                int fret = key - MidIOHelper.PRO_KEYS_RANGE_START;
+
+                processFnDict.Add(key, (ref EventProcessParams eventProcessParams) =>
+                {
+                    ProcessNoteOnEventAsNote(ref eventProcessParams, MoonSong.Difficulty.Expert, fret);
                 });
             }
 

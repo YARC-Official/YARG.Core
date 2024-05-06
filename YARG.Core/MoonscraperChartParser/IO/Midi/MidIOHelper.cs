@@ -83,6 +83,10 @@ namespace MoonscraperChartEditor.Song.IO
         public const byte PERCUSSION_NOTE = 96;
         public const byte NONPLAYED_PERCUSSION_NOTE = 97;
 
+        // Pro Keys notes
+        public const byte PRO_KEYS_RANGE_START = 48;
+        public const byte PRO_KEYS_RANGE_END = 72;
+
         // Pro Guitar channels
         public const byte PRO_GUITAR_CHANNEL_NORMAL = 0;
         public const byte PRO_GUITAR_CHANNEL_GHOST = 1;
