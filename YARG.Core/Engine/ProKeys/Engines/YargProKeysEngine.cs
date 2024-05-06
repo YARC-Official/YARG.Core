@@ -5,7 +5,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
 {
     public class YargProKeysEngine : ProKeysEngine
     {
-        public YargProKeysEngine(InstrumentDifficulty<GuitarNote> chart, SyncTrack syncTrack, ProKeysEngineParameters engineParameters, bool isBot) : base(chart, syncTrack, engineParameters, isBot)
+        public YargProKeysEngine(InstrumentDifficulty<ProKeysNote> chart, SyncTrack syncTrack, ProKeysEngineParameters engineParameters, bool isBot) : base(chart, syncTrack, engineParameters, isBot)
         {
         }
 
@@ -29,12 +29,12 @@ namespace YARG.Core.Engine.ProKeys.Engines
             throw new System.NotImplementedException();
         }
 
-        protected override bool CanNoteBeHit(GuitarNote note)
+        protected override bool CanNoteBeHit(ProKeysNote note)
         {
             throw new System.NotImplementedException();
         }
 
-        protected override void AddScore(GuitarNote note)
+        protected override void AddScore(ProKeysNote note)
         {
             throw new System.NotImplementedException();
         }
