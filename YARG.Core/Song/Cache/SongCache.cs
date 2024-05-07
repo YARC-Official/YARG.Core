@@ -19,7 +19,7 @@ namespace YARG.Core.Song.Cache
         public readonly Dictionary<HashWrapper, List<SongEntry>> Entries = new();
 
         [NonSerialized]
-        public readonly SortedDictionary<string,     List<SongEntry>> ArtistAlbums = new();
+        public readonly SortedDictionary<string,     List<SongEntry>> ArtistAlbums = new(StringComparer.CurrentCultureIgnoreCase);
         [NonSerialized]
         public readonly SortedDictionary<string,     List<SongEntry>> SongLengths  = new();
         [NonSerialized]
