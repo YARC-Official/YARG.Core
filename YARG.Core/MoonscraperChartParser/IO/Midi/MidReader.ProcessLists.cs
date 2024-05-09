@@ -723,8 +723,6 @@ namespace MoonscraperChartEditor.Song.IO
 
         private static Dictionary<int, EventProcessFn> BuildProKeysNoteProcessDict()
         {
-            // TODO: Other difficulties???
-
             var processFnDict = new Dictionary<int, EventProcessFn>();
 
             for (int key = MidIOHelper.PRO_KEYS_RANGE_START; key < MidIOHelper.PRO_KEYS_RANGE_END; key++)
@@ -733,7 +731,15 @@ namespace MoonscraperChartEditor.Song.IO
 
                 processFnDict.Add(key, (ref EventProcessParams eventProcessParams) =>
                 {
-                    ProcessNoteOnEventAsNote(ref eventProcessParams, MoonSong.Difficulty.Expert, fret);
+                    if (eventProcessParams.trackDifficulty is null)
+                    {
+                        YargLogger.Assert(eventProcessParams.trackDifficulty is not null,
+                            "`trackDifficulty` cannot be null when processing pro-keys");
+                        return;
+                    }
+
+                    var diff = eventProcessParams.trackDifficulty.Value;
+                    ProcessNoteOnEventAsNote(ref eventProcessParams, diff, fret);
                 });
             }
 
