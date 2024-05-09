@@ -189,10 +189,12 @@ namespace MoonscraperChartEditor.Song.IO
             static void ReadProKeys(ref ParseSettings settings, TrackChunk track, MoonSong song,
                 MoonSong.Difficulty difficulty)
             {
-                if (!song.DoesChartExist(MoonSong.MoonInstrument.ProKeys, difficulty))
-                {
-                    ReadNotes(ref settings, track, song, MoonSong.MoonInstrument.ProKeys, difficulty);
-                }
+                // Always clear the current difficulty as `ReadNotes` may populate some phrases
+                // from other difficulties.
+                var chart = song.GetChart(MoonSong.MoonInstrument.ProKeys, difficulty);
+                chart.Clear();
+
+                ReadNotes(ref settings, track, song, MoonSong.MoonInstrument.ProKeys, difficulty);
             }
         }
 
