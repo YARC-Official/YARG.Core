@@ -31,36 +31,10 @@ namespace YARG.Core.Chart
         {
             var key = moonNote.proKeysKey;
             var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
-            var proKeysFlags = GetProKeysNoteFlags(moonNote);
 
             double time = _moonSong.TickToTime(moonNote.tick);
-            return new ProKeysNote(key, proKeysFlags, generalFlags, time, GetLengthInTime(moonNote),
+            return new ProKeysNote(key, generalFlags, time, GetLengthInTime(moonNote),
                 moonNote.tick, moonNote.length);
-        }
-
-        private ProKeysNoteFlags GetProKeysNoteFlags(MoonNote moonNote)
-        {
-            var flags = ProKeysNoteFlags.None;
-
-            // Extended sustains
-            var nextNote = moonNote.NextSeperateMoonNote;
-            if (nextNote is not null && (moonNote.tick + moonNote.length) > nextNote.tick &&
-                (nextNote.tick - moonNote.tick) > _settings.NoteSnapThreshold)
-            {
-                flags |= ProKeysNoteFlags.ExtendedSustain;
-            }
-
-            // Disjoint chords
-            foreach (var note in moonNote.chord)
-            {
-                if (note.length != moonNote.length)
-                {
-                    flags |= ProKeysNoteFlags.Disjoint;
-                    break;
-                }
-            }
-
-            return flags;
         }
     }
 }
