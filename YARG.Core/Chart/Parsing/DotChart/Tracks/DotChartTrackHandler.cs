@@ -70,9 +70,9 @@ namespace YARG.Core.Chart.Parsing
             return true;
         }
 
-        protected virtual bool OnTextEvent(ReadOnlySpan<char> text)
+        protected virtual void OnTextEvent(ReadOnlySpan<char> text)
         {
-            return _soloPhraser.ProcessEvent(text);
+            _soloPhraser.ProcessEvent(text);
         }
 
         protected override bool ProcessEvent(ReadOnlySpan<char> typeText, ReadOnlySpan<char> eventText)
@@ -89,7 +89,9 @@ namespace YARG.Core.Chart.Parsing
             }
             else if (typeText.Equals("E", StringComparison.OrdinalIgnoreCase))
             {
-                return OnTextEvent(eventText);
+                OnTextEvent(eventText);
+                // Text events are never marked as unrecognized since they can be anything
+                return true;
             }
 
             return false;
