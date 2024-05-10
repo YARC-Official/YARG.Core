@@ -24,7 +24,12 @@ namespace YARG.Core.IO
             Position = position;
         }
 
-        public YARGTextContainer(YARGTextContainer<TChar> other)
+        public YARGTextContainer<TChar> Clone()
+        {
+            return new YARGTextContainer<TChar>(this);
+        }
+
+        private YARGTextContainer(YARGTextContainer<TChar> other)
         {
             Data = other.Data;
             Length = other.Length;

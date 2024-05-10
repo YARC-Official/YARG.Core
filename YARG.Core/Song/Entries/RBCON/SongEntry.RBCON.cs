@@ -593,14 +593,14 @@ namespace YARG.Core.Song
                                 "latin1" => YARGTextContainer.Latin1,
                                 "utf-8" or
                                 "utf8" => Encoding.UTF8,
-                                _ => reader.encoding
+                                _ => reader.Encoding
                             };
 
-                            if (reader.encoding != encoding)
+                            if (reader.Encoding != encoding)
                             {
                                 string Convert(string str)
                                 {
-                                    byte[] bytes = reader.encoding.GetBytes(str);
+                                    byte[] bytes = reader.Encoding.GetBytes(str);
                                     return encoding.GetString(bytes);
                                 }
 
@@ -624,7 +624,7 @@ namespace YARG.Core.Song
 
                                 if (_metadata.Playlist.Str.Length != 0)
                                     _metadata.Playlist = Convert(_metadata.Playlist);
-                                reader.encoding = encoding;
+                                reader.Encoding = encoding;
                             }
 
                             break;
