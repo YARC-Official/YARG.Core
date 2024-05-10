@@ -46,22 +46,22 @@ namespace YARG.Core.Chart.Parsing
         private void FinishNotes(uint tick)
         {
             if (_fret1Length is {} fret1Length)
-                HandleNote(tick, fret1Length, GuitarFret.Fret1);
+                FinishNote(tick, fret1Length, GuitarFret.Fret1);
             if (_fret2Length is {} fret2Length)
-                HandleNote(tick, fret2Length, GuitarFret.Fret2);
+                FinishNote(tick, fret2Length, GuitarFret.Fret2);
             if (_fret3Length is {} fret3Length)
-                HandleNote(tick, fret3Length, GuitarFret.Fret3);
+                FinishNote(tick, fret3Length, GuitarFret.Fret3);
             if (_fret4Length is {} fret4Length)
-                HandleNote(tick, fret4Length, GuitarFret.Fret4);
+                FinishNote(tick, fret4Length, GuitarFret.Fret4);
             if (_fret5Length is {} fret5Length)
-                HandleNote(tick, fret5Length, GuitarFret.Fret5);
+                FinishNote(tick, fret5Length, GuitarFret.Fret5);
             if (_fret6Length is {} fret6Length)
-                HandleNote(tick, fret6Length, GuitarFret.Fret6);
+                FinishNote(tick, fret6Length, GuitarFret.Fret6);
             if (_openLength is {} openLength)
-                HandleNote(tick, openLength, GuitarFret.Open);
+                FinishNote(tick, openLength, GuitarFret.Open);
         }
 
-        private void HandleNote(uint tick, uint length, GuitarFret fret)
+        private void FinishNote(uint tick, uint length, GuitarFret fret)
         {
             var flags = IntermediateGuitarFlags.None;
 
