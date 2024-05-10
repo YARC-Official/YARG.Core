@@ -38,17 +38,17 @@ namespace YARG.Core.IO.Ini
             this.type = type;
         }
 
-        public IniModifier CreateModifier<TChar, TDecoder>(YARGTextReader<TChar, TDecoder> reader)
+        public IniModifier CreateModifier<TChar, TDecoder>(YARGTextContainer<TChar> container, TDecoder decoder)
             where TChar : unmanaged, IConvertible
             where TDecoder : IStringDecoder<TChar>, new()
         {
             return type switch
             {
-                ModifierCreatorType.SortString       => new IniModifier(new SortString(RichTextUtils.ReplaceColorNames(reader.ExtractText(false)))),
-                ModifierCreatorType.SortString_Chart => new IniModifier(new SortString(RichTextUtils.ReplaceColorNames(reader.ExtractText(true)))),
-                ModifierCreatorType.String           => new IniModifier(RichTextUtils.ReplaceColorNames(reader.ExtractText(false))),
-                ModifierCreatorType.String_Chart     => new IniModifier(RichTextUtils.ReplaceColorNames(reader.ExtractText(true))),
-                _ => CreateNumberModifier(reader.Container),
+                ModifierCreatorType.SortString       => new IniModifier(new SortString(ExtractIniString(container, decoder, false))),
+                ModifierCreatorType.SortString_Chart => new IniModifier(new SortString(ExtractIniString(container, decoder, true))),
+                ModifierCreatorType.String           => new IniModifier(ExtractIniString(container, decoder, false)),
+                ModifierCreatorType.String_Chart     => new IniModifier(ExtractIniString(container, decoder, true)),
+                _ => CreateNumberModifier(container),
             };
         }
 
@@ -69,32 +69,32 @@ namespace YARG.Core.IO.Ini
             {
                 case ModifierCreatorType.UInt64:
                     {
-                        container.ExtractUInt64(out ulong value);
+                        container.TryExtractUInt64(out ulong value);
                         return new IniModifier(value);
                     }
                 case ModifierCreatorType.Int64:
                     {
-                        container.ExtractInt64(out long value);
+                        container.TryExtractInt64(out long value);
                         return new IniModifier(value);
                     }
                 case ModifierCreatorType.UInt32:
                     {
-                        container.ExtractUInt32(out uint value);
+                        container.TryExtractUInt32(out uint value);
                         return new IniModifier(value);
                     }
                 case ModifierCreatorType.Int32:
                     {
-                        container.ExtractInt32(out int value);
+                        container.TryExtractInt32(out int value);
                         return new IniModifier(value);
                     }
                 case ModifierCreatorType.UInt16:
                     {
-                        container.ExtractUInt16(out ushort value);
+                        container.TryExtractUInt16(out ushort value);
                         return new IniModifier(value);
                     }
                 case ModifierCreatorType.Int16:
                     {
-                        container.ExtractInt16(out short value);
+                        container.TryExtractInt16(out short value);
                         return new IniModifier(value);
                     }
                 case ModifierCreatorType.Bool:
@@ -103,21 +103,21 @@ namespace YARG.Core.IO.Ini
                     }
                 case ModifierCreatorType.Float:
                     {
-                        container.ExtractFloat(out float value);
+                        container.TryExtractFloat(out float value);
                         return new IniModifier(value);
                     }
                 case ModifierCreatorType.Double:
                     {
-                        container.ExtractDouble(out double value);
+                        container.TryExtractDouble(out double value);
                         return new IniModifier(value);
                     }
                 case ModifierCreatorType.UInt64Array:
                     {
                         long l2 = -1;
-                        if (container.ExtractInt64(out long l1))
+                        if (container.TryExtractInt64(out long l1))
                         {
                             YARGTextReader.SkipWhitespace(container);
-                            if (!container.ExtractInt64(out l2))
+                            if (!container.TryExtractInt64(out l2))
                             {
                                 l2 = -1;
                             }
@@ -131,6 +131,13 @@ namespace YARG.Core.IO.Ini
                 default:
                     throw new NotImplementedException();
             }
+        }
+        
+        private static string ExtractIniString<TChar, TDecoder>(YARGTextContainer<TChar> container, TDecoder decoder, bool isChartFile)
+            where TChar : unmanaged, IConvertible
+            where TDecoder : IStringDecoder<TChar>, new()
+        {
+            return RichTextUtils.ReplaceColorNames(YARGTextReader.ExtractText(container, decoder, isChartFile));
         }
 
         private static string ExtractSngString(YARGTextContainer<byte> sngContainer, int length)

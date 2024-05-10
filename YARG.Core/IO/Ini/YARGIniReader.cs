@@ -15,10 +15,12 @@ namespace YARG.Core.IO.Ini
                 byte[] bytes = File.ReadAllBytes(iniFile);
                 var byteReader = YARGTextLoader.TryLoadByteText(bytes);
                 if (byteReader != null)
-                    return ProcessIni(byteReader, sections);
+                {
+                    return ProcessIni(byteReader.Container, byteReader.Decoder, sections);
+                }
 
                 var charReader = YARGTextLoader.LoadCharText(bytes);
-                return ProcessIni(charReader, sections);
+                return ProcessIni(charReader.Container, charReader.Decoder, sections);
 
             }
             catch (Exception ex)
@@ -28,66 +30,65 @@ namespace YARG.Core.IO.Ini
             }
         }
 
-        private static Dictionary<string, IniSection> ProcessIni<TChar, TDecoder>(YARGTextReader<TChar, TDecoder> reader, Dictionary<string, Dictionary<string, IniModifierCreator>> sections)
+        private static Dictionary<string, IniSection> ProcessIni<TChar, TDecoder>(YARGTextContainer<TChar> container, TDecoder decoder, Dictionary<string, Dictionary<string, IniModifierCreator>> sections)
             where TChar : unmanaged, IConvertible
             where TDecoder : IStringDecoder<TChar>, new()
         {
             Dictionary<string, IniSection> modifierMap = new();
-            while (TrySection(reader, out string section))
+            while (TrySection(container, decoder, out string section))
             {
                 if (sections.TryGetValue(section, out var nodes))
-                    modifierMap[section] = ExtractModifiers(reader, ref nodes);
+                    modifierMap[section] = ExtractModifiers(container, decoder, ref nodes);
                 else
-                    reader.SkipLinesUntil('[');
+                    YARGTextReader.SkipLinesUntil(container, '[');
             }
             return modifierMap;
         }
 
-        private static bool TrySection<TChar, TDecoder>(YARGTextReader<TChar, TDecoder> reader, out string section)
+        private static bool TrySection<TChar, TDecoder>(YARGTextContainer<TChar> container, TDecoder decoder, out string section)
             where TChar : unmanaged, IConvertible
             where TDecoder : IStringDecoder<TChar>, new()
         {
             section = string.Empty;
-            if (reader.Container.IsEndOfFile())
+            if (container.IsEndOfFile())
                 return false;
 
-            if (!reader.Container.IsCurrentCharacter('['))
+            if (!container.IsCurrentCharacter('['))
             {
-                reader.SkipLinesUntil('[');
-                if (reader.Container.IsEndOfFile())
+                YARGTextReader.SkipLinesUntil(container, '[');
+                if (container.IsEndOfFile())
                     return false;
             }
-            section = reader.PeekLine().ToLower();
+            section = YARGTextReader.PeekLine(container, decoder).ToLower();
             return true;
         }
 
-        private static IniSection ExtractModifiers<TChar, TDecoder>(YARGTextReader<TChar, TDecoder> reader, ref Dictionary<string, IniModifierCreator> validNodes)
+        private static IniSection ExtractModifiers<TChar, TDecoder>(YARGTextContainer<TChar> container, TDecoder decoder, ref Dictionary<string, IniModifierCreator> validNodes)
             where TChar : unmanaged, IConvertible
             where TDecoder : IStringDecoder<TChar>, new()
         {
             Dictionary<string, List<IniModifier>> modifiers = new();
-            reader.GotoNextLine();
-            while (IsStillCurrentSection(reader))
+            YARGTextReader.GotoNextLine(container);
+            while (IsStillCurrentSection(container))
             {
-                string name = reader.ExtractModifierName().ToLower();
+                string name = YARGTextReader.ExtractModifierName(container, decoder).ToLower();
                 if (validNodes.TryGetValue(name, out var node))
                 {
-                    var mod = node.CreateModifier(reader);
+                    var mod = node.CreateModifier(container, decoder);
                     if (modifiers.TryGetValue(node.outputName, out var list))
                         list.Add(mod);
                     else
                         modifiers.Add(node.outputName, new() { mod });
                 }
-                reader.GotoNextLine();
+                YARGTextReader.GotoNextLine(container);
             }
             return new IniSection(modifiers);
         }
 
-        private static bool IsStillCurrentSection<TChar, TDecoder>(YARGTextReader<TChar, TDecoder> reader)
+        private static bool IsStillCurrentSection<TChar>(YARGTextContainer<TChar> continer)
             where TChar : unmanaged, IConvertible
-            where TDecoder : IStringDecoder<TChar>, new()
         {
-            return !reader.Container.IsEndOfFile() && !reader.Container.IsCurrentCharacter('[');
+            return !continer.IsEndOfFile() && !continer.IsCurrentCharacter('[');
         }
     }
 }

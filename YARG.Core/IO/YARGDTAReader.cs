@@ -341,57 +341,81 @@ namespace YARG.Core.IO
 
         public short ExtractInt16()
         {
-            short result = container.ExtractInt16();
+            if (!container.TryExtractInt16(out short value))
+            {
+                throw new Exception("Data for Int16 not present");
+            }
             SkipWhitespace();
-            return result;
+            return value;
         }
 
         public ushort ExtractUInt16()
         {
-            ushort result = container.ExtractUInt16();
+            if (!container.TryExtractUInt16(out ushort value))
+            {
+                throw new Exception("Data for UInt16 not present");
+            }
             SkipWhitespace();
-            return result;
+            return value;
         }
 
         public int ExtractInt32()
         {
-            int result = container.ExtractInt32();
+            if (!container.TryExtractInt32(out int value))
+            {
+                throw new Exception("Data for Int32 not present");
+            }
             SkipWhitespace();
-            return result;
+            return value;
         }
         public uint ExtractUInt32()
         {
-            uint result = container.ExtractUInt32();
+            if (!container.TryExtractUInt32(out uint value))
+            {
+                throw new Exception("Data for UInt32 not present");
+            }
             SkipWhitespace();
-            return result;
+            return value;
         }
 
         public long ExtractInt64()
         {
-            long result = container.ExtractInt64();
+            if (!container.TryExtractInt64(out long value))
+            {
+                throw new Exception("Data for Int64 not present");
+            }
             SkipWhitespace();
-            return result;
+            return value;
         }
 
         public ulong ExtractUInt64()
         {
-            ulong result = container.ExtractUInt64();
+            if (!container.TryExtractUInt64(out ulong value))
+            {
+                throw new Exception("Data for UInt64 not present");
+            }
             SkipWhitespace();
-            return result;
+            return value;
         }
 
         public float ExtractFloat()
         {
-            float result = container.ExtractFloat();
+            if (!container.TryExtractFloat(out float value))
+            {
+                throw new Exception("Data for float not present");
+            }
             SkipWhitespace();
-            return result;
+            return value;
         }
 
         public double ExtractDouble()
         {
-            double result = container.ExtractDouble();
+            if (!container.TryExtractDouble(out double value))
+            {
+                throw new Exception("Data for double not present");
+            }
             SkipWhitespace();
-            return result;
+            return value;
         }
     };
 }

@@ -95,33 +95,30 @@ namespace YARG.Core.IO
             new("S",  ChartEventType.Special),
         };
 
-        public static bool IsStartOfTrack<TChar, TDecoder>(YARGTextReader<TChar, TDecoder> reader)
+        public static bool IsStartOfTrack<TChar>(YARGTextContainer<TChar> container)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
-            where TDecoder : IStringDecoder<TChar>, new()
         {
-            return !reader.Container.IsEndOfFile() && reader.Container.IsCurrentCharacter('[');
+            return !container.IsEndOfFile() && container.IsCurrentCharacter('[');
         }
 
-        public static bool ValidateTrack<TChar, TDecoder>(YARGTextReader<TChar, TDecoder> reader, string track)
+        public static bool ValidateTrack<TChar>(YARGTextContainer<TChar> container, string track)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
-            where TDecoder : IStringDecoder<TChar>, new()
         {
-            if (!DoesStringMatch(reader, track))
+            if (!DoesStringMatch(container, track))
                 return false;
 
-            reader.GotoNextLine();
+            YARGTextReader.GotoNextLine(container);
             return true;
         }
 
-        public static bool ValidateInstrument<TChar, TDecoder>(YARGTextReader<TChar, TDecoder> reader, out Instrument instrument, out Difficulty difficulty)
+        public static bool ValidateInstrument<TChar>(YARGTextContainer<TChar> container, out Instrument instrument, out Difficulty difficulty)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
-            where TDecoder : IStringDecoder<TChar>, new()
         {
-            if (ValidateDifficulty(reader, out difficulty))
+            if (ValidateDifficulty(container, out difficulty))
             {
                 foreach (var (name, inst) in YARGChartFileReader.NOTETRACKS)
                 {
-                    if (ValidateTrack(reader, name))
+                    if (ValidateTrack(container, name))
                     {
                         instrument = inst;
                         return true;
@@ -132,17 +129,16 @@ namespace YARG.Core.IO
             return false;
         }
 
-        private static bool ValidateDifficulty<TChar, TDecoder>(YARGTextReader<TChar, TDecoder> reader, out Difficulty difficulty)
+        private static bool ValidateDifficulty<TChar>(YARGTextContainer<TChar> container, out Difficulty difficulty)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
-            where TDecoder : IStringDecoder<TChar>, new()
         {
             for (int diffIndex = 3; diffIndex >= 0; --diffIndex)
             {
                 var (name, diff) = YARGChartFileReader.DIFFICULTIES[diffIndex];
-                if (DoesStringMatch(reader, name))
+                if (DoesStringMatch(container, name))
                 {
                     difficulty = diff;
-                    reader.Container.Position += name.Length;
+                    container.Position += name.Length;
                     return true;
                 }
             }
@@ -150,15 +146,14 @@ namespace YARG.Core.IO
             return false;
         }
 
-        private static bool DoesStringMatch<TChar, TDecoder>(YARGTextReader<TChar, TDecoder> reader, string str)
+        private static bool DoesStringMatch<TChar>(YARGTextContainer<TChar> container, string str)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
-            where TDecoder : IStringDecoder<TChar>, new()
         {
             int index = 0;
-            int position = reader.Container.Position;
+            int position = container.Position;
             while (index < str.Length
-                && position < reader.Container.Length
-                && reader.Container.Data[position].ToChar(null) == str[index])
+                && position < container.Length
+                && container.Data[position].ToChar(null) == str[index])
             {
                 ++index;
                 ++position;
@@ -166,39 +161,37 @@ namespace YARG.Core.IO
             return index == str.Length;
         }
 
-        public static bool IsStillCurrentTrack<TChar, TDecoder>(YARGTextReader<TChar, TDecoder> reader)
+        public static bool IsStillCurrentTrack<TChar>(YARGTextContainer<TChar> container)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
-            where TDecoder : IStringDecoder<TChar>, new()
         {
-            int position = reader.Container.Position;
-            if (position == reader.Container.Length)
+            int position = container.Position;
+            if (position == container.Length)
                 return false;
 
-            if (reader.Container.IsCurrentCharacter('}'))
+            if (container.IsCurrentCharacter('}'))
             {
-                reader.GotoNextLine();
+                YARGTextReader.GotoNextLine(container);
                 return false;
             }
 
             return true;
         }
 
-        public static bool TryParseEvent<TChar, TDecoder>(YARGTextReader<TChar, TDecoder> reader, ref DotChartEvent ev)
+        public static bool TryParseEvent<TChar>(YARGTextContainer<TChar> container, ref DotChartEvent ev)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
-            where TDecoder : IStringDecoder<TChar>, new()
         {
-            if (!IsStillCurrentTrack(reader))
+            if (!IsStillCurrentTrack(container))
             {
                 return false;
             }
 
-            ev.Position = reader.ExtractInt64();
+            ev.Position = YARGTextReader.ExtractInt64(container);
             ev.Type = ChartEventType.Unknown;
 
-            var curr = reader.Container.Position;
-            while (curr < reader.Container.Length)
+            var curr = container.Position;
+            while (curr < container.Length)
             {
-                int c = reader.Container.Data[curr].ToChar(null) | CharacterExtensions.ASCII_LOWERCASE_FLAG;
+                int c = container.Data[curr].ToChar(null) | CharacterExtensions.ASCII_LOWERCASE_FLAG;
                 if (c < 'a' || 'z' < c)
                 {
                     break;
@@ -206,8 +199,8 @@ namespace YARG.Core.IO
                 ++curr;
             }
 
-            var span = new ReadOnlySpan<TChar>(reader.Container.Data, reader.Container.Position, curr - reader.Container.Position);
-            reader.Container.Position = curr;
+            var span = new ReadOnlySpan<TChar>(container.Data, container.Position, curr - container.Position);
+            container.Position = curr;
             foreach (var combo in EVENTS)
             {
                 if (span.Length != combo.Descriptor.Length)
@@ -223,7 +216,7 @@ namespace YARG.Core.IO
 
                 if (index == span.Length)
                 {
-                    reader.SkipWhitespace();
+                    YARGTextReader.SkipWhitespace(container);
                     ev.Type = combo.Type;
                     break;
                 }
@@ -231,23 +224,23 @@ namespace YARG.Core.IO
             return true;
         }
 
-        public static Dictionary<string, List<IniModifier>> ExtractModifiers<TChar, TDecoder>(YARGTextReader<TChar, TDecoder> reader, Dictionary<string, IniModifierCreator> validNodes)
+        public static Dictionary<string, List<IniModifier>> ExtractModifiers<TChar, TDecoder>(YARGTextContainer<TChar> container, TDecoder decoder, Dictionary<string, IniModifierCreator> validNodes)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
             where TDecoder : IStringDecoder<TChar>, new()
         {
             Dictionary<string, List<IniModifier>> modifiers = new();
-            while (IsStillCurrentTrack(reader))
+            while (IsStillCurrentTrack(container))
             {
-                string name = reader.ExtractModifierName();
+                string name = YARGTextReader.ExtractModifierName(container, decoder);
                 if (validNodes.TryGetValue(name, out var node))
                 {
-                    var mod = node.CreateModifier(reader);
+                    var mod = node.CreateModifier(container, decoder);
                     if (modifiers.TryGetValue(node.outputName, out var list))
                         list.Add(mod);
                     else
                         modifiers.Add(node.outputName, new() { mod });
                 }
-                reader.GotoNextLine();
+                YARGTextReader.GotoNextLine(container);
             }
             return modifiers;
         }

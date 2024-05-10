@@ -57,7 +57,7 @@ namespace YARG.Core.IO
         private const char LAST_DIGIT_UNSIGNED = '5';
 
         private const short SHORT_MAX = short.MaxValue / 10;
-        public bool ExtractInt16(out short value)
+        public bool TryExtractInt16(out short value)
         {
             bool result = InternalExtractSigned(out long tmp, short.MaxValue, short.MinValue, SHORT_MAX);
             value = (short)tmp;
@@ -65,7 +65,7 @@ namespace YARG.Core.IO
         }
 
         private const int INT_MAX = int.MaxValue / 10;
-        public bool ExtractInt32(out int value)
+        public bool TryExtractInt32(out int value)
         {
             bool result = InternalExtractSigned(out long tmp, int.MaxValue, int.MinValue, INT_MAX);
             value = (int)tmp;
@@ -73,13 +73,13 @@ namespace YARG.Core.IO
         }
 
         private const long LONG_MAX = long.MaxValue / 10;
-        public bool ExtractInt64(out long value)
+        public bool TryExtractInt64(out long value)
         {
             return InternalExtractSigned(out value, long.MaxValue, long.MinValue, LONG_MAX);
         }
 
         private const ushort USHORT_MAX = ushort.MaxValue / 10;
-        public bool ExtractUInt16(out ushort value)
+        public bool TryExtractUInt16(out ushort value)
         {
             bool result = InternalExtractUnsigned(out ulong tmp, ushort.MaxValue, USHORT_MAX);
             value = (ushort) tmp;
@@ -87,7 +87,7 @@ namespace YARG.Core.IO
         }
 
         private const uint UINT_MAX = uint.MaxValue / 10;
-        public bool ExtractUInt32(out uint value)
+        public bool TryExtractUInt32(out uint value)
         {
             bool result = InternalExtractUnsigned(out ulong tmp, uint.MaxValue, UINT_MAX);
             value = (uint) tmp;
@@ -95,19 +95,19 @@ namespace YARG.Core.IO
         }
 
         private const ulong ULONG_MAX = ulong.MaxValue / 10;
-        public bool ExtractUInt64(out ulong value)
+        public bool TryExtractUInt64(out ulong value)
         {
             return InternalExtractUnsigned(out value, ulong.MaxValue, ULONG_MAX);
         }
 
-        public bool ExtractFloat(out float value)
+        public bool TryExtractFloat(out float value)
         {
-            bool result = ExtractDouble(out double tmp);
+            bool result = TryExtractDouble(out double tmp);
             value = (float) tmp;
             return result;
         }
 
-        public bool ExtractDouble(out double value)
+        public bool TryExtractDouble(out double value)
         {
             value = 0;
             if (Position >= Length)
@@ -183,62 +183,6 @@ namespace YARG.Core.IO
                     (Data[Position + 2].ToChar(null).ToAsciiLower() == 'u') &&
                     (Data[Position + 3].ToChar(null).ToAsciiLower() == 'e'),
             };
-        }
-
-        public short ExtractInt16()
-        {
-            if (ExtractInt16(out short value))
-                return value;
-            throw new Exception("Data for Int16 not present");
-        }
-
-        public ushort ExtractUInt16()
-        {
-            if (ExtractUInt16(out ushort value))
-                return value;
-            throw new Exception("Data for UInt16 not present");
-        }
-
-        public int ExtractInt32()
-        {
-            if (ExtractInt32(out int value))
-                return value;
-            throw new Exception("Data for Int32 not present");
-        }
-
-        public uint ExtractUInt32()
-        {
-            if (ExtractUInt32(out uint value))
-                return value;
-            throw new Exception("Data for UInt32 not present");
-        }
-
-        public long ExtractInt64()
-        {
-            if (ExtractInt64(out long value))
-                return value;
-            throw new Exception("Data for Int64 not present");
-        }
-
-        public ulong ExtractUInt64()
-        {
-            if (ExtractUInt64(out ulong value))
-                return value;
-            throw new Exception("Data for UInt64 not present");
-        }
-
-        public float ExtractFloat()
-        {
-            if (ExtractFloat(out float value))
-                return value;
-            throw new Exception("Data for Float not present");
-        }
-
-        public double ExtractDouble()
-        {
-            if (ExtractDouble(out double value))
-                return value;
-            throw new Exception("Data for Double not present");
         }
 
         private void SkipDigits()

@@ -180,11 +180,13 @@ namespace YARG.Core.Song
             {
                 var byteReader = YARGTextLoader.TryLoadByteText(file);
                 if (byteReader != null)
-                    ParseDotChart(byteReader, modifiers, ref parts, drums);
+                {
+                    ParseDotChart(byteReader.Container, byteReader.Decoder, modifiers, ref parts, drums);
+                }
                 else
                 {
                     var charReader = YARGTextLoader.LoadCharText(file);
-                    ParseDotChart(charReader, modifiers, ref parts, drums);
+                    ParseDotChart(charReader.Container, charReader.Decoder, modifiers, ref parts, drums);
                 }
             }
             else // if (chartType == ChartType.Mid || chartType == ChartType.Midi) // Uncomment for any future file type
@@ -207,13 +209,13 @@ namespace YARG.Core.Song
             return (ScanResult.Success, parts);
         }
 
-        private static void ParseDotChart<TChar, TDecoder>(YARGTextReader<TChar, TDecoder> reader, IniSection modifiers, ref AvailableParts parts, DrumPreparseHandler drums)
+        private static void ParseDotChart<TChar, TDecoder>(YARGTextContainer<TChar> reader, TDecoder decoder, IniSection modifiers, ref AvailableParts parts, DrumPreparseHandler drums)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
             where TDecoder : IStringDecoder<TChar>, new()
         {
             if (YARGChartFileReader.ValidateTrack(reader, YARGChartFileReader.HEADERTRACK))
             {
-                var chartMods = YARGChartFileReader.ExtractModifiers(reader, CHART_MODIFIER_LIST);
+                var chartMods = YARGChartFileReader.ExtractModifiers(reader, decoder, CHART_MODIFIER_LIST);
                 modifiers.Append(chartMods);
             }
 
@@ -221,10 +223,10 @@ namespace YARG.Core.Song
             {
                 if (!ParseChartTrack(reader, drums, ref parts))
                 {
-                    reader.SkipLinesUntil('}');
-                    if (!reader.Container.IsEndOfFile())
+                    YARGTextReader.SkipLinesUntil(reader, '}');
+                    if (!reader.IsEndOfFile())
                     {
-                        reader.GotoNextLine();
+                        YARGTextReader.GotoNextLine(reader);
                     }
                 }
             }

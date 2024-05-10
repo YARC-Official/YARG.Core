@@ -25,7 +25,7 @@ namespace YARG.Core.IO
 
     public struct CharStringDecoder : IStringDecoder<char>
     {
-        public string Decode(char[] data, int index, int count)
+        public readonly string Decode(char[] data, int index, int count)
         {
             return new string(data, index, count);
         }

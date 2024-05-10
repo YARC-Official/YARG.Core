@@ -32,9 +32,8 @@ namespace YARG.Core.Song.Preparsers
             }
         }
 
-        public bool ParseChart<TChar, TDecoder>(YARGTextReader<TChar, TDecoder> reader, Difficulty difficulty)
+        public bool ParseChart<TChar>(YARGTextContainer<TChar> reader, Difficulty difficulty)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
-            where TDecoder : IStringDecoder<TChar>, new()
         {
             var diffMask = difficulty.ToDifficultyMask();
             if ((_validations & diffMask) > 0)
@@ -56,21 +55,20 @@ namespace YARG.Core.Song.Preparsers
         private const int GREEN_CYMBAL = 68;
         private const int DOUBLE_BASS_MODIFIER = 32;
 
-        private bool ParseChartUnknown<TChar, TDecoder>(YARGTextReader<TChar, TDecoder> reader, DifficultyMask difficulty)
+        private bool ParseChartUnknown<TChar>(YARGTextContainer<TChar> container, DifficultyMask difficulty)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
-            where TDecoder : IStringDecoder<TChar>, new()
         {
             bool found = false;
             bool checkExpertPlus = difficulty == DifficultyMask.Expert;
 
             DotChartEvent ev = default;
             DotChartNote note = default;
-            while (YARGChartFileReader.TryParseEvent(reader, ref ev))
+            while (YARGChartFileReader.TryParseEvent(container, ref ev))
             {
                 if (ev.Type == ChartEventType.Note)
                 {
-                    note.Lane = reader.ExtractInt32();
-                    note.Duration = reader.ExtractInt64();
+                    note.Lane = YARGTextReader.ExtractInt32(container);
+                    note.Duration = YARGTextReader.ExtractInt64(container);
                     if (note.Lane <= FIVE_LANE_COUNT)
                     {
                         _validations |= difficulty;
@@ -92,26 +90,25 @@ namespace YARG.Core.Song.Preparsers
                     if (found && Type != DrumsType.Unknown && !checkExpertPlus)
                         return true;
                 }
-                reader.GotoNextLine();
+                YARGTextReader.GotoNextLine(container);
             }
             return false;
         }
 
-        private bool ParseChartFourLane<TChar, TDecoder>(YARGTextReader<TChar, TDecoder> reader, DifficultyMask difficulty)
+        private bool ParseChartFourLane<TChar>(YARGTextContainer<TChar> container, DifficultyMask difficulty)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
-            where TDecoder : IStringDecoder<TChar>, new()
         {
             bool found = false;
             bool checkExpertPlus = difficulty == DifficultyMask.Expert;
 
             DotChartEvent ev = default;
             DotChartNote note = default;
-            while (YARGChartFileReader.TryParseEvent(reader, ref ev))
+            while (YARGChartFileReader.TryParseEvent(container, ref ev))
             {
                 if (ev.Type == ChartEventType.Note)
                 {
-                    note.Lane = reader.ExtractInt32();
-                    note.Duration = reader.ExtractInt64();
+                    note.Lane = YARGTextReader.ExtractInt32(container);
+                    note.Duration = YARGTextReader.ExtractInt64(container);
                     if (note.Lane <= FOUR_LANE_COUNT)
                     {
                         found = true;
@@ -130,14 +127,13 @@ namespace YARG.Core.Song.Preparsers
                     if (found && Type == DrumsType.ProDrums && !checkExpertPlus)
                         return true;
                 }
-                reader.GotoNextLine();
+                YARGTextReader.GotoNextLine(container);
             }
             return false;
         }
 
-        private bool ParseChartCommon<TChar, TDecoder>(YARGTextReader<TChar, TDecoder> reader, DifficultyMask difficulty)
+        private bool ParseChartCommon<TChar>(YARGTextContainer<TChar> container, DifficultyMask difficulty)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
-            where TDecoder : IStringDecoder<TChar>, new()
         {
             bool found = false;
             bool checkExpertPlus = difficulty == DifficultyMask.Expert;
@@ -145,12 +141,12 @@ namespace YARG.Core.Song.Preparsers
 
             DotChartEvent ev = default;
             DotChartNote note = default;
-            while (YARGChartFileReader.TryParseEvent(reader, ref ev))
+            while (YARGChartFileReader.TryParseEvent(container, ref ev))
             {
                 if (ev.Type == ChartEventType.Note)
                 {
-                    note.Lane = reader.ExtractInt32();
-                    note.Duration = reader.ExtractInt64();
+                    note.Lane = YARGTextReader.ExtractInt32(container);
+                    note.Duration = YARGTextReader.ExtractInt64(container);
                     if (note.Lane <= numPads)
                     {
                         found = true;
@@ -165,7 +161,7 @@ namespace YARG.Core.Song.Preparsers
                     if (found && !checkExpertPlus)
                         return true;
                 }
-                reader.GotoNextLine();
+                YARGTextReader.GotoNextLine(container);
             }
             return false;
         }

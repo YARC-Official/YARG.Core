@@ -60,9 +60,8 @@ namespace YARG.Core.Song
             return true;
         }
 
-        protected static bool ParseChartTrack<TChar, TDecoder>(YARGTextReader<TChar, TDecoder> reader, DrumPreparseHandler drums, ref AvailableParts parts)
+        protected static bool ParseChartTrack<TChar>(YARGTextContainer<TChar> reader, DrumPreparseHandler drums, ref AvailableParts parts)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
-            where TDecoder : IStringDecoder<TChar>, new()
         {
             if (!YARGChartFileReader.ValidateInstrument(reader, out var instrument, out var difficulty))
             {
