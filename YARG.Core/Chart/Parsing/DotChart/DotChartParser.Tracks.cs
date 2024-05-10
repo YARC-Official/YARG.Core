@@ -52,6 +52,8 @@ namespace YARG.Core.Chart.Parsing
                 GameMode.FiveFretGuitar or
                 GameMode.SixFretGuitar => new DotChartGuitarHandler(instrument, difficulty, chart, settings),
 
+                DRUMS_GAMEMODE => new DotChartDrumsHandler(difficulty, chart, settings),
+
                 _ => throw new NotImplementedException($"Unhandled .chart instrument {instrument}!")
             };
 
