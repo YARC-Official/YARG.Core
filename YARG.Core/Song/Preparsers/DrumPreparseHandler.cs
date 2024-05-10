@@ -32,26 +32,22 @@ namespace YARG.Core.Song.Preparsers
             }
         }
 
-        public void ParseChart<TChar, TDecoder, TBase>(YARGChartFileReader<TChar, TDecoder, TBase> reader)
+        public bool ParseChart<TChar, TDecoder>(YARGTextReader<TChar, TDecoder> reader, Difficulty difficulty)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
             where TDecoder : IStringDecoder<TChar>, new()
-            where TBase : unmanaged, IDotChartBases<TChar>
         {
-            var difficulty = reader.Difficulty.ToDifficultyMask();
-
-            bool skip = true;
-            if ((_validations & difficulty) == 0)
+            var diffMask = difficulty.ToDifficultyMask();
+            if ((_validations & diffMask) > 0)
             {
-                skip = Type switch
-                {
-                    DrumsType.Unknown => ParseChartUnknown(reader, difficulty),
-                    DrumsType.FourLane => ParseChartFourLane(reader, difficulty),
-                    _ => ParseChartCommon(reader, difficulty),
-                };
+                return false;
             }
 
-            if (skip)
-                reader.SkipTrack();
+            return Type switch
+            {
+                DrumsType.Unknown => ParseChartUnknown(reader, diffMask),
+                DrumsType.FourLane => ParseChartFourLane(reader, diffMask),
+                _ => ParseChartCommon(reader, diffMask),
+            };
         }
 
         private const int FOUR_LANE_COUNT = 4;
@@ -60,21 +56,21 @@ namespace YARG.Core.Song.Preparsers
         private const int GREEN_CYMBAL = 68;
         private const int DOUBLE_BASS_MODIFIER = 32;
 
-        private bool ParseChartUnknown<TChar, TDecoder, TBase>(YARGChartFileReader<TChar, TDecoder, TBase> reader, DifficultyMask difficulty)
+        private bool ParseChartUnknown<TChar, TDecoder>(YARGTextReader<TChar, TDecoder> reader, DifficultyMask difficulty)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
             where TDecoder : IStringDecoder<TChar>, new()
-            where TBase : unmanaged, IDotChartBases<TChar>
         {
             bool found = false;
             bool checkExpertPlus = difficulty == DifficultyMask.Expert;
 
             DotChartEvent ev = default;
             DotChartNote note = default;
-            while (reader.TryParseEvent(ref ev))
+            while (YARGChartFileReader.TryParseEvent(reader, ref ev))
             {
                 if (ev.Type == ChartEventType.Note)
                 {
-                    reader.ExtractLaneAndSustain(ref note);
+                    note.Lane = reader.ExtractInt32();
+                    note.Duration = reader.ExtractInt64();
                     if (note.Lane <= FIVE_LANE_COUNT)
                     {
                         _validations |= difficulty;
@@ -96,26 +92,26 @@ namespace YARG.Core.Song.Preparsers
                     if (found && Type != DrumsType.Unknown && !checkExpertPlus)
                         return true;
                 }
-                reader.NextEvent();
+                reader.GotoNextLine();
             }
             return false;
         }
 
-        private bool ParseChartFourLane<TChar, TDecoder, TBase>(YARGChartFileReader<TChar, TDecoder, TBase> reader, DifficultyMask difficulty)
+        private bool ParseChartFourLane<TChar, TDecoder>(YARGTextReader<TChar, TDecoder> reader, DifficultyMask difficulty)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
             where TDecoder : IStringDecoder<TChar>, new()
-            where TBase : unmanaged, IDotChartBases<TChar>
         {
             bool found = false;
             bool checkExpertPlus = difficulty == DifficultyMask.Expert;
 
             DotChartEvent ev = default;
             DotChartNote note = default;
-            while (reader.TryParseEvent(ref ev))
+            while (YARGChartFileReader.TryParseEvent(reader, ref ev))
             {
                 if (ev.Type == ChartEventType.Note)
                 {
-                    reader.ExtractLaneAndSustain(ref note);
+                    note.Lane = reader.ExtractInt32();
+                    note.Duration = reader.ExtractInt64();
                     if (note.Lane <= FOUR_LANE_COUNT)
                     {
                         found = true;
@@ -134,15 +130,14 @@ namespace YARG.Core.Song.Preparsers
                     if (found && Type == DrumsType.ProDrums && !checkExpertPlus)
                         return true;
                 }
-                reader.NextEvent();
+                reader.GotoNextLine();
             }
             return false;
         }
 
-        private bool ParseChartCommon<TChar, TDecoder, TBase>(YARGChartFileReader<TChar, TDecoder, TBase> reader, DifficultyMask difficulty)
+        private bool ParseChartCommon<TChar, TDecoder>(YARGTextReader<TChar, TDecoder> reader, DifficultyMask difficulty)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
             where TDecoder : IStringDecoder<TChar>, new()
-            where TBase : unmanaged, IDotChartBases<TChar>
         {
             bool found = false;
             bool checkExpertPlus = difficulty == DifficultyMask.Expert;
@@ -150,11 +145,12 @@ namespace YARG.Core.Song.Preparsers
 
             DotChartEvent ev = default;
             DotChartNote note = default;
-            while (reader.TryParseEvent(ref ev))
+            while (YARGChartFileReader.TryParseEvent(reader, ref ev))
             {
                 if (ev.Type == ChartEventType.Note)
                 {
-                    reader.ExtractLaneAndSustain(ref note);
+                    note.Lane = reader.ExtractInt32();
+                    note.Duration = reader.ExtractInt64();
                     if (note.Lane <= numPads)
                     {
                         found = true;
@@ -169,7 +165,7 @@ namespace YARG.Core.Song.Preparsers
                     if (found && !checkExpertPlus)
                         return true;
                 }
-                reader.NextEvent();
+                reader.GotoNextLine();
             }
             return false;
         }

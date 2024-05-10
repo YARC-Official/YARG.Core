@@ -32,19 +32,19 @@ namespace YARG.Core.Song
                     case MidiTrackType.Bass_5:   if (!parts.FiveFretBass.WasParsed())       parts.FiveFretBass.Difficulties        = Midi_FiveFret_Preparser.Parse(track); break;
                     case MidiTrackType.Rhythm_5: if (!parts.FiveFretRhythm.WasParsed())     parts.FiveFretRhythm.Difficulties      = Midi_FiveFret_Preparser.Parse(track); break;
                     case MidiTrackType.Coop_5:   if (!parts.FiveFretCoopGuitar.WasParsed()) parts.FiveFretCoopGuitar.Difficulties  = Midi_FiveFret_Preparser.Parse(track); break;
-                    case MidiTrackType.Keys:     if (!parts.Keys.WasParsed()) parts.Keys.Difficulties                = Midi_FiveFret_Preparser.Parse(track); break;
+                    case MidiTrackType.Keys:     if (!parts.Keys.WasParsed())               parts.Keys.Difficulties                = Midi_FiveFret_Preparser.Parse(track); break;
 
                     case MidiTrackType.Guitar_6: if (!parts.SixFretGuitar.WasParsed())      parts.SixFretGuitar.Difficulties       = Midi_SixFret_Preparser.Parse(track); break;
                     case MidiTrackType.Bass_6:   if (!parts.SixFretBass.WasParsed())        parts.SixFretBass.Difficulties         = Midi_SixFret_Preparser.Parse(track); break;
                     case MidiTrackType.Rhythm_6: if (!parts.SixFretRhythm.WasParsed())      parts.SixFretRhythm.Difficulties       = Midi_SixFret_Preparser.Parse(track); break;
-                    case MidiTrackType.Coop_6:   if (!parts.SixFretCoopGuitar.WasParsed()) parts.SixFretCoopGuitar.Difficulties   = Midi_SixFret_Preparser.Parse(track); break;
+                    case MidiTrackType.Coop_6:   if (!parts.SixFretCoopGuitar.WasParsed())  parts.SixFretCoopGuitar.Difficulties   = Midi_SixFret_Preparser.Parse(track); break;
 
                     case MidiTrackType.Drums: drums.ParseMidi(track); break;
 
                     case MidiTrackType.Pro_Guitar_17: if (!parts.ProGuitar_17Fret.WasParsed())   parts.ProGuitar_17Fret.Difficulties = Midi_ProGuitar_Preparser.Parse_17Fret(track); break;
                     case MidiTrackType.Pro_Guitar_22: if (!parts.ProGuitar_22Fret.WasParsed())   parts.ProGuitar_22Fret.Difficulties = Midi_ProGuitar_Preparser.Parse_22Fret(track); break;
                     case MidiTrackType.Pro_Bass_17:   if (!parts.ProBass_17Fret.WasParsed())     parts.ProBass_17Fret.Difficulties   = Midi_ProGuitar_Preparser.Parse_17Fret(track); break;
-                    case MidiTrackType.Pro_Bass_22:   if (!parts.ProBass_22Fret.WasParsed()) parts.ProBass_22Fret.Difficulties   = Midi_ProGuitar_Preparser.Parse_22Fret(track); break;
+                    case MidiTrackType.Pro_Bass_22:   if (!parts.ProBass_22Fret.WasParsed())     parts.ProBass_22Fret.Difficulties   = Midi_ProGuitar_Preparser.Parse_22Fret(track); break;
 
                     case MidiTrackType.Pro_Keys_E: if (!parts.ProKeys[Difficulty.Easy]   && Midi_ProKeys_Preparser.Parse(track)) parts.ProKeys.SetDifficulty(Difficulty.Easy); break;
                     case MidiTrackType.Pro_Keys_M: if (!parts.ProKeys[Difficulty.Medium] && Midi_ProKeys_Preparser.Parse(track)) parts.ProKeys.SetDifficulty(Difficulty.Medium); break;
@@ -60,43 +60,29 @@ namespace YARG.Core.Song
             return true;
         }
 
-        protected static void ParseChart<TChar, TDecoder, TBase>(YARGChartFileReader<TChar, TDecoder, TBase> reader, DrumPreparseHandler drums, ref AvailableParts parts)
+        protected static bool ParseChartTrack<TChar, TDecoder>(YARGTextReader<TChar, TDecoder> reader, DrumPreparseHandler drums, ref AvailableParts parts)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
             where TDecoder : IStringDecoder<TChar>, new()
-            where TBase : unmanaged, IDotChartBases<TChar>
         {
-            while (reader.IsStartOfTrack())
+            if (!YARGChartFileReader.ValidateInstrument(reader, out var instrument, out var difficulty))
             {
-                if (!reader.ValidateDifficulty() || !reader.ValidateInstrument())
-                    reader.SkipTrack();
-                else if (reader.Instrument != NoteTracks_Chart.Drums)
-                    ParseChartTrack(reader, ref parts);
-                else
-                    drums.ParseChart(reader);
+                return false;
             }
-        }
 
-        private static void ParseChartTrack<TChar, TDecoder, TBase>(YARGChartFileReader<TChar, TDecoder, TBase> reader, ref AvailableParts parts)
-            where TChar : unmanaged, IEquatable<TChar>, IConvertible
-            where TDecoder : IStringDecoder<TChar>, new()
-            where TBase : unmanaged, IDotChartBases<TChar>
-        {
-            bool skip = reader.Instrument switch
+            return instrument switch
             {
-                NoteTracks_Chart.Single =>       ChartPreparser.Preparse(reader, ref parts.FiveFretGuitar,     ChartPreparser.ValidateFiveFret),
-                NoteTracks_Chart.DoubleBass =>   ChartPreparser.Preparse(reader, ref parts.FiveFretBass,       ChartPreparser.ValidateFiveFret),
-                NoteTracks_Chart.DoubleRhythm => ChartPreparser.Preparse(reader, ref parts.FiveFretRhythm,     ChartPreparser.ValidateFiveFret),
-                NoteTracks_Chart.DoubleGuitar => ChartPreparser.Preparse(reader, ref parts.FiveFretCoopGuitar, ChartPreparser.ValidateFiveFret),
-                NoteTracks_Chart.GHLGuitar =>    ChartPreparser.Preparse(reader, ref parts.SixFretGuitar,      ChartPreparser.ValidateSixFret),
-                NoteTracks_Chart.GHLBass =>      ChartPreparser.Preparse(reader, ref parts.SixFretBass,        ChartPreparser.ValidateSixFret),
-                NoteTracks_Chart.GHLRhythm =>    ChartPreparser.Preparse(reader, ref parts.SixFretRhythm,      ChartPreparser.ValidateSixFret),
-                NoteTracks_Chart.GHLCoop =>      ChartPreparser.Preparse(reader, ref parts.SixFretCoopGuitar,  ChartPreparser.ValidateSixFret),
-                NoteTracks_Chart.Keys =>         ChartPreparser.Preparse(reader, ref parts.Keys,               ChartPreparser.ValidateFiveFret),
-                _ => true,
+                Instrument.FiveFretGuitar =>     ChartPreparser.Preparse(reader, difficulty, ref parts.FiveFretGuitar,     ChartPreparser.ValidateFiveFret),
+                Instrument.FiveFretBass =>       ChartPreparser.Preparse(reader, difficulty, ref parts.FiveFretBass,       ChartPreparser.ValidateFiveFret),
+                Instrument.FiveFretRhythm =>     ChartPreparser.Preparse(reader, difficulty, ref parts.FiveFretRhythm,     ChartPreparser.ValidateFiveFret),
+                Instrument.FiveFretCoopGuitar => ChartPreparser.Preparse(reader, difficulty, ref parts.FiveFretCoopGuitar, ChartPreparser.ValidateFiveFret),
+                Instrument.SixFretGuitar =>      ChartPreparser.Preparse(reader, difficulty, ref parts.SixFretGuitar,      ChartPreparser.ValidateSixFret),
+                Instrument.SixFretBass =>        ChartPreparser.Preparse(reader, difficulty, ref parts.SixFretBass,        ChartPreparser.ValidateSixFret),
+                Instrument.SixFretRhythm =>      ChartPreparser.Preparse(reader, difficulty, ref parts.SixFretRhythm,      ChartPreparser.ValidateSixFret),
+                Instrument.SixFretCoopGuitar =>  ChartPreparser.Preparse(reader, difficulty, ref parts.SixFretCoopGuitar,  ChartPreparser.ValidateSixFret),
+                Instrument.Keys =>               ChartPreparser.Preparse(reader, difficulty, ref parts.Keys,               ChartPreparser.ValidateFiveFret),
+                Instrument.FourLaneDrums =>      drums.ParseChart(reader, difficulty),
+                _ => false,
             };
-
-            if (skip)
-                reader.SkipTrack();
         }
 
         protected static void SetDrums(ref AvailableParts parts, DrumPreparseHandler drumTracker)

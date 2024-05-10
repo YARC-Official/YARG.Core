@@ -89,18 +89,5 @@ namespace YARG.Core.IO.Ini
         {
             return !reader.Container.IsEndOfFile() && !reader.Container.IsCurrentCharacter('[');
         }
-
-        private static bool FindNextTrack<TChar, TDecoder>(YARGTextReader<TChar, TDecoder> reader)
-            where TChar : unmanaged, IConvertible
-            where TDecoder : IStringDecoder<TChar>, new()
-        {
-            while (reader.Container.Position < reader.Container.Length)
-            {
-                if (reader.Container.Data[reader.Container.Position].ToChar(null) == '[')
-                    return true;
-                ++reader.Container.Position;
-            }
-            return false;
-        }
     }
 }

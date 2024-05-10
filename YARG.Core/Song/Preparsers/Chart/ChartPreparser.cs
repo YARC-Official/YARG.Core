@@ -1,36 +1,32 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text.RegularExpressions;
 using YARG.Core.IO;
 
 namespace YARG.Core.Song
 {
     public static class ChartPreparser
     {
-        public static bool Preparse<TChar, TDecoder, TBase>(YARGChartFileReader<TChar, TDecoder, TBase> reader, ref PartValues scan, Func<int, bool> func)
+        public static bool Preparse<TChar, TDecoder>(YARGTextReader<TChar, TDecoder> reader, Difficulty difficulty, ref PartValues scan, Func<int, bool> func)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
             where TDecoder : IStringDecoder<TChar>, new()
-            where TBase : unmanaged, IDotChartBases<TChar>
         {
-            var difficulty = reader.Difficulty;
             if (scan[difficulty])
                 return true;
 
             DotChartEvent ev = default;
             DotChartNote note = default;
-            while (reader.TryParseEvent(ref ev))
+            while (YARGChartFileReader.TryParseEvent(reader, ref ev))
             {
                 if (ev.Type == ChartEventType.Note)
                 {
-                    reader.ExtractLaneAndSustain(ref note);
+                    note.Lane = reader.ExtractInt32();
+                    note.Duration = reader.ExtractInt64();
                     if (func(note.Lane))
                     {
                         scan.SetDifficulty(difficulty);
                         return true;
                     }
                 }
-                reader.NextEvent();
+                reader.GotoNextLine();
             }
             return false;
         }
