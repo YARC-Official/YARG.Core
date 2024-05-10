@@ -83,8 +83,8 @@ namespace MoonscraperChartEditor.Song.IO
 
         private static readonly CommonPhraseSettings ProKeysPhraseSettings = new()
         {
-            soloNote = MidIOHelper.SOLO_NOTE,
-            versusPhrases = true,
+            soloNote = MidIOHelper.SOLO_NOTE_PRO_KEYS,
+            versusPhrases = false,
             lanePhrases = true,
         };
 
