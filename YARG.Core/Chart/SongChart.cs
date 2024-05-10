@@ -223,13 +223,15 @@ namespace YARG.Core.Chart
             var phraseEndsX = notesX.Where(n => isPhraseEnd(n));
             if (phraseEndsXP.Count() > phraseEndsX.Count())
             {
+                var i = 1;
                 foreach (var phraseEndXP in phraseEndsXP)
                 {
-                    var phraseEndX = notesX.Where(n => n.Tick <= phraseEndXP.Tick).Last();
+                    while (i < notesX.Count() && notesX[i].Tick <= phraseEndXP.Tick)
+                        i++;
+
+                    var phraseEndX = notesX[i - 1];
                     if (!isPhraseEnd(phraseEndX))
-                    {
                         phraseEndX.ActivateFlag(phraseEndFlag);
-                    }
                 }
             }
         }
