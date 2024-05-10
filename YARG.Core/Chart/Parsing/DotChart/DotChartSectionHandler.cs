@@ -10,9 +10,12 @@ namespace YARG.Core.Chart.Parsing
     {
         protected readonly SongChart _chart;
 
+        private readonly ChartEventTickTracker<TempoChange> _tempoTracker;
+
         public DotChartSectionHandler(SongChart chart)
         {
             _chart = chart;
+            _tempoTracker = new(_chart.SyncTrack.Tempos);
         }
 
         protected abstract void FinishTick(uint tick);
@@ -49,6 +52,7 @@ namespace YARG.Core.Chart.Parsing
 
                     FinishTick(currentTick);
                     currentTick = tick;
+                    _tempoTracker.Update(tick);
                 }
 
                 if (!ProcessEvent(typeText, eventText))
@@ -60,6 +64,9 @@ namespace YARG.Core.Chart.Parsing
 
             FinishTick(currentTick);
         }
+
+        protected double TickToTime(uint tick)
+            => _chart.SyncTrack.TickToTime(tick, _tempoTracker.Current);
 
         protected static uint ReadEventInt32(ReadOnlySpan<char> text)
         {
