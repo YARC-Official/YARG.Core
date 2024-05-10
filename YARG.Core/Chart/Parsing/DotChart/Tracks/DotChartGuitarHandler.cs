@@ -38,6 +38,11 @@ namespace YARG.Core.Chart.Parsing
             }
         }
 
+        protected override void FinishTrack(ChartEventTickTracker<TempoChange> tempoTracker)
+        {
+            GuitarHandler.FinishTrack(_chart, _settings, tempoTracker, _track, _intermediateNotes);
+        }
+
         protected override void FinishTick(uint tick)
         {
             FinishNotes(tick);

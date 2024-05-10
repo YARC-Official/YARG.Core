@@ -24,6 +24,10 @@ namespace YARG.Core.Chart.Parsing
             _settings = settings;
         }
 
+        protected abstract void FinishTrack(ChartEventTickTracker<TempoChange> tempoTracker);
+        protected sealed override void FinishSection(ChartEventTickTracker<TempoChange> tempoTracker)
+            => FinishTrack(tempoTracker);
+
         protected override void FinishTick(uint tick)
         {
             FinishPhrases(tick);

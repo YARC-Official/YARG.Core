@@ -22,6 +22,8 @@ namespace YARG.Core.Chart.Parsing
 
         protected abstract bool ProcessEvent(ReadOnlySpan<char> typeText, ReadOnlySpan<char> eventText);
 
+        protected virtual void FinishSection(ChartEventTickTracker<TempoChange> tempoTracker) {}
+
         public void ParseSection(AsciiTrimSplitter section)
         {
             uint currentTick = 0;
@@ -63,6 +65,9 @@ namespace YARG.Core.Chart.Parsing
             }
 
             FinishTick(currentTick);
+
+            _tempoTracker.ResetToTick(0);
+            FinishSection(_tempoTracker);
         }
 
         protected double TickToTime(uint tick)

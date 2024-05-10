@@ -60,6 +60,10 @@ namespace YARG.Core.Chart.Parsing
             }
         }
 
+        protected override void FinishTrack(ChartEventTickTracker<TempoChange> tempoTracker)
+        {
+        }
+
         protected override void FinishTick(uint tick)
         {
             FinishNotes(tick);
