@@ -49,6 +49,9 @@ namespace YARG.Core.Chart.Parsing
             var gameMode = instrument.ToGameMode();
             DotChartSectionHandler handler = gameMode switch
             {
+                GameMode.FiveFretGuitar or
+                GameMode.SixFretGuitar => new DotChartGuitarHandler(instrument, difficulty, chart, settings),
+
                 _ => throw new NotImplementedException($"Unhandled .chart instrument {instrument}!")
             };
 
