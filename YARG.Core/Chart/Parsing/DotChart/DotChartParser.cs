@@ -43,6 +43,7 @@ namespace YARG.Core.Chart.Parsing
             // Parse instrument tracks
             while (GetNextSection(chartText, ref textIndex, out var sectionName, out sectionBody))
             {
+                ParseTrack(sectionName, sectionBody, chart, settings);
             }
 
             return chart;
