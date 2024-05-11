@@ -25,11 +25,11 @@ public class SongChartBuilder
         var drumTrack = new InstrumentTrack<DrumNote>(Instrument.ProDrums);
         _drumNotes = new List<DrumNote>();
         var difficulty = Difficulty.Expert;
-        drumTrack.Difficulties.Add(difficulty, new InstrumentDifficulty<DrumNote>(Instrument.ProDrums, difficulty, _drumNotes, new(), new()));
+        drumTrack.AddDifficulty(difficulty, new InstrumentDifficulty<DrumNote>(Instrument.ProDrums, difficulty, _drumNotes, new(), new()));
 
         var guitarTrack = new InstrumentTrack<GuitarNote>(Instrument.FiveFretGuitar);
         _guitarNotes = new List<GuitarNote>();
-        guitarTrack.Difficulties.Add(difficulty, new InstrumentDifficulty<GuitarNote>(Instrument.FiveFretGuitar, difficulty, _guitarNotes, new(), new()));
+        guitarTrack.AddDifficulty(difficulty, new InstrumentDifficulty<GuitarNote>(Instrument.FiveFretGuitar, difficulty, _guitarNotes, new(), new()));
 
         _chart.FiveFretGuitar = guitarTrack;
         _chart.FourLaneDrums = drumTrack;

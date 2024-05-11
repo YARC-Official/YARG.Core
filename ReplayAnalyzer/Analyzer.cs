@@ -154,7 +154,7 @@ public class Analyzer
             case GameMode.FiveFretGuitar:
             {
                 // Reset the notes
-                var notes = _chart.GetFiveFretTrack(profile.CurrentInstrument).Difficulties[profile.CurrentDifficulty];
+                var notes = _chart.GetFiveFretTrack(profile.CurrentInstrument).GetDifficulty(profile.CurrentDifficulty);
                 foreach (var note in notes.Notes)
                 {
                     foreach (var subNote in note.ChordEnumerator())
@@ -173,7 +173,7 @@ public class Analyzer
             case GameMode.FiveLaneDrums:
             {
                 // Reset the notes
-                var notes = _chart.GetDrumsTrack(profile.CurrentInstrument).Difficulties[profile.CurrentDifficulty];
+                var notes = _chart.GetDrumsTrack(profile.CurrentInstrument).GetDifficulty(profile.CurrentDifficulty);
                 foreach (var note in notes.Notes)
                 {
                     foreach (var subNote in note.ChordEnumerator())

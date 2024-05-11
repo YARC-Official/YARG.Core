@@ -38,7 +38,7 @@ public class DrumEngineTester
         var chartPath = Path.Combine(_chartsDirectory!, "drawntotheflame.mid");
         var midi = MidiFile.Read(chartPath);
         var chart = SongChart.FromMidi(_settings, midi);
-        var notes = chart.ProDrums.Difficulties[Difficulty.Expert];
+        var notes = chart.ProDrums.GetDifficulty(Difficulty.Expert);
 
         var engine = new YargDrumsEngine(notes, chart.SyncTrack, _engineParams);
         var endTime = notes.GetEndTime();
@@ -57,7 +57,7 @@ public class DrumEngineTester
         var chartPath = Path.Combine(_chartsDirectory!, "drawntotheflame.mid");
         var midi = MidiFile.Read(chartPath);
         var chart = SongChart.FromMidi(_settings, midi);
-        var notes = chart.ProDrums.Difficulties[Difficulty.Expert];
+        var notes = chart.ProDrums.GetDifficulty(Difficulty.Expert);
 
         notes.RemoveKickDrumNotes();
 
