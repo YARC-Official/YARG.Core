@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using YARG.Core.Extensions;
 using YARG.Core.Logging;
-using YARG.Core.Parsing;
 
 namespace YARG.Core.Chart.Parsing
 {

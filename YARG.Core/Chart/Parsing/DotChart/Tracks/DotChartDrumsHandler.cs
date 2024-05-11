@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using YARG.Core.Parsing;
 
 namespace YARG.Core.Chart.Parsing
 {
