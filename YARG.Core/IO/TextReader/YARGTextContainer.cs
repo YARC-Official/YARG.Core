@@ -14,26 +14,14 @@ namespace YARG.Core.IO
         where TChar : unmanaged, IConvertible
     {
         public readonly TChar[] Data;
-        public readonly int Length;
         public int Position;
+
+        public readonly int Length => Data.Length;
 
         public YARGTextContainer(TChar[] data, int position)
         {
             Data = data;
-            Length = data.Length;
             Position = position;
-        }
-
-        public readonly YARGTextContainer<TChar> Clone()
-        {
-            return new YARGTextContainer<TChar>(in this);
-        }
-
-        private YARGTextContainer(in YARGTextContainer<TChar> other)
-        {
-            Data = other.Data;
-            Length = other.Length;
-            Position = other.Position;
         }
 
         public readonly bool IsCurrentCharacter(char cmp)

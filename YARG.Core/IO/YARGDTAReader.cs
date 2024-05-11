@@ -72,7 +72,7 @@ namespace YARG.Core.IO
 
         public YARGDTAReader Clone()
         {
-            return new YARGDTAReader(_container.Clone(), Encoding);
+            return new YARGDTAReader(_container, Encoding);
         }
 
         public char SkipWhitespace()
