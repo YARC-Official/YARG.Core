@@ -15,6 +15,23 @@ namespace YARG.Core.Chart
 
         private Dictionary<Difficulty, InstrumentDifficulty<TNote>> _difficulties { get; } = new();
 
+        /// <summary>
+        /// Whether or not this track contains any data.
+        /// </summary>
+        public bool IsEmpty
+        {
+            get
+            {
+                foreach (var difficulty in _difficulties.Values)
+                {
+                    if (!difficulty.IsEmpty)
+                        return false;
+                }
+
+                return true;
+            }
+        }
+
         public InstrumentTrack(Instrument instrument)
         {
             Instrument = instrument;
@@ -93,14 +110,6 @@ namespace YARG.Core.Chart
             }
 
             return totalLastTick;
-        }
-		
-        public bool IsOccupied()
-        {
-            foreach (var difficulty in _difficulties.Values)
-                if (difficulty.IsOccupied())
-                    return true;
-            return false;
         }
 
         public InstrumentTrack<TNote> Clone()

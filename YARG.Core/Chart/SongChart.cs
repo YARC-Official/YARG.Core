@@ -200,58 +200,58 @@ namespace YARG.Core.Chart
 
         public void Append(SongChart song)
         {
-            if (song.FiveFretGuitar.IsOccupied())
+            if (!song.FiveFretGuitar.IsEmpty)
                 FiveFretGuitar = song.FiveFretGuitar;
 
-            if (song.FiveFretCoop.IsOccupied())
+            if (!song.FiveFretCoop.IsEmpty)
                 FiveFretCoop = song.FiveFretCoop;
 
-            if (song.FiveFretRhythm.IsOccupied())
+            if (!song.FiveFretRhythm.IsEmpty)
                 FiveFretRhythm = song.FiveFretRhythm;
 
-            if (song.FiveFretBass.IsOccupied())
+            if (!song.FiveFretBass.IsEmpty)
                 FiveFretBass = song.FiveFretBass;
 
-            if (song.Keys.IsOccupied())
+            if (!song.Keys.IsEmpty)
                 Keys = song.Keys;
 
-            if (song.SixFretGuitar.IsOccupied())
+            if (!song.SixFretGuitar.IsEmpty)
                 SixFretGuitar = song.SixFretGuitar;
 
-            if (song.SixFretCoop.IsOccupied())
+            if (!song.SixFretCoop.IsEmpty)
                 SixFretCoop = song.SixFretCoop;
 
-            if (song.SixFretRhythm.IsOccupied())
+            if (!song.SixFretRhythm.IsEmpty)
                 SixFretRhythm = song.SixFretRhythm;
 
-            if (song.SixFretBass.IsOccupied())
+            if (!song.SixFretBass.IsEmpty)
                 SixFretBass = song.SixFretBass;
 
-            if (song.FourLaneDrums.IsOccupied())
+            if (!song.FourLaneDrums.IsEmpty)
                 FourLaneDrums = song.FourLaneDrums;
 
-            if (song.ProDrums.IsOccupied())
+            if (!song.ProDrums.IsEmpty)
                 ProDrums = song.ProDrums;
 
-            if (song.FiveLaneDrums.IsOccupied())
+            if (!song.FiveLaneDrums.IsEmpty)
                 FiveLaneDrums = song.FiveLaneDrums;
 
-            if (song.ProGuitar_17Fret.IsOccupied())
+            if (!song.ProGuitar_17Fret.IsEmpty)
                 ProGuitar_17Fret = song.ProGuitar_17Fret;
 
-            if (song.ProGuitar_22Fret.IsOccupied())
+            if (!song.ProGuitar_22Fret.IsEmpty)
                 ProGuitar_22Fret = song.ProGuitar_22Fret;
 
-            if (song.ProBass_17Fret.IsOccupied())
+            if (!song.ProBass_17Fret.IsEmpty)
                 ProBass_17Fret = song.ProBass_17Fret;
 
-            if (song.ProBass_22Fret.IsOccupied())
+            if (!song.ProBass_22Fret.IsEmpty)
                 ProBass_22Fret = song.ProBass_22Fret;
 
-            if (song.Vocals.IsOccupied())
+            if (!song.Vocals.IsEmpty)
                 Vocals = song.Vocals;
 
-            if (song.Harmony.IsOccupied())
+            if (!song.Harmony.IsEmpty)
                 Harmony = song.Harmony;
         }
 

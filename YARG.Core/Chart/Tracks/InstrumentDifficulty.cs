@@ -17,6 +17,15 @@ namespace YARG.Core.Chart
         public List<Phrase> Phrases { get; } = new();
         public List<TextEvent> TextEvents { get; } = new();
 
+        /// <summary>
+        /// Whether or not this difficulty contains any data.
+        /// </summary>
+        /// <remarks>
+        /// This should *not* be used to determine whether or not the chart is present!
+        /// Use <see cref="InstrumentTrack{TNote}.TryGetDifficulty(Difficulty, out InstrumentDifficulty{TNote}?)"/> instead.
+        /// </remarks>
+        public bool IsEmpty => Notes.Count == 0 && Phrases.Count == 0 && TextEvents.Count == 0;
+
         public InstrumentDifficulty(Instrument instrument, Difficulty difficulty)
         {
             Instrument = instrument;
@@ -80,11 +89,6 @@ namespace YARG.Core.Chart
             totalLastTick = Math.Max(TextEvents.GetLastTick(), totalLastTick);
 
             return totalLastTick;
-        }
-
-        public bool IsOccupied()
-        {
-            return Notes.Count > 0 || Phrases.Count > 0 || TextEvents.Count > 0;
         }
 
         public InstrumentDifficulty<TNote> Clone()

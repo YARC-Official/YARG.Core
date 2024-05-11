@@ -14,6 +14,23 @@ namespace YARG.Core.Chart
         public List<VocalsPart> Parts { get; } = new();
         public List<VocalsRangeShift> RangeShifts { get; } = new();
 
+        /// <summary>
+        /// Whether or not this track contains any data.
+        /// </summary>
+        public bool IsEmpty
+        {
+            get
+            {
+                foreach (var part in Parts)
+                {
+                    if (!part.IsEmpty)
+                        return false;
+                }
+
+                return true;
+            }
+        }
+
         public VocalsTrack(Instrument instrument)
         {
             Instrument = instrument;
@@ -75,14 +92,6 @@ namespace YARG.Core.Chart
             }
 
             return totalLastTick;
-        }
-
-        public bool IsOccupied()
-        {
-            foreach (var track in Parts)
-                if (track.IsOccupied())
-                    return true;
-            return false;
         }
 
         public VocalsTrack Clone()

@@ -82,7 +82,7 @@ namespace MoonscraperChartEditor.Song
             foreach (var difficulty in EnumExtensions<Difficulty>.Values)
             {
                 var chart = GetChart(instrument, difficulty);
-                if (chart.IsOccupied())
+                if (!chart.IsEmpty)
                 {
                     return true;
                 }
@@ -93,7 +93,7 @@ namespace MoonscraperChartEditor.Song
 
         public bool DoesChartExist(MoonInstrument instrument, Difficulty difficulty)
         {
-            return GetChart(instrument, difficulty).IsOccupied();
+            return !GetChart(instrument, difficulty).IsEmpty;
         }
 
         public uint TimeToTick(double time)
