@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using MoonscraperChartEditor.Song;
-using YARG.Core.Parsing;
+using YARG.Core.Chart.Parsing;
 
 namespace YARG.Core.Chart
 {

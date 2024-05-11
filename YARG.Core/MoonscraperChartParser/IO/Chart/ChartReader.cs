@@ -5,19 +5,12 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Text.RegularExpressions;
-using YARG.Core;
 using YARG.Core.Chart;
+using YARG.Core.Chart.Parsing;
 using YARG.Core.Extensions;
 using YARG.Core.Logging;
-using YARG.Core.Parsing;
-using YARG.Core.Song;
 using YARG.Core.Utility;
 
 namespace MoonscraperChartEditor.Song.IO

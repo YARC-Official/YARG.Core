@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using MoonscraperChartEditor.Song;
 
-namespace YARG.Core.Parsing
+namespace YARG.Core.Chart.Parsing
 {
     internal interface ITextPhraseConverter
     {

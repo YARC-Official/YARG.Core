@@ -2,9 +2,9 @@
 using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
 using NUnit.Framework;
+using YARG.Core.Chart.Parsing;
 using YARG.Core.Extensions;
 using YARG.Core.Logging;
-using YARG.Core.Parsing;
 
 namespace YARG.Core.UnitTests.Parsing
 {

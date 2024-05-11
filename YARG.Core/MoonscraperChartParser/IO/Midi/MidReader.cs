@@ -7,11 +7,10 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
-using YARG.Core;
 using YARG.Core.Chart;
+using YARG.Core.Chart.Parsing;
 using YARG.Core.Extensions;
 using YARG.Core.Logging;
-using YARG.Core.Parsing;
 
 namespace MoonscraperChartEditor.Song.IO
 {

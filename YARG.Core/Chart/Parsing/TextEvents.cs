@@ -1,7 +1,7 @@
 using System;
 using YARG.Core.Extensions;
 
-namespace YARG.Core.Parsing
+namespace YARG.Core.Chart.Parsing
 {
     /// <summary>
     /// Available stem configurations for a drums mix event.
