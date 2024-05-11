@@ -61,9 +61,9 @@ namespace YARG.Core.Chart.Parsing
             return track;
         }
 
-        protected override void FinishTrack(ChartEventTickTracker<TempoChange> tempoTracker)
+        protected override void FinishSection()
         {
-            DrumsHandler.FinishTrack(_chart, _settings, _difficulty, tempoTracker,
+            DrumsHandler.FinishTrack(_chart, ref _settings, _difficulty,
                 _fourLane, _fourPro, _fiveLane, _intermediateNotes);
 
             if (_difficulty == Difficulty.Expert && _hasExpertPlus)
@@ -71,7 +71,7 @@ namespace YARG.Core.Chart.Parsing
                 var fourLane = EnsureExists(_chart, Instrument.FourLaneDrums, Difficulty.ExpertPlus);
                 var fourPro = EnsureExists(_chart, Instrument.ProDrums, Difficulty.ExpertPlus);
                 var fiveLane = EnsureExists(_chart, Instrument.FiveLaneDrums, Difficulty.ExpertPlus);
-                DrumsHandler.FinishTrack(_chart, _settings, Difficulty.ExpertPlus, tempoTracker,
+                DrumsHandler.FinishTrack(_chart, ref _settings, Difficulty.ExpertPlus,
                     fourLane, fourPro, fiveLane, _intermediateNotes);
             }
         }
@@ -87,7 +87,8 @@ namespace YARG.Core.Chart.Parsing
             if (_kickLength is {} kickLength)
                 FinishNote(tick, kickLength, IntermediateDrumPad.Kick, IntermediateDrumsNoteFlags.None);
             if (_kickPlusLength is {} kickPlusLength)
-                FinishNote(tick, kickPlusLength, IntermediateDrumPad.KickPlus, IntermediateDrumsNoteFlags.None);
+                FinishNote(tick, kickPlusLength, IntermediateDrumPad.Kick, _difficulty == Difficulty.Expert
+                    ? IntermediateDrumsNoteFlags.ExpertPlus : IntermediateDrumsNoteFlags.None);
 
             if (_note1Length is {} note1Length)
                 FinishNote(tick, note1Length, IntermediateDrumPad.Lane1, _note1Flags);

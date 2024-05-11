@@ -5,8 +5,6 @@ namespace YARG.Core.Chart.Parsing
     internal enum IntermediateDrumPad
     {
         Kick,
-        KickPlus,
-
         Lane1,
         Lane2,
         Lane3,
@@ -24,6 +22,7 @@ namespace YARG.Core.Chart.Parsing
         Ghost = 0x04,
 
         DiscoFlip = 0x08,
+        ExpertPlus = 0x10,
     }
 
     internal class IntermediateDrumsNote : IntermediateEvent

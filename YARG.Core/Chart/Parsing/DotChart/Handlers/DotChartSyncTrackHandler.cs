@@ -73,13 +73,14 @@ namespace YARG.Core.Chart.Parsing
             if (y == 0)
                 return 1;
 
+            uint result = x;
             while (y > 1)
             {
-                checked { x *= x; }
+                checked { result *= x; }
                 y--;
             }
 
-            return x;
+            return result;
         }
     }
 }

@@ -22,7 +22,7 @@ namespace YARG.Core.Chart.Parsing
 
         protected abstract bool ProcessEvent(ReadOnlySpan<char> typeText, ReadOnlySpan<char> eventText);
 
-        protected virtual void FinishSection(ChartEventTickTracker<TempoChange> tempoTracker) {}
+        protected virtual void FinishSection() {}
 
         public void ParseSection(AsciiTrimSplitter section)
         {
@@ -65,13 +65,20 @@ namespace YARG.Core.Chart.Parsing
             }
 
             FinishTick(currentTick);
-
-            _tempoTracker.ResetToTick(0);
-            FinishSection(_tempoTracker);
+            FinishSection();
         }
 
         protected double TickToTime(uint tick)
-            => _chart.SyncTrack.TickToTime(tick, _tempoTracker.Current);
+        {
+            var currentTempo = _tempoTracker.Current;
+
+            // TODO: This slow path is necessary for text phrase handlers,
+            // but it probably screws with event ordering
+            if (tick < currentTempo.Tick)
+                return _chart.SyncTrack.TickToTime(tick);
+
+            return _chart.SyncTrack.TickToTime(tick, currentTempo);
+        }
 
         protected static uint ReadEventInt32(ReadOnlySpan<char> text)
         {

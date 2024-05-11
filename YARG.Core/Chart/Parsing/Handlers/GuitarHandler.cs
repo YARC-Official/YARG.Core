@@ -6,16 +6,15 @@ namespace YARG.Core.Chart.Parsing
     internal static class GuitarHandler
     {
         public static void FinishTrack(SongChart chart, in ParseSettings settings,
-            ChartEventTickTracker<TempoChange> tempoTracker,
             InstrumentDifficulty<GuitarNote> track, List<IntermediateGuitarNote> intermediateNotes)
         {
             YargLogger.Assert(track.Notes.Count == 0);
-            YargLogger.Assert(tempoTracker.CurrentIndex == 0);
 
             float hopoThreshold = settings.GetHopoThreshold(chart.Resolution);
 
             int phraseIndex = 0;
             var currentPhrases = new Dictionary<PhraseType, Phrase>();
+            var tempoTracker = new ChartEventTickTracker<TempoChange>(chart.SyncTrack.Tempos);
 
             for (int index = 0; index < intermediateNotes.Count; index++)
             {

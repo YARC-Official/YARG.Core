@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using YARG.Core.Logging;
 
@@ -8,8 +7,7 @@ namespace YARG.Core.Chart.Parsing
     {
         private delegate int GetDrumsPad(List<IntermediateDrumsNote> intermediateNotes, int index, in ParseSettings settings);
 
-        public static void FinishTrack(SongChart chart, in ParseSettings settings, Difficulty difficulty,
-            ChartEventTickTracker<TempoChange> tempoTracker,
+        public static void FinishTrack(SongChart chart, ref ParseSettings settings, Difficulty difficulty,
             InstrumentDifficulty<DrumNote> fourLane,
             InstrumentDifficulty<DrumNote> fourPro,
             InstrumentDifficulty<DrumNote> fiveLane,
@@ -18,26 +16,49 @@ namespace YARG.Core.Chart.Parsing
             YargLogger.Assert(fourLane.Notes.Count == 0);
             YargLogger.Assert(fourPro.Notes.Count == 0);
             YargLogger.Assert(fiveLane.Notes.Count == 0);
-            YargLogger.Assert(tempoTracker.CurrentIndex == 0);
 
-            FinalizeTrack(chart, settings, difficulty, tempoTracker, fourLane, intermediateNotes, GetFourLaneDrumPad);
-            FinalizeTrack(chart, settings, difficulty, tempoTracker, fourPro, intermediateNotes, GetFourLaneProDrumPad);
-            FinalizeTrack(chart, settings, difficulty, tempoTracker, fiveLane, intermediateNotes, GetFiveLaneDrumPad);
+            // Fallback path if drums type hasn't been determined yet
+            // This path should never be hit from the game itself, this is primarily
+            // to make loading charts in tests and such not error out
+            if (settings.DrumsType == DrumsType.Unknown)
+            {
+                YargLogger.LogDebug("Chart drums type unknown, doing manual calculation");
+                settings.DrumsType = CalculateDrumsType(intermediateNotes);
+            }
+
+            FinalizeTrack(chart, settings, difficulty, fourLane, intermediateNotes, GetFourLaneDrumPad);
+            FinalizeTrack(chart, settings, difficulty, fourPro, intermediateNotes, GetFourLaneProDrumPad);
+            FinalizeTrack(chart, settings, difficulty, fiveLane, intermediateNotes, GetFiveLaneDrumPad);
+        }
+
+        private static DrumsType CalculateDrumsType(List<IntermediateDrumsNote> intermediateNotes)
+        {
+            foreach (var intermediate in intermediateNotes)
+            {
+                if (intermediate.Pad == IntermediateDrumPad.Lane5)
+                    return DrumsType.FiveLane;
+
+                if ((intermediate.Flags & IntermediateDrumsNoteFlags.Cymbal) != 0)
+                    return DrumsType.FourLane;
+            }
+
+            return DrumsType.FourLane;
         }
 
         private static void FinalizeTrack(SongChart chart, in ParseSettings settings, Difficulty difficulty,
-            ChartEventTickTracker<TempoChange> tempoTracker,
             InstrumentDifficulty<DrumNote> track, List<IntermediateDrumsNote> intermediateNotes,
             GetDrumsPad getNotePad)
         {
             int phraseIndex = 0;
             var currentPhrases = new Dictionary<PhraseType, Phrase>();
+            var tempoTracker = new ChartEventTickTracker<TempoChange>(chart.SyncTrack.Tempos);
 
             for (int index = 0; index < intermediateNotes.Count; index++)
             {
                 var intermediate = intermediateNotes[index];
 
-                if (intermediate.Pad == IntermediateDrumPad.KickPlus && difficulty != Difficulty.ExpertPlus)
+                if ((intermediate.Flags & IntermediateDrumsNoteFlags.ExpertPlus) != 0 &&
+                    difficulty != Difficulty.ExpertPlus)
                     continue;
 
                 tempoTracker.Update(intermediate.Tick);
