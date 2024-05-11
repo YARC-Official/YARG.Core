@@ -37,8 +37,7 @@ namespace YARG.Core.Chart
             var guitarFlags = GetGuitarNoteFlags(moonNote);
 
             double time = _moonSong.TickToTime(moonNote.tick);
-            return new GuitarNote(fret, noteType, guitarFlags, generalFlags,
-                time, GetLengthInTime(moonNote), moonNote.tick, moonNote.length);
+            return new GuitarNote(fret, noteType, guitarFlags, generalFlags, time, GetLengthInTime(moonNote), moonNote.tick, moonNote.length);
         }
 
         private GuitarNote CreateSixFretGuitarNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases)
@@ -49,35 +48,34 @@ namespace YARG.Core.Chart
             var guitarFlags = GetGuitarNoteFlags(moonNote);
 
             double time = _moonSong.TickToTime(moonNote.tick);
-            return new GuitarNote(fret, noteType, guitarFlags, generalFlags,
-                time, GetLengthInTime(moonNote), moonNote.tick, moonNote.length);
+            return new GuitarNote(fret, noteType, guitarFlags, generalFlags, time, GetLengthInTime(moonNote), moonNote.tick, moonNote.length);
         }
 
-        private GuitarFret GetFiveFretGuitarFret(MoonNote moonNote)
+        private FiveFretGuitarFret GetFiveFretGuitarFret(MoonNote moonNote)
         {
             return moonNote.guitarFret switch
             {
-                MoonNote.GuitarFret.Open   => GuitarFret.Open,
-                MoonNote.GuitarFret.Green  => GuitarFret.Green,
-                MoonNote.GuitarFret.Red    => GuitarFret.Red,
-                MoonNote.GuitarFret.Yellow => GuitarFret.Yellow,
-                MoonNote.GuitarFret.Blue   => GuitarFret.Blue,
-                MoonNote.GuitarFret.Orange => GuitarFret.Orange,
+                MoonNote.GuitarFret.Open   => FiveFretGuitarFret.Open,
+                MoonNote.GuitarFret.Green  => FiveFretGuitarFret.Green,
+                MoonNote.GuitarFret.Red    => FiveFretGuitarFret.Red,
+                MoonNote.GuitarFret.Yellow => FiveFretGuitarFret.Yellow,
+                MoonNote.GuitarFret.Blue   => FiveFretGuitarFret.Blue,
+                MoonNote.GuitarFret.Orange => FiveFretGuitarFret.Orange,
                 _ => throw new InvalidOperationException($"Invalid Moonscraper guitar fret {moonNote.guitarFret}!")
             };
         }
 
-        private GuitarFret GetSixFretGuitarFret(MoonNote moonNote)
+        private SixFretGuitarFret GetSixFretGuitarFret(MoonNote moonNote)
         {
             return moonNote.ghliveGuitarFret switch
             {
-                MoonNote.GHLiveGuitarFret.Open   => GuitarFret.Open,
-                MoonNote.GHLiveGuitarFret.Black1 => GuitarFret.Black1,
-                MoonNote.GHLiveGuitarFret.Black2 => GuitarFret.Black2,
-                MoonNote.GHLiveGuitarFret.Black3 => GuitarFret.Black3,
-                MoonNote.GHLiveGuitarFret.White1 => GuitarFret.White1,
-                MoonNote.GHLiveGuitarFret.White2 => GuitarFret.White2,
-                MoonNote.GHLiveGuitarFret.White3 => GuitarFret.White3,
+                MoonNote.GHLiveGuitarFret.Open   => SixFretGuitarFret.Open,
+                MoonNote.GHLiveGuitarFret.Black1 => SixFretGuitarFret.Black1,
+                MoonNote.GHLiveGuitarFret.Black2 => SixFretGuitarFret.Black2,
+                MoonNote.GHLiveGuitarFret.Black3 => SixFretGuitarFret.Black3,
+                MoonNote.GHLiveGuitarFret.White1 => SixFretGuitarFret.White1,
+                MoonNote.GHLiveGuitarFret.White2 => SixFretGuitarFret.White2,
+                MoonNote.GHLiveGuitarFret.White3 => SixFretGuitarFret.White3,
                 _ => throw new InvalidOperationException($"Invalid Moonscraper guitar fret {moonNote.ghliveGuitarFret}!")
             };
         }

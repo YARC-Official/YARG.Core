@@ -5,6 +5,8 @@ namespace YARG.Core.Chart.Parsing
 {
     internal class DotChartGuitarHandler : DotChartTrackHandler
     {
+        private GameMode _gameMode;
+
         private InstrumentDifficulty<GuitarNote> _track;
         private List<IntermediateGuitarNote> _intermediateNotes = new();
 
@@ -23,8 +25,8 @@ namespace YARG.Core.Chart.Parsing
             SongChart chart, in ParseSettings settings)
             : base(chart, settings)
         {
-            var gameMode = instrument.ToGameMode();
-            var diffs = gameMode switch
+            _gameMode = instrument.ToGameMode();
+            var diffs = _gameMode switch
             {
                 GameMode.FiveFretGuitar => chart.GetFiveFretTrack(instrument).Difficulties,
                 GameMode.SixFretGuitar => chart.GetSixFretTrack(instrument).Difficulties,
@@ -40,7 +42,7 @@ namespace YARG.Core.Chart.Parsing
 
         protected override void FinishSection()
         {
-            GuitarHandler.FinishTrack(_chart, _settings, _track, _intermediateNotes);
+            GuitarHandler.FinishTrack(_chart, _settings, _gameMode, _track, _intermediateNotes);
         }
 
         protected override void FinishTick(uint tick)
@@ -51,22 +53,22 @@ namespace YARG.Core.Chart.Parsing
         private void FinishNotes(uint tick)
         {
             if (_fret1Length is {} fret1Length)
-                FinishNote(tick, fret1Length, GuitarFret.Fret1);
+                FinishNote(tick, fret1Length, IntermediateGuitarFret.Fret1);
             if (_fret2Length is {} fret2Length)
-                FinishNote(tick, fret2Length, GuitarFret.Fret2);
+                FinishNote(tick, fret2Length, IntermediateGuitarFret.Fret2);
             if (_fret3Length is {} fret3Length)
-                FinishNote(tick, fret3Length, GuitarFret.Fret3);
+                FinishNote(tick, fret3Length, IntermediateGuitarFret.Fret3);
             if (_fret4Length is {} fret4Length)
-                FinishNote(tick, fret4Length, GuitarFret.Fret4);
+                FinishNote(tick, fret4Length, IntermediateGuitarFret.Fret4);
             if (_fret5Length is {} fret5Length)
-                FinishNote(tick, fret5Length, GuitarFret.Fret5);
+                FinishNote(tick, fret5Length, IntermediateGuitarFret.Fret5);
             if (_fret6Length is {} fret6Length)
-                FinishNote(tick, fret6Length, GuitarFret.Fret6);
+                FinishNote(tick, fret6Length, IntermediateGuitarFret.Fret6);
             if (_openLength is {} openLength)
-                FinishNote(tick, openLength, GuitarFret.Open);
+                FinishNote(tick, openLength, IntermediateGuitarFret.Open);
         }
 
-        private void FinishNote(uint tick, uint length, GuitarFret fret)
+        private void FinishNote(uint tick, uint length, IntermediateGuitarFret fret)
         {
             var flags = IntermediateGuitarFlags.None;
 

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using YARG.Core.Logging;
 
@@ -5,8 +6,26 @@ namespace YARG.Core.Chart.Parsing
 {
     internal static class GuitarHandler
     {
-        public static void FinishTrack(SongChart chart, in ParseSettings settings,
+        public static void FinishTrack(SongChart chart, in ParseSettings settings, GameMode gameMode,
             InstrumentDifficulty<GuitarNote> track, List<IntermediateGuitarNote> intermediateNotes)
+        {
+            switch (gameMode)
+            {
+                case GameMode.FiveFretGuitar:
+                    FinishTrack(chart, settings, track, intermediateNotes, GetFiveFretNoteFret);
+                    break;
+                case GameMode.SixFretGuitar:
+                    FinishTrack(chart, settings, track, intermediateNotes, GetSixFretNoteFret);
+                    break;
+                default:
+                    throw new ArgumentException($"Game mode {gameMode} is not a guitar mode!");
+            }
+            
+        }
+
+        private static void FinishTrack(SongChart chart, in ParseSettings settings,
+            InstrumentDifficulty<GuitarNote> track, List<IntermediateGuitarNote> intermediateNotes,
+            Func<IntermediateGuitarNote, int> getFret)
         {
             YargLogger.Assert(track.Notes.Count == 0);
 
@@ -26,13 +45,48 @@ namespace YARG.Core.Chart.Parsing
                 double startTime = chart.SyncTrack.TickToTime(intermediate.Tick, tempoTracker.Current);
                 double endTime = chart.SyncTrack.TickToTime(intermediate.Tick + intermediate.TickLength, tempoTracker.Current);
 
+                int fret = getFret(intermediate);
                 var noteType = GetNoteType(track, intermediate, hopoThreshold);
                 var guitarFlags = GetNoteFlags(intermediateNotes, index, settings);
                 var generalFlags = TrackHandler.GetGeneralFlags(intermediateNotes, index, currentPhrases);
 
-                TrackHandler.AddNote(track.Notes, new(intermediate.Fret, noteType, guitarFlags, generalFlags,
+                TrackHandler.AddNote(track.Notes, new(fret, noteType, guitarFlags, generalFlags,
                     startTime, endTime - startTime, intermediate.Tick, intermediate.TickLength), settings);
             }
+        }
+
+        private static int GetFiveFretNoteFret(IntermediateGuitarNote note)
+        {
+            var fret = note.Fret switch
+            {
+                IntermediateGuitarFret.Open => FiveFretGuitarFret.Open,
+                IntermediateGuitarFret.Fret1 => FiveFretGuitarFret.Green,
+                IntermediateGuitarFret.Fret2 => FiveFretGuitarFret.Red,
+                IntermediateGuitarFret.Fret3 => FiveFretGuitarFret.Yellow,
+                IntermediateGuitarFret.Fret4 => FiveFretGuitarFret.Blue,
+                IntermediateGuitarFret.Fret5 => FiveFretGuitarFret.Orange,
+                IntermediateGuitarFret.Fret6 => throw new InvalidOperationException("6th fret is not valid for 5-fret!"),
+
+                _ => throw new InvalidOperationException($"Invalid intermediate guitar fret {note.Fret}!")
+            };
+            return (int) fret;
+        }
+
+        private static int GetSixFretNoteFret(IntermediateGuitarNote note)
+        {
+            var fret = note.Fret switch
+            {
+                IntermediateGuitarFret.Open => SixFretGuitarFret.Open,
+                IntermediateGuitarFret.Fret1 => SixFretGuitarFret.Black1,
+                IntermediateGuitarFret.Fret2 => SixFretGuitarFret.Black2,
+                IntermediateGuitarFret.Fret3 => SixFretGuitarFret.Black3,
+                IntermediateGuitarFret.Fret4 => SixFretGuitarFret.White1,
+                IntermediateGuitarFret.Fret5 => SixFretGuitarFret.White2,
+                IntermediateGuitarFret.Fret6 => SixFretGuitarFret.White3,
+
+                _ => throw new InvalidOperationException($"Invalid intermediate guitar fret {note.Fret}!")
+            };
+            return (int) fret;
         }
 
         private static GuitarNoteType GetNoteType(InstrumentDifficulty<GuitarNote> track,

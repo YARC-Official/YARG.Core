@@ -7,8 +7,7 @@ namespace YARG.Core.Chart
         private GuitarNoteFlags _guitarFlags;
         public GuitarNoteFlags GuitarFlags;
 
-        public GuitarFret Fret { get; }
-
+        public int Fret         { get; }
         public int DisjointMask { get; }
         public int NoteMask     { get; private set; }
 
@@ -25,7 +24,19 @@ namespace YARG.Core.Chart
         public bool IsExtendedSustain => (GuitarFlags & GuitarNoteFlags.ExtendedSustain) != 0;
         public bool IsDisjoint        => (GuitarFlags & GuitarNoteFlags.Disjoint) != 0;
 
-        public GuitarNote(GuitarFret fret, GuitarNoteType noteType, GuitarNoteFlags guitarFlags, NoteFlags flags,
+        public GuitarNote(FiveFretGuitarFret fret, GuitarNoteType noteType, GuitarNoteFlags guitarFlags,
+            NoteFlags flags, double time, double timeLength, uint tick, uint tickLength)
+            : this((int) fret, noteType, guitarFlags, flags, time, timeLength, tick, tickLength)
+        {
+        }
+
+        public GuitarNote(SixFretGuitarFret fret, GuitarNoteType noteType, GuitarNoteFlags guitarFlags,
+            NoteFlags flags, double time, double timeLength, uint tick, uint tickLength)
+            : this((int) fret, noteType, guitarFlags, flags, time, timeLength, tick, tickLength)
+        {
+        }
+
+        public GuitarNote(int fret, GuitarNoteType noteType, GuitarNoteFlags guitarFlags, NoteFlags flags,
             double time, double timeLength, uint tick, uint tickLength)
             : base(flags, time, timeLength, tick, tickLength)
         {
@@ -34,8 +45,8 @@ namespace YARG.Core.Chart
 
             GuitarFlags = _guitarFlags = guitarFlags;
 
-            NoteMask = GetNoteMask((int) Fret);
-            DisjointMask = GetNoteMask((int) Fret);
+            NoteMask = GetNoteMask(Fret);
+            DisjointMask = GetNoteMask(Fret);
         }
 
         public GuitarNote(GuitarNote other) : base(other)
@@ -45,15 +56,15 @@ namespace YARG.Core.Chart
 
             GuitarFlags = _guitarFlags = other._guitarFlags;
 
-            NoteMask = GetNoteMask((int) Fret);
-            DisjointMask = GetNoteMask((int) Fret);
+            NoteMask = GetNoteMask(Fret);
+            DisjointMask = GetNoteMask(Fret);
         }
 
         public override void AddChildNote(GuitarNote note)
         {
             base.AddChildNote(note);
 
-            NoteMask |= GetNoteMask((int) note.Fret);
+            NoteMask |= GetNoteMask(note.Fret);
         }
 
         public override void ResetNoteState()
@@ -77,28 +88,25 @@ namespace YARG.Core.Chart
         }
     }
 
-    public enum GuitarFret
+    public enum FiveFretGuitarFret
     {
-        Fret1,
-        Fret2,
-        Fret3,
-        Fret4,
-        Fret5,
-        Fret6,
         Open,
+        Green,
+        Red,
+        Yellow,
+        Blue,
+        Orange,
+    }
 
-        Green = Fret1,
-        Red = Fret2,
-        Yellow = Fret3,
-        Blue = Fret4,
-        Orange = Fret5,
-
-        Black1 = Fret1,
-        Black2 = Fret2,
-        Black3 = Fret3,
-        White1 = Fret4,
-        White2 = Fret5,
-        White3 = Fret6,
+    public enum SixFretGuitarFret
+    {
+        Open,
+        Black1,
+        Black2,
+        Black3,
+        White1,
+        White2,
+        White3,
     }
 
     public enum GuitarNoteType
@@ -115,16 +123,5 @@ namespace YARG.Core.Chart
 
         ExtendedSustain = 1 << 0,
         Disjoint        = 1 << 1,
-    }
-
-    public static class GuitarEnumExtensions
-    {
-        public static int ToFretIndex(this GuitarFret fret)
-        {
-            if (fret == GuitarFret.Open)
-                throw new ArgumentException($"Opens should not be used as a fret index!");
-
-            return (int) fret;
-        }
     }
 }

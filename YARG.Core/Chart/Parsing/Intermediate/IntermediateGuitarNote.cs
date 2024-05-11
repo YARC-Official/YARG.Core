@@ -2,6 +2,17 @@ using System;
 
 namespace YARG.Core.Chart.Parsing
 {
+    internal enum IntermediateGuitarFret
+    {
+        Open,
+        Fret1,
+        Fret2,
+        Fret3,
+        Fret4,
+        Fret5,
+        Fret6,
+    }
+
     [Flags]
     internal enum IntermediateGuitarFlags
     {
@@ -16,10 +27,10 @@ namespace YARG.Core.Chart.Parsing
 
     internal class IntermediateGuitarNote : IntermediateEvent
     {
-        public GuitarFret Fret;
+        public IntermediateGuitarFret Fret;
         public IntermediateGuitarFlags Flags;
 
-        public IntermediateGuitarNote(uint tick, uint length, GuitarFret fret, IntermediateGuitarFlags flags)
+        public IntermediateGuitarNote(uint tick, uint length, IntermediateGuitarFret fret, IntermediateGuitarFlags flags)
             : base(tick, length)
         {
             Fret = fret;
