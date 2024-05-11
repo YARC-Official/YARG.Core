@@ -124,18 +124,18 @@ namespace YARG.Core.IO
             ulong numPairs = stream.Read<ulong>(Endianness.Little);
 
             var validNodes = SongIniHandler.SONG_INI_DICTIONARY["[song]"];
-            var text = new YARGTextContainer<byte>(stream.ReadBytes((int)length), 0);
+            var container = new YARGTextContainer<byte>(stream.ReadBytes((int)length), 0);
             for (ulong i = 0; i < numPairs; i++)
             {
-                int strLength = GetLength(text);
-                var key = Encoding.UTF8.GetString(text.Data, text.Position, strLength);
-                text.Position += strLength;
+                int strLength = GetLength(ref container);
+                var key = Encoding.UTF8.GetString(container.Data, container.Position, strLength);
+                container.Position += strLength;
 
-                strLength = GetLength(text);
-                var next = text.Position + strLength;
+                strLength = GetLength(ref container);
+                var next = container.Position + strLength;
                 if (validNodes.TryGetValue(key, out var node))
                 {
-                    var mod = node.CreateSngModifier(text, strLength);
+                    var mod = node.CreateSngModifier(ref container, strLength);
                     if (modifiers.TryGetValue(node.outputName, out var list))
                     {
                         list.Add(mod);
@@ -145,7 +145,7 @@ namespace YARG.Core.IO
                         modifiers.Add(node.outputName, new() { mod });
                     }
                 }
-                text.Position = next;
+                container.Position = next;
             }
             return new IniSection(modifiers);
         }
@@ -172,7 +172,7 @@ namespace YARG.Core.IO
             return listings;
         }
 
-        private static int GetLength(YARGTextContainer<byte> container)
+        private static int GetLength(ref YARGTextContainer<byte> container)
         {
             int length = BitConverter.ToInt32(container.Data, container.Position);
             container.Position += sizeof(int);

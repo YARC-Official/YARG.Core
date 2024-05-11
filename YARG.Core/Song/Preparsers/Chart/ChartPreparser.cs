@@ -5,7 +5,7 @@ namespace YARG.Core.Song
 {
     public static class ChartPreparser
     {
-        public static bool Preparse<TChar>(YARGTextContainer<TChar> container, Difficulty difficulty, ref PartValues scan, Func<int, bool> func)
+        public static bool Preparse<TChar>(ref YARGTextContainer<TChar> container, Difficulty difficulty, ref PartValues scan, Func<int, bool> func)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {
             if (scan[difficulty])
@@ -13,19 +13,19 @@ namespace YARG.Core.Song
 
             DotChartEvent ev = default;
             DotChartNote note = default;
-            while (YARGChartFileReader.TryParseEvent(container, ref ev))
+            while (YARGChartFileReader.TryParseEvent(ref container, ref ev))
             {
                 if (ev.Type == ChartEventType.Note)
                 {
-                    note.Lane = YARGTextReader.ExtractInt32(container);
-                    note.Duration = YARGTextReader.ExtractInt64(container);
+                    note.Lane = YARGTextReader.ExtractInt32(ref container);
+                    note.Duration = YARGTextReader.ExtractInt64(ref container);
                     if (func(note.Lane))
                     {
                         scan.SetDifficulty(difficulty);
                         return true;
                     }
                 }
-                YARGTextReader.GotoNextLine(container);
+                YARGTextReader.GotoNextLine(ref container);
             }
             return false;
         }

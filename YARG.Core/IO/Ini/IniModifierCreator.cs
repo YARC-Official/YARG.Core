@@ -38,31 +38,31 @@ namespace YARG.Core.IO.Ini
             this.type = type;
         }
 
-        public IniModifier CreateModifier<TChar, TDecoder>(YARGTextContainer<TChar> container, TDecoder decoder)
+        public IniModifier CreateModifier<TChar, TDecoder>(ref YARGTextContainer<TChar> container, TDecoder decoder)
             where TChar : unmanaged, IConvertible
             where TDecoder : IStringDecoder<TChar>, new()
         {
             return type switch
             {
-                ModifierCreatorType.SortString       => new IniModifier(new SortString(ExtractIniString(container, decoder, false))),
-                ModifierCreatorType.SortString_Chart => new IniModifier(new SortString(ExtractIniString(container, decoder, true))),
-                ModifierCreatorType.String           => new IniModifier(ExtractIniString(container, decoder, false)),
-                ModifierCreatorType.String_Chart     => new IniModifier(ExtractIniString(container, decoder, true)),
-                _ => CreateNumberModifier(container),
+                ModifierCreatorType.SortString       => new IniModifier(new SortString(ExtractIniString(ref container, decoder, false))),
+                ModifierCreatorType.SortString_Chart => new IniModifier(new SortString(ExtractIniString(ref container, decoder, true))),
+                ModifierCreatorType.String           => new IniModifier(ExtractIniString(ref container, decoder, false)),
+                ModifierCreatorType.String_Chart     => new IniModifier(ExtractIniString(ref container, decoder, true)),
+                _ => CreateNumberModifier(ref container),
             };
         }
 
-        public IniModifier CreateSngModifier(YARGTextContainer<byte> sngContainer, int length)
+        public IniModifier CreateSngModifier(ref YARGTextContainer<byte> sngContainer, int length)
         {
             return type switch
             {
-                ModifierCreatorType.SortString => new IniModifier(new SortString(ExtractSngString(sngContainer, length))),
-                ModifierCreatorType.String => new IniModifier(ExtractSngString(sngContainer, length)),
-                _ => CreateNumberModifier(sngContainer),
+                ModifierCreatorType.SortString => new IniModifier(new SortString(ExtractSngString(in sngContainer, length))),
+                ModifierCreatorType.String => new IniModifier(ExtractSngString(in sngContainer, length)),
+                _ => CreateNumberModifier(ref sngContainer),
             };
         }
 
-        private IniModifier CreateNumberModifier<TChar>(YARGTextContainer<TChar> container)
+        private IniModifier CreateNumberModifier<TChar>(ref YARGTextContainer<TChar> container)
             where TChar : unmanaged, IConvertible
         {
             switch (type)
@@ -116,7 +116,7 @@ namespace YARG.Core.IO.Ini
                         long l2 = -1;
                         if (container.TryExtractInt64(out long l1))
                         {
-                            YARGTextReader.SkipWhitespace(container);
+                            YARGTextReader.SkipWhitespace(ref container);
                             if (!container.TryExtractInt64(out l2))
                             {
                                 l2 = -1;
@@ -133,14 +133,14 @@ namespace YARG.Core.IO.Ini
             }
         }
         
-        private static string ExtractIniString<TChar, TDecoder>(YARGTextContainer<TChar> container, TDecoder decoder, bool isChartFile)
+        private static string ExtractIniString<TChar, TDecoder>(ref YARGTextContainer<TChar> container, TDecoder decoder, bool isChartFile)
             where TChar : unmanaged, IConvertible
             where TDecoder : IStringDecoder<TChar>, new()
         {
-            return RichTextUtils.ReplaceColorNames(YARGTextReader.ExtractText(container, decoder, isChartFile));
+            return RichTextUtils.ReplaceColorNames(YARGTextReader.ExtractText(ref container, decoder, isChartFile));
         }
 
-        private static string ExtractSngString(YARGTextContainer<byte> sngContainer, int length)
+        private static string ExtractSngString(in YARGTextContainer<byte> sngContainer, int length)
         {
             return RichTextUtils.ReplaceColorNames(Encoding.UTF8.GetString(sngContainer.Data, sngContainer.Position, length));
         }

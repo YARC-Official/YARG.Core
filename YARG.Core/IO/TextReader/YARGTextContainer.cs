@@ -10,7 +10,7 @@ namespace YARG.Core.IO
         public static readonly Encoding UTF8Strict = new UTF8Encoding(false, true);
     }
 
-    public sealed class YARGTextContainer<TChar>
+    public struct YARGTextContainer<TChar>
         where TChar : unmanaged, IConvertible
     {
         public readonly TChar[] Data;
@@ -24,29 +24,29 @@ namespace YARG.Core.IO
             Position = position;
         }
 
-        public YARGTextContainer<TChar> Clone()
+        public readonly YARGTextContainer<TChar> Clone()
         {
-            return new YARGTextContainer<TChar>(this);
+            return new YARGTextContainer<TChar>(in this);
         }
 
-        private YARGTextContainer(YARGTextContainer<TChar> other)
+        private YARGTextContainer(in YARGTextContainer<TChar> other)
         {
             Data = other.Data;
             Length = other.Length;
             Position = other.Position;
         }
 
-        public bool IsCurrentCharacter(char cmp)
+        public readonly bool IsCurrentCharacter(char cmp)
         {
             return Data[Position].ToChar(null).Equals(cmp);
         }
 
-        public bool IsEndOfFile()
+        public readonly bool IsEndOfFile()
         {
             return Position >= Length;
         }
 
-        public ReadOnlySpan<TChar> Slice(int position, int length)
+        public readonly ReadOnlySpan<TChar> Slice(int position, int length)
         {
             return new ReadOnlySpan<TChar>(Data, position, length);
         }
@@ -176,7 +176,7 @@ namespace YARG.Core.IO
             return true;
         }
 
-        public bool ExtractBoolean()
+        public readonly bool ExtractBoolean()
         {
             return Position < Length && Data[Position].ToChar(null) switch
             {

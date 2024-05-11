@@ -181,12 +181,12 @@ namespace YARG.Core.Song
                 var byteReader = YARGTextLoader.TryLoadByteText(file);
                 if (byteReader != null)
                 {
-                    ParseDotChart(byteReader.Container, byteReader.Decoder, modifiers, ref parts, drums);
+                    ParseDotChart(ref byteReader.Container, byteReader.Decoder, modifiers, ref parts, drums);
                 }
                 else
                 {
                     var charReader = YARGTextLoader.LoadCharText(file);
-                    ParseDotChart(charReader.Container, charReader.Decoder, modifiers, ref parts, drums);
+                    ParseDotChart(ref charReader.Container, charReader.Decoder, modifiers, ref parts, drums);
                 }
             }
             else // if (chartType == ChartType.Mid || chartType == ChartType.Midi) // Uncomment for any future file type
@@ -209,24 +209,24 @@ namespace YARG.Core.Song
             return (ScanResult.Success, parts);
         }
 
-        private static void ParseDotChart<TChar, TDecoder>(YARGTextContainer<TChar> reader, TDecoder decoder, IniSection modifiers, ref AvailableParts parts, DrumPreparseHandler drums)
+        private static void ParseDotChart<TChar, TDecoder>(ref YARGTextContainer<TChar> reader, TDecoder decoder, IniSection modifiers, ref AvailableParts parts, DrumPreparseHandler drums)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
             where TDecoder : IStringDecoder<TChar>, new()
         {
-            if (YARGChartFileReader.ValidateTrack(reader, YARGChartFileReader.HEADERTRACK))
+            if (YARGChartFileReader.ValidateTrack(ref reader, YARGChartFileReader.HEADERTRACK))
             {
-                var chartMods = YARGChartFileReader.ExtractModifiers(reader, decoder, CHART_MODIFIER_LIST);
+                var chartMods = YARGChartFileReader.ExtractModifiers(ref reader, decoder, CHART_MODIFIER_LIST);
                 modifiers.Append(chartMods);
             }
 
-            while (YARGChartFileReader.IsStartOfTrack(reader))
+            while (YARGChartFileReader.IsStartOfTrack(in reader))
             {
-                if (!ParseChartTrack(reader, drums, ref parts))
+                if (!ParseChartTrack(ref reader, drums, ref parts))
                 {
-                    YARGTextReader.SkipLinesUntil(reader, '}');
+                    YARGTextReader.SkipLinesUntil(ref reader, '}');
                     if (!reader.IsEndOfFile())
                     {
-                        YARGTextReader.GotoNextLine(reader);
+                        YARGTextReader.GotoNextLine(ref reader);
                     }
                 }
             }

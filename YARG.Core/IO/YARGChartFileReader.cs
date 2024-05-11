@@ -95,30 +95,30 @@ namespace YARG.Core.IO
             new("S",  ChartEventType.Special),
         };
 
-        public static bool IsStartOfTrack<TChar>(YARGTextContainer<TChar> container)
+        public static bool IsStartOfTrack<TChar>(in YARGTextContainer<TChar> container)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {
             return !container.IsEndOfFile() && container.IsCurrentCharacter('[');
         }
 
-        public static bool ValidateTrack<TChar>(YARGTextContainer<TChar> container, string track)
+        public static bool ValidateTrack<TChar>(ref YARGTextContainer<TChar> container, string track)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {
-            if (!DoesStringMatch(container, track))
+            if (!DoesStringMatch(ref container, track))
                 return false;
 
-            YARGTextReader.GotoNextLine(container);
+            YARGTextReader.GotoNextLine(ref container);
             return true;
         }
 
-        public static bool ValidateInstrument<TChar>(YARGTextContainer<TChar> container, out Instrument instrument, out Difficulty difficulty)
+        public static bool ValidateInstrument<TChar>(ref YARGTextContainer<TChar> container, out Instrument instrument, out Difficulty difficulty)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {
-            if (ValidateDifficulty(container, out difficulty))
+            if (ValidateDifficulty(ref container, out difficulty))
             {
                 foreach (var (name, inst) in YARGChartFileReader.NOTETRACKS)
                 {
-                    if (ValidateTrack(container, name))
+                    if (ValidateTrack(ref container, name))
                     {
                         instrument = inst;
                         return true;
@@ -129,13 +129,13 @@ namespace YARG.Core.IO
             return false;
         }
 
-        private static bool ValidateDifficulty<TChar>(YARGTextContainer<TChar> container, out Difficulty difficulty)
+        private static bool ValidateDifficulty<TChar>(ref YARGTextContainer<TChar> container, out Difficulty difficulty)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {
             for (int diffIndex = 3; diffIndex >= 0; --diffIndex)
             {
                 var (name, diff) = YARGChartFileReader.DIFFICULTIES[diffIndex];
-                if (DoesStringMatch(container, name))
+                if (DoesStringMatch(ref container, name))
                 {
                     difficulty = diff;
                     container.Position += name.Length;
@@ -146,7 +146,7 @@ namespace YARG.Core.IO
             return false;
         }
 
-        private static bool DoesStringMatch<TChar>(YARGTextContainer<TChar> container, string str)
+        private static bool DoesStringMatch<TChar>(ref YARGTextContainer<TChar> container, string str)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {
             int index = 0;
@@ -161,7 +161,7 @@ namespace YARG.Core.IO
             return index == str.Length;
         }
 
-        public static bool IsStillCurrentTrack<TChar>(YARGTextContainer<TChar> container)
+        public static bool IsStillCurrentTrack<TChar>(ref YARGTextContainer<TChar> container)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {
             int position = container.Position;
@@ -170,22 +170,22 @@ namespace YARG.Core.IO
 
             if (container.IsCurrentCharacter('}'))
             {
-                YARGTextReader.GotoNextLine(container);
+                YARGTextReader.GotoNextLine(ref container);
                 return false;
             }
 
             return true;
         }
 
-        public static bool TryParseEvent<TChar>(YARGTextContainer<TChar> container, ref DotChartEvent ev)
+        public static bool TryParseEvent<TChar>(ref YARGTextContainer<TChar> container, ref DotChartEvent ev)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {
-            if (!IsStillCurrentTrack(container))
+            if (!IsStillCurrentTrack(ref container))
             {
                 return false;
             }
 
-            ev.Position = YARGTextReader.ExtractInt64(container);
+            ev.Position = YARGTextReader.ExtractInt64(ref container);
             ev.Type = ChartEventType.Unknown;
 
             var curr = container.Position;
@@ -216,7 +216,7 @@ namespace YARG.Core.IO
 
                 if (index == span.Length)
                 {
-                    YARGTextReader.SkipWhitespace(container);
+                    YARGTextReader.SkipWhitespace(ref container);
                     ev.Type = combo.Type;
                     break;
                 }
@@ -224,23 +224,23 @@ namespace YARG.Core.IO
             return true;
         }
 
-        public static Dictionary<string, List<IniModifier>> ExtractModifiers<TChar, TDecoder>(YARGTextContainer<TChar> container, TDecoder decoder, Dictionary<string, IniModifierCreator> validNodes)
+        public static Dictionary<string, List<IniModifier>> ExtractModifiers<TChar, TDecoder>(ref YARGTextContainer<TChar> container, TDecoder decoder, Dictionary<string, IniModifierCreator> validNodes)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
             where TDecoder : IStringDecoder<TChar>, new()
         {
             Dictionary<string, List<IniModifier>> modifiers = new();
-            while (IsStillCurrentTrack(container))
+            while (IsStillCurrentTrack(ref container))
             {
-                string name = YARGTextReader.ExtractModifierName(container, decoder);
+                string name = YARGTextReader.ExtractModifierName(ref container, decoder);
                 if (validNodes.TryGetValue(name, out var node))
                 {
-                    var mod = node.CreateModifier(container, decoder);
+                    var mod = node.CreateModifier(ref container, decoder);
                     if (modifiers.TryGetValue(node.outputName, out var list))
                         list.Add(mod);
                     else
                         modifiers.Add(node.outputName, new() { mod });
                 }
-                YARGTextReader.GotoNextLine(container);
+                YARGTextReader.GotoNextLine(ref container);
             }
             return modifiers;
         }

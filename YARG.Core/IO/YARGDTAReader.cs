@@ -57,13 +57,13 @@ namespace YARG.Core.IO
                 container = new YARGTextContainer<byte>(data, 0);
                 encoding = YARGTextContainer.Latin1;
             }
-            return new YARGDTAReader(container, encoding);
+            return new YARGDTAReader(in container, encoding);
         }
 
-        private readonly YARGTextContainer<byte> _container;
+        private YARGTextContainer<byte> _container;
         public Encoding Encoding;
 
-        private YARGDTAReader(YARGTextContainer<byte> container, Encoding encoding)
+        private YARGDTAReader(in YARGTextContainer<byte> container, Encoding encoding)
         {
             _container = container;
             Encoding = encoding;

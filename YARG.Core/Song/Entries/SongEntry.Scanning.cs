@@ -60,26 +60,26 @@ namespace YARG.Core.Song
             return true;
         }
 
-        protected static bool ParseChartTrack<TChar>(YARGTextContainer<TChar> reader, DrumPreparseHandler drums, ref AvailableParts parts)
+        protected static bool ParseChartTrack<TChar>(ref YARGTextContainer<TChar> reader, DrumPreparseHandler drums, ref AvailableParts parts)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {
-            if (!YARGChartFileReader.ValidateInstrument(reader, out var instrument, out var difficulty))
+            if (!YARGChartFileReader.ValidateInstrument(ref reader, out var instrument, out var difficulty))
             {
                 return false;
             }
 
             return instrument switch
             {
-                Instrument.FiveFretGuitar =>     ChartPreparser.Preparse(reader, difficulty, ref parts.FiveFretGuitar,     ChartPreparser.ValidateFiveFret),
-                Instrument.FiveFretBass =>       ChartPreparser.Preparse(reader, difficulty, ref parts.FiveFretBass,       ChartPreparser.ValidateFiveFret),
-                Instrument.FiveFretRhythm =>     ChartPreparser.Preparse(reader, difficulty, ref parts.FiveFretRhythm,     ChartPreparser.ValidateFiveFret),
-                Instrument.FiveFretCoopGuitar => ChartPreparser.Preparse(reader, difficulty, ref parts.FiveFretCoopGuitar, ChartPreparser.ValidateFiveFret),
-                Instrument.SixFretGuitar =>      ChartPreparser.Preparse(reader, difficulty, ref parts.SixFretGuitar,      ChartPreparser.ValidateSixFret),
-                Instrument.SixFretBass =>        ChartPreparser.Preparse(reader, difficulty, ref parts.SixFretBass,        ChartPreparser.ValidateSixFret),
-                Instrument.SixFretRhythm =>      ChartPreparser.Preparse(reader, difficulty, ref parts.SixFretRhythm,      ChartPreparser.ValidateSixFret),
-                Instrument.SixFretCoopGuitar =>  ChartPreparser.Preparse(reader, difficulty, ref parts.SixFretCoopGuitar,  ChartPreparser.ValidateSixFret),
-                Instrument.Keys =>               ChartPreparser.Preparse(reader, difficulty, ref parts.Keys,               ChartPreparser.ValidateFiveFret),
-                Instrument.FourLaneDrums =>      drums.ParseChart(reader, difficulty),
+                Instrument.FiveFretGuitar =>     ChartPreparser.Preparse(ref reader, difficulty, ref parts.FiveFretGuitar,     ChartPreparser.ValidateFiveFret),
+                Instrument.FiveFretBass =>       ChartPreparser.Preparse(ref reader, difficulty, ref parts.FiveFretBass,       ChartPreparser.ValidateFiveFret),
+                Instrument.FiveFretRhythm =>     ChartPreparser.Preparse(ref reader, difficulty, ref parts.FiveFretRhythm,     ChartPreparser.ValidateFiveFret),
+                Instrument.FiveFretCoopGuitar => ChartPreparser.Preparse(ref reader, difficulty, ref parts.FiveFretCoopGuitar, ChartPreparser.ValidateFiveFret),
+                Instrument.SixFretGuitar =>      ChartPreparser.Preparse(ref reader, difficulty, ref parts.SixFretGuitar,      ChartPreparser.ValidateSixFret),
+                Instrument.SixFretBass =>        ChartPreparser.Preparse(ref reader, difficulty, ref parts.SixFretBass,        ChartPreparser.ValidateSixFret),
+                Instrument.SixFretRhythm =>      ChartPreparser.Preparse(ref reader, difficulty, ref parts.SixFretRhythm,      ChartPreparser.ValidateSixFret),
+                Instrument.SixFretCoopGuitar =>  ChartPreparser.Preparse(ref reader, difficulty, ref parts.SixFretCoopGuitar,  ChartPreparser.ValidateSixFret),
+                Instrument.Keys =>               ChartPreparser.Preparse(ref reader, difficulty, ref parts.Keys,               ChartPreparser.ValidateFiveFret),
+                Instrument.FourLaneDrums =>      drums.ParseChart(ref reader, difficulty),
                 _ => false,
             };
         }

@@ -11,7 +11,7 @@ namespace YARG.Core.IO
             where TChar : unmanaged, IConvertible
             where TDecoder : IStringDecoder<TChar>, new()
         {
-            public readonly YARGTextContainer<TChar> Container;
+            public YARGTextContainer<TChar> Container;
             public readonly TDecoder Decoder;
 
             public Result(TChar[] data, int position)
@@ -62,9 +62,10 @@ namespace YARG.Core.IO
             return new Result<char, CharStringDecoder>(charData, 0);
         }
     }
+
     public static class YARGTextReader
     {
-        public static char SkipWhitespace<TChar>(YARGTextContainer<TChar> container)
+        public static char SkipWhitespace<TChar>(ref YARGTextContainer<TChar> container)
             where TChar : unmanaged, IConvertible
         {
             while (container.Position < container.Length)
@@ -82,7 +83,7 @@ namespace YARG.Core.IO
             return (char) 0;
         }
 
-        public static void GotoNextLine<TChar>(YARGTextContainer<TChar> container)
+        public static void GotoNextLine<TChar>(ref YARGTextContainer<TChar> container)
             where TChar : unmanaged, IConvertible
         {
             char curr;
@@ -108,10 +109,10 @@ namespace YARG.Core.IO
             }
         }
 
-        public static void SkipLinesUntil<TChar>(YARGTextContainer<TChar> container, char stopCharacter)
+        public static void SkipLinesUntil<TChar>(ref YARGTextContainer<TChar> container, char stopCharacter)
             where TChar : unmanaged, IConvertible
         {
-            GotoNextLine(container);
+            GotoNextLine(ref container);
             while (container.Position < container.Length)
             {
                 if (container.Data[container.Position].ToChar(null) == stopCharacter)
@@ -132,7 +133,7 @@ namespace YARG.Core.IO
             }
         }
 
-        public static string ExtractModifierName<TChar, TDecoder>(YARGTextContainer<TChar> container, TDecoder decoder)
+        public static string ExtractModifierName<TChar, TDecoder>(ref YARGTextContainer<TChar> container, TDecoder decoder)
             where TChar : unmanaged, IConvertible
             where TDecoder : IStringDecoder<TChar>, new()
         {
@@ -147,11 +148,11 @@ namespace YARG.Core.IO
 
             string name = decoder.Decode(container.Data, container.Position, curr - container.Position);
             container.Position = curr;
-            SkipWhitespace(container);
+            SkipWhitespace(ref container);
             return name;
         }
 
-        public static string PeekLine<TChar, TDecoder>(YARGTextContainer<TChar> container, TDecoder decoder)
+        public static string PeekLine<TChar, TDecoder>(ref YARGTextContainer<TChar> container, TDecoder decoder)
             where TChar : unmanaged, IConvertible
             where TDecoder : IStringDecoder<TChar>, new()
         {
@@ -163,7 +164,7 @@ namespace YARG.Core.IO
             return decoder.Decode(container.Data, container.Position, curr - container.Position).TrimEnd();
         }
 
-        public static string ExtractText<TChar, TDecoder>(YARGTextContainer<TChar> container, TDecoder decoder, bool isChartFile)
+        public static string ExtractText<TChar, TDecoder>(ref YARGTextContainer<TChar> container, TDecoder decoder, bool isChartFile)
             where TChar : unmanaged, IConvertible
             where TDecoder : IStringDecoder<TChar>, new()
         {
@@ -228,99 +229,99 @@ namespace YARG.Core.IO
             return decoder.Decode(container.Data, stringBegin, stringEnd - stringBegin);
         }
 
-        public static bool ExtractBoolean<TChar>(YARGTextContainer<TChar> container)
+        public static bool ExtractBoolean<TChar>(ref YARGTextContainer<TChar> container)
             where TChar : unmanaged, IConvertible
         {
             bool result = container.ExtractBoolean();
-            SkipWhitespace(container);
+            SkipWhitespace(ref container);
             return result;
         }
 
-        public static short ExtractInt16<TChar>(YARGTextContainer<TChar> container)
+        public static short ExtractInt16<TChar>(ref YARGTextContainer<TChar> container)
             where TChar : unmanaged, IConvertible
         {
             if (!container.TryExtractInt16(out short value))
             {
                 throw new Exception("Data for Int16 not present");
             }
-            SkipWhitespace(container);
+            SkipWhitespace(ref container);
             return value;
         }
 
-        public static ushort ExtractUInt16<TChar>(YARGTextContainer<TChar> container)
+        public static ushort ExtractUInt16<TChar>(ref YARGTextContainer<TChar> container)
             where TChar : unmanaged, IConvertible
         {
             if (!container.TryExtractUInt16(out ushort value))
             {
                 throw new Exception("Data for UInt16 not present");
             }
-            SkipWhitespace(container);
+            SkipWhitespace(ref container);
             return value;
         }
 
-        public static int ExtractInt32<TChar>(YARGTextContainer<TChar> container)
+        public static int ExtractInt32<TChar>(ref YARGTextContainer<TChar> container)
             where TChar : unmanaged, IConvertible
         {
             if (!container.TryExtractInt32(out int value))
             {
                 throw new Exception("Data for Int32 not present");
             }
-            SkipWhitespace(container);
+            SkipWhitespace(ref container);
             return value;
         }
 
-        public static uint ExtractUInt32<TChar>(YARGTextContainer<TChar> container)
+        public static uint ExtractUInt32<TChar>(ref YARGTextContainer<TChar> container)
             where TChar : unmanaged, IConvertible
         {
             if (!container.TryExtractUInt32(out uint value))
             {
                 throw new Exception("Data for UInt32 not present");
             }
-            SkipWhitespace(container);
+            SkipWhitespace(ref container);
             return value;
         }
 
-        public static long ExtractInt64<TChar>(YARGTextContainer<TChar> container)
+        public static long ExtractInt64<TChar>(ref YARGTextContainer<TChar> container)
             where TChar : unmanaged, IConvertible
         {
             if (!container.TryExtractInt64(out long value))
             {
                 throw new Exception("Data for Int64 not present");
             }
-            SkipWhitespace(container);
+            SkipWhitespace(ref container);
             return value;
         }
 
-        public static ulong ExtractUInt64<TChar>(YARGTextContainer<TChar> container)
+        public static ulong ExtractUInt64<TChar>(ref YARGTextContainer<TChar> container)
             where TChar : unmanaged, IConvertible
         {
             if (!container.TryExtractUInt64(out ulong value))
             {
                 throw new Exception("Data for UInt64 not present");
             }
-            SkipWhitespace(container);
+            SkipWhitespace(ref container);
             return value;
         }
 
-        public static float ExtractFloat<TChar>(YARGTextContainer<TChar> container)
+        public static float ExtractFloat<TChar>(ref YARGTextContainer<TChar> container)
             where TChar : unmanaged, IConvertible
         {
             if (!container.TryExtractFloat(out float value))
             {
                 throw new Exception("Data for Int16 not present");
             }
-            SkipWhitespace(container);
+            SkipWhitespace(ref container);
             return value;
         }
 
-        public static double ExtractDouble<TChar>(YARGTextContainer<TChar> container)
+        public static double ExtractDouble<TChar>(ref YARGTextContainer<TChar> container)
             where TChar : unmanaged, IConvertible
         {
             if (!container.TryExtractDouble(out double value))
             {
                 throw new Exception("Data for Int16 not present");
             }
-            SkipWhitespace(container);
+            SkipWhitespace(ref container);
             return value;
         }
     }
