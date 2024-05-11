@@ -44,7 +44,7 @@ namespace YARG.Core.Chart.Parsing
                 {
                     if (!_phraseStart)
                     {
-                        YargLogger.LogWarning("Ignoring duplicate '{0}' event", _endText);
+                        YargLogger.LogFormatWarning("Ignoring duplicate '{0}' event", _endText);
                         return false;
                     }
 
@@ -55,7 +55,7 @@ namespace YARG.Core.Chart.Parsing
                 {
                     if (!_phraseEnd && !_startNewOnConsecutiveStart)
                     {
-                        YargLogger.LogWarning("Ignoring duplicate '{0}' event", _startText);
+                        YargLogger.LogFormatWarning("Ignoring duplicate '{0}' event", _startText);
                         return false;
                     }
 
@@ -109,7 +109,7 @@ namespace YARG.Core.Chart.Parsing
             {
                 if (_phraseStart)
                 {
-                    YargLogger.LogWarning("Ignoring duplicate '{0}' event", eventText.ToString());
+                    YargLogger.LogFormatWarning("Ignoring duplicate '{0}' event", eventText.ToString());
                     return true;
                 }
 
@@ -119,7 +119,7 @@ namespace YARG.Core.Chart.Parsing
             {
                 if (_phraseEnd)
                 {
-                    YargLogger.LogWarning("Ignoring duplicate '{0}' event", eventText.ToString());
+                    YargLogger.LogFormatWarning("Ignoring duplicate '{0}' event", eventText.ToString());
                     return true;
                 }
 

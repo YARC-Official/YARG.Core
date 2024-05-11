@@ -83,7 +83,7 @@ namespace YARG.Core.Chart.Parsing
                 {
                     if (_pendingSection != null)
                     {
-                        YargLogger.LogWarning("Ignoring duplicate section name '{0}'", sectionName.ToString());
+                        YargLogger.LogFormatWarning("Ignoring duplicate section name '{0}'", sectionName.ToString());
                         return true;
                     }
 
@@ -93,7 +93,7 @@ namespace YARG.Core.Chart.Parsing
                 {
                     if (_pendingLyric != null)
                     {
-                        YargLogger.LogWarning("Ignoring duplicate lyric event '{0}'", lyricText.ToString());
+                        YargLogger.LogFormatWarning("Ignoring duplicate lyric event '{0}'", lyricText.ToString());
                         return true;
                     }
 
