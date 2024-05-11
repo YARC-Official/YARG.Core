@@ -53,12 +53,17 @@ namespace MoonscraperChartEditor.Song.IO
         {
             public MoonSong song;
             public MoonSong.MoonInstrument instrument;
+
+            public MoonSong.Difficulty? trackDifficulty;
+
             public ParseSettings settings;
             public TimedMidiEvent timedEvent;
+
             public Dictionary<int, EventProcessFn> noteProcessMap;
             public Dictionary<int, EventProcessFn> phraseProcessMap;
             public Dictionary<string, ProcessModificationProcessFn> textProcessMap;
             public Dictionary<PhaseShiftSysEx.PhraseCode, EventProcessFn> sysexProcessMap;
+
             public List<EventProcessFn> forcingProcessList;
             public List<EventProcessFn> sysexProcessList;
             public IReadOnlyList<EventProcessFn> postProcessList;
@@ -134,6 +139,19 @@ namespace MoonscraperChartEditor.Song.IO
                         ReadVenueEvents(track, song);
                         break;
 
+                    case MidIOHelper.PRO_KEYS_EXPERT:
+                        ReadProKeys(ref settings, track, song, MoonSong.Difficulty.Expert);
+                        break;
+                    case MidIOHelper.PRO_KEYS_HARD:
+                        ReadProKeys(ref settings, track, song, MoonSong.Difficulty.Hard);
+                        break;
+                    case MidIOHelper.PRO_KEYS_MEDIUM:
+                        ReadProKeys(ref settings, track, song, MoonSong.Difficulty.Medium);
+                        break;
+                    case MidIOHelper.PRO_KEYS_EASY:
+                        ReadProKeys(ref settings, track, song, MoonSong.Difficulty.Easy);
+                        break;
+
                     case MidIOHelper.VOCALS_TRACK:
                         // Parse lyrics to global track, and then parse as an instrument
                         ReadTextEventsIntoGlobalEventsAsLyrics(track, song);
@@ -167,6 +185,17 @@ namespace MoonscraperChartEditor.Song.IO
             }
 
             return song;
+
+            static void ReadProKeys(ref ParseSettings settings, TrackChunk track, MoonSong song,
+                MoonSong.Difficulty difficulty)
+            {
+                // Always clear the current difficulty as `ReadNotes` may populate some phrases
+                // from other difficulties.
+                var chart = song.GetChart(MoonSong.MoonInstrument.ProKeys, difficulty);
+                chart.Clear();
+
+                ReadNotes(ref settings, track, song, MoonSong.MoonInstrument.ProKeys, difficulty);
+            }
         }
 
         private static void ValidateAndApplySettings(MoonSong song, ref ParseSettings settings)
@@ -380,7 +409,7 @@ namespace MoonscraperChartEditor.Song.IO
         }
 
         private static void ReadNotes(ref ParseSettings settings, TrackChunk track, MoonSong song,
-            MoonSong.MoonInstrument instrument)
+            MoonSong.MoonInstrument instrument, MoonSong.Difficulty? trackDifficulty = null)
         {
             if (track == null || track.Events.Count < 1)
             {
@@ -397,6 +426,7 @@ namespace MoonscraperChartEditor.Song.IO
             {
                 song = song,
                 instrument = instrument,
+                trackDifficulty = trackDifficulty,
                 settings = settings,
                 noteProcessMap = GetNoteProcessDict(gameMode),
                 phraseProcessMap = GetPhraseProcessDict(settings.StarPowerNote, gameMode),
@@ -457,8 +487,18 @@ namespace MoonscraperChartEditor.Song.IO
                 process(ref processParams);
             }
 
-            foreach (var difficulty in EnumExtensions<MoonSong.Difficulty>.Values)
-                song.GetChart(instrument, difficulty).notes.TrimExcess();
+            // If this specific track does not have a difficulty assigned to it, clear all difficulties
+            if (trackDifficulty is null)
+            {
+                foreach (var difficulty in EnumExtensions<MoonSong.Difficulty>.Values)
+                {
+                    song.GetChart(instrument, difficulty).notes.TrimExcess();
+                }
+            }
+            else
+            {
+                song.GetChart(instrument, trackDifficulty.Value).notes.TrimExcess();
+            }
 
             settings = processParams.settings;
         }

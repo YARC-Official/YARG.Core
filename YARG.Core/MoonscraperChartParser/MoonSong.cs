@@ -339,6 +339,9 @@ namespace MoonscraperChartEditor.Song
                 case MoonInstrument.ProBass_22Fret:
                     return MoonChart.GameMode.ProGuitar;
 
+                case MoonInstrument.ProKeys:
+                    return MoonChart.GameMode.ProKeys;
+
                 case MoonInstrument.Vocals:
                 case MoonInstrument.Harmony1:
                 case MoonInstrument.Harmony2:
@@ -374,6 +377,7 @@ namespace MoonscraperChartEditor.Song
             ProGuitar_22Fret,
             ProBass_17Fret,
             ProBass_22Fret,
+            ProKeys,
             Vocals,
             Harmony1,
             Harmony2,
