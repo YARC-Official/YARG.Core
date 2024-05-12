@@ -1,84 +1,117 @@
 ﻿using System;
-using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Security.Cryptography;
 using YARG.Core.Extensions;
-using YARG.Core.IO;
 
 namespace YARG.Core.Song
 {
     [Serializable]
-    public readonly struct HashWrapper : IComparable<HashWrapper>, IEquatable<HashWrapper>
+    public unsafe struct HashWrapper : IComparable<HashWrapper>, IEquatable<HashWrapper>
     {
         public static HashAlgorithm Algorithm => SHA1.Create();
 
         public const int HASH_SIZE_IN_BYTES = 20;
         public const int HASH_SIZE_IN_INTS = HASH_SIZE_IN_BYTES / sizeof(int);
 
-        private readonly FixedArray<byte> _hash;
-        private readonly int          _hashcode;
+        private fixed byte _hash[HASH_SIZE_IN_BYTES];
+        private int _hashcode;
 
         public byte[] HashBytes
         {
             get
             {
-                return _hash.ToArray();
+                var bytes = new byte[HASH_SIZE_IN_BYTES];
+                for (var i = 0; i < HASH_SIZE_IN_BYTES; i++)
+                {
+                    bytes[i] = _hash[i];
+                }
+                return bytes;
             }
         }
 
         public static HashWrapper Deserialize(BinaryReader reader)
         {
-            using var hash = DisposableCounter.Wrap(FixedArray<byte>.Alloc(HASH_SIZE_IN_BYTES));
-            if (reader.Read(hash.Value.Span) != HASH_SIZE_IN_BYTES)
+            var wrapper = new HashWrapper();
+            var span = new Span<byte>(wrapper._hash, HASH_SIZE_IN_BYTES);
+            if (reader.Read(span) != HASH_SIZE_IN_BYTES)
             {
                 throw new EndOfStreamException();
             }
-            return new HashWrapper(hash.Release());
+
+            int* integers = (int*) wrapper._hash;
+            for (int i = 0; i < HASH_SIZE_IN_INTS; i++)
+            {
+                wrapper._hashcode ^= integers[i];
+            }
+            return wrapper;
         }
 
         public static HashWrapper Hash(ReadOnlySpan<byte> span)
         {
+            var wrapper = new HashWrapper();
+            var hashSpan = new Span<byte>(wrapper._hash, HASH_SIZE_IN_BYTES);
+
             using var algo = Algorithm;
-            using var hash = DisposableCounter.Wrap(FixedArray<byte>.Alloc(HASH_SIZE_IN_BYTES));
-            if (!algo.TryComputeHash(span, hash.Value.Span, out int written))
+            if (!algo.TryComputeHash(span, hashSpan, out int written))
             {
                 throw new Exception("fucking how??? Hash generation error");
             }
-            return new HashWrapper(hash.Release());
+
+            int* integers = (int*) wrapper._hash;
+            for (int i = 0; i < HASH_SIZE_IN_INTS; i++)
+            {
+                wrapper._hashcode ^= integers[i];
+            }
+            return wrapper;
         }
 
-        public HashWrapper(byte[] hash)
-            : this(FixedArray<byte>.Pin(hash)) { }
-
-        private HashWrapper(FixedArray<byte> hash)
+        public static HashWrapper Create(byte[] hash)
         {
-            _hash = hash;
-            _hashcode = 0;
-
-            unsafe
+            var wrapper = new HashWrapper();
+            for (var i = 0; i < HASH_SIZE_IN_BYTES; i++)
             {
-                int* integers = (int*) hash.Ptr;
-                for (int i = 0; i < HASH_SIZE_IN_INTS; i++)
-                {
-                    _hashcode ^= integers[i];
-                }
+                wrapper._hash[i] = hash[i];
             }
+
+            int* integers = (int*) wrapper._hash;
+            for (int i = 0; i < HASH_SIZE_IN_INTS; i++)
+            {
+                wrapper._hashcode ^= integers[i];
+            }
+            return wrapper;
         }
 
         public void Serialize(BinaryWriter writer)
         {
-            writer.Write(_hash.ReadOnlySpan);
+            fixed (byte* ptr = _hash)
+            {
+                var span = new ReadOnlySpan<byte>(ptr, HASH_SIZE_IN_BYTES);
+                writer.Write(span);
+            }
         }
 
         public int CompareTo(HashWrapper other)
         {
-            return _hash.ReadOnlySpan.SequenceCompareTo(other._hash.ReadOnlySpan);
+            for (int i = 0; i < HASH_SIZE_IN_BYTES; ++i)
+            {
+                if (_hash[i] != other._hash[i])
+                {
+                    return _hash[i] - other._hash[i];
+                }
+            }
+            return 0;
         }
 
         public bool Equals(HashWrapper other)
         {
-            return _hash.ReadOnlySpan.SequenceEqual(other._hash.ReadOnlySpan);
+            for (int i = 0; i < HASH_SIZE_IN_BYTES; ++i)
+            {
+                if (_hash[i] != other._hash[i])
+                {
+                    return false;
+                }
+            }
+            return true;
         }
 
         public override int GetHashCode()
@@ -88,7 +121,11 @@ namespace YARG.Core.Song
 
         public override string ToString()
         {
-            return _hash.ReadOnlySpan.ToHexString(dashes: false);
+            fixed (byte* ptr = _hash)
+            {
+                var span = new ReadOnlySpan<byte>(ptr, HASH_SIZE_IN_BYTES);
+                return span.ToHexString(dashes: false);
+            }
         }
     }
 }

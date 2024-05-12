@@ -31,7 +31,7 @@ namespace YARG.Core.Utility
                     hashBytes[i] = b;
                 }
 
-                return new HashWrapper(hashBytes);
+                return HashWrapper.Create(hashBytes);
             }
             catch
             {
