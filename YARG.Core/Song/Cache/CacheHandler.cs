@@ -347,9 +347,10 @@ namespace YARG.Core.Song.Cache
 
         private UpgradeGroup? CreateUpgradeGroup(string directory, AbridgedFileInfo dta, bool removeEntries)
         {
-            var reader = YARGDTAReader.TryCreate(dta.FullName);
-            if (reader == null)
+            if (!YARGDTAReader.TryCreate(dta.FullName, out var reader))
+            {
                 return null;
+            }
 
             var group = new UpgradeGroup(directory, dta.LastUpdatedTime);
             try
@@ -365,7 +366,8 @@ namespace YARG.Core.Song.Cache
                         {
                             var upgrade = new UnpackedRBProUpgrade(abridged);
                             group.Upgrades[name] = upgrade;
-                            AddUpgrade(name, reader.Clone(), upgrade);
+                            // copy intentional
+                            AddUpgrade(name, reader, upgrade);
 
                             if (removeEntries)
                             {
@@ -406,9 +408,10 @@ namespace YARG.Core.Song.Cache
 
         private Dictionary<string, List<YARGDTAReader>>? FindUpdateNodes(string directory, AbridgedFileInfo dta)
         {
-            var reader = YARGDTAReader.TryCreate(dta.FullName);
-            if (reader == null)
+            if (YARGDTAReader.TryCreate(dta.FullName, out var reader))
+            {
                 return null;
+            }
 
             var nodes = new Dictionary<string, List<YARGDTAReader>>();
             try
@@ -420,7 +423,8 @@ namespace YARG.Core.Song.Cache
                     {
                         nodes.Add(name, list = new List<YARGDTAReader>());
                     }
-                    list.Add(reader.Clone());
+                    // copy intentional
+                    list.Add(reader);
                     reader.EndNode();
                 }
 
@@ -441,9 +445,10 @@ namespace YARG.Core.Song.Cache
 
         private bool TryParseUpgrades(string filename, PackedCONGroup group)
         {
-            var reader = group.LoadUpgrades();
-            if (reader == null)
+            if (!group.TryLoadUpgradeReader(out var reader))
+            {
                 return false;
+            }
 
             try
             {
@@ -458,7 +463,8 @@ namespace YARG.Core.Song.Cache
                         {
                             IRBProUpgrade upgrade = new PackedRBProUpgrade(listing, listing.lastWrite);
                             group.Upgrades[name] = upgrade;
-                            AddUpgrade(name, reader.Clone(), upgrade);
+                            // Add clone
+                            AddUpgrade(name, reader, upgrade);
                             RemoveCONEntry(name);
                         }
                     }

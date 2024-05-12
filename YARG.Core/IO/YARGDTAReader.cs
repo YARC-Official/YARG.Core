@@ -7,42 +7,45 @@ using YARG.Core.Logging;
 
 namespace YARG.Core.IO
 {
-    public sealed class YARGDTAReader
+    public struct YARGDTAReader
     {
-        public static YARGDTAReader? TryCreate(CONFileListing listing, Stream stream)
+        public static bool TryCreate(CONFileListing listing, Stream stream, out YARGDTAReader reader)
         {
             try
             {
                 var bytes = listing.LoadAllBytes(stream);
-                return TryCreate(bytes);
+                return TryCreate(bytes, out reader);
             }
             catch (Exception ex)
             {
                 YargLogger.LogException(ex, $"Error while loading {listing.ConFile.FullName}");
-                return null;
+                reader = default;
+                return false;
             }
         }
 
-        public static YARGDTAReader? TryCreate(string filename)
+        public static bool TryCreate(string filename, out YARGDTAReader reader)
         {
             try
             {
                 var bytes = File.ReadAllBytes(filename);
-                return TryCreate(bytes);
+                return TryCreate(bytes, out reader);
             }
             catch (Exception ex)
             {
                 YargLogger.LogException(ex, $"Error while loading {filename}");
-                return null;
+                reader = default;
+                return false;
             }
         }
 
-        private static YARGDTAReader? TryCreate(byte[] data)
+        private static bool TryCreate(byte[] data, out YARGDTAReader reader)
         {
+            reader = default;
             if ((data[0] == 0xFF && data[1] == 0xFE) || (data[0] == 0xFE && data[1] == 0xFF))
             {
                 YargLogger.LogError("UTF-16 & UTF-32 are not supported for .dta files");
-                return null;
+                return false;
             }
 
             YARGTextContainer<byte> container;
@@ -57,7 +60,8 @@ namespace YARG.Core.IO
                 container = new YARGTextContainer<byte>(data, 0);
                 encoding = YARGTextContainer.Latin1;
             }
-            return new YARGDTAReader(in container, encoding);
+            reader = new YARGDTAReader(in container, encoding);
+            return true;
         }
 
         private YARGTextContainer<byte> _container;
@@ -68,11 +72,6 @@ namespace YARG.Core.IO
             _container = container;
             Encoding = encoding;
             SkipWhitespace();
-        }
-
-        public YARGDTAReader Clone()
-        {
-            return new YARGDTAReader(_container, Encoding);
         }
 
         public char SkipWhitespace()

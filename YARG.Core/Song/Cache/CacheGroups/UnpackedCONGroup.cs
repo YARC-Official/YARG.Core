@@ -14,9 +14,9 @@ namespace YARG.Core.Song.Cache
             DTA = new AbridgedFileInfo(dta);
         }
 
-        public YARGDTAReader? LoadDTA()
+        public bool TryLoadReader(out YARGDTAReader reader)
         {
-            return YARGDTAReader.TryCreate(DTA.FullName);
+            return YARGDTAReader.TryCreate(DTA.FullName, out reader);
         }
 
         public override void ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)

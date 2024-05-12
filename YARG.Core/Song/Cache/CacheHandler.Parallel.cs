@@ -77,8 +77,7 @@ namespace YARG.Core.Song.Cache
             {
                 conTasks[con++] = Task.Run(() =>
                 {
-                    var reader = group.LoadSongs();
-                    if (reader != null)
+                    if (group.TryLoadSongReader(out var reader))
                     {
                         ScanCONGroup(group, reader, ScanPackedCONNode);
                     }
@@ -91,8 +90,7 @@ namespace YARG.Core.Song.Cache
             {
                 conTasks[con++] = Task.Run(() =>
                 {
-                    var reader = group.LoadDTA();
-                    if (reader != null)
+                    if (group.TryLoadReader(out var reader))
                     {
                         ScanCONGroup(group, reader, ScanUnpackedCONNode);
                     }
@@ -165,9 +163,8 @@ namespace YARG.Core.Song.Cache
             try
             {
                 List<Task> tasks = new();
-                TraverseCONGroup(reader, (string name, int index) =>
+                TraverseCONGroup(reader, (string name, int index, YARGDTAReader node) =>
                 {
-                    var node = reader.Clone();
                     tasks.Add(Task.Run(() => func(group, name, index, node)));
                 });
                 Task.WaitAll(tasks.ToArray());

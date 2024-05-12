@@ -30,12 +30,11 @@ namespace YARG.Core.Song.Cache
 
             foreach (var group in conGroups)
             {
-                var reader = group.LoadSongs();
-                if (reader != null)
+                if (group.TryLoadSongReader(out var reader))
                 {
                     try
                     {
-                        TraverseCONGroup(reader, (string name, int index) => ScanPackedCONNode(group, name, index, reader));
+                        TraverseCONGroup(reader, (string name, int index, YARGDTAReader node) => ScanPackedCONNode(group, name, index, node));
                     }
                     catch (Exception e)
                     {
@@ -47,12 +46,11 @@ namespace YARG.Core.Song.Cache
 
             foreach (var group in extractedConGroups)
             {
-                var reader = group.LoadDTA();
-                if (reader != null)
+                if (group.TryLoadReader(out var reader))
                 {
                     try
                     {
-                        TraverseCONGroup(reader, (string name, int index) => ScanUnpackedCONNode(group, name, index, reader));
+                        TraverseCONGroup(reader, (string name, int index, YARGDTAReader node) => ScanUnpackedCONNode(group, name, index, node));
                     }
                     catch (Exception e)
                     {

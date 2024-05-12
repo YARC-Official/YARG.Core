@@ -481,7 +481,7 @@ namespace YARG.Core.Song
             {
                 try
                 {
-                    ParseDTA(nodeName, upgrade.Item1!.Clone());
+                    ParseDTA(nodeName, upgrade.Item1!.Value);
                     _upgrade = upgrade.Item2;
                 }
                 catch (Exception ex)
@@ -494,8 +494,9 @@ namespace YARG.Core.Song
         private DTAResult ParseDTA(string nodeName, params YARGDTAReader[] readers)
         {
             DTAResult result = default;
-            foreach (var reader in readers)
+            for (int i = 0; i < readers.Length; ++i)
             {
+                var reader = readers[i];
                 while (reader.StartNode())
                 {
                     string name = reader.GetNameOfNode(false);
@@ -505,7 +506,7 @@ namespace YARG.Core.Song
                         case "artist": _metadata.Artist = reader.ExtractText(); break;
                         case "master": _metadata.IsMaster = reader.ExtractBoolean(); break;
                         case "context": /*Context = reader.Read<uint>();*/ break;
-                        case "song": SongLoop(ref result, reader); break;
+                        case "song": SongLoop(ref result, ref reader); break;
                         case "song_vocals": while (reader.StartNode()) reader.EndNode(); break;
                         case "song_scroll_speed": _rbMetadata.VocalSongScrollSpeed = reader.ExtractUInt32(); break;
                         case "tuning_offset_cents": _rbMetadata.TuningOffsetCents = reader.ExtractInt32(); break;
@@ -664,7 +665,7 @@ namespace YARG.Core.Song
             return result;
         }
 
-        private void SongLoop(ref DTAResult result, YARGDTAReader reader)
+        private void SongLoop(ref DTAResult result, ref YARGDTAReader reader)
         {
             while (reader.StartNode())
             {
@@ -672,7 +673,7 @@ namespace YARG.Core.Song
                 switch (descriptor)
                 {
                     case "name": result.location = reader.ExtractText(); break;
-                    case "tracks": TracksLoop(reader); break;
+                    case "tracks": TracksLoop(ref reader); break;
                     case "crowd_channels": _rbMetadata.Indices.Crowd = reader.ExtractArray_Int();  break;
                     //case "vocal_parts": VocalParts = reader.Read<ushort>(); break;
                     case "pans":  result.pans =    reader.ExtractArray_Float(); break;
@@ -684,7 +685,7 @@ namespace YARG.Core.Song
             }
         }
 
-        private void TracksLoop(YARGDTAReader reader)
+        private void TracksLoop(ref YARGDTAReader reader)
         {
             _rbMetadata.Indices = new()
             {

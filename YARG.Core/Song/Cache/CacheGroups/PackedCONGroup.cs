@@ -11,6 +11,7 @@ namespace YARG.Core.Song.Cache
         public readonly CONFileListing[] Listings;
         public readonly CONFileListing? SongDTA;
         public readonly CONFileListing? UpgradeDta;
+
         public Stream? Stream;
         
         public Dictionary<string, IRBProUpgrade> Upgrades { get; } = new();
@@ -49,24 +50,26 @@ namespace YARG.Core.Song.Cache
 
         public void AddUpgrade(string name, IRBProUpgrade upgrade) { lock (Upgrades) Upgrades[name] = upgrade; }
 
-        public YARGDTAReader? LoadUpgrades()
+        public bool TryLoadUpgradeReader(out YARGDTAReader reader)
         {
             if (UpgradeDta == null)
             {
-                return null;
+                reader = default;
+                return false;
             }
             Stream = new FileStream(Info.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
-            return YARGDTAReader.TryCreate(UpgradeDta, Stream);
+            return YARGDTAReader.TryCreate(UpgradeDta, Stream, out reader);
         }
 
-        public YARGDTAReader? LoadSongs()
+        public bool TryLoadSongReader(out YARGDTAReader reader)
         {
             if (SongDTA == null)
             {
-                return null;
+                reader = default;
+                return false;
             }
             Stream ??= new FileStream(Info.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
-            return YARGDTAReader.TryCreate(SongDTA!, Stream);
+            return YARGDTAReader.TryCreate(SongDTA, Stream, out reader);
         }
 
         public byte[] SerializeModifications()

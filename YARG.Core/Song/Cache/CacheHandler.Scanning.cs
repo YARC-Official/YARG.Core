@@ -232,7 +232,7 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        protected void TraverseCONGroup(YARGDTAReader reader, Action<string, int> func)
+        protected void TraverseCONGroup(YARGDTAReader reader, Action<string, int, YARGDTAReader> func)
         {
             Dictionary<string, int> indices = new();
             while (reader.StartNode())
@@ -244,7 +244,7 @@ namespace YARG.Core.Song.Cache
                 }
                 indices[name] = index;
 
-                func(name, index);
+                func(name, index, reader);
                 reader.EndNode();
             }
         }
