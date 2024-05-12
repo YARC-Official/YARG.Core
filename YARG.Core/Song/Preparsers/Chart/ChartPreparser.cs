@@ -25,7 +25,6 @@ namespace YARG.Core.Song
                         return true;
                     }
                 }
-                YARGTextReader.GotoNextLine(ref container);
             }
             return false;
         }

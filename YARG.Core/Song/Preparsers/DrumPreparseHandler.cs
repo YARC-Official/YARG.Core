@@ -90,7 +90,6 @@ namespace YARG.Core.Song.Preparsers
                     if (found && Type != DrumsType.Unknown && !checkExpertPlus)
                         return true;
                 }
-                YARGTextReader.GotoNextLine(ref container);
             }
             return false;
         }
@@ -127,7 +126,6 @@ namespace YARG.Core.Song.Preparsers
                     if (found && Type == DrumsType.ProDrums && !checkExpertPlus)
                         return true;
                 }
-                YARGTextReader.GotoNextLine(ref container);
             }
             return false;
         }
@@ -161,7 +159,6 @@ namespace YARG.Core.Song.Preparsers
                     if (found && !checkExpertPlus)
                         return true;
                 }
-                YARGTextReader.GotoNextLine(ref container);
             }
             return false;
         }

@@ -164,8 +164,8 @@ namespace YARG.Core.IO
         public static bool IsStillCurrentTrack<TChar>(ref YARGTextContainer<TChar> container)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {
-            int position = container.Position;
-            if (position == container.Length)
+            YARGTextReader.GotoNextLine(ref container);
+            if (container.Position == container.Length)
                 return false;
 
             if (container.IsCurrentCharacter('}'))
@@ -240,7 +240,6 @@ namespace YARG.Core.IO
                     else
                         modifiers.Add(node.outputName, new() { mod });
                 }
-                YARGTextReader.GotoNextLine(ref container);
             }
             return modifiers;
         }

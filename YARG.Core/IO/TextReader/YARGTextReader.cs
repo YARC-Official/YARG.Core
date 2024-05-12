@@ -86,30 +86,21 @@ namespace YARG.Core.IO
         public static void GotoNextLine<TChar>(ref YARGTextContainer<TChar> container)
             where TChar : unmanaged, IConvertible
         {
-            char curr;
             while (container.Position < container.Length)
             {
-                curr = container.Data[container.Position].ToChar(null);
-                ++container.Position;
-                if (curr == '\n')
+                if (container.Data[container.Position++].ToChar(null) == '\n')
                 {
+                    // skip to first non-whitespace
+                    while (container.Position < container.Length && container.Data[container.Position].ToChar(null) <= 32)
+                    {
+                        ++container.Position;
+                    }
                     break;
                 }
-            }
-
-            while (container.Position < container.Length)
-            {
-                curr = container.Data[container.Position].ToChar(null);
-                if (curr > 32 && curr != '{' && curr != '=')
-                {
-                    break;
-
-                }
-                ++container.Position;
             }
         }
 
-        public static void SkipLinesUntil<TChar>(ref YARGTextContainer<TChar> container, char stopCharacter)
+        public static bool SkipLinesUntil<TChar>(ref YARGTextContainer<TChar> container, char stopCharacter)
             where TChar : unmanaged, IConvertible
         {
             GotoNextLine(ref container);
@@ -127,10 +118,13 @@ namespace YARG.Core.IO
                     }
 
                     if (character == '\n')
-                        break;
+                    {
+                        return true;
+                    }
                 }
                 ++container.Position;
             }
+            return false;
         }
 
         public static string ExtractModifierName<TChar, TDecoder>(ref YARGTextContainer<TChar> container, TDecoder decoder)

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using YARG.Core.Extensions;
 using YARG.Core.Logging;
 
 namespace YARG.Core.IO.Ini
@@ -51,13 +50,16 @@ namespace YARG.Core.IO.Ini
         {
             section = string.Empty;
             if (container.IsEndOfFile())
+            {
                 return false;
+            }
 
             if (!container.IsCurrentCharacter('['))
             {
-                YARGTextReader.SkipLinesUntil(ref container, '[');
-                if (container.IsEndOfFile())
+                if (!YARGTextReader.SkipLinesUntil(ref container, '['))
+                {
                     return false;
+                }
             }
             section = YARGTextReader.PeekLine(ref container, decoder).ToLower();
             return true;
@@ -68,8 +70,7 @@ namespace YARG.Core.IO.Ini
             where TDecoder : IStringDecoder<TChar>, new()
         {
             Dictionary<string, List<IniModifier>> modifiers = new();
-            YARGTextReader.GotoNextLine(ref container);
-            while (IsStillCurrentSection(in container))
+            while (IsStillCurrentSection(ref container))
             {
                 string name = YARGTextReader.ExtractModifierName(ref container, decoder).ToLower();
                 if (validNodes.TryGetValue(name, out var node))
@@ -80,15 +81,15 @@ namespace YARG.Core.IO.Ini
                     else
                         modifiers.Add(node.outputName, new() { mod });
                 }
-                YARGTextReader.GotoNextLine(ref container);
             }
             return new IniSection(modifiers);
         }
 
-        private static bool IsStillCurrentSection<TChar>(in YARGTextContainer<TChar> continer)
+        private static bool IsStillCurrentSection<TChar>(ref YARGTextContainer<TChar> container)
             where TChar : unmanaged, IConvertible
         {
-            return !continer.IsEndOfFile() && !continer.IsCurrentCharacter('[');
+            YARGTextReader.GotoNextLine(ref container);
+            return !container.IsEndOfFile() && !container.IsCurrentCharacter('[');
         }
     }
 }
