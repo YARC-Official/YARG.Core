@@ -66,9 +66,9 @@ namespace YARG.Core.Engine.Guitar.Engines
             var action = gameInput.GetAction<GuitarAction>();
 
             // Star power
-            if (action is GuitarAction.StarPower && gameInput.Button && EngineStats.CanStarPowerActivate)
+            if (action is GuitarAction.StarPower)
             {
-                ActivateStarPower();
+                State.IsStarPowerInputActive = gameInput.Button;
             }
             else if (action is GuitarAction.Whammy)
             {

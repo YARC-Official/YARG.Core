@@ -524,12 +524,14 @@ namespace YARG.Core.Engine
         {
             UpdateProgressValues(State.CurrentTick);
 
+            if (State.IsStarPowerInputActive && EngineStats.CanStarPowerActivate)
+            {
+                ActivateStarPower();
+            }
+
             if (EngineStats.IsStarPowerActive && EngineStats.StarPowerAmount <= 0)
             {
-                EventLogger.LogEvent(new StarPowerEngineEvent(State.CurrentTime)
-                {
-                    IsActive = false,
-                });
+                YargLogger.LogFormatDebug("Star Power ended at {0}", State.CurrentTime);
 
                 EngineStats.StarPowerAmount = 0;
                 EngineStats.IsStarPowerActive = false;
@@ -547,10 +549,7 @@ namespace YARG.Core.Engine
                 return;
             }
 
-            EventLogger.LogEvent(new StarPowerEngineEvent(State.CurrentTime)
-            {
-                IsActive = true,
-            });
+            YargLogger.LogFormatDebug("Star Power activated at {0}", State.CurrentTime);
 
             RebaseProgressValues(State.CurrentTick);
             EngineStats.IsStarPowerActive = true;

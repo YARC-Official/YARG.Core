@@ -112,7 +112,11 @@ namespace YARG.Core.Engine
 
                 YargLogger.LogFormatTrace("Processing input {0} ({1}) update at {2}", input.GetAction<GuitarAction>(), input.Button, input.Time);
                 RunQueuedUpdates(input.Time);
+
+                // Update engine state with input. Engine time is not input.Time yet.
                 MutateStateWithInput(input);
+
+                // Run the engine. Engine time will be input.Time
                 RunEngineLoop(input.Time);
 
                 // Skip non-input update if possible
