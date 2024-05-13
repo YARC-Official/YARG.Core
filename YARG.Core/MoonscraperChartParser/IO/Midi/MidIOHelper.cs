@@ -43,6 +43,11 @@ namespace MoonscraperChartEditor.Song.IO
         public const string HARMONY_1_TRACK_2 = "PART HARM1";
         public const string HARMONY_2_TRACK_2 = "PART HARM2";
         public const string HARMONY_3_TRACK_2 = "PART HARM3";
+        public const string PRO_KEYS_EXPERT = "PART REAL_KEYS_X";
+        public const string PRO_KEYS_HARD = "PART REAL_KEYS_H";
+        public const string PRO_KEYS_MEDIUM = "PART REAL_KEYS_M";
+        public const string PRO_KEYS_EASY = "PART REAL_KEYS_E";
+
 
         // Matches venue lighting events and groups the text inside (parentheses), not including the parentheses
         // 'lighting (verse)' -> 'verse'
@@ -82,6 +87,11 @@ namespace MoonscraperChartEditor.Song.IO
         public const byte VOCALS_RANGE_END = 84;
         public const byte PERCUSSION_NOTE = 96;
         public const byte NONPLAYED_PERCUSSION_NOTE = 97;
+
+        // Pro Keys notes
+        public const byte SOLO_NOTE_PRO_KEYS = 115;
+        public const byte PRO_KEYS_RANGE_START = 48;
+        public const byte PRO_KEYS_RANGE_END = 72;
 
         // Pro Guitar channels
         public const byte PRO_GUITAR_CHANNEL_NORMAL = 0;

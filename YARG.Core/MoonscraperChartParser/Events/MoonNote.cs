@@ -126,6 +126,12 @@ namespace MoonscraperChartEditor.Song
             set => rawNote = MakeProGuitarRawNote(value, proGuitarFret);
         }
 
+        public int proKeysKey
+        {
+            get => rawNote;
+            set => rawNote = Math.Clamp(value, 0, 24);
+        }
+
         /// <summary>
         /// MIDI note of the vocals pitch, typically ranging from C2 (36) to C6 (84).
         /// </summary>
@@ -249,14 +255,14 @@ namespace MoonscraperChartEditor.Song
         }
 
         /// <summary>
-        /// Returns a bit mask representing the whole note's chord. For example, a green, red and blue chord would have a mask of 0000 1011. A yellow and orange chord would have a mask of 0001 0100. 
+        /// Returns a bit mask representing the whole note's chord. For example, a green, red and blue chord would have a mask of 0000 1011. A yellow and orange chord would have a mask of 0001 0100.
         /// Shifting occurs accoring the values of the Fret_Type enum, so open notes currently output with a mask of 0010 0000.
         /// </summary>
         public int mask
         {
             get
             {
-                // Don't interate using chord, as chord will get messed up for the tool notes which override their linked list references. 
+                // Don't interate using chord, as chord will get messed up for the tool notes which override their linked list references.
                 int mask = 1 << rawNote;
 
                 var note = this;
@@ -291,7 +297,7 @@ namespace MoonscraperChartEditor.Song
         }
 
         /// <summary>
-        /// Live calculation of what Note_Type this note would currently be. 
+        /// Live calculation of what Note_Type this note would currently be.
         /// </summary>
         public MoonNoteType GetGuitarNoteType(MoonChart.GameMode gameMode, float hopoThreshold)
         {
