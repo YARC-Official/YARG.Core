@@ -14,7 +14,7 @@ namespace YARG.Core.Engine.Drums
         public delegate void PadHitEvent(DrumsAction action, bool noteWasHit);
 
         public OverhitEvent? OnOverhit;
-        public PadHitEvent?  OnPadHit;
+        public PadHitEvent? OnPadHit;
 
         protected DrumsEngine(InstrumentDifficulty<DrumNote> chart, SyncTrack syncTrack,
             DrumsEngineParameters engineParameters, bool isBot)
@@ -37,6 +37,12 @@ namespace YARG.Core.Engine.Drums
 
             // Cancel overhit if past last note
             if (State.NoteIndex >= Chart.Notes.Count - 1)
+            {
+                return;
+            }
+
+            // Cancel overhit if WaitCountdown is active
+            if (State.CountdownMeasuresLeft > 1)
             {
                 return;
             }
@@ -246,14 +252,14 @@ namespace YARG.Core.Engine.Drums
                 {
                     DrumsAction.Kick => (int) FourLaneDrumPad.Kick,
 
-                    DrumsAction.RedDrum    => (int) FourLaneDrumPad.RedDrum,
+                    DrumsAction.RedDrum => (int) FourLaneDrumPad.RedDrum,
                     DrumsAction.YellowDrum => (int) FourLaneDrumPad.YellowDrum,
-                    DrumsAction.BlueDrum   => (int) FourLaneDrumPad.BlueDrum,
-                    DrumsAction.GreenDrum  => (int) FourLaneDrumPad.GreenDrum,
+                    DrumsAction.BlueDrum => (int) FourLaneDrumPad.BlueDrum,
+                    DrumsAction.GreenDrum => (int) FourLaneDrumPad.GreenDrum,
 
                     DrumsAction.YellowCymbal => (int) FourLaneDrumPad.YellowDrum,
-                    DrumsAction.BlueCymbal   => (int) FourLaneDrumPad.BlueDrum,
-                    DrumsAction.GreenCymbal  => (int) FourLaneDrumPad.GreenDrum,
+                    DrumsAction.BlueCymbal => (int) FourLaneDrumPad.BlueDrum,
+                    DrumsAction.GreenCymbal => (int) FourLaneDrumPad.GreenDrum,
 
                     _ => -1
                 },
@@ -261,14 +267,14 @@ namespace YARG.Core.Engine.Drums
                 {
                     DrumsAction.Kick => (int) FourLaneDrumPad.Kick,
 
-                    DrumsAction.RedDrum    => (int) FourLaneDrumPad.RedDrum,
+                    DrumsAction.RedDrum => (int) FourLaneDrumPad.RedDrum,
                     DrumsAction.YellowDrum => (int) FourLaneDrumPad.YellowDrum,
-                    DrumsAction.BlueDrum   => (int) FourLaneDrumPad.BlueDrum,
-                    DrumsAction.GreenDrum  => (int) FourLaneDrumPad.GreenDrum,
+                    DrumsAction.BlueDrum => (int) FourLaneDrumPad.BlueDrum,
+                    DrumsAction.GreenDrum => (int) FourLaneDrumPad.GreenDrum,
 
                     DrumsAction.YellowCymbal => (int) FourLaneDrumPad.YellowCymbal,
-                    DrumsAction.BlueCymbal   => (int) FourLaneDrumPad.BlueCymbal,
-                    DrumsAction.GreenCymbal  => (int) FourLaneDrumPad.GreenCymbal,
+                    DrumsAction.BlueCymbal => (int) FourLaneDrumPad.BlueCymbal,
+                    DrumsAction.GreenCymbal => (int) FourLaneDrumPad.GreenCymbal,
 
                     _ => -1
                 },
@@ -276,8 +282,8 @@ namespace YARG.Core.Engine.Drums
                 {
                     DrumsAction.Kick => (int) FiveLaneDrumPad.Kick,
 
-                    DrumsAction.RedDrum   => (int) FiveLaneDrumPad.Red,
-                    DrumsAction.BlueDrum  => (int) FiveLaneDrumPad.Blue,
+                    DrumsAction.RedDrum => (int) FiveLaneDrumPad.Red,
+                    DrumsAction.BlueDrum => (int) FiveLaneDrumPad.Blue,
                     DrumsAction.GreenDrum => (int) FiveLaneDrumPad.Green,
 
                     DrumsAction.YellowCymbal => (int) FiveLaneDrumPad.Yellow,

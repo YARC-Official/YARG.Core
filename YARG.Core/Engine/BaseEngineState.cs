@@ -23,6 +23,7 @@
 
         public bool IsSoloActive;
 
+        public uint CountdownMeasuresLeft;
         public bool IsStarPowerInputActive;
         public uint StarPowerBaseTick;
 
@@ -48,6 +49,8 @@
             CurrentStarIndex = 0;
 
             IsSoloActive = false;
+
+            CountdownMeasuresLeft = 0;
 
             IsStarPowerInputActive = false;
             StarPowerBaseTick = 0;
