@@ -17,6 +17,7 @@ namespace YARG.Core.Engine
 
         public bool IsSoloActive;
 
+        public uint CountdownMeasuresLeft;
         public bool IsStarPowerInputActive;
 
         public virtual void Reset()
@@ -35,6 +36,8 @@ namespace YARG.Core.Engine
             CurrentStarIndex = 0;
 
             IsSoloActive = false;
+
+            CountdownMeasuresLeft = 0;
 
             IsStarPowerInputActive = false;
         }

@@ -13,8 +13,8 @@ namespace YARG.Core.Engine.Guitar
         protected sealed class ActiveSustain
         {
             public GuitarNote Note;
-            public uint       BaseTick;
-            public double     BaseScore;
+            public uint BaseTick;
+            public double BaseScore;
 
             public bool HasFinishedScoring;
 
@@ -42,9 +42,9 @@ namespace YARG.Core.Engine.Guitar
 
         public delegate void SustainEndEvent(GuitarNote note, double timeEnded, bool finished);
 
-        public OverstrumEvent?    OnOverstrum;
+        public OverstrumEvent? OnOverstrum;
         public SustainStartEvent? OnSustainStart;
-        public SustainEndEvent?   OnSustainEnd;
+        public SustainEndEvent? OnSustainEnd;
 
         protected List<ActiveSustain> ActiveSustains = new();
 
@@ -139,6 +139,12 @@ namespace YARG.Core.Engine.Guitar
 
             // Cancel overstrum if past last note and no active sustains
             if (State.NoteIndex >= Chart.Notes.Count && ActiveSustains.Count == 0)
+            {
+                return;
+            }
+
+            // Cancel overstrum if WaitCountdown is active
+            if (State.CountdownMeasuresLeft > 1)
             {
                 return;
             }

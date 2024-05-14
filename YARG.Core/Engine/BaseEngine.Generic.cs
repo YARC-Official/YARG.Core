@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using YARG.Core.Chart;
 using YARG.Core.Logging;
 using YARG.Core.Utility;
@@ -13,6 +14,28 @@ namespace YARG.Core.Engine
         where TEngineStats : BaseStats, new()
         where TEngineState : BaseEngineState, new()
     {
+        protected const int POINTS_PER_NOTE = 50;
+        protected const int POINTS_PER_BEAT = 25;
+
+        // Max number of measures that SP will last when draining
+        // SP draining is done based on measures
+        protected const int STAR_POWER_MAX_MEASURES = 8;
+        protected const double STAR_POWER_MEASURE_AMOUNT = 1.0 / STAR_POWER_MAX_MEASURES;
+
+        // Max number of beats that it takes to fill SP when gaining
+        // SP gain from whammying is done based on beats
+        protected const int STAR_POWER_MAX_BEATS = (STAR_POWER_MAX_MEASURES * 4) - 2; // - 2 for leniency
+        protected const double STAR_POWER_BEAT_AMOUNT = 1.0 / STAR_POWER_MAX_BEATS;
+
+        // Number of measures that SP phrases will grant when hit
+        protected const int STAR_POWER_PHRASE_MEASURE_COUNT = 2;
+        protected const double STAR_POWER_PHRASE_AMOUNT = STAR_POWER_PHRASE_MEASURE_COUNT * STAR_POWER_MEASURE_AMOUNT;
+
+        // Beat fraction to use for the sustain burst threshold
+        protected const int SUSTAIN_BURST_FRACTION = 4;
+
+        private const int MIN_COUNTDOWN_MEASURES = 4;
+
         public delegate void NoteHitEvent(int noteIndex, TNoteType note);
 
         public delegate void NoteMissedEvent(int noteIndex, TNoteType note);
@@ -21,28 +44,42 @@ namespace YARG.Core.Engine
 
         public delegate void StarPowerPhraseMissEvent(TNoteType note);
 
-        public NoteHitEvent?    OnNoteHit;
+        public delegate void StarPowerStatusEvent(bool active);
+
+        public delegate void SoloStartEvent(SoloSection soloSection);
+
+        public delegate void SoloEndEvent(SoloSection soloSection);
+
+        public delegate void CountdownChangeEvent(uint measuresLeft);
+
+        public NoteHitEvent? OnNoteHit;
         public NoteMissedEvent? OnNoteMissed;
 
-        public StarPowerPhraseHitEvent?  OnStarPowerPhraseHit;
+        public StarPowerPhraseHitEvent? OnStarPowerPhraseHit;
         public StarPowerPhraseMissEvent? OnStarPowerPhraseMissed;
+        public StarPowerStatusEvent? OnStarPowerStatus;
 
-        protected          int[]  StarScoreThresholds { get; }
+        public SoloStartEvent? OnSoloStart;
+        public SoloEndEvent? OnSoloEnd;
+
+        public CountdownChangeEvent? OnCountdownChange;
+
+        protected int[] StarScoreThresholds { get; }
         protected readonly double TicksPerSustainPoint;
-        protected readonly uint   SustainBurstThreshold;
+        protected readonly uint SustainBurstThreshold;
 
         public readonly TEngineStats EngineStats;
 
         protected readonly InstrumentDifficulty<TNoteType> Chart;
 
         protected readonly List<TNoteType> Notes;
-        protected readonly TEngineParams   EngineParameters;
+        protected readonly TEngineParams EngineParameters;
 
         public TEngineState State;
 
-        public override BaseEngineState      BaseState      => State;
+        public override BaseEngineState BaseState => State;
         public override BaseEngineParameters BaseParameters => EngineParameters;
-        public override BaseStats            BaseStats      => EngineStats;
+        public override BaseStats BaseStats => EngineStats;
 
         protected BaseEngine(InstrumentDifficulty<TNoteType> chart, SyncTrack syncTrack,
             TEngineParams engineParameters, bool isChordSeparate, bool isBot)
@@ -112,7 +149,7 @@ namespace YARG.Core.Engine
                 if (!IsBot)
                 {
                     // Earliest the note can be hit
-                    if(IsTimeBetween(noteFrontEnd, previousTime, nextTime))
+                    if (IsTimeBetween(noteFrontEnd, previousTime, nextTime))
                     {
                         YargLogger.LogFormatTrace("Queuing note {0} front end hit time at {1}", i, noteFrontEnd);
                         QueueUpdateTime(noteFrontEnd, "Note Front End");
@@ -157,6 +194,53 @@ namespace YARG.Core.Engine
             while (NextSyncIndex < SyncTrackChanges.Count && State.CurrentTick >= SyncTrackChanges[NextSyncIndex].Tick)
             {
                 CurrentSyncIndex++;
+            }
+
+            uint lastMeasureCount = currentTimeSig.GetMeasureCount(State.LastTick, SyncTrack);
+
+            if (
+                measureCount > lastMeasureCount ||
+                (State.LastUpdateTime < 0 && time > 0)
+                )
+            {
+                // This is the start of a new measure
+                if (State.CountdownMeasuresLeft > 0)
+                {
+                    // Progress WaitCountdown measures if it is active
+                    State.CountdownMeasuresLeft -= measureCount - lastMeasureCount;
+
+                    OnCountdownChange?.Invoke(State.CountdownMeasuresLeft);
+                }
+                else
+                {
+                    int nextNoteIndex = State.NoteIndex;
+                    bool skipCountdownCheck = false;
+
+                    if (nextNoteIndex > 0)
+                    {
+                        // Delay check until next measure if there is an active sustain
+                        if (Notes[nextNoteIndex - 1].TickEnd > State.CurrentTick)
+                        {
+                            skipCountdownCheck = true;
+                        }
+                    }
+
+                    if (!skipCountdownCheck)
+                    {
+                        // Countdown displays when the next note is farther MIN_COUNTDOWN_MEASURES
+                        uint nextNoteTick = Notes[nextNoteIndex].Tick;
+                        uint potentialCountdownStartTick = currentMeasureTick + State.TicksEveryMeasure;
+
+                        if (nextNoteTick > potentialCountdownStartTick)
+                        {
+                            uint measuresToNextNote = (nextNoteTick - potentialCountdownStartTick) / State.TicksEveryMeasure;
+                            if (measuresToNextNote > MIN_COUNTDOWN_MEASURES)
+                            {
+                                StartCountdown(measuresToNextNote);
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -380,6 +464,17 @@ namespace YARG.Core.Engine
 
             OnSoloEnd?.Invoke(Solos[State.CurrentSoloIndex]);
             State.CurrentSoloIndex++;
+        }
+
+        protected void StartCountdown(uint totalMeasures)
+        {
+            if (State.CountdownMeasuresLeft > 0)
+            {
+                return;
+            }
+
+            State.CountdownMeasuresLeft = totalMeasures;
+            OnCountdownChange?.Invoke(totalMeasures);
         }
 
         public sealed override (double FrontEnd, double BackEnd) CalculateHitWindow()
