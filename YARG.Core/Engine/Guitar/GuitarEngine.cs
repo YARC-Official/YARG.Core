@@ -13,8 +13,8 @@ namespace YARG.Core.Engine.Guitar
         protected sealed class ActiveSustain
         {
             public GuitarNote Note;
-            public uint BaseTick;
-            public double BaseScore;
+            public uint       BaseTick;
+            public double     BaseScore;
 
             public bool HasFinishedScoring;
 
@@ -42,9 +42,9 @@ namespace YARG.Core.Engine.Guitar
 
         public delegate void SustainEndEvent(GuitarNote note, double timeEnded, bool finished);
 
-        public OverstrumEvent? OnOverstrum;
+        public OverstrumEvent?    OnOverstrum;
         public SustainStartEvent? OnSustainStart;
-        public SustainEndEvent? OnSustainEnd;
+        public SustainEndEvent?   OnSustainEnd;
 
         protected List<ActiveSustain> ActiveSustains = new();
 

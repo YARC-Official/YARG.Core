@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using YARG.Core.Chart;
 using YARG.Core.Logging;
 using YARG.Core.Utility;
@@ -19,16 +18,16 @@ namespace YARG.Core.Engine
 
         // Max number of measures that SP will last when draining
         // SP draining is done based on measures
-        protected const int STAR_POWER_MAX_MEASURES = 8;
+        protected const int    STAR_POWER_MAX_MEASURES   = 8;
         protected const double STAR_POWER_MEASURE_AMOUNT = 1.0 / STAR_POWER_MAX_MEASURES;
 
         // Max number of beats that it takes to fill SP when gaining
         // SP gain from whammying is done based on beats
-        protected const int STAR_POWER_MAX_BEATS = (STAR_POWER_MAX_MEASURES * 4) - 2; // - 2 for leniency
+        protected const int    STAR_POWER_MAX_BEATS   = (STAR_POWER_MAX_MEASURES * 4) - 2; // - 2 for leniency
         protected const double STAR_POWER_BEAT_AMOUNT = 1.0 / STAR_POWER_MAX_BEATS;
 
         // Number of measures that SP phrases will grant when hit
-        protected const int STAR_POWER_PHRASE_MEASURE_COUNT = 2;
+        protected const int    STAR_POWER_PHRASE_MEASURE_COUNT = 2;
         protected const double STAR_POWER_PHRASE_AMOUNT = STAR_POWER_PHRASE_MEASURE_COUNT * STAR_POWER_MEASURE_AMOUNT;
 
         // Beat fraction to use for the sustain burst threshold
@@ -52,34 +51,34 @@ namespace YARG.Core.Engine
 
         public delegate void CountdownChangeEvent(uint measuresLeft);
 
-        public NoteHitEvent? OnNoteHit;
+        public NoteHitEvent?    OnNoteHit;
         public NoteMissedEvent? OnNoteMissed;
 
-        public StarPowerPhraseHitEvent? OnStarPowerPhraseHit;
+         public StarPowerPhraseHitEvent?  OnStarPowerPhraseHit;
         public StarPowerPhraseMissEvent? OnStarPowerPhraseMissed;
-        public StarPowerStatusEvent? OnStarPowerStatus;
+        public StarPowerStatusEvent?     OnStarPowerStatus;
 
         public SoloStartEvent? OnSoloStart;
-        public SoloEndEvent? OnSoloEnd;
+        public SoloEndEvent?   OnSoloEnd;
 
         public CountdownChangeEvent? OnCountdownChange;
 
-        protected int[] StarScoreThresholds { get; }
+        protected          int[]  StarScoreThresholds { get; }
         protected readonly double TicksPerSustainPoint;
-        protected readonly uint SustainBurstThreshold;
+        protected readonly uint   SustainBurstThreshold;
 
         public readonly TEngineStats EngineStats;
 
         protected readonly InstrumentDifficulty<TNoteType> Chart;
 
         protected readonly List<TNoteType> Notes;
-        protected readonly TEngineParams EngineParameters;
+        protected readonly TEngineParams   EngineParameters;
 
         public TEngineState State;
 
-        public override BaseEngineState BaseState => State;
+        public override BaseEngineState      BaseState      => State;
         public override BaseEngineParameters BaseParameters => EngineParameters;
-        public override BaseStats BaseStats => EngineStats;
+        public override BaseStats            BaseStats      => EngineStats;
 
         protected BaseEngine(InstrumentDifficulty<TNoteType> chart, SyncTrack syncTrack,
             TEngineParams engineParameters, bool isChordSeparate, bool isBot)
