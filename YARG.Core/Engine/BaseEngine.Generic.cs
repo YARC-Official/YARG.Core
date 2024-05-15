@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using YARG.Core.Chart;
-using YARG.Core.Engine.Logging;
 using YARG.Core.Logging;
 using YARG.Core.Utility;
 
@@ -171,7 +170,7 @@ namespace YARG.Core.Engine
             }
         }
 
-        protected void UpdateTimeVariables(double time)
+        protected override void UpdateTimeVariables(double time)
         {
             if (time < State.CurrentTime)
             {

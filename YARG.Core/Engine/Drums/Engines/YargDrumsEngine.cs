@@ -22,7 +22,6 @@ namespace YARG.Core.Engine.Drums.Engines
 
         protected override void UpdateHitLogic(double time)
         {
-            UpdateTimeVariables(time);
             UpdateStarPower();
 
             // Update bot (will return if not enabled)

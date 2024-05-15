@@ -93,7 +93,6 @@ namespace YARG.Core.Engine.Guitar.Engines
 
         protected override void UpdateHitLogic(double time)
         {
-            UpdateTimeVariables(time);
             UpdateStarPower();
             UpdateTimers();
 

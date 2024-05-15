@@ -113,10 +113,13 @@ namespace YARG.Core.Engine
                 YargLogger.LogFormatTrace("Processing input {0} ({1}) update at {2}", input.GetAction<GuitarAction>(), input.Button, input.Time);
                 RunQueuedUpdates(input.Time);
 
-                // Update engine state with input. Engine time is not input.Time yet.
+                // Update engine to the input time
+                UpdateTimeVariables(input.Time);
+
+                // Update engine state with input.
                 MutateStateWithInput(input);
 
-                // Run the engine. Engine time will be input.Time
+                // Run the engine.
                 RunEngineLoop(input.Time);
 
                 // Skip non-input update if possible
@@ -164,6 +167,7 @@ namespace YARG.Core.Engine
                 }
 
                 YargLogger.LogFormatTrace("Running scheduled update at {0} ({1})", updateTime, item2: _scheduledUpdates[i].Reason);
+                UpdateTimeVariables(updateTime);
                 RunEngineLoop(updateTime);
             }
 
@@ -177,6 +181,8 @@ namespace YARG.Core.Engine
         {
             YargLogger.LogFormatTrace("Generating queued updates up to {0}", nextTime);
         }
+
+        protected abstract void UpdateTimeVariables(double time);
 
         /// <summary>
         /// Queue an input to be processed by the engine.

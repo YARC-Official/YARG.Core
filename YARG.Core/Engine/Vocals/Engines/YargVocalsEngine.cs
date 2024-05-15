@@ -64,7 +64,6 @@ namespace YARG.Core.Engine.Vocals.Engines
 
         protected override void UpdateHitLogic(double time)
         {
-            UpdateTimeVariables(time);
             UpdateStarPower();
 
             // Quit early if there are no notes left
