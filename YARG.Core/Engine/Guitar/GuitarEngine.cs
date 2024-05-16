@@ -169,19 +169,16 @@ namespace YARG.Core.Engine.Guitar
 
         protected override void HitNote(GuitarNote note)
         {
+            if (note.WasHit || note.WasMissed)
+            {
+                YargLogger.LogFormatTrace("Tried to hit/miss note twice (Fret: {0}, Index: {1}, Hit: {2}, Missed: {3})", note.Fret, State.NoteIndex, note.WasHit, note.WasMissed);
+                return;
+            }
+
             note.SetHitState(true, true);
 
             // Detect if the last note(s) were skipped
-            bool skipped = false;
-            var prevNote = note.PreviousNote;
-            while (prevNote is not null && !prevNote.WasHit && !prevNote.WasMissed)
-            {
-                skipped = true;
-                MissNote(prevNote);
-                YargLogger.LogFormatTrace("Missed note {0} due to note skip at {1}", State.NoteIndex - 1, State.CurrentTime);
-
-                prevNote = prevNote.PreviousNote;
-            }
+            bool skipped = SkipPreviousNotes(note);
 
             if (note.IsStarPower && note.IsStarPowerEnd)
             {
@@ -242,6 +239,12 @@ namespace YARG.Core.Engine.Guitar
 
         protected override void MissNote(GuitarNote note)
         {
+            if (note.WasHit || note.WasMissed)
+            {
+                YargLogger.LogFormatTrace("Tried to hit/miss note twice (Fret: {0}, Index: {1}, Hit: {2}, Missed: {3})", note.Fret, State.NoteIndex, note.WasHit, note.WasMissed);
+                return;
+            }
+
             note.SetMissState(true, true);
 
             if (note.IsStarPower)

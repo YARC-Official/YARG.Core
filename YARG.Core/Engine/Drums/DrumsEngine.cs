@@ -1,6 +1,7 @@
 ﻿using System;
 using YARG.Core.Chart;
 using YARG.Core.Input;
+using YARG.Core.Logging;
 
 namespace YARG.Core.Engine.Drums
 {
@@ -65,35 +66,16 @@ namespace YARG.Core.Engine.Drums
 
         protected void HitNote(DrumNote note, bool activationAutoHit)
         {
+            if (note.WasHit || note.WasMissed)
+            {
+                YargLogger.LogFormatTrace("Tried to hit/miss note twice (Pad: {0}, Index: {1}, Hit: {2}, Missed: {3})", note.Pad, State.NoteIndex, note.WasHit, note.WasMissed);
+                return;
+            }
+
             note.SetHitState(true, false);
 
             // Detect if the last note(s) were skipped
-            bool skipped = false;
-            var prevNote = note.ParentOrSelf.PreviousNote;
-            while (prevNote is not null && !prevNote.WasFullyHitOrMissed())
-            {
-                skipped = true;
-                EngineStats.Combo = 0;
-
-                foreach (var chordNote in prevNote.ChordEnumerator())
-                {
-                    if (chordNote.WasMissed || chordNote.WasHit)
-                    {
-                        continue;
-                    }
-
-                    chordNote.SetMissState(true, false);
-                    OnNoteMissed?.Invoke(State.NoteIndex, prevNote);
-                }
-
-                State.NoteIndex++;
-                prevNote = prevNote.PreviousNote;
-            }
-
-            if (skipped)
-            {
-                StripStarPower(note.ParentOrSelf.PreviousNote);
-            }
+            bool skipped = SkipPreviousNotes(note.ParentOrSelf);
 
             // Make sure that the note is fully hit, so the last hit note awards the starpower.
             if (note.IsStarPower && note.IsStarPowerEnd && note.ParentOrSelf.WasFullyHit())
@@ -150,6 +132,12 @@ namespace YARG.Core.Engine.Drums
 
         protected override void MissNote(DrumNote note)
         {
+            if (note.WasHit || note.WasMissed)
+            {
+                YargLogger.LogFormatTrace("Tried to hit/miss note twice (Pad: {0}, Index: {1}, Hit: {2}, Missed: {3})", note.Pad, State.NoteIndex, note.WasHit, note.WasMissed);
+                return;
+            }
+
             note.SetMissState(true, false);
 
             if (note.IsStarPower)
@@ -174,6 +162,7 @@ namespace YARG.Core.Engine.Drums
 
             if (note.ParentOrSelf.WasFullyHitOrMissed())
             {
+                YargLogger.LogFormatDebug("Parent/Self (Note calling: {0}, {1}) fully hit or missed, advancing to next index {2}", note.Pad, item2: note.IsParent ? "Parent" : "Child", State.NoteIndex + 1);
                 base.MissNote(note);
             }
         }
