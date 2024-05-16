@@ -40,6 +40,9 @@ namespace YARG.Core.Chart
         public TNote ParentOrSelf => Parent ?? (TNote) this;
         public bool  IsChord      => _childNotes.Count > 0;
 
+        public bool IsParent => Parent == null;
+        public bool IsChild => !IsParent;
+
         public bool IsStarPower      => (Flags & NoteFlags.StarPower) != 0;
         public bool IsStarPowerStart => (Flags & NoteFlags.StarPowerStart) != 0;
         public bool IsStarPowerEnd   => (Flags & NoteFlags.StarPowerEnd) != 0;
