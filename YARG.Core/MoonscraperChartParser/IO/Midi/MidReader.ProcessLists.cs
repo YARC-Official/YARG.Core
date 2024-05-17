@@ -726,22 +726,28 @@ namespace MoonscraperChartEditor.Song.IO
             var processFnDict = new Dictionary<int, EventProcessFn>()
             {
                 { MidIOHelper.PRO_KEYS_SHIFT_0, (ref EventProcessParams eventProcessParams) =>
-                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams, MoonPhrase.Type.ProKeys_RangeShift0)
+                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams,
+                        MoonPhrase.Type.ProKeys_RangeShift0, eventProcessParams.trackDifficulty)
                 },
                 { MidIOHelper.PRO_KEYS_SHIFT_1, (ref EventProcessParams eventProcessParams) =>
-                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams, MoonPhrase.Type.ProKeys_RangeShift1)
+                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams,
+                        MoonPhrase.Type.ProKeys_RangeShift1, eventProcessParams.trackDifficulty)
                 },
                 { MidIOHelper.PRO_KEYS_SHIFT_2, (ref EventProcessParams eventProcessParams) =>
-                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams, MoonPhrase.Type.ProKeys_RangeShift2)
+                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams,
+                        MoonPhrase.Type.ProKeys_RangeShift2, eventProcessParams.trackDifficulty)
                 },
                 { MidIOHelper.PRO_KEYS_SHIFT_3, (ref EventProcessParams eventProcessParams) =>
-                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams, MoonPhrase.Type.ProKeys_RangeShift3)
+                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams,
+                        MoonPhrase.Type.ProKeys_RangeShift3, eventProcessParams.trackDifficulty)
                 },
                 { MidIOHelper.PRO_KEYS_SHIFT_4, (ref EventProcessParams eventProcessParams) =>
-                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams, MoonPhrase.Type.ProKeys_RangeShift4)
+                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams,
+                        MoonPhrase.Type.ProKeys_RangeShift4, eventProcessParams.trackDifficulty)
                 },
                 { MidIOHelper.PRO_KEYS_SHIFT_5, (ref EventProcessParams eventProcessParams) =>
-                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams, MoonPhrase.Type.ProKeys_RangeShift5)
+                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams,
+                        MoonPhrase.Type.ProKeys_RangeShift5, eventProcessParams.trackDifficulty)
                 },
             };
 

@@ -679,7 +679,8 @@ namespace MoonscraperChartEditor.Song.IO
             MoonObjectHelper.OrderedInsertFromBack(newMoonNote, chart.notes);
         }
 
-        private static void ProcessNoteOnEventAsSpecialPhrase(ref EventProcessParams eventProcessParams, MoonPhrase.Type type)
+        private static void ProcessNoteOnEventAsSpecialPhrase(ref EventProcessParams eventProcessParams,
+            MoonPhrase.Type type, MoonSong.Difficulty? difficulty = null)
         {
             var song = eventProcessParams.song;
             var instrument = eventProcessParams.instrument;
@@ -688,9 +689,18 @@ namespace MoonscraperChartEditor.Song.IO
             uint tick = (uint)timedEvent.startTick;
             uint sus = (uint)timedEvent.length;
 
-            foreach (var diff in EnumExtensions<MoonSong.Difficulty>.Values)
+            if (difficulty is null)
             {
-                MoonObjectHelper.OrderedInsertFromBack(new MoonPhrase(tick, sus, type), song.GetChart(instrument, diff).specialPhrases);
+                foreach (var diff in EnumExtensions<MoonSong.Difficulty>.Values)
+                {
+                    MoonObjectHelper.OrderedInsertFromBack(new MoonPhrase(tick, sus, type),
+                        song.GetChart(instrument, diff).specialPhrases);
+                }
+            }
+            else
+            {
+                MoonObjectHelper.OrderedInsertFromBack(new MoonPhrase(tick, sus, type),
+                    song.GetChart(instrument, difficulty.Value).specialPhrases);
             }
         }
 
