@@ -40,7 +40,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
             UpdateStarPower();
 
             // Update bot (will return if not enabled)
-            // UpdateBot(time);
+            UpdateBot(time);
 
             // Quit early if there are no notes left
             if (State.NoteIndex >= Notes.Count)
@@ -101,7 +101,23 @@ namespace YARG.Core.Engine.ProKeys.Engines
 
         protected override void UpdateBot(double time)
         {
-            // throw new System.NotImplementedException();
+            if (!IsBot || State.NoteIndex >= Notes.Count)
+            {
+                return;
+            }
+
+            var note = Notes[State.NoteIndex];
+
+            if (time < note.Time)
+            {
+                return;
+            }
+
+            foreach (var chordNote in note.ChordEnumerator())
+            {
+                State.KeyHit = chordNote.Key;
+                CheckForNoteHit();
+            }
         }
     }
 }
