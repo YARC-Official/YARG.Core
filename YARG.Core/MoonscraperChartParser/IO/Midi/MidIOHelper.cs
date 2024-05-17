@@ -92,6 +92,12 @@ namespace MoonscraperChartEditor.Song.IO
         public const byte SOLO_NOTE_PRO_KEYS = 115;
         public const byte PRO_KEYS_RANGE_START = 48;
         public const byte PRO_KEYS_RANGE_END = 72;
+        public const byte PRO_KEYS_SHIFT_0 = 0;
+        public const byte PRO_KEYS_SHIFT_1 = 2;
+        public const byte PRO_KEYS_SHIFT_2 = 4;
+        public const byte PRO_KEYS_SHIFT_3 = 5;
+        public const byte PRO_KEYS_SHIFT_4 = 7;
+        public const byte PRO_KEYS_SHIFT_5 = 9;
 
         // Pro Guitar channels
         public const byte PRO_GUITAR_CHANNEL_NORMAL = 0;

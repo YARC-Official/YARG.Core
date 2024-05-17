@@ -723,7 +723,27 @@ namespace MoonscraperChartEditor.Song.IO
 
         private static Dictionary<int, EventProcessFn> BuildProKeysNoteProcessDict()
         {
-            var processFnDict = new Dictionary<int, EventProcessFn>();
+            var processFnDict = new Dictionary<int, EventProcessFn>()
+            {
+                { MidIOHelper.PRO_KEYS_SHIFT_0, (ref EventProcessParams eventProcessParams) =>
+                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams, MoonPhrase.Type.ProKeys_RangeShift0)
+                },
+                { MidIOHelper.PRO_KEYS_SHIFT_1, (ref EventProcessParams eventProcessParams) =>
+                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams, MoonPhrase.Type.ProKeys_RangeShift1)
+                },
+                { MidIOHelper.PRO_KEYS_SHIFT_2, (ref EventProcessParams eventProcessParams) =>
+                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams, MoonPhrase.Type.ProKeys_RangeShift2)
+                },
+                { MidIOHelper.PRO_KEYS_SHIFT_3, (ref EventProcessParams eventProcessParams) =>
+                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams, MoonPhrase.Type.ProKeys_RangeShift3)
+                },
+                { MidIOHelper.PRO_KEYS_SHIFT_4, (ref EventProcessParams eventProcessParams) =>
+                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams, MoonPhrase.Type.ProKeys_RangeShift4)
+                },
+                { MidIOHelper.PRO_KEYS_SHIFT_5, (ref EventProcessParams eventProcessParams) =>
+                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams, MoonPhrase.Type.ProKeys_RangeShift5)
+                },
+            };
 
             for (int key = MidIOHelper.PRO_KEYS_RANGE_START; key < MidIOHelper.PRO_KEYS_RANGE_END; key++)
             {

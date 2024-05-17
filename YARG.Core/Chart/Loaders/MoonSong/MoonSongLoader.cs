@@ -219,6 +219,13 @@ namespace YARG.Core.Chart
                     MoonPhrase.Type.TrillLane           => PhraseType.TrillLane,
                     MoonPhrase.Type.ProDrums_Activation => PhraseType.DrumFill,
 
+                    MoonPhrase.Type.ProKeys_RangeShift0 => PhraseType.ProKeys_RangeShift0,
+                    MoonPhrase.Type.ProKeys_RangeShift1 => PhraseType.ProKeys_RangeShift1,
+                    MoonPhrase.Type.ProKeys_RangeShift2 => PhraseType.ProKeys_RangeShift2,
+                    MoonPhrase.Type.ProKeys_RangeShift3 => PhraseType.ProKeys_RangeShift3,
+                    MoonPhrase.Type.ProKeys_RangeShift4 => PhraseType.ProKeys_RangeShift4,
+                    MoonPhrase.Type.ProKeys_RangeShift5 => PhraseType.ProKeys_RangeShift5,
+
                     _ => null
                 };
 

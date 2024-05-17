@@ -27,6 +27,14 @@ namespace MoonscraperChartEditor.Song
             Vocals_PercussionPhrase,
             Vocals_RangeShift,
             Vocals_LyricShift,
+
+            // Pro keys
+            ProKeys_RangeShift0,
+            ProKeys_RangeShift1,
+            ProKeys_RangeShift2,
+            ProKeys_RangeShift3,
+            ProKeys_RangeShift4,
+            ProKeys_RangeShift5,
         }
 
         public uint length;
