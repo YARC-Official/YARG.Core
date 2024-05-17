@@ -117,7 +117,7 @@ namespace YARG.Core.Replays.Analyzer
                 {
                     // Reset the notes
                     var notes = _chart.GetFiveFretTrack(profile.CurrentInstrument)
-                        .Difficulties[profile.CurrentDifficulty].Clone();
+                        .GetDifficulty(profile.CurrentDifficulty).Clone();
                     profile.ApplyModifiers(notes);
                     foreach (var note in notes.Notes)
                     {
@@ -139,7 +139,7 @@ namespace YARG.Core.Replays.Analyzer
                 {
                     // Reset the notes
                     var notes = _chart.GetDrumsTrack(profile.CurrentInstrument)
-                        .Difficulties[profile.CurrentDifficulty].Clone();
+                        .GetDifficulty(profile.CurrentDifficulty).Clone();
                     profile.ApplyModifiers(notes);
                     foreach (var note in notes.Notes)
                     {
