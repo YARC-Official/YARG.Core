@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using System.Threading;
 using YARG.Core.Logging;
 using YARG.Core.Song;
+using System.Diagnostics;
 
 namespace YARG.Core.Audio
 {
@@ -35,30 +36,31 @@ namespace YARG.Core.Audio
                     return null;
                 }
 
-                double audioLength = mixer.Length;
-                double previewStartTime, previewEndTime;
+                double previewLength = mixer.Length;
+                double previewStartTime = 0;
                 if (mixer.Channels.Count > 0)
                 {
-                    if ((entry.PreviewStartSeconds < 0 || entry.PreviewStartSeconds >= audioLength)
-                    &&  (entry.PreviewEndSeconds < 0   || entry.PreviewEndSeconds >= audioLength))
+                    double previewEndTime;
+                    if ((entry.PreviewStartSeconds < 0 || entry.PreviewStartSeconds >= previewLength)
+                    &&  (entry.PreviewEndSeconds < 0   || entry.PreviewEndSeconds >= previewLength))
                     {
-                        if (DEFAULT_END_TIME <= audioLength)
+                        if (DEFAULT_END_TIME <= previewLength)
                         {
                             previewStartTime = DEFAULT_START_TIME;
                             previewEndTime = DEFAULT_END_TIME;
                         }
-                        else if (DEFAULT_PREVIEW_DURATION <= audioLength)
+                        else if (DEFAULT_PREVIEW_DURATION <= previewLength)
                         {
-                            previewStartTime = (audioLength - DEFAULT_PREVIEW_DURATION) / 2;
+                            previewStartTime = (previewLength - DEFAULT_PREVIEW_DURATION) / 2;
                             previewEndTime = previewStartTime + DEFAULT_PREVIEW_DURATION;
                         }
                         else
                         {
                             previewStartTime = 0;
-                            previewEndTime = DEFAULT_PREVIEW_DURATION;
+                            previewEndTime = previewLength;
                         }
                     }
-                    else if (0 <= entry.PreviewStartSeconds && entry.PreviewStartSeconds < audioLength)
+                    else if (0 <= entry.PreviewStartSeconds && entry.PreviewStartSeconds < previewLength)
                     {
                         previewStartTime = entry.PreviewStartSeconds;
                         previewEndTime = entry.PreviewEndSeconds;
@@ -67,9 +69,9 @@ namespace YARG.Core.Audio
                             previewEndTime = previewStartTime + DEFAULT_PREVIEW_DURATION;
                         }
 
-                        if (previewEndTime > audioLength)
+                        if (previewEndTime > previewLength)
                         {
-                            previewEndTime = audioLength;
+                            previewEndTime = previewLength;
                         }
                     }
                     else
@@ -81,14 +83,14 @@ namespace YARG.Core.Audio
                             previewStartTime = 0;
                         }
                     }
+                    previewLength = previewEndTime - previewStartTime;
                 }
-                else
+                
+                if (fadeDuration > previewLength / 4)
                 {
-                    previewStartTime = 0;
-                    previewEndTime = audioLength;
+                    fadeDuration = previewLength / 4;
                 }
-                previewEndTime -= fadeDuration;
-                return new PreviewContext(mixer, previewStartTime, previewEndTime, fadeDuration, volume, token);
+                return new PreviewContext(mixer, previewStartTime, previewLength, fadeDuration, volume, token);
             }
             catch (Exception ex)
             {
@@ -100,17 +102,17 @@ namespace YARG.Core.Audio
         private StemMixer _mixer;
         private Task _task;
         private readonly double _previewStartTime;
-        private readonly double _previewEndTime;
+        private readonly double _previewLength;
         private readonly double _fadeDruation;
         private readonly float _volume;
         private readonly CancellationTokenSource _token;
         private bool _disposed;
 
-        private PreviewContext(StemMixer mixer, double previewStartTime, double previewEndTime, double fadeDuration, float volume, CancellationTokenSource token)
+        private PreviewContext(StemMixer mixer, double previewStartTime, double previewLength, double fadeDuration, float volume, CancellationTokenSource token)
         {
             _mixer = mixer;
             _previewStartTime = previewStartTime;
-            _previewEndTime = previewEndTime;
+            _previewLength = previewLength;
             _fadeDruation = fadeDuration;
             _volume = volume;
             _token = token;
@@ -124,54 +126,43 @@ namespace YARG.Core.Audio
             await _task;
         }
 
-        private enum LoopStage
-        {
-            FadeIn,
-            Main,
-            FadeOut
-        }
-
         private async void Loop()
         {
             try
             {
-                // Preview mixers start at a volume of zero
-                var stage = LoopStage.FadeIn;
-                while (!_disposed)
+                var watch = new Stopwatch();
+                while (true)
                 {
-                    switch (stage)
+                    _mixer.SetPosition(_previewStartTime);
+                    _mixer.FadeIn(_volume, _fadeDruation);
+                    _mixer.Play(true);
+                    watch.Restart();
+                    while (watch.Elapsed.TotalSeconds < _previewLength - _fadeDruation && !_token.IsCancellationRequested)
                     {
-                        case LoopStage.FadeIn:
-                            _mixer.SetPosition(_previewStartTime);
-                            _mixer.FadeIn(_volume, _fadeDruation);
-                            _mixer.Play(true);
-                            stage = LoopStage.Main;
-                            break;
-                        case LoopStage.Main:
-                            if (_mixer.GetPosition() < _previewEndTime && !_token.IsCancellationRequested)
-                            {
-                                break;
-                            }
-
-                            _mixer.FadeOut(_fadeDruation);
-                            stage = LoopStage.FadeOut;
-                            break;
-                        case LoopStage.FadeOut:
-                            if (_mixer.GetVolume() >= 0.01f)
-                            {
-                                break;
-                            }
-
-                            _mixer.Pause();
-                            if (_token.IsCancellationRequested)
-                            {
-                                Dispose();
-                                return;
-                            }
-                            stage = LoopStage.FadeIn;
-                            break;
+                        if (_disposed)
+                        {
+                            return;
+                        }
+                        await Task.Delay(1);
                     }
-                    await Task.Delay(25);
+
+                    watch.Restart();
+                    _mixer.FadeOut(_fadeDruation);
+                    while (watch.Elapsed.TotalSeconds < _fadeDruation)
+                    {
+                        if (_disposed)
+                        {
+                            return;
+                        }
+                        await Task.Delay(1);
+                    }
+
+                    _mixer.Pause();
+                    if (_token.IsCancellationRequested)
+                    {
+                        Dispose();
+                        return;
+                    }
                 }
             }
             catch (Exception ex)

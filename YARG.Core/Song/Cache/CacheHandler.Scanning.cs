@@ -237,7 +237,7 @@ namespace YARG.Core.Song.Cache
             Dictionary<string, int> indices = new();
             while (reader.StartNode())
             {
-                string name = reader.GetNameOfNode();
+                string name = reader.GetNameOfNode(true);
                 if (indices.TryGetValue(name, out int index))
                 {
                     ++index;
@@ -379,11 +379,13 @@ namespace YARG.Core.Song.Cache
 
         private bool AddPossibleCON(AbridgedFileInfo info, string defaultPlaylist)
         {
-            var file = CONFile.TryLoadFile(info);
-            if (file == null)
+            var listings = CONFile.TryParseListings(info);
+            if (listings == null)
+            {
                 return false;
+            }
 
-            var group = new PackedCONGroup(file, info, defaultPlaylist);
+            var group = new PackedCONGroup(listings, info, defaultPlaylist);
             TryParseUpgrades(info.FullName, group);
             AddPackedCONGroup(group);
             return true;

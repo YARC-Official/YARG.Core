@@ -46,7 +46,7 @@ namespace YARG.Core.IO
             while (container.Position < container.Length)
             {
                 char ch = container.Data[container.Position].ToChar(null);
-                if (ch.IsAsciiWhitespace())
+                if (ch <= 32)
                 {
                     if (ch == '\n')
                         return ch;
@@ -69,10 +69,15 @@ namespace YARG.Core.IO
         public YARGTextReader(TChar[] data, int position)
         {
             Container = new YARGTextContainer<TChar>(data, position);
-            SkipWhitespace();
-            SetNextPointer();
-            if (Container.Data[Container.Position].ToChar(null) == '\n')
-                GotoNextLine();
+            while (Container.Position < Container.Length)
+            {
+                char curr = Container.Data[Container.Position].ToChar(null);
+                if (curr > 32 && curr != '{' && curr != '=')
+                {
+                    break;
+                }
+                ++Container.Position;
+            }
         }
 
         public char SkipWhitespace()
@@ -82,27 +87,27 @@ namespace YARG.Core.IO
 
         public void GotoNextLine()
         {
-            char curr;
-            do
+            char curr = default;
+            while (Container.Position < Container.Length)
             {
-                Container.Position = Container.Next;
-                if (Container.Position >= Container.Length)
-                    break;
-
-                Container.Position++;
-                curr = SkipWhitespace();
-
-                if (Container.Position == Container.Length)
-                    break;
-
-                if (Container.Data[Container.Position].ToChar(null) == '{')
+                curr = Container.Data[Container.Position].ToChar(null);
+                ++Container.Position;
+                if (curr == '\n')
                 {
-                    Container.Position++;
-                    curr = SkipWhitespace();
+                    break;
                 }
+            }
 
-                SetNextPointer();
-            } while (curr == '\n' || curr == '/' && Container.Data[Container.Position + 1].ToChar(null) == '/');
+            while (Container.Position < Container.Length)
+            {
+                curr = Container.Data[Container.Position].ToChar(null);
+                if (curr > 32 && curr != '{' && curr != '=')
+                {
+                    break;
+
+                }
+                ++Container.Position;
+            }
         }
 
         public void SkipLinesUntil(char stopCharacter)
@@ -115,7 +120,7 @@ namespace YARG.Core.IO
                     // Runs a check to ensure that the character is the start of the line
                     int test = Container.Position - 1;
                     char character = Container.Data[test].ToChar(null);
-                    while (test > 0 && character.IsAsciiWhitespace() && character != '\n')
+                    while (test > 0 && character <= 32 && character != '\n')
                     {
                         --test;
                         character = Container.Data[test].ToChar(null);
@@ -126,14 +131,6 @@ namespace YARG.Core.IO
                 }
                 ++Container.Position;
             }
-            SetNextPointer();
-        }
-
-        public void SetNextPointer()
-        {
-            Container.Next = Container.Position;
-            while (Container.Next < Container.Length && Container.Data[Container.Next].ToChar(null) != '\n')
-                ++Container.Next;
         }
 
         public string ExtractModifierName()
@@ -142,7 +139,7 @@ namespace YARG.Core.IO
             while (curr < Container.Length)
             {
                 char b = Container.Data[curr].ToChar(null);
-                if (b.IsAsciiWhitespace() || b == '=')
+                if (b <= 32 || b == '=')
                     break;
                 ++curr;
             }
@@ -153,37 +150,76 @@ namespace YARG.Core.IO
             return name;
         }
 
-        public string ExtractLine()
+        public string PeekLine()
         {
-            return decoder.Decode(Container.Data, Container.Position, Container.Next - Container.Position).TrimEnd();
+            var curr = Container.Position;
+            while (curr < Container.Length && Container.Data[curr].ToChar(null) != '\n')
+            {
+                ++curr;
+            }
+            return decoder.Decode(Container.Data, Container.Position, curr - Container.Position).TrimEnd();
         }
 
         public string ExtractText(bool isChartFile)
         {
-            (int stringBegin, int stringEnd) = (Container.Position, Container.Next);
-            if (Container.Data[stringEnd - 1].ToChar(null) == '\r')
-                --stringEnd;
-
-            if (isChartFile && Container.Data[Container.Position].ToChar(null) == '\"')
+            var stringBegin = Container.Position;
+            var stringEnd = -1;
+            if (isChartFile && Container.Position < Container.Length && Container.Data[Container.Position].ToChar(null) == '\"')
             {
-                int end = stringEnd - 1;
-                while (Container.Position + 1 < end && Container.Data[end].ToChar(null).IsAsciiWhitespace())
-                    --end;
-
-                if (Container.Position < end && Container.Data[end].ToChar(null) == '\"' && Container.Data[end - 1].ToChar(null) != '\\')
+                while (true)
                 {
-                    ++stringBegin;
-                    stringEnd = end;
+                    ++Container.Position;
+                    if (Container.Position == Container.Length)
+                    {
+                        break;
+                    }
+
+                    char ch = Container.Data[Container.Position].ToChar(null);
+                    if (ch == '\n')
+                    {
+                        break;
+                    }
+
+                    if (stringEnd == -1)
+                    {
+                        if (ch == '\"' && Container.Data[Container.Position - 1].ToChar(null) != '\\')
+                        {
+                            ++stringBegin;
+                            stringEnd = Container.Position;
+                        }
+                        else if (ch == '\r')
+                        {
+                            stringEnd = Container.Position;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                while (Container.Position < Container.Length)
+                {
+                    char ch = Container.Data[Container.Position].ToChar(null);
+                    if (ch == '\n')
+                    {
+                        break;
+                    }
+
+                    if (ch == '\r' && stringEnd == -1)
+                    {
+                        stringEnd = Container.Position;
+                    }
+                    ++Container.Position;
                 }
             }
 
-            if (stringEnd < stringBegin)
-                return string.Empty;
+            if (stringEnd == -1)
+            {
+                stringEnd = Container.Position;
+            }
 
-            while (stringEnd > stringBegin && Container.Data[stringEnd - 1].ToChar(null).IsAsciiWhitespace())
+            while (stringBegin < stringEnd && Container.Data[stringEnd - 1].ToChar(null) <= 32)
                 --stringEnd;
 
-            Container.Position = Container.Next;
             return decoder.Decode(Container.Data, stringBegin, stringEnd - stringBegin);
         }
 

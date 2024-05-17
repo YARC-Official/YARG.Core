@@ -11,6 +11,11 @@ namespace YARG.Core.Chart
     {
         public List<LyricsPhrase> Phrases { get; } = new();
 
+        /// <summary>
+        /// Whether or not any lyric phrases exist.
+        /// </summary>
+        public bool IsEmpty => Phrases.Count == 0;
+
         public LyricsTrack() { }
 
         public LyricsTrack(List<LyricsPhrase> parts)
@@ -61,11 +66,6 @@ namespace YARG.Core.Chart
                 totalLastTick = Math.Max(Phrases[^1].TickEnd, totalLastTick);
 
             return totalLastTick;
-        }
-
-        public bool IsOccupied()
-        {
-            return Phrases.Count > 0;
         }
 
         public LyricsTrack Clone()

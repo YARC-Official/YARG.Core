@@ -15,6 +15,12 @@ namespace YARG.Core.Audio
     {
         public const int WHAMMY_FFT_DEFAULT = 2048;
         public const int WHAMMY_OVERSAMPLE_DEFAULT = 8;
+        public static readonly int MAX_THREADS = Environment.ProcessorCount switch
+        {
+            >= 16 => 16,
+            >= 6 => Environment.ProcessorCount / 2,
+            _ => 2
+        };
 
         internal static readonly Dictionary<SongStem, StemSettings> StemSettings;
 
@@ -162,6 +168,36 @@ namespace YARG.Core.Audio
             }
         }
 
+        public static int MinimumBufferLength
+        {
+            get
+            {
+                lock (_instanceLock)
+                {
+                    if (_instance == null)
+                    {
+                        throw new NotInitializedException();
+                    }
+                    return _instance.MinimumBufferLength;
+                }
+            }
+        }
+
+        public static int MaximumBufferLength
+        {
+            get
+            {
+                lock (_instanceLock)
+                {
+                    if (_instance == null)
+                    {
+                        throw new NotInitializedException();
+                    }
+                    return _instance.MaximumBufferLength;
+                }
+            }
+        }
+
         public static float GlobalSpeed
         {
             get
@@ -293,6 +329,30 @@ namespace YARG.Core.Audio
                     throw new NotInitializedException();
                 }
                 _instance.SetMasterVolume(volume);
+            }
+        }
+
+        public static void TogglePlaybackBuffer(bool enable)
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+                _instance.ToggleBuffer(enable);
+            }
+        }
+
+        public static void SetBufferLength(int length)
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+                _instance.SetBufferLength(length);
             }
         }
     }

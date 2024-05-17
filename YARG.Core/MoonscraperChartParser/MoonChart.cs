@@ -29,6 +29,8 @@ namespace MoonscraperChartEditor.Song
         /// </summary>
         public List<MoonText> events { get; private set; } = new();
 
+        public bool IsEmpty => notes.Count == 0 && specialPhrases.Count == 0 && events.Count == 0;
+
         /// <summary>
         /// Creates a new chart object.
         /// </summary>
@@ -79,11 +81,6 @@ namespace MoonscraperChartEditor.Song
         public bool Remove(MoonText ev)
         {
             return MoonObjectHelper.Remove(ev, events);
-        }
-
-        public bool IsOccupied()
-        {
-            return notes.Count > 0 || specialPhrases.Count > 0 || events.Count > 0;
         }
 
         public enum GameMode

@@ -34,7 +34,7 @@ namespace YARG.Core.IO
             Filename = Encoding.UTF8.GetString(data[..0x28]).TrimEnd('\0');
             flags = (CONFileListingFlag) data[0x28];
 
-            numBlocks = data[0x29] << 16 | data[0x2A] << 8 | data[0x2B];
+            numBlocks = data[0x2B] << 16 | data[0x2A] << 8 | data[0x29];
             firstBlock = data[0x31] << 16 | data[0x30] << 8 | data[0x2F];
             pathIndex = (short) (data[0x32] << 8 | data[0x33]);
             size = data[0x34] << 24 | data[0x35] << 16 | data[0x36] << 8 | data[0x37];
@@ -58,10 +58,10 @@ namespace YARG.Core.IO
         }
 
         // This overload should only be called during scanning
-        public byte[] LoadAllBytes(CONFile file)
+        public byte[] LoadAllBytes(Stream stream)
         {
-            lock (file.Lock)
-                return CONFileStream.LoadFile(file.Stream, IsContiguous(), size, firstBlock, shift);
+            lock (stream)
+                return CONFileStream.LoadFile(stream, IsContiguous(), size, firstBlock, shift);
         }
 
         public byte[] LoadAllBytes()
@@ -69,14 +69,14 @@ namespace YARG.Core.IO
             return CONFileStream.LoadFile(ConFile.FullName, IsContiguous(), size, firstBlock, shift);
         }
 
-        public static int GetMoggVersion(CONFileListing listing, CONFile file)
+        public static int GetMoggVersion(CONFileListing listing, Stream stream)
         {
             Debug.Assert(!listing.IsDirectory(), "Directory listing cannot be loaded as a file");
             long location = CONFileStream.CalculateBlockLocation(listing.firstBlock, listing.shift);
-            lock (file.Lock)
+            lock (stream)
             {
-                file.Stream.Seek(location, SeekOrigin.Begin);
-                return file.Stream.Read<int>(Endianness.Little);
+                stream.Seek(location, SeekOrigin.Begin);
+                return stream.Read<int>(Endianness.Little);
             }
         }
 

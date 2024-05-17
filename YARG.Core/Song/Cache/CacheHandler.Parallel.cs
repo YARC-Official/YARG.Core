@@ -82,7 +82,7 @@ namespace YARG.Core.Song.Cache
                     {
                         ScanCONGroup(group, reader, ScanPackedCONNode);
                     }
-                    group.CONFile.Dispose();
+                    group.Stream?.Dispose();
                 }
                 );
             }
@@ -502,7 +502,7 @@ namespace YARG.Core.Song.Cache
                     // Error catching must be done per-thread
                     try
                     {
-                        AddEntry(PackedRBCONEntry.LoadFromCache_Quick(group.CONFile, name, upgrades, entryReader, strings));
+                        AddEntry(PackedRBCONEntry.LoadFromCache_Quick(group.Listings, name, upgrades, entryReader, strings));
                     }
                     catch (Exception ex)
                     {

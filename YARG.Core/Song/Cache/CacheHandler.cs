@@ -142,7 +142,7 @@ namespace YARG.Core.Song.Cache
         /// Format is YY_MM_DD_RR: Y = year, M = month, D = day, R = revision (reset across dates, only increment
         /// if multiple cache version changes happen in a single day).
         /// </summary>
-        public const int CACHE_VERSION = 24_04_06_01;
+        public const int CACHE_VERSION = 24_04_27_01;
 
         protected readonly SongCache cache = new();
 
@@ -370,7 +370,7 @@ namespace YARG.Core.Song.Cache
             {
                 while (reader.StartNode())
                 {
-                    string name = reader.GetNameOfNode();
+                    string name = reader.GetNameOfNode(true);
                     FileInfo info = new(Path.Combine(directory, $"{name}_plus.mid"));
                     if (info.Exists)
                     {
@@ -429,7 +429,7 @@ namespace YARG.Core.Song.Cache
             {
                 while (reader.StartNode())
                 {
-                    string name = reader.GetNameOfNode();
+                    string name = reader.GetNameOfNode(true);
                     if (!nodes.TryGetValue(name, out var list))
                     {
                         nodes.Add(name, list = new List<YARGDTAReader>());
@@ -463,8 +463,8 @@ namespace YARG.Core.Song.Cache
             {
                 while (reader.StartNode())
                 {
-                    string name = reader.GetNameOfNode();
-                    var listing = group.CONFile.TryGetListing($"songs_upgrades/{name}_plus.mid");
+                    string name = reader.GetNameOfNode(true);
+                    var listing = group.Listings.Find($"songs_upgrades/{name}_plus.mid");
 
                     if (listing != null)
                     {

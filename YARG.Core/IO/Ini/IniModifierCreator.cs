@@ -51,12 +51,12 @@ namespace YARG.Core.IO.Ini
             };
         }
 
-        public IniModifier CreateSngModifier(YARGTextContainer<byte> sngContainer)
+        public IniModifier CreateSngModifier(YARGTextContainer<byte> sngContainer, int length)
         {
             return type switch
             {
-                ModifierCreatorType.SortString => new IniModifier(new SortString(ExtractSngString(sngContainer))),
-                ModifierCreatorType.String     => new IniModifier(ExtractSngString(sngContainer)),
+                ModifierCreatorType.SortString => new IniModifier(new SortString(Encoding.UTF8.GetString(sngContainer.Data, sngContainer.Position, length))),
+                ModifierCreatorType.String => new IniModifier(Encoding.UTF8.GetString(sngContainer.Data, sngContainer.Position, length)),
                 _ => CreateNumberModifier(sngContainer),
             };
         }
@@ -130,11 +130,6 @@ namespace YARG.Core.IO.Ini
                 default:
                     throw new NotImplementedException();
             }
-        }
-
-        private static string ExtractSngString(YARGTextContainer<byte> sngContainer)
-        {
-            return Encoding.UTF8.GetString(sngContainer.ExtractSpan(sngContainer.Next - sngContainer.Position));
         }
     }
 }

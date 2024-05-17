@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Runtime.InteropServices.ComTypes;
 
 namespace YARG.Core.Audio
 {
@@ -9,7 +8,7 @@ namespace YARG.Core.Audio
     {
         private bool _disposed;
         private bool _isPaused = true;
-        
+
         protected readonly AudioManager _manager;
         protected readonly List<StemChannel> _channels = new();
         protected readonly bool _clampStemVolume;
@@ -38,7 +37,7 @@ namespace YARG.Core.Audio
 
         public StemChannel? this[SongStem stem] => _channels.Find(x => x.Stem == stem);
 
-        public int Play(bool restart = false)
+        public int Play(bool restartBuffer)
         {
             lock (this)
             {
@@ -47,7 +46,7 @@ namespace YARG.Core.Audio
                     return -1;
                 }
 
-                int ret = Play_Internal(restart);
+                int ret = Play_Internal(restartBuffer);
                 if (ret != 0)
                 {
                     return ret;
@@ -57,7 +56,7 @@ namespace YARG.Core.Audio
             }
         }
 
-        public void FadeIn(float maxVolume, double duration)
+        public void FadeIn(double maxVolume, double duration)
         {
             lock (this)
             {
@@ -213,8 +212,30 @@ namespace YARG.Core.Audio
             }
         }
 
-        protected abstract int Play_Internal(bool restart);
-        protected abstract void FadeIn_Internal(float maxVolume, double duration);
+        internal void ToggleBuffer(bool enable)
+        {
+            lock (this)
+            {
+                if (!_disposed)
+                {
+                    ToggleBuffer_Internal(enable);
+                }
+            }
+        }
+
+        internal void SetBufferLength(int length)
+        {
+            lock (this)
+            {
+                if (!_disposed)
+                {
+                    SetBufferLength_Internal(length);
+                }
+            }
+        }
+
+        protected abstract int Play_Internal(bool restartBuffer);
+        protected abstract void FadeIn_Internal(double maxVolume, double duration);
         protected abstract void FadeOut_Internal(double duration);
         protected abstract int Pause_Internal();
         protected abstract double GetPosition_Internal();
@@ -227,6 +248,8 @@ namespace YARG.Core.Audio
         protected abstract bool AddChannel_Internal(SongStem stem, Stream stream);
         protected abstract bool AddChannel_Internal(SongStem stem, int[] indices, float[] panning);
         protected abstract bool RemoveChannel_Internal(SongStem stemToRemove);
+        protected abstract void ToggleBuffer_Internal(bool enable);
+        protected abstract void SetBufferLength_Internal(int length);
 
         protected virtual void DisposeManagedResources() { }
         protected virtual void DisposeUnmanagedResources() { }

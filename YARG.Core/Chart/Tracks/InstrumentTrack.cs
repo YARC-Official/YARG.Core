@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 
 namespace YARG.Core.Chart
 {
@@ -11,7 +13,24 @@ namespace YARG.Core.Chart
     {
         public Instrument Instrument { get; }
 
-        public Dictionary<Difficulty, InstrumentDifficulty<TNote>> Difficulties { get; } = new();
+        private Dictionary<Difficulty, InstrumentDifficulty<TNote>> _difficulties { get; } = new();
+
+        /// <summary>
+        /// Whether or not this track contains any data.
+        /// </summary>
+        public bool IsEmpty
+        {
+            get
+            {
+                foreach (var difficulty in _difficulties.Values)
+                {
+                    if (!difficulty.IsEmpty)
+                        return false;
+                }
+
+                return true;
+            }
+        }
 
         public InstrumentTrack(Instrument instrument)
         {
@@ -21,22 +40,38 @@ namespace YARG.Core.Chart
         public InstrumentTrack(Instrument instrument, Dictionary<Difficulty, InstrumentDifficulty<TNote>> difficulties)
             : this(instrument)
         {
-            Difficulties = difficulties;
+            _difficulties = difficulties;
         }
 
         public InstrumentTrack(InstrumentTrack<TNote> other)
             : this(other.Instrument)
         {
-            foreach (var (difficulty, diffTrack) in other.Difficulties)
+            foreach (var (difficulty, diffTrack) in other._difficulties)
             {
-                Difficulties.Add(difficulty, diffTrack.Clone());
+                _difficulties.Add(difficulty, diffTrack.Clone());
             }
         }
+
+        public void AddDifficulty(Difficulty difficulty, InstrumentDifficulty<TNote> track)
+            => _difficulties.Add(difficulty, track);
+
+        public void RemoveDifficulty(Difficulty difficulty)
+            => _difficulties.Remove(difficulty);
+
+        public InstrumentDifficulty<TNote> GetDifficulty(Difficulty difficulty)
+            => _difficulties[difficulty];
+
+        public bool TryGetDifficulty(Difficulty difficulty, [NotNullWhen(true)] out InstrumentDifficulty<TNote>? track)
+            => _difficulties.TryGetValue(difficulty, out track);
+
+        // For unit tests
+        internal InstrumentDifficulty<TNote> FirstDifficulty()
+            => _difficulties.First().Value;
 
         public double GetStartTime()
         {
             double totalStartTime = 0;
-            foreach (var difficulty in Difficulties.Values)
+            foreach (var difficulty in _difficulties.Values)
             {
                 totalStartTime = Math.Min(difficulty.GetStartTime(), totalStartTime);
             }
@@ -47,7 +82,7 @@ namespace YARG.Core.Chart
         public double GetEndTime()
         {
             double totalEndTime = 0;
-            foreach (var difficulty in Difficulties.Values)
+            foreach (var difficulty in _difficulties.Values)
             {
                 totalEndTime = Math.Max(difficulty.GetEndTime(), totalEndTime);
             }
@@ -58,7 +93,7 @@ namespace YARG.Core.Chart
         public uint GetFirstTick()
         {
             uint totalFirstTick = 0;
-            foreach (var difficulty in Difficulties.Values)
+            foreach (var difficulty in _difficulties.Values)
             {
                 totalFirstTick = Math.Min(difficulty.GetFirstTick(), totalFirstTick);
             }
@@ -69,20 +104,12 @@ namespace YARG.Core.Chart
         public uint GetLastTick()
         {
             uint totalLastTick = 0;
-            foreach (var difficulty in Difficulties.Values)
+            foreach (var difficulty in _difficulties.Values)
             {
                 totalLastTick = Math.Max(difficulty.GetLastTick(), totalLastTick);
             }
 
             return totalLastTick;
-        }
-		
-        public bool IsOccupied()
-        {
-            foreach (var difficulty in Difficulties.Values)
-                if (difficulty.IsOccupied())
-                    return true;
-            return false;
         }
 
         public InstrumentTrack<TNote> Clone()

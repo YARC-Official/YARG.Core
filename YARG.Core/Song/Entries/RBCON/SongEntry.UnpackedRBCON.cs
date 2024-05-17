@@ -197,7 +197,7 @@ namespace YARG.Core.Song
             return new FileStream(_midi.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
         }
 
-        protected override byte[]? LoadMidiFile(CONFile? file)
+        protected override byte[]? LoadMidiFile(Stream? file)
         {
             if (_dta == null || !_dta.IsStillValid() || !_midi!.IsStillValid())
             {
@@ -244,7 +244,7 @@ namespace YARG.Core.Song
             return new FileStream(path, FileMode.Open, FileAccess.Read);
         }
 
-        protected override bool IsMoggValid(CONFile? file)
+        protected override bool IsMoggValid(Stream? file)
         {
             using var stream = GetMoggStream();
             if (stream == null)

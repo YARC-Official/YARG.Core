@@ -21,7 +21,7 @@ namespace YARG.Core.IO
             return LoadFile(filestream, isContinguous, fileSize, blockNum, shift);
         }
 
-        public static byte[] LoadFile(FileStream filestream, bool isContinguous, int fileSize, int blockNum, int shift)
+        public static byte[] LoadFile(Stream filestream, bool isContinguous, int fileSize, int blockNum, int shift)
         {
             byte[] data = new byte[fileSize];
             if (isContinguous)

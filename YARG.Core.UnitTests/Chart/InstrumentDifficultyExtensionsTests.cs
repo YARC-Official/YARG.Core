@@ -11,7 +11,7 @@ public class InstrumentDifficultyExtensionsTests
     public void DrumTrackWithKickDrumRemovedAndOnlyStarPowerKicks_ShouldWorkCorrectly()
     {
         var chart = GetChartWithStarPowerSectionOfOnlyKickDrum();
-        var notes = chart.ProDrums.Difficulties.First().Value;
+        var notes = chart.ProDrums.FirstDifficulty();
 
         var starPowerStartCount = notes.Notes.Count(note => note.IsStarPowerStart);
         var starPowerEndCount = notes.Notes.Count(note => note.IsStarPowerEnd);
@@ -36,7 +36,7 @@ public class InstrumentDifficultyExtensionsTests
     public void DrumTrackWithKickDrumRemovedAndStarPowerEndOnKick_ShouldWorkCorrectly()
     {
         var chart = GetChartWithStarPowerEndingInKickDrum();
-        var notes = chart.ProDrums.Difficulties.First().Value;
+        var notes = chart.ProDrums.FirstDifficulty();
 
         var starPowerStartCount = notes.Notes.Count(note => note.IsStarPowerStart);
         var starPowerEndCount = notes.Notes.Count(note => note.IsStarPowerEnd);
@@ -60,7 +60,7 @@ public class InstrumentDifficultyExtensionsTests
     public void DrumTrackWithKickDrumRemovedAndStarPowerEndOnKickChord_ShouldWorkCorrectly()
     {
         var chart = GetChartWithStarPowerEndingInChordWithKickDrum();
-        var notes = chart.ProDrums.Difficulties.First().Value;
+        var notes = chart.ProDrums.FirstDifficulty();
 
         var starPowerStartCount = notes.Notes.Count(note => note.IsStarPowerStart);
         var starPowerEndCount = notes.Notes.Count(note => note.IsStarPowerEnd);

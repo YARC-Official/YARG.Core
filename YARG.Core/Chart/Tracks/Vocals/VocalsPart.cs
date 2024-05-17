@@ -16,6 +16,11 @@ namespace YARG.Core.Chart
         public List<Phrase> OtherPhrases { get; } = new();
         public List<TextEvent> TextEvents { get; } = new();
 
+        /// <summary>
+        /// Whether or not this part contains any data.
+        /// </summary>
+        public bool IsEmpty => NotePhrases.Count == 0 && OtherPhrases.Count == 0 && TextEvents.Count == 0;
+
         public VocalsPart(bool isHarmony, List<VocalsPhrase> notePhrases, List<Phrase> otherPhrases, List<TextEvent> text)
         {
             IsHarmony = isHarmony;
@@ -80,11 +85,6 @@ namespace YARG.Core.Chart
             totalLastTick = Math.Max(TextEvents.GetLastTick(), totalLastTick);
 
             return totalLastTick;
-        }
-
-        public bool IsOccupied()
-        {
-            return NotePhrases.Count > 0 || OtherPhrases.Count > 0 || TextEvents.Count > 0;
         }
 
         public InstrumentDifficulty<VocalNote> CloneAsInstrumentDifficulty()

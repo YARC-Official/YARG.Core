@@ -98,6 +98,7 @@ namespace YARG.Core.IO
             var info = new FileInfo(file);
             if (!info.Exists)
             {
+                reader.BaseStream.Position += sizeof(long);
                 return null;
             }
 

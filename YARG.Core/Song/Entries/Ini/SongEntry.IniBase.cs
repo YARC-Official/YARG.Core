@@ -92,19 +92,19 @@ namespace YARG.Core.Song
         {
             if (modifiers.TryGet("background", out _background))
             {
-                string ext = Path.GetExtension(_background).ToLower();
+                string ext = Path.GetExtension(_background.Trim('\"')).ToLower();
                 _background = IMAGE_EXTENSIONS.Contains(ext) ? _background.ToLowerInvariant() : string.Empty;
             }
 
             if (modifiers.TryGet("video", out _video))
             {
-                string ext = Path.GetExtension(_video).ToLower();
+                string ext = Path.GetExtension(_video.Trim('\"')).ToLower();
                 _video = VIDEO_EXTENSIONS.Contains(ext) ? _video.ToLowerInvariant() : string.Empty;
             }
 
             if (modifiers.TryGet("cover", out _cover))
             {
-                string ext = Path.GetExtension(_cover).ToLower();
+                string ext = Path.GetExtension(_cover.Trim('\"')).ToLower();
                 _cover = IMAGE_EXTENSIONS.Contains(ext) ? _cover.ToLowerInvariant() : string.Empty;
             }
             modifiers.TryGet("video_loop", out Video_Loop);
