@@ -102,6 +102,7 @@ namespace YARG.Core.Engine.Vocals
 
                 OnNoteHit?.Invoke(State.NoteIndex, note);
 
+                // I want to call base.HitNote here, but I have no idea how vocals handles hit state so I'm scared to
                 State.NoteIndex++;
             }
         }
@@ -145,6 +146,7 @@ namespace YARG.Core.Engine.Vocals
 
             OnNoteMissed?.Invoke(State.NoteIndex, note);
 
+            // I want to call base.MissNote here, but I have no idea how vocals handles miss state so I'm scared to
             State.NoteIndex++;
         }
 

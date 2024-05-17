@@ -109,11 +109,7 @@ namespace YARG.Core.Engine.ProKeys
             AddScore(note);
 
             OnNoteHit?.Invoke(State.NoteIndex, note);
-
-            if (note.ParentOrSelf.WasFullyHitOrMissed())
-            {
-                base.HitNote(note);
-            }
+            base.HitNote(note);
         }
 
         protected override void MissNote(ProKeysNote note)
@@ -147,11 +143,7 @@ namespace YARG.Core.Engine.ProKeys
             UpdateMultiplier();
 
             OnNoteMissed?.Invoke(State.NoteIndex, note);
-
-            if (note.ParentOrSelf.WasFullyHitOrMissed())
-            {
-                base.HitNote(note);
-            }
+            base.HitNote(note);
         }
 
         protected override void AddScore(ProKeysNote note)

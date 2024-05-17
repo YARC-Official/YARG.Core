@@ -312,12 +312,18 @@ namespace YARG.Core.Engine
 
         protected virtual void HitNote(TNoteType note)
         {
-            AdvanceToNextNote(note);
+            if (note.ParentOrSelf.WasFullyHitOrMissed())
+            {
+                AdvanceToNextNote(note);
+            }
         }
 
         protected virtual void MissNote(TNoteType note)
         {
-            AdvanceToNextNote(note);
+            if (note.ParentOrSelf.WasFullyHitOrMissed())
+            {
+                AdvanceToNextNote(note);
+            }
         }
 
         protected bool SkipPreviousNotes(TNoteType current)

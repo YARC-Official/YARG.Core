@@ -122,10 +122,7 @@ namespace YARG.Core.Engine.Drums
                 OnNoteHit?.Invoke(State.NoteIndex, note);
             }
 
-            if (note.ParentOrSelf.WasFullyHitOrMissed())
-            {
-                base.HitNote(note);
-            }
+            base.HitNote(note);
         }
 
         protected override void MissNote(DrumNote note)
@@ -157,12 +154,7 @@ namespace YARG.Core.Engine.Drums
             UpdateMultiplier();
 
             OnNoteMissed?.Invoke(State.NoteIndex, note);
-
-            if (note.ParentOrSelf.WasFullyHitOrMissed())
-            {
-                YargLogger.LogFormatDebug("Parent/Self (Note calling: {0}, {1}) fully hit or missed, advancing to next index {2}", note.Pad, item2: note.IsParent ? "Parent" : "Child", State.NoteIndex + 1);
-                base.MissNote(note);
-            }
+            base.MissNote(note);
         }
 
         protected int GetPointsPerNote()
