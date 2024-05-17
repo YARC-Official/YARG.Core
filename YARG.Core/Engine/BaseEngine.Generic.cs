@@ -14,6 +14,7 @@ namespace YARG.Core.Engine
         where TEngineState : BaseEngineState, new()
     {
         protected const int POINTS_PER_NOTE = 50;
+        protected const int POINTS_PER_PRO_NOTE = POINTS_PER_NOTE + 10;
         protected const int POINTS_PER_BEAT = 25;
 
         // Max number of measures that SP will last when draining

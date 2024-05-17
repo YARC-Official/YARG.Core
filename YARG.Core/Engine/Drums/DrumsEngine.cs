@@ -8,8 +8,6 @@ namespace YARG.Core.Engine.Drums
     public abstract class DrumsEngine : BaseEngine<DrumNote, DrumsEngineParameters,
         DrumsStats, DrumsEngineState>
     {
-        private const int POINTS_PER_PRO_NOTE = POINTS_PER_NOTE + 10;
-
         public delegate void OverhitEvent();
 
         public delegate void PadHitEvent(DrumsAction action, bool noteWasHit);
