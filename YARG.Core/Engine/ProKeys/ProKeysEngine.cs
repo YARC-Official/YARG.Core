@@ -69,12 +69,12 @@ namespace YARG.Core.Engine.ProKeys
                 return;
             }
 
-            note.SetHitState(true, true);
+            note.SetHitState(true, false);
 
             // Detect if the last note(s) were skipped
             // bool skipped = SkipPreviousNotes(note);
 
-            if (note.IsStarPower && note.IsStarPowerEnd)
+            if (note.IsStarPower && note.IsStarPowerEnd && note.ParentOrSelf.WasFullyHit())
             {
                 AwardStarPower(note);
                 EngineStats.StarPowerPhrasesHit++;
@@ -90,7 +90,7 @@ namespace YARG.Core.Engine.ProKeys
                 Solos[State.CurrentSoloIndex].NotesHit++;
             }
 
-            if (note.IsSoloEnd)
+            if (note.IsSoloEnd && note.ParentOrSelf.WasFullyHitOrMissed())
             {
                 EndSolo();
             }
@@ -109,7 +109,11 @@ namespace YARG.Core.Engine.ProKeys
             AddScore(note);
 
             OnNoteHit?.Invoke(State.NoteIndex, note);
-            base.HitNote(note);
+
+            if (note.ParentOrSelf.WasFullyHitOrMissed())
+            {
+                base.HitNote(note);
+            }
         }
 
         protected override void MissNote(ProKeysNote note)
@@ -121,14 +125,14 @@ namespace YARG.Core.Engine.ProKeys
                 return;
             }
 
-            note.SetMissState(true, true);
+            note.SetMissState(true, false);
 
             if (note.IsStarPower)
             {
                 StripStarPower(note);
             }
 
-            if (note.IsSoloEnd)
+            if (note.IsSoloEnd && note.ParentOrSelf.WasFullyHitOrMissed())
             {
                 EndSolo();
             }
@@ -143,7 +147,11 @@ namespace YARG.Core.Engine.ProKeys
             UpdateMultiplier();
 
             OnNoteMissed?.Invoke(State.NoteIndex, note);
-            base.MissNote(note);
+
+            if (note.ParentOrSelf.WasFullyHitOrMissed())
+            {
+                base.HitNote(note);
+            }
         }
 
         protected override void AddScore(ProKeysNote note)
