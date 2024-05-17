@@ -156,7 +156,7 @@ namespace YARG.Core.Engine.ProKeys
 
         protected override void AddScore(ProKeysNote note)
         {
-            int notePoints = POINTS_PER_PRO_NOTE * (1 + note.ChildNotes.Count) * EngineStats.ScoreMultiplier;
+            int notePoints = POINTS_PER_PRO_NOTE * EngineStats.ScoreMultiplier;
             AddScore(notePoints);
         }
 
