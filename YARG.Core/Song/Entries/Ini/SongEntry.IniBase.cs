@@ -178,15 +178,20 @@ namespace YARG.Core.Song
             var parts = AvailableParts.Default;
             if (chartType == ChartType.Chart)
             {
-                var byteReader = YARGTextLoader.TryLoadByteText(file);
-                if (byteReader != null)
+                if (YARGTextReader.TryLoadByteText(file, out var byteContainer))
                 {
-                    ParseDotChart(ref byteReader.Container, byteReader.Decoder, modifiers, ref parts, drums);
+                    unsafe
+                    {
+                        ParseDotChart(ref byteContainer, &StringDecoder.Decode, modifiers, ref parts, drums);
+                    }
                 }
                 else
                 {
-                    var charReader = YARGTextLoader.LoadCharText(file);
-                    ParseDotChart(ref charReader.Container, charReader.Decoder, modifiers, ref parts, drums);
+                    unsafe
+                    {
+                        var charContainer = YARGTextReader.LoadCharText(file);
+                        ParseDotChart(ref charContainer, &StringDecoder.Decode, modifiers, ref parts, drums);
+                    }
                 }
             }
             else // if (chartType == ChartType.Mid || chartType == ChartType.Midi) // Uncomment for any future file type
@@ -209,9 +214,8 @@ namespace YARG.Core.Song
             return (ScanResult.Success, parts);
         }
 
-        private static void ParseDotChart<TChar, TDecoder>(ref YARGTextContainer<TChar> reader, TDecoder decoder, IniSection modifiers, ref AvailableParts parts, DrumPreparseHandler drums)
+        private static unsafe void ParseDotChart<TChar>(ref YARGTextContainer<TChar> reader, delegate*<TChar[], int, int, string> decoder, IniSection modifiers, ref AvailableParts parts, DrumPreparseHandler drums)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
-            where TDecoder : IStringDecoder<TChar>, new()
         {
             if (YARGChartFileReader.ValidateTrack(ref reader, YARGChartFileReader.HEADERTRACK))
             {

@@ -224,9 +224,8 @@ namespace YARG.Core.IO
             return true;
         }
 
-        public static Dictionary<string, List<IniModifier>> ExtractModifiers<TChar, TDecoder>(ref YARGTextContainer<TChar> container, TDecoder decoder, Dictionary<string, IniModifierCreator> validNodes)
+        public unsafe static Dictionary<string, List<IniModifier>> ExtractModifiers<TChar>(ref YARGTextContainer<TChar> container, delegate*<TChar[], int, int, string> decoder, Dictionary<string, IniModifierCreator> validNodes)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
-            where TDecoder : IStringDecoder<TChar>, new()
         {
             Dictionary<string, List<IniModifier>> modifiers = new();
             while (IsStillCurrentTrack(ref container))

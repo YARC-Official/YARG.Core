@@ -12,14 +12,19 @@ namespace YARG.Core.IO.Ini
             try
             {
                 byte[] bytes = File.ReadAllBytes(iniFile);
-                var byteReader = YARGTextLoader.TryLoadByteText(bytes);
-                if (byteReader != null)
+                if (YARGTextReader.TryLoadByteText(bytes, out var byteContainer))
                 {
-                    return ProcessIni(ref byteReader.Container, byteReader.Decoder, sections);
+                    unsafe
+                    {
+                        return ProcessIni(ref byteContainer, &StringDecoder.Decode, sections);
+                    }
                 }
 
-                var charReader = YARGTextLoader.LoadCharText(bytes);
-                return ProcessIni(ref charReader.Container, charReader.Decoder, sections);
+                var charContainer = YARGTextReader.LoadCharText(bytes);
+                unsafe
+                {
+                    return ProcessIni(ref charContainer, &StringDecoder.Decode, sections);
+                }
 
             }
             catch (Exception ex)
@@ -29,9 +34,8 @@ namespace YARG.Core.IO.Ini
             }
         }
 
-        private static Dictionary<string, IniSection> ProcessIni<TChar, TDecoder>(ref YARGTextContainer<TChar> container, TDecoder decoder, Dictionary<string, Dictionary<string, IniModifierCreator>> sections)
+        private static unsafe Dictionary<string, IniSection> ProcessIni<TChar>(ref YARGTextContainer<TChar> container, delegate*<TChar[], int, int, string> decoder, Dictionary<string, Dictionary<string, IniModifierCreator>> sections)
             where TChar : unmanaged, IConvertible
-            where TDecoder : IStringDecoder<TChar>, new()
         {
             Dictionary<string, IniSection> modifierMap = new();
             while (TrySection(ref container, decoder, out string section))
@@ -44,9 +48,8 @@ namespace YARG.Core.IO.Ini
             return modifierMap;
         }
 
-        private static bool TrySection<TChar, TDecoder>(ref YARGTextContainer<TChar> container, TDecoder decoder, out string section)
+        private static unsafe bool TrySection<TChar>(ref YARGTextContainer<TChar> container, delegate*<TChar[], int, int, string> decoder, out string section)
             where TChar : unmanaged, IConvertible
-            where TDecoder : IStringDecoder<TChar>, new()
         {
             section = string.Empty;
             if (container.IsEndOfFile())
@@ -65,9 +68,8 @@ namespace YARG.Core.IO.Ini
             return true;
         }
 
-        private static IniSection ExtractModifiers<TChar, TDecoder>(ref YARGTextContainer<TChar> container, TDecoder decoder, ref Dictionary<string, IniModifierCreator> validNodes)
+        private static unsafe IniSection ExtractModifiers<TChar>(ref YARGTextContainer<TChar> container, delegate*<TChar[], int, int, string> decoder, ref Dictionary<string, IniModifierCreator> validNodes)
             where TChar : unmanaged, IConvertible
-            where TDecoder : IStringDecoder<TChar>, new()
         {
             Dictionary<string, List<IniModifier>> modifiers = new();
             while (IsStillCurrentSection(ref container))

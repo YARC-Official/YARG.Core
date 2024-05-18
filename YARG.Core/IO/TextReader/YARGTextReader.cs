@@ -3,46 +3,23 @@ using System.Text;
 
 namespace YARG.Core.IO
 {
-    public static class YARGTextLoader
+    public static class YARGTextReader
     {
         private static readonly UTF32Encoding UTF32BE = new(true, false);
-
-        public class Result<TChar, TDecoder>
-            where TChar : unmanaged, IConvertible
-            where TDecoder : IStringDecoder<TChar>, new()
-        {
-            public YARGTextContainer<TChar> Container;
-            public readonly TDecoder Decoder;
-
-            public Result(TChar[] data, int position)
-            {
-                Container = new YARGTextContainer<TChar>(data, position);
-                Decoder = new TDecoder();
-
-                while (Container.Position < Container.Length)
-                {
-                    char curr = Container.Data[Container.Position].ToChar(null);
-                    if (curr > 32 && curr != '{' && curr != '=')
-                    {
-                        break;
-                    }
-                    ++Container.Position;
-                }
-            }
-        }
-
-        public static Result<byte, ByteStringDecoder>? TryLoadByteText(byte[] data)
+        public static bool TryLoadByteText(byte[] data, out YARGTextContainer<byte> container)
         {
             if ((data[0] == 0xFF && data[1] == 0xFE) || (data[0] == 0xFE && data[1] == 0xFF))
             {
-                return null;
+                container = default;
+                return false;
             }
 
             int position = data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF ? 3 : 0;
-            return new Result<byte, ByteStringDecoder>(data, position);
+            container = Init(data, position);
+            return true;
         }
 
-        public static Result<char, CharStringDecoder> LoadCharText(byte[] data)
+        public static YARGTextContainer<char> LoadCharText(byte[] data)
         {
             char[] charData;
             if (data[0] == 0xFF && data[1] == 0xFE)
@@ -59,12 +36,25 @@ namespace YARG.Core.IO
                 else
                     charData = UTF32BE.GetChars(data, 3, data.Length - 3);
             }
-            return new Result<char, CharStringDecoder>(charData, 0);
+            return Init(charData, 0);
         }
-    }
 
-    public static class YARGTextReader
-    {
+        private static YARGTextContainer<TChar> Init<TChar>(TChar[] data, int position)
+            where TChar : unmanaged, IConvertible
+        {
+            var container = new YARGTextContainer<TChar>(data, position);
+            while (container.Position < container.Length)
+            {
+                char curr = container.Data[container.Position].ToChar(null);
+                if (curr > 32 && curr != '{' && curr != '=')
+                {
+                    break;
+                }
+                ++container.Position;
+            }
+            return container;
+        }
+
         public static char SkipWhitespace<TChar>(ref YARGTextContainer<TChar> container)
             where TChar : unmanaged, IConvertible
         {
@@ -127,9 +117,8 @@ namespace YARG.Core.IO
             return false;
         }
 
-        public static string ExtractModifierName<TChar, TDecoder>(ref YARGTextContainer<TChar> container, TDecoder decoder)
+        public static unsafe string ExtractModifierName<TChar>(ref YARGTextContainer<TChar> container, delegate*<TChar[], int, int, string> decoder)
             where TChar : unmanaged, IConvertible
-            where TDecoder : IStringDecoder<TChar>, new()
         {
             int curr = container.Position;
             while (curr < container.Length)
@@ -140,27 +129,25 @@ namespace YARG.Core.IO
                 ++curr;
             }
 
-            string name = decoder.Decode(container.Data, container.Position, curr - container.Position);
+            string name = decoder(container.Data, container.Position, curr - container.Position);
             container.Position = curr;
             SkipWhitespace(ref container);
             return name;
         }
 
-        public static string PeekLine<TChar, TDecoder>(ref YARGTextContainer<TChar> container, TDecoder decoder)
+        public static unsafe string PeekLine<TChar>(ref YARGTextContainer<TChar> container, delegate*<TChar[], int, int, string> decoder)
             where TChar : unmanaged, IConvertible
-            where TDecoder : IStringDecoder<TChar>, new()
         {
             var curr = container.Position;
             while (curr < container.Length && container.Data[curr].ToChar(null) != '\n')
             {
                 ++curr;
             }
-            return decoder.Decode(container.Data, container.Position, curr - container.Position).TrimEnd();
+            return decoder(container.Data, container.Position, curr - container.Position).TrimEnd();
         }
 
-        public static string ExtractText<TChar, TDecoder>(ref YARGTextContainer<TChar> container, TDecoder decoder, bool isChartFile)
+        public static unsafe string ExtractText<TChar>(ref YARGTextContainer<TChar> container, delegate*<TChar[], int, int, string> decoder, bool isChartFile)
             where TChar : unmanaged, IConvertible
-            where TDecoder : IStringDecoder<TChar>, new()
         {
             var stringBegin = container.Position;
             var stringEnd = -1;
@@ -220,7 +207,7 @@ namespace YARG.Core.IO
             while (stringBegin < stringEnd && container.Data[stringEnd - 1].ToChar(null) <= 32)
                 --stringEnd;
 
-            return decoder.Decode(container.Data, stringBegin, stringEnd - stringBegin);
+            return decoder(container.Data, stringBegin, stringEnd - stringBegin);
         }
 
         public static bool ExtractBoolean<TChar>(ref YARGTextContainer<TChar> container)

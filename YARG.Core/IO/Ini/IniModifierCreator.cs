@@ -38,9 +38,8 @@ namespace YARG.Core.IO.Ini
             this.type = type;
         }
 
-        public IniModifier CreateModifier<TChar, TDecoder>(ref YARGTextContainer<TChar> container, TDecoder decoder)
+        public unsafe IniModifier CreateModifier<TChar>(ref YARGTextContainer<TChar> container, delegate*<TChar[], int, int, string> decoder)
             where TChar : unmanaged, IConvertible
-            where TDecoder : IStringDecoder<TChar>, new()
         {
             return type switch
             {
@@ -133,9 +132,8 @@ namespace YARG.Core.IO.Ini
             }
         }
         
-        private static string ExtractIniString<TChar, TDecoder>(ref YARGTextContainer<TChar> container, TDecoder decoder, bool isChartFile)
+        private static unsafe string ExtractIniString<TChar>(ref YARGTextContainer<TChar> container, delegate*<TChar[], int, int, string> decoder, bool isChartFile)
             where TChar : unmanaged, IConvertible
-            where TDecoder : IStringDecoder<TChar>, new()
         {
             return RichTextUtils.ReplaceColorNames(YARGTextReader.ExtractText(ref container, decoder, isChartFile));
         }
