@@ -26,12 +26,14 @@ namespace YARG.Core.Game
         public FiveFretGuitarColors FiveFretGuitar;
         public FourLaneDrumsColors  FourLaneDrums;
         public FiveLaneDrumsColors  FiveLaneDrums;
+        public ProKeysColors        ProKeys;
 
         public ColorProfile(string name, bool defaultPreset = false) : base(name, defaultPreset)
         {
             FiveFretGuitar = new FiveFretGuitarColors();
             FourLaneDrums = new FourLaneDrumsColors();
             FiveLaneDrums = new FiveLaneDrumsColors();
+            ProKeys = new ProKeysColors();
         }
 
         public override BasePreset CopyWithNewName(string name)
@@ -40,7 +42,8 @@ namespace YARG.Core.Game
             {
                 FiveFretGuitar = FiveFretGuitar.Copy(),
                 FourLaneDrums = FourLaneDrums.Copy(),
-                FiveLaneDrums = FiveLaneDrums.Copy()
+                FiveLaneDrums = FiveLaneDrums.Copy(),
+                ProKeys = ProKeys.Copy(),
             };
         }
 
@@ -52,6 +55,7 @@ namespace YARG.Core.Game
             FiveFretGuitar.Serialize(writer);
             FourLaneDrums.Serialize(writer);
             FiveLaneDrums.Serialize(writer);
+            ProKeys.Serialize(writer);
         }
 
         public void Deserialize(BinaryReader reader, int version = 0)
@@ -62,6 +66,7 @@ namespace YARG.Core.Game
             FiveFretGuitar.Deserialize(reader, version);
             FourLaneDrums.Deserialize(reader, version);
             FiveLaneDrums.Deserialize(reader, version);
+            ProKeys.Deserialize(reader, version);
         }
     }
 }
