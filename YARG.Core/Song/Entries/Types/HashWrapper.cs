@@ -13,7 +13,7 @@ namespace YARG.Core.Song
         public const int HASH_SIZE_IN_BYTES = 20;
         public const int HASH_SIZE_IN_INTS = HASH_SIZE_IN_BYTES / sizeof(int);
 
-        private fixed byte _hash[HASH_SIZE_IN_BYTES];
+        private fixed int _hash[HASH_SIZE_IN_INTS];
         private int _hashcode;
 
         public byte[] HashBytes
@@ -21,9 +21,13 @@ namespace YARG.Core.Song
             get
             {
                 var bytes = new byte[HASH_SIZE_IN_BYTES];
-                for (var i = 0; i < HASH_SIZE_IN_BYTES; i++)
+                fixed (byte* ptr = bytes)
                 {
-                    bytes[i] = _hash[i];
+                    int* integers = (int*)ptr;
+                    for (var i = 0; i < HASH_SIZE_IN_INTS; i++)
+                    {
+                        integers[i] = _hash[i];
+                    }
                 }
                 return bytes;
             }
@@ -38,10 +42,9 @@ namespace YARG.Core.Song
                 throw new EndOfStreamException();
             }
 
-            int* integers = (int*) wrapper._hash;
             for (int i = 0; i < HASH_SIZE_IN_INTS; i++)
             {
-                wrapper._hashcode ^= integers[i];
+                wrapper._hashcode ^= wrapper._hash[i];
             }
             return wrapper;
         }
@@ -57,10 +60,9 @@ namespace YARG.Core.Song
                 throw new Exception("fucking how??? Hash generation error");
             }
 
-            int* integers = (int*) wrapper._hash;
             for (int i = 0; i < HASH_SIZE_IN_INTS; i++)
             {
-                wrapper._hashcode ^= integers[i];
+                wrapper._hashcode ^= wrapper._hash[i];
             }
             return wrapper;
         }
@@ -68,22 +70,22 @@ namespace YARG.Core.Song
         public static HashWrapper Create(byte[] hash)
         {
             var wrapper = new HashWrapper();
+            var bytes = (byte*)wrapper._hash;
             for (var i = 0; i < HASH_SIZE_IN_BYTES; i++)
             {
-                wrapper._hash[i] = hash[i];
+                bytes[i] = hash[i];
             }
 
-            int* integers = (int*) wrapper._hash;
             for (int i = 0; i < HASH_SIZE_IN_INTS; i++)
             {
-                wrapper._hashcode ^= integers[i];
+                wrapper._hashcode ^= wrapper._hash[i];
             }
             return wrapper;
         }
 
         public void Serialize(BinaryWriter writer)
         {
-            fixed (byte* ptr = _hash)
+            fixed (int* ptr = _hash)
             {
                 var span = new ReadOnlySpan<byte>(ptr, HASH_SIZE_IN_BYTES);
                 writer.Write(span);
@@ -92,7 +94,7 @@ namespace YARG.Core.Song
 
         public int CompareTo(HashWrapper other)
         {
-            for (int i = 0; i < HASH_SIZE_IN_BYTES; ++i)
+            for (int i = 0; i < HASH_SIZE_IN_INTS; ++i)
             {
                 if (_hash[i] != other._hash[i])
                 {
@@ -104,7 +106,7 @@ namespace YARG.Core.Song
 
         public bool Equals(HashWrapper other)
         {
-            for (int i = 0; i < HASH_SIZE_IN_BYTES; ++i)
+            for (int i = 0; i < HASH_SIZE_IN_INTS; ++i)
             {
                 if (_hash[i] != other._hash[i])
                 {
@@ -114,14 +116,14 @@ namespace YARG.Core.Song
             return true;
         }
 
-        public override int GetHashCode()
+        public readonly override int GetHashCode()
         {
             return _hashcode;
         }
 
         public override string ToString()
         {
-            fixed (byte* ptr = _hash)
+            fixed (int* ptr = _hash)
             {
                 var span = new ReadOnlySpan<byte>(ptr, HASH_SIZE_IN_BYTES);
                 return span.ToHexString(dashes: false);
