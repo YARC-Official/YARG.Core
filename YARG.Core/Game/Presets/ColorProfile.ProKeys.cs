@@ -47,10 +47,10 @@ namespace YARG.Core.Game
             public Color OrangeOverlay = DefaultOrange;
 
             /// <summary>
-            /// Gets the section color for a specific group index.
+            /// Gets the overlay color for a specific group index.
             /// 0 = red, 4 = orange.
             /// </summary>
-            public Color GetSectionColor(int groupIndex)
+            public Color GetOverlayColor(int groupIndex)
             {
                 return groupIndex switch
                 {
