@@ -5,7 +5,6 @@ namespace YARG.Core.Song
 {
     public enum SongAttribute
     {
-        Unspecified,
         Name,
         Artist,
         Album,
@@ -17,7 +16,6 @@ namespace YARG.Core.Song
         Source,
         SongLength,
         DateAdded,
-        Instrument,
     };
 
     public partial class SongEntry : IComparable<SongEntry>
@@ -100,7 +98,7 @@ namespace YARG.Core.Song
 
     public sealed class InstrumentComparer : IComparer<SongEntry>
     {
-        private static readonly EntryComparer baseComparer = new(SongAttribute.Unspecified);
+        private static readonly EntryComparer baseComparer = new(SongAttribute.Name);
         public readonly Instrument instrument;
         public InstrumentComparer(Instrument instrument)
         {
@@ -117,16 +115,11 @@ namespace YARG.Core.Song
             if (lhsValues.Intensity != rhsValues.Intensity)
             {
                 if (lhsValues.Intensity != -1 && (rhsValues.Intensity == -1 || lhsValues.Intensity < rhsValues.Intensity))
+                {
                     return -1;
+                }
                 return 1;
             }
-            
-            if (lhsValues.SubTracks > rhsValues.SubTracks)
-                return -1;
-
-            if (lhsValues.SubTracks < rhsValues.SubTracks)
-                return 1;
-
             return baseComparer.Compare(lhs, rhs);
         }
     }
