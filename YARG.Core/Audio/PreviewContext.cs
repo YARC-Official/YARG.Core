@@ -42,7 +42,7 @@ namespace YARG.Core.Audio
                 {
                     double previewEndTime;
                     if ((entry.PreviewStartMilliseconds < 0 || entry.PreviewStartSeconds >= previewLength)
-                    &&  (entry.PreviewEndMilliseconds < 0   || entry.PreviewEndSeconds >= previewLength))
+                    &&  (entry.PreviewEndMilliseconds <= 0  || entry.PreviewEndSeconds > previewLength))
                     {
                         if (DEFAULT_END_TIME <= previewLength)
                         {
