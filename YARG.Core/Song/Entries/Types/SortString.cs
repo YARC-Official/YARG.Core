@@ -18,12 +18,12 @@ namespace YARG.Core.Song
 
         public readonly string Str;
         public readonly string SortStr;
-        public readonly int Length;
         public readonly int HashCode;
+
+        public int Length => Str.Length;
 
         public SortString(string str)
         {
-            Length = Str.Length;
             Str = str;
             SortStr = RemoveDiacritics(RichTextUtils.StripRichTextTags(str));
             HashCode = SortStr.GetHashCode();
