@@ -41,8 +41,9 @@ namespace YARG.Core.Engine.Drums
             }
 
             // Cancel overhit if WaitCountdown is active
-            if (State.CountdownMeasuresLeft > 1)
+            if (State.IsWaitCountdownActive)
             {
+                YargLogger.LogFormatTrace(this.GetType().Name+" overhit prevented during WaitCountdown at time: {0}, tick: {1}", State.CurrentTime, State.CurrentTick);
                 return;
             }
 
@@ -306,7 +307,7 @@ namespace YARG.Core.Engine.Drums
                 {
                     DrumsAction.Kick => (int) FourLaneDrumPad.Kick,
 
-                     DrumsAction.RedDrum    => (int) FourLaneDrumPad.RedDrum,
+                    DrumsAction.RedDrum    => (int) FourLaneDrumPad.RedDrum,
                     DrumsAction.YellowDrum => (int) FourLaneDrumPad.YellowDrum,
                     DrumsAction.BlueDrum   => (int) FourLaneDrumPad.BlueDrum,
                     DrumsAction.GreenDrum  => (int) FourLaneDrumPad.GreenDrum,

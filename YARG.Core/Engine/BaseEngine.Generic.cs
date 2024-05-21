@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Melanchall.DryWetMidi.Interaction;
 using YARG.Core.Chart;
 using YARG.Core.Logging;
 using YARG.Core.Utility;
@@ -33,8 +34,6 @@ namespace YARG.Core.Engine
         // Beat fraction to use for the sustain burst threshold
         protected const int SUSTAIN_BURST_FRACTION = 4;
 
-        private const int MIN_COUNTDOWN_MEASURES = 4;
-
         public delegate void NoteHitEvent(int noteIndex, TNoteType note);
 
         public delegate void NoteMissedEvent(int noteIndex, TNoteType note);
@@ -54,7 +53,7 @@ namespace YARG.Core.Engine
         public NoteHitEvent?    OnNoteHit;
         public NoteMissedEvent? OnNoteMissed;
 
-         public StarPowerPhraseHitEvent?  OnStarPowerPhraseHit;
+        public StarPowerPhraseHitEvent?  OnStarPowerPhraseHit;
         public StarPowerPhraseMissEvent? OnStarPowerPhraseMissed;
         public StarPowerStatusEvent?     OnStarPowerStatus;
 
@@ -122,6 +121,8 @@ namespace YARG.Core.Engine
             }
 
             Solos = GetSoloSections();
+
+            WaitCountdowns = GetWaitCountdowns();
         }
 
         protected override void GenerateQueuedUpdates(double nextTime)
@@ -174,6 +175,40 @@ namespace YARG.Core.Engine
                     QueueUpdateTime(noteBackEndIncrement, "Note Back End");
                 }
             }
+
+            // Only check for WaitCountdowns in this chart if there are any remaining
+            if (WaitCountdowns.Count > State.CurrentWaitCountdownIndex)
+            {
+                if (!State.IsWaitCountdownActive && nextTime > WaitCountdowns[0].Time)
+                {
+                    State.CurrentWaitCountdownIndex = WaitCountdowns.GetIndexOfPrevious(nextTime);
+
+                    // A new countdown will start before nextTime
+                    State.IsWaitCountdownActive = IsTimeBetween(WaitCountdowns[State.CurrentWaitCountdownIndex].Time, previousTime, nextTime);
+                }
+
+                if (State.IsWaitCountdownActive)
+                {
+                    var currentCountdown = WaitCountdowns[State.CurrentWaitCountdownIndex];
+                    
+                    double queueTime;
+                    if (previousTime < currentCountdown.Time)
+                    {
+                        queueTime = currentCountdown.Time;
+                    }
+                    else
+                    {
+                        // Queue updates every frame for the progress bar animation
+                        queueTime = currentCountdown.GetNextUpdateTime();
+                    }
+
+                    if (IsTimeBetween(queueTime, previousTime, nextTime))
+                    {
+                        YargLogger.LogFormatTrace("Queuing countdown update time at {0}", queueTime);
+                        QueueUpdateTime(queueTime, "Update Countdown");
+                    }
+                }
+            }
         }
 
         protected override void UpdateTimeVariables(double time)
@@ -195,51 +230,15 @@ namespace YARG.Core.Engine
                 CurrentSyncIndex++;
             }
 
-            uint lastMeasureCount = currentTimeSig.GetMeasureCount(State.LastTick, SyncTrack);
-
-            if (
-                measureCount > lastMeasureCount ||
-                (State.LastUpdateTime < 0 && time > 0)
-                )
+            if (State.IsWaitCountdownActive)
             {
-                // This is the start of a new measure
-                if (State.CountdownMeasuresLeft > 0)
-                {
-                    // Progress WaitCountdown measures if it is active
-                    State.CountdownMeasuresLeft -= measureCount - lastMeasureCount;
+                var activeCountdown = WaitCountdowns[State.CurrentWaitCountdownIndex];
 
-                    OnCountdownChange?.Invoke(State.CountdownMeasuresLeft);
-                }
-                else
-                {
-                    int nextNoteIndex = State.NoteIndex;
-                    bool skipCountdownCheck = false;
+                uint countdownMeasuresRemaining = activeCountdown.GetRemainingMeasures(State.CurrentTick);
 
-                    if (nextNoteIndex > 0)
-                    {
-                        // Delay check until next measure if there is an active sustain
-                        if (Notes[nextNoteIndex - 1].TickEnd > State.CurrentTick)
-                        {
-                            skipCountdownCheck = true;
-                        }
-                    }
+                UpdateCountdown(countdownMeasuresRemaining);
 
-                    if (!skipCountdownCheck)
-                    {
-                        // Countdown displays when the next note is farther MIN_COUNTDOWN_MEASURES
-                        uint nextNoteTick = Notes[nextNoteIndex].Tick;
-                        uint potentialCountdownStartTick = currentMeasureTick + State.TicksEveryMeasure;
-
-                        if (nextNoteTick > potentialCountdownStartTick)
-                        {
-                            uint measuresToNextNote = (nextNoteTick - potentialCountdownStartTick) / State.TicksEveryMeasure;
-                            if (measuresToNextNote > MIN_COUNTDOWN_MEASURES)
-                            {
-                                StartCountdown(measuresToNextNote);
-                            }
-                        }
-                    }
-                }
+                State.IsWaitCountdownActive = countdownMeasuresRemaining > WaitCountdown.END_COUNTDOWN_MEASURE;
             }
         }
 
@@ -465,15 +464,14 @@ namespace YARG.Core.Engine
             State.CurrentSoloIndex++;
         }
 
-        protected void StartCountdown(uint totalMeasures)
+        protected void UpdateCountdown(uint measuresRemaining)
         {
-            if (State.CountdownMeasuresLeft > 0)
+            if (!State.IsWaitCountdownActive)
             {
                 return;
             }
 
-            State.CountdownMeasuresLeft = totalMeasures;
-            OnCountdownChange?.Invoke(totalMeasures);
+            OnCountdownChange?.Invoke(measuresRemaining);
         }
 
         public sealed override (double FrontEnd, double BackEnd) CalculateHitWindow()
@@ -595,6 +593,126 @@ namespace YARG.Core.Engine
             }
 
             return soloSections;
+        }
+
+        private List<WaitCountdown> GetWaitCountdowns()
+        {
+            var timeSigs = SyncTrack.TimeSignatures;
+            var tempos = SyncTrack.Tempos;
+            
+            var waitCountdowns = new List<WaitCountdown>();
+            for (int i = 0; i < Notes.Count; i++)
+            {
+                // Compare the note at the current index against the previous note
+                // Create a countdown if the distance between the notes is > 10s
+                Note<TNoteType> noteOne;
+
+                uint noteOneTickEnd = 0;
+                double noteOneTimeEnd = 0;
+
+                if (i > 0) {
+                    noteOne = Notes[i-1];
+                    noteOneTickEnd = noteOne.TickEnd;
+                    noteOneTimeEnd = noteOne.TimeEnd;
+                }
+
+                Note<TNoteType> noteTwo = Notes[i];
+                double noteTwoTime = noteTwo.Time;
+
+                if (noteTwoTime - noteOneTimeEnd >= WaitCountdown.MIN_SECONDS)
+                {
+                    // Determine the total number of measures that will pass during this countdown
+                    // Find the TimeSignatureChange that contains the start of this Countdown
+                    uint countdownTotalMeasures = 0;
+
+                    int currentTimeSigIndex;
+                    if (noteOneTickEnd > 0)
+                    {
+                        currentTimeSigIndex = timeSigs.GetIndexOfPrevious(noteOneTickEnd);
+                    }
+                    else
+                    {
+                        currentTimeSigIndex = 0;
+                    }
+
+                    // Store an object for each TimeSignatureChange that will occur during this countdown
+                    // along with how many measures will pass during each time signature
+                    int endTimeSigIndex = timeSigs.GetIndexOfPrevious(noteTwo.Tick);
+                    var measuresByTimeSignature = new List<CountdownTimeSig>();
+
+                    var currentSig = timeSigs[currentTimeSigIndex];
+                    
+                    // Countdown should start at the first measure that begins after Note One ends, unless Note One ends directly on a measure line
+                    uint firstEmptyMeasure = (uint) Math.Ceiling( (noteOneTickEnd - currentSig.Tick) / (float) currentSig.GetTicksPerMeasure(SyncTrack) );
+
+                    uint firstCountdownTickThisSig = currentSig.Tick + firstEmptyMeasure * currentSig.GetTicksPerMeasure(SyncTrack);
+                    double firstCountdownSecondThisSig = SyncTrack.TickToTime(firstCountdownTickThisSig);
+                    
+                    // Use the current TempoChange at this TimeSignatureChange to calculate SecondsPerMeasure
+                    var currentTempo = tempos.GetPrevious(firstCountdownSecondThisSig);
+                    if (currentTempo == null) currentTempo = tempos.Last();
+                    
+                    while (currentTimeSigIndex < endTimeSigIndex)
+                    {
+                        // The next TimeSignatureChange will occur before the end of this countdown
+                        // Store the total number of measures that will pass until the next time signature takes over
+                        var prevSig = timeSigs[currentTimeSigIndex];
+                        currentSig = timeSigs[++currentTimeSigIndex];
+
+                        uint prevSigTotalMeasures = WaitCountdown.NormalizeMeasures(prevSig.GetMeasureCount(currentSig.Tick, SyncTrack), prevSig);
+
+                        if (prevSigTotalMeasures > 0)
+                        {
+                            countdownTotalMeasures += prevSigTotalMeasures;
+
+                            var prevSigTempo = tempos.GetPrevious(currentSig.Tick - 1);
+                            if (prevSigTempo == null) prevSigTempo = tempos.Last();
+
+                            uint ticksPerMeasure = WaitCountdown.GetPerNormalizedMeasure(prevSig.GetTicksPerMeasure(SyncTrack), prevSig);
+                            double secondsPerMeasure = WaitCountdown.GetPerNormalizedMeasure(prevSig.GetSecondsPerMeasure(prevSigTempo), prevSig);
+
+                            measuresByTimeSignature.Add(new CountdownTimeSig(firstCountdownTickThisSig, firstCountdownSecondThisSig, prevSigTotalMeasures, ticksPerMeasure, secondsPerMeasure));
+                        }
+                
+                        firstCountdownTickThisSig = currentSig.Tick;
+                        firstCountdownSecondThisSig = currentSig.Time;
+
+                        currentTempo = tempos.GetPrevious(firstCountdownSecondThisSig);
+                        if (currentTempo == null) currentTempo = tempos.Last();
+                    }
+
+                    // currentSig now reflects the final TimeSignatureChange that will occur during this countdown
+                    // Round the final countdown tick down to the nearest whole measure
+                    uint finalSigTotalMeasures = currentSig.GetMeasureCount(noteTwo.Tick, SyncTrack) - currentSig.GetMeasureCount(firstCountdownTickThisSig, SyncTrack);
+                    finalSigTotalMeasures = WaitCountdown.NormalizeMeasures(finalSigTotalMeasures, currentSig);
+                    countdownTotalMeasures += finalSigTotalMeasures;
+                    
+                    // Prevent showing countdowns < 4 measures at low BPMs
+                    if (countdownTotalMeasures >= WaitCountdown.MIN_MEASURES)
+                    {
+                        if (finalSigTotalMeasures > 0)
+                        {
+                            uint ticksPerMeasure = WaitCountdown.GetPerNormalizedMeasure(currentSig.GetTicksPerMeasure(SyncTrack), currentSig);
+                            double secondsPerMeasure = WaitCountdown.GetPerNormalizedMeasure(currentSig.GetSecondsPerMeasure(currentTempo), currentSig);
+
+                            measuresByTimeSignature.Add(new CountdownTimeSig(firstCountdownTickThisSig, firstCountdownSecondThisSig, finalSigTotalMeasures, ticksPerMeasure, secondsPerMeasure));
+                        }
+
+                        // Create a WaitCountdown instance to reference at runtime
+                        var newCountdown = new WaitCountdown(measuresByTimeSignature, countdownTotalMeasures);
+                        waitCountdowns.Add(newCountdown);
+                        YargLogger.LogFormatTrace(this.GetType().Name+" created a WaitCountdown at time {0} of {1} measures and {2} seconds in length across {3} time signatures",
+                                                 newCountdown.Time, countdownTotalMeasures, newCountdown.TimeLength, measuresByTimeSignature.Count);
+                    }
+                    else
+                    {
+                        YargLogger.LogFormatTrace(this.GetType().Name+" did not create a WaitCountdown at time {0} of {1} seconds in length because it was only {2} measures long",
+                                                 noteOneTimeEnd, noteTwoTime - noteOneTimeEnd, countdownTotalMeasures);                
+                    }
+                }
+            }
+
+            return waitCountdowns;
         }
     }
 }

@@ -14,10 +14,11 @@ namespace YARG.Core.Engine
 
         public int CurrentSoloIndex;
         public int CurrentStarIndex;
+        public int CurrentWaitCountdownIndex;
 
         public bool IsSoloActive;
 
-        public uint CountdownMeasuresLeft;
+        public bool IsWaitCountdownActive;
         public bool IsStarPowerInputActive;
 
         public virtual void Reset()
@@ -34,10 +35,11 @@ namespace YARG.Core.Engine
 
             CurrentSoloIndex = 0;
             CurrentStarIndex = 0;
+            CurrentWaitCountdownIndex = 0;
 
             IsSoloActive = false;
 
-            CountdownMeasuresLeft = 0;
+            IsWaitCountdownActive = false;
 
             IsStarPowerInputActive = false;
         }
