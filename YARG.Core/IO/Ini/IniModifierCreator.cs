@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using YARG.Core.Song;
+using YARG.Core.Utility;
 
 namespace YARG.Core.IO.Ini
 {
@@ -43,10 +44,10 @@ namespace YARG.Core.IO.Ini
         {
             return type switch
             {
-                ModifierCreatorType.SortString       => new IniModifier(new SortString(reader.ExtractText(false))),
-                ModifierCreatorType.SortString_Chart => new IniModifier(new SortString(reader.ExtractText(true))),
-                ModifierCreatorType.String           => new IniModifier(reader.ExtractText(false)),
-                ModifierCreatorType.String_Chart     => new IniModifier(reader.ExtractText(true)),
+                ModifierCreatorType.SortString       => new IniModifier(new SortString(RichTextUtils.ReplaceColorNames(reader.ExtractText(false)))),
+                ModifierCreatorType.SortString_Chart => new IniModifier(new SortString(RichTextUtils.ReplaceColorNames(reader.ExtractText(true)))),
+                ModifierCreatorType.String           => new IniModifier(RichTextUtils.ReplaceColorNames(reader.ExtractText(false))),
+                ModifierCreatorType.String_Chart     => new IniModifier(RichTextUtils.ReplaceColorNames(reader.ExtractText(true))),
                 _ => CreateNumberModifier(reader.Container),
             };
         }
@@ -55,8 +56,8 @@ namespace YARG.Core.IO.Ini
         {
             return type switch
             {
-                ModifierCreatorType.SortString => new IniModifier(new SortString(Encoding.UTF8.GetString(sngContainer.Data, sngContainer.Position, length))),
-                ModifierCreatorType.String => new IniModifier(Encoding.UTF8.GetString(sngContainer.Data, sngContainer.Position, length)),
+                ModifierCreatorType.SortString => new IniModifier(new SortString(ExtractSngString(sngContainer, length))),
+                ModifierCreatorType.String => new IniModifier(ExtractSngString(sngContainer, length)),
                 _ => CreateNumberModifier(sngContainer),
             };
         }
@@ -130,6 +131,11 @@ namespace YARG.Core.IO.Ini
                 default:
                     throw new NotImplementedException();
             }
+        }
+
+        private static string ExtractSngString(YARGTextContainer<byte> sngContainer, int length)
+        {
+            return RichTextUtils.ReplaceColorNames(Encoding.UTF8.GetString(sngContainer.Data, sngContainer.Position, length));
         }
     }
 }

@@ -1,51 +1,11 @@
-using NUnit.Framework;
+﻿using NUnit.Framework;
 using YARG.Core.Utility;
 
 namespace YARG.Core.UnitTests.Utility
 {
     public class RichTextUtilsTests
     {
-        private static readonly List<(string, RichTextTags)> TEXT_TO_TAG =
-        [
-            ("align",       RichTextTags.Align),
-            ("allcaps",     RichTextTags.AllCaps),
-            ("alpha",       RichTextTags.Alpha),
-            ("b",           RichTextTags.Bold),
-            ("br",          RichTextTags.LineBreak),
-            ("color",       RichTextTags.Color),
-            ("cspace",      RichTextTags.CharSpace),
-            ("font",        RichTextTags.Font),
-            ("font-weight", RichTextTags.FontWeight),
-            ("gradient",    RichTextTags.Gradient),
-            ("i",           RichTextTags.Italics),
-            ("indent",      RichTextTags.Indent),
-            ("line-height", RichTextTags.LineHeight),
-            ("line-indent", RichTextTags.LineIndent),
-            ("link",        RichTextTags.Link),
-            ("lowercase",   RichTextTags.Lowercase),
-            ("margin",      RichTextTags.Margin),
-            ("mark",        RichTextTags.Mark),
-            ("mspace",      RichTextTags.Monospace),
-            ("noparse",     RichTextTags.NoParse),
-            ("nobr",        RichTextTags.NoBreak),
-            ("page",        RichTextTags.PageBreak),
-            ("pos",         RichTextTags.HorizontalPosition),
-            ("rotate",      RichTextTags.Rotate),
-            ("size",        RichTextTags.FontSize),
-            ("smallcaps",   RichTextTags.SmallCaps),
-            ("space",       RichTextTags.HorizontalSpace),
-            ("sprite",      RichTextTags.Sprite),
-            ("s",           RichTextTags.Strikethrough),
-            ("style",       RichTextTags.Style),
-            ("sub",         RichTextTags.Subscript),
-            ("sup",         RichTextTags.Superscript),
-            ("u",           RichTextTags.Underline),
-            ("uppercase",   RichTextTags.Uppercase),
-            ("voffset",     RichTextTags.VerticalOffset),
-            ("width",       RichTextTags.Width),
-        ];
-
-        internal static List<(string name, string hex)> COLOR_NAMES =
+        internal static (string name, string hex)[] COLOR_NAMES =
         [
             ("aqua",      "#00ffff"),
             ("black",     "#000000"),
@@ -71,16 +31,30 @@ namespace YARG.Core.UnitTests.Utility
             ("yellow",    "#ffff00"),
         ];
 
+        private static readonly (string TagText, string Test, RichTextTags Tags)[] TEXT_TO_TAG;
+
+        static RichTextUtilsTests()
+        {
+            var tags = RichTextUtils.RICH_TEXT_TAGS;
+            TEXT_TO_TAG = new (string TagText, string Test, RichTextTags Tags)[tags.Length]; 
+            for (var i = 0; i < tags.Length; i++)
+            {
+                TEXT_TO_TAG[i] = (
+                    tags[i].Text,
+                    $"Some <{tags[i].Text}=50vb>formatting</{tags[i].Text}> with trailing text",
+                    tags[i].tag
+                );
+            }
+        }
+
         [TestCase]
         public void ReplacesTags()
         {
+            const string expectedText = "Some formatting with trailing text";
             Assert.Multiple(() =>
             {
-                foreach (var (tagText, tag) in TEXT_TO_TAG)
+                foreach (var (tagText, testText, tag) in TEXT_TO_TAG)
                 {
-                    const string expectedText = "Some formatting with trailing text";
-                    string testText = $"Some <{tagText}=50vb>formatting</{tagText}> with trailing text";
-
                     string stripped = RichTextUtils.StripRichTextTags(testText, tag);
                     Assert.That(stripped, Is.EqualTo(expectedText), $"Tag '{tagText}' was not stripped!");
                 }
@@ -92,14 +66,14 @@ namespace YARG.Core.UnitTests.Utility
         public void ReplacesAllTags()
         {
             string expectedText = "";
-            string testText = "";
-            foreach (var (tagText, tag) in TEXT_TO_TAG)
+            string fullTest = "";
+            foreach (var (tagText, testText, tag) in TEXT_TO_TAG)
             {
                 expectedText += "Some formatting with trailing text\n";
-                testText += $"Some <{tagText}=50vb>formatting</{tagText}> with trailing text\n";
+                fullTest += testText;
             }
 
-            string stripped = RichTextUtils.StripRichTextTags(testText);
+            string stripped = RichTextUtils.StripRichTextTags(fullTest);
             Assert.That(stripped, Is.EqualTo(expectedText), "Some tags were not stripped!");
         }
 
