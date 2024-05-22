@@ -88,7 +88,7 @@ namespace YARG.Core.IO
             Format = (ImageFormat) components;
         }
 
-        private void Dispose(bool disposing)
+        private void _Dispose()
         {
             if (!_disposed)
             {
@@ -106,13 +106,13 @@ namespace YARG.Core.IO
 
         public void Dispose()
         {
-            Dispose(true);
+            _Dispose();
             GC.SuppressFinalize(this);
         }
 
         ~YARGImage()
         {
-            Dispose(false);
+            _Dispose();
         }
 
         [DllImport("STB2CSharp", EntryPoint = "load_image_from_memory")]
