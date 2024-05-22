@@ -142,11 +142,9 @@ namespace YARG.Core.Utility
         {
             Span<char> buffer = stackalloc char[text.Length];
             int length = 0;
-            int position = 0;
-            var span = text.AsSpan();
-            while (position < span.Length)
+            for (int position = 0, close; position < text.Length; position = close)
             {
-                if (!ParseHTMLBounds(text, position, out int open, out int close) && position == 0)
+                if (!ParseHTMLBounds(text, position, out int open, out close) && position == 0)
                 {
                     return text;
                 }
@@ -166,9 +164,8 @@ namespace YARG.Core.Utility
 
                 while (position < end)
                 {
-                    buffer[length++] = span[position++];
+                    buffer[length++] = text[position++];
                 }
-                position = close;
             }
             return new string(buffer[0..length]);
         }
@@ -180,9 +177,9 @@ namespace YARG.Core.Utility
 
             using var builder = ZString.CreateStringBuilder(notNested: true);
             var span = text.AsSpan();
-            for (int position = 0; position < span.Length;)
+            for (int position = 0, close; position < span.Length; position = close)
             {
-                if (!ParseHTMLBounds(text, position, out int open, out int close) && position == 0)
+                if (!ParseHTMLBounds(text, position, out int open, out close) && position == 0)
                 {
                     return text;
                 }
@@ -208,7 +205,6 @@ namespace YARG.Core.Utility
                 {
                     builder.Append(span[position..close]);
                 }
-                position = close;
             }
             return builder.ToString();
         }
@@ -243,9 +239,9 @@ namespace YARG.Core.Utility
         {
             using var builder = ZString.CreateStringBuilder(notNested: true);
             var span = text.AsSpan();
-            for (int position = 0; position < span.Length;)
+            for (int position = 0, close; position < span.Length; position = close)
             {
-                if (!ParseHTMLBounds(text, position, out int open, out int close) && position == 0)
+                if (!ParseHTMLBounds(text, position, out int open, out close) && position == 0)
                 {
                     return text;
                 }
@@ -276,7 +272,6 @@ namespace YARG.Core.Utility
                 {
                     builder.Append(span[position..close]);
                 }
-                position = close;
             }
             return builder.ToString();
         }
