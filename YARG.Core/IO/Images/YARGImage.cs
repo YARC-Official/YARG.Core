@@ -115,10 +115,10 @@ namespace YARG.Core.IO
             Dispose(false);
         }
 
-        [DllImport("STB2CSharp.dll", EntryPoint = "load_image_from_memory")]
+        [DllImport("STB2CSharp", EntryPoint = "load_image_from_memory")]
         private static extern unsafe IntPtr LoadNative(byte* data, int length, out int width, out int height, out int components);
 
-        [DllImport("STB2CSharp.dll", EntryPoint = "free_image")]
+        [DllImport("STB2CSharp", EntryPoint = "free_image")]
         private static extern IntPtr FreeNative(IntPtr image);
     }
 }
