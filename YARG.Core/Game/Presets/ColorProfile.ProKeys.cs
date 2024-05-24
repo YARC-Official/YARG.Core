@@ -13,11 +13,11 @@ namespace YARG.Core.Game
 
             public Color WhiteKey = Color.White;
 
-            public Color RedKey    = DefaultRed;
-            public Color YellowKey = DefaultYellow;
-            public Color BlueKey   = DefaultBlue;
-            public Color GreenKey  = DefaultGreen;
-            public Color OrangeKey = DefaultOrange;
+            public Color RedKey    = Color.FromArgb(0xFF, 0x7F, 0x0E, 0x11); // #7F0E11
+            public Color YellowKey = Color.FromArgb(0xFF, 0x7F, 0x74, 0x00); // #7F7400
+            public Color BlueKey   = Color.FromArgb(0xFF, 0x09, 0x5F, 0x7F); // #095F7F
+            public Color GreenKey  = Color.FromArgb(0xFF, 0x3C, 0x69, 0x02); // #3C6902
+            public Color OrangeKey = Color.FromArgb(0xFF, 0x7F, 0x42, 0x00); // #7F4200
 
             /// <summary>
             /// Gets the black key color for a specific group index.
