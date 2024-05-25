@@ -41,6 +41,7 @@ namespace YARG.Core.Engine.Drums.Engines
         {
             for (int i = State.NoteIndex; i < Notes.Count; i++)
             {
+                bool isFirstNoteInWindow = i == State.NoteIndex;
                 bool stopSkipping = false;
 
                 var parentNote = Notes[i];
@@ -51,7 +52,7 @@ namespace YARG.Core.Engine.Drums.Engines
                     // Miss out the back end
                     if (!IsNoteInWindow(note, out bool missed))
                     {
-                        if (missed)
+                        if (isFirstNoteInWindow && missed)
                         {
                             // If one of the notes in the chord was missed out the back end,
                             // that means all of them would miss.

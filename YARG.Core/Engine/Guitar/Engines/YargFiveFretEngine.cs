@@ -199,7 +199,7 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                 if (!IsNoteInWindow(note, out bool missed))
                 {
-                    if (missed)
+                    if (isFirstNoteInWindow && missed)
                     {
                         MissNote(note);
                         YargLogger.LogFormatTrace("Missed note (Index: {0}, Mask: {1}) at {2}", i,
