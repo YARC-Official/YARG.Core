@@ -1,10 +1,15 @@
-﻿namespace YARG.Core.Game
+﻿using YARG.Core.Game.Settings;
+
+namespace YARG.Core.Game
 {
     public partial class EnginePreset : BasePreset
     {
+        [SettingSubSection]
         public FiveFretGuitarPreset FiveFretGuitar;
-        public DrumsPreset          Drums;
-        public VocalsPreset         Vocals;
+        [SettingSubSection]
+        public DrumsPreset Drums;
+        [SettingSubSection]
+        public VocalsPreset Vocals;
 
         public EnginePreset(string name, bool defaultPreset = false) : base(name, defaultPreset)
         {

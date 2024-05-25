@@ -1,6 +1,7 @@
 using System.Drawing;
 using System.IO;
 using Newtonsoft.Json;
+using YARG.Core.Game.Settings;
 using YARG.Core.Utility;
 
 namespace YARG.Core.Game
@@ -23,10 +24,14 @@ namespace YARG.Core.Game
         [JsonIgnore]
         public int Version = COLOR_PROFILE_VERSION;
 
+        [SettingSubSection]
         public FiveFretGuitarColors FiveFretGuitar;
-        public FourLaneDrumsColors  FourLaneDrums;
-        public FiveLaneDrumsColors  FiveLaneDrums;
-        public ProKeysColors        ProKeys;
+        [SettingSubSection]
+        public FourLaneDrumsColors FourLaneDrums;
+        [SettingSubSection]
+        public FiveLaneDrumsColors FiveLaneDrums;
+        [SettingSubSection]
+        public ProKeysColors ProKeys;
 
         public ColorProfile(string name, bool defaultPreset = false) : base(name, defaultPreset)
         {

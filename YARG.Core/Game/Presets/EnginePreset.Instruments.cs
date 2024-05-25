@@ -3,6 +3,7 @@ using YARG.Core.Engine;
 using YARG.Core.Engine.Drums;
 using YARG.Core.Engine.Guitar;
 using YARG.Core.Engine.Vocals;
+using YARG.Core.Game.Settings;
 
 namespace YARG.Core.Game
 {
@@ -17,18 +18,29 @@ namespace YARG.Core.Game
         /// A preset for a hit window. This should
         /// be used within each engine preset class.
         /// </summary>
-        public struct HitWindowPreset
+        public class HitWindowPreset
         {
-            public double MaxWindow;
-            public double MinWindow;
+            // These should be ignored from the settings because they are handled separately.
+            // Everything else will only appear when "IsDynamic" is true.
+            public bool IsDynamic = false;
+            public double MaxWindow = 0.14;
+            public double MinWindow = 0.14;
 
-            public bool IsDynamic;
+            [SettingType(SettingType.Slider)]
+            [SettingRange(0.3f, 3f)]
+            public double DynamicScale = 1.0;
 
-            public double DynamicScale;
-            public double DynamicSlope;
-            public double DynamicGamma;
+            [SettingType(SettingType.Slider)]
+            [SettingRange(0f, 1f)]
+            public double DynamicSlope = 0.93;
 
-            public double FrontToBackRatio;
+            [SettingType(SettingType.Slider)]
+            [SettingRange(0.1f, 10f)]
+            public double DynamicGamma = 1.5;
+
+            [SettingType(SettingType.Slider)]
+            [SettingRange(0f, 2f)]
+            public double FrontToBackRatio = 1.0;
 
             public HitWindowSettings Create()
             {
@@ -42,14 +54,25 @@ namespace YARG.Core.Game
         /// </summary>
         public class FiveFretGuitarPreset
         {
-            public bool AntiGhosting     = true;
+            [SettingType(SettingType.Toggle)]
+            public bool AntiGhosting = true;
+
+            [SettingType(SettingType.Toggle)]
             public bool InfiniteFrontEnd = false;
 
+            [SettingType(SettingType.MillisecondInput)]
+            [SettingRange(min: 0f)]
             public double HopoLeniency = 0.08;
 
-            public double StrumLeniency      = 0.05;
+            [SettingType(SettingType.MillisecondInput)]
+            [SettingRange(min: 0f)]
+            public double StrumLeniency = 0.05;
+
+            [SettingType(SettingType.MillisecondInput)]
+            [SettingRange(min: 0f)]
             public double StrumLeniencySmall = 0.025;
 
+            [SettingType(SettingType.Special)]
             public HitWindowPreset HitWindow = new()
             {
                 MaxWindow = 0.14,
@@ -93,6 +116,7 @@ namespace YARG.Core.Game
         /// </summary>
         public class DrumsPreset
         {
+            [SettingType(SettingType.Special)]
             public HitWindowPreset HitWindow = new()
             {
                 MaxWindow = 0.14,
@@ -126,28 +150,56 @@ namespace YARG.Core.Game
         public class VocalsPreset
         {
             // Pitch window is in semitones (max. difference between correct pitch and sung pitch).
+
+            [SettingType(SettingType.Slider)]
+            [SettingRange(0f, 3f)]
             public float PitchWindowE = 1.7f;
+
+            [SettingType(SettingType.Slider)]
+            [SettingRange(0f, 3f)]
             public float PitchWindowM = 1.4f;
+
+            [SettingType(SettingType.Slider)]
+            [SettingRange(0f, 3f)]
             public float PitchWindowH = 1.1f;
+
+            [SettingType(SettingType.Slider)]
+            [SettingRange(0f, 3f)]
             public float PitchWindowX = 0.8f;
 
             /// <summary>
             /// The perfect pitch window is equal to the pitch window times the perfect pitch percent,
             /// for all difficulties.
             /// </summary>
+            [SettingType(SettingType.Slider)]
+            [SettingRange(0f, 1f)]
             public float PerfectPitchPercent = 0.6f;
 
             // These percentages may seem low, but accounting for delay,
             // plosives not being detected, etc., it's pretty good.
+
+            [SettingType(SettingType.Slider)]
+            [SettingRange(0f, 1f)]
             public float HitPercentE = 0.325f;
+
+            [SettingType(SettingType.Slider)]
+            [SettingRange(0f, 1f)]
             public float HitPercentM = 0.400f;
+
+            [SettingType(SettingType.Slider)]
+            [SettingRange(0f, 1f)]
             public float HitPercentH = 0.450f;
+
+            [SettingType(SettingType.Slider)]
+            [SettingRange(0f, 1f)]
             public float HitPercentX = 0.575f;
 
             /// <summary>
             /// The hit window of percussion notes.
             /// </summary>
-            public float PercussionHitWindow = 0.16f;
+            [SettingType(SettingType.MillisecondInput)]
+            [SettingRange(min: 0f)]
+            public double PercussionHitWindow = 0.16;
 
             public VocalsPreset Copy()
             {
