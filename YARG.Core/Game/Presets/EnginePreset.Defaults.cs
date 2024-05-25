@@ -29,9 +29,12 @@ namespace YARG.Core.Game
                 StrumLeniencySmall = 0.02,
                 HitWindow =
                 {
-                    MaxWindow = 0.13,
+                    MaxWindow = 0.12,
                     MinWindow = 0.04,
                     IsDynamic = true,
+                    DynamicScale = 1,
+                    DynamicSlope = 0.93,
+                    DynamicGamma = 1.5,
                 }
             },
             Drums =
@@ -39,8 +42,11 @@ namespace YARG.Core.Game
                 HitWindow =
                 {
                     MaxWindow = 0.13,
-                    MinWindow = 0.04,
+                    MinWindow = 0.05,
                     IsDynamic = true,
+                    DynamicScale = 1,
+                    DynamicSlope = 0.60615,
+                    DynamicGamma = 2
                 }
             },
             Vocals =

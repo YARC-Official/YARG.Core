@@ -20,16 +20,23 @@ namespace YARG.Core.Engine
         /// The maximum window size. If the hit window is not dynamic, this value will be used.
         /// </summary>
         public double MaxWindow { get; private set; }
+
         /// <summary>
         /// The minimum window size. This value will only be used if the window is dynamic.
         /// </summary>
         public double MinWindow { get; private set; }
 
         /// <summary>
-        /// Whether or not the hit window size can change over time.
+        /// Whether the hit window size can change over time.
         /// This is usually done by looking at the time in between notes.
         /// </summary>
         public bool IsDynamic { get; private set; }
+
+        public double DynamicWindowSlope { get; private set; }
+
+        public double DynamicWindowScale { get; private set; }
+
+        public double DynamicWindowGamma { get; private set; }
 
         /// <summary>
         /// The front to back ratio of the hit window.
@@ -42,7 +49,8 @@ namespace YARG.Core.Engine
         {
         }
 
-        public HitWindowSettings(double maxWindow, double minWindow, double frontToBackRatio, bool isDynamic)
+        public HitWindowSettings(double maxWindow, double minWindow, double frontToBackRatio, bool isDynamic,
+            double dwSlope, double dwScale, double dwGamma)
         {
             // Swap max and min if necessary to ensure that max is always larger than min
             if (maxWindow < minWindow)
@@ -54,7 +62,11 @@ namespace YARG.Core.Engine
             MaxWindow = maxWindow;
             MinWindow = minWindow;
             FrontToBackRatio = frontToBackRatio;
+
             IsDynamic = isDynamic;
+            DynamicWindowSlope = Math.Clamp(dwSlope, 0, 1);
+            DynamicWindowScale = Math.Clamp(dwScale, 0.3, 3);
+            DynamicWindowGamma = Math.Clamp(dwGamma, 0.1, 10);
 
             _minMaxWindowRatio = MinWindow / MaxWindow;
         }
@@ -101,7 +113,7 @@ namespace YARG.Core.Engine
                 return MaxWindow;
             }
 
-            return Third_Yarg_Impl(averageTimeDistance);
+            return Dark_Yarg_Impl(averageTimeDistance);
         }
 
         private double Original_Yarg_Impl(double averageTimeDistance)
@@ -145,6 +157,32 @@ namespace YARG.Core.Engine
             static double Curve(double x)
             {
                 return 0.2 * x + Math.Sqrt(17 * x);
+            }
+        }
+
+        private double Dark_Yarg_Impl(double averageTimeDistance)
+        {
+            averageTimeDistance *= 1000;
+
+            double realSize = Curve(averageTimeDistance);
+
+            realSize /= 1000;
+
+            return Math.Clamp(realSize, MinWindow, MaxWindow);
+
+            double Curve(double x)
+            {
+                double minWindowMillis = MinWindow * 1000;
+                double maxWindowMillis = MaxWindow * 1000;
+
+                double maxMultiScale = maxWindowMillis * DynamicWindowScale;
+
+                double gammaPow = Math.Pow(x / maxMultiScale, DynamicWindowGamma);
+
+                double minMultiSlope = minWindowMillis * DynamicWindowSlope;
+                double result = gammaPow * (maxWindowMillis - minMultiSlope) + minMultiSlope;
+
+                return result;
             }
         }
 

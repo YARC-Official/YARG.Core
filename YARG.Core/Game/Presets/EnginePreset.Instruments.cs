@@ -24,11 +24,16 @@ namespace YARG.Core.Game
 
             public bool IsDynamic;
 
+            public double DynamicScale;
+            public double DynamicSlope;
+            public double DynamicGamma;
+
             public double FrontToBackRatio;
 
             public HitWindowSettings Create()
             {
-                return new HitWindowSettings(MaxWindow, MinWindow, FrontToBackRatio, IsDynamic);
+                return new HitWindowSettings(MaxWindow, MinWindow, FrontToBackRatio, IsDynamic,
+                    DynamicSlope, DynamicScale, DynamicGamma);
             }
         }
 
@@ -115,7 +120,6 @@ namespace YARG.Core.Game
             }
         }
 
-
         /// <summary>
         /// The engine preset for vocals/harmonies.
         /// </summary>
@@ -171,11 +175,11 @@ namespace YARG.Core.Game
                     Difficulty.Medium => (PitchWindowM, HitPercentM),
                     Difficulty.Hard   => (PitchWindowH, HitPercentH),
                     Difficulty.Expert => (PitchWindowX, HitPercentX),
-                    _ => throw new InvalidOperationException("Unreachable")
+                    _                 => throw new InvalidOperationException("Unreachable")
                 };
 
                 var hitWindow = new HitWindowSettings(
-                    PercussionHitWindow, PercussionHitWindow, 1, false);
+                    PercussionHitWindow, PercussionHitWindow, 1, false, 0, 0, 0);
 
                 return new VocalsEngineParameters(
                     hitWindow,
