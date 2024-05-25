@@ -1,4 +1,5 @@
-﻿using YARG.Core.Chart;
+﻿using System;
+using YARG.Core.Chart;
 using YARG.Core.Input;
 using YARG.Core.Logging;
 
@@ -133,8 +134,27 @@ namespace YARG.Core.Engine.ProKeys.Engines
 
                                 if (!State.ChordStaggerTimer.IsActive)
                                 {
-                                    YargLogger.LogFormatDebug("Starting chord staggering at {0}", State.CurrentTime);
                                     StartTimer(ref State.ChordStaggerTimer, State.CurrentTime);
+                                    YargLogger.LogFormatDebug("Starting chord staggering at {0}. End time is {1}", State.CurrentTime, State.ChordStaggerTimer.EndTime);
+
+                                    var chordStaggerEndTime = State.ChordStaggerTimer.EndTime;
+
+                                    double hitWindow =
+                                        EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
+                                    double backend = EngineParameters.HitWindow.GetBackEnd(hitWindow);
+
+                                    double noteMissTime = note.Time + backend;
+
+                                    // Time has surpassed the back end of this note
+                                    if (chordStaggerEndTime > noteMissTime)
+                                    {
+                                        double diff = noteMissTime - chordStaggerEndTime;
+                                        StartTimer(ref State.ChordStaggerTimer, State.CurrentTime - Math.Abs(diff));
+
+                                        YargLogger.LogFormatDebug(
+                                            "Chord stagger window shortened by {0}. New end time is {1}. Note backend time is {2}",
+                                            diff, State.ChordStaggerTimer.EndTime, noteMissTime);
+                                    }
                                 }
 
                                 State.KeyHit = null;
