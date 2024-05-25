@@ -13,6 +13,14 @@
         /// </summary>
         public int? KeyReleased;
 
+        public EngineTimer ChordStaggerTimer;
+
+        public void Initialize(ProKeysEngineParameters parameters)
+        {
+            //ChordStaggerTimer = new(parameters.ChordStaggerWindow);
+            ChordStaggerTimer = new(0.05);
+        }
+
         public override void Reset()
         {
             base.Reset();

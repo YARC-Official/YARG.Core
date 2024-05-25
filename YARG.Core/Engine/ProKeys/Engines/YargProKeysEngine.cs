@@ -60,6 +60,22 @@ namespace YARG.Core.Engine.ProKeys.Engines
             // For pro-keys, each note in the chord are treated separately
             foreach (var note in parentNote.ChordEnumerator())
             {
+                if (parentNote.IsChord && State.ChordStaggerTimer.IsActive && State.ChordStaggerTimer.IsExpired(State.CurrentTime))
+                {
+                    // Miss notes as it was not hit within the chord stagger window
+                    foreach (var missedNote in parentNote.ChordEnumerator())
+                    {
+                        if (!missedNote.WasHit)
+                        {
+                            YargLogger.LogFormatDebug("Missing note {0} due to chord stagger window", missedNote.Key);
+                            MissNote(missedNote);
+                        }
+                    }
+
+                    State.ChordStaggerTimer.Disable();
+                    break;
+                }
+
                 // Miss out the back end
                 if (!IsNoteInWindow(note, out bool missed))
                 {

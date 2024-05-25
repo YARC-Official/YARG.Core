@@ -13,6 +13,22 @@ namespace YARG.Core.Engine.ProKeys
             ProKeysEngineParameters engineParameters, bool isBot)
             : base(chart, syncTrack, engineParameters, true, isBot)
         {
+            State.Initialize(engineParameters);
+        }
+
+        protected override void GenerateQueuedUpdates(double nextTime)
+        {
+            base.GenerateQueuedUpdates(nextTime);
+            var previousTime = State.CurrentTime;
+
+            if (State.ChordStaggerTimer.IsActive)
+            {
+                if (IsTimeBetween(State.ChordStaggerTimer.EndTime, previousTime, nextTime))
+                {
+                    YargLogger.LogFormatTrace("Queuing chord stagger end time at {0}", State.ChordStaggerTimer.EndTime);
+                    QueueUpdateTime(State.ChordStaggerTimer.EndTime, "Chord Stagger End");
+                }
+            }
         }
 
         public override void Reset(bool keepCurrentButtons = false)
@@ -98,12 +114,21 @@ namespace YARG.Core.Engine.ProKeys
             // Chords only count as one note hit
             if (note.ParentOrSelf.WasFullyHit())
             {
-                EngineStats.Combo++;
-            }
+                State.ChordStaggerTimer.Disable();
 
-            if (EngineStats.Combo > EngineStats.MaxCombo)
+                EngineStats.Combo++;
+
+                if (EngineStats.Combo > EngineStats.MaxCombo)
+                {
+                    EngineStats.MaxCombo = EngineStats.Combo;
+                }
+            }
+            else
             {
-                EngineStats.MaxCombo = EngineStats.Combo;
+                if (note.ParentOrSelf.IsChord && !State.ChordStaggerTimer.IsActive)
+                {
+                    StartTimer(ref State.ChordStaggerTimer, State.CurrentTime);
+                }
             }
 
             EngineStats.NotesHit++;
