@@ -7,7 +7,10 @@ namespace YARG.Core.Engine.ProKeys
     public abstract class ProKeysEngine : BaseEngine<ProKeysNote, ProKeysEngineParameters,
         ProKeysStats, ProKeysEngineState>
     {
-        public delegate void OverhitEvent();
+        public delegate void KeyStateChangeEvent(int key, bool isPressed);
+        public delegate void OverhitEvent(int key);
+
+        public KeyStateChangeEvent? OnKeyStateChange;
 
         public OverhitEvent? OnOverhit;
 
@@ -45,7 +48,7 @@ namespace YARG.Core.Engine.ProKeys
             }
         }
 
-        protected virtual void Overhit()
+        protected virtual void Overhit(int key)
         {
             // Can't overstrum before first note is hit/missed
             if (State.NoteIndex == 0)
@@ -75,7 +78,7 @@ namespace YARG.Core.Engine.ProKeys
 
             UpdateMultiplier();
 
-            OnOverhit?.Invoke();
+            OnOverhit?.Invoke(key);
         }
 
         protected override void HitNote(ProKeysNote note)
@@ -190,6 +193,11 @@ namespace YARG.Core.Engine.ProKeys
             }
 
             return score;
+        }
+
+        protected void ToggleKey(int key, bool active)
+        {
+            State.KeyMask = active ? State.KeyMask | (1 << key) : State.KeyMask & ~(1 << key);
         }
     }
 }

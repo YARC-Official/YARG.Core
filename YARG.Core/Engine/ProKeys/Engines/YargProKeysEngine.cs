@@ -23,15 +23,27 @@ namespace YARG.Core.Engine.ProKeys.Engines
             {
                 // TODO
             }
-            else if (gameInput.Button)
+            else
             {
-                State.KeyHit = (int) action;
-                State.KeyMask |= 1 << (int) action;
-            }
-            else if (!gameInput.Button)
-            {
-                State.KeyReleased = (int) action;
-                State.KeyMask &= ~(1 << (int) action);
+                if (gameInput.Button)
+                {
+                    State.KeyHit = (int) action;
+                }
+                else
+                {
+                    State.KeyReleased = (int) action;
+                }
+
+                if (State.NoteIndex < Notes.Count)
+                {
+                    var note = Notes[State.NoteIndex];
+
+                    bool noteInWindow = IsNoteInWindow(note);
+
+                    ToggleKey((int) action, gameInput.Button && noteInWindow);
+                }
+
+                OnKeyStateChange?.Invoke((int) action, gameInput.Button);
             }
         }
 
@@ -87,42 +99,46 @@ namespace YARG.Core.Engine.ProKeys.Engines
                 {
                     // Note cannot be hit in full, try to use chord staggering logic
 
-                    // Note is a chord and chord staggering was active and is now expired
                     if (parentNote.IsChord)
                     {
-                        if (State.ChordStaggerTimer.IsActive)
+                        // Note is a chord and chord staggering was active and is now expired
+                        if (State.ChordStaggerTimer.IsActive && State.ChordStaggerTimer.IsExpired(State.CurrentTime))
                         {
-                            if (State.ChordStaggerTimer.IsExpired(State.CurrentTime))
+                            YargLogger.LogFormatDebug("Ending chord staggering at {0}", State.CurrentTime);
+                            foreach (var note in parentNote.ChordEnumerator())
                             {
-                                YargLogger.LogFormatDebug("Ending chord staggering at {0}", State.CurrentTime);
-                                foreach (var note in parentNote.ChordEnumerator())
+                                // This key in the chord was held by the time chord staggering ended, so it can be hit
+                                if ((State.KeyMask & note.NoteMask) == note.DisjointMask)
                                 {
-                                    // This key in the chord was held by the time chord staggering ended, so it can be hit
-                                    if ((State.KeyMask & note.NoteMask) == note.DisjointMask)
-                                    {
-                                        HitNote(note);
-                                        YargLogger.LogFormatDebug("Hit staggered note {0} in chord", note.Key);
-                                    }
-                                    else
-                                    {
-                                        YargLogger.LogFormatDebug("Missing note {0} due to chord staggering", note.Key);
-                                        MissNote(note);
-                                    }
+                                    HitNote(note);
+                                    YargLogger.LogFormatDebug("Hit staggered note {0} in chord", note.Key);
                                 }
-
-                                State.ChordStaggerTimer.Disable();
+                                else
+                                {
+                                    YargLogger.LogFormatDebug("Missing note {0} due to chord staggering", note.Key);
+                                    MissNote(note);
+                                }
                             }
+
+                            State.ChordStaggerTimer.Disable();
                         }
                         else
                         {
                             foreach (var note in parentNote.ChordEnumerator())
                             {
-                                if ((State.KeyMask & note.NoteMask) == note.DisjointMask)
+                                if (State.KeyHit != note.Key)
+                                {
+                                    continue;
+                                }
+
+                                if (!State.ChordStaggerTimer.IsActive)
                                 {
                                     YargLogger.LogFormatDebug("Starting chord staggering at {0}", State.CurrentTime);
                                     StartTimer(ref State.ChordStaggerTimer, State.CurrentTime);
-                                    break;
                                 }
+
+                                State.KeyHit = null;
+                                break;
                             }
                         }
                     }
@@ -132,7 +148,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
             // If no note was hit but the user hit a key, then over hit
             if (State.KeyHit != null)
             {
-                Overhit();
+                Overhit(State.KeyHit.Value);
                 State.KeyHit = null;
             }
         }
