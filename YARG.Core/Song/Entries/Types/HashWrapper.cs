@@ -14,7 +14,6 @@ namespace YARG.Core.Song
         public const int HASH_SIZE_IN_INTS = HASH_SIZE_IN_BYTES / sizeof(int);
 
         private fixed int _hash[HASH_SIZE_IN_INTS];
-        private int _hashcode;
 
         public byte[] HashBytes
         {
@@ -41,11 +40,6 @@ namespace YARG.Core.Song
             {
                 throw new EndOfStreamException();
             }
-
-            for (int i = 0; i < HASH_SIZE_IN_INTS; i++)
-            {
-                wrapper._hashcode ^= wrapper._hash[i];
-            }
             return wrapper;
         }
 
@@ -59,11 +53,6 @@ namespace YARG.Core.Song
             {
                 throw new Exception("fucking how??? Hash generation error");
             }
-
-            for (int i = 0; i < HASH_SIZE_IN_INTS; i++)
-            {
-                wrapper._hashcode ^= wrapper._hash[i];
-            }
             return wrapper;
         }
 
@@ -74,11 +63,6 @@ namespace YARG.Core.Song
             for (var i = 0; i < HASH_SIZE_IN_BYTES; i++)
             {
                 bytes[i] = hash[i];
-            }
-
-            for (int i = 0; i < HASH_SIZE_IN_INTS; i++)
-            {
-                wrapper._hashcode ^= wrapper._hash[i];
             }
             return wrapper;
         }
@@ -118,7 +102,7 @@ namespace YARG.Core.Song
 
         public readonly override int GetHashCode()
         {
-            return _hashcode;
+            return _hash[0] ^ _hash[1] ^ _hash[2] ^ _hash[3];
         }
 
         public override string ToString()
