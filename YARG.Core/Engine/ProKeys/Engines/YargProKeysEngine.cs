@@ -26,12 +26,12 @@ namespace YARG.Core.Engine.ProKeys.Engines
             else if (gameInput.Button)
             {
                 State.KeyHit = (int) action;
-                State.KeyMask |= (int) action;
+                State.KeyMask |= 1 << (int) action;
             }
             else if (!gameInput.Button)
             {
                 State.KeyReleased = (int) action;
-                State.KeyMask &= ~(int) action;
+                State.KeyMask &= ~(1 << (int) action);
             }
         }
 
