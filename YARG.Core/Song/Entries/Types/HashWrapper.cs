@@ -67,7 +67,7 @@ namespace YARG.Core.Song
             return wrapper;
         }
 
-        public void Serialize(BinaryWriter writer)
+        public readonly void Serialize(BinaryWriter writer)
         {
             fixed (int* ptr = _hash)
             {
@@ -76,7 +76,7 @@ namespace YARG.Core.Song
             }
         }
 
-        public int CompareTo(HashWrapper other)
+        public readonly int CompareTo(HashWrapper other)
         {
             for (int i = 0; i < HASH_SIZE_IN_INTS; ++i)
             {
@@ -88,7 +88,7 @@ namespace YARG.Core.Song
             return 0;
         }
 
-        public bool Equals(HashWrapper other)
+        public readonly bool Equals(HashWrapper other)
         {
             for (int i = 0; i < HASH_SIZE_IN_INTS; ++i)
             {
@@ -105,7 +105,7 @@ namespace YARG.Core.Song
             return _hash[0] ^ _hash[1] ^ _hash[2] ^ _hash[3];
         }
 
-        public override string ToString()
+        public readonly override string ToString()
         {
             fixed (int* ptr = _hash)
             {
