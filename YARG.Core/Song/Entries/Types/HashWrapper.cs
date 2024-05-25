@@ -1,7 +1,6 @@
 ﻿using System;
 using System.IO;
 using System.Security.Cryptography;
-using YARG.Core.Extensions;
 
 namespace YARG.Core.Song
 {
@@ -69,10 +68,9 @@ namespace YARG.Core.Song
 
         public readonly void Serialize(BinaryWriter writer)
         {
-            fixed (int* ptr = _hash)
+            for (int i = 0; i < HASH_SIZE_IN_INTS; ++i)
             {
-                var span = new ReadOnlySpan<byte>(ptr, HASH_SIZE_IN_BYTES);
-                writer.Write(span);
+                writer.Write(_hash[i]);
             }
         }
 
@@ -102,16 +100,22 @@ namespace YARG.Core.Song
 
         public readonly override int GetHashCode()
         {
-            return _hash[0] ^ _hash[1] ^ _hash[2] ^ _hash[3];
+            int hashcode = 0;
+            for (int i = 0; i < HASH_SIZE_IN_INTS; ++i)
+            {
+                hashcode ^= _hash[i];
+            }
+            return hashcode;
         }
 
         public readonly override string ToString()
         {
-            fixed (int* ptr = _hash)
+            string str = string.Empty;
+            for (int i = 0; i < HASH_SIZE_IN_INTS; ++i)
             {
-                var span = new ReadOnlySpan<byte>(ptr, HASH_SIZE_IN_BYTES);
-                return span.ToHexString(dashes: false);
+                str += _hash[i].ToString("X8");
             }
+            return str;
         }
     }
 }
