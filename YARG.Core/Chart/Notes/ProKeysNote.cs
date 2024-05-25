@@ -3,6 +3,7 @@ namespace YARG.Core.Chart
     public class ProKeysNote : Note<ProKeysNote>
     {
         public int Key          { get; }
+        public int DisjointMask { get; }
         public int NoteMask     { get; private set; }
 
         public bool IsSustain => TickLength > 0;
@@ -21,6 +22,7 @@ namespace YARG.Core.Chart
             Key = other.Key;
 
             NoteMask = GetKeyMask(Key);
+            DisjointMask = GetKeyMask(Key);
         }
 
         public override void AddChildNote(ProKeysNote note)

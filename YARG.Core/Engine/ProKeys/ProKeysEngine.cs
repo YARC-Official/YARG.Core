@@ -7,7 +7,9 @@ namespace YARG.Core.Engine.ProKeys
     public abstract class ProKeysEngine : BaseEngine<ProKeysNote, ProKeysEngineParameters,
         ProKeysStats, ProKeysEngineState>
     {
-        public Action? OnOverhit;
+        public delegate void OverhitEvent();
+
+        public OverhitEvent? OnOverhit;
 
         protected ProKeysEngine(InstrumentDifficulty<ProKeysNote> chart, SyncTrack syncTrack,
             ProKeysEngineParameters engineParameters, bool isBot)
@@ -121,13 +123,6 @@ namespace YARG.Core.Engine.ProKeys
                 if (EngineStats.Combo > EngineStats.MaxCombo)
                 {
                     EngineStats.MaxCombo = EngineStats.Combo;
-                }
-            }
-            else
-            {
-                if (note.ParentOrSelf.IsChord && !State.ChordStaggerTimer.IsActive)
-                {
-                    StartTimer(ref State.ChordStaggerTimer, State.CurrentTime);
                 }
             }
 

@@ -57,48 +57,75 @@ namespace YARG.Core.Engine.ProKeys.Engines
         {
             var parentNote = Notes[State.NoteIndex];
 
-            // For pro-keys, each note in the chord are treated separately
-            foreach (var note in parentNote.ChordEnumerator())
+            // Miss out the back end
+            if (!IsNoteInWindow(parentNote, out bool missed))
             {
-                if (parentNote.IsChord && State.ChordStaggerTimer.IsActive && State.ChordStaggerTimer.IsExpired(State.CurrentTime))
+                if (missed)
                 {
-                    // Miss notes as it was not hit within the chord stagger window
+                    // If one of the notes in the chord was missed out the back end,
+                    // that means all of them would miss.
                     foreach (var missedNote in parentNote.ChordEnumerator())
                     {
-                        if (!missedNote.WasHit)
-                        {
-                            YargLogger.LogFormatDebug("Missing note {0} due to chord stagger window", missedNote.Key);
-                            MissNote(missedNote);
-                        }
+                        MissNote(missedNote);
                     }
-
-                    State.ChordStaggerTimer.Disable();
-                    break;
                 }
-
-                // Miss out the back end
-                if (!IsNoteInWindow(note, out bool missed))
-                {
-                    if (missed)
-                    {
-                        // If one of the notes in the chord was missed out the back end,
-                        // that means all of them would miss.
-                        foreach (var missedNote in parentNote.ChordEnumerator())
-                        {
-                            MissNote(missedNote);
-                        }
-                    }
-
-                    break;
-                }
-
+            }
+            else
+            {
                 // Hit note
-                if (CanNoteBeHit(note))
+                if (CanNoteBeHit(parentNote))
                 {
-                    HitNote(note);
-                    State.KeyHit = null;
+                    YargLogger.LogDebug("Can hit whole note");
+                    foreach (var childNote in parentNote.ChordEnumerator())
+                    {
+                        HitNote(childNote);
+                    }
 
-                    break;
+                    State.KeyHit = null;
+                }
+                else
+                {
+                    // Note cannot be hit in full, try to use chord staggering logic
+
+                    // Note is a chord and chord staggering was active and is now expired
+                    if (parentNote.IsChord)
+                    {
+                        if (State.ChordStaggerTimer.IsActive)
+                        {
+                            if (State.ChordStaggerTimer.IsExpired(State.CurrentTime))
+                            {
+                                YargLogger.LogFormatDebug("Ending chord staggering at {0}", State.CurrentTime);
+                                foreach (var note in parentNote.ChordEnumerator())
+                                {
+                                    // This key in the chord was held by the time chord staggering ended, so it can be hit
+                                    if ((State.KeyMask & note.NoteMask) == note.DisjointMask)
+                                    {
+                                        HitNote(note);
+                                        YargLogger.LogFormatDebug("Hit staggered note {0} in chord", note.Key);
+                                    }
+                                    else
+                                    {
+                                        YargLogger.LogFormatDebug("Missing note {0} due to chord staggering", note.Key);
+                                        MissNote(note);
+                                    }
+                                }
+
+                                State.ChordStaggerTimer.Disable();
+                            }
+                        }
+                        else
+                        {
+                            foreach (var note in parentNote.ChordEnumerator())
+                            {
+                                if ((State.KeyMask & note.NoteMask) == note.DisjointMask)
+                                {
+                                    YargLogger.LogFormatDebug("Starting chord staggering at {0}", State.CurrentTime);
+                                    StartTimer(ref State.ChordStaggerTimer, State.CurrentTime);
+                                    break;
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
@@ -112,7 +139,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
 
         protected override bool CanNoteBeHit(ProKeysNote note)
         {
-            return note.Key == State.KeyHit;
+            return (State.KeyMask & note.NoteMask) == note.NoteMask;
         }
 
         protected override void UpdateBot(double time)
