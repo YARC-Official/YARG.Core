@@ -144,22 +144,19 @@ namespace YARG.Core.Utility
             int length = 0;
             for (int position = 0, close; position < text.Length; position = close)
             {
-                if (!ParseHTMLBounds(text, position, out int open, out close) && position == 0)
-                {
-                    return text;
-                }
-
                 int end;
-                // If true, then a full html attribute was found
-                if (close < text.Length)
+                if (!ParseHTMLBounds(text, position, out int open, out close))
+                {
+                    if (position == 0)
+                    {
+                        return text;
+                    }
+                    end = close = text.Length;
+                }
+                else
                 {
                     end = open;
                     ++close;
-                }
-                // Otherwise, read the entire rest of the string
-                else
-                {
-                    end = text.Length;
                 }
 
                 while (position < end)
@@ -179,16 +176,17 @@ namespace YARG.Core.Utility
             var span = text.AsSpan();
             for (int position = 0, close; position < span.Length; position = close)
             {
-                if (!ParseHTMLBounds(text, position, out int open, out close) && position == 0)
+                if (!ParseHTMLBounds(text, position, out int open, out close))
                 {
-                    return text;
+                    if (position == 0)
+                    {
+                        return text;
+                    }
+                    builder.Append(span[position..text.Length]);
+                    break;
                 }
 
-                if (close < text.Length)
-                {
-                    ++close;
-                }
-
+                ++close;
                 bool found = false;
                 var tag = span[open..close];
                 foreach (var tagText in tags)
@@ -241,15 +239,16 @@ namespace YARG.Core.Utility
             var span = text.AsSpan();
             for (int position = 0, close; position < span.Length; position = close)
             {
-                if (!ParseHTMLBounds(text, position, out int open, out close) && position == 0)
+                if (!ParseHTMLBounds(text, position, out int open, out close))
                 {
-                    return text;
+                    if (position == 0)
+                    {
+                        return text;
+                    }
+                    builder.Append(span[position..text.Length]);
+                    break;
                 }
-
-                if (close < text.Length)
-                {
-                    ++close;
-                }
+                ++close;
 
                 bool found = false;
                 var tag = span[open..close];
