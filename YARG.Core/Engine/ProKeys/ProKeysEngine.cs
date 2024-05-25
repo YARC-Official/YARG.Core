@@ -95,7 +95,11 @@ namespace YARG.Core.Engine.ProKeys
                 EndSolo();
             }
 
-            EngineStats.Combo++;
+            // Chords only count as one note hit
+            if (note.ParentOrSelf.WasFullyHit())
+            {
+                EngineStats.Combo++;
+            }
 
             if (EngineStats.Combo > EngineStats.MaxCombo)
             {
