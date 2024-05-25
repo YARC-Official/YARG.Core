@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Cysharp.Text;
+using System;
 using System.Globalization;
 using System.Text;
 using YARG.Core.Utility;
@@ -17,13 +18,13 @@ namespace YARG.Core.Song
 
         public readonly string Str;
         public readonly string SortStr;
-        public readonly int Length;
         public readonly int HashCode;
+
+        public int Length => Str.Length;
 
         public SortString(string str)
         {
-            Str = RichTextUtils.ReplaceColorNames(str);
-            Length = Str.Length;
+            Str = str;
             SortStr = RemoveDiacritics(RichTextUtils.StripRichTextTags(str));
             HashCode = SortStr.GetHashCode();
         }
@@ -64,8 +65,8 @@ namespace YARG.Core.Song
             }
 
             var normalizedString = text.ToLowerInvariant().Normalize(NormalizationForm.FormD);
-            var stringBuilder = new StringBuilder(capacity: normalizedString.Length);
-
+            using var stringBuilder = ZString.CreateStringBuilder();
+            stringBuilder.TryGrow(normalizedString.Length);
             foreach (char c in normalizedString)
             {
                 var unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(c);
