@@ -35,6 +35,8 @@ namespace YARG.Core.Engine.ProKeys.Engines
                     State.KeyReleased = (int) action;
                 }
 
+                ToggleKey((int) action, gameInput.Button);
+
                 if (State.NoteIndex < Notes.Count)
                 {
                     var note = Notes[State.NoteIndex];
