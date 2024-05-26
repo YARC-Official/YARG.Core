@@ -38,14 +38,12 @@ namespace YARG.Core.Engine.ProKeys
 
         public override void Reset(bool keepCurrentButtons = false)
         {
-            var keys = State.KeyMask;
+            // Never retain keys held in Pro Keys because otherwise you get infinite front end
+            State.KeyMask = 0;
+            State.KeyHit = null;
+            State.KeyReleased = null;
 
             base.Reset(keepCurrentButtons);
-
-            if (keepCurrentButtons)
-            {
-                State.KeyMask = keys;
-            }
         }
 
         protected virtual void Overhit(int key)
