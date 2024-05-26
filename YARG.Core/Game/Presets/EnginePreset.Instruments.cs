@@ -2,6 +2,7 @@
 using YARG.Core.Engine;
 using YARG.Core.Engine.Drums;
 using YARG.Core.Engine.Guitar;
+using YARG.Core.Engine.ProKeys;
 using YARG.Core.Engine.Vocals;
 using YARG.Core.Game.Settings;
 
@@ -22,7 +23,7 @@ namespace YARG.Core.Game
         {
             // These should be ignored from the settings because they are handled separately.
             // Everything else will only appear when "IsDynamic" is true.
-            public bool IsDynamic = false;
+            public bool   IsDynamic = false;
             public double MaxWindow = 0.14;
             public double MinWindow = 0.14;
 
@@ -46,6 +47,22 @@ namespace YARG.Core.Game
             {
                 return new HitWindowSettings(MaxWindow, MinWindow, FrontToBackRatio, IsDynamic,
                     DynamicSlope, DynamicScale, DynamicGamma);
+            }
+
+            public HitWindowPreset Copy()
+            {
+                return new HitWindowPreset
+                {
+                    IsDynamic = IsDynamic,
+                    MaxWindow = MaxWindow,
+                    MinWindow = MinWindow,
+
+                    DynamicScale = DynamicScale,
+                    DynamicSlope = DynamicSlope,
+                    DynamicGamma = DynamicGamma,
+
+                    FrontToBackRatio = FrontToBackRatio
+                };
             }
         }
 
@@ -90,7 +107,7 @@ namespace YARG.Core.Game
                     HopoLeniency = HopoLeniency,
                     StrumLeniency = StrumLeniency,
                     StrumLeniencySmall = StrumLeniencySmall,
-                    HitWindow = HitWindow,
+                    HitWindow = HitWindow.Copy(),
                 };
             }
 
@@ -129,7 +146,7 @@ namespace YARG.Core.Game
             {
                 return new DrumsPreset
                 {
-                    HitWindow = HitWindow
+                    HitWindow = HitWindow.Copy()
                 };
             }
 
@@ -242,6 +259,50 @@ namespace YARG.Core.Game
                     hitPercent,
                     updatesPerSecond,
                     true);
+            }
+        }
+
+        /// <summary>
+        /// The engine preset for pro keys.
+        /// </summary>
+        public class ProKeysPreset
+        {
+            [SettingType(SettingType.MillisecondInput)]
+            [SettingRange(min: 0f)]
+            public double ChordStaggerWindow = 0.05;
+
+            [SettingType(SettingType.MillisecondInput)]
+            [SettingRange(min: 0f)]
+            public double FatFingerWindow = 0.05;
+
+            [SettingType(SettingType.Special)]
+            public HitWindowPreset HitWindow = new()
+            {
+                MaxWindow = 0.14,
+                MinWindow = 0.14,
+                IsDynamic = false,
+                FrontToBackRatio = 1.0
+            };
+
+            public ProKeysPreset Copy()
+            {
+                return new ProKeysPreset
+                {
+                    ChordStaggerWindow = ChordStaggerWindow,
+                    FatFingerWindow = FatFingerWindow,
+                    HitWindow = HitWindow.Copy(),
+                };
+            }
+
+            public ProKeysEngineParameters Create(float[] starMultiplierThresholds)
+            {
+                var hitWindow = HitWindow.Create();
+                return new ProKeysEngineParameters(
+                    hitWindow,
+                    DEFAULT_MAX_MULTIPLIER,
+                    starMultiplierThresholds,
+                    ChordStaggerWindow,
+                    FatFingerWindow);
             }
         }
     }

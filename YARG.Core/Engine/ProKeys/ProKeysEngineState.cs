@@ -17,8 +17,8 @@
 
         public void Initialize(ProKeysEngineParameters parameters)
         {
-            //ChordStaggerTimer = new(parameters.ChordStaggerWindow);
-            ChordStaggerTimer = new(0.05);
+            ChordStaggerTimer = new(parameters.ChordStaggerWindow);
+            // FatFingerTimer = new(parameters.FatFingerWindow);
         }
 
         public override void Reset()
