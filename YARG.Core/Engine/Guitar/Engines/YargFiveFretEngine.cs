@@ -136,6 +136,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 State.HasFretted = false;
                 State.IsFretPress = false;
                 State.HasWhammied = false;
+                UpdateSustains();
                 return;
             }
 
