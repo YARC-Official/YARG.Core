@@ -99,6 +99,8 @@ namespace YARG.Core.Engine.ProKeys
 
             note.SetHitState(true, false);
 
+            ToggleKey(note.Key, false);
+
             // Detect if the last note(s) were skipped
             // bool skipped = SkipPreviousNotes(note);
 
@@ -156,6 +158,8 @@ namespace YARG.Core.Engine.ProKeys
             }
 
             note.SetMissState(true, false);
+
+            ToggleKey(note.Key, false);
 
             if (note.IsStarPower)
             {
