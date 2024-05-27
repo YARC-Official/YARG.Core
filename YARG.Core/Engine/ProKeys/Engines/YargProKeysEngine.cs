@@ -211,7 +211,21 @@ namespace YARG.Core.Engine.ProKeys.Engines
             if (State.KeyHit != null)
             {
                 var inWindow = IsNoteInWindow(parentNote);
-                var isAdjacent = ProKeysUtilities.IsAdjacentKey(parentNote.Key, State.KeyHit.Value);
+
+                ProKeysNote? adjacentNote = null;
+                bool isAdjacent = false;
+                foreach (var note in parentNote.ChordEnumerator())
+                {
+                    if (!ProKeysUtilities.IsAdjacentKey(note.Key, State.KeyHit.Value))
+                    {
+                        continue;
+                    }
+
+                    isAdjacent = true;
+                    adjacentNote = note;
+                    break;
+                }
+
                 var isFatFingerActive = State.FatFingerTimer.IsActive;
 
                 if (!inWindow || !isAdjacent || isFatFingerActive)
@@ -229,8 +243,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                     StartTimer(ref State.FatFingerTimer, State.CurrentTime);
                     State.FatFingerKey = State.KeyHit.Value;
 
-                    // TODO Make this work with chords (check for child notes)
-                    State.FatFingerNote = parentNote;
+                    State.FatFingerNote = adjacentNote;
 
                     YargLogger.LogFormatDebug("Hit adjacent key {0} Starting fat finger timer at {1}. End time: {2}. Key is {3}", State.FatFingerKey, State.CurrentTime,
                         State.FatFingerTimer.EndTime, State.FatFingerKey);
