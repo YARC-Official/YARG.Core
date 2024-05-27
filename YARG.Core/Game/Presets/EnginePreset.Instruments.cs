@@ -273,7 +273,7 @@ namespace YARG.Core.Game
 
             [SettingType(SettingType.MillisecondInput)]
             [SettingRange(min: 0f)]
-            public double FatFingerWindow = 0.05;
+            public double FatFingerWindow = 0.1;
 
             [SettingType(SettingType.Special)]
             public HitWindowPreset HitWindow = new()
