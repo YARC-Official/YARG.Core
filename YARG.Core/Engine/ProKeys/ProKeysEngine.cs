@@ -34,6 +34,15 @@ namespace YARG.Core.Engine.ProKeys
                     QueueUpdateTime(State.ChordStaggerTimer.EndTime, "Chord Stagger End");
                 }
             }
+
+            if (State.FatFingerTimer.IsActive)
+            {
+                if (IsTimeBetween(State.FatFingerTimer.EndTime, previousTime, nextTime))
+                {
+                    YargLogger.LogFormatTrace("Queuing fat finger end time at {0}", State.FatFingerTimer.EndTime);
+                    QueueUpdateTime(State.FatFingerTimer.EndTime, "Fat Finger End");
+                }
+            }
         }
 
         public override void Reset(bool keepCurrentButtons = false)

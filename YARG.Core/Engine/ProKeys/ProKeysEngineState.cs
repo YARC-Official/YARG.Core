@@ -1,4 +1,6 @@
-﻿namespace YARG.Core.Engine.ProKeys
+﻿using YARG.Core.Chart;
+
+namespace YARG.Core.Engine.ProKeys
 {
     public class ProKeysEngineState : BaseEngineState
     {
@@ -13,12 +15,17 @@
         /// </summary>
         public int? KeyReleased;
 
+        public int? FatFingerKey;
+
         public EngineTimer ChordStaggerTimer;
+        public EngineTimer FatFingerTimer;
+
+        public ProKeysNote? FatFingerNote;
 
         public void Initialize(ProKeysEngineParameters parameters)
         {
             ChordStaggerTimer = new(parameters.ChordStaggerWindow);
-            // FatFingerTimer = new(parameters.FatFingerWindow);
+            FatFingerTimer = new(parameters.FatFingerWindow);
         }
 
         public override void Reset()
@@ -29,6 +36,13 @@
 
             KeyHit = null;
             KeyReleased = null;
+
+            FatFingerKey = null;
+
+            ChordStaggerTimer.Disable();
+            FatFingerTimer.Disable();
+
+            FatFingerNote = null;
         }
     }
 }
