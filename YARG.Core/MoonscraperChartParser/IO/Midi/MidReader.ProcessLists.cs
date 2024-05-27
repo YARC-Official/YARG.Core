@@ -751,7 +751,7 @@ namespace MoonscraperChartEditor.Song.IO
                 },
             };
 
-            for (int key = MidIOHelper.PRO_KEYS_RANGE_START; key < MidIOHelper.PRO_KEYS_RANGE_END; key++)
+            for (int key = MidIOHelper.PRO_KEYS_RANGE_START; key <= MidIOHelper.PRO_KEYS_RANGE_END; key++)
             {
                 int fret = key - MidIOHelper.PRO_KEYS_RANGE_START;
 
