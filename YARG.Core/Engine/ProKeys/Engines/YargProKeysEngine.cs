@@ -274,7 +274,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
 
             foreach (var chordNote in note.ChordEnumerator())
             {
-                State.KeyHit = chordNote.Key;
+                MutateStateWithInput(new GameInput(note.Time, chordNote.Key, true));
                 CheckForNoteHit();
             }
         }
