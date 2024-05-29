@@ -691,8 +691,10 @@ namespace YARG.Core.Song
 
         private void TracksLoop(YARGDTAReader reader)
         {
-            var crowd = _rbMetadata.Indices.Crowd;
-            _rbMetadata.Indices = default;
+            _rbMetadata.Indices = new()
+            {
+                Crowd = _rbMetadata.Indices.Crowd
+            };
             while (reader.StartNode())
             {
                 while (reader.StartNode())
@@ -709,7 +711,6 @@ namespace YARG.Core.Song
                 }
                 reader.EndNode();
             }
-            _rbMetadata.Indices.Crowd = crowd;
         }
 
         private static readonly int[] BandDiffMap = { 163, 215, 243, 267, 292, 345 };
