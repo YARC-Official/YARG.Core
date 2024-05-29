@@ -171,9 +171,15 @@ namespace YARG.Core.Engine.Vocals
             }
         }
 
+        /// <remarks>
+        /// Because this method is called in the constructor of
+        /// <see cref="BaseEngine{TNoteType,TEngineParams,TEngineStats,TEngineState}"/>,
+        /// it must use the value in EngineParameters instead of the property
+        /// POINTS_PER_PHRASE as it is not yet set.
+        /// </remarks>
         protected sealed override int CalculateBaseScore()
         {
-            return Notes.Where(note => note.ChildNotes.Count > 0).Sum(_ => POINTS_PER_PHRASE);
+            return Notes.Where(note => note.ChildNotes.Count > 0).Sum(_ => EngineParameters.PointsPerPhrase);
         }
     }
 }
