@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Linq;
 using YARG.Core.Chart;
+using YARG.Core.Logging;
 
 namespace YARG.Core.Engine.Vocals
 {
     public abstract class VocalsEngine :
         BaseEngine<VocalNote, VocalsEngineParameters, VocalsStats, VocalsEngineState>
     {
-        protected const int POINTS_PER_PHRASE = 2000;
+        protected int POINTS_PER_PHRASE;
 
         public delegate void TargetNoteChangeEvent(VocalNote targetNote);
 
@@ -21,6 +22,7 @@ namespace YARG.Core.Engine.Vocals
             VocalsEngineParameters engineParameters)
             : base(chart, syncTrack, engineParameters, false)
         {
+            POINTS_PER_PHRASE = engineParameters.PointsPerPhrase;
         }
 
         protected override bool HitNote(VocalNote note)

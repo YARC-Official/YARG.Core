@@ -19,17 +19,20 @@ namespace YARG.Core.Engine.Vocals
         /// </summary>
         public bool SingToActivateStarPower { get; private set; }
 
+        public int PointsPerPhrase { get; private set; }
+
         public VocalsEngineParameters()
         {
         }
 
         public VocalsEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, float[] starMultiplierThresholds,
-            double phraseHitPercent, bool singToActivateStarPower, double approximateVocalFps)
+            double phraseHitPercent, bool singToActivateStarPower, double approximateVocalFps, int pointsPerPhrase)
             : base(hitWindow, maxMultiplier, starMultiplierThresholds)
         {
             PhraseHitPercent = phraseHitPercent;
             ApproximateVocalFps = approximateVocalFps;
             SingToActivateStarPower = singToActivateStarPower;
+            PointsPerPhrase = pointsPerPhrase;
         }
 
         public override void Serialize(BinaryWriter writer)
