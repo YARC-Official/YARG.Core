@@ -46,6 +46,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                     ToggleKey((int) action, gameInput.Button && noteInWindow);
                 }
 
+                State.KeyHeldMaskVisual = gameInput.Button ? State.KeyHeldMaskVisual | 1 << (int) action : State.KeyHeldMaskVisual & ~(1 << (int) action);
                 OnKeyStateChange?.Invoke((int) action, gameInput.Button);
             }
         }
@@ -270,6 +271,17 @@ namespace YARG.Core.Engine.ProKeys.Engines
             if (time < note.Time)
             {
                 return;
+            }
+
+            int key = 0;
+            for (var mask = State.KeyHeldMaskVisual; mask > 0; mask >>= 1)
+            {
+                if ((mask & 1) == 1 && (note.NoteMask & 1 << key) == 0)
+                {
+                    MutateStateWithInput(new GameInput(note.Time, key, false));
+                }
+
+                key++;
             }
 
             foreach (var chordNote in note.ChordEnumerator())

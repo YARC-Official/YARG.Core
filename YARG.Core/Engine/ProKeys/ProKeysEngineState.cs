@@ -4,7 +4,11 @@ namespace YARG.Core.Engine.ProKeys
 {
     public class ProKeysEngineState : BaseEngineState
     {
+        // Used for hit logic. May not be the same value as KeyHeldMask
         public int KeyMask;
+
+        // Used only for visuals (like displaying the key press)
+        public int KeyHeldMaskVisual;
 
         /// <summary>
         /// The integer value for the key that was hit this update. <c>null</c> is none.
