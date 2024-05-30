@@ -20,10 +20,42 @@ namespace YARG.Core.Chart
     public abstract class Note<TNote> : ChartEvent, ICloneable<TNote>
         where TNote : Note<TNote>
     {
+        public struct AllNotesEnumerator
+        {
+            private readonly TNote _note;
+            private int _index;
+
+            public AllNotesEnumerator(TNote note)
+            {
+                _note = note;
+                _index = -1;
+            }
+
+            public TNote Current => _index == 0
+                ? _note
+                : _note.ChildNotes[_index - 1];
+
+            public bool MoveNext()
+            {
+                _index++;
+                return _index <= _note.ChildNotes.Count;
+            }
+
+            public void Reset()
+            {
+                _index = -1;
+            }
+
+            public AllNotesEnumerator GetEnumerator()
+            {
+                return this;
+            }
+        }
+
         protected readonly List<TNote> _childNotes = new();
 
         private NoteFlags _flags;
-        public NoteFlags Flags;
+        public  NoteFlags Flags;
 
         private TNote? _originalPreviousNote;
         private TNote? _originalNextNote;
@@ -41,7 +73,7 @@ namespace YARG.Core.Chart
         public bool  IsChord      => _childNotes.Count > 0;
 
         public bool IsParent => Parent == null;
-        public bool IsChild => !IsParent;
+        public bool IsChild  => !IsParent;
 
         public bool IsStarPower      => (Flags & NoteFlags.StarPower) != 0;
         public bool IsStarPowerStart => (Flags & NoteFlags.StarPowerStart) != 0;
@@ -49,6 +81,11 @@ namespace YARG.Core.Chart
 
         public bool IsSoloStart => (Flags & NoteFlags.SoloStart) != 0;
         public bool IsSoloEnd   => (Flags & NoteFlags.SoloEnd) != 0;
+
+        /// <summary>
+        /// Returns an enumerator that contains all child notes and the parent note itself (allocation free).
+        /// </summary>
+        public AllNotesEnumerator AllNotes => new((TNote) this);
 
         public bool WasHit;
         public bool WasMissed;
