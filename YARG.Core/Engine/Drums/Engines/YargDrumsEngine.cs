@@ -47,7 +47,7 @@ namespace YARG.Core.Engine.Drums.Engines
                 var parentNote = Notes[i];
 
                 // For drums, each note in the chord are treated separately
-                foreach (var note in parentNote.ChordEnumerator())
+                foreach (var note in parentNote.AllNotes)
                 {
                     // Miss out the back end
                     if (!IsNoteInWindow(note, out bool missed))
@@ -56,7 +56,7 @@ namespace YARG.Core.Engine.Drums.Engines
                         {
                             // If one of the notes in the chord was missed out the back end,
                             // that means all of them would miss.
-                            foreach (var missedNote in parentNote.ChordEnumerator())
+                            foreach (var missedNote in parentNote.AllNotes)
                             {
                                 MissNote(missedNote);
                             }
@@ -117,7 +117,7 @@ namespace YARG.Core.Engine.Drums.Engines
             }
 
             // Each note in the "chord" is hit separately on drums
-            foreach (var chordNote in note.ChordEnumerator())
+            foreach (var chordNote in note.AllNotes)
             {
                 State.PadHit = chordNote.Pad;
                 CheckForNoteHit();

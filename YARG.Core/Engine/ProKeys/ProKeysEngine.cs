@@ -199,7 +199,7 @@ namespace YARG.Core.Engine.ProKeys
             {
                 score += POINTS_PER_PRO_NOTE * (1 + note.ChildNotes.Count);
 
-                foreach (var child in note.ChordEnumerator())
+                foreach (var child in note.AllNotes)
                 {
                     score += (int) Math.Ceiling(child.TickLength / TicksPerSustainPoint);
                 }

@@ -216,7 +216,7 @@ namespace YARG.Core.Engine.Guitar
 
             if (note.IsDisjoint)
             {
-                foreach (var chordNote in note.ChordEnumerator())
+                foreach (var chordNote in note.AllNotes)
                 {
                     if (!chordNote.IsSustain)
                     {

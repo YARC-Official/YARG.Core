@@ -114,15 +114,6 @@ namespace YARG.Core.Chart
             _childNotes.Add(note);
         }
 
-        public IEnumerable<TNote> ChordEnumerator()
-        {
-            yield return (TNote) this;
-            foreach (var child in ChildNotes)
-            {
-                yield return child;
-            }
-        }
-
         public void SetHitState(bool hit, bool includeChildren)
         {
             WasHit = hit;
