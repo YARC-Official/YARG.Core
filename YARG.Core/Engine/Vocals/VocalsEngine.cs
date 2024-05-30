@@ -7,8 +7,6 @@ namespace YARG.Core.Engine.Vocals
     public abstract class VocalsEngine :
         BaseEngine<VocalNote, VocalsEngineParameters, VocalsStats, VocalsEngineState>
     {
-        protected int POINTS_PER_PHRASE;
-
         public delegate void TargetNoteChangeEvent(VocalNote targetNote);
 
         public delegate void PhraseHitEvent(double hitPercentAfterParams, bool fullPoints);
@@ -21,7 +19,6 @@ namespace YARG.Core.Engine.Vocals
             VocalsEngineParameters engineParameters)
             : base(chart, syncTrack, engineParameters, false)
         {
-            POINTS_PER_PHRASE = engineParameters.PointsPerPhrase;
         }
 
         protected override bool HitNote(VocalNote note)
@@ -152,12 +149,12 @@ namespace YARG.Core.Engine.Vocals
 
         protected override void AddScore(VocalNote note)
         {
-            AddScore(POINTS_PER_PHRASE * EngineStats.ScoreMultiplier);
+            AddScore(EngineParameters.PointsPerPhrase * EngineStats.ScoreMultiplier);
         }
 
         protected void AddPartialScore(double hitPercent)
         {
-            int score = (int) ((double) POINTS_PER_PHRASE * EngineStats.ScoreMultiplier * hitPercent);
+            int score = (int) ((double) EngineParameters.PointsPerPhrase * EngineStats.ScoreMultiplier * hitPercent);
             AddScore(score);
         }
 
@@ -171,12 +168,6 @@ namespace YARG.Core.Engine.Vocals
             }
         }
 
-        /// <remarks>
-        /// Because this method is called in the constructor of
-        /// <see cref="BaseEngine{TNoteType,TEngineParams,TEngineStats,TEngineState}"/>,
-        /// it must use the value in EngineParameters instead of the property
-        /// POINTS_PER_PHRASE as it is not yet set.
-        /// </remarks>
         protected sealed override int CalculateBaseScore()
         {
             return Notes.Where(note => note.ChildNotes.Count > 0).Sum(_ => EngineParameters.PointsPerPhrase);
