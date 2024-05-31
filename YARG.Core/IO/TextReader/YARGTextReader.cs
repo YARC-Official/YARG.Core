@@ -61,16 +61,23 @@ namespace YARG.Core.IO
             while (container.Position < container.Length)
             {
                 char ch = container.Data[container.Position].ToChar(null);
-                if (ch <= 32)
+                if (ch > 32 || ch == '\n')
                 {
-                    if (ch == '\n')
-                        return ch;
-                }
-                else if (ch != '=')
                     return ch;
+                }
                 ++container.Position;
             }
             return (char) 0;
+        }
+
+        public static void SkipWhitespaceAndEquals<TChar>(ref YARGTextContainer<TChar> container)
+            where TChar : unmanaged, IConvertible
+        {
+            if (SkipWhitespace(ref container) == '=')
+            {
+                ++container.Position;
+                SkipWhitespace(ref container);
+            }
         }
 
         public static void GotoNextLine<TChar>(ref YARGTextContainer<TChar> container)
@@ -131,7 +138,7 @@ namespace YARG.Core.IO
 
             string name = decoder(container.Data, container.Position, curr - container.Position);
             container.Position = curr;
-            SkipWhitespace(ref container);
+            SkipWhitespaceAndEquals(ref container);
             return name;
         }
 

@@ -179,8 +179,12 @@ namespace YARG.Core.IO
                 return false;
             }
 
-            ev.Position = YARGTextReader.ExtractInt64(ref container);
-            ev.Type = ChartEventType.Unknown;
+            if (!container.TryExtractInt64(out long position))
+            {
+                throw new Exception("Could not parse event position");
+            }
+            ev.Position = position;
+            YARGTextReader.SkipWhitespaceAndEquals(ref container);
 
             var curr = container.Position;
             while (curr < container.Length)
@@ -195,6 +199,7 @@ namespace YARG.Core.IO
 
             var span = new ReadOnlySpan<TChar>(container.Data, container.Position, curr - container.Position);
             container.Position = curr;
+            ev.Type = ChartEventType.Unknown;
             foreach (var combo in EVENTS)
             {
                 if (span.Length != combo.Descriptor.Length)
