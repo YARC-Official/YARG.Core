@@ -408,7 +408,7 @@ namespace YARG.Core.Song.Cache
 
         private Dictionary<string, List<YARGDTAReader>>? FindUpdateNodes(string directory, AbridgedFileInfo dta)
         {
-            if (YARGDTAReader.TryCreate(dta.FullName, out var reader))
+            if (!YARGDTAReader.TryCreate(dta.FullName, out var reader))
             {
                 return null;
             }
