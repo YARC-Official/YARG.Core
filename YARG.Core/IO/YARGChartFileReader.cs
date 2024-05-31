@@ -40,7 +40,7 @@ namespace YARG.Core.IO
         public ChartEventType Type;
         public long Position
         {
-            get { return _position; }
+            readonly get { return _position; }
             set
             {
                 if (_position <= value)
@@ -49,12 +49,6 @@ namespace YARG.Core.IO
                     throw new Exception($".chart position out of order (previous: {_position})");
             }
         }
-    }
-
-    public struct DotChartNote
-    {
-        public int Lane;
-        public long Duration;
     }
 
     public static class YARGChartFileReader

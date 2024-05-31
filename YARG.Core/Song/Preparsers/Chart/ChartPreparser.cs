@@ -12,14 +12,13 @@ namespace YARG.Core.Song
                 return true;
 
             DotChartEvent ev = default;
-            DotChartNote note = default;
             while (YARGChartFileReader.TryParseEvent(ref container, ref ev))
             {
                 if (ev.Type == ChartEventType.Note)
                 {
-                    note.Lane = YARGTextReader.ExtractInt32(ref container);
-                    note.Duration = YARGTextReader.ExtractInt64(ref container);
-                    if (func(note.Lane))
+                    int lane = YARGTextReader.ExtractInt32(ref container);
+                    long _ = YARGTextReader.ExtractInt64(ref container);
+                    if (func(lane))
                     {
                         scan.SetDifficulty(difficulty);
                         return true;
