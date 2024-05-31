@@ -35,20 +35,8 @@ namespace YARG.Core.IO
 
     public struct DotChartEvent
     {
-        private long _position;
-
+        public long Position;
         public ChartEventType Type;
-        public long Position
-        {
-            readonly get { return _position; }
-            set
-            {
-                if (_position <= value)
-                    _position = value;
-                else
-                    throw new Exception($".chart position out of order (previous: {_position})");
-            }
-        }
     }
 
     public static class YARGChartFileReader
@@ -182,6 +170,11 @@ namespace YARG.Core.IO
             if (!container.TryExtractInt64(out long position))
             {
                 throw new Exception("Could not parse event position");
+            }
+
+            if (position < ev.Position)
+            {
+                throw new Exception($".chart position out of order (previous: {ev.Position})");
             }
             ev.Position = position;
             YARGTextReader.SkipWhitespaceAndEquals(ref container);
