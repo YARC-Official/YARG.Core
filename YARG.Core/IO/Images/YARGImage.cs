@@ -14,11 +14,9 @@ namespace YARG.Core.IO
         DXT5,
     }
 
-    public class YARGImage : IDisposable
+    public unsafe class YARGImage : IDisposable
     {
-        public readonly IntPtr Data;
-        public readonly int Length;
-
+        public readonly byte* Data;
         public readonly int Width;
         public readonly int Height;
         public readonly ImageFormat Format;
@@ -47,10 +45,10 @@ namespace YARG.Core.IO
             return Load(arr);
         }
 
-        private static unsafe YARGImage? Load(FixedArray<byte> file)
+        private static YARGImage? Load(FixedArray<byte> file)
         {
             var result = LoadNative(file.Ptr, file.Length, out int width, out int height, out int components);
-            if (result == IntPtr.Zero)
+            if (result == null)
             {
                 return null;
             }
@@ -60,14 +58,7 @@ namespace YARG.Core.IO
         public unsafe YARGImage(byte[] bytes)
         {
             Handle = GCHandle.Alloc(bytes, GCHandleType.Pinned);
-            Data = Handle.AddrOfPinnedObject() + 32;
-            Length = bytes.Length - 32;
-
-            var ptr = (byte*) Data;
-            for (int i = 0; i < Length; i += 2)
-            {
-                (ptr[i + 1], ptr[i]) = (ptr[i], ptr[i + 1]);
-            }
+            Data = (byte*)Handle.AddrOfPinnedObject() + 32;
 
             Width = BinaryPrimitives.ReadInt16LittleEndian(bytes[7..9]);
             Height = BinaryPrimitives.ReadInt16LittleEndian(bytes[9..11]);
@@ -78,11 +69,9 @@ namespace YARG.Core.IO
             Format = isDXT1 ? ImageFormat.DXT1 : ImageFormat.DXT5;
         }
 
-        private YARGImage(IntPtr data, int width, int height, int components)
+        private YARGImage(byte* data, int width, int height, int components)
         {
             Data = data;
-            Length = width * height * components;
-
             Width = width;
             Height = height;
             Format = (ImageFormat) components;
@@ -116,9 +105,9 @@ namespace YARG.Core.IO
         }
 
         [DllImport("STB2CSharp", EntryPoint = "load_image_from_memory")]
-        private static extern unsafe IntPtr LoadNative(byte* data, int length, out int width, out int height, out int components);
+        private static extern byte* LoadNative(byte* data, int length, out int width, out int height, out int components);
 
         [DllImport("STB2CSharp", EntryPoint = "free_image")]
-        private static extern IntPtr FreeNative(IntPtr image);
+        private static extern void FreeNative(byte* image);
     }
 }
