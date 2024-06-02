@@ -29,7 +29,10 @@ namespace YARG.Core.Logging
         {
             _logBuilder = ZString.CreateStringBuilder();
 
-            var logOutputterThread = new Thread(LogOutputter);
+            var logOutputterThread = new Thread(LogOutputter)
+            {
+                Name = "YargLogger Thread",
+            };
             logOutputterThread.Start();
         }
 
@@ -87,7 +90,7 @@ namespace YARG.Core.Logging
                 }
             }
 
-            foreach(var listener in Listeners)
+            foreach (var listener in Listeners)
             {
                 listener.Dispose();
             }
@@ -138,7 +141,7 @@ namespace YARG.Core.Logging
             item.Time = DateTime.Now;
 
             // Lock while enqueuing. This prevents the log outputter from processing the queue while we're adding to it
-            lock(LogQueue)
+            lock (LogQueue)
             {
                 LogQueue.Enqueue(item);
             }
