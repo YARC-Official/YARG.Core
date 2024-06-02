@@ -169,6 +169,15 @@ namespace YARG.Core.Game
                     Difficulty.Expert => HitPercentX,
                     _ => throw new InvalidOperationException("Unreachable")
                 };
+
+                int pointsPerPhrase = difficulty switch
+                {
+                    Difficulty.Easy   => 400,
+                    Difficulty.Medium => 800,
+                    Difficulty.Hard   => 1600,
+                    Difficulty.Expert => 2000,
+                    _ => throw new InvalidOperationException("Unreachable")
+                };
                 var hitWindow = new HitWindowSettings(windowSize, 0.03, 1, false);
                 return new VocalsEngineParameters(
                     hitWindow, 
@@ -176,7 +185,8 @@ namespace YARG.Core.Game
                     starMultiplierThresholds, 
                     hitPercent, 
                     true, 
-                    updatesPerSecond);
+                    updatesPerSecond,
+                    pointsPerPhrase);
             }
         }
     }

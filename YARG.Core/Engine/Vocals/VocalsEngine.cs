@@ -7,8 +7,6 @@ namespace YARG.Core.Engine.Vocals
     public abstract class VocalsEngine :
         BaseEngine<VocalNote, VocalsEngineParameters, VocalsStats, VocalsEngineState>
     {
-        protected const int POINTS_PER_PHRASE = 2000;
-
         public delegate void TargetNoteChangeEvent(VocalNote targetNote);
 
         public delegate void PhraseHitEvent(double hitPercentAfterParams, bool fullPoints);
@@ -151,12 +149,12 @@ namespace YARG.Core.Engine.Vocals
 
         protected override void AddScore(VocalNote note)
         {
-            AddScore(POINTS_PER_PHRASE * EngineStats.ScoreMultiplier);
+            AddScore(EngineParameters.PointsPerPhrase * EngineStats.ScoreMultiplier);
         }
 
         protected void AddPartialScore(double hitPercent)
         {
-            int score = (int) ((double) POINTS_PER_PHRASE * EngineStats.ScoreMultiplier * hitPercent);
+            int score = (int) ((double) EngineParameters.PointsPerPhrase * EngineStats.ScoreMultiplier * hitPercent);
             AddScore(score);
         }
 
@@ -172,7 +170,7 @@ namespace YARG.Core.Engine.Vocals
 
         protected sealed override int CalculateBaseScore()
         {
-            return Notes.Where(note => note.ChildNotes.Count > 0).Sum(_ => POINTS_PER_PHRASE);
+            return Notes.Where(note => note.ChildNotes.Count > 0).Sum(_ => EngineParameters.PointsPerPhrase);
         }
     }
 }
