@@ -6,17 +6,15 @@ namespace YARG.Core.IO
     public static class YARGTextReader
     {
         private static readonly UTF32Encoding UTF32BE = new(true, false);
-        public static bool TryLoadByteText(byte[] data, out YARGTextContainer<byte> container)
+        public static YARGTextContainer<byte>? TryLoadByteText(byte[] data)
         {
             if ((data[0] == 0xFF && data[1] == 0xFE) || (data[0] == 0xFE && data[1] == 0xFF))
             {
-                container = default;
-                return false;
+                return null;
             }
 
             int position = data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF ? 3 : 0;
-            container = Init(data, position);
-            return true;
+            return Init(data, position);
         }
 
         public static YARGTextContainer<char> LoadCharText(byte[] data)

@@ -178,11 +178,12 @@ namespace YARG.Core.Song
             var parts = AvailableParts.Default;
             if (chartType == ChartType.Chart)
             {
-                if (YARGTextReader.TryLoadByteText(file, out var byteContainer))
+                var byteContainer = YARGTextReader.TryLoadByteText(file);
+                if (byteContainer.HasValue)
                 {
                     unsafe
                     {
-                        ParseDotChart(ref byteContainer, &StringDecoder.Decode, modifiers, ref parts, drums);
+                        ParseDotChart(byteContainer.Value, &StringDecoder.Decode, modifiers, ref parts, drums);
                     }
                 }
                 else
@@ -190,7 +191,7 @@ namespace YARG.Core.Song
                     unsafe
                     {
                         var charContainer = YARGTextReader.LoadCharText(file);
-                        ParseDotChart(ref charContainer, &StringDecoder.Decode, modifiers, ref parts, drums);
+                        ParseDotChart(charContainer, &StringDecoder.Decode, modifiers, ref parts, drums);
                     }
                 }
             }
@@ -214,7 +215,7 @@ namespace YARG.Core.Song
             return (ScanResult.Success, parts);
         }
 
-        private static unsafe void ParseDotChart<TChar>(ref YARGTextContainer<TChar> reader, delegate*<TChar[], int, int, string> decoder, IniSection modifiers, ref AvailableParts parts, DrumPreparseHandler drums)
+        private static unsafe void ParseDotChart<TChar>(YARGTextContainer<TChar> reader, delegate*<TChar[], int, int, string> decoder, IniSection modifiers, ref AvailableParts parts, DrumPreparseHandler drums)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {
             if (YARGChartFileReader.ValidateTrack(ref reader, YARGChartFileReader.HEADERTRACK))

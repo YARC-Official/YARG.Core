@@ -12,18 +12,19 @@ namespace YARG.Core.IO.Ini
             try
             {
                 byte[] bytes = File.ReadAllBytes(iniFile);
-                if (YARGTextReader.TryLoadByteText(bytes, out var byteContainer))
+                var byteContainer = YARGTextReader.TryLoadByteText(bytes);
+                if (byteContainer.HasValue)
                 {
                     unsafe
                     {
-                        return ProcessIni(ref byteContainer, &StringDecoder.Decode, sections);
+                        return ProcessIni(byteContainer.Value, &StringDecoder.Decode, sections);
                     }
                 }
 
                 var charContainer = YARGTextReader.LoadCharText(bytes);
                 unsafe
                 {
-                    return ProcessIni(ref charContainer, &StringDecoder.Decode, sections);
+                    return ProcessIni(charContainer, &StringDecoder.Decode, sections);
                 }
 
             }
@@ -34,7 +35,7 @@ namespace YARG.Core.IO.Ini
             }
         }
 
-        private static unsafe Dictionary<string, IniSection> ProcessIni<TChar>(ref YARGTextContainer<TChar> container, delegate*<TChar[], int, int, string> decoder, Dictionary<string, Dictionary<string, IniModifierCreator>> sections)
+        private static unsafe Dictionary<string, IniSection> ProcessIni<TChar>(YARGTextContainer<TChar> container, delegate*<TChar[], int, int, string> decoder, Dictionary<string, Dictionary<string, IniModifierCreator>> sections)
             where TChar : unmanaged, IConvertible
         {
             Dictionary<string, IniSection> modifierMap = new();
