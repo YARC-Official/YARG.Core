@@ -25,7 +25,7 @@ namespace YARG.Core.Song
         public SortString(string str)
         {
             Str = str;
-            SortStr = RemoveDiacritics(RichTextUtils.StripRichTextTags(str));
+            SortStr = RemoveUnwantedWhitespace(RemoveDiacritics(RichTextUtils.StripRichTextTags(str)));
             HashCode = SortStr.GetHashCode();
         }
 
@@ -79,6 +79,39 @@ namespace YARG.Core.Song
             return stringBuilder
                 .ToString()
                 .Normalize(NormalizationForm.FormC);
+        }
+
+        public static unsafe string RemoveUnwantedWhitespace(string arg)
+        {
+            var buffer = stackalloc char[arg.Length];
+            int length = 0;
+            int index = 0;
+            while (index < arg.Length)
+            {
+                char curr = arg[index++];
+                if (curr > 32 || (length > 0 && buffer[length - 1] > 32))
+                {
+                    if (curr > 32)
+                    {
+                        buffer[length++] = curr;
+                    }
+                    else
+                    {
+                        while (index < arg.Length && arg[index] <= 32)
+                        {
+                            index++;
+                        }
+
+                        if (index == arg.Length)
+                        {
+                            break;
+                        }
+
+                        buffer[length++] = ' ';
+                    }
+                }
+            }
+            return length == arg.Length ? arg : new string(buffer, 0, length);
         }
     }
 }
