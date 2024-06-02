@@ -691,7 +691,10 @@ namespace YARG.Core.Song
 
         private void TracksLoop(YARGDTAReader reader)
         {
-            _rbMetadata.Indices = default;
+            _rbMetadata.Indices = new()
+            {
+                Crowd = _rbMetadata.Indices.Crowd
+            };
             while (reader.StartNode())
             {
                 while (reader.StartNode())

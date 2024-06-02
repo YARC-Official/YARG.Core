@@ -178,7 +178,7 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        protected override void SortEntries(InstrumentCategory[] instruments)
+        protected override void SortEntries()
         {
             Parallel.ForEach(cache.Entries, node =>
             {
@@ -195,9 +195,7 @@ namespace YARG.Core.Song.Cache
                     CategorySorter<string,     ArtistAlbumConfig>.Add(entry, cache.ArtistAlbums);
                     CategorySorter<string,     SongLengthConfig>. Add(entry, cache.SongLengths);
                     CategorySorter<DateTime,   DateAddedConfig>.  Add(entry, cache.DatesAdded);
-
-                    foreach (var instrument in instruments)
-                        instrument.Add(entry);
+                    InstrumentSorter.                             Add(entry, cache.Instruments);
                 }
             });
         }

@@ -41,8 +41,8 @@ namespace YARG.Core.Audio
                 if (mixer.Channels.Count > 0)
                 {
                     double previewEndTime;
-                    if ((entry.PreviewStartSeconds < 0 || entry.PreviewStartSeconds >= previewLength)
-                    &&  (entry.PreviewEndSeconds < 0   || entry.PreviewEndSeconds >= previewLength))
+                    if ((entry.PreviewStartMilliseconds < 0 || entry.PreviewStartSeconds >= previewLength)
+                    &&  (entry.PreviewEndMilliseconds <= 0  || entry.PreviewEndSeconds > previewLength))
                     {
                         if (DEFAULT_END_TIME <= previewLength)
                         {

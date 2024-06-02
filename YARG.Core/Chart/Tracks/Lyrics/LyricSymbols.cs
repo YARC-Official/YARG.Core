@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -222,7 +222,7 @@ namespace YARG.Core.Chart
 
         public static string StripForLyrics(string lyric)
         {
-            lyric = RichTextUtils.StripRichTextTagsExcept(lyric, LYRICS_ALLOWED_TAGS);
+            lyric = RichTextUtils.StripRichTextTags(lyric, ~LYRICS_ALLOWED_TAGS);
             lyric = RichTextUtils.ReplaceColorNames(lyric);
 
             var lyricBuffer = new StringBuilder();

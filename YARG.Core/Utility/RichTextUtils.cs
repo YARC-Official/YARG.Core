@@ -1,10 +1,6 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Text;
-using System.Text.RegularExpressions;
 using Cysharp.Text;
-using YARG.Core.Extensions;
 
 namespace YARG.Core.Utility
 {
@@ -101,157 +97,219 @@ namespace YARG.Core.Utility
 
     public static class RichTextUtils
     {
-        internal static readonly string[] RICH_TEXT_TAGS =
+        static RichTextUtils() { }
+        public static readonly (string Text, RichTextTags tag)[] RICH_TEXT_TAGS =
         {
-            "align", "allcaps", "alpha", "b", "br", "color", "cspace", "font", "font-weight", "gradient", "i",
-            "indent", "line-height", "line-indent", "link", "lowercase", "margin", "mark", "mspace", "noparse",
-            "nobr", "page", "pos", "rotate", "size", "smallcaps", "space", "sprite", "s", "style", "sub", "sup",
-            "u", "uppercase", "voffset", "width",
+            ( "align",       RichTextTags.Align),
+            ( "allcaps",     RichTextTags.AllCaps),
+            ( "alpha",       RichTextTags.Alpha),
+            ( "b",           RichTextTags.Bold),
+            ( "br",          RichTextTags.LineBreak),
+            ( "color",       RichTextTags.Color),
+            ( "cspace",      RichTextTags.CharSpace),
+            ( "font",        RichTextTags.Font),
+            ( "font-weight", RichTextTags.FontWeight),
+            ( "gradient",    RichTextTags.Gradient),
+            ( "i",           RichTextTags.Italics),
+            ( "indent",      RichTextTags.Indent),
+            ( "line-height", RichTextTags.LineHeight),
+            ( "line-indent", RichTextTags.LineIndent),
+            ( "link",        RichTextTags.Link),
+            ( "lowercase",   RichTextTags.Lowercase),
+            ( "margin",      RichTextTags.Margin),
+            ( "mark",        RichTextTags.Mark),
+            ( "mspace",      RichTextTags.Monospace),
+            ( "noparse",     RichTextTags.NoParse),
+            ( "nobr",        RichTextTags.NoBreak),
+            ( "page",        RichTextTags.PageBreak),
+            ( "pos",         RichTextTags.HorizontalPosition),
+            ( "rotate",      RichTextTags.Rotate),
+            ( "size",        RichTextTags.FontSize),
+            ( "smallcaps",   RichTextTags.SmallCaps),
+            ( "space",       RichTextTags.HorizontalSpace),
+            ( "sprite",      RichTextTags.Sprite),
+            ( "s",           RichTextTags.Strikethrough),
+            ( "style",       RichTextTags.Style),
+            ( "sub",         RichTextTags.Subscript),
+            ( "sup",         RichTextTags.Superscript),
+            ( "u",           RichTextTags.Underline),
+            ( "uppercase",   RichTextTags.Uppercase),
+            ( "voffset",     RichTextTags.VerticalOffset),
+            ( "width",       RichTextTags.Width),
         };
-
-        internal static Dictionary<string, string> COLOR_TO_HEX = new()
-        {
-            { "aqua",      "#00ffff" },
-            { "black",     "#000000" },
-            { "blue",      "#0000ff" },
-            { "brown",     "#a52a2a" },
-            { "cyan",      "#00ffff" },
-            { "darkblue",  "#0000a0" },
-            { "fuchsia",   "#ff00ff" },
-            { "green",     "#008000" },
-            { "grey",      "#808080" },
-            { "lightblue", "#add8e6" },
-            { "lime",      "#00ff00" },
-            { "magenta",   "#ff00ff" },
-            { "maroon",    "#800000" },
-            { "navy",      "#000080" },
-            { "olive",     "#808000" },
-            { "orange",    "#ffa500" },
-            { "purple",    "#800080" },
-            { "red",       "#ff0000" },
-            { "silver",    "#c0c0c0" },
-            { "teal",      "#008080" },
-            { "white",     "#ffffff" },
-            { "yellow",    "#ffff00" },
-        };
-
-        private static readonly ConcurrentDictionary<RichTextTags, Regex> REGEX_CACHE = new();
 
         public static string StripRichTextTags(string text)
         {
-            using var builder = ZString.CreateStringBuilder(notNested: true);
-
-            var textSpan = text.AsSpan();
-            bool tagsFound = false;
-            while (FindNextTag(textSpan, out var beforeTag, out _, out var remaining))
+            Span<char> buffer = stackalloc char[text.Length];
+            int length = 0;
+            for (int position = 0, close; position < text.Length; position = close)
             {
-                textSpan = remaining;
-                tagsFound = true;
-                builder.Append(beforeTag);
+                int end;
+                if (!ParseHTMLBounds(text, position, out int open, out close))
+                {
+                    if (position == 0)
+                    {
+                        return text;
+                    }
+                    end = close = text.Length;
+                }
+                else
+                {
+                    end = open;
+                    ++close;
+                }
+
+                while (position < end)
+                {
+                    buffer[length++] = text[position++];
+                }
             }
+            return new string(buffer[0..length]);
+        }
 
-            // Return unmodified if no modifications were made
-            if (!tagsFound)
-                return text;
+        private static readonly Dictionary<RichTextTags, string[]> STRIP_CACHE = new();
+        public static string StripRichTextTags(string text, RichTextTags excludeTags)
+        {
+            string[] tags = GetStripList(excludeTags);
 
-            builder.Append(textSpan);
+            using var builder = ZString.CreateStringBuilder(notNested: true);
+            var span = text.AsSpan();
+            for (int position = 0, close; position < span.Length; position = close)
+            {
+                if (!ParseHTMLBounds(text, position, out int open, out close))
+                {
+                    if (position == 0)
+                    {
+                        return text;
+                    }
+                    builder.Append(span[position..text.Length]);
+                    break;
+                }
+
+                ++close;
+                bool found = false;
+                var tag = span[open..close];
+                foreach (var tagText in tags)
+                {
+                    if (tag.StartsWith(tagText))
+                    {
+                        builder.Append(span[position..open]);
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found)
+                {
+                    builder.Append(span[position..close]);
+                }
+            }
             return builder.ToString();
         }
 
-        public static string StripRichTextTags(string text, RichTextTags excludeTags)
+        private static (string Original, string Replacement)[] COLOR_TO_HEX_LIST =
         {
-            if (!REGEX_CACHE.TryGetValue(excludeTags, out var regex))
-                regex = ConstructRegex(excludeTags);
-            return regex.Replace(text, "");
-        }
-
-        public static string StripRichTextTagsExcept(string text, RichTextTags keepTags)
-        {
-            return StripRichTextTags(text, ~keepTags);
-        }
-
-        private static Regex ConstructRegex(RichTextTags tags)
-        {
-            string regexFormat = @"<\/*{0}.*?>|";
-
-            var sb = new StringBuilder();
-            ulong bit;
-            for (int i = 0; i < sizeof(ulong) * 8 && (bit = 1UL << i) <= (ulong) RichTextTags.MaxBit; i++)
-            {
-                if ((tags & (RichTextTags) bit) != 0)
-                {
-                    sb.AppendFormat(regexFormat, RICH_TEXT_TAGS[i]);
-                }
-            }
-
-            if (sb.Length > 0) regexFormat = sb.Remove(sb.Length - 1, 1).ToString();
-
-            var regex = new Regex(regexFormat, RegexOptions.Compiled);
-            REGEX_CACHE[tags] = regex;
-            return regex;
-        }
+            ( "aqua>",      "<color=#00ffff>" ),
+            ( "black>",     "<color=#000000>" ),
+            ( "blue>",      "<color=#0000ff>" ),
+            ( "brown>",     "<color=#a52a2a>" ),
+            ( "cyan>",      "<color=#00ffff>" ),
+            ( "darkblue>",  "<color=#0000a0>" ),
+            ( "fuchsia>",   "<color=#ff00ff>" ),
+            ( "green>",     "<color=#008000>" ),
+            ( "grey>",      "<color=#808080>" ),
+            ( "lightblue>", "<color=#add8e6>" ),
+            ( "lime>",      "<color=#00ff00>" ),
+            ( "magenta>",   "<color=#ff00ff>" ),
+            ( "maroon>",    "<color=#800000>" ),
+            ( "navy>",      "<color=#000080>" ),
+            ( "olive>",     "<color=#808000>" ),
+            ( "orange>",    "<color=#ffa500>" ),
+            ( "purple>",    "<color=#800080>" ),
+            ( "red>",       "<color=#ff0000>" ),
+            ( "silver>",    "<color=#c0c0c0>" ),
+            ( "teal>",      "<color=#008080>" ),
+            ( "white>",     "<color=#ffffff>" ),
+            ( "yellow>",    "<color=#ffff00>" ),
+        };
 
         public static string ReplaceColorNames(string text)
         {
             using var builder = ZString.CreateStringBuilder(notNested: true);
-
-            var textSpan = text.AsSpan();
-            bool tagsFound = false;
-            while (FindNextTag(textSpan, out var beforeTag, out var tag, out var remaining))
+            var span = text.AsSpan();
+            for (int position = 0, close; position < span.Length; position = close)
             {
-                textSpan = remaining;
-                tagsFound = true;
-                builder.Append(beforeTag);
-
-                const string colorTag = "<color=";
-                if (tag.StartsWith(colorTag))
+                if (!ParseHTMLBounds(text, position, out int open, out close))
                 {
-                    var name = tag[colorTag.Length..].TrimEndOnce('>').TrimOnce('"');
-
-                    // Allocation is taken because it is significantly faster to use
-                    // a Dictionary than it is to manually enumerate each possible value
-                    if (COLOR_TO_HEX.TryGetValue(name.ToString(), out string hexCode))
+                    if (position == 0)
                     {
-                        builder.Append(colorTag);
-                        builder.Append(hexCode);
-                        builder.Append('>');
+                        return text;
+                    }
+                    builder.Append(span[position..text.Length]);
+                    break;
+                }
+                ++close;
+
+                bool found = false;
+                var tag = span[open..close];
+                if (tag.StartsWith("<color="))
+                {
+                    tag = tag[7..];
+                    foreach (var (original, replacement) in COLOR_TO_HEX_LIST)
+                    {
+                        if (tag.SequenceEqual(original))
+                        {
+                            builder.Append(span[position..open]);
+                            builder.Append(replacement);
+                            found = true;
+                            break;
+                        }
                     }
                 }
-                else
+
+                if (!found)
                 {
-                    builder.Append(tag);
+                    builder.Append(span[position..close]);
                 }
             }
-
-            // Return unmodified if no modifications were made
-            if (!tagsFound)
-                return text;
-
-            builder.Append(textSpan);
             return builder.ToString();
         }
 
-        private static bool FindNextTag(ReadOnlySpan<char> text,
-            out ReadOnlySpan<char> beforeTag, out ReadOnlySpan<char> tag, out ReadOnlySpan<char> remaining)
+        private static bool ParseHTMLBounds(string text, int position, out int open, out int close)
         {
-            beforeTag = ReadOnlySpan<char>.Empty;
-            tag = ReadOnlySpan<char>.Empty;
-            remaining = ReadOnlySpan<char>.Empty;
-
-            int tagIndex = text.IndexOf('<');
-            if (tagIndex < 0)
+            open = text.IndexOf('<', position);
+            if (open == -1)
+            {
+                close = -1;
                 return false;
+            }
 
-            beforeTag = text[..tagIndex];
-            tag = text[tagIndex..];
+            close = text.IndexOf('>', open);
+            return close != -1;
+        }
 
-            int tagCloseIndex = tag.IndexOf('>');
-            if (tagCloseIndex < 0)
-                return false;
-
-            remaining = tag[++tagCloseIndex..];
-            tag = tag[..tagCloseIndex];
-            return true;
+        private static string[] GetStripList(RichTextTags excludeTags)
+        {
+            string[] tags;
+            lock (STRIP_CACHE)
+            {
+                if (!STRIP_CACHE.TryGetValue(excludeTags, out tags))
+                {
+                    var list = new List<string>(RICH_TEXT_TAGS.Length * 3);
+                    foreach (var (tagText, tag) in RICH_TEXT_TAGS)
+                    {
+                        if ((excludeTags & tag) != 0)
+                        {
+                            // Intern saves the string to the system pool, saving on memory
+                            list.Add(string.Intern($"<{tagText}="));
+                            list.Add(string.Intern($"<{tagText}>"));
+                            list.Add(string.Intern($"</{tagText}>"));
+                        }
+                    }
+                    STRIP_CACHE.Add(excludeTags, tags = list.ToArray());
+                }
+            }
+            return tags;
         }
     }
 }
