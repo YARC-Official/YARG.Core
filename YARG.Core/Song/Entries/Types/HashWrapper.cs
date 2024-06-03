@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Globalization;
 using System.IO;
 using System.Security.Cryptography;
+using YARG.Core.Logging;
 
 namespace YARG.Core.Song
 {
@@ -62,6 +64,23 @@ namespace YARG.Core.Song
             for (var i = 0; i < HASH_SIZE_IN_BYTES; i++)
             {
                 bytes[i] = hash[i];
+            }
+            return wrapper;
+        }
+
+        public static HashWrapper FromString(ReadOnlySpan<char> str)
+        {
+            var wrapper = new HashWrapper();
+            try
+            {
+                for (int i = 0; i < HASH_SIZE_IN_BYTES; i++)
+                {
+                    wrapper._hash[i] = byte.Parse(str.Slice(i * 2, 2), NumberStyles.AllowHexSpecifier);
+                }
+            }
+            catch (Exception e)
+            {
+                YargLogger.LogException(e, "Failed to read song hash");
             }
             return wrapper;
         }
