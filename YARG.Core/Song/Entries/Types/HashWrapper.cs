@@ -55,7 +55,7 @@ namespace YARG.Core.Song
             return wrapper;
         }
 
-        public static HashWrapper Create(byte[] hash)
+        public static HashWrapper Create(ReadOnlySpan<byte> hash)
         {
             var wrapper = new HashWrapper();
             var bytes = (byte*)wrapper._hash;

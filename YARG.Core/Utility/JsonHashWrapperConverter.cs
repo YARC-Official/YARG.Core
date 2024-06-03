@@ -23,12 +23,11 @@ namespace YARG.Core.Utility
             try
             {
                 var hashString = reader.Value.ToString().AsSpan();
-                var hashBytes = new byte[HashWrapper.HASH_SIZE_IN_BYTES];
+                Span<byte> hashBytes = stackalloc byte[HashWrapper.HASH_SIZE_IN_BYTES];
 
                 for (int i = 0; i < hashBytes.Length; i++)
                 {
-                    var b = byte.Parse(hashString.Slice(i * 2, 2), NumberStyles.AllowHexSpecifier);
-                    hashBytes[i] = b;
+                    hashBytes[i] = byte.Parse(hashString.Slice(i * 2, 2), NumberStyles.AllowHexSpecifier);
                 }
 
                 return HashWrapper.Create(hashBytes);
