@@ -262,7 +262,11 @@ namespace YARG.Core.Song.Cache
                 if (dta.Exists)
                 {
                     var abridged = new AbridgedFileInfo(dta, false);
-                    CreateUpdateGroup(dirInfo, abridged, true);
+                    var reader = YARGDTAReader.TryCreate(dta.FullName);
+                    if (reader.HasValue)
+                    {
+                        CreateUpdateGroup(reader.Value, dirInfo, abridged, true);
+                    }
                     return false;
                 }
             }
@@ -272,7 +276,11 @@ namespace YARG.Core.Song.Cache
                 if (dta.Exists)
                 {
                     var abridged = new AbridgedFileInfo(dta, false);
-                    CreateUpgradeGroup(directory, abridged, true);
+                    var reader = YARGDTAReader.TryCreate(dta.FullName);
+                    if (reader.HasValue)
+                    {
+                        CreateUpgradeGroup(reader.Value, directory, abridged, true);
+                    }
                     return false;
                 }
             }
@@ -386,7 +394,11 @@ namespace YARG.Core.Song.Cache
             }
 
             var group = new PackedCONGroup(listings, info, defaultPlaylist);
-            TryParseUpgrades(info.FullName, group);
+            var reader = group.TryLoadUpgradeReader();
+            if (reader.HasValue)
+            {
+                TryParseUpgrades(reader.Value, info.FullName, group);
+            }
             AddPackedCONGroup(group);
             return true;
         }

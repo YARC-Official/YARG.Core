@@ -345,13 +345,8 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private UpgradeGroup? CreateUpgradeGroup(string directory, AbridgedFileInfo dta, bool removeEntries)
+        private UpgradeGroup? CreateUpgradeGroup(YARGDTAReader reader, string directory, AbridgedFileInfo dta, bool removeEntries)
         {
-            if (!YARGDTAReader.TryCreate(dta.FullName, out var reader))
-            {
-                return null;
-            }
-
             var group = new UpgradeGroup(directory, dta.LastUpdatedTime);
             try
             {
@@ -393,9 +388,9 @@ namespace YARG.Core.Song.Cache
             return group;
         }
 
-        private UpdateGroup? CreateUpdateGroup(DirectoryInfo dirInfo, AbridgedFileInfo dta, bool removeEntries)
+        private UpdateGroup? CreateUpdateGroup(YARGDTAReader reader, DirectoryInfo dirInfo, AbridgedFileInfo dta, bool removeEntries)
         {
-            var nodes = FindUpdateNodes(dirInfo.FullName, dta);
+            var nodes = FindUpdateNodes(reader, dirInfo.FullName, dta);
             if (nodes == null)
             {
                 return null;
@@ -406,13 +401,8 @@ namespace YARG.Core.Song.Cache
             return group;
         }
 
-        private Dictionary<string, List<YARGDTAReader>>? FindUpdateNodes(string directory, AbridgedFileInfo dta)
+        private Dictionary<string, List<YARGDTAReader>>? FindUpdateNodes(YARGDTAReader reader, string directory, AbridgedFileInfo dta)
         {
-            if (!YARGDTAReader.TryCreate(dta.FullName, out var reader))
-            {
-                return null;
-            }
-
             var nodes = new Dictionary<string, List<YARGDTAReader>>();
             try
             {
@@ -443,13 +433,8 @@ namespace YARG.Core.Song.Cache
             return nodes;
         }
 
-        private bool TryParseUpgrades(string filename, PackedCONGroup group)
+        private bool TryParseUpgrades(YARGDTAReader reader, string filename, PackedCONGroup group)
         {
-            if (!group.TryLoadUpgradeReader(out var reader))
-            {
-                return false;
-            }
-
             try
             {
                 while (reader.StartNode())

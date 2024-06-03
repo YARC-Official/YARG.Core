@@ -132,39 +132,52 @@ namespace YARG.Core.Song.Cache
             int count = reader.ReadInt32();
 
             // Functions as a "check base directory" call
-            if (GetBaseIniGroup(directory) != null)
+            if (GetBaseIniGroup(directory) == null)
             {
-                var dtaInfo = new FileInfo(Path.Combine(directory, "songs_updates.dta"));
-                if (dtaInfo.Exists)
-                {
-                    FindOrMarkDirectory(directory);
-
-                    var abridged = new AbridgedFileInfo(dtaInfo, false);
-                    var dirInfo = new DirectoryInfo(directory);
-                    var group = CreateUpdateGroup(dirInfo, abridged, false);
-                    if (group != null && abridged.LastUpdatedTime == dtaLastWritten)
-                    {
-                        for (int i = 0; i < count; i++)
-                        {
-                            string name = reader.ReadString();
-                            if (group.Updates.TryGetValue(name, out var update))
-                            {
-                                if (!update.Validate(reader))
-                                {
-                                    AddInvalidSong(name);
-                                }
-                            }
-                            else
-                            {
-                                AddInvalidSong(name);
-                                SongUpdate.SkipRead(reader);
-                            }
-                        }
-                        return;
-                    }
-                }
+                goto Invalidate;
             }
 
+            var dtaInfo = new FileInfo(Path.Combine(directory, "songs_updates.dta"));
+            if (!dtaInfo.Exists)
+            {
+                goto Invalidate;
+            }
+
+            FindOrMarkDirectory(directory);
+
+            var abridged = new AbridgedFileInfo(dtaInfo, false);
+            var dirInfo = new DirectoryInfo(directory);
+            var upgradeReader = YARGDTAReader.TryCreate(abridged.FullName);
+            if (!upgradeReader.HasValue)
+            {
+                goto Invalidate;
+            }
+
+            var group = CreateUpdateGroup(upgradeReader.Value, dirInfo, abridged, false);
+            if (group == null || abridged.LastUpdatedTime != dtaLastWritten)
+            {
+                goto Invalidate;
+            }
+
+            for (int i = 0; i < count; ++i)
+            {
+                string name = reader.ReadString();
+                if (group.Updates.TryGetValue(name, out var update))
+                {
+                    if (!update.Validate(reader))
+                    {
+                        AddInvalidSong(name);
+                    }
+                }
+                else
+                {
+                    AddInvalidSong(name);
+                    SongUpdate.SkipRead(reader);
+                }
+            }
+            return;
+
+        Invalidate:
             for (int i = 0; i < count; i++)
             {
                 AddInvalidSong(reader.ReadString());
@@ -175,33 +188,48 @@ namespace YARG.Core.Song.Cache
         protected void ReadUpgradeDirectory(BinaryReader reader)
         {
             string directory = reader.ReadString();
-            var dtaLastWrritten = DateTime.FromBinary(reader.ReadInt64());
+            var dtaLastWritten = DateTime.FromBinary(reader.ReadInt64());
             int count = reader.ReadInt32();
 
             // Functions as a "check base directory" call
-            if (GetBaseIniGroup(directory) != null)
+            if (GetBaseIniGroup(directory) == null)
             {
-                var dtaInfo = new FileInfo(Path.Combine(directory, "upgrades.dta"));
-                if (dtaInfo.Exists)
-                {
-                    FindOrMarkDirectory(directory);
-
-                    var abridged = new AbridgedFileInfo(dtaInfo, false);
-                    var group = CreateUpgradeGroup(directory, abridged, false);
-                    if (group != null && abridged.LastUpdatedTime == dtaLastWrritten)
-                    {
-                        for (int i = 0; i < count; i++)
-                        {
-                            string name = reader.ReadString();
-                            var lastUpdated = DateTime.FromBinary(reader.ReadInt64());
-                            if (!group.Upgrades.TryGetValue(name, out var upgrade) || upgrade!.LastUpdatedTime != lastUpdated)
-                                AddInvalidSong(name);
-                        }
-                        return;
-                    }
-                }
+                goto Invalidate;
             }
 
+            var dtaInfo = new FileInfo(Path.Combine(directory, "upgrades.dta"));
+            if (!dtaInfo.Exists)
+            {
+                goto Invalidate;
+            }
+
+            FindOrMarkDirectory(directory);
+
+            var abridged = new AbridgedFileInfo(dtaInfo, false);
+            var upgradeReader = YARGDTAReader.TryCreate(abridged.FullName);
+            if (!upgradeReader.HasValue)
+            {
+                goto Invalidate;
+            }
+
+            var group = CreateUpgradeGroup(upgradeReader.Value, directory, abridged, false);
+            if (group == null || abridged.LastUpdatedTime != dtaLastWritten)
+            {
+                goto Invalidate;
+            }
+
+            for (int i = 0; i < count; i++)
+            {
+                string name = reader.ReadString();
+                var lastUpdated = DateTime.FromBinary(reader.ReadInt64());
+                if (!group.Upgrades.TryGetValue(name, out var upgrade) || upgrade!.LastUpdatedTime != lastUpdated)
+                {
+                    AddInvalidSong(name);
+                }
+            }
+            return;
+
+        Invalidate:
             for (int i = 0; i < count; i++)
             {
                 AddInvalidSong(reader.ReadString());
@@ -217,35 +245,45 @@ namespace YARG.Core.Song.Cache
             int count = reader.ReadInt32();
 
             var baseGroup = GetBaseIniGroup(filename);
-            if (baseGroup != null)
+            if (baseGroup == null)
             {
-                // Make playlist as the group is only made once
-                string playlist = ConstructPlaylist(filename, baseGroup.Directory);
-                var group = CreateCONGroup(filename, playlist);
-                if (group == null)
-                {
-                    goto Invalidate;
-                }
+                goto Invalidate;
+            }
 
-                AddPackedCONGroup(group);
+            // Make playlist as the group is only made once
+            string playlist = ConstructPlaylist(filename, baseGroup.Directory);
+            var group = CreateCONGroup(filename, playlist);
+            if (group == null)
+            {
+                goto Invalidate;
+            }
 
-                if (TryParseUpgrades(filename, group) && group.UpgradeDta!.lastWrite == dtaLastWritten)
+            AddPackedCONGroup(group);
+
+            var upgradeReader = group.TryLoadUpgradeReader();
+            if (!upgradeReader.HasValue)
+            {
+                goto Invalidate;
+            }
+
+            if (!TryParseUpgrades(upgradeReader.Value, filename, group) || group.UpgradeDta!.lastWrite != dtaLastWritten)
+            {
+                goto Invalidate;
+            }
+
+            if (group.Info.LastUpdatedTime != conLastUpdated)
+            {
+                for (int i = 0; i < count; i++)
                 {
-                    if (group.Info.LastUpdatedTime != conLastUpdated)
+                    string name = reader.ReadString();
+                    var lastWrite = DateTime.FromBinary(reader.ReadInt64());
+                    if (group.Upgrades[name].LastUpdatedTime != lastWrite)
                     {
-                        for (int i = 0; i < count; i++)
-                        {
-                            string name = reader.ReadString();
-                            var lastWrite = DateTime.FromBinary(reader.ReadInt64());
-                            if (group.Upgrades[name].LastUpdatedTime != lastWrite)
-                            {
-                                AddInvalidSong(name);
-                            }
-                        }
+                        AddInvalidSong(name);
                     }
-                    return;
                 }
             }
+            return;
 
         Invalidate:
             for (int i = 0; i < count; i++)

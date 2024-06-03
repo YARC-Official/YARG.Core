@@ -77,9 +77,10 @@ namespace YARG.Core.Song.Cache
             {
                 conTasks[con++] = Task.Run(() =>
                 {
-                    if (group.TryLoadSongReader(out var reader))
+                    var reader = group.TryLoadSongReader();
+                    if (reader.HasValue)
                     {
-                        ScanCONGroup(group, reader, ScanPackedCONNode);
+                        ScanCONGroup(group, reader.Value, ScanPackedCONNode);
                     }
                     group.Stream?.Dispose();
                 }
@@ -90,9 +91,10 @@ namespace YARG.Core.Song.Cache
             {
                 conTasks[con++] = Task.Run(() =>
                 {
-                    if (group.TryLoadReader(out var reader))
+                    var reader = group.TryLoadReader();
+                    if (reader.HasValue)
                     {
-                        ScanCONGroup(group, reader, ScanUnpackedCONNode);
+                        ScanCONGroup(group, reader.Value, ScanUnpackedCONNode);
                     }
                 }
                 );

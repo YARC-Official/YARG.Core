@@ -50,26 +50,24 @@ namespace YARG.Core.Song.Cache
 
         public void AddUpgrade(string name, IRBProUpgrade upgrade) { lock (Upgrades) Upgrades[name] = upgrade; }
 
-        public bool TryLoadUpgradeReader(out YARGDTAReader reader)
+        public YARGDTAReader? TryLoadUpgradeReader()
         {
             if (UpgradeDta == null)
             {
-                reader = default;
-                return false;
+                return null;
             }
             Stream = new FileStream(Info.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
-            return YARGDTAReader.TryCreate(UpgradeDta, Stream, out reader);
+            return YARGDTAReader.TryCreate(UpgradeDta, Stream);
         }
 
-        public bool TryLoadSongReader(out YARGDTAReader reader)
+        public YARGDTAReader? TryLoadSongReader()
         {
             if (SongDTA == null)
             {
-                reader = default;
-                return false;
+                return null;
             }
             Stream ??= new FileStream(Info.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
-            return YARGDTAReader.TryCreate(SongDTA, Stream, out reader);
+            return YARGDTAReader.TryCreate(SongDTA, Stream);
         }
 
         public byte[] SerializeModifications()
