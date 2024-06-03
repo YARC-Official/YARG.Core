@@ -8,9 +8,11 @@ namespace YARG.Core.Engine.Drums
     public abstract class DrumsEngine : BaseEngine<DrumNote, DrumsEngineParameters,
         DrumsStats, DrumsEngineState>
     {
+        protected const int VELOCITY_BONUS_POINTS = 10;
+
         public delegate void OverhitEvent();
 
-        public delegate void PadHitEvent(DrumsAction action, bool noteWasHit);
+        public delegate void PadHitEvent(DrumsAction action, bool noteWasHit, float velocity);
 
         public OverhitEvent? OnOverhit;
         public PadHitEvent?  OnPadHit;
@@ -70,7 +72,7 @@ namespace YARG.Core.Engine.Drums
                 return;
             }
 
-            note.SetHitState(true, false);
+            note.SetHitState(true, State.HitVelocity, false);
 
             // Detect if the last note(s) were skipped
             bool skipped = SkipPreviousNotes(note.ParentOrSelf);
@@ -167,6 +169,12 @@ namespace YARG.Core.Engine.Drums
         protected override void AddScore(DrumNote note)
         {
             int pointsPerNote = GetPointsPerNote();
+
+            if (note.AwardVelocityBonus)
+            {
+                pointsPerNote += VELOCITY_BONUS_POINTS;
+            }
+
             AddScore(pointsPerNote * EngineStats.ScoreMultiplier);
         }
 

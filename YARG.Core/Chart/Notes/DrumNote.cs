@@ -1,9 +1,15 @@
 ﻿using System;
+using System.Xml.Schema;
+using Melanchall.DryWetMidi.Interaction;
 
 namespace YARG.Core.Chart
 {
     public class DrumNote : Note<DrumNote>
     {
+        private const float VELOCITY_THRESHOLD = 0.3f;
+        
+        // The maximum allowed time (seconds) between notes to use context-sensitive velocity scoring
+        private const float SITUATIONAL_VELOCITY_WINDOW = 3;
         private DrumNoteFlags _drumFlags;
         public DrumNoteFlags DrumFlags;
 
@@ -14,6 +20,9 @@ namespace YARG.Core.Chart
         public bool IsNeutral => Type == DrumNoteType.Neutral;
         public bool IsAccent  => Type == DrumNoteType.Accent;
         public bool IsGhost   => Type == DrumNoteType.Ghost;
+
+        public float HitVelocity = -1;
+        public bool AwardVelocityBonus;
 
         public bool IsStarPowerActivator => (DrumFlags & DrumNoteFlags.StarPowerActivator) != 0;
 
@@ -50,6 +59,40 @@ namespace YARG.Core.Chart
         {
             base.ResetNoteState();
             DrumFlags = _drumFlags;
+            HitVelocity = -1;
+            AwardVelocityBonus = false;
+        }
+
+        public void SetHitState(bool hit, float velocity, bool includeChildren)
+        {
+            HitVelocity = velocity;
+
+            if (!IsNeutral)
+            {
+                // Apply bonus points from successful ghost / accent note hits
+                
+                float velocityThreshold = VELOCITY_THRESHOLD;
+                var prevNote = PreviousNote;
+
+                if (prevNote != null && prevNote.Type != Type && 
+                    prevNote.HitVelocity != -1 &&
+                    Time - prevNote.Time <= SITUATIONAL_VELOCITY_WINDOW)
+                {
+                    //compare this note's velocity against the velocity recorded for the last note
+                    velocityThreshold = Math.Max(velocityThreshold, prevNote.HitVelocity - velocityThreshold);
+                }
+
+                if (IsGhost)
+                {
+                    AwardVelocityBonus = velocity < velocityThreshold;
+                }
+                else if (IsAccent)
+                {
+                    AwardVelocityBonus = velocity > (1 - velocityThreshold);
+                }
+            }
+            
+            SetHitState(hit, includeChildren);
         }
 
         protected override void CopyFlags(DrumNote other)

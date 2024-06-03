@@ -17,6 +17,7 @@ namespace YARG.Core.Engine.Drums.Engines
             if (gameInput.Button)
             {
                 State.PadHit = ConvertInputToPad(EngineParameters.Mode, gameInput.GetAction<DrumsAction>());
+                State.HitVelocity = gameInput.Axis;
             }
         }
 
@@ -30,7 +31,7 @@ namespace YARG.Core.Engine.Drums.Engines
             // Quit early if there are no notes left
             if (State.NoteIndex >= Notes.Count)
             {
-                State.PadHit = null;
+                ResetPadState();
                 return;
             }
 
@@ -71,7 +72,7 @@ namespace YARG.Core.Engine.Drums.Engines
                     if (CanNoteBeHit(note))
                     {
                         HitNote(note);
-                        State.PadHit = null;
+                        ResetPadState();
 
                         // You can't hit more than one note with the same input
                         stopSkipping = true;
@@ -93,7 +94,7 @@ namespace YARG.Core.Engine.Drums.Engines
             if (State.PadHit != null)
             {
                 Overhit();
-                State.PadHit = null;
+                ResetPadState();
             }
         }
 
@@ -122,6 +123,12 @@ namespace YARG.Core.Engine.Drums.Engines
                 State.PadHit = chordNote.Pad;
                 CheckForNoteHit();
             }
+        }
+
+        private void ResetPadState()
+        {
+            State.PadHit = null;
+            State.HitVelocity = 1;
         }
     }
 }
