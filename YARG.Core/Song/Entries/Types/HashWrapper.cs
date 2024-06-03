@@ -14,7 +14,7 @@ namespace YARG.Core.Song
 
         private fixed int _hash[HASH_SIZE_IN_INTS];
 
-        public byte[] HashBytes
+        public readonly byte[] HashBytes
         {
             get
             {
