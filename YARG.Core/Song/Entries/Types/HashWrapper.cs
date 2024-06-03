@@ -60,11 +60,8 @@ namespace YARG.Core.Song
         public static HashWrapper Create(ReadOnlySpan<byte> hash)
         {
             var wrapper = new HashWrapper();
-            var bytes = (byte*)wrapper._hash;
-            for (var i = 0; i < HASH_SIZE_IN_BYTES; i++)
-            {
-                bytes[i] = hash[i];
-            }
+            var span = new Span<byte>(wrapper._hash, HASH_SIZE_IN_BYTES);
+            hash.CopyTo(span);
             return wrapper;
         }
 
