@@ -72,12 +72,14 @@ namespace YARG.Core.Song
             {
                 for (int i = 0; i < HASH_SIZE_IN_INTS; i++)
                 {
-                    wrapper._hash[i] = byte.Parse(str.Slice(i * sizeof(int), sizeof(int)), NumberStyles.AllowHexSpecifier);
+                    // Each set of 2 characters represents 1 byte
+                    var slice = str.Slice(i * sizeof(int) * 2, sizeof(int) * 2);
+                    wrapper._hash[i] = int.Parse(slice, NumberStyles.AllowHexSpecifier);
                 }
             }
             catch (Exception e)
             {
-                YargLogger.LogException(e, "Failed to read song hash");
+                YargLogger.LogException(e, "Failed to read hash");
             }
             return wrapper;
         }
