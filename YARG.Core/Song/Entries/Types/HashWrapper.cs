@@ -70,9 +70,9 @@ namespace YARG.Core.Song
             var wrapper = new HashWrapper();
             try
             {
-                for (int i = 0; i < HASH_SIZE_IN_BYTES; i++)
+                for (int i = 0; i < HASH_SIZE_IN_INTS; i++)
                 {
-                    wrapper._hash[i] = byte.Parse(str.Slice(i * 2, 2), NumberStyles.AllowHexSpecifier);
+                    wrapper._hash[i] = byte.Parse(str.Slice(i * sizeof(int), sizeof(int)), NumberStyles.AllowHexSpecifier);
                 }
             }
             catch (Exception e)
