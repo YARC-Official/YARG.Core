@@ -92,19 +92,29 @@ namespace YARG.Core.Song
             return LoadAudio(speed, 0, SongStem.Crowd);
         }
 
-        public override byte[]? LoadAlbumData()
+        public override YARGImage? LoadAlbumData()
         {
             var subFiles = GetSubFiles();
             if (!string.IsNullOrEmpty(_cover) && subFiles.TryGetValue(_cover, out var cover))
             {
-                return File.ReadAllBytes(cover);
+                var image = YARGImage.Load(cover);
+                if (image != null)
+                {
+                    return image;
+                }
+                YargLogger.LogFormatError("Image at {0} failed to load", cover);
             }
 
             foreach (string albumFile in ALBUMART_FILES)
             {
                 if (subFiles.TryGetValue(albumFile, out var fullname))
                 {
-                    return File.ReadAllBytes(fullname);
+                    var image = YARGImage.Load(fullname);
+                    if (image != null)
+                    {
+                        return image;
+                    }
+                    YargLogger.LogFormatError("Image at {0} failed to load", fullname);
                 }
             }
             return null;
@@ -116,14 +126,18 @@ namespace YARG.Core.Song
             if ((options & BackgroundType.Yarground) > 0)
             {
                 if (subFiles.TryGetValue("bg.yarground", out var file))
-                    return new BackgroundResult(BackgroundType.Yarground, new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read));
+                {
+                    var stream = File.OpenRead(file);
+                    return new BackgroundResult(BackgroundType.Yarground, stream);
+                }
             }
 
             if ((options & BackgroundType.Video) > 0)
             {
                 if (!string.IsNullOrEmpty(_video) && subFiles.TryGetValue(_video, out var video))
                 {
-                    return new BackgroundResult(BackgroundType.Video, new FileStream(video, FileMode.Open, FileAccess.Read, FileShare.Read));
+                    var stream = File.OpenRead(video);
+                    return new BackgroundResult(BackgroundType.Video, stream);
                 }
 
                 foreach (var stem in BACKGROUND_FILENAMES)
@@ -132,7 +146,8 @@ namespace YARG.Core.Song
                     {
                         if (subFiles.TryGetValue(stem + format, out var fullname))
                         {
-                            return new BackgroundResult(BackgroundType.Video, new FileStream(fullname, FileMode.Open, FileAccess.Read, FileShare.Read));
+                            var stream = File.OpenRead(fullname);
+                            return new BackgroundResult(BackgroundType.Video, stream);
                         }
                     }
                 }
@@ -140,15 +155,18 @@ namespace YARG.Core.Song
 
             if ((options & BackgroundType.Image) > 0)
             {
-                if (!string.IsNullOrEmpty(_background) && subFiles.TryGetValue(_background, out var background))
+                if (string.IsNullOrEmpty(_background) || !subFiles.TryGetValue(_background, out var file))
                 {
-                    return new BackgroundResult(BackgroundType.Image, new FileStream(background, FileMode.Open, FileAccess.Read, FileShare.Read));
+                    file = GetRandomBackgroundImage(subFiles);
                 }
 
-                var file = GetRandomBackgroundImage(subFiles);
                 if (file != null)
                 {
-                    return new BackgroundResult(BackgroundType.Image, File.OpenRead(file));
+                    var image = YARGImage.Load(file);
+                    if (image != null)
+                    {
+                        return new BackgroundResult(image);
+                    }
                 }
             }
             return null;

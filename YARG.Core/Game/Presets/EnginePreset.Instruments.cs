@@ -238,12 +238,12 @@ namespace YARG.Core.Game
                 float updatesPerSecond)
             {
                 // Hit window is in semitones (max. difference between correct pitch and sung pitch).
-                var (pitchWindow, hitPercent) = difficulty switch
+                var (pitchWindow, hitPercent, pointsPerPhrase) = difficulty switch
                 {
-                    Difficulty.Easy   => (PitchWindowE, HitPercentE),
-                    Difficulty.Medium => (PitchWindowM, HitPercentM),
-                    Difficulty.Hard   => (PitchWindowH, HitPercentH),
-                    Difficulty.Expert => (PitchWindowX, HitPercentX),
+                    Difficulty.Easy   => (PitchWindowE, HitPercentE, 400),
+                    Difficulty.Medium => (PitchWindowM, HitPercentM, 800),
+                    Difficulty.Hard   => (PitchWindowH, HitPercentH, 1600),
+                    Difficulty.Expert => (PitchWindowX, HitPercentX, 2000),
                     _                 => throw new InvalidOperationException("Unreachable")
                 };
 
@@ -258,7 +258,8 @@ namespace YARG.Core.Game
                     pitchWindow * PerfectPitchPercent,
                     hitPercent,
                     updatesPerSecond,
-                    true);
+                    true,
+                    pointsPerPhrase);
             }
         }
 

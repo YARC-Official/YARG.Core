@@ -65,14 +65,17 @@ namespace YARG.Core.Song
             { "Offset",       new("offset",       ModifierCreatorType.Double ) },
         };
 
-        protected static readonly string[] ALBUMART_FILES =
-        {
-            "album.png", "album.jpg", "album.jpeg",
-        };
-
+        protected static readonly string[] ALBUMART_FILES;
         protected static readonly string[] PREVIEW_FILES;
+
         static IniSubEntry()
         {
+            ALBUMART_FILES = new string[IMAGE_EXTENSIONS.Length];
+            for (int i = 0; i < ALBUMART_FILES.Length; i++)
+            {
+                ALBUMART_FILES[i] = "album" + IMAGE_EXTENSIONS[i];
+            }
+
             PREVIEW_FILES = new string[IniAudio.SupportedFormats.Length];
             for (int i = 0; i < PREVIEW_FILES.Length; i++ )
             {

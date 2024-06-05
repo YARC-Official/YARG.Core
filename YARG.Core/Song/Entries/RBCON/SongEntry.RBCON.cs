@@ -196,19 +196,14 @@ namespace YARG.Core.Song
             return LoadAudio(speed, 0, SongStem.Crowd);
         }
 
-        public override byte[]? LoadAlbumData()
+        public override YARGImage? LoadAlbumData()
         {
             var bytes = LoadRawImageData();
             if (bytes == null)
             {
                 return null;
             }
-
-            for (int i = 32; i < bytes.Length; i += 2)
-            {
-                (bytes[i + 1], bytes[i]) = (bytes[i], bytes[i + 1]);
-            }
-            return bytes;
+            return new YARGImage(bytes);
         }
 
         public override byte[]? LoadMiloData()
