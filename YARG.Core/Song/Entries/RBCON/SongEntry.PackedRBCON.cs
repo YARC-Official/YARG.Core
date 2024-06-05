@@ -214,8 +214,11 @@ namespace YARG.Core.Song
                         string backgroundPath = fileBase + ext;
                         if (File.Exists(backgroundPath))
                         {
-                            var stream = File.OpenRead(backgroundPath);
-                            return new BackgroundResult(BackgroundType.Image, stream);
+                            var image = YARGImage.Load(backgroundPath);
+                            if (image != null)
+                            {
+                                return new BackgroundResult(image);
+                            }
                         }
                     }
                 }

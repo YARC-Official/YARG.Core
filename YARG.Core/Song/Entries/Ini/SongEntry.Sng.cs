@@ -81,7 +81,7 @@ namespace YARG.Core.Song
             return CreateAudioMixer(speed, 0, sngFile, SongStem.Crowd);
         }
 
-        public override byte[]? LoadAlbumData()
+        public override YARGImage? LoadAlbumData()
         {
             var sngFile = SngFile.TryLoadFromFile(_sngInfo);
             if (sngFile == null)
@@ -89,14 +89,24 @@ namespace YARG.Core.Song
 
             if (!string.IsNullOrEmpty(_cover) && sngFile.TryGetValue(_video, out var cover))
             {
-                return cover.LoadAllBytes(sngFile);
+                var image = YARGImage.Load(cover, sngFile);
+                if (image != null)
+                {
+                    return image;
+                }
+                YargLogger.LogFormatError("SNG Image mapped to {0} failed to load", cover.Name);
             }
 
             foreach (string albumFile in ALBUMART_FILES)
             {
                 if (sngFile.TryGetValue(albumFile, out var listing))
                 {
-                    return listing.LoadAllBytes(sngFile);
+                    var image = YARGImage.Load(listing, sngFile);
+                    if (image != null)
+                    {
+                        return image;
+                    }
+                    YargLogger.LogFormatError("SNG Image mapped to {0} failed to load", listing.Name);
                 }
             }
             return null;
@@ -114,7 +124,8 @@ namespace YARG.Core.Song
             {
                 if (sngFile.TryGetValue(YARGROUND_FULLNAME, out var listing))
                 {
-                    return new BackgroundResult(BackgroundType.Yarground, listing.CreateStream(sngFile));
+                    var stream = listing.CreateStream(sngFile);
+                    return new BackgroundResult(BackgroundType.Yarground, stream);
                 }
 
                 string file = Path.ChangeExtension(_sngInfo.FullName, YARGROUND_EXTENSION);
@@ -129,7 +140,8 @@ namespace YARG.Core.Song
             {
                 if (!string.IsNullOrEmpty(_video) && sngFile.TryGetValue(_video, out var video))
                 {
-                    return new BackgroundResult(BackgroundType.Video, video.CreateStream(sngFile));
+                    var stream = video.CreateStream(sngFile);
+                    return new BackgroundResult(BackgroundType.Video, stream);
                 }
 
                 foreach (var stem in BACKGROUND_FILENAMES)
@@ -138,7 +150,8 @@ namespace YARG.Core.Song
                     {
                         if (sngFile.TryGetValue(stem + format, out var listing))
                         {
-                            return new BackgroundResult(BackgroundType.Video, listing.CreateStream(sngFile));
+                            var stream = listing.CreateStream(sngFile);
+                            return new BackgroundResult(BackgroundType.Video, stream);
                         }
                     }
                 }
@@ -156,15 +169,18 @@ namespace YARG.Core.Song
 
             if ((options & BackgroundType.Image) > 0)
             {
-                if (!string.IsNullOrEmpty(_background) && sngFile.TryGetValue(_background, out var background))
+                if (string.IsNullOrEmpty(_background) || !sngFile.TryGetValue(_background, out var listing))
                 {
-                    return new BackgroundResult(BackgroundType.Image, background.CreateStream(sngFile));
+                    listing = GetRandomBackgroundImage(sngFile);
                 }
 
-                var listing = GetRandomBackgroundImage(sngFile);
                 if (listing != null)
                 {
-                    return new BackgroundResult(BackgroundType.Image, listing.CreateStream(sngFile));
+                    var image = YARGImage.Load(listing, sngFile);
+                    if (image != null)
+                    {
+                        return new BackgroundResult(image);
+                    }
                 }
 
                 // Fallback to a potential external image mapped specifically to the sng
@@ -173,8 +189,11 @@ namespace YARG.Core.Song
                     string file = Path.ChangeExtension(_sngInfo.FullName, format);
                     if (File.Exists(file))
                     {
-                        var stream = File.OpenRead(file);
-                        return new BackgroundResult(BackgroundType.Image, stream);
+                        var image = YARGImage.Load(file);
+                        if (image != null)
+                        {
+                            return new BackgroundResult(image);
+                        }
                     }
                 }
             }

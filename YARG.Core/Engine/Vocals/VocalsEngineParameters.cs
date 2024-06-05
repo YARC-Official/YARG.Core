@@ -33,13 +33,18 @@ namespace YARG.Core.Engine.Vocals
         /// </summary>
         public bool SingToActivateStarPower { get; private set; }
 
+        /// <summary>
+        /// Base score awarded per complete vocal phrase.
+        /// </summary>
+        public int PointsPerPhrase { get; private set; }
+
         public VocalsEngineParameters()
         {
         }
 
         public VocalsEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, float[] starMultiplierThresholds,
             float pitchWindow, float pitchWindowPerfect, double phraseHitPercent, double approximateVocalFps,
-            bool singToActivateStarPower)
+            bool singToActivateStarPower, int pointsPerPhrase)
             : base(hitWindow, maxMultiplier, starMultiplierThresholds)
         {
             PitchWindow = pitchWindow;
@@ -47,6 +52,7 @@ namespace YARG.Core.Engine.Vocals
             PhraseHitPercent = phraseHitPercent;
             ApproximateVocalFps = approximateVocalFps;
             SingToActivateStarPower = singToActivateStarPower;
+            PointsPerPhrase = pointsPerPhrase;
         }
 
         public override void Serialize(BinaryWriter writer)
@@ -58,6 +64,7 @@ namespace YARG.Core.Engine.Vocals
             writer.Write(PhraseHitPercent);
             writer.Write(ApproximateVocalFps);
             writer.Write(SingToActivateStarPower);
+            writer.Write(PointsPerPhrase);
         }
 
         public override void Deserialize(BinaryReader reader, int version = 0)
@@ -69,6 +76,7 @@ namespace YARG.Core.Engine.Vocals
             PhraseHitPercent = reader.ReadDouble();
             ApproximateVocalFps = reader.ReadDouble();
             SingToActivateStarPower = reader.ReadBoolean();
+            PointsPerPhrase = reader.ReadInt32();
         }
     }
 }
