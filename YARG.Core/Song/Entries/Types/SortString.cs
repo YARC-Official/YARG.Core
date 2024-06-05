@@ -31,7 +31,7 @@ namespace YARG.Core.Song
 
         public int CompareTo(SortString other)
         {
-            return SortStr.CompareTo(other.SortStr);
+            return RemoveArticle(SortStr).CompareTo(RemoveArticle(other.SortStr));
         }
 
         public override int GetHashCode()
@@ -51,6 +51,34 @@ namespace YARG.Core.Song
 
         public static implicit operator SortString(string str) => new(str);
         public static implicit operator string(SortString str) => str.Str;
+
+        private static readonly string[] Articles =
+        {
+            "The ", // The beatles, The day that never comes
+            "El ",  // El final, El sol no regresa
+            "La ",  // La quinta estacion, La bamba, La muralla verde
+            "Le ",  // Le temps de la rentrée
+            "Les ", // Les Rita Mitsouko, Les Wampas
+            "Los ", // Los fabulosos cadillacs, Los enanitos verdes,
+        };
+
+        public static string RemoveArticle(string name)
+        {
+            if (string.IsNullOrEmpty(name))
+            {
+                return name;
+            }
+
+            foreach (var article in Articles)
+            {
+                if (name.StartsWith(article, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    return name[article.Length..];
+                }
+            }
+
+            return name;
+        }
 
         public static string RemoveDiacritics(string text)
         {
