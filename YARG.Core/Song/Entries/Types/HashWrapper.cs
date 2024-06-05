@@ -87,9 +87,10 @@ namespace YARG.Core.Song
 
         public readonly void Serialize(BinaryWriter writer)
         {
-            for (int i = 0; i < HASH_SIZE_IN_INTS; ++i)
+            fixed (int* values = _hash)
             {
-                writer.Write(_hash[i]);
+                var bytes = new Span<byte>(values, HASH_SIZE_IN_BYTES);
+                writer.Write(bytes);
             }
         }
 
