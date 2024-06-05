@@ -74,7 +74,11 @@ namespace YARG.Core.Song
                 {
                     // Each set of 2 characters represents 1 byte
                     var slice = str.Slice(i * sizeof(int) * 2, sizeof(int) * 2);
-                    wrapper._hash[i] = int.Parse(slice, NumberStyles.AllowHexSpecifier);
+                    var parsed = int.Parse(slice, NumberStyles.AllowHexSpecifier);
+
+                    // Flip the endianness of each int as the hash should be represented
+                    // with all bytes in order.
+                    wrapper._hash[i] = BinaryPrimitives.ReverseEndianness(parsed);
                 }
             }
             catch (Exception e)
@@ -131,7 +135,11 @@ namespace YARG.Core.Song
             string str = string.Empty;
             for (int i = 0; i < HASH_SIZE_IN_INTS; ++i)
             {
-                str += _hash[i].ToString("X8");
+                // Flip the endianness of each int as the hash should be represented
+                // with all bytes in order.
+                var reversed = BinaryPrimitives.ReverseEndianness(_hash[i]);
+
+                str += reversed.ToString("X8");
             }
             return str;
         }
