@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Buffers.Binary;
 using System.Globalization;
 using System.IO;
 using System.Security.Cryptography;
@@ -71,15 +70,12 @@ namespace YARG.Core.Song
             var wrapper = new HashWrapper();
             try
             {
-                for (int i = 0; i < HASH_SIZE_IN_INTS; i++)
+                var bytes = new Span<byte>(wrapper._hash, HASH_SIZE_IN_BYTES);
+                for (int i = 0; i < HASH_SIZE_IN_BYTES; i++)
                 {
                     // Each set of 2 characters represents 1 byte
-                    var slice = str.Slice(i * sizeof(int) * 2, sizeof(int) * 2);
-                    var parsed = int.Parse(slice, NumberStyles.AllowHexSpecifier);
-
-                    // Flip the endianness of each int as the hash should be represented
-                    // with all bytes in order.
-                    wrapper._hash[i] = BinaryPrimitives.ReverseEndianness(parsed);
+                    var slice = str.Slice(i *  2, 2);
+                    bytes[i]= byte.Parse(slice, NumberStyles.AllowHexSpecifier);
                 }
             }
             catch (Exception e)
@@ -134,13 +130,13 @@ namespace YARG.Core.Song
         public readonly override string ToString()
         {
             string str = string.Empty;
-            for (int i = 0; i < HASH_SIZE_IN_INTS; ++i)
+            fixed (int* values = _hash)
             {
-                // Flip the endianness of each int as the hash should be represented
-                // with all bytes in order.
-                var reversed = BinaryPrimitives.ReverseEndianness(_hash[i]);
-
-                str += reversed.ToString("X8");
+                var bytes = new Span<byte>(values, HASH_SIZE_IN_BYTES);
+                for (int i = 0; i < HASH_SIZE_IN_BYTES; i++)
+                {
+                    str += bytes[i].ToString("X8");
+                }
             }
             return str;
         }
