@@ -14,24 +14,33 @@ namespace YARG.Core.Song
             ("Æ", "AE") // Tool - Ænema
         };
 
-        public static readonly SortString Empty = new(string.Empty);
+        public static readonly SortString Empty = new(string.Empty, string.Empty, string.Empty);
+
+        public static SortString Convert(string str)
+        {
+            string searchStr = RemoveUnwantedWhitespace(RemoveDiacritics(RichTextUtils.StripRichTextTags(str)));
+            string sortStr = RemoveArticle(searchStr);
+            return new SortString(str, searchStr, sortStr);
+        }
 
         public readonly string Str;
+        public readonly string SearchStr;
         public readonly string SortStr;
         public readonly int HashCode;
 
         public int Length => Str.Length;
 
-        public SortString(string str)
+        private SortString(string str, string searchStr, string sortStr)
         {
             Str = str;
-            SortStr = RemoveUnwantedWhitespace(RemoveDiacritics(RichTextUtils.StripRichTextTags(str)));
-            HashCode = SortStr.GetHashCode();
+            SearchStr = searchStr;
+            SortStr = sortStr;
+            HashCode = sortStr.GetHashCode();
         }
 
         public int CompareTo(SortString other)
         {
-            return RemoveArticle(SortStr).CompareTo(RemoveArticle(other.SortStr));
+            return SortStr.CompareTo(other.SortStr);
         }
 
         public override int GetHashCode()
@@ -49,7 +58,7 @@ namespace YARG.Core.Song
             return Str;
         }
 
-        public static implicit operator SortString(string str) => new(str);
+        public static implicit operator SortString(string str) => Convert(str);
         public static implicit operator string(SortString str) => str.Str;
 
         private static readonly string[] Articles =

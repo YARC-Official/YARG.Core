@@ -18,7 +18,7 @@ namespace YARG.Core.Song.Cache
 
         public string GetKey(SongEntry entry)
         {
-            string name = SortString.RemoveArticle(entry.Name.SortStr);
+            string name = entry.Name.SortStr;
             int i = 0;
             while (i + 1 < name.Length && !char.IsLetterOrDigit(name[i]))
                 ++i;
