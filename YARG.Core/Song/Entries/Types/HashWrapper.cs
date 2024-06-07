@@ -136,7 +136,7 @@ namespace YARG.Core.Song
                 var bytes = new Span<byte>(values, HASH_SIZE_IN_BYTES);
                 for (int i = 0; i < HASH_SIZE_IN_BYTES; i++)
                 {
-                    str += bytes[i].ToString("X8");
+                    str += bytes[i].ToString("X");
                 }
             }
             return str;
