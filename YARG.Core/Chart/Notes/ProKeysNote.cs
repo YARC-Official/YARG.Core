@@ -27,6 +27,8 @@ namespace YARG.Core.Chart
 
         public override void AddChildNote(ProKeysNote note)
         {
+            if ((NoteMask & GetKeyMask(note.Key)) != 0) return;
+
             base.AddChildNote(note);
 
             NoteMask |= GetKeyMask(note.Key);

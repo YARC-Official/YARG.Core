@@ -49,6 +49,13 @@ namespace YARG.Core.Chart
             ProFlags = _proFlags = other._proFlags;
         }
 
+        public override void AddChildNote(ProGuitarNote note)
+        {
+            // TODO Check if string+fret already exists in the parent and skip adding if it does
+
+            base.AddChildNote(note);
+        }
+
         public override void ResetNoteState()
         {
             base.ResetNoteState();

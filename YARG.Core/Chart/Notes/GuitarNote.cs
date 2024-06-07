@@ -62,6 +62,8 @@ namespace YARG.Core.Chart
 
         public override void AddChildNote(GuitarNote note)
         {
+            if ((NoteMask & GetNoteMask(note.Fret)) != 0) return;
+
             base.AddChildNote(note);
 
             NoteMask |= GetNoteMask(note.Fret);

@@ -11,6 +11,8 @@ namespace YARG.Core.Chart
 
         public DrumNoteType Type { get; set; }
 
+        private int _padMask;
+
         public bool IsNeutral => Type == DrumNoteType.Neutral;
         public bool IsAccent  => Type == DrumNoteType.Accent;
         public bool IsGhost   => Type == DrumNoteType.Ghost;
@@ -36,6 +38,8 @@ namespace YARG.Core.Chart
             Type = noteType;
 
             DrumFlags = _drumFlags = drumFlags;
+
+            _padMask = 1 << pad;
         }
 
         public DrumNote(DrumNote other) : base(other)
@@ -44,6 +48,17 @@ namespace YARG.Core.Chart
             Type = other.Type;
 
             DrumFlags = _drumFlags = other._drumFlags;
+
+            _padMask = 1 << other.Pad;
+        }
+
+        public override void AddChildNote(DrumNote note)
+        {
+            if ((_padMask & (1 << note.Pad)) != 0) return;
+
+            _padMask |= 1 << note.Pad;
+
+            base.AddChildNote(note);
         }
 
         public override void ResetNoteState()
