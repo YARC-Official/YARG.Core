@@ -540,17 +540,14 @@ namespace MoonscraperChartEditor.Song.IO
             uint tick = (uint)absoluteTick;
 
             string eventText = TextEvents.NormalizeTextEvent(text.Text, out bool strippedBrackets).ToString();
-            if (strippedBrackets)
+            if (processParams.textProcessMap.TryGetValue(eventText, out var processFn))
             {
-                if (processParams.textProcessMap.TryGetValue(eventText, out var processFn))
-                {
-                    // This text event affects parsing of the .mid file, run its function and don't parse it into the chart
-                    processFn(ref processParams);
-                    return;
-                }
+                // This text event affects parsing of the .mid file, run its function and don't parse it into the chart
+                processFn(ref processParams);
+                return;
             }
             // No brackets to strip off, on vocals this is most likely a lyric event
-            else if (MoonSong.InstrumentToChartGameMode(processParams.instrument) is MoonChart.GameMode.Vocals)
+            else if (!strippedBrackets && MoonSong.InstrumentToChartGameMode(processParams.instrument) is MoonChart.GameMode.Vocals)
             {
                 eventText = TextEvents.LYRIC_PREFIX_WITH_SPACE + eventText;
             }

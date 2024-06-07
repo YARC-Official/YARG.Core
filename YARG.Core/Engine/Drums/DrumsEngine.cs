@@ -8,8 +8,6 @@ namespace YARG.Core.Engine.Drums
     public abstract class DrumsEngine : BaseEngine<DrumNote, DrumsEngineParameters,
         DrumsStats, DrumsEngineState>
     {
-        protected const int VELOCITY_BONUS_POINTS = 10;
-
         public delegate void OverhitEvent();
 
         public delegate void PadHitEvent(DrumsAction action, bool noteWasHit, float velocity);
@@ -172,7 +170,7 @@ namespace YARG.Core.Engine.Drums
 
             if (note.AwardVelocityBonus)
             {
-                pointsPerNote += VELOCITY_BONUS_POINTS;
+                pointsPerNote += (int)(POINTS_PER_NOTE * 0.5);
             }
 
             AddScore(pointsPerNote * EngineStats.ScoreMultiplier);
