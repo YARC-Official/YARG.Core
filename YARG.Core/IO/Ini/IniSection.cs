@@ -33,7 +33,7 @@ namespace YARG.Core.IO.Ini
             return modifiers.ContainsKey(key);
         }
 
-        public bool TryGet(in string key, out SortString str, in string defaultStr)
+        public bool TryGet(in string key, out SortString str, in SortString defaultStr)
         {
             str = defaultStr;
             if (!modifiers.TryGetValue(key, out var results))
@@ -44,7 +44,7 @@ namespace YARG.Core.IO.Ini
                 if (results[i].SortString.Str != string.Empty)
                 {
                     str = results[i].SortString;
-                    if (str.Str != defaultStr)
+                    if (str.Str != defaultStr.Str)
                         break;
                 }
             }

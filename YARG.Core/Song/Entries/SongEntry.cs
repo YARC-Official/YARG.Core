@@ -319,15 +319,22 @@ namespace YARG.Core.Song
             _intYear = int.MaxValue;
         }
 
+        private static readonly SortString DEFAULT_NAME_SORT = SortString.Convert(SongMetadata.DEFAULT_NAME);
+        private static readonly SortString DEFAULT_ARTIST_SORT = SortString.Convert(SongMetadata.DEFAULT_ARTIST);
+        private static readonly SortString DEFAULT_ALBUM_SORT = SortString.Convert(SongMetadata.DEFAULT_ALBUM);
+        private static readonly SortString DEFAULT_GENRE_SORT = SortString.Convert(SongMetadata.DEFAULT_GENRE);
+        private static readonly SortString DEFAULT_CHARTER_SORT = SortString.Convert(SongMetadata.DEFAULT_CHARTER);
+        private static readonly SortString DEFAULT_SOURCE_SORT = SortString.Convert(SongMetadata.DEFAULT_SOURCE);
+
         protected SongEntry(in AvailableParts parts, in HashWrapper hash, IniSection modifiers, in string defaultPlaylist)
         {
             _parts = parts;
             _hash = hash;
 
-            modifiers.TryGet("name", out _metadata.Name, SongMetadata.DEFAULT_NAME);
-            modifiers.TryGet("artist", out _metadata.Artist, SongMetadata.DEFAULT_ARTIST);
-            modifiers.TryGet("album", out _metadata.Album, SongMetadata.DEFAULT_ALBUM);
-            modifiers.TryGet("genre", out _metadata.Genre, SongMetadata.DEFAULT_GENRE);
+            modifiers.TryGet("name", out _metadata.Name, DEFAULT_NAME_SORT);
+            modifiers.TryGet("artist", out _metadata.Artist, DEFAULT_ARTIST_SORT);
+            modifiers.TryGet("album", out _metadata.Album, DEFAULT_ALBUM_SORT);
+            modifiers.TryGet("genre", out _metadata.Genre, DEFAULT_GENRE_SORT);
 
             if (!modifiers.TryGet("year", out _metadata.Year))
             {
@@ -360,12 +367,12 @@ namespace YARG.Core.Song
                 _intYear = int.Parse(_parsedYear);
             }
 
-            if (!modifiers.TryGet("charter", out _metadata.Charter, SongMetadata.DEFAULT_CHARTER))
+            if (!modifiers.TryGet("charter", out _metadata.Charter, DEFAULT_CHARTER_SORT))
             {
-                modifiers.TryGet("frets", out _metadata.Charter, SongMetadata.DEFAULT_CHARTER);
+                modifiers.TryGet("frets", out _metadata.Charter, DEFAULT_CHARTER_SORT);
             }
 
-            modifiers.TryGet("icon", out _metadata.Source, SongMetadata.DEFAULT_SOURCE);
+            modifiers.TryGet("icon", out _metadata.Source, DEFAULT_SOURCE_SORT);
             modifiers.TryGet("playlist", out _metadata.Playlist, defaultPlaylist);
 
             modifiers.TryGet("loading_phrase", out _metadata.LoadingPhrase);
