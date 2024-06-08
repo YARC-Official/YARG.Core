@@ -12,12 +12,13 @@ namespace YARG.Core.IO.Ini
         {
             try
             {
-                byte[] bytes = File.ReadAllBytes(iniFile);
+                var bytes = File.ReadAllBytes(iniFile);
                 var byteReader = YARGTextLoader.TryLoadByteText(bytes);
                 if (byteReader != null)
                     return ProcessIni(byteReader, sections);
 
-                var charReader = YARGTextLoader.LoadCharText(bytes);
+                var chars = YARGTextLoader.ConvertToChar(bytes);
+                var charReader = new YARGTextReader<char, CharStringDecoder>(chars, 0);
                 return ProcessIni(charReader, sections);
 
             }

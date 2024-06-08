@@ -17,24 +17,21 @@ namespace YARG.Core.IO
             return new YARGTextReader<byte, ByteStringDecoder>(data, position);
         }
 
-        public static YARGTextReader<char, CharStringDecoder> LoadCharText(byte[] data)
+        public static char[] ConvertToChar(byte[] data)
         {
-            char[] charData;
-            if (data[0] == 0xFF && data[1] == 0xFE)
+            int offset;
+            Encoding encoding;
+            if (data[2] != 0)
             {
-                if (data[2] != 0)
-                    charData = Encoding.Unicode.GetChars(data, 2, data.Length - 2);
-                else
-                    charData = Encoding.UTF32.GetChars(data, 3, data.Length - 3);
+                offset = 2;
+                encoding = data[0] == 0xFF ? Encoding.Unicode : Encoding.BigEndianUnicode;
             }
             else
             {
-                if (data[2] != 0)
-                    charData = Encoding.BigEndianUnicode.GetChars(data, 2, data.Length - 2);
-                else
-                    charData = UTF32BE.GetChars(data, 3, data.Length - 3);
+                offset = 3;
+                encoding = data[0] == 0xFF ? Encoding.UTF32 : UTF32BE;
             }
-            return new YARGTextReader<char, CharStringDecoder>(charData, 0);
+            return encoding.GetChars(data, offset, data.Length - offset);
         }
     }
 

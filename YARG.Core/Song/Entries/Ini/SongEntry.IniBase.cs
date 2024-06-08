@@ -183,7 +183,8 @@ namespace YARG.Core.Song
                     ParseDotChart<byte, ByteStringDecoder, DotChartByte>(byteReader, modifiers, ref parts, drums);
                 else
                 {
-                    var charReader = YARGTextLoader.LoadCharText(file);
+                    var chars = YARGTextLoader.ConvertToChar(file);
+                    var charReader = new YARGTextReader<char, CharStringDecoder>(chars, 0);
                     ParseDotChart<char, CharStringDecoder, DotChartChar>(charReader, modifiers, ref parts, drums);
                 }
             }
