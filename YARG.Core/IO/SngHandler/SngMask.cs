@@ -22,8 +22,6 @@ namespace YARG.Core.IO
         public SngMask(Stream stream)
         {
             byte* mask = stackalloc byte[MASKLENGTH];
-            // Do the read first just incase some error occurs
-            // and we need to exit.
             stream.Read(new Span<byte>(mask, MASKLENGTH));
 
             for (int i = 0; i < NUM_KEYBYTES;)
