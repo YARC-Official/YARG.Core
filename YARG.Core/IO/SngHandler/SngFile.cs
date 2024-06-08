@@ -12,7 +12,7 @@ namespace YARG.Core.IO
     /// <summary>
     /// <see href="https://github.com/mdsitton/SngFileFormat">Documentation of SNG file type</see>
     /// </summary>
-    public class SngFile : IDisposable, IEnumerable<KeyValuePair<string, SngFileListing>>
+    public class SngFile : IEnumerable<KeyValuePair<string, SngFileListing>>
     {
         public readonly AbridgedFileInfo Info;
         public readonly uint Version;
@@ -55,11 +55,6 @@ namespace YARG.Core.IO
         IEnumerator IEnumerable.GetEnumerator()
         {
             return _listings.GetEnumerator();
-        }
-
-        public void Dispose()
-        {
-            Mask.Dispose();
         }
 
 
