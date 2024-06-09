@@ -11,7 +11,7 @@ namespace YARG.Core.Engine.Drums
         private const float VELOCITY_THRESHOLD = 0.35f;
         
         // The maximum allowed time (seconds) between notes to use context-sensitive velocity scoring
-        private const float SITUATIONAL_VELOCITY_WINDOW = 3;
+        private const float SITUATIONAL_VELOCITY_WINDOW = 1.5f;
         
         public delegate void OverhitEvent();
 
