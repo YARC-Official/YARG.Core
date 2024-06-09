@@ -452,4 +452,14 @@ namespace YARG.Core.Song.Cache
             return directory[(baseDirectory.Length + 1)..];
         }
     }
+
+    internal static class UnmanagedStreamSlicer
+    {
+        public static unsafe UnmanagedMemoryStream Slice(this UnmanagedMemoryStream stream, int length)
+        {
+            var newStream = new UnmanagedMemoryStream(stream.PositionPointer, length);
+            stream.Position += length;
+            return newStream;
+        }
+    }
 }
