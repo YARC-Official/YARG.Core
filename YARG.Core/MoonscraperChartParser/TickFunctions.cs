@@ -29,7 +29,7 @@ namespace MoonscraperChartEditor.Song
 
         public static uint TimeToDis(double timeStart, double timeEnd, float resolution, float bpm)
         {
-            return (uint)Math.Round((timeEnd - timeStart) * bpm / SECONDS_PER_MINUTE * resolution);
+            return (uint)((timeEnd - timeStart) * bpm / SECONDS_PER_MINUTE * resolution);
         }
 
         public static uint TickScaling(uint tick, float originalResolution, float outputResolution)
