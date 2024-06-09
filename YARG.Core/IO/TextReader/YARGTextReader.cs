@@ -1,7 +1,5 @@
-﻿using Melanchall.DryWetMidi.Interaction;
-using System;
+﻿using System;
 using System.Text;
-using YARG.Core.Extensions;
 using YARG.Core.IO.Disposables;
 
 namespace YARG.Core.IO
@@ -19,7 +17,7 @@ namespace YARG.Core.IO
             return new YARGTextReader<byte, ByteStringDecoder>(data, position);
         }
 
-        public static AllocatedArray<char> ConvertToChar(FixedArray<byte> data)
+        public static FixedArray<char> ConvertToChar(FixedArray<byte> data)
         {
             long offset;
             long length;
@@ -28,6 +26,12 @@ namespace YARG.Core.IO
             {
                 offset = 2;
                 length = (data.Length - 2) / 2;
+
+                // UTF-16 encoding, endian-correct, so we can use a basic cast
+                if ((data[0] == 0xFF) == BitConverter.IsLittleEndian) unsafe
+                {
+                    return FixedArray<char>.Alias((char*) (data.Ptr + offset), length);
+                }
                 encoding = data[0] == 0xFF ? Encoding.Unicode : Encoding.BigEndianUnicode;
             }
             else
