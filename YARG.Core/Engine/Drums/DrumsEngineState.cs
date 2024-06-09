@@ -9,14 +9,14 @@ namespace YARG.Core.Engine.Drums
         /// be based off of <see cref="FourLaneDrumPad"/> or <see cref="FiveLaneDrumPad"/>.
         /// </summary>
         public int? PadHit;
-        public float HitVelocity = 1;
+        public float? HitVelocity;
 
         public override void Reset()
         {
             base.Reset();
 
             PadHit = null;
-            HitVelocity = 1;
+            HitVelocity = null;
         }
     }
 }
