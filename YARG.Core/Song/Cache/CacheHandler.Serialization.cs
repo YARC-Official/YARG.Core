@@ -372,7 +372,7 @@ namespace YARG.Core.Song.Cache
                 string name = reader.ReadString();
                 string filename = Path.Combine(directory, $"{name}_plus.mid");
 
-                var info = new AbridgedFileInfo(filename, reader);
+                var info = new AbridgedFileInfo(filename, reader, true);
                 var upgrade = new UnpackedRBProUpgrade(info);
                 group.Upgrades.Add(name, upgrade);
                 AddUpgrade(name, null, upgrade);

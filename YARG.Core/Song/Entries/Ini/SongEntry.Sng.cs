@@ -284,7 +284,7 @@ namespace YARG.Core.Song
         public static IniSubEntry? TryLoadFromCache(string baseDirectory, BinaryReader reader, CategoryCacheStrings strings)
         {
             string sngPath = Path.Combine(baseDirectory, reader.ReadString());
-            var sngInfo = AbridgedFileInfo.TryParseInfo(sngPath, reader);
+            var sngInfo = AbridgedFileInfo.TryParseInfo(sngPath, reader, false);
             if (sngInfo == null)
                 return null;
 
@@ -307,7 +307,7 @@ namespace YARG.Core.Song
         public static IniSubEntry? LoadFromCache_Quick(string baseDirectory, BinaryReader reader, CategoryCacheStrings strings)
         {
             string sngPath = Path.Combine(baseDirectory, reader.ReadString());
-            AbridgedFileInfo sngInfo = new(sngPath, DateTime.FromBinary(reader.ReadInt64()));
+            var sngInfo = new AbridgedFileInfo(sngPath, reader, false);
 
             uint version = reader.ReadUInt32();
             byte chartTypeIndex = reader.ReadByte();

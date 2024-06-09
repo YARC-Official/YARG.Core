@@ -94,7 +94,7 @@ namespace YARG.Core.Song
             conFile.TryGetListing(midiFilename, out var midiListing);
             var lastMidiWrite = DateTime.FromBinary(reader.ReadInt64());
 
-            var updateMidi = reader.ReadBoolean() ? new AbridgedFileInfo(reader) : null;
+            var updateMidi = reader.ReadBoolean() ? new AbridgedFileInfo(reader, true) : null;
             var upgrade = upgrades.TryGetValue(nodename, out var node) ? node.Item2 : null;
 
             conFile.TryGetListing(Path.ChangeExtension(midiFilename, ".mogg"), out var moggListing);

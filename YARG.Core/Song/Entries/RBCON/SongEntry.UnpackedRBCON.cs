@@ -50,7 +50,7 @@ namespace YARG.Core.Song
             string songDirectory = Path.Combine(directory, subname);
 
             string midiPath = Path.Combine(songDirectory, subname + ".mid");
-            var midiInfo = AbridgedFileInfo.TryParseInfo(midiPath, reader);
+            var midiInfo = AbridgedFileInfo.TryParseInfo(midiPath, reader, true);
             if (midiInfo == null)
             {
                 return null;
@@ -76,9 +76,9 @@ namespace YARG.Core.Song
             string songDirectory = Path.Combine(directory, subname);
 
             string midiPath = Path.Combine(songDirectory, subname + ".mid");
-            var midiInfo = new AbridgedFileInfo(midiPath, reader);
+            var midiInfo = new AbridgedFileInfo(midiPath, reader, true);
 
-            var updateMidi = reader.ReadBoolean() ? new AbridgedFileInfo(reader) : null;
+            var updateMidi = reader.ReadBoolean() ? new AbridgedFileInfo(reader, true) : null;
 
             var upgrade = upgrades.TryGetValue(nodename, out var node) ? node.Item2 : null;
             return new UnpackedRBCONEntry(midiInfo, dta, songDirectory, subname, updateMidi, upgrade, reader, strings);
@@ -120,6 +120,7 @@ namespace YARG.Core.Song
         {
             writer.Write(_nodename);
             writer.Write(_midi!.LastUpdatedTime.ToBinary());
+            writer.Write(_midi.Length);
             base.Serialize(writer, node);
         }
 

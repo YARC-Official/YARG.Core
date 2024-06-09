@@ -21,10 +21,15 @@ namespace YARG.Core.IO
         /// </summary>
         public readonly DateTime LastUpdatedTime;
 
+        /// <summary>
+        /// The length of the file in bytes
+        /// </summary>
+        public readonly long Length;
+
         public AbridgedFileInfo(string file, bool checkCreationTime = true)
             : this(new FileInfo(file), checkCreationTime) { }
 
-        public AbridgedFileInfo(FileSystemInfo info, bool checkCreationTime = true)
+        public AbridgedFileInfo(FileInfo info, bool checkCreationTime = true)
         {
             FullName = info.FullName;
             LastUpdatedTime = info.LastWriteTime;
@@ -32,33 +37,40 @@ namespace YARG.Core.IO
             {
                 LastUpdatedTime = info.CreationTime;
             }
+            Length = info.Length;
         }
 
         /// <summary>
         /// Only used when validation of the underlying file is not required
         /// </summary>
-        public AbridgedFileInfo(BinaryReader reader)
-            : this(reader.ReadString(), reader) { }
+        public AbridgedFileInfo(BinaryReader reader, bool readLength)
+            : this(reader.ReadString(), reader, readLength) { }
 
         /// <summary>
         /// Only used when validation of the underlying file is not required
         /// </summary>
-        public AbridgedFileInfo(string filename, BinaryReader reader)
+        public AbridgedFileInfo(string filename, BinaryReader reader, bool readLength)
         {
             FullName = filename;
             LastUpdatedTime = DateTime.FromBinary(reader.ReadInt64());
+            Length = readLength ? reader.ReadInt64() : 0;
         }
 
-        public AbridgedFileInfo(string fullname, DateTime timeAdded)
+        public AbridgedFileInfo(string fullname, DateTime timeAdded, long length)
         {
             FullName = fullname;
             LastUpdatedTime = timeAdded;
+            Length = length;
         }
 
-        public void Serialize(BinaryWriter writer)
+        public void Serialize(BinaryWriter writer, bool writeLength)
         {
             writer.Write(FullName);
             writer.Write(LastUpdatedTime.ToBinary());
+            if (writeLength)
+            {
+                writer.Write(Length);
+            }
         }
 
         public bool Exists()
@@ -85,15 +97,15 @@ namespace YARG.Core.IO
         /// <summary>
         /// Used for cache validation
         /// </summary>
-        public static AbridgedFileInfo? TryParseInfo(BinaryReader reader, bool checkCreationTime = true)
+        public static AbridgedFileInfo? TryParseInfo(BinaryReader reader, bool hasLength, bool checkCreationTime = true)
         {
-            return TryParseInfo(reader.ReadString(), reader, checkCreationTime);
+            return TryParseInfo(reader.ReadString(), reader, hasLength, checkCreationTime);
         }
 
         /// <summary>
         /// Used for cache validation
         /// </summary>
-        public static AbridgedFileInfo? TryParseInfo(string file, BinaryReader reader, bool checkCreationTime = true)
+        public static AbridgedFileInfo? TryParseInfo(string file, BinaryReader reader, bool hasLength, bool checkCreationTime = true)
         {
             var info = new FileInfo(file);
             if (!info.Exists)
@@ -106,6 +118,11 @@ namespace YARG.Core.IO
             if (abridged.LastUpdatedTime != DateTime.FromBinary(reader.ReadInt64()))
             {
                 return null;
+            }
+
+            if (hasLength)
+            {
+                reader.BaseStream.Position += sizeof(long);
             }
             return abridged;
         }

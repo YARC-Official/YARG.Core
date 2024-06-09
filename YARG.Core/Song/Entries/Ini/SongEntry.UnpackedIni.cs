@@ -26,6 +26,7 @@ namespace YARG.Core.Song
         {
             writer.Write((byte) Type);
             writer.Write(_chartFile.LastUpdatedTime.ToBinary());
+            writer.Write(_chartFile.Length);
             if (_iniFile != null)
             {
                 writer.Write(true);
@@ -275,7 +276,7 @@ namespace YARG.Core.Song
             }
 
             var chart = CHART_FILE_TYPES[chartTypeIndex];
-            var chartInfo = AbridgedFileInfo.TryParseInfo(Path.Combine(directory, chart.File), reader);
+            var chartInfo = AbridgedFileInfo.TryParseInfo(Path.Combine(directory, chart.File), reader, true);
             if (chartInfo == null)
             {
                 return null;
@@ -285,7 +286,7 @@ namespace YARG.Core.Song
             AbridgedFileInfo? iniInfo = null;
             if (reader.ReadBoolean())
             {
-                iniInfo = AbridgedFileInfo.TryParseInfo(iniFile, reader);
+                iniInfo = AbridgedFileInfo.TryParseInfo(iniFile, reader, false);
                 if (iniInfo == null)
                 {
                     return null;
@@ -308,14 +309,11 @@ namespace YARG.Core.Song
             }
 
             var chart = CHART_FILE_TYPES[chartTypeIndex];
-            var lastUpdated = DateTime.FromBinary(reader.ReadInt64());
-
-            var chartInfo = new AbridgedFileInfo(Path.Combine(directory, chart.File), lastUpdated);
+            var chartInfo = new AbridgedFileInfo(Path.Combine(directory, chart.File), reader, true);
             AbridgedFileInfo? iniInfo = null;
             if (reader.ReadBoolean())
             {
-                lastUpdated = DateTime.FromBinary(reader.ReadInt64());
-                iniInfo = new AbridgedFileInfo(Path.Combine(directory, "song.ini"), lastUpdated);
+                iniInfo = new AbridgedFileInfo(Path.Combine(directory, "song.ini"), reader, false);
             }
             return new UnpackedIniEntry(directory, chart.Type, chartInfo, iniInfo, reader, strings);
         }

@@ -218,7 +218,7 @@ namespace YARG.Core.Song
         public virtual void Serialize(BinaryWriter writer, CategoryCacheWriteNode node)
         {
             writer.Write(_updateMidi != null);
-            _updateMidi?.Serialize(writer);
+            _updateMidi?.Serialize(writer, true);
 
             SerializeMetadata(writer, node);
 
