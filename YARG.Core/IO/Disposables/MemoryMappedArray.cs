@@ -14,6 +14,11 @@ namespace YARG.Core.IO.Disposables
             return Load(info.FullName, info.Length);
         }
 
+        public static MemoryMappedArray Load(AbridgedFileInfo info)
+        {
+            return Load(info.FullName, info.Length);
+        }
+
         public static MemoryMappedArray Load(string filename, long length)
         {
             var file = MemoryMappedFile.CreateFromFile(filename, FileMode.Open, null, 0, MemoryMappedFileAccess.Read);
