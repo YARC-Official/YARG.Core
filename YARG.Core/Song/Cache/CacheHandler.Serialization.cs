@@ -368,7 +368,7 @@ namespace YARG.Core.Song.Cache
                 string filename = Path.Combine(directory, $"{name}_plus.mid");
 
                 var info = new AbridgedFileInfo_Length(filename, reader);
-                AddUpgrade(name, null, new UnpackedRBProUpgrade(info));
+                AddUpgrade(name, default, new UnpackedRBProUpgrade(info));
             }
         }
 
@@ -392,7 +392,7 @@ namespace YARG.Core.Song.Cache
                 group?.ConFile.TryGetListing($"songs_upgrades/{name}_plus.mid", out listing);
 
                 var upgrade = new PackedRBProUpgrade(listing, lastWrite);
-                AddUpgrade(name, null, upgrade);
+                AddUpgrade(name, default, upgrade);
             }
         }
 

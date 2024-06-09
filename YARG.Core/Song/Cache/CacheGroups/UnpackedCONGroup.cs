@@ -18,21 +18,22 @@ namespace YARG.Core.Song.Cache
             DTA = new AbridgedFileInfo_Length(dta);
         }
 
-        public YARGDTAReader? LoadDTA()
+        public bool LoadDTA(out YARGDTAReader reader)
         {
             try
             {
                 _fileData = MemoryMappedArray.Load(DTA);
-                return YARGDTAReader.TryCreate(_fileData);
+                return YARGDTAReader.TryCreate(_fileData, out reader);
             }
             catch (Exception ex)
             {
                 YargLogger.LogException(ex, $"Error while loading {DTA.FullName}");
-                return null;
+                reader = default;
+                return false;
             }
         }
 
-        public override void ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
+        public override void ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
         {
             var song = UnpackedRBCONEntry.TryLoadFromCache(Location, DTA, nodeName, upgrades, reader, strings);
             if (song != null)

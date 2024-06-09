@@ -309,7 +309,7 @@ namespace YARG.Core.Song
             }
         }
 
-        protected DTAResult Init(string nodeName, YARGDTAReader reader, Dictionary<string, List<SongUpdate>> updates, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, string defaultPlaylist)
+        protected DTAResult Init(string nodeName, YARGDTAReader reader, Dictionary<string, List<SongUpdate>> updates, Dictionary<string, (YARGDTAReader, IRBProUpgrade)> upgrades, string defaultPlaylist)
         {
             var dtaResults = ParseDTA(nodeName, reader);
             ApplyRBCONUpdates(ref dtaResults, nodeName, updates);
@@ -485,13 +485,13 @@ namespace YARG.Core.Song
             }
         }
 
-        private void ApplyRBProUpgrade(string nodeName, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades)
+        private void ApplyRBProUpgrade(string nodeName, Dictionary<string, (YARGDTAReader, IRBProUpgrade)> upgrades)
         {
             if (upgrades.TryGetValue(nodeName, out var upgrade))
             {
                 try
                 {
-                    ParseDTA(nodeName, upgrade.Item1!.Clone());
+                    ParseDTA(nodeName, upgrade.Item1);
                     _upgrade = upgrade.Item2;
                 }
                 catch (Exception ex)
@@ -504,8 +504,9 @@ namespace YARG.Core.Song
         private DTAResult ParseDTA(string nodeName, params YARGDTAReader[] readers)
         {
             DTAResult result = default;
-            foreach (var reader in readers)
+            for (int i = 0; i < readers.Length; ++i)
             {
+                var reader = readers[i];
                 while (reader.StartNode())
                 {
                     string name = reader.GetNameOfNode(false);
@@ -603,14 +604,14 @@ namespace YARG.Core.Song
                                 "latin1" => YARGTextContainer.Latin1,
                                 "utf-8" or
                                 "utf8" => Encoding.UTF8,
-                                _ => reader.encoding
+                                _ => reader.Encoding
                             };
 
-                            if (reader.encoding != encoding)
+                            if (reader.Encoding != encoding)
                             {
                                 string Convert(string str)
                                 {
-                                    byte[] bytes = reader.encoding.GetBytes(str);
+                                    byte[] bytes = reader.Encoding.GetBytes(str);
                                     return encoding.GetString(bytes);
                                 }
 
@@ -634,7 +635,7 @@ namespace YARG.Core.Song
 
                                 if (_metadata.Playlist.Str.Length != 0)
                                     _metadata.Playlist = Convert(_metadata.Playlist);
-                                reader.encoding = encoding;
+                                reader.Encoding = encoding;
                             }
 
                             break;

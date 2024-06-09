@@ -179,14 +179,18 @@ namespace YARG.Core.Song
             var parts = AvailableParts.Default;
             if (chartType == ChartType.Chart)
             {
-                var byteReader = YARGTextLoader.TryLoadByteText(file);
-                if (byteReader != null)
-                    ParseDotChart<byte, ByteStringDecoder, DotChartByte>(byteReader, modifiers, ref parts, drums);
-                else
+                unsafe
                 {
-                    using var chars = YARGTextLoader.ConvertToChar(file);
-                    var charReader = new YARGTextReader<char, CharStringDecoder>(chars, 0);
-                    ParseDotChart<char, CharStringDecoder, DotChartChar>(charReader, modifiers, ref parts, drums);
+                    if (YARGTextReader.TryLoadByteText(file, out var byteContainter))
+                    {
+                        ParseDotChart(ref byteContainter, &StringDecoder.Decode, modifiers, ref parts, drums);
+                    }
+                    else
+                    {
+                        using var chars = YARGTextReader.ConvertToChar(file);
+                        var charContainer = new YARGTextContainer<char>(chars, 0);
+                        ParseDotChart(ref charContainer, &StringDecoder.Decode, modifiers, ref parts, drums);
+                    }
                 }
             }
             else // if (chartType == ChartType.Mid || chartType == ChartType.Midi) // Uncomment for any future file type
@@ -209,18 +213,25 @@ namespace YARG.Core.Song
             return (ScanResult.Success, parts);
         }
 
-        private static void ParseDotChart<TChar, TDecoder, TBase>(YARGTextReader<TChar, TDecoder> textReader, IniSection modifiers, ref AvailableParts parts, DrumPreparseHandler drums)
+        private static unsafe void ParseDotChart<TChar>(ref YARGTextContainer<TChar> reader, in delegate*<TChar*, long, string> decoder, IniSection modifiers, ref AvailableParts parts, DrumPreparseHandler drums)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
-            where TDecoder : IStringDecoder<TChar>, new()
-            where TBase : unmanaged, IDotChartBases<TChar>
         {
-            YARGChartFileReader<TChar, TDecoder, TBase> chartReader = new(textReader);
-            if (chartReader.ValidateHeaderTrack())
+            if (YARGChartFileReader.ValidateTrack(ref reader, YARGChartFileReader.HEADERTRACK))
             {
-                var chartMods = chartReader.ExtractModifiers(CHART_MODIFIER_LIST);
+                var chartMods = YARGChartFileReader.ExtractModifiers(ref reader, decoder, CHART_MODIFIER_LIST);
                 modifiers.Append(chartMods);
             }
-            ParseChart(chartReader, drums, ref parts);
+
+            while (YARGChartFileReader.IsStartOfTrack(in reader))
+            {
+                if (!ParseChartTrack(ref reader, drums, ref parts))
+                {
+                    if (YARGTextReader.SkipLinesUntil(ref reader, '}'))
+                    {
+                        YARGTextReader.GotoNextLine(ref reader);
+                    }
+                }
+            }
 
             if (drums.Type == DrumsType.Unknown && drums.ValidatedDiffs > 0)
                 drums.Type = DrumsType.FourLane;
@@ -238,6 +249,30 @@ namespace YARG.Core.Song
                 drums.Type = DrumsType.ProDrums;
 
             return ParseMidi(file, drums, ref parts);
+        }
+
+        private static bool ParseChartTrack<TChar>(ref YARGTextContainer<TChar> reader, DrumPreparseHandler drums, ref AvailableParts parts)
+            where TChar : unmanaged, IEquatable<TChar>, IConvertible
+        {
+            if (!YARGChartFileReader.ValidateInstrument(ref reader, out var instrument, out var difficulty))
+            {
+                return false;
+            }
+
+            return instrument switch
+            {
+                Instrument.FiveFretGuitar =>     ChartPreparser.Preparse(ref reader, difficulty, ref parts.FiveFretGuitar,     ChartPreparser.ValidateFiveFret),
+                Instrument.FiveFretBass =>       ChartPreparser.Preparse(ref reader, difficulty, ref parts.FiveFretBass,       ChartPreparser.ValidateFiveFret),
+                Instrument.FiveFretRhythm =>     ChartPreparser.Preparse(ref reader, difficulty, ref parts.FiveFretRhythm,     ChartPreparser.ValidateFiveFret),
+                Instrument.FiveFretCoopGuitar => ChartPreparser.Preparse(ref reader, difficulty, ref parts.FiveFretCoopGuitar, ChartPreparser.ValidateFiveFret),
+                Instrument.SixFretGuitar =>      ChartPreparser.Preparse(ref reader, difficulty, ref parts.SixFretGuitar,      ChartPreparser.ValidateSixFret),
+                Instrument.SixFretBass =>        ChartPreparser.Preparse(ref reader, difficulty, ref parts.SixFretBass,        ChartPreparser.ValidateSixFret),
+                Instrument.SixFretRhythm =>      ChartPreparser.Preparse(ref reader, difficulty, ref parts.SixFretRhythm,      ChartPreparser.ValidateSixFret),
+                Instrument.SixFretCoopGuitar =>  ChartPreparser.Preparse(ref reader, difficulty, ref parts.SixFretCoopGuitar,  ChartPreparser.ValidateSixFret),
+                Instrument.Keys =>               ChartPreparser.Preparse(ref reader, difficulty, ref parts.Keys,               ChartPreparser.ValidateFiveFret),
+                Instrument.FourLaneDrums =>      drums.ParseChart(ref reader, difficulty),
+                _ => false,
+            };
         }
 
         private static DrumsType GetDrumTypeFromModifier(IniSection modifiers)

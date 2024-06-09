@@ -21,7 +21,7 @@ namespace YARG.Core.Song
         public override string Directory { get; } = string.Empty;
         public override EntryType SubType => EntryType.ExCON;
 
-        public static (ScanResult, UnpackedRBCONEntry?) ProcessNewEntry(UnpackedCONGroup group, string nodename, YARGDTAReader reader, Dictionary<string, List<SongUpdate>> updates, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades)
+        public static (ScanResult, UnpackedRBCONEntry?) ProcessNewEntry(UnpackedCONGroup group, string nodename, YARGDTAReader reader, Dictionary<string, List<SongUpdate>> updates, Dictionary<string, (YARGDTAReader, IRBProUpgrade)> upgrades)
         {
             try
             {
@@ -45,7 +45,7 @@ namespace YARG.Core.Song
             }
         }
 
-        public static UnpackedRBCONEntry? TryLoadFromCache(string directory, in AbridgedFileInfo_Length dta, string nodename, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
+        public static UnpackedRBCONEntry? TryLoadFromCache(string directory, in AbridgedFileInfo_Length dta, string nodename, Dictionary<string, (YARGDTAReader, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
         {
             string subname = reader.ReadString();
             string songDirectory = Path.Combine(directory, subname);
@@ -71,7 +71,7 @@ namespace YARG.Core.Song
             return new UnpackedRBCONEntry(midiInfo.Value, dta, songDirectory, subname, updateMidi, upgrade, reader, strings);
         }
 
-        public static UnpackedRBCONEntry LoadFromCache_Quick(string directory, in AbridgedFileInfo_Length? dta, string nodename, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
+        public static UnpackedRBCONEntry LoadFromCache_Quick(string directory, in AbridgedFileInfo_Length? dta, string nodename, Dictionary<string, (YARGDTAReader, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
         {
             string subname = reader.ReadString();
             string songDirectory = Path.Combine(directory, subname);
@@ -96,7 +96,7 @@ namespace YARG.Core.Song
             _nodename = nodename;
         }
 
-        private UnpackedRBCONEntry(UnpackedCONGroup group, string nodename, YARGDTAReader reader, Dictionary<string, List<SongUpdate>> updates, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades)
+        private UnpackedRBCONEntry(UnpackedCONGroup group, string nodename, YARGDTAReader reader, Dictionary<string, List<SongUpdate>> updates, Dictionary<string, (YARGDTAReader, IRBProUpgrade)> upgrades)
             : base()
         {
             var results = Init(nodename, reader, updates, upgrades, group.DefaultPlaylist);

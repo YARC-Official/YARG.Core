@@ -77,23 +77,9 @@ namespace YARG.Core.Song.Cache
             {
                 conTasks[con++] = Task.Run(() =>
                 {
-                    var reader = group.LoadSongs();
-                    if (reader != null)
+                    if (group.LoadSongs(out var reader))
                     {
-                        try
-                        {
-                            List<Task> tasks = new();
-                            TraverseCONGroup(reader, (string name, int index) =>
-                            {
-                                var node = reader.Clone();
-                                tasks.Add(Task.Run(() => ScanPackedCONNode(group, name, index, node)));
-                            });
-                            Task.WaitAll(tasks.ToArray());
-                        }
-                        catch (Exception e)
-                        {
-                            YargLogger.LogException(e, $"Error while scanning CON group {group.Location}!");
-                        }
+                        TraverseCONGroup(group, ref reader, ScanPackedCONNode);
                     }
                     group.DisposeStreamAndSongDTA();
                 }
@@ -104,23 +90,9 @@ namespace YARG.Core.Song.Cache
             {
                 conTasks[con++] = Task.Run(() =>
                 {
-                    var reader = group.LoadDTA();
-                    if (reader != null)
+                    if (group.LoadDTA(out var reader))
                     {
-                        try
-                        {
-                            List<Task> tasks = new();
-                            TraverseCONGroup(reader, (string name, int index) =>
-                            {
-                                var node = reader.Clone();
-                                tasks.Add(Task.Run(() => ScanUnpackedCONNode(group, name, index, node)));
-                            });
-                            Task.WaitAll(tasks.ToArray());
-                        }
-                        catch (Exception e)
-                        {
-                            YargLogger.LogException(e, $"Error while scanning CON group {group.Location}!");
-                        }
+                        TraverseCONGroup(group, ref reader, ScanUnpackedCONNode);
                     }
                     group.Dispose();
                 }
@@ -149,6 +121,34 @@ namespace YARG.Core.Song.Cache
             }
             Task.WaitAll(tasks);
             foreach (var task in tasks) task.Dispose();
+        }
+
+        private void TraverseCONGroup<TGroup>(TGroup group, ref YARGDTAReader reader, Action<TGroup, string, int, YARGDTAReader> func)
+            where TGroup : CONGroup
+        {
+            List<Task> tasks = new();
+            try
+            {
+                Dictionary<string, int> indices = new();
+                while (reader.StartNode())
+                {
+                    string name = reader.GetNameOfNode(true);
+                    if (indices.TryGetValue(name, out int index))
+                    {
+                        ++index;
+                    }
+                    indices[name] = index;
+
+                    var node = reader;
+                    tasks.Add(Task.Run(() => func(group, name, index, node)));
+                    reader.EndNode();
+                }
+            }
+            catch (Exception e)
+            {
+                YargLogger.LogException(e, $"Error while scanning CON group {group.Location}!");
+            }
+            Task.WaitAll(tasks.ToArray());
         }
 
         protected override bool AddEntry(SongEntry entry)
@@ -188,12 +188,6 @@ namespace YARG.Core.Song.Cache
             {
                 updateGroups.Add(group);
             }
-        }
-
-        private void ScanCONGroup<TGroup>(TGroup group, YARGDTAReader reader, Action<TGroup, string, int, YARGDTAReader> func)
-            where TGroup : CONGroup
-        {
-            
         }
 
         protected override void SortEntries()
@@ -286,7 +280,7 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        protected override void AddUpgrade(string name, YARGDTAReader? reader, IRBProUpgrade upgrade)
+        protected override void AddUpgrade(string name, YARGDTAReader reader, IRBProUpgrade upgrade)
         {
             lock (upgrades)
             {

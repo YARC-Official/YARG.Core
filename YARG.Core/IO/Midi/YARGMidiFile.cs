@@ -83,6 +83,7 @@ namespace YARG.Core.IO
 
             public bool MoveNext()
             {
+                _current?.Dispose();
                 _current = file.LoadNextTrack();
                 return _current != null;
             }
@@ -94,7 +95,7 @@ namespace YARG.Core.IO
 
             public void Dispose()
             {
-                //throw new NotImplementedException();
+                _current?.Dispose();
             }
         }
     }
