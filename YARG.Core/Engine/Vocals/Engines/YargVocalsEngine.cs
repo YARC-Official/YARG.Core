@@ -198,7 +198,7 @@ namespace YARG.Core.Engine.Vocals.Engines
             }
             else
             {
-                if (State.HasHit && EngineStats.CanStarPowerActivate)
+                if (State.HasHit && CanStarPowerActivate)
                 {
                     ActivateStarPower();
                 }

@@ -97,7 +97,7 @@ namespace YARG.Core.Engine.Drums
                 EndSolo();
             }
 
-            if (!activationAutoHit && note.IsStarPowerActivator && EngineStats.CanStarPowerActivate && note.ParentOrSelf.WasFullyHit())
+            if (!activationAutoHit && note.IsStarPowerActivator && CanStarPowerActivate && note.ParentOrSelf.WasFullyHit())
             {
                 ActivateStarPower();
             }

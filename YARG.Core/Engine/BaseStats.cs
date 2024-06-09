@@ -77,7 +77,9 @@ namespace YARG.Core.Engine
         /// <summary>
         /// Amount of Star Power/Overdrive the player currently has.
         /// </summary>
-        public double StarPowerAmount;
+        public double StarPowerBarAmount;
+
+        public uint StarPowerTickAmount;
 
         /// <summary>
         /// Amount of Star Power/Overdrive the player had as of the most recent SP/OD rebase
@@ -93,7 +95,7 @@ namespace YARG.Core.Engine
         /// <summary>
         /// Whether or not Star Power/Overdrive can be activated.
         /// </summary>
-        public bool CanStarPowerActivate => StarPowerAmount >= 0.5 && !IsStarPowerActive;
+        //public bool CanStarPowerActivate => StarPowerBarAmount >= 0.5 && !IsStarPowerActive;
 
         /// <summary>
         /// Number of Star Power phrases which have been hit.
@@ -135,7 +137,7 @@ namespace YARG.Core.Engine
             NotesHit = stats.NotesHit;
             TotalNotes = stats.TotalNotes;
 
-            StarPowerAmount = stats.StarPowerAmount;
+            StarPowerBarAmount = stats.StarPowerBarAmount;
             StarPowerBaseAmount = stats.StarPowerBaseAmount;
             IsStarPowerActive = stats.IsStarPowerActive;
 
@@ -157,7 +159,7 @@ namespace YARG.Core.Engine
             // Don't reset TotalNotes
             // TotalNotes = 0;
 
-            StarPowerAmount = 0;
+            StarPowerBarAmount = 0;
             StarPowerBaseAmount = 0;
             IsStarPowerActive = false;
 
@@ -180,7 +182,7 @@ namespace YARG.Core.Engine
             writer.Write(NotesHit);
             writer.Write(TotalNotes);
 
-            writer.Write(StarPowerAmount);
+            writer.Write(StarPowerBarAmount);
             writer.Write(StarPowerBaseAmount);
             writer.Write(IsStarPowerActive);
 
@@ -205,7 +207,7 @@ namespace YARG.Core.Engine
             NotesHit = reader.ReadInt32();
             TotalNotes = reader.ReadInt32();
 
-            StarPowerAmount = reader.ReadDouble();
+            StarPowerBarAmount = reader.ReadDouble();
             StarPowerBaseAmount = reader.ReadDouble();
             IsStarPowerActive = reader.ReadBoolean();
 

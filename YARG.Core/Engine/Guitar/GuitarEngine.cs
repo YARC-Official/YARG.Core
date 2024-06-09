@@ -313,6 +313,28 @@ namespace YARG.Core.Engine.Guitar
             RebaseSustains(baseTick);
         }
 
+        protected override void UpdateStarPower()
+        {
+            if (State.HasWhammied)
+            {
+                State.StarPowerWhammyTimer.Start(State.CurrentTime);
+            }
+
+            if (State.StarPowerWhammyTimer.IsActive)
+            {
+                if (State.StarPowerWhammyTimer.IsExpired(State.CurrentTime))
+                {
+                    State.StarPowerWhammyTimer.Disable();
+                }
+                else
+                {
+                    EngineStats.StarPowerTickAmount += State.CurrentTick - State.LastTick;
+                }
+            }
+
+            base.UpdateStarPower();
+        }
+
         protected void RebaseStarPowerWhammy(uint baseTick)
         {
             YargLogger.AssertFormat(baseTick >= State.StarPowerWhammyBaseTick,
@@ -344,11 +366,6 @@ namespace YARG.Core.Engine.Guitar
                 EngineStats.PendingScore += (int) sustainScore;
             }
         }
-
-        protected override double CalculateStarPowerGain(uint tick) =>
-            State.StarPowerWhammyTimer.IsActive
-                ? CalculateStarPowerBeatProgress(tick, State.StarPowerWhammyBaseTick)
-                : 0;
 
         protected void StartSustain(GuitarNote note)
         {
@@ -452,13 +469,6 @@ namespace YARG.Core.Engine.Guitar
                     }
 
                     StartTimer(ref State.StarPowerWhammyTimer, State.CurrentTime);
-
-                    EventLogger.LogEvent(new TimerEngineEvent(State.CurrentTime)
-                    {
-                        TimerName = "StarPowerWhammy",
-                        TimerStarted = true,
-                        TimerValue = State.StarPowerWhammyTimer.TimeThreshold,
-                    });
                 }
                 else if (State.StarPowerWhammyTimer.IsActive && State.StarPowerWhammyTimer.IsExpired(State.CurrentTime))
                 {
@@ -468,13 +478,6 @@ namespace YARG.Core.Engine.Guitar
 
                     // Stop whammy gain
                     State.StarPowerWhammyTimer.Disable();
-
-                    EventLogger.LogEvent(new TimerEngineEvent(State.CurrentTime)
-                    {
-                        TimerName = "StarPowerWhammy",
-                        TimerStopped = true,
-                        TimerValue = 0,
-                    });
                 }
             }
             // Rebase after SP whammy ends to commit the final amount to the base

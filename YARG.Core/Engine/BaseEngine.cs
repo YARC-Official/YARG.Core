@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using YARG.Core.Chart;
@@ -9,7 +10,24 @@ namespace YARG.Core.Engine
 {
     public abstract class BaseEngine
     {
+        protected const int POINTS_PER_NOTE     = 50;
+        protected const int POINTS_PER_PRO_NOTE = POINTS_PER_NOTE + 10;
+        protected const int POINTS_PER_BEAT     = 25;
+
+        // Max number of measures that SP will last when draining
+        // SP draining is done based on measures
+        protected const int    STAR_POWER_MAX_MEASURES   = 8;
+
+        // Max number of beats that it takes to fill SP when gaining
+        // SP gain from whammying is done based on beats
+        protected const int    STAR_POWER_MAX_BEATS   = (STAR_POWER_MAX_MEASURES * 4) - 2; // - 2 for leniency
+
+        // Beat fraction to use for the sustain burst threshold
+        protected const int  SUSTAIN_BURST_FRACTION = 4;
+
         public bool IsInputQueued => InputQueue.Count > 0;
+
+        public bool CanStarPowerActivate => BaseStats.StarPowerTickAmount >= TicksPerHalfSpBar;
 
         public int BaseScore { get; protected set; }
 
@@ -21,6 +39,10 @@ namespace YARG.Core.Engine
 
         protected readonly SyncTrack SyncTrack;
         protected readonly uint Resolution;
+
+        public readonly uint TicksPerQuarterSpBar;
+        public readonly uint TicksPerHalfSpBar;
+        public readonly uint TicksPerFullSpBar;
 
         protected List<SoloSection> Solos = new();
 
@@ -49,6 +71,10 @@ namespace YARG.Core.Engine
         {
             SyncTrack = syncTrack;
             Resolution = syncTrack.Resolution;
+
+            TicksPerQuarterSpBar = (uint) Math.Round((double)STAR_POWER_MAX_BEATS / 4 * syncTrack.Resolution);
+            TicksPerHalfSpBar    = TicksPerQuarterSpBar * 2;
+            TicksPerFullSpBar   = TicksPerQuarterSpBar * 4;
 
             TreatChordAsSeparate = isChordSeparate;
             IsBot = isBot;
@@ -265,6 +291,14 @@ namespace YARG.Core.Engine
         /// <param name="time">The time in which to simulate hit logic at.</param>
         /// <returns>True if a note was updated (hit or missed). False if no changes.</returns>
         protected abstract void UpdateHitLogic(double time);
+
+        public double GetStarPowerEndTime(uint startTick, uint starPowerTicks)
+        {
+            // Basic implementation
+            uint endTick = startTick + starPowerTicks;
+
+            return SyncTrack.TickToTime(endTick);
+        }
 
         /// <summary>
         /// Resets the engine's state back to default and then processes the list of inputs up to the given time.
