@@ -1,13 +1,13 @@
-﻿using System.IO;
+using System.IO;
 
 namespace YARG.Core.Engine.Guitar
 {
     public class GuitarEngineParameters : BaseEngineParameters
     {
-        public double HopoLeniency { get; private set; }
+        public double HopoLeniency;
 
-        public double StrumLeniency      { get; private set; }
-        public double StrumLeniencySmall { get; private set; }
+        public double StrumLeniency;
+        public double StrumLeniencySmall;
 
         public bool InfiniteFrontEnd { get; private set; }
         public bool AntiGhosting     { get; private set; }

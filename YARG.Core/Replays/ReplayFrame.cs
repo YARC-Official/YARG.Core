@@ -18,6 +18,8 @@ namespace YARG.Core.Replays
         public BaseStats            Stats;
         public int                  InputCount;
         public GameInput[]          Inputs;
+
+        // Unused since version 6
         public EngineEventLogger    EventLog;
 
         // Disabling this because it looks ugly with the initializers lol
@@ -43,7 +45,7 @@ namespace YARG.Core.Replays
                 writer.Write(Inputs[i].Action);
                 writer.Write(Inputs[i].Integer);
             }
-            
+
             EventLog.Serialize(writer);
         }
 
@@ -88,7 +90,7 @@ namespace YARG.Core.Replays
 
                 Inputs[i] = new GameInput(time, action, value);
             }
-            
+
             EventLog.Deserialize(reader, version);
         }
     }

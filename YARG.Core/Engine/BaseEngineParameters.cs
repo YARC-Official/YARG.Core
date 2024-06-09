@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -8,9 +8,9 @@ namespace YARG.Core.Engine
 {
     public abstract class BaseEngineParameters : IBinarySerializable
     {
-        public readonly HitWindowSettings HitWindow;
+        public HitWindowSettings HitWindow;
 
-        public int MaxMultiplier { get; private set; }
+        public int MaxMultiplier;
 
         public double StarPowerWhammyBuffer { get; private set; }
 
