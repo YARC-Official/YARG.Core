@@ -11,6 +11,7 @@ using Melanchall.DryWetMidi.Core;
 using YARG.Core.Extensions;
 using YARG.Core.Audio;
 using YARG.Core.Logging;
+using YARG.Core.IO.Disposables;
 
 namespace YARG.Core.Song
 {
@@ -206,13 +207,13 @@ namespace YARG.Core.Song
             return new YARGImage(bytes);
         }
 
-        public override byte[]? LoadMiloData()
+        public override FixedArray<byte>? LoadMiloData()
         {
-            if (UpdateMilo != null && UpdateMilo.Value.Exists())
+            if (UpdateMilo == null || !UpdateMilo.Value.Exists())
             {
-                return File.ReadAllBytes(UpdateMilo.Value.FullName);
+                return null;
             }
-            return null;
+            return MemoryMappedArray.Load(UpdateMilo.Value);
         }
 
         public virtual void Serialize(BinaryWriter writer, CategoryCacheWriteNode node)
@@ -257,7 +258,7 @@ namespace YARG.Core.Song
         }
 
         protected abstract bool IsMoggValid(Stream? file);
-        protected abstract byte[]? LoadMidiFile(Stream? file);
+        protected abstract FixedArray<byte>? LoadMidiFile(Stream? file);
         protected abstract Stream? GetMidiStream();
 
         protected RBCONEntry() : base()
@@ -326,11 +327,11 @@ namespace YARG.Core.Song
         }
 
 
-        protected virtual byte[]? LoadRawImageData()
+        protected virtual FixedArray<byte>? LoadRawImageData()
         {
             if (UpdateImage != null && UpdateImage.Value.Exists())
             {
-                return File.ReadAllBytes(UpdateImage.Value.FullName);
+                return MemoryMappedArray.Load(UpdateImage.Value);
             }
             return null;
         }
@@ -355,13 +356,13 @@ namespace YARG.Core.Song
             return new FileStream(mogg.FullName, FileMode.Open, FileAccess.Read);
         }
 
-        protected byte[]? LoadUpdateMidiFile()
+        protected FixedArray<byte>? LoadUpdateMidiFile()
         {
             if (_updateMidi == null || !_updateMidi.Value.IsStillValid(false))
             {
                 return null;
             }
-            return File.ReadAllBytes(_updateMidi.Value.FullName);
+            return MemoryMappedArray.Load(_updateMidi.Value);
         }
 
         protected ScanResult ParseRBCONMidi(Stream? file)
@@ -378,16 +379,16 @@ namespace YARG.Core.Song
 
             try
             {
-                byte[]? chartFile = LoadMidiFile(file);
-                byte[]? updateFile = LoadUpdateMidiFile();
-                byte[]? upgradeFile = _upgrade?.LoadUpgradeMidi();
+                using var chartFile = LoadMidiFile(file);
+                using var updateFile = LoadUpdateMidiFile();
+                using var upgradeFile = _upgrade?.LoadUpgradeMidi();
 
                 DrumPreparseHandler drumTracker = new()
                 {
                     Type = DrumsType.ProDrums
                 };
 
-                int bufLength = 0;
+                long bufLength = 0;
                 if (_updateMidi != null)
                 {
                     if (updateFile == null)
@@ -424,21 +425,24 @@ namespace YARG.Core.Song
                     return ScanResult.NoNotes;
                 }
 
-                byte[] buffer = new byte[bufLength];
-                System.Runtime.CompilerServices.Unsafe.CopyBlock(ref buffer[0], ref chartFile[0], (uint) chartFile.Length);
-
-                int offset = chartFile.Length;
-                if (updateFile != null)
+                using var buffer = AllocatedArray<byte>.Alloc(bufLength);
+                unsafe
                 {
-                    System.Runtime.CompilerServices.Unsafe.CopyBlock(ref buffer[offset], ref updateFile[0], (uint) updateFile.Length);
-                    offset += updateFile.Length;
-                }
+                    System.Runtime.CompilerServices.Unsafe.CopyBlock(buffer.Ptr, chartFile.Ptr, (uint) chartFile.Length);
 
-                if (upgradeFile != null)
-                {
-                    System.Runtime.CompilerServices.Unsafe.CopyBlock(ref buffer[offset], ref upgradeFile[0], (uint) upgradeFile.Length);
+                    long offset = chartFile.Length;
+                    if (updateFile != null)
+                    {
+                        System.Runtime.CompilerServices.Unsafe.CopyBlock(buffer.Ptr + offset, updateFile.Ptr, (uint) updateFile.Length);
+                        offset += updateFile.Length;
+                    }
+
+                    if (upgradeFile != null)
+                    {
+                        System.Runtime.CompilerServices.Unsafe.CopyBlock(buffer.Ptr + offset, upgradeFile.Ptr, (uint) upgradeFile.Length);
+                    }
                 }
-                _hash = HashWrapper.Hash(buffer);
+                _hash = HashWrapper.Hash(buffer.ReadOnlySpan);
                 return ScanResult.Success;
             }
             catch

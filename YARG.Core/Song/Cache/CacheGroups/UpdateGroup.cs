@@ -3,20 +3,25 @@ using System.Collections.Generic;
 using System.IO;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
+using YARG.Core.IO.Disposables;
 
 namespace YARG.Core.Song.Cache
 {
-    public sealed class UpdateGroup : IModificationGroup
+    public sealed class UpdateGroup : IModificationGroup, IDisposable
     {
         public readonly DirectoryInfo Directory;
         public readonly DateTime DTALastWrite;
         public readonly Dictionary<string, DirectoryInfo> SubDirectories;
         public readonly Dictionary<string, SongUpdate> Updates = new();
 
-        public UpdateGroup(DirectoryInfo directory, DateTime dtaLastUpdate)
+        private readonly MemoryMappedArray _dtaData;
+
+        public UpdateGroup(DirectoryInfo directory, DateTime dtaLastUpdate, MemoryMappedArray dtaData)
         {
             Directory = directory;
             DTALastWrite = dtaLastUpdate;
+            _dtaData = dtaData;
+            
             SubDirectories = new Dictionary<string, DirectoryInfo>();
             foreach (var dir in directory.EnumerateDirectories())
             {
@@ -38,6 +43,11 @@ namespace YARG.Core.Song.Cache
                 update.Serialize(writer);
             }
             return ms.ToArray();
+        }
+
+        public void Dispose()
+        {
+            _dtaData.Dispose();
         }
     }
 

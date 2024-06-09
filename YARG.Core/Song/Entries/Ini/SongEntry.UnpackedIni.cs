@@ -8,6 +8,7 @@ using YARG.Core.Audio;
 using YARG.Core.Venue;
 using System.Linq;
 using YARG.Core.Logging;
+using YARG.Core.IO.Disposables;
 
 namespace YARG.Core.Song
 {
@@ -56,16 +57,16 @@ namespace YARG.Core.Song
                 foreach (var format in IniAudio.SupportedFormats)
                 {
                     var audioFile = stem + format;
-                    if (subFiles.TryGetValue(audioFile, out var fullname))
+                    if (subFiles.TryGetValue(audioFile, out var info))
                     {
-                        var stream = new FileStream(fullname, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+                        var stream = new FileStream(info.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
                         if (mixer.AddChannel(stemEnum, stream))
                         {
                             // No duplicates
                             break;
                         }
                         stream.Dispose();
-                        YargLogger.LogFormatError("Failed to load stem file {0}", fullname);
+                        YargLogger.LogFormatError("Failed to load stem file {0}", info.FullName);
                     }
                 }
             }
@@ -103,19 +104,19 @@ namespace YARG.Core.Song
                 {
                     return image;
                 }
-                YargLogger.LogFormatError("Image at {0} failed to load", cover);
+                YargLogger.LogFormatError("Image at {0} failed to load", cover.FullName);
             }
 
             foreach (string albumFile in ALBUMART_FILES)
             {
-                if (subFiles.TryGetValue(albumFile, out var fullname))
+                if (subFiles.TryGetValue(albumFile, out var info))
                 {
-                    var image = YARGImage.Load(fullname);
+                    var image = YARGImage.Load(info);
                     if (image != null)
                     {
                         return image;
                     }
-                    YargLogger.LogFormatError("Image at {0} failed to load", fullname);
+                    YargLogger.LogFormatError("Image at {0} failed to load", info.FullName);
                 }
             }
             return null;
@@ -128,7 +129,7 @@ namespace YARG.Core.Song
             {
                 if (subFiles.TryGetValue("bg.yarground", out var file))
                 {
-                    var stream = File.OpenRead(file);
+                    var stream = File.OpenRead(file.FullName);
                     return new BackgroundResult(BackgroundType.Yarground, stream);
                 }
             }
@@ -137,7 +138,7 @@ namespace YARG.Core.Song
             {
                 if (!string.IsNullOrEmpty(_video) && subFiles.TryGetValue(_video, out var video))
                 {
-                    var stream = File.OpenRead(video);
+                    var stream = File.OpenRead(video.FullName);
                     return new BackgroundResult(BackgroundType.Video, stream);
                 }
 
@@ -145,9 +146,9 @@ namespace YARG.Core.Song
                 {
                     foreach (var format in VIDEO_EXTENSIONS)
                     {
-                        if (subFiles.TryGetValue(stem + format, out var fullname))
+                        if (subFiles.TryGetValue(stem + format, out var info))
                         {
-                            var stream = File.OpenRead(fullname);
+                            var stream = File.OpenRead(info.FullName);
                             return new BackgroundResult(BackgroundType.Video, stream);
                         }
                     }
@@ -191,20 +192,21 @@ namespace YARG.Core.Song
             return new FileStream(_chartFile.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
         }
 
-        private Dictionary<string, string> GetSubFiles()
+        private Dictionary<string, FileInfo> GetSubFiles()
         {
-            Dictionary<string, string> files = new();
-            if (System.IO.Directory.Exists(Directory))
+            Dictionary<string, FileInfo> files = new();
+            var dirInfo = new DirectoryInfo(Directory);
+            if (dirInfo.Exists)
             {
-                foreach (var file in System.IO.Directory.EnumerateFiles(Directory))
+                foreach (var file in dirInfo.EnumerateFiles())
                 {
-                    files.Add(Path.GetFileName(file).ToLower(), file);
+                    files.Add(file.Name.ToLower(), file);
                 }
             }
             return files;
         }
 
-        private UnpackedIniEntry(string directory, ChartType chartType, AbridgedFileInfo_Length chartFile, AbridgedFileInfo? iniFile, in AvailableParts parts, HashWrapper hash, IniSection modifiers, string defaultPlaylist)
+        private UnpackedIniEntry(string directory, ChartType chartType, AbridgedFileInfo_Length chartFile, AbridgedFileInfo? iniFile, in AvailableParts parts, in HashWrapper hash, IniSection modifiers, string defaultPlaylist)
             : base(in parts, in hash, modifiers, defaultPlaylist)
         {
             Directory = directory;
@@ -233,7 +235,7 @@ namespace YARG.Core.Song
                     return (ScanResult.IniNotDownloaded, null);
                 }
 
-                iniModifiers = SongIniHandler.ReadSongIniFile(iniFile.FullName);
+                iniModifiers = SongIniHandler.ReadSongIniFile(iniFile);
                 iniFileInfo = new AbridgedFileInfo(iniFile);
             }
             else
@@ -246,7 +248,7 @@ namespace YARG.Core.Song
                 return (ScanResult.ChartNotDownloaded, null);
             }
 
-            byte[] file = File.ReadAllBytes(chart.File.FullName);
+            using var file = MemoryMappedArray.Load(chart.File);
             var (result, parts) = ScanIniChartFile(file, chart.Type, iniModifiers);
             if (result != ScanResult.Success)
             {
@@ -254,7 +256,8 @@ namespace YARG.Core.Song
             }
 
             var abridged = new AbridgedFileInfo_Length(chart.File);
-            var entry = new UnpackedIniEntry(chartDirectory, chart.Type, abridged, iniFileInfo, in parts, HashWrapper.Hash(file), iniModifiers, defaultPlaylist);
+            var hash = HashWrapper.Hash(file.ReadOnlySpan);
+            var entry = new UnpackedIniEntry(chartDirectory, chart.Type, abridged, iniFileInfo, in parts, in hash, iniModifiers, defaultPlaylist);
             if (!iniModifiers.Contains("song_length"))
             {
                 using var mixer = entry.LoadAudio(0, 0);

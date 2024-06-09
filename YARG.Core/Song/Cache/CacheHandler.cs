@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using YARG.Core.Audio;
 using YARG.Core.IO;
+using YARG.Core.IO.Disposables;
 using YARG.Core.Logging;
 
 namespace YARG.Core.Song.Cache
@@ -45,6 +46,7 @@ namespace YARG.Core.Song.Cache
             {
                 YargLogger.LogException(ex, "Unknown error while running song scan!");
             }
+            handler.DisposeDTAData();
             GlobalAudioHandler.LogMixerStatus = true;
             return handler.cache;
         }
@@ -142,7 +144,7 @@ namespace YARG.Core.Song.Cache
         /// Format is YY_MM_DD_RR: Y = year, M = month, D = day, R = revision (reset across dates, only increment
         /// if multiple cache version changes happen in a single day).
         /// </summary>
-        public const int CACHE_VERSION = 24_06_13_01;
+        public const int CACHE_VERSION = 24_06_13_02;
 
         protected readonly SongCache cache = new();
 
@@ -177,6 +179,19 @@ namespace YARG.Core.Song.Cache
                 {
                     iniGroups.Add(new IniGroup(dir));
                 }
+            }
+        }
+
+        private void DisposeDTAData()
+        {
+            foreach(var group in upgradeGroups)
+            {
+                group.Dispose();
+            }
+
+            foreach (var group in updateGroups)
+            {
+                group.Dispose();
             }
         }
 
@@ -347,11 +362,25 @@ namespace YARG.Core.Song.Cache
 
         private UpgradeGroup? CreateUpgradeGroup(string directory, FileInfo dta, bool removeEntries)
         {
-            var reader = YARGDTAReader.TryCreate(dta.FullName);
-            if (reader == null)
-                return null;
+            MemoryMappedArray? fileData = null;
+            YARGDTAReader? reader = null;
+            try
+            {
+                fileData = MemoryMappedArray.Load(dta);
+                reader = YARGDTAReader.TryCreate(fileData);
+            }
+            catch (Exception ex)
+            {
+                YargLogger.LogException(ex, $"Error while loading {dta.FullName}");
+            }
 
-            var group = new UpgradeGroup(directory, dta.LastWriteTime);
+            if (reader == null)
+            {
+                fileData?.Dispose();
+                return null;
+            }
+
+            var group = new UpgradeGroup(directory, dta.LastWriteTime, fileData!);
             try
             {
                 while (reader.StartNode())
@@ -393,22 +422,23 @@ namespace YARG.Core.Song.Cache
 
         private UpdateGroup? CreateUpdateGroup(DirectoryInfo dirInfo, FileInfo dta, bool removeEntries)
         {
-            var nodes = FindUpdateNodes(dirInfo.FullName, dta);
-            if (nodes == null)
+            MemoryMappedArray? fileData = null;
+            YARGDTAReader? reader = null;
+            try
             {
-                return null;
+                fileData = MemoryMappedArray.Load(dta);
+                reader = YARGDTAReader.TryCreate(fileData);
+            }
+            catch (Exception ex)
+            {
+                YargLogger.LogException(ex, $"Error while loading {dta.FullName}");
             }
 
-            var group = new UpdateGroup(dirInfo, dta.LastUpdatedTime);
-            AddUpdates(group, nodes, removeEntries);
-            return group;
-        }
-
-        private Dictionary<string, List<YARGDTAReader>>? FindUpdateNodes(string directory, AbridgedFileInfo dta)
-        {
-            var reader = YARGDTAReader.TryCreate(dta.FullName);
             if (reader == null)
+            {
+                fileData?.Dispose();
                 return null;
+            }
 
             var nodes = new Dictionary<string, List<YARGDTAReader>>();
             try
@@ -427,16 +457,19 @@ namespace YARG.Core.Song.Cache
             }
             catch (Exception ex)
             {
-                YargLogger.LogException(ex, $"Error while scanning CON update folder {directory}!");
-                return null;
+                YargLogger.LogException(ex, $"Error while scanning CON update folder {dirInfo.FullName}!");
             }
 
             if (nodes.Count == 0)
             {
-                YargLogger.LogFormatWarning("{0} .dta file possibly malformed", directory);
+                YargLogger.LogFormatWarning("{0} .dta file possibly malformed", dirInfo.FullName);
+                fileData!.Dispose();
                 return null;
             }
-            return nodes;
+
+            var group = new UpdateGroup(dirInfo, dta.LastWriteTime, fileData!);
+            AddUpdates(group, nodes, removeEntries);
+            return group;
         }
 
         private bool TryParseUpgrades(string filename, PackedCONGroup group)

@@ -1,6 +1,8 @@
-﻿using System;
+﻿using Melanchall.DryWetMidi.Interaction;
+using System;
 using System.Text;
 using YARG.Core.Extensions;
+using YARG.Core.IO.Disposables;
 
 namespace YARG.Core.IO
 {
@@ -8,7 +10,7 @@ namespace YARG.Core.IO
     {
         private static readonly UTF32Encoding UTF32BE = new(true, false);
 
-        public static YARGTextReader<byte, ByteStringDecoder>? TryLoadByteText(byte[] data)
+        public static YARGTextReader<byte, ByteStringDecoder>? TryLoadByteText(FixedArray<byte> data)
         {
             if ((data[0] == 0xFF && data[1] == 0xFE) || (data[0] == 0xFE && data[1] == 0xFF))
                 return null;
@@ -17,21 +19,30 @@ namespace YARG.Core.IO
             return new YARGTextReader<byte, ByteStringDecoder>(data, position);
         }
 
-        public static char[] ConvertToChar(byte[] data)
+        public static AllocatedArray<char> ConvertToChar(FixedArray<byte> data)
         {
-            int offset;
+            long offset;
+            long length;
             Encoding encoding;
             if (data[2] != 0)
             {
                 offset = 2;
+                length = (data.Length - 2) / 2;
                 encoding = data[0] == 0xFF ? Encoding.Unicode : Encoding.BigEndianUnicode;
             }
             else
             {
                 offset = 3;
+                length = (data.Length - 3) / 4;
                 encoding = data[0] == 0xFF ? Encoding.UTF32 : UTF32BE;
             }
-            return encoding.GetChars(data, offset, data.Length - offset);
+
+            var charData = AllocatedArray<char>.Alloc(length);
+            unsafe
+            {
+                encoding.GetChars(data.Ptr + offset, (int)(data.Length - offset), charData.Ptr, (int)charData.Length);
+            }
+            return charData;
         }
     }
 
@@ -63,7 +74,7 @@ namespace YARG.Core.IO
         private readonly TDecoder decoder = new();
         public readonly YARGTextContainer<TChar> Container;
 
-        public YARGTextReader(TChar[] data, int position)
+        public YARGTextReader(FixedArray<TChar> data, long position)
         {
             Container = new YARGTextContainer<TChar>(data, position);
             while (Container.Position < Container.Length)
@@ -115,7 +126,7 @@ namespace YARG.Core.IO
                 if (Container.Data[Container.Position].ToChar(null) == stopCharacter)
                 {
                     // Runs a check to ensure that the character is the start of the line
-                    int test = Container.Position - 1;
+                    long test = Container.Position - 1;
                     char character = Container.Data[test].ToChar(null);
                     while (test > 0 && character <= 32 && character != '\n')
                     {
@@ -132,7 +143,7 @@ namespace YARG.Core.IO
 
         public string ExtractModifierName()
         {
-            int curr = Container.Position;
+            long curr = Container.Position;
             while (curr < Container.Length)
             {
                 char b = Container.Data[curr].ToChar(null);
@@ -160,7 +171,7 @@ namespace YARG.Core.IO
         public string ExtractText(bool isChartFile)
         {
             var stringBegin = Container.Position;
-            var stringEnd = -1;
+            long stringEnd = -1;
             if (isChartFile && Container.Position < Container.Length && Container.Data[Container.Position].ToChar(null) == '\"')
             {
                 while (true)

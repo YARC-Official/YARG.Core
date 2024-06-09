@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using YARG.Core.IO;
+using YARG.Core.IO.Disposables;
 
 namespace YARG.Core.Song
 {
@@ -11,7 +12,7 @@ namespace YARG.Core.Song
         public DateTime LastUpdatedTime { get; }
         public void WriteToCache(BinaryWriter writer);
         public Stream? GetUpgradeMidiStream();
-        public byte[]? LoadUpgradeMidi();
+        public FixedArray<byte>? LoadUpgradeMidi();
     }
 
     [Serializable]
@@ -42,7 +43,7 @@ namespace YARG.Core.Song
             return _midiListing.CreateStream();
         }
 
-        public byte[]? LoadUpgradeMidi()
+        public FixedArray<byte>? LoadUpgradeMidi()
         {
             if (_midiListing == null || !_midiListing.ConFile.IsStillValid())
             {
@@ -66,6 +67,7 @@ namespace YARG.Core.Song
         public void WriteToCache(BinaryWriter writer)
         {
             writer.Write(_midi.LastUpdatedTime.ToBinary());
+            writer.Write(_midi.Length);
         }
 
         public Stream? GetUpgradeMidiStream()
@@ -73,9 +75,9 @@ namespace YARG.Core.Song
             return _midi.IsStillValid() ? new FileStream(_midi.FullName, FileMode.Open, FileAccess.Read, FileShare.Read) : null;
         }
 
-        public byte[]? LoadUpgradeMidi()
+        public FixedArray<byte>? LoadUpgradeMidi()
         {
-            return _midi.IsStillValid() ? File.ReadAllBytes(_midi.FullName) : null;
+            return _midi.IsStillValid() ? MemoryMappedArray.Load(_midi) : null;
         }
     }
 }

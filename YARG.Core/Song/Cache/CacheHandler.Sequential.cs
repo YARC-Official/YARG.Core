@@ -42,7 +42,7 @@ namespace YARG.Core.Song.Cache
                         YargLogger.LogException(e, $"Error while scanning packed CON group {group.Location}!");
                     }
                 }
-                group.Stream?.Dispose();
+                group.DisposeStreamAndSongDTA();
             }
 
             foreach (var group in extractedConGroups)
@@ -59,6 +59,12 @@ namespace YARG.Core.Song.Cache
                         YargLogger.LogException(e, $"Error while scanning unpacked CON group {group.Location}!");
                     }
                 }
+                group.Dispose();
+            }
+
+            foreach (var group in conGroups)
+            {
+                group.DisposeUpgradeDTA();
             }
         }
 

@@ -3,41 +3,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using YARG.Core.Extensions;
+using YARG.Core.IO.Disposables;
 using YARG.Core.Logging;
 
 namespace YARG.Core.IO
 {
     public sealed class YARGDTAReader
     {
-        public static YARGDTAReader? TryCreate(CONFileListing listing, Stream stream)
-        {
-            try
-            {
-                var bytes = listing.LoadAllBytes(stream);
-                return TryCreate(bytes);
-            }
-            catch (Exception ex)
-            {
-                YargLogger.LogException(ex, $"Error while loading {listing.ConFile.FullName}");
-                return null;
-            }
-        }
-
-        public static YARGDTAReader? TryCreate(string filename)
-        {
-            try
-            {
-                var bytes = File.ReadAllBytes(filename);
-                return TryCreate(bytes);
-            }
-            catch (Exception ex)
-            {
-                YargLogger.LogException(ex, $"Error while loading {filename}");
-                return null;
-            }
-        }
-
-        private static YARGDTAReader? TryCreate(byte[] data)
+        public static YARGDTAReader? TryCreate(FixedArray<byte> data)
         {
             if ((data[0] == 0xFF && data[1] == 0xFE) || (data[0] == 0xFE && data[1] == 0xFF))
             {
@@ -52,7 +25,7 @@ namespace YARG.Core.IO
         private readonly YARGTextContainer<byte> container;
         public Encoding encoding;
 
-        private YARGDTAReader(byte[] data, int position)
+        private YARGDTAReader(FixedArray<byte> data, int position)
         {
             container = new YARGTextContainer<byte>(data, position);
             encoding = position == 3 ? Encoding.UTF8 : YARGTextContainer.Latin1;
@@ -115,8 +88,8 @@ namespace YARG.Core.IO
                 ch = (char) container.Data[container.Position];
             }
 
-            int start = container.Position;
-            int end = container.Position;
+            long start = container.Position;
+            long end = container.Position;
             while (true)
             {
                 if (ch == '\'')
@@ -148,7 +121,10 @@ namespace YARG.Core.IO
             }
 
             SkipWhitespace();
-            return Encoding.UTF8.GetString(container.Data, start, end - start);
+            unsafe
+            {
+                return Encoding.UTF8.GetString(container.Data.Ptr + start,(int)(end - start));
+            }
         }
 
         private enum TextScopeState
@@ -227,14 +203,17 @@ namespace YARG.Core.IO
                 ch = (char) container.Data[container.Position];
             }
 
-            string txt = encoding.GetString(container.Data, start, container.Position - start).Replace("\\q", "\"");
-            if (ch != ')')
+            unsafe
             {
-                ++container.Position;
+                string txt = encoding.GetString(container.Data.Ptr + start, (int)(container.Position - start)).Replace("\\q", "\"");
+                if (ch != ')')
+                {
+                    ++container.Position;
 
+                }
+                SkipWhitespace();
+                return txt;
             }
-            SkipWhitespace();
-            return txt;
         }
 
         public int[] ExtractArray_Int()

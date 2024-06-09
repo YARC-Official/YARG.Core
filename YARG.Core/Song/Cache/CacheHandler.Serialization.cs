@@ -362,18 +362,13 @@ namespace YARG.Core.Song.Cache
             var dtaLastUpdated = DateTime.FromBinary(reader.ReadInt64());
             int count = reader.ReadInt32();
 
-            var group = new UpgradeGroup(directory, dtaLastUpdated);
-            AddUpgradeGroup(group);
-
             for (int i = 0; i < count; i++)
             {
                 string name = reader.ReadString();
                 string filename = Path.Combine(directory, $"{name}_plus.mid");
 
                 var info = new AbridgedFileInfo_Length(filename, reader);
-                var upgrade = new UnpackedRBProUpgrade(info);
-                group.Upgrades.Add(name, upgrade);
-                AddUpgrade(name, null, upgrade);
+                AddUpgrade(name, null, new UnpackedRBProUpgrade(info));
             }
         }
 

@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.IO;
 using YARG.Core.IO;
+using YARG.Core.IO.Disposables;
+using YARG.Core.Logging;
 
 namespace YARG.Core.Song.Cache
 {
@@ -12,6 +14,9 @@ namespace YARG.Core.Song.Cache
         public readonly CONFileListing? SongDTA;
         public readonly CONFileListing? UpgradeDta;
         public Stream? Stream;
+
+        private AllocatedArray<byte>? _songDTAData;
+        private AllocatedArray<byte>? _upgradeDTAData;
         
         public Dictionary<string, IRBProUpgrade> Upgrades { get; } = new();
 
@@ -55,8 +60,18 @@ namespace YARG.Core.Song.Cache
             {
                 return null;
             }
-            Stream = new FileStream(Info.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
-            return YARGDTAReader.TryCreate(UpgradeDta, Stream);
+
+            try
+            {
+                Stream = new FileStream(Info.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+                _upgradeDTAData = UpgradeDta.LoadAllBytes(Stream);
+                return YARGDTAReader.TryCreate(_upgradeDTAData);
+            }
+            catch (Exception ex)
+            {
+                YargLogger.LogException(ex, $"Error while loading {UpgradeDta.Filename}");
+                return null;
+            }
         }
 
         public YARGDTAReader? LoadSongs()
@@ -65,8 +80,18 @@ namespace YARG.Core.Song.Cache
             {
                 return null;
             }
-            Stream ??= new FileStream(Info.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
-            return YARGDTAReader.TryCreate(SongDTA!, Stream);
+
+            try
+            {
+                Stream ??= new FileStream(Info.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+                _songDTAData = SongDTA.LoadAllBytes(Stream);
+                return YARGDTAReader.TryCreate(_songDTAData);
+            }
+            catch (Exception ex)
+            {
+                YargLogger.LogException(ex, $"Error while loading {SongDTA.Filename}");
+                return null;
+            }
         }
 
         public byte[] SerializeModifications()
@@ -84,6 +109,17 @@ namespace YARG.Core.Song.Cache
                 upgrade.Value.WriteToCache(writer);
             }
             return ms.ToArray();
+        }
+
+        public void DisposeStreamAndSongDTA()
+        {
+            Stream?.Dispose();
+            _songDTAData?.Dispose();
+        }
+
+        public void DisposeUpgradeDTA()
+        {
+            _upgradeDTAData?.Dispose();
         }
     }
 }

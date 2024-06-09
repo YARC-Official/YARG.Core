@@ -6,6 +6,7 @@ using YARG.Core.Song.Cache;
 using YARG.Core.IO;
 using YARG.Core.Logging;
 using YARG.Core.Venue;
+using YARG.Core.IO.Disposables;
 
 namespace YARG.Core.Song
 {
@@ -162,10 +163,10 @@ namespace YARG.Core.Song
                     var fileBase = Path.Combine(Directory, name);
                     foreach (var ext in IMAGE_EXTENSIONS)
                     {
-                        string imageFile = fileBase + ext;
-                        if (File.Exists(imageFile))
+                        var file = new FileInfo(fileBase + ext);
+                        if (file.Exists)
                         {
-                            var image = YARGImage.Load(imageFile);
+                            var image = YARGImage.Load(file);
                             if (image != null)
                             {
                                 return new BackgroundResult(image);
@@ -177,7 +178,7 @@ namespace YARG.Core.Song
             return null;
         }
 
-        public override byte[]? LoadMiloData()
+        public override FixedArray<byte>? LoadMiloData()
         {
             var bytes = base.LoadMiloData();
             if (bytes != null)
@@ -185,12 +186,12 @@ namespace YARG.Core.Song
                 return bytes;
             }
 
-            string milo = Path.Combine(Directory, "gen", _nodename + ".milo_xbox");
-            if (!File.Exists(milo))
+            var info = new FileInfo(Path.Combine(Directory, "gen", _nodename + ".milo_xbox"));
+            if (!info.Exists)
             {
                 return null;
             }
-            return File.ReadAllBytes(milo);
+            return MemoryMappedArray.Load(info);
         }
 
         protected override Stream? GetMidiStream()
@@ -202,16 +203,16 @@ namespace YARG.Core.Song
             return new FileStream(_midi.Value.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
         }
 
-        protected override byte[]? LoadMidiFile(Stream? file)
+        protected override FixedArray<byte>? LoadMidiFile(Stream? file)
         {
             if (_dta == null || !_dta.Value.IsStillValid() || !_midi!.Value.IsStillValid())
             {
                 return null;
             }
-            return File.ReadAllBytes(_midi.Value.FullName);
+            return MemoryMappedArray.Load(_midi.Value);
         }
 
-        protected override byte[]? LoadRawImageData()
+        protected override FixedArray<byte>? LoadRawImageData()
         {
             var bytes = base.LoadRawImageData();
             if (bytes != null)
@@ -219,12 +220,12 @@ namespace YARG.Core.Song
                 return bytes;
             }
 
-            string image = Path.Combine(Directory, "gen", _nodename + "_keep.png_xbox");
-            if (!File.Exists(image))
+            var info = new FileInfo(Path.Combine(Directory, "gen", _nodename + "_keep.png_xbox"));
+            if (!info.Exists)
             {
                 return null;
             }
-            return File.ReadAllBytes(image);
+            return MemoryMappedArray.Load(info);
         }
 
         protected override Stream? GetMoggStream()
