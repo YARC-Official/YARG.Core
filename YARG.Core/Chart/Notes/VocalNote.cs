@@ -155,6 +155,11 @@ namespace YARG.Core.Chart
 
         public override void AddChildNote(VocalNote note)
         {
+            /*
+             TODO Add same child note checking like the other instruments
+             (but I have no idea how vocals works) - Riley
+            */
+
             if (IsPhrase)
             {
                 if (note.Tick < Tick) return;

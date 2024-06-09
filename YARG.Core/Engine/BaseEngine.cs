@@ -84,6 +84,7 @@ namespace YARG.Core.Engine
             }
             YargLogger.LogFormatTrace("Running frame update at {0}", time);
             RunQueuedUpdates(time);
+            UpdateTimeVariables(time);
             RunEngineLoop(time);
         }
 

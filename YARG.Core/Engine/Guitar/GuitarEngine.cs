@@ -353,6 +353,17 @@ namespace YARG.Core.Engine.Guitar
         protected void StartSustain(GuitarNote note)
         {
             //return;
+            for (int i = 0; i < ActiveSustains.Count; i++)
+            {
+                var activeSustain = ActiveSustains[i];
+
+                // open notes NEED to have a bit in the bit mask because this is not going to work properly in some cases
+                if ((activeSustain.Note.NoteMask & note.NoteMask) != 0 || (activeSustain.Note.NoteMask == 0 && note.NoteMask == 0))
+                {
+                    EndSustain(i, true, State.CurrentTick >= activeSustain.Note.TickEnd);
+                    i--;
+                }
+            }
             var sustain = new ActiveSustain(note);
 
             ActiveSustains.Add(sustain);
@@ -360,6 +371,15 @@ namespace YARG.Core.Engine.Guitar
             YargLogger.LogFormatTrace("Started sustain at {0} (tick len: {1}, time len: {2})", State.CurrentTime, note.TickLength, note.TimeLength);
 
             OnSustainStart?.Invoke(note);
+        }
+
+        protected void EndSustain(int sustainIndex, bool dropped, bool isEndOfSustain)
+        {
+            var sustain = ActiveSustains[sustainIndex];
+            YargLogger.LogFormatTrace("Ended sustain at {0} (dropped: {1}, end: {2})", State.CurrentTime, dropped, isEndOfSustain);
+            ActiveSustains.RemoveAt(sustainIndex);
+
+            OnSustainEnd?.Invoke(sustain.Note, State.CurrentTime, sustain.HasFinishedScoring);
         }
 
         protected void UpdateSustains()
@@ -410,10 +430,8 @@ namespace YARG.Core.Engine.Guitar
                 // Only remove the sustain if its dropped or has reached the final tick
                 if (dropped || isEndOfSustain)
                 {
-                    YargLogger.LogFormatTrace("Ended sustain at {0} (dropped: {1}, end: {2})", State.CurrentTime, dropped, isEndOfSustain);
-                    ActiveSustains.RemoveAt(i);
+                    EndSustain(i, dropped, isEndOfSustain);
                     i--;
-                    OnSustainEnd?.Invoke(note, State.CurrentTime, sustain.HasFinishedScoring);
                 }
             }
 
