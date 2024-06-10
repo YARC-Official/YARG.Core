@@ -139,17 +139,15 @@ namespace YARG.Core.Song.Cache
                     return;
 
                 var collector = new FileCollector(directory);
-                if (ScanIniEntry(collector, group, tracker.Playlist))
+                if (!ScanIniEntry(collector, group, tracker.Playlist))
                 {
-                    if (collector.subDirectories.Count > 0)
-                    {
-                        AddToBadSongs(directory.FullName, ScanResult.LooseChart_Warning);
-                    }
-                    return;
+                    tracker.Append(directory.FullName);
+                    TraverseDirectory(collector, group, tracker);
                 }
-
-                tracker.Append(directory.FullName);
-                TraverseDirectory(collector, group, tracker);
+                else if (collector.subDirectories.Count > 0)
+                {
+                    AddToBadSongs(directory.FullName, ScanResult.LooseChart_Warning);
+                }
             }
             catch (PathTooLongException)
             {
