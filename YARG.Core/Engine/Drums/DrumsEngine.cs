@@ -267,5 +267,39 @@ namespace YARG.Core.Engine.Drums
                 _ => throw new Exception("Unreachable.")
             };
         }
+
+        public static bool IsIdealActivationNote(DrumNote note, Instrument instrument)
+        {
+            bool containsCrash = false;
+            bool containsKick = false;
+            bool containsSnare = false;
+
+            foreach (var childNote in note.AllNotes)
+            {
+                var thisPad = childNote.Pad;
+                if (instrument == Instrument.FiveLaneDrums)
+                {
+                    containsCrash |= thisPad == (int) FiveLaneDrumPad.Orange;
+                    containsKick |= thisPad == (int) FiveLaneDrumPad.Kick;
+                    containsSnare |= thisPad == (int) FiveLaneDrumPad.Red;
+                }
+                else
+                {
+                    if (instrument == Instrument.FourLaneDrums)
+                    {
+                        containsCrash |= thisPad == (int) FourLaneDrumPad.GreenDrum;
+                    }
+                    else
+                    {
+                        containsCrash |= thisPad == (int) FourLaneDrumPad.GreenCymbal;
+                    }
+
+                    containsSnare |= thisPad == (int) FourLaneDrumPad.RedDrum;
+                    containsKick |= thisPad == (int) FourLaneDrumPad.Kick;
+                }
+            }
+
+            return containsCrash && (containsKick || containsSnare);
+        }
     }
 }
