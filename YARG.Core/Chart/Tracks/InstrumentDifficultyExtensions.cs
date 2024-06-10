@@ -222,6 +222,9 @@ namespace YARG.Core.Chart
                 return;
             }
 
+            // Drum fill phrases cannot interrupt a solo, keep track to prevent placement
+            var soloPhrases = difficulty.Phrases.Where(thisPhrase => thisPhrase.Type == PhraseType.Solo).ToList();
+
             uint currentTick = starPowerPhrases[1].TickEnd;
             double prevReferenceTime = starPowerPhrases[1].TimeEnd;
 
@@ -298,6 +301,13 @@ namespace YARG.Core.Chart
 
                 // Do not put an activation phrase here if it overlaps with an existing SP phrase
                 if (nearestSPPhrase.TickEnd > currentTick) continue;
+
+                // Prevent placing an activation phrase here if it overlaps with a solo section
+                if (soloPhrases.Count > 0)
+                {
+                    var nearestSoloPhrase = soloPhrases.GetPrevious(currentTick);
+                    if (nearestSoloPhrase != null && nearestSoloPhrase.TickEnd > currentTick) continue;
+                }
                 
                 // Do not put an activation phrase here if there aren't enough notes to hit after activating SP
                 // Assumes no time signature changes for the next 4 measures
