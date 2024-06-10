@@ -13,7 +13,7 @@ using YARG.Core.Song;
 
 namespace YARG.Core.Replays
 {
-    public static class ReplaySerializer
+    public static partial class ReplaySerializer
     {
         #region Replay
 
@@ -217,19 +217,19 @@ namespace YARG.Core.Replays
             {
                 case GameMode.FiveFretGuitar:
                 case GameMode.SixFretGuitar:
-                    ReplayInstrumentSerializer.SerializeGuitarParameters(writer, (engineParameters as GuitarEngineParameters)!);
+                    Instruments.SerializeGuitarParameters(writer, (engineParameters as GuitarEngineParameters)!);
                     break;
                 case GameMode.FourLaneDrums:
                 case GameMode.FiveLaneDrums:
-                    ReplayInstrumentSerializer.SerializeDrumsParameters(writer, (engineParameters as DrumsEngineParameters)!);
+                    Instruments.SerializeDrumsParameters(writer, (engineParameters as DrumsEngineParameters)!);
                     break;
                 case GameMode.ProGuitar:
                     break;
                 case GameMode.ProKeys:
-                    ReplayInstrumentSerializer.SerializeProKeysParameters(writer, (engineParameters as ProKeysEngineParameters)!);
+                    Instruments.SerializeProKeysParameters(writer, (engineParameters as ProKeysEngineParameters)!);
                     break;
                 case GameMode.Vocals:
-                    ReplayInstrumentSerializer.SerializeVocalsParameters(writer, (engineParameters as VocalsEngineParameters)!);
+                    Instruments.SerializeVocalsParameters(writer, (engineParameters as VocalsEngineParameters)!);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -260,19 +260,19 @@ namespace YARG.Core.Replays
             {
                 case GameMode.FiveFretGuitar:
                 case GameMode.SixFretGuitar:
-                    engineParameters = ReplayInstrumentSerializer.DeserializeGuitarParameters(reader, version);
+                    engineParameters = Instruments.DeserializeGuitarParameters(reader, version);
                     break;
                 case GameMode.FourLaneDrums:
                 case GameMode.FiveLaneDrums:
-                    engineParameters = ReplayInstrumentSerializer.DeserializeDrumsParameters(reader, version);
+                    engineParameters = Instruments.DeserializeDrumsParameters(reader, version);
                     break;
                 case GameMode.ProGuitar:
                     break;
                 case GameMode.ProKeys:
-                    engineParameters = ReplayInstrumentSerializer.DeserializeProKeysParameters(reader, version);
+                    engineParameters = Instruments.DeserializeProKeysParameters(reader, version);
                     break;
                 case GameMode.Vocals:
-                    engineParameters = ReplayInstrumentSerializer.DeserializeVocalsParameters(reader, version);
+                    engineParameters = Instruments.DeserializeVocalsParameters(reader, version);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(gameMode), gameMode, null);
@@ -330,22 +330,22 @@ namespace YARG.Core.Replays
                 case GameMode.FiveFretGuitar:
                 case GameMode.SixFretGuitar:
                     stats = new GuitarStats();
-                    ReplayInstrumentSerializer.DeserializeGuitarStats(reader, version);
+                    Instruments.DeserializeGuitarStats(reader, version);
                     break;
                 case GameMode.FourLaneDrums:
                 case GameMode.FiveLaneDrums:
                     stats = new DrumsStats();
-                    ReplayInstrumentSerializer.DeserializeDrumsStats(reader, version);
+                    Instruments.DeserializeDrumsStats(reader, version);
                     break;
                 case GameMode.ProGuitar:
                     break;
                 case GameMode.ProKeys:
                     stats = new ProKeysStats();
-                    ReplayInstrumentSerializer.DeserializeProKeysStats(reader, version);
+                    Instruments.DeserializeProKeysStats(reader, version);
                     break;
                 case GameMode.Vocals:
                     stats = new VocalsStats();
-                    ReplayInstrumentSerializer.DeserializeVocalsStats(reader, version);
+                    Instruments.DeserializeVocalsStats(reader, version);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(gameMode), gameMode, null);
