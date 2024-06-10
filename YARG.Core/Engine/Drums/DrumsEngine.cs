@@ -7,12 +7,7 @@ namespace YARG.Core.Engine.Drums
 {
     public abstract class DrumsEngine : BaseEngine<DrumNote, DrumsEngineParameters,
         DrumsStats, DrumsEngineState>
-    {
-        private const float VELOCITY_THRESHOLD = 0.35f;
-        
-        // The maximum allowed time (seconds) between notes to use context-sensitive velocity scoring
-        private const float SITUATIONAL_VELOCITY_WINDOW = 1.5f;
-        
+    {   
         public delegate void OverhitEvent();
 
         public delegate void PadHitEvent(DrumsAction action, bool noteWasHit, float velocity);
@@ -142,13 +137,14 @@ namespace YARG.Core.Engine.Drums
             if (State.HitVelocity != null && !hitNote.IsNeutral)
             {
                 // Apply bonus points from successful ghost / accent note hits
-                float awardThreshold = VELOCITY_THRESHOLD;
+                float awardThreshold = EngineParameters.VelocityThreshold;
+                float situationalVelocityWindow = EngineParameters.SituationalVelocityWindow;
 
                 var compareNote = hitNote.PreviousNote;
 
                 while (compareNote != null)
                 {
-                    if (hitNote.Time - compareNote.Time > SITUATIONAL_VELOCITY_WINDOW)
+                    if (hitNote.Time - compareNote.Time > situationalVelocityWindow)
                     {
                         // This note is too far in the past to consider for comparison, stop searching
                         compareNote = null;
