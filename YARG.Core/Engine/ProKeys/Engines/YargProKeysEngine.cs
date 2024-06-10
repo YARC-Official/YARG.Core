@@ -41,7 +41,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                 {
                     var note = Notes[State.NoteIndex];
 
-                    bool noteInWindow = IsNoteInWindow(note);
+                    bool noteInWindow = IsNoteInWindow(note, gameInput.Time);
 
                     ToggleKey((int) action, gameInput.Button && noteInWindow);
                 }

@@ -110,7 +110,6 @@ namespace YARG.Core.Engine
             }
             YargLogger.LogFormatTrace("Running frame update at {0}", time);
             RunQueuedUpdates(time);
-            UpdateTimeVariables(time);
             RunEngineLoop(time);
         }
 
@@ -139,9 +138,6 @@ namespace YARG.Core.Engine
 
                 YargLogger.LogFormatTrace("Processing input {0} ({1}) update at {2}", input.GetAction<GuitarAction>(), input.Button, input.Time);
                 RunQueuedUpdates(input.Time);
-
-                // Update engine to the input time
-                UpdateTimeVariables(input.Time);
 
                 // Update engine state with input.
                 MutateStateWithInput(input);
@@ -194,7 +190,6 @@ namespace YARG.Core.Engine
                 }
 
                 YargLogger.LogFormatTrace("Running scheduled update at {0} ({1})", updateTime, item2: _scheduledUpdates[i].Reason);
-                UpdateTimeVariables(updateTime);
                 RunEngineLoop(updateTime);
             }
 
@@ -277,6 +272,7 @@ namespace YARG.Core.Engine
             do
             {
                 ReRunHitLogic = false;
+                UpdateTimeVariables(time);
                 UpdateHitLogic(time);
             } while (ReRunHitLogic);
         }
