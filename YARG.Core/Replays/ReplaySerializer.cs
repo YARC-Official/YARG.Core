@@ -118,32 +118,36 @@ namespace YARG.Core.Replays
         private static int ReadBlockLength(BinaryReader reader)
         {
             Span<ushort> data = stackalloc ushort[2] { 0x00, 0x00 };
-            data[0] = reader.ReadUInt16();
+
+            ref ushort low = ref data[0];
+            ref ushort high = ref data[1];
+
+            low = reader.ReadUInt16();
 
             // If the first (high) byte is negative (MSB is 1), it means that the length is stored in 2 bytes
             if ((data[0] & 0x8000) == 1)
             {
                 // Take out MSB to make it positive
                 const ushort msb = 0x8000;
-                data[0] &= unchecked((ushort) ~msb);
+                low &= unchecked((ushort) ~msb);
 
                 // Read the second byte
-                data[1] = reader.ReadUInt16();
+                high = reader.ReadUInt16();
             }
             else
             {
                 // Move the first byte to the second byte
                 // Don't need to remove the MSB since it's positive
-                data[1] = data[0];
+                (low, high) = (high, low);
 
                 // Set the first byte to 0
-                data[0] = 0;
+                low = 0;
             }
 
             unsafe
             {
                 // Return the 2 shorts as a single int
-                fixed (void* dataPtr = &data[0])
+                fixed (void* dataPtr = &low)
                 {
                     return *(int*) dataPtr;
                 }
