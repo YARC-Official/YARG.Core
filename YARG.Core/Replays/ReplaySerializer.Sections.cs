@@ -40,8 +40,8 @@ namespace YARG.Core.Replays
                     return null;
                 }
 
-                header.ReplayVersion = (short) reader.ReadInt32();
-                header.EngineVersion = (short) reader.ReadInt32();
+                header.ReplayVersion = reader.ReadInt16();
+                header.EngineVersion = reader.ReadInt16();
                 header.ReplayChecksum = HashWrapper.Deserialize(reader);
 
                 return header;
