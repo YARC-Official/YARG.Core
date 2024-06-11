@@ -1,15 +1,5 @@
 ﻿using System;
 using System.IO;
-using YARG.Core.Engine;
-using YARG.Core.Engine.Drums;
-using YARG.Core.Engine.Guitar;
-using YARG.Core.Engine.Logging;
-using YARG.Core.Engine.ProKeys;
-using YARG.Core.Engine.Vocals;
-using YARG.Core.Game;
-using YARG.Core.Input;
-using YARG.Core.IO;
-using YARG.Core.Song;
 
 namespace YARG.Core.Replays
 {
@@ -19,9 +9,19 @@ namespace YARG.Core.Replays
 
         public static void SerializeReplay(BinaryWriter writer, ReplayNew replayNew)
         {
-            SerializeHeader(writer, replayNew.Header);
-            SerializeMetadata(writer, replayNew.Metadata);
-            SerializePresetContainer(writer, replayNew.PresetContainer);
+            var blockStream = new MemoryStream();
+            var blockWriter = new BinaryWriter(blockStream);
+
+            // Header is always serialized into the main stream.
+            Sections.SerializeHeader(writer, replayNew.Header);
+
+            // Metadata
+            Sections.SerializeMetadata(blockWriter, replayNew.Metadata);
+            WriteBlock(writer, blockStream);
+
+            // PresetContainer
+            Sections.SerializePresetContainer(blockWriter, replayNew.PresetContainer);
+            WriteBlock(writer, blockStream);
 
             writer.Write(replayNew.PlayerCount);
             foreach (var playerName in replayNew.PlayerNames)
@@ -31,7 +31,8 @@ namespace YARG.Core.Replays
 
             foreach (var frame in replayNew.Frames)
             {
-                SerializeFrame(writer, frame);
+                Sections.SerializeFrame(blockWriter, frame);
+                WriteBlock(writer, blockStream);
             }
         }
 
@@ -39,9 +40,19 @@ namespace YARG.Core.Replays
         {
             var replay = new ReplayNew();
 
-            replay.Header = DeserializeHeader(reader, version);
-            replay.Metadata = DeserializeMetadata(reader, version);
-            replay.PresetContainer = DeserializePresetContainer(reader, version);
+            var header = Sections.DeserializeHeader(reader, version);
+            if (header == null)
+            {
+                return null;
+            }
+
+            // Metadata
+            var metadataLength = ReadBlockLength(reader);
+            replay.Metadata = Sections.DeserializeMetadata(reader, version);
+
+            // PresetContainer
+            var presetContainerLength = ReadBlockLength(reader);
+            replay.PresetContainer = Sections.DeserializePresetContainer(reader, version);
 
             int playerCount = reader.ReadInt32();
             var playerNames = new string[playerCount];
@@ -54,7 +65,7 @@ namespace YARG.Core.Replays
 
             for (int i = 0; i < playerCount; i++)
             {
-                replay.Frames[i] = DeserializeFrame(reader, version);
+                replay.Frames[i] = Sections.DeserializeFrame(reader, version);
             }
 
             return replay;
@@ -62,313 +73,81 @@ namespace YARG.Core.Replays
 
         #endregion
 
-        #region Header
-
-        private static void SerializeHeader(BinaryWriter writer, ReplayHeader header)
+        private static int WriteBlock(BinaryWriter writer, Stream blockStream)
         {
-            header.Magic.Serialize(writer);
+            var length = WriteBlockLength(writer, blockStream);
+            blockStream.CopyTo(writer.BaseStream, length);
+            blockStream.Position = 0;
 
-            writer.Write(header.ReplayVersion);
-            writer.Write(header.EngineVersion);
-
-            header.ReplayChecksum.Serialize(writer);
+            return length;
         }
 
-        private static ReplayHeader DeserializeHeader(BinaryReader reader, int version = 0)
+        private static int WriteBlockLength(BinaryWriter writer, Stream blockStream)
         {
-            var header = new ReplayHeader();
+            var length = WriteBlockLength(writer, (int) blockStream.Position);
+            blockStream.Position = 0;
 
-            header.Magic = EightCC.Read(reader.BaseStream);
-            header.ReplayVersion = reader.ReadInt32();
-            header.EngineVersion = reader.ReadInt32();
-            header.ReplayChecksum = HashWrapper.Deserialize(reader);
-
-            return header;
+            return length;
         }
 
-        #endregion
-
-        #region Metadata
-
-        private static void SerializeMetadata(BinaryWriter writer, ReplayMetadata metadata)
+        private static int WriteBlockLength(BinaryWriter writer, int length)
         {
-            writer.Write(metadata.SongName);
-            writer.Write(metadata.ArtistName);
-            writer.Write(metadata.CharterName);
-            writer.Write(metadata.BandScore);
-            writer.Write((int) metadata.BandStars);
-            writer.Write(metadata.ReplayLength);
-            writer.Write(metadata.Date.ToBinary());
-            metadata.SongChecksum.Serialize(writer);
-        }
-
-        private static ReplayMetadata DeserializeMetadata(BinaryReader reader, int version = 0)
-        {
-            var metadata = new ReplayMetadata();
-
-            metadata.SongName = reader.ReadString();
-            metadata.ArtistName = reader.ReadString();
-            metadata.CharterName = reader.ReadString();
-            metadata.BandScore = reader.ReadInt32();
-            metadata.BandStars = (StarAmount) reader.ReadByte();
-            metadata.ReplayLength = reader.ReadDouble();
-            metadata.Date = DateTime.FromBinary(reader.ReadInt64());
-            metadata.SongChecksum = HashWrapper.Deserialize(reader);
-
-            return metadata;
-        }
-
-        #endregion
-
-        #region Preset Container
-
-        private static void SerializePresetContainer(BinaryWriter writer, ReplayPresetContainer presetContainer)
-        {
-            presetContainer.Serialize(writer);
-        }
-
-        private static ReplayPresetContainer DeserializePresetContainer(BinaryReader reader, int version = 0)
-        {
-            var presetContainer = new ReplayPresetContainer();
-            presetContainer.Deserialize(reader, version);
-            return presetContainer;
-        }
-
-        #endregion
-
-        #region Frame
-
-        private static void SerializeFrame(BinaryWriter writer, ReplayFrame frame)
-        {
-            SerializePlayerInfo(writer, frame.PlayerInfo);
-            SerializeEngineParameters(writer, frame.EngineParameters, frame.PlayerInfo.Profile.GameMode);
-            SerializeStats(writer, frame.Stats, frame.PlayerInfo.Profile.GameMode);
-
-            writer.Write(frame.InputCount);
-            foreach (var input in frame.Inputs)
+            const int maxLength = 0x3FFF_FFFF;
+            if(length > maxLength)
             {
-                writer.Write(input.Time);
-                writer.Write(input.Action);
-                writer.Write(input.Integer);
-            }
-        }
-
-        private static ReplayFrame DeserializeFrame(BinaryReader reader, int version = 0)
-        {
-            var frame = new ReplayFrame();
-            frame.PlayerInfo = DeserializePlayerInfo(reader, version);
-            frame.EngineParameters = DeserializeEngineParameters(reader, frame.PlayerInfo.Profile.GameMode, version);
-            frame.Stats = DeserializeStats(reader, frame.PlayerInfo.Profile.GameMode, version);
-
-            frame.InputCount = reader.ReadInt32();
-            frame.Inputs = new GameInput[frame.InputCount];
-            for (int i = 0; i < frame.InputCount; i++)
-            {
-                var time = reader.ReadDouble();
-                var action = reader.ReadInt32();
-                var value = reader.ReadInt32();
-
-                frame.Inputs[i] = new GameInput(time, action, value);
+                throw new ArgumentOutOfRangeException(nameof(length), "Block length is too large");
             }
 
-            // Event logger was removed in version 6+
-            if (version <= 5)
+            // Split the length into 2 shorts
+            ushort low = (ushort) (length & 0xFFFF);
+            ushort high = (ushort) ((length >> 16) & 0xFFFF);
+
+            // If the low byte has the MSB set, we need to write 2 shorts instead of 1
+            if ((low & 0b1000_0000) == 1)
             {
-                var eventLogger = new EngineEventLogger();
-                eventLogger.Deserialize(reader, version);
+                // Set the MSB to 1 to indicate that the length is stored in 2 bytes
+                high |= 0x8000;
+                writer.Write(high);
             }
-            return frame;
+
+            writer.Write(low);
+
+            return length;
         }
 
-        #endregion
-
-        #region Player Info
-
-        private static void SerializePlayerInfo(BinaryWriter writer, ReplayPlayerInfo playerInfo)
+        private static int ReadBlockLength(BinaryReader reader)
         {
-            writer.Write(playerInfo.PlayerId);
-            writer.Write(playerInfo.ColorProfileId);
-            playerInfo.Profile.Serialize(writer);
-        }
+            Span<ushort> data = stackalloc ushort[2] { 0x00, 0x00 };
+            data[0] = reader.ReadUInt16();
 
-        private static ReplayPlayerInfo DeserializePlayerInfo(BinaryReader reader, int version = 0)
-        {
-            var playerInfo = new ReplayPlayerInfo();
-            playerInfo.Deserialize(reader, version);
-            return playerInfo;
-        }
-
-        #endregion
-
-        #region Engine Parameters
-
-        private static void SerializeEngineParameters(BinaryWriter writer, BaseEngineParameters engineParameters, GameMode gameMode)
-        {
-            engineParameters.HitWindow.Serialize(writer);
-            writer.Write(engineParameters.MaxMultiplier);
-            writer.Write(engineParameters.StarMultiplierThresholds.Length);
-            foreach (var f in engineParameters.StarMultiplierThresholds)
+            // If the first (high) byte is negative (MSB is 1), it means that the length is stored in 2 bytes
+            if ((data[0] & 0x8000) == 1)
             {
-                writer.Write(f);
+                // Take out MSB to make it positive
+                const ushort msb = 0x8000;
+                data[0] &= unchecked((ushort) ~msb);
+
+                // Read the second byte
+                data[1] = reader.ReadUInt16();
             }
-            writer.Write(engineParameters.SongSpeed);
-
-            switch (gameMode)
+            else
             {
-                case GameMode.FiveFretGuitar:
-                case GameMode.SixFretGuitar:
-                    Instruments.SerializeGuitarParameters(writer, (engineParameters as GuitarEngineParameters)!);
-                    break;
-                case GameMode.FourLaneDrums:
-                case GameMode.FiveLaneDrums:
-                    Instruments.SerializeDrumsParameters(writer, (engineParameters as DrumsEngineParameters)!);
-                    break;
-                case GameMode.ProGuitar:
-                    break;
-                case GameMode.ProKeys:
-                    Instruments.SerializeProKeysParameters(writer, (engineParameters as ProKeysEngineParameters)!);
-                    break;
-                case GameMode.Vocals:
-                    Instruments.SerializeVocalsParameters(writer, (engineParameters as VocalsEngineParameters)!);
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
-        }
+                // Move the first byte to the second byte
+                // Don't need to remove the MSB since it's positive
+                data[1] = data[0];
 
-        private static BaseEngineParameters DeserializeEngineParameters(BinaryReader reader, GameMode gameMode,
-            int version = 0)
-        {
-            var hitWindow = new HitWindowSettings();
-            hitWindow.Deserialize(reader, version);
-
-            int maxMultiplier = reader.ReadInt32();
-            float[] starMultiplierThresholds = new float[reader.ReadInt32()];
-            for (int i = 0; i < starMultiplierThresholds.Length; i++)
-            {
-                starMultiplierThresholds[i] = reader.ReadSingle();
+                // Set the first byte to 0
+                data[0] = 0;
             }
 
-            double songSpeed = 1;
-            if (version >= 5)
+            unsafe
             {
-                songSpeed = reader.ReadDouble();
+                // Return the 2 shorts as a single int
+                fixed (void* dataPtr = &data[0])
+                {
+                    return *(int*) dataPtr;
+                }
             }
-
-            BaseEngineParameters engineParameters = null!;
-            switch (gameMode)
-            {
-                case GameMode.FiveFretGuitar:
-                case GameMode.SixFretGuitar:
-                    engineParameters = Instruments.DeserializeGuitarParameters(reader, version);
-                    break;
-                case GameMode.FourLaneDrums:
-                case GameMode.FiveLaneDrums:
-                    engineParameters = Instruments.DeserializeDrumsParameters(reader, version);
-                    break;
-                case GameMode.ProGuitar:
-                    break;
-                case GameMode.ProKeys:
-                    engineParameters = Instruments.DeserializeProKeysParameters(reader, version);
-                    break;
-                case GameMode.Vocals:
-                    engineParameters = Instruments.DeserializeVocalsParameters(reader, version);
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(gameMode), gameMode, null);
-            }
-
-            engineParameters.HitWindow = hitWindow;
-            engineParameters.MaxMultiplier = maxMultiplier;
-            engineParameters.StarMultiplierThresholds = starMultiplierThresholds;
-            engineParameters.SongSpeed = songSpeed;
-
-            return engineParameters;
         }
-
-        #endregion
-
-        #region Stats
-
-        public static void SerializeStats(BinaryWriter writer, BaseStats stats, GameMode gameMode)
-        {
-            writer.Write(stats.CommittedScore);
-            writer.Write(stats.PendingScore);
-            writer.Write(stats.Combo);
-            writer.Write(stats.MaxCombo);
-            writer.Write(stats.ScoreMultiplier);
-            writer.Write(stats.NotesHit);
-            writer.Write(stats.TotalNotes);
-            writer.Write(stats.StarPowerAmount);
-            writer.Write(stats.StarPowerBaseAmount);
-            writer.Write(stats.IsStarPowerActive);
-            writer.Write(stats.StarPowerPhrasesHit);
-            writer.Write(stats.TotalStarPowerPhrases);
-            writer.Write(stats.SoloBonuses);
-            writer.Write(stats.Stars);
-        }
-
-        public static BaseStats DeserializeStats(BinaryReader reader, GameMode gameMode, int version = 0)
-        {
-            var committedScore = reader.ReadInt32();
-            var pendingScore = reader.ReadInt32();
-            var combo = reader.ReadInt32();
-            var maxCombo = reader.ReadInt32();
-            var scoreMultiplier = reader.ReadInt32();
-            var notesHit = reader.ReadInt32();
-            var totalNotes = reader.ReadInt32();
-            var starPowerAmount = reader.ReadDouble();
-            var starPowerBaseAmount = reader.ReadDouble();
-            var isStarPowerActive = reader.ReadBoolean();
-            var starPowerPhrasesHit = reader.ReadInt32();
-            var totalStarPowerPhrases = reader.ReadInt32();
-            var soloBonuses = reader.ReadInt32();
-
-            BaseStats stats = null!;
-            switch (gameMode)
-            {
-                case GameMode.FiveFretGuitar:
-                case GameMode.SixFretGuitar:
-                    stats = new GuitarStats();
-                    Instruments.DeserializeGuitarStats(reader, version);
-                    break;
-                case GameMode.FourLaneDrums:
-                case GameMode.FiveLaneDrums:
-                    stats = new DrumsStats();
-                    Instruments.DeserializeDrumsStats(reader, version);
-                    break;
-                case GameMode.ProGuitar:
-                    break;
-                case GameMode.ProKeys:
-                    stats = new ProKeysStats();
-                    Instruments.DeserializeProKeysStats(reader, version);
-                    break;
-                case GameMode.Vocals:
-                    stats = new VocalsStats();
-                    Instruments.DeserializeVocalsStats(reader, version);
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(gameMode), gameMode, null);
-            }
-
-            stats.CommittedScore = committedScore;
-            stats.PendingScore = pendingScore;
-            stats.Combo = combo;
-            stats.MaxCombo = maxCombo;
-            stats.ScoreMultiplier = scoreMultiplier;
-            stats.NotesHit = notesHit;
-            stats.TotalNotes = totalNotes;
-            stats.StarPowerAmount = starPowerAmount;
-            stats.StarPowerBaseAmount = starPowerBaseAmount;
-            stats.IsStarPowerActive = isStarPowerActive;
-            stats.StarPowerPhrasesHit = starPowerPhrasesHit;
-            stats.TotalStarPowerPhrases = totalStarPowerPhrases;
-            stats.SoloBonuses = soloBonuses;
-
-            return stats;
-        }
-
-        #endregion
-
     }
 }

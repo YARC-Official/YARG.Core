@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Bson;
 using YARG.Core.Extensions;
 using YARG.Core.Game;
 using YARG.Core.Utility;

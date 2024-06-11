@@ -16,9 +16,11 @@ namespace YARG.Core.Replays
 
         public ReplayNew()
         {
+            Header = new ReplayHeader();
             Metadata = new ReplayMetadata();
             PresetContainer = new ReplayPresetContainer();
             PlayerNames = Array.Empty<string>();
+            PlayerCount = 0;
             Frames = Array.Empty<ReplayFrame>();
         }
     }

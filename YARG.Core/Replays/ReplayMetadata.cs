@@ -4,7 +4,7 @@ using YARG.Core.Song;
 
 namespace YARG.Core.Replays
 {
-    public class ReplayMetadata
+    public struct ReplayMetadata
     {
         public string      SongName;
         public string      ArtistName;
