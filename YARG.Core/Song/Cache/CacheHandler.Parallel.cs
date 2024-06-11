@@ -280,6 +280,18 @@ namespace YARG.Core.Song.Cache
             }
         }
 
+        protected override void AddUpdate(string name, SongUpdate update)
+        {
+            lock (updates)
+            {
+                if (!updates.TryGetValue(name, out var list))
+                {
+                    updates.Add(name, list = new());
+                }
+                list.Add(update);
+            }
+        }
+
         protected override void AddUpgrade(string name, YARGDTAReader reader, IRBProUpgrade upgrade)
         {
             lock (upgrades)
@@ -301,6 +313,14 @@ namespace YARG.Core.Song.Cache
             lock (extractedConGroups)
             {
                 extractedConGroups.Add(group);
+            }
+        }
+
+        protected override void AddUpdateGroup(UpdateGroup group)
+        {
+            lock (updateGroups)
+            {
+                updateGroups.Add(group);
             }
         }
 

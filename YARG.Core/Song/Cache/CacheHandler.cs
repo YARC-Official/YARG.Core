@@ -196,10 +196,11 @@ namespace YARG.Core.Song.Cache
         }
 
         protected abstract void SortEntries();
-        protected abstract void AddUpdates(UpdateGroup group, Dictionary<string, List<YARGDTAReader>> nodes, bool removeEntries);
+        protected abstract void AddUpdate(string name, in SongUpdate update);
         protected abstract void AddUpgrade(string name, YARGDTAReader reader, IRBProUpgrade upgrade);
         protected abstract void AddPackedCONGroup(PackedCONGroup group);
         protected abstract void AddUnpackedCONGroup(UnpackedCONGroup group);
+        protected abstract void AddUpdateGroup(UpdateGroup group);
         protected abstract void AddUpgradeGroup(UpgradeGroup group);
         protected abstract void RemoveCONEntry(string shortname);
         protected abstract bool CanAddUpgrade(string shortname, DateTime lastUpdated);

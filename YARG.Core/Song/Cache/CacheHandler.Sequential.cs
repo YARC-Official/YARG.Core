@@ -163,6 +163,15 @@ namespace YARG.Core.Song.Cache
             RunEntryTasks(stream, strings, QuickReadExtractedCONGroup);
         }
 
+        protected override void AddUpdate(string name, SongUpdate update)
+        {
+            if (!updates.TryGetValue(name, out var list))
+            {
+                updates.Add(name, list = new());
+            }
+            list.Add(update);
+        }
+
         protected override void AddUpgrade(string name, YARGDTAReader reader, IRBProUpgrade upgrade)
         {
             upgrades[name] = new(reader, upgrade);
@@ -176,6 +185,11 @@ namespace YARG.Core.Song.Cache
         protected override void AddUnpackedCONGroup(UnpackedCONGroup group)
         {
             extractedConGroups.Add(group);
+        }
+
+        protected override void AddUpdateGroup(UpdateGroup group)
+        {
+            updateGroups.Add(group);
         }
 
         protected override void AddUpgradeGroup(UpgradeGroup group)
