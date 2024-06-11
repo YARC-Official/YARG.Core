@@ -450,7 +450,7 @@ namespace YARG.Core.Song
                     try
                     {
                         var updateResults = ParseDTA(nodeName, update.Readers);
-                        Update(update, updateResults);
+                        Update(update, nodeName, updateResults);
 
                         if (updateResults.cores != null)
                         {
@@ -835,7 +835,7 @@ namespace YARG.Core.Song
             intensity = i;
         }
 
-        private void Update(SongUpdate update, in DTAResult results)
+        private void Update(SongUpdate update, string nodename, in DTAResult results)
         {
             if (results.discUpdate)
             {
@@ -848,7 +848,7 @@ namespace YARG.Core.Song
                 }
                 else
                 {
-                    YargLogger.LogFormatWarning("Update midi expected in directory {0}", update.UpdateDirectory);
+                    YargLogger.LogFormatWarning("Update midi expected in directory {0}", Path.Combine(update.BaseDirectory, nodename));
                 }
             }
 

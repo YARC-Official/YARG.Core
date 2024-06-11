@@ -44,7 +44,6 @@ namespace YARG.Core.Song.Cache
         private readonly YARGDTAReader[] _readers;
 
         public readonly string BaseDirectory;
-        public readonly string UpdateDirectory;
         public readonly AbridgedFileInfo? Midi;
         public readonly AbridgedFileInfo? Mogg;
         public readonly AbridgedFileInfo? Milo;
@@ -66,8 +65,6 @@ namespace YARG.Core.Song.Cache
         public SongUpdate(UpdateGroup group, string name, DateTime dtaLastWrite, YARGDTAReader[] readers)
         {
             BaseDirectory = group.Directory.FullName;
-            UpdateDirectory = Path.Combine(BaseDirectory, name);
-
             _dtaLastWrite = dtaLastWrite;
             _readers = readers;
 
