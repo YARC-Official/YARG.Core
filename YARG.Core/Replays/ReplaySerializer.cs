@@ -133,15 +133,10 @@ namespace YARG.Core.Replays
 
                 // Read the second byte
                 high = reader.ReadUInt16();
-            }
-            else
-            {
+
                 // Move the first byte to the second byte
                 // Don't need to remove the MSB since it's positive
-                (low, high) = (high, low);
-
-                // Set the first byte to 0
-                low = 0;
+                //(low, high) = (high, low);
             }
 
             unsafe
