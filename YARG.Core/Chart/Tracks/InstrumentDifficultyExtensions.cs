@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using YARG.Core.Engine.Drums;
 using YARG.Core.Logging;
@@ -206,15 +207,34 @@ namespace YARG.Core.Chart
         {
             if (difficulty.Notes.Count == 0) return;
 
-            // Automatically add in Star Power activation phrases for charts that don't have any
-            var DrumSPActivationPhrases = difficulty.Phrases.Where(thisPhrase => thisPhrase.Type == PhraseType.DrumFill).ToList();
-            
-            // Assumes that any chart that contains manually authored activation phrases will have enough
-            if (DrumSPActivationPhrases.Count > 0) return;
+            uint lastNoteTick = difficulty.Notes.GetLastTick();
+
+            // Automatically add in Star Power activation phrases for drum charts that don't have enough
+
+            List<Phrase> starPowerPhrases = new();
+            List<Phrase> soloPhrases = new();
+
+            foreach (var thisPhrase in difficulty.Phrases)
+            {
+                switch (thisPhrase.Type)
+                {
+                    case PhraseType.DrumFill:
+                        // Assume that any drum chart with manually placed fill phrases will have enough. Stop here
+                        YargLogger.LogDebug("Prevented generating Activation phrases for a Drum chart that already has them");
+                        return;
+                    
+                    case PhraseType.StarPower:
+                        starPowerPhrases.Add(thisPhrase);
+                        break;
+                    
+                    case PhraseType.Solo:
+                        soloPhrases.Add(thisPhrase);
+                        break;
+                }
+            }
 
             // Activation cannot occur before the player has enough SP to activate
             // Start processing after the 2nd SP phrase
-            var starPowerPhrases = difficulty.Phrases.Where(thisPhrase => thisPhrase.Type == PhraseType.StarPower).ToList();
             
             if (starPowerPhrases.Count < 2)
             {
@@ -222,97 +242,103 @@ namespace YARG.Core.Chart
                 return;
             }
 
-            // Drum fill phrases cannot interrupt a solo, keep track to prevent placement
-            var soloPhrases = difficulty.Phrases.Where(thisPhrase => thisPhrase.Type == PhraseType.Solo).ToList();
-
-            uint currentTick = starPowerPhrases[1].TickEnd;
             double prevReferenceTime = starPowerPhrases[1].TimeEnd;
 
-            uint lastTick = difficulty.Notes.GetLastTick();
+            // Align activation phrases with measure boundaries that have already been evaluated
+            var measureBeatLines = syncTrack.Beatlines.Where(x => x.Type == BeatlineType.Measure).ToList();
 
-            var currentTimeSig = syncTrack.TimeSignatures.GetPrevious(currentTick);
+            int currentMeasureIndex = measureBeatLines.GetIndexOfPrevious(prevReferenceTime);
+            if (currentMeasureIndex == -1) return;
 
-            if (currentTimeSig == null) return;
+            int totalMeasures = measureBeatLines.Count;
+            
+            var allTimeSigs = syncTrack.TimeSignatures;
+            var currentTimeSigIndex = allTimeSigs.GetIndexOfPrevious(prevReferenceTime);
 
-            uint currentTicksPerMeasure = currentTimeSig.GetTicksPerMeasure(syncTrack);
+            if (currentTimeSigIndex == -1) return;
+            
+            var currentTimeSig = allTimeSigs[currentTimeSigIndex];
+            int timeSigMeasureIndex = measureBeatLines.GetIndexOfPrevious(currentTimeSig.Tick);
 
             // Limits for placing activation phrases (in seconds)
-            const float MIN_SPACING = 3;
-            const float MAX_SPACING = 10;
+            const float MIN_SPACING_TIME = 2;
+            const float MAX_SPACING_TIME = 10;
 
             do
             {
-                uint ticksToAdd = currentTicksPerMeasure * 4;
-                while (syncTrack.TickToTime(currentTick + ticksToAdd) - prevReferenceTime > MAX_SPACING)
-                {
-                    ticksToAdd /= 2;
+                int measuresPerActivator = 4;
+                if (currentMeasureIndex + measuresPerActivator > totalMeasures) break;
 
-                    if (ticksToAdd < currentTicksPerMeasure)
-                    {
-                        // Slow tempo and time signature combination, only wait a single measure before adding a new activation phrase
-                        ticksToAdd = currentTicksPerMeasure;
-                        break;
-                    }
+                // Start by moving forward 4 measures from the last iteration
+                // If that is too long of a wait at the current tempo/time signature do 2 measures instead
+                if (measureBeatLines[currentMeasureIndex].Time - prevReferenceTime > MAX_SPACING_TIME)
+                {
+                    measuresPerActivator -= 2;
                 }
 
-                // TimeSignatureChange.TickLength is not set, use the Tick value of the next time signature instead
-                var nextTimeSig = syncTrack.TimeSignatures.GetNext(currentTick+1);
-                uint currentTimeSigTickEnd = nextTimeSig == null ? lastTick : nextTimeSig.Tick;
+                currentMeasureIndex += measuresPerActivator;
 
-                // If the time signature changes before the next 4 measures have passed
-                // Put the activation note at the start of the new time signature instead
-                currentTick = Math.Min(currentTick + ticksToAdd, currentTimeSigTickEnd);
+                // Activator notes should only fall on bar lines that are multiples of measuresPerActivator
+                // from the last time signature change
+                int measureRemainder = (currentMeasureIndex - timeSigMeasureIndex) % measuresPerActivator;
+                if (measureRemainder > 0) currentMeasureIndex += measureRemainder;
+
+                // Reached the end of the chart
+                if (currentMeasureIndex >= totalMeasures) break;
+
+                var currentMeasureLine = measureBeatLines[currentMeasureIndex];
+
+                int newTimeSigIndex = syncTrack.TimeSignatures.GetIndexOfPrevious(currentMeasureLine.Tick);
+                if (newTimeSigIndex > currentTimeSigIndex)
+                {
+                    // Moved forward into a new time signature
+                    currentTimeSigIndex = newTimeSigIndex;
+                    currentTimeSig = allTimeSigs[newTimeSigIndex];
+                    timeSigMeasureIndex = measureBeatLines.GetIndexOfPrevious(currentTimeSig.Tick);
+
+                    //move the activation note to the start of this time signature
+                    currentMeasureIndex = timeSigMeasureIndex;
+                    currentMeasureLine = measureBeatLines[currentMeasureIndex];
+                }
+
+                uint currentMeasureTick = currentMeasureLine.Tick;
+
+                if (currentMeasureTick >= lastNoteTick) break;
+
+                uint eighth_note_tick_length = currentTimeSig.GetTicksPerBeat(syncTrack) / 2;
                 
                 // Attempt to retrieve an activation note directly on the bar line
-                var activationNote = difficulty.Notes.GetPrevious(currentTick);
+                var activationNote = difficulty.Notes.GetPrevious(currentMeasureTick);
 
                 // No more notes in this chart
                 if (activationNote == null) break;
 
-                if (activationNote.Tick < currentTick)
-                {
-                    // No note exists on the bar line, attempt to retrieve the next note instead
-                    activationNote = activationNote.NextNote;
+                // No note exists on or near the bar line, move on
+                if (activationNote.Tick < currentMeasureTick - eighth_note_tick_length) continue;
 
-                    // No more notes in this chart
-                    if (activationNote == null) break;
-                }
-
-                currentTick = activationNote.Tick;
-
-                if (currentTimeSigTickEnd <= currentTick)
-                {
-                    currentTimeSig = nextTimeSig;
-                    if (currentTimeSig == null) break;
-
-                    currentTicksPerMeasure = currentTimeSig.GetTicksPerMeasure(syncTrack);
-                }
-
-                if (syncTrack.TickToTime(currentTick) - prevReferenceTime < MIN_SPACING) continue;
-
-                var nearestSPPhrase = starPowerPhrases.GetPrevious(currentTick);
+                var nearestSPPhrase = starPowerPhrases.GetPrevious(currentMeasureTick);
                 if (nearestSPPhrase == null) break;
 
-                if (nearestSPPhrase.TimeEnd > prevReferenceTime)
-                {
-                    // Prevent activation phrases from appearing less than MIN_SPACING away from SP phrases
-                    prevReferenceTime = nearestSPPhrase.TimeEnd;
-                }
+                // Prevent activation phrases from appearing less than MIN_SPACING away from SP phrases
+                prevReferenceTime = Math.Max(prevReferenceTime, nearestSPPhrase.TimeEnd);
+
+                // This activation phrase is too close to an SP phrase or previous activation note
+                if (currentMeasureLine.Time - prevReferenceTime < MIN_SPACING_TIME) continue;
 
                 // Do not put an activation phrase here if it overlaps with an existing SP phrase
-                if (nearestSPPhrase.TickEnd > currentTick) continue;
+                if (nearestSPPhrase.TickEnd > currentMeasureTick) continue;
 
                 // Prevent placing an activation phrase here if it overlaps with a solo section
                 if (soloPhrases.Count > 0)
                 {
-                    var nearestSoloPhrase = soloPhrases.GetPrevious(currentTick);
-                    if (nearestSoloPhrase != null && nearestSoloPhrase.TickEnd > currentTick) continue;
+                    var nearestSoloPhrase = soloPhrases.GetPrevious(currentMeasureTick);
+                    if (nearestSoloPhrase != null && nearestSoloPhrase.TickEnd > currentMeasureTick) continue;
                 }
                 
                 // Do not put an activation phrase here if there aren't enough notes to hit after activating SP
-                // Assumes no time signature changes for the next 4 measures
-                const uint SP_MIN_NOTES = 10;
-                uint starPowerEndTick = currentTick + (currentTicksPerMeasure * 4);
+                const uint SP_MIN_NOTES = 16;
+                int starPowerEndMeasureIndex = Math.Min(currentMeasureIndex+4, totalMeasures-1);
+                uint starPowerEndTick = measureBeatLines[starPowerEndMeasureIndex].Tick;
 
                 int totalNotesForStarPower = 0;
                 var testNote = activationNote.NextNote;
@@ -320,23 +346,21 @@ namespace YARG.Core.Chart
                 {
                     if (testNote.Tick > starPowerEndTick) break;
                     
-                    totalNotesForStarPower += testNote.ChildNotes.Count;
+                    totalNotesForStarPower += testNote.ChildNotes.Count+1;
                     testNote = testNote.NextNote;
                 }
 
                 if (totalNotesForStarPower < SP_MIN_NOTES) continue;
 
                 // This is a good place to put an Activation note
-                prevReferenceTime = syncTrack.TickToTime(currentTick);
+                prevReferenceTime = currentMeasureLine.Time;
 
                 if (!DrumsEngine.IsIdealActivationNote(activationNote, difficulty.Instrument))
                 {
                     // The note on the bar line doesn't contain a combo of crash and kick/snare
                     // Search +/- an 8th note to find a possible syncopated activation note
-                    uint eighth_note_length = currentTimeSig.GetTicksPerBeat(syncTrack) / 2;
-
-                    testNote = difficulty.Notes.GetNext(currentTick - eighth_note_length);
-                    while (testNote != null && testNote.Tick <= currentTick + eighth_note_length)
+                    testNote = difficulty.Notes.GetNext(currentMeasureTick - eighth_note_tick_length - 1);
+                    while (testNote != null && testNote.Tick <= currentMeasureTick + eighth_note_tick_length)
                     {
                         if (testNote != activationNote)
                         {
@@ -358,14 +382,15 @@ namespace YARG.Core.Chart
                 }
 
                 // Mark the start of a drum fill phrase one measure before this bar line
-                uint fillPhraseStartTick = currentTick - (ticksToAdd / 4);
+                var previousMeasureLine = measureBeatLines[currentMeasureIndex - 1];
+                uint fillPhraseStartTick = previousMeasureLine.Tick;
                 uint fillPhraseEndTick = activationNote.Tick;
-                double fillPhraseStartTime = syncTrack.TickToTime(fillPhraseStartTick);
+                double fillPhraseStartTime = previousMeasureLine.Time;
                 double fillPhraseTimeLength = activationNote.Time - fillPhraseStartTime;
 
                 var newDrumFillPhrase = new Phrase(PhraseType.DrumFill,
-                                          fillPhraseStartTime, fillPhraseTimeLength,
-                                          fillPhraseStartTick, fillPhraseEndTick - fillPhraseStartTick);
+                                                   fillPhraseStartTime, fillPhraseTimeLength,
+                                                   fillPhraseStartTick, fillPhraseEndTick - fillPhraseStartTick);
 
                 int newPhraseIndex = difficulty.Phrases.GetIndexOfNext(fillPhraseStartTick);
 
@@ -381,7 +406,7 @@ namespace YARG.Core.Chart
                 }
 
                 YargLogger.LogFormatDebug("Generated a Drums SP Activation phrase from tick {0} to {1}", fillPhraseStartTick, fillPhraseEndTick);
-            } while (currentTick < lastTick);
+            } while (currentMeasureIndex < totalMeasures);
         }
     }
 }
