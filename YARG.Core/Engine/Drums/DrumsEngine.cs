@@ -125,22 +125,16 @@ namespace YARG.Core.Engine.Drums
             base.HitNote(note);
         }
 
-        protected void ApplyVelocity(DrumNote hitNote, out bool awardVelocityBonus)
+        protected bool ApplyVelocity(DrumNote hitNote)
         {
-            awardVelocityBonus = false;
-
             // Neutral notes cannot award bonus points here
-            if (hitNote.IsNeutral) return;
+            if (hitNote.IsNeutral) return false;
 
-            if (IsBot)
-            {
-                // Bots will always hit at a velocity of 1, just give them the bonus
-                awardVelocityBonus = true;
-                return;
-            }
+            // Bots will always hit at a velocity of 1, just give them the bonus
+            if (IsBot) return true;
 
-            // Hit velocity was not recorded on this note, bonus will always be false
-            if (State.HitVelocity == null) return;
+            // Hit velocity was not recorded for this note, bonus will always be false
+            if (State.HitVelocity == null) return false;
 
             float lastInputVelocity = State.HitVelocity ?? 1;
 
@@ -191,6 +185,8 @@ namespace YARG.Core.Engine.Drums
 
                 awardThreshold = Math.Max(awardThreshold, relativeVelocityThreshold ?? 0);
             }
+            
+            bool awardVelocityBonus = false;
 
             if (hitNote.IsGhost)
             {
@@ -202,6 +198,8 @@ namespace YARG.Core.Engine.Drums
                 awardVelocityBonus = lastInputVelocity > (1 - awardThreshold);
                 YargLogger.LogFormatTrace("Accent note was hit with a velocity of {0} at tick {1}. Bonus awarded: {2}", lastInputVelocity, hitNote.Tick, awardVelocityBonus);
             }
+
+            return awardVelocityBonus;
         }
 
         protected override void MissNote(DrumNote note)

@@ -72,7 +72,7 @@ namespace YARG.Core.Engine.Drums.Engines
                     // Hit note
                     if (CanNoteBeHit(note))
                     {
-                        ApplyVelocity(note, out bool awardVelocityBonus);
+                        bool awardVelocityBonus = ApplyVelocity(note);
 
                         // TODO - Deadly Dynamics modifier check on awardVelocityBonus
                         HitNote(note, awardVelocityBonus, false);
