@@ -59,7 +59,6 @@ namespace YARG.Core.Engine.Drums
 
         protected override void HitNote(DrumNote note)
         {
-            ApplyVelocity(note);
             HitNote(note, false);
         }
 
@@ -126,75 +125,82 @@ namespace YARG.Core.Engine.Drums
             base.HitNote(note);
         }
 
-        protected void ApplyVelocity(DrumNote hitNote)
+        protected void ApplyVelocity(DrumNote hitNote, out bool awardVelocityBonus)
         {
-            // Fallback to a velocity of 1 if the engine state was not updated
-            // Do not use fallback value to award bonus points on accent notes
+            awardVelocityBonus = false;
+
+            // Neutral notes cannot award bonus points here
+            if (hitNote.IsNeutral) return;
+
+            if (IsBot)
+            {
+                // Bots will always hit at a velocity of 1, just give them the bonus
+                awardVelocityBonus = true;
+                return;
+            }
+
+            // Hit velocity was not recorded on this note, bonus will always be false
+            if (State.HitVelocity == null) return;
+
             float lastInputVelocity = State.HitVelocity ?? 1;
 
             hitNote.HitVelocity = lastInputVelocity;
+            
+            // Apply bonus points from successful ghost / accent note hits
+            float awardThreshold = EngineParameters.VelocityThreshold;
+            float situationalVelocityWindow = EngineParameters.SituationalVelocityWindow;
 
-            if (State.HitVelocity != null && !hitNote.IsNeutral)
+            var compareNote = hitNote.PreviousNote;
+
+            while (compareNote != null)
             {
-                // Apply bonus points from successful ghost / accent note hits
-                float awardThreshold = EngineParameters.VelocityThreshold;
-                float situationalVelocityWindow = EngineParameters.SituationalVelocityWindow;
-
-                var compareNote = hitNote.PreviousNote;
-
-                while (compareNote != null)
+                if (hitNote.Time - compareNote.Time > situationalVelocityWindow)
                 {
-                    if (hitNote.Time - compareNote.Time > situationalVelocityWindow)
-                    {
-                        // This note is too far in the past to consider for comparison, stop searching
-                        compareNote = null;
-                        break;
-                    }
-
-                    if (compareNote.HitVelocity != null && compareNote.Pad == hitNote.Pad)
-                    {
-                        // Comparison note is assigned to the same pad and has stored velocity data
-                        // Stop searching and use this note for comparison
-                        break;
-                    }
-
-                    compareNote = compareNote.PreviousNote;
+                    // This note is too far in the past to consider for comparison, stop searching
+                    compareNote = null;
+                    break;
                 }
 
-                if (compareNote != null)
+                if (compareNote.HitVelocity != null && compareNote.Pad == hitNote.Pad)
                 {
-                    //compare this note's velocity against the velocity recorded for the last note
-                    float? relativeVelocityThreshold;
-
-                    if (compareNote.Type == hitNote.Type)
-                    {
-                        // Comparison note is the same ghost/accent type as this note
-                        // If this note was awarded a velocity bonus, allow multiple consecutive hits at the previous velocity
-                        relativeVelocityThreshold = compareNote.HitVelocity;
-                    }
-                    else
-                    {
-                        // Comparison note is not of the same ghost/accent type as this note
-                        // Award a velocity bonus if this note was hit with a delta value greater than the previous hit
-                        relativeVelocityThreshold = compareNote.HitVelocity - awardThreshold;
-                    }
-
-                    awardThreshold = Math.Max(awardThreshold, relativeVelocityThreshold ?? 0);
+                    // Comparison note is assigned to the same pad and has stored velocity data
+                    // Stop searching and use this note for comparison
+                    break;
                 }
 
-                bool awardVelocityBonus = false;
-                if (hitNote.IsGhost)
+                compareNote = compareNote.PreviousNote;
+            }
+
+            if (compareNote != null)
+            {
+                //compare this note's velocity against the velocity recorded for the last note
+                float? relativeVelocityThreshold;
+
+                if (compareNote.Type == hitNote.Type)
                 {
-                    awardVelocityBonus = lastInputVelocity < awardThreshold;
-                    YargLogger.LogFormatTrace("Ghost note was hit with a velocity of {0} at tick {1}. Bonus awarded: {2}", lastInputVelocity, hitNote.Tick, awardVelocityBonus);
+                    // Comparison note is the same ghost/accent type as this note
+                    // If this note was awarded a velocity bonus, allow multiple consecutive hits at the previous velocity
+                    relativeVelocityThreshold = compareNote.HitVelocity;
                 }
-                else if (hitNote.IsAccent)
+                else
                 {
-                    awardVelocityBonus = lastInputVelocity > (1 - awardThreshold);
-                    YargLogger.LogFormatTrace("Accent note was hit with a velocity of {0} at tick {1}. Bonus awarded: {2}", lastInputVelocity, hitNote.Tick, awardVelocityBonus);
+                    // Comparison note is not of the same ghost/accent type as this note
+                    // Award a velocity bonus if this note was hit with a delta value greater than the previous hit
+                    relativeVelocityThreshold = compareNote.HitVelocity - awardThreshold;
                 }
 
-                hitNote.AwardVelocityBonus = awardVelocityBonus;
+                awardThreshold = Math.Max(awardThreshold, relativeVelocityThreshold ?? 0);
+            }
+
+            if (hitNote.IsGhost)
+            {
+                awardVelocityBonus = lastInputVelocity < awardThreshold;
+                YargLogger.LogFormatTrace("Ghost note was hit with a velocity of {0} at tick {1}. Bonus awarded: {2}", lastInputVelocity, hitNote.Tick, awardVelocityBonus);
+            }
+            else if (hitNote.IsAccent)
+            {
+                awardVelocityBonus = lastInputVelocity > (1 - awardThreshold);
+                YargLogger.LogFormatTrace("Accent note was hit with a velocity of {0} at tick {1}. Bonus awarded: {2}", lastInputVelocity, hitNote.Tick, awardVelocityBonus);
             }
         }
 
@@ -240,11 +246,6 @@ namespace YARG.Core.Engine.Drums
         protected override void AddScore(DrumNote note)
         {
             int pointsPerNote = GetPointsPerNote();
-
-            if (note.AwardVelocityBonus)
-            {
-                pointsPerNote += (int)(POINTS_PER_NOTE * 0.5);
-            }
 
             AddScore(pointsPerNote * EngineStats.ScoreMultiplier);
         }

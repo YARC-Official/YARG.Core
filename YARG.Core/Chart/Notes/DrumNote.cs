@@ -16,7 +16,6 @@ namespace YARG.Core.Chart
         public bool IsGhost   => Type == DrumNoteType.Ghost;
 
         public float? HitVelocity;
-        public bool AwardVelocityBonus;
 
         public bool IsStarPowerActivator => (DrumFlags & DrumNoteFlags.StarPowerActivator) != 0;
 
@@ -54,7 +53,6 @@ namespace YARG.Core.Chart
             base.ResetNoteState();
             DrumFlags = _drumFlags;
             HitVelocity = null;
-            AwardVelocityBonus = false;
         }
 
         protected override void CopyFlags(DrumNote other)

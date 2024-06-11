@@ -1,3 +1,4 @@
+using System;
 using YARG.Core.Chart;
 using YARG.Core.Input;
 using YARG.Core.Logging;
@@ -71,7 +72,10 @@ namespace YARG.Core.Engine.Drums.Engines
                     // Hit note
                     if (CanNoteBeHit(note))
                     {
-                        HitNote(note);
+                        ApplyVelocity(note, out bool awardVelocityBonus);
+
+                        // TODO - Deadly Dynamics modifier check on awardVelocityBonus
+                        HitNote(note, awardVelocityBonus, false);
                         ResetPadState();
 
                         // You can't hit more than one note with the same input
@@ -80,7 +84,7 @@ namespace YARG.Core.Engine.Drums.Engines
                     }
                     else
                     {
-                        YargLogger.LogFormatTrace("Cant hit note (Index: {0}) at {1}.", i, State.CurrentTime);
+                        YargLogger.LogFormatDebug("Cant hit note (Index: {0}) at {1}.", i, State.CurrentTime);
                     }
                 }
 
@@ -95,6 +99,17 @@ namespace YARG.Core.Engine.Drums.Engines
             {
                 Overhit();
                 ResetPadState();
+            }
+        }
+
+        protected void HitNote(DrumNote note, bool awardVelocityBonus, bool activationAutoHit)
+        {
+            HitNote(note, activationAutoHit);
+
+            if (awardVelocityBonus){
+                int velocityBonus = (int)(POINTS_PER_NOTE * 0.5 * EngineStats.ScoreMultiplier);
+                AddScore(velocityBonus);
+                YargLogger.LogFormatTrace("Velocity bonus of {0} points was awarded to a note at tick {1}.", velocityBonus, note.Tick);
             }
         }
 
@@ -128,7 +143,7 @@ namespace YARG.Core.Engine.Drums.Engines
         private void ResetPadState()
         {
             State.PadHit = null;
-            State.HitVelocity = 1;
+            State.HitVelocity = null;
         }
     }
 }
