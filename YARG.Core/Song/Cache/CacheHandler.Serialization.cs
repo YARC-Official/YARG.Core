@@ -255,9 +255,9 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        protected PackedCONGroup? ReadCONGroupHeader(BinaryReader reader, out string filename)
+        protected PackedCONGroup? ReadCONGroupHeader(BinaryReader reader)
         {
-            filename = reader.ReadString();
+            string filename = reader.ReadString();
             var baseGroup = GetBaseIniGroup(filename);
             if (baseGroup == null)
             {
@@ -295,9 +295,9 @@ namespace YARG.Core.Song.Cache
             return group;
         }
 
-        protected UnpackedCONGroup? ReadExtractedCONGroupHeader(BinaryReader reader, out string directory)
+        protected UnpackedCONGroup? ReadExtractedCONGroupHeader(BinaryReader reader)
         {
-            directory = reader.ReadString();
+            string directory = reader.ReadString();
             var baseGroup = GetBaseIniGroup(directory);
             if (baseGroup == null)
             {

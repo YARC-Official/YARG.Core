@@ -421,7 +421,7 @@ namespace YARG.Core.Song.Cache
 
         private void ReadPackedCONGroup(BinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
         {
-            var group = ReadCONGroupHeader(reader, out string filename);
+            var group = ReadCONGroupHeader(reader);
             if (group != null)
             {
                 ReadCONGroup(group, reader, entryTasks, strings, tracker);
@@ -430,7 +430,7 @@ namespace YARG.Core.Song.Cache
 
         private void ReadUnpackedCONGroup(BinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
         {
-            var group = ReadExtractedCONGroupHeader(reader, out string directory);
+            var group = ReadExtractedCONGroupHeader(reader);
             if (group != null)
             {
                 ReadCONGroup(group, reader, entryTasks, strings, tracker);

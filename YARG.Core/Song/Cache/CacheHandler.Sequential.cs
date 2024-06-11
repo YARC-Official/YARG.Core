@@ -226,7 +226,7 @@ namespace YARG.Core.Song.Cache
 
         private void ReadPackedCONGroup(BinaryReader reader, CategoryCacheStrings strings)
         {
-            var group = ReadCONGroupHeader(reader, out string filename);
+            var group = ReadCONGroupHeader(reader);
             if (group != null)
             {
                 ReadCONGroup(reader, (string name, int index, BinaryReader entryReader) => group.ReadEntry(name, index, upgrades, entryReader, strings));
@@ -235,7 +235,7 @@ namespace YARG.Core.Song.Cache
 
         private void ReadUnpackedCONGroup(BinaryReader reader, CategoryCacheStrings strings)
         {
-            var group = ReadExtractedCONGroupHeader(reader, out string directory);
+            var group = ReadExtractedCONGroupHeader(reader);
             if (group != null)
             {
                 ReadCONGroup(reader, (string name, int index, BinaryReader entryReader) => group.ReadEntry(name, index, upgrades, entryReader, strings));
