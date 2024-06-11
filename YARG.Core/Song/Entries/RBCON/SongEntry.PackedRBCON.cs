@@ -47,13 +47,12 @@ namespace YARG.Core.Song
             }
         }
 
-        public static PackedRBCONEntry? TryLoadFromCache(CONFileListing[] listings, string nodename, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
+        public static PackedRBCONEntry? TryLoadFromCache(CONFile conFile, string nodename, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
         {
             var psuedoDirectory = reader.ReadString();
 
             string midiFilename = reader.ReadString();
-            var midiListing = listings.Find(midiFilename);
-            if (midiListing == null)
+            if (!conFile.TryGetListing(midiFilename, out var midiListing))
             {
                 return null;
             }
@@ -76,36 +75,36 @@ namespace YARG.Core.Song
 
             var upgrade = upgrades.TryGetValue(nodename, out var node) ? node.Item2 : null;
 
-            var moggListing = listings.Find(Path.ChangeExtension(midiFilename, ".mogg"));
+            conFile.TryGetListing(Path.ChangeExtension(midiFilename, ".mogg"), out var moggListing);
 
             if (!midiFilename.StartsWith($"songs/{nodename}"))
                 nodename = midiFilename.Split('/')[1];
 
             string genPath = $"songs/{nodename}/gen/{nodename}";
-            var miloListing = listings.Find(genPath + ".milo_xbox");
-            var imgListing = listings.Find(genPath + "_keep.png_xbox");
+            conFile.TryGetListing(genPath + ".milo_xbox", out var miloListing);
+            conFile.TryGetListing(genPath + "_keep.png_xbox", out var imgListing);
             return new PackedRBCONEntry(midiListing, lastMidiWrite, moggListing, miloListing, imgListing, psuedoDirectory, updateMidi, upgrade, reader, strings);
         }
 
-        public static PackedRBCONEntry LoadFromCache_Quick(CONFileListing[] listings, string nodename, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
+        public static PackedRBCONEntry LoadFromCache_Quick(CONFile conFile, string nodename, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
         {
             var psuedoDirectory = reader.ReadString();
 
             string midiFilename = reader.ReadString();
-            var midiListing = listings.Find(midiFilename);
+            conFile.TryGetListing(midiFilename, out var midiListing);
             var lastMidiWrite = DateTime.FromBinary(reader.ReadInt64());
 
             var updateMidi = reader.ReadBoolean() ? new AbridgedFileInfo(reader) : null;
             var upgrade = upgrades.TryGetValue(nodename, out var node) ? node.Item2 : null;
 
-            var moggListing = listings.Find(Path.ChangeExtension(midiFilename, ".mogg"));
+            conFile.TryGetListing(Path.ChangeExtension(midiFilename, ".mogg"), out var moggListing);
 
             if (!midiFilename.StartsWith($"songs/{nodename}"))
                 nodename = midiFilename.Split('/')[1];
 
             string genPath = $"songs/{nodename}/gen/{nodename}";
-            var miloListing = listings.Find(genPath + ".milo_xbox");
-            var imgListing = listings.Find(genPath + "_keep.png_xbox");
+            conFile.TryGetListing(genPath + ".milo_xbox", out var miloListing);
+            conFile.TryGetListing(genPath + "_keep.png_xbox", out var imgListing);
             return new PackedRBCONEntry(midiListing, lastMidiWrite, moggListing, miloListing, imgListing, psuedoDirectory, updateMidi, upgrade, reader, strings);
         }
 
@@ -114,24 +113,23 @@ namespace YARG.Core.Song
         {
             var results = Init(nodename, reader, updates, upgrades, group.DefaultPlaylist);
             string midiPath = results.location + ".mid";
-            _midiListing = group.Listings.Find(midiPath);
-            if (_midiListing == null)
+            if (!group.ConFile.TryGetListing(midiPath, out _midiListing))
             {
                 return;
             }
 
             _lastMidiWrite = _midiListing.lastWrite;
 
-            _moggListing = group.Listings.Find(results.location + ".mogg");
+            group.ConFile.TryGetListing(results.location + ".mogg", out _moggListing);
 
             if (!results.location.StartsWith($"songs/{nodename}"))
                 nodename = _midiListing.Filename.Split('/')[1];
 
             string genPath = $"songs/{nodename}/gen/{nodename}";
-            _miloListing = group.Listings.Find(genPath + ".milo_xbox");
-            _imgListing = group.Listings.Find(genPath + "_keep.png_xbox");
+            group.ConFile.TryGetListing(genPath + ".milo_xbox", out _miloListing);
+            group.ConFile.TryGetListing(genPath + "_keep.png_xbox", out _imgListing);
 
-            string midiDirectory = group.Listings[_midiListing.pathIndex].Filename;
+            string midiDirectory = group.ConFile.GetFilename(_midiListing.pathIndex);
             Directory = Path.Combine(group.Location, midiDirectory);
         }
 

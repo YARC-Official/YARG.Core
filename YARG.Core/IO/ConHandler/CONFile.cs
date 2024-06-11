@@ -1,23 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using YARG.Core.Logging;
 
 namespace YARG.Core.IO
 {
-    public static class CONFile
+    public class CONFile
     {
-        public static CONFileListing? Find(this CONFileListing[] listings, string filename)
-        {
-            for (int i = 0; i < listings.Length; ++i)
-            {
-                var listing = listings[i];
-                if (filename == listing.Filename)
-                    return listing;
-            }
-            return null;
-        }
-
         private static readonly FourCC CON_TAG = new('C', 'O', 'N', ' ');
         private static readonly FourCC LIVE_TAG = new('L', 'I', 'V', 'E');
         private static readonly FourCC PIRS_TAG = new('P', 'I', 'R', 'S');
@@ -32,7 +22,26 @@ namespace YARG.Core.IO
         private const int BYTES_PER_BLOCK = 0x1000;
         private const int SIZEOF_FILELISTING = 0x40;
 
-        public static CONFileListing[]? TryParseListings(AbridgedFileInfo info)
+        private readonly List<string> _filenames;
+        private readonly Dictionary<string, CONFileListing> _listings;
+
+        private CONFile(List<string> filenames, Dictionary<string, CONFileListing> listings)
+        {
+            _filenames = filenames;
+            _listings = listings;
+        }
+
+        public string GetFilename(int index)
+        {
+            return _filenames[index];
+        }
+
+        public bool TryGetListing(string name, out CONFileListing listing)
+        {
+            return _listings.TryGetValue(name, out listing);
+        }
+
+        public static CONFile? TryParseListings(AbridgedFileInfo info)
         {
             using var stream = InitStream_Internal(info.FullName);
             if (stream == null)
@@ -71,28 +80,28 @@ namespace YARG.Core.IO
 
             try
             {
-                List<CONFileListing> listings = new();
+                var filenames = new List<string>();
+                var listings = new Dictionary<string, CONFileListing>();
 
                 using var conStream = new CONFileStream(stream, true, length, firstBlock, shift);
                 Span<byte> listingBuffer = stackalloc byte[SIZEOF_FILELISTING];
-                for (int i = 0; i < length; i += SIZEOF_FILELISTING)
+                while (conStream.Read(listingBuffer) == SIZEOF_FILELISTING && listingBuffer[0] != 0)
                 {
-                    conStream.Read(listingBuffer);
-                    if (listingBuffer[0] == 0)
-                        break;
-
-                    CONFileListing listing = new(info, shift, listingBuffer);
-                    if (listing.pathIndex >= listings.Count)
+                    short pathIndex = (short) (listingBuffer[0x32] << 8 | listingBuffer[0x33]);
+                    if (pathIndex >= filenames.Count)
                     {
                         YargLogger.LogFormatError("Error while parsing {0} - Filelisting blocks constructed out of spec", info.FullName);
                         return null;
                     }
 
-                    if (listing.pathIndex != -1)
-                        listing.SetParentDirectory(listings[listing.pathIndex].Filename);
-                    listings.Add(listing);
+                    string filename = pathIndex >= 0 ? filenames[pathIndex] + "/" : string.Empty;
+                    filename += Encoding.UTF8.GetString(listingBuffer[..0x28]).TrimEnd('\0');
+                    filenames.Add(filename);
+
+                    var listing = new CONFileListing(info, filename, pathIndex, shift, listingBuffer);
+                    listings.Add(filename, listing);
                 }
-                return listings.ToArray();
+                return new CONFile(filenames, listings);
             }
             catch (Exception ex)
             {

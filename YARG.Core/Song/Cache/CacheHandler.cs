@@ -450,9 +450,7 @@ namespace YARG.Core.Song.Cache
                 while (reader.StartNode())
                 {
                     string name = reader.GetNameOfNode(true);
-                    var listing = group.Listings.Find($"songs_upgrades/{name}_plus.mid");
-
-                    if (listing != null)
+                    if (group.ConFile.TryGetListing($"songs_upgrades/{name}_plus.mid", out var listing))
                     {
                         if (CanAddUpgrade_CONInclusive(name, listing.lastWrite))
                         {

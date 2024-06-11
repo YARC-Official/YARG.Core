@@ -395,7 +395,8 @@ namespace YARG.Core.Song.Cache
             {
                 string name = reader.ReadString();
                 var lastWrite = DateTime.FromBinary(reader.ReadInt64());
-                var listing = group?.Listings.Find($"songs_upgrades/{name}_plus.mid");
+                CONFileListing? listing = null;
+                group?.ConFile.TryGetListing($"songs_upgrades/{name}_plus.mid", out listing);
 
                 var upgrade = new PackedRBProUpgrade(listing, lastWrite);
                 AddUpgrade(name, null, upgrade);

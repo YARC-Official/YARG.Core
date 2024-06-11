@@ -8,28 +8,28 @@ namespace YARG.Core.Song.Cache
     public sealed class PackedCONGroup : CONGroup, IUpgradeGroup
     {
         public readonly AbridgedFileInfo Info;
-        public readonly CONFileListing[] Listings;
+        public readonly CONFile ConFile;
         public readonly CONFileListing? SongDTA;
         public readonly CONFileListing? UpgradeDta;
         public Stream? Stream;
         
         public Dictionary<string, IRBProUpgrade> Upgrades { get; } = new();
 
-        public PackedCONGroup(CONFileListing[] listings, AbridgedFileInfo info, string defaultPlaylist)
+        public PackedCONGroup(CONFile conFile, AbridgedFileInfo info, string defaultPlaylist)
             : base(info.FullName, defaultPlaylist)
         {
             const string SONGSFILEPATH = "songs/songs.dta";
             const string UPGRADESFILEPATH = "songs_upgrades/upgrades.dta";
 
             Info = info;
-            Listings = listings;
-            UpgradeDta = Listings.Find(UPGRADESFILEPATH);
-            SongDTA = Listings.Find(SONGSFILEPATH);
+            ConFile = conFile;
+            conFile.TryGetListing(UPGRADESFILEPATH, out UpgradeDta);
+            conFile.TryGetListing(SONGSFILEPATH, out SongDTA);
         }
 
         public override void ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
         {
-            var song = PackedRBCONEntry.TryLoadFromCache(Listings, nodeName, upgrades, reader, strings);
+            var song = PackedRBCONEntry.TryLoadFromCache(ConFile, nodeName, upgrades, reader, strings);
             if (song != null)
             {
                 AddEntry(nodeName, index, song);
