@@ -277,14 +277,14 @@ namespace YARG.Core.Song.Cache
                 FindOrMarkFile(filename);
 
                 var abridged = new AbridgedFileInfo(info);
-                var listings = CONFile.TryParseListings(abridged);
-                if (listings == null)
+                var confile = CONFile.TryParseListings(abridged);
+                if (confile == null)
                 {
                     return null;
                 }
 
                 string playlist = ConstructPlaylist(filename, baseGroup.Directory);
-                group = new PackedCONGroup(listings, abridged, playlist);
+                group = new PackedCONGroup(confile.Value, abridged, playlist);
                 AddPackedCONGroup(group);
             }
 
@@ -436,13 +436,12 @@ namespace YARG.Core.Song.Cache
             FindOrMarkFile(filename);
 
             var abridged = new AbridgedFileInfo(info);
-            var listings = CONFile.TryParseListings(abridged);
-            if (listings == null)
+            var confile = CONFile.TryParseListings(abridged);
+            if (confile == null)
             {
                 return null;
             }
-
-            return new PackedCONGroup(listings, abridged, defaultPlaylist);
+            return new PackedCONGroup(confile.Value, abridged, defaultPlaylist);
         }
 
         private string ConstructPlaylist(string filename, string baseDirectory)

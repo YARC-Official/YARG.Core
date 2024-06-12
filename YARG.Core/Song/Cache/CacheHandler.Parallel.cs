@@ -500,7 +500,7 @@ namespace YARG.Core.Song.Cache
                     // Error catching must be done per-thread
                     try
                     {
-                        AddEntry(PackedRBCONEntry.LoadFromCache_Quick(group.ConFile, name, upgrades, entryReader, strings));
+                        AddEntry(PackedRBCONEntry.LoadFromCache_Quick(in group.ConFile, name, upgrades, entryReader, strings));
                     }
                     catch (Exception ex)
                     {

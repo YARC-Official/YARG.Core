@@ -47,7 +47,7 @@ namespace YARG.Core.Song
             }
         }
 
-        public static PackedRBCONEntry? TryLoadFromCache(CONFile conFile, string nodename, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
+        public static PackedRBCONEntry? TryLoadFromCache(in CONFile conFile, string nodename, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
         {
             var psuedoDirectory = reader.ReadString();
 
@@ -86,7 +86,7 @@ namespace YARG.Core.Song
             return new PackedRBCONEntry(midiListing, lastMidiWrite, moggListing, miloListing, imgListing, psuedoDirectory, updateMidi, upgrade, reader, strings);
         }
 
-        public static PackedRBCONEntry LoadFromCache_Quick(CONFile conFile, string nodename, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
+        public static PackedRBCONEntry LoadFromCache_Quick(in CONFile conFile, string nodename, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
         {
             var psuedoDirectory = reader.ReadString();
 

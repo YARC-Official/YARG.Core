@@ -169,9 +169,28 @@ namespace YARG.Core.Song.Cache
                 if (FindOrMarkFile(filename) && (info.Attributes & AbridgedFileInfo.RECALL_ON_DATA_ACCESS) == 0)
                 {
                     var abridged = new AbridgedFileInfo(info);
-                    if (!AddPossibleCON(abridged, tracker.Playlist) && (filename.EndsWith(".sng") || filename.EndsWith(".yargsong")))
+                    string ext = info.Extension;
+                    if (ext.Length == 0)
                     {
-                        ScanSngFile(abridged, group, tracker.Playlist);
+                        var confile = CONFile.TryParseListings(abridged);
+                        if (confile != null)
+                        {
+                            var conGroup = new PackedCONGroup(confile.Value, abridged, tracker.Playlist);
+                            TryParseUpgrades(info.FullName, conGroup);
+                            AddPackedCONGroup(conGroup);
+                        }
+                    }
+                    else if (ext == ".sng" || ext == ".yargsong")
+                    {
+                        var sngFile = SngFile.TryLoadFromFile(abridged);
+                        if (sngFile != null)
+                        {
+                            ScanSngFile(sngFile, group, tracker.Playlist);
+                        }
+                        else
+                        {
+                            AddToBadSongs(info.FullName, ScanResult.PossibleCorruption);
+                        }
                     }
                 }
             }
@@ -329,27 +348,22 @@ namespace YARG.Core.Song.Cache
             return false;
         }
 
-        private bool ScanSngFile(AbridgedFileInfo info, IniGroup group, string defaultPlaylist)
+        private void ScanSngFile(SngFile sngFile, IniGroup group, string defaultPlaylist)
         {
-            var sngFile = SngFile.TryLoadFromFile(info);
-            if (sngFile == null)
-            {
-                AddToBadSongs(info.FullName, ScanResult.PossibleCorruption);
-                return false;
-            }
-
             var collector = new SngCollector(sngFile);
-            for (int i = sngFile.Metadata.Count > 0 ? 0 : 2; i < 3; ++i)
+            int i = sngFile.Metadata.Count > 0 ? 0 : 2;
+            while (i < 3)
             {
                 var chart = collector.charts[i];
                 if (chart == null)
                 {
+                    ++i;
                     continue;
                 }
 
                 if (!collector.ContainsAudio())
                 {
-                    AddToBadSongs(info.FullName, ScanResult.NoAudio);
+                    AddToBadSongs(sngFile.Info.FullName, ScanResult.NoAudio);
                     break;
                 }
 
@@ -358,7 +372,7 @@ namespace YARG.Core.Song.Cache
                     var entry = SngEntry.ProcessNewEntry(sngFile, chart, defaultPlaylist);
                     if (entry.Item2 == null)
                     {
-                        AddToBadSongs(info.FullName, entry.Item1);
+                        AddToBadSongs(sngFile.Info.FullName, entry.Item1);
                     }
                     else if (AddEntry(entry.Item2))
                     {
@@ -367,26 +381,11 @@ namespace YARG.Core.Song.Cache
                 }
                 catch (Exception e)
                 {
-                    YargLogger.LogException(e, $"Error while scanning chart file {chart} within {info}!");
-                    AddToBadSongs(info.FullName, ScanResult.IniEntryCorruption);
+                    YargLogger.LogException(e, $"Error while scanning chart file {chart} within {sngFile.Info}!");
+                    AddToBadSongs(sngFile.Info.FullName, ScanResult.IniEntryCorruption);
                 }
                 break;
             }
-            return true;
-        }
-
-        private bool AddPossibleCON(AbridgedFileInfo info, string defaultPlaylist)
-        {
-            var listings = CONFile.TryParseListings(info);
-            if (listings == null)
-            {
-                return false;
-            }
-
-            var group = new PackedCONGroup(listings, info, defaultPlaylist);
-            TryParseUpgrades(info.FullName, group);
-            AddPackedCONGroup(group);
-            return true;
         }
     }
 }

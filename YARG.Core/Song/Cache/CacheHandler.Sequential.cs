@@ -269,7 +269,7 @@ namespace YARG.Core.Song.Cache
 
                 int length = reader.ReadInt32();
                 var entryReader = reader.Slice(length);
-                AddEntry(PackedRBCONEntry.LoadFromCache_Quick(group.ConFile, name, upgrades, entryReader, strings));
+                AddEntry(PackedRBCONEntry.LoadFromCache_Quick(in group.ConFile, name, upgrades, entryReader, strings));
             }
         }
 

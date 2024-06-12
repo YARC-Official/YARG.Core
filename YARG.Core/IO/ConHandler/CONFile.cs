@@ -6,7 +6,7 @@ using YARG.Core.Logging;
 
 namespace YARG.Core.IO
 {
-    public class CONFile
+    public readonly struct CONFile
     {
         private static readonly FourCC CON_TAG = new('C', 'O', 'N', ' ');
         private static readonly FourCC LIVE_TAG = new('L', 'I', 'V', 'E');
