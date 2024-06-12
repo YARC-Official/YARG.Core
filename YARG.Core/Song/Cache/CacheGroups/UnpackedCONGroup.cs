@@ -6,12 +6,12 @@ namespace YARG.Core.Song.Cache
 {
     public sealed class UnpackedCONGroup : CONGroup
     {
-        public readonly AbridgedFileInfo DTA;
+        public readonly AbridgedFileInfo_Length DTA;
 
         public UnpackedCONGroup(string directory, FileInfo dta, string defaultPlaylist)
             : base(directory, defaultPlaylist)
         {
-            DTA = new AbridgedFileInfo(dta);
+            DTA = new AbridgedFileInfo_Length(dta);
         }
 
         public YARGDTAReader? LoadDTA()

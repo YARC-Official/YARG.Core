@@ -278,8 +278,7 @@ namespace YARG.Core.Song.Cache
                 FileInfo dta = new(Path.Combine(directory, "songs_updates.dta"));
                 if (dta.Exists)
                 {
-                    var abridged = new AbridgedFileInfo(dta, false);
-                    CreateUpdateGroup(dirInfo, abridged, true);
+                    CreateUpdateGroup(dirInfo, dta, true);
                     return false;
                 }
             }
@@ -288,8 +287,7 @@ namespace YARG.Core.Song.Cache
                 FileInfo dta = new(Path.Combine(directory, "upgrades.dta"));
                 if (dta.Exists)
                 {
-                    var abridged = new AbridgedFileInfo(dta, false);
-                    CreateUpgradeGroup(directory, abridged, true);
+                    CreateUpgradeGroup(directory, dta, true);
                     return false;
                 }
             }

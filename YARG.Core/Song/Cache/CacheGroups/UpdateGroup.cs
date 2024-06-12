@@ -47,10 +47,10 @@ namespace YARG.Core.Song.Cache
         private readonly YARGDTAReader[] _readers;
 
         public readonly string BaseDirectory;
-        public readonly AbridgedFileInfo? Midi;
+        public readonly AbridgedFileInfo_Length? Midi;
         public readonly AbridgedFileInfo? Mogg;
-        public readonly AbridgedFileInfo? Milo;
-        public readonly AbridgedFileInfo? Image;
+        public readonly AbridgedFileInfo_Length? Milo;
+        public readonly AbridgedFileInfo_Length? Image;
 
         public YARGDTAReader[] Readers
         {
@@ -87,7 +87,7 @@ namespace YARG.Core.Song.Cache
                     string filename = file.Name.ToLowerInvariant();
                     if (filename == filenames[0])
                     {
-                        Midi ??= new AbridgedFileInfo(file, false);
+                        Midi ??= new AbridgedFileInfo_Length(file, false);
                     }
                     else if (filename == filenames[1])
                     {
@@ -95,11 +95,11 @@ namespace YARG.Core.Song.Cache
                     }
                     else if (filename == filenames[2])
                     {
-                        Milo ??= new AbridgedFileInfo(file, false);
+                        Milo ??= new AbridgedFileInfo_Length(file, false);
                     }
                     else if (filename == filenames[3])
                     {
-                        Image ??= new AbridgedFileInfo(file, false);
+                        Image ??= new AbridgedFileInfo_Length(file, false);
                     }
                 }
             }
@@ -112,12 +112,13 @@ namespace YARG.Core.Song.Cache
             WriteInfo(Milo, writer);
             WriteInfo(Image, writer);
 
-            static void WriteInfo(AbridgedFileInfo? info, BinaryWriter writer)
+            static void WriteInfo<TInfo>(in TInfo? info, BinaryWriter writer)
+                where TInfo : struct, IAbridgedInfo
             {
                 if (info != null)
                 {
                     writer.Write(true);
-                    writer.Write(info.LastUpdatedTime.ToBinary());
+                    writer.Write(info.Value.LastUpdatedTime.ToBinary());
                 }
                 else
                 {
@@ -128,36 +129,35 @@ namespace YARG.Core.Song.Cache
 
         public bool Validate(BinaryReader reader)
         {
-            if (!CheckInfo(Midi, reader))
+            if (!CheckInfo(in Midi, reader))
             {
-                goto FailedMidi;
+                SkipInfo(reader);
+                SkipInfo(reader);
+                SkipInfo(reader);
+                return false;
             }
 
-            if (!CheckInfo(Mogg, reader))
+            if (!CheckInfo(in Mogg, reader))
             {
-                goto FailedMogg;
+                SkipInfo(reader);
+                SkipInfo(reader);
+                return false;
             }
 
-            if (!CheckInfo(Milo, reader))
+            if (!CheckInfo(in Milo, reader))
             {
-                goto FailedMilo;
+                SkipInfo(reader);
+                return false ;
             }
-            return CheckInfo(Image, reader);
+            return CheckInfo(in Image, reader);
 
-        FailedMidi:
-            SkipInfo(reader);
-        FailedMogg:
-            SkipInfo(reader);
-        FailedMilo:
-            SkipInfo(reader);
-            return false;
-
-            static bool CheckInfo(AbridgedFileInfo? info, BinaryReader reader)
+            static bool CheckInfo<TInfo>(in TInfo? info, BinaryReader reader)
+                where TInfo : struct, IAbridgedInfo
             {
                 if (reader.ReadBoolean())
                 {
                     var lastWrite = DateTime.FromBinary(reader.ReadInt64());
-                    if (info == null || info.LastUpdatedTime != lastWrite)
+                    if (info == null || info.Value.LastUpdatedTime != lastWrite)
                     {
                         return false;
                     }
@@ -168,8 +168,6 @@ namespace YARG.Core.Song.Cache
                 }
                 return true;
             }
-
-            
         }
 
         public int CompareTo(SongUpdate other)

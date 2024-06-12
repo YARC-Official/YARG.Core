@@ -513,7 +513,7 @@ namespace YARG.Core.Song.Cache
         private void QuickReadExtractedCONGroup(BinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
         {
             string directory = reader.ReadString();
-            var dta = AbridgedFileInfo.TryParseInfo(Path.Combine(directory, "songs.dta"), reader, false);
+            var dta = new AbridgedFileInfo_Length(Path.Combine(directory, "songs.dta"), reader);
             // Lack of null check of `dta` by design
 
             int count = reader.ReadInt32();

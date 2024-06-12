@@ -55,10 +55,10 @@ namespace YARG.Core.Song
     [Serializable]
     public sealed class UnpackedRBProUpgrade : IRBProUpgrade
     {
-        private readonly AbridgedFileInfo _midi;
+        private readonly AbridgedFileInfo_Length _midi;
         public DateTime LastUpdatedTime => _midi.LastUpdatedTime;
 
-        public UnpackedRBProUpgrade(AbridgedFileInfo info)
+        public UnpackedRBProUpgrade(in AbridgedFileInfo_Length info)
         {
             _midi = info;
         }

@@ -31,12 +31,12 @@ namespace YARG.Core.Song
         private RBMetadata _rbMetadata;
         private RBCONDifficulties _rbDifficulties;
 
-        private AbridgedFileInfo? _updateMidi;
+        private AbridgedFileInfo_Length? _updateMidi;
         private IRBProUpgrade? _upgrade;
 
         private AbridgedFileInfo? UpdateMogg;
-        private AbridgedFileInfo? UpdateMilo;
-        private AbridgedFileInfo? UpdateImage;
+        private AbridgedFileInfo_Length? UpdateMilo;
+        private AbridgedFileInfo_Length? UpdateImage;
 
         public int RBBandDiff => _rbDifficulties.Band;
 
@@ -47,9 +47,9 @@ namespace YARG.Core.Song
             var lastUpdateTime = MidiLastUpdate;
             if (_updateMidi != null)
             {
-                if (_updateMidi.LastUpdatedTime > lastUpdateTime)
+                if (_updateMidi.Value.LastUpdatedTime > lastUpdateTime)
                 {
-                    lastUpdateTime = _updateMidi.LastUpdatedTime;
+                    lastUpdateTime = _updateMidi.Value.LastUpdatedTime;
                 }
             }
 
@@ -78,10 +78,10 @@ namespace YARG.Core.Song
             // Merge update MIDI
             if (_updateMidi != null)
             {
-                if (!_updateMidi.IsStillValid(false))
+                if (!_updateMidi.Value.IsStillValid(false))
                     return null;
 
-                using var midiStream = new FileStream(_updateMidi.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
+                using var midiStream = new FileStream(_updateMidi.Value.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
                 var update = MidiFile.Read(midiStream, readingSettings);
                 midi.Merge(update);
             }
@@ -208,9 +208,9 @@ namespace YARG.Core.Song
 
         public override byte[]? LoadMiloData()
         {
-            if (UpdateMilo != null && UpdateMilo.Exists())
+            if (UpdateMilo != null && UpdateMilo.Value.Exists())
             {
-                return File.ReadAllBytes(UpdateMilo.FullName);
+                return File.ReadAllBytes(UpdateMilo.Value.FullName);
             }
             return null;
         }
@@ -218,7 +218,7 @@ namespace YARG.Core.Song
         public virtual void Serialize(BinaryWriter writer, CategoryCacheWriteNode node)
         {
             writer.Write(_updateMidi != null);
-            _updateMidi?.Serialize(writer, true);
+            _updateMidi?.Serialize(writer);
 
             SerializeMetadata(writer, node);
 
@@ -268,15 +268,15 @@ namespace YARG.Core.Song
             _parseSettings.NoteSnapThreshold = NOTE_SNAP_THRESHOLD;
         }
 
-        protected RBCONEntry(AbridgedFileInfo? updateMidi, IRBProUpgrade? upgrade, BinaryReader reader, CategoryCacheStrings strings)
+        protected RBCONEntry(AbridgedFileInfo_Length? updateMidi, IRBProUpgrade? upgrade, BinaryReader reader, CategoryCacheStrings strings)
             : base(reader, strings)
         {
             _updateMidi = updateMidi;
             _upgrade = upgrade;
 
-            UpdateMogg = ReadUpdateInfo(reader);
-            UpdateMilo = ReadUpdateInfo(reader);
-            UpdateImage = ReadUpdateInfo(reader);
+            UpdateMogg =  reader.ReadBoolean() ? new AbridgedFileInfo(reader.ReadString(), false) : null;
+            UpdateMilo =  reader.ReadBoolean() ? new AbridgedFileInfo_Length(reader.ReadString(), false) : null;
+            UpdateImage = reader.ReadBoolean() ? new AbridgedFileInfo_Length(reader.ReadString(), false) : null;
 
             _rbMetadata.AnimTempo = reader.ReadUInt32();
             _rbMetadata.SongID = reader.ReadString();
@@ -328,34 +328,40 @@ namespace YARG.Core.Song
 
         protected virtual byte[]? LoadRawImageData()
         {
-            if (UpdateImage != null && UpdateImage.Exists())
+            if (UpdateImage != null && UpdateImage.Value.Exists())
             {
-                return File.ReadAllBytes(UpdateImage.FullName);
+                return File.ReadAllBytes(UpdateImage.Value.FullName);
             }
             return null;
         }
 
         protected virtual Stream? GetMoggStream()
         {
-            if (UpdateMogg == null || !File.Exists(UpdateMogg.FullName))
+            if (UpdateMogg == null)
             {
                 return null;
             }
 
-            if (UpdateMogg.FullName.EndsWith(".yarg_mogg"))
+            var mogg = UpdateMogg.Value;
+            if (!File.Exists(mogg.FullName))
             {
-                return new YargMoggReadStream(UpdateMogg.FullName);
+                return null;
             }
-            return new FileStream(UpdateMogg.FullName, FileMode.Open, FileAccess.Read);
+
+            if (mogg.FullName.EndsWith(".yarg_mogg"))
+            {
+                return new YargMoggReadStream(mogg.FullName);
+            }
+            return new FileStream(mogg.FullName, FileMode.Open, FileAccess.Read);
         }
 
         protected byte[]? LoadUpdateMidiFile()
         {
-            if (_updateMidi == null || !_updateMidi.IsStillValid(false))
+            if (_updateMidi == null || !_updateMidi.Value.IsStillValid(false))
             {
                 return null;
             }
-            return File.ReadAllBytes(_updateMidi.FullName);
+            return File.ReadAllBytes(_updateMidi.Value.FullName);
         }
 
         protected ScanResult ParseRBCONMidi(Stream? file)
@@ -841,7 +847,7 @@ namespace YARG.Core.Song
             {
                 if (update.Midi != null)
                 {
-                    if (_updateMidi == null || update.Midi.LastUpdatedTime > _updateMidi.LastUpdatedTime)
+                    if (_updateMidi == null || update.Midi.Value.LastUpdatedTime > _updateMidi.Value.LastUpdatedTime)
                     {
                         _updateMidi = update.Midi;
                     }
@@ -854,7 +860,7 @@ namespace YARG.Core.Song
 
             if (update.Mogg != null)
             {
-                if (UpdateMogg == null || update.Mogg.LastUpdatedTime > UpdateMogg.LastUpdatedTime)
+                if (UpdateMogg == null || update.Mogg.Value.LastUpdatedTime > UpdateMogg.Value.LastUpdatedTime)
                 {
                     UpdateMogg = update.Mogg;
                 }
@@ -862,7 +868,7 @@ namespace YARG.Core.Song
 
             if (update.Milo != null)
             {
-                if (UpdateMilo == null || update.Milo.LastUpdatedTime > UpdateMilo.LastUpdatedTime)
+                if (UpdateMilo == null || update.Milo.Value.LastUpdatedTime > UpdateMilo.Value.LastUpdatedTime)
                 {
                     UpdateMilo = update.Milo;
                 }
@@ -872,7 +878,7 @@ namespace YARG.Core.Song
             {
                 if (update.Image != null)
                 {
-                    if (UpdateImage == null || update.Image.LastUpdatedTime > UpdateImage.LastUpdatedTime)
+                    if (UpdateImage == null || update.Image.Value.LastUpdatedTime > UpdateImage.Value.LastUpdatedTime)
                     {
                         UpdateImage = update.Image;
                     }
@@ -949,12 +955,13 @@ namespace YARG.Core.Song
             return strings;
         }
 
-        private static void WriteUpdateInfo(AbridgedFileInfo? info, BinaryWriter writer)
+        private static void WriteUpdateInfo<TInfo>(TInfo? info, BinaryWriter writer)
+            where TInfo : struct, IAbridgedInfo
         {
             if (info != null)
             {
                 writer.Write(true);
-                writer.Write(info.FullName);
+                writer.Write(info.Value.FullName);
             }
             else
                 writer.Write(false);

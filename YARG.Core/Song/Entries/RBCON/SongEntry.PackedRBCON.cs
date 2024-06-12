@@ -63,10 +63,10 @@ namespace YARG.Core.Song
                 return null;
             }
 
-            AbridgedFileInfo? updateMidi = null;
+            AbridgedFileInfo_Length? updateMidi = null;
             if (reader.ReadBoolean())
             {
-                updateMidi = AbridgedFileInfo.TryParseInfo(reader, false);
+                updateMidi = AbridgedFileInfo_Length.TryParseInfo(reader, false);
                 if (updateMidi == null)
                 {
                     return null;
@@ -94,7 +94,7 @@ namespace YARG.Core.Song
             conFile.TryGetListing(midiFilename, out var midiListing);
             var lastMidiWrite = DateTime.FromBinary(reader.ReadInt64());
 
-            var updateMidi = reader.ReadBoolean() ? new AbridgedFileInfo(reader, true) : null;
+            AbridgedFileInfo_Length? updateMidi = reader.ReadBoolean() ? new AbridgedFileInfo_Length(reader) : null;
             var upgrade = upgrades.TryGetValue(nodename, out var node) ? node.Item2 : null;
 
             conFile.TryGetListing(Path.ChangeExtension(midiFilename, ".mogg"), out var moggListing);
@@ -134,7 +134,7 @@ namespace YARG.Core.Song
         }
 
         private PackedRBCONEntry(CONFileListing? midi, DateTime midiLastWrite, CONFileListing? moggListing, CONFileListing? miloListing, CONFileListing? imgListing, string directory,
-            AbridgedFileInfo? updateMidi, IRBProUpgrade? upgrade, BinaryReader reader, CategoryCacheStrings strings)
+            AbridgedFileInfo_Length? updateMidi, IRBProUpgrade? upgrade, BinaryReader reader, CategoryCacheStrings strings)
             : base(updateMidi, upgrade, reader, strings)
         {
             _midiListing = midi;

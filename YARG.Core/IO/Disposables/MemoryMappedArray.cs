@@ -14,7 +14,7 @@ namespace YARG.Core.IO.Disposables
             return Load(info.FullName, info.Length);
         }
 
-        public static MemoryMappedArray Load(AbridgedFileInfo info)
+        public static MemoryMappedArray Load(in AbridgedFileInfo_Length info)
         {
             return Load(info.FullName, info.Length);
         }

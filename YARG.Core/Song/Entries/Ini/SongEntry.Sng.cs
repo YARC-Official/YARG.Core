@@ -284,12 +284,12 @@ namespace YARG.Core.Song
         public static IniSubEntry? TryLoadFromCache(string baseDirectory, BinaryReader reader, CategoryCacheStrings strings)
         {
             string sngPath = Path.Combine(baseDirectory, reader.ReadString());
-            var sngInfo = AbridgedFileInfo.TryParseInfo(sngPath, reader, false);
+            var sngInfo = AbridgedFileInfo.TryParseInfo(sngPath, reader);
             if (sngInfo == null)
                 return null;
 
             uint version = reader.ReadUInt32();
-            var sngFile = SngFile.TryLoadFromFile(sngInfo);
+            var sngFile = SngFile.TryLoadFromFile(sngInfo.Value);
             if (sngFile == null || sngFile.Version != version)
             {
                 // TODO: Implement Update-in-place functionality
@@ -301,13 +301,13 @@ namespace YARG.Core.Song
             {
                 return null;
             }
-            return new SngEntry(sngFile.Version, sngInfo, CHART_FILE_TYPES[chartTypeIndex], reader, strings);
+            return new SngEntry(sngFile.Version, sngInfo.Value, CHART_FILE_TYPES[chartTypeIndex], reader, strings);
         }
 
         public static IniSubEntry? LoadFromCache_Quick(string baseDirectory, BinaryReader reader, CategoryCacheStrings strings)
         {
             string sngPath = Path.Combine(baseDirectory, reader.ReadString());
-            var sngInfo = new AbridgedFileInfo(sngPath, reader, false);
+            var sngInfo = new AbridgedFileInfo(sngPath, reader);
 
             uint version = reader.ReadUInt32();
             byte chartTypeIndex = reader.ReadByte();

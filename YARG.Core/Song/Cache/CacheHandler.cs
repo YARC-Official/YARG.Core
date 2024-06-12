@@ -345,13 +345,13 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private UpgradeGroup? CreateUpgradeGroup(string directory, AbridgedFileInfo dta, bool removeEntries)
+        private UpgradeGroup? CreateUpgradeGroup(string directory, FileInfo dta, bool removeEntries)
         {
             var reader = YARGDTAReader.TryCreate(dta.FullName);
             if (reader == null)
                 return null;
 
-            var group = new UpgradeGroup(directory, dta.LastUpdatedTime);
+            var group = new UpgradeGroup(directory, dta.LastWriteTime);
             try
             {
                 while (reader.StartNode())
@@ -360,7 +360,7 @@ namespace YARG.Core.Song.Cache
                     FileInfo info = new(Path.Combine(directory, $"{name}_plus.mid"));
                     if (info.Exists)
                     {
-                        var abridged = new AbridgedFileInfo(info, false);
+                        var abridged = new AbridgedFileInfo_Length(info, false);
                         if (CanAddUpgrade(name, abridged.LastUpdatedTime))
                         {
                             var upgrade = new UnpackedRBProUpgrade(abridged);
@@ -391,7 +391,7 @@ namespace YARG.Core.Song.Cache
             return group;
         }
 
-        private UpdateGroup? CreateUpdateGroup(DirectoryInfo dirInfo, AbridgedFileInfo dta, bool removeEntries)
+        private UpdateGroup? CreateUpdateGroup(DirectoryInfo dirInfo, FileInfo dta, bool removeEntries)
         {
             var nodes = FindUpdateNodes(dirInfo.FullName, dta);
             if (nodes == null)
