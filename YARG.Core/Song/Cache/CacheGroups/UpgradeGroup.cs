@@ -11,14 +11,14 @@ namespace YARG.Core.Song.Cache
 
     public sealed class UpgradeGroup : IUpgradeGroup
     {
-        private readonly string _directory;
-        private readonly DateTime _dtaLastUpdate;
+        public readonly string Directory;
+        public readonly DateTime DtaLastUpdate;
         public Dictionary<string, IRBProUpgrade> Upgrades { get; } = new();
 
         public UpgradeGroup(string directory, DateTime dtaLastUpdate)
         {
-            _directory = directory;
-            _dtaLastUpdate = dtaLastUpdate;
+            Directory = directory;
+            DtaLastUpdate = dtaLastUpdate;
         }
 
         public byte[] SerializeModifications()
@@ -26,8 +26,8 @@ namespace YARG.Core.Song.Cache
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);
 
-            writer.Write(_directory);
-            writer.Write(_dtaLastUpdate.ToBinary());
+            writer.Write(Directory);
+            writer.Write(DtaLastUpdate.ToBinary());
             writer.Write(Upgrades.Count);
             foreach (var upgrade in Upgrades)
             {
