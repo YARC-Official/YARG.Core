@@ -116,26 +116,37 @@ namespace YARG.Core.IO
             }
 
             int start = container.Position;
-            while (ch != '\'')
+            int end = container.Position;
+            while (true)
             {
+                if (ch == '\'')
+                {
+                    if (!hasApostrophe)
+                    {
+                        throw new Exception("Invalid name format");
+                    }
+                    container.Position = end + 1;
+                    break;
+                }
+
                 if (ch <= 32)
                 {
                     if (hasApostrophe)
                     {
                         throw new Exception("Invalid name format");
                     }
+                    container.Position = end + 1;
                     break;
                 }
 
                 if (!allowNonAlphetical && !ch.IsAsciiLetter() && ch != '_')
                 {
+                    container.Position = end;
                     break;
                 }
-                ++container.Position;
-                ch = (char) container.Data[container.Position];
+                ch = (char) container.Data[++end];
             }
 
-            int end = container.Position++;
             SkipWhitespace();
             return Encoding.UTF8.GetString(container.Data, start, end - start);
         }
