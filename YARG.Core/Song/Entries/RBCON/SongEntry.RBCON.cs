@@ -578,7 +578,7 @@ namespace YARG.Core.Song
                         case "year_released":
                         case "year_recorded": YearAsNumber = reader.ExtractInt32(); break;
                         case "album_name": _metadata.Album = reader.ExtractText(); break;
-                        case "album_track_number": _metadata.AlbumTrack = reader.ExtractUInt16(); break;
+                        case "album_track_number": _metadata.AlbumTrack = reader.ExtractInt32(); break;
                         case "pack_name": _metadata.Playlist = reader.ExtractText(); break;
                         case "base_points": /*BasePoints = reader.Read<uint>();*/ break;
                         case "band_fail_cue": /*BandFailCue = reader.ExtractText();*/ break;
