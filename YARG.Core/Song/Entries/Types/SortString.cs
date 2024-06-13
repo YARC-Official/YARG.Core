@@ -1,5 +1,4 @@
-﻿using Cysharp.Text;
-using System;
+﻿using System;
 using System.Globalization;
 using System.Text;
 using YARG.Core.Utility;
@@ -63,30 +62,46 @@ namespace YARG.Core.Song
 
         private static readonly string[] Articles =
         {
-            "The ", // The beatles, The day that never comes
-            "El ",  // El final, El sol no regresa
-            "La ",  // La quinta estacion, La bamba, La muralla verde
-            "Le ",  // Le temps de la rentrée
-            "Les ", // Les Rita Mitsouko, Les Wampas
-            "Los ", // Los fabulosos cadillacs, Los enanitos verdes,
+            "the ", // The beatles, The day that never comes
+            "el ",  // El final, El sol no regresa
+            "la ",  // La quinta estacion, La bamba, La muralla verde
+            "le ",  // Le temps de la rentrée
+            "les ", // Les Rita Mitsouko, Les Wampas
+            "los ", // Los fabulosos cadillacs, Los enanitos verdes,
         };
 
         public static string RemoveArticle(string name)
         {
-            if (string.IsNullOrEmpty(name))
+            if (!string.IsNullOrEmpty(name))
             {
-                return name;
-            }
-
-            foreach (var article in Articles)
-            {
-                if (name.StartsWith(article, StringComparison.InvariantCultureIgnoreCase))
+                foreach (var article in Articles)
                 {
-                    return name[article.Length..];
+                    if (StartsWith(name, article))
+                    {
+                        return name[article.Length..];
+                    }
                 }
             }
-
             return name;
+        }
+
+        // Why use a custom function vs. .NET's built-in one? Because hot paths baby! YIPPEEEEEE!
+        // Also, the use case is very controlled, so this won't hurt
+        private static unsafe bool StartsWith(string str, string query)
+        {
+            if (str.Length < query.Length)
+            {
+                return false;
+            }
+
+            for (var i = 0; i < query.Length; i++)
+            {
+                if (char.ToLowerInvariant(str[i]) != query[i])
+                {
+                    return false;
+                }
+            }
+            return true;
         }
 
         public static string RemoveDiacritics(string text)
@@ -101,21 +116,26 @@ namespace YARG.Core.Song
                 text = text.Replace(c.Item1, c.Item2);
             }
 
-            var normalizedString = text.ToLowerInvariant().Normalize(NormalizationForm.FormD);
-            using var stringBuilder = ZString.CreateStringBuilder();
-            stringBuilder.TryGrow(normalizedString.Length);
-            foreach (char c in normalizedString)
+            var normalizedString = text.Normalize(NormalizationForm.FormD);
+            unsafe
             {
-                var unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(c);
-                if (unicodeCategory != UnicodeCategory.NonSpacingMark)
+                var buffer = stackalloc char[normalizedString.Length];
+                int length = 0;
+                foreach (char c in normalizedString)
                 {
-                    stringBuilder.Append(c);
+                    var unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(c);
+                    if (unicodeCategory != UnicodeCategory.NonSpacingMark)
+                    {
+                        buffer[length++] = c;
+                    }
                 }
-            }
 
-            return stringBuilder
-                .ToString()
-                .Normalize(NormalizationForm.FormC);
+                if (length < normalizedString.Length)
+                {
+                    normalizedString = new string(buffer, 0, length);
+                }
+                return normalizedString.ToLowerInvariant().Normalize(NormalizationForm.FormC);
+            }
         }
 
         public static unsafe string RemoveUnwantedWhitespace(string arg)
