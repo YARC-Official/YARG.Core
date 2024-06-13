@@ -29,7 +29,7 @@ namespace YARG.Core.Song.Cache
         public string[] playlists = Array.Empty<string>();
         public string[] sources = Array.Empty<string>();
 
-        public CategoryCacheStrings(FileStream stream, bool multithreaded)
+        public CategoryCacheStrings(UnmanagedMemoryStream stream, bool multithreaded)
         {
             const int NUM_CATEGORIES = 8;
             if (multithreaded)
@@ -38,10 +38,10 @@ namespace YARG.Core.Song.Cache
                 for (int i = 0; i < NUM_CATEGORIES; ++i)
                 {
                     int length = stream.Read<int>(Endianness.Little);
-                    var reader = BinaryReaderExtensions.Load(stream, length);
+                    var slice = stream.Slice(length);
 
                     int strIndex = i;
-                    tasks[i] = Task.Run(() => { GetArray(strIndex) = ReadStrings(reader); });
+                    tasks[i] = Task.Run(() => { GetArray(strIndex) = ReadStrings(slice); });
                 }
                 Task.WaitAll(tasks);
             }
@@ -50,17 +50,17 @@ namespace YARG.Core.Song.Cache
                 for (int i = 0; i < NUM_CATEGORIES; ++i)
                 {
                     int length = stream.Read<int>(Endianness.Little);
-                    var reader = BinaryReaderExtensions.Load(stream, length);
-                    GetArray(i) = ReadStrings(reader);
+                    var slice = stream.Slice(length);
+                    GetArray(i) = ReadStrings(slice);
                 }
             }
 
-            static string[] ReadStrings(BinaryReader reader)
+            static string[] ReadStrings(UnmanagedMemoryStream stream)
             {
-                int count = reader.ReadInt32();
+                int count = stream.Read<int>(Endianness.Little);
                 string[] strings = new string[count];
                 for (int i = 0; i < count; ++i)
-                    strings[i] = reader.ReadString();
+                    strings[i] = stream.ReadString();
                 return strings;
             }
         }

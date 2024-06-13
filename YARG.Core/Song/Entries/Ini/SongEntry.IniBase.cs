@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using YARG.Core.Chart;
+using YARG.Core.Extensions;
 using YARG.Core.IO;
 using YARG.Core.IO.Disposables;
 using YARG.Core.IO.Ini;
@@ -114,13 +115,13 @@ namespace YARG.Core.Song
             modifiers.TryGet("video_loop", out Video_Loop);
         }
 
-        protected IniSubEntry(BinaryReader reader, CategoryCacheStrings strings)
-            : base(reader, strings)
+        protected IniSubEntry(UnmanagedMemoryStream stream, CategoryCacheStrings strings)
+            : base(stream, strings)
         {
-            _background = reader.ReadString();
-            _video = reader.ReadString();
-            _cover = reader.ReadString();
-            Video_Loop = reader.ReadBoolean();
+            _background = stream.ReadString();
+            _video = stream.ReadString();
+            _cover = stream.ReadString();
+            Video_Loop = stream.ReadBoolean();
         }
 
         protected abstract Stream? GetChartStream();

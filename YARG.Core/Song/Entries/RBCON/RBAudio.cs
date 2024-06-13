@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.Song
 {
@@ -16,15 +17,15 @@ namespace YARG.Core.Song
         public TType[]? Vocals;
         public TType[]? Crowd;
 
-        public RBAudio(BinaryReader reader)
+        public RBAudio(UnmanagedMemoryStream stream)
         {
-            Track = ReadArray(reader);
-            Drums = ReadArray(reader);
-            Bass = ReadArray(reader);
-            Guitar = ReadArray(reader);
-            Keys = ReadArray(reader);
-            Vocals = ReadArray(reader);
-            Crowd = ReadArray(reader);
+            Track = ReadArray(stream);
+            Drums = ReadArray(stream);
+            Bass = ReadArray(stream);
+            Guitar = ReadArray(stream);
+            Keys = ReadArray(stream);
+            Vocals = ReadArray(stream);
+            Crowd = ReadArray(stream);
         }
 
         public readonly void Serialize(BinaryWriter writer)
@@ -58,9 +59,9 @@ namespace YARG.Core.Song
             }
         }
 
-        public static TType[]? ReadArray(BinaryReader reader)
+        public static TType[]? ReadArray(UnmanagedMemoryStream stream)
         {
-            int length = reader.ReadInt32();
+            int length = stream.Read<int>(Endianness.Little);
             if (length == 0)
             {
                 return null;
@@ -72,7 +73,7 @@ namespace YARG.Core.Song
                 fixed (TType* ptr = values)
                 {
                     var span = new Span<byte>(ptr, values.Length * sizeof(TType));
-                    reader.Read(span);
+                    stream.Read(span);
                 }
             }
             return values;

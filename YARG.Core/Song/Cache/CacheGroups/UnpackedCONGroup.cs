@@ -33,9 +33,9 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        public override void ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
+        public override void ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader, IRBProUpgrade)> upgrades, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
         {
-            var song = UnpackedRBCONEntry.TryLoadFromCache(Location, DTA, nodeName, upgrades, reader, strings);
+            var song = UnpackedRBCONEntry.TryLoadFromCache(Location, DTA, nodeName, upgrades, stream, strings);
             if (song != null)
             {
                 AddEntry(nodeName, index, song);

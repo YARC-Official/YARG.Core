@@ -134,7 +134,7 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        protected override void Deserialize(FileStream stream)
+        protected override void Deserialize(UnmanagedMemoryStream stream)
         {
             CategoryCacheStrings strings = new(stream, false);
             RunEntryTasks(stream, strings, ReadIniGroup);
@@ -145,7 +145,7 @@ namespace YARG.Core.Song.Cache
             RunEntryTasks(stream, strings, ReadUnpackedCONGroup);
         }
 
-        protected override void Deserialize_Quick(FileStream stream)
+        protected override void Deserialize_Quick(UnmanagedMemoryStream stream)
         {
             CategoryCacheStrings strings = new(stream, false);
             RunEntryTasks(stream, strings, QuickReadIniGroup);
@@ -222,111 +222,111 @@ namespace YARG.Core.Song.Cache
             return conGroups.Find(node => node.Location == filename);
         }
 
-        private void ReadIniGroup(BinaryReader reader, CategoryCacheStrings strings)
+        private void ReadIniGroup(UnmanagedMemoryStream stream, CategoryCacheStrings strings)
         {
-            string directory = reader.ReadString();
+            string directory = stream.ReadString();
             var group = GetBaseIniGroup(directory);
             if (group == null)
             {
                 return;
             }
 
-            int count = reader.ReadInt32();
+            int count = stream.Read<int>(Endianness.Little);
             for (int i = 0; i < count; ++i)
             {
-                int length = reader.ReadInt32();
-                var entryReader = reader.Slice(length);
-                ReadIniEntry(directory, group, entryReader, strings);
+                int length = stream.Read<int>(Endianness.Little);
+                var slice = stream.Slice(length);
+                ReadIniEntry(directory, group, slice, strings);
             }
         }
 
-        private void ReadPackedCONGroup(BinaryReader reader, CategoryCacheStrings strings)
+        private void ReadPackedCONGroup(UnmanagedMemoryStream stream, CategoryCacheStrings strings)
         {
-            var group = ReadCONGroupHeader(reader);
+            var group = ReadCONGroupHeader(stream);
             if (group != null)
             {
-                ReadCONGroup(reader, (string name, int index, BinaryReader entryReader) => group.ReadEntry(name, index, upgrades, entryReader, strings));
+                ReadCONGroup(stream, (string name, int index, UnmanagedMemoryStream slice) => group.ReadEntry(name, index, upgrades, slice, strings));
             }
         }
 
-        private void ReadUnpackedCONGroup(BinaryReader reader, CategoryCacheStrings strings)
+        private void ReadUnpackedCONGroup(UnmanagedMemoryStream stream, CategoryCacheStrings strings)
         {
-            var group = ReadExtractedCONGroupHeader(reader);
+            var group = ReadExtractedCONGroupHeader(stream);
             if (group != null)
             {
-                ReadCONGroup(reader, (string name, int index, BinaryReader entryReader) => group.ReadEntry(name, index, upgrades, entryReader, strings));
+                ReadCONGroup(stream, (string name, int index, UnmanagedMemoryStream slice) => group.ReadEntry(name, index, upgrades, slice, strings));
             }
         }
 
-        private void QuickReadIniGroup(BinaryReader reader, CategoryCacheStrings strings)
+        private void QuickReadIniGroup(UnmanagedMemoryStream stream, CategoryCacheStrings strings)
         {
-            string directory = reader.ReadString();
-            int count = reader.ReadInt32();
+            string directory = stream.ReadString();
+            int count = stream.Read<int>(Endianness.Little);
             for (int i = 0; i < count; ++i)
             {
-                int length = reader.ReadInt32();
-                var entryReader = reader.Slice(length);
-                QuickReadIniEntry(directory, entryReader, strings);
+                int length = stream.Read<int>(Endianness.Little);
+                var slice = stream.Slice(length);
+                QuickReadIniEntry(directory, slice, strings);
             }
         }
 
-        private void QuickReadCONGroup(BinaryReader reader, CategoryCacheStrings strings)
+        private void QuickReadCONGroup(UnmanagedMemoryStream stream, CategoryCacheStrings strings)
         {
-            var group = QuickReadCONGroupHeader(reader);
+            var group = QuickReadCONGroupHeader(stream);
             if (group == null)
                 return;
 
-            int count = reader.ReadInt32();
+            int count = stream.Read<int>(Endianness.Little);
             for (int i = 0; i < count; ++i)
             {
-                string name = reader.ReadString();
+                string name = stream.ReadString();
                 // index
-                reader.Move(4);
+                stream.Position += 4;
 
-                int length = reader.ReadInt32();
-                var entryReader = reader.Slice(length);
-                AddEntry(PackedRBCONEntry.LoadFromCache_Quick(in group.ConFile, name, upgrades, entryReader, strings));
+                int length = stream.Read<int>(Endianness.Little);
+                var slice = stream.Slice(length);
+                AddEntry(PackedRBCONEntry.LoadFromCache_Quick(in group.ConFile, name, upgrades, slice, strings));
             }
         }
 
-        private void QuickReadExtractedCONGroup(BinaryReader reader, CategoryCacheStrings strings)
+        private void QuickReadExtractedCONGroup(UnmanagedMemoryStream stream, CategoryCacheStrings strings)
         {
-            string directory = reader.ReadString();
-            var lastWrite = DateTime.FromBinary(reader.ReadInt64());
+            string directory = stream.ReadString();
+            var lastWrite = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
             var dta = new AbridgedFileInfo_Length(Path.Combine(directory, "songs.dta"), lastWrite, 0);
 
-            int count = reader.ReadInt32();
+            int count = stream.Read<int>(Endianness.Little);
             for (int i = 0; i < count; ++i)
             {
-                string name = reader.ReadString();
+                string name = stream.ReadString();
                 // index
-                reader.Move(4);
+                stream.Position += 4;
 
-                int length = reader.ReadInt32();
-                var entryReader = reader.Slice(length);
-                AddEntry(UnpackedRBCONEntry.LoadFromCache_Quick(directory, dta, name, upgrades, entryReader, strings));
+                int length = stream.Read<int>(Endianness.Little);
+                var slice = stream.Slice(length);
+                AddEntry(UnpackedRBCONEntry.LoadFromCache_Quick(directory, dta, name, upgrades, slice, strings));
             }
         }
 
-        private static void RunCONTasks(FileStream stream, Action<BinaryReader> func)
+        private static void RunCONTasks(UnmanagedMemoryStream stream, Action<UnmanagedMemoryStream> func)
         {
             int count = stream.Read<int>(Endianness.Little);
             for (int i = 0; i < count; ++i)
             {
                 int length = stream.Read<int>(Endianness.Little);
-                var reader = BinaryReaderExtensions.Load(stream, length);
-                func(reader);
+                var slice = stream.Slice(length);
+                func(slice);
             }
         }
 
-        private static void RunEntryTasks(FileStream stream, CategoryCacheStrings strings, Action<BinaryReader, CategoryCacheStrings> func)
+        private static void RunEntryTasks(UnmanagedMemoryStream stream, CategoryCacheStrings strings, Action<UnmanagedMemoryStream, CategoryCacheStrings> func)
         {
             int count = stream.Read<int>(Endianness.Little);
             for (int i = 0; i < count; ++i)
             {
                 int length = stream.Read<int>(Endianness.Little);
-                var reader = BinaryReaderExtensions.Load(stream, length);
-                func(reader, strings);
+                var slice = stream.Slice(length);
+                func(slice, strings);
             }
         }
     }

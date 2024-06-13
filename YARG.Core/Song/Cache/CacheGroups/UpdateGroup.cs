@@ -51,7 +51,7 @@ namespace YARG.Core.Song.Cache
         }
     }
 
-    public sealed class SongUpdate : IComparable<SongUpdate>
+    public readonly struct SongUpdate : IComparable<SongUpdate>
     {
         private readonly DateTime _dtaLastWrite;
 
@@ -68,6 +68,10 @@ namespace YARG.Core.Song.Cache
             Readers = readers;
             _dtaLastWrite = dtaLastWrite;
 
+            Midi = null;
+            Mogg = null;
+            Milo = null;
+            Image = null;
             string subname = name.ToLowerInvariant();
             if (group.SubDirectories.TryGetValue(subname, out var subDirectory))
             {
@@ -81,7 +85,7 @@ namespace YARG.Core.Song.Cache
 
                 foreach (var file in subDirectory.EnumerateFiles("*", SearchOption.AllDirectories))
                 {
-                    string filename = file.Name.ToLowerInvariant();
+                    string filename = file.Name;
                     if (filename == filenames[0])
                     {
                         Midi ??= new AbridgedFileInfo_Length(file, false);
@@ -124,36 +128,36 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        public bool Validate(BinaryReader reader)
+        public bool Validate(UnmanagedMemoryStream stream)
         {
-            if (!CheckInfo(in Midi, reader))
+            if (!CheckInfo(in Midi, stream))
             {
-                SkipInfo(reader);
-                SkipInfo(reader);
-                SkipInfo(reader);
+                SkipInfo(stream);
+                SkipInfo(stream);
+                SkipInfo(stream);
                 return false;
             }
 
-            if (!CheckInfo(in Mogg, reader))
+            if (!CheckInfo(in Mogg, stream))
             {
-                SkipInfo(reader);
-                SkipInfo(reader);
+                SkipInfo(stream);
+                SkipInfo(stream);
                 return false;
             }
 
-            if (!CheckInfo(in Milo, reader))
+            if (!CheckInfo(in Milo, stream))
             {
-                SkipInfo(reader);
-                return false ;
+                SkipInfo(stream);
+                return false;
             }
-            return CheckInfo(in Image, reader);
+            return CheckInfo(in Image, stream);
 
-            static bool CheckInfo<TInfo>(in TInfo? info, BinaryReader reader)
+            static bool CheckInfo<TInfo>(in TInfo? info, UnmanagedMemoryStream stream)
                 where TInfo : struct, IAbridgedInfo
             {
-                if (reader.ReadBoolean())
+                if (stream.ReadBoolean())
                 {
-                    var lastWrite = DateTime.FromBinary(reader.ReadInt64());
+                    var lastWrite = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
                     if (info == null || info.Value.LastUpdatedTime != lastWrite)
                     {
                         return false;
@@ -172,19 +176,19 @@ namespace YARG.Core.Song.Cache
             return _dtaLastWrite.CompareTo(other._dtaLastWrite);
         }
 
-        public static void SkipRead(BinaryReader reader)
+        public static void SkipRead(UnmanagedMemoryStream stream)
         {
-            SkipInfo(reader);
-            SkipInfo(reader);
-            SkipInfo(reader);
-            SkipInfo(reader);
+            SkipInfo(stream);
+            SkipInfo(stream);
+            SkipInfo(stream);
+            SkipInfo(stream);
         }
 
-        private static void SkipInfo(BinaryReader reader)
+        private static void SkipInfo(UnmanagedMemoryStream stream)
         {
-            if (reader.ReadBoolean())
+            if (stream.ReadBoolean())
             {
-                reader.Move(CacheHandler.SIZEOF_DATETIME);
+                stream.Position += CacheHandler.SIZEOF_DATETIME;
             }
         }
     }

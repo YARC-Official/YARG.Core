@@ -32,9 +32,9 @@ namespace YARG.Core.Song.Cache
             conFile.TryGetListing(SONGSFILEPATH, out SongDTA);
         }
 
-        public override void ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
+        public override void ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader, IRBProUpgrade)> upgrades, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
         {
-            var song = PackedRBCONEntry.TryLoadFromCache(in ConFile, nodeName, upgrades, reader, strings);
+            var song = PackedRBCONEntry.TryLoadFromCache(in ConFile, nodeName, upgrades, stream, strings);
             if (song != null)
             {
                 AddEntry(nodeName, index, song);

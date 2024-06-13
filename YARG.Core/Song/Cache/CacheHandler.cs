@@ -55,15 +55,15 @@ namespace YARG.Core.Song.Cache
         {
             try
             {
-                using var stream = CheckCacheFile(cacheLocation, handler.fullDirectoryPlaylists);
-                if (stream == null)
+                using var cacheFile = LoadCacheToMemory(cacheLocation, handler.fullDirectoryPlaylists);
+                if (cacheFile == null)
                 {
                     return false;
                 }
 
                 _progress.Stage = ScanStage.LoadingCache;
                 YargLogger.LogDebug("Quick Read start");
-                handler.Deserialize_Quick(stream);
+                handler.Deserialize_Quick(cacheFile.ToStream());
             }
             catch (Exception ex)
             {
@@ -89,12 +89,12 @@ namespace YARG.Core.Song.Cache
             {
                 try
                 {
-                    using var stream = CheckCacheFile(cacheLocation, handler.fullDirectoryPlaylists);
-                    if (stream != null)
+                    using var cacheFile = LoadCacheToMemory(cacheLocation, handler.fullDirectoryPlaylists);
+                    if (cacheFile != null)
                     {
                         _progress.Stage = ScanStage.LoadingCache;
                         YargLogger.LogDebug("Full Read start");
-                        handler.Deserialize(stream);
+                        handler.Deserialize(cacheFile.ToStream());
                     }
                 }
                 catch (Exception ex)

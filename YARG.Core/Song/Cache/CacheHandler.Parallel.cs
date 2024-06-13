@@ -212,7 +212,7 @@ namespace YARG.Core.Song.Cache
             });
         }
 
-        protected override void Deserialize(FileStream stream)
+        protected override void Deserialize(UnmanagedMemoryStream stream)
         {
             CategoryCacheStrings strings = new(stream, true);
             var tracker = new ParallelExceptionTracker();
@@ -241,7 +241,7 @@ namespace YARG.Core.Song.Cache
                 throw tracker;
         }
 
-        protected override void Deserialize_Quick(FileStream stream)
+        protected override void Deserialize_Quick(UnmanagedMemoryStream stream)
         {
             YargLogger.LogDebug("Quick Read start");
             CategoryCacheStrings strings = new(stream, true);
@@ -402,20 +402,20 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void ReadIniGroup(BinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
+        private void ReadIniGroup(UnmanagedMemoryStream stream, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
         {
-            string directory = reader.ReadString();
+            string directory = stream.ReadString();
             var group = GetBaseIniGroup(directory);
             if (group == null)
             {
                 return;
             }
 
-            int count = reader.ReadInt32();
+            int count = stream.Read<int>(Endianness.Little);
             for (int i = 0; i < count && !tracker.IsSet(); ++i)
             {
-                int length = reader.ReadInt32();
-                var entryReader = reader.Slice(length);
+                int length = stream.Read<int>(Endianness.Little);
+                var entryReader = stream.Slice(length);
                 entryTasks.Add(Task.Run(() =>
                 {
                     // Error catching must be done per-thread
@@ -431,35 +431,35 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void ReadPackedCONGroup(BinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
+        private void ReadPackedCONGroup(UnmanagedMemoryStream stream, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
         {
-            var group = ReadCONGroupHeader(reader);
+            var group = ReadCONGroupHeader(stream);
             if (group != null)
             {
-                ReadCONGroup(group, reader, entryTasks, strings, tracker);
+                ReadCONGroup(group, stream, entryTasks, strings, tracker);
             }
         }
 
-        private void ReadUnpackedCONGroup(BinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
+        private void ReadUnpackedCONGroup(UnmanagedMemoryStream stream, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
         {
-            var group = ReadExtractedCONGroupHeader(reader);
+            var group = ReadExtractedCONGroupHeader(stream);
             if (group != null)
             {
-                ReadCONGroup(group, reader, entryTasks, strings, tracker);
+                ReadCONGroup(group, stream, entryTasks, strings, tracker);
             }
         }
 
-        private void ReadCONGroup<TGroup>(TGroup group, BinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
+        private void ReadCONGroup<TGroup>(TGroup group, UnmanagedMemoryStream stream, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
             where TGroup : CONGroup
         {
-            ReadCONGroup(reader, (string name, int index, BinaryReader entryReader) =>
+            ReadCONGroup(stream, (string name, int index, UnmanagedMemoryStream slice) =>
             {
                 entryTasks.Add(Task.Run(() =>
                 {
                     // Error catching must be done per-thread
                     try
                     {
-                        group.ReadEntry(name, index, upgrades, entryReader, strings);
+                        group.ReadEntry(name, index, upgrades, slice, strings);
                     }
                     catch (Exception ex)
                     {
@@ -469,20 +469,20 @@ namespace YARG.Core.Song.Cache
             });
         }
 
-        private void QuickReadIniGroup(BinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
+        private void QuickReadIniGroup(UnmanagedMemoryStream stream, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
         {
-            string directory = reader.ReadString();
-            int count = reader.ReadInt32();
+            string directory = stream.ReadString();
+            int count = stream.Read<int>(Endianness.Little);
             for (int i = 0; i < count && !tracker.IsSet(); ++i)
             {
-                int length = reader.ReadInt32();
-                var entryReader = reader.Slice(length);
+                int length = stream.Read<int>(Endianness.Little);
+                var slice = stream.Slice(length);
                 entryTasks.Add(Task.Run(() =>
                 {
                     // Error catching must be done per-thread
                     try
                     {
-                        QuickReadIniEntry(directory, entryReader, strings);
+                        QuickReadIniEntry(directory, slice, strings);
                     }
                     catch (Exception ex)
                     {
@@ -492,27 +492,27 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void QuickReadCONGroup(BinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
+        private void QuickReadCONGroup(UnmanagedMemoryStream stream, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
         {
-            var group = QuickReadCONGroupHeader(reader);
+            var group = QuickReadCONGroupHeader(stream);
             if (group == null)
                 return;
 
-            int count = reader.ReadInt32();
+            int count = stream.Read<int>(Endianness.Little);
             for (int i = 0; i < count && !tracker.IsSet(); ++i)
             {
-                string name = reader.ReadString();
+                string name = stream.ReadString();
                 // index
-                reader.Move(4);
+                stream.Position += 4;
 
-                int length = reader.ReadInt32();
-                var entryReader = reader.Slice(length);
+                int length = stream.Read<int>(Endianness.Little);
+                var slice = stream.Slice(length);
                 entryTasks.Add(Task.Run(() =>
                 {
                     // Error catching must be done per-thread
                     try
                     {
-                        AddEntry(PackedRBCONEntry.LoadFromCache_Quick(in group.ConFile, name, upgrades, entryReader, strings));
+                        AddEntry(PackedRBCONEntry.LoadFromCache_Quick(in group.ConFile, name, upgrades, slice, strings));
                     }
                     catch (Exception ex)
                     {
@@ -522,27 +522,27 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void QuickReadExtractedCONGroup(BinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
+        private void QuickReadExtractedCONGroup(UnmanagedMemoryStream stream, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
         {
-            string directory = reader.ReadString();
-            var lastWrite = DateTime.FromBinary(reader.ReadInt64());
+            string directory = stream.ReadString();
+            var lastWrite = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
             var dta = new AbridgedFileInfo_Length(Path.Combine(directory, "songs.dta"), lastWrite, 0);
 
-            int count = reader.ReadInt32();
+            int count = stream.Read<int>(Endianness.Little);
             for (int i = 0; i < count && !tracker.IsSet(); ++i)
             {
-                string name = reader.ReadString();
+                string name = stream.ReadString();
                 // index
-                reader.Move(4);
+                stream.Position += 4;
 
-                int length = reader.ReadInt32();
-                var entryReader = reader.Slice(length);
+                int length = stream.Read<int>(Endianness.Little);
+                var slice = stream.Slice(length);
                 entryTasks.Add(Task.Run(() =>
                 {
                     // Error catching must be done per-thread
                     try
                     {
-                        AddEntry(UnpackedRBCONEntry.LoadFromCache_Quick(directory, dta, name, upgrades, entryReader, strings));
+                        AddEntry(UnpackedRBCONEntry.LoadFromCache_Quick(directory, dta, name, upgrades, slice, strings));
                     }
                     catch (Exception ex)
                     {
@@ -552,18 +552,18 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private static void AddParallelCONTasks(FileStream stream, ref List<Task> conTasks, Action<BinaryReader> func, ParallelExceptionTracker tracker)
+        private static void AddParallelCONTasks(UnmanagedMemoryStream stream, ref List<Task> conTasks, Action<UnmanagedMemoryStream> func, ParallelExceptionTracker tracker)
         {
             int count = stream.Read<int>(Endianness.Little);
             for (int i = 0; i < count && !tracker.IsSet(); ++i)
             {
                 int length = stream.Read<int>(Endianness.Little);
-                var reader = BinaryReaderExtensions.Load(stream, length);
+                var slice = stream.Slice(length);
                 conTasks.Add(Task.Run(() =>
                 {
                     try
                     {
-                        func(reader);
+                        func(slice);
                     }
                     catch (Exception ex)
                     {
@@ -573,18 +573,18 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private static void AddParallelEntryTasks(FileStream stream, ref List<Task> entryTasks, CategoryCacheStrings strings, Action<BinaryReader, List<Task>, CategoryCacheStrings, ParallelExceptionTracker> func, ParallelExceptionTracker tracker)
+        private static void AddParallelEntryTasks(UnmanagedMemoryStream stream, ref List<Task> entryTasks, CategoryCacheStrings strings, Action<UnmanagedMemoryStream, List<Task>, CategoryCacheStrings, ParallelExceptionTracker> func, ParallelExceptionTracker tracker)
         {
             int count = stream.Read<int>(Endianness.Little);
             for (int i = 0; i < count && !tracker.IsSet(); ++i)
             {
                 int length = stream.Read<int>(Endianness.Little);
-                var reader = BinaryReaderExtensions.Load(stream, length);
+                var slice = stream.Slice(length);
                 entryTasks.Add(Task.Run(() => {
                     List<Task> tasks = new();
                     try
                     {
-                        func(reader, tasks, strings, tracker);
+                        func(slice, tasks, strings, tracker);
                     }
                     catch (Exception ex)
                     {
