@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Threading.Tasks;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
 using YARG.Core.Logging;
@@ -10,7 +9,7 @@ namespace YARG.Core.Song.Cache
 {
     internal sealed class SequentialCacheHandler : CacheHandler
     {
-        public SequentialCacheHandler(List<string> baseDirectories, bool allowDuplicates, bool fullDirectoryPlaylists)
+        internal SequentialCacheHandler(List<string> baseDirectories, bool allowDuplicates, bool fullDirectoryPlaylists)
             : base(baseDirectories, allowDuplicates, fullDirectoryPlaylists) { }
 
         protected override void FindNewEntries()
@@ -48,67 +47,16 @@ namespace YARG.Core.Song.Cache
 
         protected override void TraverseDirectory(in FileCollection collection, IniGroup group, PlaylistTracker tracker)
         {
-            foreach (var subDirectory in collection.subDirectories)
+            foreach (var subDirectory in collection.SubDirectories)
             {
                 ScanDirectory(subDirectory.Value, group, tracker);
             }
 
-            foreach (var file in collection.subfiles)
+            foreach (var file in collection.Subfiles)
             {
                 ScanFile(file.Value, group, in tracker);
             }
         }
-
-        private void ScanCONGroup<TGroup>(TGroup group, ref YARGDTAReader reader, Action<TGroup, string, int, YARGDTAReader> func)
-            where TGroup : CONGroup
-        {
-            try
-            {
-                Dictionary<string, int> indices = new();
-                while (reader.StartNode())
-                {
-                    string name = reader.GetNameOfNode(true);
-                    if (indices.TryGetValue(name, out int index))
-                    {
-                        ++index;
-                    }
-                    indices[name] = index;
-
-                    func(group, name, index, reader);
-                    reader.EndNode();
-                }
-            }
-            catch (Exception e)
-            {
-                YargLogger.LogException(e, $"Error while scanning CON group {group.Location}!");
-            }
-        }
-
-        private void TraverseCONGroup<TGroup>(TGroup group, ref YARGDTAReader reader, Action<TGroup, string, int, YARGDTAReader> func)
-            where TGroup : CONGroup
-        {
-            try
-            {
-                Dictionary<string, int> indices = new();
-                while (reader.StartNode())
-                {
-                    string name = reader.GetNameOfNode(true);
-                    if (indices.TryGetValue(name, out int index))
-                    {
-                        ++index;
-                    }
-                    indices[name] = index;
-
-                    func(group, name, index, reader);
-                    reader.EndNode();
-                }
-            }
-            catch (Exception e)
-            {
-                YargLogger.LogException(e, $"Error while scanning unpacked CON group {group.Location}!");
-            }
-        }
-
 
         protected override void SortEntries()
         {
@@ -116,18 +64,18 @@ namespace YARG.Core.Song.Cache
             {
                 foreach (var entry in node.Value)
                 {
-                    CategorySorter<string,     TitleConfig>.      Add(entry, cache.Titles);
-                    CategorySorter<SortString, ArtistConfig>.     Add(entry, cache.Artists);
-                    CategorySorter<SortString, AlbumConfig>.      Add(entry, cache.Albums);
-                    CategorySorter<SortString, GenreConfig>.      Add(entry, cache.Genres);
-                    CategorySorter<string,     YearConfig>.       Add(entry, cache.Years);
-                    CategorySorter<SortString, CharterConfig>.    Add(entry, cache.Charters);
-                    CategorySorter<SortString, PlaylistConfig>.   Add(entry, cache.Playlists);
-                    CategorySorter<SortString, SourceConfig>.     Add(entry, cache.Sources);
-                    CategorySorter<string,     ArtistAlbumConfig>.Add(entry, cache.ArtistAlbums);
-                    CategorySorter<string,     SongLengthConfig>. Add(entry, cache.SongLengths);
-                    CategorySorter<DateTime,   DateAddedConfig>.  Add(entry, cache.DatesAdded);
-                    InstrumentSorter.                             Add(entry, cache.Instruments);
+                    CategorySorter<string, TitleConfig>.Add(entry, cache.Titles);
+                    CategorySorter<SortString, ArtistConfig>.Add(entry, cache.Artists);
+                    CategorySorter<SortString, AlbumConfig>.Add(entry, cache.Albums);
+                    CategorySorter<SortString, GenreConfig>.Add(entry, cache.Genres);
+                    CategorySorter<string, YearConfig>.Add(entry, cache.Years);
+                    CategorySorter<SortString, CharterConfig>.Add(entry, cache.Charters);
+                    CategorySorter<SortString, PlaylistConfig>.Add(entry, cache.Playlists);
+                    CategorySorter<SortString, SourceConfig>.Add(entry, cache.Sources);
+                    CategorySorter<string, ArtistAlbumConfig>.Add(entry, cache.ArtistAlbums);
+                    CategorySorter<string, SongLengthConfig>.Add(entry, cache.SongLengths);
+                    CategorySorter<DateTime, DateAddedConfig>.Add(entry, cache.DatesAdded);
+                    InstrumentSorter.Add(entry, cache.Instruments);
                 }
             }
         }
@@ -228,6 +176,31 @@ namespace YARG.Core.Song.Cache
         protected override PackedCONGroup? FindCONGroup(string filename)
         {
             return conGroups.Find(node => node.Location == filename);
+        }
+
+        private void ScanCONGroup<TGroup>(TGroup group, ref YARGDTAReader reader, Action<TGroup, string, int, YARGDTAReader> func)
+            where TGroup : CONGroup
+        {
+            try
+            {
+                Dictionary<string, int> indices = new();
+                while (reader.StartNode())
+                {
+                    string name = reader.GetNameOfNode(true);
+                    if (indices.TryGetValue(name, out int index))
+                    {
+                        ++index;
+                    }
+                    indices[name] = index;
+
+                    func(group, name, index, reader);
+                    reader.EndNode();
+                }
+            }
+            catch (Exception e)
+            {
+                YargLogger.LogException(e, $"Error while scanning CON group {group.Location}!");
+            }
         }
 
         private void ReadIniGroup(UnmanagedMemoryStream stream, CategoryCacheStrings strings)

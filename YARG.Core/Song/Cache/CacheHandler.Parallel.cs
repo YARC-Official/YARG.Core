@@ -12,51 +12,7 @@ namespace YARG.Core.Song.Cache
 {
     internal sealed class ParallelCacheHandler : CacheHandler
     {
-        private sealed class ParallelExceptionTracker : Exception
-        {
-            private readonly object _lock = new object();
-            private Exception? _exception = null;
-
-            public bool IsSet()
-            {
-                lock (_lock)
-                    return _exception != null;
-            }
-
-            /// <summary>
-            /// Once set, the exception can not be swapped.
-            /// </summary>
-            public void Set(Exception exception)
-            {
-                lock (_lock)
-                    _exception ??= exception;
-            }
-
-            public Exception? Exception => _exception;
-
-            public override IDictionary? Data => _exception?.Data;
-
-            public override string Message => _exception?.Message ?? string.Empty;
-
-            public override string StackTrace => _exception?.StackTrace ?? string.Empty;
-
-            public override string ToString()
-            {
-                return _exception?.ToString() ?? string.Empty;
-            }
-
-            public override Exception? GetBaseException()
-            {
-                return _exception?.GetBaseException();
-            }
-
-            public override void GetObjectData(SerializationInfo info, StreamingContext context)
-            {
-                _exception?.GetObjectData(info, context);
-            }
-        }
-
-        public ParallelCacheHandler(List<string> baseDirectories, bool allowDuplicates, bool fullDirectoryPlaylists)
+        internal ParallelCacheHandler(List<string> baseDirectories, bool allowDuplicates, bool fullDirectoryPlaylists)
             : base(baseDirectories, allowDuplicates, fullDirectoryPlaylists) { }
 
         protected override void FindNewEntries()
@@ -104,45 +60,18 @@ namespace YARG.Core.Song.Cache
 
         protected override void TraverseDirectory(in FileCollection collection, IniGroup group, PlaylistTracker tracker)
         {
-            var actions = new Action[collection.subDirectories.Count + collection.subfiles.Count];
+            var actions = new Action[collection.SubDirectories.Count + collection.Subfiles.Count];
             int index = 0;
-            foreach (var directory in collection.subDirectories)
+            foreach (var directory in collection.SubDirectories)
             {
                 actions[index++] = () => ScanDirectory(directory.Value, group, tracker);
             }
 
-            foreach (var file in collection.subfiles)
+            foreach (var file in collection.Subfiles)
             {
                 actions[index++] = () => ScanFile(file.Value, group, in tracker);
             }
             Parallel.ForEach(actions, action => action());
-        }
-
-        private void ScanCONGroup<TGroup>(TGroup group, ref YARGDTAReader reader, Action<TGroup, string, int, YARGDTAReader> func)
-            where TGroup : CONGroup
-        {
-            try
-            {
-                var slices = new List<(string Name, int Index, YARGDTAReader Reader)>();
-                Dictionary<string, int> indices = new();
-                while (reader.StartNode())
-                {
-                    string name = reader.GetNameOfNode(true);
-                    if (indices.TryGetValue(name, out int index))
-                    {
-                        ++index;
-                    }
-                    indices[name] = index;
-
-                    slices.Add((name, index, reader));
-                    reader.EndNode();
-                }
-                Parallel.ForEach(slices, slice => func(group, slice.Name, slice.Index, slice.Reader));
-            }
-            catch (Exception e)
-            {
-                YargLogger.LogException(e, $"Error while scanning CON group {group.Location}!");
-            }
         }
 
         protected override bool AddEntry(SongEntry entry)
@@ -159,18 +88,18 @@ namespace YARG.Core.Song.Cache
             {
                 foreach (var entry in node.Value)
                 {
-                    CategorySorter<string,     TitleConfig>.      Add(entry, cache.Titles);
-                    CategorySorter<SortString, ArtistConfig>.     Add(entry, cache.Artists);
-                    CategorySorter<SortString, AlbumConfig>.      Add(entry, cache.Albums);
-                    CategorySorter<SortString, GenreConfig>.      Add(entry, cache.Genres);
-                    CategorySorter<string,     YearConfig>.       Add(entry, cache.Years);
-                    CategorySorter<SortString, CharterConfig>.    Add(entry, cache.Charters);
-                    CategorySorter<SortString, PlaylistConfig>.   Add(entry, cache.Playlists);
-                    CategorySorter<SortString, SourceConfig>.     Add(entry, cache.Sources);
-                    CategorySorter<string,     ArtistAlbumConfig>.Add(entry, cache.ArtistAlbums);
-                    CategorySorter<string,     SongLengthConfig>. Add(entry, cache.SongLengths);
-                    CategorySorter<DateTime,   DateAddedConfig>.  Add(entry, cache.DatesAdded);
-                    InstrumentSorter.                             Add(entry, cache.Instruments);
+                    CategorySorter<string, TitleConfig>.Add(entry, cache.Titles);
+                    CategorySorter<SortString, ArtistConfig>.Add(entry, cache.Artists);
+                    CategorySorter<SortString, AlbumConfig>.Add(entry, cache.Albums);
+                    CategorySorter<SortString, GenreConfig>.Add(entry, cache.Genres);
+                    CategorySorter<string, YearConfig>.Add(entry, cache.Years);
+                    CategorySorter<SortString, CharterConfig>.Add(entry, cache.Charters);
+                    CategorySorter<SortString, PlaylistConfig>.Add(entry, cache.Playlists);
+                    CategorySorter<SortString, SourceConfig>.Add(entry, cache.Sources);
+                    CategorySorter<string, ArtistAlbumConfig>.Add(entry, cache.ArtistAlbums);
+                    CategorySorter<string, SongLengthConfig>.Add(entry, cache.SongLengths);
+                    CategorySorter<DateTime, DateAddedConfig>.Add(entry, cache.DatesAdded);
+                    InstrumentSorter.Add(entry, cache.Instruments);
                 }
             });
         }
@@ -331,7 +260,7 @@ namespace YARG.Core.Song.Cache
                 var result = CanAddUpgrade(conGroups, shortname, lastUpdated);
                 if (result != null)
                 {
-                    return (bool)result;
+                    return (bool) result;
                 }
             }
 
@@ -378,6 +307,77 @@ namespace YARG.Core.Song.Cache
             lock (conGroups)
             {
                 return conGroups.Find(node => node.Location == filename);
+            }
+        }
+
+        private sealed class ParallelExceptionTracker : Exception
+        {
+            private readonly object _lock = new object();
+            private Exception? _exception = null;
+
+            public bool IsSet()
+            {
+                lock (_lock)
+                    return _exception != null;
+            }
+
+            /// <summary>
+            /// Once set, the exception can not be swapped.
+            /// </summary>
+            public void Set(Exception exception)
+            {
+                lock (_lock)
+                    _exception ??= exception;
+            }
+
+            public Exception? Exception => _exception;
+
+            public override IDictionary? Data => _exception?.Data;
+
+            public override string Message => _exception?.Message ?? string.Empty;
+
+            public override string StackTrace => _exception?.StackTrace ?? string.Empty;
+
+            public override string ToString()
+            {
+                return _exception?.ToString() ?? string.Empty;
+            }
+
+            public override Exception? GetBaseException()
+            {
+                return _exception?.GetBaseException();
+            }
+
+            public override void GetObjectData(SerializationInfo info, StreamingContext context)
+            {
+                _exception?.GetObjectData(info, context);
+            }
+        }
+
+        private void ScanCONGroup<TGroup>(TGroup group, ref YARGDTAReader reader, Action<TGroup, string, int, YARGDTAReader> func)
+            where TGroup : CONGroup
+        {
+            try
+            {
+                var slices = new List<(string Name, int Index, YARGDTAReader Reader)>();
+                Dictionary<string, int> indices = new();
+                while (reader.StartNode())
+                {
+                    string name = reader.GetNameOfNode(true);
+                    if (indices.TryGetValue(name, out int index))
+                    {
+                        ++index;
+                    }
+                    indices[name] = index;
+
+                    slices.Add((name, index, reader));
+                    reader.EndNode();
+                }
+                Parallel.ForEach(slices, slice => func(group, slice.Name, slice.Index, slice.Reader));
+            }
+            catch (Exception e)
+            {
+                YargLogger.LogException(e, $"Error while scanning CON group {group.Location}!");
             }
         }
 

@@ -8,14 +8,14 @@ namespace YARG.Core.Song.Cache
     public readonly struct FileCollection
     {
         public readonly DirectoryInfo Directory;
-        public readonly Dictionary<string, FileInfo> subfiles;
-        public readonly Dictionary<string, DirectoryInfo> subDirectories;
+        public readonly Dictionary<string, FileInfo> Subfiles;
+        public readonly Dictionary<string, DirectoryInfo> SubDirectories;
 
         internal FileCollection(DirectoryInfo directory)
         {
             Directory = directory;
-            subfiles = new();
-            subDirectories = new();
+            Subfiles = new();
+            SubDirectories = new();
 
             foreach (var info in directory.EnumerateFileSystemInfos())
             {
@@ -23,10 +23,10 @@ namespace YARG.Core.Song.Cache
                 switch (info)
                 {
                     case FileInfo subFile:
-                        subfiles.Add(name, subFile);
+                        Subfiles.Add(name, subFile);
                         break;
                     case DirectoryInfo subDirectory:
-                        subDirectories.Add(name, subDirectory);
+                        SubDirectories.Add(name, subDirectory);
                         break;
                 }
             }
@@ -34,7 +34,7 @@ namespace YARG.Core.Song.Cache
 
         public bool ContainsAudio()
         {
-            foreach (var subFile in subfiles.Keys)
+            foreach (var subFile in Subfiles.Keys)
             {
                 if (IniAudio.IsAudioFile(subFile))
                 {

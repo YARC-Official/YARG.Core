@@ -65,7 +65,7 @@ namespace YARG.Core.Song.Cache
             Milo = null;
             Image = null;
             string subname = name.ToLowerInvariant();
-            if (!collection.subDirectories.TryGetValue(subname, out var subDirInfo))
+            if (!collection.SubDirectories.TryGetValue(subname, out var subDirInfo))
             {
                 return;
             }
