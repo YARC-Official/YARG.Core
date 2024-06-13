@@ -229,7 +229,7 @@ namespace YARG.Core.Song.Cache
 
                 AddPackedCONGroup(group);
 
-                if (TryParseUpgrades(filename, group) && group.UpgradeDta!.lastWrite == dtaLastWritten)
+                if (TryParseUpgrades(filename, group) && group.UpgradeDta!.LastWrite == dtaLastWritten)
                 {
                     if (group.Info.LastUpdatedTime != conLastUpdated)
                     {
@@ -288,7 +288,7 @@ namespace YARG.Core.Song.Cache
                 AddPackedCONGroup(group);
             }
 
-            if (group.SongDTA == null || group.SongDTA.lastWrite != dtaLastWrite)
+            if (group.SongDTA == null || group.SongDTA.LastWrite != dtaLastWrite)
             {
                 return null;
             }
@@ -395,7 +395,7 @@ namespace YARG.Core.Song.Cache
             {
                 string name = reader.ReadString();
                 var lastWrite = DateTime.FromBinary(reader.ReadInt64());
-                CONFileListing? listing = null;
+                var listing = default(CONFileListing);
                 group?.ConFile.TryGetListing($"songs_upgrades/{name}_plus.mid", out listing);
 
                 var upgrade = new PackedRBProUpgrade(listing, lastWrite);
@@ -420,7 +420,7 @@ namespace YARG.Core.Song.Cache
                 AddPackedCONGroup(group);
             }
 
-            if (group.SongDTA == null || group.SongDTA.lastWrite != dtaLastWrite)
+            if (group.SongDTA == null || group.SongDTA.LastWrite != dtaLastWrite)
             {
                 return null;
             }

@@ -58,7 +58,7 @@ namespace YARG.Core.Song
             }
 
             var lastMidiWrite = DateTime.FromBinary(reader.ReadInt64());
-            if (midiListing.lastWrite != lastMidiWrite)
+            if (midiListing.LastWrite != lastMidiWrite)
             {
                 return null;
             }
@@ -118,7 +118,7 @@ namespace YARG.Core.Song
                 return;
             }
 
-            _lastMidiWrite = _midiListing.lastWrite;
+            _lastMidiWrite = _midiListing.LastWrite;
 
             group.ConFile.TryGetListing(results.location + ".mogg", out _moggListing);
 
@@ -129,7 +129,7 @@ namespace YARG.Core.Song
             group.ConFile.TryGetListing(genPath + ".milo_xbox", out _miloListing);
             group.ConFile.TryGetListing(genPath + "_keep.png_xbox", out _imgListing);
 
-            string midiDirectory = group.ConFile.GetFilename(_midiListing.pathIndex);
+            string midiDirectory = group.ConFile.GetFilename(_midiListing.PathIndex);
             Directory = Path.Combine(group.Location, midiDirectory);
         }
 
@@ -150,7 +150,7 @@ namespace YARG.Core.Song
         {
             writer.Write(Directory);
             writer.Write(_midiListing!.Filename);
-            writer.Write(_midiListing.lastWrite.ToBinary());
+            writer.Write(_midiListing.LastWrite.ToBinary());
             base.Serialize(writer, node);
         }
 

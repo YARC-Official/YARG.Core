@@ -42,7 +42,7 @@ namespace YARG.Core.Song.Cache
             using BinaryWriter writer = new(ms);
 
             writer.Write(Location);
-            writer.Write(SongDTA!.lastWrite.ToBinary());
+            writer.Write(SongDTA!.LastWrite.ToBinary());
             Serialize(writer, ref nodes);
             return ms.ToArray();
         }
@@ -76,7 +76,7 @@ namespace YARG.Core.Song.Cache
 
             writer.Write(Location);
             writer.Write(Info.LastUpdatedTime.ToBinary());
-            writer.Write(UpgradeDta!.lastWrite.ToBinary());
+            writer.Write(UpgradeDta!.LastWrite.ToBinary());
             writer.Write(Upgrades.Count);
             foreach (var upgrade in Upgrades)
             {

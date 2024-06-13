@@ -452,9 +452,9 @@ namespace YARG.Core.Song.Cache
                     string name = reader.GetNameOfNode(true);
                     if (group.ConFile.TryGetListing($"songs_upgrades/{name}_plus.mid", out var listing))
                     {
-                        if (CanAddUpgrade_CONInclusive(name, listing.lastWrite))
+                        if (CanAddUpgrade_CONInclusive(name, listing.LastWrite))
                         {
-                            IRBProUpgrade upgrade = new PackedRBProUpgrade(listing, listing.lastWrite);
+                            IRBProUpgrade upgrade = new PackedRBProUpgrade(listing, listing.LastWrite);
                             group.Upgrades[name] = upgrade;
                             AddUpgrade(name, reader.Clone(), upgrade);
                             RemoveCONEntry(name);

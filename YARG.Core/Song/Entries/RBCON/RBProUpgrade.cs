@@ -25,7 +25,7 @@ namespace YARG.Core.Song
         public PackedRBProUpgrade(CONFileListing? listing, DateTime lastWrite)
         {
             _midiListing = listing;
-            _lastUpdatedTime = listing?.lastWrite ?? lastWrite;
+            _lastUpdatedTime = listing?.LastWrite ?? lastWrite;
         }
 
         public void WriteToCache(BinaryWriter writer)
