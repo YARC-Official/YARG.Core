@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
 
@@ -18,7 +17,11 @@ namespace YARG.Core.Song.Cache
         {
             Directory = directory;
             DTALastWrite = dtaLastUpdate;
-            SubDirectories = directory.EnumerateDirectories().ToDictionary(dir => dir.Name.ToLowerInvariant());
+            SubDirectories = new Dictionary<string, DirectoryInfo>();
+            foreach (var dir in directory.EnumerateDirectories())
+            {
+                SubDirectories.Add(dir.Name, dir);
+            }
         }
 
         public byte[] SerializeModifications()
