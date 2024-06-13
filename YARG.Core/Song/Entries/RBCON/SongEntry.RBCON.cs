@@ -503,7 +503,7 @@ namespace YARG.Core.Song
                     {
                         case "name": _metadata.Name = reader.ExtractText(); break;
                         case "artist": _metadata.Artist = reader.ExtractText(); break;
-                        case "master": _metadata.IsMaster = reader.ExtractBoolean(); break;
+                        case "master": _metadata.IsMaster = reader.ExtractBoolean_FlippedDefault(); break;
                         case "context": /*Context = reader.Read<uint>();*/ break;
                         case "song": SongLoop(ref result, reader); break;
                         case "song_vocals": while (reader.StartNode()) reader.EndNode(); break;

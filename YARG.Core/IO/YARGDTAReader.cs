@@ -350,6 +350,23 @@ namespace YARG.Core.IO
             return result;
         }
 
+        public bool ExtractBoolean_FlippedDefault()
+        {
+            bool result = container.Position >= container.Length || (char)container.Data[container.Position] switch
+            {
+                '0' => false,
+                '1' => true,
+                _ => container.Position + 5 > container.Length ||
+                    char.ToLowerInvariant((char)container.Data[container.Position]    ) != 'f' ||
+                    char.ToLowerInvariant((char)container.Data[container.Position + 1]) != 'a' ||
+                    char.ToLowerInvariant((char)container.Data[container.Position + 2]) != 'l' ||
+                    char.ToLowerInvariant((char)container.Data[container.Position + 3]) != 's' ||
+                    char.ToLowerInvariant((char)container.Data[container.Position + 4]) != 'e',
+            };
+            SkipWhitespace();
+            return result;
+        }
+
         public short ExtractInt16()
         {
             short result = container.ExtractInt16();
