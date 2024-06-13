@@ -48,7 +48,7 @@ namespace YARG.Core.Engine
 
         public delegate void SoloEndEvent(SoloSection soloSection);
 
-        public delegate void CountdownChangeEvent(uint measuresLeft);
+        public delegate void CountdownChangeEvent(int measuresLeft);
 
         public NoteHitEvent?    OnNoteHit;
         public NoteMissedEvent? OnNoteMissed;
@@ -234,7 +234,7 @@ namespace YARG.Core.Engine
             {
                 var activeCountdown = WaitCountdowns[State.CurrentWaitCountdownIndex];
 
-                uint countdownMeasuresRemaining = activeCountdown.GetRemainingMeasures(State.CurrentTick);
+                int countdownMeasuresRemaining = activeCountdown.GetRemainingMeasures(State.CurrentTick);
 
                 UpdateCountdown(countdownMeasuresRemaining);
 
@@ -464,7 +464,7 @@ namespace YARG.Core.Engine
             State.CurrentSoloIndex++;
         }
 
-        protected void UpdateCountdown(uint measuresRemaining)
+        protected void UpdateCountdown(int measuresRemaining)
         {
             if (!State.IsWaitCountdownActive)
             {
@@ -597,8 +597,7 @@ namespace YARG.Core.Engine
 
         private List<WaitCountdown> GetWaitCountdowns()
         {
-            var timeSigs = SyncTrack.TimeSignatures;
-            var tempos = SyncTrack.Tempos;
+            var allMeasureBeatLines = SyncTrack.Beatlines.Where(x => x.Type == BeatlineType.Measure).ToList();
             
             var waitCountdowns = new List<WaitCountdown>();
             for (int i = 0; i < Notes.Count; i++)
@@ -621,92 +620,43 @@ namespace YARG.Core.Engine
 
                 if (noteTwoTime - noteOneTimeEnd >= WaitCountdown.MIN_SECONDS)
                 {
+                    uint noteTwoTick = noteTwo.Tick;
+
                     // Determine the total number of measures that will pass during this countdown
-                    // Find the TimeSignatureChange that contains the start of this Countdown
-                    uint countdownTotalMeasures = 0;
-
-                    int currentTimeSigIndex;
-                    if (noteOneTickEnd > 0)
-                    {
-                        currentTimeSigIndex = timeSigs.GetIndexOfPrevious(noteOneTickEnd);
-                    }
-                    else
-                    {
-                        currentTimeSigIndex = 0;
-                    }
-
-                    // Store an object for each TimeSignatureChange that will occur during this countdown
-                    // along with how many measures will pass during each time signature
-                    int endTimeSigIndex = timeSigs.GetIndexOfPrevious(noteTwo.Tick);
-                    var measuresByTimeSignature = new List<CountdownTimeSig>();
-
-                    var currentSig = timeSigs[currentTimeSigIndex];
+                    List<Beatline> beatlinesThisCountdown = new();
                     
-                    // Countdown should start at the first measure that begins after Note One ends, unless Note One ends directly on a measure line
-                    uint firstEmptyMeasure = (uint) Math.Ceiling( (noteOneTickEnd - currentSig.Tick) / (float) currentSig.GetTicksPerMeasure(SyncTrack) );
+                    // Countdown should start at end of the first note if it's directly on a measure line
+                    // Otherwise it should start at the beginning of the next measure
+                    int curMeasureIndex = allMeasureBeatLines.GetIndexOfPrevious(noteOneTickEnd);
+                    if (allMeasureBeatLines[curMeasureIndex].Tick < noteOneTickEnd) curMeasureIndex++;
 
-                    uint firstCountdownTickThisSig = currentSig.Tick + firstEmptyMeasure * currentSig.GetTicksPerMeasure(SyncTrack);
-                    double firstCountdownSecondThisSig = SyncTrack.TickToTime(firstCountdownTickThisSig);
-                    
-                    // Use the current TempoChange at this TimeSignatureChange to calculate SecondsPerMeasure
-                    var currentTempo = tempos.GetPrevious(firstCountdownSecondThisSig);
-                    if (currentTempo == null) currentTempo = tempos.Last();
-                    
-                    while (currentTimeSigIndex < endTimeSigIndex)
+                    var curMeasureline = allMeasureBeatLines[curMeasureIndex];
+                    while (curMeasureline.Tick <= noteTwoTick)
                     {
-                        // The next TimeSignatureChange will occur before the end of this countdown
-                        // Store the total number of measures that will pass until the next time signature takes over
-                        var prevSig = timeSigs[currentTimeSigIndex];
-                        currentSig = timeSigs[++currentTimeSigIndex];
-
-                        uint prevSigTotalMeasures = WaitCountdown.NormalizeMeasures(prevSig.GetMeasureCount(currentSig.Tick, SyncTrack), prevSig);
-
-                        if (prevSigTotalMeasures > 0)
+                        // Skip counting on measures that are too close together
+                        if (beatlinesThisCountdown.Count == 0 || 
+                            curMeasureline.Time - beatlinesThisCountdown.Last().Time >= WaitCountdown.MIN_UPDATE_SECONDS)
                         {
-                            countdownTotalMeasures += prevSigTotalMeasures;
-
-                            var prevSigTempo = tempos.GetPrevious(currentSig.Tick - 1);
-                            if (prevSigTempo == null) prevSigTempo = tempos.Last();
-
-                            uint ticksPerMeasure = WaitCountdown.GetPerNormalizedMeasure(prevSig.GetTicksPerMeasure(SyncTrack), prevSig);
-                            double secondsPerMeasure = WaitCountdown.GetPerNormalizedMeasure(prevSig.GetSecondsPerMeasure(prevSigTempo), prevSig);
-
-                            measuresByTimeSignature.Add(new CountdownTimeSig(firstCountdownTickThisSig, firstCountdownSecondThisSig, prevSigTotalMeasures, ticksPerMeasure, secondsPerMeasure));
+                            beatlinesThisCountdown.Add(curMeasureline);
                         }
-                
-                        firstCountdownTickThisSig = currentSig.Tick;
-                        firstCountdownSecondThisSig = currentSig.Time;
 
-                        currentTempo = tempos.GetPrevious(firstCountdownSecondThisSig);
-                        if (currentTempo == null) currentTempo = tempos.Last();
+                        curMeasureIndex++;
+                        curMeasureline = allMeasureBeatLines[curMeasureIndex];
                     }
-
-                    // currentSig now reflects the final TimeSignatureChange that will occur during this countdown
-                    // Round the final countdown tick down to the nearest whole measure
-                    uint finalSigTotalMeasures = currentSig.GetMeasureCount(noteTwo.Tick, SyncTrack) - currentSig.GetMeasureCount(firstCountdownTickThisSig, SyncTrack);
-                    finalSigTotalMeasures = WaitCountdown.NormalizeMeasures(finalSigTotalMeasures, currentSig);
-                    countdownTotalMeasures += finalSigTotalMeasures;
                     
                     // Prevent showing countdowns < 4 measures at low BPMs
+                    int countdownTotalMeasures = beatlinesThisCountdown.Count;
                     if (countdownTotalMeasures >= WaitCountdown.MIN_MEASURES)
                     {
-                        if (finalSigTotalMeasures > 0)
-                        {
-                            uint ticksPerMeasure = WaitCountdown.GetPerNormalizedMeasure(currentSig.GetTicksPerMeasure(SyncTrack), currentSig);
-                            double secondsPerMeasure = WaitCountdown.GetPerNormalizedMeasure(currentSig.GetSecondsPerMeasure(currentTempo), currentSig);
-
-                            measuresByTimeSignature.Add(new CountdownTimeSig(firstCountdownTickThisSig, firstCountdownSecondThisSig, finalSigTotalMeasures, ticksPerMeasure, secondsPerMeasure));
-                        }
-
                         // Create a WaitCountdown instance to reference at runtime
-                        var newCountdown = new WaitCountdown(measuresByTimeSignature, countdownTotalMeasures);
+                        var newCountdown = new WaitCountdown(beatlinesThisCountdown);
                         waitCountdowns.Add(newCountdown);
-                        YargLogger.LogFormatTrace(this.GetType().Name+" created a WaitCountdown at time {0} of {1} measures and {2} seconds in length across {3} time signatures",
-                                                 newCountdown.Time, countdownTotalMeasures, newCountdown.TimeLength, measuresByTimeSignature.Count);
+                        YargLogger.LogFormatTrace(GetType().Name+" created a WaitCountdown at time {0} of {1} measures and {2} seconds in length",
+                                                 newCountdown.Time, countdownTotalMeasures, newCountdown.TimeLength);
                     }
                     else
                     {
-                        YargLogger.LogFormatTrace(this.GetType().Name+" did not create a WaitCountdown at time {0} of {1} seconds in length because it was only {2} measures long",
+                        YargLogger.LogFormatTrace(GetType().Name+" did not create a WaitCountdown at time {0} of {1} seconds in length because it was only {2} measures long",
                                                  noteOneTimeEnd, noteTwoTime - noteOneTimeEnd, countdownTotalMeasures);                
                     }
                 }
