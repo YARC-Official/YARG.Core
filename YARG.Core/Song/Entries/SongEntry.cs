@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Text.RegularExpressions;
 using YARG.Core.Chart;
 using YARG.Core.IO.Ini;
 using YARG.Core.Song.Cache;
@@ -308,8 +307,6 @@ namespace YARG.Core.Song
             };
         }
 
-        private static readonly Regex s_YearRegex = new(@"(\d{4})");
-
         protected SongEntry()
         {
             _metadata = SongMetadata.Default;
@@ -355,17 +352,9 @@ namespace YARG.Core.Song
                 }
             }
 
-            var match = s_YearRegex.Match(_metadata.Year);
-            if (string.IsNullOrEmpty(match.Value))
-            {
-                _parsedYear = _metadata.Year;
-                _intYear = int.MaxValue;
-            }
-            else
-            {
-                _parsedYear = match.Value[..4];
-                _intYear = int.Parse(_parsedYear);
-            }
+            _intYear = ParseYear(in _metadata.Year, out _parsedYear)
+                ? int.Parse(_parsedYear)
+                : int.MaxValue;
 
             if (!modifiers.TryGet("charter", out _metadata.Charter, DEFAULT_CHARTER_SORT))
             {
@@ -515,17 +504,9 @@ namespace YARG.Core.Song
             }
             _hash = HashWrapper.Deserialize(reader);
 
-            var match = s_YearRegex.Match(_metadata.Year);
-            if (string.IsNullOrEmpty(match.Value))
-            {
-                _parsedYear = _metadata.Year;
-                _intYear = int.MaxValue;
-            }
-            else
-            {
-                _parsedYear = match.Value[..4];
-                _intYear = int.Parse(_parsedYear);
-            }
+            _intYear = ParseYear(in _metadata.Year, out _parsedYear)
+               ? int.Parse(_parsedYear)
+               : int.MaxValue;
         }
 
         protected void SerializeMetadata(in BinaryWriter writer, in CategoryCacheWriteNode node)
@@ -572,6 +553,26 @@ namespace YARG.Core.Song
                 }
             }
             _hash.Serialize(writer);
+        }
+
+        private static bool ParseYear(in string baseString, out string parsedString)
+        {
+            for (int i = 0; i <= baseString.Length - 4; ++i)
+            {
+                int pivot = i;
+                while (i < pivot + 4 && i < baseString.Length && char.IsDigit(baseString[i]))
+                {
+                    ++i;
+                }
+
+                if (i == pivot + 4)
+                {
+                    parsedString = baseString[pivot..i];
+                    return true;
+                }
+            }
+            parsedString = baseString;
+            return false;
         }
     }
 }
