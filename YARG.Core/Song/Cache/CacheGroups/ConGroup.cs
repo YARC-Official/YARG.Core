@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using YARG.Core.IO;
 
@@ -21,7 +22,7 @@ namespace YARG.Core.Song.Cache
         }
 
         public abstract void ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader, IRBProUpgrade)> upgrades, UnmanagedMemoryStream stream, CategoryCacheStrings strings);
-        public abstract byte[] SerializeEntries(Dictionary<SongEntry, CategoryCacheWriteNode> nodes);
+        public abstract ReadOnlyMemory<byte> SerializeEntries(Dictionary<SongEntry, CategoryCacheWriteNode> nodes);
 
         public void AddEntry(string name, int index, RBCONEntry entry)
         {

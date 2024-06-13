@@ -42,7 +42,7 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        public override byte[] SerializeEntries(Dictionary<SongEntry, CategoryCacheWriteNode> nodes)
+        public override ReadOnlyMemory<byte> SerializeEntries(Dictionary<SongEntry, CategoryCacheWriteNode> nodes)
         {
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);
@@ -50,7 +50,7 @@ namespace YARG.Core.Song.Cache
             writer.Write(Location);
             writer.Write(DTA.LastUpdatedTime.ToBinary());
             Serialize(writer, ref nodes);
-            return ms.ToArray();
+            return new ReadOnlyMemory<byte>(ms.GetBuffer(), 0, (int)ms.Length);
         }
 
         public void Dispose()

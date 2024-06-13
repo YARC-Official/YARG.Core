@@ -309,7 +309,7 @@ namespace YARG.Core.Song
             }
         }
 
-        protected DTAResult Init(string nodeName, YARGDTAReader reader, Dictionary<string, List<SongUpdate>> updates, Dictionary<string, (YARGDTAReader, IRBProUpgrade)> upgrades, string defaultPlaylist)
+        protected DTAResult Init(string nodeName, YARGDTAReader reader, Dictionary<string, SortedList<DateTime, SongUpdate>> updates, Dictionary<string, (YARGDTAReader, IRBProUpgrade)> upgrades, string defaultPlaylist)
         {
             var dtaResults = ParseDTA(nodeName, reader);
             ApplyRBCONUpdates(ref dtaResults, nodeName, updates);
@@ -451,11 +451,11 @@ namespace YARG.Core.Song
             }
         }
 
-        private void ApplyRBCONUpdates(ref DTAResult mainResult, string nodeName, Dictionary<string, List<SongUpdate>> updates)
+        private void ApplyRBCONUpdates(ref DTAResult mainResult, string nodeName, Dictionary<string, SortedList<DateTime, SongUpdate>> updates)
         {
             if (updates.TryGetValue(nodeName, out var updateList))
             {
-                foreach (var update in updateList!)
+                foreach (var update in updateList.Values)
                 {
                     try
                     {

@@ -11,7 +11,6 @@ namespace YARG.Core.Song.Cache
     {
         public readonly DirectoryInfo Directory;
         public readonly DateTime DTALastWrite;
-        public readonly Dictionary<string, DirectoryInfo> SubDirectories;
         public readonly Dictionary<string, SongUpdate> Updates = new();
 
         private readonly MemoryMappedArray _dtaData;
@@ -21,15 +20,9 @@ namespace YARG.Core.Song.Cache
             Directory = directory;
             DTALastWrite = dtaLastUpdate;
             _dtaData = dtaData;
-            
-            SubDirectories = new Dictionary<string, DirectoryInfo>();
-            foreach (var dir in directory.EnumerateDirectories())
-            {
-                SubDirectories.Add(dir.Name, dir);
-            }
         }
 
-        public byte[] SerializeModifications()
+        public ReadOnlyMemory<byte> SerializeModifications()
         {
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);
@@ -42,7 +35,7 @@ namespace YARG.Core.Song.Cache
                 writer.Write(name);
                 update.Serialize(writer);
             }
-            return ms.ToArray();
+            return new ReadOnlyMemory<byte>(ms.GetBuffer(), 0, (int)ms.Length);
         }
 
         public void Dispose()
@@ -51,59 +44,65 @@ namespace YARG.Core.Song.Cache
         }
     }
 
-    public readonly struct SongUpdate : IComparable<SongUpdate>
+    public readonly struct SongUpdate
     {
-        private readonly DateTime _dtaLastWrite;
+        private readonly List<YARGDTAReader> _readers;
 
         public readonly string BaseDirectory;
         public readonly AbridgedFileInfo_Length? Midi;
         public readonly AbridgedFileInfo? Mogg;
         public readonly AbridgedFileInfo_Length? Milo;
         public readonly AbridgedFileInfo_Length? Image;
-        public readonly YARGDTAReader[] Readers;
 
-        public SongUpdate(UpdateGroup group, string name, DateTime dtaLastWrite, YARGDTAReader[] readers)
+        public YARGDTAReader[] Readers => _readers.ToArray();
+
+        internal SongUpdate(in FileCollection collection, string name)
         {
-            BaseDirectory = group.Directory.FullName;
-            Readers = readers;
-            _dtaLastWrite = dtaLastWrite;
-
+            _readers = new();
+            BaseDirectory = collection.Directory.FullName;
             Midi = null;
             Mogg = null;
             Milo = null;
             Image = null;
             string subname = name.ToLowerInvariant();
-            if (group.SubDirectories.TryGetValue(subname, out var subDirectory))
+            if (!collection.subDirectories.TryGetValue(subname, out var subDirInfo))
             {
-                var filenames = new string[]
-                {
-                    subname + "_update.mid",
-                    subname + "_update.mogg",
-                    subname + ".milo_xbox",
-                    subname + "_keep.png_xbox"
-                };
+                return;
+            }
 
-                foreach (var file in subDirectory.EnumerateFiles("*", SearchOption.AllDirectories))
+            var filenames = new string[]
+            {
+                subname + "_update.mid",
+                subname + "_update.mogg",
+                subname + ".milo_xbox",
+                subname + "_keep.png_xbox"
+            };
+
+            foreach (var file in subDirInfo.EnumerateFiles("*", SearchOption.AllDirectories))
+            {
+                string filename = file.Name;
+                if (filename == filenames[0])
                 {
-                    string filename = file.Name;
-                    if (filename == filenames[0])
-                    {
-                        Midi ??= new AbridgedFileInfo_Length(file, false);
-                    }
-                    else if (filename == filenames[1])
-                    {
-                        Mogg ??= new AbridgedFileInfo(file, false);
-                    }
-                    else if (filename == filenames[2])
-                    {
-                        Milo ??= new AbridgedFileInfo_Length(file, false);
-                    }
-                    else if (filename == filenames[3])
-                    {
-                        Image ??= new AbridgedFileInfo_Length(file, false);
-                    }
+                    Midi ??= new AbridgedFileInfo_Length(file, false);
+                }
+                else if (filename == filenames[1])
+                {
+                    Mogg ??= new AbridgedFileInfo(file, false);
+                }
+                else if (filename == filenames[2])
+                {
+                    Milo ??= new AbridgedFileInfo_Length(file, false);
+                }
+                else if (filename == filenames[3])
+                {
+                    Image ??= new AbridgedFileInfo_Length(file, false);
                 }
             }
+        }
+
+        public void Add(YARGDTAReader reader)
+        {
+            _readers.Add(reader);
         }
 
         public void Serialize(BinaryWriter writer)
@@ -169,11 +168,6 @@ namespace YARG.Core.Song.Cache
                 }
                 return true;
             }
-        }
-
-        public int CompareTo(SongUpdate other)
-        {
-            return _dtaLastWrite.CompareTo(other._dtaLastWrite);
         }
 
         public static void SkipRead(UnmanagedMemoryStream stream)

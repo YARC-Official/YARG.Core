@@ -61,74 +61,69 @@ namespace YARG.Core.Song.Cache
 
         protected override void FindNewEntries()
         {
-            var tracker = new PlaylistTracker(fullDirectoryPlaylists);
+            var tracker = new PlaylistTracker(fullDirectoryPlaylists, null);
             Parallel.ForEach(iniGroups, group =>
             {
                 var dirInfo = new DirectoryInfo(group.Directory);
                 ScanDirectory(dirInfo, group, tracker);
             });
 
-            // Orders the updates from oldest to newest to apply more recent information last
-            Parallel.ForEach(updates, node => node.Value.Sort());
-
-            var conTasks = new Task[conGroups.Count + extractedConGroups.Count];
-            int con = 0;
-            foreach (var group in conGroups)
+            var conActions = new Action[conGroups.Count + extractedConGroups.Count];
+            for (int i = 0; i < conGroups.Count; ++i)
             {
-                conTasks[con++] = Task.Run(() =>
+                var group = conGroups[i];
+                conActions[i] = () =>
                 {
                     if (group.LoadSongs(out var reader))
                     {
-                        TraverseCONGroup(group, ref reader, ScanPackedCONNode);
+                        ScanCONGroup(group, ref reader, ScanPackedCONNode);
                     }
                     group.DisposeStreamAndSongDTA();
-                }
-                );
+                };
             }
 
-            foreach (var group in extractedConGroups)
+            for (int i = 0; i < extractedConGroups.Count; ++i)
             {
-                conTasks[con++] = Task.Run(() =>
+                var group = extractedConGroups[i];
+                conActions[conGroups.Count + i] = () =>
                 {
                     if (group.LoadDTA(out var reader))
                     {
-                        TraverseCONGroup(group, ref reader, ScanUnpackedCONNode);
+                        ScanCONGroup(group, ref reader, ScanUnpackedCONNode);
                     }
                     group.Dispose();
-                }
-                );
+                };
             }
 
-            Task.WaitAll(conTasks);
+            Parallel.ForEach(conActions, action => action());
             foreach (var group in conGroups)
             {
                 group.DisposeUpgradeDTA();
             }
         }
 
-        protected override void TraverseDirectory(FileCollector collector, IniGroup group, PlaylistTracker tracker)
+        protected override void TraverseDirectory(in FileCollection collection, IniGroup group, PlaylistTracker tracker)
         {
-            var tasks = new Task[collector.subDirectories.Count + collector.subfiles.Count];
+            var actions = new Action[collection.subDirectories.Count + collection.subfiles.Count];
             int index = 0;
-            foreach (var subDirectory in collector.subDirectories)
+            foreach (var directory in collection.subDirectories)
             {
-                tasks[index++] = Task.Run(() => ScanDirectory(subDirectory, group, tracker));
+                actions[index++] = () => ScanDirectory(directory.Value, group, tracker);
             }
 
-            foreach (var file in collector.subfiles)
+            foreach (var file in collection.subfiles)
             {
-                tasks[index++] = Task.Run(() => ScanFile(file, group, ref tracker));
+                actions[index++] = () => ScanFile(file.Value, group, in tracker);
             }
-            Task.WaitAll(tasks);
-            foreach (var task in tasks) task.Dispose();
+            Parallel.ForEach(actions, action => action());
         }
 
-        private void TraverseCONGroup<TGroup>(TGroup group, ref YARGDTAReader reader, Action<TGroup, string, int, YARGDTAReader> func)
+        private void ScanCONGroup<TGroup>(TGroup group, ref YARGDTAReader reader, Action<TGroup, string, int, YARGDTAReader> func)
             where TGroup : CONGroup
         {
-            List<Task> tasks = new();
             try
             {
+                var slices = new List<(string Name, int Index, YARGDTAReader Reader)>();
                 Dictionary<string, int> indices = new();
                 while (reader.StartNode())
                 {
@@ -139,16 +134,15 @@ namespace YARG.Core.Song.Cache
                     }
                     indices[name] = index;
 
-                    var node = reader;
-                    tasks.Add(Task.Run(() => func(group, name, index, node)));
+                    slices.Add((name, index, reader));
                     reader.EndNode();
                 }
+                Parallel.ForEach(slices, slice => func(group, slice.Name, slice.Index, slice.Reader));
             }
             catch (Exception e)
             {
                 YargLogger.LogException(e, $"Error while scanning CON group {group.Location}!");
             }
-            Task.WaitAll(tasks.ToArray());
         }
 
         protected override bool AddEntry(SongEntry entry)
@@ -156,37 +150,6 @@ namespace YARG.Core.Song.Cache
             lock (cache.Entries)
             {
                 return base.AddEntry(entry);
-            }
-        }
-
-        protected override void AddUpdates(UpdateGroup group, Dictionary<string, List<YARGDTAReader>> nodes, bool removeEntries)
-        {
-            Parallel.ForEach(nodes, node =>
-            {
-                var update = new SongUpdate(group, node.Key, group.DTALastWrite, node.Value.ToArray());
-                lock (group.Updates)
-                {
-                    group.Updates.Add(node.Key, update);
-                }
-
-                if (removeEntries)
-                {
-                    RemoveCONEntry(node.Key);
-                }
-
-                lock (updates)
-                {
-                    if (!updates.TryGetValue(node.Key, out var list))
-                    {
-                        updates.Add(node.Key, list = new());
-                    }
-                    list.Add(update);
-                }
-            });
-
-            lock (updateGroups)
-            {
-                updateGroups.Add(group);
             }
         }
 
@@ -221,14 +184,14 @@ namespace YARG.Core.Song.Cache
 
             try
             {
-                AddParallelEntryTasks(stream, ref entryTasks, strings, ReadIniGroup, tracker);
-                AddParallelCONTasks(stream, ref conTasks, ReadUpdateDirectory, tracker);
-                AddParallelCONTasks(stream, ref conTasks, ReadUpgradeDirectory, tracker);
-                AddParallelCONTasks(stream, ref conTasks, ReadUpgradeCON, tracker);
+                AddParallelEntryTasks(stream, entryTasks, strings, ReadIniGroup, tracker);
+                AddParallelCONTasks(stream, conTasks, ReadUpdateDirectory, tracker);
+                AddParallelCONTasks(stream, conTasks, ReadUpgradeDirectory, tracker);
+                AddParallelCONTasks(stream, conTasks, ReadUpgradeCON, tracker);
                 Task.WaitAll(conTasks.ToArray());
 
-                AddParallelEntryTasks(stream, ref entryTasks, strings, ReadPackedCONGroup, tracker);
-                AddParallelEntryTasks(stream, ref entryTasks, strings, ReadUnpackedCONGroup, tracker);
+                AddParallelEntryTasks(stream, entryTasks, strings, ReadPackedCONGroup, tracker);
+                AddParallelEntryTasks(stream, entryTasks, strings, ReadUnpackedCONGroup, tracker);
             }
             catch (Exception ex)
             {
@@ -251,21 +214,17 @@ namespace YARG.Core.Song.Cache
 
             try
             {
-                AddParallelEntryTasks(stream, ref entryTasks, strings, QuickReadIniGroup, tracker);
+                AddParallelEntryTasks(stream, entryTasks, strings, QuickReadIniGroup, tracker);
 
-                int count = stream.Read<int>(Endianness.Little);
-                for (int i = 0; i < count; ++i)
-                {
-                    int length = stream.Read<int>(Endianness.Little);
-                    stream.Position += length;
-                }
+                int skipLength = stream.Read<int>(Endianness.Little);
+                stream.Position += skipLength;
 
-                AddParallelCONTasks(stream, ref conTasks, QuickReadUpgradeDirectory, tracker);
-                AddParallelCONTasks(stream, ref conTasks, QuickReadUpgradeCON, tracker);
+                AddParallelCONTasks(stream, conTasks, QuickReadUpgradeDirectory, tracker);
+                AddParallelCONTasks(stream, conTasks, QuickReadUpgradeCON, tracker);
                 Task.WaitAll(conTasks.ToArray());
 
-                AddParallelEntryTasks(stream, ref entryTasks, strings, QuickReadCONGroup, tracker);
-                AddParallelEntryTasks(stream, ref entryTasks, strings, QuickReadExtractedCONGroup, tracker);
+                AddParallelEntryTasks(stream, entryTasks, strings, QuickReadCONGroup, tracker);
+                AddParallelEntryTasks(stream, entryTasks, strings, QuickReadExtractedCONGroup, tracker);
             }
             catch (Exception ex)
             {
@@ -280,7 +239,7 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        protected override void AddUpdate(string name, SongUpdate update)
+        protected override void AddUpdate(string name, DateTime dtaLastWrite, in SongUpdate update)
         {
             lock (updates)
             {
@@ -288,7 +247,7 @@ namespace YARG.Core.Song.Cache
                 {
                     updates.Add(name, list = new());
                 }
-                list.Add(update);
+                list.Add(dtaLastWrite, update);
             }
         }
 
@@ -422,7 +381,79 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void ReadIniGroup(UnmanagedMemoryStream stream, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
+        private readonly struct CacheEnumerable<T> : IEnumerable<T>
+        {
+            private readonly UnmanagedMemoryStream _stream;
+            private readonly ParallelExceptionTracker _tracker;
+            private readonly Func<T?> _creator;
+
+            public CacheEnumerable(UnmanagedMemoryStream stream, ParallelExceptionTracker tracker, Func<T?> creator)
+            {
+                _stream = stream;
+                _tracker = tracker;
+                _creator = creator;
+            }
+
+            public IEnumerator<T> GetEnumerator()
+            {
+                return new Enumerator(this);
+            }
+
+            IEnumerator IEnumerable.GetEnumerator()
+            {
+                return GetEnumerator();
+            }
+
+            private struct Enumerator : IEnumerator<T>, IEnumerator
+            {
+                private readonly ParallelExceptionTracker _tracker;
+                private readonly Func<T?> _creator;
+
+                private readonly int _count;
+                private int _index;
+                private T _current;
+
+                public Enumerator(CacheEnumerable<T> values)
+                {
+                    _tracker = values._tracker;
+                    _creator = values._creator;
+                    _count = values._stream.Read<int>(Endianness.Little);
+                    _index = 0;
+                    _current = default!;
+                }
+
+                public readonly T Current => _current;
+
+                readonly object IEnumerator.Current => _current!;
+
+                public void Dispose()
+                {
+                    _current = default!;
+                }
+
+                public bool MoveNext()
+                {
+                    while (_index < _count && !_tracker.IsSet())
+                    {
+                        ++_index;
+                        var slice = _creator();
+                        if (slice != null)
+                        {
+                            _current = slice;
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+
+                public void Reset()
+                {
+                    throw new NotImplementedException();
+                }
+            }
+        }
+
+        private void ReadIniGroup(UnmanagedMemoryStream stream, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
         {
             string directory = stream.ReadString();
             var group = GetBaseIniGroup(directory);
@@ -431,188 +462,204 @@ namespace YARG.Core.Song.Cache
                 return;
             }
 
-            int count = stream.Read<int>(Endianness.Little);
-            for (int i = 0; i < count && !tracker.IsSet(); ++i)
+            var enumerable = new CacheEnumerable<UnmanagedMemoryStream>(stream, tracker, () =>
             {
                 int length = stream.Read<int>(Endianness.Little);
-                var entryReader = stream.Slice(length);
-                entryTasks.Add(Task.Run(() =>
+                return stream.Slice(length);
+            });
+
+            Parallel.ForEach(enumerable, slice =>
+            {
+                try
                 {
-                    // Error catching must be done per-thread
-                    try
-                    {
-                        ReadIniEntry(directory, group, entryReader, strings);
-                    }
-                    catch (Exception ex)
-                    {
-                        tracker.Set(ex);
-                    }
-                }));
-            }
+                    ReadIniEntry(directory, group, slice, strings);
+                }
+                catch (Exception ex)
+                {
+                    tracker.Set(ex);
+                }
+            });
         }
 
-        private void ReadPackedCONGroup(UnmanagedMemoryStream stream, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
+        private void ReadPackedCONGroup(UnmanagedMemoryStream stream, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
         {
             var group = ReadCONGroupHeader(stream);
             if (group != null)
             {
-                ReadCONGroup(group, stream, entryTasks, strings, tracker);
+                ReadCONGroup(group, stream, strings, tracker);
             }
         }
 
-        private void ReadUnpackedCONGroup(UnmanagedMemoryStream stream, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
+        private void ReadUnpackedCONGroup(UnmanagedMemoryStream stream, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
         {
             var group = ReadExtractedCONGroupHeader(stream);
             if (group != null)
             {
-                ReadCONGroup(group, stream, entryTasks, strings, tracker);
+                ReadCONGroup(group, stream, strings, tracker);
             }
         }
 
-        private void ReadCONGroup<TGroup>(TGroup group, UnmanagedMemoryStream stream, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
+        private void ReadCONGroup<TGroup>(TGroup group, UnmanagedMemoryStream stream, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
             where TGroup : CONGroup
         {
-            ReadCONGroup(stream, (string name, int index, UnmanagedMemoryStream slice) =>
+            var enumerable = new CacheEnumerable<(string Name, int Index, UnmanagedMemoryStream Stream)?>(stream, tracker, () =>
             {
-                entryTasks.Add(Task.Run(() =>
+                string name = stream.ReadString();
+                int index = stream.Read<int>(Endianness.Little);
+                int length = stream.Read<int>(Endianness.Little);
+                if (invalidSongsInCache.Contains(name))
                 {
-                    // Error catching must be done per-thread
-                    try
-                    {
-                        group.ReadEntry(name, index, upgrades, slice, strings);
-                    }
-                    catch (Exception ex)
-                    {
-                        tracker.Set(ex);
-                    }
-                }));
+                    stream.Position += length;
+                    return null;
+                }
+                return (name, index, stream.Slice(length));
+            });
+
+            Parallel.ForEach(enumerable, slice =>
+            {
+                var value = slice!.Value;
+                // Error catching must be done per-thread
+                try
+                {
+                    group.ReadEntry(value.Name, value.Index, upgrades, value.Stream, strings);
+                }
+                catch (Exception ex)
+                {
+                    tracker.Set(ex);
+                }
             });
         }
 
-        private void QuickReadIniGroup(UnmanagedMemoryStream stream, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
+        private void QuickReadIniGroup(UnmanagedMemoryStream stream, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
         {
             string directory = stream.ReadString();
-            int count = stream.Read<int>(Endianness.Little);
-            for (int i = 0; i < count && !tracker.IsSet(); ++i)
+            var enumerable = new CacheEnumerable<UnmanagedMemoryStream>(stream, tracker, () =>
             {
                 int length = stream.Read<int>(Endianness.Little);
-                var slice = stream.Slice(length);
-                entryTasks.Add(Task.Run(() =>
+                return stream.Slice(length);
+            });
+
+            Parallel.ForEach(enumerable, slice =>
+            {
+                try
                 {
-                    // Error catching must be done per-thread
-                    try
-                    {
-                        QuickReadIniEntry(directory, slice, strings);
-                    }
-                    catch (Exception ex)
-                    {
-                        tracker.Set(ex);
-                    }
-                }));
-            }
+                    QuickReadIniEntry(directory, slice, strings);
+                }
+                catch (Exception ex)
+                {
+                    tracker.Set(ex);
+                }
+            });
         }
 
-        private void QuickReadCONGroup(UnmanagedMemoryStream stream, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
+        private void QuickReadCONGroup(UnmanagedMemoryStream stream, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
         {
             var group = QuickReadCONGroupHeader(stream);
             if (group == null)
                 return;
 
-            int count = stream.Read<int>(Endianness.Little);
-            for (int i = 0; i < count && !tracker.IsSet(); ++i)
+            var enumerable = new CacheEnumerable<(string Name, UnmanagedMemoryStream Stream)>(stream, tracker, () =>
             {
                 string name = stream.ReadString();
                 // index
                 stream.Position += 4;
 
                 int length = stream.Read<int>(Endianness.Little);
-                var slice = stream.Slice(length);
-                entryTasks.Add(Task.Run(() =>
+                return (name, stream.Slice(length));
+            });
+
+            Parallel.ForEach(enumerable, slice =>
+            {
+                try
                 {
-                    // Error catching must be done per-thread
-                    try
-                    {
-                        AddEntry(PackedRBCONEntry.LoadFromCache_Quick(in group.ConFile, name, upgrades, slice, strings));
-                    }
-                    catch (Exception ex)
-                    {
-                        tracker.Set(ex);
-                    }
-                }));
-            }
+                    AddEntry(PackedRBCONEntry.LoadFromCache_Quick(in group.ConFile, slice.Name, upgrades, slice.Stream, strings));
+                }
+                catch (Exception ex)
+                {
+                    tracker.Set(ex);
+                }
+            });
         }
 
-        private void QuickReadExtractedCONGroup(UnmanagedMemoryStream stream, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
+        private void QuickReadExtractedCONGroup(UnmanagedMemoryStream stream, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
         {
             string directory = stream.ReadString();
             var lastWrite = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
             var dta = new AbridgedFileInfo_Length(Path.Combine(directory, "songs.dta"), lastWrite, 0);
 
-            int count = stream.Read<int>(Endianness.Little);
-            for (int i = 0; i < count && !tracker.IsSet(); ++i)
+            var enumerable = new CacheEnumerable<(string Name, UnmanagedMemoryStream Stream)>(stream, tracker, () =>
             {
                 string name = stream.ReadString();
                 // index
                 stream.Position += 4;
 
                 int length = stream.Read<int>(Endianness.Little);
-                var slice = stream.Slice(length);
-                entryTasks.Add(Task.Run(() =>
+                return (name, stream.Slice(length));
+            });
+
+            Parallel.ForEach(enumerable, slice =>
+            {
+                try
                 {
-                    // Error catching must be done per-thread
-                    try
-                    {
-                        AddEntry(UnpackedRBCONEntry.LoadFromCache_Quick(directory, dta, name, upgrades, slice, strings));
-                    }
-                    catch (Exception ex)
-                    {
-                        tracker.Set(ex);
-                    }
-                }));
-            }
+                    AddEntry(UnpackedRBCONEntry.LoadFromCache_Quick(directory, dta, slice.Name, upgrades, slice.Stream, strings));
+                }
+                catch (Exception ex)
+                {
+                    tracker.Set(ex);
+                }
+            });
         }
 
-        private static void AddParallelCONTasks(UnmanagedMemoryStream stream, ref List<Task> conTasks, Action<UnmanagedMemoryStream> func, ParallelExceptionTracker tracker)
+        private static void AddParallelCONTasks(UnmanagedMemoryStream stream, List<Task> conTasks, Action<UnmanagedMemoryStream> func, ParallelExceptionTracker tracker)
         {
-            int count = stream.Read<int>(Endianness.Little);
-            for (int i = 0; i < count && !tracker.IsSet(); ++i)
+            int sectionLength = stream.Read<int>(Endianness.Little);
+            var sectionSlice = stream.Slice(sectionLength);
+            var enumerable = new CacheEnumerable<UnmanagedMemoryStream>(sectionSlice, tracker, () =>
             {
-                int length = stream.Read<int>(Endianness.Little);
-                var slice = stream.Slice(length);
-                conTasks.Add(Task.Run(() =>
+                int length = sectionSlice.Read<int>(Endianness.Little);
+                return sectionSlice.Slice(length);
+            });
+
+            conTasks.Add(Task.Factory.StartNew(() =>
+            {
+                Parallel.ForEach(enumerable, groupSlice =>
                 {
                     try
                     {
-                        func(slice);
+                        func(groupSlice);
                     }
                     catch (Exception ex)
                     {
                         tracker.Set(ex);
                     }
-                }));
-            }
+                });
+            }, TaskCreationOptions.LongRunning));
         }
 
-        private static void AddParallelEntryTasks(UnmanagedMemoryStream stream, ref List<Task> entryTasks, CategoryCacheStrings strings, Action<UnmanagedMemoryStream, List<Task>, CategoryCacheStrings, ParallelExceptionTracker> func, ParallelExceptionTracker tracker)
+        private static void AddParallelEntryTasks(UnmanagedMemoryStream stream, List<Task> entryTasks, CategoryCacheStrings strings, Action<UnmanagedMemoryStream, CategoryCacheStrings, ParallelExceptionTracker> func, ParallelExceptionTracker tracker)
         {
-            int count = stream.Read<int>(Endianness.Little);
-            for (int i = 0; i < count && !tracker.IsSet(); ++i)
+            int sectionLength = stream.Read<int>(Endianness.Little);
+            var sectionSlice = stream.Slice(sectionLength);
+            var enumerable = new CacheEnumerable<UnmanagedMemoryStream>(sectionSlice, tracker, () =>
             {
-                int length = stream.Read<int>(Endianness.Little);
-                var slice = stream.Slice(length);
-                entryTasks.Add(Task.Run(() => {
-                    List<Task> tasks = new();
+                int length = sectionSlice.Read<int>(Endianness.Little);
+                return sectionSlice.Slice(length);
+            });
+
+            entryTasks.Add(Task.Factory.StartNew(() =>
+            {
+                Parallel.ForEach(enumerable, groupSlice =>
+                {
                     try
                     {
-                        func(slice, tasks, strings, tracker);
+                        func(groupSlice, strings, tracker);
                     }
                     catch (Exception ex)
                     {
                         tracker.Set(ex);
                     }
-                    Task.WaitAll(tasks.ToArray());
-                }));
-            }
+                });
+            }, TaskCreationOptions.LongRunning));
         }
     }
 }

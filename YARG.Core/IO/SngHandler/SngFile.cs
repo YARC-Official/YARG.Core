@@ -160,11 +160,6 @@ namespace YARG.Core.IO
             {
                 var strLen = reader.ReadByte();
                 string filename = Encoding.UTF8.GetString(reader.ReadBytes(strLen));
-                int idx = filename.LastIndexOf('/');
-                if (idx != -1)
-                {
-                    filename = filename[idx..];
-                }
                 listings.Add(filename.ToLower(), new SngFileListing(filename, reader));
             }
             return listings;

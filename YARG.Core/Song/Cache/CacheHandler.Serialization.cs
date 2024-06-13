@@ -13,6 +13,7 @@ namespace YARG.Core.Song.Cache
     {
         public const int SIZEOF_DATETIME = 8;
         protected readonly HashSet<string> invalidSongsInCache = new();
+        private readonly Dictionary<string, FileCollection> collectionCache = new();
 
         /// <summary>
         /// The sum of all "count" variables in a file
@@ -131,38 +132,57 @@ namespace YARG.Core.Song.Cache
             int count = stream.Read<int>(Endianness.Little);
 
             // Functions as a "check base directory" call
-            if (GetBaseIniGroup(directory) != null)
+            if (GetBaseIniGroup(directory) == null)
             {
-                var dtaInfo = new FileInfo(Path.Combine(directory, "songs_updates.dta"));
-                if (dtaInfo.Exists)
-                {
-                    FindOrMarkDirectory(directory);
-
-                    var dirInfo = new DirectoryInfo(directory);
-                    var group = CreateUpdateGroup(dirInfo, dtaInfo, false);
-                    if (group != null && dtaInfo.LastWriteTime == dtaLastWritten)
-                    {
-                        for (int i = 0; i < count; i++)
-                        {
-                            string name = stream.ReadString();
-                            if (group.Updates.TryGetValue(name, out var update))
-                            {
-                                if (!update.Validate(stream))
-                                {
-                                    AddInvalidSong(name);
-                                }
-                            }
-                            else
-                            {
-                                AddInvalidSong(name);
-                                SongUpdate.SkipRead(stream);
-                            }
-                        }
-                        return;
-                    }
-                }
+                goto Invalidate;
             }
 
+            var dirInfo = new DirectoryInfo(directory);
+            if (!dirInfo.Exists)
+            {
+                goto Invalidate;
+            }
+
+            var collection = new FileCollection(dirInfo);
+            if (!collection.subfiles.TryGetValue(SONGUPDATES_DTA, out var dta))
+            {
+                collectionCache.Add(directory, collection);
+                goto Invalidate;
+            }
+
+            var group = CreateUpdateGroup(collection, dta, false);
+            if (group == null)
+            {
+                goto Invalidate;
+            }
+
+            AddUpdateGroup(group);
+            FindOrMarkDirectory(directory);
+            
+            if (group.DTALastWrite != dtaLastWritten)
+            {
+                goto Invalidate;
+            }
+
+            for (int i = 0; i < count; i++)
+            {
+                string name = stream.ReadString();
+                if (group.Updates.TryGetValue(name, out var update))
+                {
+                    if (!update.Validate(stream))
+                    {
+                        AddInvalidSong(name);
+                    }
+                }
+                else
+                {
+                    AddInvalidSong(name);
+                    SongUpdate.SkipRead(stream);
+                }
+            }
+            return;
+
+        Invalidate:
             for (int i = 0; i < count; i++)
             {
                 AddInvalidSong(stream.ReadString());
@@ -173,32 +193,52 @@ namespace YARG.Core.Song.Cache
         protected void ReadUpgradeDirectory(UnmanagedMemoryStream stream)
         {
             string directory = stream.ReadString();
-            var dtaLastWrritten = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
+            var dtaLastWritten = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
             int count = stream.Read<int>(Endianness.Little);
 
             // Functions as a "check base directory" call
-            if (GetBaseIniGroup(directory) != null)
+            if (GetBaseIniGroup(directory) == null)
             {
-                var dtaInfo = new FileInfo(Path.Combine(directory, "upgrades.dta"));
-                if (dtaInfo.Exists)
-                {
-                    FindOrMarkDirectory(directory);
-
-                    var group = CreateUpgradeGroup(directory, dtaInfo, false);
-                    if (group != null && dtaInfo.LastWriteTime == dtaLastWrritten)
-                    {
-                        for (int i = 0; i < count; i++)
-                        {
-                            string name = stream.ReadString();
-                            var lastUpdated = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
-                            if (!group.Upgrades.TryGetValue(name, out var upgrade) || upgrade!.LastUpdatedTime != lastUpdated)
-                                AddInvalidSong(name);
-                        }
-                        return;
-                    }
-                }
+                goto Invalidate;
             }
 
+            var dirInfo = new DirectoryInfo(directory);
+            if (!dirInfo.Exists)
+            {
+                goto Invalidate;
+            }
+
+            var collection = new FileCollection(dirInfo);
+            if (!collection.subfiles.TryGetValue(SONGUPGRADES_DTA, out var dta))
+            {
+                collectionCache.Add(directory, collection);
+                goto Invalidate;
+            }
+
+            FindOrMarkDirectory(directory);
+
+            var group = CreateUpgradeGroup(in collection, dta, false);
+            if (group == null)
+            {
+                goto Invalidate;
+            }
+
+            AddUpgradeGroup(group);
+            if (dta.LastWriteTime != dtaLastWritten)
+            {
+                goto Invalidate;
+            }
+
+            for (int i = 0; i < count; i++)
+            {
+                string name = stream.ReadString();
+                var lastUpdated = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
+                if (!group.Upgrades.TryGetValue(name, out var upgrade) || upgrade!.LastUpdatedTime != lastUpdated)
+                    AddInvalidSong(name);
+            }
+            return;
+
+        Invalidate:
             for (int i = 0; i < count; i++)
             {
                 AddInvalidSong(stream.ReadString());
@@ -301,7 +341,7 @@ namespace YARG.Core.Song.Cache
                 return null;
             }
 
-            FileInfo dtaInfo = new(Path.Combine(directory, "songs.dta"));
+            var dtaInfo = new FileInfo(Path.Combine(directory, "songs.dta"));
             if (!dtaInfo.Exists)
             {
                 return null;

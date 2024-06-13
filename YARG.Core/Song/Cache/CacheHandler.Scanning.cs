@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using YARG.Core.IO;
@@ -9,109 +8,36 @@ namespace YARG.Core.Song.Cache
 {
     public abstract partial class CacheHandler
     {
-        protected sealed class FileCollector
-        {
-            public readonly DirectoryInfo directory;
-            public readonly IniChartNode<FileInfo>?[] charts = new IniChartNode<FileInfo>?[3];
-            public FileInfo? ini = null;
-            public readonly List<FileInfo> subfiles = new();
-            public readonly List<DirectoryInfo> subDirectories = new();
-
-            public FileCollector(DirectoryInfo directory)
-            {
-                this.directory = directory;
-                foreach (var info in directory.EnumerateFileSystemInfos())
-                {
-                    switch (info)
-                    {
-                        case FileInfo subFile:
-                        {
-                            switch (subFile.Name.ToLower())
-                            {
-                                case "song.ini": ini = subFile; break;
-                                case "notes.mid": charts[0] = new (ChartType.Mid, subFile); break;
-                                case "notes.midi": charts[1] = new (ChartType.Midi, subFile); break;
-                                case "notes.chart": charts[2] = new (ChartType.Chart, subFile); break;
-                                default: subfiles.Add(subFile); break;
-                            }
-                            break;
-                        }
-                        case DirectoryInfo subDirectory:
-                        {
-                            subDirectories.Add(subDirectory);
-                            break;
-                        }
-                    }
-                }
-            }
-
-            public bool ContainsAudio()
-            {
-                return subfiles.Any(subFile => IniAudio.IsAudioFile(subFile.Name.ToLower()));
-            }
-        }
-
-        protected struct PlaylistTracker
+        protected readonly struct PlaylistTracker
         {
             private readonly bool _fullDirectoryFlag;
-            private string? _tracker;
-            private string _playlist;
+            private readonly string? _playlist;
 
-            public readonly string Playlist => _playlist;
+            public string Playlist => !string.IsNullOrEmpty(_playlist) ? _playlist : "Unknown Playlist";
 
-            public PlaylistTracker(bool fullDirectoryFlag)
+            public PlaylistTracker(bool fullDirectoryFlag, string? playlist)
             {
                 _fullDirectoryFlag = fullDirectoryFlag;
-                _tracker = null;
-                _playlist = "Unknown Playlist";
+                _playlist = playlist;
             }
 
-            public void Append(string directory)
+            public PlaylistTracker Append(string directory)
             {
-                if (_tracker != null)
+                string playlist = string.Empty;
+                if (_playlist != null)
                 {
-                    string subDir = Path.GetFileName(directory);
-                    if (_fullDirectoryFlag)
-                    {
-                        _playlist = _tracker = Path.Combine(_tracker, subDir);
-                    }
-                    else
-                    {
-                        _playlist = subDir;
-                    }
+                    playlist = _fullDirectoryFlag ? Path.Combine(_playlist, directory) : directory;
                 }
-                else
-                {
-                    _tracker = string.Empty;
-                }
+                return new PlaylistTracker(_fullDirectoryFlag, playlist);
             }
         }
 
-        private sealed class SngCollector
-        {
-            public readonly SngFile sng;
-            public readonly IniChartNode<string>?[] charts = new IniChartNode<string>?[3];
-
-            public SngCollector(SngFile sng)
-            {
-                this.sng = sng;
-                for (int i = 0; i < IniSubEntry.CHART_FILE_TYPES.Length; ++i)
-                {
-                    if (sng.ContainsKey(IniSubEntry.CHART_FILE_TYPES[i].File))
-                    {
-                        charts[i] = IniSubEntry.CHART_FILE_TYPES[i];
-                    }
-                }
-            }
-
-            public bool ContainsAudio()
-            {
-                return sng.Any(subFile => IniAudio.IsAudioFile(subFile.Key));
-            }
-        }
+        protected const string SONGS_DTA = "songs.dta";
+        protected const string SONGUPDATES_DTA = "songs_updates.dta";
+        protected const string SONGUPGRADES_DTA = "upgrades.dta";
 
         protected abstract void FindNewEntries();
-        protected abstract void TraverseDirectory(FileCollector collector, IniGroup group, PlaylistTracker tracker);
+        protected abstract void TraverseDirectory(in FileCollection collection, IniGroup group, PlaylistTracker tracker);
         protected virtual bool FindOrMarkDirectory(string directory)
         {
             if (!preScannedDirectories.Add(directory))
@@ -135,19 +61,65 @@ namespace YARG.Core.Song.Cache
         {
             try
             {
-                if (!TraversalPreTest(directory, tracker.Playlist))
+                if (!FindOrMarkDirectory(directory.FullName) || (directory.Attributes & FileAttributes.Hidden) != 0)
+                {
                     return;
+                }
 
-                var collector = new FileCollector(directory);
-                if (!ScanIniEntry(collector, group, tracker.Playlist))
+                if (!collectionCache.TryGetValue(directory.FullName, out var collection))
                 {
-                    tracker.Append(directory.FullName);
-                    TraverseDirectory(collector, group, tracker);
+                    collection = new FileCollection(directory);
                 }
-                else if (collector.subDirectories.Count > 0)
+
+                if (ScanIniEntry(collection, group, tracker.Playlist))
                 {
-                    AddToBadSongs(directory.FullName, ScanResult.LooseChart_Warning);
+                    if (collection.subDirectories.Count > 0)
+                    {
+                        AddToBadSongs(directory.FullName, ScanResult.LooseChart_Warning);
+                    }
+                    return;
                 }
+
+                switch (directory.Name)
+                {
+                    case "songs_updates":
+                    {
+                        if (collection.subfiles.TryGetValue(SONGUPDATES_DTA, out var dta))
+                        {
+                            var updateGroup = CreateUpdateGroup(in collection, dta, true);
+                            if (updateGroup != null)
+                            {
+                                AddUpdateGroup(updateGroup);
+                                return;
+                            }
+                        }
+                        break;
+                    }
+                    case "songs_upgrades":
+                    {
+                        if (collection.subfiles.TryGetValue(SONGUPGRADES_DTA, out var dta))
+                        {
+                            var upgradeGroup = CreateUpgradeGroup(in collection, dta, true);
+                            if (upgradeGroup != null)
+                            {
+                                AddUpgradeGroup(upgradeGroup);
+                                return;
+                            }
+                        }
+                        break;
+                    }
+                    case "songs":
+                    {
+                        if (collection.subfiles.TryGetValue(SONGS_DTA, out var dta))
+                        {
+                            var exConGroup = new UnpackedCONGroup(directory.FullName, dta, tracker.Playlist);
+                            AddUnpackedCONGroup(exConGroup);
+                            return;
+                        }
+                        break;
+                    }
+                }
+                TraverseDirectory(collection, group, tracker.Append(directory.Name));
             }
             catch (PathTooLongException)
             {
@@ -160,7 +132,7 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        protected void ScanFile(FileInfo info, IniGroup group, ref PlaylistTracker tracker)
+        protected void ScanFile(FileInfo info, IniGroup group, in PlaylistTracker tracker)
         {
             string filename = info.FullName;
             try
@@ -249,82 +221,37 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        protected void TraverseCONGroup(YARGDTAReader reader, Action<string, int> func)
+        private static readonly (string Name, ChartType Type)[] ChartTypes =
         {
-            Dictionary<string, int> indices = new();
-            while (reader.StartNode())
-            {
-                string name = reader.GetNameOfNode(true);
-                if (indices.TryGetValue(name, out int index))
-                {
-                    ++index;
-                }
-                indices[name] = index;
+            ("notes.mid", ChartType.Mid),
+            ("notes.midi", ChartType.Midi),
+            ("notes.chart", ChartType.Chart)
+        };
 
-                func(name, index);
-                reader.EndNode();
-            }
-        }
-
-        private bool TraversalPreTest(DirectoryInfo dirInfo, string defaultPlaylist)
+        private bool ScanIniEntry(in FileCollection collection, IniGroup group, string defaultPlaylist)
         {
-            string directory = dirInfo.FullName;
-            if (!FindOrMarkDirectory(dirInfo.FullName) || (dirInfo.Attributes & FileAttributes.Hidden) != 0)
-                return false;
-
-            string filename = dirInfo.Name;
-            if (filename == "songs_updates")
+            int i = collection.subfiles.TryGetValue("song.ini", out var ini) ? 0 : 2;
+            while (i < 3)
             {
-                FileInfo dta = new(Path.Combine(directory, "songs_updates.dta"));
-                if (dta.Exists)
+                if (!collection.subfiles.TryGetValue(ChartTypes[i].Name, out var chart))
                 {
-                    CreateUpdateGroup(dirInfo, dta, true);
-                    return false;
-                }
-            }
-            else if (filename == "songs_upgrades")
-            {
-                FileInfo dta = new(Path.Combine(directory, "upgrades.dta"));
-                if (dta.Exists)
-                {
-                    CreateUpgradeGroup(directory, dta, true);
-                    return false;
-                }
-            }
-            else if (filename == "songs")
-            {
-                FileInfo dta = new(Path.Combine(directory, "songs.dta"));
-                if (dta.Exists)
-                {
-                    AddUnpackedCONGroup(new UnpackedCONGroup(directory, dta, defaultPlaylist));
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        private bool ScanIniEntry(FileCollector collector, IniGroup group, string defaultPlaylist)
-        {
-            for (int i = collector.ini != null ? 0 : 2; i < 3; ++i)
-            {
-                var chart = collector.charts[i];
-                if (chart == null)
-                {
+                    ++i;
                     continue;
                 }
 
-                if (!collector.ContainsAudio())
+                if (!collection.ContainsAudio())
                 {
-                    AddToBadSongs(chart.File.FullName, ScanResult.NoAudio);
+                    AddToBadSongs(chart.FullName, ScanResult.NoAudio);
                     break;
                 }
 
                 try
                 {
-                    var entry = UnpackedIniEntry.ProcessNewEntry(collector.directory.FullName, chart, collector.ini, defaultPlaylist);
+                    var node = new IniChartNode<FileInfo>(chart, ChartTypes[i].Type);
+                    var entry = UnpackedIniEntry.ProcessNewEntry(collection.Directory.FullName, in node, ini, defaultPlaylist);
                     if (entry.Item2 == null)
                     {
-                        AddToBadSongs(chart.File.FullName, entry.Item1);
+                        AddToBadSongs(chart.FullName, entry.Item1);
                     }
                     else if (AddEntry(entry.Item2))
                     {
@@ -333,13 +260,13 @@ namespace YARG.Core.Song.Cache
                 }
                 catch (PathTooLongException)
                 {
-                    YargLogger.LogFormatError("Path {0} is too long for the file system!", chart.File);
-                    AddToBadSongs(chart.File.FullName, ScanResult.PathTooLong);
+                    YargLogger.LogFormatError("Path {0} is too long for the file system!", chart);
+                    AddToBadSongs(chart.FullName, ScanResult.PathTooLong);
                 }
                 catch (Exception e)
                 {
-                    YargLogger.LogException(e, $"Error while scanning chart file {chart.File}!");
-                    AddToBadSongs(collector.directory.FullName, ScanResult.IniEntryCorruption);
+                    YargLogger.LogException(e, $"Error while scanning chart file {chart}!");
+                    AddToBadSongs(collection.Directory.FullName, ScanResult.IniEntryCorruption);
                 }
                 return true;
             }
@@ -348,18 +275,16 @@ namespace YARG.Core.Song.Cache
 
         private void ScanSngFile(SngFile sngFile, IniGroup group, string defaultPlaylist)
         {
-            var collector = new SngCollector(sngFile);
             int i = sngFile.Metadata.Count > 0 ? 0 : 2;
             while (i < 3)
             {
-                var chart = collector.charts[i];
-                if (chart == null)
+                if (!sngFile.TryGetValue(ChartTypes[i].Name, out var chart))
                 {
                     ++i;
                     continue;
                 }
 
-                if (!collector.ContainsAudio())
+                if (!sngFile.Any(subFile => IniAudio.IsAudioFile(subFile.Key)))
                 {
                     AddToBadSongs(sngFile.Info.FullName, ScanResult.NoAudio);
                     break;
@@ -367,7 +292,8 @@ namespace YARG.Core.Song.Cache
 
                 try
                 {
-                    var entry = SngEntry.ProcessNewEntry(sngFile, chart, defaultPlaylist);
+                    var node = new IniChartNode<SngFileListing>(chart, ChartTypes[i].Type);
+                    var entry = SngEntry.ProcessNewEntry(sngFile, in node, defaultPlaylist);
                     if (entry.Item2 == null)
                     {
                         AddToBadSongs(sngFile.Info.FullName, entry.Item1);

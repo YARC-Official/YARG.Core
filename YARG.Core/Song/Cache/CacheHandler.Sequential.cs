@@ -15,24 +15,18 @@ namespace YARG.Core.Song.Cache
 
         protected override void FindNewEntries()
         {
-            var tracker = new PlaylistTracker(fullDirectoryPlaylists);
+            var tracker = new PlaylistTracker(fullDirectoryPlaylists, null);
             foreach (var group in iniGroups)
             {
                 var dirInfo = new DirectoryInfo(group.Directory);
                 ScanDirectory(dirInfo, group, tracker);
             }
 
-            foreach (var (_, list) in updates)
-            {
-                // Orders the updates from oldest to newest to apply more recent information last
-                list.Sort();
-            }
-
             foreach (var group in conGroups)
             {
                 if (group.LoadSongs(out var reader))
                 {
-                    TraverseCONGroup(group, ref reader, ScanPackedCONNode);
+                    ScanCONGroup(group, ref reader, ScanPackedCONNode);
                 }
                 group.DisposeStreamAndSongDTA();
             }
@@ -41,7 +35,7 @@ namespace YARG.Core.Song.Cache
             {
                 if (group.LoadDTA(out var reader))
                 {
-                    TraverseCONGroup(group, ref reader, ScanUnpackedCONNode);
+                    ScanCONGroup(group, ref reader, ScanUnpackedCONNode);
                 }
                 group.Dispose();
             }
@@ -52,37 +46,41 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        protected override void AddUpdates(UpdateGroup group, Dictionary<string, List<YARGDTAReader>> nodes, bool removeEntries)
+        protected override void TraverseDirectory(in FileCollection collection, IniGroup group, PlaylistTracker tracker)
         {
-            foreach (var node in nodes)
+            foreach (var subDirectory in collection.subDirectories)
             {
-                var update = new SongUpdate(group, node.Key, group.DTALastWrite, node.Value.ToArray());
-                group.Updates.Add(node.Key, update);
-
-                if (removeEntries)
-                {
-                    RemoveCONEntry(node.Key);
-                }
-
-                if (!updates.TryGetValue(node.Key, out var list))
-                {
-                    updates.Add(node.Key, list = new());
-                }
-                list.Add(update);
+                ScanDirectory(subDirectory.Value, group, tracker);
             }
-            updateGroups.Add(group);
+
+            foreach (var file in collection.subfiles)
+            {
+                ScanFile(file.Value, group, in tracker);
+            }
         }
 
-        protected override void TraverseDirectory(FileCollector collector, IniGroup group, PlaylistTracker tracker)
+        private void ScanCONGroup<TGroup>(TGroup group, ref YARGDTAReader reader, Action<TGroup, string, int, YARGDTAReader> func)
+            where TGroup : CONGroup
         {
-            foreach (var subDirectory in collector.subDirectories)
+            try
             {
-                ScanDirectory(subDirectory, group, tracker);
-            }
+                Dictionary<string, int> indices = new();
+                while (reader.StartNode())
+                {
+                    string name = reader.GetNameOfNode(true);
+                    if (indices.TryGetValue(name, out int index))
+                    {
+                        ++index;
+                    }
+                    indices[name] = index;
 
-            foreach (var file in collector.subfiles)
+                    func(group, name, index, reader);
+                    reader.EndNode();
+                }
+            }
+            catch (Exception e)
             {
-                ScanFile(file, group, ref tracker);
+                YargLogger.LogException(e, $"Error while scanning CON group {group.Location}!");
             }
         }
 
@@ -150,12 +148,8 @@ namespace YARG.Core.Song.Cache
             CategoryCacheStrings strings = new(stream, false);
             RunEntryTasks(stream, strings, QuickReadIniGroup);
 
-            int count = stream.Read<int>(Endianness.Little);
-            for (int i = 0; i < count; ++i)
-            {
-                int length = stream.Read<int>(Endianness.Little);
-                stream.Position += length;
-            }
+            int skipLength = stream.Read<int>(Endianness.Little);
+            stream.Position += skipLength;
 
             RunCONTasks(stream, QuickReadUpgradeDirectory);
             RunCONTasks(stream, QuickReadUpgradeCON);
@@ -163,13 +157,13 @@ namespace YARG.Core.Song.Cache
             RunEntryTasks(stream, strings, QuickReadExtractedCONGroup);
         }
 
-        protected override void AddUpdate(string name, SongUpdate update)
+        protected override void AddUpdate(string name, DateTime dtaLastWrite, in SongUpdate update)
         {
             if (!updates.TryGetValue(name, out var list))
             {
                 updates.Add(name, list = new());
             }
-            list.Add(update);
+            list.Add(dtaLastWrite, update);
         }
 
         protected override void AddUpgrade(string name, YARGDTAReader reader, IRBProUpgrade upgrade)
@@ -324,23 +318,29 @@ namespace YARG.Core.Song.Cache
 
         private static void RunCONTasks(UnmanagedMemoryStream stream, Action<UnmanagedMemoryStream> func)
         {
-            int count = stream.Read<int>(Endianness.Little);
+            int sectionLength = stream.Read<int>(Endianness.Little);
+            var sectionSlice = stream.Slice(sectionLength);
+
+            int count = sectionSlice.Read<int>(Endianness.Little);
             for (int i = 0; i < count; ++i)
             {
-                int length = stream.Read<int>(Endianness.Little);
-                var slice = stream.Slice(length);
-                func(slice);
+                int groupLength = sectionSlice.Read<int>(Endianness.Little);
+                var groupSlice = sectionSlice.Slice(groupLength);
+                func(groupSlice);
             }
         }
 
         private static void RunEntryTasks(UnmanagedMemoryStream stream, CategoryCacheStrings strings, Action<UnmanagedMemoryStream, CategoryCacheStrings> func)
         {
-            int count = stream.Read<int>(Endianness.Little);
+            int sectionLength = stream.Read<int>(Endianness.Little);
+            var sectionSlice = stream.Slice(sectionLength);
+
+            int count = sectionSlice.Read<int>(Endianness.Little);
             for (int i = 0; i < count; ++i)
             {
-                int length = stream.Read<int>(Endianness.Little);
-                var slice = stream.Slice(length);
-                func(slice, strings);
+                int groupLength = sectionSlice.Read<int>(Endianness.Little);
+                var groupSlice = sectionSlice.Slice(groupLength);
+                func(groupSlice, strings);
             }
         }
     }
