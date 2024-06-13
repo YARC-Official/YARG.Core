@@ -16,14 +16,14 @@ namespace YARG.Core.Engine
 
         // Max number of measures that SP will last when draining
         // SP draining is done based on measures
-        protected const int    STAR_POWER_MAX_MEASURES   = 8;
+        protected const int STAR_POWER_MAX_MEASURES = 8;
 
         // Max number of beats that it takes to fill SP when gaining
         // SP gain from whammying is done based on beats
-        protected const int    STAR_POWER_MAX_BEATS   = (STAR_POWER_MAX_MEASURES * 4) - 2; // - 2 for leniency
+        protected const int STAR_POWER_MAX_BEATS = (STAR_POWER_MAX_MEASURES * 4) - 2; // - 2 for leniency
 
         // Beat fraction to use for the sustain burst threshold
-        protected const int  SUSTAIN_BURST_FRACTION = 4;
+        protected const int SUSTAIN_BURST_FRACTION = 4;
 
         public bool IsInputQueued => InputQueue.Count > 0;
 
@@ -50,6 +50,10 @@ namespace YARG.Core.Engine
 
         private readonly List<EngineFrameUpdate> _scheduledUpdates = new();
 
+        private readonly List<SyncTrackChange> _syncTrackChanges = new();
+
+        private readonly List<double> _starPowerTempoTsTicks = new();
+
         public struct EngineFrameUpdate
         {
             public double Time;
@@ -72,12 +76,58 @@ namespace YARG.Core.Engine
             SyncTrack = syncTrack;
             Resolution = syncTrack.Resolution;
 
-            TicksPerQuarterSpBar = (uint) Math.Round((double)STAR_POWER_MAX_BEATS / 4 * syncTrack.Resolution);
-            TicksPerHalfSpBar    = TicksPerQuarterSpBar * 2;
-            TicksPerFullSpBar   = TicksPerQuarterSpBar * 4;
+            TicksPerQuarterSpBar = (uint) Math.Round((double) STAR_POWER_MAX_BEATS / 4 * syncTrack.Resolution);
+            TicksPerHalfSpBar = TicksPerQuarterSpBar * 2;
+            TicksPerFullSpBar = TicksPerQuarterSpBar * 4;
 
             TreatChordAsSeparate = isChordSeparate;
             IsBot = isBot;
+
+            int tsIndex = 0;
+            for (int i = 0; i < syncTrack.Tempos.Count; i++)
+            {
+                var tempo = syncTrack.Tempos[i];
+                var timeSignature = syncTrack.TimeSignatures[tsIndex];
+
+                _syncTrackChanges.Add(new SyncTrackChange(tempo, timeSignature, tempo.Time, tempo.Tick));
+
+                uint nextTempoTick = i + 1 < syncTrack.Tempos.Count ? syncTrack.Tempos[i + 1].Tick : uint.MaxValue;
+                for (int nextTsIndex = tsIndex + 1; nextTsIndex < syncTrack.TimeSignatures.Count; nextTsIndex++)
+                {
+                    var nextTs = syncTrack.TimeSignatures[nextTsIndex];
+                    if (nextTs.Tick >= nextTempoTick)
+                    {
+                        break;
+                    }
+
+                    if (nextTs.Tick == tempo.Tick)
+                    {
+                        _syncTrackChanges[^1].TimeSignature = nextTs;
+                    }
+                    else
+                    {
+                        _syncTrackChanges.Add(new SyncTrackChange(tempo, nextTs, nextTs.Time, nextTs.Tick));
+                    }
+
+                    tsIndex = nextTsIndex;
+                }
+            }
+
+            _starPowerTempoTsTicks.Add(0);
+            for (int i = 1; i < _syncTrackChanges.Count; i++)
+            {
+                var change = _syncTrackChanges[i];
+                var prevChange = _syncTrackChanges[i - 1];
+
+                double deltaTime = change.Time - prevChange.Time;
+
+                var tempo = syncTrack.Tempos.GetPrevious(change.Tick - 1);
+                var ts = syncTrack.TimeSignatures.GetPrevious(change.Tick - 1);
+
+                // Calculate the number of star power ticks that occur during this tempo
+                var starPowerTicks = GetStarPowerDrainPeriodToTicks(deltaTime, tempo!, ts!);
+                _starPowerTempoTsTicks.Add(_starPowerTempoTsTicks[^1] + starPowerTicks);
+            }
         }
 
         /// <summary>
@@ -294,6 +344,45 @@ namespace YARG.Core.Engine
             uint endTick = startTick + starPowerTicks;
 
             return SyncTrack.TickToTime(endTick);
+        }
+
+        /// <summary>
+        /// Calculates the drain to gain ratio for Star Power for a given <see cref="TimeSignatureChange"/>
+        /// </summary>
+        /// <param name="timeSignature"></param>
+        /// <returns></returns>
+        /// <remarks>
+        /// The drain factor notes how much longer a game tick lasts during Star Power drain. If there are 192 game ticks
+        /// and the drain factor was 1.6, then the Star Power drain would be 192/1.6 = 120 game ticks. This is the number of
+        /// Star Power ticks that would be drained during the 192 game ticks.
+        /// </remarks>
+        private double GetStarPowerDrainFactor(TimeSignatureChange timeSignature)
+        {
+            var standardDrain = 4.0 / timeSignature.Denominator * timeSignature.Numerator * STAR_POWER_MAX_MEASURES;
+
+            return standardDrain / STAR_POWER_MAX_BEATS;
+        }
+
+        /// <summary>
+        /// Calculates the number of Star Power ticks that occur during a given period of time.
+        /// </summary>
+        /// <param name="period">Time period in seconds</param>
+        /// <param name="tempo">Tempo to drain at</param>
+        /// <param name="timeSignature">Time Signature to drain at</param>
+        /// <returns></returns>
+        private double GetStarPowerDrainPeriodToTicks(double period, TempoChange tempo, TimeSignatureChange timeSignature)
+        {
+            var drainFactor = GetStarPowerDrainFactor(timeSignature);
+
+            // Amount of time in between each chart tick.
+            var timePerTick = tempo.SecondsPerBeat / Resolution;
+
+            // Amount of time in between each star power tick during star power.
+            var timePerStarPowerTick = timePerTick * drainFactor;
+
+            var starPowerTicksInPeriod = period / timePerStarPowerTick;
+
+            return starPowerTicksInPeriod;
         }
 
         /// <summary>
