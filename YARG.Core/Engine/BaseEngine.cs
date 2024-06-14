@@ -38,6 +38,7 @@ namespace YARG.Core.Engine
         public abstract BaseStats            BaseStats      { get; }
 
         protected readonly SyncTrack SyncTrack;
+
         protected readonly uint Resolution;
 
         public readonly uint TicksPerQuarterSpBar;
@@ -47,6 +48,8 @@ namespace YARG.Core.Engine
         protected List<SoloSection> Solos = new();
 
         protected readonly Queue<GameInput> InputQueue = new();
+
+        protected readonly List<SyncTrackChange> SyncTrackChanges = new();
 
         private readonly List<EngineFrameUpdate> _scheduledUpdates = new();
 
@@ -71,6 +74,12 @@ namespace YARG.Core.Engine
 
         protected readonly bool IsBot;
 
+        protected int CurrentSyncIndex;
+
+        protected int NextSyncIndex => CurrentSyncIndex + 1;
+
+        protected SyncTrackChange CurrentSyncTrackState => SyncTrackChanges[CurrentSyncIndex];
+
         protected BaseEngine(SyncTrack syncTrack, bool isChordSeparate, bool isBot)
         {
             SyncTrack = syncTrack;
@@ -84,12 +93,14 @@ namespace YARG.Core.Engine
             IsBot = isBot;
 
             int tsIndex = 0;
+            int changeIndex = 0;
             for (int i = 0; i < syncTrack.Tempos.Count; i++)
             {
                 var tempo = syncTrack.Tempos[i];
                 var timeSignature = syncTrack.TimeSignatures[tsIndex];
 
-                _syncTrackChanges.Add(new SyncTrackChange(tempo, timeSignature, tempo.Time, tempo.Tick));
+                SyncTrackChanges.Add(new SyncTrackChange(changeIndex, tempo, timeSignature, tempo.Time, tempo.Tick));
+                changeIndex++;
 
                 uint nextTempoTick = i + 1 < syncTrack.Tempos.Count ? syncTrack.Tempos[i + 1].Tick : uint.MaxValue;
                 for (int nextTsIndex = tsIndex + 1; nextTsIndex < syncTrack.TimeSignatures.Count; nextTsIndex++)
@@ -102,11 +113,13 @@ namespace YARG.Core.Engine
 
                     if (nextTs.Tick == tempo.Tick)
                     {
-                        _syncTrackChanges[^1].TimeSignature = nextTs;
+                        SyncTrackChanges[^1].TimeSignature = nextTs;
                     }
                     else
                     {
-                        _syncTrackChanges.Add(new SyncTrackChange(tempo, nextTs, nextTs.Time, nextTs.Tick));
+                        SyncTrackChanges.Add(new SyncTrackChange(changeIndex, tempo, nextTs, nextTs.Time,
+                            nextTs.Tick));
+                        changeIndex++;
                     }
 
                     tsIndex = nextTsIndex;
@@ -114,10 +127,10 @@ namespace YARG.Core.Engine
             }
 
             _starPowerTempoTsTicks.Add(0);
-            for (int i = 1; i < _syncTrackChanges.Count; i++)
+            for (int i = 1; i < SyncTrackChanges.Count; i++)
             {
-                var change = _syncTrackChanges[i];
-                var prevChange = _syncTrackChanges[i - 1];
+                var change = SyncTrackChanges[i];
+                var prevChange = SyncTrackChanges[i - 1];
 
                 double deltaTime = change.Time - prevChange.Time;
 
@@ -128,6 +141,8 @@ namespace YARG.Core.Engine
                 var starPowerTicks = GetStarPowerDrainPeriodToTicks(deltaTime, tempo!, ts!);
                 _starPowerTempoTsTicks.Add(_starPowerTempoTsTicks[^1] + starPowerTicks);
             }
+
+            CurrentSyncIndex = 0;
         }
 
         /// <summary>
