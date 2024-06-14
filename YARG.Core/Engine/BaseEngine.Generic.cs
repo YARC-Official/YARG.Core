@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using YARG.Core.Chart;
@@ -170,94 +170,9 @@ namespace YARG.Core.Engine
             State.CurrentTime = time;
             State.CurrentTick = GetCurrentTick(time);
 
-            int previousTimeSigIndex = State.CurrentTimeSigIndex;
-            var timeSigs = SyncTrack.TimeSignatures;
-            while (State.NextTimeSigIndex < timeSigs.Count &&
-                timeSigs[State.NextTimeSigIndex].Tick <= State.CurrentTick)
+            while (NextSyncIndex < SyncTrackChanges.Count && SyncTrackChanges[NextSyncIndex].Tick <= State.CurrentTick)
             {
-                State.CurrentTimeSigIndex++;
-                State.NextTimeSigIndex++;
-            }
-
-            var currentTimeSig = timeSigs[State.CurrentTimeSigIndex];
-
-            YargLogger.Assert(currentTimeSig.Numerator != 0,
-                "Time signature numerator is 0! Ticks per beat/measure will be 0 after this");
-            YargLogger.Assert(currentTimeSig.Denominator != 0,
-                "Time signature denominator is 0! Ticks per beat/measure will be 0 after this");
-
-            // Set ticks per beat/measure if they haven't been set yet
-            if (State.TicksEveryBeat == 0)
-            {
-                State.TicksEveryBeat = currentTimeSig.GetTicksPerBeat(SyncTrack);
-                YargLogger.Assert(State.TicksEveryBeat != 0,
-                    "Ticks per beat is 0! Star Power will be NaN after this");
-            }
-
-            if (State.TicksEveryMeasure == 0)
-            {
-                State.TicksEveryMeasure = currentTimeSig.GetTicksPerMeasure(SyncTrack);
-                YargLogger.Assert(State.TicksEveryMeasure != 0,
-                    "Ticks per measure is 0! Star Power will be NaN after this");
-            }
-
-            // Rebase SP on time signature change
-            if (previousTimeSigIndex != State.CurrentTimeSigIndex)
-            {
-                // Update progresses to ensure values are accurate, e.g. if a time signature change happens
-                // after 4 measures of SP drainage, the base should be exactly 0.5
-                UpdateProgressValues(currentTimeSig.Tick);
-                RebaseProgressValues(currentTimeSig.Tick);
-
-                // Update ticks per beat/measure *after* rebasing, otherwise SP won't update correctly
-                State.TicksEveryBeat = currentTimeSig.GetTicksPerBeat(SyncTrack);
-                State.TicksEveryMeasure = currentTimeSig.GetTicksPerMeasure(SyncTrack);
-                YargLogger.Assert(State.TicksEveryBeat != 0, "Ticks per beat is 0! Star Power will be NaN after this");
-                YargLogger.Assert(State.TicksEveryMeasure != 0,
-                    "Ticks per measure is 0! Star Power will be NaN after this");
-            }
-
-            uint nextTimeSigTick;
-            if (State.NextTimeSigIndex < timeSigs.Count)
-            {
-                nextTimeSigTick = timeSigs[State.NextTimeSigIndex].Tick;
-            }
-            else
-            {
-                nextTimeSigTick = uint.MaxValue;
-            }
-
-            // Detect misaligned time signatures
-            uint measureCount = currentTimeSig.GetMeasureCount(State.CurrentTick, SyncTrack);
-            uint currentMeasureTick = currentTimeSig.Tick + (State.TicksEveryMeasure * measureCount);
-            if ((currentMeasureTick + State.TicksEveryMeasure) > nextTimeSigTick &&
-                // Only do this once for the misaligned TS, not every update
-                State.TicksEveryMeasure != (nextTimeSigTick - currentMeasureTick))
-            {
-                // Rebase again on misaligned time signatures
-                if (currentMeasureTick != currentTimeSig.Tick)
-                {
-                    UpdateProgressValues(currentMeasureTick);
-                    RebaseProgressValues(currentMeasureTick);
-                }
-
-                State.TicksEveryMeasure = nextTimeSigTick - currentMeasureTick;
-                YargLogger.Assert(State.TicksEveryMeasure != 0,
-                    "Ticks per measure is 0! Star Power will be NaN after this");
-            }
-
-            // Handle the last beat of misaligned time signatures correctly
-            uint beatCount = currentTimeSig.GetBeatCount(State.CurrentTick, SyncTrack);
-            uint currentBeatTick = currentTimeSig.Tick + (State.TicksEveryBeat * beatCount);
-            if ((currentBeatTick + State.TicksEveryBeat) > nextTimeSigTick &&
-                // Only do this once for the misaligned TS, not every update
-                State.TicksEveryBeat != (nextTimeSigTick - currentBeatTick))
-            {
-                // Rebase again on misaligned time signatures
-                UpdateProgressValues(currentBeatTick);
-                RebaseProgressValues(currentBeatTick);
-                State.TicksEveryBeat = nextTimeSigTick - currentBeatTick;
-                YargLogger.Assert(State.TicksEveryBeat != 0, "Ticks per beat is 0! Star Power will be NaN after this");
+                CurrentSyncIndex++;
             }
         }
 
