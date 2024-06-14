@@ -18,14 +18,14 @@ namespace YARG.Core.IO
         public const FileAttributes RECALL_ON_DATA_ACCESS = (FileAttributes)0x00400000;
 
         /// <summary>
-        /// The flie path
+        /// The file path
         /// </summary>
-        public readonly string _fullname;
+        private readonly string _fullname;
 
         /// <summary>
         /// The time the file was last written or created on OS - whichever came later
         /// </summary>
-        public readonly DateTime _lastUpdatedTime;
+        private readonly DateTime _lastUpdatedTime;
 
         public string FullName => _fullname;
         public DateTime LastUpdatedTime => _lastUpdatedTime;
