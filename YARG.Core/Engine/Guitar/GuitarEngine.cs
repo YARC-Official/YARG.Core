@@ -325,10 +325,6 @@ namespace YARG.Core.Engine.Guitar
                 {
                     State.StarPowerWhammyTimer.Disable();
                 }
-                else
-                {
-                    EngineStats.StarPowerTickAmount += State.DeltaTicks;
-                }
             }
 
             base.UpdateStarPower();
@@ -443,19 +439,10 @@ namespace YARG.Core.Engine.Guitar
             }
 
             UpdateStars();
-            UpdateWhammyStarPower(isStarPowerSustainActive);
-        }
-
-        protected void UpdateWhammyStarPower(bool spSustainsActive)
-        {
-            if (State.HasWhammied)
+            if (isStarPowerSustainActive && State.StarPowerWhammyTimer.IsActive && !State.StarPowerWhammyTimer.IsExpired(State.CurrentTime))
             {
-                StartTimer(ref State.StarPowerWhammyTimer, State.CurrentTime);
-            }
-            else if (State.StarPowerWhammyTimer.IsActive && State.StarPowerWhammyTimer.IsExpired(State.CurrentTime))
-            {
-                // Stop whammy gain
-                State.StarPowerWhammyTimer.Disable();
+                YargLogger.LogFormatDebug("Gaining star power from whammy timer at {0}", State.CurrentTime);
+                GainStarPower(CalculateStarPowerGain(State.CurrentTick));
             }
         }
 

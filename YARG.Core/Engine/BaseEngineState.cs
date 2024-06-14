@@ -1,4 +1,4 @@
-﻿namespace YARG.Core.Engine
+namespace YARG.Core.Engine
 {
     public abstract class BaseEngineState
     {
@@ -11,8 +11,6 @@
 
         public uint CurrentTick;
         public uint LastTick;
-
-        public uint DeltaTicks => CurrentTick - LastTick;
 
         public int CurrentSoloIndex;
         public int CurrentStarIndex;
