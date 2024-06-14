@@ -25,6 +25,17 @@ namespace YARG.Core.Engine
         // Beat fraction to use for the sustain burst threshold
         protected const int SUSTAIN_BURST_FRACTION = 4;
 
+        public delegate void StarPowerStatusEvent(bool active);
+
+        public delegate void SoloStartEvent(SoloSection soloSection);
+
+        public delegate void SoloEndEvent(SoloSection soloSection);
+
+        public StarPowerStatusEvent? OnStarPowerStatus;
+
+        public SoloStartEvent? OnSoloStart;
+        public SoloEndEvent?   OnSoloEnd;
+
         public bool IsInputQueued => InputQueue.Count > 0;
 
         public bool CanStarPowerActivate => BaseStats.StarPowerTickAmount >= TicksPerHalfSpBar;
@@ -53,9 +64,16 @@ namespace YARG.Core.Engine
 
         private readonly List<EngineFrameUpdate> _scheduledUpdates = new();
 
-        private readonly List<SyncTrackChange> _syncTrackChanges = new();
-
         private readonly List<double> _starPowerTempoTsTicks = new();
+
+        protected uint StarPowerTickPosition;
+        protected uint PreviousStarPowerTickPosition;
+
+        protected uint StarPowerTickActivationPosition;
+        protected uint StarPowerTickEndPosition;
+
+        protected double StarPowerActivationTime;
+        protected double StarPowerEndTime;
 
         public struct EngineFrameUpdate
         {
@@ -353,12 +371,88 @@ namespace YARG.Core.Engine
         /// <returns>True if a note was updated (hit or missed). False if no changes.</returns>
         protected abstract void UpdateHitLogic(double time);
 
-        public double GetStarPowerEndTime(uint startTick, uint starPowerTicks)
+        protected virtual void UpdateMultiplier()
         {
-            // Basic implementation
-            uint endTick = startTick + starPowerTicks;
+            BaseStats.ScoreMultiplier = Math.Min((BaseStats.Combo / 10) + 1, BaseParameters.MaxMultiplier);
 
-            return SyncTrack.TickToTime(endTick);
+            if (BaseStats.IsStarPowerActive)
+            {
+                BaseStats.ScoreMultiplier *= 2;
+            }
+        }
+
+        public double GetStarPowerBarAmount()
+        {
+            return BaseStats.StarPowerTickAmount / (double) TicksPerFullSpBar;
+        }
+
+        protected void ActivateStarPower()
+        {
+            if (BaseStats.IsStarPowerActive)
+            {
+                return;
+            }
+
+        }
+
+        protected void ReleaseStarPower()
+        {
+            YargLogger.LogFormatDebug("Star Power ended at {0} (tick: {1})", BaseState.CurrentTime,
+                StarPowerTickPosition);
+            BaseStats.StarPowerBarAmount = 0;
+            BaseStats.IsStarPowerActive = false;
+            RebaseProgressValues(BaseState.CurrentTick);
+
+            UpdateMultiplier();
+            OnStarPowerStatus?.Invoke(false);
+        }
+
+        protected void GainStarPower(uint ticks)
+        {
+            var prevTicks = BaseStats.StarPowerTickAmount;
+            BaseStats.StarPowerTickAmount += ticks;
+
+            // Limit amount of ticks to a full bar.
+            BaseStats.StarPowerTickAmount = Math.Min(BaseStats.StarPowerTickAmount, TicksPerFullSpBar);
+            BaseStats.StarPowerBarAmount = BaseStats.StarPowerTickAmount / (double) TicksPerFullSpBar;
+
+            YargLogger.LogFormatDebug("Ticks: {0}", BaseStats.StarPowerTickAmount);
+
+            RebaseProgressValues(BaseState.CurrentTick);
+        }
+
+        protected void DrainStarPower(uint starPowerTicks)
+        {
+            int newAmount = (int) BaseStats.StarPowerTickAmount - (int) starPowerTicks;
+
+            if (newAmount <= 0)
+            {
+                newAmount = 0;
+            }
+
+            BaseStats.StarPowerTickAmount = (uint) newAmount;
+            BaseStats.StarPowerBarAmount = BaseStats.StarPowerTickAmount / (double) TicksPerFullSpBar;
+        }
+
+        protected virtual void UpdateStarPower()
+        {
+            PreviousStarPowerTickPosition = StarPowerTickPosition;
+            StarPowerTickPosition = GetStarPowerDrainTimeToTicks(BaseState.CurrentTime, CurrentSyncTrackState);
+
+            if (BaseStats.IsStarPowerActive)
+            {
+                DrainStarPower(StarPowerTickPosition - PreviousStarPowerTickPosition);
+
+                if (BaseStats.StarPowerTickAmount <= 0)
+                {
+                    ReleaseStarPower();
+                }
+            }
+
+            if (BaseState.IsStarPowerInputActive && CanStarPowerActivate)
+            {
+                ActivateStarPower();
+            }
         }
 
         /// <summary>
@@ -398,6 +492,15 @@ namespace YARG.Core.Engine
             var starPowerTicksInPeriod = period / timePerStarPowerTick;
 
             return starPowerTicksInPeriod;
+        }
+        protected virtual void RebaseProgressValues(uint baseTick)
+        {
+
+        }
+
+        protected virtual void UpdateProgressValues(uint tick)
+        {
+
         }
 
         /// <summary>

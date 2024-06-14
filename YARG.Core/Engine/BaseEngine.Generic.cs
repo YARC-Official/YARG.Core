@@ -21,21 +21,11 @@ namespace YARG.Core.Engine
 
         public delegate void StarPowerPhraseMissEvent(TNoteType note);
 
-        public delegate void StarPowerStatusEvent(bool active);
-
-        public delegate void SoloStartEvent(SoloSection soloSection);
-
-        public delegate void SoloEndEvent(SoloSection soloSection);
-
         public NoteHitEvent?    OnNoteHit;
         public NoteMissedEvent? OnNoteMissed;
 
         public StarPowerPhraseHitEvent?  OnStarPowerPhraseHit;
         public StarPowerPhraseMissEvent? OnStarPowerPhraseMissed;
-        public StarPowerStatusEvent?     OnStarPowerStatus;
-
-        public SoloStartEvent? OnSoloStart;
-        public SoloEndEvent?   OnSoloEnd;
 
         protected          int[]  StarScoreThresholds { get; }
         protected readonly double TicksPerSustainPoint;
@@ -101,7 +91,7 @@ namespace YARG.Core.Engine
         protected override void GenerateQueuedUpdates(double nextTime)
         {
             base.GenerateQueuedUpdates(nextTime);
-            var previousTime = BaseState.CurrentTime;
+            var previousTime = State.CurrentTime;
 
             for (int i = State.NoteIndex; i < Notes.Count; i++)
             {
@@ -276,16 +266,6 @@ namespace YARG.Core.Engine
             EngineStats.Stars = State.CurrentStarIndex + progress;
         }
 
-        protected virtual void UpdateMultiplier()
-        {
-            EngineStats.ScoreMultiplier = Math.Min((EngineStats.Combo / 10) + 1, EngineParameters.MaxMultiplier);
-
-            if (EngineStats.IsStarPowerActive)
-            {
-                EngineStats.ScoreMultiplier *= 2;
-            }
-        }
-
         protected virtual void StripStarPower(TNoteType? note)
         {
             if (note is null || !note.IsStarPower)
@@ -345,103 +325,13 @@ namespace YARG.Core.Engine
             OnStarPowerPhraseMissed?.Invoke(note);
         }
 
-        protected virtual void RebaseProgressValues(uint baseTick)
-        {
-
-        }
-
         protected virtual uint CalculateStarPowerGain(uint tick) => tick - State.LastTick;
-
-        protected virtual void UpdateProgressValues(uint tick)
-        {
-
-        }
-
-        private uint ticksTaken = 0;
-        private uint startingAmount = 0;
-
-        protected void DrainStarPower(uint tick)
-        {
-            uint drain = tick - State.LastTick;
-            ticksTaken += drain;
-
-            YargLogger.LogFormatDebug("Drain: {0} (at: {1}). Ticks taken: {2}", drain, tick, ticksTaken);
-
-            if (ticksTaken >= startingAmount)
-            {
-                YargLogger.LogFormatDebug("Took all ticks at {0}, ending SP", tick);
-            }
-
-            int newAmount = (int)EngineStats.StarPowerTickAmount - (int)drain;
-
-            if (newAmount <= 0)
-            {
-                newAmount = 0;
-            }
-
-            EngineStats.StarPowerTickAmount = (uint)newAmount;
-        }
-
-        private double _spEndTime;
-
-        protected void ActivateStarPower()
-        {
-            if (EngineStats.IsStarPowerActive)
-            {
-                return;
-            }
-
-            var endTime = GetStarPowerEndTime(State.CurrentTick, EngineStats.StarPowerTickAmount);
-            YargLogger.LogFormatDebug("Star Power activated at {0} ({1}), will end at {2} (tick: {3})", State.CurrentTime, State.CurrentTick, endTime, State.CurrentTick + EngineStats.StarPowerTickAmount);
-
-            startingAmount = EngineStats.StarPowerTickAmount;
-            _spEndTime = endTime;
-
-            RebaseProgressValues(State.CurrentTick);
-            EngineStats.IsStarPowerActive = true;
-
-            UpdateMultiplier();
-            OnStarPowerStatus?.Invoke(true);
-        }
-
-        protected void ReleaseStarPower()
-        {
-            YargLogger.LogFormatDebug("Star Power ended at {0} (tick: {1})", State.CurrentTime, State.CurrentTick);
-            EngineStats.StarPowerBarAmount = 0;
-            EngineStats.IsStarPowerActive = false;
-            RebaseProgressValues(State.CurrentTick);
-
-            UpdateMultiplier();
-            OnStarPowerStatus?.Invoke(false);
-        }
 
         protected void AwardStarPower(TNoteType note)
         {
-            EngineStats.StarPowerTickAmount += TicksPerQuarterSpBar;
-
-            YargLogger.LogFormatDebug("Ticks: {0}", EngineStats.StarPowerTickAmount);
-
-            RebaseProgressValues(State.CurrentTick);
+            GainStarPower(TicksPerQuarterSpBar);
 
             OnStarPowerPhraseHit?.Invoke(note);
-        }
-
-        protected virtual void UpdateStarPower()
-        {
-            if (EngineStats.IsStarPowerActive)
-            {
-                DrainStarPower(State.CurrentTick);
-
-                if(EngineStats.StarPowerTickAmount <= 0)
-                {
-                    ReleaseStarPower();
-                }
-            }
-
-            if (State.IsStarPowerInputActive && CanStarPowerActivate)
-            {
-                ActivateStarPower();
-            }
         }
 
         protected void StartSolo()
