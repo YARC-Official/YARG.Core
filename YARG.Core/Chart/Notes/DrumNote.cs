@@ -17,6 +17,8 @@ namespace YARG.Core.Chart
         public bool IsAccent  => Type == DrumNoteType.Accent;
         public bool IsGhost   => Type == DrumNoteType.Ghost;
 
+        public float? HitVelocity;
+
         public bool IsStarPowerActivator => (DrumFlags & DrumNoteFlags.StarPowerActivator) != 0;
 
         public DrumNote(FourLaneDrumPad pad, DrumNoteType noteType, DrumNoteFlags drumFlags,
@@ -65,6 +67,7 @@ namespace YARG.Core.Chart
         {
             base.ResetNoteState();
             DrumFlags = _drumFlags;
+            HitVelocity = null;
         }
 
         protected override void CopyFlags(DrumNote other)

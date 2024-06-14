@@ -1,3 +1,4 @@
+using System;
 using YARG.Core.Chart;
 using YARG.Core.Input;
 using YARG.Core.Logging;
@@ -17,6 +18,7 @@ namespace YARG.Core.Engine.Drums.Engines
             if (gameInput.Button)
             {
                 State.PadHit = ConvertInputToPad(EngineParameters.Mode, gameInput.GetAction<DrumsAction>());
+                State.HitVelocity = gameInput.Axis;
             }
         }
 
@@ -30,7 +32,7 @@ namespace YARG.Core.Engine.Drums.Engines
             // Quit early if there are no notes left
             if (State.NoteIndex >= Notes.Count)
             {
-                State.PadHit = null;
+                ResetPadState();
                 return;
             }
 
@@ -70,8 +72,19 @@ namespace YARG.Core.Engine.Drums.Engines
                     // Hit note
                     if (CanNoteBeHit(note))
                     {
+                        bool awardVelocityBonus = ApplyVelocity(note);
+
+                        // TODO - Deadly Dynamics modifier check on awardVelocityBonus
+                        
                         HitNote(note);
-                        State.PadHit = null;
+
+                        if (awardVelocityBonus){
+                            int velocityBonus = (int)(POINTS_PER_NOTE * 0.5 * EngineStats.ScoreMultiplier);
+                            AddScore(velocityBonus);
+                            YargLogger.LogFormatTrace("Velocity bonus of {0} points was awarded to a note at tick {1}.", velocityBonus, note.Tick);
+                        }
+
+                        ResetPadState();
 
                         // You can't hit more than one note with the same input
                         stopSkipping = true;
@@ -79,7 +92,7 @@ namespace YARG.Core.Engine.Drums.Engines
                     }
                     else
                     {
-                        YargLogger.LogFormatTrace("Cant hit note (Index: {0}) at {1}.", i, State.CurrentTime);
+                        YargLogger.LogFormatDebug("Cant hit note (Index: {0}) at {1}.", i, State.CurrentTime);
                     }
                 }
 
@@ -93,7 +106,7 @@ namespace YARG.Core.Engine.Drums.Engines
             if (State.PadHit != null)
             {
                 Overhit();
-                State.PadHit = null;
+                ResetPadState();
             }
         }
 
@@ -122,6 +135,12 @@ namespace YARG.Core.Engine.Drums.Engines
                 State.PadHit = chordNote.Pad;
                 CheckForNoteHit();
             }
+        }
+
+        private void ResetPadState()
+        {
+            State.PadHit = null;
+            State.HitVelocity = null;
         }
     }
 }
