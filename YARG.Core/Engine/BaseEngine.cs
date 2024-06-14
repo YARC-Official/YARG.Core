@@ -285,6 +285,16 @@ namespace YARG.Core.Engine
         protected virtual void GenerateQueuedUpdates(double nextTime)
         {
             YargLogger.LogFormatTrace("Generating queued updates up to {0}", nextTime);
+            var previousTime = BaseState.CurrentTime;
+
+            if (BaseStats.IsStarPowerActive)
+            {
+                if (IsTimeBetween(StarPowerEndTime, previousTime, nextTime))
+                {
+                    YargLogger.LogFormatDebug("Queuing Star Power End Time at {0}", StarPowerEndTime);
+                    QueueUpdateTime(StarPowerEndTime, "SP End Time");
+                }
+            }
         }
 
         protected abstract void UpdateTimeVariables(double time);
@@ -393,6 +403,20 @@ namespace YARG.Core.Engine
                 return;
             }
 
+            StarPowerActivationTime = BaseState.CurrentTime;
+            StarPowerTickActivationPosition = GetStarPowerDrainTimeToTicks(StarPowerActivationTime, CurrentSyncTrackState);
+
+            StarPowerTickEndPosition = StarPowerTickActivationPosition + BaseStats.StarPowerTickAmount;
+            StarPowerEndTime = GetStarPowerDrainTickToTime(StarPowerTickEndPosition);
+
+            YargLogger.LogFormatDebug("Activated at SP tick {0}, ends at SP tick {1}. Start time: {2}, End time: {3}",
+                StarPowerTickActivationPosition, StarPowerTickEndPosition, StarPowerActivationTime, StarPowerEndTime);
+
+            RebaseProgressValues(BaseState.CurrentTick);
+            BaseStats.IsStarPowerActive = true;
+
+            UpdateMultiplier();
+            OnStarPowerStatus?.Invoke(true);
         }
 
         protected void ReleaseStarPower()
@@ -479,7 +503,8 @@ namespace YARG.Core.Engine
         /// <param name="tempo">Tempo to drain at</param>
         /// <param name="timeSignature">Time Signature to drain at</param>
         /// <returns></returns>
-        private double GetStarPowerDrainPeriodToTicks(double period, TempoChange tempo, TimeSignatureChange timeSignature)
+        private double GetStarPowerDrainPeriodToTicks(double period, TempoChange tempo,
+            TimeSignatureChange timeSignature)
         {
             var drainFactor = GetStarPowerDrainFactor(timeSignature);
 
@@ -493,6 +518,45 @@ namespace YARG.Core.Engine
 
             return starPowerTicksInPeriod;
         }
+
+        private double GetStarPowerDrainTicksToPeriod(double ticks, TempoChange tempo, TimeSignatureChange timeSignature)
+        {
+            var drainFactor = GetStarPowerDrainFactor(timeSignature);
+
+            var beats = tempo.SecondsPerBeat * drainFactor;
+
+            // Amount of time in between each chart tick.
+            var timePerTick = tempo.SecondsPerBeat / Resolution;
+
+            // Amount of time in between each star power tick during star power.
+            var timePerStarPowerTick = timePerTick * drainFactor;
+
+            // Inverse of PeriodToTicks
+            var period = ticks * timePerStarPowerTick;
+
+            return period;
+        }
+
+        private uint GetStarPowerDrainTimeToTicks(double time, SyncTrackChange change)
+        {
+            var tempo = change.Tempo;
+            var ts = change.TimeSignature;
+
+            return (uint) (GetStarPowerDrainPeriodToTicks(time - change.Time, tempo, ts) +
+                _starPowerTempoTsTicks[change.Index]);
+        }
+
+        private double GetStarPowerDrainTickToTime(uint tick)
+        {
+            var change = SyncTrackChanges.GetPrevious(tick)!;
+            var tempo = change.Tempo;
+            var ts = change.TimeSignature;
+
+            var offset = GetStarPowerDrainTicksToPeriod(tick - _starPowerTempoTsTicks[change.Index], tempo, ts);
+
+            return change.Time + offset;
+        }
+
         protected virtual void RebaseProgressValues(uint baseTick)
         {
 

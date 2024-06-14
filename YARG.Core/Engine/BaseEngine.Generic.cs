@@ -137,12 +137,6 @@ namespace YARG.Core.Engine
                     YargLogger.LogFormatTrace("Queuing note {0} back end miss time at {1}", i, noteBackEndIncrement);
                     QueueUpdateTime(noteBackEndIncrement, "Note Back End");
                 }
-
-                if (IsTimeBetween(_spEndTime, previousTime, nextTime))
-                {
-                    YargLogger.LogFormatDebug("Queuing Star Power End Time at {0}", _spEndTime);
-                    QueueUpdateTime(_spEndTime, "SP End Time");
-                }
             }
         }
 
