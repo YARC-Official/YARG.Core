@@ -140,9 +140,9 @@ namespace YARG.Core.IO.Ini
             return RichTextUtils.ReplaceColorNames(reader.ExtractText(isChartFile));
         }
 
-        private static string ExtractSngString(YARGTextContainer<byte> sngContainer, int length)
+        private static unsafe string ExtractSngString(YARGTextContainer<byte> sngContainer, int length)
         {
-            return RichTextUtils.ReplaceColorNames(Encoding.UTF8.GetString(sngContainer.Data, sngContainer.Position, length));
+            return RichTextUtils.ReplaceColorNames(Encoding.UTF8.GetString(sngContainer.Data.Ptr + sngContainer.Position, length));
         }
     }
 }

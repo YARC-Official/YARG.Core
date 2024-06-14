@@ -1,11 +1,12 @@
 ﻿using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 
 namespace YARG.Core.IO.Ini
 {
     public static class SongIniHandler
     {
-        public static IniSection ReadSongIniFile(string iniFile)
+        public static IniSection ReadSongIniFile(FileInfo iniFile)
         {
             var modifiers = YARGIniReader.ReadIniFile(iniFile, SONG_INI_DICTIONARY);
             if (modifiers.Count == 0)

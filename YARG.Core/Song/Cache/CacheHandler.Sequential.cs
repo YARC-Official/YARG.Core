@@ -42,7 +42,7 @@ namespace YARG.Core.Song.Cache
                         YargLogger.LogException(e, $"Error while scanning packed CON group {group.Location}!");
                     }
                 }
-                group.Stream?.Dispose();
+                group.DisposeStreamAndSongDTA();
             }
 
             foreach (var group in extractedConGroups)
@@ -59,6 +59,12 @@ namespace YARG.Core.Song.Cache
                         YargLogger.LogException(e, $"Error while scanning unpacked CON group {group.Location}!");
                     }
                 }
+                group.Dispose();
+            }
+
+            foreach (var group in conGroups)
+            {
+                group.DisposeUpgradeDTA();
             }
         }
 
@@ -276,8 +282,7 @@ namespace YARG.Core.Song.Cache
         private void QuickReadExtractedCONGroup(BinaryReader reader, CategoryCacheStrings strings)
         {
             string directory = reader.ReadString();
-            var dta = AbridgedFileInfo.TryParseInfo(Path.Combine(directory, "songs.dta"), reader);
-            // Lack of null check of dta by design
+            var dta = new AbridgedFileInfo_Length(Path.Combine(directory, "songs.dta"), reader);
 
             int count = reader.ReadInt32();
             for (int i = 0; i < count; ++i)

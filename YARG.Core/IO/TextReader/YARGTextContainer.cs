@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Text;
 using YARG.Core.Extensions;
+using YARG.Core.IO.Disposables;
 
 namespace YARG.Core.IO
 {
@@ -13,11 +14,11 @@ namespace YARG.Core.IO
     public sealed class YARGTextContainer<TChar>
         where TChar : unmanaged, IConvertible
     {
-        public readonly TChar[] Data;
-        public readonly int Length;
-        public int Position;
+        public readonly FixedArray<TChar> Data;
+        public readonly long Length;
+        public long Position;
 
-        public YARGTextContainer(TChar[] data, int position)
+        public YARGTextContainer(FixedArray<TChar> data, long position)
         {
             Data = data;
             Length = data.Length;
@@ -39,18 +40,6 @@ namespace YARG.Core.IO
         public bool IsEndOfFile()
         {
             return Position >= Length;
-        }
-
-        public ReadOnlySpan<TChar> Slice(int position, int length)
-        {
-            return new ReadOnlySpan<TChar>(Data, position, length);
-        }
-
-        public ReadOnlySpan<TChar> ExtractSpan(int length)
-        {
-            var span = Slice(Position, length);
-            Position += length;
-            return span;
         }
 
         private const char LAST_DIGIT_SIGNED = '7';

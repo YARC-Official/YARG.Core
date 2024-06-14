@@ -6,6 +6,7 @@ using YARG.Core.Song.Cache;
 using YARG.Core.IO;
 using YARG.Core.Logging;
 using YARG.Core.Venue;
+using YARG.Core.IO.Disposables;
 
 namespace YARG.Core.Song
 {
@@ -13,10 +14,10 @@ namespace YARG.Core.Song
     {
         private readonly string _nodename = string.Empty;
 
-        public readonly AbridgedFileInfo? _dta;
-        public readonly AbridgedFileInfo? _midi;
+        public readonly AbridgedFileInfo_Length? _dta;
+        public readonly AbridgedFileInfo_Length? _midi;
 
-        protected override DateTime MidiLastUpdate => _midi!.LastUpdatedTime;
+        protected override DateTime MidiLastUpdate => _midi!.Value.LastUpdatedTime;
         public override string Directory { get; } = string.Empty;
         public override EntryType SubType => EntryType.ExCON;
 
@@ -44,22 +45,22 @@ namespace YARG.Core.Song
             }
         }
 
-        public static UnpackedRBCONEntry? TryLoadFromCache(string directory, AbridgedFileInfo dta, string nodename, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
+        public static UnpackedRBCONEntry? TryLoadFromCache(string directory, in AbridgedFileInfo_Length dta, string nodename, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
         {
             string subname = reader.ReadString();
             string songDirectory = Path.Combine(directory, subname);
 
             string midiPath = Path.Combine(songDirectory, subname + ".mid");
-            var midiInfo = AbridgedFileInfo.TryParseInfo(midiPath, reader);
+            var midiInfo = AbridgedFileInfo_Length.TryParseInfo(midiPath, reader);
             if (midiInfo == null)
             {
                 return null;
             }
 
-            AbridgedFileInfo? updateMidi = null;
+            AbridgedFileInfo_Length? updateMidi = null;
             if (reader.ReadBoolean())
             {
-                updateMidi = AbridgedFileInfo.TryParseInfo(reader, false);
+                updateMidi = AbridgedFileInfo_Length.TryParseInfo(reader, false);
                 if (updateMidi == null)
                 {
                     return null;
@@ -67,25 +68,25 @@ namespace YARG.Core.Song
             }
 
             var upgrade = upgrades.TryGetValue(nodename, out var node) ? node.Item2 : null;
-            return new UnpackedRBCONEntry(midiInfo, dta, songDirectory, subname, updateMidi, upgrade, reader, strings);
+            return new UnpackedRBCONEntry(midiInfo.Value, dta, songDirectory, subname, updateMidi, upgrade, reader, strings);
         }
 
-        public static UnpackedRBCONEntry LoadFromCache_Quick(string directory, AbridgedFileInfo? dta, string nodename, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
+        public static UnpackedRBCONEntry LoadFromCache_Quick(string directory, in AbridgedFileInfo_Length? dta, string nodename, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
         {
             string subname = reader.ReadString();
             string songDirectory = Path.Combine(directory, subname);
 
             string midiPath = Path.Combine(songDirectory, subname + ".mid");
-            var midiInfo = new AbridgedFileInfo(midiPath, reader);
+            var midiInfo = new AbridgedFileInfo_Length(midiPath, reader);
 
-            var updateMidi = reader.ReadBoolean() ? new AbridgedFileInfo(reader) : null;
+            AbridgedFileInfo_Length? updateMidi = reader.ReadBoolean() ? new AbridgedFileInfo_Length(reader) : null;
 
             var upgrade = upgrades.TryGetValue(nodename, out var node) ? node.Item2 : null;
             return new UnpackedRBCONEntry(midiInfo, dta, songDirectory, subname, updateMidi, upgrade, reader, strings);
         }
 
-        private UnpackedRBCONEntry(AbridgedFileInfo midi, AbridgedFileInfo? dta, string directory, string nodename,
-            AbridgedFileInfo? updateMidi, IRBProUpgrade? upgrade, BinaryReader reader, CategoryCacheStrings strings)
+        private UnpackedRBCONEntry(AbridgedFileInfo_Length midi, AbridgedFileInfo_Length? dta, string directory, string nodename,
+            AbridgedFileInfo_Length? updateMidi, IRBProUpgrade? upgrade, BinaryReader reader, CategoryCacheStrings strings)
             : base(updateMidi, upgrade, reader, strings)
         {
             Directory = directory;
@@ -112,14 +113,16 @@ namespace YARG.Core.Song
                 return;
             }
 
-            _midi = new AbridgedFileInfo(midiInfo);
+            _midi = new AbridgedFileInfo_Length(midiInfo);
             _dta = group.DTA;
         }
 
         public override void Serialize(BinaryWriter writer, CategoryCacheWriteNode node)
         {
             writer.Write(_nodename);
-            writer.Write(_midi!.LastUpdatedTime.ToBinary());
+            var info = _midi!.Value;
+            writer.Write(info.LastUpdatedTime.ToBinary());
+            writer.Write(info.Length);
             base.Serialize(writer, node);
         }
 
@@ -160,10 +163,10 @@ namespace YARG.Core.Song
                     var fileBase = Path.Combine(Directory, name);
                     foreach (var ext in IMAGE_EXTENSIONS)
                     {
-                        string imageFile = fileBase + ext;
-                        if (File.Exists(imageFile))
+                        var file = new FileInfo(fileBase + ext);
+                        if (file.Exists)
                         {
-                            var image = YARGImage.Load(imageFile);
+                            var image = YARGImage.Load(file);
                             if (image != null)
                             {
                                 return new BackgroundResult(image);
@@ -175,7 +178,7 @@ namespace YARG.Core.Song
             return null;
         }
 
-        public override byte[]? LoadMiloData()
+        public override FixedArray<byte>? LoadMiloData()
         {
             var bytes = base.LoadMiloData();
             if (bytes != null)
@@ -183,33 +186,33 @@ namespace YARG.Core.Song
                 return bytes;
             }
 
-            string milo = Path.Combine(Directory, "gen", _nodename + ".milo_xbox");
-            if (!File.Exists(milo))
+            var info = new FileInfo(Path.Combine(Directory, "gen", _nodename + ".milo_xbox"));
+            if (!info.Exists)
             {
                 return null;
             }
-            return File.ReadAllBytes(milo);
+            return MemoryMappedArray.Load(info);
         }
 
         protected override Stream? GetMidiStream()
         {
-            if (_dta == null || !_dta.IsStillValid() || !_midi!.IsStillValid())
+            if (_dta == null || !_dta.Value.IsStillValid() || !_midi!.Value.IsStillValid())
             {
                 return null;
             }
-            return new FileStream(_midi.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
+            return new FileStream(_midi.Value.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
         }
 
-        protected override byte[]? LoadMidiFile(Stream? file)
+        protected override FixedArray<byte>? LoadMidiFile(Stream? file)
         {
-            if (_dta == null || !_dta.IsStillValid() || !_midi!.IsStillValid())
+            if (_dta == null || !_dta.Value.IsStillValid() || !_midi!.Value.IsStillValid())
             {
                 return null;
             }
-            return File.ReadAllBytes(_midi.FullName);
+            return MemoryMappedArray.Load(_midi.Value);
         }
 
-        protected override byte[]? LoadRawImageData()
+        protected override FixedArray<byte>? LoadRawImageData()
         {
             var bytes = base.LoadRawImageData();
             if (bytes != null)
@@ -217,12 +220,12 @@ namespace YARG.Core.Song
                 return bytes;
             }
 
-            string image = Path.Combine(Directory, "gen", _nodename + "_keep.png_xbox");
-            if (!File.Exists(image))
+            var info = new FileInfo(Path.Combine(Directory, "gen", _nodename + "_keep.png_xbox"));
+            if (!info.Exists)
             {
                 return null;
             }
-            return File.ReadAllBytes(image);
+            return MemoryMappedArray.Load(info);
         }
 
         protected override Stream? GetMoggStream()

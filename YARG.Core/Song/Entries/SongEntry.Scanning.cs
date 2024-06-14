@@ -4,16 +4,16 @@ using System.IO;
 using System.Text;
 using YARG.Core.Chart;
 using YARG.Core.IO;
+using YARG.Core.IO.Disposables;
 using YARG.Core.Song.Preparsers;
 
 namespace YARG.Core.Song
 {
     public abstract partial class SongEntry
     {
-        protected static bool ParseMidi(byte[] file, DrumPreparseHandler drums, ref AvailableParts parts)
+        protected static bool ParseMidi(FixedArray<byte> file, DrumPreparseHandler drums, ref AvailableParts parts)
         {
-            using var stream = new MemoryStream(file, 0, file.Length, false, true);
-            var midiFile = new YARGMidiFile(stream);
+            var midiFile = new YARGMidiFile(file.ToStream());
             foreach (var track in midiFile)
             {
                 if (midiFile.TrackNumber == 1)

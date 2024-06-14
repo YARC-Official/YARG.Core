@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Buffers.Binary;
+using System.IO;
 using System.Runtime.InteropServices;
+using YARG.Core.IO.Disposables;
 
 namespace YARG.Core.IO
 {
@@ -21,12 +23,12 @@ namespace YARG.Core.IO
         public readonly int Height;
         public readonly ImageFormat Format;
 
-        private readonly GCHandle Handle;
+        private readonly FixedArray<byte>? _handle;
         private bool _disposed;
 
-        public static YARGImage? Load(string file)
+        public static YARGImage? Load(FileInfo file)
         {
-            using var bytes = FixedArray<byte>.Load(file);
+            using var bytes = MemoryMappedArray.Load(file);
             if (bytes == null)
             {
                 return null;
@@ -36,18 +38,17 @@ namespace YARG.Core.IO
 
         public static YARGImage? Load(SngFileListing listing, SngFile sngFile)
         {
-            var bytes = listing.LoadAllBytes(sngFile);
+            using var bytes = listing.LoadAllBytes(sngFile);
             if (bytes == null)
             {
                 return null;
             }
-            using var arr = FixedArray<byte>.Pin(bytes);
-            return Load(arr);
+            return Load(bytes);
         }
 
         private static YARGImage? Load(FixedArray<byte> file)
         {
-            var result = LoadNative(file.Ptr, file.Length, out int width, out int height, out int components);
+            var result = LoadNative(file.Ptr, (int)file.Length, out int width, out int height, out int components);
             if (result == null)
             {
                 return null;
@@ -55,16 +56,16 @@ namespace YARG.Core.IO
             return new YARGImage(result, width, height, components);
         }
 
-        public unsafe YARGImage(byte[] bytes)
+        public unsafe YARGImage(FixedArray<byte> bytes)
         {
-            Handle = GCHandle.Alloc(bytes, GCHandleType.Pinned);
-            Data = (byte*)Handle.AddrOfPinnedObject() + 32;
+            _handle = bytes;
+            Data = bytes.Ptr + 32;
 
-            Width = BinaryPrimitives.ReadInt16LittleEndian(bytes[7..9]);
-            Height = BinaryPrimitives.ReadInt16LittleEndian(bytes[9..11]);
+            Width = *(short*)(bytes.Ptr + 7);
+            Height = *(short*)(bytes.Ptr + 9);
 
             byte bitsPerPixel = bytes[1];
-            int format = BinaryPrimitives.ReadInt32LittleEndian(bytes[2..6]);
+            int format = *(int*)(bytes.Ptr + 2);
             bool isDXT1 = bitsPerPixel == 0x04 && format == 0x08;
             Format = isDXT1 ? ImageFormat.DXT1 : ImageFormat.DXT5;
         }
@@ -81,9 +82,9 @@ namespace YARG.Core.IO
         {
             if (!_disposed)
             {
-                if (Handle.IsAllocated)
+                if (_handle != null)
                 {
-                    Handle.Free();
+                    _handle.Dispose();
                 }
                 else
                 {

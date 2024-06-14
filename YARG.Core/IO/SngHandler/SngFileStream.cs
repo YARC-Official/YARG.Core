@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using YARG.Core.Extensions;
+using YARG.Core.IO.Disposables;
 
 namespace YARG.Core.IO
 {
@@ -29,37 +30,31 @@ namespace YARG.Core.IO
             VECTOR_INDEX_MASK = NUM_VECTORS_MASK << VECTOR_SHIFT;
         }
 
-        public static byte[] LoadFile(FileStream stream, SngMask mask, long fileSize, long position)
+        public static unsafe AllocatedArray<byte> LoadFile(FileStream stream, SngMask mask, long fileSize, long position)
         {
             if (stream.Seek(position, SeekOrigin.Begin) != position)
                 throw new EndOfStreamException();
 
-            byte[] buffer = stream.ReadBytes((int)fileSize);
-            unsafe
+            var buffer = AllocatedArray<byte>.Read(stream, fileSize);
+            var buffEnd = buffer.Ptr + buffer.Length;
+            var buffIndex = buffer.Length & ~VECTOR_MASK;
+            var buffPosition = buffer.Ptr + buffIndex;
+
+            var vecPtr = (Vector<byte>*) buffer.Ptr;
+            var xorVectors = (Vector<byte>*) mask.Keys;
+            Parallel.For(0, SngMask.NUMVECTORS, i =>
             {
-                fixed (byte* ptr = buffer)
+                var xor = xorVectors[i];
+                for (var loc = vecPtr + i; loc < buffPosition; loc += SngMask.NUMVECTORS)
                 {
-                    var buffEnd = ptr + buffer.Length;
-                    var buffIndex = buffer.Length & ~VECTOR_MASK;
-                    var buffPosition = ptr + buffIndex;
-
-                    var vecPtr = (Vector<byte>*) ptr;
-                    var xorVectors = (Vector<byte>*) mask.Keys;
-                    Parallel.For(0, SngMask.NUMVECTORS, i =>
-                    {
-                        var xor = xorVectors[i];
-                        for (var loc = vecPtr + i; loc < buffPosition; loc += SngMask.NUMVECTORS)
-                        {
-                            *loc ^= xor;
-                        }
-                    });
-
-                    long keyIndex = buffIndex & KEY_MASK;
-                    while (buffPosition < buffEnd)
-                    {
-                        *buffPosition++ ^= mask.Keys[keyIndex++];
-                    }
+                    *loc ^= xor;
                 }
+            });
+
+            long keyIndex = buffIndex & KEY_MASK;
+            while (buffPosition < buffEnd)
+            {
+                *buffPosition++ ^= mask.Keys[keyIndex++];
             }
             return buffer;
         }
@@ -74,7 +69,7 @@ namespace YARG.Core.IO
         private readonly long initialOffset;
 
         private readonly SngMask _mask;
-        private readonly FixedArray<byte> dataBuffer = FixedArray<byte>.Alloc(BUFFER_SIZE);
+        private readonly AllocatedArray<byte> dataBuffer = AllocatedArray<byte>.Alloc(BUFFER_SIZE);
 
         public  readonly string Name;
 

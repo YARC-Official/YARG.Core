@@ -139,10 +139,9 @@ namespace YARG.Core.Song.Cache
                 {
                     FindOrMarkDirectory(directory);
 
-                    var abridged = new AbridgedFileInfo(dtaInfo, false);
                     var dirInfo = new DirectoryInfo(directory);
-                    var group = CreateUpdateGroup(dirInfo, abridged, false);
-                    if (group != null && abridged.LastUpdatedTime == dtaLastWritten)
+                    var group = CreateUpdateGroup(dirInfo, dtaInfo, false);
+                    if (group != null && dtaInfo.LastWriteTime == dtaLastWritten)
                     {
                         for (int i = 0; i < count; i++)
                         {
@@ -186,9 +185,8 @@ namespace YARG.Core.Song.Cache
                 {
                     FindOrMarkDirectory(directory);
 
-                    var abridged = new AbridgedFileInfo(dtaInfo, false);
-                    var group = CreateUpgradeGroup(directory, abridged, false);
-                    if (group != null && abridged.LastUpdatedTime == dtaLastWrritten)
+                    var group = CreateUpgradeGroup(directory, dtaInfo, false);
+                    if (group != null && dtaInfo.LastWriteTime == dtaLastWrritten)
                     {
                         for (int i = 0; i < count; i++)
                         {
@@ -364,18 +362,13 @@ namespace YARG.Core.Song.Cache
             var dtaLastUpdated = DateTime.FromBinary(reader.ReadInt64());
             int count = reader.ReadInt32();
 
-            var group = new UpgradeGroup(directory, dtaLastUpdated);
-            AddUpgradeGroup(group);
-
             for (int i = 0; i < count; i++)
             {
                 string name = reader.ReadString();
                 string filename = Path.Combine(directory, $"{name}_plus.mid");
 
-                var info = new AbridgedFileInfo(filename, reader);
-                var upgrade = new UnpackedRBProUpgrade(info);
-                group.Upgrades.Add(name, upgrade);
-                AddUpgrade(name, null, upgrade);
+                var info = new AbridgedFileInfo_Length(filename, reader);
+                AddUpgrade(name, null, new UnpackedRBProUpgrade(info));
             }
         }
 

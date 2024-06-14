@@ -7,6 +7,7 @@ using YARG.Core.IO;
 using YARG.Core.Venue;
 using System.Linq;
 using YARG.Core.Logging;
+using YARG.Core.IO.Disposables;
 
 namespace YARG.Core.Song
 {
@@ -63,10 +64,10 @@ namespace YARG.Core.Song
                 return null;
             }
 
-            AbridgedFileInfo? updateMidi = null;
+            AbridgedFileInfo_Length? updateMidi = null;
             if (reader.ReadBoolean())
             {
-                updateMidi = AbridgedFileInfo.TryParseInfo(reader, false);
+                updateMidi = AbridgedFileInfo_Length.TryParseInfo(reader, false);
                 if (updateMidi == null)
                 {
                     return null;
@@ -94,7 +95,7 @@ namespace YARG.Core.Song
             conFile.TryGetListing(midiFilename, out var midiListing);
             var lastMidiWrite = DateTime.FromBinary(reader.ReadInt64());
 
-            var updateMidi = reader.ReadBoolean() ? new AbridgedFileInfo(reader) : null;
+            AbridgedFileInfo_Length? updateMidi = reader.ReadBoolean() ? new AbridgedFileInfo_Length(reader) : null;
             var upgrade = upgrades.TryGetValue(nodename, out var node) ? node.Item2 : null;
 
             conFile.TryGetListing(Path.ChangeExtension(midiFilename, ".mogg"), out var moggListing);
@@ -134,7 +135,7 @@ namespace YARG.Core.Song
         }
 
         private PackedRBCONEntry(CONFileListing? midi, DateTime midiLastWrite, CONFileListing? moggListing, CONFileListing? miloListing, CONFileListing? imgListing, string directory,
-            AbridgedFileInfo? updateMidi, IRBProUpgrade? upgrade, BinaryReader reader, CategoryCacheStrings strings)
+            AbridgedFileInfo_Length? updateMidi, IRBProUpgrade? upgrade, BinaryReader reader, CategoryCacheStrings strings)
             : base(updateMidi, upgrade, reader, strings)
         {
             _midiListing = midi;
@@ -209,10 +210,10 @@ namespace YARG.Core.Song
                     var fileBase = Path.Combine(actualDirectory, name);
                     foreach (var ext in IMAGE_EXTENSIONS)
                     {
-                        string backgroundPath = fileBase + ext;
-                        if (File.Exists(backgroundPath))
+                        var file = new FileInfo(fileBase + ext);
+                        if (file.Exists)
                         {
-                            var image = YARGImage.Load(backgroundPath);
+                            var image = YARGImage.Load(file);
                             if (image != null)
                             {
                                 return new BackgroundResult(image);
@@ -224,7 +225,7 @@ namespace YARG.Core.Song
             return null;
         }
 
-        public override byte[]? LoadMiloData()
+        public override FixedArray<byte>? LoadMiloData()
         {
             var bytes = base.LoadMiloData();
             if (bytes != null)
@@ -241,7 +242,7 @@ namespace YARG.Core.Song
             return _midiListing.CreateStream();
         }
 
-        protected override byte[]? LoadMidiFile(Stream? file)
+        protected override FixedArray<byte>? LoadMidiFile(Stream? file)
         {
             if (_midiListing == null || !_midiListing.IsStillValid(_lastMidiWrite))
             {
@@ -250,7 +251,7 @@ namespace YARG.Core.Song
             return _midiListing.LoadAllBytes(file!);
         }
 
-        protected override byte[]? LoadRawImageData()
+        protected override FixedArray<byte>? LoadRawImageData()
         {
             var bytes = base.LoadRawImageData();
             if (bytes != null)
