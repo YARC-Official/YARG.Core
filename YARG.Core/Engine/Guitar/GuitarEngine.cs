@@ -309,7 +309,6 @@ namespace YARG.Core.Engine.Guitar
         protected override void RebaseProgressValues(uint baseTick)
         {
             base.RebaseProgressValues(baseTick);
-            RebaseStarPowerWhammy(baseTick);
             RebaseSustains(baseTick);
         }
 
@@ -328,20 +327,11 @@ namespace YARG.Core.Engine.Guitar
                 }
                 else
                 {
-                    EngineStats.StarPowerTickAmount += State.CurrentTick - State.LastTick;
+                    EngineStats.StarPowerTickAmount += State.DeltaTicks;
                 }
             }
 
             base.UpdateStarPower();
-        }
-
-        protected void RebaseStarPowerWhammy(uint baseTick)
-        {
-            YargLogger.AssertFormat(baseTick >= State.StarPowerWhammyBaseTick,
-                "Star Power whammy base tick cannot go backwards! Went from {0} to {1}",
-                State.StarPowerWhammyBaseTick, baseTick);
-
-            State.StarPowerWhammyBaseTick = baseTick;
         }
 
         protected void RebaseSustains(uint baseTick)

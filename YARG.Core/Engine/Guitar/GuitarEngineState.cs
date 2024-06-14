@@ -30,8 +30,6 @@
 
         public double FrontEndExpireTime;
 
-        public uint StarPowerWhammyBaseTick;
-
         public void Initialize(GuitarEngineParameters parameters)
         {
             StrumLeniencyTimer = new(parameters.StrumLeniency);
@@ -55,8 +53,6 @@
             StarPowerWhammyTimer.Disable();
 
             FrontEndExpireTime = 0;
-
-            StarPowerWhammyBaseTick = 0;
         }
     }
 }

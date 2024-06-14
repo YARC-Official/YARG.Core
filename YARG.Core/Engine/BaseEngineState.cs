@@ -12,11 +12,7 @@
         public uint CurrentTick;
         public uint LastTick;
 
-        public int CurrentTimeSigIndex;
-        public int NextTimeSigIndex;
-
-        public uint TicksEveryBeat;
-        public uint TicksEveryMeasure;
+        public uint DeltaTicks => CurrentTick - LastTick;
 
         public int CurrentSoloIndex;
         public int CurrentStarIndex;
@@ -24,7 +20,6 @@
         public bool IsSoloActive;
 
         public bool IsStarPowerInputActive;
-        public uint StarPowerBaseTick;
 
         public virtual void Reset()
         {
@@ -38,19 +33,12 @@
             CurrentTick = 0;
             LastTick = 0;
 
-            CurrentTimeSigIndex = 0;
-            NextTimeSigIndex = 1;
-
-            TicksEveryBeat = 0;
-            TicksEveryMeasure = 0;
-
             CurrentSoloIndex = 0;
             CurrentStarIndex = 0;
 
             IsSoloActive = false;
 
             IsStarPowerInputActive = false;
-            StarPowerBaseTick = 0;
         }
     }
 }
