@@ -191,6 +191,7 @@ namespace YARG.Core.Engine
             {
                 YargLogger.LogWarning("Input queue was not fully cleared!");
             }
+
             YargLogger.LogFormatTrace("Running frame update at {0}", time);
             RunQueuedUpdates(time);
             RunEngineLoop(time);
@@ -215,11 +216,13 @@ namespace YARG.Core.Engine
                 if (input.Time < BaseState.CurrentTime)
                 {
                     YargLogger.FailFormat(
-                        "Queued input is in the past! Current time: {0}, input time: {1}", BaseState.CurrentTime, input.Time);
+                        "Queued input is in the past! Current time: {0}, input time: {1}", BaseState.CurrentTime,
+                        input.Time);
                     continue;
                 }
 
-                YargLogger.LogFormatTrace("Processing input {0} ({1}) update at {2}", input.GetAction<GuitarAction>(), input.Button, input.Time);
+                YargLogger.LogFormatTrace("Processing input {0} ({1}) update at {2}", input.GetAction<GuitarAction>(),
+                    input.Button, input.Time);
                 RunQueuedUpdates(input.Time);
 
                 // Update engine state with input.
@@ -233,8 +236,10 @@ namespace YARG.Core.Engine
                 {
                     if (InputQueue.Count > 0)
                     {
-                        YargLogger.LogWarning("Input queue was not fully cleared! Remaining inputs are possibly in the future");
+                        YargLogger.LogWarning(
+                            "Input queue was not fully cleared! Remaining inputs are possibly in the future");
                     }
+
                     return;
                 }
             }
@@ -252,6 +257,7 @@ namespace YARG.Core.Engine
             {
                 YargLogger.LogFormatTrace("{0} updates ready to be simulated", _scheduledUpdates.Count);
             }
+
             int i = 0;
             for (; i < _scheduledUpdates.Count; i++)
             {
@@ -261,18 +267,21 @@ namespace YARG.Core.Engine
                 if (updateTime < BaseState.CurrentTime)
                 {
                     YargLogger.FailFormat(
-                        "Scheduled update is in the past! Current time: {0}, update time: {1}", BaseState.CurrentTime, updateTime);
+                        "Scheduled update is in the past! Current time: {0}, update time: {1}", BaseState.CurrentTime,
+                        updateTime);
                     continue;
                 }
 
                 // There should be no scheduled updates for times beyond the one we want to update to
                 if (updateTime >= time)
                 {
-                    YargLogger.FailFormat("Update time is >= than the given time! Update time: {0}, given time: {1}", updateTime, time);
+                    YargLogger.FailFormat("Update time is >= than the given time! Update time: {0}, given time: {1}",
+                        updateTime, time);
                     continue;
                 }
 
-                YargLogger.LogFormatTrace("Running scheduled update at {0} ({1})", updateTime, item2: _scheduledUpdates[i].Reason);
+                YargLogger.LogFormatTrace("Running scheduled update at {0} ({1})", updateTime,
+                    item2: _scheduledUpdates[i].Reason);
                 RunEngineLoop(updateTime);
             }
 
@@ -346,7 +355,8 @@ namespace YARG.Core.Engine
             if (time < BaseState.CurrentTime)
             {
                 YargLogger.FailFormat(
-                    "Cannot queue update in the past! Current time: {0}, time being queued: {1}", BaseState.CurrentTime, time);
+                    "Cannot queue update in the past! Current time: {0}, time being queued: {1}", BaseState.CurrentTime,
+                    time);
                 return;
             }
 
