@@ -15,8 +15,9 @@ namespace YARG.Core.Engine.Drums.Engines
 
         protected override void MutateStateWithInput(GameInput gameInput)
         {
-            if (gameInput.Button)
+            if (gameInput.Axis > 0) // For some reason, it's ignoring 127-velocity hits and this fixes it...
             {
+                State.Action = gameInput.GetAction<DrumsAction>();
                 State.PadHit = ConvertInputToPad(EngineParameters.Mode, gameInput.GetAction<DrumsAction>());
                 State.HitVelocity = gameInput.Axis;
             }
@@ -29,14 +30,16 @@ namespace YARG.Core.Engine.Drums.Engines
             // Update bot (will return if not enabled)
             UpdateBot(time);
 
-            // Quit early if there are no notes left
-            if (State.NoteIndex >= Notes.Count)
+            // Only check hit if there are notes left
+            if (State.NoteIndex < Notes.Count)
             {
-                ResetPadState();
-                return;
+                CheckForNoteHit();
             }
-
-            CheckForNoteHit();
+            else if (State.PadHit != null)
+            {
+                OnPadHit?.Invoke(State.Action.Value, false, State.HitVelocity.GetValueOrDefault(0));
+                ResetPadState();
+            }
         }
 
         protected override void CheckForNoteHit()
@@ -77,6 +80,7 @@ namespace YARG.Core.Engine.Drums.Engines
                         // TODO - Deadly Dynamics modifier check on awardVelocityBonus
                         
                         HitNote(note);
+                        OnPadHit?.Invoke(State.Action.Value, true, State.HitVelocity.GetValueOrDefault(0));
 
                         if (awardVelocityBonus){
                             int velocityBonus = (int)(POINTS_PER_NOTE * 0.5 * EngineStats.ScoreMultiplier);
@@ -92,7 +96,7 @@ namespace YARG.Core.Engine.Drums.Engines
                     }
                     else
                     {
-                        YargLogger.LogFormatDebug("Cant hit note (Index: {0}) at {1}.", i, State.CurrentTime);
+                        //YargLogger.LogFormatDebug("Cant hit note (Index: {0}) at {1}.", i, State.CurrentTime);
                     }
                 }
 
@@ -105,6 +109,7 @@ namespace YARG.Core.Engine.Drums.Engines
             // If no note was hit but the user hit a pad, then over hit
             if (State.PadHit != null)
             {
+                OnPadHit?.Invoke(State.Action.Value, false, State.HitVelocity.GetValueOrDefault(0));
                 Overhit();
                 ResetPadState();
             }
@@ -139,6 +144,7 @@ namespace YARG.Core.Engine.Drums.Engines
 
         private void ResetPadState()
         {
+            State.Action = null;
             State.PadHit = null;
             State.HitVelocity = null;
         }

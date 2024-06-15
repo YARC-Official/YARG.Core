@@ -1,4 +1,5 @@
 ﻿using YARG.Core.Chart;
+using YARG.Core.Input;
 
 namespace YARG.Core.Engine.Drums
 {
@@ -10,6 +11,7 @@ namespace YARG.Core.Engine.Drums
         /// </summary>
         public int? PadHit;
         public float? HitVelocity;
+        public DrumsAction? Action;
 
         public override void Reset()
         {
@@ -17,6 +19,7 @@ namespace YARG.Core.Engine.Drums
 
             PadHit = null;
             HitVelocity = null;
+            Action = null;
         }
     }
 }

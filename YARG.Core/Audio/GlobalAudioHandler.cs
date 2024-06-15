@@ -46,6 +46,7 @@ namespace YARG.Core.Audio
                 { SongStem.Drums4,  drums },
                 { SongStem.Crowd,   new StemSettings(AudioHelpers.SONG_VOLUME_MULTIPLIER) },
                 { SongStem.Sfx,     new StemSettings(1) },
+                { SongStem.DrumSfx, new StemSettings(1) },
             };
         }
 
@@ -233,6 +234,18 @@ namespace YARG.Core.Audio
                     throw new NotInitializedException();
                 }
                 _instance.SfxSamples[(int) sample]?.Play();
+            }
+        }
+
+        public static void PlayDrumSoundEffect(DrumSfxSample sample, double volume)
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+                _instance.DrumSfxSamples[(int) sample]?.Play(volume);
             }
         }
 

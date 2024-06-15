@@ -12,7 +12,8 @@ namespace YARG.Core.Audio
         private bool _disposed;
         private List<StemMixer> _activeMixers = new();
 
-        protected internal readonly SampleChannel[] SfxSamples = new SampleChannel[AudioHelpers.SfxPaths.Count];
+        protected internal readonly SampleChannel[]     SfxSamples     = new SampleChannel[AudioHelpers.SfxPaths.Count];
+        protected internal readonly DrumSampleChannel[] DrumSfxSamples = new DrumSampleChannel[AudioHelpers.DrumSfxPaths.Count];
         protected internal int PlaybackLatency;
         protected internal int MinimumBufferLength;
         protected internal int MaximumBufferLength;
@@ -173,6 +174,11 @@ namespace YARG.Core.Audio
                     }
 
                     foreach (var sample in SfxSamples)
+                    {
+                        sample?.Dispose();
+                    }
+
+                    foreach (var sample in DrumSfxSamples)
                     {
                         sample?.Dispose();
                     }
