@@ -160,7 +160,9 @@ namespace YARG.Core.IO
             {
                 var strLen = reader.ReadByte();
                 string filename = Encoding.UTF8.GetString(reader.ReadBytes(strLen));
-                listings.Add(filename.ToLower(), new SngFileListing(filename, reader));
+                long fileLength = reader.ReadInt64();
+                long position = reader.ReadInt64();
+                listings.Add(filename.ToLower(), new SngFileListing(filename, position, fileLength));
             }
             return listings;
         }

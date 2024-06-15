@@ -91,7 +91,7 @@ namespace YARG.Core.Song
 
             if (!string.IsNullOrEmpty(_cover) && sngFile.TryGetValue(_video, out var cover))
             {
-                var image = YARGImage.Load(cover, sngFile);
+                var image = YARGImage.Load(in cover, sngFile);
                 if (image != null)
                 {
                     return image;
@@ -103,7 +103,7 @@ namespace YARG.Core.Song
             {
                 if (sngFile.TryGetValue(albumFile, out var listing))
                 {
-                    var image = YARGImage.Load(listing, sngFile);
+                    var image = YARGImage.Load(in listing, sngFile);
                     if (image != null)
                     {
                         return image;
@@ -172,14 +172,10 @@ namespace YARG.Core.Song
 
             if ((options & BackgroundType.Image) > 0)
             {
-                if (string.IsNullOrEmpty(_background) || !sngFile.TryGetValue(_background, out var listing))
+                if ((!string.IsNullOrEmpty(_background) && sngFile.TryGetValue(_background, out var listing))
+                || TryGetRandomBackgroundImage(sngFile, out listing))
                 {
-                    listing = GetRandomBackgroundImage(sngFile);
-                }
-
-                if (listing != null)
-                {
-                    var image = YARGImage.Load(listing, sngFile);
+                    var image = YARGImage.Load(in listing, sngFile);
                     if (image != null)
                     {
                         return new BackgroundResult(image);

@@ -36,7 +36,7 @@ namespace YARG.Core.IO
             return Load(bytes);
         }
 
-        public static YARGImage? Load(SngFileListing listing, SngFile sngFile)
+        public static YARGImage? Load(in SngFileListing listing, SngFile sngFile)
         {
             using var bytes = listing.LoadAllBytes(sngFile);
             if (bytes == null)

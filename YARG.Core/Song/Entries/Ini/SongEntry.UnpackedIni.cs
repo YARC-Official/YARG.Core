@@ -158,12 +158,8 @@ namespace YARG.Core.Song
 
             if ((options & BackgroundType.Image) > 0)
             {
-                if (string.IsNullOrEmpty(_background) || !subFiles.TryGetValue(_background, out var file))
-                {
-                    file = GetRandomBackgroundImage(subFiles);
-                }
-
-                if (file != null)
+                if ((!string.IsNullOrEmpty(_background) && subFiles.TryGetValue(_background, out var file))
+                || TryGetRandomBackgroundImage(subFiles, out file))
                 {
                     var image = YARGImage.Load(file);
                     if (image != null)

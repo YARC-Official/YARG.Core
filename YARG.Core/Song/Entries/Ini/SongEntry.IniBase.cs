@@ -425,8 +425,7 @@ namespace YARG.Core.Song
             }
         }
 
-        protected static T? GetRandomBackgroundImage<T>(IEnumerable<KeyValuePair<string, T>> collection)
-            where T : class
+        protected static bool TryGetRandomBackgroundImage<T>(IEnumerable<KeyValuePair<string, T>> collection, out T value)
         {
             // Choose a valid image background present in the folder at random
             var images = new List<T>();
@@ -456,7 +455,13 @@ namespace YARG.Core.Song
                 }
             }
 
-            return images.Count > 0 ? images[BACKROUND_RNG.Next(images.Count)] : null;
+            if (images.Count == 0)
+            {
+                value = default!;
+                return false;
+            }
+            value = images[BACKROUND_RNG.Next(images.Count)];
+            return true;
         }
     }
 }
