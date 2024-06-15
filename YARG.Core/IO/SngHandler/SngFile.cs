@@ -150,19 +150,24 @@ namespace YARG.Core.IO
 
         private static Dictionary<string, SngFileListing> ReadListings(Stream stream)
         {
-            ulong length = stream.Read<ulong>(Endianness.Little) - sizeof(ulong);
+            long length = stream.Read<long>(Endianness.Little) - sizeof(long);
             ulong numListings = stream.Read<ulong>(Endianness.Little);
 
-            Dictionary<string, SngFileListing> listings = new((int)numListings);
+            using var buffer = AllocatedArray<byte>.Read(stream, length);
+            using var bufferStream = buffer.ToStream();
 
-            var reader = BinaryReaderExtensions.Load(stream, (int)length);
+            Dictionary<string, SngFileListing> listings = new((int)numListings);
             for (ulong i = 0; i < numListings; i++)
             {
-                var strLen = reader.ReadByte();
-                string filename = Encoding.UTF8.GetString(reader.ReadBytes(strLen));
-                long fileLength = reader.ReadInt64();
-                long position = reader.ReadInt64();
-                listings.Add(filename.ToLower(), new SngFileListing(filename, position, fileLength));
+                unsafe
+                {
+                    var strLen = bufferStream.ReadByte();
+                    string filename = Encoding.UTF8.GetString(bufferStream.PositionPointer, strLen);
+                    bufferStream.Position += strLen;
+                    long fileLength = bufferStream.Read<long>(Endianness.Little);
+                    long position = bufferStream.Read<long>(Endianness.Little);
+                    listings.Add(filename.ToLower(), new SngFileListing(filename, position, fileLength));
+                }
             }
             return listings;
         }
