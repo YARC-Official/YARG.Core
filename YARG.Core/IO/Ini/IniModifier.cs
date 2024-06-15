@@ -1,12 +1,7 @@
 ﻿using System;
-using System.Buffers.Text;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading.Tasks;
-using System.Xml.Linq;
 using YARG.Core.Song;
+using YARG.Core.Utility;
 
 namespace YARG.Core.IO.Ini
 {
@@ -15,6 +10,8 @@ namespace YARG.Core.IO.Ini
         None,
         SortString,
         String,
+        SortString_Chart,
+        String_Chart,
         UInt64,
         Int64,
         UInt32,
@@ -27,296 +24,138 @@ namespace YARG.Core.IO.Ini
         Int64Array,
     };
 
-    public sealed class IniModifier
+    public partial struct IniModifier
     {
-        [StructLayout(LayoutKind.Explicit)]
-        private unsafe struct ModifierUnion
+        public static readonly IniModifier Default = new()
         {
-            [FieldOffset(0)] public ulong ul;
-            [FieldOffset(0)] public long l;
-            [FieldOffset(0)] public uint ui;
-            [FieldOffset(0)] public int i;
-            [FieldOffset(0)] public ushort us;
-            [FieldOffset(0)] public short s;
-            [FieldOffset(0)] public double d;
-            [FieldOffset(0)] public float f;
-            [FieldOffset(0)] public bool b;
-            [FieldOffset(0)] public fixed long lArr[2];
+            SortStr = SortString.Empty,
+            Str = string.Empty,
+        };
+
+        public unsafe fixed long Buffer[2];
+        public SortString SortStr;
+        public string Str;
+    }
+
+    public readonly struct IniModifierCreator
+    {
+        public readonly string OutputName;
+        public readonly ModifierType Type;
+
+        public IniModifierCreator(string outputName, ModifierType type)
+        {
+            OutputName = outputName;
+            Type = type;
         }
 
-        private readonly ModifierType type;
-        private ModifierUnion union;
-
-        private SortString _sort = SortString.Empty;
-        private string _str = string.Empty;
-
-        public IniModifier(SortString str)
+        public unsafe IniModifier CreateModifier<TChar>(ref YARGTextContainer<TChar> container)
+            where TChar : unmanaged, IConvertible
         {
-            type = ModifierType.SortString;
-            _sort = str;
-        }
-        public IniModifier(string str)
-        {
-            type = ModifierType.String;
-            _str = str;
-        }
-        public IniModifier(ulong value)
-        {
-            type = ModifierType.UInt64;
-            union.ul = value;
-        }
-        public IniModifier(long value)
-        {
-            type = ModifierType.Int64;
-            union.l = value;
-        }
-        public IniModifier(uint value)
-        {
-            type = ModifierType.UInt32;
-            union.ui = value;
-        }
-        public IniModifier(int value)
-        {
-            type = ModifierType.Int32;
-            union.i = value;
-        }
-        public IniModifier(ushort value)
-        {
-            type = ModifierType.UInt16;
-            union.us = value;
-        }
-        public IniModifier(short value)
-        {
-            type = ModifierType.Int16;
-            union.s = value;
-        }
-        public IniModifier(bool value)
-        {
-            type = ModifierType.Bool;
-            union.b = value;
-        }
-        public IniModifier(float value)
-        {
-            type = ModifierType.Float;
-            union.f = value;
-        }
-        public IniModifier(double value)
-        {
-            type = ModifierType.Double;
-            union.d = value;
-        }
-        public IniModifier(long dub1, long dub2)
-        {
-            type = ModifierType.Int64Array;
-            unsafe
+            if (Type <= ModifierType.String_Chart)
             {
-                union.lArr[0] = dub1;
-                union.lArr[1] = dub2;
+                var modifier = IniModifier.Default;
+                switch (Type)
+                {
+                    case ModifierType.SortString:
+                        modifier.SortStr = SortString.Convert(ExtractIniString(ref container, false));
+                        break;
+                    case ModifierType.SortString_Chart:
+                        modifier.SortStr = SortString.Convert(ExtractIniString(ref container, true));
+                        break;
+                    case ModifierType.String:
+                        modifier.Str = ExtractIniString(ref container, false);
+                        break;
+                    case ModifierType.String_Chart:
+                        modifier.Str = ExtractIniString(ref container, true);
+                        break;
+                }
+                return modifier;
             }
+            return CreateNumberModifier(ref container);
         }
 
-        public SortString SortString
+        public IniModifier CreateSngModifier(ref YARGTextContainer<byte> sngContainer, int length)
         {
-            get
+            if (Type <= ModifierType.String)
             {
-                if (type != ModifierType.SortString)
-                    throw new ArgumentException("Modifier is not a SortString");
-                return _sort;
+                var modifier = IniModifier.Default;
+                switch (Type)
+                {
+                    case ModifierType.SortString:
+                        modifier.SortStr = SortString.Convert(ExtractSngString(ref sngContainer, length));
+                        break;
+                    case ModifierType.String:
+                        modifier.Str = ExtractSngString(ref sngContainer, length);
+                        break;
+                }
+                return modifier;
             }
-            set
-            {
-                if (type != ModifierType.SortString)
-                    throw new ArgumentException("Modifier is not a SortString");
-                _sort = value;
-            }
+            return CreateNumberModifier(ref sngContainer);
         }
 
-        public string String
+        private unsafe IniModifier CreateNumberModifier<TChar>(ref YARGTextContainer<TChar> container)
+            where TChar : unmanaged, IConvertible
         {
-            get
+            var modifier = IniModifier.Default;
+            switch (Type)
             {
-                if (type != ModifierType.String)
-                    throw new ArgumentException("Modifier is not a String");
-                return _str!;
+                case ModifierType.UInt64:
+                    YARGTextReader.TryExtractUInt64(ref container, out *(ulong*) modifier.Buffer);
+                    break;
+                case ModifierType.Int64:
+                    YARGTextReader.TryExtractInt64(ref container, out modifier.Buffer[0]);
+                    break;
+                case ModifierType.UInt32:
+                    YARGTextReader.TryExtractUInt32(ref container, out *(uint*)modifier.Buffer);
+                    break;
+                case ModifierType.Int32:
+                    YARGTextReader.TryExtractInt32(ref container, out *(int*)modifier.Buffer);
+                    break;
+                case ModifierType.UInt16:
+                    YARGTextReader.TryExtractUInt16(ref container, out *(ushort*)modifier.Buffer);
+                    break;
+                case ModifierType.Int16:
+                    YARGTextReader.TryExtractInt16(ref container, out *(short*)modifier.Buffer);
+                    break;
+                case ModifierType.Bool:
+                    *(bool*) modifier.Buffer = YARGTextReader.ExtractBoolean(in container);
+                    break;
+                case ModifierType.Float:
+                    YARGTextReader.TryExtractFloat(ref container, out *(float*)modifier.Buffer);
+                    break;
+                case ModifierType.Double:
+                    YARGTextReader.TryExtractDouble(ref container, out *(double*)modifier.Buffer);
+                    break;
+                case ModifierType.Int64Array:
+                    modifier.Buffer[0] = -1;
+                    if (YARGTextReader.TryExtractInt64(ref container, out modifier.Buffer[0]))
+                    {
+                        YARGTextReader.SkipWhitespace(ref container);
+                        if (!YARGTextReader.TryExtractInt64(ref container, out modifier.Buffer[1]))
+                        {
+                            modifier.Buffer[1] = -1;
+                        }
+                    }
+                    else
+                    {
+                        modifier.Buffer[1] = -1;
+                    }
+                    break;
+                default:
+                    throw new NotImplementedException();
             }
-            set
-            {
-                if (type != ModifierType.String)
-                    throw new ArgumentException("Modifier is not a String");
-                _str = value;
-            }
+            return modifier;
         }
 
-        public ulong UInt64
+        private static unsafe string ExtractIniString<TChar>(ref YARGTextContainer<TChar> container, bool isChartFile)
+            where TChar : unmanaged, IConvertible
         {
-            get
-            {
-                if (type != ModifierType.UInt64)
-                    throw new ArgumentException("Modifier is not a UINT64");
-                return union.ul;
-            }
-            set
-            {
-                if (type != ModifierType.UInt64)
-                    throw new ArgumentException("Modifier is not a UINT64");
-                union.ul = value;
-            }
+            return RichTextUtils.ReplaceColorNames(YARGTextReader.ExtractText(ref container, isChartFile));
         }
 
-        public long Int64
+        private static unsafe string ExtractSngString(ref YARGTextContainer<byte> sngContainer, int length)
         {
-            get
-            {
-                if (type != ModifierType.Int64)
-                    throw new ArgumentException("Modifier is not a INT64");
-                return union.l;
-            }
-            set
-            {
-                if (type != ModifierType.Int64)
-                    throw new ArgumentException("Modifier is not a INT64");
-                union.l = value;
-            }
-        }
-
-        public uint UInt32
-        {
-            get
-            {
-                if (type != ModifierType.UInt32)
-                    throw new ArgumentException("Modifier is not a UINT32");
-                return union.ui;
-            }
-            set
-            {
-                if (type != ModifierType.UInt32)
-                    throw new ArgumentException("Modifier is not a UINT32");
-                union.ui = value;
-            }
-        }
-
-        public int Int32
-        {
-            get
-            {
-                if (type != ModifierType.Int32)
-                    throw new ArgumentException("Modifier is not a INT32");
-                return union.i;
-            }
-            set
-            {
-                if (type != ModifierType.Int32)
-                    throw new ArgumentException("Modifier is not a INT32");
-                union.i = value;
-            }
-        }
-
-        public ushort UInt16
-        {
-            get
-            {
-                if (type != ModifierType.UInt16)
-                    throw new ArgumentException("Modifier is not a UINT16");
-                return union.us;
-            }
-            set
-            {
-                if (type != ModifierType.UInt16)
-                    throw new ArgumentException("Modifier is not a UINT16");
-                union.us = value;
-            }
-        }
-
-        public short Int16
-        {
-            get
-            {
-                if (type != ModifierType.Int16)
-                    throw new ArgumentException("Modifier is not a INT16");
-                return union.s;
-            }
-            set
-            {
-                if (type != ModifierType.Int16)
-                    throw new ArgumentException("Modifier is not a INT16");
-                union.s = value;
-            }
-        }
-
-        public bool Bool
-        {
-            get
-            {
-                if (type != ModifierType.Bool)
-                    throw new ArgumentException("Modifier is not a BOOL");
-                return union.b;
-            }
-            set
-            {
-                if (type != ModifierType.Bool)
-                    throw new ArgumentException("Modifier is not a BOOL");
-                union.b = value;
-            }
-        }
-
-        public float Float
-        {
-            get
-            {
-                if (type != ModifierType.Float)
-                    throw new ArgumentException("Modifier is not a FLOAT");
-                return union.f;
-            }
-            set
-            {
-                if (type != ModifierType.Float)
-                    throw new ArgumentException("Modifier is not a FLOAT");
-                union.f = value;
-            }
-        }
-
-        public double Double
-        {
-            get
-            {
-                if (type != ModifierType.Double)
-                    throw new ArgumentException("Modifier is not a DOUBLE");
-                return union.d;
-            }
-            set
-            {
-                if (type != ModifierType.Double)
-                    throw new ArgumentException("Modifier is not a DOUBLE");
-                union.d = value;
-            }
-        }
-
-        public void GetInt64Array(out long l1, out long l2)
-        {
-            if (type != ModifierType.Int64Array)
-            {
-                throw new ArgumentException("Modifier is not a UINT64ARRAY");
-            }
-
-            unsafe
-            {
-                l1 = union.lArr[0];
-                l2 = union.lArr[1];
-            }
-        }
-
-        public void SetInt64Array(long l1, long l2)
-        {
-            if (type != ModifierType.Int64Array)
-            {
-                throw new ArgumentException("Modifier is not a UINT64ARRAY");
-            }
-
-            unsafe
-            {
-                union.lArr[0] = l1;
-                union.lArr[1] = l2;
-            }
+            return RichTextUtils.ReplaceColorNames(Encoding.UTF8.GetString(sngContainer.Position, length));
         }
     }
 }

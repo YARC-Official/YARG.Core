@@ -335,7 +335,8 @@ namespace YARG.Core.Song
 
             if (!modifiers.TryGet("year", out _metadata.Year))
             {
-                if (modifiers.TryGet("year_chart", out _metadata.Year))
+                // Capitalization = from .chart
+                if (modifiers.TryGet("Year", out _metadata.Year))
                 {
                     if (_metadata.Year.StartsWith(", "))
                     {
@@ -389,7 +390,8 @@ namespace YARG.Core.Song
             {
                 if (!modifiers.TryGet("preview_start_time", out _metadata.PreviewStart))
                 {
-                    if (modifiers.TryGet("previewStart", out double previewStartSeconds))
+                    // Capitlization = from .chart
+                    if (modifiers.TryGet("PreviewStart", out double previewStartSeconds))
                     {
                         _metadata.PreviewStart = (long) (previewStartSeconds * MILLISECOND_FACTOR);
                     }
@@ -401,7 +403,8 @@ namespace YARG.Core.Song
 
                 if (!modifiers.TryGet("preview_end_time", out _metadata.PreviewEnd))
                 {
-                    if (modifiers.TryGet("previewEnd", out double previewEndSeconds))
+                    // Capitlization = from .chart
+                    if (modifiers.TryGet("PreviewEnd", out double previewEndSeconds))
                     {
                         _metadata.PreviewEnd = (long) (previewEndSeconds * MILLISECOND_FACTOR);
                     }
@@ -414,7 +417,8 @@ namespace YARG.Core.Song
 
             if (!modifiers.TryGet("delay", out _metadata.SongOffset) || _metadata.SongOffset == 0)
             {
-                if (modifiers.TryGet("offset", out double songOffsetSeconds))
+                // Capitlization = from .chart
+                if (modifiers.TryGet("Offset", out double songOffsetSeconds))
                 {
                     _metadata.SongOffset = (long) (songOffsetSeconds * MILLISECOND_FACTOR);
                 }

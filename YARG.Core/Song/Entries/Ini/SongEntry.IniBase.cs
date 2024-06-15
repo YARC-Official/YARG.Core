@@ -54,20 +54,6 @@ namespace YARG.Core.Song
             new("notes.chart", ChartType.Chart),
         };
 
-        protected static readonly Dictionary<string, IniModifierCreator> CHART_MODIFIER_LIST = new()
-        {
-            { "Album",        new("album",        ModifierCreatorType.SortString_Chart ) },
-            { "Artist",       new("artist",       ModifierCreatorType.SortString_Chart ) },
-            { "Charter",      new("charter",      ModifierCreatorType.SortString_Chart ) },
-            { "Difficulty",   new("diff_band",    ModifierCreatorType.Int32 ) },
-            { "Genre",        new("genre",        ModifierCreatorType.SortString_Chart ) },
-            { "Name",         new("name",         ModifierCreatorType.SortString_Chart ) },
-            { "PreviewEnd",   new("previewEnd",   ModifierCreatorType.Double ) },
-            { "PreviewStart", new("previewStart", ModifierCreatorType.Double ) },
-            { "Year",         new("year_chart",   ModifierCreatorType.String_Chart ) },
-            { "Offset",       new("offset",       ModifierCreatorType.Double ) },
-        };
-
         protected static readonly string[] ALBUMART_FILES;
         protected static readonly string[] PREVIEW_FILES;
 
@@ -224,7 +210,7 @@ namespace YARG.Core.Song
         {
             if (YARGChartFileReader.ValidateTrack(ref container, YARGChartFileReader.HEADERTRACK))
             {
-                var chartMods = YARGChartFileReader.ExtractModifiers(ref container, CHART_MODIFIER_LIST);
+                var chartMods = YARGChartFileReader.ExtractModifiers(ref container);
                 modifiers.Append(chartMods);
             }
 

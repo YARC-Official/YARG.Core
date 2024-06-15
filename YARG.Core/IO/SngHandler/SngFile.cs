@@ -121,7 +121,6 @@ namespace YARG.Core.IO
 
             using var bytes = AllocatedArray<byte>.Read(stream, length);
             var container = new YARGTextContainer<byte>(bytes.Ptr, bytes.Ptr + length, null!);
-            var validNodes = SongIniHandler.SONG_INI_DICTIONARY["[song]"];
 
             for (ulong i = 0; i < numPairs; i++)
             {
@@ -131,16 +130,16 @@ namespace YARG.Core.IO
 
                 strLength = GetLength(ref container);
                 var next = container.Position + strLength;
-                if (validNodes.TryGetValue(key, out var node))
+                if (SongIniHandler.SONG_INI_MODIFIERS.TryGetValue(key, out var node))
                 {
                     var mod = node.CreateSngModifier(ref container, strLength);
-                    if (modifiers.TryGetValue(node.outputName, out var list))
+                    if (modifiers.TryGetValue(node.OutputName, out var list))
                     {
                         list.Add(mod);
                     }
                     else
                     {
-                        modifiers.Add(node.outputName, new() { mod });
+                        modifiers.Add(node.OutputName, new() { mod });
                     }
                 }
                 container.Position = next;

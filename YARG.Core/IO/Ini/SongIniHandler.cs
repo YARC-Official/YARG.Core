@@ -1,6 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
-using System.Linq;
+using YARG.Core.Song;
 
 namespace YARG.Core.IO.Ini
 {
@@ -9,135 +10,193 @@ namespace YARG.Core.IO.Ini
         public static IniSection ReadSongIniFile(FileInfo iniFile)
         {
             var modifiers = YARGIniReader.ReadIniFile(iniFile, SONG_INI_DICTIONARY);
-            if (modifiers.Count == 0)
-                return new();
-            return modifiers.First().Value;
+            if (!modifiers.TryGetValue("[song]", out var section))
+            {
+                section = new IniSection();
+            }
+            return section;
         }
 
-        public static readonly Dictionary<string, Dictionary<string, IniModifierCreator>> SONG_INI_DICTIONARY = new();
+        public static readonly Dictionary<string, Dictionary<string, IniModifierCreator>> SONG_INI_DICTIONARY;
+        public static readonly Dictionary<string, IniModifierCreator> SONG_INI_MODIFIERS;
+
+#if DEBUG
+        private static readonly Dictionary<string, ModifierType> _validations;
+        public static void ThrowIfNot<T>(string key)
+        {
+            if (!SONG_INI_MODIFIERS.TryGetValue(key, out var mod))
+            {
+                throw new ArgumentException($"Dev: {key} is not a valid modifier!");
+            }
+
+            var typename = typeof(T).Name;
+            var type = _validations[typename];
+            if (type != mod.Type
+            && (type == ModifierType.SortString) != (mod.Type == ModifierType.SortString_Chart)
+            && (type == ModifierType.String) != (mod.Type == ModifierType.String_Chart))
+            {
+                throw new ArgumentException($"Dev: Modifier {key} is not of type {typename}");
+            }
+        }
+#endif
+
         static SongIniHandler()
         {
-            SONG_INI_DICTIONARY.Add("[song]", new()
+            SONG_INI_MODIFIERS = new()
             {
-                { "album",                                new("album", ModifierCreatorType.SortString) },
-                { "album_track",                          new("album_track", ModifierCreatorType.Int32) },
-                { "artist",                               new("artist", ModifierCreatorType.SortString) },
+                { "album",                                new("album", ModifierType.SortString) },
+                { "Album",                                new("album", ModifierType.SortString_Chart) },
+                { "album_track",                          new("album_track", ModifierType.Int32) },
+                { "artist",                               new("artist", ModifierType.SortString) },
+                { "Artist",                               new("artist", ModifierType.SortString_Chart) },
 
-                { "background",                           new("background", ModifierCreatorType.String) },
-                //{ "banner_link_a",                        new("banner_link_a", ModifierCreatorType.String) },
-                //{ "banner_link_b",                        new("banner_link_b", ModifierCreatorType.String) },
-                { "bass_type",                            new("bass_type", ModifierCreatorType.UInt32) },
-                //{ "boss_battle",                          new("boss_battle", ModifierCreatorType.Bool) },
+                { "background",                           new("background", ModifierType.String) },
+                //{ "banner_link_a",                        new("banner_link_a", ModifierType.String) },
+                //{ "banner_link_b",                        new("banner_link_b", ModifierType.String) },
+                { "bass_type",                            new("bass_type", ModifierType.UInt32) },
+                //{ "boss_battle",                          new("boss_battle", ModifierType.Bool) },
 
-                //{ "cassettecolor",                        new("cassettecolor", ModifierCreatorType.UInt32) },
-                { "charter",                              new("charter", ModifierCreatorType.SortString) },
-                { "count",                                new("count", ModifierCreatorType.UInt32) },
-                { "cover",                                new("cover", ModifierCreatorType.String) },
+                //{ "cassettecolor",                        new("cassettecolor", ModifierType.UInt32) },
+                { "charter",                              new("charter", ModifierType.SortString) },
+                { "Charter",                              new("charter", ModifierType.SortString_Chart) },
+                { "count",                                new("count", ModifierType.UInt32) },
+                { "cover",                                new("cover", ModifierType.String) },
 
-                { "dance_type",                           new("dance_type", ModifierCreatorType.UInt32) },
-                { "delay",                                new("delay", ModifierCreatorType.Int64) },
-                { "diff_band",                            new("diff_band", ModifierCreatorType.Int32) },
-                { "diff_bass",                            new("diff_bass", ModifierCreatorType.Int32) },
-                { "diff_bass_real",                       new("diff_bass_real", ModifierCreatorType.Int32) },
-                { "diff_bass_real_22",                    new("diff_bass_real_22", ModifierCreatorType.Int32) },
-                { "diff_bassghl",                         new("diff_bassghl", ModifierCreatorType.Int32) },
-                { "diff_dance",                           new("diff_dance", ModifierCreatorType.Int32) },
-                { "diff_drums",                           new("diff_drums", ModifierCreatorType.Int32) },
-                { "diff_drums_real",                      new("diff_drums_real", ModifierCreatorType.Int32) },
-                { "diff_drums_real_ps",                   new("diff_drums_real_ps", ModifierCreatorType.Int32) },
-                { "diff_guitar",                          new("diff_guitar", ModifierCreatorType.Int32) },
-                { "diff_guitar_coop",                     new("diff_guitar_coop", ModifierCreatorType.Int32) },
-                { "diff_guitar_coop_ghl",                 new("diff_guitar_coop_ghl", ModifierCreatorType.Int32) },
-                { "diff_guitar_real",                     new("diff_guitar_real", ModifierCreatorType.Int32) },
-                { "diff_guitar_real_22",                  new("diff_guitar_real_22", ModifierCreatorType.Int32) },
-                { "diff_guitarghl",                       new("diff_guitarghl", ModifierCreatorType.Int32) },
-                { "diff_keys",                            new("diff_keys", ModifierCreatorType.Int32) },
-                { "diff_keys_real",                       new("diff_keys_real", ModifierCreatorType.Int32) },
-                { "diff_keys_real_ps",                    new("diff_keys_real_ps", ModifierCreatorType.Int32) },
-                { "diff_rhythm",                          new("diff_rhythm", ModifierCreatorType.Int32) },
-                { "diff_rhythm_ghl",                      new("diff_rhythm_ghl", ModifierCreatorType.Int32) },
-                { "diff_vocals",                          new("diff_vocals", ModifierCreatorType.Int32) },
-                { "diff_vocals_harm",                     new("diff_vocals_harm", ModifierCreatorType.Int32) },
-                { "drum_fallback_blue",                   new("drum_fallback_blue", ModifierCreatorType.Bool) },
+                { "dance_type",                           new("dance_type", ModifierType.UInt32) },
+                { "delay",                                new("delay", ModifierType.Int64) },
+                { "Difficulty",                           new("diff_band", ModifierType.Int32) },
+                { "diff_band",                            new("diff_band", ModifierType.Int32) },
+                { "diff_bass",                            new("diff_bass", ModifierType.Int32) },
+                { "diff_bass_real",                       new("diff_bass_real", ModifierType.Int32) },
+                { "diff_bass_real_22",                    new("diff_bass_real_22", ModifierType.Int32) },
+                { "diff_bassghl",                         new("diff_bassghl", ModifierType.Int32) },
+                { "diff_dance",                           new("diff_dance", ModifierType.Int32) },
+                { "diff_drums",                           new("diff_drums", ModifierType.Int32) },
+                { "diff_drums_real",                      new("diff_drums_real", ModifierType.Int32) },
+                { "diff_drums_real_ps",                   new("diff_drums_real_ps", ModifierType.Int32) },
+                { "diff_guitar",                          new("diff_guitar", ModifierType.Int32) },
+                { "diff_guitar_coop",                     new("diff_guitar_coop", ModifierType.Int32) },
+                { "diff_guitar_coop_ghl",                 new("diff_guitar_coop_ghl", ModifierType.Int32) },
+                { "diff_guitar_real",                     new("diff_guitar_real", ModifierType.Int32) },
+                { "diff_guitar_real_22",                  new("diff_guitar_real_22", ModifierType.Int32) },
+                { "diff_guitarghl",                       new("diff_guitarghl", ModifierType.Int32) },
+                { "diff_keys",                            new("diff_keys", ModifierType.Int32) },
+                { "diff_keys_real",                       new("diff_keys_real", ModifierType.Int32) },
+                { "diff_keys_real_ps",                    new("diff_keys_real_ps", ModifierType.Int32) },
+                { "diff_rhythm",                          new("diff_rhythm", ModifierType.Int32) },
+                { "diff_rhythm_ghl",                      new("diff_rhythm_ghl", ModifierType.Int32) },
+                { "diff_vocals",                          new("diff_vocals", ModifierType.Int32) },
+                { "diff_vocals_harm",                     new("diff_vocals_harm", ModifierType.Int32) },
+                { "drum_fallback_blue",                   new("drum_fallback_blue", ModifierType.Bool) },
 
-                //{ "early_hit_window_size",                new("early_hit_window_size", ModifierCreatorType.String) },
-                { "eighthnote_hopo",                      new("eighthnote_hopo", ModifierCreatorType.Bool) },
-                { "end_events",                           new("end_events", ModifierCreatorType.Bool) },
-                //{ "eof_midi_import_drum_accent_velocity", new("eof_midi_import_drum_accent_velocity", ModifierCreatorType.UInt16) },
-                //{ "eof_midi_import_drum_ghost_velocity",  new("eof_midi_import_drum_ghost_velocity", ModifierCreatorType.UInt16) },
+                //{ "early_hit_window_size",                new("early_hit_window_size", ModifierType.String) },
+                { "eighthnote_hopo",                      new("eighthnote_hopo", ModifierType.Bool) },
+                { "end_events",                           new("end_events", ModifierType.Bool) },
+                //{ "eof_midi_import_drum_accent_velocity", new("eof_midi_import_drum_accent_velocity", ModifierType.UInt16) },
+                //{ "eof_midi_import_drum_ghost_velocity",  new("eof_midi_import_drum_ghost_velocity", ModifierType.UInt16) },
 
-                { "five_lane_drums",                      new("five_lane_drums", ModifierCreatorType.Bool) },
-                { "frets",                                new("frets", ModifierCreatorType.SortString) },
+                { "five_lane_drums",                      new("five_lane_drums", ModifierType.Bool) },
+                { "frets",                                new("frets", ModifierType.SortString) },
 
-                { "genre",                                new("genre", ModifierCreatorType.SortString) },
-                { "guitar_type",                          new("guitar_type", ModifierCreatorType.UInt32) },
+                { "genre",                                new("genre", ModifierType.SortString) },
+                { "Genre",                                new("genre", ModifierType.SortString_Chart) },
+                { "guitar_type",                          new("guitar_type", ModifierType.UInt32) },
 
-                { "hopo_frequency",                       new("hopo_frequency", ModifierCreatorType.Int64) },
-                { "hopofreq",                             new("hopofreq", ModifierCreatorType.Int32) },
+                { "hopo_frequency",                       new("hopo_frequency", ModifierType.Int64) },
+                { "hopofreq",                             new("hopofreq", ModifierType.Int32) },
 
-                { "icon",                                 new("icon", ModifierCreatorType.SortString) },
+                { "icon",                                 new("icon", ModifierType.SortString) },
 
-                { "keys_type",                            new("keys_type", ModifierCreatorType.UInt32) },
-                { "kit_type",                             new("kit_type", ModifierCreatorType.UInt32) },
+                { "keys_type",                            new("keys_type", ModifierType.UInt32) },
+                { "kit_type",                             new("kit_type", ModifierType.UInt32) },
 
-                //{ "link_name_a",                          new("link_name_a", ModifierCreatorType.String) },
-                //{ "link_name_b",                          new("link_name_b", ModifierCreatorType.String) },
-                { "loading_phrase",                       new("loading_phrase", ModifierCreatorType.String) },
-                { "lyrics",                               new("lyrics", ModifierCreatorType.Bool) },
+                //{ "link_name_a",                          new("link_name_a", ModifierType.String) },
+                //{ "link_name_b",                          new("link_name_b", ModifierType.String) },
+                { "loading_phrase",                       new("loading_phrase", ModifierType.String) },
+                { "lyrics",                               new("lyrics", ModifierType.Bool) },
 
-                { "modchart",                             new("modchart", ModifierCreatorType.Bool) },
-                { "multiplier_note",                      new("multiplier_note", ModifierCreatorType.Int32) },
+                { "modchart",                             new("modchart", ModifierType.Bool) },
+                { "multiplier_note",                      new("multiplier_note", ModifierType.Int32) },
 
-                { "name",                                 new("name", ModifierCreatorType.SortString) },
+                { "name",                                 new("name", ModifierType.SortString) },
+                { "Name",                                 new("name", ModifierType.SortString_Chart) },
 
-                { "playlist",                             new("playlist", ModifierCreatorType.SortString) },
-                { "playlist_track",                       new("playlist_track", ModifierCreatorType.Int32) },
-                { "preview",                              new("preview", ModifierCreatorType.UInt64Array) },
-                { "preview_end_time",                     new("preview_end_time", ModifierCreatorType.Int64) },
-                { "preview_start_time",                   new("preview_start_time", ModifierCreatorType.Int64) },
+                { "Offset",                               new("Offsset", ModifierType.Double) },
 
-                { "pro_drum",                             new("pro_drums", ModifierCreatorType.Bool) },
-                { "pro_drums",                            new("pro_drums", ModifierCreatorType.Bool) },
+                { "playlist",                             new("playlist", ModifierType.SortString) },
+                { "playlist_track",                       new("playlist_track", ModifierType.Int32) },
+                { "preview",                              new("preview", ModifierType.Int64Array) },
+                { "preview_end_time",                     new("preview_end_time", ModifierType.Int64) },
+                { "PreviewEnd",                           new("PreviewEnd", ModifierType.Double) },
+                { "preview_start_time",                   new("preview_start_time", ModifierType.Int64) },
+                { "PreviewStart",                         new("PreviewStart", ModifierType.Double) },
 
-                { "rating",                               new("rating", ModifierCreatorType.UInt32) },
-                { "real_bass_22_tuning",                  new("real_bass_22_tuning", ModifierCreatorType.UInt32) },
-                { "real_bass_tuning",                     new("real_bass_tuning", ModifierCreatorType.UInt32) },
-                { "real_guitar_22_tuning",                new("real_guitar_22_tuning", ModifierCreatorType.UInt32) },
-                { "real_guitar_tuning",                   new("real_guitar_tuning", ModifierCreatorType.UInt32) },
-                { "real_keys_lane_count_left",            new("real_keys_lane_count_left", ModifierCreatorType.UInt32) },
-                { "real_keys_lane_count_right",           new("real_keys_lane_count_right", ModifierCreatorType.UInt32) },
+                { "pro_drum",                             new("pro_drums", ModifierType.Bool) },
+                { "pro_drums",                            new("pro_drums", ModifierType.Bool) },
 
-                //{ "scores",                               new("scores", ModifierCreatorType.String) },
-                //{ "scores_ext",                           new("scores_ext", ModifierCreatorType.String) },
-                { "song_length",                          new("song_length", ModifierCreatorType.UInt64) },
-                { "star_power_note",                      new("multiplier_note", ModifierCreatorType.Int32) },
-                { "sub_genre",                            new("sub_genre", ModifierCreatorType.SortString) },
-                { "sub_playlist",                         new("sub_playlist", ModifierCreatorType.SortString) },
-                { "sustain_cutoff_threshold",             new("sustain_cutoff_threshold", ModifierCreatorType.Int64) },
-                //{ "sysex_high_hat_ctrl",                  new("sysex_high_hat_ctrl", ModifierCreatorType.Bool) },
-                //{ "sysex_open_bass",                      new("sysex_open_bass", ModifierCreatorType.Bool) },
-                //{ "sysex_pro_slide",                      new("sysex_pro_slide", ModifierCreatorType.Bool) },
-                //{ "sysex_rimshot",                        new("sysex_rimshot", ModifierCreatorType.Bool) },
-                //{ "sysex_slider",                         new("sysex_slider", ModifierCreatorType.Bool) },
+                { "rating",                               new("rating", ModifierType.UInt32) },
+                { "real_bass_22_tuning",                  new("real_bass_22_tuning", ModifierType.UInt32) },
+                { "real_bass_tuning",                     new("real_bass_tuning", ModifierType.UInt32) },
+                { "real_guitar_22_tuning",                new("real_guitar_22_tuning", ModifierType.UInt32) },
+                { "real_guitar_tuning",                   new("real_guitar_tuning", ModifierType.UInt32) },
+                { "real_keys_lane_count_left",            new("real_keys_lane_count_left", ModifierType.UInt32) },
+                { "real_keys_lane_count_right",           new("real_keys_lane_count_right", ModifierType.UInt32) },
 
-                { "tags",                                 new("tags", ModifierCreatorType.String) },
-                { "track",                                new("album_track", ModifierCreatorType.Int32) },
-                { "tutorial",                             new("tutorial", ModifierCreatorType.Bool) },
+                //{ "scores",                               new("scores", ModifierType.String) },
+                //{ "scores_ext",                           new("scores_ext", ModifierType.String) },
+                { "song_length",                          new("song_length", ModifierType.UInt64) },
+                { "star_power_note",                      new("multiplier_note", ModifierType.Int32) },
+                { "sub_genre",                            new("sub_genre", ModifierType.SortString) },
+                { "sub_playlist",                         new("sub_playlist", ModifierType.SortString) },
+                { "sustain_cutoff_threshold",             new("sustain_cutoff_threshold", ModifierType.Int64) },
+                //{ "sysex_high_hat_ctrl",                  new("sysex_high_hat_ctrl", ModifierType.Bool) },
+                //{ "sysex_open_bass",                      new("sysex_open_bass", ModifierType.Bool) },
+                //{ "sysex_pro_slide",                      new("sysex_pro_slide", ModifierType.Bool) },
+                //{ "sysex_rimshot",                        new("sysex_rimshot", ModifierType.Bool) },
+                //{ "sysex_slider",                         new("sysex_slider", ModifierType.Bool) },
 
-                { "unlock_completed",                     new("unlock_completed", ModifierCreatorType.UInt32) },
-                { "unlock_id",                            new("unlock_id", ModifierCreatorType.String) },
-                { "unlock_require",                       new("unlock_require", ModifierCreatorType.String) },
-                { "unlock_text",                          new("unlock_text", ModifierCreatorType.String) },
+                { "tags",                                 new("tags", ModifierType.String) },
+                { "track",                                new("album_track", ModifierType.Int32) },
+                { "tutorial",                             new("tutorial", ModifierType.Bool) },
 
-                { "version",                              new("version", ModifierCreatorType.UInt32) },
-                { "video",                                new("video", ModifierCreatorType.String) },
-                { "video_end_time",                       new("video_end_time", ModifierCreatorType.Int64) },
-                { "video_loop",                           new("video_loop", ModifierCreatorType.Bool) },
-                { "video_start_time",                     new("video_start_time", ModifierCreatorType.Int64) },
-                { "vocal_gender",                         new("vocal_gender", ModifierCreatorType.UInt32) },
+                { "unlock_completed",                     new("unlock_completed", ModifierType.UInt32) },
+                { "unlock_id",                            new("unlock_id", ModifierType.String) },
+                { "unlock_require",                       new("unlock_require", ModifierType.String) },
+                { "unlock_text",                          new("unlock_text", ModifierType.String) },
 
-                { "year",                                 new("year", ModifierCreatorType.String) }
-            });
+                { "version",                              new("version", ModifierType.UInt32) },
+                { "video",                                new("video", ModifierType.String) },
+                { "video_end_time",                       new("video_end_time", ModifierType.Int64) },
+                { "video_loop",                           new("video_loop", ModifierType.Bool) },
+                { "video_start_time",                     new("video_start_time", ModifierType.Int64) },
+                { "vocal_gender",                         new("vocal_gender", ModifierType.UInt32) },
+
+                { "year",                                 new("year", ModifierType.String) },
+                { "Year",                                 new("Year", ModifierType.String) },
+            };
+
+            SONG_INI_DICTIONARY = new()
+            {
+                { "[song]", SONG_INI_MODIFIERS }
+            };
+
+#if DEBUG
+            _validations = new()
+            {
+                { nameof(SortString), ModifierType.SortString },
+                { typeof(string).Name, ModifierType.String },
+                { typeof(ulong).Name, ModifierType.UInt64 },
+                { typeof(long).Name, ModifierType.Int64 },
+                { typeof(uint).Name, ModifierType.UInt32 },
+                { typeof(int).Name, ModifierType.Int32 },
+                { typeof(ushort).Name, ModifierType.UInt16 },
+                { typeof(short).Name, ModifierType.Int16 },
+                { typeof(bool).Name, ModifierType.Bool },
+                { typeof(float).Name, ModifierType.Float },
+                { typeof(double).Name, ModifierType.Double },
+                { typeof(long[]).Name, ModifierType.Int64Array },
+            };
+#endif
         }
     }
 }
