@@ -519,7 +519,7 @@ namespace YARG.Core.Engine
             var drainFactor = GetStarPowerDrainFactor(timeSignature);
 
             // Amount of time in between each chart tick.
-            var timePerTick = tempo.SecondsPerBeat / Resolution;
+            var timePerTick = (double)tempo.SecondsPerBeat / Resolution;
 
             // Amount of time in between each star power tick during star power.
             var timePerStarPowerTick = timePerTick * drainFactor;
@@ -533,10 +533,8 @@ namespace YARG.Core.Engine
         {
             var drainFactor = GetStarPowerDrainFactor(timeSignature);
 
-            var beats = tempo.SecondsPerBeat * drainFactor;
-
             // Amount of time in between each chart tick.
-            var timePerTick = tempo.SecondsPerBeat / Resolution;
+            var timePerTick = (double)tempo.SecondsPerBeat / Resolution;
 
             // Amount of time in between each star power tick during star power.
             var timePerStarPowerTick = timePerTick * drainFactor;

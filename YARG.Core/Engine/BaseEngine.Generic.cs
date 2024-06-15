@@ -154,7 +154,7 @@ namespace YARG.Core.Engine
             State.CurrentTime = time;
             State.CurrentTick = GetCurrentTick(time);
 
-            while (NextSyncIndex < SyncTrackChanges.Count && SyncTrackChanges[NextSyncIndex].Tick <= State.CurrentTick)
+            while (NextSyncIndex < SyncTrackChanges.Count && State.CurrentTick >= SyncTrackChanges[NextSyncIndex].Tick)
             {
                 CurrentSyncIndex++;
             }
