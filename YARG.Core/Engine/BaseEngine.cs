@@ -590,7 +590,10 @@ namespace YARG.Core.Engine
             }
 
             // Get the change that the star power tick is in
-            low--;
+            if (low < _starPowerTempoTsTicks.Count - 1)
+            {
+                low--;
+            }
 
             var change = SyncTrackChanges[low];
             var tempo = change.Tempo;
