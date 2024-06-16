@@ -557,8 +557,13 @@ namespace YARG.Core.Engine
             var tempo = change.Tempo;
             var ts = change.TimeSignature;
 
-            return (uint) (GetStarPowerDrainPeriodToTicks(time - change.Time, tempo, ts) +
-                _starPowerTempoTsTicks[change.Index]);
+            // If the result is just truncated first, it can sometimes end up with the result rounding down when
+            // it's extremely close to the next tick (i.e 1 bit off). This can cause it to be off by a whole tick.
+
+            // Ticks can only go up to 2^32, which double can handle precisely to 6 decimal places.
+            // This is why the result is rounded to 6 decimal places, then truncated to an integer.
+            return (uint)Math.Round(GetStarPowerDrainPeriodToTicks(time - change.Time, tempo, ts) +
+                _starPowerTempoTsTicks[change.Index], 6);
         }
 
         private double GetStarPowerDrainTickToTime(uint starPowerTick, SyncTrackChange currentSync)
