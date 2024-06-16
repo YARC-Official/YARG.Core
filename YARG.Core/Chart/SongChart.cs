@@ -102,8 +102,6 @@ namespace YARG.Core.Chart
             }
         }
 
-        private delegate bool PhraseEndSelector(DrumNote n);
-
         // public InstrumentTrack<DjNote> Dj { get; set; } = new(Instrument.Dj);
 
         // To explicitly allow creation without going through a file
@@ -204,34 +202,51 @@ namespace YARG.Core.Chart
 
         private void FixDrumPhraseEnds()
         {
-            foreach (var drumTrack in new List<InstrumentTrack<DrumNote>>() {ProDrums, FiveLaneDrums, FourLaneDrums})
+            foreach (var drumTrack in new List<InstrumentTrack<DrumNote>> { ProDrums, FiveLaneDrums, FourLaneDrums })
             {
                 FixDrumPhraseEnds(drumTrack, n => n.IsSoloEnd, NoteFlags.SoloEnd);
                 FixDrumPhraseEnds(drumTrack, n => n.IsStarPowerEnd, NoteFlags.StarPowerEnd);
             }
         }
 
-        private void FixDrumPhraseEnds(InstrumentTrack<DrumNote> drumTrack, PhraseEndSelector isPhraseEnd, NoteFlags phraseEndFlag)
+        private static void FixDrumPhraseEnds(InstrumentTrack<DrumNote> drumTrack, Predicate<DrumNote> isPhraseEnd,
+            NoteFlags phraseEndFlag)
         {
-            var notesXP = drumTrack.Difficulties[Difficulty.ExpertPlus]?.Notes;
-            var notesX = drumTrack.Difficulties[Difficulty.Expert]?.Notes;
-
-            if (notesXP is null || notesX is null)
-                return;
-
-            var phraseEndsXP = notesXP.Where(n => isPhraseEnd(n));
-            var phraseEndsX = notesX.Where(n => isPhraseEnd(n));
-            if (phraseEndsXP.Count() > phraseEndsX.Count())
+            if (!drumTrack.TryGetDifficulty(Difficulty.ExpertPlus, out var trackExpertPlus))
             {
-                var i = 1;
-                foreach (var phraseEndXP in phraseEndsXP)
-                {
-                    while (i < notesX.Count() && notesX[i].Tick <= phraseEndXP.Tick)
-                        i++;
+                return;
+            }
 
-                    var phraseEndX = notesX[i - 1];
-                    if (!isPhraseEnd(phraseEndX))
-                        phraseEndX.ActivateFlag(phraseEndFlag);
+            if (!drumTrack.TryGetDifficulty(Difficulty.Expert, out var trackExpert))
+            {
+                return;
+            }
+
+            var notesExpertPlus = trackExpertPlus.Notes;
+            var notesExpert = trackExpert.Notes;
+
+            var phraseEndsExpertPlus = notesExpertPlus
+                .Where(n => isPhraseEnd(n)).ToArray();
+            var phraseEndsExpert = notesExpert
+                .Where(n => isPhraseEnd(n)).ToArray();
+
+            if (phraseEndsExpertPlus.Length <= phraseEndsExpert.Length)
+            {
+                return;
+            }
+
+            var i = 1;
+            foreach (var phraseEndExpertPlus in phraseEndsExpertPlus)
+            {
+                while (i < notesExpert.Count && notesExpert[i].Tick <= phraseEndExpertPlus.Tick)
+                {
+                    i++;
+                }
+
+                var phraseEndExpert = notesExpert[i - 1];
+                if (!isPhraseEnd(phraseEndExpert))
+                {
+                    phraseEndExpert.ActivateFlag(phraseEndFlag);
                 }
             }
         }
