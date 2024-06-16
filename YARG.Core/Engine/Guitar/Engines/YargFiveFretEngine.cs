@@ -72,7 +72,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             }
             else if (action is GuitarAction.Whammy)
             {
-                State.HasWhammied = true;
+                State.StarPowerWhammyTimer.Start(gameInput.Time);
             }
             else if (action is GuitarAction.StrumDown or GuitarAction.StrumUp && gameInput.Button)
             {
@@ -135,7 +135,6 @@ namespace YARG.Core.Engine.Guitar.Engines
                 State.HasStrummed = false;
                 State.HasFretted = false;
                 State.IsFretPress = false;
-                State.HasWhammied = false;
                 UpdateSustains();
                 return;
             }
@@ -183,7 +182,6 @@ namespace YARG.Core.Engine.Guitar.Engines
             State.HasStrummed = false;
             State.HasFretted = false;
             State.IsFretPress = false;
-            State.HasWhammied = false;
         }
 
         protected override void CheckForNoteHit()
