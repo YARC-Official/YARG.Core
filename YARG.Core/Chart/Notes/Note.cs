@@ -194,6 +194,12 @@ namespace YARG.Core.Chart
             CopyFlags(other);
         }
 
+        public void ActivateFlag(NoteFlags noteFlag)
+        {
+            _flags |= noteFlag;
+            Flags |= noteFlag;
+        }
+
         protected abstract void CopyFlags(TNote other);
         protected abstract TNote CloneNote();
 

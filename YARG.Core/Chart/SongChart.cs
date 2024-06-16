@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Melanchall.DryWetMidi.Core;
+using YARG.Core.Logging;
 using YARG.Core.Parsing;
 
 namespace YARG.Core.Chart
@@ -101,6 +102,8 @@ namespace YARG.Core.Chart
             }
         }
 
+        private delegate bool PhraseEndSelector(DrumNote n);
+
         // public InstrumentTrack<DjNote> Dj { get; set; } = new(Instrument.Dj);
 
         // To explicitly allow creation without going through a file
@@ -144,6 +147,7 @@ namespace YARG.Core.Chart
             // Dj = loader.LoadDjTrack(Instrument.Dj);
 
             PostProcessSections();
+            FixDrumPhraseEnds();
 
             // Ensure beatlines are present
             if (SyncTrack.Beatlines is null or { Count: < 1 })
@@ -164,7 +168,7 @@ namespace YARG.Core.Chart
                 ReadOnlySpan<double> factors = stackalloc double[AUTO_GEN_SECTION_COUNT]{
                     0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0
                 };
-                
+
                 uint startTick = 0;
                 double startTime = SyncTrack.TickToTime(0);
 
@@ -195,6 +199,40 @@ namespace YARG.Core.Chart
                 var lastSection = Sections[^1];
                 lastSection.TickLength = lastTick - lastSection.Tick;
                 lastSection.TimeLength = SyncTrack.TickToTime(lastTick) - lastSection.Time;
+            }
+        }
+
+        private void FixDrumPhraseEnds()
+        {
+            foreach (var drumTrack in new List<InstrumentTrack<DrumNote>>() {ProDrums, FiveLaneDrums, FourLaneDrums})
+            {
+                FixDrumPhraseEnds(drumTrack, n => n.IsSoloEnd, NoteFlags.SoloEnd);
+                FixDrumPhraseEnds(drumTrack, n => n.IsStarPowerEnd, NoteFlags.StarPowerEnd);
+            }
+        }
+
+        private void FixDrumPhraseEnds(InstrumentTrack<DrumNote> drumTrack, PhraseEndSelector isPhraseEnd, NoteFlags phraseEndFlag)
+        {
+            var notesXP = drumTrack.Difficulties[Difficulty.ExpertPlus]?.Notes;
+            var notesX = drumTrack.Difficulties[Difficulty.Expert]?.Notes;
+
+            if (notesXP is null || notesX is null)
+                return;
+
+            var phraseEndsXP = notesXP.Where(n => isPhraseEnd(n));
+            var phraseEndsX = notesX.Where(n => isPhraseEnd(n));
+            if (phraseEndsXP.Count() > phraseEndsX.Count())
+            {
+                var i = 1;
+                foreach (var phraseEndXP in phraseEndsXP)
+                {
+                    while (i < notesX.Count() && notesX[i].Tick <= phraseEndXP.Tick)
+                        i++;
+
+                    var phraseEndX = notesX[i - 1];
+                    if (!isPhraseEnd(phraseEndX))
+                        phraseEndX.ActivateFlag(phraseEndFlag);
+                }
             }
         }
 
