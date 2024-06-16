@@ -426,6 +426,9 @@ namespace YARG.Core.Engine.Guitar
                 GainStarPower(CalculateStarPowerGain(State.CurrentTick));
             }
 
+            // Whammy is disabled after sustains are updated.
+            // This is because all the ticks that have accumulated will have been accounted for when it is disabled.
+            // Whereas disabling it before could mean there are some ticks which should have been whammied but weren't.
             if (State.StarPowerWhammyTimer.IsActive && State.StarPowerWhammyTimer.IsExpired(State.CurrentTime))
             {
                 State.StarPowerWhammyTimer.Disable();
