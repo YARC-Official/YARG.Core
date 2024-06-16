@@ -42,6 +42,8 @@ namespace YARG.Core.Engine.Guitar
 
         protected List<ActiveSustain> ActiveSustains = new();
 
+        protected uint LastWhammyTick;
+
         protected GuitarEngine(InstrumentDifficulty<GuitarNote> chart, SyncTrack syncTrack,
             GuitarEngineParameters engineParameters, bool isBot)
             : base(chart, syncTrack, engineParameters, false, isBot)
@@ -349,6 +351,12 @@ namespace YARG.Core.Engine.Guitar
                     i--;
                 }
             }
+
+            if (ActiveSustains.Count == 0)
+            {
+                LastWhammyTick = State.CurrentTick;
+            }
+
             var sustain = new ActiveSustain(note);
 
             ActiveSustains.Add(sustain);
@@ -423,7 +431,8 @@ namespace YARG.Core.Engine.Guitar
             UpdateStars();
             if (isStarPowerSustainActive && State.StarPowerWhammyTimer.IsActive)
             {
-                GainStarPower(CalculateStarPowerGain(State.CurrentTick));
+                GainStarPower(State.CurrentTick - LastWhammyTick);
+                LastWhammyTick = State.CurrentTick;
             }
 
             // Whammy is disabled after sustains are updated.
