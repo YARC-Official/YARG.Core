@@ -419,7 +419,7 @@ namespace YARG.Core.Engine
             StarPowerTickEndPosition = StarPowerTickActivationPosition + BaseStats.StarPowerTickAmount;
             StarPowerEndTime = GetStarPowerDrainTickToTime(StarPowerTickEndPosition, CurrentSyncTrackState);
 
-            YargLogger.LogFormatDebug("Activated at SP tick {0}, ends at SP tick {1}. Start time: {2}, End time: {3}",
+            YargLogger.LogFormatTrace("Activated at SP tick {0}, ends at SP tick {1}. Start time: {2}, End time: {3}",
                 StarPowerTickActivationPosition, StarPowerTickEndPosition, StarPowerActivationTime, StarPowerEndTime);
 
             RebaseProgressValues(BaseState.CurrentTick);
@@ -431,7 +431,7 @@ namespace YARG.Core.Engine
 
         protected void ReleaseStarPower()
         {
-            YargLogger.LogFormatDebug("Star Power ended at {0} (tick: {1})", BaseState.CurrentTime,
+            YargLogger.LogFormatTrace("Star Power ended at {0} (tick: {1})", BaseState.CurrentTime,
                 StarPowerTickPosition);
             BaseStats.StarPowerBarAmount = 0;
             BaseStats.IsStarPowerActive = false;
@@ -450,13 +450,11 @@ namespace YARG.Core.Engine
             BaseStats.StarPowerTickAmount = Math.Min(BaseStats.StarPowerTickAmount, TicksPerFullSpBar);
             BaseStats.StarPowerBarAmount = BaseStats.StarPowerTickAmount / (double) TicksPerFullSpBar;
 
-            YargLogger.LogFormatDebug("Ticks: {0}", BaseStats.StarPowerTickAmount);
-
             if (BaseStats.IsStarPowerActive)
             {
                 StarPowerTickEndPosition = StarPowerTickPosition + BaseStats.StarPowerTickAmount;
                 StarPowerEndTime = GetStarPowerDrainTickToTime(StarPowerTickEndPosition, CurrentSyncTrackState);
-                YargLogger.LogFormatDebug("New end tick and time: {0}, {1}", StarPowerTickEndPosition, StarPowerEndTime);
+                YargLogger.LogFormatTrace("New end tick and time: {0}, {1}", StarPowerTickEndPosition, StarPowerEndTime);
             }
 
             RebaseProgressValues(BaseState.CurrentTick);
