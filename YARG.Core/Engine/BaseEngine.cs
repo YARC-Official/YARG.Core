@@ -414,10 +414,10 @@ namespace YARG.Core.Engine
             }
 
             StarPowerActivationTime = BaseState.CurrentTime;
-            StarPowerTickActivationPosition = GetStarPowerDrainTimeToTicks(StarPowerActivationTime, CurrentSyncTrackState);
+            StarPowerTickActivationPosition = StarPowerTickPosition;
 
             StarPowerTickEndPosition = StarPowerTickActivationPosition + BaseStats.StarPowerTickAmount;
-            StarPowerEndTime = GetStarPowerDrainTickToTime(StarPowerTickEndPosition);
+            StarPowerEndTime = GetStarPowerDrainTickToTime(StarPowerTickEndPosition, CurrentSyncTrackState);
 
             YargLogger.LogFormatDebug("Activated at SP tick {0}, ends at SP tick {1}. Start time: {2}, End time: {3}",
                 StarPowerTickActivationPosition, StarPowerTickEndPosition, StarPowerActivationTime, StarPowerEndTime);
@@ -554,13 +554,49 @@ namespace YARG.Core.Engine
                 _starPowerTempoTsTicks[change.Index]);
         }
 
-        private double GetStarPowerDrainTickToTime(uint tick)
+        private double GetStarPowerDrainTickToTime(uint starPowerTick, SyncTrackChange currentSync)
         {
-            var change = SyncTrackChanges.GetPrevious(tick)!;
+            // var change = SyncTrackChanges.GetPrevious(starPowerTick)!;
+            // var tempo = change.Tempo;
+            // var ts = change.TimeSignature;
+            //
+            // var offset = GetStarPowerDrainTicksToPeriod(starPowerTick - _starPowerTempoTsTicks[change.Index], tempo, ts);
+            //
+            // return change.Time + offset;
+
+            var syncSpTick = _starPowerTempoTsTicks[currentSync.Index];
+
+            int high = _starPowerTempoTsTicks.Count - 1;
+            int low = 0;
+            if (starPowerTick < syncSpTick)
+            {
+                high = currentSync.Index;
+            } else if (starPowerTick > syncSpTick)
+            {
+                low = currentSync.Index;
+            }
+
+            while (low < high)
+            {
+                int mid = (low + high) / 2;
+                if (_starPowerTempoTsTicks[mid] < starPowerTick)
+                {
+                    low = mid + 1;
+                }
+                else
+                {
+                    high = mid;
+                }
+            }
+
+            // Get the change that the star power tick is in
+            low--;
+
+            var change = SyncTrackChanges[low];
             var tempo = change.Tempo;
             var ts = change.TimeSignature;
 
-            var offset = GetStarPowerDrainTicksToPeriod(tick - _starPowerTempoTsTicks[change.Index], tempo, ts);
+            var offset = GetStarPowerDrainTicksToPeriod(starPowerTick - _starPowerTempoTsTicks[change.Index], tempo, ts);
 
             return change.Time + offset;
         }
