@@ -435,6 +435,8 @@ namespace YARG.Core.Engine
                 StarPowerTickPosition);
             BaseStats.StarPowerBarAmount = 0;
             BaseStats.IsStarPowerActive = false;
+            BaseStats.TimeInStarPower += BaseState.CurrentTime - StarPowerActivationTime;
+
             RebaseProgressValues(BaseState.CurrentTick);
 
             UpdateMultiplier();
@@ -449,6 +451,9 @@ namespace YARG.Core.Engine
             // Limit amount of ticks to a full bar.
             BaseStats.StarPowerTickAmount = Math.Min(BaseStats.StarPowerTickAmount, TicksPerFullSpBar);
             BaseStats.StarPowerBarAmount = BaseStats.StarPowerTickAmount / (double) TicksPerFullSpBar;
+
+            // Add the amount of ticks gained to the total ticks gained
+            BaseStats.TotalStarPowerTicks += BaseStats.StarPowerTickAmount - prevTicks;
 
             if (BaseStats.IsStarPowerActive)
             {

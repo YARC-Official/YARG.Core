@@ -81,11 +81,9 @@ namespace YARG.Core.Engine
 
         public uint StarPowerTickAmount;
 
-        /// <summary>
-        /// Amount of Star Power/Overdrive the player had as of the most recent SP/OD rebase
-        /// (SP activation, time signature change, SP sustain whammy start).
-        /// </summary>
-        public double StarPowerBaseAmount;
+        public uint TotalStarPowerTicks;
+
+        public double TimeInStarPower;
 
         /// <summary>
         /// True if the player currently has Star Power/Overdrive active.
@@ -138,7 +136,9 @@ namespace YARG.Core.Engine
             TotalNotes = stats.TotalNotes;
 
             StarPowerBarAmount = stats.StarPowerBarAmount;
-            StarPowerBaseAmount = stats.StarPowerBaseAmount;
+            StarPowerTickAmount = stats.StarPowerTickAmount;
+            TotalStarPowerTicks = stats.TotalStarPowerTicks;
+            TimeInStarPower = stats.TimeInStarPower;
             IsStarPowerActive = stats.IsStarPowerActive;
 
             StarPowerPhrasesHit = stats.StarPowerPhrasesHit;
@@ -160,7 +160,9 @@ namespace YARG.Core.Engine
             // TotalNotes = 0;
 
             StarPowerBarAmount = 0;
-            StarPowerBaseAmount = 0;
+            StarPowerTickAmount = 0;
+            TotalStarPowerTicks = 0;
+            TimeInStarPower = 0;
             IsStarPowerActive = false;
 
             StarPowerPhrasesHit = 0;
@@ -183,7 +185,9 @@ namespace YARG.Core.Engine
             writer.Write(TotalNotes);
 
             writer.Write(StarPowerBarAmount);
-            writer.Write(StarPowerBaseAmount);
+            writer.Write(StarPowerTickAmount);
+            writer.Write(TotalStarPowerTicks);
+            writer.Write(TimeInStarPower);
             writer.Write(IsStarPowerActive);
 
             writer.Write(StarPowerPhrasesHit);
@@ -208,7 +212,9 @@ namespace YARG.Core.Engine
             TotalNotes = reader.ReadInt32();
 
             StarPowerBarAmount = reader.ReadDouble();
-            StarPowerBaseAmount = reader.ReadDouble();
+            StarPowerTickAmount = reader.ReadUInt32();
+            TotalStarPowerTicks = reader.ReadUInt32();
+            TimeInStarPower = reader.ReadDouble();
             IsStarPowerActive = reader.ReadBoolean();
 
             StarPowerPhrasesHit = reader.ReadInt32();
