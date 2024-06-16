@@ -449,7 +449,11 @@ namespace YARG.Core.Engine
             BaseStats.StarPowerTickAmount += ticks;
 
             // Limit amount of ticks to a full bar.
-            BaseStats.StarPowerTickAmount = Math.Min(BaseStats.StarPowerTickAmount, TicksPerFullSpBar);
+            if(BaseStats.StarPowerTickAmount > TicksPerFullSpBar)
+            {
+                BaseStats.StarPowerTickAmount = TicksPerFullSpBar;
+            }
+
             BaseStats.StarPowerBarAmount = BaseStats.StarPowerTickAmount / (double) TicksPerFullSpBar;
 
             // Add the amount of ticks gained to the total ticks gained
