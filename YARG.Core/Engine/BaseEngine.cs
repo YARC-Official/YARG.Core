@@ -452,6 +452,13 @@ namespace YARG.Core.Engine
 
             YargLogger.LogFormatDebug("Ticks: {0}", BaseStats.StarPowerTickAmount);
 
+            if (BaseStats.IsStarPowerActive)
+            {
+                StarPowerTickEndPosition = StarPowerTickPosition + BaseStats.StarPowerTickAmount;
+                StarPowerEndTime = GetStarPowerDrainTickToTime(StarPowerTickEndPosition, CurrentSyncTrackState);
+                YargLogger.LogFormatDebug("New end tick and time: {0}, {1}", StarPowerTickEndPosition, StarPowerEndTime);
+            }
+
             RebaseProgressValues(BaseState.CurrentTick);
         }
 
