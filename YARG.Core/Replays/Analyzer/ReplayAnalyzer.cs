@@ -220,9 +220,11 @@ namespace YARG.Core.Replays.Analyzer
                 original.Combo, result.Combo,
                 original.MaxCombo, result.MaxCombo);
 
-            YargLogger.LogFormatDebug("Solo: {0} == {1}\nSP: {2} == {3}",
+            YargLogger.LogFormatDebug("Solo: {0} == {1}\nSP: {2} == {3}\nTime In SP: {4} == {5}\nSP Ticks: {6} == {7}",
                 original.SoloBonuses, result.SoloBonuses,
-                original.StarPowerPhrasesHit, result.StarPowerPhrasesHit);
+                original.StarPowerPhrasesHit, result.StarPowerPhrasesHit,
+                original.TimeInStarPower, result.TimeInStarPower,
+                original.TotalStarPowerTicks, result.TotalStarPowerTicks);
 
             bool instrumentPass = true;
 
@@ -244,7 +246,10 @@ namespace YARG.Core.Replays.Analyzer
                 original.Combo == result.Combo &&
                 original.MaxCombo == result.MaxCombo &&
                 original.SoloBonuses == result.SoloBonuses &&
-                original.StarPowerPhrasesHit == result.StarPowerPhrasesHit;
+                original.StarPowerPhrasesHit == result.StarPowerPhrasesHit &&
+                // ReSharper disable once CompareOfFloatsByEqualityOperator
+                original.TimeInStarPower == result.TimeInStarPower &&
+                original.TotalStarPowerTicks == result.TotalStarPowerTicks;
 
             return generalPass && instrumentPass;
         }
