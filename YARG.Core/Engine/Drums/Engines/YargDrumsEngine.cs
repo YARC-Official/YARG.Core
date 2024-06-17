@@ -15,7 +15,11 @@ namespace YARG.Core.Engine.Drums.Engines
 
         protected override void MutateStateWithInput(GameInput gameInput)
         {
-            if (gameInput.Axis > 0) // For some reason, it's ignoring 127-velocity hits and this fixes it...
+            // Normally, gameInput.Button is checked here - that variable takes a different type variable (i.e. int 1) and converts it to a boolean
+            // However, now with velocity support, 127-velocity hits become 1.0f, which gets wrongly converted to False
+            // For some reason, C# takes only the first 8 bits into account when converting a float to boolean, and due to how 1.0 is stored as float, it is converted to False
+            // So instead we have to check gameInput.Axis. Every button release has its gameInput.Axis set to 0 so this works safely.
+            if (gameInput.Axis > 0) 
             {
                 State.Action = gameInput.GetAction<DrumsAction>();
                 State.PadHit = ConvertInputToPad(EngineParameters.Mode, gameInput.GetAction<DrumsAction>());
