@@ -232,12 +232,17 @@ namespace YARG.Core.Replays.Analyzer
             {
                 instrumentPass = originalGuitar.Overstrums == resultGuitar.Overstrums &&
                     originalGuitar.GhostInputs == resultGuitar.GhostInputs &&
-                    originalGuitar.HoposStrummed == resultGuitar.HoposStrummed;
+                    originalGuitar.HoposStrummed == resultGuitar.HoposStrummed &&
+                    originalGuitar.WhammyTicks == resultGuitar.WhammyTicks &&
+                    originalGuitar.SustainScore == resultGuitar.SustainScore;
 
-                YargLogger.LogFormatDebug("Guitar:\nOverstrums: {0} == {1}\nGhost Inputs: {2} == {3}\nHOPOs Strummed: {4} == {5}",
+                YargLogger.LogFormatDebug("Guitar:\nOverstrums: {0} == {1}\nGhost Inputs: {2} == {3}\nHOPOs Strummed: {4} == {5}\n" +
+                    "Whammy Ticks: {6} == {7}\nSustain Points: {8} == {9}",
                     originalGuitar.Overstrums, resultGuitar.Overstrums,
                     originalGuitar.GhostInputs, resultGuitar.GhostInputs,
-                    originalGuitar.HoposStrummed, resultGuitar.HoposStrummed);
+                    originalGuitar.HoposStrummed, resultGuitar.HoposStrummed,
+                    originalGuitar.WhammyTicks, resultGuitar.WhammyTicks,
+                    originalGuitar.SustainScore, resultGuitar.SustainScore);
             }
 
             bool generalPass = original.CommittedScore == result.CommittedScore &&
