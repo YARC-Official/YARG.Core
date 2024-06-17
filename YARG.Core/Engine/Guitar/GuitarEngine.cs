@@ -449,7 +449,11 @@ namespace YARG.Core.Engine.Guitar
             UpdateStars();
             if (isStarPowerSustainActive && State.StarPowerWhammyTimer.IsActive)
             {
-                GainStarPower(State.CurrentTick - LastWhammyTick);
+                var whammyTicks = State.CurrentTick - LastWhammyTick;
+
+                GainStarPower(whammyTicks);
+                EngineStats.WhammyTicks += whammyTicks;
+
                 LastWhammyTick = State.CurrentTick;
             }
 
