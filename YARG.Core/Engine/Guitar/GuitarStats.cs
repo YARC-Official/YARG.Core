@@ -22,7 +22,9 @@ namespace YARG.Core.Engine.Guitar
         /// <summary>
         /// Amount of Star Power/Overdrive gained from whammy during the current whammy period.
         /// </summary>
-        public double StarPowerWhammyGain;
+        public uint WhammyTicks;
+
+        public int SustainScore;
 
         public GuitarStats()
         {
@@ -33,7 +35,8 @@ namespace YARG.Core.Engine.Guitar
             Overstrums = stats.Overstrums;
             HoposStrummed = stats.HoposStrummed;
             GhostInputs = stats.GhostInputs;
-            StarPowerWhammyGain = stats.StarPowerWhammyGain;
+            WhammyTicks = stats.WhammyTicks;
+            SustainScore = stats.SustainScore;
         }
 
         public override void Reset()
@@ -42,7 +45,8 @@ namespace YARG.Core.Engine.Guitar
             Overstrums = 0;
             HoposStrummed = 0;
             GhostInputs = 0;
-            StarPowerWhammyGain = 0;
+            WhammyTicks = 0;
+            SustainScore = 0;
         }
 
         public override void Serialize(BinaryWriter writer)
@@ -52,7 +56,8 @@ namespace YARG.Core.Engine.Guitar
             writer.Write(Overstrums);
             writer.Write(HoposStrummed);
             writer.Write(GhostInputs);
-            writer.Write(StarPowerWhammyGain);
+            writer.Write(WhammyTicks);
+            writer.Write(SustainScore);
         }
 
         public override void Deserialize(BinaryReader reader, int version = 0)
@@ -62,7 +67,8 @@ namespace YARG.Core.Engine.Guitar
             Overstrums = reader.ReadInt32();
             HoposStrummed = reader.ReadInt32();
             GhostInputs = reader.ReadInt32();
-            StarPowerWhammyGain = reader.ReadDouble();
+            WhammyTicks = reader.ReadUInt32();
+            SustainScore = reader.ReadInt32();
         }
     }
 }

@@ -235,7 +235,14 @@ namespace YARG.Core.Engine
 
         protected void AddScore(int score)
         {
-            EngineStats.CommittedScore += score;
+            int multiplierScore = score * EngineStats.ScoreMultiplier;
+            EngineStats.CommittedScore += multiplierScore;
+
+            if (EngineStats.IsStarPowerActive)
+            {
+                // Amount of points just from Star Power is half of the current multiplier (8x total -> 4x SP points)
+                EngineStats.StarPowerScore += multiplierScore / 2;
+            }
             UpdateStars();
         }
 

@@ -116,6 +116,8 @@ namespace YARG.Core.Engine
         /// </summary>
         public int SoloBonuses;
 
+        public int StarPowerScore;
+
         /// <summary>
         /// The number of stars the player has achieved, along with the progress to the next star.
         /// </summary>

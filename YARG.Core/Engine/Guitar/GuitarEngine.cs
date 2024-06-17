@@ -276,7 +276,7 @@ namespace YARG.Core.Engine.Guitar
 
         protected override void AddScore(GuitarNote note)
         {
-            int notePoints = POINTS_PER_NOTE * (1 + note.ChildNotes.Count) * EngineStats.ScoreMultiplier;
+            int notePoints = POINTS_PER_NOTE * (1 + note.ChildNotes.Count);
             AddScore(notePoints);
         }
 
@@ -411,12 +411,30 @@ namespace YARG.Core.Engine.Guitar
                     if (dropped || isBurst)
                     {
                         YargLogger.LogFormatTrace("Finished scoring sustain at {0} (dropped: {1}, burst: {2})", State.CurrentTime, dropped, isBurst);
+
                         double finalScore = CalculateSustainPoints(sustain, sustainTick);
-                        AddScore((int) Math.Ceiling(finalScore));
+                        var points = (int) Math.Ceiling(finalScore);
+
+                        AddScore(points);
+
+                        // SustainPoints must include the multiplier, but NOT the star power multiplier
+                        int sustainPoints = points * EngineStats.ScoreMultiplier;
+                        if (EngineStats.IsStarPowerActive)
+                        {
+                            sustainPoints /= 2;
+                        }
+
+                        EngineStats.SustainScore += sustainPoints;
                     }
                     else
                     {
-                        EngineStats.PendingScore += (int) CalculateSustainPoints(sustain, sustainTick);
+                        double score = CalculateSustainPoints(sustain, sustainTick);
+
+                        var sustainPoints = (int) Math.Ceiling(score);
+
+                        // It's ok to use multiplier here because PendingScore is only temporary to show the correct
+                        // score on the UI.
+                        EngineStats.PendingScore += sustainPoints * EngineStats.ScoreMultiplier;
                     }
                 }
 
@@ -453,7 +471,7 @@ namespace YARG.Core.Engine.Guitar
             // Sustain points are awarded at a constant rate regardless of tempo
             // double deltaScore = CalculateBeatProgress(scoreTick, sustain.BaseTick, POINTS_PER_BEAT);
             double deltaScore = (scoreTick - sustain.BaseTick) / TicksPerSustainPoint;
-            return sustain.BaseScore + (deltaScore * EngineStats.ScoreMultiplier);
+            return sustain.BaseScore + deltaScore;
         }
 
         public override void SetSpeed(double speed)
