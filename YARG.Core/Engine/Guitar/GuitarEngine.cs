@@ -26,6 +26,12 @@ namespace YARG.Core.Engine.Guitar
 
             public double GetEndTime(SyncTrack syncTrack, uint sustainBurstThreshold)
             {
+                // Sustain is too short for a burst, so clamp the burst to the start position of the note
+                if (sustainBurstThreshold > Note.TickLength)
+                {
+                    return Note.Time;
+                }
+
                 return syncTrack.TickToTime(Note.TickEnd - sustainBurstThreshold);
             }
         }
@@ -369,7 +375,7 @@ namespace YARG.Core.Engine.Guitar
         protected void EndSustain(int sustainIndex, bool dropped, bool isEndOfSustain)
         {
             var sustain = ActiveSustains[sustainIndex];
-            YargLogger.LogFormatTrace("Ended sustain at {0} (dropped: {1}, end: {2})", State.CurrentTime, dropped, isEndOfSustain);
+            YargLogger.LogFormatTrace("Ended sustain ({0}) at {1} (dropped: {2}, end: {3})", sustain.Note.Tick, State.CurrentTime, dropped, isEndOfSustain);
             ActiveSustains.RemoveAt(sustainIndex);
 
             OnSustainEnd?.Invoke(sustain.Note, State.CurrentTime, sustain.HasFinishedScoring);
@@ -389,7 +395,18 @@ namespace YARG.Core.Engine.Guitar
 
                 // If we're close enough to the end of the sustain, finish it
                 // Provides leniency for sustains with no gap (and just in general)
-                bool isBurst = (int) State.CurrentTick >= note.TickEnd - SustainBurstThreshold;
+                bool isBurst;
+
+                // Sustain is too short for a burst
+                if (SustainBurstThreshold > note.TickLength)
+                {
+                    isBurst = State.CurrentTick >= note.Tick;
+                }
+                else
+                {
+                    isBurst = State.CurrentTick >= note.TickEnd - SustainBurstThreshold;
+                }
+
                 bool isEndOfSustain = State.CurrentTick >= note.TickEnd;
 
                 uint sustainTick = isBurst || isEndOfSustain ? note.TickEnd : State.CurrentTick;
@@ -402,15 +419,16 @@ namespace YARG.Core.Engine.Guitar
                 if (!sustain.HasFinishedScoring)
                 {
                     // Sustain has reached burst threshold, so all points have been given
-                    if (isBurst)
+                    if (isBurst || isEndOfSustain)
                     {
                         sustain.HasFinishedScoring = true;
                     }
 
                     // Sustain has ended, so commit the points
-                    if (dropped || isBurst)
+                    if (dropped || isBurst || isEndOfSustain)
                     {
-                        YargLogger.LogFormatTrace("Finished scoring sustain at {0} (dropped: {1}, burst: {2})", State.CurrentTime, dropped, isBurst);
+                        YargLogger.LogFormatTrace("Finished scoring sustain ({0}) at {1} (dropped: {2}, burst: {3})",
+                            sustain.Note.Tick, State.CurrentTime, dropped, isBurst);
 
                         double finalScore = CalculateSustainPoints(sustain, sustainTick);
                         var points = (int) Math.Ceiling(finalScore);
