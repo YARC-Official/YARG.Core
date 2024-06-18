@@ -11,6 +11,18 @@ namespace YARG.Core.Song.Cache
         public readonly Dictionary<string, FileInfo> Subfiles;
         public readonly Dictionary<string, DirectoryInfo> SubDirectories;
 
+        internal static bool TryCollect(string directory, out FileCollection collection)
+        {
+            var info = new DirectoryInfo(directory);
+            if (!info.Exists)
+            {
+                collection = default;
+                return false;
+            }
+            collection = new FileCollection(info);
+            return true;
+        }
+
         internal FileCollection(DirectoryInfo directory)
         {
             Directory = directory;

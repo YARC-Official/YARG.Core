@@ -284,10 +284,9 @@ namespace YARG.Core.Song
             return (result, entry);
         }
 
-        public static IniSubEntry? TryLoadFromCache(string baseDirectory, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
+        public static SngEntry? TryLoadFromCache(string filename, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
         {
-            string sngPath = Path.Combine(baseDirectory, stream.ReadString());
-            var sngInfo = AbridgedFileInfo.TryParseInfo(sngPath, stream);
+            var sngInfo = AbridgedFileInfo.TryParseInfo(filename, stream);
             if (sngInfo == null)
                 return null;
 
@@ -307,10 +306,9 @@ namespace YARG.Core.Song
             return new SngEntry(sngFile.Version, sngInfo.Value, CHART_FILE_TYPES[chartTypeIndex], stream, strings);
         }
 
-        public static IniSubEntry? LoadFromCache_Quick(string baseDirectory, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
+        public static SngEntry? LoadFromCache_Quick(string filename, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
         {
-            string sngPath = Path.Combine(baseDirectory, stream.ReadString());
-            var sngInfo = new AbridgedFileInfo(sngPath, stream);
+            var sngInfo = new AbridgedFileInfo(filename, stream);
 
             uint version = stream.Read<uint>(Endianness.Little);
             byte chartTypeIndex = (byte)stream.ReadByte();

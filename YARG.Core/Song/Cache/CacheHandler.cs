@@ -168,7 +168,7 @@ namespace YARG.Core.Song.Cache
         protected readonly List<UnpackedCONGroup> extractedConGroups = new();
 
         protected readonly Dictionary<string, SortedList<DateTime, SongUpdate>> updates = new();
-        protected readonly Dictionary<string, (YARGDTAReader, IRBProUpgrade)> upgrades = new();
+        protected readonly Dictionary<string, (YARGTextContainer<byte>, RBProUpgrade)> upgrades = new();
         protected readonly HashSet<string> preScannedDirectories = new();
         protected readonly HashSet<string> preScannedFiles = new();
 
@@ -199,8 +199,8 @@ namespace YARG.Core.Song.Cache
         }
 
         protected abstract void SortEntries();
-        protected abstract void AddUpdate(string name, DateTime dtaLastWrite, in SongUpdate update);
-        protected abstract void AddUpgrade(string name, YARGDTAReader reader, IRBProUpgrade upgrade);
+        protected abstract void AddUpdate(string name, DateTime dtaLastWrite, SongUpdate update);
+        protected abstract void AddUpgrade(string name, in YARGTextContainer<byte> container, RBProUpgrade upgrade);
         protected abstract void AddPackedCONGroup(PackedCONGroup group);
         protected abstract void AddUnpackedCONGroup(UnpackedCONGroup group);
         protected abstract void AddUpdateGroup(UpdateGroup group);
@@ -214,6 +214,7 @@ namespace YARG.Core.Song.Cache
 
         protected abstract void Deserialize(UnmanagedMemoryStream stream);
         protected abstract void Deserialize_Quick(UnmanagedMemoryStream stream);
+        protected abstract void AddCollectionToCache(in FileCollection collection);
         protected abstract PackedCONGroup? FindCONGroup(string filename);
 
         protected virtual bool FindOrMarkDirectory(string directory)
@@ -399,11 +400,11 @@ namespace YARG.Core.Song.Cache
         private UpgradeGroup? CreateUpgradeGroup(in FileCollection collection, FileInfo dta, bool removeEntries)
         {
             MemoryMappedArray? fileData = null;
-            YARGDTAReader reader;
+            YARGTextContainer<byte> container;
             try
             {
                 fileData = MemoryMappedArray.Load(dta);
-                if (!YARGDTAReader.TryCreate(fileData, out reader))
+                if (!YARGDTAReader.TryCreate(fileData, out container))
                 {
                     fileData!.Dispose();
                     return null;
@@ -419,23 +420,23 @@ namespace YARG.Core.Song.Cache
             var group = new UpgradeGroup(collection.Directory.FullName, dta.LastWriteTime, fileData!);
             try
             {
-                while (reader.StartNode())
+                while (YARGDTAReader.StartNode(ref container))
                 {
-                    string name = reader.GetNameOfNode(true);
+                    string name = YARGDTAReader.GetNameOfNode(ref container, true);
                     if (collection.Subfiles.TryGetValue($"{name.ToLower()}_plus.mid", out var info)
                     && CanAddUpgrade(name, info.LastWriteTime))
                     {
                         var abridged = new AbridgedFileInfo_Length(info, false);
                         var upgrade = new UnpackedRBProUpgrade(abridged);
                         group.Upgrades[name] = upgrade;
-                        AddUpgrade(name, reader, upgrade);
+                        AddUpgrade(name, container, upgrade);
 
                         if (removeEntries)
                         {
                             RemoveCONEntry(name);
                         }
                     }
-                    reader.EndNode();
+                    YARGDTAReader.EndNode(ref container);
                 }
             }
             catch (Exception ex)
@@ -454,11 +455,11 @@ namespace YARG.Core.Song.Cache
         private UpdateGroup? CreateUpdateGroup(in FileCollection collection, FileInfo dta, bool removeEntries)
         {
             MemoryMappedArray? fileData = null;
-            YARGDTAReader reader;
+            YARGTextContainer<byte> container;
             try
             {
                 fileData = MemoryMappedArray.Load(dta);
-                if (!YARGDTAReader.TryCreate(fileData, out reader))
+                if (!YARGDTAReader.TryCreate(fileData, out container))
                 {
                     fileData!.Dispose();
                     return null;
@@ -474,9 +475,9 @@ namespace YARG.Core.Song.Cache
             var group = new UpdateGroup(collection.Directory, dta.LastWriteTime, fileData!);
             try
             {
-                while (reader.StartNode())
+                while (YARGDTAReader.StartNode(ref container))
                 {
-                    string name = reader.GetNameOfNode(true);
+                    string name = YARGDTAReader.GetNameOfNode(ref container, true);
                     if (!group.Updates.TryGetValue(name, out var update))
                     {
                         group.Updates.Add(name, update = new SongUpdate(collection, name));
@@ -486,8 +487,8 @@ namespace YARG.Core.Song.Cache
                             RemoveCONEntry(name);
                         }
                     }
-                    update.Add(reader);
-                    reader.EndNode();
+                    update.Add(in container);
+                    YARGDTAReader.EndNode(ref container);
                 }
 
             }
@@ -507,26 +508,26 @@ namespace YARG.Core.Song.Cache
 
         private bool TryParseUpgrades(string filename, PackedCONGroup group)
         {
-            if (!group.LoadUpgrades(out var reader))
+            if (!group.LoadUpgrades(out var container))
             {
                 return false;
             }
 
             try
             {
-                while (reader.StartNode())
+                while (YARGDTAReader.StartNode(ref container))
                 {
-                    string name = reader.GetNameOfNode(true);
+                    string name = YARGDTAReader.GetNameOfNode(ref container, true);
                     if (group.ConFile.TryGetListing($"songs_upgrades/{name}_plus.mid", out var listing)
                     && CanAddUpgrade_CONInclusive(name, listing.LastWrite))
                     {
                         var upgrade = new PackedRBProUpgrade(listing, listing.LastWrite);
                         group.Upgrades[name] = upgrade;
-                        AddUpgrade(name, reader, upgrade);
+                        AddUpgrade(name, container, upgrade);
                         RemoveCONEntry(name);
                     }
 
-                    reader.EndNode();
+                    YARGDTAReader.EndNode(ref container);
                 }
             }
             catch (Exception ex)
@@ -600,7 +601,7 @@ namespace YARG.Core.Song.Cache
                     collection = new FileCollection(directory);
                 }
 
-                if (ScanIniEntry(collection, group, tracker.Playlist))
+                if (ScanIniEntry(in collection, group, tracker.Playlist))
                 {
                     if (collection.SubDirectories.Count > 0)
                     {
@@ -706,7 +707,7 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        protected void ScanPackedCONNode(PackedCONGroup group, string name, int index, YARGDTAReader node)
+        protected void ScanPackedCONNode(PackedCONGroup group, string name, int index, YARGTextContainer<byte> node)
         {
             if (group.TryGetEntry(name, index, out var entry))
             {
@@ -728,7 +729,7 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        protected void ScanUnpackedCONNode(UnpackedCONGroup group, string name, int index, YARGDTAReader node)
+        protected void ScanUnpackedCONNode(UnpackedCONGroup group, string name, int index, YARGTextContainer<byte> node)
         {
             if (group.TryGetEntry(name, index, out var entry))
             {
@@ -737,7 +738,7 @@ namespace YARG.Core.Song.Cache
             }
             else
             {
-                var song = UnpackedRBCONEntry.ProcessNewEntry(group, name, node, updates, upgrades);
+                var song = UnpackedRBCONEntry.ProcessNewEntry(group, name, in node, updates, upgrades);
                 if (song.Item2 != null)
                 {
                     if (AddEntry(song.Item2))
@@ -846,7 +847,7 @@ namespace YARG.Core.Song.Cache
 
         public const int SIZEOF_DATETIME = 8;
         protected readonly HashSet<string> invalidSongsInCache = new();
-        private readonly Dictionary<string, FileCollection> collectionCache = new();
+        protected readonly Dictionary<string, FileCollection> collectionCache = new();
 
         /// <summary>
         /// The sum of all "count" variables in a file
@@ -918,31 +919,39 @@ namespace YARG.Core.Song.Cache
             ICacheGroup<RBCONEntry>.SerializeGroups(extractedConGroups, writer, nodes);
         }
 
-        protected void ReadIniEntry(string baseDirectory, IniGroup group, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
+        protected void ReadIniEntry(IniGroup group, string directory, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
         {
             bool isSngEntry = stream.ReadBoolean();
-            var entry = isSngEntry ?
-                SngEntry.TryLoadFromCache(baseDirectory, stream, strings) :
-                UnpackedIniEntry.TryLoadFromCache(baseDirectory, stream, strings);
+            string fullname = Path.Combine(directory, stream.ReadString());
 
-            if (entry == null)
+            IniSubEntry? entry = isSngEntry
+                ? ReadSngEntry(fullname, stream, strings)
+                : ReadUnpackedIniEntry(fullname, stream, strings);
+
+            if (entry != null)
             {
-                YargLogger.LogDebug($"Ini entry invalid {baseDirectory}");
-                return;
+                group.AddEntry(entry);
+                AddEntry(entry);
             }
+        }
 
-            string root = entry.Directory;
-            if (!isSngEntry)
+        protected void QuickReadIniEntry(string directory, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
+        {
+            bool isSngEntry = stream.ReadBoolean();
+            string fullname = Path.Combine(directory, stream.ReadString());
+
+            IniSubEntry? entry = isSngEntry
+                ? SngEntry.LoadFromCache_Quick(fullname, stream, strings)
+                : UnpackedIniEntry.IniFromCache_Quick(fullname, stream, strings);
+
+            if (entry != null)
             {
-                FindOrMarkDirectory(root);
+                AddEntry(entry);
             }
             else
             {
-                FindOrMarkFile(root);
+                YargLogger.LogError("Cache file was modified externally with a bad CHART_TYPE enum value... or bigger error");
             }
-
-            AddEntry(entry);
-            group.AddEntry(entry);
         }
 
         protected void ReadUpdateDirectory(UnmanagedMemoryStream stream)
@@ -1199,22 +1208,6 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        protected void QuickReadIniEntry(string baseDirectory, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
-        {
-            var entry = stream.ReadBoolean() ?
-                SngEntry.LoadFromCache_Quick(baseDirectory, stream, strings) :
-                UnpackedIniEntry.IniFromCache_Quick(baseDirectory, stream, strings);
-
-            if (entry != null)
-            {
-                AddEntry(entry);
-            }
-            else
-            {
-                YargLogger.LogError("Cache file was modified externally with a bad CHART_TYPE enum value... or bigger error");
-            }
-        }
-
         protected void QuickReadUpgradeDirectory(UnmanagedMemoryStream stream)
         {
             string directory = stream.ReadString();
@@ -1277,6 +1270,29 @@ namespace YARG.Core.Song.Cache
                 return null;
             }
             return group;
+        }
+
+        private UnpackedIniEntry? ReadUnpackedIniEntry(string directory, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
+        {
+            var entry = UnpackedIniEntry.TryLoadFromCache(directory, stream, strings);
+            if (entry == null)
+            {
+                return null;
+            }
+
+            FindOrMarkDirectory(directory);
+            return entry;
+        }
+
+        private SngEntry? ReadSngEntry(string fullname, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
+        {
+            var entry = SngEntry.TryLoadFromCache(fullname, stream, strings);
+            if (entry == null)
+            {
+                return null;
+            }
+            FindOrMarkFile(fullname);
+            return entry;
         }
 
         private PackedCONGroup? CreateCONGroup(string filename, string defaultPlaylist)

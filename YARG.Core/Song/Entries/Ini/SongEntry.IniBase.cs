@@ -1,4 +1,5 @@
-﻿using MoonscraperChartEditor.Song.IO;
+﻿using Melanchall.DryWetMidi.Core;
+using MoonscraperChartEditor.Song.IO;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -180,17 +181,21 @@ namespace YARG.Core.Song
             var parts = AvailableParts.Default;
             if (chartType == ChartType.Chart)
             {
-                unsafe
+                if (YARGTextReader.IsUTF8(file, out var byteContainer))
                 {
-                    if (YARGTextReader.TryLoadByteText(file, out var byteContainter))
+                    ParseDotChart(ref byteContainer, modifiers, ref parts, drums);
+                }
+                else
+                {
+                    using var chars = YARGTextReader.ConvertToUTF16(file, out var charContainer);
+                    if (chars != null)
                     {
-                        ParseDotChart(ref byteContainter, &StringDecoder.Decode, modifiers, ref parts, drums);
+                        ParseDotChart(ref charContainer, modifiers, ref parts, drums);
                     }
                     else
                     {
-                        using var chars = YARGTextReader.ConvertToChar(file);
-                        var charContainer = new YARGTextContainer<char>(chars, 0);
-                        ParseDotChart(ref charContainer, &StringDecoder.Decode, modifiers, ref parts, drums);
+                        using var ints = YARGTextReader.ConvertToUTF32(file, out var intContainer);
+                        ParseDotChart(ref intContainer, modifiers, ref parts, drums);
                     }
                 }
             }
@@ -214,12 +219,12 @@ namespace YARG.Core.Song
             return (ScanResult.Success, parts);
         }
 
-        private static unsafe void ParseDotChart<TChar>(ref YARGTextContainer<TChar> reader, in delegate*<TChar*, long, string> decoder, IniSection modifiers, ref AvailableParts parts, DrumPreparseHandler drums)
+        private static unsafe void ParseDotChart<TChar>(ref YARGTextContainer<TChar> reader, IniSection modifiers, ref AvailableParts parts, DrumPreparseHandler drums)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {
             if (YARGChartFileReader.ValidateTrack(ref reader, YARGChartFileReader.HEADERTRACK))
             {
-                var chartMods = YARGChartFileReader.ExtractModifiers(ref reader, decoder, CHART_MODIFIER_LIST);
+                var chartMods = YARGChartFileReader.ExtractModifiers(ref reader, CHART_MODIFIER_LIST);
                 modifiers.Append(chartMods);
             }
 

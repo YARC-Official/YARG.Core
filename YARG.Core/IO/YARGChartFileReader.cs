@@ -135,7 +135,7 @@ namespace YARG.Core.IO
             var position = container.Position;
             while (index < str.Length
                 && position < container.End
-                && position->ToChar(null) == str[index])
+                && position->ToInt32(null) == str[index])
             {
                 ++index;
                 ++position;
@@ -168,7 +168,7 @@ namespace YARG.Core.IO
                 return false;
             }
 
-            if (!container.TryExtractInt64(out long position))
+            if (!YARGTextReader.TryExtractInt64(ref container, out long position))
             {
                 throw new Exception("Could not parse event position");
             }
@@ -180,34 +180,33 @@ namespace YARG.Core.IO
             ev.Position = position;
             YARGTextReader.SkipWhitespaceAndEquals(ref container);
 
-            var curr = container.Position;
-            while (curr < container.End)
+            var start = container.Position;
+            while (container.Position < container.End)
             {
-                int c = curr->ToChar(null) | CharacterExtensions.ASCII_LOWERCASE_FLAG;
+                int c = container.Position->ToInt32(null) | CharacterExtensions.ASCII_LOWERCASE_FLAG;
                 if (c < 'a' || 'z' < c)
                 {
                     break;
                 }
-                ++curr;
+                ++container.Position;
             }
 
-            var span = new ReadOnlySpan<TChar>(container.Position, (int) (curr - container.Position));
-            container.Position = curr;
+            long length = container.Position - start;
             ev.Type = ChartEventType.Unknown;
             foreach (var combo in EVENTS)
             {
-                if (span.Length != combo.Descriptor.Length)
+                if (length != combo.Descriptor.Length)
                 {
                     continue;
                 }
 
                 int index = 0;
-                while (index < span.Length && span[index].ToChar(null) == combo.Descriptor[index])
+                while (index < length && start[index].ToInt32(null) == combo.Descriptor[index])
                 {
                     ++index;
                 }
 
-                if (index == span.Length)
+                if (index == length)
                 {
                     YARGTextReader.SkipWhitespace(ref container);
                     ev.Type = combo.Type;
@@ -217,16 +216,16 @@ namespace YARG.Core.IO
             return true;
         }
 
-        public unsafe static Dictionary<string, List<IniModifier>> ExtractModifiers<TChar>(ref YARGTextContainer<TChar> container, in delegate*<TChar*, long, string> decoder, Dictionary<string, IniModifierCreator> validNodes)
+        public unsafe static Dictionary<string, List<IniModifier>> ExtractModifiers<TChar>(ref YARGTextContainer<TChar> container, Dictionary<string, IniModifierCreator> validNodes)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {
             Dictionary<string, List<IniModifier>> modifiers = new();
             while (IsStillCurrentTrack(ref container))
             {
-                string name = YARGTextReader.ExtractModifierName(ref container, decoder);
+                string name = YARGTextReader.ExtractModifierName(ref container);
                 if (validNodes.TryGetValue(name, out var node))
                 {
-                    var mod = node.CreateModifier(ref container, decoder);
+                    var mod = node.CreateModifier(ref container);
                     if (modifiers.TryGetValue(node.outputName, out var list))
                         list.Add(mod);
                     else

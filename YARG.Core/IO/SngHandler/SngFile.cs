@@ -120,7 +120,7 @@ namespace YARG.Core.IO
             ulong numPairs = stream.Read<ulong>(Endianness.Little);
 
             using var bytes = AllocatedArray<byte>.Read(stream, length);
-            var container = new YARGTextContainer<byte>(bytes, 0);
+            var container = new YARGTextContainer<byte>(bytes.Ptr, bytes.Ptr + length, null!);
             var validNodes = SongIniHandler.SONG_INI_DICTIONARY["[song]"];
 
             for (ulong i = 0; i < numPairs; i++)

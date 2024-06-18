@@ -23,18 +23,18 @@ namespace YARG.Core.Song.Cache
 
             foreach (var group in conGroups)
             {
-                if (group.LoadSongs(out var reader))
+                if (group.LoadSongs(out var container))
                 {
-                    ScanCONGroup(group, ref reader, ScanPackedCONNode);
+                    ScanCONGroup(group, ref container, ScanPackedCONNode);
                 }
                 group.DisposeStreamAndSongDTA();
             }
 
             foreach (var group in extractedConGroups)
             {
-                if (group.LoadDTA(out var reader))
+                if (group.LoadDTA(out var container))
                 {
-                    ScanCONGroup(group, ref reader, ScanUnpackedCONNode);
+                    ScanCONGroup(group, ref container, ScanUnpackedCONNode);
                 }
                 group.Dispose();
             }
@@ -105,7 +105,7 @@ namespace YARG.Core.Song.Cache
             RunEntryTasks(stream, strings, QuickReadExtractedCONGroup);
         }
 
-        protected override void AddUpdate(string name, DateTime dtaLastWrite, in SongUpdate update)
+        protected override void AddUpdate(string name, DateTime dtaLastWrite, SongUpdate update)
         {
             if (!updates.TryGetValue(name, out var list))
             {
@@ -114,9 +114,9 @@ namespace YARG.Core.Song.Cache
             list.Add(dtaLastWrite, update);
         }
 
-        protected override void AddUpgrade(string name, YARGDTAReader reader, IRBProUpgrade upgrade)
+        protected override void AddUpgrade(string name, in YARGTextContainer<byte> container, RBProUpgrade upgrade)
         {
-            upgrades[name] = new(reader, upgrade);
+            upgrades[name] = new(container, upgrade);
         }
 
         protected override void AddPackedCONGroup(PackedCONGroup group)
@@ -137,6 +137,11 @@ namespace YARG.Core.Song.Cache
         protected override void AddUpgradeGroup(UpgradeGroup group)
         {
             upgradeGroups.Add(group);
+        }
+
+        protected override void AddCollectionToCache(in FileCollection collection)
+        {
+            collectionCache.Add(collection.Directory.FullName, collection);
         }
 
         protected override void RemoveCONEntry(string shortname)
@@ -178,23 +183,23 @@ namespace YARG.Core.Song.Cache
             return conGroups.Find(node => node.Location == filename);
         }
 
-        private void ScanCONGroup<TGroup>(TGroup group, ref YARGDTAReader reader, Action<TGroup, string, int, YARGDTAReader> func)
+        private void ScanCONGroup<TGroup>(TGroup group, ref YARGTextContainer<byte> container, Action<TGroup, string, int, YARGTextContainer<byte>> func)
             where TGroup : CONGroup
         {
             try
             {
                 Dictionary<string, int> indices = new();
-                while (reader.StartNode())
+                while (YARGDTAReader.StartNode(ref container))
                 {
-                    string name = reader.GetNameOfNode(true);
+                    string name = YARGDTAReader.GetNameOfNode(ref container, true);
                     if (indices.TryGetValue(name, out int index))
                     {
                         ++index;
                     }
                     indices[name] = index;
 
-                    func(group, name, index, reader);
-                    reader.EndNode();
+                    func(group, name, index, container);
+                    YARGDTAReader.EndNode(ref container);
                 }
             }
             catch (Exception e)
@@ -217,7 +222,7 @@ namespace YARG.Core.Song.Cache
             {
                 int length = stream.Read<int>(Endianness.Little);
                 var slice = stream.Slice(length);
-                ReadIniEntry(directory, group, slice, strings);
+                ReadIniEntry(group, directory, slice, strings);
             }
         }
 
