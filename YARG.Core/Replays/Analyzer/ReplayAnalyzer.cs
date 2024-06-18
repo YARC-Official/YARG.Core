@@ -220,8 +220,10 @@ namespace YARG.Core.Replays.Analyzer
                 original.Combo, result.Combo,
                 original.MaxCombo, result.MaxCombo);
 
-            YargLogger.LogFormatDebug("Solo: {0} == {1}\nSP: {2} == {3}\nTime In SP: {4} == {5}\nSP Ticks: {6} == {7}",
+            YargLogger.LogFormatDebug("Solo: {0} == {1}\nSP Bonus: {2} == {3}\nSP Phrases: {4} == {5}\n" +
+                "Time In SP: {6} == {7}\nSP Ticks: {8} == {9}",
                 original.SoloBonuses, result.SoloBonuses,
+                original.StarPowerScore, result.StarPowerScore,
                 original.StarPowerPhrasesHit, result.StarPowerPhrasesHit,
                 original.TimeInStarPower, result.TimeInStarPower,
                 original.TotalStarPowerTicks, result.TotalStarPowerTicks);
@@ -251,6 +253,7 @@ namespace YARG.Core.Replays.Analyzer
                 original.Combo == result.Combo &&
                 original.MaxCombo == result.MaxCombo &&
                 original.SoloBonuses == result.SoloBonuses &&
+                original.StarPowerScore == result.StarPowerScore &&
                 original.StarPowerPhrasesHit == result.StarPowerPhrasesHit &&
                 // ReSharper disable once CompareOfFloatsByEqualityOperator
                 original.TimeInStarPower == result.TimeInStarPower &&
