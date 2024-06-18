@@ -147,6 +147,8 @@ namespace YARG.Core.Engine
             TotalStarPowerPhrases = stats.TotalStarPowerPhrases;
 
             SoloBonuses = stats.SoloBonuses;
+            StarPowerScore = stats.StarPowerScore;
+
             Stars = stats.Stars;
         }
 
@@ -171,6 +173,8 @@ namespace YARG.Core.Engine
             // TotalStarPowerPhrases = 0;
 
             SoloBonuses = 0;
+            StarPowerScore = 0;
+
             Stars = 0;
         }
 
@@ -196,6 +200,7 @@ namespace YARG.Core.Engine
             writer.Write(TotalStarPowerPhrases);
 
             writer.Write(SoloBonuses);
+            writer.Write(StarPowerScore);
 
             // Deliberately not written so that stars can be re-calculated with different thresholds
             // writer.Write(Stars);
@@ -223,6 +228,7 @@ namespace YARG.Core.Engine
             TotalStarPowerPhrases = reader.ReadInt32();
 
             SoloBonuses = reader.ReadInt32();
+            StarPowerScore = reader.ReadInt32();
 
             // Deliberately not read so that stars can be re-calculated if thresholds change
             // Stars = reader.ReadInt32();
