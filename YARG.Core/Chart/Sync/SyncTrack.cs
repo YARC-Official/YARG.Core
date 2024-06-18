@@ -248,7 +248,7 @@ namespace YARG.Core.Chart
 
             uint tickDelta = tickEnd - tickStart;
             double beatDelta = tickDelta / (double)resolution;
-            double timeDelta = beatDelta * currentTempo.SecondsPerBeat;
+            double timeDelta = beatDelta * 60.0 / currentTempo.BeatsPerMinute;
 
             return timeDelta;
         }
@@ -265,8 +265,8 @@ namespace YARG.Core.Chart
                     $"The given end time must occur after the starting time ({timeStart})!");
 
             double timeDelta = timeEnd - timeStart;
-            double beatDelta = timeDelta / currentTempo.SecondsPerBeat;
-            uint tickDelta = (uint)(beatDelta * resolution);
+            double beatDelta = timeDelta * currentTempo.BeatsPerMinute / 60.0;
+            uint tickDelta = (uint)Math.Round(beatDelta * resolution, 8);
 
             return tickDelta;
         }
