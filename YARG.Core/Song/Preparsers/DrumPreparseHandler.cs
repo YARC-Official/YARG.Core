@@ -32,7 +32,7 @@ namespace YARG.Core.Song.Preparsers
             }
         }
 
-        public bool ParseChart<TChar>(ref YARGTextContainer<TChar> reader, Difficulty difficulty)
+        public bool ParseChart<TChar>(ref YARGTextContainer<TChar> container, Difficulty difficulty)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {
             var diffMask = difficulty.ToDifficultyMask();
@@ -43,9 +43,9 @@ namespace YARG.Core.Song.Preparsers
 
             return Type switch
             {
-                DrumsType.Unknown => ParseChartUnknown(ref reader, diffMask),
-                DrumsType.FourLane => ParseChartFourLane(ref reader, diffMask),
-                _ => ParseChartCommon(ref reader, diffMask),
+                DrumsType.Unknown => ParseChartUnknown(ref container, diffMask),
+                DrumsType.FourLane => ParseChartFourLane(ref container, diffMask),
+                _ => ParseChartCommon(ref container, diffMask),
             };
         }
 
