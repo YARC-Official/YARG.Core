@@ -934,10 +934,6 @@ namespace YARG.Core.Song.Cache
             string root = entry.Directory;
             if (!isSngEntry)
             {
-                if (Directory.EnumerateDirectories(root).Any())
-                {
-                    AddToBadSongs(root, ScanResult.LooseChart_Warning);
-                }
                 FindOrMarkDirectory(root);
             }
             else
