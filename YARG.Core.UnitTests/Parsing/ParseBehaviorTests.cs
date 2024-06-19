@@ -428,7 +428,7 @@ namespace YARG.Core.UnitTests.Parsing
 
                 NewSpecial(36, MoonPhrase.Type.Versus_Player2, RESOLUTION * 13),
                 NewSpecial(36, MoonPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 13),
-                
+
                 NewSpecial(49, MoonPhrase.Type.Versus_Player1, RESOLUTION * 1),
                 NewSpecial(49, MoonPhrase.Type.Vocals_LyricPhrase, RESOLUTION * 1),
             }
@@ -436,10 +436,7 @@ namespace YARG.Core.UnitTests.Parsing
 
         public static MoonSong GenerateSong()
         {
-            var song = new MoonSong()
-            {
-                resolution = RESOLUTION,
-            };
+            var song = new MoonSong(RESOLUTION);
             PopulateSyncTrack(song);
             PopulateGlobalEvents(song, GlobalEvents);
             foreach (var instrument in EnumExtensions<MoonInstrument>.Values)
@@ -465,8 +462,8 @@ namespace YARG.Core.UnitTests.Parsing
 
         public static void PopulateSyncTrack(MoonSong song)
         {
-            song.bpms.Add(new MoonTempo(0, TEMPO));
-            song.timeSignatures.Add(new MoonTimeSignature(0, NUMERATOR, DENOMINATOR));
+            song.syncTrack.Tempos.Add(new TempoChange(TEMPO, 0, 0));
+            song.syncTrack.TimeSignatures.Add(new TimeSignatureChange(NUMERATOR, DENOMINATOR, 0, 0));
         }
 
         public static void PopulateGlobalEvents(MoonSong song, List<MoonText> events)
@@ -501,37 +498,29 @@ namespace YARG.Core.UnitTests.Parsing
 
         public static void VerifySong(MoonSong sourceSong, MoonSong parsedSong, IEnumerable<GameMode> supportedModes)
         {
-            Assert.Multiple(() =>
-            {
-                VerifyMetadata(sourceSong, parsedSong);
-                VerifySync(sourceSong, parsedSong);
-                foreach (var instrument in EnumExtensions<MoonInstrument>.Values)
-                {
-                    // Skip unsupported instruments
-                    var gameMode = MoonSong.InstrumentToChartGameMode(instrument);
-                    if (!supportedModes.Contains(gameMode))
-                        continue;
+            VerifyGlobal(sourceSong, parsedSong);
 
-                    VerifyInstrument(sourceSong, parsedSong, instrument);
-                }
-            });
+            foreach (var instrument in EnumExtensions<MoonInstrument>.Values)
+            {
+                // Skip unsupported instruments
+                var gameMode = MoonSong.InstrumentToChartGameMode(instrument);
+                if (!supportedModes.Contains(gameMode))
+                    continue;
+
+                VerifyInstrument(sourceSong, parsedSong, instrument);
+            }
         }
 
-        public static void VerifyMetadata(MoonSong sourceSong, MoonSong parsedSong)
+        public static void VerifyGlobal(MoonSong sourceSong, MoonSong parsedSong)
         {
             Assert.Multiple(() =>
             {
                 Assert.That(parsedSong.resolution, Is.EqualTo(sourceSong.resolution), $"Resolution was not parsed correctly!");
-            });
-        }
-
-        public static void VerifySync(MoonSong sourceSong, MoonSong parsedSong)
-        {
-            Assert.Multiple(() =>
-            {
-                CollectionAssert.AreEqual(sourceSong.bpms, parsedSong.bpms, "BPMs do not match!");
-                CollectionAssert.AreEqual(sourceSong.timeSignatures, parsedSong.timeSignatures, "Time signatures do not match!");
                 CollectionAssert.AreEqual(parsedSong.events, parsedSong.events, "Global events do not match!");
+
+                CollectionAssert.AreEqual(sourceSong.syncTrack.Tempos, parsedSong.syncTrack.Tempos, "BPMs do not match!");
+                CollectionAssert.AreEqual(sourceSong.syncTrack.TimeSignatures, parsedSong.syncTrack.TimeSignatures, "Time signatures do not match!");
+                CollectionAssert.AreEqual(sourceSong.syncTrack.Beatlines, parsedSong.syncTrack.Beatlines, "Beatlines do not match!");
             });
         }
 
