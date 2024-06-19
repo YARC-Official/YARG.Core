@@ -4,7 +4,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using YARG.Core.Chart;
 using YARG.Core.Extensions;
 
@@ -12,25 +11,13 @@ namespace MoonscraperChartEditor.Song
 {
     internal class MoonSong
     {
-        // Song properties
-        public Metadata metaData = new();
-
-        public string name
-        {
-            get => metaData.name;
-            set => metaData.name = value;
-        }
-
         public float resolution => syncTrack.Resolution;
         public float hopoThreshold;
-        public float offset = 0;
-
-        public float? manualLength = null;
 
         // Charts
         private readonly MoonChart[] charts;
 
-        public IReadOnlyList<MoonChart> Charts => charts.ToList();
+        public IReadOnlyList<MoonChart> Charts => charts;
 
         /// <summary>
         /// Read only list of song events.
