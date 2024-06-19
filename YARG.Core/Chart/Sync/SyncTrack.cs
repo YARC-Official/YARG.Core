@@ -14,17 +14,20 @@ namespace YARG.Core.Chart
         public delegate uint GetBeatlineRatePower(TimeSignatureChange timeSignature);
         public delegate BeatlineType GetBeatlineType(TimeSignatureChange currentTimeSig, uint beatlineCount);
 
-        public uint Resolution { get; } = 480;
+        public uint Resolution { get; }
         public List<TempoChange> Tempos { get; } = new();
         public List<TimeSignatureChange> TimeSignatures { get; } = new();
         public List<Beatline> Beatlines { get; } = new();
 
-        public SyncTrack() { }
+        public SyncTrack(uint resolution)
+        {
+            Resolution = resolution;
+        }
 
         public SyncTrack(uint resolution, List<TempoChange> tempos, List<TimeSignatureChange> timeSignatures,
             List<Beatline> beatlines)
+            : this(resolution)
         {
-            Resolution = resolution;
             Tempos = tempos;
             TimeSignatures = timeSignatures;
             Beatlines = beatlines;
