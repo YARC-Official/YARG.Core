@@ -16,8 +16,8 @@ namespace YARG.Core.Song
             {
                 if (ev.Type == ChartEventType.Note)
                 {
-                    int lane = YARGTextReader.ExtractInt32(ref container);
-                    long _ = YARGTextReader.ExtractInt64(ref container);
+                    int lane = YARGTextReader.ExtractInt32AndWhitespace(ref container);
+                    long _ = YARGTextReader.ExtractInt64AndWhitespace(ref container);
                     if (func(lane))
                     {
                         scan.SetDifficulty(difficulty);

@@ -66,8 +66,8 @@ namespace YARG.Core.Song.Preparsers
             {
                 if (ev.Type == ChartEventType.Note)
                 {
-                    int lane = YARGTextReader.ExtractInt32(ref container);
-                    long _ = YARGTextReader.ExtractInt64(ref container);
+                    int lane = YARGTextReader.ExtractInt32AndWhitespace(ref container);
+                    long _ = YARGTextReader.ExtractInt64AndWhitespace(ref container);
                     if (lane <= FIVE_LANE_COUNT)
                     {
                         _validations |= difficulty;
@@ -104,8 +104,8 @@ namespace YARG.Core.Song.Preparsers
             {
                 if (ev.Type == ChartEventType.Note)
                 {
-                    int lane = YARGTextReader.ExtractInt32(ref container);
-                    long _ = YARGTextReader.ExtractInt64(ref container);
+                    int lane = YARGTextReader.ExtractInt32AndWhitespace(ref container);
+                    long _ = YARGTextReader.ExtractInt64AndWhitespace(ref container);
                     if (lane <= FOUR_LANE_COUNT)
                     {
                         found = true;
@@ -140,8 +140,8 @@ namespace YARG.Core.Song.Preparsers
             {
                 if (ev.Type == ChartEventType.Note)
                 {
-                    int lane = YARGTextReader.ExtractInt32(ref container);
-                    long _ = YARGTextReader.ExtractInt64(ref container);
+                    int lane = YARGTextReader.ExtractInt32AndWhitespace(ref container);
+                    long _ = YARGTextReader.ExtractInt64AndWhitespace(ref container);
                     if (lane <= numPads)
                     {
                         found = true;

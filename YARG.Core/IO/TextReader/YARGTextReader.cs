@@ -278,7 +278,7 @@ namespace YARG.Core.IO
         /// </summary>
         /// <remarks>Throws if no value could be parsed</remarks>
         /// <returns>The short</returns>
-        public static short ExtractInt16<TChar>(ref YARGTextContainer<TChar> container)
+        public static short ExtractInt16AndWhitespace<TChar>(ref YARGTextContainer<TChar> container)
             where TChar : unmanaged, IConvertible
         {
             if (!TryExtractInt16(ref container, out short value))
@@ -294,7 +294,7 @@ namespace YARG.Core.IO
         /// </summary>
         /// <remarks>Throws if no value could be parsed</remarks>
         /// <returns>The ushort</returns>
-        public static ushort ExtractUInt16<TChar>(ref YARGTextContainer<TChar> container)
+        public static ushort ExtractUInt16AndWhitespace<TChar>(ref YARGTextContainer<TChar> container)
             where TChar : unmanaged, IConvertible
         {
             if (!TryExtractUInt16(ref container, out ushort value))
@@ -310,7 +310,7 @@ namespace YARG.Core.IO
         /// </summary>
         /// <remarks>Throws if no value could be parsed</remarks>
         /// <returns>The int</returns>
-        public static int ExtractInt32<TChar>(ref YARGTextContainer<TChar> container)
+        public static int ExtractInt32AndWhitespace<TChar>(ref YARGTextContainer<TChar> container)
             where TChar : unmanaged, IConvertible
         {
             if (!TryExtractInt32(ref container, out int value))
@@ -326,7 +326,7 @@ namespace YARG.Core.IO
         /// </summary>
         /// <remarks>Throws if no value could be parsed</remarks>
         /// <returns>The uint</returns>
-        public static uint ExtractUInt32<TChar>(ref YARGTextContainer<TChar> container)
+        public static uint ExtractUInt32AndWhitespace<TChar>(ref YARGTextContainer<TChar> container)
             where TChar : unmanaged, IConvertible
         {
             if (!TryExtractUInt32(ref container, out uint value))
@@ -342,7 +342,7 @@ namespace YARG.Core.IO
         /// </summary>
         /// <remarks>Throws if no value could be parsed</remarks>
         /// <returns>The long</returns>
-        public static long ExtractInt64<TChar>(ref YARGTextContainer<TChar> container)
+        public static long ExtractInt64AndWhitespace<TChar>(ref YARGTextContainer<TChar> container)
             where TChar : unmanaged, IConvertible
         {
             if (!TryExtractInt64(ref container, out long value))
@@ -358,7 +358,7 @@ namespace YARG.Core.IO
         /// </summary>
         /// <remarks>Throws if no value could be parsed</remarks>
         /// <returns>The ulong</returns>
-        public static ulong ExtractUInt64<TChar>(ref YARGTextContainer<TChar> container)
+        public static ulong ExtractUInt64AndWhitespace<TChar>(ref YARGTextContainer<TChar> container)
             where TChar : unmanaged, IConvertible
         {
             if (!TryExtractUInt64(ref container, out ulong value))
@@ -374,7 +374,7 @@ namespace YARG.Core.IO
         /// </summary>
         /// <remarks>Throws if no value could be parsed</remarks>
         /// <returns>The float</returns>
-        public static float ExtractFloat<TChar>(ref YARGTextContainer<TChar> container)
+        public static float ExtractFloatAndWhitespace<TChar>(ref YARGTextContainer<TChar> container)
             where TChar : unmanaged, IConvertible
         {
             if (!TryExtractFloat(ref container, out float value))
@@ -390,7 +390,7 @@ namespace YARG.Core.IO
         /// </summary>
         /// <remarks>Throws if no value could be parsed</remarks>
         /// <returns>The double</returns>
-        public static double ExtractDouble<TChar>(ref YARGTextContainer<TChar> container)
+        public static double ExtractDoubleAndWhitespace<TChar>(ref YARGTextContainer<TChar> container)
             where TChar : unmanaged, IConvertible
         {
             if (!TryExtractDouble(ref container, out double value))
