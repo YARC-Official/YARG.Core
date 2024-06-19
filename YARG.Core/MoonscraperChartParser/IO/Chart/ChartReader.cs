@@ -15,7 +15,7 @@ using YARG.Core.Utility;
 
 namespace MoonscraperChartEditor.Song.IO
 {
-    using TrimSplitter = SpanSplitter<char, TrimSplitProcessor>;
+    using AsciiTrimSplitter = SpanSplitter<char, AsciiTrimSplitProcessor>;
 
     internal static partial class ChartReader
     {
@@ -112,7 +112,7 @@ namespace MoonscraperChartEditor.Song.IO
             int textIndex = 0;
 
             static void ExpectSection(ReadOnlySpan<char> chartText, ref int textIndex,
-                string name, out TrimSplitter sectionBody)
+                string name, out AsciiTrimSplitter sectionBody)
             {
                 if (!GetNextSection(chartText, ref textIndex, out var sectionName, out sectionBody))
                     throw new InvalidDataException($"Required section [{name}] is missing!");
@@ -140,7 +140,7 @@ namespace MoonscraperChartEditor.Song.IO
         }
 
         private static bool GetNextSection(ReadOnlySpan<char> chartText, ref int index,
-            out ReadOnlySpan<char> sectionName, out TrimSplitter sectionBody)
+            out ReadOnlySpan<char> sectionName, out AsciiTrimSplitter sectionBody)
         {
             static int GetLineCount(ReadOnlySpan<char> chartText, int startIndex, int relativeIndex)
             {
@@ -220,13 +220,13 @@ namespace MoonscraperChartEditor.Song.IO
                 throw new Exception($"Misordered section body brackets! Start bracket on line {startLine}, end on line {endLine}");
             }
 
-            sectionBody = search[++sectionStartIndex..sectionEndIndex].SplitTrimmed('\n');
+            sectionBody = search[++sectionStartIndex..sectionEndIndex].SplitTrimmedAscii('\n');
             index += ++sectionEndIndex;
             return true;
         }
 
         private static void SubmitChartData(ref ParseSettings settings, MoonSong song, ReadOnlySpan<char> sectionName,
-            TrimSplitter sectionLines)
+            AsciiTrimSplitter sectionLines)
         {
             if (sectionName.Equals(ChartIOHelper.SECTION_EVENTS, StringComparison.Ordinal))
             {
@@ -253,7 +253,7 @@ namespace MoonscraperChartEditor.Song.IO
             }
         }
 
-        private static MoonSong SubmitDataSong(TrimSplitter sectionLines)
+        private static MoonSong SubmitDataSong(AsciiTrimSplitter sectionLines)
         {
             foreach (var line in sectionLines)
             {
@@ -283,7 +283,7 @@ namespace MoonscraperChartEditor.Song.IO
             settings.ChordHopoCancellation = false;
         }
 
-        private static void SubmitDataSync(MoonSong song, TrimSplitter sectionLines)
+        private static void SubmitDataSync(MoonSong song, AsciiTrimSplitter sectionLines)
         {
             uint prevTick = 0;
 
@@ -345,7 +345,7 @@ namespace MoonscraperChartEditor.Song.IO
             }
         }
 
-        private static void SubmitDataGlobals(MoonSong song, TrimSplitter sectionLines)
+        private static void SubmitDataGlobals(MoonSong song, AsciiTrimSplitter sectionLines)
         {
             uint prevTick = 0;
             foreach (var _line in sectionLines)
@@ -397,7 +397,7 @@ namespace MoonscraperChartEditor.Song.IO
 
         #endregion
 
-        private static void LoadChart(ref ParseSettings settings, MoonSong song, TrimSplitter sectionLines,
+        private static void LoadChart(ref ParseSettings settings, MoonSong song, AsciiTrimSplitter sectionLines,
             MoonSong.MoonInstrument instrument, MoonSong.Difficulty difficulty)
         {
             var chart = song.GetChart(instrument, difficulty);
