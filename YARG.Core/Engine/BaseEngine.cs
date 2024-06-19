@@ -258,10 +258,9 @@ namespace YARG.Core.Engine
                 YargLogger.LogFormatTrace("{0} updates ready to be simulated", _scheduledUpdates.Count);
             }
 
-            int i = 0;
-            for (; i < _scheduledUpdates.Count; i++)
+            while (_scheduledUpdates.Count > 0)
             {
-                double updateTime = _scheduledUpdates[i].Time;
+                double updateTime = _scheduledUpdates[0].Time;
 
                 // Skip updates that are in the past
                 if (updateTime < BaseState.CurrentTime)
@@ -269,7 +268,8 @@ namespace YARG.Core.Engine
                     YargLogger.FailFormat(
                         "Scheduled update is in the past! Current time: {0}, update time: {1}", BaseState.CurrentTime,
                         updateTime);
-                    continue;
+
+                    _scheduledUpdates.RemoveAt(0);
                 }
 
                 // There should be no scheduled updates for times beyond the one we want to update to
@@ -277,16 +277,24 @@ namespace YARG.Core.Engine
                 {
                     YargLogger.FailFormat("Update time is >= than the given time! Update time: {0}, given time: {1}",
                         updateTime, time);
-                    continue;
+                    break;
                 }
 
                 YargLogger.LogFormatTrace("Running scheduled update at {0} ({1})", updateTime,
-                    item2: _scheduledUpdates[i].Reason);
+                    item2: _scheduledUpdates[0].Reason);
                 RunEngineLoop(updateTime);
-            }
 
-            // Remove all processed updates
-            _scheduledUpdates.RemoveRange(0, i);
+                _scheduledUpdates.RemoveAt(0);
+
+                // Generate updates up to the next existing update.
+                // This is done to handle any updates that need to be queued if something changes.
+                // (For example: a sustain starting then ending within the range of already existing updates)
+                if (_scheduledUpdates.Count > 0)
+                {
+                    GenerateQueuedUpdates(_scheduledUpdates[0].Time);
+                    _scheduledUpdates.Sort((x, y) => x.Time.CompareTo(y.Time));
+                }
+            }
         }
 
         protected abstract void UpdateBot(double time);
