@@ -276,7 +276,6 @@ namespace YARG.Core.Replays
                 writer.Write(stats.TotalStarPowerPhrases);
                 writer.Write(stats.SoloBonuses);
                 writer.Write(stats.StarPowerScore);
-                writer.Write(stats.Stars);
             }
 
             public static BaseStats DeserializeStats(BinaryReader reader, GameMode gameMode, int version = 0)
