@@ -268,12 +268,14 @@ namespace YARG.Core.Replays
                 writer.Write(stats.ScoreMultiplier);
                 writer.Write(stats.NotesHit);
                 writer.Write(stats.TotalNotes);
-                writer.Write(stats.StarPowerAmount);
-                writer.Write(stats.StarPowerBaseAmount);
+                writer.Write(stats.StarPowerTickAmount);
+                writer.Write(stats.TotalStarPowerTicks);
+                writer.Write(stats.TimeInStarPower);
                 writer.Write(stats.IsStarPowerActive);
                 writer.Write(stats.StarPowerPhrasesHit);
                 writer.Write(stats.TotalStarPowerPhrases);
                 writer.Write(stats.SoloBonuses);
+                writer.Write(stats.StarPowerScore);
                 writer.Write(stats.Stars);
             }
 
@@ -286,12 +288,14 @@ namespace YARG.Core.Replays
                 var scoreMultiplier = reader.ReadInt32();
                 var notesHit = reader.ReadInt32();
                 var totalNotes = reader.ReadInt32();
-                var starPowerAmount = reader.ReadDouble();
-                var starPowerBaseAmount = reader.ReadDouble();
+                var starPowerTickAmount = reader.ReadUInt32();
+                var totalStarPowerTicks = reader.ReadUInt32();
+                var timeInStarPower = reader.ReadDouble();
                 var isStarPowerActive = reader.ReadBoolean();
                 var starPowerPhrasesHit = reader.ReadInt32();
                 var totalStarPowerPhrases = reader.ReadInt32();
                 var soloBonuses = reader.ReadInt32();
+                var starPowerScore = reader.ReadInt32();
 
                 BaseStats stats = null!;
                 switch (gameMode)
@@ -327,12 +331,14 @@ namespace YARG.Core.Replays
                 stats.ScoreMultiplier = scoreMultiplier;
                 stats.NotesHit = notesHit;
                 stats.TotalNotes = totalNotes;
-                stats.StarPowerAmount = starPowerAmount;
-                stats.StarPowerBaseAmount = starPowerBaseAmount;
+                stats.StarPowerTickAmount = starPowerTickAmount;
+                stats.TotalStarPowerTicks = totalStarPowerTicks;
+                stats.TimeInStarPower = timeInStarPower;
                 stats.IsStarPowerActive = isStarPowerActive;
                 stats.StarPowerPhrasesHit = starPowerPhrasesHit;
                 stats.TotalStarPowerPhrases = totalStarPowerPhrases;
                 stats.SoloBonuses = soloBonuses;
+                stats.StarPowerScore = starPowerScore;
 
                 return stats;
             }

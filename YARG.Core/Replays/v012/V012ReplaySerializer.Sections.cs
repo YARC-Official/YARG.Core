@@ -270,8 +270,8 @@ namespace YARG.Core.Replays
                 writer.Write(stats.ScoreMultiplier);
                 writer.Write(stats.NotesHit);
                 writer.Write(stats.TotalNotes);
-                writer.Write(stats.StarPowerAmount);
-                writer.Write(stats.StarPowerBaseAmount);
+                writer.Write(0.0); // StarPowerAmount - No longer exists
+                writer.Write(0.0); // StarPowerBaseAmount - No longer exists
                 writer.Write(stats.IsStarPowerActive);
                 writer.Write(stats.StarPowerPhrasesHit);
                 writer.Write(stats.TotalStarPowerPhrases);
@@ -329,8 +329,8 @@ namespace YARG.Core.Replays
                 stats.ScoreMultiplier = scoreMultiplier;
                 stats.NotesHit = notesHit;
                 stats.TotalNotes = totalNotes;
-                stats.StarPowerAmount = starPowerAmount;
-                stats.StarPowerBaseAmount = starPowerBaseAmount;
+                //stats.StarPowerAmount = starPowerAmount;
+                //stats.StarPowerBaseAmount = starPowerBaseAmount;
                 stats.IsStarPowerActive = isStarPowerActive;
                 stats.StarPowerPhrasesHit = starPowerPhrasesHit;
                 stats.TotalStarPowerPhrases = totalStarPowerPhrases;

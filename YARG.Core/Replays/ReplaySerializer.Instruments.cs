@@ -47,7 +47,8 @@ namespace YARG.Core.Replays
                 writer.Write(stats.Overstrums);
                 writer.Write(stats.HoposStrummed);
                 writer.Write(stats.GhostInputs);
-                writer.Write(stats.StarPowerWhammyGain);
+                writer.Write(stats.SustainScore);
+                writer.Write(stats.WhammyTicks);
             }
 
             public static GuitarStats DeserializeGuitarStats(BinaryReader reader, int version = 0)
@@ -57,7 +58,8 @@ namespace YARG.Core.Replays
                 stats.Overstrums = reader.ReadInt32();
                 stats.HoposStrummed = reader.ReadInt32();
                 stats.GhostInputs = reader.ReadInt32();
-                stats.StarPowerWhammyGain = reader.ReadDouble();
+                stats.SustainScore = reader.ReadInt32();
+                stats.WhammyTicks = reader.ReadUInt32();
 
                 return stats;
             }
