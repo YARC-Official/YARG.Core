@@ -3,7 +3,6 @@ using System.IO;
 using YARG.Core.Engine;
 using YARG.Core.Engine.Drums;
 using YARG.Core.Engine.Guitar;
-using YARG.Core.Engine.Logging;
 using YARG.Core.Engine.ProKeys;
 using YARG.Core.Engine.Vocals;
 using YARG.Core.Game;
@@ -131,13 +130,6 @@ namespace YARG.Core.Replays
                     var value = reader.ReadInt32();
 
                     frame.Inputs[i] = new GameInput(time, action, value);
-                }
-
-                // Event logger was removed in version 6+
-                if (version <= 5)
-                {
-                    var eventLogger = new EngineEventLogger();
-                    eventLogger.Deserialize(reader, version);
                 }
 
                 return frame;
@@ -276,6 +268,28 @@ namespace YARG.Core.Replays
                 writer.Write(stats.TotalStarPowerPhrases);
                 writer.Write(stats.SoloBonuses);
                 writer.Write(stats.StarPowerScore);
+
+                switch (gameMode)
+                {
+                    case GameMode.FiveFretGuitar:
+                    case GameMode.SixFretGuitar:
+                        Instruments.SerializeGuitarStats(writer, (stats as GuitarStats)!);
+                        break;
+                    case GameMode.FourLaneDrums:
+                    case GameMode.FiveLaneDrums:
+                        Instruments.SerializeDrumsStats(writer, (stats as DrumsStats)!);
+                        break;
+                    case GameMode.ProGuitar:
+                        break;
+                    case GameMode.ProKeys:
+                        Instruments.SerializeProKeysStats(writer, (stats as ProKeysStats)!);
+                        break;
+                    case GameMode.Vocals:
+                        Instruments.SerializeVocalsStats(writer, (stats as VocalsStats)!);
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(gameMode), gameMode, null);
+                }
             }
 
             public static BaseStats DeserializeStats(BinaryReader reader, GameMode gameMode, int version = 0)
