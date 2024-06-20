@@ -270,14 +270,16 @@ namespace YARG.Core.Chart
 
         private void GenerateDrumActivationPhrases(InstrumentDifficulty<DrumNote> difficulty)
         {
-            if (difficulty.Notes.Count == 0) return;
+            if (difficulty.Notes.Count == 0){
+                return;
+            }
 
             uint lastNoteTick = difficulty.Notes.GetLastTick();
 
             // Automatically add in Star Power activation phrases for drum charts that don't have enough
 
-            List<Phrase> starPowerPhrases = new();
-            List<Phrase> soloPhrases = new();
+            var starPowerPhrases = new List<Phrase>();
+            var soloPhrases = new List<Phrase>();
 
             foreach (var thisPhrase in difficulty.Phrases)
             {
@@ -313,14 +315,19 @@ namespace YARG.Core.Chart
             var measureBeatLines = SyncTrack.Beatlines.Where(x => x.Type == BeatlineType.Measure).ToList();
 
             int currentMeasureIndex = measureBeatLines.GetIndexOfPrevious(prevReferenceTime);
-            if (currentMeasureIndex == -1) return;
+            if (currentMeasureIndex == -1)
+            {
+                return;
+            }
 
             int totalMeasures = measureBeatLines.Count;
             
             var allTimeSigs = SyncTrack.TimeSignatures;
             var currentTimeSigIndex = allTimeSigs.GetIndexOfPrevious(prevReferenceTime);
 
-            if (currentTimeSigIndex == -1) return;
+            if (currentTimeSigIndex == -1) {
+                return;
+            } 
             
             var currentTimeSig = allTimeSigs[currentTimeSigIndex];
             int timeSigMeasureIndex = measureBeatLines.GetIndexOfPrevious(currentTimeSig.Tick);
@@ -370,7 +377,7 @@ namespace YARG.Core.Chart
 
                 if (currentMeasureTick >= lastNoteTick) break;
 
-                uint eighth_note_tick_length = currentTimeSig.GetTicksPerBeat(SyncTrack) / 2;
+                uint eighthNoteTickLength = currentTimeSig.GetTicksPerBeat(SyncTrack) / 2;
                 
                 // Attempt to retrieve an activation note directly on the bar line
                 var activationNote = difficulty.Notes.GetPrevious(currentMeasureTick);
@@ -379,7 +386,7 @@ namespace YARG.Core.Chart
                 if (activationNote == null) break;
 
                 // No note exists on or near the bar line, move on
-                if (activationNote.Tick < currentMeasureTick - eighth_note_tick_length) continue;
+                if (activationNote.Tick < currentMeasureTick - eighthNoteTickLength) continue;
 
                 var nearestSPPhrase = starPowerPhrases.GetPrevious(currentMeasureTick);
                 if (nearestSPPhrase == null) break;
@@ -402,7 +409,7 @@ namespace YARG.Core.Chart
                 
                 // Do not put an activation phrase here if there aren't enough notes to hit after activating SP
                 const uint SP_MIN_NOTES = 16;
-                int starPowerEndMeasureIndex = Math.Min(currentMeasureIndex+4, totalMeasures-1);
+                int starPowerEndMeasureIndex = Math.Min(currentMeasureIndex + 4, totalMeasures - 1);
                 uint starPowerEndTick = measureBeatLines[starPowerEndMeasureIndex].Tick;
 
                 int totalNotesForStarPower = 0;
@@ -411,7 +418,7 @@ namespace YARG.Core.Chart
                 {
                     if (testNote.Tick > starPowerEndTick) break;
                     
-                    totalNotesForStarPower += testNote.ChildNotes.Count+1;
+                    totalNotesForStarPower += testNote.ChildNotes.Count + 1;
                     testNote = testNote.NextNote;
                 }
 
@@ -424,8 +431,8 @@ namespace YARG.Core.Chart
                 {
                     // The note on the bar line doesn't contain a combo of crash and kick/snare
                     // Search +/- an 8th note to find a possible syncopated activation note
-                    testNote = difficulty.Notes.GetNext(currentMeasureTick - eighth_note_tick_length - 1);
-                    while (testNote != null && testNote.Tick <= currentMeasureTick + eighth_note_tick_length)
+                    testNote = difficulty.Notes.GetNext(currentMeasureTick - eighthNoteTickLength - 1);
+                    while (testNote != null && testNote.Tick <= currentMeasureTick + eighthNoteTickLength)
                     {
                         if (testNote != activationNote)
                         {
