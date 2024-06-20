@@ -38,9 +38,9 @@ namespace YARG.Core.Engine.Drums.Engines
             {
                 CheckForNoteHit();
             }
-            else if (State.PadHit != null)
+            else if (State.Action is {} padAction)
             {
-                OnPadHit?.Invoke(State.Action.Value, false, State.HitVelocity.GetValueOrDefault(0));
+                OnPadHit?.Invoke(padAction, false, State.HitVelocity.GetValueOrDefault(0));
                 ResetPadState();
             }
         }
@@ -81,9 +81,9 @@ namespace YARG.Core.Engine.Drums.Engines
                         bool awardVelocityBonus = ApplyVelocity(note);
 
                         // TODO - Deadly Dynamics modifier check on awardVelocityBonus
-                        
+
                         HitNote(note);
-                        OnPadHit?.Invoke(State.Action.Value, true, State.HitVelocity.GetValueOrDefault(0));
+                        OnPadHit?.Invoke(State.Action!.Value, true, State.HitVelocity.GetValueOrDefault(0));
 
                         if (awardVelocityBonus){
                             int velocityBonus = (int)(POINTS_PER_NOTE * 0.5 * EngineStats.ScoreMultiplier);
@@ -112,7 +112,7 @@ namespace YARG.Core.Engine.Drums.Engines
             // If no note was hit but the user hit a pad, then over hit
             if (State.PadHit != null)
             {
-                OnPadHit?.Invoke(State.Action.Value, false, State.HitVelocity.GetValueOrDefault(0));
+                OnPadHit?.Invoke(State.Action!.Value, false, State.HitVelocity.GetValueOrDefault(0));
                 Overhit();
                 ResetPadState();
             }
