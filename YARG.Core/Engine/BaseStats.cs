@@ -91,11 +91,6 @@ namespace YARG.Core.Engine
         public bool IsStarPowerActive;
 
         /// <summary>
-        /// Whether or not Star Power/Overdrive can be activated.
-        /// </summary>
-        //public bool CanStarPowerActivate => StarPowerBarAmount >= 0.5 && !IsStarPowerActive;
-
-        /// <summary>
         /// Number of Star Power phrases which have been hit.
         /// </summary>
         public int StarPowerPhrasesHit;
