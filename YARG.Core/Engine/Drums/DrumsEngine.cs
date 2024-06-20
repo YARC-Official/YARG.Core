@@ -134,12 +134,10 @@ namespace YARG.Core.Engine.Drums
             if (IsBot) return true;
 
             // Hit velocity was not recorded for this note, bonus will always be false
-            if (State.HitVelocity == null) return false;
-
-            float lastInputVelocity = State.HitVelocity ?? 1;
+            if (State.HitVelocity is not {} lastInputVelocity) return false;
 
             hitNote.HitVelocity = lastInputVelocity;
-            
+
             // Apply bonus points from successful ghost / accent note hits
             float awardThreshold = EngineParameters.VelocityThreshold;
             float situationalVelocityWindow = EngineParameters.SituationalVelocityWindow;
@@ -185,7 +183,7 @@ namespace YARG.Core.Engine.Drums
 
                 awardThreshold = Math.Max(awardThreshold, relativeVelocityThreshold ?? 0);
             }
-            
+
             bool awardVelocityBonus = false;
 
             if (hitNote.IsGhost)
