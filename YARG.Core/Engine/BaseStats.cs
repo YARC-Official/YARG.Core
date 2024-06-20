@@ -77,13 +77,13 @@ namespace YARG.Core.Engine
         /// <summary>
         /// Amount of Star Power/Overdrive the player currently has.
         /// </summary>
-        public double StarPowerAmount;
+        public double StarPowerBarAmount;
 
-        /// <summary>
-        /// Amount of Star Power/Overdrive the player had as of the most recent SP/OD rebase
-        /// (SP activation, time signature change, SP sustain whammy start).
-        /// </summary>
-        public double StarPowerBaseAmount;
+        public uint StarPowerTickAmount;
+
+        public uint TotalStarPowerTicks;
+
+        public double TimeInStarPower;
 
         /// <summary>
         /// True if the player currently has Star Power/Overdrive active.
@@ -93,7 +93,7 @@ namespace YARG.Core.Engine
         /// <summary>
         /// Whether or not Star Power/Overdrive can be activated.
         /// </summary>
-        public bool CanStarPowerActivate => StarPowerAmount >= 0.5 && !IsStarPowerActive;
+        //public bool CanStarPowerActivate => StarPowerBarAmount >= 0.5 && !IsStarPowerActive;
 
         /// <summary>
         /// Number of Star Power phrases which have been hit.
@@ -116,6 +116,8 @@ namespace YARG.Core.Engine
         /// </summary>
         public int SoloBonuses;
 
+        public int StarPowerScore;
+
         /// <summary>
         /// The number of stars the player has achieved, along with the progress to the next star.
         /// </summary>
@@ -135,14 +137,18 @@ namespace YARG.Core.Engine
             NotesHit = stats.NotesHit;
             TotalNotes = stats.TotalNotes;
 
-            StarPowerAmount = stats.StarPowerAmount;
-            StarPowerBaseAmount = stats.StarPowerBaseAmount;
+            StarPowerBarAmount = stats.StarPowerBarAmount;
+            StarPowerTickAmount = stats.StarPowerTickAmount;
+            TotalStarPowerTicks = stats.TotalStarPowerTicks;
+            TimeInStarPower = stats.TimeInStarPower;
             IsStarPowerActive = stats.IsStarPowerActive;
 
             StarPowerPhrasesHit = stats.StarPowerPhrasesHit;
             TotalStarPowerPhrases = stats.TotalStarPowerPhrases;
 
             SoloBonuses = stats.SoloBonuses;
+            StarPowerScore = stats.StarPowerScore;
+
             Stars = stats.Stars;
         }
 
@@ -157,14 +163,18 @@ namespace YARG.Core.Engine
             // Don't reset TotalNotes
             // TotalNotes = 0;
 
-            StarPowerAmount = 0;
-            StarPowerBaseAmount = 0;
+            StarPowerBarAmount = 0;
+            StarPowerTickAmount = 0;
+            TotalStarPowerTicks = 0;
+            TimeInStarPower = 0;
             IsStarPowerActive = false;
 
             StarPowerPhrasesHit = 0;
             // TotalStarPowerPhrases = 0;
 
             SoloBonuses = 0;
+            StarPowerScore = 0;
+
             Stars = 0;
         }
 
@@ -180,14 +190,17 @@ namespace YARG.Core.Engine
             writer.Write(NotesHit);
             writer.Write(TotalNotes);
 
-            writer.Write(StarPowerAmount);
-            writer.Write(StarPowerBaseAmount);
+            writer.Write(StarPowerBarAmount);
+            writer.Write(StarPowerTickAmount);
+            writer.Write(TotalStarPowerTicks);
+            writer.Write(TimeInStarPower);
             writer.Write(IsStarPowerActive);
 
             writer.Write(StarPowerPhrasesHit);
             writer.Write(TotalStarPowerPhrases);
 
             writer.Write(SoloBonuses);
+            writer.Write(StarPowerScore);
 
             // Deliberately not written so that stars can be re-calculated with different thresholds
             // writer.Write(Stars);
@@ -205,14 +218,17 @@ namespace YARG.Core.Engine
             NotesHit = reader.ReadInt32();
             TotalNotes = reader.ReadInt32();
 
-            StarPowerAmount = reader.ReadDouble();
-            StarPowerBaseAmount = reader.ReadDouble();
+            StarPowerBarAmount = reader.ReadDouble();
+            StarPowerTickAmount = reader.ReadUInt32();
+            TotalStarPowerTicks = reader.ReadUInt32();
+            TimeInStarPower = reader.ReadDouble();
             IsStarPowerActive = reader.ReadBoolean();
 
             StarPowerPhrasesHit = reader.ReadInt32();
             TotalStarPowerPhrases = reader.ReadInt32();
 
             SoloBonuses = reader.ReadInt32();
+            StarPowerScore = reader.ReadInt32();
 
             // Deliberately not read so that stars can be re-calculated if thresholds change
             // Stars = reader.ReadInt32();

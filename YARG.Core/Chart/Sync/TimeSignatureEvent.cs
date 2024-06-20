@@ -2,7 +2,7 @@ using System;
 
 namespace YARG.Core.Chart
 {
-    public partial class TimeSignatureChange : SyncEvent, ICloneable<TimeSignatureChange>
+    public partial class TimeSignatureChange : SyncEvent, IEquatable<TimeSignatureChange>, ICloneable<TimeSignatureChange>
     {
         public const float QUARTER_NOTE_DENOMINATOR = 4f;
 
@@ -56,6 +56,38 @@ namespace YARG.Core.Chart
         public double GetSecondsPerMeasure(TempoChange tempo)
         {
             return GetSecondsPerBeat(tempo) * Numerator;
+        }
+
+        public static bool operator ==(TimeSignatureChange? left, TimeSignatureChange? right)
+        {
+            if (ReferenceEquals(left, right))
+                return true;
+
+            if (left is null || right is null)
+                return false;
+
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(TimeSignatureChange? left, TimeSignatureChange? right)
+            => !(left == right);
+
+        public bool Equals(TimeSignatureChange other)
+        {
+            return base.Equals(other) &&
+                Numerator == other.Numerator &&
+                Denominator == other.Denominator;
+        }
+
+        public override bool Equals(object? obj)
+            => obj is TimeSignatureChange timeSig && Equals(timeSig);
+
+        public override int GetHashCode()
+            => base.GetHashCode();
+
+        public override string ToString()
+        {
+            return $"Time signature {Numerator}/{Denominator} at tick {Tick}, time {Time}";
         }
     }
 }

@@ -220,9 +220,13 @@ namespace YARG.Core.Replays.Analyzer
                 original.Combo, result.Combo,
                 original.MaxCombo, result.MaxCombo);
 
-            YargLogger.LogFormatDebug("Solo: {0} == {1}\nSP: {2} == {3}",
+            YargLogger.LogFormatDebug("Solo: {0} == {1}\nSP Bonus: {2} == {3}\nSP Phrases: {4} == {5}\n" +
+                "Time In SP: {6} == {7}\nSP Ticks: {8} == {9}",
                 original.SoloBonuses, result.SoloBonuses,
-                original.StarPowerPhrasesHit, result.StarPowerPhrasesHit);
+                original.StarPowerScore, result.StarPowerScore,
+                original.StarPowerPhrasesHit, result.StarPowerPhrasesHit,
+                original.TimeInStarPower, result.TimeInStarPower,
+                original.TotalStarPowerTicks, result.TotalStarPowerTicks);
 
             bool instrumentPass = true;
 
@@ -230,12 +234,17 @@ namespace YARG.Core.Replays.Analyzer
             {
                 instrumentPass = originalGuitar.Overstrums == resultGuitar.Overstrums &&
                     originalGuitar.GhostInputs == resultGuitar.GhostInputs &&
-                    originalGuitar.HoposStrummed == resultGuitar.HoposStrummed;
+                    originalGuitar.HoposStrummed == resultGuitar.HoposStrummed &&
+                    originalGuitar.WhammyTicks == resultGuitar.WhammyTicks &&
+                    originalGuitar.SustainScore == resultGuitar.SustainScore;
 
-                YargLogger.LogFormatDebug("Guitar:\nOverstrums: {0} == {1}\nGhost Inputs: {2} == {3}\nHOPOs Strummed: {4} == {5}",
+                YargLogger.LogFormatDebug("Guitar:\nOverstrums: {0} == {1}\nGhost Inputs: {2} == {3}\nHOPOs Strummed: {4} == {5}\n" +
+                    "Whammy Ticks: {6} == {7}\nSustain Points: {8} == {9}",
                     originalGuitar.Overstrums, resultGuitar.Overstrums,
                     originalGuitar.GhostInputs, resultGuitar.GhostInputs,
-                    originalGuitar.HoposStrummed, resultGuitar.HoposStrummed);
+                    originalGuitar.HoposStrummed, resultGuitar.HoposStrummed,
+                    originalGuitar.WhammyTicks, resultGuitar.WhammyTicks,
+                    originalGuitar.SustainScore, resultGuitar.SustainScore);
             }
 
             bool generalPass = original.CommittedScore == result.CommittedScore &&
@@ -244,7 +253,11 @@ namespace YARG.Core.Replays.Analyzer
                 original.Combo == result.Combo &&
                 original.MaxCombo == result.MaxCombo &&
                 original.SoloBonuses == result.SoloBonuses &&
-                original.StarPowerPhrasesHit == result.StarPowerPhrasesHit;
+                original.StarPowerScore == result.StarPowerScore &&
+                original.StarPowerPhrasesHit == result.StarPowerPhrasesHit &&
+                // ReSharper disable once CompareOfFloatsByEqualityOperator
+                original.TimeInStarPower == result.TimeInStarPower &&
+                original.TotalStarPowerTicks == result.TotalStarPowerTicks;
 
             return generalPass && instrumentPass;
         }

@@ -97,7 +97,7 @@ namespace YARG.Core.Engine.Drums
                 EndSolo();
             }
 
-            if (!activationAutoHit && note.IsStarPowerActivator && EngineStats.CanStarPowerActivate && note.ParentOrSelf.WasFullyHit())
+            if (!activationAutoHit && note.IsStarPowerActivator && CanStarPowerActivate && note.ParentOrSelf.WasFullyHit())
             {
                 ActivateStarPower();
             }
@@ -244,7 +244,7 @@ namespace YARG.Core.Engine.Drums
         protected override void AddScore(DrumNote note)
         {
             int pointsPerNote = GetPointsPerNote();
-            AddScore(pointsPerNote * EngineStats.ScoreMultiplier);
+            AddScore(pointsPerNote);
         }
 
         protected sealed override int CalculateBaseScore()

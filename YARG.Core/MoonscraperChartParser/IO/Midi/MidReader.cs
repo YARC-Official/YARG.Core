@@ -105,10 +105,7 @@ namespace MoonscraperChartEditor.Song.IO
             if (midi.TimeDivision is not TicksPerQuarterNoteTimeDivision ticks)
                 throw new InvalidOperationException("MIDI file has no beat resolution set!");
 
-            var song = new MoonSong()
-            {
-                resolution = ticks.TicksPerQuarterNote
-            };
+            var song = new MoonSong((uint)ticks.TicksPerQuarterNote);
 
             // Apply settings
             ValidateAndApplySettings(song, ref settings);
@@ -228,13 +225,20 @@ namespace MoonscraperChartEditor.Song.IO
 
             foreach (var tempo in tempoMap.GetTempoChanges())
             {
-                song.bpms.Add(new MoonTempo((uint) tempo.Time, (float) tempo.Value.BeatsPerMinute));
+                uint tempoTick = (uint) tempo.Time;
+                song.Add(new TempoChange((float) tempo.Value.BeatsPerMinute,
+                    // This is valid since we are guaranteed to have at least one tempo event at all times
+                    song.TickToTime(tempoTick, song.syncTrack.Tempos[^1]), tempoTick));
             }
+
+            var tempoTracker = new ChartEventTickTracker<TempoChange>(song.syncTrack.Tempos);
             foreach (var timesig in tempoMap.GetTimeSignatureChanges())
             {
-                song.timeSignatures.Add(new MoonTimeSignature((uint) timesig.Time, (uint) timesig.Value.Numerator, (uint) timesig.Value.Denominator));
+                uint tsTick = (uint) timesig.Time;
+                tempoTracker.Update(tsTick);
+                song.Add(new TimeSignatureChange((uint) timesig.Value.Numerator, (uint) timesig.Value.Denominator,
+                    song.TickToTime(tsTick, tempoTracker.Current), tsTick));
             }
-            song.UpdateBPMTimeValues();
         }
 
         private static void ReadSongBeats(TrackChunk track, MoonSong song)
@@ -251,20 +255,20 @@ namespace MoonscraperChartEditor.Song.IO
 
                 if (trackEvent is NoteEvent note && note.EventType == MidiEventType.NoteOn)
                 {
-                    MoonBeat.Type beatType;
+                    BeatlineType beatType;
                     switch ((byte)note.NoteNumber)
                     {
                         case MidIOHelper.BEAT_STRONG:
-                            beatType = MoonBeat.Type.Measure;
+                            beatType = BeatlineType.Measure;
                             break;
                         case MidIOHelper.BEAT_WEAK:
-                            beatType = MoonBeat.Type.Beat;
+                            beatType = BeatlineType.Strong;
                             break;
                         default:
                             continue;
                     }
 
-                    song.beats.Add(new MoonBeat((uint)absoluteTime, beatType));
+                    song.Add(new Beatline(beatType, song.TickToTime((uint) absoluteTime), (uint)absoluteTime));
                 }
             }
         }

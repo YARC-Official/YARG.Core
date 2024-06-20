@@ -1,4 +1,11 @@
-﻿using YARG.Core.Chart;
+﻿using NUnit.Framework;
+using YARG.Core.Chart;
+using YARG.Core.Engine;
+using YARG.Core.Engine.Drums;
+using YARG.Core.Engine.Guitar;
+using YARG.Core.Engine.Logging;
+using YARG.Core.Engine.ProKeys;
+using YARG.Core.Engine.Vocals;
 using YARG.Core.Replays;
 
 namespace ReplayCli;
@@ -197,5 +204,99 @@ public partial class Cli
         }
 
         return chart;
+    }
+
+    private static void PrintStatDifferences(BaseStats originalStats, BaseStats resultStats)
+    {
+        static void PrintStatDifference<T>(string name, T frameStat, T resultStat)
+        where T : IEquatable<T>
+        {
+            if (frameStat.Equals(resultStat))
+                Console.WriteLine($"- {name + ":",-31} {frameStat,-12} (identical)");
+            else
+                Console.WriteLine($"- {name + ":",-31} {frameStat,-10} -> {resultStat}");
+        }
+
+        Console.WriteLine($"Base stats:");
+        PrintStatDifference("CommittedScore",         originalStats.CommittedScore,         resultStats.CommittedScore);
+        PrintStatDifference("PendingScore",           originalStats.PendingScore,           resultStats.PendingScore);
+        PrintStatDifference("TotalScore",             originalStats.TotalScore,             resultStats.TotalScore);
+        PrintStatDifference("StarScore",              originalStats.StarScore,              resultStats.StarScore);
+        PrintStatDifference("Combo",                  originalStats.Combo,                  resultStats.Combo);
+        PrintStatDifference("MaxCombo",               originalStats.MaxCombo,               resultStats.MaxCombo);
+        PrintStatDifference("ScoreMultiplier",        originalStats.ScoreMultiplier,        resultStats.ScoreMultiplier);
+        PrintStatDifference("NotesHit",               originalStats.NotesHit,               resultStats.NotesHit);
+        PrintStatDifference("TotalNotes",             originalStats.TotalNotes,             resultStats.TotalNotes);
+        PrintStatDifference("NotesMissed",            originalStats.NotesMissed,            resultStats.NotesMissed);
+        PrintStatDifference("Percent",                originalStats.Percent,                resultStats.Percent);
+        PrintStatDifference("StarPowerBarAmount",     originalStats.StarPowerBarAmount,     resultStats.StarPowerBarAmount);
+        PrintStatDifference("StarPowerTickAmount",    originalStats.StarPowerTickAmount,    resultStats.StarPowerTickAmount);
+        PrintStatDifference("TotalStarPowerTicks",    originalStats.TotalStarPowerTicks,    resultStats.TotalStarPowerTicks);
+        PrintStatDifference("TimeInStarPower",        originalStats.TimeInStarPower,        resultStats.TimeInStarPower);
+        PrintStatDifference("IsStarPowerActive",      originalStats.IsStarPowerActive,      resultStats.IsStarPowerActive);
+        PrintStatDifference("StarPowerPhrasesHit",    originalStats.StarPowerPhrasesHit,    resultStats.StarPowerPhrasesHit);
+        PrintStatDifference("TotalStarPowerPhrases",  originalStats.TotalStarPowerPhrases,  resultStats.TotalStarPowerPhrases);
+        PrintStatDifference("StarPowerPhrasesMissed", originalStats.StarPowerPhrasesMissed, resultStats.StarPowerPhrasesMissed);
+        PrintStatDifference("SoloBonuses",            originalStats.SoloBonuses,            resultStats.SoloBonuses);
+        PrintStatDifference("StarPowerScore",         originalStats.StarPowerScore,         resultStats.StarPowerScore);
+        // PrintStatDifference("Stars",                  originalStats.Stars,                  resultStats.Stars);
+
+        Console.WriteLine();
+        switch (originalStats, resultStats)
+        {
+            case (GuitarStats originalGuitar, GuitarStats resultGuitar):
+            {
+                Console.WriteLine("Guitar stats:");
+                PrintStatDifference("Overstrums",    originalGuitar.Overstrums,    resultGuitar.Overstrums);
+                PrintStatDifference("HoposStrummed", originalGuitar.HoposStrummed, resultGuitar.HoposStrummed);
+                PrintStatDifference("GhostInputs",   originalGuitar.GhostInputs,   resultGuitar.GhostInputs);
+                PrintStatDifference("WhammyTicks",   originalGuitar.WhammyTicks,   resultGuitar.WhammyTicks);
+                PrintStatDifference("SustainScore",  originalGuitar.SustainScore,  resultGuitar.SustainScore);
+                break;
+            }
+            case (DrumsStats originalDrums, DrumsStats resultDrums):
+            {
+                Console.WriteLine("Drums stats:");
+                PrintStatDifference("Overhits",      originalDrums.Overhits,      resultDrums.Overhits);
+                break;
+            }
+            case (VocalsStats originalVocals, VocalsStats resultVocals):
+            {
+                Console.WriteLine("Vocals stats:");
+                PrintStatDifference("TicksHit",      originalVocals.TicksHit,      resultVocals.TicksHit);
+                PrintStatDifference("TicksMissed",   originalVocals.TicksMissed,   resultVocals.TicksMissed);
+                PrintStatDifference("TotalTicks",    originalVocals.TotalTicks,    resultVocals.TotalTicks);
+                break;
+            }
+            case (ProKeysStats originalKeys, ProKeysStats resultKeys):
+            {
+                Console.WriteLine("Pro Keys stats:");
+                PrintStatDifference("Overhits",      originalKeys.Overhits,      resultKeys.Overhits);
+                break;
+            }
+            default:
+            {
+                if (originalStats.GetType() != resultStats.GetType())
+                    Console.WriteLine($"Stats types do not match! Original: {originalStats.GetType()}, result: {resultStats.GetType()}");
+                else
+                    Console.WriteLine($"Unhandled stats type {originalStats.GetType()}!");
+                break;
+            }
+        }
+    }
+
+    private static void PrintEventLogDifferences(EngineEventLogger originalLog, EngineEventLogger resultLog)
+    {
+        Console.WriteLine("\nEvent logs:");
+        try
+        {
+            // Easiest to just use NUnit here
+            CollectionAssert.AreEqual(originalLog.Events, resultLog.Events);
+            Console.WriteLine($"- Identical");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
     }
 }

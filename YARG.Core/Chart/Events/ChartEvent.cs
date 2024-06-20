@@ -25,5 +25,13 @@ namespace YARG.Core.Chart
             : this(other.Time, other.TimeLength, other.Tick, other.TickLength)
         {
         }
+
+        protected bool Equals(ChartEvent other)
+        {
+            return Time == other.Time &&
+                TimeLength == other.TimeLength &&
+                Tick == other.Tick &&
+                TickLength == other.TickLength;
+        }
     }
 }

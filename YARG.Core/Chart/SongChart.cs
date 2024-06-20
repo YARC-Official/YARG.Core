@@ -16,7 +16,7 @@ namespace YARG.Core.Chart
         public List<TextEvent> GlobalEvents { get; set; } = new();
         public List<Section> Sections { get; set; } = new();
 
-        public SyncTrack SyncTrack { get; set; } = new();
+        public SyncTrack SyncTrack { get; set; }
         public VenueTrack VenueTrack { get; set; } = new();
         public LyricsTrack Lyrics { get; set; } = new();
 
@@ -104,7 +104,10 @@ namespace YARG.Core.Chart
         // public InstrumentTrack<DjNote> Dj { get; set; } = new(Instrument.Dj);
 
         // To explicitly allow creation without going through a file
-        public SongChart() { }
+        public SongChart(uint resolution)
+        {
+            SyncTrack = new(resolution);
+        }
 
         internal SongChart(ISongLoader loader)
         {

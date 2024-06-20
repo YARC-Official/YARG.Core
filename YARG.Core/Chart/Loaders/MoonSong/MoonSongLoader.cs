@@ -99,38 +99,7 @@ namespace YARG.Core.Chart
 
         public SyncTrack LoadSyncTrack()
         {
-            var tempos = new List<TempoChange>(_moonSong.bpms.Count);
-            var timeSigs = new List<TimeSignatureChange>(_moonSong.timeSignatures.Count);
-            var beats = new List<Beatline>(_moonSong.beats.Count);
-
-            foreach (var moonBpm in _moonSong.bpms)
-            {
-                double time = _moonSong.TickToTime(moonBpm.tick);
-                var tempo = new TempoChange(moonBpm.value, time, moonBpm.tick);
-                tempos.Add(tempo);
-            }
-
-            foreach (var moonTimeSig in _moonSong.timeSignatures)
-            {
-                double time = _moonSong.TickToTime(moonTimeSig.tick);
-                var timeSig = new TimeSignatureChange(moonTimeSig.numerator, moonTimeSig.denominator, time, moonTimeSig.tick);
-                timeSigs.Add(timeSig);
-            }
-
-            foreach (var moonBeat in _moonSong.beats)
-            {
-                var beatType = moonBeat.type switch
-                {
-                    MoonBeat.Type.Measure => BeatlineType.Measure,
-                    MoonBeat.Type.Beat => BeatlineType.Strong,
-                    _ => throw new NotImplementedException($"Unhandled Moonscraper beat type {moonBeat.type}!")
-                };
-                double time = _moonSong.TickToTime(moonBeat.tick);
-                var beatline = new Beatline(beatType, time, moonBeat.tick);
-                beats.Add(beatline);
-            }
-
-            return new((uint) _moonSong.resolution, tempos, timeSigs, beats);
+            return _moonSong.syncTrack;
         }
 
         private InstrumentDifficulty<TNote> LoadDifficulty<TNote>(Instrument instrument, Difficulty difficulty,

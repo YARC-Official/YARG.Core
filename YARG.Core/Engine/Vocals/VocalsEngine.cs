@@ -226,13 +226,13 @@ namespace YARG.Core.Engine.Vocals
             }
             else
             {
-                AddScore(EngineParameters.PointsPerPhrase * EngineStats.ScoreMultiplier);
+                AddScore(EngineParameters.PointsPerPhrase);
             }
         }
 
         protected void AddPartialScore(double hitPercent)
         {
-            int score = (int) Math.Round((double) EngineParameters.PointsPerPhrase * EngineStats.ScoreMultiplier * hitPercent);
+            int score = (int) Math.Round(EngineParameters.PointsPerPhrase * hitPercent);
             AddScore(score);
         }
 
