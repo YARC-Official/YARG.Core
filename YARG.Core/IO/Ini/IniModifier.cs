@@ -290,27 +290,31 @@ namespace YARG.Core.IO.Ini
             }
         }
 
-        public long[] Int64Array
+        public void GetInt64Array(out long l1, out long l2)
         {
-            get
+            if (type != ModifierType.Int64Array)
             {
-                if (type != ModifierType.Int64Array)
-                    throw new ArgumentException("Modifier is not a UINT64ARRAY");
-                unsafe
-                {
-                    return new long[] { union.lArr[0], union.lArr[1] };
-                }
+                throw new ArgumentException("Modifier is not a UINT64ARRAY");
             }
-            set
-            {
-                if (type != ModifierType.Int64Array)
-                    throw new ArgumentException("Modifier is not a UINT64ARRAY");
 
-                unsafe
-                {
-                    union.lArr[0] = value[0];
-                    union.lArr[1] = value[1];
-                }
+            unsafe
+            {
+                l1 = union.lArr[0];
+                l2 = union.lArr[1];
+            }
+        }
+
+        public void SetInt64Array(long l1, long l2)
+        {
+            if (type != ModifierType.Int64Array)
+            {
+                throw new ArgumentException("Modifier is not a UINT64ARRAY");
+            }
+
+            unsafe
+            {
+                union.lArr[0] = l1;
+                union.lArr[1] = l2;
             }
         }
     }

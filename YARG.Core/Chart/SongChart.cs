@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Melanchall.DryWetMidi.Core;
+using YARG.Core.Logging;
 using YARG.Core.Parsing;
 
 namespace YARG.Core.Chart
@@ -144,6 +145,7 @@ namespace YARG.Core.Chart
             // Dj = loader.LoadDjTrack(Instrument.Dj);
 
             PostProcessSections();
+            FixDrumPhraseEnds();
 
             // Ensure beatlines are present
             if (SyncTrack.Beatlines is null or { Count: < 1 })
@@ -195,6 +197,57 @@ namespace YARG.Core.Chart
                 var lastSection = Sections[^1];
                 lastSection.TickLength = lastTick - lastSection.Tick;
                 lastSection.TimeLength = SyncTrack.TickToTime(lastTick) - lastSection.Time;
+            }
+        }
+
+        private void FixDrumPhraseEnds()
+        {
+            foreach (var drumTrack in new List<InstrumentTrack<DrumNote>> { ProDrums, FiveLaneDrums, FourLaneDrums })
+            {
+                FixDrumPhraseEnds(drumTrack, n => n.IsSoloEnd, NoteFlags.SoloEnd);
+                FixDrumPhraseEnds(drumTrack, n => n.IsStarPowerEnd, NoteFlags.StarPowerEnd);
+            }
+        }
+
+        private static void FixDrumPhraseEnds(InstrumentTrack<DrumNote> drumTrack, Predicate<DrumNote> isPhraseEnd,
+            NoteFlags phraseEndFlag)
+        {
+            if (!drumTrack.TryGetDifficulty(Difficulty.ExpertPlus, out var trackExpertPlus))
+            {
+                return;
+            }
+
+            if (!drumTrack.TryGetDifficulty(Difficulty.Expert, out var trackExpert))
+            {
+                return;
+            }
+
+            var notesExpertPlus = trackExpertPlus.Notes;
+            var notesExpert = trackExpert.Notes;
+
+            var phraseEndsExpertPlus = notesExpertPlus
+                .Where(n => isPhraseEnd(n)).ToArray();
+            var phraseEndsExpert = notesExpert
+                .Where(n => isPhraseEnd(n)).ToArray();
+
+            if (phraseEndsExpertPlus.Length <= phraseEndsExpert.Length)
+            {
+                return;
+            }
+
+            var i = 1;
+            foreach (var phraseEndExpertPlus in phraseEndsExpertPlus)
+            {
+                while (i < notesExpert.Count && notesExpert[i].Tick <= phraseEndExpertPlus.Tick)
+                {
+                    i++;
+                }
+
+                var phraseEndExpert = notesExpert[i - 1];
+                if (!isPhraseEnd(phraseEndExpert))
+                {
+                    phraseEndExpert.ActivateFlag(phraseEndFlag);
+                }
             }
         }
 

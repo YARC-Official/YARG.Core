@@ -80,9 +80,22 @@ namespace YARG.Core.Song.Cache
                     var reader = group.LoadSongs();
                     if (reader != null)
                     {
-                        ScanCONGroup(group, reader, ScanPackedCONNode);
+                        try
+                        {
+                            List<Task> tasks = new();
+                            TraverseCONGroup(reader, (string name, int index) =>
+                            {
+                                var node = reader.Clone();
+                                tasks.Add(Task.Run(() => ScanPackedCONNode(group, name, index, node)));
+                            });
+                            Task.WaitAll(tasks.ToArray());
+                        }
+                        catch (Exception e)
+                        {
+                            YargLogger.LogException(e, $"Error while scanning CON group {group.Location}!");
+                        }
                     }
-                    group.Stream?.Dispose();
+                    group.DisposeStreamAndSongDTA();
                 }
                 );
             }
@@ -94,13 +107,31 @@ namespace YARG.Core.Song.Cache
                     var reader = group.LoadDTA();
                     if (reader != null)
                     {
-                        ScanCONGroup(group, reader, ScanUnpackedCONNode);
+                        try
+                        {
+                            List<Task> tasks = new();
+                            TraverseCONGroup(reader, (string name, int index) =>
+                            {
+                                var node = reader.Clone();
+                                tasks.Add(Task.Run(() => ScanUnpackedCONNode(group, name, index, node)));
+                            });
+                            Task.WaitAll(tasks.ToArray());
+                        }
+                        catch (Exception e)
+                        {
+                            YargLogger.LogException(e, $"Error while scanning CON group {group.Location}!");
+                        }
                     }
+                    group.Dispose();
                 }
                 );
             }
 
             Task.WaitAll(conTasks);
+            foreach (var group in conGroups)
+            {
+                group.DisposeUpgradeDTA();
+            }
         }
 
         protected override void TraverseDirectory(FileCollector collector, IniGroup group, PlaylistTracker tracker)
@@ -162,20 +193,7 @@ namespace YARG.Core.Song.Cache
         private void ScanCONGroup<TGroup>(TGroup group, YARGDTAReader reader, Action<TGroup, string, int, YARGDTAReader> func)
             where TGroup : CONGroup
         {
-            try
-            {
-                List<Task> tasks = new();
-                TraverseCONGroup(reader, (string name, int index) =>
-                {
-                    var node = reader.Clone();
-                    tasks.Add(Task.Run(() => func(group, name, index, node)));
-                });
-                Task.WaitAll(tasks.ToArray());
-            }
-            catch (Exception e)
-            {
-                YargLogger.LogException(e, $"Error while scanning CON group {group.Location}!");
-            }
+            
         }
 
         protected override void SortEntries()
@@ -421,7 +439,7 @@ namespace YARG.Core.Song.Cache
 
         private void ReadPackedCONGroup(BinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
         {
-            var group = ReadCONGroupHeader(reader, out string filename);
+            var group = ReadCONGroupHeader(reader);
             if (group != null)
             {
                 ReadCONGroup(group, reader, entryTasks, strings, tracker);
@@ -430,7 +448,7 @@ namespace YARG.Core.Song.Cache
 
         private void ReadUnpackedCONGroup(BinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
         {
-            var group = ReadExtractedCONGroupHeader(reader, out string directory);
+            var group = ReadExtractedCONGroupHeader(reader);
             if (group != null)
             {
                 ReadCONGroup(group, reader, entryTasks, strings, tracker);
@@ -500,7 +518,7 @@ namespace YARG.Core.Song.Cache
                     // Error catching must be done per-thread
                     try
                     {
-                        AddEntry(PackedRBCONEntry.LoadFromCache_Quick(group.Listings, name, upgrades, entryReader, strings));
+                        AddEntry(PackedRBCONEntry.LoadFromCache_Quick(in group.ConFile, name, upgrades, entryReader, strings));
                     }
                     catch (Exception ex)
                     {
@@ -513,7 +531,7 @@ namespace YARG.Core.Song.Cache
         private void QuickReadExtractedCONGroup(BinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
         {
             string directory = reader.ReadString();
-            var dta = AbridgedFileInfo.TryParseInfo(Path.Combine(directory, "songs.dta"), reader);
+            var dta = new AbridgedFileInfo_Length(Path.Combine(directory, "songs.dta"), reader);
             // Lack of null check of `dta` by design
 
             int count = reader.ReadInt32();

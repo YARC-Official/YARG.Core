@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using YARG.Core.Extensions;
+using YARG.Core.IO.Disposables;
 
 namespace YARG.Core.IO
 {
@@ -16,16 +17,16 @@ namespace YARG.Core.IO
             Position = reader.ReadInt64();
         }
 
-        public byte[] LoadAllBytes(SngFile sngFile)
+        public AllocatedArray<byte> LoadAllBytes(SngFile sngFile)
         {
             var stream = sngFile.LoadFileStream();
-            return SngFileStream.LoadFile(stream, sngFile.Mask.Clone(), Length, Position);
+            return SngFileStream.LoadFile(stream, sngFile.Mask, Length, Position);
         }
 
         public SngFileStream CreateStream(SngFile sngFile)
         {
             var stream = sngFile.LoadFileStream();
-            return new SngFileStream(Name, stream, sngFile.Mask.Clone(), Length, Position);
+            return new SngFileStream(Name, stream, sngFile.Mask, Length, Position);
         }
     }
 }

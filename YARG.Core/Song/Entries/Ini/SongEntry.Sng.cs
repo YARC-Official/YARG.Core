@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using YARG.Core.Audio;
 using YARG.Core.IO;
+using YARG.Core.IO.Disposables;
 using YARG.Core.IO.Ini;
 using YARG.Core.Logging;
 using YARG.Core.Song.Cache;
@@ -186,8 +187,8 @@ namespace YARG.Core.Song
                 // Fallback to a potential external image mapped specifically to the sng
                 foreach (var format in IMAGE_EXTENSIONS)
                 {
-                    string file = Path.ChangeExtension(_sngInfo.FullName, format);
-                    if (File.Exists(file))
+                    var file = new FileInfo(Path.ChangeExtension(_sngInfo.FullName, format));
+                    if (file.Exists)
                     {
                         var image = YARGImage.Load(file);
                         if (image != null)
@@ -244,7 +245,7 @@ namespace YARG.Core.Song
             return mixer;
         }
 
-        private SngEntry(SngFile sngFile, IniChartNode<string> chart, in AvailableParts parts, HashWrapper hash, IniSection modifiers, string defaultPlaylist)
+        private SngEntry(SngFile sngFile, IniChartNode<string> chart, in AvailableParts parts, in HashWrapper hash, IniSection modifiers, string defaultPlaylist)
             : base(in parts, in hash, modifiers, defaultPlaylist)
         {
             _version = sngFile.Version;
@@ -262,14 +263,15 @@ namespace YARG.Core.Song
 
         public static (ScanResult, SngEntry?) ProcessNewEntry(SngFile sng, IniChartNode<string> chart, string defaultPlaylist)
         {
-            byte[] file = sng[chart.File].LoadAllBytes(sng);
+            using var file = sng[chart.File].LoadAllBytes(sng);
             var (result, parts) = ScanIniChartFile(file, chart.Type, sng.Metadata);
             if (result != ScanResult.Success)
             {
                 return (result, null);
             }
 
-            var entry = new SngEntry(sng, chart, in parts, HashWrapper.Hash(file), sng.Metadata, defaultPlaylist);
+            var hash = HashWrapper.Hash(file.ReadOnlySpan);
+            var entry = new SngEntry(sng, chart, in parts, in hash, sng.Metadata, defaultPlaylist);
             if (!sng.Metadata.Contains("song_length"))
             {
                 using var mixer = entry.LoadAudio(0, 0);
@@ -289,7 +291,7 @@ namespace YARG.Core.Song
                 return null;
 
             uint version = reader.ReadUInt32();
-            var sngFile = SngFile.TryLoadFromFile(sngInfo);
+            var sngFile = SngFile.TryLoadFromFile(sngInfo.Value);
             if (sngFile == null || sngFile.Version != version)
             {
                 // TODO: Implement Update-in-place functionality
@@ -301,13 +303,13 @@ namespace YARG.Core.Song
             {
                 return null;
             }
-            return new SngEntry(sngFile.Version, sngInfo, CHART_FILE_TYPES[chartTypeIndex], reader, strings);
+            return new SngEntry(sngFile.Version, sngInfo.Value, CHART_FILE_TYPES[chartTypeIndex], reader, strings);
         }
 
         public static IniSubEntry? LoadFromCache_Quick(string baseDirectory, BinaryReader reader, CategoryCacheStrings strings)
         {
             string sngPath = Path.Combine(baseDirectory, reader.ReadString());
-            AbridgedFileInfo sngInfo = new(sngPath, DateTime.FromBinary(reader.ReadInt64()));
+            var sngInfo = new AbridgedFileInfo(sngPath, reader);
 
             uint version = reader.ReadUInt32();
             byte chartTypeIndex = reader.ReadByte();

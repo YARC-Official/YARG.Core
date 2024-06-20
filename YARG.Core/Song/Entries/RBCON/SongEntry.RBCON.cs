@@ -11,6 +11,7 @@ using Melanchall.DryWetMidi.Core;
 using YARG.Core.Extensions;
 using YARG.Core.Audio;
 using YARG.Core.Logging;
+using YARG.Core.IO.Disposables;
 
 namespace YARG.Core.Song
 {
@@ -31,12 +32,12 @@ namespace YARG.Core.Song
         private RBMetadata _rbMetadata;
         private RBCONDifficulties _rbDifficulties;
 
-        private AbridgedFileInfo? _updateMidi;
+        private AbridgedFileInfo_Length? _updateMidi;
         private IRBProUpgrade? _upgrade;
 
         private AbridgedFileInfo? UpdateMogg;
-        private AbridgedFileInfo? UpdateMilo;
-        private AbridgedFileInfo? UpdateImage;
+        private AbridgedFileInfo_Length? UpdateMilo;
+        private AbridgedFileInfo_Length? UpdateImage;
 
         public int RBBandDiff => _rbDifficulties.Band;
 
@@ -47,9 +48,9 @@ namespace YARG.Core.Song
             var lastUpdateTime = MidiLastUpdate;
             if (_updateMidi != null)
             {
-                if (_updateMidi.LastUpdatedTime > lastUpdateTime)
+                if (_updateMidi.Value.LastUpdatedTime > lastUpdateTime)
                 {
-                    lastUpdateTime = _updateMidi.LastUpdatedTime;
+                    lastUpdateTime = _updateMidi.Value.LastUpdatedTime;
                 }
             }
 
@@ -78,10 +79,10 @@ namespace YARG.Core.Song
             // Merge update MIDI
             if (_updateMidi != null)
             {
-                if (!_updateMidi.IsStillValid(false))
+                if (!_updateMidi.Value.IsStillValid(false))
                     return null;
 
-                using var midiStream = new FileStream(_updateMidi.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
+                using var midiStream = new FileStream(_updateMidi.Value.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
                 var update = MidiFile.Read(midiStream, readingSettings);
                 midi.Merge(update);
             }
@@ -206,13 +207,13 @@ namespace YARG.Core.Song
             return new YARGImage(bytes);
         }
 
-        public override byte[]? LoadMiloData()
+        public override FixedArray<byte>? LoadMiloData()
         {
-            if (UpdateMilo != null && UpdateMilo.Exists())
+            if (UpdateMilo == null || !UpdateMilo.Value.Exists())
             {
-                return File.ReadAllBytes(UpdateMilo.FullName);
+                return null;
             }
-            return null;
+            return MemoryMappedArray.Load(UpdateMilo.Value);
         }
 
         public virtual void Serialize(BinaryWriter writer, CategoryCacheWriteNode node)
@@ -257,7 +258,7 @@ namespace YARG.Core.Song
         }
 
         protected abstract bool IsMoggValid(Stream? file);
-        protected abstract byte[]? LoadMidiFile(Stream? file);
+        protected abstract FixedArray<byte>? LoadMidiFile(Stream? file);
         protected abstract Stream? GetMidiStream();
 
         protected RBCONEntry() : base()
@@ -268,15 +269,15 @@ namespace YARG.Core.Song
             _parseSettings.NoteSnapThreshold = NOTE_SNAP_THRESHOLD;
         }
 
-        protected RBCONEntry(AbridgedFileInfo? updateMidi, IRBProUpgrade? upgrade, BinaryReader reader, CategoryCacheStrings strings)
+        protected RBCONEntry(AbridgedFileInfo_Length? updateMidi, IRBProUpgrade? upgrade, BinaryReader reader, CategoryCacheStrings strings)
             : base(reader, strings)
         {
             _updateMidi = updateMidi;
             _upgrade = upgrade;
 
-            UpdateMogg = ReadUpdateInfo(reader);
-            UpdateMilo = ReadUpdateInfo(reader);
-            UpdateImage = ReadUpdateInfo(reader);
+            UpdateMogg =  reader.ReadBoolean() ? new AbridgedFileInfo(reader.ReadString(), false) : null;
+            UpdateMilo =  reader.ReadBoolean() ? new AbridgedFileInfo_Length(reader.ReadString(), false) : null;
+            UpdateImage = reader.ReadBoolean() ? new AbridgedFileInfo_Length(reader.ReadString(), false) : null;
 
             _rbMetadata.AnimTempo = reader.ReadUInt32();
             _rbMetadata.SongID = reader.ReadString();
@@ -326,36 +327,42 @@ namespace YARG.Core.Song
         }
 
 
-        protected virtual byte[]? LoadRawImageData()
+        protected virtual FixedArray<byte>? LoadRawImageData()
         {
-            if (UpdateImage != null && UpdateImage.Exists())
+            if (UpdateImage != null && UpdateImage.Value.Exists())
             {
-                return File.ReadAllBytes(UpdateImage.FullName);
+                return MemoryMappedArray.Load(UpdateImage.Value);
             }
             return null;
         }
 
         protected virtual Stream? GetMoggStream()
         {
-            if (UpdateMogg == null || !File.Exists(UpdateMogg.FullName))
+            if (UpdateMogg == null)
             {
                 return null;
             }
 
-            if (UpdateMogg.FullName.EndsWith(".yarg_mogg"))
+            var mogg = UpdateMogg.Value;
+            if (!File.Exists(mogg.FullName))
             {
-                return new YargMoggReadStream(UpdateMogg.FullName);
+                return null;
             }
-            return new FileStream(UpdateMogg.FullName, FileMode.Open, FileAccess.Read);
+
+            if (mogg.FullName.EndsWith(".yarg_mogg"))
+            {
+                return new YargMoggReadStream(mogg.FullName);
+            }
+            return new FileStream(mogg.FullName, FileMode.Open, FileAccess.Read);
         }
 
-        protected byte[]? LoadUpdateMidiFile()
+        protected FixedArray<byte>? LoadUpdateMidiFile()
         {
-            if (_updateMidi == null || !_updateMidi.IsStillValid(false))
+            if (_updateMidi == null || !_updateMidi.Value.IsStillValid(false))
             {
                 return null;
             }
-            return File.ReadAllBytes(_updateMidi.FullName);
+            return MemoryMappedArray.Load(_updateMidi.Value);
         }
 
         protected ScanResult ParseRBCONMidi(Stream? file)
@@ -372,16 +379,16 @@ namespace YARG.Core.Song
 
             try
             {
-                byte[]? chartFile = LoadMidiFile(file);
-                byte[]? updateFile = LoadUpdateMidiFile();
-                byte[]? upgradeFile = _upgrade?.LoadUpgradeMidi();
+                using var chartFile = LoadMidiFile(file);
+                using var updateFile = LoadUpdateMidiFile();
+                using var upgradeFile = _upgrade?.LoadUpgradeMidi();
 
                 DrumPreparseHandler drumTracker = new()
                 {
                     Type = DrumsType.ProDrums
                 };
 
-                int bufLength = 0;
+                long bufLength = 0;
                 if (_updateMidi != null)
                 {
                     if (updateFile == null)
@@ -418,21 +425,24 @@ namespace YARG.Core.Song
                     return ScanResult.NoNotes;
                 }
 
-                byte[] buffer = new byte[bufLength];
-                System.Runtime.CompilerServices.Unsafe.CopyBlock(ref buffer[0], ref chartFile[0], (uint) chartFile.Length);
-
-                int offset = chartFile.Length;
-                if (updateFile != null)
+                using var buffer = AllocatedArray<byte>.Alloc(bufLength);
+                unsafe
                 {
-                    System.Runtime.CompilerServices.Unsafe.CopyBlock(ref buffer[offset], ref updateFile[0], (uint) updateFile.Length);
-                    offset += updateFile.Length;
-                }
+                    System.Runtime.CompilerServices.Unsafe.CopyBlock(buffer.Ptr, chartFile.Ptr, (uint) chartFile.Length);
 
-                if (upgradeFile != null)
-                {
-                    System.Runtime.CompilerServices.Unsafe.CopyBlock(ref buffer[offset], ref upgradeFile[0], (uint) upgradeFile.Length);
+                    long offset = chartFile.Length;
+                    if (updateFile != null)
+                    {
+                        System.Runtime.CompilerServices.Unsafe.CopyBlock(buffer.Ptr + offset, updateFile.Ptr, (uint) updateFile.Length);
+                        offset += updateFile.Length;
+                    }
+
+                    if (upgradeFile != null)
+                    {
+                        System.Runtime.CompilerServices.Unsafe.CopyBlock(buffer.Ptr + offset, upgradeFile.Ptr, (uint) upgradeFile.Length);
+                    }
                 }
-                _hash = HashWrapper.Hash(buffer);
+                _hash = HashWrapper.Hash(buffer.ReadOnlySpan);
                 return ScanResult.Success;
             }
             catch
@@ -450,7 +460,7 @@ namespace YARG.Core.Song
                     try
                     {
                         var updateResults = ParseDTA(nodeName, update.Readers);
-                        Update(update, updateResults);
+                        Update(update, nodeName, updateResults);
 
                         if (updateResults.cores != null)
                         {
@@ -503,7 +513,7 @@ namespace YARG.Core.Song
                     {
                         case "name": _metadata.Name = reader.ExtractText(); break;
                         case "artist": _metadata.Artist = reader.ExtractText(); break;
-                        case "master": _metadata.IsMaster = reader.ExtractBoolean(); break;
+                        case "master": _metadata.IsMaster = reader.ExtractBoolean_FlippedDefault(); break;
                         case "context": /*Context = reader.Read<uint>();*/ break;
                         case "song": SongLoop(ref result, reader); break;
                         case "song_vocals": while (reader.StartNode()) reader.EndNode(); break;
@@ -578,7 +588,7 @@ namespace YARG.Core.Song
                         case "year_released":
                         case "year_recorded": YearAsNumber = reader.ExtractInt32(); break;
                         case "album_name": _metadata.Album = reader.ExtractText(); break;
-                        case "album_track_number": _metadata.AlbumTrack = reader.ExtractUInt16(); break;
+                        case "album_track_number": _metadata.AlbumTrack = reader.ExtractInt32(); break;
                         case "pack_name": _metadata.Playlist = reader.ExtractText(); break;
                         case "base_points": /*BasePoints = reader.Read<uint>();*/ break;
                         case "band_fail_cue": /*BandFailCue = reader.ExtractText();*/ break;
@@ -835,26 +845,26 @@ namespace YARG.Core.Song
             intensity = i;
         }
 
-        private void Update(SongUpdate update, in DTAResult results)
+        private void Update(SongUpdate update, string nodename, in DTAResult results)
         {
             if (results.discUpdate)
             {
                 if (update.Midi != null)
                 {
-                    if (_updateMidi == null || update.Midi.LastUpdatedTime > _updateMidi.LastUpdatedTime)
+                    if (_updateMidi == null || update.Midi.Value.LastUpdatedTime > _updateMidi.Value.LastUpdatedTime)
                     {
                         _updateMidi = update.Midi;
                     }
                 }
                 else
                 {
-                    YargLogger.LogFormatWarning("Update midi expected in directory {0}", update.UpdateDirectory);
+                    YargLogger.LogFormatWarning("Update midi expected in directory {0}", Path.Combine(update.BaseDirectory, nodename));
                 }
             }
 
             if (update.Mogg != null)
             {
-                if (UpdateMogg == null || update.Mogg.LastUpdatedTime > UpdateMogg.LastUpdatedTime)
+                if (UpdateMogg == null || update.Mogg.Value.LastUpdatedTime > UpdateMogg.Value.LastUpdatedTime)
                 {
                     UpdateMogg = update.Mogg;
                 }
@@ -862,7 +872,7 @@ namespace YARG.Core.Song
 
             if (update.Milo != null)
             {
-                if (UpdateMilo == null || update.Milo.LastUpdatedTime > UpdateMilo.LastUpdatedTime)
+                if (UpdateMilo == null || update.Milo.Value.LastUpdatedTime > UpdateMilo.Value.LastUpdatedTime)
                 {
                     UpdateMilo = update.Milo;
                 }
@@ -872,7 +882,7 @@ namespace YARG.Core.Song
             {
                 if (update.Image != null)
                 {
-                    if (UpdateImage == null || update.Image.LastUpdatedTime > UpdateImage.LastUpdatedTime)
+                    if (UpdateImage == null || update.Image.Value.LastUpdatedTime > UpdateImage.Value.LastUpdatedTime)
                     {
                         UpdateImage = update.Image;
                     }
@@ -949,12 +959,13 @@ namespace YARG.Core.Song
             return strings;
         }
 
-        private static void WriteUpdateInfo(AbridgedFileInfo? info, BinaryWriter writer)
+        private static void WriteUpdateInfo<TInfo>(TInfo? info, BinaryWriter writer)
+            where TInfo : struct, IAbridgedInfo
         {
             if (info != null)
             {
                 writer.Write(true);
-                writer.Write(info.FullName);
+                writer.Write(info.Value.FullName);
             }
             else
                 writer.Write(false);

@@ -139,10 +139,9 @@ namespace YARG.Core.Song.Cache
                 {
                     FindOrMarkDirectory(directory);
 
-                    var abridged = new AbridgedFileInfo(dtaInfo, false);
                     var dirInfo = new DirectoryInfo(directory);
-                    var group = CreateUpdateGroup(dirInfo, abridged, false);
-                    if (group != null && abridged.LastUpdatedTime == dtaLastWritten)
+                    var group = CreateUpdateGroup(dirInfo, dtaInfo, false);
+                    if (group != null && dtaInfo.LastWriteTime == dtaLastWritten)
                     {
                         for (int i = 0; i < count; i++)
                         {
@@ -186,9 +185,8 @@ namespace YARG.Core.Song.Cache
                 {
                     FindOrMarkDirectory(directory);
 
-                    var abridged = new AbridgedFileInfo(dtaInfo, false);
-                    var group = CreateUpgradeGroup(directory, abridged, false);
-                    if (group != null && abridged.LastUpdatedTime == dtaLastWrritten)
+                    var group = CreateUpgradeGroup(directory, dtaInfo, false);
+                    if (group != null && dtaInfo.LastWriteTime == dtaLastWrritten)
                     {
                         for (int i = 0; i < count; i++)
                         {
@@ -229,7 +227,7 @@ namespace YARG.Core.Song.Cache
 
                 AddPackedCONGroup(group);
 
-                if (TryParseUpgrades(filename, group) && group.UpgradeDta!.lastWrite == dtaLastWritten)
+                if (TryParseUpgrades(filename, group) && group.UpgradeDta!.LastWrite == dtaLastWritten)
                 {
                     if (group.Info.LastUpdatedTime != conLastUpdated)
                     {
@@ -255,9 +253,9 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        protected PackedCONGroup? ReadCONGroupHeader(BinaryReader reader, out string filename)
+        protected PackedCONGroup? ReadCONGroupHeader(BinaryReader reader)
         {
-            filename = reader.ReadString();
+            string filename = reader.ReadString();
             var baseGroup = GetBaseIniGroup(filename);
             if (baseGroup == null)
             {
@@ -277,27 +275,27 @@ namespace YARG.Core.Song.Cache
                 FindOrMarkFile(filename);
 
                 var abridged = new AbridgedFileInfo(info);
-                var listings = CONFile.TryParseListings(abridged);
-                if (listings == null)
+                var confile = CONFile.TryParseListings(abridged);
+                if (confile == null)
                 {
                     return null;
                 }
 
                 string playlist = ConstructPlaylist(filename, baseGroup.Directory);
-                group = new PackedCONGroup(listings, abridged, playlist);
+                group = new PackedCONGroup(confile.Value, abridged, playlist);
                 AddPackedCONGroup(group);
             }
 
-            if (group.SongDTA == null || group.SongDTA.lastWrite != dtaLastWrite)
+            if (group.SongDTA == null || group.SongDTA.LastWrite != dtaLastWrite)
             {
                 return null;
             }
             return group;
         }
 
-        protected UnpackedCONGroup? ReadExtractedCONGroupHeader(BinaryReader reader, out string directory)
+        protected UnpackedCONGroup? ReadExtractedCONGroupHeader(BinaryReader reader)
         {
-            directory = reader.ReadString();
+            string directory = reader.ReadString();
             var baseGroup = GetBaseIniGroup(directory);
             if (baseGroup == null)
             {
@@ -364,18 +362,13 @@ namespace YARG.Core.Song.Cache
             var dtaLastUpdated = DateTime.FromBinary(reader.ReadInt64());
             int count = reader.ReadInt32();
 
-            var group = new UpgradeGroup(directory, dtaLastUpdated);
-            AddUpgradeGroup(group);
-
             for (int i = 0; i < count; i++)
             {
                 string name = reader.ReadString();
                 string filename = Path.Combine(directory, $"{name}_plus.mid");
 
-                var info = new AbridgedFileInfo(filename, reader);
-                var upgrade = new UnpackedRBProUpgrade(info);
-                group.Upgrades.Add(name, upgrade);
-                AddUpgrade(name, null, upgrade);
+                var info = new AbridgedFileInfo_Length(filename, reader);
+                AddUpgrade(name, null, new UnpackedRBProUpgrade(info));
             }
         }
 
@@ -395,7 +388,8 @@ namespace YARG.Core.Song.Cache
             {
                 string name = reader.ReadString();
                 var lastWrite = DateTime.FromBinary(reader.ReadInt64());
-                var listing = group?.Listings.Find($"songs_upgrades/{name}_plus.mid");
+                var listing = default(CONFileListing);
+                group?.ConFile.TryGetListing($"songs_upgrades/{name}_plus.mid", out listing);
 
                 var upgrade = new PackedRBProUpgrade(listing, lastWrite);
                 AddUpgrade(name, null, upgrade);
@@ -419,7 +413,7 @@ namespace YARG.Core.Song.Cache
                 AddPackedCONGroup(group);
             }
 
-            if (group.SongDTA == null || group.SongDTA.lastWrite != dtaLastWrite)
+            if (group.SongDTA == null || group.SongDTA.LastWrite != dtaLastWrite)
             {
                 return null;
             }
@@ -435,13 +429,12 @@ namespace YARG.Core.Song.Cache
             FindOrMarkFile(filename);
 
             var abridged = new AbridgedFileInfo(info);
-            var listings = CONFile.TryParseListings(abridged);
-            if (listings == null)
+            var confile = CONFile.TryParseListings(abridged);
+            if (confile == null)
             {
                 return null;
             }
-
-            return new PackedCONGroup(listings, abridged, defaultPlaylist);
+            return new PackedCONGroup(confile.Value, abridged, defaultPlaylist);
         }
 
         private string ConstructPlaylist(string filename, string baseDirectory)

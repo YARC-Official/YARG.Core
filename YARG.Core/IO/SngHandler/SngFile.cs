@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using YARG.Core.Extensions;
+using YARG.Core.IO.Disposables;
 using YARG.Core.IO.Ini;
 using YARG.Core.Logging;
 
@@ -12,7 +13,7 @@ namespace YARG.Core.IO
     /// <summary>
     /// <see href="https://github.com/mdsitton/SngFileFormat">Documentation of SNG file type</see>
     /// </summary>
-    public class SngFile : IDisposable, IEnumerable<KeyValuePair<string, SngFileListing>>
+    public class SngFile : IEnumerable<KeyValuePair<string, SngFileListing>>
     {
         public readonly AbridgedFileInfo Info;
         public readonly uint Version;
@@ -55,11 +56,6 @@ namespace YARG.Core.IO
         IEnumerator IEnumerable.GetEnumerator()
         {
             return _listings.GetEnumerator();
-        }
-
-        public void Dispose()
-        {
-            Mask.Dispose();
         }
 
 
@@ -117,25 +113,27 @@ namespace YARG.Core.IO
             }
         }
 
-        private static IniSection ReadMetadata(Stream stream)
+        private static unsafe IniSection ReadMetadata(Stream stream)
         {
             Dictionary<string, List<IniModifier>> modifiers = new();
-            ulong length = stream.Read<ulong>(Endianness.Little) - sizeof(ulong);
+            long length = stream.Read<long>(Endianness.Little) - sizeof(long);
             ulong numPairs = stream.Read<ulong>(Endianness.Little);
 
+            using var bytes = AllocatedArray<byte>.Read(stream, length);
+            var container = new YARGTextContainer<byte>(bytes, 0);
             var validNodes = SongIniHandler.SONG_INI_DICTIONARY["[song]"];
-            var text = new YARGTextContainer<byte>(stream.ReadBytes((int)length), 0);
+
             for (ulong i = 0; i < numPairs; i++)
             {
-                int strLength = GetLength(text);
-                var key = Encoding.UTF8.GetString(text.Data, text.Position, strLength);
-                text.Position += strLength;
+                int strLength = GetLength(container);
+                var key = Encoding.UTF8.GetString(container.Data.Ptr + container.Position, strLength);
+                container.Position += strLength;
 
-                strLength = GetLength(text);
-                var next = text.Position + strLength;
+                strLength = GetLength(container);
+                var next = container.Position + strLength;
                 if (validNodes.TryGetValue(key, out var node))
                 {
-                    var mod = node.CreateSngModifier(text, strLength);
+                    var mod = node.CreateSngModifier(container, strLength);
                     if (modifiers.TryGetValue(node.outputName, out var list))
                     {
                         list.Add(mod);
@@ -145,7 +143,7 @@ namespace YARG.Core.IO
                         modifiers.Add(node.outputName, new() { mod });
                     }
                 }
-                text.Position = next;
+                container.Position = next;
             }
             return new IniSection(modifiers);
         }
@@ -172,9 +170,9 @@ namespace YARG.Core.IO
             return listings;
         }
 
-        private static int GetLength(YARGTextContainer<byte> container)
+        private static unsafe int GetLength(YARGTextContainer<byte> container)
         {
-            int length = BitConverter.ToInt32(container.Data, container.Position);
+            int length = *(int*)(container.Data.Ptr + container.Position);
             container.Position += sizeof(int);
             if (container.Position + length > container.Length)
             {

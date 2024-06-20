@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using YARG.Core.Audio;
 using YARG.Core.Chart;
 using YARG.Core.IO;
+using YARG.Core.IO.Disposables;
 using YARG.Core.Logging;
 using YARG.Core.Venue;
 
@@ -43,6 +44,6 @@ namespace YARG.Core.Song
         public abstract StemMixer? LoadPreviewAudio(float speed);
         public abstract YARGImage? LoadAlbumData();
         public abstract BackgroundResult? LoadBackground(BackgroundType options);
-        public abstract byte[]? LoadMiloData();
+        public abstract FixedArray<byte>? LoadMiloData();
     }
 }

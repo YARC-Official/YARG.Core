@@ -42,7 +42,7 @@ namespace YARG.Core.Song.Cache
                         YargLogger.LogException(e, $"Error while scanning packed CON group {group.Location}!");
                     }
                 }
-                group.Stream?.Dispose();
+                group.DisposeStreamAndSongDTA();
             }
 
             foreach (var group in extractedConGroups)
@@ -59,6 +59,12 @@ namespace YARG.Core.Song.Cache
                         YargLogger.LogException(e, $"Error while scanning unpacked CON group {group.Location}!");
                     }
                 }
+                group.Dispose();
+            }
+
+            foreach (var group in conGroups)
+            {
+                group.DisposeUpgradeDTA();
             }
         }
 
@@ -226,7 +232,7 @@ namespace YARG.Core.Song.Cache
 
         private void ReadPackedCONGroup(BinaryReader reader, CategoryCacheStrings strings)
         {
-            var group = ReadCONGroupHeader(reader, out string filename);
+            var group = ReadCONGroupHeader(reader);
             if (group != null)
             {
                 ReadCONGroup(reader, (string name, int index, BinaryReader entryReader) => group.ReadEntry(name, index, upgrades, entryReader, strings));
@@ -235,7 +241,7 @@ namespace YARG.Core.Song.Cache
 
         private void ReadUnpackedCONGroup(BinaryReader reader, CategoryCacheStrings strings)
         {
-            var group = ReadExtractedCONGroupHeader(reader, out string directory);
+            var group = ReadExtractedCONGroupHeader(reader);
             if (group != null)
             {
                 ReadCONGroup(reader, (string name, int index, BinaryReader entryReader) => group.ReadEntry(name, index, upgrades, entryReader, strings));
@@ -269,15 +275,14 @@ namespace YARG.Core.Song.Cache
 
                 int length = reader.ReadInt32();
                 var entryReader = reader.Slice(length);
-                AddEntry(PackedRBCONEntry.LoadFromCache_Quick(group.Listings, name, upgrades, entryReader, strings));
+                AddEntry(PackedRBCONEntry.LoadFromCache_Quick(in group.ConFile, name, upgrades, entryReader, strings));
             }
         }
 
         private void QuickReadExtractedCONGroup(BinaryReader reader, CategoryCacheStrings strings)
         {
             string directory = reader.ReadString();
-            var dta = AbridgedFileInfo.TryParseInfo(Path.Combine(directory, "songs.dta"), reader);
-            // Lack of null check of dta by design
+            var dta = new AbridgedFileInfo_Length(Path.Combine(directory, "songs.dta"), reader);
 
             int count = reader.ReadInt32();
             for (int i = 0; i < count; ++i)

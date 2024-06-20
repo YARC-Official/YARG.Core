@@ -2,34 +2,39 @@
 using System.Collections.Generic;
 using System.IO;
 using YARG.Core.IO;
+using YARG.Core.IO.Disposables;
+using YARG.Core.Logging;
 
 namespace YARG.Core.Song.Cache
 {
     public sealed class PackedCONGroup : CONGroup, IUpgradeGroup
     {
         public readonly AbridgedFileInfo Info;
-        public readonly CONFileListing[] Listings;
+        public readonly CONFile ConFile;
         public readonly CONFileListing? SongDTA;
         public readonly CONFileListing? UpgradeDta;
         public Stream? Stream;
+
+        private AllocatedArray<byte>? _songDTAData;
+        private AllocatedArray<byte>? _upgradeDTAData;
         
         public Dictionary<string, IRBProUpgrade> Upgrades { get; } = new();
 
-        public PackedCONGroup(CONFileListing[] listings, AbridgedFileInfo info, string defaultPlaylist)
+        public PackedCONGroup(CONFile conFile, AbridgedFileInfo info, string defaultPlaylist)
             : base(info.FullName, defaultPlaylist)
         {
             const string SONGSFILEPATH = "songs/songs.dta";
             const string UPGRADESFILEPATH = "songs_upgrades/upgrades.dta";
 
             Info = info;
-            Listings = listings;
-            UpgradeDta = Listings.Find(UPGRADESFILEPATH);
-            SongDTA = Listings.Find(SONGSFILEPATH);
+            ConFile = conFile;
+            conFile.TryGetListing(UPGRADESFILEPATH, out UpgradeDta);
+            conFile.TryGetListing(SONGSFILEPATH, out SongDTA);
         }
 
         public override void ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
         {
-            var song = PackedRBCONEntry.TryLoadFromCache(Listings, nodeName, upgrades, reader, strings);
+            var song = PackedRBCONEntry.TryLoadFromCache(in ConFile, nodeName, upgrades, reader, strings);
             if (song != null)
             {
                 AddEntry(nodeName, index, song);
@@ -42,7 +47,7 @@ namespace YARG.Core.Song.Cache
             using BinaryWriter writer = new(ms);
 
             writer.Write(Location);
-            writer.Write(SongDTA!.lastWrite.ToBinary());
+            writer.Write(SongDTA!.LastWrite.ToBinary());
             Serialize(writer, ref nodes);
             return ms.ToArray();
         }
@@ -55,8 +60,18 @@ namespace YARG.Core.Song.Cache
             {
                 return null;
             }
-            Stream = new FileStream(Info.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
-            return YARGDTAReader.TryCreate(UpgradeDta, Stream);
+
+            try
+            {
+                Stream = new FileStream(Info.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+                _upgradeDTAData = UpgradeDta.LoadAllBytes(Stream);
+                return YARGDTAReader.TryCreate(_upgradeDTAData);
+            }
+            catch (Exception ex)
+            {
+                YargLogger.LogException(ex, $"Error while loading {UpgradeDta.Filename}");
+                return null;
+            }
         }
 
         public YARGDTAReader? LoadSongs()
@@ -65,8 +80,18 @@ namespace YARG.Core.Song.Cache
             {
                 return null;
             }
-            Stream ??= new FileStream(Info.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
-            return YARGDTAReader.TryCreate(SongDTA!, Stream);
+
+            try
+            {
+                Stream ??= new FileStream(Info.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+                _songDTAData = SongDTA.LoadAllBytes(Stream);
+                return YARGDTAReader.TryCreate(_songDTAData);
+            }
+            catch (Exception ex)
+            {
+                YargLogger.LogException(ex, $"Error while loading {SongDTA.Filename}");
+                return null;
+            }
         }
 
         public byte[] SerializeModifications()
@@ -76,7 +101,7 @@ namespace YARG.Core.Song.Cache
 
             writer.Write(Location);
             writer.Write(Info.LastUpdatedTime.ToBinary());
-            writer.Write(UpgradeDta!.lastWrite.ToBinary());
+            writer.Write(UpgradeDta!.LastWrite.ToBinary());
             writer.Write(Upgrades.Count);
             foreach (var upgrade in Upgrades)
             {
@@ -84,6 +109,17 @@ namespace YARG.Core.Song.Cache
                 upgrade.Value.WriteToCache(writer);
             }
             return ms.ToArray();
+        }
+
+        public void DisposeStreamAndSongDTA()
+        {
+            Stream?.Dispose();
+            _songDTAData?.Dispose();
+        }
+
+        public void DisposeUpgradeDTA()
+        {
+            _upgradeDTAData?.Dispose();
         }
     }
 }

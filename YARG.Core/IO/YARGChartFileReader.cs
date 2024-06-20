@@ -309,8 +309,7 @@ namespace YARG.Core.IO
 
         public bool IsStillCurrentTrack()
         {
-            int position = reader.Container.Position;
-            if (position == reader.Container.Length)
+            if (reader.Container.Position == reader.Container.Length)
                 return false;
 
             if (reader.Container.IsCurrentCharacter('}'))
@@ -340,15 +339,18 @@ namespace YARG.Core.IO
                 ++curr;
             }
 
-            var span = new ReadOnlySpan<TChar>(reader.Container.Data, reader.Container.Position, (curr - reader.Container.Position));
-            reader.Container.Position = curr;
-            foreach (var combo in eventSet)
+            unsafe
             {
-                if (combo.DoesEventMatch(span))
+                var span = new ReadOnlySpan<TChar>(reader.Container.Data.Ptr + reader.Container.Position, (int)(curr - reader.Container.Position));
+                reader.Container.Position = curr;
+                foreach (var combo in eventSet)
                 {
-                    reader.SkipWhitespace();
-                    ev.Type = combo.eventType;
-                    return true;
+                    if (combo.DoesEventMatch(span))
+                    {
+                        reader.SkipWhitespace();
+                        ev.Type = combo.eventType;
+                        return true;
+                    }
                 }
             }
 

@@ -15,7 +15,7 @@ namespace YARG.Core.Song
         public static readonly SortString DEFAULT_GENRE = "Unknown Genre";
         public static readonly SortString DEFAULT_CHARTER = "Unknown Charter";
         public static readonly SortString DEFAULT_SOURCE = "Unknown Source";
-        public const string DEFAULT_YEAR = "Unknown Year";
+        public const string DEFAULT_YEAR = "####";
 
         public static readonly SongMetadata Default = new()
         {
