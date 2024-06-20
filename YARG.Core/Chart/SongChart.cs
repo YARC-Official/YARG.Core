@@ -152,6 +152,9 @@ namespace YARG.Core.Chart
             {
                 SyncTrack.GenerateBeatlines(GetLastTick());
             }
+
+            // Use beatlines to place auto-generated drum activation phrases
+            GenerateDrumActivationPhrases();
         }
 
         private void PostProcessSections()
@@ -249,6 +252,260 @@ namespace YARG.Core.Chart
                     phraseEndExpert.ActivateFlag(phraseEndFlag);
                 }
             }
+        }
+
+        private void GenerateDrumActivationPhrases()
+        {
+            foreach (var drumTrack in new List<InstrumentTrack<DrumNote>> { ProDrums, FiveLaneDrums, FourLaneDrums })
+            {
+                foreach (Difficulty difficultyType in Enum.GetValues(typeof(Difficulty)))
+                {
+                    if (drumTrack.TryGetDifficulty(difficultyType, out var thisDifficultyTrack))
+                    {
+                        GenerateDrumActivationPhrases(thisDifficultyTrack);
+                    }
+                }
+            }
+        }
+
+        private void GenerateDrumActivationPhrases(InstrumentDifficulty<DrumNote> difficulty)
+        {
+            if (difficulty.Notes.Count == 0) return;
+
+            uint lastNoteTick = difficulty.Notes.GetLastTick();
+
+            // Automatically add in Star Power activation phrases for drum charts that don't have enough
+
+            List<Phrase> starPowerPhrases = new();
+            List<Phrase> soloPhrases = new();
+
+            foreach (var thisPhrase in difficulty.Phrases)
+            {
+                switch (thisPhrase.Type)
+                {
+                    case PhraseType.DrumFill:
+                        // Assume that any drum chart with manually placed fill phrases will have enough. Stop here
+                        YargLogger.LogDebug("Prevented generating Activation phrases for a Drum chart that already has them");
+                        return;
+                    
+                    case PhraseType.StarPower:
+                        starPowerPhrases.Add(thisPhrase);
+                        break;
+                    
+                    case PhraseType.Solo:
+                        soloPhrases.Add(thisPhrase);
+                        break;
+                }
+            }
+
+            // Activation cannot occur before the player has enough SP to activate
+            // Start processing after the 2nd SP phrase
+            
+            if (starPowerPhrases.Count < 2)
+            {
+                YargLogger.LogDebug("Cannot generate Activation phrases for Drum chart. Not enough Star Power phrases available.");
+                return;
+            }
+
+            double prevReferenceTime = starPowerPhrases[1].TimeEnd;
+
+            // Align activation phrases with measure boundaries that have already been evaluated
+            var measureBeatLines = SyncTrack.Beatlines.Where(x => x.Type == BeatlineType.Measure).ToList();
+
+            int currentMeasureIndex = measureBeatLines.GetIndexOfPrevious(prevReferenceTime);
+            if (currentMeasureIndex == -1) return;
+
+            int totalMeasures = measureBeatLines.Count;
+            
+            var allTimeSigs = SyncTrack.TimeSignatures;
+            var currentTimeSigIndex = allTimeSigs.GetIndexOfPrevious(prevReferenceTime);
+
+            if (currentTimeSigIndex == -1) return;
+            
+            var currentTimeSig = allTimeSigs[currentTimeSigIndex];
+            int timeSigMeasureIndex = measureBeatLines.GetIndexOfPrevious(currentTimeSig.Tick);
+
+            // Limits for placing activation phrases (in seconds)
+            const float MIN_SPACING_TIME = 2;
+            const float MAX_SPACING_TIME = 10;
+
+            do
+            {
+                int measuresPerActivator = 4;
+                if (currentMeasureIndex + measuresPerActivator > totalMeasures) break;
+
+                // Start by moving forward 4 measures from the last iteration
+                // If that is too long of a wait at the current tempo/time signature do 2 measures instead
+                if (measureBeatLines[currentMeasureIndex].Time - prevReferenceTime > MAX_SPACING_TIME)
+                {
+                    measuresPerActivator -= 2;
+                }
+
+                currentMeasureIndex += measuresPerActivator;
+
+                // Activator notes should only fall on bar lines that are multiples of measuresPerActivator
+                // from the last time signature change
+                int measureRemainder = (currentMeasureIndex - timeSigMeasureIndex) % measuresPerActivator;
+                if (measureRemainder > 0) currentMeasureIndex += measureRemainder;
+
+                // Reached the end of the chart
+                if (currentMeasureIndex >= totalMeasures) break;
+
+                var currentMeasureLine = measureBeatLines[currentMeasureIndex];
+
+                int newTimeSigIndex = SyncTrack.TimeSignatures.GetIndexOfPrevious(currentMeasureLine.Tick);
+                if (newTimeSigIndex > currentTimeSigIndex)
+                {
+                    // Moved forward into a new time signature
+                    currentTimeSigIndex = newTimeSigIndex;
+                    currentTimeSig = allTimeSigs[newTimeSigIndex];
+                    timeSigMeasureIndex = measureBeatLines.GetIndexOfPrevious(currentTimeSig.Tick);
+
+                    //move the activation note to the start of this time signature
+                    currentMeasureIndex = timeSigMeasureIndex;
+                    currentMeasureLine = measureBeatLines[currentMeasureIndex];
+                }
+
+                uint currentMeasureTick = currentMeasureLine.Tick;
+
+                if (currentMeasureTick >= lastNoteTick) break;
+
+                uint eighth_note_tick_length = currentTimeSig.GetTicksPerBeat(SyncTrack) / 2;
+                
+                // Attempt to retrieve an activation note directly on the bar line
+                var activationNote = difficulty.Notes.GetPrevious(currentMeasureTick);
+
+                // No more notes in this chart
+                if (activationNote == null) break;
+
+                // No note exists on or near the bar line, move on
+                if (activationNote.Tick < currentMeasureTick - eighth_note_tick_length) continue;
+
+                var nearestSPPhrase = starPowerPhrases.GetPrevious(currentMeasureTick);
+                if (nearestSPPhrase == null) break;
+
+                // Prevent activation phrases from appearing less than MIN_SPACING away from SP phrases
+                prevReferenceTime = Math.Max(prevReferenceTime, nearestSPPhrase.TimeEnd);
+
+                // This activation phrase is too close to an SP phrase or previous activation note
+                if (currentMeasureLine.Time - prevReferenceTime < MIN_SPACING_TIME) continue;
+
+                // Do not put an activation phrase here if it overlaps with an existing SP phrase
+                if (nearestSPPhrase.TickEnd > currentMeasureTick) continue;
+
+                // Prevent placing an activation phrase here if it overlaps with a solo section
+                if (soloPhrases.Count > 0)
+                {
+                    var nearestSoloPhrase = soloPhrases.GetPrevious(currentMeasureTick);
+                    if (nearestSoloPhrase != null && nearestSoloPhrase.TickEnd > currentMeasureTick) continue;
+                }
+                
+                // Do not put an activation phrase here if there aren't enough notes to hit after activating SP
+                const uint SP_MIN_NOTES = 16;
+                int starPowerEndMeasureIndex = Math.Min(currentMeasureIndex+4, totalMeasures-1);
+                uint starPowerEndTick = measureBeatLines[starPowerEndMeasureIndex].Tick;
+
+                int totalNotesForStarPower = 0;
+                var testNote = activationNote.NextNote;
+                while (totalNotesForStarPower < SP_MIN_NOTES && testNote != null)
+                {
+                    if (testNote.Tick > starPowerEndTick) break;
+                    
+                    totalNotesForStarPower += testNote.ChildNotes.Count+1;
+                    testNote = testNote.NextNote;
+                }
+
+                if (totalNotesForStarPower < SP_MIN_NOTES) continue;
+
+                // This is a good place to put an Activation note
+                prevReferenceTime = currentMeasureLine.Time;
+
+                if (!IsIdealDrumActivationNote(activationNote, difficulty.Instrument))
+                {
+                    // The note on the bar line doesn't contain a combo of crash and kick/snare
+                    // Search +/- an 8th note to find a possible syncopated activation note
+                    testNote = difficulty.Notes.GetNext(currentMeasureTick - eighth_note_tick_length - 1);
+                    while (testNote != null && testNote.Tick <= currentMeasureTick + eighth_note_tick_length)
+                    {
+                        if (testNote != activationNote)
+                        {
+                            if (IsIdealDrumActivationNote(testNote, difficulty.Instrument))
+                            {
+                                activationNote = testNote;
+                                break;
+                            }
+                        }
+
+                        testNote = testNote.NextNote;
+                    }
+                }
+
+                // Add the activator flag to all notes in this chord
+                foreach (var note in activationNote.ChordEnumerator())
+                {
+                    note.DrumFlags |= DrumNoteFlags.StarPowerActivator;
+                }
+
+                // Mark the start of a drum fill phrase one measure before this bar line
+                var previousMeasureLine = measureBeatLines[currentMeasureIndex - 1];
+                uint fillPhraseStartTick = previousMeasureLine.Tick;
+                uint fillPhraseEndTick = activationNote.Tick;
+                double fillPhraseStartTime = previousMeasureLine.Time;
+                double fillPhraseTimeLength = activationNote.Time - fillPhraseStartTime;
+
+                var newDrumFillPhrase = new Phrase(PhraseType.DrumFill,
+                                                   fillPhraseStartTime, fillPhraseTimeLength,
+                                                   fillPhraseStartTick, fillPhraseEndTick - fillPhraseStartTick);
+
+                int newPhraseIndex = difficulty.Phrases.GetIndexOfNext(fillPhraseStartTick);
+
+                if (newPhraseIndex != -1)
+                {
+                    // Insert new activation phrase at the appopriate index
+                    difficulty.Phrases.Insert(newPhraseIndex, newDrumFillPhrase);
+                }
+                else
+                {
+                    // Add new phrase to the end of the list
+                    difficulty.Phrases.Add(newDrumFillPhrase);
+                }
+
+                YargLogger.LogFormatDebug("Generated a Drums SP Activation phrase from tick {0} to {1}", fillPhraseStartTick, fillPhraseEndTick);
+            } while (currentMeasureIndex < totalMeasures);
+        }
+
+        public static bool IsIdealDrumActivationNote(DrumNote note, Instrument instrument)
+        {
+            bool containsCrash = false;
+            bool containsKick = false;
+            bool containsSnare = false;
+
+            foreach (var childNote in note.ChordEnumerator())
+            {
+                var thisPad = childNote.Pad;
+                if (instrument == Instrument.FiveLaneDrums)
+                {
+                    containsCrash |= thisPad == (int) FiveLaneDrumPad.Orange;
+                    containsKick |= thisPad == (int) FiveLaneDrumPad.Kick;
+                    containsSnare |= thisPad == (int) FiveLaneDrumPad.Red;
+                }
+                else
+                {
+                    if (instrument == Instrument.FourLaneDrums)
+                    {
+                        containsCrash |= thisPad == (int) FourLaneDrumPad.GreenDrum;
+                    }
+                    else
+                    {
+                        containsCrash |= thisPad == (int) FourLaneDrumPad.GreenCymbal;
+                    }
+
+                    containsSnare |= thisPad == (int) FourLaneDrumPad.RedDrum;
+                    containsKick |= thisPad == (int) FourLaneDrumPad.Kick;
+                }
+            }
+
+            return containsCrash && (containsKick || containsSnare);
         }
 
         public void Append(SongChart song)
