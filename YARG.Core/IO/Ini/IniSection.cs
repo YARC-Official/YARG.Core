@@ -33,135 +33,166 @@ namespace YARG.Core.IO.Ini
             return modifiers.ContainsKey(key);
         }
 
-        public bool TryGet(in string key, out SortString str, in string defaultStr)
+        public bool TryGet(in string key, out SortString str, in SortString defaultStr)
         {
-            str = defaultStr;
-            if (!modifiers.TryGetValue(key, out var results))
-                return false;
-
-            for (int i = 0; i < results.Count; ++i)
+            if (modifiers.TryGetValue(key, out var results))
             {
-                if (results[i].SortString.Str != string.Empty)
+                for (int i = 0; i < results.Count; ++i)
                 {
-                    str = results[i].SortString;
-                    if (str.Str != defaultStr)
-                        break;
+                    if (results[i].SortString.Str != string.Empty)
+                    {
+                        str = results[i].SortString;
+                        if (str.Str != defaultStr.Str)
+                        {
+                            return true;
+                        }
+                    }
                 }
             }
-            return true;
+            str = defaultStr;
+            return false;
+        }
+
+        public bool TryGet(in string key, out SortString str, in string defaultStr)
+        {
+            if (modifiers.TryGetValue(key, out var results))
+            {
+                for (int i = 0; i < results.Count; ++i)
+                {
+                    if (results[i].SortString.Str != string.Empty)
+                    {
+                        str = results[i].SortString;
+                        if (str.Str != defaultStr)
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+            str = defaultStr;
+            return false;
         }
 
         public bool TryGet(in string key, out string str)
         {
+            if (modifiers.TryGetValue(key, out var results))
+            {
+                str = results[0].String;
+                return true;
+            }
             str = string.Empty;
-            if (!modifiers.TryGetValue(key, out var results))
-                return false;
-
-            str = results[0].String;
-            return true;
+            return false;
         }
 
         public bool TryGet(in string key, out ulong val)
         {
+            if (modifiers.TryGetValue(key, out var results))
+            {
+                val = results[0].UInt64;
+                return true;
+            }
             val = 0;
-            if (!modifiers.TryGetValue(key, out var results))
-                return false;
-
-            val = results[0].UInt64;
-            return true;
+            return false;
         }
 
         public bool TryGet(in string key, out long val)
         {
+            if (modifiers.TryGetValue(key, out var results))
+            {
+                val = results[0].Int64;
+                return true;
+            }
             val = 0;
-            if (!modifiers.TryGetValue(key, out var results))
-                return false;
-
-            val = results[0].Int64;
-            return true;
+            return false;
         }
 
         public bool TryGet(in string key, out uint val)
         {
+            if (modifiers.TryGetValue(key, out var results))
+            {
+                val = results[0].UInt32;
+                return true;
+            }
             val = 0;
-            if (!modifiers.TryGetValue(key, out var results))
-                return false;
-
-            val = results[0].UInt32;
-            return true;
+            return false;
         }
 
         public bool TryGet(in string key, out int val)
         {
+            if (modifiers.TryGetValue(key, out var results))
+            {
+                val = results[0].Int32;
+                return true;
+            }
             val = 0;
-            if (!modifiers.TryGetValue(key, out var results))
-                return false;
-
-            val = results[0].Int32;
-            return true;
+            return false;
         }
 
         public bool TryGet(in string key, out ushort val)
         {
+            if (modifiers.TryGetValue(key, out var results))
+            {
+                val = results[0].UInt16;
+                return true;
+            }
             val = 0;
-            if (!modifiers.TryGetValue(key, out var results))
-                return false;
-
-            val = results[0].UInt16;
-            return true;
+            return false;
         }
 
         public bool TryGet(in string key, out short val)
         {
+            if (modifiers.TryGetValue(key, out var results))
+            {
+                val = results[0].Int16;
+                return true;
+            }
             val = 0;
-            if (!modifiers.TryGetValue(key, out var results))
-                return false;
-
-            val = results[0].Int16;
-            return true;
+            return false;
         }
 
         public bool TryGet(in string key, out float val)
         {
+            if (modifiers.TryGetValue(key, out var results))
+            {
+                val = results[0].Float;
+                return true;
+            }
             val = 0;
-            if (!modifiers.TryGetValue(key, out var results))
-                return false;
-
-            val = results[0].Float;
-            return true;
+            return false;
         }
 
         public bool TryGet(in string key, out double val)
         {
+            if (modifiers.TryGetValue(key, out var results))
+            {
+                val = results[0].Double;
+                return true;
+            }
             val = 0;
-            if (!modifiers.TryGetValue(key, out var results))
-                return false;
-
-            val = results[0].Double;
-            return true;
+            return false;
         }
 
         public bool TryGet(in string key, out long val1, out long val2)
         {
+            if (modifiers.TryGetValue(key, out var results))
+            {
+                results[0].GetInt64Array(out val1, out val2);
+                return true;
+            }
             val1 = -1;
             val2 = -1;
-            if (!modifiers.TryGetValue(key, out var results))
-                return false;
-
-            long[] dub = results[0].Int64Array;
-            val1 = dub[0];
-            val2 = dub[1];
-            return true;
+            return false;
         }
 
         public bool TryGet(in string key, out bool val)
         {
+            if (modifiers.TryGetValue(key, out var results))
+            {
+                val = results[0].Bool;
+                return true;
+            }
             val = false;
-            if (!modifiers.TryGetValue(key, out var results))
-                return false;
-
-            val = results[0].Bool;
-            return true;
+            return false;
         }
     }
 }

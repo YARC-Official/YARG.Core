@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Text;
 using YARG.Core.Extensions;
+using YARG.Core.IO.Disposables;
 
 namespace YARG.Core.IO
 {
@@ -15,64 +16,59 @@ namespace YARG.Core.IO
             Directory = 0x80,
         }
 
+        private readonly int _shift;
+
         public readonly AbridgedFileInfo ConFile;
-        private readonly int shift;
+        public readonly string Filename;
+        public readonly CONFileListingFlag Flags;
+        public readonly int NumBlocks;
+        public readonly int FirstBlock;
+        public readonly short PathIndex;
+        public readonly int Size;
+        public readonly DateTime LastWrite;
 
-        public string Filename { get; private set; } = string.Empty;
-        public readonly CONFileListingFlag flags;
-        public readonly int numBlocks;
-        public readonly int firstBlock;
-        public readonly short pathIndex;
-        public readonly int size;
-        public readonly DateTime lastWrite;
-
-        public CONFileListing(AbridgedFileInfo conFile, int shift, ReadOnlySpan<byte> data)
+        public CONFileListing(AbridgedFileInfo conFile, string name, short pathIndex, int shift, ReadOnlySpan<byte> data)
         {
+            _shift = shift;
+
             ConFile = conFile;
-            this.shift = shift;
+            Filename = name;
+            PathIndex = pathIndex;
 
-            Filename = Encoding.UTF8.GetString(data[..0x28]).TrimEnd('\0');
-            flags = (CONFileListingFlag) data[0x28];
-
-            numBlocks = data[0x2B] << 16 | data[0x2A] << 8 | data[0x29];
-            firstBlock = data[0x31] << 16 | data[0x30] << 8 | data[0x2F];
-            pathIndex = (short) (data[0x32] << 8 | data[0x33]);
-            size = data[0x34] << 24 | data[0x35] << 16 | data[0x36] << 8 | data[0x37];
-            lastWrite = FatTimeDT(data[0x3B] << 24 | data[0x3A] << 16 | data[0x39] << 8 | data[0x38]);
-        }
-
-        public void SetParentDirectory(string parentDirectory)
-        {
-            Filename = parentDirectory + "/" + Filename;
+            Flags = (CONFileListingFlag) data[0x28];
+            NumBlocks = data[0x2B] << 16 | data[0x2A] << 8 | data[0x29];
+            FirstBlock = data[0x31] << 16 | data[0x30] << 8 | data[0x2F];
+            Size = data[0x34] << 24 | data[0x35] << 16 | data[0x36] << 8 | data[0x37];
+            LastWrite = FatTimeDT(data[0x3B] << 24 | data[0x3A] << 16 | data[0x39] << 8 | data[0x38]);
         }
 
         public override string ToString() => $"STFS File Listing: {Filename}";
-        public bool IsDirectory() { return (flags & CONFileListingFlag.Directory) > 0; }
-        public bool IsContiguous() { return (flags & CONFileListingFlag.Contiguous) > 0; }
-        public bool IsStillValid(in DateTime listingLastWrite) { return listingLastWrite == lastWrite && ConFile.IsStillValid(); }
+        public bool IsDirectory() { return (Flags & CONFileListingFlag.Directory) > 0; }
+        public bool IsContiguous() { return (Flags & CONFileListingFlag.Contiguous) > 0; }
+        public bool IsStillValid(in DateTime listingLastWrite) { return listingLastWrite == LastWrite && ConFile.IsStillValid(); }
 
         public CONFileStream CreateStream()
         {
             Debug.Assert(!IsDirectory(), "Directory listing cannot be loaded as a file");
-            return new CONFileStream(ConFile.FullName, IsContiguous(), size, firstBlock, shift);
+            return new CONFileStream(ConFile.FullName, IsContiguous(), Size, FirstBlock, _shift);
         }
 
         // This overload should only be called during scanning
-        public byte[] LoadAllBytes(Stream stream)
+        public AllocatedArray<byte> LoadAllBytes(Stream stream)
         {
             lock (stream)
-                return CONFileStream.LoadFile(stream, IsContiguous(), size, firstBlock, shift);
+                return CONFileStream.LoadFile(stream, IsContiguous(), Size, FirstBlock, _shift);
         }
 
-        public byte[] LoadAllBytes()
+        public AllocatedArray<byte> LoadAllBytes()
         {
-            return CONFileStream.LoadFile(ConFile.FullName, IsContiguous(), size, firstBlock, shift);
+            return CONFileStream.LoadFile(ConFile.FullName, IsContiguous(), Size, FirstBlock, _shift);
         }
 
         public static int GetMoggVersion(CONFileListing listing, Stream stream)
         {
             Debug.Assert(!listing.IsDirectory(), "Directory listing cannot be loaded as a file");
-            long location = CONFileStream.CalculateBlockLocation(listing.firstBlock, listing.shift);
+            long location = CONFileStream.CalculateBlockLocation(listing.FirstBlock, listing._shift);
             lock (stream)
             {
                 stream.Seek(location, SeekOrigin.Begin);

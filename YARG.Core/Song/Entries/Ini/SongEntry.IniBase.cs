@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using YARG.Core.Chart;
 using YARG.Core.IO;
+using YARG.Core.IO.Disposables;
 using YARG.Core.IO.Ini;
 using YARG.Core.Song.Cache;
 using YARG.Core.Song.Preparsers;
@@ -163,12 +164,12 @@ namespace YARG.Core.Song
             return SongChart.FromDotChart(_parseSettings, reader.ReadToEnd());
         }
 
-        public override byte[]? LoadMiloData()
+        public override FixedArray<byte>? LoadMiloData()
         {
             return null;
         }
 
-        protected static (ScanResult Result, AvailableParts Parts) ScanIniChartFile(byte[] file, ChartType chartType, IniSection modifiers)
+        protected static (ScanResult Result, AvailableParts Parts) ScanIniChartFile(FixedArray<byte> file, ChartType chartType, IniSection modifiers)
         {
             DrumPreparseHandler drums = new()
             {
@@ -183,7 +184,8 @@ namespace YARG.Core.Song
                     ParseDotChart<byte, ByteStringDecoder, DotChartByte>(byteReader, modifiers, ref parts, drums);
                 else
                 {
-                    var charReader = YARGTextLoader.LoadCharText(file);
+                    using var chars = YARGTextLoader.ConvertToChar(file);
+                    var charReader = new YARGTextReader<char, CharStringDecoder>(chars, 0);
                     ParseDotChart<char, CharStringDecoder, DotChartChar>(charReader, modifiers, ref parts, drums);
                 }
             }
@@ -224,7 +226,7 @@ namespace YARG.Core.Song
                 drums.Type = DrumsType.FourLane;
         }
 
-        private static bool ParseDotMidi(byte[] file, IniSection modifiers, ref AvailableParts parts, DrumPreparseHandler drums)
+        private static bool ParseDotMidi(FixedArray<byte> file, IniSection modifiers, ref AvailableParts parts, DrumPreparseHandler drums)
         {
             bool usePro = !modifiers.TryGet("pro_drums", out bool proDrums) || proDrums;
             if (drums.Type == DrumsType.Unknown)

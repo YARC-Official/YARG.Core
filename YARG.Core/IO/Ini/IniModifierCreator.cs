@@ -44,10 +44,10 @@ namespace YARG.Core.IO.Ini
         {
             return type switch
             {
-                ModifierCreatorType.SortString       => new IniModifier(new SortString(RichTextUtils.ReplaceColorNames(reader.ExtractText(false)))),
-                ModifierCreatorType.SortString_Chart => new IniModifier(new SortString(RichTextUtils.ReplaceColorNames(reader.ExtractText(true)))),
-                ModifierCreatorType.String           => new IniModifier(RichTextUtils.ReplaceColorNames(reader.ExtractText(false))),
-                ModifierCreatorType.String_Chart     => new IniModifier(RichTextUtils.ReplaceColorNames(reader.ExtractText(true))),
+                ModifierCreatorType.SortString       => new IniModifier(SortString.Convert(ExtractIniString(reader, false))),
+                ModifierCreatorType.SortString_Chart => new IniModifier(SortString.Convert(ExtractIniString(reader, true))),
+                ModifierCreatorType.String           => new IniModifier(ExtractIniString(reader, false)),
+                ModifierCreatorType.String_Chart     => new IniModifier(ExtractIniString(reader, true)),
                 _ => CreateNumberModifier(reader.Container),
             };
         }
@@ -56,8 +56,8 @@ namespace YARG.Core.IO.Ini
         {
             return type switch
             {
-                ModifierCreatorType.SortString => new IniModifier(new SortString(ExtractSngString(sngContainer, length))),
-                ModifierCreatorType.String => new IniModifier(ExtractSngString(sngContainer, length)),
+                ModifierCreatorType.SortString => new IniModifier(SortString.Convert(ExtractSngString(sngContainer, length))),
+                ModifierCreatorType.String =>     new IniModifier(ExtractSngString(sngContainer, length)),
                 _ => CreateNumberModifier(sngContainer),
             };
         }
@@ -133,9 +133,16 @@ namespace YARG.Core.IO.Ini
             }
         }
 
-        private static string ExtractSngString(YARGTextContainer<byte> sngContainer, int length)
+        private static string ExtractIniString<TChar, TDecoder>(YARGTextReader<TChar, TDecoder> reader, bool isChartFile)
+            where TChar : unmanaged, IConvertible
+            where TDecoder : IStringDecoder<TChar>, new()
         {
-            return RichTextUtils.ReplaceColorNames(Encoding.UTF8.GetString(sngContainer.Data, sngContainer.Position, length));
+            return RichTextUtils.ReplaceColorNames(reader.ExtractText(isChartFile));
+        }
+
+        private static unsafe string ExtractSngString(YARGTextContainer<byte> sngContainer, int length)
+        {
+            return RichTextUtils.ReplaceColorNames(Encoding.UTF8.GetString(sngContainer.Data.Ptr + sngContainer.Position, length));
         }
     }
 }
