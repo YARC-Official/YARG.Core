@@ -219,7 +219,7 @@ namespace YARG.Core.Song
             return (ScanResult.Success, parts);
         }
 
-        private static unsafe void ParseDotChart<TChar>(ref YARGTextContainer<TChar> container, IniSection modifiers, ref AvailableParts parts, DrumPreparseHandler drums)
+        private static void ParseDotChart<TChar>(ref YARGTextContainer<TChar> container, IniSection modifiers, ref AvailableParts parts, DrumPreparseHandler drums)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {
             if (YARGChartFileReader.ValidateTrack(ref container, YARGChartFileReader.HEADERTRACK))

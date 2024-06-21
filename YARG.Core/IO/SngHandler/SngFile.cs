@@ -174,7 +174,7 @@ namespace YARG.Core.IO
 
         private static unsafe int GetLength(ref YARGTextContainer<byte> container)
         {
-            int length = *(int*)(container.Position);
+            int length = *(int*)container.Position;
             container.Position += sizeof(int);
             if (container.Position + length > container.End)
             {

@@ -53,8 +53,8 @@ namespace YARG.Core.IO
         private MidiEvent _running;
 
         private readonly AllocatedArray<byte>? _buffer;
-        private readonly unsafe byte* _end;
-        private unsafe byte* _position;
+        private readonly byte* _end;
+        private byte* _position;
 
         public long Position => _tickPosition;
         public MidiEventType Type => _event.Type;
@@ -218,7 +218,7 @@ namespace YARG.Core.IO
             return value;
         }
 
-        private unsafe void AbsorbVLQ()
+        private void AbsorbVLQ()
         {
             uint b = ReadByte();
             // Skip zeroes

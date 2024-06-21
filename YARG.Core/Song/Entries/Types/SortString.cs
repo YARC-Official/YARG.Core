@@ -87,7 +87,7 @@ namespace YARG.Core.Song
 
         // Why use a custom function vs. .NET's built-in one? Because hot paths baby! YIPPEEEEEE!
         // Also, the use case is very controlled, so this won't hurt
-        private static unsafe bool StartsWith(string str, string query)
+        private static bool StartsWith(string str, string query)
         {
             if (str.Length < query.Length)
             {

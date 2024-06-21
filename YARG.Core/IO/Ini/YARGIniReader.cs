@@ -7,7 +7,7 @@ using YARG.Core.Logging;
 
 namespace YARG.Core.IO.Ini
 {
-    public static unsafe class YARGIniReader
+    public static class YARGIniReader
     {
         public static Dictionary<string, IniSection> ReadIniFile(FileInfo iniFile, Dictionary<string, Dictionary<string, IniModifierCreator>> sections)
         {
