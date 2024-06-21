@@ -4,9 +4,9 @@ namespace YARG.Core.Engine.ProKeys
 {
     public class ProKeysEngineParameters : BaseEngineParameters
     {
-        public double ChordStaggerWindow { get; private set; }
+        public double ChordStaggerWindow;
 
-        public double FatFingerWindow { get; private set; }
+        public double FatFingerWindow;
 
         public ProKeysEngineParameters()
         {

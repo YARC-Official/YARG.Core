@@ -8,11 +8,11 @@ namespace YARG.Core.Engine
 {
     public abstract class BaseEngineParameters : IBinarySerializable
     {
-        public readonly HitWindowSettings HitWindow;
+        public HitWindowSettings HitWindow;
 
-        public int MaxMultiplier { get; private set; }
+        public int MaxMultiplier;
 
-        public float[] StarMultiplierThresholds { get; private set; }
+        public float[] StarMultiplierThresholds;
 
         public double SongSpeed;
 

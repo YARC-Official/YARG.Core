@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using YARG.Core.Chart;
-using YARG.Core.Engine.Logging;
 using YARG.Core.Input;
 using YARG.Core.Logging;
 
@@ -41,8 +40,6 @@ namespace YARG.Core.Engine
         public bool CanStarPowerActivate => BaseStats.StarPowerTickAmount >= TicksPerHalfSpBar;
 
         public int BaseScore { get; protected set; }
-
-        public EngineEventLogger EventLogger { get; } = new();
 
         public abstract BaseEngineState      BaseState      { get; }
         public abstract BaseEngineParameters BaseParameters { get; }

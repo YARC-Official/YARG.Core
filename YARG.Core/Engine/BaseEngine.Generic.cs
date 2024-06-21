@@ -167,8 +167,6 @@ namespace YARG.Core.Engine
             State.Reset();
             EngineStats.Reset();
 
-            EventLogger.Clear();
-
             foreach (var note in Notes)
             {
                 note.ResetNoteState();
