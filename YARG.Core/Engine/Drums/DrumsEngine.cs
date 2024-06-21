@@ -342,5 +342,52 @@ namespace YARG.Core.Engine.Drums
                 _ => throw new Exception("Unreachable.")
             };
         }
+
+        protected static DrumsAction ConvertPadToAction(DrumsEngineParameters.DrumMode mode, int pad)
+        {
+            return mode switch
+            {
+                DrumsEngineParameters.DrumMode.NonProFourLane => pad switch
+                {
+                    (int) FourLaneDrumPad.Kick => DrumsAction.Kick,
+
+                    (int) FourLaneDrumPad.RedDrum    => DrumsAction.RedDrum,
+                    (int) FourLaneDrumPad.YellowDrum => DrumsAction.YellowDrum,
+                    (int) FourLaneDrumPad.BlueDrum   => DrumsAction.BlueDrum,
+                    (int) FourLaneDrumPad.GreenDrum  => DrumsAction.GreenDrum,
+
+                    _ => throw new Exception("Unreachable.")
+                },
+                DrumsEngineParameters.DrumMode.ProFourLane => pad switch
+                {
+                    (int) FourLaneDrumPad.Kick => DrumsAction.Kick,
+
+                    (int) FourLaneDrumPad.RedDrum    => DrumsAction.RedDrum,
+                    (int) FourLaneDrumPad.YellowDrum => DrumsAction.YellowDrum,
+                    (int) FourLaneDrumPad.BlueDrum   => DrumsAction.BlueDrum,
+                    (int) FourLaneDrumPad.GreenDrum  => DrumsAction.GreenCymbal,
+
+                    (int) FourLaneDrumPad.YellowCymbal => DrumsAction.YellowCymbal,
+                    (int) FourLaneDrumPad.BlueCymbal   => DrumsAction.BlueCymbal,
+                    (int) FourLaneDrumPad.GreenCymbal  => DrumsAction.GreenCymbal,
+
+                    _ => throw new Exception("Unreachable.")
+                },
+                DrumsEngineParameters.DrumMode.FiveLane => pad switch
+                {
+                    (int) FiveLaneDrumPad.Kick => DrumsAction.Kick,       
+
+                    (int) FiveLaneDrumPad.Red   => DrumsAction.RedDrum,
+                    (int) FiveLaneDrumPad.Blue  => DrumsAction.BlueDrum,
+                    (int) FiveLaneDrumPad.Green => DrumsAction.GreenDrum,
+
+                    (int) FiveLaneDrumPad.Yellow => DrumsAction.YellowCymbal,
+                    (int) FiveLaneDrumPad.Orange => DrumsAction.OrangeCymbal,
+
+                    _ => throw new Exception("Unreachable.")
+                },
+                _ => throw new Exception("Unreachable.")
+            };
+        }
     }
 }
