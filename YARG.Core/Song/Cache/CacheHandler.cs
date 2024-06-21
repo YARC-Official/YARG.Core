@@ -144,7 +144,7 @@ namespace YARG.Core.Song.Cache
         /// Format is YY_MM_DD_RR: Y = year, M = month, D = day, R = revision (reset across dates, only increment
         /// if multiple cache version changes happen in a single day).
         /// </summary>
-        public const int CACHE_VERSION = 24_06_13_02;
+        public const int CACHE_VERSION = 24_06_13_03;
 
         protected readonly SongCache cache = new();
 
@@ -155,7 +155,7 @@ namespace YARG.Core.Song.Cache
         protected readonly List<UnpackedCONGroup> extractedConGroups = new();
 
         protected readonly Dictionary<string, List<SongUpdate>> updates = new();
-        protected readonly Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades = new();
+        protected readonly Dictionary<string, (YARGDTAReader, IRBProUpgrade)> upgrades = new();
         protected readonly HashSet<string> preScannedDirectories = new();
         protected readonly HashSet<string> preScannedFiles = new();
 
@@ -197,7 +197,7 @@ namespace YARG.Core.Song.Cache
 
         protected abstract void SortEntries();
         protected abstract void AddUpdates(UpdateGroup group, Dictionary<string, List<YARGDTAReader>> nodes, bool removeEntries);
-        protected abstract void AddUpgrade(string name, YARGDTAReader? reader, IRBProUpgrade upgrade);
+        protected abstract void AddUpgrade(string name, YARGDTAReader reader, IRBProUpgrade upgrade);
         protected abstract void AddPackedCONGroup(PackedCONGroup group);
         protected abstract void AddUnpackedCONGroup(UnpackedCONGroup group);
         protected abstract void AddUpgradeGroup(UpgradeGroup group);
@@ -363,19 +363,19 @@ namespace YARG.Core.Song.Cache
         private UpgradeGroup? CreateUpgradeGroup(string directory, FileInfo dta, bool removeEntries)
         {
             MemoryMappedArray? fileData = null;
-            YARGDTAReader? reader = null;
+            YARGDTAReader reader;
             try
             {
                 fileData = MemoryMappedArray.Load(dta);
-                reader = YARGDTAReader.TryCreate(fileData);
+                if (!YARGDTAReader.TryCreate(fileData, out reader))
+                {
+                    fileData!.Dispose();
+                    return null;
+                }
             }
             catch (Exception ex)
             {
                 YargLogger.LogException(ex, $"Error while loading {dta.FullName}");
-            }
-
-            if (reader == null)
-            {
                 fileData?.Dispose();
                 return null;
             }
@@ -394,7 +394,7 @@ namespace YARG.Core.Song.Cache
                         {
                             var upgrade = new UnpackedRBProUpgrade(abridged);
                             group.Upgrades[name] = upgrade;
-                            AddUpgrade(name, reader.Clone(), upgrade);
+                            AddUpgrade(name, reader, upgrade);
 
                             if (removeEntries)
                             {
@@ -423,19 +423,19 @@ namespace YARG.Core.Song.Cache
         private UpdateGroup? CreateUpdateGroup(DirectoryInfo dirInfo, FileInfo dta, bool removeEntries)
         {
             MemoryMappedArray? fileData = null;
-            YARGDTAReader? reader = null;
+            YARGDTAReader reader;
             try
             {
                 fileData = MemoryMappedArray.Load(dta);
-                reader = YARGDTAReader.TryCreate(fileData);
+                if (!YARGDTAReader.TryCreate(fileData, out reader))
+                {
+                    fileData!.Dispose();
+                    return null;
+                }
             }
             catch (Exception ex)
             {
                 YargLogger.LogException(ex, $"Error while loading {dta.FullName}");
-            }
-
-            if (reader == null)
-            {
                 fileData?.Dispose();
                 return null;
             }
@@ -450,7 +450,7 @@ namespace YARG.Core.Song.Cache
                     {
                         nodes.Add(name, list = new List<YARGDTAReader>());
                     }
-                    list.Add(reader.Clone());
+                    list.Add(reader);
                     reader.EndNode();
                 }
 
@@ -474,9 +474,10 @@ namespace YARG.Core.Song.Cache
 
         private bool TryParseUpgrades(string filename, PackedCONGroup group)
         {
-            var reader = group.LoadUpgrades();
-            if (reader == null)
+            if (!group.LoadUpgrades(out var reader))
+            {
                 return false;
+            }
 
             try
             {
@@ -489,7 +490,7 @@ namespace YARG.Core.Song.Cache
                         {
                             IRBProUpgrade upgrade = new PackedRBProUpgrade(listing, listing.LastWrite);
                             group.Upgrades[name] = upgrade;
-                            AddUpgrade(name, reader.Clone(), upgrade);
+                            AddUpgrade(name, reader, upgrade);
                             RemoveCONEntry(name);
                         }
                     }

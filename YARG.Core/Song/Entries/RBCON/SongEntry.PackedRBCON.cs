@@ -23,7 +23,7 @@ namespace YARG.Core.Song
         public override string Directory { get; } = string.Empty;
         public override EntryType SubType => EntryType.CON;
 
-        public static (ScanResult, PackedRBCONEntry?) ProcessNewEntry(PackedCONGroup group, string nodename, YARGDTAReader reader, Dictionary<string, List<SongUpdate>> updates, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades)
+        public static (ScanResult, PackedRBCONEntry?) ProcessNewEntry(PackedCONGroup group, string nodename, YARGDTAReader reader, Dictionary<string, List<SongUpdate>> updates, Dictionary<string, (YARGDTAReader, IRBProUpgrade)> upgrades)
         {
             try
             {
@@ -48,7 +48,7 @@ namespace YARG.Core.Song
             }
         }
 
-        public static PackedRBCONEntry? TryLoadFromCache(in CONFile conFile, string nodename, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
+        public static PackedRBCONEntry? TryLoadFromCache(in CONFile conFile, string nodename, Dictionary<string, (YARGDTAReader, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
         {
             var psuedoDirectory = reader.ReadString();
 
@@ -87,7 +87,7 @@ namespace YARG.Core.Song
             return new PackedRBCONEntry(midiListing, lastMidiWrite, moggListing, miloListing, imgListing, psuedoDirectory, updateMidi, upgrade, reader, strings);
         }
 
-        public static PackedRBCONEntry LoadFromCache_Quick(in CONFile conFile, string nodename, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
+        public static PackedRBCONEntry LoadFromCache_Quick(in CONFile conFile, string nodename, Dictionary<string, (YARGDTAReader, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
         {
             var psuedoDirectory = reader.ReadString();
 
@@ -109,7 +109,7 @@ namespace YARG.Core.Song
             return new PackedRBCONEntry(midiListing, lastMidiWrite, moggListing, miloListing, imgListing, psuedoDirectory, updateMidi, upgrade, reader, strings);
         }
 
-        private PackedRBCONEntry(PackedCONGroup group, string nodename, YARGDTAReader reader, Dictionary<string, List<SongUpdate>> updates, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades)
+        private PackedRBCONEntry(PackedCONGroup group, string nodename, YARGDTAReader reader, Dictionary<string, List<SongUpdate>> updates, Dictionary<string, (YARGDTAReader, IRBProUpgrade)> upgrades)
             : base()
         {
             var results = Init(nodename, reader, updates, upgrades, group.DefaultPlaylist);

@@ -125,15 +125,15 @@ namespace YARG.Core.IO
 
             for (ulong i = 0; i < numPairs; i++)
             {
-                int strLength = GetLength(container);
-                var key = Encoding.UTF8.GetString(container.Data.Ptr + container.Position, strLength);
+                int strLength = GetLength(ref container);
+                var key = Encoding.UTF8.GetString(container.Position, strLength);
                 container.Position += strLength;
 
-                strLength = GetLength(container);
+                strLength = GetLength(ref container);
                 var next = container.Position + strLength;
                 if (validNodes.TryGetValue(key, out var node))
                 {
-                    var mod = node.CreateSngModifier(container, strLength);
+                    var mod = node.CreateSngModifier(ref container, strLength);
                     if (modifiers.TryGetValue(node.outputName, out var list))
                     {
                         list.Add(mod);
@@ -170,11 +170,11 @@ namespace YARG.Core.IO
             return listings;
         }
 
-        private static unsafe int GetLength(YARGTextContainer<byte> container)
+        private static unsafe int GetLength(ref YARGTextContainer<byte> container)
         {
-            int length = *(int*)(container.Data.Ptr + container.Position);
+            int length = *(int*)(container.Position);
             container.Position += sizeof(int);
-            if (container.Position + length > container.Length)
+            if (container.Position + length > container.End)
             {
                 throw new EndOfStreamException();
             }

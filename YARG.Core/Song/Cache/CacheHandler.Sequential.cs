@@ -30,34 +30,18 @@ namespace YARG.Core.Song.Cache
 
             foreach (var group in conGroups)
             {
-                var reader = group.LoadSongs();
-                if (reader != null)
+                if (group.LoadSongs(out var reader))
                 {
-                    try
-                    {
-                        TraverseCONGroup(reader, (string name, int index) => ScanPackedCONNode(group, name, index, reader));
-                    }
-                    catch (Exception e)
-                    {
-                        YargLogger.LogException(e, $"Error while scanning packed CON group {group.Location}!");
-                    }
+                    TraverseCONGroup(group, ref reader, ScanPackedCONNode);
                 }
                 group.DisposeStreamAndSongDTA();
             }
 
             foreach (var group in extractedConGroups)
             {
-                var reader = group.LoadDTA();
-                if (reader != null)
+                if (group.LoadDTA(out var reader))
                 {
-                    try
-                    {
-                        TraverseCONGroup(reader, (string name, int index) => ScanUnpackedCONNode(group, name, index, reader));
-                    }
-                    catch (Exception e)
-                    {
-                        YargLogger.LogException(e, $"Error while scanning unpacked CON group {group.Location}!");
-                    }
+                    TraverseCONGroup(group, ref reader, ScanUnpackedCONNode);
                 }
                 group.Dispose();
             }
@@ -101,6 +85,32 @@ namespace YARG.Core.Song.Cache
                 ScanFile(file, group, ref tracker);
             }
         }
+
+        private void TraverseCONGroup<TGroup>(TGroup group, ref YARGDTAReader reader, Action<TGroup, string, int, YARGDTAReader> func)
+            where TGroup : CONGroup
+        {
+            try
+            {
+                Dictionary<string, int> indices = new();
+                while (reader.StartNode())
+                {
+                    string name = reader.GetNameOfNode(true);
+                    if (indices.TryGetValue(name, out int index))
+                    {
+                        ++index;
+                    }
+                    indices[name] = index;
+
+                    func(group, name, index, reader);
+                    reader.EndNode();
+                }
+            }
+            catch (Exception e)
+            {
+                YargLogger.LogException(e, $"Error while scanning unpacked CON group {group.Location}!");
+            }
+        }
+
 
         protected override void SortEntries()
         {
@@ -153,7 +163,7 @@ namespace YARG.Core.Song.Cache
             RunEntryTasks(stream, strings, QuickReadExtractedCONGroup);
         }
 
-        protected override void AddUpgrade(string name, YARGDTAReader? reader, IRBProUpgrade upgrade)
+        protected override void AddUpgrade(string name, YARGDTAReader reader, IRBProUpgrade upgrade)
         {
             upgrades[name] = new(reader, upgrade);
         }

@@ -32,7 +32,7 @@ namespace YARG.Core.Song.Cache
             conFile.TryGetListing(SONGSFILEPATH, out SongDTA);
         }
 
-        public override void ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
+        public override void ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
         {
             var song = PackedRBCONEntry.TryLoadFromCache(in ConFile, nodeName, upgrades, reader, strings);
             if (song != null)
@@ -54,43 +54,47 @@ namespace YARG.Core.Song.Cache
 
         public void AddUpgrade(string name, IRBProUpgrade upgrade) { lock (Upgrades) Upgrades[name] = upgrade; }
 
-        public YARGDTAReader? LoadUpgrades()
+        public bool LoadUpgrades(out YARGDTAReader reader)
         {
             if (UpgradeDta == null)
             {
-                return null;
+                reader = default;
+                return false;
             }
 
             try
             {
                 Stream = new FileStream(Info.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
                 _upgradeDTAData = UpgradeDta.LoadAllBytes(Stream);
-                return YARGDTAReader.TryCreate(_upgradeDTAData);
+                return YARGDTAReader.TryCreate(_upgradeDTAData, out reader);
             }
             catch (Exception ex)
             {
                 YargLogger.LogException(ex, $"Error while loading {UpgradeDta.Filename}");
-                return null;
+                reader = default;
+                return false;
             }
         }
 
-        public YARGDTAReader? LoadSongs()
+        public bool LoadSongs(out YARGDTAReader reader)
         {
             if (SongDTA == null)
             {
-                return null;
+                reader = default;
+                return false;
             }
 
             try
             {
                 Stream ??= new FileStream(Info.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
                 _songDTAData = SongDTA.LoadAllBytes(Stream);
-                return YARGDTAReader.TryCreate(_songDTAData);
+                return YARGDTAReader.TryCreate(_songDTAData, out reader);
             }
             catch (Exception ex)
             {
                 YargLogger.LogException(ex, $"Error while loading {SongDTA.Filename}");
-                return null;
+                reader = default;
+                return false;
             }
         }
 

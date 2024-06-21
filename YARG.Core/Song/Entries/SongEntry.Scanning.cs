@@ -60,45 +60,6 @@ namespace YARG.Core.Song
             return true;
         }
 
-        protected static void ParseChart<TChar, TDecoder, TBase>(YARGChartFileReader<TChar, TDecoder, TBase> reader, DrumPreparseHandler drums, ref AvailableParts parts)
-            where TChar : unmanaged, IEquatable<TChar>, IConvertible
-            where TDecoder : IStringDecoder<TChar>, new()
-            where TBase : unmanaged, IDotChartBases<TChar>
-        {
-            while (reader.IsStartOfTrack())
-            {
-                if (!reader.ValidateDifficulty() || !reader.ValidateInstrument())
-                    reader.SkipTrack();
-                else if (reader.Instrument != NoteTracks_Chart.Drums)
-                    ParseChartTrack(reader, ref parts);
-                else
-                    drums.ParseChart(reader);
-            }
-        }
-
-        private static void ParseChartTrack<TChar, TDecoder, TBase>(YARGChartFileReader<TChar, TDecoder, TBase> reader, ref AvailableParts parts)
-            where TChar : unmanaged, IEquatable<TChar>, IConvertible
-            where TDecoder : IStringDecoder<TChar>, new()
-            where TBase : unmanaged, IDotChartBases<TChar>
-        {
-            bool skip = reader.Instrument switch
-            {
-                NoteTracks_Chart.Single =>       ChartPreparser.Preparse(reader, ref parts.FiveFretGuitar,     ChartPreparser.ValidateFiveFret),
-                NoteTracks_Chart.DoubleBass =>   ChartPreparser.Preparse(reader, ref parts.FiveFretBass,       ChartPreparser.ValidateFiveFret),
-                NoteTracks_Chart.DoubleRhythm => ChartPreparser.Preparse(reader, ref parts.FiveFretRhythm,     ChartPreparser.ValidateFiveFret),
-                NoteTracks_Chart.DoubleGuitar => ChartPreparser.Preparse(reader, ref parts.FiveFretCoopGuitar, ChartPreparser.ValidateFiveFret),
-                NoteTracks_Chart.GHLGuitar =>    ChartPreparser.Preparse(reader, ref parts.SixFretGuitar,      ChartPreparser.ValidateSixFret),
-                NoteTracks_Chart.GHLBass =>      ChartPreparser.Preparse(reader, ref parts.SixFretBass,        ChartPreparser.ValidateSixFret),
-                NoteTracks_Chart.GHLRhythm =>    ChartPreparser.Preparse(reader, ref parts.SixFretRhythm,      ChartPreparser.ValidateSixFret),
-                NoteTracks_Chart.GHLCoop =>      ChartPreparser.Preparse(reader, ref parts.SixFretCoopGuitar,  ChartPreparser.ValidateSixFret),
-                NoteTracks_Chart.Keys =>         ChartPreparser.Preparse(reader, ref parts.Keys,               ChartPreparser.ValidateFiveFret),
-                _ => true,
-            };
-
-            if (skip)
-                reader.SkipTrack();
-        }
-
         protected static void SetDrums(ref AvailableParts parts, DrumPreparseHandler drumTracker)
         {
             if (drumTracker.Type == DrumsType.FiveLane)
