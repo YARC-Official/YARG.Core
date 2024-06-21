@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using YARG.Core.Chart;
-using YARG.Core.Engine.Logging;
 using YARG.Core.Input;
 using YARG.Core.Logging;
 

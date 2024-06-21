@@ -18,7 +18,7 @@ public partial class Cli
 
         Console.WriteLine("Analyzing replay...");
 
-        var results = ReplayAnalyzer.AnalyzeReplay(chart, _replay, keepEngineLoggers: true);
+        var results = ReplayAnalyzer.AnalyzeReplay(chart, _replay);
 
         Console.WriteLine("Done!\n");
 
@@ -49,7 +49,6 @@ public partial class Cli
                     Console.WriteLine($"Frame {frameIndex + 1}");
                     Console.WriteLine($"-------------");
                     PrintStatDifferences(frame.Stats, result.Stats);
-                    PrintEventLogDifferences(frame.EventLog, result.EventLogger);
                     Console.WriteLine();
                 }
             }

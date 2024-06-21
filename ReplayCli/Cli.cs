@@ -1,9 +1,7 @@
-﻿using NUnit.Framework;
-using YARG.Core.Chart;
+﻿using YARG.Core.Chart;
 using YARG.Core.Engine;
 using YARG.Core.Engine.Drums;
 using YARG.Core.Engine.Guitar;
-using YARG.Core.Engine.Logging;
 using YARG.Core.Engine.ProKeys;
 using YARG.Core.Engine.Vocals;
 using YARG.Core.Replays;
@@ -15,8 +13,6 @@ public partial class Cli
     private string _songPath;
     private string _replayPath;
     private AnalyzerMode _runMode;
-
-    private bool _searchForProblems;
 
     private Replay _replay;
 
@@ -77,13 +73,6 @@ public partial class Cli
 
                     break;
                 }
-                case "--problems":
-                case "-p":
-                {
-                    i++;
-                    _searchForProblems = true;
-                    break;
-                }
                 case "--help":
                 case "-h":
                 {
@@ -112,7 +101,6 @@ public partial class Cli
             Options:
               --song     | -s    Path to `song.ini` folder (required in `verify` and `simulate_fps` modes).
               --help     | -h    Show this help message.
-              --problems | -p    Search for engine consistency problems via engine logs.
             """);
     }
 
@@ -281,21 +269,6 @@ public partial class Cli
                     Console.WriteLine($"Unhandled stats type {originalStats.GetType()}!");
                 break;
             }
-        }
-    }
-
-    private static void PrintEventLogDifferences(EngineEventLogger originalLog, EngineEventLogger resultLog)
-    {
-        Console.WriteLine("\nEvent logs:");
-        try
-        {
-            // Easiest to just use NUnit here
-            CollectionAssert.AreEqual(originalLog.Events, resultLog.Events);
-            Console.WriteLine($"- Identical");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine(ex.Message);
         }
     }
 }
