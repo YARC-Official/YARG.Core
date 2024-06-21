@@ -1,9 +1,6 @@
-﻿using System.IO;
-using YARG.Core.Utility;
-
 namespace YARG.Core.Engine
 {
-    public abstract class BaseStats : IBinarySerializable
+    public abstract class BaseStats
     {
         /// <summary>
         /// Finalized score (e.g from notes hit and sustains)
@@ -184,62 +181,6 @@ namespace YARG.Core.Engine
             StarPowerScore = 0;
 
             Stars = 0;
-        }
-
-        public virtual void Serialize(BinaryWriter writer)
-        {
-            writer.Write(CommittedScore);
-            writer.Write(PendingScore);
-
-            writer.Write(Combo);
-            writer.Write(MaxCombo);
-            writer.Write(ScoreMultiplier);
-
-            writer.Write(NotesHit);
-            writer.Write(TotalNotes);
-
-            writer.Write(StarPowerTickAmount);
-            writer.Write(TotalStarPowerTicks);
-            writer.Write(TimeInStarPower);
-            writer.Write(StarPowerWhammyTicks);
-            writer.Write(IsStarPowerActive);
-
-            writer.Write(StarPowerPhrasesHit);
-            writer.Write(TotalStarPowerPhrases);
-
-            writer.Write(SoloBonuses);
-            writer.Write(StarPowerScore);
-
-            // Deliberately not written so that stars can be re-calculated with different thresholds
-            // writer.Write(Stars);
-        }
-
-        public virtual void Deserialize(BinaryReader reader, int version = 0)
-        {
-            CommittedScore = reader.ReadInt32();
-            PendingScore = reader.ReadInt32();
-
-            Combo = reader.ReadInt32();
-            MaxCombo = reader.ReadInt32();
-            ScoreMultiplier = reader.ReadInt32();
-
-            NotesHit = reader.ReadInt32();
-            TotalNotes = reader.ReadInt32();
-
-            StarPowerTickAmount = reader.ReadUInt32();
-            TotalStarPowerTicks = reader.ReadUInt32();
-            TimeInStarPower = reader.ReadDouble();
-            StarPowerWhammyTicks = reader.ReadUInt32();
-            IsStarPowerActive = reader.ReadBoolean();
-
-            StarPowerPhrasesHit = reader.ReadInt32();
-            TotalStarPowerPhrases = reader.ReadInt32();
-
-            SoloBonuses = reader.ReadInt32();
-            StarPowerScore = reader.ReadInt32();
-
-            // Deliberately not read so that stars can be re-calculated if thresholds change
-            // Stars = reader.ReadInt32();
         }
     }
 }

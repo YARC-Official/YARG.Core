@@ -1,6 +1,4 @@
-﻿using System.IO;
-
-namespace YARG.Core.Engine.Vocals
+﻿namespace YARG.Core.Engine.Vocals
 {
     public class VocalsStats : BaseStats
     {
@@ -36,22 +34,6 @@ namespace YARG.Core.Engine.Vocals
             base.Reset();
             TicksHit = 0;
             TicksMissed = 0;
-        }
-
-        public override void Serialize(BinaryWriter writer)
-        {
-            base.Serialize(writer);
-
-            writer.Write(TicksHit);
-            writer.Write(TicksMissed);
-        }
-
-        public override void Deserialize(BinaryReader reader, int version = 0)
-        {
-            base.Deserialize(reader, version);
-
-            TicksHit = reader.ReadUInt32();
-            TicksMissed = reader.ReadUInt32();
         }
     }
 }

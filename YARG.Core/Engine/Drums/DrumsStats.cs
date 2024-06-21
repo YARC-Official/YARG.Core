@@ -1,6 +1,4 @@
-﻿using System.IO;
-
-namespace YARG.Core.Engine.Drums
+﻿namespace YARG.Core.Engine.Drums
 {
     public class DrumsStats : BaseStats
     {
@@ -22,20 +20,6 @@ namespace YARG.Core.Engine.Drums
         {
             base.Reset();
             Overhits = 0;
-        }
-
-        public override void Serialize(BinaryWriter writer)
-        {
-            base.Serialize(writer);
-
-            writer.Write(Overhits);
-        }
-
-        public override void Deserialize(BinaryReader reader, int version = 0)
-        {
-            base.Deserialize(reader, version);
-
-            Overhits = reader.ReadInt32();
         }
     }
 }
