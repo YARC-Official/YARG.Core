@@ -141,6 +141,7 @@ namespace YARG.Core.Engine.Drums.Engines
             // Each note in the "chord" is hit separately on drums
             foreach (var chordNote in note.AllNotes)
             {
+                State.Action = ConvertPadToAction(EngineParameters.Mode, chordNote.Pad);
                 State.PadHit = chordNote.Pad;
                 CheckForNoteHit();
             }
