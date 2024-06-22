@@ -44,9 +44,9 @@ namespace YARG.Core.Song.Cache
         }
     }
 
-    public readonly struct SongUpdate
+    public class SongUpdate
     {
-        private readonly List<YARGDTAReader> _readers;
+        private readonly List<YARGTextContainer<byte>> _containers;
 
         public readonly string BaseDirectory;
         public readonly AbridgedFileInfo_Length? Midi;
@@ -54,11 +54,11 @@ namespace YARG.Core.Song.Cache
         public readonly AbridgedFileInfo_Length? Milo;
         public readonly AbridgedFileInfo_Length? Image;
 
-        public YARGDTAReader[] Readers => _readers.ToArray();
+        public YARGTextContainer<byte>[] Containers => _containers.ToArray();
 
         internal SongUpdate(in FileCollection collection, string name)
         {
-            _readers = new();
+            _containers = new();
             BaseDirectory = collection.Directory.FullName;
             Midi = null;
             Mogg = null;
@@ -100,9 +100,9 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        public void Add(YARGDTAReader reader)
+        public void Add(in YARGTextContainer<byte> container)
         {
-            _readers.Add(reader);
+            _containers.Add(container);
         }
 
         public void Serialize(BinaryWriter writer)

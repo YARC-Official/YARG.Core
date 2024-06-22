@@ -12,16 +12,16 @@ namespace YARG.Core.Song.Cache
         private int _count;
         public int Count { get { lock (entries) return _count; } }
 
-        public readonly string Location;
         public readonly string DefaultPlaylist;
 
-        protected CONGroup(string location, string defaultPlaylist)
+        public abstract string Location { get; }
+
+        protected CONGroup(string defaultPlaylist)
         {
-            Location = location;
             DefaultPlaylist = defaultPlaylist;
         }
 
-        public abstract void ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader, IRBProUpgrade)> upgrades, UnmanagedMemoryStream stream, CategoryCacheStrings strings);
+        public abstract void ReadEntry(string nodeName, int index, Dictionary<string, (YARGTextContainer<byte>, RBProUpgrade)> upgrades, UnmanagedMemoryStream stream, CategoryCacheStrings strings);
         public abstract ReadOnlyMemory<byte> SerializeEntries(Dictionary<SongEntry, CategoryCacheWriteNode> nodes);
 
         public void AddEntry(string name, int index, RBCONEntry entry)

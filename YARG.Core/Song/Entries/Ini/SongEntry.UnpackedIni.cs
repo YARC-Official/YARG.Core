@@ -267,9 +267,8 @@ namespace YARG.Core.Song
             return (result, entry);
         }
 
-        public static IniSubEntry? TryLoadFromCache(string baseDirectory, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
+        public static UnpackedIniEntry? TryLoadFromCache(string directory, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
         {
-            string directory = Path.Combine(baseDirectory, stream.ReadString());
             byte chartTypeIndex = (byte) stream.ReadByte();
             if (chartTypeIndex >= CHART_FILE_TYPES.Length)
             {
@@ -301,10 +300,9 @@ namespace YARG.Core.Song
             return new UnpackedIniEntry(directory, in node, iniInfo, stream, strings);
         }
 
-        public static IniSubEntry? IniFromCache_Quick(string baseDirectory, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
+        public static UnpackedIniEntry? IniFromCache_Quick(string directory, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
         {
-            string directory = Path.Combine(baseDirectory, stream.ReadString());
-            byte chartTypeIndex = (byte)stream.ReadByte();
+            byte chartTypeIndex = (byte) stream.ReadByte();
             if (chartTypeIndex >= CHART_FILE_TYPES.Length)
             {
                 return null;

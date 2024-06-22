@@ -30,9 +30,9 @@ namespace YARG.Core.Song.Cache
                 var group = conGroups[i];
                 conActions[i] = () =>
                 {
-                    if (group.LoadSongs(out var reader))
+                    if (group.LoadSongs(out var container))
                     {
-                        ScanCONGroup(group, ref reader, ScanPackedCONNode);
+                        ScanCONGroup(group, ref container, ScanPackedCONNode);
                     }
                     group.DisposeStreamAndSongDTA();
                 };
@@ -43,9 +43,9 @@ namespace YARG.Core.Song.Cache
                 var group = extractedConGroups[i];
                 conActions[conGroups.Count + i] = () =>
                 {
-                    if (group.LoadDTA(out var reader))
+                    if (group.LoadDTA(out var container))
                     {
-                        ScanCONGroup(group, ref reader, ScanUnpackedCONNode);
+                        ScanCONGroup(group, ref container, ScanUnpackedCONNode);
                     }
                     group.Dispose();
                 };
@@ -168,7 +168,7 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        protected override void AddUpdate(string name, DateTime dtaLastWrite, in SongUpdate update)
+        protected override void AddUpdate(string name, DateTime dtaLastWrite, SongUpdate update)
         {
             lock (updates)
             {
@@ -180,11 +180,11 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        protected override void AddUpgrade(string name, YARGDTAReader reader, IRBProUpgrade upgrade)
+        protected override void AddUpgrade(string name, in YARGTextContainer<byte> container, RBProUpgrade upgrade)
         {
             lock (upgrades)
             {
-                upgrades[name] = new(reader, upgrade);
+                upgrades[name] = new(container, upgrade);
             }
         }
 
@@ -217,6 +217,14 @@ namespace YARG.Core.Song.Cache
             lock (upgradeGroups)
             {
                 upgradeGroups.Add(group);
+            }
+        }
+
+        protected override void AddCollectionToCache(in FileCollection collection)
+        {
+            lock (collectionCache)
+            {
+                collectionCache.Add(collection.Directory.FullName, collection);
             }
         }
 
@@ -354,26 +362,26 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void ScanCONGroup<TGroup>(TGroup group, ref YARGDTAReader reader, Action<TGroup, string, int, YARGDTAReader> func)
+        private void ScanCONGroup<TGroup>(TGroup group, ref YARGTextContainer<byte> container, Action<TGroup, string, int, YARGTextContainer<byte>> func)
             where TGroup : CONGroup
         {
             try
             {
-                var slices = new List<(string Name, int Index, YARGDTAReader Reader)>();
+                var slices = new List<(string Name, int Index, YARGTextContainer<byte> Container)>();
                 Dictionary<string, int> indices = new();
-                while (reader.StartNode())
+                while (YARGDTAReader.StartNode(ref container))
                 {
-                    string name = reader.GetNameOfNode(true);
+                    string name = YARGDTAReader.GetNameOfNode(ref container, true);
                     if (indices.TryGetValue(name, out int index))
                     {
                         ++index;
                     }
                     indices[name] = index;
 
-                    slices.Add((name, index, reader));
-                    reader.EndNode();
+                    slices.Add((name, index, container));
+                    YARGDTAReader.EndNode(ref container);
                 }
-                Parallel.ForEach(slices, slice => func(group, slice.Name, slice.Index, slice.Reader));
+                Parallel.ForEach(slices, slice => func(group, slice.Name, slice.Index, slice.Container));
             }
             catch (Exception e)
             {
@@ -472,7 +480,7 @@ namespace YARG.Core.Song.Cache
             {
                 try
                 {
-                    ReadIniEntry(directory, group, slice, strings);
+                    ReadIniEntry(group, directory, slice, strings);
                 }
                 catch (Exception ex)
                 {

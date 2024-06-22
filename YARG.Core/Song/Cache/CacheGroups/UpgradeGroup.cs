@@ -7,7 +7,7 @@ namespace YARG.Core.Song.Cache
 {
     public interface IUpgradeGroup : IModificationGroup
     {
-        public Dictionary<string, IRBProUpgrade> Upgrades { get; }
+        public Dictionary<string, RBProUpgrade> Upgrades { get; }
     }
 
     public sealed class UpgradeGroup : IUpgradeGroup, IDisposable
@@ -16,7 +16,7 @@ namespace YARG.Core.Song.Cache
         private readonly DateTime _dtaLastUpdate;
         private readonly MemoryMappedArray _dtaData;
 
-        public Dictionary<string, IRBProUpgrade> Upgrades { get; } = new();
+        public Dictionary<string, RBProUpgrade> Upgrades { get; } = new();
 
         public UpgradeGroup(string directory, DateTime dtaLastUpdate, MemoryMappedArray dtaData)
         {

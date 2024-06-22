@@ -12,28 +12,31 @@ namespace YARG.Core.Song.Cache
         public readonly AbridgedFileInfo_Length DTA;
         private MemoryMappedArray? _fileData;
 
+        public override string Location { get; }
+
         public UnpackedCONGroup(string directory, FileInfo dta, string defaultPlaylist)
-            : base(directory, defaultPlaylist)
+            : base(defaultPlaylist)
         {
+            Location = directory;
             DTA = new AbridgedFileInfo_Length(dta);
         }
 
-        public bool LoadDTA(out YARGDTAReader reader)
+        public bool LoadDTA(out YARGTextContainer<byte> container)
         {
             try
             {
                 _fileData = MemoryMappedArray.Load(DTA);
-                return YARGDTAReader.TryCreate(_fileData, out reader);
+                return YARGDTAReader.TryCreate(_fileData, out container);
             }
             catch (Exception ex)
             {
                 YargLogger.LogException(ex, $"Error while loading {DTA.FullName}");
-                reader = default;
+                container = default;
                 return false;
             }
         }
 
-        public override void ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader, IRBProUpgrade)> upgrades, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
+        public override void ReadEntry(string nodeName, int index, Dictionary<string, (YARGTextContainer<byte>, RBProUpgrade)> upgrades, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
         {
             var song = UnpackedRBCONEntry.TryLoadFromCache(Location, DTA, nodeName, upgrades, stream, strings);
             if (song != null)

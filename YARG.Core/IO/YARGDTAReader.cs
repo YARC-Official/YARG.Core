@@ -8,50 +8,40 @@ using YARG.Core.Logging;
 
 namespace YARG.Core.IO
 {
-    public unsafe struct YARGDTAReader
+    public unsafe static class YARGDTAReader
     {
-        public static bool TryCreate(FixedArray<byte> data, out YARGDTAReader reader)
+        public static bool TryCreate(FixedArray<byte> data, out YARGTextContainer<byte> container)
         {
             if ((data[0] == 0xFF && data[1] == 0xFE) || (data[0] == 0xFE && data[1] == 0xFF))
             {
                 YargLogger.LogError("UTF-16 & UTF-32 are not supported for .dta files");
-                reader = default;
+                container = default;
                 return false;
             }
 
-            reader = data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF
-                ? new YARGDTAReader(data, 3, Encoding.UTF8)
-                : new YARGDTAReader(data, 0, YARGTextContainer.Latin1);
+            container = data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF
+                ? new YARGTextContainer<byte>(data.Ptr + 3, data.Ptr + data.Length, Encoding.UTF8)
+                : new YARGTextContainer<byte>(data.Ptr, data.Ptr + data.Length, YARGTextReader.Latin1);
             return true;
         }
 
-        private YARGTextContainer<byte> _container;
-        public Encoding Encoding;
-
-        private YARGDTAReader(FixedArray<byte> data, int position, Encoding encoding)
+        public static char SkipWhitespace(ref YARGTextContainer<byte> container)
         {
-            _container = new YARGTextContainer<byte>(data, position);
-            Encoding = encoding;
-            SkipWhitespace();
-        }
-
-        public char SkipWhitespace()
-        {
-            while (_container.Position < _container.End)
+            while (container.Position < container.End)
             {
-                char ch = (char) *_container.Position;
+                char ch = (char) *container.Position;
                 if (ch > 32 && ch != ';')
                 {
                     return ch;
                 }
 
-                ++_container.Position;
+                ++container.Position;
                 if (ch > 32)
                 {
                     // In comment
-                    while (_container.Position < _container.End)
+                    while (container.Position < container.End)
                     {
-                        if (*_container.Position++ == '\n')
+                        if (*container.Position++ == '\n')
                         {
                             break;
                         }
@@ -61,9 +51,9 @@ namespace YARG.Core.IO
             return (char) 0;
         }
 
-        public unsafe string GetNameOfNode(bool allowNonAlphetical)
+        public static string GetNameOfNode(ref YARGTextContainer<byte> container, bool allowNonAlphetical)
         {
-            char ch = (char) _container.CurrentValue;
+            char ch = (char) container.CurrentValue;
             if (ch == '(')
             {
                 return string.Empty;
@@ -72,12 +62,12 @@ namespace YARG.Core.IO
             bool hasApostrophe = ch == '\'';
             if (hasApostrophe)
             {
-                ++_container.Position;
-                ch = (char) _container.CurrentValue;
+                ++container.Position;
+                ch = (char) container.CurrentValue;
             }
 
-            var start = _container.Position;
-            var end = _container.Position;
+            var start = container.Position;
+            var end = container.Position;
             while (true)
             {
                 if (ch == '\'')
@@ -86,7 +76,7 @@ namespace YARG.Core.IO
                     {
                         throw new Exception("Invalid name format");
                     }
-                    _container.Position = end + 1;
+                    container.Position = end + 1;
                     break;
                 }
 
@@ -96,26 +86,26 @@ namespace YARG.Core.IO
                     {
                         throw new Exception("Invalid name format");
                     }
-                    _container.Position = end + 1;
+                    container.Position = end + 1;
                     break;
                 }
 
                 if (!allowNonAlphetical && !ch.IsAsciiLetter() && ch != '_')
                 {
-                    _container.Position = end;
+                    container.Position = end;
                     break;
                 }
                 
                 ++end;
-                if (end >= _container.End)
+                if (end >= container.End)
                 {
-                    _container.Position = end;
+                    container.Position = end;
                     break;
                 }
                 ch = (char) *end;
             }
 
-            SkipWhitespace();
+            SkipWhitespace(ref container);
             return Encoding.UTF8.GetString(start, (int) (end - start));
         }
 
@@ -127,9 +117,9 @@ namespace YARG.Core.IO
             Apostrophes
         }
 
-        public unsafe string ExtractText()
+        public static string ExtractText(ref YARGTextContainer<byte> container)
         {
-            char ch = (char) _container.CurrentValue;
+            char ch = (char) container.CurrentValue;
             var state = ch switch
             {
                 '{' => TextScopeState.Squirlies,
@@ -140,11 +130,11 @@ namespace YARG.Core.IO
 
             if (state != TextScopeState.None)
             {
-                ++_container.Position;
-                ch = (char) _container.CurrentValue;
+                ++container.Position;
+                ch = (char) container.CurrentValue;
             }
 
-            var start = _container.Position;
+            var start = container.Position;
             // Loop til the end of the text is found
             while (true)
             {
@@ -178,90 +168,90 @@ namespace YARG.Core.IO
                     if (state == TextScopeState.Apostrophes)
                         throw new Exception("Text error - no whitespace allowed");
                 }
-                ++_container.Position;
-                ch = (char) _container.CurrentValue;
+                ++container.Position;
+                ch = (char) container.CurrentValue;
             }
 
-            string txt = Encoding.GetString(start, (int) (_container.Position - start)).Replace("\\q", "\"");
+            string txt = container.Encoding.GetString(start, (int) (container.Position - start)).Replace("\\q", "\"");
             if (ch != ')')
             {
-                ++_container.Position;
+                ++container.Position;
 
             }
-            SkipWhitespace();
+            SkipWhitespace(ref container);
             return txt;
         }
 
-        public int[] ExtractArray_Int()
+        public static int[] ExtractArray_Int(ref YARGTextContainer<byte> container)
         {
-            bool doEnd = StartNode();
+            bool doEnd = StartNode(ref container);
             List<int> values = new();
-            while (_container.CurrentValue != ')')
+            while (container.CurrentValue != ')')
             {
-                values.Add(ExtractInt32());
+                values.Add(ExtractInt32(ref container));
             }
 
             if (doEnd)
             {
-                EndNode();
+                EndNode(ref container);
             }
             return values.ToArray();
         }
 
-        public float[] ExtractArray_Float()
+        public static float[] ExtractArray_Float(ref YARGTextContainer<byte> container)
         {
-            bool doEnd = StartNode();
+            bool doEnd = StartNode(ref container);
             List<float> values = new();
-            while (_container.CurrentValue != ')')
+            while (container.CurrentValue != ')')
             {
-                values.Add(ExtractFloat());
+                values.Add(ExtractFloat(ref container));
             }
 
             if (doEnd)
             {
-                EndNode();
+                EndNode(ref container);
             }
             return values.ToArray();
         }
 
-        public string[] ExtractArray_String()
+        public static string[] ExtractArray_String(ref YARGTextContainer<byte> container)
         {
-            bool doEnd = StartNode();
+            bool doEnd = StartNode(ref container);
             List<string> strings = new();
-            while (_container.CurrentValue != ')')
+            while (container.CurrentValue != ')')
             {
-                strings.Add(ExtractText());
+                strings.Add(ExtractText(ref container));
             }
 
             if (doEnd)
             {
-                EndNode();
+                EndNode(ref container);
             }
             return strings.ToArray();
         }
 
-        public bool StartNode()
+        public static bool StartNode(ref YARGTextContainer<byte> container)
         {
-            if (_container.Position >= _container.End || !_container.IsCurrentCharacter('('))
+            if (container.IsAtEnd() || !container.IsCurrentCharacter('('))
             {
                 return false;
             }
 
-            ++_container.Position;
-            SkipWhitespace();
+            ++container.Position;
+            SkipWhitespace(ref container);
             return true;
         }
 
-        public void EndNode()
+        public static void EndNode(ref YARGTextContainer<byte> container)
         {
             int scopeLevel = 0;
             bool inApostropes = false;
             bool inQuotes = false;
             bool inComment = false;
-            while (_container.Position < _container.End && scopeLevel >= 0)
+            while (container.Position < container.End && scopeLevel >= 0)
             {
-                char curr = (char) *_container.Position;
-                ++_container.Position;
+                char curr = (char) *container.Position;
+                ++container.Position;
                 if (inComment)
                 {
                     if (curr == '\n')
@@ -295,7 +285,7 @@ namespace YARG.Core.IO
                     }
                 }
             }
-            SkipWhitespace();
+            SkipWhitespace(ref container);
         }
 
         /// <summary>
@@ -303,10 +293,10 @@ namespace YARG.Core.IO
         /// </summary>
         /// <remarks>Throws if no value could be parsed</remarks>
         /// <returns>The boolean or `false` on failed extraction</returns>
-        public bool ExtractBoolean()
+        public static bool ExtractBoolean(ref YARGTextContainer<byte> container)
         {
-            bool result = _container.ExtractBoolean();
-            SkipWhitespace();
+            bool result = YARGTextReader.ExtractBoolean(in container);
+            SkipWhitespace(ref container);
             return result;
         }
         
@@ -315,20 +305,20 @@ namespace YARG.Core.IO
         /// </summary>
         /// <remarks>Throws if no value could be parsed</remarks>
         /// <returns>The boolean or `true` on failed extraction</returns>
-        public bool ExtractBoolean_FlippedDefault()
+        public static bool ExtractBoolean_FlippedDefault(ref YARGTextContainer<byte> container)
         {
-            bool result = _container.Position >= _container.End || (char)*_container.Position switch
+            bool result = container.Position >= container.End || (char)*container.Position switch
             {
                 '0' => false,
                 '1' => true,
-                _ => _container.Position + 5 > _container.End ||
-                    char.ToLowerInvariant((char)_container.Position[0]) != 'f' ||
-                    char.ToLowerInvariant((char)_container.Position[1]) != 'a' ||
-                    char.ToLowerInvariant((char)_container.Position[2]) != 'l' ||
-                    char.ToLowerInvariant((char)_container.Position[3]) != 's' ||
-                    char.ToLowerInvariant((char)_container.Position[4]) != 'e',
+                _ => container.Position + 5 > container.End ||
+                    char.ToLowerInvariant((char)container.Position[0]) != 'f' ||
+                    char.ToLowerInvariant((char)container.Position[1]) != 'a' ||
+                    char.ToLowerInvariant((char)container.Position[2]) != 'l' ||
+                    char.ToLowerInvariant((char)container.Position[3]) != 's' ||
+                    char.ToLowerInvariant((char)container.Position[4]) != 'e',
             };
-            SkipWhitespace();
+            SkipWhitespace(ref container);
             return result;
         }
 
@@ -337,13 +327,13 @@ namespace YARG.Core.IO
         /// </summary>
         /// <remarks>Throws if no value could be parsed</remarks>
         /// <returns>The short</returns>
-        public short ExtractInt16()
+        public static short ExtractInt16(ref YARGTextContainer<byte> container)
         {
-            if (!_container.TryExtractInt16(out short value))
+            if (!YARGTextReader.TryExtractInt16(ref container, out short value))
             {
                 throw new Exception("Data for Int16 not present");
             }
-            SkipWhitespace();
+            SkipWhitespace(ref container);
             return value;
         }
 
@@ -352,13 +342,13 @@ namespace YARG.Core.IO
         /// </summary>
         /// <remarks>Throws if no value could be parsed</remarks>
         /// <returns>The ushort</returns>
-        public ushort ExtractUInt16()
+        public static ushort ExtractUInt16(ref YARGTextContainer<byte> container)
         {
-            if (!_container.TryExtractUInt16(out ushort value))
+            if (!YARGTextReader.TryExtractUInt16(ref container, out ushort value))
             {
                 throw new Exception("Data for UInt16 not present");
             }
-            SkipWhitespace();
+            SkipWhitespace(ref container);
             return value;
         }
 
@@ -367,13 +357,13 @@ namespace YARG.Core.IO
         /// </summary>
         /// <remarks>Throws if no value could be parsed</remarks>
         /// <returns>The int</returns>
-        public int ExtractInt32()
+        public static int ExtractInt32(ref YARGTextContainer<byte> container)
         {
-            if (!_container.TryExtractInt32(out int value))
+            if (!YARGTextReader.TryExtractInt32(ref container, out int value))
             {
                 throw new Exception("Data for Int32 not present");
             }
-            SkipWhitespace();
+            SkipWhitespace(ref container);
             return value;
         }
 
@@ -382,13 +372,13 @@ namespace YARG.Core.IO
         /// </summary>
         /// <remarks>Throws if no value could be parsed</remarks>
         /// <returns>The uint</returns>
-        public uint ExtractUInt32()
+        public static uint ExtractUInt32(ref YARGTextContainer<byte> container)
         {
-            if (!_container.TryExtractUInt32(out uint value))
+            if (!YARGTextReader.TryExtractUInt32(ref container, out uint value))
             {
                 throw new Exception("Data for UInt32 not present");
             }
-            SkipWhitespace();
+            SkipWhitespace(ref container);
             return value;
         }
 
@@ -397,13 +387,13 @@ namespace YARG.Core.IO
         /// </summary>
         /// <remarks>Throws if no value could be parsed</remarks>
         /// <returns>The long</returns>
-        public long ExtractInt64()
+        public static long ExtractInt64(ref YARGTextContainer<byte> container)
         {
-            if (!_container.TryExtractInt64(out long value))
+            if (!YARGTextReader.TryExtractInt64(ref container, out long value))
             {
                 throw new Exception("Data for Int64 not present");
             }
-            SkipWhitespace();
+            SkipWhitespace(ref container);
             return value;
         }
 
@@ -412,13 +402,13 @@ namespace YARG.Core.IO
         /// </summary>
         /// <remarks>Throws if no value could be parsed</remarks>
         /// <returns>The ulong</returns>
-        public ulong ExtractUInt64()
+        public static ulong ExtractUInt64(ref YARGTextContainer<byte> container)
         {
-            if (!_container.TryExtractUInt64(out ulong value))
+            if (!YARGTextReader.TryExtractUInt64(ref container, out ulong value))
             {
                 throw new Exception("Data for UInt64 not present");
             }
-            SkipWhitespace();
+            SkipWhitespace(ref container);
             return value;
         }
 
@@ -427,13 +417,13 @@ namespace YARG.Core.IO
         /// </summary>
         /// <remarks>Throws if no value could be parsed</remarks>
         /// <returns>The float</returns>
-        public float ExtractFloat()
+        public static float ExtractFloat(ref YARGTextContainer<byte> container)
         {
-            if (!_container.TryExtractFloat(out float value))
+            if (!YARGTextReader.TryExtractFloat(ref container, out float value))
             {
                 throw new Exception("Data for float not present");
             }
-            SkipWhitespace();
+            SkipWhitespace(ref container);
             return value;
         }
 
@@ -442,13 +432,13 @@ namespace YARG.Core.IO
         /// </summary>
         /// <remarks>Throws if no value could be parsed</remarks>
         /// <returns>The double</returns>
-        public double ExtractDouble()
+        public static double ExtractDouble(ref YARGTextContainer<byte> container)
         {
-            if (!_container.TryExtractDouble(out double value))
+            if (!YARGTextReader.TryExtractDouble(ref container, out double value))
             {
                 throw new Exception("Data for double not present");
             }
-            SkipWhitespace();
+            SkipWhitespace(ref container);
             return value;
         }
     };
