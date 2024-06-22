@@ -292,7 +292,8 @@ namespace YARG.Core.Song.Cache
         private void QuickReadExtractedCONGroup(BinaryReader reader, CategoryCacheStrings strings)
         {
             string directory = reader.ReadString();
-            var dta = new AbridgedFileInfo_Length(Path.Combine(directory, "songs.dta"), reader);
+            var lastWrite = DateTime.FromBinary(reader.ReadInt64());
+            var dta = new AbridgedFileInfo_Length(Path.Combine(directory, "songs.dta"), lastWrite, 0);
 
             int count = reader.ReadInt32();
             for (int i = 0; i < count; ++i)

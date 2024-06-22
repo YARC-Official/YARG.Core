@@ -58,6 +58,12 @@ namespace YARG.Core.IO
             _lastUpdatedTime = DateTime.FromBinary(reader.ReadInt64());
         }
 
+        public AbridgedFileInfo(string filename, in DateTime lastUpdatedTime)
+        {
+            _fullname = filename;
+            _lastUpdatedTime = lastUpdatedTime;
+        }
+
         public void Serialize(BinaryWriter writer)
         {
             writer.Write(_fullname);
@@ -151,6 +157,12 @@ namespace YARG.Core.IO
         {
             _base = new AbridgedFileInfo(filename, reader);
             Length = reader.ReadInt64();
+        }
+
+        public AbridgedFileInfo_Length(string filename, in DateTime lastUpdate, long length)
+        {
+            _base = new AbridgedFileInfo(filename, lastUpdate);
+            Length = length;
         }
 
         private AbridgedFileInfo_Length(in AbridgedFileInfo info, long length)

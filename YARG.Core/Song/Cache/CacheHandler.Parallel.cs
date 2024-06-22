@@ -525,8 +525,8 @@ namespace YARG.Core.Song.Cache
         private void QuickReadExtractedCONGroup(BinaryReader reader, List<Task> entryTasks, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
         {
             string directory = reader.ReadString();
-            var dta = new AbridgedFileInfo_Length(Path.Combine(directory, "songs.dta"), reader);
-            // Lack of null check of `dta` by design
+            var lastWrite = DateTime.FromBinary(reader.ReadInt64());
+            var dta = new AbridgedFileInfo_Length(Path.Combine(directory, "songs.dta"), lastWrite, 0);
 
             int count = reader.ReadInt32();
             for (int i = 0; i < count && !tracker.IsSet(); ++i)
