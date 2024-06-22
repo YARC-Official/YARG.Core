@@ -16,7 +16,6 @@ namespace YARG.Core.Chart
 
         public List<TextEvent> GlobalEvents { get; set; } = new();
         public List<Section> Sections { get; set; } = new();
-        private bool UsingGenericSections;
 
         public SyncTrack SyncTrack { get; set; } = new();
         public VenueTrack VenueTrack { get; set; } = new();
@@ -145,9 +144,6 @@ namespace YARG.Core.Chart
 
             // Dj = loader.LoadDjTrack(Instrument.Dj);
 
-            PostProcessSections();
-            FixDrumPhraseEnds();
-
             // Ensure beatlines are present
             if (SyncTrack.Beatlines is null or { Count: < 1 })
             {
@@ -156,6 +152,9 @@ namespace YARG.Core.Chart
 
             // Use beatlines to place auto-generated drum activation phrases for charts without manually authored phrases
             CreateDrumActivationPhrases();
+
+            PostProcessSections();
+            FixDrumPhraseEnds();
         }
 
         private void PostProcessSections()
@@ -166,8 +165,6 @@ namespace YARG.Core.Chart
             // This prevents issues with songs with no sections, such as in practice mode.
             if (Sections.Count == 0)
             {
-                UsingGenericSections = true;
-                
                 const int AUTO_GEN_SECTION_COUNT = 10;
                 ReadOnlySpan<double> factors = stackalloc double[AUTO_GEN_SECTION_COUNT]{
                     0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0
@@ -378,7 +375,7 @@ namespace YARG.Core.Chart
 
                 var currentMeasureLine = measureBeatLines[currentMeasureIndex];
 
-                if (!UsingGenericSections)
+                if (Sections.Count > 0)
                 {
                     int newSectionIndex = Sections.GetIndexOfPrevious(currentMeasureLine.Tick);
                     if (newSectionIndex > currentSectionIndex)
