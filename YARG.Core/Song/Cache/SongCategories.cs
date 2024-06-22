@@ -124,22 +124,23 @@ namespace YARG.Core.Song.Cache
     {
         private static readonly TConfig CONFIG = default;
 
-        public static void Add(SongEntry entry, SortedDictionary<TKey, SortedSet<SongEntry>> sections)
+        public static void Add(SongEntry entry, SortedDictionary<TKey, List<SongEntry>> sections)
         {
             var key = CONFIG.GetKey(entry);
 
-            SortedSet<SongEntry> entries;
+            List<SongEntry> entries;
             lock (sections)
             {
                 if (!sections.TryGetValue(key, out entries))
                 {
-                    sections.Add(key, entries = new SortedSet<SongEntry>(CONFIG.Comparer));
+                    sections.Add(key, entries = new List<SongEntry>());
                 }
             }
 
             lock (entries)
             {
-                entries.Add(entry);
+                int index = entries.BinarySearch(entry, CONFIG.Comparer);
+                entries.Insert(~index, entry);
             }
         }
     }
@@ -157,7 +158,7 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        public static void Add(SongEntry entry, SortedDictionary<Instrument, SortedDictionary<int, SortedSet<SongEntry>>> instruments)
+        public static void Add(SongEntry entry, SortedDictionary<Instrument, SortedDictionary<int, List<SongEntry>>> instruments)
         {
             foreach (var comparer in COMPARERS)
             {
@@ -168,18 +169,19 @@ namespace YARG.Core.Song.Cache
                 }
 
                 var entries = instruments[comparer.instrument];
-                SortedSet<SongEntry> intensity;
+                List<SongEntry> intensity;
                 lock (entries)
                 {
                     if (!entries.TryGetValue(part.Intensity, out intensity))
                     {
-                        entries.Add(part.Intensity, intensity = new SortedSet<SongEntry>(comparer));
+                        entries.Add(part.Intensity, intensity = new List<SongEntry>());
                     }
                 }
 
                 lock (intensity)
                 {
-                    intensity.Add(entry);
+                    int index = intensity.BinarySearch(entry, comparer);
+                    intensity.Insert(~index, entry);
                 }
             }
         }
@@ -187,7 +189,7 @@ namespace YARG.Core.Song.Cache
 
     public static class CategoryWriter
     {
-        public static void WriteToCache<TKey>(BinaryWriter fileWriter, SortedDictionary<TKey, SortedSet<SongEntry>> sections, SongAttribute attribute, ref Dictionary<SongEntry, CategoryCacheWriteNode> nodes)
+        public static void WriteToCache<TKey>(BinaryWriter fileWriter, SortedDictionary<TKey, List<SongEntry>> sections, SongAttribute attribute, ref Dictionary<SongEntry, CategoryCacheWriteNode> nodes)
         {
             List<string> strings = new();
             foreach (var element in sections)

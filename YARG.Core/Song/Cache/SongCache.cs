@@ -18,30 +18,30 @@ namespace YARG.Core.Song.Cache
         [NonSerialized]
         public readonly Dictionary<HashWrapper, List<SongEntry>> Entries = new();
 
-        public readonly SortedDictionary<string,     SortedSet<SongEntry>> Titles       = new();
-        public readonly SortedDictionary<string,     SortedSet<SongEntry>> Years        = new();
-        public readonly SortedDictionary<SortString, SortedSet<SongEntry>> Artists      = new();
-        public readonly SortedDictionary<SortString, SortedSet<SongEntry>> Albums       = new();
-        public readonly SortedDictionary<SortString, SortedSet<SongEntry>> Genres       = new();
-        public readonly SortedDictionary<SortString, SortedSet<SongEntry>> Charters     = new();
-        public readonly SortedDictionary<SortString, SortedSet<SongEntry>> Playlists    = new();
-        public readonly SortedDictionary<SortString, SortedSet<SongEntry>> Sources      = new();
+        public readonly SortedDictionary<string,     List<SongEntry>> Titles       = new();
+        public readonly SortedDictionary<string,     List<SongEntry>> Years        = new();
+        public readonly SortedDictionary<SortString, List<SongEntry>> Artists      = new();
+        public readonly SortedDictionary<SortString, List<SongEntry>> Albums       = new();
+        public readonly SortedDictionary<SortString, List<SongEntry>> Genres       = new();
+        public readonly SortedDictionary<SortString, List<SongEntry>> Charters     = new();
+        public readonly SortedDictionary<SortString, List<SongEntry>> Playlists    = new();
+        public readonly SortedDictionary<SortString, List<SongEntry>> Sources      = new();
 
         [NonSerialized]
-        public readonly SortedDictionary<string,   SortedSet<SongEntry>> ArtistAlbums = new(StringComparer.InvariantCultureIgnoreCase);
+        public readonly SortedDictionary<string,   List<SongEntry>> ArtistAlbums = new(StringComparer.InvariantCultureIgnoreCase);
         [NonSerialized]
-        public readonly SortedDictionary<string,   SortedSet<SongEntry>> SongLengths  = new();
+        public readonly SortedDictionary<string,   List<SongEntry>> SongLengths  = new();
         [NonSerialized]
-        public readonly SortedDictionary<DateTime, SortedSet<SongEntry>> DatesAdded   = new(DateFlippedComparer.COMPARER);
+        public readonly SortedDictionary<DateTime, List<SongEntry>> DatesAdded   = new(DateFlippedComparer.COMPARER);
 
         [NonSerialized]
-        public readonly SortedDictionary<Instrument, SortedDictionary<int, SortedSet<SongEntry>>> Instruments = new();
+        public readonly SortedDictionary<Instrument, SortedDictionary<int, List<SongEntry>>> Instruments = new();
 
         public SongCache()
         {
             foreach (var ins in (Instrument[])Enum.GetValues(typeof(Instrument)))
             {
-                Instruments.Add(ins, new SortedDictionary<int, SortedSet<SongEntry>>());
+                Instruments.Add(ins, new SortedDictionary<int, List<SongEntry>>());
             }
         }
     }
