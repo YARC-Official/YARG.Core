@@ -35,10 +35,6 @@ namespace YARG.Core.Chart
             Type = type;
         }
 
-        public Phrase(PhraseType type, double time, uint tick) : this(type, time, 0, tick, 0)
-        {
-        }
-
         public Phrase(Phrase other) : base(other)
         {
             Type = other.Type;

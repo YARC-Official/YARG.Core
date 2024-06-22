@@ -450,11 +450,13 @@ namespace YARG.Core.Chart
                 double fillPhraseStartTime = previousMeasureLine.Time;
                 uint fillPhraseStartTick = previousMeasureLine.Tick;
 
-                var newDrumFillPhrase = new Phrase(PhraseType.DrumFill, fillPhraseStartTime, fillPhraseStartTick)
-                {
-                    TimeLength = currentMeasureTime - fillPhraseStartTime,
-                    TickLength = currentMeasureTick - fillPhraseStartTick
-                };
+                var newDrumFillPhrase = new Phrase(
+                    PhraseType.DrumFill, 
+                    fillPhraseStartTime,
+                    currentMeasureTime - fillPhraseStartTime, 
+                    fillPhraseStartTick,
+                    currentMeasureTick - fillPhraseStartTick
+                );
 
                 newActivationPhrases.Add(newDrumFillPhrase);
                 YargLogger.LogFormatDebug("Generated a Drums SP Activation phrase from tick {0} to {1}", fillPhraseStartTick, newDrumFillPhrase.TickEnd);
