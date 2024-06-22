@@ -16,10 +16,10 @@ namespace YARG.Core.Song
     {
         private readonly uint _version;
         private readonly AbridgedFileInfo _sngInfo;
-        private readonly IniChartNode<string> _chart;
+        private readonly string _chartName;
 
         public override string Directory => _sngInfo.FullName;
-        public override ChartType Type => _chart.Type;
+        public override ChartType Type { get; }
         public override DateTime GetAddTime() => _sngInfo.LastUpdatedTime;
 
         public override EntryType SubType => EntryType.Sng;
@@ -28,7 +28,7 @@ namespace YARG.Core.Song
         {
             writer.Write(_sngInfo.LastUpdatedTime.ToBinary());
             writer.Write(_version);
-            writer.Write((byte) _chart.Type);
+            writer.Write((byte) Type);
         }
 
         protected override Stream? GetChartStream()
@@ -40,7 +40,7 @@ namespace YARG.Core.Song
             if (sngFile == null)
                 return null;
 
-            return sngFile[_chart.File].CreateStream(sngFile);
+            return sngFile[_chartName].CreateStream(sngFile);
         }
 
         public override StemMixer? LoadAudio(float speed, double volume, params SongStem[] ignoreStems)
@@ -91,24 +91,24 @@ namespace YARG.Core.Song
 
             if (!string.IsNullOrEmpty(_cover) && sngFile.TryGetValue(_video, out var cover))
             {
-                var image = YARGImage.Load(cover, sngFile);
+                var image = YARGImage.Load(in cover, sngFile);
                 if (image != null)
                 {
                     return image;
                 }
-                YargLogger.LogFormatError("SNG Image mapped to {0} failed to load", cover.Name);
+                YargLogger.LogFormatError("SNG Image mapped to {0} failed to load", _video);
             }
 
             foreach (string albumFile in ALBUMART_FILES)
             {
                 if (sngFile.TryGetValue(albumFile, out var listing))
                 {
-                    var image = YARGImage.Load(listing, sngFile);
+                    var image = YARGImage.Load(in listing, sngFile);
                     if (image != null)
                     {
                         return image;
                     }
-                    YargLogger.LogFormatError("SNG Image mapped to {0} failed to load", listing.Name);
+                    YargLogger.LogFormatError("SNG Image mapped to {0} failed to load", albumFile);
                 }
             }
             return null;
@@ -150,7 +150,8 @@ namespace YARG.Core.Song
                 {
                     foreach (var format in VIDEO_EXTENSIONS)
                     {
-                        if (sngFile.TryGetValue(stem + format, out var listing))
+                        string name = stem + format;
+                        if (sngFile.TryGetValue(name, out var listing))
                         {
                             var stream = listing.CreateStream(sngFile);
                             return new BackgroundResult(BackgroundType.Video, stream);
@@ -171,14 +172,10 @@ namespace YARG.Core.Song
 
             if ((options & BackgroundType.Image) > 0)
             {
-                if (string.IsNullOrEmpty(_background) || !sngFile.TryGetValue(_background, out var listing))
+                if ((!string.IsNullOrEmpty(_background) && sngFile.TryGetValue(_background, out var listing))
+                || TryGetRandomBackgroundImage(sngFile, out listing))
                 {
-                    listing = GetRandomBackgroundImage(sngFile);
-                }
-
-                if (listing != null)
-                {
-                    var image = YARGImage.Load(listing, sngFile);
+                    var image = YARGImage.Load(in listing, sngFile);
                     if (image != null)
                     {
                         return new BackgroundResult(image);
@@ -246,33 +243,36 @@ namespace YARG.Core.Song
             return mixer;
         }
 
-        private SngEntry(SngFile sngFile, IniChartNode<string> chart, in AvailableParts parts, in HashWrapper hash, IniSection modifiers, string defaultPlaylist)
+        private SngEntry(SngFile sngFile, in IniChartNode<string> chart, in AvailableParts parts, in HashWrapper hash, IniSection modifiers, string defaultPlaylist)
             : base(in parts, in hash, modifiers, defaultPlaylist)
         {
             _version = sngFile.Version;
             _sngInfo = sngFile.Info;
-            _chart = chart;
+            _chartName = chart.File;
+            Type = chart.Type;
         }
 
-        private SngEntry(uint version, AbridgedFileInfo sngInfo, IniChartNode<string> chart, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
+        private SngEntry(uint version, in AbridgedFileInfo sngInfo, in IniChartNode<string> chart, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
             : base(stream, strings)
         {
             _version = version;
             _sngInfo = sngInfo;
-            _chart = chart;
+            _chartName = chart.File;
+            Type = chart.Type;
         }
 
-        public static (ScanResult, SngEntry?) ProcessNewEntry(SngFile sng, IniChartNode<string> chart, string defaultPlaylist)
+        public static (ScanResult, SngEntry?) ProcessNewEntry(SngFile sng, in IniChartNode<SngFileListing> chart, string defaultPlaylist)
         {
-            using var file = sng[chart.File].LoadAllBytes(sng);
+            using var file = chart.File.LoadAllBytes(sng);
             var (result, parts) = ScanIniChartFile(file, chart.Type, sng.Metadata);
             if (result != ScanResult.Success)
             {
                 return (result, null);
             }
 
+            var node = new IniChartNode<string>(chart.File.Name, chart.Type);
             var hash = HashWrapper.Hash(file.ReadOnlySpan);
-            var entry = new SngEntry(sng, chart, in parts, in hash, sng.Metadata, defaultPlaylist);
+            var entry = new SngEntry(sng, in node, in parts, in hash, sng.Metadata, defaultPlaylist);
             if (!sng.Metadata.Contains("song_length"))
             {
                 using var mixer = entry.LoadAudio(0, 0);

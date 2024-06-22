@@ -42,22 +42,23 @@ namespace YARG.Core.IO.Ini
             [FieldOffset(0)] public float f;
             [FieldOffset(0)] public bool b;
             [FieldOffset(0)] public fixed long lArr[2];
-            [FieldOffset(0)] public SortString sort;
-            [FieldOffset(0)] public string str;
         }
 
         private readonly ModifierType type;
         private ModifierUnion union;
 
+        private SortString _sort = SortString.Empty;
+        private string _str = string.Empty;
+
         public IniModifier(SortString str)
         {
             type = ModifierType.SortString;
-            union.sort = str;
+            _sort = str;
         }
         public IniModifier(string str)
         {
             type = ModifierType.String;
-            union.str = str;
+            _str = str;
         }
         public IniModifier(ulong value)
         {
@@ -120,13 +121,13 @@ namespace YARG.Core.IO.Ini
             {
                 if (type != ModifierType.SortString)
                     throw new ArgumentException("Modifier is not a SortString");
-                return union.sort;
+                return _sort;
             }
             set
             {
                 if (type != ModifierType.SortString)
                     throw new ArgumentException("Modifier is not a SortString");
-                union.sort = value;
+                _sort = value;
             }
         }
 
@@ -136,13 +137,13 @@ namespace YARG.Core.IO.Ini
             {
                 if (type != ModifierType.String)
                     throw new ArgumentException("Modifier is not a String");
-                return union.str;
+                return _str!;
             }
             set
             {
                 if (type != ModifierType.String)
                     throw new ArgumentException("Modifier is not a String");
-                union.str = value;
+                _str = value;
             }
         }
 

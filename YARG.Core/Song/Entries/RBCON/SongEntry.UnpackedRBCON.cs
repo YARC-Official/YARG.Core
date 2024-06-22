@@ -21,7 +21,7 @@ namespace YARG.Core.Song
         public override string Directory { get; } = string.Empty;
         public override EntryType SubType => EntryType.ExCON;
 
-        public static (ScanResult, UnpackedRBCONEntry?) ProcessNewEntry(UnpackedCONGroup group, string nodename, YARGDTAReader reader, Dictionary<string, List<SongUpdate>> updates, Dictionary<string, (YARGDTAReader, IRBProUpgrade)> upgrades)
+        public static (ScanResult, UnpackedRBCONEntry?) ProcessNewEntry(UnpackedCONGroup group, string nodename, YARGDTAReader reader, Dictionary<string, SortedList<DateTime, SongUpdate>> updates, Dictionary<string, (YARGDTAReader, IRBProUpgrade)> upgrades)
         {
             try
             {
@@ -96,7 +96,7 @@ namespace YARG.Core.Song
             _nodename = nodename;
         }
 
-        private UnpackedRBCONEntry(UnpackedCONGroup group, string nodename, YARGDTAReader reader, Dictionary<string, List<SongUpdate>> updates, Dictionary<string, (YARGDTAReader, IRBProUpgrade)> upgrades)
+        private UnpackedRBCONEntry(UnpackedCONGroup group, string nodename, YARGDTAReader reader, Dictionary<string, SortedList<DateTime, SongUpdate>> updates, Dictionary<string, (YARGDTAReader, IRBProUpgrade)> upgrades)
             : base()
         {
             var results = Init(nodename, reader, updates, upgrades, group.DefaultPlaylist);

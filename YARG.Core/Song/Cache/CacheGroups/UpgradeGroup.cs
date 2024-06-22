@@ -25,7 +25,7 @@ namespace YARG.Core.Song.Cache
             _dtaData = dtaData;
         }
 
-        public byte[] SerializeModifications()
+        public ReadOnlyMemory<byte> SerializeModifications()
         {
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);
@@ -38,7 +38,7 @@ namespace YARG.Core.Song.Cache
                 writer.Write(upgrade.Key);
                 upgrade.Value.WriteToCache(writer);
             }
-            return ms.ToArray();
+            return new ReadOnlyMemory<byte>(ms.GetBuffer(), 0, (int)ms.Length);
         }
 
         public void Dispose()

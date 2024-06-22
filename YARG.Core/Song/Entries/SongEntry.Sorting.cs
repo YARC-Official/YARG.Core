@@ -107,6 +107,9 @@ namespace YARG.Core.Song
 
         public int Compare(SongEntry lhs, SongEntry rhs)
         {
+            if (lhs == rhs)
+                return 0;
+
             var lhsValues = lhs[instrument];
             var rhsValues = rhs[instrument];
 

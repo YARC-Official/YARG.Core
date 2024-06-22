@@ -13,15 +13,15 @@ using YARG.Core.Song.Preparsers;
 
 namespace YARG.Core.Song
 {
-    public class IniChartNode<T>
+    public readonly struct IniChartNode<T>
     {
-        public readonly ChartType Type;
         public readonly T File;
+        public readonly ChartType Type;
 
-        public IniChartNode(ChartType type, T file)
+        public IniChartNode(T file, ChartType type)
         {
-            Type = type;
             File = file;
+            Type = type;
         }
     }
 
@@ -48,9 +48,9 @@ namespace YARG.Core.Song
     {
         public static readonly IniChartNode<string>[] CHART_FILE_TYPES =
         {
-            new(ChartType.Mid, "notes.mid"),
-            new(ChartType.Midi, "notes.midi"),
-            new(ChartType.Chart, "notes.chart"),
+            new("notes.mid"  , ChartType.Mid),
+            new("notes.midi" , ChartType.Midi),
+            new("notes.chart", ChartType.Chart),
         };
 
         protected static readonly Dictionary<string, IniModifierCreator> CHART_MODIFIER_LIST = new()
@@ -128,7 +128,7 @@ namespace YARG.Core.Song
 
         protected abstract void SerializeSubData(BinaryWriter writer);
 
-        public byte[] Serialize(CategoryCacheWriteNode node, string groupDirectory)
+        public ReadOnlySpan<byte> Serialize(CategoryCacheWriteNode node, string groupDirectory)
         {
             string relativePath = Path.GetRelativePath(groupDirectory, Directory);
             if (relativePath == ".")
@@ -147,7 +147,7 @@ namespace YARG.Core.Song
             writer.Write(_video);
             writer.Write(_cover);
             writer.Write(Video_Loop);
-            return ms.ToArray();
+            return new ReadOnlySpan<byte>(ms.GetBuffer(), 0, (int)ms.Length);
         }
 
         public override SongChart? LoadChart()
@@ -425,8 +425,7 @@ namespace YARG.Core.Song
             }
         }
 
-        protected static T? GetRandomBackgroundImage<T>(IEnumerable<KeyValuePair<string, T>> collection)
-            where T : class
+        protected static bool TryGetRandomBackgroundImage<T>(IEnumerable<KeyValuePair<string, T>> collection, out T value)
         {
             // Choose a valid image background present in the folder at random
             var images = new List<T>();
@@ -456,7 +455,13 @@ namespace YARG.Core.Song
                 }
             }
 
-            return images.Count > 0 ? images[BACKROUND_RNG.Next(images.Count)] : null;
+            if (images.Count == 0)
+            {
+                value = default!;
+                return false;
+            }
+            value = images[BACKROUND_RNG.Next(images.Count)];
+            return true;
         }
     }
 }
