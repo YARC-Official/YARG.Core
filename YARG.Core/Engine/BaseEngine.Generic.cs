@@ -641,6 +641,12 @@ namespace YARG.Core.Engine
                         }
 
                         curMeasureIndex++;
+
+                        if (curMeasureIndex >= allMeasureBeatLines.Count)
+                        {
+                            break;
+                        }
+
                         curMeasureline = allMeasureBeatLines[curMeasureIndex];
                     }
                     
