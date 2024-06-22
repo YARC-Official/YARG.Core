@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
+using YARG.Core.IO.Disposables;
 using YARG.Core.Logging;
 
 namespace YARG.Core.Song.Cache
@@ -23,7 +24,7 @@ namespace YARG.Core.Song.Cache
         /// </summary>
         private const int MIN_CACHEFILESIZE = 93;
 
-        private static FileStream? CheckCacheFile(string cacheLocation, bool fullDirectoryPlaylists)
+        private static AllocatedArray<byte>? LoadCacheToMemory(string cacheLocation, bool fullDirectoryPlaylists)
         {
             FileInfo info = new(cacheLocation);
             if (!info.Exists || info.Length < MIN_CACHEFILESIZE)
@@ -32,25 +33,23 @@ namespace YARG.Core.Song.Cache
                 return null;
             }
 
-            var fs = new FileStream(cacheLocation, FileMode.Open, FileAccess.Read);
-            using var counter = DisposableCounter.Wrap(fs);
-            if (fs.Read<int>(Endianness.Little) != CACHE_VERSION)
+            using var stream = new FileStream(cacheLocation, FileMode.Open, FileAccess.Read);
+            if (stream.Read<int>(Endianness.Little) != CACHE_VERSION)
             {
                 YargLogger.LogDebug($"Cache outdated");
                 return null;
             }
 
-            if (fs.ReadBoolean() != fullDirectoryPlaylists)
+            if (stream.ReadBoolean() != fullDirectoryPlaylists)
             {
                 YargLogger.LogDebug($"FullDirectoryFlag flipped");
                 return null;
             }
-
-            return counter.Release();
+            return AllocatedArray<byte>.Read(stream, info.Length - stream.Position);
         }
 
-        protected abstract void Deserialize(FileStream stream);
-        protected abstract void Deserialize_Quick(FileStream stream);
+        protected abstract void Deserialize(UnmanagedMemoryStream stream);
+        protected abstract void Deserialize_Quick(UnmanagedMemoryStream stream);
         protected abstract PackedCONGroup? FindCONGroup(string filename);
 
         protected virtual void AddInvalidSong(string name)
@@ -94,12 +93,12 @@ namespace YARG.Core.Song.Cache
             ICacheGroup<RBCONEntry>.SerializeGroups(extractedConGroups, writer, nodes);
         }
 
-        protected void ReadIniEntry(string baseDirectory, IniGroup group, BinaryReader reader, CategoryCacheStrings strings)
+        protected void ReadIniEntry(string baseDirectory, IniGroup group, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
         {
-            bool isSngEntry = reader.ReadBoolean();
+            bool isSngEntry = stream.ReadBoolean();
             var entry = isSngEntry ?
-                SngEntry.TryLoadFromCache(baseDirectory, reader, strings) :
-                UnpackedIniEntry.TryLoadFromCache(baseDirectory, reader, strings);
+                SngEntry.TryLoadFromCache(baseDirectory, stream, strings) :
+                UnpackedIniEntry.TryLoadFromCache(baseDirectory, stream, strings);
 
             if (entry == null)
             {
@@ -125,11 +124,11 @@ namespace YARG.Core.Song.Cache
             group.AddEntry(entry);
         }
 
-        protected void ReadUpdateDirectory(BinaryReader reader)
+        protected void ReadUpdateDirectory(UnmanagedMemoryStream stream)
         {
-            string directory = reader.ReadString();
-            var dtaLastWritten = DateTime.FromBinary(reader.ReadInt64());
-            int count = reader.ReadInt32();
+            string directory = stream.ReadString();
+            var dtaLastWritten = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
+            int count = stream.Read<int>(Endianness.Little);
 
             // Functions as a "check base directory" call
             if (GetBaseIniGroup(directory) != null)
@@ -145,10 +144,10 @@ namespace YARG.Core.Song.Cache
                     {
                         for (int i = 0; i < count; i++)
                         {
-                            string name = reader.ReadString();
+                            string name = stream.ReadString();
                             if (group.Updates.TryGetValue(name, out var update))
                             {
-                                if (!update.Validate(reader))
+                                if (!update.Validate(stream))
                                 {
                                     AddInvalidSong(name);
                                 }
@@ -156,7 +155,7 @@ namespace YARG.Core.Song.Cache
                             else
                             {
                                 AddInvalidSong(name);
-                                SongUpdate.SkipRead(reader);
+                                SongUpdate.SkipRead(stream);
                             }
                         }
                         return;
@@ -166,16 +165,16 @@ namespace YARG.Core.Song.Cache
 
             for (int i = 0; i < count; i++)
             {
-                AddInvalidSong(reader.ReadString());
-                SongUpdate.SkipRead(reader);
+                AddInvalidSong(stream.ReadString());
+                SongUpdate.SkipRead(stream);
             }
         }
 
-        protected void ReadUpgradeDirectory(BinaryReader reader)
+        protected void ReadUpgradeDirectory(UnmanagedMemoryStream stream)
         {
-            string directory = reader.ReadString();
-            var dtaLastWrritten = DateTime.FromBinary(reader.ReadInt64());
-            int count = reader.ReadInt32();
+            string directory = stream.ReadString();
+            var dtaLastWrritten = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
+            int count = stream.Read<int>(Endianness.Little);
 
             // Functions as a "check base directory" call
             if (GetBaseIniGroup(directory) != null)
@@ -190,8 +189,8 @@ namespace YARG.Core.Song.Cache
                     {
                         for (int i = 0; i < count; i++)
                         {
-                            string name = reader.ReadString();
-                            var lastUpdated = DateTime.FromBinary(reader.ReadInt64());
+                            string name = stream.ReadString();
+                            var lastUpdated = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
                             if (!group.Upgrades.TryGetValue(name, out var upgrade) || upgrade!.LastUpdatedTime != lastUpdated)
                                 AddInvalidSong(name);
                         }
@@ -202,17 +201,17 @@ namespace YARG.Core.Song.Cache
 
             for (int i = 0; i < count; i++)
             {
-                AddInvalidSong(reader.ReadString());
-                reader.Move(SIZEOF_DATETIME);
+                AddInvalidSong(stream.ReadString());
+                stream.Position += SIZEOF_DATETIME;
             }
         }
 
-        protected void ReadUpgradeCON(BinaryReader reader)
+        protected void ReadUpgradeCON(UnmanagedMemoryStream stream)
         {
-            string filename = reader.ReadString();
-            var conLastUpdated = DateTime.FromBinary(reader.ReadInt64());
-            var dtaLastWritten = DateTime.FromBinary(reader.ReadInt64());
-            int count = reader.ReadInt32();
+            string filename = stream.ReadString();
+            var conLastUpdated = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
+            var dtaLastWritten = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
+            int count = stream.Read<int>(Endianness.Little);
 
             var baseGroup = GetBaseIniGroup(filename);
             if (baseGroup != null)
@@ -233,8 +232,8 @@ namespace YARG.Core.Song.Cache
                     {
                         for (int i = 0; i < count; i++)
                         {
-                            string name = reader.ReadString();
-                            var lastWrite = DateTime.FromBinary(reader.ReadInt64());
+                            string name = stream.ReadString();
+                            var lastWrite = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
                             if (group.Upgrades[name].LastUpdatedTime != lastWrite)
                             {
                                 AddInvalidSong(name);
@@ -248,21 +247,21 @@ namespace YARG.Core.Song.Cache
         Invalidate:
             for (int i = 0; i < count; i++)
             {
-                AddInvalidSong(reader.ReadString());
-                reader.Move(SIZEOF_DATETIME);
+                AddInvalidSong(stream.ReadString());
+                stream.Position += SIZEOF_DATETIME;
             }
         }
 
-        protected PackedCONGroup? ReadCONGroupHeader(BinaryReader reader)
+        protected PackedCONGroup? ReadCONGroupHeader(UnmanagedMemoryStream stream)
         {
-            string filename = reader.ReadString();
+            string filename = stream.ReadString();
             var baseGroup = GetBaseIniGroup(filename);
             if (baseGroup == null)
             {
                 return null;
             }
 
-            var dtaLastWrite = DateTime.FromBinary(reader.ReadInt64());
+            var dtaLastWrite = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
             var group = FindCONGroup(filename);
             if (group == null)
             {
@@ -293,9 +292,9 @@ namespace YARG.Core.Song.Cache
             return group;
         }
 
-        protected UnpackedCONGroup? ReadExtractedCONGroupHeader(BinaryReader reader)
+        protected UnpackedCONGroup? ReadExtractedCONGroupHeader(UnmanagedMemoryStream stream)
         {
-            string directory = reader.ReadString();
+            string directory = stream.ReadString();
             var baseGroup = GetBaseIniGroup(directory);
             if (baseGroup == null)
             {
@@ -314,37 +313,37 @@ namespace YARG.Core.Song.Cache
             var group = new UnpackedCONGroup(directory, dtaInfo, playlist);
             AddUnpackedCONGroup(group);
 
-            if (dtaInfo.LastWriteTime != DateTime.FromBinary(reader.ReadInt64()))
+            if (dtaInfo.LastWriteTime != DateTime.FromBinary(stream.Read<long>(Endianness.Little)))
             {
                 return null;
             }
             return group;
         }
 
-        protected void ReadCONGroup(BinaryReader reader, Action<string, int, BinaryReader> func)
+        protected void ReadCONGroup(UnmanagedMemoryStream stream, Action<string, int, UnmanagedMemoryStream> func)
         {
-            int count = reader.ReadInt32();
+            int count = stream.Read<int>(Endianness.Little);
             for (int i = 0; i < count; ++i)
             {
-                string name = reader.ReadString();
-                int index = reader.ReadInt32();
-                int length = reader.ReadInt32();
+                string name = stream.ReadString();
+                int index = stream.Read<int>(Endianness.Little);
+                int length = stream.Read<int>(Endianness.Little);
                 if (invalidSongsInCache.Contains(name))
                 {
-                    reader.Move(length);
+                    stream.Position += length;
                     continue;
                 }
 
-                var entryReader = reader.Slice(length);
+                var entryReader = stream.Slice(length);
                 func(name, index, entryReader);
             }
         }
 
-        protected void QuickReadIniEntry(string baseDirectory, BinaryReader reader, CategoryCacheStrings strings)
+        protected void QuickReadIniEntry(string baseDirectory, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
         {
-            var entry = reader.ReadBoolean() ?
-                SngEntry.LoadFromCache_Quick(baseDirectory, reader, strings) :
-                UnpackedIniEntry.IniFromCache_Quick(baseDirectory, reader, strings);
+            var entry = stream.ReadBoolean() ?
+                SngEntry.LoadFromCache_Quick(baseDirectory, stream, strings) :
+                UnpackedIniEntry.IniFromCache_Quick(baseDirectory, stream, strings);
 
             if (entry != null)
             {
@@ -356,27 +355,27 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        protected void QuickReadUpgradeDirectory(BinaryReader reader)
+        protected void QuickReadUpgradeDirectory(UnmanagedMemoryStream stream)
         {
-            string directory = reader.ReadString();
-            var dtaLastUpdated = DateTime.FromBinary(reader.ReadInt64());
-            int count = reader.ReadInt32();
+            string directory = stream.ReadString();
+            var dtaLastUpdated = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
+            int count = stream.Read<int>(Endianness.Little);
 
             for (int i = 0; i < count; i++)
             {
-                string name = reader.ReadString();
+                string name = stream.ReadString();
                 string filename = Path.Combine(directory, $"{name}_plus.mid");
 
-                var info = new AbridgedFileInfo_Length(filename, reader);
+                var info = new AbridgedFileInfo_Length(filename, stream);
                 AddUpgrade(name, default, new UnpackedRBProUpgrade(info));
             }
         }
 
-        protected void QuickReadUpgradeCON(BinaryReader reader)
+        protected void QuickReadUpgradeCON(UnmanagedMemoryStream stream)
         {
-            string filename = reader.ReadString();
-            reader.Move(2 * SIZEOF_DATETIME);
-            int count = reader.ReadInt32();
+            string filename = stream.ReadString();
+            stream.Position += 2 * SIZEOF_DATETIME;
+            int count = stream.Read<int>(Endianness.Little);
 
             var group = CreateCONGroup(filename, string.Empty);
             if (group != null)
@@ -386,8 +385,8 @@ namespace YARG.Core.Song.Cache
 
             for (int i = 0; i < count; i++)
             {
-                string name = reader.ReadString();
-                var lastWrite = DateTime.FromBinary(reader.ReadInt64());
+                string name = stream.ReadString();
+                var lastWrite = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
                 var listing = default(CONFileListing);
                 group?.ConFile.TryGetListing($"songs_upgrades/{name}_plus.mid", out listing);
 
@@ -396,10 +395,10 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        protected PackedCONGroup? QuickReadCONGroupHeader(BinaryReader reader)
+        protected PackedCONGroup? QuickReadCONGroupHeader(UnmanagedMemoryStream stream)
         {
-            string filename = reader.ReadString();
-            var dtaLastWrite = DateTime.FromBinary(reader.ReadInt64());
+            string filename = stream.ReadString();
+            var dtaLastWrite = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
 
             var group = FindCONGroup(filename);
             if (group == null)
@@ -450,6 +449,16 @@ namespace YARG.Core.Song.Cache
                 return Path.GetFileName(directory);
             }
             return directory[(baseDirectory.Length + 1)..];
+        }
+    }
+
+    internal static class UnmanagedStreamSlicer
+    {
+        public static unsafe UnmanagedMemoryStream Slice(this UnmanagedMemoryStream stream, int length)
+        {
+            var newStream = new UnmanagedMemoryStream(stream.PositionPointer, length);
+            stream.Position += length;
+            return newStream;
         }
     }
 }

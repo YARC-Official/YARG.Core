@@ -2,6 +2,7 @@
 using System.IO;
 using System.Linq;
 using YARG.Core.Audio;
+using YARG.Core.Extensions;
 using YARG.Core.IO;
 using YARG.Core.IO.Disposables;
 using YARG.Core.IO.Ini;
@@ -253,8 +254,8 @@ namespace YARG.Core.Song
             _chart = chart;
         }
 
-        private SngEntry(uint version, AbridgedFileInfo sngInfo, IniChartNode<string> chart, BinaryReader reader, CategoryCacheStrings strings)
-            : base(reader, strings)
+        private SngEntry(uint version, AbridgedFileInfo sngInfo, IniChartNode<string> chart, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
+            : base(stream, strings)
         {
             _version = version;
             _sngInfo = sngInfo;
@@ -283,14 +284,14 @@ namespace YARG.Core.Song
             return (result, entry);
         }
 
-        public static IniSubEntry? TryLoadFromCache(string baseDirectory, BinaryReader reader, CategoryCacheStrings strings)
+        public static IniSubEntry? TryLoadFromCache(string baseDirectory, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
         {
-            string sngPath = Path.Combine(baseDirectory, reader.ReadString());
-            var sngInfo = AbridgedFileInfo.TryParseInfo(sngPath, reader);
+            string sngPath = Path.Combine(baseDirectory, stream.ReadString());
+            var sngInfo = AbridgedFileInfo.TryParseInfo(sngPath, stream);
             if (sngInfo == null)
                 return null;
 
-            uint version = reader.ReadUInt32();
+            uint version = stream.Read<uint>(Endianness.Little);
             var sngFile = SngFile.TryLoadFromFile(sngInfo.Value);
             if (sngFile == null || sngFile.Version != version)
             {
@@ -298,26 +299,26 @@ namespace YARG.Core.Song
                 return null;
             }
 
-            byte chartTypeIndex = reader.ReadByte();
+            byte chartTypeIndex = (byte)stream.ReadByte();
             if (chartTypeIndex >= CHART_FILE_TYPES.Length)
             {
                 return null;
             }
-            return new SngEntry(sngFile.Version, sngInfo.Value, CHART_FILE_TYPES[chartTypeIndex], reader, strings);
+            return new SngEntry(sngFile.Version, sngInfo.Value, CHART_FILE_TYPES[chartTypeIndex], stream, strings);
         }
 
-        public static IniSubEntry? LoadFromCache_Quick(string baseDirectory, BinaryReader reader, CategoryCacheStrings strings)
+        public static IniSubEntry? LoadFromCache_Quick(string baseDirectory, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
         {
-            string sngPath = Path.Combine(baseDirectory, reader.ReadString());
-            var sngInfo = new AbridgedFileInfo(sngPath, reader);
+            string sngPath = Path.Combine(baseDirectory, stream.ReadString());
+            var sngInfo = new AbridgedFileInfo(sngPath, stream);
 
-            uint version = reader.ReadUInt32();
-            byte chartTypeIndex = reader.ReadByte();
+            uint version = stream.Read<uint>(Endianness.Little);
+            byte chartTypeIndex = (byte)stream.ReadByte();
             if (chartTypeIndex >= CHART_FILE_TYPES.Length)
             {
                 return null;
             }
-            return new SngEntry(version, sngInfo, CHART_FILE_TYPES[chartTypeIndex], reader, strings);
+            return new SngEntry(version, sngInfo, CHART_FILE_TYPES[chartTypeIndex], stream, strings);
         }
     }
 }

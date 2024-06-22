@@ -45,22 +45,22 @@ namespace YARG.Core.Song
             }
         }
 
-        public static UnpackedRBCONEntry? TryLoadFromCache(string directory, in AbridgedFileInfo_Length dta, string nodename, Dictionary<string, (YARGDTAReader, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
+        public static UnpackedRBCONEntry? TryLoadFromCache(string directory, in AbridgedFileInfo_Length dta, string nodename, Dictionary<string, (YARGDTAReader, IRBProUpgrade)> upgrades, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
         {
-            string subname = reader.ReadString();
+            string subname = stream.ReadString();
             string songDirectory = Path.Combine(directory, subname);
 
             string midiPath = Path.Combine(songDirectory, subname + ".mid");
-            var midiInfo = AbridgedFileInfo_Length.TryParseInfo(midiPath, reader);
+            var midiInfo = AbridgedFileInfo_Length.TryParseInfo(midiPath, stream);
             if (midiInfo == null)
             {
                 return null;
             }
 
             AbridgedFileInfo_Length? updateMidi = null;
-            if (reader.ReadBoolean())
+            if (stream.ReadBoolean())
             {
-                updateMidi = AbridgedFileInfo_Length.TryParseInfo(reader, false);
+                updateMidi = AbridgedFileInfo_Length.TryParseInfo(stream, false);
                 if (updateMidi == null)
                 {
                     return null;
@@ -68,26 +68,26 @@ namespace YARG.Core.Song
             }
 
             var upgrade = upgrades.TryGetValue(nodename, out var node) ? node.Item2 : null;
-            return new UnpackedRBCONEntry(midiInfo.Value, dta, songDirectory, subname, updateMidi, upgrade, reader, strings);
+            return new UnpackedRBCONEntry(midiInfo.Value, dta, songDirectory, subname, updateMidi, upgrade, stream, strings);
         }
 
-        public static UnpackedRBCONEntry LoadFromCache_Quick(string directory, in AbridgedFileInfo_Length? dta, string nodename, Dictionary<string, (YARGDTAReader, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
+        public static UnpackedRBCONEntry LoadFromCache_Quick(string directory, in AbridgedFileInfo_Length? dta, string nodename, Dictionary<string, (YARGDTAReader, IRBProUpgrade)> upgrades, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
         {
-            string subname = reader.ReadString();
+            string subname = stream.ReadString();
             string songDirectory = Path.Combine(directory, subname);
 
             string midiPath = Path.Combine(songDirectory, subname + ".mid");
-            var midiInfo = new AbridgedFileInfo_Length(midiPath, reader);
+            var midiInfo = new AbridgedFileInfo_Length(midiPath, stream);
 
-            AbridgedFileInfo_Length? updateMidi = reader.ReadBoolean() ? new AbridgedFileInfo_Length(reader) : null;
+            AbridgedFileInfo_Length? updateMidi = stream.ReadBoolean() ? new AbridgedFileInfo_Length(stream) : null;
 
             var upgrade = upgrades.TryGetValue(nodename, out var node) ? node.Item2 : null;
-            return new UnpackedRBCONEntry(midiInfo, dta, songDirectory, subname, updateMidi, upgrade, reader, strings);
+            return new UnpackedRBCONEntry(midiInfo, dta, songDirectory, subname, updateMidi, upgrade, stream, strings);
         }
 
         private UnpackedRBCONEntry(AbridgedFileInfo_Length midi, AbridgedFileInfo_Length? dta, string directory, string nodename,
-            AbridgedFileInfo_Length? updateMidi, IRBProUpgrade? upgrade, BinaryReader reader, CategoryCacheStrings strings)
-            : base(updateMidi, upgrade, reader, strings)
+            AbridgedFileInfo_Length? updateMidi, IRBProUpgrade? upgrade, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
+            : base(updateMidi, upgrade, stream, strings)
         {
             Directory = directory;
 

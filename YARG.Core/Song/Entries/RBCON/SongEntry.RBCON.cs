@@ -269,42 +269,42 @@ namespace YARG.Core.Song
             _parseSettings.NoteSnapThreshold = NOTE_SNAP_THRESHOLD;
         }
 
-        protected RBCONEntry(AbridgedFileInfo_Length? updateMidi, IRBProUpgrade? upgrade, BinaryReader reader, CategoryCacheStrings strings)
-            : base(reader, strings)
+        protected RBCONEntry(AbridgedFileInfo_Length? updateMidi, IRBProUpgrade? upgrade, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
+            : base(stream, strings)
         {
             _updateMidi = updateMidi;
             _upgrade = upgrade;
 
-            UpdateMogg =  reader.ReadBoolean() ? new AbridgedFileInfo(reader.ReadString(), false) : null;
-            UpdateMilo =  reader.ReadBoolean() ? new AbridgedFileInfo_Length(reader.ReadString(), false) : null;
-            UpdateImage = reader.ReadBoolean() ? new AbridgedFileInfo_Length(reader.ReadString(), false) : null;
+            UpdateMogg =  stream.ReadBoolean() ? new AbridgedFileInfo(stream.ReadString(), false) : null;
+            UpdateMilo =  stream.ReadBoolean() ? new AbridgedFileInfo_Length(stream.ReadString(), false) : null;
+            UpdateImage = stream.ReadBoolean() ? new AbridgedFileInfo_Length(stream.ReadString(), false) : null;
 
-            _rbMetadata.AnimTempo = reader.ReadUInt32();
-            _rbMetadata.SongID = reader.ReadString();
-            _rbMetadata.VocalPercussionBank = reader.ReadString();
-            _rbMetadata.VocalSongScrollSpeed = reader.ReadUInt32();
-            _rbMetadata.VocalGender = reader.ReadBoolean();
-            _rbMetadata.VocalTonicNote = reader.ReadUInt32();
-            _rbMetadata.SongTonality = reader.ReadBoolean();
-            _rbMetadata.TuningOffsetCents = reader.ReadInt32();
-            _rbMetadata.VenueVersion = reader.ReadUInt32();
-            _rbMetadata.DrumBank = reader.ReadString();
+            _rbMetadata.AnimTempo = stream.Read<uint>(Endianness.Little);
+            _rbMetadata.SongID = stream.ReadString();
+            _rbMetadata.VocalPercussionBank = stream.ReadString();
+            _rbMetadata.VocalSongScrollSpeed = stream.Read<uint>(Endianness.Little);
+            _rbMetadata.VocalGender = stream.ReadBoolean();
+            _rbMetadata.VocalTonicNote = stream.Read<uint>(Endianness.Little);
+            _rbMetadata.SongTonality = stream.ReadBoolean();
+            _rbMetadata.TuningOffsetCents = stream.Read<int>(Endianness.Little);
+            _rbMetadata.VenueVersion = stream.Read<uint>(Endianness.Little);
+            _rbMetadata.DrumBank = stream.ReadString();
 
-            _rbMetadata.RealGuitarTuning = RBAudio<int>.ReadArray(reader);
-            _rbMetadata.RealBassTuning = RBAudio<int>.ReadArray(reader);
+            _rbMetadata.RealGuitarTuning = RBAudio<int>.ReadArray(stream);
+            _rbMetadata.RealBassTuning = RBAudio<int>.ReadArray(stream);
 
-            _rbMetadata.Indices = new RBAudio<int>(reader);
-            _rbMetadata.Panning = new RBAudio<float>(reader);
+            _rbMetadata.Indices = new RBAudio<int>(stream);
+            _rbMetadata.Panning = new RBAudio<float>(stream);
 
-            _rbMetadata.Soloes = ReadStringArray(reader);
-            _rbMetadata.VideoVenues = ReadStringArray(reader);
+            _rbMetadata.Soloes = ReadStringArray(stream);
+            _rbMetadata.VideoVenues = ReadStringArray(stream);
 
             unsafe
             {
                 fixed (RBCONDifficulties* ptr = &_rbDifficulties)
                 {
                     var span = new Span<byte>(ptr, sizeof(RBCONDifficulties));
-                    reader.Read(span);
+                    stream.Read(span);
                 }
             }
         }
@@ -460,7 +460,7 @@ namespace YARG.Core.Song
                     try
                     {
                         var updateResults = ParseDTA(nodeName, update.Readers);
-                        Update(update, nodeName, updateResults);
+                        Update(in update, nodeName, updateResults);
 
                         if (updateResults.cores != null)
                         {
@@ -846,7 +846,7 @@ namespace YARG.Core.Song
             intensity = i;
         }
 
-        private void Update(SongUpdate update, string nodename, in DTAResult results)
+        private void Update(in SongUpdate update, string nodename, in DTAResult results)
         {
             if (results.discUpdate)
             {
@@ -937,18 +937,18 @@ namespace YARG.Core.Song
             }
         }
 
-        private static AbridgedFileInfo? ReadUpdateInfo(BinaryReader reader)
+        private static AbridgedFileInfo? ReadUpdateInfo(UnmanagedMemoryStream stream)
         {
-            if (!reader.ReadBoolean())
+            if (!stream.ReadBoolean())
             {
                 return null;
             }
-            return new AbridgedFileInfo(reader.ReadString(), false);
+            return new AbridgedFileInfo(stream.ReadString(), false);
         }
 
-        private static string[]? ReadStringArray(BinaryReader reader)
+        private static string[]? ReadStringArray(UnmanagedMemoryStream stream)
         {
-            int length = reader.ReadInt32();
+            int length = stream.Read<int>(Endianness.Little);
             if (length == 0)
             {
                 return null;
@@ -956,7 +956,7 @@ namespace YARG.Core.Song
 
             var strings = new string[length];
             for (int i = 0; i < length; ++i)
-                strings[i] = reader.ReadString();
+                strings[i] = stream.ReadString();
             return strings;
         }
 
