@@ -208,8 +208,11 @@ namespace YARG.Core.Chart
             int currentMeasureIndex = measureBeatLines.GetIndexOfPrevious(spacingRefTime);
             int totalMeasures = measureBeatLines.Count;
             
-            // Prefer section boundaries for activation placement when possible
+            // Prefer section boundaries and time signature changes for activation placement when possible
             int currentSectionIndex = Sections.GetIndexOfPrevious(spacingRefTime);
+
+            var timeSigChanges = SyncTrack.TimeSignatures;
+            int currentTimeSigIndex = timeSigChanges.GetIndexOfPrevious(spacingRefTime);
 
             // Do not place activation phrases inside of solo phrases
             int currentSoloIndex = soloPhrases.GetIndexOfPrevious(spacingRefTime);
@@ -229,18 +232,30 @@ namespace YARG.Core.Chart
                 currentMeasureIndex += measuresPerActivator;
 
                 var currentMeasureLine = measureBeatLines[currentMeasureIndex];
-
-                if (Sections.Count > 0)
+                
+                int newSectionIndex = Sections.GetIndexOfPrevious(currentMeasureLine.Tick);
+                if (newSectionIndex > currentSectionIndex)
                 {
-                    int newSectionIndex = Sections.GetIndexOfPrevious(currentMeasureLine.Tick);
-                    if (newSectionIndex > currentSectionIndex)
+                    // Moved forward into a new section
+                    currentSectionIndex = newSectionIndex;
+                    var currentSection = Sections[currentSectionIndex];
+
+                    //move the activation point to the start of this section
+                    currentMeasureIndex = measureBeatLines.GetIndexOfPrevious(currentSection.Tick);
+                    currentMeasureLine = measureBeatLines[currentMeasureIndex];
+                }
+                else
+                {
+                    // Still in the same section (or no sections exist), look for a time signature change
+                    int newTimeSigIndex = timeSigChanges.GetIndexOfPrevious(currentMeasureLine.Tick);
+                    if (newTimeSigIndex > currentTimeSigIndex)
                     {
-                        // Moved forward into a new section
-                        currentSectionIndex = newSectionIndex;
-                        var currentSection = Sections[currentSectionIndex];
+                        // Moved forward into a new time signature
+                        currentTimeSigIndex = newTimeSigIndex;
+                        var currentTimeSig = timeSigChanges[currentTimeSigIndex];
 
                         //move the activation point to the start of this time signature
-                        currentMeasureIndex = measureBeatLines.GetIndexOfPrevious(currentSection.Tick);
+                        currentMeasureIndex = measureBeatLines.GetIndexOfPrevious(currentTimeSig.Tick);
                         currentMeasureLine = measureBeatLines[currentMeasureIndex];
                     }
                 }
