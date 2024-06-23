@@ -5,11 +5,12 @@ namespace YARG.Core.Song
 {
     public static class ChartPreparser
     {
-        public static bool Preparse<TChar>(ref YARGTextContainer<TChar> container, Difficulty difficulty, ref PartValues scan, Func<int, bool> func)
+        /// <returns>Whether the track was fully traversed</returns>
+        public static bool Traverse<TChar>(ref YARGTextContainer<TChar> container, Difficulty difficulty, ref PartValues scan, Func<int, bool> func)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {
             if (scan[difficulty])
-                return true;
+                return false;
 
             DotChartEvent ev = default;
             while (YARGChartFileReader.TryParseEvent(ref container, ref ev))
@@ -21,11 +22,11 @@ namespace YARG.Core.Song
                     if (func(lane))
                     {
                         scan.SetDifficulty(difficulty);
-                        return true;
+                        return false;
                     }
                 }
             }
-            return false;
+            return true;
         }
 
         private const int KEYS_MAX = 5;
