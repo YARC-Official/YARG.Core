@@ -23,6 +23,7 @@ namespace YARG.Core.IO
             container = data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF
                 ? new YARGTextContainer<byte>(data.Ptr + 3, data.Ptr + data.Length, UTF8Strict)
                 : new YARGTextContainer<byte>(data.Ptr, data.Ptr + data.Length, UTF8Strict);
+            SkipPureWhitespace(ref container);
             return true;
         }
 
@@ -50,6 +51,7 @@ namespace YARG.Core.IO
                 buffer = FixedArray<char>.Alias((char*)(data.Ptr + 2), length);
             }
             container = new YARGTextContainer<char>(buffer.Ptr, buffer.Ptr + length, data[0] == 0xFF ? Encoding.Unicode : Encoding.BigEndianUnicode);
+            SkipPureWhitespace(ref container);
             return buffer;
         }
 
@@ -74,6 +76,7 @@ namespace YARG.Core.IO
                 buffer = FixedArray<int>.Alias((int*)(data.Ptr + 3), length);
             }
             container = new YARGTextContainer<int>(buffer.Ptr, buffer.Ptr + length, data[0] == 0xFF ? Encoding.UTF32 : UTF32BE);
+            SkipPureWhitespace(ref container);
             return buffer;
         }
 
