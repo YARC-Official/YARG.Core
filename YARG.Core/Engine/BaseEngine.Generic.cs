@@ -14,25 +14,17 @@ namespace YARG.Core.Engine
         where TEngineStats : BaseStats, new()
         where TEngineState : BaseEngineState, new()
     {
-        protected const int POINTS_PER_NOTE = 50;
-        protected const int POINTS_PER_BEAT = 25;
-
         // Max number of measures that SP will last when draining
         // SP draining is done based on measures
-        protected const int    STAR_POWER_MAX_MEASURES   = 8;
         protected const double STAR_POWER_MEASURE_AMOUNT = 1.0 / STAR_POWER_MAX_MEASURES;
 
         // Max number of beats that it takes to fill SP when gaining
         // SP gain from whammying is done based on beats
-        protected const int    STAR_POWER_MAX_BEATS   = (STAR_POWER_MAX_MEASURES * 4) - 2; // - 2 for leniency
         protected const double STAR_POWER_BEAT_AMOUNT = 1.0 / STAR_POWER_MAX_BEATS;
 
         // Number of measures that SP phrases will grant when hit
         protected const int    STAR_POWER_PHRASE_MEASURE_COUNT = 2;
         protected const double STAR_POWER_PHRASE_AMOUNT = STAR_POWER_PHRASE_MEASURE_COUNT * STAR_POWER_MEASURE_AMOUNT;
-
-        // Beat fraction to use for the sustain burst threshold
-        protected const int SUSTAIN_BURST_FRACTION = 4;
 
         public delegate void NoteHitEvent(int noteIndex, TNoteType note);
 
@@ -42,12 +34,6 @@ namespace YARG.Core.Engine
 
         public delegate void StarPowerPhraseMissEvent(TNoteType note);
 
-        public delegate void StarPowerStatusEvent(bool active);
-
-        public delegate void SoloStartEvent(SoloSection soloSection);
-
-        public delegate void SoloEndEvent(SoloSection soloSection);
-
         public delegate void CountdownChangeEvent(int measuresLeft);
 
         public NoteHitEvent?    OnNoteHit;
@@ -55,10 +41,6 @@ namespace YARG.Core.Engine
 
         public StarPowerPhraseHitEvent?  OnStarPowerPhraseHit;
         public StarPowerPhraseMissEvent? OnStarPowerPhraseMissed;
-        public StarPowerStatusEvent?     OnStarPowerStatus;
-
-        public SoloStartEvent? OnSoloStart;
-        public SoloEndEvent?   OnSoloEnd;
 
         public CountdownChangeEvent? OnCountdownChange;
 
@@ -177,7 +159,7 @@ namespace YARG.Core.Engine
             }
 
             // Only check for WaitCountdowns in this chart if there are any remaining
-            if (WaitCountdowns.Count > State.CurrentWaitCountdownIndex)
+            if (State.CurrentWaitCountdownIndex < WaitCountdowns.Count)
             {
                 if (!State.IsWaitCountdownActive && nextTime > WaitCountdowns[0].Time)
                 {

@@ -43,7 +43,7 @@ namespace YARG.Core.Engine.Drums
             // Cancel overhit if WaitCountdown is active
             if (State.IsWaitCountdownActive)
             {
-                YargLogger.LogFormatTrace(this.GetType().Name+" overhit prevented during WaitCountdown at time: {0}, tick: {1}", State.CurrentTime, State.CurrentTick);
+                YargLogger.LogFormatTrace("Overhit prevented during WaitCountdown at time: {0}, tick: {1}", State.CurrentTime, State.CurrentTick);
                 return;
             }
 
