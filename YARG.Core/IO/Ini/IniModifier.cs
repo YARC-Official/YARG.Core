@@ -82,10 +82,10 @@ namespace YARG.Core.IO.Ini
                 switch (Type)
                 {
                     case ModifierType.SortString:
-                        modifier.SortStr = SortString.Convert(ExtractSngString(ref sngContainer, length));
+                        modifier.SortStr = SortString.Convert(ExtractSngString(in sngContainer, length));
                         break;
                     case ModifierType.String:
-                        modifier.Str = ExtractSngString(ref sngContainer, length);
+                        modifier.Str = ExtractSngString(in sngContainer, length);
                         break;
                 }
                 return modifier;
@@ -153,7 +153,7 @@ namespace YARG.Core.IO.Ini
             return RichTextUtils.ReplaceColorNames(YARGTextReader.ExtractText(ref container, isChartFile));
         }
 
-        private static unsafe string ExtractSngString(ref YARGTextContainer<byte> sngContainer, int length)
+        private static unsafe string ExtractSngString(in YARGTextContainer<byte> sngContainer, int length)
         {
             return RichTextUtils.ReplaceColorNames(Encoding.UTF8.GetString(sngContainer.Position, length));
         }
