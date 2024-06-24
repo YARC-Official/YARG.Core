@@ -157,6 +157,28 @@ namespace YARG.Core.Engine
                     QueueUpdateTime(noteBackEndIncrement, "Note Back End");
                 }
             }
+
+            if (State.CurrentWaitCountdownIndex < WaitCountdowns.Count)
+            {
+                // Queue updates for countdown start/end/change
+                var currentCountdown = WaitCountdowns[State.CurrentWaitCountdownIndex];
+                
+                if (State.IsWaitCountdownActive)
+                {
+                    double changeTime = currentCountdown.GetNextUpdateTime();
+
+                    if (IsTimeBetween(changeTime, previousTime, nextTime))
+                    {
+                        YargLogger.LogFormatTrace("Queuing countdown update time at {0}", changeTime);
+                        QueueUpdateTime(changeTime, "Update Countdown");
+                    }
+                }
+                else if (IsTimeBetween(currentCountdown.Time, previousTime, nextTime))
+                {
+                    YargLogger.LogFormatTrace("Queuing countdown start time at {0}", currentCountdown.Time);
+                    QueueUpdateTime(currentCountdown.Time, "Start Countdown");
+                }
+            }
         }
 
         protected override void UpdateTimeVariables(double time)
@@ -183,15 +205,18 @@ namespace YARG.Core.Engine
             {
                 if (!State.IsWaitCountdownActive)
                 {
-                    int newCountdownIndex = WaitCountdowns.GetIndexOfPrevious(time);
-                    if (newCountdownIndex != State.CurrentWaitCountdownIndex)
+                    var nextCountdown = WaitCountdowns[State.CurrentWaitCountdownIndex];
+                    if (time >= 0 && State.CurrentTick >= nextCountdown.Tick)
                     {
-                        // Entered new countdown window
-                        State.CurrentWaitCountdownIndex = newCountdownIndex;
-
-                        if (newCountdownIndex > -1)
+                        if (State.CurrentTick >= nextCountdown.TickEnd)
                         {
-                            State.IsWaitCountdownActive = time < WaitCountdowns[newCountdownIndex].TimeEnd;
+                            State.CurrentWaitCountdownIndex++;
+                        }
+                        else
+                        {
+                            // Entered new countdown window
+                            State.IsWaitCountdownActive = true;
+                            YargLogger.LogFormatDebug("Countdown {0} activated at time {1}. Expected time: {2}", State.CurrentWaitCountdownIndex, time, nextCountdown.Time);
                         }
                     }
                 }
@@ -204,7 +229,12 @@ namespace YARG.Core.Engine
 
                     UpdateCountdown(countdownMeasuresRemaining);
 
-                    State.IsWaitCountdownActive = countdownMeasuresRemaining > WaitCountdown.END_COUNTDOWN_MEASURE;
+                    if (countdownMeasuresRemaining <= WaitCountdown.END_COUNTDOWN_MEASURE)
+                    {
+                        State.IsWaitCountdownActive = false;
+                        YargLogger.LogFormatDebug("Countdown {0} deactivated at time {1}. Expected time: {2}", State.CurrentWaitCountdownIndex, time, activeCountdown.TimeEnd);
+                        State.CurrentWaitCountdownIndex++;
+                    }
                 }
             }
         }
