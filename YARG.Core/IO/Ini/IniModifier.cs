@@ -24,7 +24,7 @@ namespace YARG.Core.IO.Ini
         Int64Array,
     };
 
-    public partial struct IniModifier
+    public struct IniModifier
     {
         public static readonly IniModifier Default = new()
         {
