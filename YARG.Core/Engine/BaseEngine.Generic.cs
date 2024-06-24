@@ -157,40 +157,6 @@ namespace YARG.Core.Engine
                     QueueUpdateTime(noteBackEndIncrement, "Note Back End");
                 }
             }
-
-            // Only check for WaitCountdowns in this chart if there are any remaining
-            if (State.CurrentWaitCountdownIndex < WaitCountdowns.Count)
-            {
-                if (!State.IsWaitCountdownActive && nextTime > WaitCountdowns[0].Time)
-                {
-                    State.CurrentWaitCountdownIndex = WaitCountdowns.GetIndexOfPrevious(nextTime);
-
-                    // A new countdown will start before nextTime
-                    State.IsWaitCountdownActive = IsTimeBetween(WaitCountdowns[State.CurrentWaitCountdownIndex].Time, previousTime, nextTime);
-                }
-
-                if (State.IsWaitCountdownActive)
-                {
-                    var currentCountdown = WaitCountdowns[State.CurrentWaitCountdownIndex];
-                    
-                    double queueTime;
-                    if (previousTime < currentCountdown.Time)
-                    {
-                        queueTime = currentCountdown.Time;
-                    }
-                    else
-                    {
-                        // Queue updates every frame for the progress bar animation
-                        queueTime = currentCountdown.GetNextUpdateTime();
-                    }
-
-                    if (IsTimeBetween(queueTime, previousTime, nextTime))
-                    {
-                        YargLogger.LogFormatTrace("Queuing countdown update time at {0}", queueTime);
-                        QueueUpdateTime(queueTime, "Update Countdown");
-                    }
-                }
-            }
         }
 
         protected override void UpdateTimeVariables(double time)
@@ -212,15 +178,34 @@ namespace YARG.Core.Engine
                 CurrentSyncIndex++;
             }
 
-            if (State.IsWaitCountdownActive)
+            // Only check for WaitCountdowns in this chart if there are any remaining
+            if (State.CurrentWaitCountdownIndex < WaitCountdowns.Count)
             {
-                var activeCountdown = WaitCountdowns[State.CurrentWaitCountdownIndex];
+                if (!State.IsWaitCountdownActive)
+                {
+                    int newCountdownIndex = WaitCountdowns.GetIndexOfPrevious(time);
+                    if (newCountdownIndex != State.CurrentWaitCountdownIndex)
+                    {
+                        // Entered new countdown window
+                        State.CurrentWaitCountdownIndex = newCountdownIndex;
 
-                int countdownMeasuresRemaining = activeCountdown.GetRemainingMeasures(State.CurrentTick);
+                        if (newCountdownIndex > -1)
+                        {
+                            State.IsWaitCountdownActive = time < WaitCountdowns[newCountdownIndex].TimeEnd;
+                        }
+                    }
+                }
 
-                UpdateCountdown(countdownMeasuresRemaining);
+                if (State.IsWaitCountdownActive)
+                {
+                    var activeCountdown = WaitCountdowns[State.CurrentWaitCountdownIndex];
 
-                State.IsWaitCountdownActive = countdownMeasuresRemaining > WaitCountdown.END_COUNTDOWN_MEASURE;
+                    int countdownMeasuresRemaining = activeCountdown.GetRemainingMeasures(State.CurrentTick);
+
+                    UpdateCountdown(countdownMeasuresRemaining);
+
+                    State.IsWaitCountdownActive = countdownMeasuresRemaining > WaitCountdown.END_COUNTDOWN_MEASURE;
+                }
             }
         }
 
