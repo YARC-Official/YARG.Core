@@ -127,8 +127,8 @@ namespace YARG.Core.IO
         {
             while (container.Position < container.End)
             {
-                int curr = container.Position->ToInt32(null);
-                ++container.Position;
+                var val = *container.Position++;
+                int curr = val.ToInt32(null);
                 if (curr == '\n')
                 {
                     SkipPureWhitespace(ref container);
