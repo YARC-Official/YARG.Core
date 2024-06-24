@@ -121,7 +121,7 @@ namespace YARG.Core.IO.Ini
                 { "name",                                 new("name", ModifierType.SortString) },
                 { "Name",                                 new("name", ModifierType.SortString_Chart) },
 
-                { "Offset",                               new("Offsset", ModifierType.Double) },
+                { "Offset",                               new("Offset", ModifierType.Double) },
 
                 { "playlist",                             new("playlist", ModifierType.SortString) },
                 { "playlist_track",                       new("playlist_track", ModifierType.Int32) },
