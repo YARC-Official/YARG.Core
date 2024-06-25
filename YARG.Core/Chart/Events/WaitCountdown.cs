@@ -5,7 +5,7 @@ namespace YARG.Core.Chart
 {
     public class WaitCountdown : ChartEvent
     {
-        public const float MIN_SECONDS = 10;
+        public const float MIN_SECONDS = 9;
         public const uint MIN_MEASURES = 4;
         public const float MIN_UPDATE_SECONDS = 1;
         private const float MIN_GET_READY_SECONDS = 2;
