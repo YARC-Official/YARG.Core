@@ -658,12 +658,12 @@ namespace YARG.Core.Engine
                         // Create a WaitCountdown instance to reference at runtime
                         var newCountdown = new WaitCountdown(beatlinesThisCountdown);
                         waitCountdowns.Add(newCountdown);
-                        YargLogger.LogFormatDebug(GetType().Name+" created a WaitCountdown at time {0} of {1} measures and {2} seconds in length",
+                        YargLogger.LogFormatDebug("Created a WaitCountdown at time {0} of {1} measures and {2} seconds in length",
                                                  newCountdown.Time, countdownTotalMeasures, beatlinesThisCountdown[^1].Time - noteOneTimeEnd);
                     }
                     else
                     {
-                        YargLogger.LogFormatDebug(GetType().Name+" did not create a WaitCountdown at time {0} of {1} seconds in length because it was only {2} measures long",
+                        YargLogger.LogFormatDebug("Did not create a WaitCountdown at time {0} of {1} seconds in length because it was only {2} measures long",
                                                  noteOneTimeEnd, beatlinesThisCountdown[^1].Time - noteOneTimeEnd, countdownTotalMeasures);                
                     }
                 }
