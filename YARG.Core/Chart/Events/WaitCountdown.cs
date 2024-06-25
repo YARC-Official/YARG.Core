@@ -46,7 +46,7 @@ namespace YARG.Core.Chart
             {
                 newMeasuresLeft = 0;
             }
-            else if (currentTick == Tick)
+            else if (currentTick < Tick)
             {
                 newMeasuresLeft = TotalMeasures;
             }

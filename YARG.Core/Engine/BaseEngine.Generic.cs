@@ -203,6 +203,7 @@ namespace YARG.Core.Engine
             // Only check for WaitCountdowns in this chart if there are any remaining
             if (State.CurrentWaitCountdownIndex < WaitCountdowns.Count)
             {
+                bool firstCountdownFrame = false;
                 if (!State.IsWaitCountdownActive)
                 {
                     var nextCountdown = WaitCountdowns[State.CurrentWaitCountdownIndex];
@@ -216,6 +217,7 @@ namespace YARG.Core.Engine
                         {
                             // Entered new countdown window
                             State.IsWaitCountdownActive = true;
+                            firstCountdownFrame = true;
                             YargLogger.LogFormatDebug("Countdown {0} activated at time {1}. Expected time: {2}", State.CurrentWaitCountdownIndex, time, nextCountdown.Time);
                         }
                     }
@@ -227,7 +229,7 @@ namespace YARG.Core.Engine
 
                     int countdownMeasuresRemaining = activeCountdown.GetRemainingMeasures(State.CurrentTick, out bool needsUpdate);
 
-                    if (needsUpdate)
+                    if (firstCountdownFrame || needsUpdate)
                     {
                         UpdateCountdown(countdownMeasuresRemaining);
 
