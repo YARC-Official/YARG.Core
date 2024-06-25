@@ -10,7 +10,7 @@ namespace YARG.Core.Chart
     /// <summary>
     /// The chart data for a song.
     /// </summary>
-    public class SongChart
+    public partial class SongChart
     {
         public uint Resolution => SyncTrack.Resolution;
 
@@ -144,111 +144,17 @@ namespace YARG.Core.Chart
 
             // Dj = loader.LoadDjTrack(Instrument.Dj);
 
-            PostProcessSections();
-            FixDrumPhraseEnds();
-
             // Ensure beatlines are present
             if (SyncTrack.Beatlines is null or { Count: < 1 })
             {
                 SyncTrack.GenerateBeatlines(GetLastTick());
             }
-        }
 
-        private void PostProcessSections()
-        {
-            uint lastTick = GetLastTick();
+            // Use beatlines to place auto-generated drum activation phrases for charts without manually authored phrases
+            CreateDrumActivationPhrases();
 
-            // If there are no sections in the chart, auto-generate some sections.
-            // This prevents issues with songs with no sections, such as in practice mode.
-            if (Sections.Count == 0)
-            {
-                const int AUTO_GEN_SECTION_COUNT = 10;
-                ReadOnlySpan<double> factors = stackalloc double[AUTO_GEN_SECTION_COUNT]{
-                    0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0
-                };
-
-                uint startTick = 0;
-                double startTime = SyncTrack.TickToTime(0);
-
-                for (int i = 0; i < AUTO_GEN_SECTION_COUNT; i++)
-                {
-                    uint endTick = (uint)(lastTick * factors[i]);
-                    double endTime = SyncTrack.TickToTime(endTick);
-
-                    // "0% - 10%", "10% - 20%", etc.
-                    var sectionName = $"{i * 10}% - {i + 1}0%";
-
-                    var section = new Section(sectionName, startTime, startTick)
-                    {
-                        TickLength = endTick - startTick,
-                        TimeLength = endTime - startTime,
-                    };
-
-                    Sections.Add(section);
-
-                    // Set the start of the next section to the end of this one
-                    startTick = endTick;
-                    startTime = endTime;
-                }
-            }
-            else
-            {
-                // Otherwise make sure the length of the last section is correct
-                var lastSection = Sections[^1];
-                lastSection.TickLength = lastTick - lastSection.Tick;
-                lastSection.TimeLength = SyncTrack.TickToTime(lastTick) - lastSection.Time;
-            }
-        }
-
-        private void FixDrumPhraseEnds()
-        {
-            foreach (var drumTrack in new List<InstrumentTrack<DrumNote>> { ProDrums, FiveLaneDrums, FourLaneDrums })
-            {
-                FixDrumPhraseEnds(drumTrack, n => n.IsSoloEnd, NoteFlags.SoloEnd);
-                FixDrumPhraseEnds(drumTrack, n => n.IsStarPowerEnd, NoteFlags.StarPowerEnd);
-            }
-        }
-
-        private static void FixDrumPhraseEnds(InstrumentTrack<DrumNote> drumTrack, Predicate<DrumNote> isPhraseEnd,
-            NoteFlags phraseEndFlag)
-        {
-            if (!drumTrack.TryGetDifficulty(Difficulty.ExpertPlus, out var trackExpertPlus))
-            {
-                return;
-            }
-
-            if (!drumTrack.TryGetDifficulty(Difficulty.Expert, out var trackExpert))
-            {
-                return;
-            }
-
-            var notesExpertPlus = trackExpertPlus.Notes;
-            var notesExpert = trackExpert.Notes;
-
-            var phraseEndsExpertPlus = notesExpertPlus
-                .Where(n => isPhraseEnd(n)).ToArray();
-            var phraseEndsExpert = notesExpert
-                .Where(n => isPhraseEnd(n)).ToArray();
-
-            if (phraseEndsExpertPlus.Length <= phraseEndsExpert.Length)
-            {
-                return;
-            }
-
-            var i = 1;
-            foreach (var phraseEndExpertPlus in phraseEndsExpertPlus)
-            {
-                while (i < notesExpert.Count && notesExpert[i].Tick <= phraseEndExpertPlus.Tick)
-                {
-                    i++;
-                }
-
-                var phraseEndExpert = notesExpert[i - 1];
-                if (!isPhraseEnd(phraseEndExpert))
-                {
-                    phraseEndExpert.ActivateFlag(phraseEndFlag);
-                }
-            }
+            PostProcessSections();
+            FixDrumPhraseEnds();
         }
 
         public void Append(SongChart song)
