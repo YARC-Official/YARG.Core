@@ -203,7 +203,6 @@ namespace YARG.Core.Engine
             // Only check for WaitCountdowns in this chart if there are any remaining
             if (State.CurrentWaitCountdownIndex < WaitCountdowns.Count)
             {
-                bool firstCountdownFrame = false;
                 if (!State.IsWaitCountdownActive)
                 {
                     var nextCountdown = WaitCountdowns[State.CurrentWaitCountdownIndex];
@@ -217,7 +216,6 @@ namespace YARG.Core.Engine
                         {
                             // Entered new countdown window
                             State.IsWaitCountdownActive = true;
-                            firstCountdownFrame = true;
                             YargLogger.LogFormatDebug("Countdown {0} activated at time {1}. Expected time: {2}", State.CurrentWaitCountdownIndex, time, nextCountdown.Time);
                         }
                     }
@@ -226,14 +224,15 @@ namespace YARG.Core.Engine
                 if (State.IsWaitCountdownActive)
                 {
                     var activeCountdown = WaitCountdowns[State.CurrentWaitCountdownIndex];
+                    
+                    int lastMeasuresLeft = activeCountdown.MeasuresLeft;
+                    int newMeasuresLeft = activeCountdown.CalculateMeasuresLeft(State.CurrentTick);
 
-                    int countdownMeasuresRemaining = activeCountdown.GetRemainingMeasures(State.CurrentTick, out bool needsUpdate);
-
-                    if (firstCountdownFrame || needsUpdate)
+                    if (newMeasuresLeft != lastMeasuresLeft)
                     {
-                        UpdateCountdown(countdownMeasuresRemaining);
+                        UpdateCountdown(newMeasuresLeft);
 
-                        if (countdownMeasuresRemaining <= WaitCountdown.END_COUNTDOWN_MEASURE)
+                        if (newMeasuresLeft <= WaitCountdown.END_COUNTDOWN_MEASURE)
                         {
                             State.IsWaitCountdownActive = false;
                             YargLogger.LogFormatDebug("Countdown {0} deactivated at time {1}. Expected time: {2}", State.CurrentWaitCountdownIndex, time, activeCountdown.TimeEnd);

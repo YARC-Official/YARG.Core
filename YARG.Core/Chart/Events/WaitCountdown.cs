@@ -18,7 +18,7 @@ namespace YARG.Core.Chart
 
         private List<Beatline> _measureBeatlines;
 
-        private int _measuresLeft;
+        public int MeasuresLeft {get; private set; }
 
         public WaitCountdown(List<Beatline> measureBeatlines)
         {
@@ -36,10 +36,10 @@ namespace YARG.Core.Chart
 
             GetReadyTime = TimeEnd - Math.Max(getReadyTotalSeconds, MIN_GET_READY_SECONDS);
 
-            _measuresLeft = TotalMeasures;
+            MeasuresLeft = TotalMeasures;
         }
 
-        public int GetRemainingMeasures(uint currentTick, out bool needsUpdate)
+        public int CalculateMeasuresLeft(uint currentTick)
         {
             int newMeasuresLeft;
             if (currentTick >= TickEnd)
@@ -55,22 +55,14 @@ namespace YARG.Core.Chart
                 newMeasuresLeft = TotalMeasures - _measureBeatlines.GetIndexOfNext(currentTick);
             }
 
-            if (newMeasuresLeft != _measuresLeft)
-            {
-                _measuresLeft = newMeasuresLeft;
-                needsUpdate = true;
-            }
-            else
-            {
-                needsUpdate = false;
-            }
+            MeasuresLeft = newMeasuresLeft;
 
             return newMeasuresLeft;
         }
 
         public double GetNextUpdateTime()
         {
-            int nextMeasureIndex = TotalMeasures - _measuresLeft;
+            int nextMeasureIndex = TotalMeasures - MeasuresLeft;
             double nextUpdateTime = _measureBeatlines[nextMeasureIndex].Time;
 
             return Math.Min(nextUpdateTime, TimeEnd);
