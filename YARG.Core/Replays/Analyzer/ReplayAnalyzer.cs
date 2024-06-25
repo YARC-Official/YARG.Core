@@ -63,7 +63,15 @@ namespace YARG.Core.Replays.Analyzer
             var engine = CreateEngine(frame.PlayerInfo.Profile, frame.EngineParameters);
             engine.Reset();
 
-            double maxTime = Math.Max(_chart.GetEndTime(), frame.Inputs[^1].Time) + 2;
+            double maxTime;
+            if (frame.Inputs.Length == 0)
+            {
+                maxTime = _chart.GetEndTime() + 2;
+            }
+            else
+            {
+                maxTime = Math.Max(_chart.GetEndTime(), frame.Inputs[^1].Time) + 2;
+            }
 
             if (!_doFrameUpdates)
             {
