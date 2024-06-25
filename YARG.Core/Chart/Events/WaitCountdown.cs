@@ -62,7 +62,7 @@ namespace YARG.Core.Chart
 
         public double GetNextUpdateTime()
         {
-            int nextMeasureIndex = TotalMeasures - _measuresLeft + 1;
+            int nextMeasureIndex = TotalMeasures - _measuresLeft;
             double nextUpdateTime = _measureBeatlines[nextMeasureIndex].Time;
 
             return Math.Min(nextUpdateTime, TimeEnd);
