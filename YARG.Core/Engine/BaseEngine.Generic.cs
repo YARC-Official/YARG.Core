@@ -169,13 +169,13 @@ namespace YARG.Core.Engine
 
                     if (IsTimeBetween(changeTime, previousTime, nextTime))
                     {
-                        YargLogger.LogFormatTrace("Queuing countdown update time at {0}", changeTime);
+                        YargLogger.LogFormatDebug("Queuing countdown update time at {0}", changeTime);
                         QueueUpdateTime(changeTime, "Update Countdown");
                     }
                 }
                 else if (IsTimeBetween(currentCountdown.Time, previousTime, nextTime))
                 {
-                    YargLogger.LogFormatTrace("Queuing countdown start time at {0}", currentCountdown.Time);
+                    YargLogger.LogFormatDebug("Queuing countdown start time at {0}", currentCountdown.Time);
                     QueueUpdateTime(currentCountdown.Time, "Start Countdown");
                 }
             }
@@ -225,15 +225,18 @@ namespace YARG.Core.Engine
                 {
                     var activeCountdown = WaitCountdowns[State.CurrentWaitCountdownIndex];
 
-                    int countdownMeasuresRemaining = activeCountdown.GetRemainingMeasures(State.CurrentTick);
+                    int countdownMeasuresRemaining = activeCountdown.GetRemainingMeasures(State.CurrentTick, out bool needsUpdate);
 
-                    UpdateCountdown(countdownMeasuresRemaining);
-
-                    if (countdownMeasuresRemaining <= WaitCountdown.END_COUNTDOWN_MEASURE)
+                    if (needsUpdate)
                     {
-                        State.IsWaitCountdownActive = false;
-                        YargLogger.LogFormatDebug("Countdown {0} deactivated at time {1}. Expected time: {2}", State.CurrentWaitCountdownIndex, time, activeCountdown.TimeEnd);
-                        State.CurrentWaitCountdownIndex++;
+                        UpdateCountdown(countdownMeasuresRemaining);
+
+                        if (countdownMeasuresRemaining <= WaitCountdown.END_COUNTDOWN_MEASURE)
+                        {
+                            State.IsWaitCountdownActive = false;
+                            YargLogger.LogFormatDebug("Countdown {0} deactivated at time {1}. Expected time: {2}", State.CurrentWaitCountdownIndex, time, activeCountdown.TimeEnd);
+                            State.CurrentWaitCountdownIndex++;
+                        }
                     }
                 }
             }
@@ -468,6 +471,7 @@ namespace YARG.Core.Engine
                 return;
             }
 
+            YargLogger.LogFormatDebug("Updating countdown at {0}. Measures: {1}", State.CurrentTime, measuresRemaining);
             OnCountdownChange?.Invoke(measuresRemaining);
         }
 
@@ -654,13 +658,13 @@ namespace YARG.Core.Engine
                         // Create a WaitCountdown instance to reference at runtime
                         var newCountdown = new WaitCountdown(beatlinesThisCountdown);
                         waitCountdowns.Add(newCountdown);
-                        YargLogger.LogFormatTrace(GetType().Name+" created a WaitCountdown at time {0} of {1} measures and {2} seconds in length",
-                                                 newCountdown.Time, countdownTotalMeasures, newCountdown.TimeLength);
+                        YargLogger.LogFormatDebug(GetType().Name+" created a WaitCountdown at time {0} of {1} measures and {2} seconds in length",
+                                                 newCountdown.Time, countdownTotalMeasures, beatlinesThisCountdown[^1].Time - noteOneTimeEnd);
                     }
                     else
                     {
-                        YargLogger.LogFormatTrace(GetType().Name+" did not create a WaitCountdown at time {0} of {1} seconds in length because it was only {2} measures long",
-                                                 noteOneTimeEnd, noteTwoTime - noteOneTimeEnd, countdownTotalMeasures);                
+                        YargLogger.LogFormatDebug(GetType().Name+" did not create a WaitCountdown at time {0} of {1} seconds in length because it was only {2} measures long",
+                                                 noteOneTimeEnd, beatlinesThisCountdown[^1].Time - noteOneTimeEnd, countdownTotalMeasures);                
                     }
                 }
             }

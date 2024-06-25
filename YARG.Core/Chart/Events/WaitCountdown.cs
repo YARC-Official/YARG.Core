@@ -39,25 +39,33 @@ namespace YARG.Core.Chart
             _measuresLeft = TotalMeasures;
         }
 
-        public int GetRemainingMeasures(uint currentTick)
+        public int GetRemainingMeasures(uint currentTick, out bool needsUpdate)
         {
-            int measuresLeft;
+            int newMeasuresLeft;
             if (currentTick >= TickEnd)
             {
-                measuresLeft = 0;
+                newMeasuresLeft = 0;
             }
             else if (currentTick == Tick)
             {
-                measuresLeft = TotalMeasures;
+                newMeasuresLeft = TotalMeasures;
             }
             else
             {
-                measuresLeft = TotalMeasures - _measureBeatlines.GetIndexOfNext(currentTick);
+                newMeasuresLeft = TotalMeasures - _measureBeatlines.GetIndexOfNext(currentTick);
             }
 
-            _measuresLeft = measuresLeft;
+            if (newMeasuresLeft != _measuresLeft)
+            {
+                _measuresLeft = newMeasuresLeft;
+                needsUpdate = true;
+            }
+            else
+            {
+                needsUpdate = false;
+            }
 
-            return measuresLeft;
+            return newMeasuresLeft;
         }
 
         public double GetNextUpdateTime()
