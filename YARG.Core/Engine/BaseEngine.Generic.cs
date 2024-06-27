@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Melanchall.DryWetMidi.Interaction;
 using YARG.Core.Chart;
 using YARG.Core.Logging;
 using YARG.Core.Utility;
@@ -13,6 +14,18 @@ namespace YARG.Core.Engine
         where TEngineStats : BaseStats, new()
         where TEngineState : BaseEngineState, new()
     {
+        // Max number of measures that SP will last when draining
+        // SP draining is done based on measures
+        protected const double STAR_POWER_MEASURE_AMOUNT = 1.0 / STAR_POWER_MAX_MEASURES;
+
+        // Max number of beats that it takes to fill SP when gaining
+        // SP gain from whammying is done based on beats
+        protected const double STAR_POWER_BEAT_AMOUNT = 1.0 / STAR_POWER_MAX_BEATS;
+
+        // Number of measures that SP phrases will grant when hit
+        protected const int    STAR_POWER_PHRASE_MEASURE_COUNT = 2;
+        protected const double STAR_POWER_PHRASE_AMOUNT = STAR_POWER_PHRASE_MEASURE_COUNT * STAR_POWER_MEASURE_AMOUNT;
+
         public delegate void NoteHitEvent(int noteIndex, TNoteType note);
 
         public delegate void NoteMissedEvent(int noteIndex, TNoteType note);
@@ -21,11 +34,15 @@ namespace YARG.Core.Engine
 
         public delegate void StarPowerPhraseMissEvent(TNoteType note);
 
+        public delegate void CountdownChangeEvent(int measuresLeft);
+
         public NoteHitEvent?    OnNoteHit;
         public NoteMissedEvent? OnNoteMissed;
 
         public StarPowerPhraseHitEvent?  OnStarPowerPhraseHit;
         public StarPowerPhraseMissEvent? OnStarPowerPhraseMissed;
+
+        public CountdownChangeEvent? OnCountdownChange;
 
         protected          int[]  StarScoreThresholds { get; }
         protected readonly double TicksPerSustainPoint;
@@ -86,6 +103,8 @@ namespace YARG.Core.Engine
             }
 
             Solos = GetSoloSections();
+
+            WaitCountdowns = GetWaitCountdowns();
         }
 
         protected override void GenerateQueuedUpdates(double nextTime)
@@ -112,7 +131,7 @@ namespace YARG.Core.Engine
                 if (!IsBot)
                 {
                     // Earliest the note can be hit
-                    if(IsTimeBetween(noteFrontEnd, previousTime, nextTime))
+                    if (IsTimeBetween(noteFrontEnd, previousTime, nextTime))
                     {
                         YargLogger.LogFormatTrace("Queuing note {0} front end hit time at {1}", i, noteFrontEnd);
                         QueueUpdateTime(noteFrontEnd, "Note Front End");
@@ -138,6 +157,28 @@ namespace YARG.Core.Engine
                     QueueUpdateTime(noteBackEndIncrement, "Note Back End");
                 }
             }
+
+            if (State.CurrentWaitCountdownIndex < WaitCountdowns.Count)
+            {
+                // Queue updates for countdown start/end/change
+                var currentCountdown = WaitCountdowns[State.CurrentWaitCountdownIndex];
+                
+                if (State.IsWaitCountdownActive)
+                {
+                    double changeTime = currentCountdown.GetNextUpdateTime();
+
+                    if (IsTimeBetween(changeTime, previousTime, nextTime))
+                    {
+                        YargLogger.LogFormatDebug("Queuing countdown update time at {0}", changeTime);
+                        QueueUpdateTime(changeTime, "Update Countdown");
+                    }
+                }
+                else if (IsTimeBetween(currentCountdown.Time, previousTime, nextTime))
+                {
+                    YargLogger.LogFormatDebug("Queuing countdown start time at {0}", currentCountdown.Time);
+                    QueueUpdateTime(currentCountdown.Time, "Start Countdown");
+                }
+            }
         }
 
         protected override void UpdateTimeVariables(double time)
@@ -157,6 +198,48 @@ namespace YARG.Core.Engine
             while (NextSyncIndex < SyncTrackChanges.Count && State.CurrentTick >= SyncTrackChanges[NextSyncIndex].Tick)
             {
                 CurrentSyncIndex++;
+            }
+
+            // Only check for WaitCountdowns in this chart if there are any remaining
+            if (State.CurrentWaitCountdownIndex < WaitCountdowns.Count)
+            {
+                if (!State.IsWaitCountdownActive)
+                {
+                    var nextCountdown = WaitCountdowns[State.CurrentWaitCountdownIndex];
+                    if (time >= 0 && State.CurrentTick >= nextCountdown.Tick)
+                    {
+                        if (State.CurrentTick >= nextCountdown.TickEnd)
+                        {
+                            State.CurrentWaitCountdownIndex++;
+                        }
+                        else
+                        {
+                            // Entered new countdown window
+                            State.IsWaitCountdownActive = true;
+                            YargLogger.LogFormatDebug("Countdown {0} activated at time {1}. Expected time: {2}", State.CurrentWaitCountdownIndex, time, nextCountdown.Time);
+                        }
+                    }
+                }
+
+                if (State.IsWaitCountdownActive)
+                {
+                    var activeCountdown = WaitCountdowns[State.CurrentWaitCountdownIndex];
+                    
+                    int lastMeasuresLeft = activeCountdown.MeasuresLeft;
+                    int newMeasuresLeft = activeCountdown.CalculateMeasuresLeft(State.CurrentTick);
+
+                    if (newMeasuresLeft != lastMeasuresLeft)
+                    {
+                        UpdateCountdown(newMeasuresLeft);
+
+                        if (newMeasuresLeft <= WaitCountdown.END_COUNTDOWN_MEASURE)
+                        {
+                            State.IsWaitCountdownActive = false;
+                            YargLogger.LogFormatDebug("Countdown {0} deactivated at time {1}. Expected time: {2}", State.CurrentWaitCountdownIndex, time, activeCountdown.TimeEnd);
+                            State.CurrentWaitCountdownIndex++;
+                        }
+                    }
+                }
             }
         }
 
@@ -382,6 +465,17 @@ namespace YARG.Core.Engine
             State.CurrentSoloIndex++;
         }
 
+        protected void UpdateCountdown(int measuresRemaining)
+        {
+            if (!State.IsWaitCountdownActive)
+            {
+                return;
+            }
+
+            YargLogger.LogFormatDebug("Updating countdown at {0}. Measures: {1}", State.CurrentTime, measuresRemaining);
+            OnCountdownChange?.Invoke(measuresRemaining);
+        }
+
         public sealed override (double FrontEnd, double BackEnd) CalculateHitWindow()
         {
             var maxWindow = EngineParameters.HitWindow.MaxWindow;
@@ -501,6 +595,82 @@ namespace YARG.Core.Engine
             }
 
             return soloSections;
+        }
+
+        private List<WaitCountdown> GetWaitCountdowns()
+        {
+            var allMeasureBeatLines = SyncTrack.Beatlines.Where(x => x.Type == BeatlineType.Measure).ToList();
+            
+            var waitCountdowns = new List<WaitCountdown>();
+            for (int i = 0; i < Notes.Count; i++)
+            {
+                // Compare the note at the current index against the previous note
+                // Create a countdown if the distance between the notes is > 10s
+                Note<TNoteType> noteOne;
+
+                uint noteOneTickEnd = 0;
+                double noteOneTimeEnd = 0;
+
+                if (i > 0) {
+                    noteOne = Notes[i-1];
+                    noteOneTickEnd = noteOne.TickEnd;
+                    noteOneTimeEnd = noteOne.TimeEnd;
+                }
+
+                Note<TNoteType> noteTwo = Notes[i];
+                double noteTwoTime = noteTwo.Time;
+
+                if (noteTwoTime - noteOneTimeEnd >= WaitCountdown.MIN_SECONDS)
+                {
+                    uint noteTwoTick = noteTwo.Tick;
+
+                    // Determine the total number of measures that will pass during this countdown
+                    List<Beatline> beatlinesThisCountdown = new();
+                    
+                    // Countdown should start at end of the first note if it's directly on a measure line
+                    // Otherwise it should start at the beginning of the next measure
+                    int curMeasureIndex = allMeasureBeatLines.GetIndexOfPrevious(noteOneTickEnd);
+                    if (allMeasureBeatLines[curMeasureIndex].Tick < noteOneTickEnd) curMeasureIndex++;
+
+                    var curMeasureline = allMeasureBeatLines[curMeasureIndex];
+                    while (curMeasureline.Tick <= noteTwoTick)
+                    {
+                        // Skip counting on measures that are too close together
+                        if (beatlinesThisCountdown.Count == 0 || 
+                            curMeasureline.Time - beatlinesThisCountdown.Last().Time >= WaitCountdown.MIN_UPDATE_SECONDS)
+                        {
+                            beatlinesThisCountdown.Add(curMeasureline);
+                        }
+
+                        curMeasureIndex++;
+
+                        if (curMeasureIndex >= allMeasureBeatLines.Count)
+                        {
+                            break;
+                        }
+
+                        curMeasureline = allMeasureBeatLines[curMeasureIndex];
+                    }
+                    
+                    // Prevent showing countdowns < 4 measures at low BPMs
+                    int countdownTotalMeasures = beatlinesThisCountdown.Count;
+                    if (countdownTotalMeasures >= WaitCountdown.MIN_MEASURES)
+                    {
+                        // Create a WaitCountdown instance to reference at runtime
+                        var newCountdown = new WaitCountdown(beatlinesThisCountdown);
+                        waitCountdowns.Add(newCountdown);
+                        YargLogger.LogFormatDebug("Created a WaitCountdown at time {0} of {1} measures and {2} seconds in length",
+                                                 newCountdown.Time, countdownTotalMeasures, beatlinesThisCountdown[^1].Time - noteOneTimeEnd);
+                    }
+                    else
+                    {
+                        YargLogger.LogFormatDebug("Did not create a WaitCountdown at time {0} of {1} seconds in length because it was only {2} measures long",
+                                                 noteOneTimeEnd, beatlinesThisCountdown[^1].Time - noteOneTimeEnd, countdownTotalMeasures);                
+                    }
+                }
+            }
+
+            return waitCountdowns;
         }
     }
 }

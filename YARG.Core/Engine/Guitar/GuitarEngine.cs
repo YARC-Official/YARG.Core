@@ -143,6 +143,13 @@ namespace YARG.Core.Engine.Guitar
                 return;
             }
 
+            // Cancel overstrum if WaitCountdown is active
+            if (State.IsWaitCountdownActive)
+            {
+                YargLogger.LogFormatTrace("Overstrum prevented during WaitCountdown at time: {0}, tick: {1}", State.CurrentTime, State.CurrentTick);
+                return;
+            }
+
             YargLogger.LogFormatTrace("Overstrummed at {0}", State.CurrentTime);
 
             // Break all active sustains

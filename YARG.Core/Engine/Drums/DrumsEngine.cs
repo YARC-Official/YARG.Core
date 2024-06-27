@@ -40,6 +40,13 @@ namespace YARG.Core.Engine.Drums
                 return;
             }
 
+            // Cancel overhit if WaitCountdown is active
+            if (State.IsWaitCountdownActive)
+            {
+                YargLogger.LogFormatTrace("Overhit prevented during WaitCountdown at time: {0}, tick: {1}", State.CurrentTime, State.CurrentTick);
+                return;
+            }
+
             if (State.NoteIndex < Notes.Count)
             {
                 // Don't remove the phrase if the current note being overstrummed is the start of a phrase
