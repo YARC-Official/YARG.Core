@@ -292,8 +292,13 @@ namespace YARG.Core.Engine
                 if (_scheduledUpdates.Count > 0)
                 {
                     GenerateQueuedUpdates(_scheduledUpdates[0].Time);
-                    _scheduledUpdates.Sort((x, y) => x.Time.CompareTo(y.Time));
                 }
+                else
+                {
+                    GenerateQueuedUpdates(time);
+                }
+
+                _scheduledUpdates.Sort((x, y) => x.Time.CompareTo(y.Time));
             }
         }
 
