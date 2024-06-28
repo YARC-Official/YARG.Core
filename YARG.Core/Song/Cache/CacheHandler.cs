@@ -672,17 +672,7 @@ namespace YARG.Core.Song.Cache
                 {
                     var abridged = new AbridgedFileInfo(info);
                     string ext = info.Extension;
-                    if (ext.Length == 0)
-                    {
-                        var confile = CONFile.TryParseListings(abridged);
-                        if (confile != null)
-                        {
-                            var conGroup = new PackedCONGroup(confile.Value, abridged, tracker.Playlist);
-                            TryParseUpgrades(info.FullName, conGroup);
-                            AddPackedCONGroup(conGroup);
-                        }
-                    }
-                    else if (ext == ".sng" || ext == ".yargsong")
+                    if (ext == ".sng" || ext == ".yargsong")
                     {
                         var sngFile = SngFile.TryLoadFromFile(abridged);
                         if (sngFile != null)
@@ -692,6 +682,16 @@ namespace YARG.Core.Song.Cache
                         else
                         {
                             AddToBadSongs(info.FullName, ScanResult.PossibleCorruption);
+                        }
+                    }
+                    else
+                    {
+                        var confile = CONFile.TryParseListings(abridged);
+                        if (confile != null)
+                        {
+                            var conGroup = new PackedCONGroup(confile.Value, abridged, tracker.Playlist);
+                            TryParseUpgrades(info.FullName, conGroup);
+                            AddPackedCONGroup(conGroup);
                         }
                     }
                 }
