@@ -79,15 +79,17 @@ namespace YARG.Core.IO
 
         public string? FindTrackName(Encoding encoding)
         {
-            string trackname = string.Empty;
+            var trackname = ReadOnlySpan<byte>.Empty;
             var start = _position;
             while (ParseEvent() && _tickPosition == 0)
             {
                 if (_event.Type == MidiEventType.Text_TrackName)
                 {
-                    string ev = encoding.GetString(ExtractTextOrSysEx());
-                    if (trackname.Length > 0 && trackname != ev)
+                    var ev = ExtractTextOrSysEx();
+                    if (trackname.Length > 0 && !trackname.SequenceEqual(ev))
+                    {
                         return null;
+                    }
                     trackname = ev;
                 }
             }
@@ -96,7 +98,7 @@ namespace YARG.Core.IO
             _tickPosition = 0;
             _event.Length = 0;
             _event.Type = _running.Type = MidiEventType.Reset_Or_Meta;
-            return trackname;
+            return encoding.GetString(trackname);
         }
 
         private const int CHANNEL_MASK = 0x0F;
