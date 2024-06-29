@@ -13,7 +13,7 @@ namespace YARG.Core.Song
 
         protected bool Process(YARGMidiTrack track)
         {
-            while (track.ParseEvent(false))
+            while (track.ParseEvent())
             {
                 switch (track.Type)
                 {

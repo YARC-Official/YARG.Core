@@ -81,7 +81,7 @@ namespace YARG.Core.IO
         {
             string trackname = string.Empty;
             var start = _position;
-            while (ParseEvent(true) && _tickPosition == 0)
+            while (ParseEvent() && _tickPosition == 0)
             {
                 if (_event.Type == MidiEventType.Text_TrackName)
                 {
@@ -102,15 +102,17 @@ namespace YARG.Core.IO
         private const int CHANNEL_MASK = 0x0F;
         private const int EVENTTYPE_MASK = 0xF0;
 
-        public bool ParseEvent(bool parseVLQ)
+        public bool ParseEvent()
         {
             _position += _event.Length;
-            if (!parseVLQ)
-                AbsorbVLQ();
-            else
-                _tickPosition += ReadVLQ();
+            _tickPosition += ReadVLQ();
 
-            byte tmp = PeekByte();
+            if (_position >= _end)
+            {
+                throw new EndOfStreamException();
+            }
+
+            byte tmp = *_position;
             var type = (MidiEventType) tmp;
             if (type < MidiEventType.Note_Off)
             {
@@ -140,7 +142,12 @@ namespace YARG.Core.IO
                     switch (type)
                     {
                         case MidiEventType.Reset_Or_Meta:
-                            type = (MidiEventType) ReadByte();
+                            if (_position >= _end)
+                            {
+                                throw new EndOfStreamException();
+                            }
+
+                            type = (MidiEventType) (*_position++);
                             goto case MidiEventType.SysEx_End;
                         case MidiEventType.SysEx:
                         case MidiEventType.SysEx_End:
@@ -167,20 +174,6 @@ namespace YARG.Core.IO
             return true;
         }
 
-        private byte PeekByte()
-        {
-            if (_position < _end)
-                return *_position;
-            throw new InvalidOperationException();
-        }
-
-        private byte ReadByte()
-        {
-            if (_position < _end)
-                return *_position++;
-            throw new InvalidOperationException();
-        }
-
         public ReadOnlySpan<byte> ExtractTextOrSysEx()
         {
             return new ReadOnlySpan<byte>(_position, _event.Length);
@@ -202,37 +195,28 @@ namespace YARG.Core.IO
         private const uint VLQ_SHIFTLIMIT = 1 << (VLQ_SHIFT * MAX_SHIFTCOUNT);
         private uint ReadVLQ()
         {
-            uint curr = ReadByte();
-            uint value = curr & VLQ_MASK;
-            while (curr >= EXTENDED_VLQ_FLAG)
+            uint value = 0;
+            while (true)
             {
-                if (value < VLQ_SHIFTLIMIT)
+                if (_position >= _end)
                 {
-                    value <<= VLQ_SHIFT;
-                    curr = ReadByte();
-                    value |= curr & VLQ_MASK;
+                    throw new EndOfStreamException();
                 }
-                else
+
+                uint curr = *_position++;
+                value |= curr & VLQ_MASK;
+                if (curr < EXTENDED_VLQ_FLAG)
+                {
+                    break;
+                }
+
+                if (value >= VLQ_SHIFTLIMIT)
+                {
                     throw new Exception("Invalid variable length quantity");
+                }
+                value <<= VLQ_SHIFT;
             }
             return value;
-        }
-
-        private void AbsorbVLQ()
-        {
-            uint b = ReadByte();
-            // Skip zeroes
-            while (b == EXTENDED_VLQ_FLAG)
-                b = ReadByte();
-
-            var maxPos = _position + MAX_SHIFTCOUNT;
-            while (b >= EXTENDED_VLQ_FLAG)
-            {
-                if (_position < maxPos)
-                    b = ReadByte();
-                else
-                    throw new Exception("Invalid variable length quantity");
-            }
         }
 
         public void Dispose()
