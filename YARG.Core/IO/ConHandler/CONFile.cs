@@ -101,8 +101,7 @@ namespace YARG.Core.IO
                     var flags = (CONFileListingFlag) listingBuffer[0x28];
                     if ((flags & CONFileListingFlag.Directory) == 0)
                     {
-                        var listing = new CONFileListing(info, filename, pathIndex, flags, shift, listingBuffer);
-                        listings.Add(filename, listing);
+                        listings[filename] = new CONFileListing(info, filename, pathIndex, flags, shift, listingBuffer);
                     }
                 }
                 return new CONFile(filenames, listings);
