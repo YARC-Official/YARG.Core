@@ -82,15 +82,13 @@ namespace YARG.Core.IO
 
                 if (ch <= 32)
                 {
-                    if (hasApostrophe)
+                    if (!hasApostrophe)
                     {
-                        throw new Exception("Invalid name format");
+                        container.Position = end + 1;
+                        break;
                     }
-                    container.Position = end + 1;
-                    break;
                 }
-
-                if (!allowNonAlphetical && !ch.IsAsciiLetter() && ch != '_')
+                else if (!allowNonAlphetical && !ch.IsAsciiLetter() && ch != '_')
                 {
                     container.Position = end;
                     break;
@@ -165,8 +163,6 @@ namespace YARG.Core.IO
                 {
                     if (state == TextScopeState.None)
                         break;
-                    if (state == TextScopeState.Apostrophes)
-                        throw new Exception("Text error - no whitespace allowed");
                 }
                 ++container.Position;
                 ch = (char) container.CurrentValue;
