@@ -23,13 +23,19 @@ namespace YARG.Core.Song.Cache
         public void AddEntry(IniSubEntry entry)
         {
             var hash = entry.Hash;
+            List<IniSubEntry> list;
             lock (iniLock)
             {
-                if (entries.TryGetValue(hash, out var list))
-                    list.Add(entry);
-                else
-                    entries.Add(hash, new() { entry });
+                if (!entries.TryGetValue(hash, out list))
+                {
+                    entries.Add(hash, list = new List<IniSubEntry>());
+                }
                 ++_count;
+            }
+
+            lock (list)
+            {
+                list.Add(entry);
             }
         }
 

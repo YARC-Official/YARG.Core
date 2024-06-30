@@ -26,13 +26,19 @@ namespace YARG.Core.Song.Cache
 
         public void AddEntry(string name, int index, RBCONEntry entry)
         {
+            SortedDictionary<int, RBCONEntry> dict;
             lock (entries)
             {
-                if (entries.TryGetValue(name, out var dict))
-                    dict.Add(index, entry);
-                else
-                    entries.Add(name, new() { { index, entry } });
+                if (!entries.TryGetValue(name, out dict))
+                {
+                    entries.Add(name, dict = new SortedDictionary<int, RBCONEntry>());
+                }
                 ++_count;
+            }
+
+            lock (dict)
+            {
+                dict.Add(index, entry);
             }
         }
 
