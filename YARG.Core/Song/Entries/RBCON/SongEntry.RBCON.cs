@@ -19,12 +19,19 @@ namespace YARG.Core.Song
     {
         protected struct DTAResult
         {
+            public static readonly DTAResult Empty = new()
+            {
+                pans = Array.Empty<float>(),
+                volumes = Array.Empty<float>(),
+                cores = Array.Empty<float>(),
+            };
+
             public bool alternatePath;
             public bool discUpdate;
             public string location;
-            public float[]? pans;
-            public float[]? volumes;
-            public float[]? cores;
+            public float[] pans;
+            public float[] volumes;
+            public float[] cores;
         }
 
         private const long NOTE_SNAP_THRESHOLD = 10;
@@ -129,11 +136,12 @@ namespace YARG.Core.Song
             }
 
             
-            if (_rbMetadata.Indices.Drums != null && !ignoreStems.Contains(SongStem.Drums))
+            if (_rbMetadata.Indices.Drums.Length > 0 && !ignoreStems.Contains(SongStem.Drums))
             {
                 switch (_rbMetadata.Indices.Drums.Length)
                 {
                     //drum (0 1): stereo kit --> (0 1)
+                    case 1:
                     case 2:
                         mixer.AddChannel(SongStem.Drums, _rbMetadata.Indices.Drums, _rbMetadata.Panning.Drums!);
                         break;
@@ -163,22 +171,22 @@ namespace YARG.Core.Song
                 }
             }
 
-            if (_rbMetadata.Indices.Bass != null && !ignoreStems.Contains(SongStem.Bass))
+            if (_rbMetadata.Indices.Bass.Length > 0 && !ignoreStems.Contains(SongStem.Bass))
                 mixer.AddChannel(SongStem.Bass, _rbMetadata.Indices.Bass, _rbMetadata.Panning.Bass!);
 
-            if (_rbMetadata.Indices.Guitar != null && !ignoreStems.Contains(SongStem.Guitar))
+            if (_rbMetadata.Indices.Guitar.Length > 0 && !ignoreStems.Contains(SongStem.Guitar))
                 mixer.AddChannel(SongStem.Guitar, _rbMetadata.Indices.Guitar, _rbMetadata.Panning.Guitar!);
 
-            if (_rbMetadata.Indices.Keys != null && !ignoreStems.Contains(SongStem.Keys))
+            if (_rbMetadata.Indices.Keys.Length > 0 && !ignoreStems.Contains(SongStem.Keys))
                 mixer.AddChannel(SongStem.Keys, _rbMetadata.Indices.Keys, _rbMetadata.Panning.Keys!);
 
-            if (_rbMetadata.Indices.Vocals != null && !ignoreStems.Contains(SongStem.Vocals))
+            if (_rbMetadata.Indices.Vocals.Length > 0 && !ignoreStems.Contains(SongStem.Vocals))
                 mixer.AddChannel(SongStem.Vocals, _rbMetadata.Indices.Vocals, _rbMetadata.Panning.Vocals!);
 
-            if (_rbMetadata.Indices.Track != null && !ignoreStems.Contains(SongStem.Song))
+            if (_rbMetadata.Indices.Track.Length > 0 && !ignoreStems.Contains(SongStem.Song))
                 mixer.AddChannel(SongStem.Song, _rbMetadata.Indices.Track, _rbMetadata.Panning.Track!);
 
-            if (_rbMetadata.Indices.Crowd != null && !ignoreStems.Contains(SongStem.Crowd))
+            if (_rbMetadata.Indices.Crowd.Length > 0 && !ignoreStems.Contains(SongStem.Crowd))
                 mixer.AddChannel(SongStem.Crowd, _rbMetadata.Indices.Crowd, _rbMetadata.Panning.Crowd!);
 
             if (mixer.Channels.Count == 0)
@@ -315,11 +323,11 @@ namespace YARG.Core.Song
             ApplyRBCONUpdates(ref dtaResults, nodeName, updates);
             ApplyRBProUpgrade(nodeName, upgrades);
 
-            if (dtaResults.pans == null || dtaResults.volumes == null || dtaResults.cores == null)
+            if (dtaResults.pans.Length == 0 || dtaResults.volumes.Length == 0 || dtaResults.cores.Length == 0)
             {
                 throw new Exception("Panning & Volume mappings not set from DTA");
             }
-            FinalizeRBCONAudioValues(dtaResults.pans, dtaResults.volumes, dtaResults.cores);
+            FinalizeRBCONAudioValues(in dtaResults);
 
             if (_metadata.Playlist.Length == 0)
                 _metadata.Playlist = defaultPlaylist;
@@ -462,17 +470,17 @@ namespace YARG.Core.Song
                         var updateResults = ParseDTA(nodeName, update.Containers);
                         Update(update, nodeName, updateResults);
 
-                        if (updateResults.cores != null)
+                        if (updateResults.cores.Length > 0)
                         {
                             mainResult.cores = updateResults.cores;
                         }
 
-                        if (updateResults.volumes != null)
+                        if (updateResults.volumes.Length > 0)
                         {
                             mainResult.volumes = updateResults.volumes;
                         }
 
-                        if (updateResults.pans != null)
+                        if (updateResults.pans.Length > 0)
                         {
                             mainResult.pans = updateResults.pans;
                         }
@@ -503,7 +511,7 @@ namespace YARG.Core.Song
 
         private DTAResult ParseDTA(string nodeName, params YARGTextContainer<byte>[] containers)
         {
-            DTAResult result = default;
+            var result = DTAResult.Empty;
             for (int i = 0; i < containers.Length; ++i)
             {
                 var container = containers[i];
@@ -697,10 +705,9 @@ namespace YARG.Core.Song
 
         private void TracksLoop(ref YARGTextContainer<byte> container)
         {
-            _rbMetadata.Indices = new()
-            {
-                Crowd = _rbMetadata.Indices.Crowd
-            };
+            var crowd = _rbMetadata.Indices.Crowd;
+            _rbMetadata.Indices = RBAudio<int>.Empty;
+            _rbMetadata.Indices.Crowd = crowd;
             while (YARGDTAReader.StartNode(ref container))
             {
                 while (YARGDTAReader.StartNode(ref container))
@@ -891,50 +898,50 @@ namespace YARG.Core.Song
             }
         }
 
-        private void FinalizeRBCONAudioValues(float[] pans, float[] volumes, float[] cores)
+        private void FinalizeRBCONAudioValues(in DTAResult result)
         {
             HashSet<int> pending = new();
-            for (int i = 0; i < pans.Length; i++)
+            for (int i = 0; i < result.pans.Length; i++)
                 pending.Add(i);
 
-            if (_rbMetadata.Indices.Drums != null)
-                _rbMetadata.Panning.Drums = CalculateStemValues(_rbMetadata.Indices.Drums);
+            if (_rbMetadata.Indices.Drums.Length > 0)
+                _rbMetadata.Panning.Drums = CalculateStemValues(_rbMetadata.Indices.Drums, in result, pending);
 
-            if (_rbMetadata.Indices.Bass != null)
-                _rbMetadata.Panning.Bass = CalculateStemValues(_rbMetadata.Indices.Bass);
+            if (_rbMetadata.Indices.Bass.Length > 0)
+                _rbMetadata.Panning.Bass = CalculateStemValues(_rbMetadata.Indices.Bass, in result, pending);
 
-            if (_rbMetadata.Indices.Guitar != null)
-                _rbMetadata.Panning.Guitar = CalculateStemValues(_rbMetadata.Indices.Guitar);
+            if (_rbMetadata.Indices.Guitar.Length > 0)
+                _rbMetadata.Panning.Guitar = CalculateStemValues(_rbMetadata.Indices.Guitar, in result, pending);
 
-            if (_rbMetadata.Indices.Keys != null)
-                _rbMetadata.Panning.Keys = CalculateStemValues(_rbMetadata.Indices.Keys);
+            if (_rbMetadata.Indices.Keys.Length > 0)
+                _rbMetadata.Panning.Keys = CalculateStemValues(_rbMetadata.Indices.Keys, in result, pending);
 
-            if (_rbMetadata.Indices.Vocals != null)
-                _rbMetadata.Panning.Vocals = CalculateStemValues(_rbMetadata.Indices.Vocals);
+            if (_rbMetadata.Indices.Vocals.Length > 0)
+                _rbMetadata.Panning.Vocals = CalculateStemValues(_rbMetadata.Indices.Vocals, in result, pending);
 
-            if (_rbMetadata.Indices.Crowd != null)
-                _rbMetadata.Panning.Crowd = CalculateStemValues(_rbMetadata.Indices.Crowd);
+            if (_rbMetadata.Indices.Crowd.Length > 0)
+                _rbMetadata.Panning.Crowd = CalculateStemValues(_rbMetadata.Indices.Crowd, in result, pending);
 
             if (pending.Count > 0)
             {
                 _rbMetadata.Indices.Track = pending.ToArray();
-                _rbMetadata.Panning.Track = CalculateStemValues(_rbMetadata.Indices.Track);
+                _rbMetadata.Panning.Track = CalculateStemValues(_rbMetadata.Indices.Track, in result, pending);
             }
+        }
 
-            float[] CalculateStemValues(int[] indices)
+        private float[] CalculateStemValues(int[] indices, in DTAResult result, HashSet<int> pending)
+        {
+            float[] values = new float[2 * indices.Length];
+            for (int i = 0; i < indices.Length; i++)
             {
-                float[] values = new float[2 * indices.Length];
-                for (int i = 0; i < indices.Length; i++)
-                {
-                    int index = indices[i];
-                    float theta = (pans[index] + 1) * ((float) Math.PI / 4);
-                    float volRatio = (float) Math.Pow(10, volumes[index] / 20);
-                    values[2 * i] = volRatio * (float) Math.Cos(theta);
-                    values[2 * i + 1] = volRatio * (float) Math.Sin(theta);
-                    pending.Remove(index);
-                }
-                return values;
+                int index = indices[i];
+                float theta = (result.pans[index] + 1) * ((float) Math.PI / 4);
+                float volRatio = (float) Math.Pow(10, result.volumes[index] / 20);
+                values[2 * i] = volRatio * (float) Math.Cos(theta);
+                values[2 * i + 1] = volRatio * (float) Math.Sin(theta);
+                pending.Remove(index);
             }
+            return values;
         }
 
         private static AbridgedFileInfo? ReadUpdateInfo(UnmanagedMemoryStream stream)
@@ -946,12 +953,12 @@ namespace YARG.Core.Song
             return new AbridgedFileInfo(stream.ReadString(), false);
         }
 
-        private static string[]? ReadStringArray(UnmanagedMemoryStream stream)
+        private static string[] ReadStringArray(UnmanagedMemoryStream stream)
         {
             int length = stream.Read<int>(Endianness.Little);
             if (length == 0)
             {
-                return null;
+                return Array.Empty<string>();
             }
 
             var strings = new string[length];
@@ -972,17 +979,12 @@ namespace YARG.Core.Song
                 writer.Write(false);
         }
 
-        private static void WriteStringArray(string[]? strings, BinaryWriter writer)
+        private static void WriteStringArray(string[] strings, BinaryWriter writer)
         {
-            if (strings != null)
+            writer.Write(strings.Length);
+            for (int i = 0; i < strings.Length; ++i)
             {
-                writer.Write(strings.Length);
-                for (int i = 0; i < strings.Length; ++i)
-                    writer.Write(strings[i]);
-            }
-            else
-            {
-                writer.Write(0);
+                writer.Write(strings[i]);
             }
         }
     }
