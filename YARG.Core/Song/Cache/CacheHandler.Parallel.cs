@@ -318,6 +318,33 @@ namespace YARG.Core.Song.Cache
             }
         }
 
+        protected override void CleanupDuplicates()
+        {
+            Parallel.ForEach(duplicatesToRemove, entry =>
+            {
+                lock (iniGroups)
+                {
+                    if (TryRemove<IniGroup, IniSubEntry>(iniGroups, entry))
+                    {
+                        return;
+                    }
+                }
+
+                lock (conGroups)
+                {
+                    if (TryRemove<PackedCONGroup, RBCONEntry>(conGroups, entry))
+                    {
+                        return;
+                    }
+                }
+
+                lock (extractedConGroups)
+                {
+                    TryRemove<UnpackedCONGroup, RBCONEntry>(extractedConGroups, entry);
+                }
+            });
+        }
+
         private sealed class ParallelExceptionTracker : Exception
         {
             private readonly object _lock = new object();

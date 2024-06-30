@@ -14,6 +14,7 @@ namespace YARG.Core.Song.Cache
     {
         LoadingCache,
         LoadingSongs,
+        CleaningDuplicates,
         Sorting,
         WritingCache,
         WritingBadSongs
@@ -123,6 +124,7 @@ namespace YARG.Core.Song.Cache
 
             _progress.Stage = ScanStage.LoadingSongs;
             handler.FindNewEntries();
+            _progress.Stage = ScanStage.CleaningDuplicates;
             handler.CleanupDuplicates();
 
             _progress.Stage = ScanStage.Sorting;
@@ -217,6 +219,8 @@ namespace YARG.Core.Song.Cache
         protected abstract void AddCollectionToCache(in FileCollection collection);
         protected abstract PackedCONGroup? FindCONGroup(string filename);
 
+        protected abstract void CleanupDuplicates();
+
         protected virtual bool FindOrMarkDirectory(string directory)
         {
             if (!preScannedDirectories.Add(directory))
@@ -280,43 +284,6 @@ namespace YARG.Core.Song.Cache
                     return group;
             }
             return null;
-        }
-
-        private void CleanupDuplicates()
-        {
-            static bool TryRemove<TGroup, TEntry>(List<TGroup> groups, SongEntry entry)
-                where TGroup : ICacheGroup<TEntry>
-                where TEntry : SongEntry
-            {
-                for (int i = 0; i < groups.Count; ++i)
-                {
-                    var group = groups[i];
-                    if (group.TryRemoveEntry(entry))
-                    {
-                        if (group.Count == 0)
-                        {
-                            groups.RemoveAt(i);
-                        }
-                        return true;
-                    }
-                }
-                return false;
-            }
-
-            foreach (var entry in duplicatesToRemove)
-            {
-                if (TryRemove<IniGroup, IniSubEntry>(iniGroups, entry))
-                {
-                    continue;
-                }
-
-                if (TryRemove<PackedCONGroup, RBCONEntry>(conGroups, entry))
-                {
-                    continue;
-                }
-
-                TryRemove<UnpackedCONGroup, RBCONEntry>(extractedConGroups, entry);
-            }
         }
 
         private void WriteBadSongs(string badSongsLocation)
@@ -554,6 +521,25 @@ namespace YARG.Core.Song.Cache
                 }
             }
             return null;
+        }
+
+        protected static bool TryRemove<TGroup, TEntry>(List<TGroup> groups, SongEntry entry)
+            where TGroup : ICacheGroup<TEntry>
+            where TEntry : SongEntry
+        {
+            for (int i = 0; i < groups.Count; ++i)
+            {
+                var group = groups[i];
+                if (group.TryRemoveEntry(entry))
+                {
+                    if (group.Count == 0)
+                    {
+                        groups.RemoveAt(i);
+                    }
+                    return true;
+                }
+            }
+            return false;
         }
         #endregion
 

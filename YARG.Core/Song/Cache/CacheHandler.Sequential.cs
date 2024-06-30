@@ -183,6 +183,24 @@ namespace YARG.Core.Song.Cache
             return conGroups.Find(node => node.Location == filename);
         }
 
+        protected override void CleanupDuplicates()
+        {
+            foreach (var entry in duplicatesToRemove)
+            {
+                if (TryRemove<IniGroup, IniSubEntry>(iniGroups, entry))
+                {
+                    continue;
+                }
+
+                if (TryRemove<PackedCONGroup, RBCONEntry>(conGroups, entry))
+                {
+                    continue;
+                }
+
+                TryRemove<UnpackedCONGroup, RBCONEntry>(extractedConGroups, entry);
+            }
+        }
+
         private void ScanCONGroup<TGroup>(TGroup group, ref YARGTextContainer<byte> container, Action<TGroup, string, int, YARGTextContainer<byte>> func)
             where TGroup : CONGroup
         {
