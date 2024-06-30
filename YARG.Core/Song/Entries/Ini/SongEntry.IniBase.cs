@@ -218,7 +218,7 @@ namespace YARG.Core.Song
             {
                 if (!TraverseChartTrack(ref container, drums, ref parts))
                 {
-                    if (YARGTextReader.SkipLinesUntil(ref container, '}'))
+                    if (YARGTextReader.SkipLinesUntil(ref container, TextConstants<TChar>.CLOSE_BRACE))
                     {
                         YARGTextReader.GotoNextLine(ref container);
                     }

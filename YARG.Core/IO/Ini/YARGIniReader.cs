@@ -37,7 +37,7 @@ namespace YARG.Core.IO.Ini
         }
 
         private static Dictionary<string, IniSection> ProcessIni<TChar>(ref YARGTextContainer<TChar> container, Dictionary<string, Dictionary<string, IniModifierCreator>> sections)
-            where TChar : unmanaged, IConvertible
+            where TChar : unmanaged, IConvertible, IEquatable<TChar>
         {
             Dictionary<string, IniSection> modifierMap = new();
             while (TrySection(ref container, out string section))
@@ -45,13 +45,13 @@ namespace YARG.Core.IO.Ini
                 if (sections.TryGetValue(section, out var nodes))
                     modifierMap[section] = ExtractModifiers(ref container, ref nodes);
                 else
-                    YARGTextReader.SkipLinesUntil(ref container, '[');
+                    YARGTextReader.SkipLinesUntil(ref container, TextConstants<TChar>.OPEN_BRACKET);
             }
             return modifierMap;
         }
 
         private static bool TrySection<TChar>(ref YARGTextContainer<TChar> container, out string section)
-            where TChar : unmanaged, IConvertible
+            where TChar : unmanaged, IConvertible, IEquatable<TChar>
         {
             section = string.Empty;
             if (container.IsAtEnd())
@@ -61,7 +61,7 @@ namespace YARG.Core.IO.Ini
 
             if (!container.IsCurrentCharacter('['))
             {
-                if (!YARGTextReader.SkipLinesUntil(ref container, '['))
+                if (!YARGTextReader.SkipLinesUntil(ref container, TextConstants<TChar>.OPEN_BRACKET))
                 {
                     return false;
                 }
@@ -71,7 +71,7 @@ namespace YARG.Core.IO.Ini
         }
 
         private static IniSection ExtractModifiers<TChar>(ref YARGTextContainer<TChar> container, ref Dictionary<string, IniModifierCreator> validNodes)
-            where TChar : unmanaged, IConvertible
+            where TChar : unmanaged, IConvertible, IEquatable<TChar>
         {
             Dictionary<string, List<IniModifier>> modifiers = new();
             while (IsStillCurrentSection(ref container))
@@ -90,7 +90,7 @@ namespace YARG.Core.IO.Ini
         }
 
         private static bool IsStillCurrentSection<TChar>(ref YARGTextContainer<TChar> container)
-            where TChar : unmanaged, IConvertible
+            where TChar : unmanaged, IConvertible, IEquatable<TChar>
         {
             YARGTextReader.GotoNextLine(ref container);
             return !container.IsAtEnd() && !container.IsCurrentCharacter('[');

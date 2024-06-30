@@ -131,14 +131,15 @@ namespace YARG.Core.IO
         private static unsafe bool DoesStringMatch<TChar>(ref YARGTextContainer<TChar> container, string str)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {
+            if (container.End - container.Position < str.Length)
+            {
+                return false;
+            }
+
             int index = 0;
-            var position = container.Position;
-            while (index < str.Length
-                && position < container.End
-                && position->ToInt32(null) == str[index])
+            while (index < str.Length && container.Position[index].ToInt32(null) == str[index])
             {
                 ++index;
-                ++position;
             }
             return index == str.Length;
         }

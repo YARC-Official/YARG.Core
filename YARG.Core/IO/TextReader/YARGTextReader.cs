@@ -6,6 +6,24 @@ using YARG.Core.IO.Disposables;
 
 namespace YARG.Core.IO
 {
+    public static class TextConstants<TChar>
+            where TChar : unmanaged
+    {
+        public static readonly TChar NEWLINE;
+        public static readonly TChar OPEN_BRACKET;
+        public static readonly TChar CLOSE_BRACE;
+
+        static unsafe TextConstants()
+        {
+            int newline = '\n';
+            int openBracket = '[';
+            int closeBrace = '}';
+            NEWLINE = *(TChar*) &newline;
+            OPEN_BRACKET = *(TChar*) &openBracket;
+            CLOSE_BRACE = *(TChar*) &closeBrace;
+        }
+    }
+
     public static unsafe class YARGTextReader
     {
         public static readonly Encoding Latin1 = Encoding.GetEncoding(28591);
@@ -123,78 +141,83 @@ namespace YARG.Core.IO
         }
 
         public static void GotoNextLine<TChar>(ref YARGTextContainer<TChar> container)
-            where TChar : unmanaged, IConvertible
+            where TChar : unmanaged, IConvertible, IEquatable<TChar>
         {
-            while (container.Position < container.End)
+            var span = new ReadOnlySpan<TChar>(container.Position, (int) (container.End - container.Position));
+            int index = span.IndexOf(TextConstants<TChar>.NEWLINE);
+            if (index >= 0)
             {
-                var val = *container.Position++;
-                int curr = val.ToInt32(null);
-                if (curr == '\n')
-                {
-                    SkipPureWhitespace(ref container);
-                    break;
-                }
+                container.Position += index;
+                SkipPureWhitespace(ref container);
+            }
+            else
+            {
+                container.Position = container.End;
             }
         }
 
-        public static bool SkipLinesUntil<TChar>(ref YARGTextContainer<TChar> container, char stopCharacter)
-            where TChar : unmanaged, IConvertible
+        public static bool SkipLinesUntil<TChar>(ref YARGTextContainer<TChar> container, TChar stopCharacter)
+            where TChar : unmanaged, IConvertible, IEquatable<TChar>
         {
             GotoNextLine(ref container);
-            var pivot = container.Position;
-            while (container.Position < container.End)
+            while (true)
             {
-                if (container.Position->ToInt32(null) == stopCharacter)
+                var span = new ReadOnlySpan<TChar>(container.Position, (int) (container.End - container.Position));
+                int i = span.IndexOf(stopCharacter);
+                if (i == -1)
                 {
-                    // Runs a check to ensure that the character is the start of the line
-                    var test = container.Position - 1;
-                    int character = test->ToInt32(null);
-                    while (test > pivot && character <= 32 && character != '\n')
-                    {
-                        --test;
-                        character = test->ToInt32(null);
-                    }
-
-                    if (character == '\n')
-                    {
-                        return true;
-                    }
-                    pivot = container.Position;
+                    container.Position = container.End;
+                    return false;
                 }
-                ++container.Position;
+
+                var limit = container.Position;
+                container.Position += i;
+
+                var test = container.Position - 1;
+                int character = test->ToInt32(null);
+                while (test > limit && character <= 32 && character != '\n')
+                {
+                    --test;
+                    character = test->ToInt32(null);
+                }
+
+                if (character == '\n')
+                {
+                    return true;
+                }
+                container.Position++;
             }
-            return false;
         }
 
         public static unsafe string ExtractModifierName<TChar>(ref YARGTextContainer<TChar> container)
             where TChar : unmanaged, IConvertible
         {
-            var curr = container.Position;
-            while (curr < container.End)
+            var start = container.Position;
+            while (container.Position < container.End)
             {
-                int b = curr->ToInt32(null);
+                int b = container.Position->ToInt32(null);
                 if (b <= 32 || b == '=')
                 {
                     break;
                 }
-                ++curr;
+                ++container.Position;
             }
 
-            string name = Decode(container.Position, curr - container.Position, ref container.Encoding);
-            container.Position = curr;
+            string name = Decode(start, container.Position - start, ref container.Encoding);
             SkipWhitespaceAndEquals(ref container);
             return name;
         }
 
         public static unsafe string PeekLine<TChar>(ref YARGTextContainer<TChar> container)
-            where TChar : unmanaged, IConvertible
+            where TChar : unmanaged, IConvertible, IEquatable<TChar>
         {
-            var curr = container.Position;
-            while (curr < container.End && curr->ToInt32(null) != '\n')
+            var span = new ReadOnlySpan<TChar>(container.Position, (int) (container.End - container.Position));
+            long length = span.IndexOf(TextConstants<TChar>.NEWLINE);
+            if (length == -1)
             {
-                ++curr;
+                length = span.Length;
             }
-            return Decode(container.Position, curr - container.Position, ref container.Encoding).TrimEnd();
+            return Decode(container.Position, length, ref container.Encoding).TrimEnd();
         }
 
         public static unsafe string ExtractText<TChar>(ref YARGTextContainer<TChar> container, bool isChartFile)
