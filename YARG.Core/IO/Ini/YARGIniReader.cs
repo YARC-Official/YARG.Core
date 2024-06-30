@@ -80,10 +80,10 @@ namespace YARG.Core.IO.Ini
                 if (validNodes.TryGetValue(name, out var node))
                 {
                     var mod = node.CreateModifier(ref container);
-                    if (modifiers.TryGetValue(node.outputName, out var list))
+                    if (modifiers.TryGetValue(node.OutputName, out var list))
                         list.Add(mod);
                     else
-                        modifiers.Add(node.outputName, new() { mod });
+                        modifiers.Add(node.OutputName, new() { mod });
                 }
             }
             return new IniSection(modifiers);
