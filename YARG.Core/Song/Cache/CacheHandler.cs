@@ -928,10 +928,9 @@ namespace YARG.Core.Song.Cache
                 ? ReadSngEntry(fullname, stream, strings)
                 : ReadUnpackedIniEntry(fullname, stream, strings);
 
-            if (entry != null)
+            if (entry != null && AddEntry(entry))
             {
                 group.AddEntry(entry);
-                AddEntry(entry);
             }
         }
 
