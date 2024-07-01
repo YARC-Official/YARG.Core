@@ -107,6 +107,16 @@ namespace YARG.Core.Audio
             StemSettings[stem].Reverb = reverb;
         }
 
+        public static float GetWhammyPitchSetting(SongStem stem)
+        {
+            return StemSettings[stem].WhammyPitch;
+        }
+
+        public static void SetWhammyPitchSetting(SongStem stem, float percent)
+        {
+            StemSettings[stem].WhammyPitch = percent;
+        }
+
         private static object _instanceLock = new();
         private static AudioManager? _instance;
 
