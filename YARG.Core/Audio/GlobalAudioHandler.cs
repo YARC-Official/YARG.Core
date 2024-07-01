@@ -13,7 +13,7 @@ namespace YARG.Core.Audio
 
     public static class GlobalAudioHandler
     {
-        public const int WHAMMY_FFT_DEFAULT = 2048;
+        public const int WHAMMY_FFT_DEFAULT = 512;
         public const int WHAMMY_OVERSAMPLE_DEFAULT = 8;
         public static readonly int MAX_THREADS = Environment.ProcessorCount switch
         {
