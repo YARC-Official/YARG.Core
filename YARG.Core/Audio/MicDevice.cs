@@ -22,15 +22,21 @@ namespace YARG.Core.Audio
         public readonly float Pitch;
 
         /// <summary>
+        /// Volume (in dB) of the microphone.
+        /// </summary>
+        public readonly float Volume;
+
+        /// <summary>
         /// Gets the pitch as a MIDI note.
         /// </summary>
         public float PitchAsMidiNote => 12f * MathF.Log(Pitch / 440f, 2f) + 69f;
 
-        public MicOutputFrame(double time, bool isHit, float pitch)
+        public MicOutputFrame(double time, bool isHit, float pitch, float volume)
         {
             Time = time;
             IsHit = isHit;
             Pitch = pitch;
+            Volume = volume;
         }
     }
 
