@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using YARG.Core.IO;
 
@@ -11,27 +12,33 @@ namespace YARG.Core.Song.Cache
         private int _count;
         public int Count { get { lock (entries) return _count; } }
 
-        public readonly string Location;
         public readonly string DefaultPlaylist;
 
-        protected CONGroup(string location, string defaultPlaylist)
+        public abstract string Location { get; }
+
+        protected CONGroup(string defaultPlaylist)
         {
-            Location = location;
             DefaultPlaylist = defaultPlaylist;
         }
 
-        public abstract void ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings);
-        public abstract byte[] SerializeEntries(Dictionary<SongEntry, CategoryCacheWriteNode> nodes);
+        public abstract void ReadEntry(string nodeName, int index, Dictionary<string, (YARGTextContainer<byte>, RBProUpgrade)> upgrades, UnmanagedMemoryStream stream, CategoryCacheStrings strings);
+        public abstract ReadOnlyMemory<byte> SerializeEntries(Dictionary<SongEntry, CategoryCacheWriteNode> nodes);
 
         public void AddEntry(string name, int index, RBCONEntry entry)
         {
+            SortedDictionary<int, RBCONEntry> dict;
             lock (entries)
             {
-                if (entries.TryGetValue(name, out var dict))
-                    dict.Add(index, entry);
-                else
-                    entries.Add(name, new() { { index, entry } });
+                if (!entries.TryGetValue(name, out dict))
+                {
+                    entries.Add(name, dict = new SortedDictionary<int, RBCONEntry>());
+                }
                 ++_count;
+            }
+
+            lock (dict)
+            {
+                dict.Add(index, entry);
             }
         }
 

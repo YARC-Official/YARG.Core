@@ -70,6 +70,12 @@ namespace YARG.Core.Chart
             HitVelocity = null;
         }
 
+        public void ActivateFlag(DrumNoteFlags drumNoteFlag)
+        {
+            _drumFlags |= drumNoteFlag;
+            DrumFlags |= drumNoteFlag;
+        }
+
         protected override void CopyFlags(DrumNote other)
         {
             _drumFlags = other._drumFlags;

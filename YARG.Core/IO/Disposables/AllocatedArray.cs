@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
+using YARG.Core.Logging;
 
 namespace YARG.Core.IO.Disposables
 {
@@ -47,6 +48,11 @@ namespace YARG.Core.IO.Disposables
         {
             Marshal.FreeHGlobal(IntPtr);
             GC.SuppressFinalize(this);
+        }
+
+        ~AllocatedArray()
+        {
+            YargLogger.LogWarning("Dev warning: only use AllocatedArray IF YOU MANUALLY DISPOSE! Not doing so defeats the purpose!");
         }
     }
 }

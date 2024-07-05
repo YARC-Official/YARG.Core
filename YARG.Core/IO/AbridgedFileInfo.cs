@@ -46,16 +46,22 @@ namespace YARG.Core.IO
         /// <summary>
         /// Only used when validation of the underlying file is not required
         /// </summary>
-        public AbridgedFileInfo(BinaryReader reader)
-            : this(reader.ReadString(), reader) { }
+        public AbridgedFileInfo(UnmanagedMemoryStream stream)
+            : this(stream.ReadString(), stream) { }
 
         /// <summary>
         /// Only used when validation of the underlying file is not required
         /// </summary>
-        public AbridgedFileInfo(string filename, BinaryReader reader)
+        public AbridgedFileInfo(string filename, UnmanagedMemoryStream stream)
         {
             _fullname = filename;
-            _lastUpdatedTime = DateTime.FromBinary(reader.ReadInt64());
+            _lastUpdatedTime = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
+        }
+
+        public AbridgedFileInfo(string filename, in DateTime lastUpdatedTime)
+        {
+            _fullname = filename;
+            _lastUpdatedTime = lastUpdatedTime;
         }
 
         public void Serialize(BinaryWriter writer)
@@ -88,25 +94,25 @@ namespace YARG.Core.IO
         /// <summary>
         /// Used for cache validation
         /// </summary>
-        public static AbridgedFileInfo? TryParseInfo(BinaryReader reader, bool checkCreationTime = true)
+        public static AbridgedFileInfo? TryParseInfo(UnmanagedMemoryStream stream, bool checkCreationTime = true)
         {
-            return TryParseInfo(reader.ReadString(), reader, checkCreationTime);
+            return TryParseInfo(stream.ReadString(), stream, checkCreationTime);
         }
 
         /// <summary>
         /// Used for cache validation
         /// </summary>
-        public static AbridgedFileInfo? TryParseInfo(string file, BinaryReader reader, bool checkCreationTime = true)
+        public static AbridgedFileInfo? TryParseInfo(string file, UnmanagedMemoryStream stream, bool checkCreationTime = true)
         {
             var info = new FileInfo(file);
             if (!info.Exists)
             {
-                reader.BaseStream.Position += sizeof(long);
+                stream.Position += sizeof(long);
                 return null;
             }
 
             var abridged = new AbridgedFileInfo(info, checkCreationTime);
-            if (abridged._lastUpdatedTime != DateTime.FromBinary(reader.ReadInt64()))
+            if (abridged._lastUpdatedTime != DateTime.FromBinary(stream.Read<long>(Endianness.Little)))
             {
                 return null;
             }
@@ -138,19 +144,25 @@ namespace YARG.Core.IO
         /// <summary>
         /// Only used when validation of the underlying file is not required
         /// </summary>
-        public AbridgedFileInfo_Length(BinaryReader reader)
+        public AbridgedFileInfo_Length(UnmanagedMemoryStream stream)
         {
-            _base = new AbridgedFileInfo(reader);
-            Length = reader.ReadInt64();
+            _base = new AbridgedFileInfo(stream);
+            Length = stream.Read<long>(Endianness.Little);
         }
 
         /// <summary>
         /// Only used when validation of the underlying file is not required
         /// </summary>
-        public AbridgedFileInfo_Length(string filename, BinaryReader reader)
+        public AbridgedFileInfo_Length(string filename, UnmanagedMemoryStream stream)
         {
-            _base = new AbridgedFileInfo(filename, reader);
-            Length = reader.ReadInt64();
+            _base = new AbridgedFileInfo(filename, stream);
+            Length = stream.Read<long>(Endianness.Little);
+        }
+
+        public AbridgedFileInfo_Length(string filename, in DateTime lastUpdate, long length)
+        {
+            _base = new AbridgedFileInfo(filename, lastUpdate);
+            Length = length;
         }
 
         private AbridgedFileInfo_Length(in AbridgedFileInfo info, long length)
@@ -178,22 +190,22 @@ namespace YARG.Core.IO
         /// <summary>
         /// Used for cache validation
         /// </summary>
-        public static AbridgedFileInfo_Length? TryParseInfo(BinaryReader reader, bool checkCreationTime = true)
+        public static AbridgedFileInfo_Length? TryParseInfo(UnmanagedMemoryStream stream, bool checkCreationTime = true)
         {
-            return TryParseInfo(reader.ReadString(), reader, checkCreationTime);
+            return TryParseInfo(stream.ReadString(), stream, checkCreationTime);
         }
 
         /// <summary>
         /// Used for cache validation
         /// </summary>
-        public static AbridgedFileInfo_Length? TryParseInfo(string file, BinaryReader reader, bool checkCreationTime = true)
+        public static AbridgedFileInfo_Length? TryParseInfo(string file, UnmanagedMemoryStream stream, bool checkCreationTime = true)
         {
-            var info = AbridgedFileInfo.TryParseInfo(file, reader, checkCreationTime);
+            var info = AbridgedFileInfo.TryParseInfo(file, stream, checkCreationTime);
             if (info == null)
             {
                 return null;
             }
-            return new AbridgedFileInfo_Length(info.Value, reader.ReadInt64());
+            return new AbridgedFileInfo_Length(info.Value, stream.Read<long>(Endianness.Little));
         }
     }
 }

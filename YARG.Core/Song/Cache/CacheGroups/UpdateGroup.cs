@@ -11,7 +11,6 @@ namespace YARG.Core.Song.Cache
     {
         public readonly DirectoryInfo Directory;
         public readonly DateTime DTALastWrite;
-        public readonly Dictionary<string, DirectoryInfo> SubDirectories;
         public readonly Dictionary<string, SongUpdate> Updates = new();
 
         private readonly MemoryMappedArray _dtaData;
@@ -21,15 +20,9 @@ namespace YARG.Core.Song.Cache
             Directory = directory;
             DTALastWrite = dtaLastUpdate;
             _dtaData = dtaData;
-            
-            SubDirectories = new Dictionary<string, DirectoryInfo>();
-            foreach (var dir in directory.EnumerateDirectories())
-            {
-                SubDirectories.Add(dir.Name, dir);
-            }
         }
 
-        public byte[] SerializeModifications()
+        public ReadOnlyMemory<byte> SerializeModifications()
         {
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);
@@ -42,7 +35,7 @@ namespace YARG.Core.Song.Cache
                 writer.Write(name);
                 update.Serialize(writer);
             }
-            return ms.ToArray();
+            return new ReadOnlyMemory<byte>(ms.GetBuffer(), 0, (int)ms.Length);
         }
 
         public void Dispose()
@@ -51,10 +44,9 @@ namespace YARG.Core.Song.Cache
         }
     }
 
-    public sealed class SongUpdate : IComparable<SongUpdate>
+    public class SongUpdate
     {
-        private readonly DateTime _dtaLastWrite;
-        private readonly YARGDTAReader[] _readers;
+        private readonly List<YARGTextContainer<byte>> _containers;
 
         public readonly string BaseDirectory;
         public readonly AbridgedFileInfo_Length? Midi;
@@ -62,57 +54,55 @@ namespace YARG.Core.Song.Cache
         public readonly AbridgedFileInfo_Length? Milo;
         public readonly AbridgedFileInfo_Length? Image;
 
-        public YARGDTAReader[] Readers
+        public YARGTextContainer<byte>[] Containers => _containers.ToArray();
+
+        internal SongUpdate(in FileCollection collection, string name)
         {
-            get
+            _containers = new();
+            BaseDirectory = collection.Directory.FullName;
+            Midi = null;
+            Mogg = null;
+            Milo = null;
+            Image = null;
+            string subname = name.ToLowerInvariant();
+            if (!collection.SubDirectories.TryGetValue(subname, out var subDirInfo))
             {
-                var readers = new YARGDTAReader[_readers.Length];
-                for (int i = 0; i < readers.Length; i++)
+                return;
+            }
+
+            var filenames = new string[]
+            {
+                subname + "_update.mid",
+                subname + "_update.mogg",
+                subname + ".milo_xbox",
+                subname + "_keep.png_xbox"
+            };
+
+            foreach (var file in subDirInfo.EnumerateFiles("*", SearchOption.AllDirectories))
+            {
+                string filename = file.Name;
+                if (filename == filenames[0])
                 {
-                    readers[i] = _readers[i].Clone();
+                    Midi ??= new AbridgedFileInfo_Length(file, false);
                 }
-                return readers;
+                else if (filename == filenames[1])
+                {
+                    Mogg ??= new AbridgedFileInfo(file, false);
+                }
+                else if (filename == filenames[2])
+                {
+                    Milo ??= new AbridgedFileInfo_Length(file, false);
+                }
+                else if (filename == filenames[3])
+                {
+                    Image ??= new AbridgedFileInfo_Length(file, false);
+                }
             }
         }
 
-        public SongUpdate(UpdateGroup group, string name, DateTime dtaLastWrite, YARGDTAReader[] readers)
+        public void Add(in YARGTextContainer<byte> container)
         {
-            BaseDirectory = group.Directory.FullName;
-            _dtaLastWrite = dtaLastWrite;
-            _readers = readers;
-
-            string subname = name.ToLowerInvariant();
-            if (group.SubDirectories.TryGetValue(subname, out var subDirectory))
-            {
-                var filenames = new string[]
-                {
-                    subname + "_update.mid",
-                    subname + "_update.mogg",
-                    subname + ".milo_xbox",
-                    subname + "_keep.png_xbox"
-                };
-
-                foreach (var file in subDirectory.EnumerateFiles("*", SearchOption.AllDirectories))
-                {
-                    string filename = file.Name.ToLowerInvariant();
-                    if (filename == filenames[0])
-                    {
-                        Midi ??= new AbridgedFileInfo_Length(file, false);
-                    }
-                    else if (filename == filenames[1])
-                    {
-                        Mogg ??= new AbridgedFileInfo(file, false);
-                    }
-                    else if (filename == filenames[2])
-                    {
-                        Milo ??= new AbridgedFileInfo_Length(file, false);
-                    }
-                    else if (filename == filenames[3])
-                    {
-                        Image ??= new AbridgedFileInfo_Length(file, false);
-                    }
-                }
-            }
+            _containers.Add(container);
         }
 
         public void Serialize(BinaryWriter writer)
@@ -137,36 +127,36 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        public bool Validate(BinaryReader reader)
+        public bool Validate(UnmanagedMemoryStream stream)
         {
-            if (!CheckInfo(in Midi, reader))
+            if (!CheckInfo(in Midi, stream))
             {
-                SkipInfo(reader);
-                SkipInfo(reader);
-                SkipInfo(reader);
+                SkipInfo(stream);
+                SkipInfo(stream);
+                SkipInfo(stream);
                 return false;
             }
 
-            if (!CheckInfo(in Mogg, reader))
+            if (!CheckInfo(in Mogg, stream))
             {
-                SkipInfo(reader);
-                SkipInfo(reader);
+                SkipInfo(stream);
+                SkipInfo(stream);
                 return false;
             }
 
-            if (!CheckInfo(in Milo, reader))
+            if (!CheckInfo(in Milo, stream))
             {
-                SkipInfo(reader);
-                return false ;
+                SkipInfo(stream);
+                return false;
             }
-            return CheckInfo(in Image, reader);
+            return CheckInfo(in Image, stream);
 
-            static bool CheckInfo<TInfo>(in TInfo? info, BinaryReader reader)
+            static bool CheckInfo<TInfo>(in TInfo? info, UnmanagedMemoryStream stream)
                 where TInfo : struct, IAbridgedInfo
             {
-                if (reader.ReadBoolean())
+                if (stream.ReadBoolean())
                 {
-                    var lastWrite = DateTime.FromBinary(reader.ReadInt64());
+                    var lastWrite = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
                     if (info == null || info.Value.LastUpdatedTime != lastWrite)
                     {
                         return false;
@@ -180,24 +170,19 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        public int CompareTo(SongUpdate other)
+        public static void SkipRead(UnmanagedMemoryStream stream)
         {
-            return _dtaLastWrite.CompareTo(other._dtaLastWrite);
+            SkipInfo(stream);
+            SkipInfo(stream);
+            SkipInfo(stream);
+            SkipInfo(stream);
         }
 
-        public static void SkipRead(BinaryReader reader)
+        private static void SkipInfo(UnmanagedMemoryStream stream)
         {
-            SkipInfo(reader);
-            SkipInfo(reader);
-            SkipInfo(reader);
-            SkipInfo(reader);
-        }
-
-        private static void SkipInfo(BinaryReader reader)
-        {
-            if (reader.ReadBoolean())
+            if (stream.ReadBoolean())
             {
-                reader.Move(CacheHandler.SIZEOF_DATETIME);
+                stream.Position += CacheHandler.SIZEOF_DATETIME;
             }
         }
     }

@@ -180,12 +180,8 @@ namespace YARG.Core.Song.Cache
 
                 lock (intensity)
                 {
-                    // Necessary check since pro_17fret/22fret instruments map to same set of intensities
-                    if (!intensity.Contains(entry))
-                    {
-                        int index = intensity.BinarySearch(entry, comparer);
-                        intensity.Insert(~index, entry);
-                    }
+                    int index = intensity.BinarySearch(entry, comparer);
+                    intensity.Insert(~index, entry);
                 }
             }
         }

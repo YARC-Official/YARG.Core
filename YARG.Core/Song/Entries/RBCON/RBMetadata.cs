@@ -11,7 +11,13 @@ namespace YARG.Core.Song
             SongID = string.Empty,
             DrumBank = string.Empty,
             VocalPercussionBank = string.Empty,
-            VocalGender = true
+            VocalGender = true,
+            Soloes = Array.Empty<string>(),
+            VideoVenues = Array.Empty<string>(),
+            RealGuitarTuning = Array.Empty<int>(),
+            RealBassTuning = Array.Empty<int>(),
+            Indices = RBAudio<int>.Empty,
+            Panning = RBAudio<float>.Empty,
         };
 
         public string SongID;
@@ -27,11 +33,11 @@ namespace YARG.Core.Song
         public int TuningOffsetCents;
         public uint VenueVersion;
 
-        public string[]? Soloes;
-        public string[]? VideoVenues;
+        public string[] Soloes;
+        public string[] VideoVenues;
 
-        public int[]? RealGuitarTuning;
-        public int[]? RealBassTuning;
+        public int[] RealGuitarTuning;
+        public int[] RealBassTuning;
 
         public RBAudio<int> Indices;
         public RBAudio<float> Panning;

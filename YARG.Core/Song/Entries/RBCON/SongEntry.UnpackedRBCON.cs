@@ -21,11 +21,11 @@ namespace YARG.Core.Song
         public override string Directory { get; } = string.Empty;
         public override EntryType SubType => EntryType.ExCON;
 
-        public static (ScanResult, UnpackedRBCONEntry?) ProcessNewEntry(UnpackedCONGroup group, string nodename, YARGDTAReader reader, Dictionary<string, List<SongUpdate>> updates, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades)
+        public static (ScanResult, UnpackedRBCONEntry?) ProcessNewEntry(UnpackedCONGroup group, string nodename, in YARGTextContainer<byte> container, Dictionary<string, SortedList<DateTime, SongUpdate>> updates, Dictionary<string, (YARGTextContainer<byte>, RBProUpgrade)> upgrades)
         {
             try
             {
-                var song = new UnpackedRBCONEntry(group, nodename, reader, updates, upgrades);
+                var song = new UnpackedRBCONEntry(group, nodename, in container, updates, upgrades);
                 if (song._midi == null)
                 {
                     return (ScanResult.MissingMidi, null);
@@ -45,49 +45,49 @@ namespace YARG.Core.Song
             }
         }
 
-        public static UnpackedRBCONEntry? TryLoadFromCache(string directory, in AbridgedFileInfo_Length dta, string nodename, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
+        public static UnpackedRBCONEntry? TryLoadFromCache(string directory, in AbridgedFileInfo_Length dta, string nodename, Dictionary<string, (YARGTextContainer<byte>, RBProUpgrade Upgrade)> upgrades, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
         {
-            string subname = reader.ReadString();
+            string subname = stream.ReadString();
             string songDirectory = Path.Combine(directory, subname);
 
             string midiPath = Path.Combine(songDirectory, subname + ".mid");
-            var midiInfo = AbridgedFileInfo_Length.TryParseInfo(midiPath, reader);
+            var midiInfo = AbridgedFileInfo_Length.TryParseInfo(midiPath, stream);
             if (midiInfo == null)
             {
                 return null;
             }
 
             AbridgedFileInfo_Length? updateMidi = null;
-            if (reader.ReadBoolean())
+            if (stream.ReadBoolean())
             {
-                updateMidi = AbridgedFileInfo_Length.TryParseInfo(reader, false);
+                updateMidi = AbridgedFileInfo_Length.TryParseInfo(stream, false);
                 if (updateMidi == null)
                 {
                     return null;
                 }
             }
 
-            var upgrade = upgrades.TryGetValue(nodename, out var node) ? node.Item2 : null;
-            return new UnpackedRBCONEntry(midiInfo.Value, dta, songDirectory, subname, updateMidi, upgrade, reader, strings);
+            var upgrade = upgrades.TryGetValue(nodename, out var node) ? node.Upgrade : null;
+            return new UnpackedRBCONEntry(midiInfo.Value, dta, songDirectory, subname, updateMidi, upgrade, stream, strings);
         }
 
-        public static UnpackedRBCONEntry LoadFromCache_Quick(string directory, in AbridgedFileInfo_Length? dta, string nodename, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
+        public static UnpackedRBCONEntry LoadFromCache_Quick(string directory, in AbridgedFileInfo_Length? dta, string nodename, Dictionary<string, (YARGTextContainer<byte>, RBProUpgrade Upgrade)> upgrades, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
         {
-            string subname = reader.ReadString();
+            string subname = stream.ReadString();
             string songDirectory = Path.Combine(directory, subname);
 
             string midiPath = Path.Combine(songDirectory, subname + ".mid");
-            var midiInfo = new AbridgedFileInfo_Length(midiPath, reader);
+            var midiInfo = new AbridgedFileInfo_Length(midiPath, stream);
 
-            AbridgedFileInfo_Length? updateMidi = reader.ReadBoolean() ? new AbridgedFileInfo_Length(reader) : null;
+            AbridgedFileInfo_Length? updateMidi = stream.ReadBoolean() ? new AbridgedFileInfo_Length(stream) : null;
 
-            var upgrade = upgrades.TryGetValue(nodename, out var node) ? node.Item2 : null;
-            return new UnpackedRBCONEntry(midiInfo, dta, songDirectory, subname, updateMidi, upgrade, reader, strings);
+            var upgrade = upgrades.TryGetValue(nodename, out var node) ? node.Upgrade : null;
+            return new UnpackedRBCONEntry(midiInfo, dta, songDirectory, subname, updateMidi, upgrade, stream, strings);
         }
 
         private UnpackedRBCONEntry(AbridgedFileInfo_Length midi, AbridgedFileInfo_Length? dta, string directory, string nodename,
-            AbridgedFileInfo_Length? updateMidi, IRBProUpgrade? upgrade, BinaryReader reader, CategoryCacheStrings strings)
-            : base(updateMidi, upgrade, reader, strings)
+            AbridgedFileInfo_Length? updateMidi, RBProUpgrade? upgrade, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
+            : base(updateMidi, upgrade, stream, strings)
         {
             Directory = directory;
 
@@ -96,10 +96,10 @@ namespace YARG.Core.Song
             _nodename = nodename;
         }
 
-        private UnpackedRBCONEntry(UnpackedCONGroup group, string nodename, YARGDTAReader reader, Dictionary<string, List<SongUpdate>> updates, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades)
+        private UnpackedRBCONEntry(UnpackedCONGroup group, string nodename, in YARGTextContainer<byte> container, Dictionary<string, SortedList<DateTime, SongUpdate>> updates, Dictionary<string, (YARGTextContainer<byte>, RBProUpgrade)> upgrades)
             : base()
         {
-            var results = Init(nodename, reader, updates, upgrades, group.DefaultPlaylist);
+            var results = Init(nodename, in container, updates, upgrades, group.DefaultPlaylist);
             if (!results.location.StartsWith($"songs/" + nodename))
                 nodename = results.location.Split('/')[1];
             _nodename = nodename;

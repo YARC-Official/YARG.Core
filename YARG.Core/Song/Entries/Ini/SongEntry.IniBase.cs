@@ -1,9 +1,11 @@
-﻿using MoonscraperChartEditor.Song.IO;
+﻿using Melanchall.DryWetMidi.Core;
+using MoonscraperChartEditor.Song.IO;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using YARG.Core.Chart;
+using YARG.Core.Extensions;
 using YARG.Core.IO;
 using YARG.Core.IO.Disposables;
 using YARG.Core.IO.Ini;
@@ -12,15 +14,15 @@ using YARG.Core.Song.Preparsers;
 
 namespace YARG.Core.Song
 {
-    public class IniChartNode<T>
+    public readonly struct IniChartNode<T>
     {
-        public readonly ChartType Type;
         public readonly T File;
+        public readonly ChartType Type;
 
-        public IniChartNode(ChartType type, T file)
+        public IniChartNode(T file, ChartType type)
         {
-            Type = type;
             File = file;
+            Type = type;
         }
     }
 
@@ -47,23 +49,9 @@ namespace YARG.Core.Song
     {
         public static readonly IniChartNode<string>[] CHART_FILE_TYPES =
         {
-            new(ChartType.Mid, "notes.mid"),
-            new(ChartType.Midi, "notes.midi"),
-            new(ChartType.Chart, "notes.chart"),
-        };
-
-        protected static readonly Dictionary<string, IniModifierCreator> CHART_MODIFIER_LIST = new()
-        {
-            { "Album",        new("album",        ModifierCreatorType.SortString_Chart ) },
-            { "Artist",       new("artist",       ModifierCreatorType.SortString_Chart ) },
-            { "Charter",      new("charter",      ModifierCreatorType.SortString_Chart ) },
-            { "Difficulty",   new("diff_band",    ModifierCreatorType.Int32 ) },
-            { "Genre",        new("genre",        ModifierCreatorType.SortString_Chart ) },
-            { "Name",         new("name",         ModifierCreatorType.SortString_Chart ) },
-            { "PreviewEnd",   new("previewEnd",   ModifierCreatorType.Double ) },
-            { "PreviewStart", new("previewStart", ModifierCreatorType.Double ) },
-            { "Year",         new("year_chart",   ModifierCreatorType.String_Chart ) },
-            { "Offset",       new("offset",       ModifierCreatorType.Double ) },
+            new("notes.mid"  , ChartType.Mid),
+            new("notes.midi" , ChartType.Midi),
+            new("notes.chart", ChartType.Chart),
         };
 
         protected static readonly string[] ALBUMART_FILES;
@@ -114,20 +102,20 @@ namespace YARG.Core.Song
             modifiers.TryGet("video_loop", out Video_Loop);
         }
 
-        protected IniSubEntry(BinaryReader reader, CategoryCacheStrings strings)
-            : base(reader, strings)
+        protected IniSubEntry(UnmanagedMemoryStream stream, CategoryCacheStrings strings)
+            : base(stream, strings)
         {
-            _background = reader.ReadString();
-            _video = reader.ReadString();
-            _cover = reader.ReadString();
-            Video_Loop = reader.ReadBoolean();
+            _background = stream.ReadString();
+            _video = stream.ReadString();
+            _cover = stream.ReadString();
+            Video_Loop = stream.ReadBoolean();
         }
 
         protected abstract Stream? GetChartStream();
 
         protected abstract void SerializeSubData(BinaryWriter writer);
 
-        public byte[] Serialize(CategoryCacheWriteNode node, string groupDirectory)
+        public ReadOnlySpan<byte> Serialize(CategoryCacheWriteNode node, string groupDirectory)
         {
             string relativePath = Path.GetRelativePath(groupDirectory, Directory);
             if (relativePath == ".")
@@ -146,7 +134,7 @@ namespace YARG.Core.Song
             writer.Write(_video);
             writer.Write(_cover);
             writer.Write(Video_Loop);
-            return ms.ToArray();
+            return new ReadOnlySpan<byte>(ms.GetBuffer(), 0, (int)ms.Length);
         }
 
         public override SongChart? LoadChart()
@@ -179,14 +167,22 @@ namespace YARG.Core.Song
             var parts = AvailableParts.Default;
             if (chartType == ChartType.Chart)
             {
-                var byteReader = YARGTextLoader.TryLoadByteText(file);
-                if (byteReader != null)
-                    ParseDotChart<byte, ByteStringDecoder, DotChartByte>(byteReader, modifiers, ref parts, drums);
+                if (YARGTextReader.IsUTF8(file, out var byteContainer))
+                {
+                    ParseDotChart(ref byteContainer, modifiers, ref parts, drums);
+                }
                 else
                 {
-                    using var chars = YARGTextLoader.ConvertToChar(file);
-                    var charReader = new YARGTextReader<char, CharStringDecoder>(chars, 0);
-                    ParseDotChart<char, CharStringDecoder, DotChartChar>(charReader, modifiers, ref parts, drums);
+                    using var chars = YARGTextReader.ConvertToUTF16(file, out var charContainer);
+                    if (chars != null)
+                    {
+                        ParseDotChart(ref charContainer, modifiers, ref parts, drums);
+                    }
+                    else
+                    {
+                        using var ints = YARGTextReader.ConvertToUTF32(file, out var intContainer);
+                        ParseDotChart(ref intContainer, modifiers, ref parts, drums);
+                    }
                 }
             }
             else // if (chartType == ChartType.Mid || chartType == ChartType.Midi) // Uncomment for any future file type
@@ -209,18 +205,25 @@ namespace YARG.Core.Song
             return (ScanResult.Success, parts);
         }
 
-        private static void ParseDotChart<TChar, TDecoder, TBase>(YARGTextReader<TChar, TDecoder> textReader, IniSection modifiers, ref AvailableParts parts, DrumPreparseHandler drums)
+        private static void ParseDotChart<TChar>(ref YARGTextContainer<TChar> container, IniSection modifiers, ref AvailableParts parts, DrumPreparseHandler drums)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
-            where TDecoder : IStringDecoder<TChar>, new()
-            where TBase : unmanaged, IDotChartBases<TChar>
         {
-            YARGChartFileReader<TChar, TDecoder, TBase> chartReader = new(textReader);
-            if (chartReader.ValidateHeaderTrack())
+            if (YARGChartFileReader.ValidateTrack(ref container, YARGChartFileReader.HEADERTRACK))
             {
-                var chartMods = chartReader.ExtractModifiers(CHART_MODIFIER_LIST);
+                var chartMods = YARGChartFileReader.ExtractModifiers(ref container);
                 modifiers.Append(chartMods);
             }
-            ParseChart(chartReader, drums, ref parts);
+
+            while (YARGChartFileReader.IsStartOfTrack(in container))
+            {
+                if (!TraverseChartTrack(ref container, drums, ref parts))
+                {
+                    if (YARGTextReader.SkipLinesUntil(ref container, TextConstants<TChar>.CLOSE_BRACE))
+                    {
+                        YARGTextReader.GotoNextLine(ref container);
+                    }
+                }
+            }
 
             if (drums.Type == DrumsType.Unknown && drums.ValidatedDiffs > 0)
                 drums.Type = DrumsType.FourLane;
@@ -238,6 +241,31 @@ namespace YARG.Core.Song
                 drums.Type = DrumsType.ProDrums;
 
             return ParseMidi(file, drums, ref parts);
+        }
+
+        /// <returns>Whether the track was fully traversed</returns>
+        private static bool TraverseChartTrack<TChar>(ref YARGTextContainer<TChar> container, DrumPreparseHandler drums, ref AvailableParts parts)
+            where TChar : unmanaged, IEquatable<TChar>, IConvertible
+        {
+            if (!YARGChartFileReader.ValidateInstrument(ref container, out var instrument, out var difficulty))
+            {
+                return false;
+            }
+
+            return instrument switch
+            {
+                Instrument.FiveFretGuitar =>     ChartPreparser.Traverse(ref container, difficulty, ref parts.FiveFretGuitar,     ChartPreparser.ValidateFiveFret),
+                Instrument.FiveFretBass =>       ChartPreparser.Traverse(ref container, difficulty, ref parts.FiveFretBass,       ChartPreparser.ValidateFiveFret),
+                Instrument.FiveFretRhythm =>     ChartPreparser.Traverse(ref container, difficulty, ref parts.FiveFretRhythm,     ChartPreparser.ValidateFiveFret),
+                Instrument.FiveFretCoopGuitar => ChartPreparser.Traverse(ref container, difficulty, ref parts.FiveFretCoopGuitar, ChartPreparser.ValidateFiveFret),
+                Instrument.SixFretGuitar =>      ChartPreparser.Traverse(ref container, difficulty, ref parts.SixFretGuitar,      ChartPreparser.ValidateSixFret),
+                Instrument.SixFretBass =>        ChartPreparser.Traverse(ref container, difficulty, ref parts.SixFretBass,        ChartPreparser.ValidateSixFret),
+                Instrument.SixFretRhythm =>      ChartPreparser.Traverse(ref container, difficulty, ref parts.SixFretRhythm,      ChartPreparser.ValidateSixFret),
+                Instrument.SixFretCoopGuitar =>  ChartPreparser.Traverse(ref container, difficulty, ref parts.SixFretCoopGuitar,  ChartPreparser.ValidateSixFret),
+                Instrument.Keys =>               ChartPreparser.Traverse(ref container, difficulty, ref parts.Keys,               ChartPreparser.ValidateFiveFret),
+                Instrument.FourLaneDrums =>      drums.ParseChart(ref container, difficulty),
+                _ => false,
+            };
         }
 
         private static DrumsType GetDrumTypeFromModifier(IniSection modifiers)
@@ -389,8 +417,7 @@ namespace YARG.Core.Song
             }
         }
 
-        protected static T? GetRandomBackgroundImage<T>(IEnumerable<KeyValuePair<string, T>> collection)
-            where T : class
+        protected static bool TryGetRandomBackgroundImage<T>(IEnumerable<KeyValuePair<string, T>> collection, out T value)
         {
             // Choose a valid image background present in the folder at random
             var images = new List<T>();
@@ -420,7 +447,13 @@ namespace YARG.Core.Song
                 }
             }
 
-            return images.Count > 0 ? images[BACKROUND_RNG.Next(images.Count)] : null;
+            if (images.Count == 0)
+            {
+                value = default!;
+                return false;
+            }
+            value = images[BACKROUND_RNG.Next(images.Count)];
+            return true;
         }
     }
 }

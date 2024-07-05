@@ -12,36 +12,40 @@ namespace YARG.Core.Song.Cache
         public readonly AbridgedFileInfo_Length DTA;
         private MemoryMappedArray? _fileData;
 
+        public override string Location { get; }
+
         public UnpackedCONGroup(string directory, FileInfo dta, string defaultPlaylist)
-            : base(directory, defaultPlaylist)
+            : base(defaultPlaylist)
         {
+            Location = directory;
             DTA = new AbridgedFileInfo_Length(dta);
         }
 
-        public YARGDTAReader? LoadDTA()
+        public bool LoadDTA(out YARGTextContainer<byte> container)
         {
             try
             {
                 _fileData = MemoryMappedArray.Load(DTA);
-                return YARGDTAReader.TryCreate(_fileData);
+                return YARGDTAReader.TryCreate(_fileData, out container);
             }
             catch (Exception ex)
             {
                 YargLogger.LogException(ex, $"Error while loading {DTA.FullName}");
-                return null;
+                container = default;
+                return false;
             }
         }
 
-        public override void ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
+        public override void ReadEntry(string nodeName, int index, Dictionary<string, (YARGTextContainer<byte>, RBProUpgrade)> upgrades, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
         {
-            var song = UnpackedRBCONEntry.TryLoadFromCache(Location, DTA, nodeName, upgrades, reader, strings);
+            var song = UnpackedRBCONEntry.TryLoadFromCache(Location, DTA, nodeName, upgrades, stream, strings);
             if (song != null)
             {
                 AddEntry(nodeName, index, song);
             }
         }
 
-        public override byte[] SerializeEntries(Dictionary<SongEntry, CategoryCacheWriteNode> nodes)
+        public override ReadOnlyMemory<byte> SerializeEntries(Dictionary<SongEntry, CategoryCacheWriteNode> nodes)
         {
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);
@@ -49,7 +53,7 @@ namespace YARG.Core.Song.Cache
             writer.Write(Location);
             writer.Write(DTA.LastUpdatedTime.ToBinary());
             Serialize(writer, ref nodes);
-            return ms.ToArray();
+            return new ReadOnlyMemory<byte>(ms.GetBuffer(), 0, (int)ms.Length);
         }
 
         public void Dispose()

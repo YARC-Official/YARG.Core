@@ -98,8 +98,11 @@ namespace YARG.Core.IO
                     filename += Encoding.UTF8.GetString(listingBuffer[..0x28]).TrimEnd('\0');
                     filenames.Add(filename);
 
-                    var listing = new CONFileListing(info, filename, pathIndex, shift, listingBuffer);
-                    listings.Add(filename, listing);
+                    var flags = (CONFileListingFlag) listingBuffer[0x28];
+                    if ((flags & CONFileListingFlag.Directory) == 0)
+                    {
+                        listings[filename] = new CONFileListing(info, filename, pathIndex, flags, shift, listingBuffer);
+                    }
                 }
                 return new CONFile(filenames, listings);
             }

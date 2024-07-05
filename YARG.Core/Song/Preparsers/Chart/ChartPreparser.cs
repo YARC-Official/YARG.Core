@@ -1,38 +1,32 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text.RegularExpressions;
 using YARG.Core.IO;
 
 namespace YARG.Core.Song
 {
     public static class ChartPreparser
     {
-        public static bool Preparse<TChar, TDecoder, TBase>(YARGChartFileReader<TChar, TDecoder, TBase> reader, ref PartValues scan, Func<int, bool> func)
+        /// <returns>Whether the track was fully traversed</returns>
+        public static bool Traverse<TChar>(ref YARGTextContainer<TChar> container, Difficulty difficulty, ref PartValues scan, Func<int, bool> func)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
-            where TDecoder : IStringDecoder<TChar>, new()
-            where TBase : unmanaged, IDotChartBases<TChar>
         {
-            var difficulty = reader.Difficulty;
             if (scan[difficulty])
-                return true;
+                return false;
 
             DotChartEvent ev = default;
-            DotChartNote note = default;
-            while (reader.TryParseEvent(ref ev))
+            while (YARGChartFileReader.TryParseEvent(ref container, ref ev))
             {
                 if (ev.Type == ChartEventType.Note)
                 {
-                    reader.ExtractLaneAndSustain(ref note);
-                    if (func(note.Lane))
+                    int lane = YARGTextReader.ExtractInt32AndWhitespace(ref container);
+                    long _ = YARGTextReader.ExtractInt64AndWhitespace(ref container);
+                    if (func(lane))
                     {
                         scan.SetDifficulty(difficulty);
-                        return true;
+                        return false;
                     }
                 }
-                reader.NextEvent();
             }
-            return false;
+            return true;
         }
 
         private const int KEYS_MAX = 5;

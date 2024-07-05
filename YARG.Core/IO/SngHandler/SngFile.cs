@@ -120,27 +120,26 @@ namespace YARG.Core.IO
             ulong numPairs = stream.Read<ulong>(Endianness.Little);
 
             using var bytes = AllocatedArray<byte>.Read(stream, length);
-            var container = new YARGTextContainer<byte>(bytes, 0);
-            var validNodes = SongIniHandler.SONG_INI_DICTIONARY["[song]"];
+            var container = new YARGTextContainer<byte>(bytes.Ptr, bytes.Ptr + length, null!);
 
             for (ulong i = 0; i < numPairs; i++)
             {
-                int strLength = GetLength(container);
-                var key = Encoding.UTF8.GetString(container.Data.Ptr + container.Position, strLength);
+                int strLength = GetLength(ref container);
+                var key = Encoding.UTF8.GetString(container.Position, strLength);
                 container.Position += strLength;
 
-                strLength = GetLength(container);
+                strLength = GetLength(ref container);
                 var next = container.Position + strLength;
-                if (validNodes.TryGetValue(key, out var node))
+                if (SongIniHandler.SONG_INI_MODIFIERS.TryGetValue(key, out var node))
                 {
-                    var mod = node.CreateSngModifier(container, strLength);
-                    if (modifiers.TryGetValue(node.outputName, out var list))
+                    var mod = node.CreateSngModifier(ref container, strLength);
+                    if (modifiers.TryGetValue(node.OutputName, out var list))
                     {
                         list.Add(mod);
                     }
                     else
                     {
-                        modifiers.Add(node.outputName, new() { mod });
+                        modifiers.Add(node.OutputName, new() { mod });
                     }
                 }
                 container.Position = next;
@@ -150,31 +149,33 @@ namespace YARG.Core.IO
 
         private static Dictionary<string, SngFileListing> ReadListings(Stream stream)
         {
-            ulong length = stream.Read<ulong>(Endianness.Little) - sizeof(ulong);
+            long length = stream.Read<long>(Endianness.Little) - sizeof(long);
             ulong numListings = stream.Read<ulong>(Endianness.Little);
 
-            Dictionary<string, SngFileListing> listings = new((int)numListings);
+            using var buffer = AllocatedArray<byte>.Read(stream, length);
+            using var bufferStream = buffer.ToStream();
 
-            var reader = BinaryReaderExtensions.Load(stream, (int)length);
+            Dictionary<string, SngFileListing> listings = new((int)numListings);
             for (ulong i = 0; i < numListings; i++)
             {
-                var strLen = reader.ReadByte();
-                string filename = Encoding.UTF8.GetString(reader.ReadBytes(strLen));
-                int idx = filename.LastIndexOf('/');
-                if (idx != -1)
+                unsafe
                 {
-                    filename = filename[idx..];
+                    var strLen = bufferStream.ReadByte();
+                    string filename = Encoding.UTF8.GetString(bufferStream.PositionPointer, strLen);
+                    bufferStream.Position += strLen;
+                    long fileLength = bufferStream.Read<long>(Endianness.Little);
+                    long position = bufferStream.Read<long>(Endianness.Little);
+                    listings.Add(filename.ToLower(), new SngFileListing(filename, position, fileLength));
                 }
-                listings.Add(filename.ToLower(), new SngFileListing(filename, reader));
             }
             return listings;
         }
 
-        private static unsafe int GetLength(YARGTextContainer<byte> container)
+        private static unsafe int GetLength(ref YARGTextContainer<byte> container)
         {
-            int length = *(int*)(container.Data.Ptr + container.Position);
+            int length = *(int*)container.Position;
             container.Position += sizeof(int);
-            if (container.Position + length > container.Length)
+            if (container.Position + length > container.End)
             {
                 throw new EndOfStreamException();
             }

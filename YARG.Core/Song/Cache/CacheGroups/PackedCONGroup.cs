@@ -17,11 +17,12 @@ namespace YARG.Core.Song.Cache
 
         private AllocatedArray<byte>? _songDTAData;
         private AllocatedArray<byte>? _upgradeDTAData;
-        
-        public Dictionary<string, IRBProUpgrade> Upgrades { get; } = new();
+
+        public override string Location => Info.FullName;
+        public Dictionary<string, RBProUpgrade> Upgrades { get; } = new();
 
         public PackedCONGroup(CONFile conFile, AbridgedFileInfo info, string defaultPlaylist)
-            : base(info.FullName, defaultPlaylist)
+            : base(defaultPlaylist)
         {
             const string SONGSFILEPATH = "songs/songs.dta";
             const string UPGRADESFILEPATH = "songs_upgrades/upgrades.dta";
@@ -32,16 +33,16 @@ namespace YARG.Core.Song.Cache
             conFile.TryGetListing(SONGSFILEPATH, out SongDTA);
         }
 
-        public override void ReadEntry(string nodeName, int index, Dictionary<string, (YARGDTAReader?, IRBProUpgrade)> upgrades, BinaryReader reader, CategoryCacheStrings strings)
+        public override void ReadEntry(string nodeName, int index, Dictionary<string, (YARGTextContainer<byte>, RBProUpgrade)> upgrades, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
         {
-            var song = PackedRBCONEntry.TryLoadFromCache(in ConFile, nodeName, upgrades, reader, strings);
+            var song = PackedRBCONEntry.TryLoadFromCache(in ConFile, nodeName, upgrades, stream, strings);
             if (song != null)
             {
                 AddEntry(nodeName, index, song);
             }
         }
 
-        public override byte[] SerializeEntries(Dictionary<SongEntry, CategoryCacheWriteNode> nodes)
+        public override ReadOnlyMemory<byte> SerializeEntries(Dictionary<SongEntry, CategoryCacheWriteNode> nodes)
         {
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);
@@ -49,52 +50,56 @@ namespace YARG.Core.Song.Cache
             writer.Write(Location);
             writer.Write(SongDTA!.LastWrite.ToBinary());
             Serialize(writer, ref nodes);
-            return ms.ToArray();
+            return new ReadOnlyMemory<byte>(ms.GetBuffer(), 0, (int)ms.Length);
         }
 
-        public void AddUpgrade(string name, IRBProUpgrade upgrade) { lock (Upgrades) Upgrades[name] = upgrade; }
+        public void AddUpgrade(string name, RBProUpgrade upgrade) { lock (Upgrades) Upgrades[name] = upgrade; }
 
-        public YARGDTAReader? LoadUpgrades()
+        public bool LoadUpgrades(out YARGTextContainer<byte> container)
         {
             if (UpgradeDta == null)
             {
-                return null;
+                container = default;
+                return false;
             }
 
             try
             {
                 Stream = new FileStream(Info.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
                 _upgradeDTAData = UpgradeDta.LoadAllBytes(Stream);
-                return YARGDTAReader.TryCreate(_upgradeDTAData);
+                return YARGDTAReader.TryCreate(_upgradeDTAData, out container);
             }
             catch (Exception ex)
             {
                 YargLogger.LogException(ex, $"Error while loading {UpgradeDta.Filename}");
-                return null;
+                container = default;
+                return false;
             }
         }
 
-        public YARGDTAReader? LoadSongs()
+        public bool LoadSongs(out YARGTextContainer<byte> container)
         {
             if (SongDTA == null)
             {
-                return null;
+                container = default;
+                return false;
             }
 
             try
             {
                 Stream ??= new FileStream(Info.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
                 _songDTAData = SongDTA.LoadAllBytes(Stream);
-                return YARGDTAReader.TryCreate(_songDTAData);
+                return YARGDTAReader.TryCreate(_songDTAData, out container);
             }
             catch (Exception ex)
             {
                 YargLogger.LogException(ex, $"Error while loading {SongDTA.Filename}");
-                return null;
+                container = default;
+                return false;
             }
         }
 
-        public byte[] SerializeModifications()
+        public ReadOnlyMemory<byte> SerializeModifications()
         {
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);
@@ -108,7 +113,7 @@ namespace YARG.Core.Song.Cache
                 writer.Write(upgrade.Key);
                 upgrade.Value.WriteToCache(writer);
             }
-            return ms.ToArray();
+            return new ReadOnlyMemory<byte>(ms.GetBuffer(), 0, (int)ms.Length);
         }
 
         public void DisposeStreamAndSongDTA()
