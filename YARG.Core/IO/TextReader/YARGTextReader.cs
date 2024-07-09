@@ -101,7 +101,19 @@ namespace YARG.Core.IO
         public static void SkipPureWhitespace<TChar>(ref YARGTextContainer<TChar> container)
             where TChar : unmanaged, IConvertible
         {
-            while (container.Position < container.End && container.Position->ToInt32(null) <= 32)
+            // Unity/Mono has a bug on the commented-out code here, where the JIT generates a useless
+            // `cmp dword ptr [rax], 0` before actually performing ToInt32(null).
+            // This causes an access violation (which translates to a NullReferenceException here) on
+            // memory-mapped files whose size on disk is 2 or less bytes greater than the actual file contents,
+            // due to the `cmp` above over-reading data from `rax` (which contains Position in that moment).
+            //
+            // Explicitly dereferencing the pointer into a value first avoids this issue. The useless `cmp`
+            // is still generated, but now `rax` points to the stack, and so the over-read is always done in
+            // a valid memory space.
+
+            // while (container.Position < container.End && container.Position->ToInt32(null) <= 32)
+            TChar c;
+            while (container.Position < container.End && (c = *container.Position).ToInt32(null) <= 32)
             {
                 ++container.Position;
             }
