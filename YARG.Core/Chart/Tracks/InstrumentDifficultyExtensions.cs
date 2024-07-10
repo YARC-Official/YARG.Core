@@ -36,9 +36,9 @@ namespace YARG.Core.Chart
             }
         }
 
-        public static void ShuffleNotes(this InstrumentDifficulty<GuitarNote> difficulty)
+        public static void ShuffleNotes(this InstrumentDifficulty<GuitarNote> difficulty, int seed)
         {
-            var random = new Random(133769420); // heh
+            var random = new Random(seed);
             var activeNotes = new GuitarNote?[5 + 1]; // 5 frets, one open note
 
             foreach (var note in difficulty.Notes)
