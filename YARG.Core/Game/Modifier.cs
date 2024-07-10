@@ -42,7 +42,8 @@ namespace YARG.Core.Game
                     Modifier.AllHopos    |
                     Modifier.AllTaps     |
                     Modifier.HoposToTaps |
-                    Modifier.TapsToHopos,
+                    Modifier.TapsToHopos |
+                    Modifier.NoteShuffle,
 
                 GameMode.FourLaneDrums or
                 GameMode.FiveLaneDrums =>

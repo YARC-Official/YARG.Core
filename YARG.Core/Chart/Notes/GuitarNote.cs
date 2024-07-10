@@ -7,8 +7,46 @@ namespace YARG.Core.Chart
         private GuitarNoteFlags _guitarFlags;
         public GuitarNoteFlags GuitarFlags;
 
-        public int Fret         { get; }
-        public int DisjointMask { get; }
+        private int _fret;
+
+        public int Fret
+        {
+            get => _fret;
+            set
+            {
+                if (value == _fret)
+                    return;
+
+                int mask = GetNoteMask(value);
+                int oldMask = GetNoteMask(_fret);
+
+                // If we're a child note, adjust our parent's mask to reflect the change
+                if (Parent != null)
+                {
+                    if ((Parent.NoteMask & mask) != 0)
+                        throw new InvalidOperationException($"Fret {value} already exists in the current chord!");
+
+                    Parent.NoteMask &= ~oldMask;
+                    Parent.NoteMask |= mask;
+
+                    NoteMask = mask;
+                }
+                // Otherwise, adjust our own mask
+                else
+                {
+                    if ((NoteMask & mask) != 0)
+                        throw new InvalidOperationException($"Fret {value} already exists in the current chord!");
+
+                    NoteMask &= ~oldMask;
+                    NoteMask |= mask;
+                }
+
+                _fret = value;
+                DisjointMask = mask;
+            }
+        }
+
+        public int DisjointMask { get; private set; }
         public int NoteMask     { get; private set; }
 
         public uint SustainTicksHeld;
@@ -40,7 +78,7 @@ namespace YARG.Core.Chart
             double time, double timeLength, uint tick, uint tickLength)
             : base(flags, time, timeLength, tick, tickLength)
         {
-            Fret = fret;
+            _fret = fret;
             Type = noteType;
 
             GuitarFlags = _guitarFlags = guitarFlags;
@@ -51,7 +89,7 @@ namespace YARG.Core.Chart
 
         public GuitarNote(GuitarNote other) : base(other)
         {
-            Fret = other.Fret;
+            _fret = other._fret;
             Type = other.Type;
 
             GuitarFlags = _guitarFlags = other._guitarFlags;

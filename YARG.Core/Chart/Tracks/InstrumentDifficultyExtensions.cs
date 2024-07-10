@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using YARG.Core.Logging;
 
 namespace YARG.Core.Chart
 {
@@ -31,6 +33,95 @@ namespace YARG.Core.Chart
                 {
                     child.Type = to;
                 }
+            }
+        }
+
+        public static void ShuffleNotes(this InstrumentDifficulty<GuitarNote> difficulty)
+        {
+            var random = new Random(133769420); // heh
+            var activeNotes = new GuitarNote?[5 + 1]; // 5 frets, one open note
+
+            foreach (var note in difficulty.Notes)
+            {
+                // Clear no-longer-active notes
+                for (int i = 0; i < activeNotes.Length; i++)
+                {
+                    if (activeNotes[i] is not {} activeNote)
+                        continue; // Already inactive
+
+                    if (!IsFretActive(activeNote, note.Tick))
+                        activeNotes[i] = null;
+                }
+
+                // Shuffle current chord
+                foreach (var child in note.ChordEnumerator())
+                {
+                    // Don't shuffle open notes
+                    if (child.Fret == 0)
+                        continue;
+
+                    // Check for conflicts from a prior extended sustain/disjoint chord being shuffled
+                    if (activeNotes[child.Fret] != null)
+                    {
+                        // Find next available spot for the note
+                        int nextFret = FindClosestAvailableFret(child, child.Fret);
+                        if (nextFret != 0)
+                        {
+                            child.Fret = nextFret;
+                        }
+                        // If there's none, no choice but to take the L and overlap
+                        else
+                        {
+                            YargLogger.LogFormatDebug("Unresolvable note overlap at {0:0.000} ({1}) on fret {2} (before shuffle)",
+                                child.Time, child.Tick, child.Fret);
+                        }
+                    }
+
+                    int newFret = GenerateFret(child);
+                    if (newFret != 0)
+                    {
+                        // Set new fret and adjust note's active slot
+                        activeNotes[child.Fret] = null;
+                        activeNotes[newFret] = child;
+                        child.Fret = newFret; // Must come after changing the slot
+                    }
+                    // Once again, no choice but to take L the if no spots are available
+                    else
+                    {
+                        YargLogger.LogFormatDebug("Unresolvable note overlap at {0:0.000} ({1}) on fret {2} (after shuffle)",
+                            child.Time, child.Tick, child.Fret);
+                    }
+                }
+            }
+
+            static bool IsFretActive(GuitarNote note, uint tick)
+            {
+                // If the note has no length, its end is inclusive
+                if (note.TickLength == 0)
+                    return note.TickEnd == tick;
+
+                // Otherwise, the end is exclusive
+                return note.TickEnd > tick;
+            }
+
+            // TODO: 3/4 note chords seem to have a bias towards being on the left side
+            // Almost all 4-note chords get shuffled to GRYB
+            int GenerateFret(GuitarNote note)
+            {
+                return FindClosestAvailableFret(note, note.Fret + random.Next(5) + 1);
+            }
+
+            int FindClosestAvailableFret(GuitarNote note, int targetFret)
+            {
+                bool rotateRight = random.Next(8) >= random.Next(8);
+                for (int i = 0; i < 5; i++)
+                {
+                    int fret = (((targetFret - 1) + (rotateRight ? i : -i)) % 5) + 1;
+                    if (activeNotes[fret] == null && (note.ParentOrSelf.NoteMask & GuitarNote.GetNoteMask(fret)) == 0)
+                        return fret;
+                }
+
+                return 0;
             }
         }
 

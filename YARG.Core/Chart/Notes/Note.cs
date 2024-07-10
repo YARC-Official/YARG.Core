@@ -171,7 +171,7 @@ namespace YARG.Core.Chart
             }
         }
 
-        protected static int GetNoteMask(int note)
+        public static int GetNoteMask(int note)
         {
             // Resulting shift is 1 too high, shifting down by 1 corrects this.
             // Reason for not doing (note - 1) is this breaks open notes. (1 << (0 - 1) == 0x80000000)
