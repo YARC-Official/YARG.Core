@@ -86,7 +86,7 @@ namespace YARG.Core.Chart
                     if (availableFrets.Count < 1)
                     {
                         // Ignore un-shuffleable notes
-                        YargLogger.LogFormatDebug("Cannot shuffle note at {0:0.000} ({1}), removing.", note.Time, note.Tick);
+                        YargLogger.LogFormatWarning("Cannot shuffle note at {0:0.000} ({1}), removing.", note.Time, note.Tick);
                         continue;
                     }
 
