@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using YARG.Core.Extensions;
 using YARG.Core.Logging;
 
 namespace YARG.Core.Chart
@@ -41,87 +42,91 @@ namespace YARG.Core.Chart
             var random = new Random(seed);
             var activeNotes = new GuitarNote?[5 + 1]; // 5 frets, one open note
 
-            foreach (var note in difficulty.Notes)
+            var currentNotes = new List<GuitarNote>();
+            var availableFrets = new List<int>();
+            var selectedFrets = new List<int>();
+
+            foreach (var parent in difficulty.Notes)
             {
+                // Reset state
+                // Must be done first and not last, otherwise skipping a note won't reset state
+                currentNotes.Clear();
+                selectedFrets.Clear();
+                availableFrets.Clear();
+
                 // Clear no-longer-active notes
                 for (int i = 0; i < activeNotes.Length; i++)
                 {
                     if (activeNotes[i] is not {} activeNote)
                         continue; // Already inactive
 
-                    if (!IsFretActive(activeNote, note.Tick))
+                    bool isActive = activeNote.TickLength == 0
+                        ? activeNote.TickEnd == parent.Tick // If the note has no length, its end is inclusive
+                        : activeNote.TickEnd > parent.Tick; // Otherwise, the end is exclusive
+
+                    if (!isActive)
                         activeNotes[i] = null;
                 }
 
-                // Shuffle current chord
-                foreach (var child in note.ChordEnumerator())
+                // Set up grab bag
+                if (activeNotes[1] == null) availableFrets.Add(1);
+                if (activeNotes[2] == null) availableFrets.Add(2);
+                if (activeNotes[3] == null) availableFrets.Add(3);
+                if (activeNotes[4] == null) availableFrets.Add(4);
+                if (activeNotes[5] == null) availableFrets.Add(5);
+                availableFrets.Shuffle(random);
+
+                // Pick a set of random notes for the chord
+                foreach (var note in parent.ChordEnumerator())
                 {
                     // Don't shuffle open notes
-                    if (child.Fret == 0)
+                    if (note.Fret == 0)
                         continue;
 
-                    // Check for conflicts from a prior extended sustain/disjoint chord being shuffled
-                    if (activeNotes[child.Fret] != null)
+                    if (availableFrets.Count < 1)
                     {
-                        // Find next available spot for the note
-                        int nextFret = FindClosestAvailableFret(child, child.Fret);
-                        if (nextFret != 0)
-                        {
-                            child.Fret = nextFret;
-                        }
-                        // If there's none, no choice but to take the L and overlap
-                        else
-                        {
-                            YargLogger.LogFormatDebug("Unresolvable note overlap at {0:0.000} ({1}) on fret {2} (before shuffle)",
-                                child.Time, child.Tick, child.Fret);
-                        }
+                        // Ignore un-shuffleable notes
+                        YargLogger.LogFormatDebug("Cannot shuffle note at {0:0.000} ({1}), removing.", note.Time, note.Tick);
+                        continue;
                     }
 
-                    int newFret = GenerateFret(child);
-                    if (newFret != 0)
-                    {
-                        // Set new fret and adjust note's active slot
-                        activeNotes[child.Fret] = null;
-                        activeNotes[newFret] = child;
-                        child.Fret = newFret; // Must come after changing the slot
-                    }
-                    // Once again, no choice but to take L the if no spots are available
-                    else
-                    {
-                        YargLogger.LogFormatDebug("Unresolvable note overlap at {0:0.000} ({1}) on fret {2} (after shuffle)",
-                            child.Time, child.Tick, child.Fret);
-                    }
+                    int randomFret = availableFrets.PopRandom(random);
+                    currentNotes.Add(note);
+                    selectedFrets.Add(randomFret);
                 }
-            }
 
-            static bool IsFretActive(GuitarNote note, uint tick)
-            {
-                // If the note has no length, its end is inclusive
-                if (note.TickLength == 0)
-                    return note.TickEnd == tick;
-
-                // Otherwise, the end is exclusive
-                return note.TickEnd > tick;
-            }
-
-            // TODO: 3/4 note chords seem to have a bias towards being on the left side
-            // Almost all 4-note chords get shuffled to GRYB
-            int GenerateFret(GuitarNote note)
-            {
-                return FindClosestAvailableFret(note, note.Fret + random.Next(5) + 1);
-            }
-
-            int FindClosestAvailableFret(GuitarNote note, int targetFret)
-            {
-                bool rotateRight = random.Next(8) >= random.Next(8);
-                for (int i = 0; i < 5; i++)
+                // Remove any notes that didn't make the cut
+                for (int i = 0; i < parent.ChildNotes.Count; i++)
                 {
-                    int fret = (((targetFret - 1) + (rotateRight ? i : -i)) % 5) + 1;
-                    if (activeNotes[fret] == null && (note.ParentOrSelf.NoteMask & GuitarNote.GetNoteMask(fret)) == 0)
-                        return fret;
+                    var child = parent.ChildNotes[i];
+                    if (!currentNotes.Contains(child))
+                        parent.RemoveChildNote(child);
                 }
 
-                return 0;
+                // Skip open notes and 5-note chords
+                if (currentNotes.Count < 1 || currentNotes.Count >= 5)
+                    continue;
+
+                // Sort notes/frets to prepare for the next step
+                currentNotes.Sort((left, right) => left.Fret.CompareTo(right.Fret));
+                selectedFrets.Sort();
+
+                // Push all notes to the right, to prevent intermediate overlaps
+                for (int i = 0; i < currentNotes.Count; i++)
+                {
+                    currentNotes[^(i + 1)].Fret = 5 - i;
+                }
+
+                // Apply shuffled frets
+                YargLogger.Assert(currentNotes.Count == selectedFrets.Count);
+                for (int i = 0; i < selectedFrets.Count; i++)
+                {
+                    int fret = selectedFrets[i];
+                    var note = currentNotes[i];
+
+                    note.Fret = fret;
+                    activeNotes[fret] = note;
+                }
             }
         }
 

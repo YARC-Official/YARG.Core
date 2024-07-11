@@ -74,6 +74,13 @@ namespace YARG.Core.Chart
             _childNotes.Add(note);
         }
 
+        public virtual void RemoveChildNote(TNote note)
+        {
+            if (!_childNotes.Remove(note))
+                throw new InvalidOperationException("Child note being removed is not part of this note!");
+            note.Parent = null;
+        }
+
         public IEnumerable<TNote> ChordEnumerator()
         {
             yield return (TNote) this;
