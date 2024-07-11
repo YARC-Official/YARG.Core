@@ -1,14 +1,15 @@
-using System;
+﻿using System;
 using YARG.Core.Chart;
 using YARG.Core.Logging;
 using YARG.TestConsole;
 
 #pragma warning disable CS8321 // Local function is declared but never used
 
-// Temporary console app for quick and dirty testing
+// Simple console app for quick and dirty testing
 // Changes to this generally shouldn't be committed, but common test procedures are fine to keep around
 
-YargLogger.AddLogListener(new ConsoleYargLogListener());
+YargLogger.MinimumLogLevel = LogLevel.Debug;
+YargLogger.AddLogListener(new DebugYargLogListener());
 
 Console.WriteLine();
 Console.WriteLine("Press any key to continue...");
