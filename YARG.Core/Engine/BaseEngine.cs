@@ -58,6 +58,8 @@ namespace YARG.Core.Engine
 
         protected List<SoloSection> Solos = new();
 
+        protected List<WaitCountdown> WaitCountdowns = new();
+
         protected readonly Queue<GameInput> InputQueue = new();
 
         protected readonly List<SyncTrackChange> SyncTrackChanges = new();
