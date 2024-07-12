@@ -99,7 +99,7 @@ namespace YARG.Core.Chart
                 for (int i = 0; i < parent.ChildNotes.Count; i++)
                 {
                     var child = parent.ChildNotes[i];
-                    if (!currentNotes.Contains(child))
+                    if (!currentNotes.Contains(child) && child.Fret != 0) // Don't remove open notes
                         parent.RemoveChildNote(child);
                 }
 
