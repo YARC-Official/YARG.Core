@@ -46,6 +46,11 @@ namespace YARG.Core.Chart
             var availableFrets = new List<int>();
             var selectedFrets = new List<int>();
 
+            double lastNoteTime = 0;
+            int lastNoteCount = 0;
+            int lastOriginalMask = 0;
+            int lastShuffledMask = 0;
+
             foreach (var parent in difficulty.Notes)
             {
                 // Reset state
@@ -76,22 +81,83 @@ namespace YARG.Core.Chart
                 if (activeNotes[5] == null) availableFrets.Add(5);
                 availableFrets.Shuffle(random);
 
-                // Pick a set of random notes for the chord
+                // Retrieve notes to shuffle
                 foreach (var note in parent.ChordEnumerator())
                 {
                     // Don't shuffle open notes
                     if (note.Fret == 0)
                         continue;
 
+                    currentNotes.Add(note);
+                }
+
+                static double Falloff(double x, double rate, double offset)
+                {
+                    // Falloff is exponential with respect to `x` and `rate`:
+                    // - Rate of 2^0 (1) = no falloff
+                    // - Rate of 2^1 (2) = half-life reached at 1
+                    // - Rate of 2^2 (4) = half-life reached at 0.5
+                    // - Rate of 2^3 (8) = half-life reached at 0.333...
+                    // - Rate of 2^4 (16) = half-life reached at 0.25
+                    // https://www.desmos.com/calculator/ydezyo9tou
+                    return Math.Pow(rate, -x + offset);
+                }
+
+                static double DistanceWeight(double deltaTime, int minChance, int maxChance)
+                {
+                    const double offset = 0.1;
+                    const int falloffPower = 16; // Half-life reached at 0.0625 (0.1625 after offset is applied)
+
+                    double falloffRate = Math.Pow(2, falloffPower);
+                    double falloff = Falloff(deltaTime, falloffRate, offset);
+                    return YargMath.LerpClamped(minChance, maxChance, falloff);
+                }
+
+                int originalMask = parent.NoteMask;
+                double deltaTime = parent.Time - lastNoteTime;
+
+                if (currentNotes.Count == lastNoteCount && originalMask == lastOriginalMask)
+                {
+                    // Prefer to make consecutive same-fret notes still be consecutive
+                    if (random.Next(100) < DistanceWeight(deltaTime, 60, 100))
+                    {
+                        for (int i = 1; i <= 5; i++)
+                        {
+                            if ((lastShuffledMask & GuitarNote.GetNoteMask(i)) != 0)
+                                selectedFrets.Add(i);
+                        }
+                    }
+                }
+                else
+                {
+                    // Prefer to keep different single notes different
+                    if (currentNotes.Count == 1 && lastShuffledMask.CountBits(5) == 1 &&
+                        random.Next(100) <= DistanceWeight(deltaTime, 60, 90))
+                    {
+                        for (int i = 1; i <= 5; i++)
+                        {
+                            if ((lastShuffledMask & GuitarNote.GetNoteMask(i)) != 0)
+                                availableFrets.Remove(i);
+                        }
+                    }
+                }
+
+                lastNoteTime = parent.Time;
+                lastNoteCount = currentNotes.Count;
+                lastOriginalMask = originalMask;
+
+                // Pick a set of random notes for the chord
+                for (int i = selectedFrets.Count; i < currentNotes.Count; i++)
+                {
                     if (availableFrets.Count < 1)
                     {
                         // Ignore un-shuffleable notes
+                        var note = currentNotes[i];
                         YargLogger.LogFormatWarning("Cannot shuffle note at {0:0.000} ({1}), removing.", note.Time, note.Tick);
                         continue;
                     }
 
                     int randomFret = availableFrets.PopRandom(random);
-                    currentNotes.Add(note);
                     selectedFrets.Add(randomFret);
                 }
 
@@ -127,6 +193,8 @@ namespace YARG.Core.Chart
                     note.Fret = fret;
                     activeNotes[fret] = note;
                 }
+
+                lastShuffledMask = parent.NoteMask;
             }
         }
 
