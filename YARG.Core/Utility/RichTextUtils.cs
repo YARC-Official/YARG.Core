@@ -249,10 +249,9 @@ namespace YARG.Core.Utility
                     builder.Append(span[position..text.Length]);
                     break;
                 }
-                ++close;
 
                 bool found = false;
-                var tag = span[(open + 1)..(close - 1)];
+                var tag = span[(open + 1)..close];
                 if (tag.StartsWith("color="))
                 {
                     tag = tag[6..].TrimOnce('"');
@@ -270,7 +269,7 @@ namespace YARG.Core.Utility
 
                 if (!found)
                 {
-                    builder.Append(span[position..close]);
+                    builder.Append(span[position..(close + 1)]);
                 }
             }
             return builder.ToString();
