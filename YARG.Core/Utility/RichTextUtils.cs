@@ -238,9 +238,9 @@ namespace YARG.Core.Utility
         {
             using var builder = ZString.CreateStringBuilder(notNested: true);
             var span = text.AsSpan();
-            for (int position = 0, close; position < span.Length; position = close)
+            for (int position = 0, nextPosition; position < span.Length; position = nextPosition)
             {
-                if (!ParseHTMLBounds(text, position, out int open, out close))
+                if (!ParseHTMLBounds(text, position, out int open, out int close))
                 {
                     if (position == 0)
                     {
@@ -249,6 +249,8 @@ namespace YARG.Core.Utility
                     builder.Append(span[position..text.Length]);
                     break;
                 }
+
+                nextPosition = close + 1;
 
                 bool found = false;
                 var tag = span[(open + 1)..close];
