@@ -112,9 +112,13 @@ namespace YARG.Core.IO
             // a valid memory space.
 
             // while (container.Position < container.End && container.Position->ToInt32(null) <= 32)
-            TChar c;
-            while (container.Position < container.End && (c = *container.Position).ToInt32(null) <= 32)
+            while (container.Position < container.End)
             {
+                var c = *container.Position;
+                if (c.ToInt32(null) > 32)
+                {
+                    break;
+                }
                 ++container.Position;
             }
         }
