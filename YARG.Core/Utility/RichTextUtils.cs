@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Cysharp.Text;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.Utility
 {
@@ -209,28 +210,28 @@ namespace YARG.Core.Utility
 
         private static (string Original, string Replacement)[] COLOR_TO_HEX_LIST =
         {
-            ( "aqua>",      "<color=#00ffff>" ),
-            ( "black>",     "<color=#000000>" ),
-            ( "blue>",      "<color=#0000ff>" ),
-            ( "brown>",     "<color=#a52a2a>" ),
-            ( "cyan>",      "<color=#00ffff>" ),
-            ( "darkblue>",  "<color=#0000a0>" ),
-            ( "fuchsia>",   "<color=#ff00ff>" ),
-            ( "green>",     "<color=#008000>" ),
-            ( "grey>",      "<color=#808080>" ),
-            ( "lightblue>", "<color=#add8e6>" ),
-            ( "lime>",      "<color=#00ff00>" ),
-            ( "magenta>",   "<color=#ff00ff>" ),
-            ( "maroon>",    "<color=#800000>" ),
-            ( "navy>",      "<color=#000080>" ),
-            ( "olive>",     "<color=#808000>" ),
-            ( "orange>",    "<color=#ffa500>" ),
-            ( "purple>",    "<color=#800080>" ),
-            ( "red>",       "<color=#ff0000>" ),
-            ( "silver>",    "<color=#c0c0c0>" ),
-            ( "teal>",      "<color=#008080>" ),
-            ( "white>",     "<color=#ffffff>" ),
-            ( "yellow>",    "<color=#ffff00>" ),
+            ( "aqua",      "<color=#00ffff>" ),
+            ( "black",     "<color=#000000>" ),
+            ( "blue",      "<color=#0000ff>" ),
+            ( "brown",     "<color=#a52a2a>" ),
+            ( "cyan",      "<color=#00ffff>" ),
+            ( "darkblue",  "<color=#0000a0>" ),
+            ( "fuchsia",   "<color=#ff00ff>" ),
+            ( "green",     "<color=#008000>" ),
+            ( "grey",      "<color=#808080>" ),
+            ( "lightblue", "<color=#add8e6>" ),
+            ( "lime",      "<color=#00ff00>" ),
+            ( "magenta",   "<color=#ff00ff>" ),
+            ( "maroon",    "<color=#800000>" ),
+            ( "navy",      "<color=#000080>" ),
+            ( "olive",     "<color=#808000>" ),
+            ( "orange",    "<color=#ffa500>" ),
+            ( "purple",    "<color=#800080>" ),
+            ( "red",       "<color=#ff0000>" ),
+            ( "silver",    "<color=#c0c0c0>" ),
+            ( "teal",      "<color=#008080>" ),
+            ( "white",     "<color=#ffffff>" ),
+            ( "yellow",    "<color=#ffff00>" ),
         };
 
         public static string ReplaceColorNames(string text)
@@ -251,10 +252,10 @@ namespace YARG.Core.Utility
                 ++close;
 
                 bool found = false;
-                var tag = span[open..close];
-                if (tag.StartsWith("<color="))
+                var tag = span[(open + 1)..(close - 1)];
+                if (tag.StartsWith("color="))
                 {
-                    tag = tag[7..];
+                    tag = tag[6..].TrimOnce('"');
                     foreach (var (original, replacement) in COLOR_TO_HEX_LIST)
                     {
                         if (tag.SequenceEqual(original))
