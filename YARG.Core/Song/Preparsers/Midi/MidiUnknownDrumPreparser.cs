@@ -21,7 +21,7 @@ namespace YARG.Core.Song
             return (preparser.validations, preparser.type);
         }
 
-        protected override bool IsFullyScanned() { return validations == ALL_DIFFICULTIES_PLUS && type != DrumsType.FourLane; }
+        protected override bool IsFullyScanned() { return validations == ALL_DIFFICULTIES_PLUS && (type == DrumsType.FiveLane || type == DrumsType.ProDrums); }
         protected override bool IsNote() { return DEFAULT_MIN <= note.value && note.value <= FIVELANE_MAX; }
 
         protected override bool ParseLaneColor_ON(YARGMidiTrack track)
