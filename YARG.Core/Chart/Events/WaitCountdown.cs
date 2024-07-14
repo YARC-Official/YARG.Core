@@ -20,13 +20,13 @@ namespace YARG.Core.Chart
         {
             _measureBeatlines = measureBeatlines;
 
-            var firstVisibleCountdownMeasure = measureBeatlines[0];
-            var lastVisibleCountdownMeasure = measureBeatlines[^(END_COUNTDOWN_MEASURE + 1)];
+            var firstCountdownMeasure = measureBeatlines[0];
+            var lastCountdownMeasure = measureBeatlines[^1];
 
-            Time = firstVisibleCountdownMeasure.Time;
-            Tick = firstVisibleCountdownMeasure.Tick;
-            TimeLength = lastVisibleCountdownMeasure.Time - Time;
-            TickLength = lastVisibleCountdownMeasure.Tick - Tick;
+            Time = firstCountdownMeasure.Time;
+            Tick = firstCountdownMeasure.Tick;
+            TimeLength = lastCountdownMeasure.Time - Time;
+            TickLength = lastCountdownMeasure.Tick - Tick;
 
             MeasuresLeft = TotalMeasures;
         }

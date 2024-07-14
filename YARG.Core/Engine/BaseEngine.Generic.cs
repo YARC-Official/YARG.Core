@@ -235,7 +235,7 @@ namespace YARG.Core.Engine
 
                     UpdateCountdown(newMeasuresLeft, Math.Clamp(progress, 0, 1));
 
-                    if (newMeasuresLeft <= WaitCountdown.END_COUNTDOWN_MEASURE)
+                    if (newMeasuresLeft <= 0)
                     {
                         State.IsWaitCountdownActive = false;
                         YargLogger.LogFormatDebug("Countdown {0} deactivated at time {1}. Expected time: {2}", State.CurrentWaitCountdownIndex, time, activeCountdown.TimeEnd);
