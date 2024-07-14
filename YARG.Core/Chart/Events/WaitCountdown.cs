@@ -51,13 +51,5 @@ namespace YARG.Core.Chart
 
             return newMeasuresLeft;
         }
-
-        public double GetNextUpdateTime()
-        {
-            int nextMeasureIndex = TotalMeasures - MeasuresLeft;
-            double nextUpdateTime = _measureBeatlines[nextMeasureIndex].Time;
-
-            return Math.Min(nextUpdateTime, TimeEnd);
-        }
     }
 }

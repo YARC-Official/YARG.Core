@@ -33,11 +33,7 @@ namespace YARG.Core.Engine
 
         public delegate void StarPowerPhraseMissEvent(TNoteType note);
 
-        public delegate void SustainStartEvent(TNoteType note);
-
-        public delegate void SustainEndEvent(TNoteType note, double timeEnded, bool finished);
-
-        public delegate void CountdownChangeEvent(int measuresLeft);
+        public delegate void CountdownChangeEvent(int measuresLeft, float progress);
 
         public NoteHitEvent?    OnNoteHit;
         public NoteMissedEvent? OnNoteMissed;
@@ -173,12 +169,12 @@ namespace YARG.Core.Engine
                 
                 if (State.IsWaitCountdownActive)
                 {
-                    double changeTime = currentCountdown.GetNextUpdateTime();
+                    double countdownEndTime = currentCountdown.TimeEnd;
 
-                    if (IsTimeBetween(changeTime, previousTime, nextTime))
+                    if (IsTimeBetween(countdownEndTime, previousTime, nextTime))
                     {
-                        YargLogger.LogFormatDebug("Queuing countdown update time at {0}", changeTime);
-                        QueueUpdateTime(changeTime, "Update Countdown");
+                        YargLogger.LogFormatDebug("Queuing countdown end time at {0}", countdownEndTime);
+                        QueueUpdateTime(countdownEndTime, "End Countdown");
                     }
                 }
                 else if (IsTimeBetween(currentCountdown.Time, previousTime, nextTime))
@@ -233,19 +229,17 @@ namespace YARG.Core.Engine
                 {
                     var activeCountdown = WaitCountdowns[State.CurrentWaitCountdownIndex];
                     
-                    int lastMeasuresLeft = activeCountdown.MeasuresLeft;
                     int newMeasuresLeft = activeCountdown.CalculateMeasuresLeft(State.CurrentTick);
 
-                    if (newMeasuresLeft != lastMeasuresLeft)
-                    {
-                        UpdateCountdown(newMeasuresLeft);
+                    float progress = (State.CurrentTick - activeCountdown.Tick) / (float) activeCountdown.TickLength;
 
-                        if (newMeasuresLeft <= WaitCountdown.END_COUNTDOWN_MEASURE)
-                        {
-                            State.IsWaitCountdownActive = false;
-                            YargLogger.LogFormatDebug("Countdown {0} deactivated at time {1}. Expected time: {2}", State.CurrentWaitCountdownIndex, time, activeCountdown.TimeEnd);
-                            State.CurrentWaitCountdownIndex++;
-                        }
+                    UpdateCountdown(newMeasuresLeft, Math.Clamp(progress, 0, 1));
+
+                    if (newMeasuresLeft <= WaitCountdown.END_COUNTDOWN_MEASURE)
+                    {
+                        State.IsWaitCountdownActive = false;
+                        YargLogger.LogFormatDebug("Countdown {0} deactivated at time {1}. Expected time: {2}", State.CurrentWaitCountdownIndex, time, activeCountdown.TimeEnd);
+                        State.CurrentWaitCountdownIndex++;
                     }
                 }
             }
@@ -473,57 +467,14 @@ namespace YARG.Core.Engine
             State.CurrentSoloIndex++;
         }
 
-        protected override void UpdateProgressValues(uint tick)
-        {
-            base.UpdateProgressValues(tick);
-
-            EngineStats.PendingScore = 0;
-            for (int i = 0; i < ActiveSustains.Count; i++)
-            {
-                ref var sustain = ref ActiveSustains[i];
-                EngineStats.PendingScore += (int) CalculateSustainPoints(ref sustain, tick);
-            }
-        }
-
-        protected override void RebaseProgressValues(uint baseTick)
-        {
-            base.RebaseProgressValues(baseTick);
-            RebaseSustains(baseTick);
-        }
-
-        protected void RebaseSustains(uint baseTick)
-        {
-            EngineStats.PendingScore = 0;
-            for (int i = 0; i < ActiveSustains.Count; i++)
-            {
-                ref var sustain = ref ActiveSustains[i];
-                // Don't rebase sustains that haven't started yet
-                if (baseTick < sustain.BaseTick)
-                {
-                    YargLogger.AssertFormat(baseTick < sustain.Note.Tick,
-                        "Sustain base tick cannot go backwards! Attempted to go from {0} to {1}",
-                        sustain.BaseTick, baseTick);
-
-                    continue;
-                }
-
-                double sustainScore = CalculateSustainPoints(ref sustain, baseTick);
-
-                sustain.BaseTick = Math.Clamp(baseTick, sustain.Note.Tick, sustain.Note.TickEnd);
-                sustain.BaseScore = sustainScore;
-                EngineStats.PendingScore += (int) sustainScore;
-            }
-        }
-
-        protected void UpdateCountdown(int measuresRemaining)
+        protected void UpdateCountdown(int measuresLeft, float progress)
         {
             if (!State.IsWaitCountdownActive)
             {
                 return;
             }
 
-            YargLogger.LogFormatDebug("Updating countdown at {0}. Measures: {1}", State.CurrentTime, measuresRemaining);
-            OnCountdownChange?.Invoke(measuresRemaining);
+            OnCountdownChange?.Invoke(measuresLeft, progress);
         }
 
         public sealed override (double FrontEnd, double BackEnd) CalculateHitWindow()
