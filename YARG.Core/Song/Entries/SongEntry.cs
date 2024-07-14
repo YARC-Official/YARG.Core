@@ -11,6 +11,7 @@ namespace YARG.Core.Song
     {
         Success,
         DirectoryError,
+        DuplicateFilesFound,
         IniEntryCorruption,
         IniNotDownloaded,
         ChartNotDownloaded,
@@ -31,7 +32,7 @@ namespace YARG.Core.Song
         MultipleMidiTrackNames_Update,
         MultipleMidiTrackNames_Upgrade,
 
-        LooseChart_Warning
+        LooseChart_Warning,
     }
 
     /// <summary>

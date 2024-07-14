@@ -302,6 +302,10 @@ namespace YARG.Core.Song.Cache
                     case ScanResult.DirectoryError:
                         writer.WriteLine("Error accessing directory contents");
                         break;
+                    case ScanResult.DuplicateFilesFound:
+                        writer.WriteLine("Multiple sub files or directories that share the same name found in this location.");
+                        writer.WriteLine("You must rename or remove all duplicates before they will be processed.");
+                        break;
                     case ScanResult.IniEntryCorruption:
                         writer.WriteLine("Corruption of either the ini file or chart/mid file");
                         break;
@@ -357,7 +361,8 @@ namespace YARG.Core.Song.Cache
                         writer.WriteLine("At least one track fails midi spec for containing multiple unique track names (thus making it ambiguous) - Thrown by a pro guitar upgrade");
                         break;
                     case ScanResult.LooseChart_Warning:
-                        writer.WriteLine("Further subdirectory traversal halted by a possibly loose chart. To fix, if desired, place the loose chart files in their own dedicated folder.");
+                        writer.WriteLine("Loose chart files halted all traversal into the subdirectories at this location.");
+                        writer.WriteLine("To fix, if desired, place the loose chart files in a separate dedicated folder.");
                         break;
                 }
                 writer.WriteLine();
@@ -636,6 +641,10 @@ namespace YARG.Core.Song.Cache
                         }
                 }
                 TraverseDirectory(collection, group, tracker.Append(directory.Name));
+                if (collection.ContainedDupes)
+                {
+                    AddToBadSongs(collection.Directory.FullName, ScanResult.DuplicateFilesFound);
+                }
             }
             catch (PathTooLongException)
             {

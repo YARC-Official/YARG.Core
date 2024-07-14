@@ -10,6 +10,7 @@ namespace YARG.Core.Song.Cache
         public readonly DirectoryInfo Directory;
         public readonly Dictionary<string, FileInfo> Subfiles;
         public readonly Dictionary<string, DirectoryInfo> SubDirectories;
+        public readonly bool ContainedDupes;
 
         internal static bool TryCollect(string directory, out FileCollection collection)
         {
@@ -28,19 +29,39 @@ namespace YARG.Core.Song.Cache
             Directory = directory;
             Subfiles = new();
             SubDirectories = new();
+            var dupedFiles = new HashSet<string>();
+            var dupedDirectories = new HashSet<string>();
 
             foreach (var info in directory.EnumerateFileSystemInfos())
             {
-                string name = info.Name.ToLower();
+                string name = info.Name.ToLowerInvariant();
                 switch (info)
                 {
                     case FileInfo subFile:
-                        Subfiles.Add(name, subFile);
+                        if (!Subfiles.TryAdd(name, subFile))
+                        {
+                            dupedFiles.Add(name);
+                        }
                         break;
                     case DirectoryInfo subDirectory:
-                        SubDirectories.Add(name, subDirectory);
+                        if (!SubDirectories.TryAdd(name, subDirectory))
+                        {
+                            dupedDirectories.Add(name);
+                        }
                         break;
                 }
+            }
+
+            // Removes any sort of ambiguity from duplicates
+            ContainedDupes = dupedFiles.Count > 0 || dupedDirectories.Count > 0;
+            foreach (var dupe in dupedFiles)
+            {
+                Subfiles.Remove(dupe);
+            }
+
+            foreach (var dupe in dupedDirectories)
+            {
+                SubDirectories.Remove(dupe);
             }
         }
 
