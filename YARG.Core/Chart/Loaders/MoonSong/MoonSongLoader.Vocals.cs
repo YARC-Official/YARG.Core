@@ -200,9 +200,12 @@ namespace YARG.Core.Chart
         {
             var ranges = new List<VocalsRangeShift>();
 
-            // Do nothing if no phrases were parsed in
             if (parts.All((part) => part.NotePhrases.Count < 1))
+            {
+                // No phrases; add a dummy default range
+                ranges.Add(new(48, 72, 0, 0, 0, 0));
                 return ranges;
+            }
 
             double shiftLength = 0;
             uint shiftStartTick = 0;
