@@ -5,10 +5,14 @@ namespace YARG.Core.Song
 {
     public class Midi_Vocal_Preparser : Midi_Preparser
     {
-        private const int VOACAL_MIN = 36;
+        private const int VOCAL_PHRASE_1 = 105;
+        private const int VOCAL_PHRASE_2 = 106;
+
+        private const int VOCAL_MIN = 36;
         private const int VOCAL_MAX = 84;
         private const int PERCUSSION_NOTE = 96;
 
+        private bool phrase = false;
         private bool vocal = false;
         private bool lyric = false;
         private bool percussion = false;
@@ -33,22 +37,37 @@ namespace YARG.Core.Song
 
         protected override bool ParseNote_ON(YARGMidiTrack track)
         {
-            if (VOACAL_MIN <= note.value && note.value <= VOCAL_MAX)
+            switch (note.value)
             {
-                if (vocal && lyric)
-                    return true;
-                vocal = true;
+                case >= VOCAL_MIN and <= VOCAL_MAX:
+                    vocal = true;
+                    break;
+
+                case PERCUSSION_NOTE:
+                    percussion = checkForPercussion;
+                    break;
+
+                case VOCAL_PHRASE_1 or VOCAL_PHRASE_2:
+                    phrase = true;
+                    break;
+
+                default:
+                    return false;
             }
-            else if (checkForPercussion && note.value == PERCUSSION_NOTE)
-                percussion = true;
-            return false;
+
+            return IsFullyScanned();
         }
 
         protected override bool ParseNote_Off(YARGMidiTrack track)
         {
-            if (VOACAL_MIN <= note.value && note.value <= VOCAL_MAX)
-                return vocal && lyric;
-            return checkForPercussion && note.value == PERCUSSION_NOTE && percussion;
+            return note.value switch
+            {
+                (>= VOCAL_MIN and <= VOCAL_MAX) or
+                    PERCUSSION_NOTE or
+                    VOCAL_PHRASE_1 or
+                    VOCAL_PHRASE_2 => IsFullyScanned(),
+                _ => false
+            };
         }
 
         protected override void ParseText(ReadOnlySpan<byte> str)
@@ -56,5 +75,14 @@ namespace YARG.Core.Song
             if (str.Length == 0 || str[0] != '[')
                 lyric = true;
         }
+
+        private bool IsFullyScanned() =>
+            // There must be at least one phrase marker
+            phrase && (
+                // In addition, there must be a vocal note and corresponding lyric...
+                (vocal && lyric) ||
+                // OR a percussion note
+                (checkForPercussion && percussion)
+            );
     }
 }
