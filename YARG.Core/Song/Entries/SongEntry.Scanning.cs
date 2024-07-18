@@ -28,33 +28,33 @@ namespace YARG.Core.Song
 
                 switch (type)
                 {
-                    case MidiTrackType.Guitar_5: if (!parts.FiveFretGuitar.WasParsed())     parts.FiveFretGuitar.Difficulties      = Midi_FiveFret_Preparser.Parse(track); break;
-                    case MidiTrackType.Bass_5:   if (!parts.FiveFretBass.WasParsed())       parts.FiveFretBass.Difficulties        = Midi_FiveFret_Preparser.Parse(track); break;
-                    case MidiTrackType.Rhythm_5: if (!parts.FiveFretRhythm.WasParsed())     parts.FiveFretRhythm.Difficulties      = Midi_FiveFret_Preparser.Parse(track); break;
-                    case MidiTrackType.Coop_5:   if (!parts.FiveFretCoopGuitar.WasParsed()) parts.FiveFretCoopGuitar.Difficulties  = Midi_FiveFret_Preparser.Parse(track); break;
-                    case MidiTrackType.Keys:     if (!parts.Keys.WasParsed()) parts.Keys.Difficulties                = Midi_FiveFret_Preparser.Parse(track); break;
+                    case MidiTrackType.Guitar_5: if (!parts.FiveFretGuitar.WasParsed())     parts.FiveFretGuitar.Difficulties     = Midi_FiveFret_Preparser.Parse(track); break;
+                    case MidiTrackType.Bass_5:   if (!parts.FiveFretBass.WasParsed())       parts.FiveFretBass.Difficulties       = Midi_FiveFret_Preparser.Parse(track); break;
+                    case MidiTrackType.Rhythm_5: if (!parts.FiveFretRhythm.WasParsed())     parts.FiveFretRhythm.Difficulties     = Midi_FiveFret_Preparser.Parse(track); break;
+                    case MidiTrackType.Coop_5:   if (!parts.FiveFretCoopGuitar.WasParsed()) parts.FiveFretCoopGuitar.Difficulties = Midi_FiveFret_Preparser.Parse(track); break;
+                    case MidiTrackType.Keys:     if (!parts.Keys.WasParsed())               parts.Keys.Difficulties               = Midi_FiveFret_Preparser.Parse(track); break;
 
-                    case MidiTrackType.Guitar_6: if (!parts.SixFretGuitar.WasParsed())      parts.SixFretGuitar.Difficulties       = Midi_SixFret_Preparser.Parse(track); break;
-                    case MidiTrackType.Bass_6:   if (!parts.SixFretBass.WasParsed())        parts.SixFretBass.Difficulties         = Midi_SixFret_Preparser.Parse(track); break;
-                    case MidiTrackType.Rhythm_6: if (!parts.SixFretRhythm.WasParsed())      parts.SixFretRhythm.Difficulties       = Midi_SixFret_Preparser.Parse(track); break;
-                    case MidiTrackType.Coop_6:   if (!parts.SixFretCoopGuitar.WasParsed()) parts.SixFretCoopGuitar.Difficulties   = Midi_SixFret_Preparser.Parse(track); break;
+                    case MidiTrackType.Guitar_6: if (!parts.SixFretGuitar.WasParsed())      parts.SixFretGuitar.Difficulties      = Midi_SixFret_Preparser.Parse(track); break;
+                    case MidiTrackType.Bass_6:   if (!parts.SixFretBass.WasParsed())        parts.SixFretBass.Difficulties        = Midi_SixFret_Preparser.Parse(track); break;
+                    case MidiTrackType.Rhythm_6: if (!parts.SixFretRhythm.WasParsed())      parts.SixFretRhythm.Difficulties      = Midi_SixFret_Preparser.Parse(track); break;
+                    case MidiTrackType.Coop_6:   if (!parts.SixFretCoopGuitar.WasParsed())  parts.SixFretCoopGuitar.Difficulties  = Midi_SixFret_Preparser.Parse(track); break;
 
                     case MidiTrackType.Drums: drums.ParseMidi(track); break;
 
-                    case MidiTrackType.Pro_Guitar_17: if (!parts.ProGuitar_17Fret.WasParsed())   parts.ProGuitar_17Fret.Difficulties = Midi_ProGuitar_Preparser.Parse_17Fret(track); break;
-                    case MidiTrackType.Pro_Guitar_22: if (!parts.ProGuitar_22Fret.WasParsed())   parts.ProGuitar_22Fret.Difficulties = Midi_ProGuitar_Preparser.Parse_22Fret(track); break;
-                    case MidiTrackType.Pro_Bass_17:   if (!parts.ProBass_17Fret.WasParsed())     parts.ProBass_17Fret.Difficulties   = Midi_ProGuitar_Preparser.Parse_17Fret(track); break;
-                    case MidiTrackType.Pro_Bass_22:   if (!parts.ProBass_22Fret.WasParsed()) parts.ProBass_22Fret.Difficulties   = Midi_ProGuitar_Preparser.Parse_22Fret(track); break;
+                    case MidiTrackType.Pro_Guitar_17: if (!parts.ProGuitar_17Fret.WasParsed()) parts.ProGuitar_17Fret.Difficulties = Midi_ProGuitar_Preparser.Parse_17Fret(track); break;
+                    case MidiTrackType.Pro_Guitar_22: if (!parts.ProGuitar_22Fret.WasParsed()) parts.ProGuitar_22Fret.Difficulties = Midi_ProGuitar_Preparser.Parse_22Fret(track); break;
+                    case MidiTrackType.Pro_Bass_17:   if (!parts.ProBass_17Fret.WasParsed())   parts.ProBass_17Fret.Difficulties   = Midi_ProGuitar_Preparser.Parse_17Fret(track); break;
+                    case MidiTrackType.Pro_Bass_22:   if (!parts.ProBass_22Fret.WasParsed())   parts.ProBass_22Fret.Difficulties   = Midi_ProGuitar_Preparser.Parse_22Fret(track); break;
 
                     case MidiTrackType.Pro_Keys_E: if (!parts.ProKeys[Difficulty.Easy]   && Midi_ProKeys_Preparser.Parse(track)) parts.ProKeys.SetDifficulty(Difficulty.Easy); break;
                     case MidiTrackType.Pro_Keys_M: if (!parts.ProKeys[Difficulty.Medium] && Midi_ProKeys_Preparser.Parse(track)) parts.ProKeys.SetDifficulty(Difficulty.Medium); break;
                     case MidiTrackType.Pro_Keys_H: if (!parts.ProKeys[Difficulty.Hard]   && Midi_ProKeys_Preparser.Parse(track)) parts.ProKeys.SetDifficulty(Difficulty.Hard); break;
                     case MidiTrackType.Pro_Keys_X: if (!parts.ProKeys[Difficulty.Expert] && Midi_ProKeys_Preparser.Parse(track)) parts.ProKeys.SetDifficulty(Difficulty.Expert); break;
 
-                    case MidiTrackType.Vocals: if (!parts.LeadVocals[0]    && Midi_Vocal_Preparser.ParseLeadTrack(track))    parts.LeadVocals.SetSubtrack(0); break;
-                    case MidiTrackType.Harm1:  if (!parts.HarmonyVocals[0] && Midi_Vocal_Preparser.ParseLeadTrack(track))    parts.HarmonyVocals.SetSubtrack(0); break;
-                    case MidiTrackType.Harm2:  if (!parts.HarmonyVocals[1] && Midi_Vocal_Preparser.ParseHarmonyTrack(track)) parts.HarmonyVocals.SetSubtrack(1); break;
-                    case MidiTrackType.Harm3:  if (!parts.HarmonyVocals[2] && Midi_Vocal_Preparser.ParseHarmonyTrack(track)) parts.HarmonyVocals.SetSubtrack(2); break;
+                    case MidiTrackType.Vocals: if (!parts.LeadVocals[0]    && Midi_Vocal_Preparser.Parse(track, true))  parts.LeadVocals.SetSubtrack(0); break;
+                    case MidiTrackType.Harm1:  if (!parts.HarmonyVocals[0] && Midi_Vocal_Preparser.Parse(track, true))  parts.HarmonyVocals.SetSubtrack(0); break;
+                    case MidiTrackType.Harm2:  if (!parts.HarmonyVocals[1] && Midi_Vocal_Preparser.Parse(track, false)) parts.HarmonyVocals.SetSubtrack(1); break;
+                    case MidiTrackType.Harm3:  if (!parts.HarmonyVocals[2] && Midi_Vocal_Preparser.Parse(track, false)) parts.HarmonyVocals.SetSubtrack(2); break;
                 }
             }
             return true;

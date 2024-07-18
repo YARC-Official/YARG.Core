@@ -2,80 +2,86 @@
 
 namespace YARG.Core.Song
 {
-    public class Midi_ProGuitar_Preparser : Midi_Instrument_Preparser
+    public static class Midi_ProGuitar_Preparser
     {
         private const int NOTES_PER_DIFFICULTY = 24;
-        private const int PROGUITAR_MAX = PROGUITAR_MIN + NUM_DIFFICULTIES * NOTES_PER_DIFFICULTY;
+        private const int PROGUITAR_MAX = PROGUITAR_MIN + MidiPreparser_Constants.NUM_DIFFICULTIES * NOTES_PER_DIFFICULTY;
         private const int PROGUITAR_MIN = 24;
         private const int NUM_STRINGS = 6;
         private const int MIN_VELOCITY = 100;
         private const int ARPEGGIO_CHANNEL = 1;
-        private static readonly int[] DIFFVALUES = new int[NUM_DIFFICULTIES * NOTES_PER_DIFFICULTY]{
+        private static readonly int[] PROGUITAR_DIFF_INDICES = new int[MidiPreparser_Constants.NUM_DIFFICULTIES * NOTES_PER_DIFFICULTY]{
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
             2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
             3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
         };
-        private static readonly int[] LANEINDICES = new int[NUM_DIFFICULTIES * NOTES_PER_DIFFICULTY]{
+        private static readonly int[] PROGUITAR_LANE_INDICES = new int[MidiPreparser_Constants.NUM_DIFFICULTIES * NOTES_PER_DIFFICULTY]{
             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
         };
 
-        private readonly bool[] diffultyTracker = new bool[NUM_DIFFICULTIES];
-        private readonly bool[,] statuses = new bool[NUM_DIFFICULTIES, NUM_STRINGS];
-        private readonly int maxVelocity;
-
-        private Midi_ProGuitar_Preparser(int maxVelocity)
-        {
-            this.maxVelocity = maxVelocity;
-        }
-
+        private const int MAXVELOCTIY_17 = 117;
         public static DifficultyMask Parse_17Fret(YARGMidiTrack track)
         {
-            Midi_ProGuitar_Preparser preparser = new(117);
-            preparser.Process(track);
-            return preparser.validations;
+            return Parse(track, MAXVELOCTIY_17);
         }
 
+        private const int MAXVELOCITY_22 = 122;
         public static DifficultyMask Parse_22Fret(YARGMidiTrack track)
         {
-            Midi_ProGuitar_Preparser preparser = new(122);
-            preparser.Process(track);
-            return preparser.validations;
+            return Parse(track, MAXVELOCITY_22);
         }
 
-        protected override bool IsNote() { return PROGUITAR_MIN <= note.value && note.value <= PROGUITAR_MAX; }
-
-        protected override bool ParseLaneColor_ON(YARGMidiTrack track)
+        private static unsafe DifficultyMask Parse(YARGMidiTrack track, int maxVelocity)
         {
-            int noteValue = note.value - PROGUITAR_MIN;
-            int diffIndex = DIFFVALUES[noteValue];
-            if (!diffultyTracker[diffIndex])
-            {
-                int laneIndex = LANEINDICES[noteValue];
-                if (laneIndex < NUM_STRINGS && track.Channel != ARPEGGIO_CHANNEL && MIN_VELOCITY <= note.velocity && note.velocity <= maxVelocity)
-                    statuses[diffIndex, laneIndex] = true;
-            }
-            return false;
-        }
+            var validations = default(DifficultyMask);
+            var difficulties = stackalloc bool[MidiPreparser_Constants.NUM_DIFFICULTIES];
+            var statuses = stackalloc bool[MidiPreparser_Constants.NUM_DIFFICULTIES * NUM_STRINGS];
 
-        protected override bool ParseLaneColor_Off(YARGMidiTrack track)
-        {
-            int noteValue = note.value - PROGUITAR_MIN;
-            int diffIndex = DIFFVALUES[noteValue];
-            if (!diffultyTracker[diffIndex])
+            var note = default(MidiNote);
+            while (track.ParseEvent())
             {
-                int laneIndex = LANEINDICES[noteValue];
-                if (laneIndex < NUM_STRINGS && track.Channel != ARPEGGIO_CHANNEL)
+                if (track.Type is MidiEventType.Note_On or MidiEventType.Note_Off)
                 {
-                    Validate(diffIndex);
-                    diffultyTracker[diffIndex] = true;
-                    return IsFullyScanned();
+                    track.ExtractMidiNote(ref note);
+                    if (note.value < PROGUITAR_MIN || note.value > PROGUITAR_MAX)
+                    {
+                        continue;
+                    }
+
+                    int noteOffset = note.value - PROGUITAR_MIN;
+                    int diffIndex = PROGUITAR_DIFF_INDICES[noteOffset];
+                    int laneIndex = PROGUITAR_LANE_INDICES[noteOffset];
+                    //                                                         Ghost notes aren't played
+                    if (difficulties[diffIndex] || laneIndex >= NUM_STRINGS || track.Channel == ARPEGGIO_CHANNEL)
+                    {
+                        continue;
+                    }
+
+                    // Note Ons with no velocity equates to a note Off by spec
+                    if (track.Type == MidiEventType.Note_On && note.velocity > 0)
+                    {
+                        if (MIN_VELOCITY <= note.velocity && note.velocity <= maxVelocity)
+                        {
+                            statuses[diffIndex * NUM_STRINGS + laneIndex] = true;
+                        }
+                    }
+                    // Note off here
+                    else if (statuses[diffIndex * NUM_STRINGS + laneIndex])
+                    {
+                        validations |= (DifficultyMask) (1 << (diffIndex + 1));
+                        difficulties[diffIndex] = true;
+                        if (validations == MidiPreparser_Constants.ALL_DIFFICULTIES)
+                        {
+                            break;
+                        }
+                    }
                 }
             }
-            return false;
+            return validations;
         }
     }
 }

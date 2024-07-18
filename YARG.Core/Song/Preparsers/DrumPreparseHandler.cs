@@ -11,27 +11,6 @@ namespace YARG.Core.Song.Preparsers
 
         public DifficultyMask ValidatedDiffs => _validations;
 
-        public void ParseMidi(YARGMidiTrack track)
-        {
-            if (_validations > 0)
-                return;
-
-            if (Type == DrumsType.FiveLane)
-                _validations = Midi_FiveLane_Preparser.Parse(track);
-            else if (Type == DrumsType.ProDrums)
-                _validations = Midi_FourLane_Preparser.ParseProDrums(track);
-            else if (Type == DrumsType.FourLane)
-                (_validations, Type) = Midi_FourLane_Preparser.ParseFourLane(track);
-            else
-            {
-                (_validations, Type) = Midi_UnknownDrums_Preparser.Parse(track, Type);
-                if (Type == DrumsType.UnknownPro)
-                    Type = DrumsType.ProDrums;
-                else if (Type == DrumsType.Unknown)
-                    Type = DrumsType.FourLane;
-            }
-        }
-
         public bool ParseChart<TChar>(ref YARGTextContainer<TChar> container, Difficulty difficulty)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {
@@ -41,25 +20,15 @@ namespace YARG.Core.Song.Preparsers
                 return false;
             }
 
-            return Type switch
+            const int YELLOW_CYMBAL = 66;
+            const int GREEN_CYMBAL = 68;
+            const int DOUBLE_BASS_MODIFIER = 32;
+
+            var requiredMask = diffMask;
+            if (difficulty == Difficulty.Expert)
             {
-                DrumsType.Unknown => ParseChartUnknown(ref container, diffMask),
-                DrumsType.FourLane => ParseChartFourLane(ref container, diffMask),
-                _ => ParseChartCommon(ref container, diffMask),
-            };
-        }
-
-        private const int FOUR_LANE_COUNT = 4;
-        private const int FIVE_LANE_COUNT = 5;
-        private const int YELLOW_CYMBAL = 66;
-        private const int GREEN_CYMBAL = 68;
-        private const int DOUBLE_BASS_MODIFIER = 32;
-
-        private bool ParseChartUnknown<TChar>(ref YARGTextContainer<TChar> container, DifficultyMask difficulty)
-            where TChar : unmanaged, IEquatable<TChar>, IConvertible
-        {
-            bool found = false;
-            bool checkExpertPlus = difficulty == DifficultyMask.Expert;
+                requiredMask |= DifficultyMask.ExpertPlus;
+            }
 
             DotChartEvent ev = default;
             while (YARGChartFileReader.TryParseEvent(ref container, ref ev))
@@ -68,96 +37,152 @@ namespace YARG.Core.Song.Preparsers
                 {
                     int lane = YARGTextReader.ExtractInt32AndWhitespace(ref container);
                     long _ = YARGTextReader.ExtractInt64AndWhitespace(ref container);
-                    if (lane <= FIVE_LANE_COUNT)
+                    if (0 <= lane && lane <= 4)
                     {
-                        _validations |= difficulty;
-                        found = true;
-
-                        if (lane == FIVE_LANE_COUNT)
+                        _validations |= diffMask;
+                    }
+                    else if (lane == 5)
+                    {
+                        if (Type == DrumsType.FiveLane || Type == DrumsType.Unknown)
+                        {
                             Type = DrumsType.FiveLane;
+                            _validations |= diffMask;
+                        }
                     }
                     else if (YELLOW_CYMBAL <= lane && lane <= GREEN_CYMBAL)
                     {
-                        Type = DrumsType.ProDrums;
+                        if (Type != DrumsType.FiveLane)
+                        {
+                            Type = DrumsType.ProDrums;
+                        }
                     }
-                    else if (checkExpertPlus && lane == DOUBLE_BASS_MODIFIER)
+                    else if (lane == DOUBLE_BASS_MODIFIER)
                     {
-                        checkExpertPlus = false;
-                        _validations |= DifficultyMask.ExpertPlus;
+                        if (difficulty == Difficulty.Expert)
+                        {
+                            _validations |= DifficultyMask.ExpertPlus;
+                        }
                     }
 
-                    if (found && Type != DrumsType.Unknown && !checkExpertPlus)
-                        return true;
+                    //  Testing against zero would not work in expert
+                    if ((_validations & requiredMask) == requiredMask && (Type == DrumsType.ProDrums || Type == DrumsType.FiveLane))
+                    {
+                        return false;
+                    }
                 }
             }
-            return false;
+            return true;
         }
 
-        private bool ParseChartFourLane<TChar>(ref YARGTextContainer<TChar> container, DifficultyMask difficulty)
-            where TChar : unmanaged, IEquatable<TChar>, IConvertible
+        private static readonly int[] INDICES = new int[MidiPreparser_Constants.NUM_DIFFICULTIES * MidiPreparser_Constants.NOTES_PER_DIFFICULTY]
         {
-            bool found = false;
-            bool checkExpertPlus = difficulty == DifficultyMask.Expert;
+            0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+            0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+            0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+            0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+        };
 
-            DotChartEvent ev = default;
-            while (YARGChartFileReader.TryParseEvent(ref container, ref ev))
+        public unsafe void ParseMidi(YARGMidiTrack track)
+        {
+            if (_validations > 0)
+                return;
+
+            const int DRUMNOTE_MAX = 101;
+            const int DOUBLE_KICK_NOTE = 95;
+            const int EXPERT_INDEX = 3;
+            const int EXPERT_PLUS_INDEX = 4;
+            const int DOUBLE_KICK_OFFSET = EXPERT_INDEX * MidiPreparser_Constants.NOTES_PER_DIFFICULTY + 1;
+            const int FIVE_LANE_INDEX = 6;
+            const int MAX_NUMPADS = 7;
+            const int YELLOW_FLAG = 110;
+            const int GREEN_FLAG = 112;
+
+            // +1 for Expert+
+            var difficulties = stackalloc bool[MidiPreparser_Constants.NUM_DIFFICULTIES + 1];
+            var statuses = stackalloc bool[MidiPreparser_Constants.NUM_DIFFICULTIES * MAX_NUMPADS];
+            var note = default(MidiNote);
+            while (track.ParseEvent())
             {
-                if (ev.Type == ChartEventType.Note)
+                if (track.Type != MidiEventType.Note_On && track.Type != MidiEventType.Note_Off)
                 {
-                    int lane = YARGTextReader.ExtractInt32AndWhitespace(ref container);
-                    long _ = YARGTextReader.ExtractInt64AndWhitespace(ref container);
-                    if (lane <= FOUR_LANE_COUNT)
+                    continue;
+                }
+
+                track.ExtractMidiNote(ref note);
+                // Must be checked first as it still resides in the normal note range window
+                if (note.value == DOUBLE_KICK_NOTE)
+                {
+                    if (difficulties[EXPERT_PLUS_INDEX])
                     {
-                        found = true;
-                        _validations |= difficulty;
-                    }
-                    else if (YELLOW_CYMBAL <= lane && lane <= GREEN_CYMBAL)
-                    {
-                        Type = DrumsType.ProDrums;
-                    }
-                    else if (checkExpertPlus && lane == DOUBLE_BASS_MODIFIER)
-                    {
-                        checkExpertPlus = false;
-                        _validations |= DifficultyMask.ExpertPlus;
+                        continue;
                     }
 
-                    if (found && Type == DrumsType.ProDrums && !checkExpertPlus)
-                        return true;
+                    // Note Ons with no velocity equates to a note Off by spec
+                    if (track.Type == MidiEventType.Note_On && note.velocity > 0)
+                    {
+                        statuses[DOUBLE_KICK_OFFSET] = true;
+                    }
+                    // NoteOff here
+                    else if (statuses[DOUBLE_KICK_OFFSET])
+                    {
+                        _validations |= DifficultyMask.Expert | DifficultyMask.ExpertPlus;
+                        difficulties[EXPERT_INDEX] = true;
+                        difficulties[EXPERT_PLUS_INDEX] = true;
+                    }
+                }
+                else if (MidiPreparser_Constants.DEFAULT_NOTE_MIN <= note.value && note.value <= DRUMNOTE_MAX)
+                {
+                    int noteOffset = note.value - MidiPreparser_Constants.DEFAULT_NOTE_MIN;
+                    int diffIndex = MidiPreparser_Constants.DIFF_INDICES[noteOffset];
+                    //                             Necessary to account for potential five lane
+                    if (difficulties[diffIndex] && Type != DrumsType.Unknown && Type != DrumsType.UnknownPro)
+                    {
+                        continue;
+                    }
+
+                    int laneIndex = INDICES[noteOffset];
+                    // The double "greater than" check against FIVE_LANE_INDEX keeps the number of comparisons performed
+                    // to ONE when laneIndex is less than that value
+                    if (laneIndex >= FIVE_LANE_INDEX && (laneIndex > FIVE_LANE_INDEX || Type == DrumsType.FourLane || Type == DrumsType.ProDrums))
+                    {
+                        continue;
+                    }
+
+                    // Note Ons with no velocity equates to a note Off by spec
+                    if (track.Type == MidiEventType.Note_On && note.velocity > 0)
+                    {
+                        statuses[diffIndex * MidiPreparser_Constants.NOTES_PER_DIFFICULTY + laneIndex] = true;
+                        if (laneIndex == FIVE_LANE_INDEX)
+                        {
+                            Type = DrumsType.FiveLane;
+                        }
+                    }
+                    // NoteOff here
+                    else if (statuses[diffIndex * MidiPreparser_Constants.NOTES_PER_DIFFICULTY + laneIndex])
+                    {
+                        _validations |= (DifficultyMask) (1 << (diffIndex + 1));
+                        difficulties[diffIndex] = true;
+                    }
+                }
+                else if (YELLOW_FLAG <= note.value && note.value <= GREEN_FLAG && Type != DrumsType.FiveLane)
+                {
+                    Type = DrumsType.ProDrums;
+                }
+
+                if (_validations == MidiPreparser_Constants.ALL_DIFFICULTIES_PLUS && (Type == DrumsType.FiveLane || Type == DrumsType.ProDrums))
+                {
+                    break;
                 }
             }
-            return false;
-        }
 
-        private bool ParseChartCommon<TChar>(ref YARGTextContainer<TChar> container, DifficultyMask difficulty)
-            where TChar : unmanaged, IEquatable<TChar>, IConvertible
-        {
-            bool found = false;
-            bool checkExpertPlus = difficulty == DifficultyMask.Expert;
-            int numPads = Type == DrumsType.ProDrums ? FOUR_LANE_COUNT : FIVE_LANE_COUNT;
-
-            DotChartEvent ev = default;
-            while (YARGChartFileReader.TryParseEvent(ref container, ref ev))
+            if (Type == DrumsType.UnknownPro)
             {
-                if (ev.Type == ChartEventType.Note)
-                {
-                    int lane = YARGTextReader.ExtractInt32AndWhitespace(ref container);
-                    long _ = YARGTextReader.ExtractInt64AndWhitespace(ref container);
-                    if (lane <= numPads)
-                    {
-                        found = true;
-                        _validations |= difficulty;
-                    }
-                    else if (checkExpertPlus && lane == DOUBLE_BASS_MODIFIER)
-                    {
-                        checkExpertPlus = false;
-                        _validations |= DifficultyMask.ExpertPlus;
-                    }
-
-                    if (found && !checkExpertPlus)
-                        return true;
-                }
+                Type = DrumsType.ProDrums;
             }
-            return false;
+            else if (Type == DrumsType.Unknown)
+            {
+                Type = DrumsType.FourLane;
+            }
         }
     }
 }
