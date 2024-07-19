@@ -56,48 +56,14 @@ namespace YARG.Core.Song.Cache
 
         public YARGTextContainer<byte>[] Containers => _containers.ToArray();
 
-        internal SongUpdate(in FileCollection collection, string name)
+        internal SongUpdate(string directory, AbridgedFileInfo_Length? midi, AbridgedFileInfo? mogg, AbridgedFileInfo_Length? milo, AbridgedFileInfo_Length? image)
         {
             _containers = new();
-            BaseDirectory = collection.Directory.FullName;
-            Midi = null;
-            Mogg = null;
-            Milo = null;
-            Image = null;
-            string subname = name.ToLowerInvariant();
-            if (!collection.SubDirectories.TryGetValue(subname, out var subDirInfo))
-            {
-                return;
-            }
-
-            var filenames = new string[]
-            {
-                subname + "_update.mid",
-                subname + "_update.mogg",
-                subname + ".milo_xbox",
-                subname + "_keep.png_xbox"
-            };
-
-            foreach (var file in subDirInfo.EnumerateFiles("*", SearchOption.AllDirectories))
-            {
-                string filename = file.Name;
-                if (filename == filenames[0])
-                {
-                    Midi ??= new AbridgedFileInfo_Length(file, false);
-                }
-                else if (filename == filenames[1])
-                {
-                    Mogg ??= new AbridgedFileInfo(file, false);
-                }
-                else if (filename == filenames[2])
-                {
-                    Milo ??= new AbridgedFileInfo_Length(file, false);
-                }
-                else if (filename == filenames[3])
-                {
-                    Image ??= new AbridgedFileInfo_Length(file, false);
-                }
-            }
+            BaseDirectory = directory;
+            Midi = midi;
+            Mogg = mogg;
+            Milo = milo;
+            Image = image;
         }
 
         public void Add(in YARGTextContainer<byte> container)

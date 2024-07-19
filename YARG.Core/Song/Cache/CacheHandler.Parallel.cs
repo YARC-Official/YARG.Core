@@ -278,6 +278,25 @@ namespace YARG.Core.Song.Cache
             }
         }
 
+        protected override Dictionary<string, Dictionary<string, FileInfo>> MapUpdateFiles(in FileCollection collection)
+        {
+            Dictionary<string, Dictionary<string, FileInfo>> mapping = new();
+            Parallel.ForEach(collection.SubDirectories, dir =>
+            {
+                var infos = new Dictionary<string, FileInfo>();
+                foreach (var file in dir.Value.EnumerateFiles("*", SearchOption.AllDirectories))
+                {
+                    infos[file.Name] = file;
+                }
+
+                lock (mapping)
+                {
+                    mapping.Add(dir.Key, infos);
+                }
+            });
+            return mapping;
+        }
+
         protected override bool FindOrMarkDirectory(string directory)
         {
             lock (preScannedDirectories)

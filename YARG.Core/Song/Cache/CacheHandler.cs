@@ -210,6 +210,7 @@ namespace YARG.Core.Song.Cache
         protected abstract void RemoveCONEntry(string shortname);
         protected abstract bool CanAddUpgrade(string shortname, DateTime lastUpdated);
         protected abstract bool CanAddUpgrade_CONInclusive(string shortname, DateTime lastUpdated);
+        protected abstract Dictionary<string, Dictionary<string, FileInfo>> MapUpdateFiles(in FileCollection collection);
 
         protected abstract void FindNewEntries();
         protected abstract void TraverseDirectory(in FileCollection collection, IniGroup group, PlaylistTracker tracker);
@@ -447,12 +448,39 @@ namespace YARG.Core.Song.Cache
             var group = new UpdateGroup(collection.Directory, dta.LastWriteTime, fileData!);
             try
             {
+                var mapping = MapUpdateFiles(in collection);
                 while (YARGDTAReader.StartNode(ref container))
                 {
                     string name = YARGDTAReader.GetNameOfNode(ref container, true);
                     if (!group.Updates.TryGetValue(name, out var update))
                     {
-                        group.Updates.Add(name, update = new SongUpdate(collection, name));
+                        AbridgedFileInfo_Length? midi = null;
+                        AbridgedFileInfo? mogg = null;
+                        AbridgedFileInfo_Length? milo = null;
+                        AbridgedFileInfo_Length? image = null;
+
+                        string subname = name.ToLowerInvariant();
+                        if (mapping.TryGetValue(subname, out var files))
+                        {
+                            if (files.TryGetValue(subname + "_update.mid", out var file))
+                            {
+                                midi = new AbridgedFileInfo_Length(file, false);
+                            }
+                            if (files.TryGetValue(subname + "_update.mogg", out file))
+                            {
+                                mogg = new AbridgedFileInfo(file, false);
+                            }
+                            if (files.TryGetValue(subname + ".milo_xbox", out file))
+                            {
+                                milo = new AbridgedFileInfo_Length(file, false);
+                            }
+                            if (files.TryGetValue(subname + "_keep.png_xbox", out file))
+                            {
+                                image = new AbridgedFileInfo_Length(file, false);
+                            }
+                        }
+
+                        group.Updates.Add(name, update = new SongUpdate(collection.Directory.FullName, midi, mogg, milo, image));
                         AddUpdate(name, dta.LastWriteTime, update);
                         if (removeEntries)
                         {
