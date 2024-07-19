@@ -8,9 +8,14 @@ namespace YARG.Core.Chart
         public const float MIN_SECONDS = 9;
         public const uint MIN_MEASURES = 4;
         public const float MIN_UPDATE_SECONDS = 1;
+        public const float FADE_ANIM_LENGTH = 0.45f;
         public const int END_COUNTDOWN_MEASURE = 1;
 
         public int TotalMeasures => _measureBeatlines.Count;
+
+        //The time where the countdown should start fading out and overstrums will break combo again
+        public double DeactivateTime => _measureBeatlines[^(END_COUNTDOWN_MEASURE + 1)].Time;
+        public bool IsActive => MeasuresLeft > END_COUNTDOWN_MEASURE;
 
         private List<Beatline> _measureBeatlines;
 
