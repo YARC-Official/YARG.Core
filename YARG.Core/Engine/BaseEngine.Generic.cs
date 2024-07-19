@@ -189,7 +189,7 @@ namespace YARG.Core.Engine
                     }
                     else
                     {
-                        // A countdown is currently onscreen, but is past its deactivation time
+                        // A countdown is currently onscreen, but is past its deactivation time and is fading out
                         // CurrentWaitCountdownIndex will not be incremented until the progress bar no longer needs updating
                         nextCountdownIndex = State.CurrentWaitCountdownIndex + 1;
                     }
