@@ -14,6 +14,8 @@ namespace YARG.Core.Song
         protected static bool ParseMidi(FixedArray<byte> file, DrumPreparseHandler drums, ref AvailableParts parts)
         {
             var midiFile = new YARGMidiFile(file.ToStream());
+            bool harm2 = false;
+            bool harm3 = false;
             foreach (var track in midiFile)
             {
                 if (midiFile.TrackNumber == 1)
@@ -53,8 +55,21 @@ namespace YARG.Core.Song
 
                     case MidiTrackType.Vocals: if (!parts.LeadVocals[0]    && Midi_Vocal_Preparser.Parse(track, true))  parts.LeadVocals.SetSubtrack(0); break;
                     case MidiTrackType.Harm1:  if (!parts.HarmonyVocals[0] && Midi_Vocal_Preparser.Parse(track, true))  parts.HarmonyVocals.SetSubtrack(0); break;
-                    case MidiTrackType.Harm2:  if (!parts.HarmonyVocals[1] && Midi_Vocal_Preparser.Parse(track, false)) parts.HarmonyVocals.SetSubtrack(1); break;
-                    case MidiTrackType.Harm3:  if (!parts.HarmonyVocals[2] && Midi_Vocal_Preparser.Parse(track, false)) parts.HarmonyVocals.SetSubtrack(2); break;
+                    case MidiTrackType.Harm2:  if (!harm2) harm2 = Midi_Vocal_Preparser.Parse(track, false); break;
+                    case MidiTrackType.Harm3:  if (!harm3) harm3 = Midi_Vocal_Preparser.Parse(track, false); break;
+                }
+            }
+
+            // HARM 2/3 are not playable without HARM1 phrases
+            if (parts.HarmonyVocals[0])
+            {
+                if (harm2)
+                {
+                    parts.HarmonyVocals.SetSubtrack(1);
+                }
+                if (harm3)
+                {
+                    parts.HarmonyVocals.SetSubtrack(2);
                 }
             }
             return true;
