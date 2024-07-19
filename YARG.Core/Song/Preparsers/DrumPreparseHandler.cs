@@ -87,13 +87,13 @@ namespace YARG.Core.Song.Preparsers
             if (_validations > 0)
                 return;
 
+            const int MAX_NUMPADS = 7;
             const int DRUMNOTE_MAX = 101;
             const int DOUBLE_KICK_NOTE = 95;
             const int EXPERT_INDEX = 3;
             const int EXPERT_PLUS_INDEX = 4;
-            const int DOUBLE_KICK_OFFSET = EXPERT_INDEX * MidiPreparser_Constants.NOTES_PER_DIFFICULTY + 1;
+            const int DOUBLE_KICK_OFFSET = EXPERT_INDEX * MAX_NUMPADS + 1;
             const int FIVE_LANE_INDEX = 6;
-            const int MAX_NUMPADS = 7;
             const int YELLOW_FLAG = 110;
             const int GREEN_FLAG = 112;
 
@@ -151,14 +151,14 @@ namespace YARG.Core.Song.Preparsers
                     // Note Ons with no velocity equates to a note Off by spec
                     if (track.Type == MidiEventType.Note_On && note.velocity > 0)
                     {
-                        statuses[diffIndex * MidiPreparser_Constants.NOTES_PER_DIFFICULTY + laneIndex] = true;
+                        statuses[diffIndex * MAX_NUMPADS + laneIndex] = true;
                         if (laneIndex == FIVE_LANE_INDEX)
                         {
                             Type = DrumsType.FiveLane;
                         }
                     }
                     // NoteOff here
-                    else if (statuses[diffIndex * MidiPreparser_Constants.NOTES_PER_DIFFICULTY + laneIndex])
+                    else if (statuses[diffIndex * MAX_NUMPADS + laneIndex])
                     {
                         _validations |= (DifficultyMask) (1 << (diffIndex + 1));
                         difficulties[diffIndex] = true;
