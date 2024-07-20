@@ -663,7 +663,7 @@ namespace YARG.Core.Engine
                     {
                         // Skip counting on measures that are too close together
                         if (beatlinesThisCountdown.Count == 0 || 
-                            curMeasureline.Time - beatlinesThisCountdown.Last().Time >= WaitCountdown.MIN_UPDATE_SECONDS)
+                            curMeasureline.Time - beatlinesThisCountdown.Last().Time >= WaitCountdown.MIN_MEASURE_LENGTH)
                         {
                             beatlinesThisCountdown.Add(curMeasureline);
                         }

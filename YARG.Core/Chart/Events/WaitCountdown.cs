@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 
 namespace YARG.Core.Chart
@@ -7,7 +6,7 @@ namespace YARG.Core.Chart
     {
         public const float MIN_SECONDS = 9;
         public const uint MIN_MEASURES = 4;
-        public const float MIN_UPDATE_SECONDS = 1;
+        public const float MIN_MEASURE_LENGTH = 1;
         public const float FADE_ANIM_LENGTH = 0.45f;
         public const int END_COUNTDOWN_MEASURE = 1;
 
