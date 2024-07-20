@@ -152,7 +152,7 @@ namespace YARG.Core.UnitTests.Parsing
             {
                 { 0,   PERCUSSION_NOTE},
             };
-            
+
             for (int i = VOCALS_RANGE_START; i <= VOCALS_RANGE_END; i++)
             {
                 lookup.Add(i, i);
@@ -448,10 +448,18 @@ namespace YARG.Core.UnitTests.Parsing
             if ((canForceStrum || canForceHopo) && (flags & Flags.Forced) != 0)
             {
                 MoonNoteType type;
-                if (canForceHopo && lastStartDelta >= HopoThreshold) 
+                if (canForceHopo && lastStartDelta >= HopoThreshold)
+                {
                     type = MoonNoteType.Hopo;
+                    // Apply additional flag to match the parsed data
+                    note.flags |= Flags.Forced_Hopo;
+                }
                 else
+                {
                     type = MoonNoteType.Strum;
+                    // Apply additional flag to match the parsed data
+                    note.flags |= Flags.Forced_Strum;
+                }
 
                 byte forceNote = (byte)(difficultyStart + forceOffsetLookup[type]);
                 midiNote = new TNoteEvent() { NoteNumber = S(forceNote), Velocity = S(velocity) };
