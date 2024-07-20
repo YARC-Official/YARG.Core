@@ -139,13 +139,8 @@ namespace YARG.Core.Utility
             ( "width",       RichTextTags.Width),
         };
 
-        public static string StripRichTextTags(string text)
-        {
-            return StripRichTextTags(text, RichTextTags.AllTags);
-        }
-
         private static readonly Dictionary<RichTextTags, string[]> STRIP_CACHE = new();
-        public static string StripRichTextTags(string text, RichTextTags excludeTags)
+        public static string StripRichTextTags(string text, RichTextTags excludeTags = RichTextTags.AllTags)
         {
             string[] tags = GetStripList(excludeTags);
 
