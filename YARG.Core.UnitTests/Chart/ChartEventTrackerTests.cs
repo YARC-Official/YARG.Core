@@ -101,7 +101,7 @@ public class ChartEventTrackerTests
                     {
                         Assert.That(updated, Is.True);
                         Assert.That(tracker.CurrentIndex, Is.EqualTo(expectedIndex));
-                        Assert.That(tracker.Current, Is.EqualTo(expectedIndex >= 0 ? _events[expectedIndex] : null));
+                        Assert.That(tracker.Current, Is.EqualTo(_events[expectedIndex]));
                         Assert.That(current, Is.EqualTo(tracker.Current));
                     });
                 }
@@ -141,7 +141,7 @@ public class ChartEventTrackerTests
         Assert.Multiple(() =>
         {
             Assert.That(tracker.CurrentIndex, Is.EqualTo(-1));
-            Assert.That(tracker.Current, Is.EqualTo(null));
+            Assert.That(tracker.Current, Is.Null);
         });
 
         // Resetting to the tick of an event should result in that event being current
@@ -220,7 +220,7 @@ public class ChartEventTrackerTests
                     {
                         Assert.That(updated, Is.True);
                         Assert.That(tracker.CurrentIndex, Is.EqualTo(expectedIndex));
-                        Assert.That(tracker.Current, Is.EqualTo(expectedIndex >= 0 ? _events[expectedIndex] : null));
+                        Assert.That(tracker.Current, Is.EqualTo(_events[expectedIndex]));
                         Assert.That(current, Is.EqualTo(tracker.Current));
                     });
                 }
@@ -260,7 +260,7 @@ public class ChartEventTrackerTests
         Assert.Multiple(() =>
         {
             Assert.That(tracker.CurrentIndex, Is.EqualTo(-1));
-            Assert.That(tracker.Current, Is.EqualTo(null));
+            Assert.That(tracker.Current, Is.Null);
         });
 
         // Resetting to the time of an event should result in that event being current
