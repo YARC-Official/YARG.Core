@@ -141,31 +141,7 @@ namespace YARG.Core.Utility
 
         public static string StripRichTextTags(string text)
         {
-            Span<char> buffer = stackalloc char[text.Length];
-            int length = 0;
-            for (int position = 0, close; position < text.Length; position = close)
-            {
-                int end;
-                if (!ParseHTMLBounds(text, position, out int open, out close))
-                {
-                    if (position == 0)
-                    {
-                        return text;
-                    }
-                    end = close = text.Length;
-                }
-                else
-                {
-                    end = open;
-                    ++close;
-                }
-
-                while (position < end)
-                {
-                    buffer[length++] = text[position++];
-                }
-            }
-            return new string(buffer[0..length]);
+            return StripRichTextTags(text, RichTextTags.AllTags);
         }
 
         private static readonly Dictionary<RichTextTags, string[]> STRIP_CACHE = new();
@@ -173,39 +149,41 @@ namespace YARG.Core.Utility
         {
             string[] tags = GetStripList(excludeTags);
 
-            using var builder = ZString.CreateStringBuilder(notNested: true);
+            Span<char> buffer = stackalloc char[text.Length];
+            int length = 0;
+
             var span = text.AsSpan();
-            for (int position = 0, close; position < span.Length; position = close)
+            for (int position = 0, nextPosition; position < text.Length; position = nextPosition)
             {
-                if (!ParseHTMLBounds(text, position, out int open, out close))
+                int stop;
+                if (!ParseHTMLBounds(text, position, out int open, out nextPosition))
                 {
                     if (position == 0)
                     {
                         return text;
                     }
-                    builder.Append(span[position..text.Length]);
-                    break;
+                    nextPosition = stop = text.Length;
                 }
-
-                ++close;
-                bool found = false;
-                var tag = span[open..close];
-                foreach (var tagText in tags)
+                else
                 {
-                    if (tag.StartsWith(tagText))
+                    stop = ++nextPosition;
+                    var tag = span[open..stop];
+                    foreach (var tagText in tags)
                     {
-                        builder.Append(span[position..open]);
-                        found = true;
-                        break;
+                        if (tag.StartsWith(tagText))
+                        {
+                            stop = open;
+                            break;
+                        }
                     }
                 }
 
-                if (!found)
+                while (position < stop)
                 {
-                    builder.Append(span[position..close]);
+                    buffer[length++] = text[position++];
                 }
             }
-            return builder.ToString();
+            return length < text.Length ? new string(buffer[0..length]) : text;
         }
 
         private static (string Original, string Replacement)[] COLOR_TO_HEX_LIST =

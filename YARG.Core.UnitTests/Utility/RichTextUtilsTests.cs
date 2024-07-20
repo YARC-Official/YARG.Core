@@ -70,7 +70,7 @@ namespace YARG.Core.UnitTests.Utility
             foreach (var (tagText, testText, tag) in TEXT_TO_TAG)
             {
                 expectedText += "Some formatting with trailing text\n";
-                fullTest += testText;
+                fullTest += testText + '\n';
             }
 
             string stripped = RichTextUtils.StripRichTextTags(fullTest);
