@@ -150,30 +150,29 @@ namespace YARG.Core.Utility
             var span = text.AsSpan();
             for (int position = 0, nextPosition; position < text.Length; position = nextPosition)
             {
-                int stop;
-                if (!ParseHTMLBounds(text, position, out int open, out nextPosition))
+                if (!ParseHTMLBounds(text, position, out int open, out int end))
                 {
                     if (position == 0)
                     {
                         return text;
                     }
-                    nextPosition = stop = text.Length;
+                    nextPosition = end = text.Length;
                 }
                 else
                 {
-                    stop = ++nextPosition;
-                    var tag = span[open..stop];
+                    nextPosition = ++end;
+                    var tag = span[open..end];
                     foreach (var tagText in tags)
                     {
                         if (tag.StartsWith(tagText))
                         {
-                            stop = open;
+                            end = open;
                             break;
                         }
                     }
                 }
 
-                while (position < stop)
+                while (position < end)
                 {
                     buffer[length++] = text[position++];
                 }
