@@ -33,7 +33,7 @@ namespace YARG.Core.Engine
 
         public delegate void StarPowerPhraseMissEvent(TNoteType note);
 
-        public delegate void CountdownChangeEvent(int measuresLeft, float progress);
+        public delegate void CountdownChangeEvent(int measuresLeft, double countdownLength, double endTime);
 
         public NoteHitEvent?    OnNoteHit;
         public NoteMissedEvent? OnNoteMissed;
@@ -252,8 +252,7 @@ namespace YARG.Core.Engine
                             YargLogger.LogFormatDebug("Countdown {0} deactivated at time {1}. Expected time: {2}", State.CurrentWaitCountdownIndex, time, currentCountdown.DeactivateTime);
                         }
 
-                        float progress = (State.CurrentTick - currentCountdown.Tick) / (float) currentCountdown.TickLength;
-                        UpdateCountdown(newMeasuresLeft, Math.Clamp(progress, 0, 1));
+                        UpdateCountdown(newMeasuresLeft, currentCountdown.TimeLength, currentCountdown.TimeEnd);
                     }
                     else
                     {
@@ -485,9 +484,9 @@ namespace YARG.Core.Engine
             State.CurrentSoloIndex++;
         }
 
-        protected void UpdateCountdown(int measuresLeft, float progress)
+        protected void UpdateCountdown(int measuresLeft, double countdownLength, double endTime)
         {
-            OnCountdownChange?.Invoke(measuresLeft, progress);
+            OnCountdownChange?.Invoke(measuresLeft, countdownLength, endTime);
         }
 
         public sealed override (double FrontEnd, double BackEnd) CalculateHitWindow()
