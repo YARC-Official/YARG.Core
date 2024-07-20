@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace YARG.Core.Game
@@ -52,7 +52,7 @@ namespace YARG.Core.Game
                     Modifier.UnpitchedOnly,
 
                 GameMode.SixFretGuitar or
-            //  GameMode.TrueDrums     or
+            //  GameMode.EliteDrums    or
                 GameMode.ProGuitar     or
             //  GameMode.Dj            or
                 GameMode.ProKeys       => Modifier.None,

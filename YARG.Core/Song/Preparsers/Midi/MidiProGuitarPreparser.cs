@@ -10,18 +10,6 @@ namespace YARG.Core.Song
         private const int NUM_STRINGS = 6;
         private const int MIN_VELOCITY = 100;
         private const int ARPEGGIO_CHANNEL = 1;
-        private static readonly int[] PROGUITAR_DIFF_INDICES = new int[MidiPreparser_Constants.NUM_DIFFICULTIES * NOTES_PER_DIFFICULTY]{
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-            2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
-            3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-        };
-        private static readonly int[] PROGUITAR_LANE_INDICES = new int[MidiPreparser_Constants.NUM_DIFFICULTIES * NOTES_PER_DIFFICULTY]{
-            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
-            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
-            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
-            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
-        };
 
         private const int MAXVELOCTIY_17 = 117;
         public static DifficultyMask Parse_17Fret(YARGMidiTrack track)
@@ -53,8 +41,8 @@ namespace YARG.Core.Song
                     }
 
                     int noteOffset = note.value - PROGUITAR_MIN;
-                    int diffIndex = PROGUITAR_DIFF_INDICES[noteOffset];
-                    int laneIndex = PROGUITAR_LANE_INDICES[noteOffset];
+                    int diffIndex = MidiPreparser_Constants.EXTENDED_DIFF_INDICES[noteOffset];
+                    int laneIndex = MidiPreparser_Constants.EXTENDED_LANE_INDICES[noteOffset];
                     //                                                         Ghost notes aren't played
                     if (difficulties[diffIndex] || laneIndex >= NUM_STRINGS || track.Channel == ARPEGGIO_CHANNEL)
                     {
