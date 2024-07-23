@@ -47,7 +47,7 @@ namespace MoonscraperChartEditor.Song
         public string year;
 
         public int difficulty;
-        public float previewStart, previewEnd;
+        public double previewStart, previewEnd;
 
         public Metadata()
         {

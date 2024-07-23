@@ -11,7 +11,7 @@ namespace MoonscraperChartEditor.Song
 {
     internal class MoonSong
     {
-        public float resolution => syncTrack.Resolution;
+        public uint resolution => syncTrack.Resolution;
         public float hopoThreshold;
 
         // Charts
@@ -171,9 +171,9 @@ namespace MoonscraperChartEditor.Song
             return MoonObjectHelper.Remove(venueEvent, venue);
         }
 
-        public float ResolutionScaleRatio(float targetResoltion)
+        public float ResolutionScaleRatio(uint targetResoltion)
         {
-            return targetResoltion / resolution;
+            return (float) targetResoltion / resolution;
         }
 
         public static MoonChart.GameMode InstrumentToChartGameMode(MoonInstrument instrument)

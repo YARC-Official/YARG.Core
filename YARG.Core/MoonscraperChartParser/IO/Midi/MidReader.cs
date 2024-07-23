@@ -105,7 +105,7 @@ namespace MoonscraperChartEditor.Song.IO
             if (midi.TimeDivision is not TicksPerQuarterNoteTimeDivision ticks)
                 throw new InvalidOperationException("MIDI file has no beat resolution set!");
 
-            var song = new MoonSong((uint)ticks.TicksPerQuarterNote);
+            var song = new MoonSong((uint) ticks.TicksPerQuarterNote);
 
             // Apply settings
             ValidateAndApplySettings(song, ref settings);
@@ -204,7 +204,7 @@ namespace MoonscraperChartEditor.Song.IO
             if (settings.SustainCutoffThreshold < 0)
             {
                 // Default to 1/12th step + 1
-                settings.SustainCutoffThreshold = (long) (song.resolution / 3) + 1;
+                settings.SustainCutoffThreshold = (long) (song.resolution / 3f) + 1;
             }
             else
             {
