@@ -217,14 +217,15 @@ namespace YARG.Core.IO
             return true;
         }
 
-        public unsafe static Dictionary<string, List<IniModifier>> ExtractModifiers<TChar>(ref YARGTextContainer<TChar> container)
+        public static Dictionary<string, List<IniModifier>> ExtractModifiers<TChar>(
+            ref YARGTextContainer<TChar> container, Dictionary<string, IniModifierCreator> knownModifiers)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {
             Dictionary<string, List<IniModifier>> modifiers = new();
             while (IsStillCurrentTrack(ref container))
             {
                 string name = YARGTextReader.ExtractModifierName(ref container);
-                if (SongIniHandler.SONG_INI_MODIFIERS.TryGetValue(name, out var node))
+                if (knownModifiers.TryGetValue(name, out var node))
                 {
                     var mod = node.CreateModifier(ref container);
                     if (modifiers.TryGetValue(node.OutputName, out var list))

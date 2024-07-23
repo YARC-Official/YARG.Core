@@ -210,7 +210,7 @@ namespace YARG.Core.Song
         {
             if (YARGChartFileReader.ValidateTrack(ref container, YARGChartFileReader.HEADERTRACK))
             {
-                var chartMods = YARGChartFileReader.ExtractModifiers(ref container);
+                var chartMods = YARGChartFileReader.ExtractModifiers(ref container, SongIniHandler.SONG_INI_MODIFIERS);
                 modifiers.Append(chartMods);
             }
 
