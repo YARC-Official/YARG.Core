@@ -86,7 +86,7 @@ namespace YARG.Core.IO.Ini
                         modifiers.Add(node.OutputName, new() { mod });
                 }
             }
-            return new IniSection(modifiers);
+            return new IniSection(modifiers, validNodes);
         }
 
         private static bool IsStillCurrentSection<TChar>(ref YARGTextContainer<TChar> container)

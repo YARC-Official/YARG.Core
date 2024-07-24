@@ -7,14 +7,71 @@ namespace YARG.Core.IO.Ini
 {
     public sealed class IniSection
     {
+#if DEBUG
+        private static readonly Dictionary<Type, ModifierType> _validations;
+
+        static IniSection()
+        {
+            _validations = new()
+            {
+                { typeof(SortString), ModifierType.SortString },
+                { typeof(string), ModifierType.String },
+                { typeof(ulong), ModifierType.UInt64 },
+                { typeof(long), ModifierType.Int64 },
+                { typeof(uint), ModifierType.UInt32 },
+                { typeof(int), ModifierType.Int32 },
+                { typeof(ushort), ModifierType.UInt16 },
+                { typeof(short), ModifierType.Int16 },
+                { typeof(bool), ModifierType.Bool },
+                { typeof(float), ModifierType.Float },
+                { typeof(double), ModifierType.Double },
+                { typeof(long[]), ModifierType.Int64Array },
+            };
+        }
+
+        private void ThrowIfNot<T>(string key)
+        {
+            if (!knownModifiers.TryGetValue(key, out var mod))
+            {
+                throw new ArgumentException($"Dev: {key} is not a valid modifier!");
+            }
+
+            var type = typeof(T);
+            var modifierType = _validations[type];
+            if (modifierType != mod.Type &&
+                (modifierType == ModifierType.SortString) != (mod.Type == ModifierType.SortString_Chart) &&
+                (modifierType == ModifierType.String) != (mod.Type == ModifierType.String_Chart))
+            {
+                throw new ArgumentException($"Dev: Modifier {key} is not of type {type}");
+            }
+        }
+#endif
+
         private readonly Dictionary<string, List<IniModifier>> modifiers;
+
+#if DEBUG
+        private readonly Dictionary<string, IniModifierCreator> knownModifiers;
+#endif
 
         public int Count => modifiers.Count;
 
-        public IniSection() { modifiers = new(); }
-        public IniSection(in Dictionary<string, List<IniModifier>> modifiers)
+
+        // `knownModifiers` is always provided as an argument so other code doesn't have to do `#if DEBUG` guards
+        public IniSection(in Dictionary<string, IniModifierCreator> knownModifiers)
+        {
+            modifiers = new();
+#if DEBUG
+            this.knownModifiers = knownModifiers;
+#endif
+        }
+
+        public IniSection(in Dictionary<string, List<IniModifier>> modifiers,
+            in Dictionary<string, IniModifierCreator> knownModifiers)
         {
             this.modifiers = modifiers;
+#if DEBUG
+            this.knownModifiers = knownModifiers;
+#endif
         }
 
         public void Append(in Dictionary<string, List<IniModifier>> modsToAdd)
@@ -36,7 +93,7 @@ namespace YARG.Core.IO.Ini
         public bool TryGet(in string key, out SortString str, in SortString defaultStr)
         {
 #if DEBUG
-            SongIniHandler.ThrowIfNot<SortString>(key);
+            ThrowIfNot<SortString>(key);
 #endif
             if (modifiers.TryGetValue(key, out var results))
             {
@@ -59,7 +116,7 @@ namespace YARG.Core.IO.Ini
         public bool TryGet(in string key, out SortString str, in string defaultStr)
         {
 #if DEBUG
-            SongIniHandler.ThrowIfNot<SortString>(key);
+            ThrowIfNot<SortString>(key);
 #endif
             if (modifiers.TryGetValue(key, out var results))
             {
@@ -82,7 +139,7 @@ namespace YARG.Core.IO.Ini
         public bool TryGet(in string key, out string str)
         {
 #if DEBUG
-            SongIniHandler.ThrowIfNot<string>(key);
+            ThrowIfNot<string>(key);
 #endif
             if (modifiers.TryGetValue(key, out var results))
             {
@@ -96,7 +153,7 @@ namespace YARG.Core.IO.Ini
         public bool TryGet(in string key, out long val1, out long val2)
         {
 #if DEBUG
-            SongIniHandler.ThrowIfNot<long[]>(key);
+            ThrowIfNot<long[]>(key);
 #endif
             if (modifiers.TryGetValue(key, out var results))
             {
@@ -117,7 +174,7 @@ namespace YARG.Core.IO.Ini
             where T : unmanaged
         {
 #if DEBUG
-            SongIniHandler.ThrowIfNot<T>(key);
+            ThrowIfNot<T>(key);
 #endif
             if (modifiers.TryGetValue(key, out var results))
             {

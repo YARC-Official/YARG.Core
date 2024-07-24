@@ -12,33 +12,13 @@ namespace YARG.Core.IO.Ini
             var modifiers = YARGIniReader.ReadIniFile(iniFile, SONG_INI_DICTIONARY);
             if (!modifiers.TryGetValue("[song]", out var section))
             {
-                section = new IniSection();
+                section = new IniSection(SONG_INI_MODIFIERS);
             }
             return section;
         }
 
         public static readonly Dictionary<string, Dictionary<string, IniModifierCreator>> SONG_INI_DICTIONARY;
         public static readonly Dictionary<string, IniModifierCreator> SONG_INI_MODIFIERS;
-
-#if DEBUG
-        private static readonly Dictionary<string, ModifierType> _validations;
-        public static void ThrowIfNot<T>(string key)
-        {
-            if (!SONG_INI_MODIFIERS.TryGetValue(key, out var mod))
-            {
-                throw new ArgumentException($"Dev: {key} is not a valid modifier!");
-            }
-
-            var typename = typeof(T).Name;
-            var type = _validations[typename];
-            if (type != mod.Type
-            && (type == ModifierType.SortString) != (mod.Type == ModifierType.SortString_Chart)
-            && (type == ModifierType.String) != (mod.Type == ModifierType.String_Chart))
-            {
-                throw new ArgumentException($"Dev: Modifier {key} is not of type {typename}");
-            }
-        }
-#endif
 
         static SongIniHandler()
         {
@@ -179,24 +159,6 @@ namespace YARG.Core.IO.Ini
             {
                 { "[song]", SONG_INI_MODIFIERS }
             };
-
-#if DEBUG
-            _validations = new()
-            {
-                { nameof(SortString), ModifierType.SortString },
-                { typeof(string).Name, ModifierType.String },
-                { typeof(ulong).Name, ModifierType.UInt64 },
-                { typeof(long).Name, ModifierType.Int64 },
-                { typeof(uint).Name, ModifierType.UInt32 },
-                { typeof(int).Name, ModifierType.Int32 },
-                { typeof(ushort).Name, ModifierType.UInt16 },
-                { typeof(short).Name, ModifierType.Int16 },
-                { typeof(bool).Name, ModifierType.Bool },
-                { typeof(float).Name, ModifierType.Float },
-                { typeof(double).Name, ModifierType.Double },
-                { typeof(long[]).Name, ModifierType.Int64Array },
-            };
-#endif
         }
     }
 }

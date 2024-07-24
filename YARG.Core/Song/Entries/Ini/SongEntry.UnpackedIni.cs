@@ -237,7 +237,7 @@ namespace YARG.Core.Song
             }
             else
             {
-                iniModifiers = new();
+                iniModifiers = new(SongIniHandler.SONG_INI_MODIFIERS);
             }
 
             if ((chart.File.Attributes & AbridgedFileInfo.RECALL_ON_DATA_ACCESS) > 0)

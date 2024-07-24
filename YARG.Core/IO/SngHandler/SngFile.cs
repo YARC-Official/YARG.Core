@@ -144,7 +144,7 @@ namespace YARG.Core.IO
                 }
                 container.Position = next;
             }
-            return new IniSection(modifiers);
+            return new IniSection(modifiers, SongIniHandler.SONG_INI_MODIFIERS);
         }
 
         private static Dictionary<string, SngFileListing> ReadListings(Stream stream)
