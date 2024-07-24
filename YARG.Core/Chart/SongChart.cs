@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Melanchall.DryWetMidi.Core;
-using YARG.Core.Logging;
+using YARG.Core.IO;
 using YARG.Core.Parsing;
 
 namespace YARG.Core.Chart
@@ -235,6 +235,13 @@ namespace YARG.Core.Chart
         public static SongChart FromDotChart(in ParseSettings settings, string chartText)
         {
             var loader = MoonSongLoader.LoadDotChart(settings, chartText);
+            return new(loader);
+        }
+
+        public static SongChart FromDotChart<TChar>(in ParseSettings settings, ref YARGTextContainer<TChar> chartText)
+            where TChar : unmanaged, IEquatable<TChar>, IConvertible
+        {
+            var loader = MoonSongLoader.LoadDotChart(settings, ref chartText);
             return new(loader);
         }
 

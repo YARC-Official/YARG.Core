@@ -1,9 +1,10 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using Melanchall.DryWetMidi.Core;
 using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
+using YARG.Core.IO;
 using YARG.Core.Logging;
 
 namespace YARG.Core.Chart
@@ -60,6 +61,13 @@ namespace YARG.Core.Chart
         public static MoonSongLoader LoadDotChart(ParseSettings settings, string chartText)
         {
             var song = ChartReader.ReadFromText(ref settings, chartText);
+            return new(song, settings);
+        }
+
+        public static MoonSongLoader LoadDotChart<TChar>(ParseSettings settings, ref YARGTextContainer<TChar> chartText)
+            where TChar : unmanaged, IEquatable<TChar>, IConvertible
+        {
+            var song = ChartReader.ReadFromText(ref settings, ref chartText);
             return new(song, settings);
         }
 
