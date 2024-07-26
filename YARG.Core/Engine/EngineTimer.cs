@@ -1,9 +1,13 @@
 using System;
+using Cysharp.Text;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.Engine
 {
     public struct EngineTimer
     {
+        private const double NOT_STARTED = double.MaxValue;
+
         private double _startTime;
         private double _speed;
 
@@ -14,9 +18,14 @@ namespace YARG.Core.Engine
 
         public bool IsActive { get; private set; }
 
+        static EngineTimer()
+        {
+            Utf16ValueStringBuilder.RegisterTryFormat<EngineTimer>(TryFormat);
+        }
+
         public EngineTimer(double threshold)
         {
-            _startTime = double.MaxValue;
+            _startTime = NOT_STARTED;
             _speed = 1.0;
 
             TimeThreshold = threshold;
@@ -64,7 +73,39 @@ namespace YARG.Core.Engine
 
         public static void Reset(ref double startTime)
         {
-            startTime = double.MaxValue;
+            startTime = NOT_STARTED;
+        }
+
+        public readonly override string ToString()
+        {
+            if (StartTime == NOT_STARTED)
+                return "Not started";
+
+            return $"{StartTime:0.000000} - {EndTime:0.000000}";
+        }
+
+        public readonly bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format = default, IFormatProvider? provider = null)
+        {
+            return TryFormat(this, destination, out charsWritten, format);
+        }
+
+        private static bool TryFormat(EngineTimer timer, Span<char> dest, out int written, ReadOnlySpan<char> format)
+        {
+            written = 0;
+
+            if (timer.StartTime == NOT_STARTED)
+                return dest.TryWriteAndAdvance("Not started", ref written);
+
+            if (!dest.TryWriteAndAdvance(timer.StartTime, ref written, "0.000000"))
+                return false;
+
+            if (!dest.TryWriteAndAdvance(" - ", ref written))
+                return false;
+
+            if (!dest.TryWriteAndAdvance(timer.EndTime, ref written, "0.000000"))
+                return false;
+
+            return true;
         }
     }
 }
