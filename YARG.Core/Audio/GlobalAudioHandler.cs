@@ -26,16 +26,16 @@ namespace YARG.Core.Audio
 
         static GlobalAudioHandler()
         {
-            var vocals = new StemSettings(AudioHelpers.SONG_VOLUME_MULTIPLIER);
-            var drums = new StemSettings(AudioHelpers.SONG_VOLUME_MULTIPLIER);
+            var vocals = new StemSettings();
+            var drums = new StemSettings();
 
             StemSettings = new()
             {
-                { SongStem.Song,    new StemSettings(AudioHelpers.SONG_VOLUME_MULTIPLIER) },
-                { SongStem.Guitar,  new StemSettings(AudioHelpers.SONG_VOLUME_MULTIPLIER) },
-                { SongStem.Bass,    new StemSettings(AudioHelpers.SONG_VOLUME_MULTIPLIER) },
-                { SongStem.Rhythm,  new StemSettings(AudioHelpers.SONG_VOLUME_MULTIPLIER) },
-                { SongStem.Keys,    new StemSettings(AudioHelpers.SONG_VOLUME_MULTIPLIER) },
+                { SongStem.Song,    new StemSettings() },
+                { SongStem.Guitar,  new StemSettings() },
+                { SongStem.Bass,    new StemSettings() },
+                { SongStem.Rhythm,  new StemSettings() },
+                { SongStem.Keys,    new StemSettings() },
                 { SongStem.Vocals,  vocals },
                 { SongStem.Vocals1, vocals },
                 { SongStem.Vocals2, vocals },
@@ -44,8 +44,8 @@ namespace YARG.Core.Audio
                 { SongStem.Drums2,  drums },
                 { SongStem.Drums3,  drums },
                 { SongStem.Drums4,  drums },
-                { SongStem.Crowd,   new StemSettings(AudioHelpers.SONG_VOLUME_MULTIPLIER) },
-                { SongStem.Sfx,     new StemSettings(1) },
+                { SongStem.Crowd,   new StemSettings() },
+                { SongStem.Sfx,     new StemSettings() },
             };
         }
 
