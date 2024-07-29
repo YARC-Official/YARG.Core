@@ -17,6 +17,7 @@ namespace YARG.Core.Game
         public interface IFretColorProvider
         {
             public Color GetFretColor(int index);
+            public Color GetMetalColor(bool forStarPower);
             public Color GetFretInnerColor(int index);
             public Color GetParticleColor(int index);
         }

@@ -142,6 +142,18 @@ namespace YARG.Core.Game
 
             #endregion
 
+            #region Note Metal
+
+            public Color NoteMetal          = DefaultNoteMetal;
+            public Color NoteMetalStarpower = DefaultNoteMetalStarpower;
+
+            public Color GetMetalColor(bool forStarPower)
+            {
+                return forStarPower ? NoteMetalStarpower : NoteMetal;
+            }
+
+            #endregion
+
             #region Serialization
 
             public FiveFretGuitarColors Copy()
@@ -186,6 +198,9 @@ namespace YARG.Core.Game
                 writer.Write(YellowNoteStarPower);
                 writer.Write(BlueNoteStarPower);
                 writer.Write(OrangeNoteStarPower);
+
+                writer.Write(NoteMetal);
+                writer.Write(NoteMetalStarpower);
             }
 
             public void Deserialize(BinaryReader reader, int version = 0)
@@ -224,6 +239,9 @@ namespace YARG.Core.Game
                 YellowNoteStarPower = reader.ReadColor();
                 BlueNoteStarPower = reader.ReadColor();
                 OrangeNoteStarPower = reader.ReadColor();
+
+                NoteMetal = reader.ReadColor();
+                NoteMetalStarpower = reader.ReadColor();
             }
 
             #endregion
