@@ -17,7 +17,7 @@ namespace YARG.Core.Game
         private static readonly Color DefaultStarpower = Color.White; // #FFFFFF
 
         private static readonly Color DefaultNoteMetal = Color.White; // #FFFFFF
-        private static readonly Color DefaultNoteMetalStarpower = Color.FromArgb(0xFF, 0xE3, 0xBD, 0x00); // #E3BD00
+        private static readonly Color DefaultNoteMetalStarpower = Color.FromArgb(0xFF, 0xE3, 0xA8, 0x00); // #E3A800
 
         #endregion
 
