@@ -5,6 +5,15 @@ using YARG.Core.Utility;
 
 namespace YARG.Core.Song
 {
+    public enum CharacterGroup
+    {
+        Empty,
+        AsciiSymbol,
+        AsciiNumber,
+        AsciiLetter,
+        NonAscii
+    }
+
     public readonly struct SortString : IComparable<SortString>, IEquatable<SortString>
     {
         // Order of these static variables matters
@@ -26,6 +35,7 @@ namespace YARG.Core.Song
         public readonly string SearchStr;
         public readonly string SortStr;
         public readonly int HashCode;
+        public readonly CharacterGroup Group;
 
         public int Length => Str.Length;
 
@@ -35,24 +45,14 @@ namespace YARG.Core.Song
             SearchStr = searchStr;
             SortStr = sortStr;
             HashCode = sortStr.GetHashCode();
+            Group = sortStr.Length > 0 ? GetCharacterGrouping(SortStr[0]) : CharacterGroup.Empty;
         }
 
         public int CompareTo(SortString other)
         {
-            if (SortStr.Length == 0)
+            if (Group != other.Group)
             {
-                return other.SortStr.Length == 0 ? 0 : -1;
-            }
-            else if (other.SortStr.Length == 0)
-            {
-                return 1;
-            }
-
-            var thisGroup = GetCharacterGrouping(SortStr[0]);
-            var otherGroup = GetCharacterGrouping(other.SortStr[0]);
-            if (thisGroup != otherGroup)
-            {
-                return thisGroup - otherGroup;
+                return Group - other.Group;
             }
             return SortStr.CompareTo(other.SortStr);
         }
@@ -79,14 +79,6 @@ namespace YARG.Core.Song
             return new SortString(str, string.Empty, sortStr);
         }
 
-        private enum CharacterGroup
-        {
-            AsciiSymbol,
-            Number,
-            AsciiLetter,
-            NonAscii
-        }
-
         private static CharacterGroup GetCharacterGrouping(char character)
         {
             if ('a' <= character && character <= 'z')
@@ -95,7 +87,7 @@ namespace YARG.Core.Song
             }
             if ('0' <= character && character <= '9')
             {
-                return CharacterGroup.Number;
+                return CharacterGroup.AsciiNumber;
             }
             return character > 127 ? CharacterGroup.NonAscii : CharacterGroup.AsciiSymbol;
         }
