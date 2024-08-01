@@ -72,7 +72,7 @@ namespace YARG.Core.Song.Cache
                     CategorySorter<SortString, CharterConfig>.Add(entry, cache.Charters);
                     CategorySorter<SortString, PlaylistConfig>.Add(entry, cache.Playlists);
                     CategorySorter<SortString, SourceConfig>.Add(entry, cache.Sources);
-                    CategorySorter<string, ArtistAlbumConfig>.Add(entry, cache.ArtistAlbums);
+                    CategorySorter<SortString, ArtistAlbumConfig>.Add(entry, cache.ArtistAlbums);
                     CategorySorter<string, SongLengthConfig>.Add(entry, cache.SongLengths);
                     CategorySorter<DateTime, DateAddedConfig>.Add(entry, cache.DatesAdded);
                     InstrumentSorter.Add(entry, cache.Instruments);

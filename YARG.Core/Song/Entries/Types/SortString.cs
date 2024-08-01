@@ -72,6 +72,13 @@ namespace YARG.Core.Song
             return Str;
         }
 
+        public static SortString Combine(in SortString a, in SortString b)
+        {
+            string str = a.Str + " - " + b.Str;
+            string sortStr = a.SortStr + b.SortStr;
+            return new SortString(str, string.Empty, sortStr);
+        }
+
         private enum CharacterGroup
         {
             AsciiSymbol,

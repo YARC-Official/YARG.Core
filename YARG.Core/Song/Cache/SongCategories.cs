@@ -38,13 +38,13 @@ namespace YARG.Core.Song.Cache
         }
     }
 
-    public readonly struct ArtistAlbumConfig : CategoryConfig<string>
+    public readonly struct ArtistAlbumConfig : CategoryConfig<SortString>
     {
         private static readonly EntryComparer _COMPARER = new(SongAttribute.Album);
         public EntryComparer Comparer => _COMPARER;
-        public string GetKey(SongEntry entry)
+        public SortString GetKey(SongEntry entry)
         {
-            return $"{entry.Artist.Str} - {entry.Album.Str}";
+            return SortString.Combine(entry.Artist, entry.Album);
         }
     }
 
