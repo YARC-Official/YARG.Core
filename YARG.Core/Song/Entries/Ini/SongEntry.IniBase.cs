@@ -336,11 +336,13 @@ namespace YARG.Core.Song
                 parts.FourLaneDrums.Intensity = (sbyte) intensity;
                 parts.ProDrums.Intensity = (sbyte) intensity;
                 parts.FiveLaneDrums.Intensity = (sbyte) intensity;
+                parts.EliteDrums.Intensity = (sbyte) intensity;
             }
 
             if (modifiers.TryGet("diff_drums_real", out intensity) && intensity != -1)
             {
                 parts.ProDrums.Intensity = (sbyte) intensity;
+                parts.EliteDrums.Intensity = (sbyte) intensity;
                 if (parts.FourLaneDrums.Intensity == -1)
                 {
                     parts.FourLaneDrums.Intensity = parts.ProDrums.Intensity;

@@ -250,7 +250,7 @@ namespace YARG.Core.Song
                     Instrument.FiveLaneDrums => _parts.FiveLaneDrums,
                     Instrument.ProDrums => _parts.ProDrums,
 
-                    // Instrument.TrueDrums => _parts.TrueDrums,
+                    Instrument.EliteDrums => _parts.EliteDrums,
 
                     Instrument.ProGuitar_17Fret => _parts.ProGuitar_17Fret,
                     Instrument.ProGuitar_22Fret => _parts.ProGuitar_22Fret,
@@ -289,7 +289,7 @@ namespace YARG.Core.Song
                 Instrument.FiveLaneDrums => _parts.FiveLaneDrums.SubTracks > 0,
                 Instrument.ProDrums => _parts.ProDrums.SubTracks > 0,
 
-                // Instrument.TrueDrums => _parts.TrueDrums.SubTracks > 0,
+                Instrument.EliteDrums => _parts.EliteDrums.SubTracks > 0,
 
                 Instrument.ProGuitar_17Fret => _parts.ProGuitar_17Fret.SubTracks > 0,
                 Instrument.ProGuitar_22Fret => _parts.ProGuitar_22Fret.SubTracks > 0,

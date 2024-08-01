@@ -43,6 +43,8 @@ namespace YARG.Core.Song
 
                     case MidiTrackType.Drums: drums.ParseMidi(track); break;
 
+                    case MidiTrackType.EliteDrums: if (!parts.EliteDrums.WasParsed()) parts.EliteDrums.Difficulties = Midi_EliteDrums_Preparser.Parse(track); break;
+
                     case MidiTrackType.Pro_Guitar_17: if (!parts.ProGuitar_17Fret.WasParsed()) parts.ProGuitar_17Fret.Difficulties = Midi_ProGuitar_Preparser.Parse_17Fret(track); break;
                     case MidiTrackType.Pro_Guitar_22: if (!parts.ProGuitar_22Fret.WasParsed()) parts.ProGuitar_22Fret.Difficulties = Midi_ProGuitar_Preparser.Parse_22Fret(track); break;
                     case MidiTrackType.Pro_Bass_17:   if (!parts.ProBass_17Fret.WasParsed())   parts.ProBass_17Fret.Difficulties   = Midi_ProGuitar_Preparser.Parse_17Fret(track); break;
@@ -103,7 +105,7 @@ namespace YARG.Core.Song
                    parts.FourLaneDrums.SubTracks > 0 ||
                    parts.ProDrums.SubTracks > 0 ||
                    parts.FiveLaneDrums.SubTracks > 0 ||
-                   // parts.TrueDrums.subTracks > 0 ||
+                   parts.EliteDrums.SubTracks > 0 ||
                    parts.ProGuitar_17Fret.SubTracks > 0 ||
                    parts.ProGuitar_22Fret.SubTracks > 0 ||
                    parts.ProBass_17Fret.SubTracks > 0 ||
