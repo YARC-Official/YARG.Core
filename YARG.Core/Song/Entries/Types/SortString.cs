@@ -39,6 +39,21 @@ namespace YARG.Core.Song
 
         public int CompareTo(SortString other)
         {
+            if (SortStr.Length == 0)
+            {
+                return other.SortStr.Length == 0 ? 0 : -1;
+            }
+            else if (other.SortStr.Length == 0)
+            {
+                return 1;
+            }
+
+            var thisGroup = GetCharacterGrouping(SortStr[0]);
+            var otherGroup = GetCharacterGrouping(other.SortStr[0]);
+            if (thisGroup != otherGroup)
+            {
+                return thisGroup - otherGroup;
+            }
             return SortStr.CompareTo(other.SortStr);
         }
 
@@ -55,6 +70,27 @@ namespace YARG.Core.Song
         public override string ToString()
         {
             return Str;
+        }
+
+        private enum CharacterGroup
+        {
+            AsciiSymbol,
+            Number,
+            AsciiLetter,
+            NonAscii
+        }
+
+        private static CharacterGroup GetCharacterGrouping(char character)
+        {
+            if ('a' <= character && character <= 'z')
+            {
+                return CharacterGroup.AsciiLetter;
+            }
+            if ('0' <= character && character <= '9')
+            {
+                return CharacterGroup.Number;
+            }
+            return character > 127 ? CharacterGroup.NonAscii : CharacterGroup.AsciiSymbol;
         }
 
         public static implicit operator SortString(string str) => Convert(str);
@@ -123,10 +159,15 @@ namespace YARG.Core.Song
                 int length = 0;
                 foreach (char c in normalizedString)
                 {
-                    var unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(c);
-                    if (unicodeCategory != UnicodeCategory.NonSpacingMark)
+                    switch (CharUnicodeInfo.GetUnicodeCategory(c))
                     {
-                        buffer[length++] = c;
+                        case UnicodeCategory.NonSpacingMark:
+                        case UnicodeCategory.Format:
+                        case UnicodeCategory.SpacingCombiningMark:
+                            break;
+                        default:
+                            buffer[length++] = c;
+                            break;
                     }
                 }
 

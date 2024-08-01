@@ -19,11 +19,11 @@ namespace YARG.Core.Song.Cache
         public string GetKey(SongEntry entry)
         {
             string name = entry.Name.SortStr;
-            int i = 0;
-            while (i + 1 < name.Length && !char.IsLetterOrDigit(name[i]))
-                ++i;
-
-            char character = name[i];
+            if (name.Length == 0)
+            {
+                return string.Empty;
+            }
+            char character = name[0];
             return char.IsDigit(character) ? "0-9" : char.ToUpperInvariant(character).ToString();
         }
     }
