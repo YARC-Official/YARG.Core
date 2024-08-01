@@ -18,13 +18,14 @@ namespace YARG.Core.Song.Cache
 
         public string GetKey(SongEntry entry)
         {
-            string name = entry.Name.SortStr;
-            if (name.Length == 0)
+            var name = entry.Name;
+            return name.Group switch
             {
-                return string.Empty;
-            }
-            char character = name[0];
-            return char.IsDigit(character) ? "0-9" : char.ToUpperInvariant(character).ToString();
+                CharacterGroup.Empty or
+                CharacterGroup.AsciiSymbol => "*",
+                CharacterGroup.AsciiNumber => "0-9",
+                _ => char.ToUpperInvariant(name.SortStr[0]).ToString(),
+            };
         }
     }
 
