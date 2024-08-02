@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Melanchall.DryWetMidi.Interaction;
 using YARG.Core.Chart;
 using YARG.Core.Logging;
 using YARG.Core.Utility;
@@ -34,6 +33,10 @@ namespace YARG.Core.Engine
 
         public delegate void StarPowerPhraseMissEvent(TNoteType note);
 
+        public delegate void SustainStartEvent(TNoteType note);
+
+        public delegate void SustainEndEvent(TNoteType note, double timeEnded, bool finished);
+
         public delegate void CountdownChangeEvent(int measuresLeft);
 
         public NoteHitEvent?    OnNoteHit;
@@ -42,7 +45,12 @@ namespace YARG.Core.Engine
         public StarPowerPhraseHitEvent?  OnStarPowerPhraseHit;
         public StarPowerPhraseMissEvent? OnStarPowerPhraseMissed;
 
+        public SustainStartEvent? OnSustainStart;
+        public SustainEndEvent?   OnSustainEnd;
+
         public CountdownChangeEvent? OnCountdownChange;
+
+        protected SustainList<TNoteType> ActiveSustains = new(10);
 
         protected          int[]  StarScoreThresholds { get; }
         protected readonly double TicksPerSustainPoint;
@@ -465,6 +473,48 @@ namespace YARG.Core.Engine
             State.CurrentSoloIndex++;
         }
 
+        protected override void UpdateProgressValues(uint tick)
+        {
+            base.UpdateProgressValues(tick);
+
+            EngineStats.PendingScore = 0;
+            for (int i = 0; i < ActiveSustains.Count; i++)
+            {
+                ref var sustain = ref ActiveSustains[i];
+                EngineStats.PendingScore += (int) CalculateSustainPoints(ref sustain, tick);
+            }
+        }
+
+        protected override void RebaseProgressValues(uint baseTick)
+        {
+            base.RebaseProgressValues(baseTick);
+            RebaseSustains(baseTick);
+        }
+
+        protected void RebaseSustains(uint baseTick)
+        {
+            EngineStats.PendingScore = 0;
+            for (int i = 0; i < ActiveSustains.Count; i++)
+            {
+                ref var sustain = ref ActiveSustains[i];
+                // Don't rebase sustains that haven't started yet
+                if (baseTick < sustain.BaseTick)
+                {
+                    YargLogger.AssertFormat(baseTick < sustain.Note.Tick,
+                        "Sustain base tick cannot go backwards! Attempted to go from {0} to {1}",
+                        sustain.BaseTick, baseTick);
+
+                    continue;
+                }
+
+                double sustainScore = CalculateSustainPoints(ref sustain, baseTick);
+
+                sustain.BaseTick = Math.Clamp(baseTick, sustain.Note.Tick, sustain.Note.TickEnd);
+                sustain.BaseScore = sustainScore;
+                EngineStats.PendingScore += (int) sustainScore;
+            }
+        }
+
         protected void UpdateCountdown(int measuresRemaining)
         {
             if (!State.IsWaitCountdownActive)
@@ -533,6 +583,18 @@ namespace YARG.Core.Engine
             }
 
             return true;
+        }
+
+        protected double CalculateSustainPoints(ref ActiveSustain<TNoteType> sustain, uint tick)
+        {
+            uint scoreTick = Math.Clamp(tick, sustain.Note.Tick, sustain.Note.TickEnd);
+
+            sustain.Note.SustainTicksHeld = scoreTick - sustain.Note.Tick;
+
+            // Sustain points are awarded at a constant rate regardless of tempo
+            // double deltaScore = CalculateBeatProgress(scoreTick, sustain.BaseTick, POINTS_PER_BEAT);
+            double deltaScore = (scoreTick - sustain.BaseTick) / TicksPerSustainPoint;
+            return sustain.BaseScore + deltaScore;
         }
 
         private void AdvanceToNextNote(TNoteType note)

@@ -1,7 +1,5 @@
 using System;
-using System.Collections.Generic;
 using YARG.Core.Chart;
-using YARG.Core.Engine.Logging;
 using YARG.Core.Input;
 using YARG.Core.Logging;
 
@@ -10,43 +8,9 @@ namespace YARG.Core.Engine.Guitar
     public abstract class GuitarEngine : BaseEngine<GuitarNote, GuitarEngineParameters,
         GuitarStats, GuitarEngineState>
     {
-        protected sealed class ActiveSustain
-        {
-            public GuitarNote Note;
-            public uint       BaseTick;
-            public double     BaseScore;
-
-            public bool HasFinishedScoring;
-
-            public ActiveSustain(GuitarNote note)
-            {
-                Note = note;
-                BaseTick = note.Tick;
-            }
-
-            public double GetEndTime(SyncTrack syncTrack, uint sustainBurstThreshold)
-            {
-                // Sustain is too short for a burst, so clamp the burst to the start position of the note
-                if (sustainBurstThreshold > Note.TickLength)
-                {
-                    return Note.Time;
-                }
-
-                return syncTrack.TickToTime(Note.TickEnd - sustainBurstThreshold);
-            }
-        }
-
         public delegate void OverstrumEvent();
 
-        public delegate void SustainStartEvent(GuitarNote note);
-
-        public delegate void SustainEndEvent(GuitarNote note, double timeEnded, bool finished);
-
-        public OverstrumEvent?    OnOverstrum;
-        public SustainStartEvent? OnSustainStart;
-        public SustainEndEvent?   OnSustainEnd;
-
-        protected List<ActiveSustain> ActiveSustains = new();
+        public OverstrumEvent? OnOverstrum;
 
         protected uint LastWhammyTick;
 
@@ -160,7 +124,7 @@ namespace YARG.Core.Engine.Guitar
                 YargLogger.LogFormatTrace("Ended sustain (end time: {0}) at {1}", sustain.GetEndTime(SyncTrack, 0), State.CurrentTime);
                 i--;
 
-                double finalScore = CalculateSustainPoints(sustain, State.CurrentTick);
+                double finalScore = CalculateSustainPoints(ref sustain, State.CurrentTick);
                 EngineStats.CommittedScore += (int) Math.Ceiling(finalScore);
                 OnSustainEnd?.Invoke(sustain.Note, State.CurrentTime, sustain.HasFinishedScoring);
             }
@@ -310,46 +274,6 @@ namespace YARG.Core.Engine.Guitar
             }
         }
 
-        protected override void UpdateProgressValues(uint tick)
-        {
-            base.UpdateProgressValues(tick);
-
-            EngineStats.PendingScore = 0;
-            foreach (var sustain in ActiveSustains)
-            {
-                EngineStats.PendingScore += (int) CalculateSustainPoints(sustain, tick);
-            }
-        }
-
-        protected override void RebaseProgressValues(uint baseTick)
-        {
-            base.RebaseProgressValues(baseTick);
-            RebaseSustains(baseTick);
-        }
-
-        protected void RebaseSustains(uint baseTick)
-        {
-            EngineStats.PendingScore = 0;
-            foreach (var sustain in ActiveSustains)
-            {
-                // Don't rebase sustains that haven't started yet
-                if (baseTick < sustain.BaseTick)
-                {
-                    YargLogger.AssertFormat(baseTick < sustain.Note.Tick,
-                        "Sustain base tick cannot go backwards! Attempted to go from {0} to {1}",
-                        sustain.BaseTick, baseTick);
-
-                    continue;
-                }
-
-                double sustainScore = CalculateSustainPoints(sustain, baseTick);
-
-                sustain.BaseTick = Math.Clamp(baseTick, sustain.Note.Tick, sustain.Note.TickEnd);
-                sustain.BaseScore = sustainScore;
-                EngineStats.PendingScore += (int) sustainScore;
-            }
-        }
-
         protected void StartSustain(GuitarNote note)
         {
             //return;
@@ -370,7 +294,7 @@ namespace YARG.Core.Engine.Guitar
                 LastWhammyTick = State.CurrentTick;
             }
 
-            var sustain = new ActiveSustain(note);
+            var sustain = new ActiveSustain<GuitarNote>(note);
 
             ActiveSustains.Add(sustain);
 
@@ -395,7 +319,7 @@ namespace YARG.Core.Engine.Guitar
             bool isStarPowerSustainActive = false;
             for (int i = 0; i < ActiveSustains.Count; i++)
             {
-                var sustain = ActiveSustains[i];
+                ref var sustain = ref ActiveSustains[i];
                 var note = sustain.Note;
 
                 isStarPowerSustainActive |= note.IsStarPower;
@@ -437,7 +361,7 @@ namespace YARG.Core.Engine.Guitar
                         YargLogger.LogFormatTrace("Finished scoring sustain ({0}) at {1} (dropped: {2}, burst: {3})",
                             sustain.Note.Tick, State.CurrentTime, dropped, isBurst);
 
-                        double finalScore = CalculateSustainPoints(sustain, sustainTick);
+                        double finalScore = CalculateSustainPoints(ref sustain, sustainTick);
                         var points = (int) Math.Ceiling(finalScore);
 
                         AddScore(points);
@@ -453,7 +377,7 @@ namespace YARG.Core.Engine.Guitar
                     }
                     else
                     {
-                        double score = CalculateSustainPoints(sustain, sustainTick);
+                        double score = CalculateSustainPoints(ref sustain, sustainTick);
 
                         var sustainPoints = (int) Math.Ceiling(score);
 
@@ -489,18 +413,6 @@ namespace YARG.Core.Engine.Guitar
             {
                 State.StarPowerWhammyTimer.Disable();
             }
-        }
-
-        protected double CalculateSustainPoints(ActiveSustain sustain, uint tick)
-        {
-            uint scoreTick = Math.Clamp(tick, sustain.Note.Tick, sustain.Note.TickEnd);
-
-            sustain.Note.SustainTicksHeld = scoreTick - sustain.Note.Tick;
-
-            // Sustain points are awarded at a constant rate regardless of tempo
-            // double deltaScore = CalculateBeatProgress(scoreTick, sustain.BaseTick, POINTS_PER_BEAT);
-            double deltaScore = (scoreTick - sustain.BaseTick) / TicksPerSustainPoint;
-            return sustain.BaseScore + deltaScore;
         }
 
         public override void SetSpeed(double speed)
