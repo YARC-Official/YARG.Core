@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using YARG.Core.Chart;
 using YARG.Core.Logging;
 
@@ -68,6 +68,13 @@ namespace YARG.Core.Engine.ProKeys
             // Cancel overstrum if past last note and no active sustains
             if (State.NoteIndex >= Chart.Notes.Count /*&& ActiveSustains.Count == 0*/)
             {
+                return;
+            }
+
+            // Cancel overstrum if WaitCountdown is active
+            if (State.IsWaitCountdownActive)
+            {
+                YargLogger.LogFormatTrace("Overstrum prevented during WaitCountdown at time: {0}, tick: {1}", State.CurrentTime, State.CurrentTick);
                 return;
             }
 
