@@ -17,7 +17,7 @@ namespace YARG.Core.Engine
             public SustainEnumerator(SustainList<TNoteType> list)
             {
                 _list = list;
-                _index = -1;
+                _index = 0;
 
                 _current = default;
             }
@@ -28,9 +28,16 @@ namespace YARG.Core.Engine
 
             public bool MoveNext()
             {
-                _current = _list[_index];
-                _index++;
-                return _index <= _list.Count;
+                if (_index < _list.Count)
+                {
+                    _current = _list[_index];
+                    _index++;
+                    return true;
+                }
+
+                _index = _list.Count;
+                _current = default;
+                return false;
             }
 
             public ActiveSustain<TNoteType> Current => _current!.Value;
