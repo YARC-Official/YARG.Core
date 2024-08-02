@@ -11,8 +11,6 @@ namespace YARG.Core.Chart
         public int DisjointMask { get; }
         public int NoteMask     { get; private set; }
 
-        public uint SustainTicksHeld;
-
         public GuitarNoteType Type { get; set; }
 
         public bool IsStrum => Type == GuitarNoteType.Strum;
@@ -73,7 +71,6 @@ namespace YARG.Core.Chart
         {
             base.ResetNoteState();
             GuitarFlags = _guitarFlags;
-            SustainTicksHeld = 0;
         }
 
         protected override void CopyFlags(GuitarNote other)

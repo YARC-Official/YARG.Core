@@ -63,6 +63,8 @@ namespace YARG.Core.Chart
         public TNote? PreviousNote;
         public TNote? NextNote;
 
+        public uint SustainTicksHeld;
+
         public TNote? Parent { get; private set; }
         public IReadOnlyList<TNote> ChildNotes => _childNotes;
 
@@ -183,6 +185,7 @@ namespace YARG.Core.Chart
             Flags = _flags;
             WasHit = false;
             WasMissed = false;
+            SustainTicksHeld = 0;
 
             if(_originalPreviousNote != null)
             {
