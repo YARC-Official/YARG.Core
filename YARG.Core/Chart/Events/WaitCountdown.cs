@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 
 namespace YARG.Core.Chart
@@ -7,14 +6,15 @@ namespace YARG.Core.Chart
     {
         public const float MIN_SECONDS = 9;
         public const uint MIN_MEASURES = 4;
-        public const float MIN_UPDATE_SECONDS = 1;
-        private const float MIN_GET_READY_SECONDS = 2;
-        public const int GET_READY_MEASURE = 2;
+        public const float MIN_MEASURE_LENGTH = 1;
+        public const float FADE_ANIM_LENGTH = 0.45f;
         public const int END_COUNTDOWN_MEASURE = 1;
 
         public int TotalMeasures => _measureBeatlines.Count;
 
-        public readonly double GetReadyTime;
+        //The time where the countdown should start fading out and overstrums will break combo again
+        public double DeactivateTime => _measureBeatlines[^(END_COUNTDOWN_MEASURE + 1)].Time;
+        public bool IsActive => MeasuresLeft > END_COUNTDOWN_MEASURE;
 
         private List<Beatline> _measureBeatlines;
 
@@ -24,17 +24,13 @@ namespace YARG.Core.Chart
         {
             _measureBeatlines = measureBeatlines;
 
-            var firstVisibleCountdownMeasure = measureBeatlines[0];
-            var lastVisibleCountdownMeasure = measureBeatlines[^(END_COUNTDOWN_MEASURE + 1)];
+            var firstCountdownMeasure = measureBeatlines[0];
+            var lastCountdownMeasure = measureBeatlines[^1];
 
-            Time = firstVisibleCountdownMeasure.Time;
-            Tick = firstVisibleCountdownMeasure.Tick;
-            TimeLength = lastVisibleCountdownMeasure.Time - Time;
-            TickLength = lastVisibleCountdownMeasure.Tick - Tick;
-
-            double getReadyTotalSeconds = TimeEnd - measureBeatlines[^(GET_READY_MEASURE + 1)].Time;
-
-            GetReadyTime = TimeEnd - Math.Max(getReadyTotalSeconds, MIN_GET_READY_SECONDS);
+            Time = firstCountdownMeasure.Time;
+            Tick = firstCountdownMeasure.Tick;
+            TimeLength = lastCountdownMeasure.Time - Time;
+            TickLength = lastCountdownMeasure.Tick - Tick;
 
             MeasuresLeft = TotalMeasures;
         }
@@ -58,14 +54,6 @@ namespace YARG.Core.Chart
             MeasuresLeft = newMeasuresLeft;
 
             return newMeasuresLeft;
-        }
-
-        public double GetNextUpdateTime()
-        {
-            int nextMeasureIndex = TotalMeasures - MeasuresLeft;
-            double nextUpdateTime = _measureBeatlines[nextMeasureIndex].Time;
-
-            return Math.Min(nextUpdateTime, TimeEnd);
         }
     }
 }
