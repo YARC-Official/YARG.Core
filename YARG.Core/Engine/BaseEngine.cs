@@ -159,6 +159,8 @@ namespace YARG.Core.Engine
             IsBotUpdate = true;
         }
 
+        public abstract void AllowStarPower(bool isAllowed);
+
         public abstract void Reset(bool keepCurrentButtons = false);
 
         protected abstract void UpdateUpToTime(double time);
@@ -426,6 +428,32 @@ namespace YARG.Core.Engine
             }
         }
 
+        public override void AllowStarPower(bool isAllowed)
+        {
+            if (isAllowed == State.AllowStarPower)
+            {
+                return;
+            }
+
+            State.AllowStarPower = isAllowed;
+
+            foreach (var note in Notes)
+            {
+                if (isAllowed)
+                {
+                    note.ResetFlags();
+                }
+                else if (note.IsStarPower)
+                {
+                    note.Flags &= ~NoteFlags.StarPower;
+                    foreach (var childNote in note.ChildNotes)
+                    {
+                        childNote.Flags &= ~NoteFlags.StarPower;
+                    }
+                }
+            }
+        }
+
         public override void Reset(bool keepCurrentButtons = false)
         {
             CurrentInput = new GameInput(-9999, -9999, -9999);
@@ -436,9 +464,19 @@ namespace YARG.Core.Engine
 
             EventLogger.Clear();
 
+            bool allowStarPower = State.AllowStarPower;
             foreach (var note in Notes)
             {
                 note.ResetNoteState();
+
+                if (!allowStarPower && note.IsStarPower)
+                {
+                    note.Flags &= ~NoteFlags.StarPower;
+                    foreach (var childNote in note.ChildNotes)
+                    {
+                        childNote.Flags &= ~NoteFlags.StarPower;
+                    }
+                }
             }
 
             foreach (var solo in Solos)
@@ -555,7 +593,7 @@ namespace YARG.Core.Engine
                     nextNote = nextNote.NextNote;
                 }
             }
-
+            
             OnStarPowerPhraseMissed?.Invoke(note);
         }
 
