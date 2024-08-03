@@ -441,11 +441,15 @@ namespace YARG.Core.Engine
             {
                 if (isAllowed)
                 {
-                    note.ResetNoteState();
+                    note.ResetFlags();
                 }
-                else
+                else if (note.IsStarPower)
                 {
-                    StripStarPower(note);
+                    note.Flags &= ~NoteFlags.StarPower;
+                    foreach (var childNote in note.ChildNotes)
+                    {
+                        childNote.Flags &= ~NoteFlags.StarPower;
+                    }
                 }
             }
         }
@@ -465,9 +469,13 @@ namespace YARG.Core.Engine
             {
                 note.ResetNoteState();
 
-                if (!allowStarPower)
+                if (!allowStarPower && note.IsStarPower)
                 {
-                    StripStarPower(note);
+                    note.Flags &= ~NoteFlags.StarPower;
+                    foreach (var childNote in note.ChildNotes)
+                    {
+                        childNote.Flags &= ~NoteFlags.StarPower;
+                    }
                 }
             }
 
@@ -586,10 +594,7 @@ namespace YARG.Core.Engine
                 }
             }
             
-            if (BaseState.AllowStarPower)
-            {
-                OnStarPowerPhraseMissed?.Invoke(note);
-            }
+            OnStarPowerPhraseMissed?.Invoke(note);
         }
 
         protected virtual void RebaseProgressValues(uint baseTick)
