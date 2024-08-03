@@ -274,9 +274,8 @@ namespace YARG.Core.Engine.Guitar
             }
         }
 
-        protected void StartSustain(GuitarNote note)
+        protected override void StartSustain(GuitarNote note)
         {
-            //return;
             for (int i = 0; i < ActiveSustains.Count; i++)
             {
                 var activeSustain = ActiveSustains[i];
@@ -294,22 +293,7 @@ namespace YARG.Core.Engine.Guitar
                 LastWhammyTick = State.CurrentTick;
             }
 
-            var sustain = new ActiveSustain<GuitarNote>(note);
-
-            ActiveSustains.Add(sustain);
-
-            YargLogger.LogFormatTrace("Started sustain at {0} (tick len: {1}, time len: {2})", State.CurrentTime, note.TickLength, note.TimeLength);
-
-            OnSustainStart?.Invoke(note);
-        }
-
-        protected void EndSustain(int sustainIndex, bool dropped, bool isEndOfSustain)
-        {
-            var sustain = ActiveSustains[sustainIndex];
-            YargLogger.LogFormatTrace("Ended sustain ({0}) at {1} (dropped: {2}, end: {3})", sustain.Note.Tick, State.CurrentTime, dropped, isEndOfSustain);
-            ActiveSustains.RemoveAt(sustainIndex);
-
-            OnSustainEnd?.Invoke(sustain.Note, State.CurrentTime, sustain.HasFinishedScoring);
+            base.StartSustain(note);
         }
 
         protected void UpdateSustains()

@@ -337,6 +337,26 @@ namespace YARG.Core.Engine
             UpdateStars();
         }
 
+        protected virtual void StartSustain(TNoteType note)
+        {
+            var sustain = new ActiveSustain<TNoteType>(note);
+
+            ActiveSustains.Add(sustain);
+
+            YargLogger.LogFormatTrace("Started sustain at {0} (tick len: {1}, time len: {2})", State.CurrentTime, note.TickLength, note.TimeLength);
+
+            OnSustainStart?.Invoke(note);
+        }
+
+        protected virtual void EndSustain(int sustainIndex, bool dropped, bool isEndOfSustain)
+        {
+            var sustain = ActiveSustains[sustainIndex];
+            YargLogger.LogFormatTrace("Ended sustain ({0}) at {1} (dropped: {2}, end: {3})", sustain.Note.Tick, State.CurrentTime, dropped, isEndOfSustain);
+            ActiveSustains.RemoveAt(sustainIndex);
+
+            OnSustainEnd?.Invoke(sustain.Note, State.CurrentTime, sustain.HasFinishedScoring);
+        }
+
         protected void UpdateStars()
         {
             // Update which star we're on
