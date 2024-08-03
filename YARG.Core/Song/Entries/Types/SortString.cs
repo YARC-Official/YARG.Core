@@ -5,6 +5,15 @@ using YARG.Core.Utility;
 
 namespace YARG.Core.Song
 {
+    public enum CharacterGroup
+    {
+        Empty,
+        AsciiSymbol,
+        AsciiNumber,
+        AsciiLetter,
+        NonAscii
+    }
+
     public readonly struct SortString : IComparable<SortString>, IEquatable<SortString>
     {
         // Order of these static variables matters
@@ -26,6 +35,7 @@ namespace YARG.Core.Song
         public readonly string SearchStr;
         public readonly string SortStr;
         public readonly int HashCode;
+        public readonly CharacterGroup Group;
 
         public int Length => Str.Length;
 
@@ -35,10 +45,15 @@ namespace YARG.Core.Song
             SearchStr = searchStr;
             SortStr = sortStr;
             HashCode = sortStr.GetHashCode();
+            Group = sortStr.Length > 0 ? GetCharacterGrouping(SortStr[0]) : CharacterGroup.Empty;
         }
 
         public int CompareTo(SortString other)
         {
+            if (Group != other.Group)
+            {
+                return Group - other.Group;
+            }
             return SortStr.CompareTo(other.SortStr);
         }
 
@@ -55,6 +70,26 @@ namespace YARG.Core.Song
         public override string ToString()
         {
             return Str;
+        }
+
+        public static SortString Combine(in SortString a, in SortString b)
+        {
+            string str = a.Str + " - " + b.Str;
+            string sortStr = a.SortStr + b.SortStr;
+            return new SortString(str, string.Empty, sortStr);
+        }
+
+        private static CharacterGroup GetCharacterGrouping(char character)
+        {
+            if ('a' <= character && character <= 'z')
+            {
+                return CharacterGroup.AsciiLetter;
+            }
+            if ('0' <= character && character <= '9')
+            {
+                return CharacterGroup.AsciiNumber;
+            }
+            return character > 127 ? CharacterGroup.NonAscii : CharacterGroup.AsciiSymbol;
         }
 
         public static implicit operator SortString(string str) => Convert(str);
@@ -123,10 +158,15 @@ namespace YARG.Core.Song
                 int length = 0;
                 foreach (char c in normalizedString)
                 {
-                    var unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(c);
-                    if (unicodeCategory != UnicodeCategory.NonSpacingMark)
+                    switch (CharUnicodeInfo.GetUnicodeCategory(c))
                     {
-                        buffer[length++] = c;
+                        case UnicodeCategory.NonSpacingMark:
+                        case UnicodeCategory.Format:
+                        case UnicodeCategory.SpacingCombiningMark:
+                            break;
+                        default:
+                            buffer[length++] = c;
+                            break;
                     }
                 }
 

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Cysharp.Text;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.Utility
 {
@@ -138,25 +139,37 @@ namespace YARG.Core.Utility
             ( "width",       RichTextTags.Width),
         };
 
-        public static string StripRichTextTags(string text)
+        private static readonly Dictionary<RichTextTags, string[]> STRIP_CACHE = new();
+        public static string StripRichTextTags(string text, RichTextTags excludeTags = RichTextTags.AllTags)
         {
+            string[] tags = GetStripList(excludeTags);
+
             Span<char> buffer = stackalloc char[text.Length];
             int length = 0;
-            for (int position = 0, close; position < text.Length; position = close)
+
+            var span = text.AsSpan();
+            for (int position = 0, nextPosition; position < text.Length; position = nextPosition)
             {
-                int end;
-                if (!ParseHTMLBounds(text, position, out int open, out close))
+                if (!ParseHTMLBounds(text, position, out int open, out int end))
                 {
                     if (position == 0)
                     {
                         return text;
                     }
-                    end = close = text.Length;
+                    nextPosition = end = text.Length;
                 }
                 else
                 {
-                    end = open;
-                    ++close;
+                    nextPosition = ++end;
+                    var tag = span[open..end];
+                    foreach (var tagText in tags)
+                    {
+                        if (tag.StartsWith(tagText))
+                        {
+                            end = open;
+                            break;
+                        }
+                    }
                 }
 
                 while (position < end)
@@ -164,82 +177,42 @@ namespace YARG.Core.Utility
                     buffer[length++] = text[position++];
                 }
             }
-            return new string(buffer[0..length]);
-        }
-
-        private static readonly Dictionary<RichTextTags, string[]> STRIP_CACHE = new();
-        public static string StripRichTextTags(string text, RichTextTags excludeTags)
-        {
-            string[] tags = GetStripList(excludeTags);
-
-            using var builder = ZString.CreateStringBuilder(notNested: true);
-            var span = text.AsSpan();
-            for (int position = 0, close; position < span.Length; position = close)
-            {
-                if (!ParseHTMLBounds(text, position, out int open, out close))
-                {
-                    if (position == 0)
-                    {
-                        return text;
-                    }
-                    builder.Append(span[position..text.Length]);
-                    break;
-                }
-
-                ++close;
-                bool found = false;
-                var tag = span[open..close];
-                foreach (var tagText in tags)
-                {
-                    if (tag.StartsWith(tagText))
-                    {
-                        builder.Append(span[position..open]);
-                        found = true;
-                        break;
-                    }
-                }
-
-                if (!found)
-                {
-                    builder.Append(span[position..close]);
-                }
-            }
-            return builder.ToString();
+            return length < text.Length ? new string(buffer[0..length]) : text;
         }
 
         private static (string Original, string Replacement)[] COLOR_TO_HEX_LIST =
         {
-            ( "aqua>",      "<color=#00ffff>" ),
-            ( "black>",     "<color=#000000>" ),
-            ( "blue>",      "<color=#0000ff>" ),
-            ( "brown>",     "<color=#a52a2a>" ),
-            ( "cyan>",      "<color=#00ffff>" ),
-            ( "darkblue>",  "<color=#0000a0>" ),
-            ( "fuchsia>",   "<color=#ff00ff>" ),
-            ( "green>",     "<color=#008000>" ),
-            ( "grey>",      "<color=#808080>" ),
-            ( "lightblue>", "<color=#add8e6>" ),
-            ( "lime>",      "<color=#00ff00>" ),
-            ( "magenta>",   "<color=#ff00ff>" ),
-            ( "maroon>",    "<color=#800000>" ),
-            ( "navy>",      "<color=#000080>" ),
-            ( "olive>",     "<color=#808000>" ),
-            ( "orange>",    "<color=#ffa500>" ),
-            ( "purple>",    "<color=#800080>" ),
-            ( "red>",       "<color=#ff0000>" ),
-            ( "silver>",    "<color=#c0c0c0>" ),
-            ( "teal>",      "<color=#008080>" ),
-            ( "white>",     "<color=#ffffff>" ),
-            ( "yellow>",    "<color=#ffff00>" ),
+            ( "aqua",      "<color=#00ffff>" ),
+            ( "black",     "<color=#000000>" ),
+            ( "blue",      "<color=#0000ff>" ),
+            ( "brown",     "<color=#a52a2a>" ),
+            ( "cyan",      "<color=#00ffff>" ),
+            ( "darkblue",  "<color=#0000a0>" ),
+            ( "fuchsia",   "<color=#ff00ff>" ),
+            ( "green",     "<color=#008000>" ),
+            ( "grey",      "<color=#808080>" ),
+            ( "lightblue", "<color=#add8e6>" ),
+            ( "lime",      "<color=#00ff00>" ),
+            ( "magenta",   "<color=#ff00ff>" ),
+            ( "maroon",    "<color=#800000>" ),
+            ( "navy",      "<color=#000080>" ),
+            ( "olive",     "<color=#808000>" ),
+            ( "orange",    "<color=#ffa500>" ),
+            ( "purple",    "<color=#800080>" ),
+            ( "red",       "<color=#ff0000>" ),
+            ( "silver",    "<color=#c0c0c0>" ),
+            ( "teal",      "<color=#008080>" ),
+            ( "white",     "<color=#ffffff>" ),
+            ( "yellow",    "<color=#ffff00>" ),
         };
 
         public static string ReplaceColorNames(string text)
         {
             using var builder = ZString.CreateStringBuilder(notNested: true);
             var span = text.AsSpan();
-            for (int position = 0, close; position < span.Length; position = close)
+            for (int position = 0, nextPosition; position < span.Length; position = nextPosition)
             {
-                if (!ParseHTMLBounds(text, position, out int open, out close))
+                if (!ParseHTMLBounds(text, position, out int open, out int close))
                 {
                     if (position == 0)
                     {
@@ -248,13 +221,14 @@ namespace YARG.Core.Utility
                     builder.Append(span[position..text.Length]);
                     break;
                 }
-                ++close;
+
+                nextPosition = close + 1;
 
                 bool found = false;
-                var tag = span[open..close];
-                if (tag.StartsWith("<color="))
+                var tag = span[(open + 1)..close];
+                if (tag.StartsWith("color="))
                 {
-                    tag = tag[7..];
+                    tag = tag[6..].TrimOnce('"');
                     foreach (var (original, replacement) in COLOR_TO_HEX_LIST)
                     {
                         if (tag.SequenceEqual(original))
@@ -269,7 +243,7 @@ namespace YARG.Core.Utility
 
                 if (!found)
                 {
-                    builder.Append(span[position..close]);
+                    builder.Append(span[position..(close + 1)]);
                 }
             }
             return builder.ToString();

@@ -244,7 +244,7 @@ namespace YARG.Core.Song
         }
 
         /// <returns>Whether the track was fully traversed</returns>
-        private static bool TraverseChartTrack<TChar>(ref YARGTextContainer<TChar> container, DrumPreparseHandler drums, ref AvailableParts parts)
+        private static unsafe bool TraverseChartTrack<TChar>(ref YARGTextContainer<TChar> container, DrumPreparseHandler drums, ref AvailableParts parts)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {
             if (!YARGChartFileReader.ValidateInstrument(ref container, out var instrument, out var difficulty))
@@ -254,15 +254,15 @@ namespace YARG.Core.Song
 
             return instrument switch
             {
-                Instrument.FiveFretGuitar =>     ChartPreparser.Traverse(ref container, difficulty, ref parts.FiveFretGuitar,     ChartPreparser.ValidateFiveFret),
-                Instrument.FiveFretBass =>       ChartPreparser.Traverse(ref container, difficulty, ref parts.FiveFretBass,       ChartPreparser.ValidateFiveFret),
-                Instrument.FiveFretRhythm =>     ChartPreparser.Traverse(ref container, difficulty, ref parts.FiveFretRhythm,     ChartPreparser.ValidateFiveFret),
-                Instrument.FiveFretCoopGuitar => ChartPreparser.Traverse(ref container, difficulty, ref parts.FiveFretCoopGuitar, ChartPreparser.ValidateFiveFret),
-                Instrument.SixFretGuitar =>      ChartPreparser.Traverse(ref container, difficulty, ref parts.SixFretGuitar,      ChartPreparser.ValidateSixFret),
-                Instrument.SixFretBass =>        ChartPreparser.Traverse(ref container, difficulty, ref parts.SixFretBass,        ChartPreparser.ValidateSixFret),
-                Instrument.SixFretRhythm =>      ChartPreparser.Traverse(ref container, difficulty, ref parts.SixFretRhythm,      ChartPreparser.ValidateSixFret),
-                Instrument.SixFretCoopGuitar =>  ChartPreparser.Traverse(ref container, difficulty, ref parts.SixFretCoopGuitar,  ChartPreparser.ValidateSixFret),
-                Instrument.Keys =>               ChartPreparser.Traverse(ref container, difficulty, ref parts.Keys,               ChartPreparser.ValidateFiveFret),
+                Instrument.FiveFretGuitar =>     ChartPreparser.Traverse(ref container, difficulty, ref parts.FiveFretGuitar,     &ChartPreparser.ValidateFiveFret),
+                Instrument.FiveFretBass =>       ChartPreparser.Traverse(ref container, difficulty, ref parts.FiveFretBass,       &ChartPreparser.ValidateFiveFret),
+                Instrument.FiveFretRhythm =>     ChartPreparser.Traverse(ref container, difficulty, ref parts.FiveFretRhythm,     &ChartPreparser.ValidateFiveFret),
+                Instrument.FiveFretCoopGuitar => ChartPreparser.Traverse(ref container, difficulty, ref parts.FiveFretCoopGuitar, &ChartPreparser.ValidateFiveFret),
+                Instrument.SixFretGuitar =>      ChartPreparser.Traverse(ref container, difficulty, ref parts.SixFretGuitar,      &ChartPreparser.ValidateSixFret),
+                Instrument.SixFretBass =>        ChartPreparser.Traverse(ref container, difficulty, ref parts.SixFretBass,        &ChartPreparser.ValidateSixFret),
+                Instrument.SixFretRhythm =>      ChartPreparser.Traverse(ref container, difficulty, ref parts.SixFretRhythm,      &ChartPreparser.ValidateSixFret),
+                Instrument.SixFretCoopGuitar =>  ChartPreparser.Traverse(ref container, difficulty, ref parts.SixFretCoopGuitar,  &ChartPreparser.ValidateSixFret),
+                Instrument.Keys =>               ChartPreparser.Traverse(ref container, difficulty, ref parts.Keys,               &ChartPreparser.ValidateFiveFret),
                 Instrument.FourLaneDrums =>      drums.ParseChart(ref container, difficulty),
                 _ => false,
             };
@@ -336,18 +336,20 @@ namespace YARG.Core.Song
                 parts.FourLaneDrums.Intensity = (sbyte) intensity;
                 parts.ProDrums.Intensity = (sbyte) intensity;
                 parts.FiveLaneDrums.Intensity = (sbyte) intensity;
+                parts.EliteDrums.Intensity = (sbyte) intensity;
             }
 
-            if (modifiers.TryGet("diff_drums_real", out intensity))
+            if (modifiers.TryGet("diff_drums_real", out intensity) && intensity != -1)
             {
                 parts.ProDrums.Intensity = (sbyte) intensity;
+                parts.EliteDrums.Intensity = (sbyte) intensity;
                 if (parts.FourLaneDrums.Intensity == -1)
                 {
                     parts.FourLaneDrums.Intensity = parts.ProDrums.Intensity;
                 }
             }
 
-            if (modifiers.TryGet("diff_guitar_real", out intensity))
+            if (modifiers.TryGet("diff_guitar_real", out intensity) && intensity != -1)
             {
                 parts.ProGuitar_22Fret.Intensity = parts.ProGuitar_17Fret.Intensity = (sbyte) intensity;
                 if (parts.FiveFretGuitar.Intensity == -1)
@@ -356,7 +358,7 @@ namespace YARG.Core.Song
                 }
             }
 
-            if (modifiers.TryGet("diff_bass_real", out intensity))
+            if (modifiers.TryGet("diff_bass_real", out intensity) && intensity != -1)
             {
                 parts.ProBass_22Fret.Intensity = parts.ProBass_17Fret.Intensity = (sbyte) intensity;
                 if (parts.FiveFretBass.Intensity == -1)
@@ -365,7 +367,7 @@ namespace YARG.Core.Song
                 }
             }
 
-            if (modifiers.TryGet("diff_guitar_real_22", out intensity))
+            if (modifiers.TryGet("diff_guitar_real_22", out intensity) && intensity != -1)
             {
                 parts.ProGuitar_22Fret.Intensity = (sbyte) intensity;
                 if (parts.ProGuitar_17Fret.Intensity == -1)
@@ -379,7 +381,7 @@ namespace YARG.Core.Song
                 }
             }
 
-            if (modifiers.TryGet("diff_bass_real_22", out intensity))
+            if (modifiers.TryGet("diff_bass_real_22", out intensity) && intensity != -1)
             {
                 parts.ProBass_22Fret.Intensity = (sbyte) intensity;
                 if (parts.ProBass_17Fret.Intensity == -1)
@@ -393,7 +395,7 @@ namespace YARG.Core.Song
                 }
             }
 
-            if (modifiers.TryGet("diff_keys_real", out intensity))
+            if (modifiers.TryGet("diff_keys_real", out intensity) && intensity != -1)
             {
                 parts.ProKeys.Intensity = (sbyte) intensity;
                 if (parts.Keys.Intensity == -1)
@@ -407,7 +409,7 @@ namespace YARG.Core.Song
                 parts.HarmonyVocals.Intensity = parts.LeadVocals.Intensity = (sbyte) intensity;
             }
 
-            if (modifiers.TryGet("diff_vocals_harm", out intensity))
+            if (modifiers.TryGet("diff_vocals_harm", out intensity) && intensity != -1)
             {
                 parts.HarmonyVocals.Intensity = (sbyte) intensity;
                 if (parts.LeadVocals.Intensity == -1)

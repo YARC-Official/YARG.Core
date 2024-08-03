@@ -3,58 +3,80 @@ using YARG.Core.IO;
 
 namespace YARG.Core.Song
 {
-    public class Midi_Vocal_Preparser : Midi_Preparser
+    public static class Midi_Vocal_Preparser
     {
-        private const int VOACAL_MIN = 36;
+        private const int VOCAL_MIN = 36;
         private const int VOCAL_MAX = 84;
         private const int PERCUSSION_NOTE = 96;
 
-        private bool vocal = false;
-        private bool lyric = false;
-        private bool percussion = false;
-        private bool checkForPercussion;
+        private const int VOCAL_PHRASE_1 = 105;
+        private const int VOCAL_PHRASE_2 = 106;
 
-        private Midi_Vocal_Preparser(bool checkForPercussion)
+        public static bool Parse(YARGMidiTrack track, bool isLeadVocals)
         {
-            this.checkForPercussion = checkForPercussion;
-        }
+            long vocalPosition = -1;
+            long lyricPosition = -1;
+            long phrasePosition = -1;
+            long percussionPosition = -1;
 
-        public static bool ParseLeadTrack(YARGMidiTrack track)
-        {
-            Midi_Vocal_Preparser preparser = new(true);
-            return preparser.Process(track);
-        }
-
-        public static bool ParseHarmonyTrack(YARGMidiTrack track)
-        {
-            Midi_Vocal_Preparser preparser = new(false);
-            return preparser.Process(track);
-        }
-
-        protected override bool ParseNote_ON(YARGMidiTrack track)
-        {
-            if (VOACAL_MIN <= note.value && note.value <= VOCAL_MAX)
+            var note = default(MidiNote);
+            while (track.ParseEvent())
             {
-                if (vocal && lyric)
-                    return true;
-                vocal = true;
+                if (track.Type is MidiEventType.Note_On or MidiEventType.Note_Off)
+                {
+                    track.ExtractMidiNote(ref note);
+                    // Note Ons with no velocity equates to a note Off by spec
+                    if (track.Type == MidiEventType.Note_On && note.velocity > 0)
+                    {
+                        if (VOCAL_MIN <= note.value && note.value <= VOCAL_MAX)
+                        {
+                            vocalPosition = track.Position;
+                        }
+                        else if (note.value == VOCAL_PHRASE_1 || note.value == VOCAL_PHRASE_2)
+                        {
+                            phrasePosition = int.MaxValue;
+                        }
+                        else if (note.value == PERCUSSION_NOTE && isLeadVocals)
+                        {
+                            percussionPosition = track.Position;
+                        }
+                    }
+                    // NoteOff from this point
+                    else if (VOCAL_MIN <= note.value && note.value <= VOCAL_MAX)
+                    {
+                        // Guarantees that a lyric-pitch pair is valid
+                        //
+                        // HARM 2/3 do not use phrases defined in their own tracks to mark playable vocals
+                        if (vocalPosition >= 0 && lyricPosition >= vocalPosition && (track.Position <= phrasePosition || !isLeadVocals))
+                        {
+                            return true;
+                        }
+                        vocalPosition = -1;
+                    }
+                    else if (note.value == VOCAL_PHRASE_1 || note.value == VOCAL_PHRASE_2)
+                    {
+                        // Accounts for when a phrase ends at the same time as a vocal/precussion note but is in-file first
+                        phrasePosition = track.Position;
+                    }
+                    else if (note.value == PERCUSSION_NOTE)
+                    {
+                        if (percussionPosition >= 0 && track.Position <= phrasePosition)
+                        {
+                            return true;
+                        }
+                        percussionPosition = -1;
+                    }
+                }
+                else if (MidiEventType.Text <= track.Type && track.Type <= MidiEventType.Text_EnumLimit)
+                {
+                    var str = track.ExtractTextOrSysEx();
+                    if (str.Length == 0 || str[0] != '[')
+                    {
+                        lyricPosition = track.Position;
+                    }
+                }
             }
-            else if (checkForPercussion && note.value == PERCUSSION_NOTE)
-                percussion = true;
             return false;
-        }
-
-        protected override bool ParseNote_Off(YARGMidiTrack track)
-        {
-            if (VOACAL_MIN <= note.value && note.value <= VOCAL_MAX)
-                return vocal && lyric;
-            return checkForPercussion && note.value == PERCUSSION_NOTE && percussion;
-        }
-
-        protected override void ParseText(ReadOnlySpan<byte> str)
-        {
-            if (str.Length == 0 || str[0] != '[')
-                lyric = true;
         }
     }
 }

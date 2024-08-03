@@ -413,3 +413,8 @@ FodyWeavers.xsd
 # draw.io temp.backup files
 *.bkp
 *.dtmp
+
+# TestConsole files
+console_songdirs.txt
+console_songcache.bin
+console_badsongs.txt

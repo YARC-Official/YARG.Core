@@ -35,7 +35,7 @@ namespace YARG.Core.Song.Cache
         /// Format is YY_MM_DD_RR: Y = year, M = month, D = day, R = revision (reset across dates, only increment
         /// if multiple cache version changes happen in a single day).
         /// </summary>
-        public const int CACHE_VERSION = 24_06_23_01;
+        public const int CACHE_VERSION = 24_08_01_01;
 
         public static ScanProgressTracker Progress => _progress;
         private static ScanProgressTracker _progress;
@@ -210,6 +210,7 @@ namespace YARG.Core.Song.Cache
         protected abstract void RemoveCONEntry(string shortname);
         protected abstract bool CanAddUpgrade(string shortname, DateTime lastUpdated);
         protected abstract bool CanAddUpgrade_CONInclusive(string shortname, DateTime lastUpdated);
+        protected abstract Dictionary<string, Dictionary<string, FileInfo>> MapUpdateFiles(in FileCollection collection);
 
         protected abstract void FindNewEntries();
         protected abstract void TraverseDirectory(in FileCollection collection, IniGroup group, PlaylistTracker tracker);
@@ -302,6 +303,10 @@ namespace YARG.Core.Song.Cache
                     case ScanResult.DirectoryError:
                         writer.WriteLine("Error accessing directory contents");
                         break;
+                    case ScanResult.DuplicateFilesFound:
+                        writer.WriteLine("Multiple sub files or directories that share the same name found in this location.");
+                        writer.WriteLine("You must rename or remove all duplicates before they will be processed.");
+                        break;
                     case ScanResult.IniEntryCorruption:
                         writer.WriteLine("Corruption of either the ini file or chart/mid file");
                         break;
@@ -357,7 +362,8 @@ namespace YARG.Core.Song.Cache
                         writer.WriteLine("At least one track fails midi spec for containing multiple unique track names (thus making it ambiguous) - Thrown by a pro guitar upgrade");
                         break;
                     case ScanResult.LooseChart_Warning:
-                        writer.WriteLine("Further subdirectory traversal halted by a possibly loose chart. To fix, if desired, place the loose chart files in their own dedicated folder.");
+                        writer.WriteLine("Loose chart files halted all traversal into the subdirectories at this location.");
+                        writer.WriteLine("To fix, if desired, place the loose chart files in a separate dedicated folder.");
                         break;
                 }
                 writer.WriteLine();
@@ -442,12 +448,39 @@ namespace YARG.Core.Song.Cache
             var group = new UpdateGroup(collection.Directory, dta.LastWriteTime, fileData!);
             try
             {
+                var mapping = MapUpdateFiles(in collection);
                 while (YARGDTAReader.StartNode(ref container))
                 {
                     string name = YARGDTAReader.GetNameOfNode(ref container, true);
                     if (!group.Updates.TryGetValue(name, out var update))
                     {
-                        group.Updates.Add(name, update = new SongUpdate(collection, name));
+                        AbridgedFileInfo_Length? midi = null;
+                        AbridgedFileInfo? mogg = null;
+                        AbridgedFileInfo_Length? milo = null;
+                        AbridgedFileInfo_Length? image = null;
+
+                        string subname = name.ToLowerInvariant();
+                        if (mapping.TryGetValue(subname, out var files))
+                        {
+                            if (files.TryGetValue(subname + "_update.mid", out var file))
+                            {
+                                midi = new AbridgedFileInfo_Length(file, false);
+                            }
+                            if (files.TryGetValue(subname + "_update.mogg", out file))
+                            {
+                                mogg = new AbridgedFileInfo(file, false);
+                            }
+                            if (files.TryGetValue(subname + ".milo_xbox", out file))
+                            {
+                                milo = new AbridgedFileInfo_Length(file, false);
+                            }
+                            if (files.TryGetValue(subname + "_keep.png_xbox", out file))
+                            {
+                                image = new AbridgedFileInfo_Length(file, false);
+                            }
+                        }
+
+                        group.Updates.Add(name, update = new SongUpdate(collection.Directory.FullName, midi, mogg, milo, image));
                         AddUpdate(name, dta.LastWriteTime, update);
                         if (removeEntries)
                         {
@@ -636,6 +669,10 @@ namespace YARG.Core.Song.Cache
                         }
                 }
                 TraverseDirectory(collection, group, tracker.Append(directory.Name));
+                if (collection.ContainedDupes)
+                {
+                    AddToBadSongs(collection.Directory.FullName, ScanResult.DuplicateFilesFound);
+                }
             }
             catch (PathTooLongException)
             {
@@ -1333,7 +1370,7 @@ namespace YARG.Core.Song.Cache
                 if (IniAudio.IsAudioFile(file.Key))
                 {
                     return true;
-                }    
+                }
             }
             return false;
         }

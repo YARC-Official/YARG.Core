@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using YARG.Core.Chart;
 using YARG.Core.Logging;
 
@@ -66,7 +66,7 @@ namespace YARG.Core.Engine.ProKeys
             }
 
             // Cancel overstrum if past last note and no active sustains
-            if (State.NoteIndex >= Chart.Notes.Count /*&& ActiveSustains.Count == 0*/)
+            if (State.NoteIndex >= Chart.Notes.Count && ActiveSustains.Count == 0)
             {
                 return;
             }
@@ -79,6 +79,19 @@ namespace YARG.Core.Engine.ProKeys
             }
 
             YargLogger.LogFormatTrace("Overhit at {0}", State.CurrentTime);
+
+            // Break all active sustains
+            for (int i = 0; i < ActiveSustains.Count; i++)
+            {
+                var sustain = ActiveSustains[i];
+                ActiveSustains.RemoveAt(i);
+                YargLogger.LogFormatTrace("Ended sustain (end time: {0}) at {1}", sustain.GetEndTime(SyncTrack, 0), State.CurrentTime);
+                i--;
+
+                double finalScore = CalculateSustainPoints(ref sustain, State.CurrentTick);
+                EngineStats.CommittedScore += (int) Math.Ceiling(finalScore);
+                OnSustainEnd?.Invoke(sustain.Note, State.CurrentTime, sustain.HasFinishedScoring);
+            }
 
             if (State.NoteIndex < Notes.Count)
             {
@@ -152,6 +165,11 @@ namespace YARG.Core.Engine.ProKeys
             UpdateMultiplier();
 
             AddScore(note);
+
+            if (note.IsSustain)
+            {
+                StartSustain(note);
+            }
 
             OnNoteHit?.Invoke(State.NoteIndex, note);
             base.HitNote(note);

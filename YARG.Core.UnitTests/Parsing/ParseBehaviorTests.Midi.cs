@@ -451,9 +451,17 @@ namespace YARG.Core.UnitTests.Parsing
             {
                 MoonNoteType type;
                 if (canForceHopo && lastStartDelta >= HopoThreshold)
+                {
                     type = MoonNoteType.Hopo;
+                    // Apply additional flag to match the parsed data
+                    note.flags |= Flags.Forced_Hopo;
+                }
                 else
+                {
                     type = MoonNoteType.Strum;
+                    // Apply additional flag to match the parsed data
+                    note.flags |= Flags.Forced_Strum;
+                }
 
                 byte forceNote = (byte)(difficultyStart + forceOffsetLookup[type]);
                 midiNote = new TNoteEvent() { NoteNumber = S(forceNote), Velocity = S(velocity) };

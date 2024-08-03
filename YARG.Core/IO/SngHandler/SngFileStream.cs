@@ -37,8 +37,8 @@ namespace YARG.Core.IO
 
             var buffer = AllocatedArray<byte>.Read(stream, fileSize);
             var buffEnd = buffer.Ptr + buffer.Length;
-            var buffIndex = buffer.Length & ~VECTOR_MASK;
-            var buffPosition = buffer.Ptr + buffIndex;
+            var vecEndIndex = buffer.Length & ~VECTOR_MASK;
+            var buffPosition = buffer.Ptr + vecEndIndex;
 
             var vecPtr = (Vector<byte>*) buffer.Ptr;
             var xorVectors = (Vector<byte>*) mask.Keys;
@@ -51,7 +51,7 @@ namespace YARG.Core.IO
                 }
             });
 
-            long keyIndex = buffIndex & KEY_MASK;
+            long keyIndex = vecEndIndex & KEY_MASK;
             while (buffPosition < buffEnd)
             {
                 *buffPosition++ ^= mask.Keys[keyIndex++];

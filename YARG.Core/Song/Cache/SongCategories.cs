@@ -18,13 +18,14 @@ namespace YARG.Core.Song.Cache
 
         public string GetKey(SongEntry entry)
         {
-            string name = entry.Name.SortStr;
-            int i = 0;
-            while (i + 1 < name.Length && !char.IsLetterOrDigit(name[i]))
-                ++i;
-
-            char character = name[i];
-            return char.IsDigit(character) ? "0-9" : char.ToUpperInvariant(character).ToString();
+            var name = entry.Name;
+            return name.Group switch
+            {
+                CharacterGroup.Empty or
+                CharacterGroup.AsciiSymbol => "*",
+                CharacterGroup.AsciiNumber => "0-9",
+                _ => char.ToUpperInvariant(name.SortStr[0]).ToString(),
+            };
         }
     }
 
@@ -38,13 +39,13 @@ namespace YARG.Core.Song.Cache
         }
     }
 
-    public readonly struct ArtistAlbumConfig : CategoryConfig<string>
+    public readonly struct ArtistAlbumConfig : CategoryConfig<SortString>
     {
         private static readonly EntryComparer _COMPARER = new(SongAttribute.Album);
         public EntryComparer Comparer => _COMPARER;
-        public string GetKey(SongEntry entry)
+        public SortString GetKey(SongEntry entry)
         {
-            return $"{entry.Artist.Str} - {entry.Album.Str}";
+            return SortString.Combine(entry.Artist, entry.Album);
         }
     }
 

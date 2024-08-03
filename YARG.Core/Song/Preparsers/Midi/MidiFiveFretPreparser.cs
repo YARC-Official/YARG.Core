@@ -4,89 +4,111 @@ using YARG.Core.IO;
 
 namespace YARG.Core.Song
 {
-    public class Midi_FiveFret_Preparser : MidiInstrument_Common
+    /// <remarks>
+    /// Note: also functions as the five lane Keys preparser
+    /// </remarks>
+    public static class Midi_FiveFret_Preparser
     {
         private const int FIVEFRET_MIN = 59;
         // Open note included
         private const int NUM_LANES = 6;
-        private static readonly byte[][] ENHANCED_STRINGS = new byte[][] { Encoding.ASCII.GetBytes("[ENHANCED_OPENS]"), Encoding.ASCII.GetBytes("ENHANCED_OPENS") };
-
-        private readonly bool[,] statuses = new bool[NUM_DIFFICULTIES, NUM_LANES];
-        private readonly int[] laneIndices = new int[NUM_DIFFICULTIES * NOTES_PER_DIFFICULTY]{
-            13, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
-            13, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
-            13, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
-            13, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
-        };
-
-        private Midi_FiveFret_Preparser() { }
-
-        public static DifficultyMask Parse(YARGMidiTrack track)
-        {
-            Midi_FiveFret_Preparser preparser = new();
-            preparser.Process(track);
-            return preparser.validations;
-        }
-
-        protected override bool IsNote() { return FIVEFRET_MIN <= note.value && note.value <= DEFAULT_MAX; }
-
-        protected override bool ParseLaneColor_ON(YARGMidiTrack track)
-        {
-            int noteValue = note.value - FIVEFRET_MIN;
-            int diffIndex = DIFFVALUES[noteValue];
-            if (!difficultyTracker[diffIndex])
-            {
-                int laneIndex = laneIndices[noteValue];
-                if (laneIndex < NUM_LANES)
-                    statuses[diffIndex, laneIndex] = true;
-            }
-            return false;
-        }
-
-        protected override bool ParseLaneColor_Off(YARGMidiTrack track)
-        {
-            int noteValue = note.value - FIVEFRET_MIN;
-            int diffIndex = DIFFVALUES[noteValue];
-            if (!difficultyTracker[diffIndex])
-            {
-                int laneIndex = laneIndices[noteValue];
-                if (laneIndex < NUM_LANES && statuses[diffIndex, laneIndex])
-                {
-                    Validate(diffIndex);
-                    difficultyTracker[diffIndex] = true;
-                    return IsFullyScanned();
-                }
-            }
-            return false;
-        }
-
         private const int SYSEX_DIFFICULTY_INDEX = 4;
         private const int SYSEX_TYPE_INDEX = 5;
         private const int SYSEX_STATUS_INDEX = 6;
         private const int OPEN_NOTE_TYPE = 1;
-        private const byte SYSEX_ALL_DIFFICULTIES = 0xFF;
+        private const int SYSEX_ALL_DIFFICULTIES = 0xFF;
         private const int GREEN_INDEX = 1;
 
-        protected override void ParseSysEx(ReadOnlySpan<byte> str)
-        {
-            if (str.StartsWith(SYSEXTAG) && str[SYSEX_TYPE_INDEX] == OPEN_NOTE_TYPE)
-            {
-                int status = str[SYSEX_STATUS_INDEX] == 0 ? 1 : 0;
-                if (str[SYSEX_DIFFICULTY_INDEX] == SYSEX_ALL_DIFFICULTIES)
-                {
-                    for (int diff = 0; diff < NUM_DIFFICULTIES; ++diff)
-                        laneIndices[NOTES_PER_DIFFICULTY * diff + GREEN_INDEX] = status;
-                }
-                else
-                    laneIndices[NOTES_PER_DIFFICULTY * str[SYSEX_DIFFICULTY_INDEX] + GREEN_INDEX] = status;
-            }
-        }
+        private static readonly byte[][] ENHANCED_STRINGS = new byte[][] { Encoding.ASCII.GetBytes("[ENHANCED_OPENS]"), Encoding.ASCII.GetBytes("ENHANCED_OPENS") };
 
-        protected override void ParseText(ReadOnlySpan<byte> str)
+        public static unsafe DifficultyMask Parse(YARGMidiTrack track)
         {
-            if (str.SequenceEqual(ENHANCED_STRINGS[0]) || str.SequenceEqual(ENHANCED_STRINGS[1]))
-                for (int diff = 0; diff < NUM_DIFFICULTIES; ++diff)
-                    laneIndices[NOTES_PER_DIFFICULTY * diff] = 0;
+            ReadOnlySpan<byte> SYSEXTAG = stackalloc byte[] { (byte) 'P', (byte) 'S', (byte) '\0', };
+            var validations = default(DifficultyMask);
+            var difficulties = stackalloc bool[MidiPreparser_Constants.NUM_DIFFICULTIES];
+            var statuses = stackalloc bool[MidiPreparser_Constants.NUM_DIFFICULTIES * NUM_LANES];
+
+            // Zero is reserved for open notes. Open notes apply in two situations:
+            // 1. The 13s will swap to zeroes when the ENHANCED_OPENS toggle occurs
+            // 2. The '1'(green) in a difficulty will swap to zero and back depending on the Open note sysex state
+            //
+            // Note: the 13s account for the -1 offset of the minimum note value
+            var indices = stackalloc int[MidiPreparser_Constants.NUM_DIFFICULTIES * MidiPreparser_Constants.NOTES_PER_DIFFICULTY]
+            {
+                13, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+                13, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+                13, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+                13, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+            };
+
+            var note = default(MidiNote);
+            while (track.ParseEvent())
+            {
+                if (track.Type is MidiEventType.Note_On or MidiEventType.Note_Off)
+                {
+                    track.ExtractMidiNote(ref note);
+                    if (note.value < FIVEFRET_MIN || note.value > MidiPreparser_Constants.DEFAULT_MAX)
+                    {
+                        continue;
+                    }
+
+                    int noteOffset = note.value - FIVEFRET_MIN;
+                    int diffIndex = MidiPreparser_Constants.DIFF_INDICES[noteOffset];
+                    int laneIndex = indices[noteOffset];
+                    if (difficulties[diffIndex] || laneIndex >= NUM_LANES)
+                    {
+                        continue;
+                    }
+
+                    // Note Ons with no velocity equates to a note Off by spec
+                    if (track.Type == MidiEventType.Note_On && note.velocity > 0)
+                    {
+                        statuses[diffIndex * NUM_LANES + laneIndex] = true;
+                    }
+                    // Note off here
+                    else if (statuses[diffIndex * NUM_LANES + laneIndex])
+                    {
+                        validations |= (DifficultyMask) (1 << (diffIndex + 1));
+                        difficulties[diffIndex] = true;
+                        if (validations == MidiPreparser_Constants.ALL_DIFFICULTIES)
+                        {
+                            break;
+                        }
+                    }
+                }
+                else if (track.Type is MidiEventType.SysEx or MidiEventType.SysEx_End)
+                {
+                    var str = track.ExtractTextOrSysEx();
+                    if (str.StartsWith(SYSEXTAG) && str[SYSEX_TYPE_INDEX] == OPEN_NOTE_TYPE)
+                    {
+                        // 1 = GREEN; 0 = OPEN
+                        int status = str[SYSEX_STATUS_INDEX] == 0 ? 1 : 0;
+                        if (str[SYSEX_DIFFICULTY_INDEX] == SYSEX_ALL_DIFFICULTIES)
+                        {
+                            for (int diff = 0; diff < MidiPreparser_Constants.NUM_DIFFICULTIES; ++diff)
+                            {
+                                indices[MidiPreparser_Constants.NOTES_PER_DIFFICULTY * diff + GREEN_INDEX] = status;
+                            }
+                        }
+                        else
+                        {
+                            indices[MidiPreparser_Constants.NOTES_PER_DIFFICULTY * str[SYSEX_DIFFICULTY_INDEX] + GREEN_INDEX] = status;
+                        }
+                    }
+                }
+                else if (MidiEventType.Text <= track.Type && track.Type <= MidiEventType.Text_EnumLimit)
+                {
+                    var str = track.ExtractTextOrSysEx();
+                    if (str.SequenceEqual(ENHANCED_STRINGS[0]) || str.SequenceEqual(ENHANCED_STRINGS[1]))
+                    {
+                        for (int diff = 0; diff < MidiPreparser_Constants.NUM_DIFFICULTIES; ++diff)
+                        {
+                            indices[MidiPreparser_Constants.NOTES_PER_DIFFICULTY * diff] = 0;
+                        }
+                    }
+                }
+            }
+            return validations;
         }
     }
 }

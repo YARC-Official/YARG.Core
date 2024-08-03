@@ -1,4 +1,4 @@
-namespace YARG.Core.Engine
+﻿namespace YARG.Core.Engine
 {
     public abstract class BaseEngineState
     {
@@ -21,6 +21,8 @@ namespace YARG.Core.Engine
         public bool IsWaitCountdownActive;
         public bool IsStarPowerInputActive;
 
+        public bool AllowStarPower;
+
         public virtual void Reset()
         {
             NoteIndex = 0;
@@ -40,8 +42,9 @@ namespace YARG.Core.Engine
             IsSoloActive = false;
 
             IsWaitCountdownActive = false;
-
             IsStarPowerInputActive = false;
+
+            AllowStarPower = true;
         }
     }
 }

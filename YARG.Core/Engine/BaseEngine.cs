@@ -648,6 +648,8 @@ namespace YARG.Core.Engine
 
         }
 
+        public abstract void AllowStarPower(bool isAllowed);
+
         /// <summary>
         /// Resets the engine's state back to default and then processes the list of inputs up to the given time.
         /// </summary>

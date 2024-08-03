@@ -60,7 +60,7 @@ namespace YARG.Core.Chart
         public InstrumentTrack<DrumNote> ProDrums { get; set; } = new(Instrument.ProDrums);
         public InstrumentTrack<DrumNote> FiveLaneDrums { get; set; } = new(Instrument.FiveLaneDrums);
 
-        // public InstrumentTrack<DrumNote> TrueDrums { get; set; } = new(Instrument.TrueDrums);
+        // public InstrumentTrack<DrumNote> EliteDrums { get; set; } = new(Instrument.EliteDrums);
 
         public IEnumerable<InstrumentTrack<DrumNote>> DrumsTracks
         {
@@ -133,7 +133,7 @@ namespace YARG.Core.Chart
             ProDrums = loader.LoadDrumsTrack(Instrument.ProDrums);
             FiveLaneDrums = loader.LoadDrumsTrack(Instrument.FiveLaneDrums);
 
-            // TrueDrums = loader.LoadDrumsTrack(Instrument.TrueDrums);
+            // EliteDrums = loader.LoadDrumsTrack(Instrument.EliteDrums);
 
             ProGuitar_17Fret = loader.LoadProGuitarTrack(Instrument.ProGuitar_17Fret);
             ProGuitar_22Fret = loader.LoadProGuitarTrack(Instrument.ProGuitar_22Fret);

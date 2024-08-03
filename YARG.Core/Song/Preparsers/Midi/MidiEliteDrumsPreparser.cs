@@ -1,22 +1,15 @@
-﻿using YARG.Core.IO;
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+using YARG.Core.IO;
 
 namespace YARG.Core.Song
 {
-    public static class Midi_SixFret_Preparser
+    public static class Midi_EliteDrums_Preparser
     {
-        private const int SIXFRET_MIN = 58;
-        private const int SIXFRET_MAX = 103;
-        // Open note included
-        private const int NUM_LANES = 7;
-
-        // Six fret indexing is fucked
-        private static readonly int[] INDICES = new int[MidiPreparser_Constants.NUM_DIFFICULTIES * MidiPreparser_Constants.NOTES_PER_DIFFICULTY]
-        {
-            0, 4, 5, 6, 1, 2, 3, 7, 8, 9, 10, 11,
-            0, 4, 5, 6, 1, 2, 3, 7, 8, 9, 10, 11,
-            0, 4, 5, 6, 1, 2, 3, 7, 8, 9, 10, 11,
-            0, 4, 5, 6, 1, 2, 3, 7, 8, 9, 10, 11,
-        };
+        private const int ELITE_NOTES_PER_DIFFICULTY = 24;
+        private const int NUM_LANES = 11;
+        private const int ELITE_MAX = 82;
 
         public static unsafe DifficultyMask Parse(YARGMidiTrack track)
         {
@@ -30,14 +23,14 @@ namespace YARG.Core.Song
                 if (track.Type is MidiEventType.Note_On or MidiEventType.Note_Off)
                 {
                     track.ExtractMidiNote(ref note);
-                    if (note.value < SIXFRET_MIN || note.value > SIXFRET_MAX)
+                    // Minimum is 0, so no minimum check required
+                    if (note.value > ELITE_MAX)
                     {
                         continue;
                     }
 
-                    int noteOffset = note.value - SIXFRET_MIN;
-                    int diffIndex = MidiPreparser_Constants.DIFF_INDICES[noteOffset];
-                    int laneIndex = INDICES[noteOffset];
+                    int diffIndex = MidiPreparser_Constants.EXTENDED_DIFF_INDICES[note.value];
+                    int laneIndex = MidiPreparser_Constants.EXTENDED_LANE_INDICES[note.value];
                     if (difficulties[diffIndex] || laneIndex >= NUM_LANES)
                     {
                         continue;

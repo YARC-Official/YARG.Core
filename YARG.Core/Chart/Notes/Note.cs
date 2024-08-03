@@ -234,6 +234,11 @@ namespace YARG.Core.Chart
             Flags |= noteFlag;
         }
 
+        public void ResetFlags()
+        {
+            Flags = _flags;
+        }
+
         protected abstract void CopyFlags(TNote other);
         protected abstract TNote CloneNote();
 

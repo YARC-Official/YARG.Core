@@ -13,7 +13,6 @@ namespace YARG.Core.Audio
         protected readonly List<StemChannel> _channels = new();
         protected readonly bool _clampStemVolume;
 
-        protected float _speed;
         protected double _length;
         protected Action? _songEnd;
 
@@ -25,11 +24,10 @@ namespace YARG.Core.Audio
 
         public abstract event Action SongEnd;
 
-        protected StemMixer(string name, AudioManager manager, float speed, bool clampStemVolume)
+        protected StemMixer(string name, AudioManager manager,bool clampStemVolume)
         {
             Name = name;
             _manager = manager;
-            _speed = speed;
             _clampStemVolume = clampStemVolume;
 
             _manager.AddMixer(this);

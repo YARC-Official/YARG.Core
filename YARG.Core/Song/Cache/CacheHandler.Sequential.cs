@@ -72,7 +72,7 @@ namespace YARG.Core.Song.Cache
                     CategorySorter<SortString, CharterConfig>.Add(entry, cache.Charters);
                     CategorySorter<SortString, PlaylistConfig>.Add(entry, cache.Playlists);
                     CategorySorter<SortString, SourceConfig>.Add(entry, cache.Sources);
-                    CategorySorter<string, ArtistAlbumConfig>.Add(entry, cache.ArtistAlbums);
+                    CategorySorter<SortString, ArtistAlbumConfig>.Add(entry, cache.ArtistAlbums);
                     CategorySorter<string, SongLengthConfig>.Add(entry, cache.SongLengths);
                     CategorySorter<DateTime, DateAddedConfig>.Add(entry, cache.DatesAdded);
                     InstrumentSorter.Add(entry, cache.Instruments);
@@ -176,6 +176,21 @@ namespace YARG.Core.Song.Cache
                 return (bool) result;
             }
             return CanAddUpgrade(upgradeGroups, shortname, lastUpdated) ?? false;
+        }
+
+        protected override Dictionary<string, Dictionary<string, FileInfo>> MapUpdateFiles(in FileCollection collection)
+        {
+            Dictionary<string, Dictionary<string, FileInfo>> mapping = new();
+            foreach (var dir in collection.SubDirectories)
+            {
+                var infos = new Dictionary<string, FileInfo>();
+                foreach (var file in dir.Value.EnumerateFiles("*", SearchOption.AllDirectories))
+                {
+                    infos[file.Name] = file;
+                }
+                mapping[dir.Key] = infos;
+            }
+            return mapping;
         }
 
         protected override PackedCONGroup? FindCONGroup(string filename)

@@ -5,7 +5,6 @@ namespace YARG.Core.Audio
 {
     public static class AudioHelpers
     {
-        public const double SONG_VOLUME_MULTIPLIER = 0.7;
         public static readonly Dictionary<string, SongStem> SupportedStems = new()
         {
             { "song",     SongStem.Song    },

@@ -46,6 +46,7 @@ namespace YARG.Core.Song
         private AbridgedFileInfo_Length? UpdateMilo;
         private AbridgedFileInfo_Length? UpdateImage;
 
+        public string RBSongId => _rbMetadata.SongID;
         public int RBBandDiff => _rbDifficulties.Band;
 
         protected abstract DateTime MidiLastUpdate { get; }
@@ -135,7 +136,7 @@ namespace YARG.Core.Song
                 return null;
             }
 
-            
+
             if (_rbMetadata.Indices.Drums.Length > 0 && !ignoreStems.Contains(SongStem.Drums))
             {
                 switch (_rbMetadata.Indices.Drums.Length)
@@ -541,7 +542,7 @@ namespace YARG.Core.Song
                                 };
                                 break;
                             }
-                        case "preview": 
+                        case "preview":
                             _metadata.PreviewStart = YARGDTAReader.ExtractInt64(ref container);
                             _metadata.PreviewEnd = YARGDTAReader.ExtractInt64(ref container);
                             break;

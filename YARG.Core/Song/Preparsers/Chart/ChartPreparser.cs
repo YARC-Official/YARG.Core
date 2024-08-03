@@ -6,7 +6,7 @@ namespace YARG.Core.Song
     public static class ChartPreparser
     {
         /// <returns>Whether the track was fully traversed</returns>
-        public static bool Traverse<TChar>(ref YARGTextContainer<TChar> container, Difficulty difficulty, ref PartValues scan, Func<int, bool> func)
+        public static unsafe bool Traverse<TChar>(ref YARGTextContainer<TChar> container, Difficulty difficulty, ref PartValues scan, delegate*<int, bool> func)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {
             if (scan[difficulty])
