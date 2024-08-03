@@ -33,6 +33,10 @@ namespace YARG.Core.Engine
 
         public delegate void StarPowerPhraseMissEvent(TNoteType note);
 
+        public delegate void SustainStartEvent(TNoteType note);
+
+        public delegate void SustainEndEvent(TNoteType note, double timeEnded, bool finished);
+
         public delegate void CountdownChangeEvent(int measuresLeft, double countdownLength, double endTime);
 
         public NoteHitEvent?    OnNoteHit;
@@ -482,6 +486,30 @@ namespace YARG.Core.Engine
 
             OnSoloEnd?.Invoke(Solos[State.CurrentSoloIndex]);
             State.CurrentSoloIndex++;
+        }
+
+        protected void RebaseSustains(uint baseTick)
+        {
+            EngineStats.PendingScore = 0;
+            for (int i = 0; i < ActiveSustains.Count; i++)
+            {
+                ref var sustain = ref ActiveSustains[i];
+                // Don't rebase sustains that haven't started yet
+                if (baseTick < sustain.BaseTick)
+                {
+                    YargLogger.AssertFormat(baseTick < sustain.Note.Tick,
+                        "Sustain base tick cannot go backwards! Attempted to go from {0} to {1}",
+                        sustain.BaseTick, baseTick);
+
+                    continue;
+                }
+
+                double sustainScore = CalculateSustainPoints(ref sustain, baseTick);
+
+                sustain.BaseTick = Math.Clamp(baseTick, sustain.Note.Tick, sustain.Note.TickEnd);
+                sustain.BaseScore = sustainScore;
+                EngineStats.PendingScore += (int) sustainScore;
+            }
         }
 
         protected void UpdateCountdown(int measuresLeft, double countdownLength, double endTime)
