@@ -37,7 +37,7 @@ namespace YARG.Core.Engine
 
         public delegate void SustainEndEvent(TNoteType note, double timeEnded, bool finished);
 
-        public delegate void CountdownChangeEvent(int measuresLeft);
+        public delegate void CountdownChangeEvent(int measuresLeft, double countdownLength, double endTime);
 
         public NoteHitEvent?    OnNoteHit;
         public NoteMissedEvent? OnNoteMissed;
@@ -169,22 +169,45 @@ namespace YARG.Core.Engine
             if (State.CurrentWaitCountdownIndex < WaitCountdowns.Count)
             {
                 // Queue updates for countdown start/end/change
-                var currentCountdown = WaitCountdowns[State.CurrentWaitCountdownIndex];
                 
                 if (State.IsWaitCountdownActive)
                 {
-                    double changeTime = currentCountdown.GetNextUpdateTime();
+                    var currentCountdown = WaitCountdowns[State.CurrentWaitCountdownIndex];
+                    double deactivateTime = currentCountdown.DeactivateTime;
 
-                    if (IsTimeBetween(changeTime, previousTime, nextTime))
+                    if (IsTimeBetween(deactivateTime, previousTime, nextTime))
                     {
-                        YargLogger.LogFormatDebug("Queuing countdown update time at {0}", changeTime);
-                        QueueUpdateTime(changeTime, "Update Countdown");
+                        YargLogger.LogFormatDebug("Queuing countdown {0} deactivation at {1}", State.CurrentWaitCountdownIndex, deactivateTime);
+                        QueueUpdateTime(deactivateTime, "Deactivate Countdown");
                     }
                 }
-                else if (IsTimeBetween(currentCountdown.Time, previousTime, nextTime))
+                else
                 {
-                    YargLogger.LogFormatDebug("Queuing countdown start time at {0}", currentCountdown.Time);
-                    QueueUpdateTime(currentCountdown.Time, "Start Countdown");
+                    int nextCountdownIndex;
+
+                    if (previousTime < WaitCountdowns[State.CurrentWaitCountdownIndex].Time)
+                    {
+                        // No countdowns are currently displayed
+                        // CurrentWaitCountdownIndex has already been incremented for the next countdown
+                        nextCountdownIndex = State.CurrentWaitCountdownIndex;
+                    }
+                    else
+                    {
+                        // A countdown is currently onscreen, but is past its deactivation time and is fading out
+                        // CurrentWaitCountdownIndex will not be incremented until the progress bar no longer needs updating
+                        nextCountdownIndex = State.CurrentWaitCountdownIndex + 1;
+                    }
+
+                    if (nextCountdownIndex < WaitCountdowns.Count)
+                    {
+                        double nextCountdownStartTime = WaitCountdowns[nextCountdownIndex].Time;
+
+                        if (IsTimeBetween(nextCountdownStartTime, previousTime, nextTime))
+                        {
+                            YargLogger.LogFormatDebug("Queuing countdown {0} start time at {1}", nextCountdownIndex, nextCountdownStartTime);
+                            QueueUpdateTime(nextCountdownStartTime, "Activate Countdown");
+                        }
+                    }
                 }
             }
         }
@@ -211,41 +234,33 @@ namespace YARG.Core.Engine
             // Only check for WaitCountdowns in this chart if there are any remaining
             if (State.CurrentWaitCountdownIndex < WaitCountdowns.Count)
             {
-                if (!State.IsWaitCountdownActive)
+                var currentCountdown = WaitCountdowns[State.CurrentWaitCountdownIndex];
+
+                if (time >= currentCountdown.Time)
                 {
-                    var nextCountdown = WaitCountdowns[State.CurrentWaitCountdownIndex];
-                    if (time >= 0 && State.CurrentTick >= nextCountdown.Tick)
+                    if (!State.IsWaitCountdownActive && time < currentCountdown.DeactivateTime)
                     {
-                        if (State.CurrentTick >= nextCountdown.TickEnd)
-                        {
-                            State.CurrentWaitCountdownIndex++;
-                        }
-                        else
-                        {
-                            // Entered new countdown window
-                            State.IsWaitCountdownActive = true;
-                            YargLogger.LogFormatDebug("Countdown {0} activated at time {1}. Expected time: {2}", State.CurrentWaitCountdownIndex, time, nextCountdown.Time);
-                        }
+                        // Entered new countdown window
+                        State.IsWaitCountdownActive = true;
+                        YargLogger.LogFormatDebug("Countdown {0} activated at time {1}. Expected time: {2}", State.CurrentWaitCountdownIndex, time, currentCountdown.Time);
                     }
-                }
 
-                if (State.IsWaitCountdownActive)
-                {
-                    var activeCountdown = WaitCountdowns[State.CurrentWaitCountdownIndex];
-                    
-                    int lastMeasuresLeft = activeCountdown.MeasuresLeft;
-                    int newMeasuresLeft = activeCountdown.CalculateMeasuresLeft(State.CurrentTick);
-
-                    if (newMeasuresLeft != lastMeasuresLeft)
+                    if (time <= currentCountdown.DeactivateTime + WaitCountdown.FADE_ANIM_LENGTH)
                     {
-                        UpdateCountdown(newMeasuresLeft);
+                        // This countdown is currently displayed onscreen
+                        int newMeasuresLeft = currentCountdown.CalculateMeasuresLeft(State.CurrentTick);
 
-                        if (newMeasuresLeft <= WaitCountdown.END_COUNTDOWN_MEASURE)
+                        if (State.IsWaitCountdownActive && !currentCountdown.IsActive)
                         {
                             State.IsWaitCountdownActive = false;
-                            YargLogger.LogFormatDebug("Countdown {0} deactivated at time {1}. Expected time: {2}", State.CurrentWaitCountdownIndex, time, activeCountdown.TimeEnd);
-                            State.CurrentWaitCountdownIndex++;
+                            YargLogger.LogFormatDebug("Countdown {0} deactivated at time {1}. Expected time: {2}", State.CurrentWaitCountdownIndex, time, currentCountdown.DeactivateTime);
                         }
+
+                        UpdateCountdown(newMeasuresLeft, currentCountdown.TimeLength, currentCountdown.TimeEnd);
+                    }
+                    else
+                    {
+                        State.CurrentWaitCountdownIndex++;
                     }
                 }
             }
@@ -493,24 +508,6 @@ namespace YARG.Core.Engine
             State.CurrentSoloIndex++;
         }
 
-        protected override void UpdateProgressValues(uint tick)
-        {
-            base.UpdateProgressValues(tick);
-
-            EngineStats.PendingScore = 0;
-            for (int i = 0; i < ActiveSustains.Count; i++)
-            {
-                ref var sustain = ref ActiveSustains[i];
-                EngineStats.PendingScore += (int) CalculateSustainPoints(ref sustain, tick);
-            }
-        }
-
-        protected override void RebaseProgressValues(uint baseTick)
-        {
-            base.RebaseProgressValues(baseTick);
-            RebaseSustains(baseTick);
-        }
-
         protected void RebaseSustains(uint baseTick)
         {
             EngineStats.PendingScore = 0;
@@ -535,15 +532,9 @@ namespace YARG.Core.Engine
             }
         }
 
-        protected void UpdateCountdown(int measuresRemaining)
+        protected void UpdateCountdown(int measuresLeft, double countdownLength, double endTime)
         {
-            if (!State.IsWaitCountdownActive)
-            {
-                return;
-            }
-
-            YargLogger.LogFormatDebug("Updating countdown at {0}. Measures: {1}", State.CurrentTime, measuresRemaining);
-            OnCountdownChange?.Invoke(measuresRemaining);
+            OnCountdownChange?.Invoke(measuresLeft, countdownLength, endTime);
         }
 
         public sealed override (double FrontEnd, double BackEnd) CalculateHitWindow()
@@ -719,7 +710,7 @@ namespace YARG.Core.Engine
                     {
                         // Skip counting on measures that are too close together
                         if (beatlinesThisCountdown.Count == 0 || 
-                            curMeasureline.Time - beatlinesThisCountdown.Last().Time >= WaitCountdown.MIN_UPDATE_SECONDS)
+                            curMeasureline.Time - beatlinesThisCountdown.Last().Time >= WaitCountdown.MIN_MEASURE_LENGTH)
                         {
                             beatlinesThisCountdown.Add(curMeasureline);
                         }
@@ -740,6 +731,7 @@ namespace YARG.Core.Engine
                     {
                         // Create a WaitCountdown instance to reference at runtime
                         var newCountdown = new WaitCountdown(beatlinesThisCountdown);
+
                         waitCountdowns.Add(newCountdown);
                         YargLogger.LogFormatDebug("Created a WaitCountdown at time {0} of {1} measures and {2} seconds in length",
                                                  newCountdown.Time, countdownTotalMeasures, beatlinesThisCountdown[^1].Time - noteOneTimeEnd);
