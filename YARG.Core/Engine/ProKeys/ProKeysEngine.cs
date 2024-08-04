@@ -246,7 +246,7 @@ namespace YARG.Core.Engine.ProKeys
 
         protected bool IsKeyInTime(ProKeysNote note, double frontEnd)
         {
-            return note.Time - State.KeyPressTimes[note.Key] > Math.Abs(frontEnd);
+            return State.KeyPressTimes[note.Key] > note.Time + frontEnd;
         }
     }
 }

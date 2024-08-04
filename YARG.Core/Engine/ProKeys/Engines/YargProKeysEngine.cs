@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using YARG.Core.Chart;
 using YARG.Core.Input;
 using YARG.Core.Logging;
@@ -125,9 +125,9 @@ namespace YARG.Core.Engine.ProKeys.Engines
                 bool keysInTime = true;
                 foreach (var childNote in parentNote.AllNotes)
                 {
-                    if (IsKeyInTime(childNote, frontEnd))
+                    if (!IsKeyInTime(childNote, frontEnd))
                     {
-                        YargLogger.LogFormatDebug("Key {0} out of time (Diff: {1})", childNote.Key, childNote.Time - State.KeyPressTimes[childNote.Key]);
+                        //YargLogger.LogFormatDebug("Key {0} out of time (Diff: {1})", childNote.Key, childNote.Time - State.KeyPressTimes[childNote.Key]);
                         keysInTime = false;
                         break;
                     }
@@ -157,7 +157,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                             foreach (var note in parentNote.AllNotes)
                             {
                                 // This key in the chord was held by the time chord staggering ended, so it can be hit
-                                if ((State.KeyMask & note.NoteMask) == note.DisjointMask && IsKeyInTime(note, frontEnd))
+                                if ((State.KeyMask & note.DisjointMask) == note.DisjointMask && IsKeyInTime(note, frontEnd))
                                 {
                                     HitNote(note);
                                     YargLogger.LogFormatDebug("Hit staggered note {0} in chord", note.Key);
