@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using YARG.Core.Chart;
 using YARG.Core.Input;
 using YARG.Core.Logging;
@@ -92,6 +92,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
             {
                 State.KeyHit = null;
                 State.KeyReleased = null;
+                UpdateSustains();
                 return;
             }
 
