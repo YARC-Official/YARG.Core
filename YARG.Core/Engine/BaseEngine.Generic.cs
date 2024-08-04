@@ -322,6 +322,8 @@ namespace YARG.Core.Engine
         /// <returns>True if note can be hit. False otherwise.</returns>
         protected abstract bool CanNoteBeHit(TNoteType note);
 
+        protected abstract bool CanSustainHold(TNoteType note);
+
         protected virtual void HitNote(TNoteType note)
         {
             if (note.ParentOrSelf.WasFullyHitOrMissed())
@@ -375,6 +377,87 @@ namespace YARG.Core.Engine
                 // Amount of points just from Star Power is half of the current multiplier (8x total -> 4x SP points)
                 EngineStats.StarPowerScore += multiplierScore / 2;
             }
+            UpdateStars();
+        }
+
+        protected virtual void UpdateSustains()
+        {
+            EngineStats.PendingScore = 0;
+
+            for (int i = 0; i < ActiveSustains.Count; i++)
+            {
+                ref var sustain = ref ActiveSustains[i];
+                var note = sustain.Note;
+
+                // If we're close enough to the end of the sustain, finish it
+                // Provides leniency for sustains with no gap (and just in general)
+                bool isBurst;
+
+                // Sustain is too short for a burst
+                if (SustainBurstThreshold > note.TickLength)
+                {
+                    isBurst = State.CurrentTick >= note.Tick;
+                }
+                else
+                {
+                    isBurst = State.CurrentTick >= note.TickEnd - SustainBurstThreshold;
+                }
+
+                bool isEndOfSustain = State.CurrentTick >= note.TickEnd;
+
+                uint sustainTick = isBurst || isEndOfSustain ? note.TickEnd : State.CurrentTick;
+
+                bool dropped = !CanSustainHold(note);
+
+                // If the sustain has not finished scoring, then we need to calculate the points
+                if (!sustain.HasFinishedScoring)
+                {
+                    // Sustain has reached burst threshold, so all points have been given
+                    if (isBurst || isEndOfSustain)
+                    {
+                        sustain.HasFinishedScoring = true;
+                    }
+
+                    // Sustain has ended, so commit the points
+                    if (dropped || isBurst || isEndOfSustain)
+                    {
+                        YargLogger.LogFormatTrace("Finished scoring sustain ({0}) at {1} (dropped: {2}, burst: {3})",
+                            sustain.Note.Tick, State.CurrentTime, dropped, isBurst);
+
+                        double finalScore = CalculateSustainPoints(ref sustain, sustainTick);
+                        var points = (int) Math.Ceiling(finalScore);
+
+                        AddScore(points);
+
+                        // SustainPoints must include the multiplier, but NOT the star power multiplier
+                        int sustainPoints = points * EngineStats.ScoreMultiplier;
+                        if (EngineStats.IsStarPowerActive)
+                        {
+                            sustainPoints /= 2;
+                        }
+
+                        EngineStats.SustainScore += sustainPoints;
+                    }
+                    else
+                    {
+                        double score = CalculateSustainPoints(ref sustain, sustainTick);
+
+                        var sustainPoints = (int) Math.Ceiling(score);
+
+                        // It's ok to use multiplier here because PendingScore is only temporary to show the correct
+                        // score on the UI.
+                        EngineStats.PendingScore += sustainPoints * EngineStats.ScoreMultiplier;
+                    }
+                }
+
+                // Only remove the sustain if its dropped or has reached the final tick
+                if (dropped || isEndOfSustain)
+                {
+                    EndSustain(i, dropped, isEndOfSustain);
+                    i--;
+                }
+            }
+
             UpdateStars();
         }
 

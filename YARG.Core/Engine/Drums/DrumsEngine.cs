@@ -382,7 +382,7 @@ namespace YARG.Core.Engine.Drums
                 },
                 DrumsEngineParameters.DrumMode.FiveLane => pad switch
                 {
-                    (int) FiveLaneDrumPad.Kick => DrumsAction.Kick,       
+                    (int) FiveLaneDrumPad.Kick => DrumsAction.Kick,
 
                     (int) FiveLaneDrumPad.Red   => DrumsAction.RedDrum,
                     (int) FiveLaneDrumPad.Blue  => DrumsAction.BlueDrum,
@@ -396,5 +396,7 @@ namespace YARG.Core.Engine.Drums
                 _ => throw new Exception("Unreachable.")
             };
         }
+
+        protected override bool CanSustainHold(DrumNote note) => throw new InvalidOperationException();
     }
 }

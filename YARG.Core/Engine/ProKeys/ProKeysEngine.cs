@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using YARG.Core.Chart;
 using YARG.Core.Logging;
 
@@ -108,6 +108,11 @@ namespace YARG.Core.Engine.ProKeys
             UpdateMultiplier();
 
             OnOverhit?.Invoke(key);
+        }
+
+        protected override bool CanSustainHold(ProKeysNote note)
+        {
+            return (State.KeyMask & note.DisjointMask) != 0;
         }
 
         protected override void HitNote(ProKeysNote note)

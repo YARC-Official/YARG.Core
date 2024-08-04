@@ -30,6 +30,11 @@ namespace YARG.Core.Engine
         public int TotalScore => CommittedScore + PendingScore + SoloBonuses;
 
         /// <summary>
+        /// Total score earned from holding sustains.
+        /// </summary>
+        public int SustainScore;
+
+        /// <summary>
         /// The score used to calculate star progress.
         /// </summary>
         /// <remarks>

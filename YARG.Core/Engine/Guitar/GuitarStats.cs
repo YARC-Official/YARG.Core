@@ -24,8 +24,6 @@ namespace YARG.Core.Engine.Guitar
         /// </summary>
         public uint WhammyTicks;
 
-        public int SustainScore;
-
         public GuitarStats()
         {
         }

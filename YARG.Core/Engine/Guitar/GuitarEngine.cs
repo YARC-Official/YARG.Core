@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using YARG.Core.Chart;
 using YARG.Core.Input;
 using YARG.Core.Logging;
@@ -144,6 +145,14 @@ namespace YARG.Core.Engine.Guitar
             UpdateMultiplier();
 
             OnOverstrum?.Invoke();
+        }
+
+        protected override bool CanSustainHold(GuitarNote note)
+        {
+            var mask = note.IsDisjoint ? note.DisjointMask : note.NoteMask;
+            bool extendedSustainHold = (mask & State.ButtonMask) == mask;
+
+            return note.IsExtendedSustain ? extendedSustainHold : CanNoteBeHit(note);
         }
 
         protected override void HitNote(GuitarNote note)
@@ -296,90 +305,12 @@ namespace YARG.Core.Engine.Guitar
             base.StartSustain(note);
         }
 
-        protected void UpdateSustains()
+        protected override void UpdateSustains()
         {
-            EngineStats.PendingScore = 0;
+            base.UpdateSustains();
 
-            bool isStarPowerSustainActive = false;
-            for (int i = 0; i < ActiveSustains.Count; i++)
-            {
-                ref var sustain = ref ActiveSustains[i];
-                var note = sustain.Note;
+            bool isStarPowerSustainActive = ActiveSustains.Any(sustain => sustain.Note.IsStarPower);
 
-                isStarPowerSustainActive |= note.IsStarPower;
-
-                // If we're close enough to the end of the sustain, finish it
-                // Provides leniency for sustains with no gap (and just in general)
-                bool isBurst;
-
-                // Sustain is too short for a burst
-                if (SustainBurstThreshold > note.TickLength)
-                {
-                    isBurst = State.CurrentTick >= note.Tick;
-                }
-                else
-                {
-                    isBurst = State.CurrentTick >= note.TickEnd - SustainBurstThreshold;
-                }
-
-                bool isEndOfSustain = State.CurrentTick >= note.TickEnd;
-
-                uint sustainTick = isBurst || isEndOfSustain ? note.TickEnd : State.CurrentTick;
-
-                var mask = note.IsDisjoint ? note.DisjointMask : note.NoteMask;
-                bool extendedSustainHold = (mask & State.ButtonMask) == mask;
-                bool dropped = note.IsExtendedSustain ? !extendedSustainHold : !CanNoteBeHit(note);
-
-                // If the sustain has not finished scoring, then we need to calculate the points
-                if (!sustain.HasFinishedScoring)
-                {
-                    // Sustain has reached burst threshold, so all points have been given
-                    if (isBurst || isEndOfSustain)
-                    {
-                        sustain.HasFinishedScoring = true;
-                    }
-
-                    // Sustain has ended, so commit the points
-                    if (dropped || isBurst || isEndOfSustain)
-                    {
-                        YargLogger.LogFormatTrace("Finished scoring sustain ({0}) at {1} (dropped: {2}, burst: {3})",
-                            sustain.Note.Tick, State.CurrentTime, dropped, isBurst);
-
-                        double finalScore = CalculateSustainPoints(ref sustain, sustainTick);
-                        var points = (int) Math.Ceiling(finalScore);
-
-                        AddScore(points);
-
-                        // SustainPoints must include the multiplier, but NOT the star power multiplier
-                        int sustainPoints = points * EngineStats.ScoreMultiplier;
-                        if (EngineStats.IsStarPowerActive)
-                        {
-                            sustainPoints /= 2;
-                        }
-
-                        EngineStats.SustainScore += sustainPoints;
-                    }
-                    else
-                    {
-                        double score = CalculateSustainPoints(ref sustain, sustainTick);
-
-                        var sustainPoints = (int) Math.Ceiling(score);
-
-                        // It's ok to use multiplier here because PendingScore is only temporary to show the correct
-                        // score on the UI.
-                        EngineStats.PendingScore += sustainPoints * EngineStats.ScoreMultiplier;
-                    }
-                }
-
-                // Only remove the sustain if its dropped or has reached the final tick
-                if (dropped || isEndOfSustain)
-                {
-                    EndSustain(i, dropped, isEndOfSustain);
-                    i--;
-                }
-            }
-
-            UpdateStars();
             if (isStarPowerSustainActive && State.StarPowerWhammyTimer.IsActive)
             {
                 var whammyTicks = State.CurrentTick - LastWhammyTick;
