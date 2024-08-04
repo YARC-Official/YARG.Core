@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using YARG.Core.Chart;
 using YARG.Core.Input;
 using YARG.Core.Logging;
@@ -36,17 +36,8 @@ namespace YARG.Core.Engine.ProKeys.Engines
                 }
 
                 ToggleKey((int) action, gameInput.Button);
+                State.KeyPressTimes[(int) action] = gameInput.Time;
 
-                if (State.NoteIndex < Notes.Count)
-                {
-                    var note = Notes[State.NoteIndex];
-
-                    bool noteInWindow = IsNoteInWindow(note, gameInput.Time);
-
-                    ToggleKey((int) action, gameInput.Button && noteInWindow);
-                }
-
-                State.KeyHeldMaskVisual = gameInput.Button ? State.KeyHeldMaskVisual | 1 << (int) action : State.KeyHeldMaskVisual & ~(1 << (int) action);
                 OnKeyStateChange?.Invoke((int) action, gameInput.Button);
             }
         }
@@ -126,8 +117,23 @@ namespace YARG.Core.Engine.ProKeys.Engines
             }
             else
             {
-                // Hit note
-                if (CanNoteBeHit(parentNote))
+                double hitWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(parentNote));
+                double frontEnd = EngineParameters.HitWindow.GetFrontEnd(hitWindow);
+                double backEnd = EngineParameters.HitWindow.GetBackEnd(hitWindow);
+
+                bool keysInTime = true;
+                foreach (var childNote in parentNote.AllNotes)
+                {
+                    if (IsKeyInTime(childNote, frontEnd))
+                    {
+                        YargLogger.LogFormatDebug("Key {0} out of time (Diff: {1})", childNote.Key, childNote.Time - State.KeyPressTimes[childNote.Key]);
+                        keysInTime = false;
+                        break;
+                    }
+                }
+
+                // Hit whole note
+                if (CanNoteBeHit(parentNote) && keysInTime)
                 {
                     YargLogger.LogDebug("Can hit whole note");
                     foreach (var childNote in parentNote.AllNotes)
@@ -150,7 +156,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                             foreach (var note in parentNote.AllNotes)
                             {
                                 // This key in the chord was held by the time chord staggering ended, so it can be hit
-                                if ((State.KeyMask & note.NoteMask) == note.DisjointMask)
+                                if ((State.KeyMask & note.NoteMask) == note.DisjointMask && IsKeyInTime(note, frontEnd))
                                 {
                                     HitNote(note);
                                     YargLogger.LogFormatDebug("Hit staggered note {0} in chord", note.Key);
@@ -182,11 +188,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
 
                                     var chordStaggerEndTime = State.ChordStaggerTimer.EndTime;
 
-                                    double hitWindow =
-                                        EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
-                                    double backend = EngineParameters.HitWindow.GetBackEnd(hitWindow);
-
-                                    double noteMissTime = note.Time + backend;
+                                    double noteMissTime = note.Time + backEnd;
 
                                     // Time has surpassed the back end of this note
                                     if (chordStaggerEndTime > noteMissTime)
@@ -273,22 +275,24 @@ namespace YARG.Core.Engine.ProKeys.Engines
                 return;
             }
 
-            int key = 0;
-            for (var mask = State.KeyHeldMaskVisual; mask > 0; mask >>= 1)
-            {
-                if ((mask & 1) == 1 && (note.NoteMask & 1 << key) == 0)
-                {
-                    MutateStateWithInput(new GameInput(note.Time, key, false));
-                }
-
-                key++;
-            }
-
-            foreach (var chordNote in note.AllNotes)
-            {
-                MutateStateWithInput(new GameInput(note.Time, chordNote.Key, true));
-                CheckForNoteHit();
-            }
+            // // Disables keys that are not in the current note
+            // int key = 0;
+            // for (var mask = State.KeyHeldMaskVisual; mask > 0; mask >>= 1)
+            // {
+            //     if ((mask & 1) == 1 && (note.NoteMask & 1 << key) == 0)
+            //     {
+            //         MutateStateWithInput(new GameInput(note.Time, key, false));
+            //     }
+            //
+            //     key++;
+            // }
+            //
+            // // Press keys for current note
+            // foreach (var chordNote in note.AllNotes)
+            // {
+            //     MutateStateWithInput(new GameInput(note.Time, chordNote.Key, true));
+            //     CheckForNoteHit();
+            // }
         }
     }
 }

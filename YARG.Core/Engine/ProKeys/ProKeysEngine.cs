@@ -7,6 +7,8 @@ namespace YARG.Core.Engine.ProKeys
     public abstract class ProKeysEngine : BaseEngine<ProKeysNote, ProKeysEngineParameters,
         ProKeysStats, ProKeysEngineState>
     {
+        protected const double DEFAULT_PRESS_TIME = -9999;
+
         public delegate void KeyStateChangeEvent(int key, bool isPressed);
         public delegate void OverhitEvent(int key);
 
@@ -126,7 +128,7 @@ namespace YARG.Core.Engine.ProKeys
 
             note.SetHitState(true, false);
 
-            ToggleKey(note.Key, false);
+            State.KeyPressTimes[note.Key] = DEFAULT_PRESS_TIME;
 
             // Detect if the last note(s) were skipped
             // bool skipped = SkipPreviousNotes(note);
@@ -191,7 +193,7 @@ namespace YARG.Core.Engine.ProKeys
 
             note.SetMissState(true, false);
 
-            ToggleKey(note.Key, false);
+            State.KeyPressTimes[note.Key] = DEFAULT_PRESS_TIME;
 
             if (note.IsStarPower)
             {
@@ -240,6 +242,11 @@ namespace YARG.Core.Engine.ProKeys
         protected void ToggleKey(int key, bool active)
         {
             State.KeyMask = active ? State.KeyMask | (1 << key) : State.KeyMask & ~(1 << key);
+        }
+
+        protected bool IsKeyInTime(ProKeysNote note, double frontEnd)
+        {
+            return note.Time - State.KeyPressTimes[note.Key] > Math.Abs(frontEnd);
         }
     }
 }

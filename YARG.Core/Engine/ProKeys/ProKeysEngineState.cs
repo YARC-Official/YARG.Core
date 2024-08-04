@@ -1,4 +1,5 @@
 ﻿using YARG.Core.Chart;
+using YARG.Core.Input;
 
 namespace YARG.Core.Engine.ProKeys
 {
@@ -7,8 +8,7 @@ namespace YARG.Core.Engine.ProKeys
         // Used for hit logic. May not be the same value as KeyHeldMask
         public int KeyMask;
 
-        // Used only for visuals (like displaying the key press)
-        public int KeyHeldMaskVisual;
+        public double[] KeyPressTimes = new double[(int)ProKeysAction.Key25 + 1];
 
         /// <summary>
         /// The integer value for the key that was hit this update. <c>null</c> is none.
@@ -30,6 +30,12 @@ namespace YARG.Core.Engine.ProKeys
         {
             ChordStaggerTimer = new(parameters.ChordStaggerWindow);
             FatFingerTimer = new(parameters.FatFingerWindow);
+
+            KeyPressTimes = new double[(int)ProKeysAction.Key25 + 1];
+            for(int i = 0; i < KeyPressTimes.Length; i++)
+            {
+                KeyPressTimes[i] = -9999;
+            }
         }
 
         public override void Reset()
@@ -37,6 +43,11 @@ namespace YARG.Core.Engine.ProKeys
             base.Reset();
 
             KeyMask = 0;
+
+            for(int i = 0; i < KeyPressTimes.Length; i++)
+            {
+                KeyPressTimes[i] = -9999;
+            }
 
             KeyHit = null;
             KeyReleased = null;
