@@ -1,5 +1,7 @@
 ﻿using System;
 using System.IO;
+using System.Security.Cryptography;
+using YARG.Core.Song;
 
 namespace YARG.Core.Replays
 {
@@ -42,6 +44,16 @@ namespace YARG.Core.Replays
 
             var header = Sections.DeserializeHeader(reader, version);
             if (header == null)
+            {
+                return null;
+            }
+
+            var position = reader.BaseStream.Position;
+            var sha = SHA1.Create();
+            var hash = sha.ComputeHash(reader.BaseStream);
+            var computedChecksum = HashWrapper.Create(hash);
+
+            if(!header.Value.ReplayChecksum.Equals(computedChecksum))
             {
                 return null;
             }
