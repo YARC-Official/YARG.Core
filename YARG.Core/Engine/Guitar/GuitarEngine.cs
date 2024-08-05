@@ -307,9 +307,9 @@ namespace YARG.Core.Engine.Guitar
 
         protected override void UpdateSustains()
         {
-            base.UpdateSustains();
-
             bool isStarPowerSustainActive = ActiveSustains.Any(sustain => sustain.Note.IsStarPower);
+
+            base.UpdateSustains();
 
             if (isStarPowerSustainActive && State.StarPowerWhammyTimer.IsActive)
             {
