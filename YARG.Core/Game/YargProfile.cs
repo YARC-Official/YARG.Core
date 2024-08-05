@@ -204,6 +204,8 @@ namespace YARG.Core.Game
         {
             version = reader.ReadInt32();
 
+            Id = reader.ReadGuid();
+
             Name = reader.ReadString();
 
             EnginePreset = reader.ReadGuid();
