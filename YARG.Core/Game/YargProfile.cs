@@ -50,7 +50,7 @@ namespace YARG.Core.Game
 
         /// <summary>
         /// The difficulty to be saved in the profile.
-        /// 
+        ///
         /// If a song does not contain this difficulty, so long as the player
         /// does not *explicitly* and *manually* change the difficulty, this value
         /// should remain unchanged.
@@ -179,6 +179,8 @@ namespace YARG.Core.Game
         public void Serialize(BinaryWriter writer)
         {
             writer.Write(PROFILE_VERSION);
+
+            writer.Write(Id);
 
             writer.Write(Name);
 
