@@ -20,6 +20,8 @@ namespace YARG.Core.Engine
         public abstract BaseEngineParameters BaseParameters { get; }
         public abstract BaseStats            BaseStats      { get; }
 
+        protected bool StarPowerIsAllowed = true;
+
         protected bool IsInputUpdate { get; private set; }
         protected bool IsBotUpdate   { get; private set; }
 
@@ -430,12 +432,12 @@ namespace YARG.Core.Engine
 
         public override void AllowStarPower(bool isAllowed)
         {
-            if (isAllowed == State.AllowStarPower)
+            if (isAllowed == StarPowerIsAllowed)
             {
                 return;
             }
 
-            State.AllowStarPower = isAllowed;
+            StarPowerIsAllowed = isAllowed;
 
             foreach (var note in Notes)
             {
@@ -464,12 +466,11 @@ namespace YARG.Core.Engine
 
             EventLogger.Clear();
 
-            bool allowStarPower = State.AllowStarPower;
             foreach (var note in Notes)
             {
                 note.ResetNoteState();
 
-                if (!allowStarPower && note.IsStarPower)
+                if (!StarPowerIsAllowed && note.IsStarPower)
                 {
                     note.Flags &= ~NoteFlags.StarPower;
                     foreach (var childNote in note.ChildNotes)

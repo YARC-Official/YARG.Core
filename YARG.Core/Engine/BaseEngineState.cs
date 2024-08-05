@@ -24,7 +24,6 @@
 
         public bool IsSoloActive;
 
-        public bool AllowStarPower;
         public bool IsStarPowerInputActive;
         public uint StarPowerBaseTick;
 
@@ -51,7 +50,6 @@
 
             IsSoloActive = false;
             
-            AllowStarPower = true;
             IsStarPowerInputActive = false;
             StarPowerBaseTick = 0;
         }
