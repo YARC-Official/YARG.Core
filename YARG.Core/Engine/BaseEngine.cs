@@ -48,6 +48,11 @@ namespace YARG.Core.Engine
         public abstract BaseEngineParameters BaseParameters { get; }
         public abstract BaseStats            BaseStats      { get; }
 
+        protected bool StarPowerIsAllowed = true;
+
+        protected bool IsInputUpdate { get; private set; }
+        protected bool IsBotUpdate   { get; private set; }
+
         protected readonly SyncTrack SyncTrack;
 
         protected readonly uint Resolution;

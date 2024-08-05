@@ -268,12 +268,12 @@ namespace YARG.Core.Engine
 
         public override void AllowStarPower(bool isAllowed)
         {
-            if (isAllowed == State.AllowStarPower)
+            if (isAllowed == StarPowerIsAllowed)
             {
                 return;
             }
 
-            State.AllowStarPower = isAllowed;
+            StarPowerIsAllowed = isAllowed;
 
             foreach (var note in Notes)
             {
@@ -304,6 +304,15 @@ namespace YARG.Core.Engine
             foreach (var note in Notes)
             {
                 note.ResetNoteState();
+
+                if (!StarPowerIsAllowed && note.IsStarPower)
+                {
+                    note.Flags &= ~NoteFlags.StarPower;
+                    foreach (var childNote in note.ChildNotes)
+                    {
+                        childNote.Flags &= ~NoteFlags.StarPower;
+                    }
+                }
             }
 
             foreach (var solo in Solos)
