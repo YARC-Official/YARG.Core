@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using YARG.Core.Chart;
 using YARG.Core.Utility;
 using YARG.Core.Extensions;
+using YARG.Core.Song;
 
 namespace YARG.Core.Game
 {
@@ -50,7 +51,7 @@ namespace YARG.Core.Game
 
         /// <summary>
         /// The difficulty to be saved in the profile.
-        /// 
+        ///
         /// If a song does not contain this difficulty, so long as the player
         /// does not *explicitly* and *manually* change the difficulty, this value
         /// should remain unchanged.
@@ -115,7 +116,7 @@ namespace YARG.Core.Game
             CurrentModifiers = profile.CurrentModifiers;
         }
 
-        public void ApplyModifiers<TNote>(InstrumentDifficulty<TNote> track) where TNote : Note<TNote>
+        public void ApplyModifiers<TNote>(SongEntry song, InstrumentDifficulty<TNote> track) where TNote : Note<TNote>
         {
             switch (CurrentInstrument.ToGameMode())
             {
@@ -145,6 +146,11 @@ namespace YARG.Core.Game
                     else if (IsModifierActive(Modifier.TapsToHopos))
                     {
                         guitarTrack.ConvertFromTypeToType(GuitarNoteType.Tap, GuitarNoteType.Hopo);
+                    }
+
+                    if (IsModifierActive(Modifier.NoteShuffle))
+                    {
+                        guitarTrack.ShuffleNotes(unchecked(song.Hash.GetHashCode() * 133769420)); // heh
                     }
 
                     break;

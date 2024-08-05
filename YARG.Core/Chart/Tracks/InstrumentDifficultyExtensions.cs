@@ -1,4 +1,7 @@
 using System;
+using System.Collections.Generic;
+using YARG.Core.Extensions;
+using YARG.Core.Logging;
 
 namespace YARG.Core.Chart
 {
@@ -31,6 +34,167 @@ namespace YARG.Core.Chart
                 {
                     child.Type = to;
                 }
+            }
+        }
+
+        public static void ShuffleNotes(this InstrumentDifficulty<GuitarNote> difficulty, int seed)
+        {
+            var random = new Random(seed);
+            var activeNotes = new GuitarNote?[5 + 1]; // 5 frets, one open note
+
+            var currentNotes = new List<GuitarNote>();
+            var availableFrets = new List<int>();
+            var selectedFrets = new List<int>();
+
+            double lastNoteTime = 0;
+            int lastNoteCount = 0;
+            int lastOriginalMask = 0;
+            int lastShuffledMask = 0;
+
+            foreach (var parent in difficulty.Notes)
+            {
+                // Reset state
+                // Must be done first and not last, otherwise skipping a note won't reset state
+                currentNotes.Clear();
+                selectedFrets.Clear();
+                availableFrets.Clear();
+
+                // Clear no-longer-active notes
+                for (int i = 0; i < activeNotes.Length; i++)
+                {
+                    if (activeNotes[i] is not {} activeNote)
+                        continue; // Already inactive
+
+                    bool isActive = activeNote.TickLength == 0
+                        ? activeNote.TickEnd == parent.Tick // If the note has no length, its end is inclusive
+                        : activeNote.TickEnd > parent.Tick; // Otherwise, the end is exclusive
+
+                    if (!isActive)
+                        activeNotes[i] = null;
+                }
+
+                // Set up grab bag
+                if (activeNotes[1] == null) availableFrets.Add(1);
+                if (activeNotes[2] == null) availableFrets.Add(2);
+                if (activeNotes[3] == null) availableFrets.Add(3);
+                if (activeNotes[4] == null) availableFrets.Add(4);
+                if (activeNotes[5] == null) availableFrets.Add(5);
+                availableFrets.Shuffle(random);
+
+                // Retrieve notes to shuffle
+                foreach (var note in parent.ChordEnumerator())
+                {
+                    // Don't shuffle open notes
+                    if (note.Fret == 0)
+                        continue;
+
+                    currentNotes.Add(note);
+                }
+
+                static double Falloff(double x, double rate, double offset)
+                {
+                    // Falloff is exponential with respect to `x` and `rate`:
+                    // - Rate of 2^0 (1) = no falloff
+                    // - Rate of 2^1 (2) = half-life reached at 1
+                    // - Rate of 2^2 (4) = half-life reached at 0.5
+                    // - Rate of 2^3 (8) = half-life reached at 0.333...
+                    // - Rate of 2^4 (16) = half-life reached at 0.25
+                    // https://www.desmos.com/calculator/ydezyo9tou
+                    return Math.Pow(rate, -x + offset);
+                }
+
+                static double DistanceWeight(double deltaTime, int minChance, int maxChance)
+                {
+                    const double offset = 0.1;
+                    const int falloffPower = 16; // Half-life reached at 0.0625 (0.1625 after offset is applied)
+
+                    double falloffRate = Math.Pow(2, falloffPower);
+                    double falloff = Falloff(deltaTime, falloffRate, offset);
+                    return YargMath.LerpClamped(minChance, maxChance, falloff);
+                }
+
+                int originalMask = parent.NoteMask;
+                double deltaTime = parent.Time - lastNoteTime;
+
+                if (currentNotes.Count == lastNoteCount && originalMask == lastOriginalMask)
+                {
+                    // Prefer to make consecutive same-fret notes still be consecutive
+                    if (random.Next(100) < DistanceWeight(deltaTime, 60, 100))
+                    {
+                        for (int i = 1; i <= 5; i++)
+                        {
+                            if ((lastShuffledMask & GuitarNote.GetNoteMask(i)) != 0)
+                                selectedFrets.Add(i);
+                        }
+                    }
+                }
+                else
+                {
+                    // Prefer to keep different single notes different
+                    if (currentNotes.Count == 1 && lastShuffledMask.CountBits(5) == 1 &&
+                        random.Next(100) <= DistanceWeight(deltaTime, 60, 90))
+                    {
+                        for (int i = 1; i <= 5; i++)
+                        {
+                            if ((lastShuffledMask & GuitarNote.GetNoteMask(i)) != 0)
+                                availableFrets.Remove(i);
+                        }
+                    }
+                }
+
+                lastNoteTime = parent.Time;
+                lastNoteCount = currentNotes.Count;
+                lastOriginalMask = originalMask;
+
+                // Pick a set of random notes for the chord
+                for (int i = selectedFrets.Count; i < currentNotes.Count; i++)
+                {
+                    if (availableFrets.Count < 1)
+                    {
+                        // Ignore un-shuffleable notes
+                        var note = currentNotes[i];
+                        YargLogger.LogFormatWarning("Cannot shuffle note at {0:0.000} ({1}), removing.", note.Time, note.Tick);
+                        continue;
+                    }
+
+                    int randomFret = availableFrets.PopRandom(random);
+                    selectedFrets.Add(randomFret);
+                }
+
+                // Remove any notes that didn't make the cut
+                for (int i = 0; i < parent.ChildNotes.Count; i++)
+                {
+                    var child = parent.ChildNotes[i];
+                    if (!currentNotes.Contains(child) && child.Fret != 0) // Don't remove open notes
+                        parent.RemoveChildNote(child);
+                }
+
+                // Skip open notes and 5-note chords
+                if (currentNotes.Count < 1 || currentNotes.Count >= 5)
+                    continue;
+
+                // Sort notes/frets to prepare for the next step
+                currentNotes.Sort((left, right) => left.Fret.CompareTo(right.Fret));
+                selectedFrets.Sort();
+
+                // Push all notes to the right, to prevent intermediate overlaps
+                for (int i = 0; i < currentNotes.Count; i++)
+                {
+                    currentNotes[^(i + 1)].Fret = 5 - i;
+                }
+
+                // Apply shuffled frets
+                YargLogger.Assert(currentNotes.Count == selectedFrets.Count);
+                for (int i = 0; i < selectedFrets.Count; i++)
+                {
+                    int fret = selectedFrets[i];
+                    var note = currentNotes[i];
+
+                    note.Fret = fret;
+                    activeNotes[fret] = note;
+                }
+
+                lastShuffledMask = parent.NoteMask;
             }
         }
 

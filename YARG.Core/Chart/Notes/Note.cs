@@ -74,6 +74,13 @@ namespace YARG.Core.Chart
             _childNotes.Add(note);
         }
 
+        public virtual void RemoveChildNote(TNote note)
+        {
+            if (!_childNotes.Remove(note))
+                throw new InvalidOperationException("Child note being removed is not part of this note!");
+            note.Parent = null;
+        }
+
         public IEnumerable<TNote> ChordEnumerator()
         {
             yield return (TNote) this;
@@ -171,7 +178,7 @@ namespace YARG.Core.Chart
             }
         }
 
-        protected static int GetNoteMask(int note)
+        public static int GetNoteMask(int note)
         {
             // Resulting shift is 1 too high, shifting down by 1 corrects this.
             // Reason for not doing (note - 1) is this breaks open notes. (1 << (0 - 1) == 0x80000000)

@@ -182,6 +182,12 @@ namespace YARG.Core.Chart
             TotalTickLength = _childNotes[^1].TickEnd - Tick;
         }
 
+        public override void RemoveChildNote(VocalNote note)
+        {
+            // TODO
+            throw new NotImplementedException();
+        }
+
         /// <summary>
         /// Adds a child note to this vocal phrase.
         /// Use <see cref="AddChildNote"/> instead if this is a note!

@@ -5,6 +5,7 @@
 //     the code is regenerated.
 // </auto-generated>
 //------------------------------------------------------------------------------
+using System;
 
 namespace YARG.Core
 {
@@ -16,80 +17,128 @@ namespace YARG.Core
             return (int) (start + (end - start) * percent);
         }
 
+        public static int LerpClamped(int start, int end, float percent)
+            => Lerp(start, end, Math.Clamp(percent, 0, 1));
+
         public static uint Lerp(uint start, uint end, float percent)
         {
             return (uint) (start + (end - start) * percent);
         }
+
+        public static uint LerpClamped(uint start, uint end, float percent)
+            => Lerp(start, end, Math.Clamp(percent, 0, 1));
 
         public static float Lerp(float start, float end, float percent)
         {
             return (float) (start + (end - start) * percent);
         }
 
+        public static float LerpClamped(float start, float end, float percent)
+            => Lerp(start, end, Math.Clamp(percent, 0, 1));
+
         public static double Lerp(double start, double end, float percent)
         {
             return (double) (start + (end - start) * percent);
         }
+
+        public static double LerpClamped(double start, double end, float percent)
+            => Lerp(start, end, Math.Clamp(percent, 0, 1));
 
         public static int Lerp(int start, int end, double percent)
         {
             return (int) (start + (end - start) * percent);
         }
 
+        public static int LerpClamped(int start, int end, double percent)
+            => Lerp(start, end, Math.Clamp(percent, 0, 1));
+
         public static uint Lerp(uint start, uint end, double percent)
         {
             return (uint) (start + (end - start) * percent);
         }
+
+        public static uint LerpClamped(uint start, uint end, double percent)
+            => Lerp(start, end, Math.Clamp(percent, 0, 1));
 
         public static float Lerp(float start, float end, double percent)
         {
             return (float) (start + (end - start) * percent);
         }
 
+        public static float LerpClamped(float start, float end, double percent)
+            => Lerp(start, end, Math.Clamp(percent, 0, 1));
+
         public static double Lerp(double start, double end, double percent)
         {
             return (double) (start + (end - start) * percent);
         }
+
+        public static double LerpClamped(double start, double end, double percent)
+            => Lerp(start, end, Math.Clamp(percent, 0, 1));
 
         public static float LerpF(int start, int end, float percent)
         {
             return (float) (start + (end - start) * percent);
         }
 
+        public static float LerpClampedF(int start, int end, float percent)
+            => LerpF(start, end, Math.Clamp(percent, 0, 1));
+
         public static float LerpF(uint start, uint end, float percent)
         {
             return (float) (start + (end - start) * percent);
         }
+
+        public static float LerpClampedF(uint start, uint end, float percent)
+            => LerpF(start, end, Math.Clamp(percent, 0, 1));
 
         public static float LerpF(float start, float end, float percent)
         {
             return (float) (start + (end - start) * percent);
         }
 
+        public static float LerpClampedF(float start, float end, float percent)
+            => LerpF(start, end, Math.Clamp(percent, 0, 1));
+
         public static float LerpF(double start, double end, float percent)
         {
             return (float) (start + (end - start) * percent);
         }
+
+        public static float LerpClampedF(double start, double end, float percent)
+            => LerpF(start, end, Math.Clamp(percent, 0, 1));
 
         public static double LerpD(int start, int end, double percent)
         {
             return (double) (start + (end - start) * percent);
         }
 
+        public static double LerpClampedD(int start, int end, double percent)
+            => LerpD(start, end, Math.Clamp(percent, 0, 1));
+
         public static double LerpD(uint start, uint end, double percent)
         {
             return (double) (start + (end - start) * percent);
         }
+
+        public static double LerpClampedD(uint start, uint end, double percent)
+            => LerpD(start, end, Math.Clamp(percent, 0, 1));
 
         public static double LerpD(float start, float end, double percent)
         {
             return (double) (start + (end - start) * percent);
         }
 
+        public static double LerpClampedD(float start, float end, double percent)
+            => LerpD(start, end, Math.Clamp(percent, 0, 1));
+
         public static double LerpD(double start, double end, double percent)
         {
             return (double) (start + (end - start) * percent);
         }
+
+        public static double LerpClampedD(double start, double end, double percent)
+            => LerpD(start, end, Math.Clamp(percent, 0, 1));
 
         #endregion
 
@@ -102,6 +151,9 @@ namespace YARG.Core
             return (float) (value - start) / (float) (end - start);
         }
 
+        public static float InverseLerpClampedF(int start, int end, float percent)
+            => InverseLerpF(start, end, Math.Clamp(percent, 0, 1));
+
         public static float InverseLerpF(uint start, uint end, uint value)
         {
             if (start == end)
@@ -109,6 +161,9 @@ namespace YARG.Core
 
             return (float) (value - start) / (float) (end - start);
         }
+
+        public static float InverseLerpClampedF(uint start, uint end, float percent)
+            => InverseLerpF(start, end, Math.Clamp(percent, 0, 1));
 
         public static float InverseLerpF(float start, float end, float value)
         {
@@ -118,6 +173,9 @@ namespace YARG.Core
             return (float) (value - start) / (float) (end - start);
         }
 
+        public static float InverseLerpClampedF(float start, float end, float percent)
+            => InverseLerpF(start, end, Math.Clamp(percent, 0, 1));
+
         public static float InverseLerpF(double start, double end, double value)
         {
             if (start == end)
@@ -125,6 +183,9 @@ namespace YARG.Core
 
             return (float) (value - start) / (float) (end - start);
         }
+
+        public static float InverseLerpClampedF(double start, double end, float percent)
+            => InverseLerpF(start, end, Math.Clamp(percent, 0, 1));
 
         public static double InverseLerpD(int start, int end, int value)
         {
@@ -134,6 +195,9 @@ namespace YARG.Core
             return (double) (value - start) / (double) (end - start);
         }
 
+        public static double InverseLerpClampedD(int start, int end, double percent)
+            => InverseLerpD(start, end, Math.Clamp(percent, 0, 1));
+
         public static double InverseLerpD(uint start, uint end, uint value)
         {
             if (start == end)
@@ -141,6 +205,9 @@ namespace YARG.Core
 
             return (double) (value - start) / (double) (end - start);
         }
+
+        public static double InverseLerpClampedD(uint start, uint end, double percent)
+            => InverseLerpD(start, end, Math.Clamp(percent, 0, 1));
 
         public static double InverseLerpD(float start, float end, float value)
         {
@@ -150,6 +217,9 @@ namespace YARG.Core
             return (double) (value - start) / (double) (end - start);
         }
 
+        public static double InverseLerpClampedD(float start, float end, double percent)
+            => InverseLerpD(start, end, Math.Clamp(percent, 0, 1));
+
         public static double InverseLerpD(double start, double end, double value)
         {
             if (start == end)
@@ -157,6 +227,9 @@ namespace YARG.Core
 
             return (double) (value - start) / (double) (end - start);
         }
+
+        public static double InverseLerpClampedD(double start, double end, double percent)
+            => InverseLerpD(start, end, Math.Clamp(percent, 0, 1));
 
         #endregion
     }
