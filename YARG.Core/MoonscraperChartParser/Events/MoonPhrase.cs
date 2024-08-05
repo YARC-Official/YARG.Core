@@ -20,21 +20,26 @@ namespace MoonscraperChartEditor.Song
             TrillLane,
 
             // RB Pro Drums
+
             ProDrums_Activation,
 
             // Vocals
+
             Vocals_LyricPhrase,
             Vocals_PercussionPhrase,
             Vocals_RangeShift,
             Vocals_LyricShift,
 
             // Pro keys
+
             ProKeys_RangeShift0,
             ProKeys_RangeShift1,
             ProKeys_RangeShift2,
             ProKeys_RangeShift3,
             ProKeys_RangeShift4,
             ProKeys_RangeShift5,
+
+            ProKeys_Glissando,
         }
 
         public uint length;
