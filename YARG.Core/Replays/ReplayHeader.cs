@@ -6,8 +6,13 @@ namespace YARG.Core.Replays
     public struct ReplayHeader
     {
         public EightCC     Magic;
-        public short         ReplayVersion;
-        public short         EngineVersion;
+        public short       ReplayVersion;
+        public short       EngineVersion;
         public HashWrapper ReplayChecksum;
+
+        public bool IsDevelopmentVersion()
+        {
+            return (ReplayVersion & 0x8000) != 0 || (EngineVersion & 0x8000) != 0;
+        }
     }
 }
