@@ -177,7 +177,7 @@ namespace YARG.Core.Engine
 
                     if (IsTimeBetween(deactivateTime, previousTime, nextTime))
                     {
-                        YargLogger.LogFormatDebug("Queuing countdown {0} deactivation at {1}", State.CurrentWaitCountdownIndex, deactivateTime);
+                        YargLogger.LogFormatTrace("Queuing countdown {0} deactivation at {1}", State.CurrentWaitCountdownIndex, deactivateTime);
                         QueueUpdateTime(deactivateTime, "Deactivate Countdown");
                     }
                 }
@@ -204,7 +204,7 @@ namespace YARG.Core.Engine
 
                         if (IsTimeBetween(nextCountdownStartTime, previousTime, nextTime))
                         {
-                            YargLogger.LogFormatDebug("Queuing countdown {0} start time at {1}", nextCountdownIndex, nextCountdownStartTime);
+                            YargLogger.LogFormatTrace("Queuing countdown {0} start time at {1}", nextCountdownIndex, nextCountdownStartTime);
                             QueueUpdateTime(nextCountdownStartTime, "Activate Countdown");
                         }
                     }
@@ -242,7 +242,7 @@ namespace YARG.Core.Engine
                     {
                         // Entered new countdown window
                         State.IsWaitCountdownActive = true;
-                        YargLogger.LogFormatDebug("Countdown {0} activated at time {1}. Expected time: {2}", State.CurrentWaitCountdownIndex, time, currentCountdown.Time);
+                        YargLogger.LogFormatTrace("Countdown {0} activated at time {1}. Expected time: {2}", State.CurrentWaitCountdownIndex, time, currentCountdown.Time);
                     }
 
                     if (time <= currentCountdown.DeactivateTime + WaitCountdown.FADE_ANIM_LENGTH)
@@ -253,7 +253,7 @@ namespace YARG.Core.Engine
                         if (State.IsWaitCountdownActive && !currentCountdown.IsActive)
                         {
                             State.IsWaitCountdownActive = false;
-                            YargLogger.LogFormatDebug("Countdown {0} deactivated at time {1}. Expected time: {2}", State.CurrentWaitCountdownIndex, time, currentCountdown.DeactivateTime);
+                            YargLogger.LogFormatTrace("Countdown {0} deactivated at time {1}. Expected time: {2}", State.CurrentWaitCountdownIndex, time, currentCountdown.DeactivateTime);
                         }
 
                         UpdateCountdown(newMeasuresLeft, currentCountdown.TimeLength, currentCountdown.TimeEnd);
@@ -860,12 +860,12 @@ namespace YARG.Core.Engine
                         var newCountdown = new WaitCountdown(beatlinesThisCountdown);
 
                         waitCountdowns.Add(newCountdown);
-                        YargLogger.LogFormatDebug("Created a WaitCountdown at time {0} of {1} measures and {2} seconds in length",
+                        YargLogger.LogFormatTrace("Created a WaitCountdown at time {0} of {1} measures and {2} seconds in length",
                                                  newCountdown.Time, countdownTotalMeasures, beatlinesThisCountdown[^1].Time - noteOneTimeEnd);
                     }
                     else
                     {
-                        YargLogger.LogFormatDebug("Did not create a WaitCountdown at time {0} of {1} seconds in length because it was only {2} measures long",
+                        YargLogger.LogFormatTrace("Did not create a WaitCountdown at time {0} of {1} seconds in length because it was only {2} measures long",
                                                  noteOneTimeEnd, beatlinesThisCountdown[^1].Time - noteOneTimeEnd, countdownTotalMeasures);
                     }
                 }
