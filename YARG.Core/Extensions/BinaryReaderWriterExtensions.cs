@@ -22,35 +22,6 @@ namespace YARG.Core.Extensions
             }
             return new Guid(span);
         }
-
-        public static void Move(this BinaryReader reader, int count)
-        {
-            reader.BaseStream.Position += count;
-        }
-
-        public static BinaryReader Slice(this BinaryReader reader, int length)
-        {
-            return Load(reader.BaseStream, length);
-        }
-
-        public static BinaryReader Load(Stream stream, int count)
-        {
-            byte[] buffer;
-            int position = 0;
-            if (stream is MemoryStream mem)
-            {
-                buffer = mem.GetBuffer();
-                position = (int) mem.Position;
-                mem.Position += count;
-            }
-            else
-            {
-                buffer = stream.ReadBytes(count);
-            }
-
-            var memstream = new MemoryStream(buffer, position, count, false, true);
-            return new BinaryReader(memstream);
-        }
     }
 
     public static class BinaryWriterExtensions

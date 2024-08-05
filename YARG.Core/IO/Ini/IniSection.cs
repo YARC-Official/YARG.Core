@@ -35,13 +35,16 @@ namespace YARG.Core.IO.Ini
 
         public bool TryGet(in string key, out SortString str, in SortString defaultStr)
         {
+#if DEBUG
+            SongIniHandler.ThrowIfNot<SortString>(key);
+#endif
             if (modifiers.TryGetValue(key, out var results))
             {
                 for (int i = 0; i < results.Count; ++i)
                 {
-                    if (results[i].SortString.Str != string.Empty)
+                    if (results[i].SortStr != SortString.Empty)
                     {
-                        str = results[i].SortString;
+                        str = results[i].SortStr;
                         if (str.Str != defaultStr.Str)
                         {
                             return true;
@@ -55,13 +58,16 @@ namespace YARG.Core.IO.Ini
 
         public bool TryGet(in string key, out SortString str, in string defaultStr)
         {
+#if DEBUG
+            SongIniHandler.ThrowIfNot<SortString>(key);
+#endif
             if (modifiers.TryGetValue(key, out var results))
             {
                 for (int i = 0; i < results.Count; ++i)
                 {
-                    if (results[i].SortString.Str != string.Empty)
+                    if (results[i].SortStr != SortString.Empty)
                     {
-                        str = results[i].SortString;
+                        str = results[i].SortStr;
                         if (str.Str != defaultStr)
                         {
                             return true;
@@ -75,108 +81,31 @@ namespace YARG.Core.IO.Ini
 
         public bool TryGet(in string key, out string str)
         {
+#if DEBUG
+            SongIniHandler.ThrowIfNot<string>(key);
+#endif
             if (modifiers.TryGetValue(key, out var results))
             {
-                str = results[0].String;
+                str = results[0].Str;
                 return true;
             }
             str = string.Empty;
             return false;
         }
 
-        public bool TryGet(in string key, out ulong val)
-        {
-            if (modifiers.TryGetValue(key, out var results))
-            {
-                val = results[0].UInt64;
-                return true;
-            }
-            val = 0;
-            return false;
-        }
-
-        public bool TryGet(in string key, out long val)
-        {
-            if (modifiers.TryGetValue(key, out var results))
-            {
-                val = results[0].Int64;
-                return true;
-            }
-            val = 0;
-            return false;
-        }
-
-        public bool TryGet(in string key, out uint val)
-        {
-            if (modifiers.TryGetValue(key, out var results))
-            {
-                val = results[0].UInt32;
-                return true;
-            }
-            val = 0;
-            return false;
-        }
-
-        public bool TryGet(in string key, out int val)
-        {
-            if (modifiers.TryGetValue(key, out var results))
-            {
-                val = results[0].Int32;
-                return true;
-            }
-            val = 0;
-            return false;
-        }
-
-        public bool TryGet(in string key, out ushort val)
-        {
-            if (modifiers.TryGetValue(key, out var results))
-            {
-                val = results[0].UInt16;
-                return true;
-            }
-            val = 0;
-            return false;
-        }
-
-        public bool TryGet(in string key, out short val)
-        {
-            if (modifiers.TryGetValue(key, out var results))
-            {
-                val = results[0].Int16;
-                return true;
-            }
-            val = 0;
-            return false;
-        }
-
-        public bool TryGet(in string key, out float val)
-        {
-            if (modifiers.TryGetValue(key, out var results))
-            {
-                val = results[0].Float;
-                return true;
-            }
-            val = 0;
-            return false;
-        }
-
-        public bool TryGet(in string key, out double val)
-        {
-            if (modifiers.TryGetValue(key, out var results))
-            {
-                val = results[0].Double;
-                return true;
-            }
-            val = 0;
-            return false;
-        }
-
         public bool TryGet(in string key, out long val1, out long val2)
         {
+#if DEBUG
+            SongIniHandler.ThrowIfNot<long[]>(key);
+#endif
             if (modifiers.TryGetValue(key, out var results))
             {
-                results[0].GetInt64Array(out val1, out val2);
+                unsafe
+                {
+                    var mod = results[0];
+                    val1 = mod.Buffer[0];
+                    val2 = mod.Buffer[1];
+                }
                 return true;
             }
             val1 = -1;
@@ -184,14 +113,22 @@ namespace YARG.Core.IO.Ini
             return false;
         }
 
-        public bool TryGet(in string key, out bool val)
+        public bool TryGet<T>(in string key, out T val)
+            where T : unmanaged
         {
+#if DEBUG
+            SongIniHandler.ThrowIfNot<T>(key);
+#endif
             if (modifiers.TryGetValue(key, out var results))
             {
-                val = results[0].Bool;
+                unsafe
+                {
+                    var mod = results[0];
+                    val = *(T*) mod.Buffer;
+                }
                 return true;
             }
-            val = false;
+            val = default;
             return false;
         }
     }

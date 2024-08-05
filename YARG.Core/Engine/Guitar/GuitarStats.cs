@@ -18,15 +18,9 @@
         public int GhostInputs;
 
         /// <summary>
-        /// Score earned from holding sustains.
-        /// </summary>
-        public int SustainScore;
-
-        /// <summary>
-        /// Amount of Star Power ticks gained from whammy.
+        /// Amount of Star Power/Overdrive gained from whammy during the current whammy period.
         /// </summary>
         public uint WhammyTicks;
-
 
         public GuitarStats()
         {

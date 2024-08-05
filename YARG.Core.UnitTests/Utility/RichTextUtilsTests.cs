@@ -36,12 +36,12 @@ namespace YARG.Core.UnitTests.Utility
         static RichTextUtilsTests()
         {
             var tags = RichTextUtils.RICH_TEXT_TAGS;
-            TEXT_TO_TAG = new (string TagText, string Test, RichTextTags Tags)[tags.Length]; 
+            TEXT_TO_TAG = new (string TagText, string Test, RichTextTags Tags)[tags.Length];
             for (var i = 0; i < tags.Length; i++)
             {
                 TEXT_TO_TAG[i] = (
                     tags[i].Text,
-                    $"Some <{tags[i].Text}=50vb>formatting</{tags[i].Text}> with trailing text",
+                    $"Some <{tags[i].Text}=50vb>formatting</{tags[i].Text}> with trailing text\n",
                     tags[i].tag
                 );
             }
@@ -50,7 +50,7 @@ namespace YARG.Core.UnitTests.Utility
         [TestCase]
         public void ReplacesTags()
         {
-            const string expectedText = "Some formatting with trailing text";
+            const string expectedText = "Some formatting with trailing text\n";
             Assert.Multiple(() =>
             {
                 foreach (var (tagText, testText, tag) in TEXT_TO_TAG)

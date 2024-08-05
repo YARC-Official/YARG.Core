@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 
 namespace YARG.Core.Song.Cache
@@ -22,13 +23,19 @@ namespace YARG.Core.Song.Cache
         public void AddEntry(IniSubEntry entry)
         {
             var hash = entry.Hash;
+            List<IniSubEntry> list;
             lock (iniLock)
             {
-                if (entries.TryGetValue(hash, out var list))
-                    list.Add(entry);
-                else
-                    entries.Add(hash, new() { entry });
+                if (!entries.TryGetValue(hash, out list))
+                {
+                    entries.Add(hash, list = new List<IniSubEntry>());
+                }
                 ++_count;
+            }
+
+            lock (list)
+            {
+                list.Add(entry);
             }
         }
 
@@ -51,7 +58,7 @@ namespace YARG.Core.Song.Cache
             return false;
         }
 
-        public byte[] SerializeEntries(Dictionary<SongEntry, CategoryCacheWriteNode> nodes)
+        public ReadOnlyMemory<byte> SerializeEntries(Dictionary<SongEntry, CategoryCacheWriteNode> nodes)
         {
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);
@@ -62,12 +69,12 @@ namespace YARG.Core.Song.Cache
             {
                 foreach (var entry in shared.Value)
                 {
-                    byte[] buffer = entry.Serialize(nodes[entry], Location);
+                    var buffer = entry.Serialize(nodes[entry], Location);
                     writer.Write(buffer.Length);
                     writer.Write(buffer);
                 }
             }
-            return ms.ToArray();
+            return new ReadOnlyMemory<byte>(ms.GetBuffer(), 0, (int) ms.Length);
         }
     }
 }

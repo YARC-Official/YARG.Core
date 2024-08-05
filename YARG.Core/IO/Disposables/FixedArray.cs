@@ -83,7 +83,6 @@ namespace YARG.Core.IO.Disposables
 
         ~FixedArray()
         {
-            YargLogger.LogWarning("Dev warning: only use FixedArray types IF YOU MANUALLY DISPOSE! Not doing so defeats the purpose!");
             Dispose();
         }
 

@@ -2,33 +2,35 @@
 
 namespace YARG.Core.Song
 {
-    public class Midi_ProKeys_Preparser : Midi_Instrument_Preparser
+    public static class Midi_ProKeys_Preparser
     {
-        private const int NOTES_PER_DIFFICULTY = 25;
         private const int PROKEYS_MIN = 48;
         private const int PROKEYS_MAX = 72;
+        private const int NOTES_IN_DIFFICULTY = PROKEYS_MAX - PROKEYS_MIN + 1;
 
-        private readonly bool[] statuses = new bool[NOTES_PER_DIFFICULTY];
-
-        private Midi_ProKeys_Preparser() { }
-
-        public static bool Parse(YARGMidiTrack track)
+        public static unsafe bool Parse(YARGMidiTrack track)
         {
-            Midi_ProKeys_Preparser preparser = new();
-            return preparser.Process(track);
-        }
-
-        protected override bool IsNote() { return PROKEYS_MIN <= note.value && note.value <= PROKEYS_MAX; }
-
-        protected override bool ParseLaneColor_ON(YARGMidiTrack track)
-        {
-            statuses[note.value - PROKEYS_MIN] = true;
+            var statuses = stackalloc bool[NOTES_IN_DIFFICULTY];
+            var note = default(MidiNote);
+            while (track.ParseEvent())
+            {
+                if (track.Type is MidiEventType.Note_On or MidiEventType.Note_Off)
+                {
+                    track.ExtractMidiNote(ref note);
+                    if (PROKEYS_MIN <= note.value && note.value <= PROKEYS_MAX)
+                    {
+                        if (track.Type == MidiEventType.Note_On && note.velocity > 0)
+                        {
+                            statuses[note.value - PROKEYS_MIN] = true;
+                        }
+                        else if (statuses[note.value - PROKEYS_MIN])
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
             return false;
-        }
-
-        protected override bool ParseLaneColor_Off(YARGMidiTrack track)
-        {
-            return statuses[note.value - PROKEYS_MIN];
         }
     }
 }

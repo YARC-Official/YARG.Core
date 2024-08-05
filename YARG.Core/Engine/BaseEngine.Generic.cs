@@ -13,6 +13,18 @@ namespace YARG.Core.Engine
         where TEngineStats : BaseStats, new()
         where TEngineState : BaseEngineState, new()
     {
+        // Max number of measures that SP will last when draining
+        // SP draining is done based on measures
+        protected const double STAR_POWER_MEASURE_AMOUNT = 1.0 / STAR_POWER_MAX_MEASURES;
+
+        // Max number of beats that it takes to fill SP when gaining
+        // SP gain from whammying is done based on beats
+        protected const double STAR_POWER_BEAT_AMOUNT = 1.0 / STAR_POWER_MAX_BEATS;
+
+        // Number of measures that SP phrases will grant when hit
+        protected const int    STAR_POWER_PHRASE_MEASURE_COUNT = 2;
+        protected const double STAR_POWER_PHRASE_AMOUNT = STAR_POWER_PHRASE_MEASURE_COUNT * STAR_POWER_MEASURE_AMOUNT;
+
         public delegate void NoteHitEvent(int noteIndex, TNoteType note);
 
         public delegate void NoteMissedEvent(int noteIndex, TNoteType note);
@@ -21,11 +33,24 @@ namespace YARG.Core.Engine
 
         public delegate void StarPowerPhraseMissEvent(TNoteType note);
 
+        public delegate void SustainStartEvent(TNoteType note);
+
+        public delegate void SustainEndEvent(TNoteType note, double timeEnded, bool finished);
+
+        public delegate void CountdownChangeEvent(int measuresLeft, double countdownLength, double endTime);
+
         public NoteHitEvent?    OnNoteHit;
         public NoteMissedEvent? OnNoteMissed;
 
         public StarPowerPhraseHitEvent?  OnStarPowerPhraseHit;
         public StarPowerPhraseMissEvent? OnStarPowerPhraseMissed;
+
+        public SustainStartEvent? OnSustainStart;
+        public SustainEndEvent?   OnSustainEnd;
+
+        public CountdownChangeEvent? OnCountdownChange;
+
+        protected SustainList<TNoteType> ActiveSustains = new(10);
 
         protected          int[]  StarScoreThresholds { get; }
         protected readonly double TicksPerSustainPoint;
@@ -86,6 +111,8 @@ namespace YARG.Core.Engine
             }
 
             Solos = GetSoloSections();
+
+            WaitCountdowns = GetWaitCountdowns();
         }
 
         protected override void GenerateQueuedUpdates(double nextTime)
@@ -112,7 +139,7 @@ namespace YARG.Core.Engine
                 if (!IsBot)
                 {
                     // Earliest the note can be hit
-                    if(IsTimeBetween(noteFrontEnd, previousTime, nextTime))
+                    if (IsTimeBetween(noteFrontEnd, previousTime, nextTime))
                     {
                         YargLogger.LogFormatTrace("Queuing note {0} front end hit time at {1}", i, noteFrontEnd);
                         QueueUpdateTime(noteFrontEnd, "Note Front End");
@@ -138,6 +165,51 @@ namespace YARG.Core.Engine
                     QueueUpdateTime(noteBackEndIncrement, "Note Back End");
                 }
             }
+
+            if (State.CurrentWaitCountdownIndex < WaitCountdowns.Count)
+            {
+                // Queue updates for countdown start/end/change
+
+                if (State.IsWaitCountdownActive)
+                {
+                    var currentCountdown = WaitCountdowns[State.CurrentWaitCountdownIndex];
+                    double deactivateTime = currentCountdown.DeactivateTime;
+
+                    if (IsTimeBetween(deactivateTime, previousTime, nextTime))
+                    {
+                        YargLogger.LogFormatDebug("Queuing countdown {0} deactivation at {1}", State.CurrentWaitCountdownIndex, deactivateTime);
+                        QueueUpdateTime(deactivateTime, "Deactivate Countdown");
+                    }
+                }
+                else
+                {
+                    int nextCountdownIndex;
+
+                    if (previousTime < WaitCountdowns[State.CurrentWaitCountdownIndex].Time)
+                    {
+                        // No countdowns are currently displayed
+                        // CurrentWaitCountdownIndex has already been incremented for the next countdown
+                        nextCountdownIndex = State.CurrentWaitCountdownIndex;
+                    }
+                    else
+                    {
+                        // A countdown is currently onscreen, but is past its deactivation time and is fading out
+                        // CurrentWaitCountdownIndex will not be incremented until the progress bar no longer needs updating
+                        nextCountdownIndex = State.CurrentWaitCountdownIndex + 1;
+                    }
+
+                    if (nextCountdownIndex < WaitCountdowns.Count)
+                    {
+                        double nextCountdownStartTime = WaitCountdowns[nextCountdownIndex].Time;
+
+                        if (IsTimeBetween(nextCountdownStartTime, previousTime, nextTime))
+                        {
+                            YargLogger.LogFormatDebug("Queuing countdown {0} start time at {1}", nextCountdownIndex, nextCountdownStartTime);
+                            QueueUpdateTime(nextCountdownStartTime, "Activate Countdown");
+                        }
+                    }
+                }
+            }
         }
 
         protected override void UpdateTimeVariables(double time)
@@ -157,6 +229,66 @@ namespace YARG.Core.Engine
             while (NextSyncIndex < SyncTrackChanges.Count && State.CurrentTick >= SyncTrackChanges[NextSyncIndex].Tick)
             {
                 CurrentSyncIndex++;
+            }
+
+            // Only check for WaitCountdowns in this chart if there are any remaining
+            if (State.CurrentWaitCountdownIndex < WaitCountdowns.Count)
+            {
+                var currentCountdown = WaitCountdowns[State.CurrentWaitCountdownIndex];
+
+                if (time >= currentCountdown.Time)
+                {
+                    if (!State.IsWaitCountdownActive && time < currentCountdown.DeactivateTime)
+                    {
+                        // Entered new countdown window
+                        State.IsWaitCountdownActive = true;
+                        YargLogger.LogFormatDebug("Countdown {0} activated at time {1}. Expected time: {2}", State.CurrentWaitCountdownIndex, time, currentCountdown.Time);
+                    }
+
+                    if (time <= currentCountdown.DeactivateTime + WaitCountdown.FADE_ANIM_LENGTH)
+                    {
+                        // This countdown is currently displayed onscreen
+                        int newMeasuresLeft = currentCountdown.CalculateMeasuresLeft(State.CurrentTick);
+
+                        if (State.IsWaitCountdownActive && !currentCountdown.IsActive)
+                        {
+                            State.IsWaitCountdownActive = false;
+                            YargLogger.LogFormatDebug("Countdown {0} deactivated at time {1}. Expected time: {2}", State.CurrentWaitCountdownIndex, time, currentCountdown.DeactivateTime);
+                        }
+
+                        UpdateCountdown(newMeasuresLeft, currentCountdown.TimeLength, currentCountdown.TimeEnd);
+                    }
+                    else
+                    {
+                        State.CurrentWaitCountdownIndex++;
+                    }
+                }
+            }
+        }
+
+        public override void AllowStarPower(bool isAllowed)
+        {
+            if (isAllowed == State.AllowStarPower)
+            {
+                return;
+            }
+
+            State.AllowStarPower = isAllowed;
+
+            foreach (var note in Notes)
+            {
+                if (isAllowed)
+                {
+                    note.ResetFlags();
+                }
+                else if (note.IsStarPower)
+                {
+                    note.Flags &= ~NoteFlags.StarPower;
+                    foreach (var childNote in note.ChildNotes)
+                    {
+                        childNote.Flags &= ~NoteFlags.StarPower;
+                    }
+                }
             }
         }
 
@@ -187,6 +319,8 @@ namespace YARG.Core.Engine
         /// <param name="note">The Note to attempt to hit.</param>
         /// <returns>True if note can be hit. False otherwise.</returns>
         protected abstract bool CanNoteBeHit(TNoteType note);
+
+        protected abstract bool CanSustainHold(TNoteType note);
 
         protected virtual void HitNote(TNoteType note)
         {
@@ -242,6 +376,107 @@ namespace YARG.Core.Engine
                 EngineStats.StarPowerScore += multiplierScore / 2;
             }
             UpdateStars();
+        }
+
+        protected virtual void UpdateSustains()
+        {
+            EngineStats.PendingScore = 0;
+
+            for (int i = 0; i < ActiveSustains.Count; i++)
+            {
+                ref var sustain = ref ActiveSustains[i];
+                var note = sustain.Note;
+
+                // If we're close enough to the end of the sustain, finish it
+                // Provides leniency for sustains with no gap (and just in general)
+                bool isBurst;
+
+                // Sustain is too short for a burst
+                if (SustainBurstThreshold > note.TickLength)
+                {
+                    isBurst = State.CurrentTick >= note.Tick;
+                }
+                else
+                {
+                    isBurst = State.CurrentTick >= note.TickEnd - SustainBurstThreshold;
+                }
+
+                bool isEndOfSustain = State.CurrentTick >= note.TickEnd;
+
+                uint sustainTick = isBurst || isEndOfSustain ? note.TickEnd : State.CurrentTick;
+
+                bool dropped = !CanSustainHold(note);
+
+                // If the sustain has not finished scoring, then we need to calculate the points
+                if (!sustain.HasFinishedScoring)
+                {
+                    // Sustain has reached burst threshold, so all points have been given
+                    if (isBurst || isEndOfSustain)
+                    {
+                        sustain.HasFinishedScoring = true;
+                    }
+
+                    // Sustain has ended, so commit the points
+                    if (dropped || isBurst || isEndOfSustain)
+                    {
+                        YargLogger.LogFormatTrace("Finished scoring sustain ({0}) at {1} (dropped: {2}, burst: {3})",
+                            sustain.Note.Tick, State.CurrentTime, dropped, isBurst);
+
+                        double finalScore = CalculateSustainPoints(ref sustain, sustainTick);
+                        var points = (int) Math.Ceiling(finalScore);
+
+                        AddScore(points);
+
+                        // SustainPoints must include the multiplier, but NOT the star power multiplier
+                        int sustainPoints = points * EngineStats.ScoreMultiplier;
+                        if (EngineStats.IsStarPowerActive)
+                        {
+                            sustainPoints /= 2;
+                        }
+
+                        EngineStats.SustainScore += sustainPoints;
+                    }
+                    else
+                    {
+                        double score = CalculateSustainPoints(ref sustain, sustainTick);
+
+                        var sustainPoints = (int) Math.Ceiling(score);
+
+                        // It's ok to use multiplier here because PendingScore is only temporary to show the correct
+                        // score on the UI.
+                        EngineStats.PendingScore += sustainPoints * EngineStats.ScoreMultiplier;
+                    }
+                }
+
+                // Only remove the sustain if its dropped or has reached the final tick
+                if (dropped || isEndOfSustain)
+                {
+                    EndSustain(i, dropped, isEndOfSustain);
+                    i--;
+                }
+            }
+
+            UpdateStars();
+        }
+
+        protected virtual void StartSustain(TNoteType note)
+        {
+            var sustain = new ActiveSustain<TNoteType>(note);
+
+            ActiveSustains.Add(sustain);
+
+            YargLogger.LogFormatTrace("Started sustain at {0} (tick len: {1}, time len: {2})", State.CurrentTime, note.TickLength, note.TimeLength);
+
+            OnSustainStart?.Invoke(note);
+        }
+
+        protected virtual void EndSustain(int sustainIndex, bool dropped, bool isEndOfSustain)
+        {
+            var sustain = ActiveSustains[sustainIndex];
+            YargLogger.LogFormatTrace("Ended sustain ({0}) at {1} (dropped: {2}, end: {3})", sustain.Note.Tick, State.CurrentTime, dropped, isEndOfSustain);
+            ActiveSustains.RemoveAt(sustainIndex);
+
+            OnSustainEnd?.Invoke(sustain.Note, State.CurrentTime, sustain.HasFinishedScoring);
         }
 
         protected void UpdateStars()
@@ -380,6 +615,53 @@ namespace YARG.Core.Engine
             State.CurrentSoloIndex++;
         }
 
+        protected override void UpdateProgressValues(uint tick)
+        {
+            base.UpdateProgressValues(tick);
+
+            EngineStats.PendingScore = 0;
+            for (int i = 0; i < ActiveSustains.Count; i++)
+            {
+                ref var sustain = ref ActiveSustains[i];
+                EngineStats.PendingScore += (int) CalculateSustainPoints(ref sustain, tick);
+            }
+        }
+
+        protected override void RebaseProgressValues(uint baseTick)
+        {
+            base.RebaseProgressValues(baseTick);
+            RebaseSustains(baseTick);
+        }
+
+        protected void RebaseSustains(uint baseTick)
+        {
+            EngineStats.PendingScore = 0;
+            for (int i = 0; i < ActiveSustains.Count; i++)
+            {
+                ref var sustain = ref ActiveSustains[i];
+                // Don't rebase sustains that haven't started yet
+                if (baseTick < sustain.BaseTick)
+                {
+                    YargLogger.AssertFormat(baseTick < sustain.Note.Tick,
+                        "Sustain base tick cannot go backwards! Attempted to go from {0} to {1}",
+                        sustain.BaseTick, baseTick);
+
+                    continue;
+                }
+
+                double sustainScore = CalculateSustainPoints(ref sustain, baseTick);
+
+                sustain.BaseTick = Math.Clamp(baseTick, sustain.Note.Tick, sustain.Note.TickEnd);
+                sustain.BaseScore = sustainScore;
+                EngineStats.PendingScore += (int) sustainScore;
+            }
+        }
+
+        protected void UpdateCountdown(int measuresLeft, double countdownLength, double endTime)
+        {
+            OnCountdownChange?.Invoke(measuresLeft, countdownLength, endTime);
+        }
+
         public sealed override (double FrontEnd, double BackEnd) CalculateHitWindow()
         {
             var maxWindow = EngineParameters.HitWindow.MaxWindow;
@@ -437,6 +719,18 @@ namespace YARG.Core.Engine
             }
 
             return true;
+        }
+
+        protected double CalculateSustainPoints(ref ActiveSustain<TNoteType> sustain, uint tick)
+        {
+            uint scoreTick = Math.Clamp(tick, sustain.Note.Tick, sustain.Note.TickEnd);
+
+            sustain.Note.SustainTicksHeld = scoreTick - sustain.Note.Tick;
+
+            // Sustain points are awarded at a constant rate regardless of tempo
+            // double deltaScore = CalculateBeatProgress(scoreTick, sustain.BaseTick, POINTS_PER_BEAT);
+            double deltaScore = (scoreTick - sustain.BaseTick) / TicksPerSustainPoint;
+            return sustain.BaseScore + deltaScore;
         }
 
         private void AdvanceToNextNote(TNoteType note)
@@ -499,6 +793,83 @@ namespace YARG.Core.Engine
             }
 
             return soloSections;
+        }
+
+        private List<WaitCountdown> GetWaitCountdowns()
+        {
+            var allMeasureBeatLines = SyncTrack.Beatlines.Where(x => x.Type == BeatlineType.Measure).ToList();
+
+            var waitCountdowns = new List<WaitCountdown>();
+            for (int i = 0; i < Notes.Count; i++)
+            {
+                // Compare the note at the current index against the previous note
+                // Create a countdown if the distance between the notes is > 10s
+                Note<TNoteType> noteOne;
+
+                uint noteOneTickEnd = 0;
+                double noteOneTimeEnd = 0;
+
+                if (i > 0) {
+                    noteOne = Notes[i-1];
+                    noteOneTickEnd = noteOne.TickEnd;
+                    noteOneTimeEnd = noteOne.TimeEnd;
+                }
+
+                Note<TNoteType> noteTwo = Notes[i];
+                double noteTwoTime = noteTwo.Time;
+
+                if (noteTwoTime - noteOneTimeEnd >= WaitCountdown.MIN_SECONDS)
+                {
+                    uint noteTwoTick = noteTwo.Tick;
+
+                    // Determine the total number of measures that will pass during this countdown
+                    List<Beatline> beatlinesThisCountdown = new();
+
+                    // Countdown should start at end of the first note if it's directly on a measure line
+                    // Otherwise it should start at the beginning of the next measure
+                    int curMeasureIndex = allMeasureBeatLines.GetIndexOfPrevious(noteOneTickEnd);
+                    if (allMeasureBeatLines[curMeasureIndex].Tick < noteOneTickEnd) curMeasureIndex++;
+
+                    var curMeasureline = allMeasureBeatLines[curMeasureIndex];
+                    while (curMeasureline.Tick <= noteTwoTick)
+                    {
+                        // Skip counting on measures that are too close together
+                        if (beatlinesThisCountdown.Count == 0 ||
+                            curMeasureline.Time - beatlinesThisCountdown.Last().Time >= WaitCountdown.MIN_MEASURE_LENGTH)
+                        {
+                            beatlinesThisCountdown.Add(curMeasureline);
+                        }
+
+                        curMeasureIndex++;
+
+                        if (curMeasureIndex >= allMeasureBeatLines.Count)
+                        {
+                            break;
+                        }
+
+                        curMeasureline = allMeasureBeatLines[curMeasureIndex];
+                    }
+
+                    // Prevent showing countdowns < 4 measures at low BPMs
+                    int countdownTotalMeasures = beatlinesThisCountdown.Count;
+                    if (countdownTotalMeasures >= WaitCountdown.MIN_MEASURES)
+                    {
+                        // Create a WaitCountdown instance to reference at runtime
+                        var newCountdown = new WaitCountdown(beatlinesThisCountdown);
+
+                        waitCountdowns.Add(newCountdown);
+                        YargLogger.LogFormatDebug("Created a WaitCountdown at time {0} of {1} measures and {2} seconds in length",
+                                                 newCountdown.Time, countdownTotalMeasures, beatlinesThisCountdown[^1].Time - noteOneTimeEnd);
+                    }
+                    else
+                    {
+                        YargLogger.LogFormatDebug("Did not create a WaitCountdown at time {0} of {1} seconds in length because it was only {2} measures long",
+                                                 noteOneTimeEnd, beatlinesThisCountdown[^1].Time - noteOneTimeEnd, countdownTotalMeasures);
+                    }
+                }
+            }
+
+            return waitCountdowns;
         }
     }
 }

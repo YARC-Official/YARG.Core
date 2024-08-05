@@ -4,17 +4,17 @@ using YARG.Core.IO.Disposables;
 
 namespace YARG.Core.IO
 {
-    public class SngFileListing
+    public readonly struct SngFileListing
     {
         public readonly string Name;
         public readonly long Position;
         public readonly long Length;
 
-        public SngFileListing(string name, BinaryReader reader)
+        public SngFileListing(string name, long position, long length)
         {
             Name = name;
-            Length = reader.ReadInt64();
-            Position = reader.ReadInt64();
+            Position = position;
+            Length = length;
         }
 
         public AllocatedArray<byte> LoadAllBytes(SngFile sngFile)

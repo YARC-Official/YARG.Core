@@ -43,7 +43,7 @@ namespace YARG.Core.Replays
                 header.Magic = magic;
                 header.ReplayVersion = (short) reader.ReadInt32();
                 header.EngineVersion = (short) reader.ReadInt32();
-                header.ReplayChecksum = HashWrapper.Deserialize(reader);
+                header.ReplayChecksum = HashWrapper.Deserialize(reader.BaseStream);
 
                 return header;
             }
@@ -75,7 +75,7 @@ namespace YARG.Core.Replays
                 metadata.BandStars = (StarAmount) reader.ReadByte();
                 metadata.ReplayLength = reader.ReadDouble();
                 metadata.Date = DateTime.FromBinary(reader.ReadInt64());
-                metadata.SongChecksum = HashWrapper.Deserialize(reader);
+                metadata.SongChecksum = HashWrapper.Deserialize(reader.BaseStream);
 
                 return metadata;
             }

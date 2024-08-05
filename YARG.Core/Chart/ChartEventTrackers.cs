@@ -6,6 +6,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 #nullable enable
 
@@ -18,9 +19,9 @@ namespace YARG.Core.Chart
         where TEvent : ChartEvent
     {
         private List<TEvent> _events;
-        private int _eventIndex = 0;
+        private int _eventIndex = -1;
 
-        public TEvent Current => _events[_eventIndex];
+        public TEvent? Current => _eventIndex >= 0 ? _events[_eventIndex] : null;
         public int CurrentIndex => _eventIndex;
 
         public ChartEventTickTracker(List<TEvent> events)
@@ -37,7 +38,7 @@ namespace YARG.Core.Chart
         public bool Update(uint tick)
         {
             int previousIndex = _eventIndex;
-            while (_eventIndex + 1 < _events.Count && _events[_eventIndex + 1].Tick < tick)
+            while (_eventIndex + 1 < _events.Count && _events[_eventIndex + 1].Tick <= tick)
                 _eventIndex++;
             return previousIndex != _eventIndex;
         }
@@ -48,15 +49,25 @@ namespace YARG.Core.Chart
         /// <returns>
         /// True if a new event has been reached, false otherwise.
         /// </returns>
-        public bool UpdateOnce(uint tick)
+        public bool UpdateOnce(uint tick, [NotNullWhen(true)] out TEvent? current)
         {
-            if (_eventIndex + 1 < _events.Count && _events[_eventIndex + 1].Tick < tick)
+            if (_eventIndex + 1 < _events.Count && _events[_eventIndex + 1].Tick <= tick)
             {
                 _eventIndex++;
+                current = _events[_eventIndex];
                 return true;
             }
 
+            current = Current;
             return false;
+        }
+
+        /// <summary>
+        /// Resets the state of the event tracker.
+        /// </summary>
+        public void Reset()
+        {
+            _eventIndex = -1;
         }
 
         /// <summary>
@@ -65,8 +76,6 @@ namespace YARG.Core.Chart
         public void ResetToTick(uint tick)
         {
             _eventIndex = _events.GetIndexOfPrevious(tick);
-            if (_eventIndex < 0)
-                _eventIndex = 0;
         }
     }
 
@@ -77,9 +86,9 @@ namespace YARG.Core.Chart
         where TEvent : ChartEvent
     {
         private List<TEvent> _events;
-        private int _eventIndex = 0;
+        private int _eventIndex = -1;
 
-        public TEvent Current => _events[_eventIndex];
+        public TEvent? Current => _eventIndex >= 0 ? _events[_eventIndex] : null;
         public int CurrentIndex => _eventIndex;
 
         public ChartEventTimeTracker(List<TEvent> events)
@@ -96,7 +105,7 @@ namespace YARG.Core.Chart
         public bool Update(double time)
         {
             int previousIndex = _eventIndex;
-            while (_eventIndex + 1 < _events.Count && _events[_eventIndex + 1].Time < time)
+            while (_eventIndex + 1 < _events.Count && _events[_eventIndex + 1].Time <= time)
                 _eventIndex++;
             return previousIndex != _eventIndex;
         }
@@ -107,15 +116,25 @@ namespace YARG.Core.Chart
         /// <returns>
         /// True if a new event has been reached, false otherwise.
         /// </returns>
-        public bool UpdateOnce(double time)
+        public bool UpdateOnce(double time, [NotNullWhen(true)] out TEvent? current)
         {
-            if (_eventIndex + 1 < _events.Count && _events[_eventIndex + 1].Time < time)
+            if (_eventIndex + 1 < _events.Count && _events[_eventIndex + 1].Time <= time)
             {
                 _eventIndex++;
+                current = _events[_eventIndex];
                 return true;
             }
 
+            current = Current;
             return false;
+        }
+
+        /// <summary>
+        /// Resets the state of the event tracker.
+        /// </summary>
+        public void Reset()
+        {
+            _eventIndex = -1;
         }
 
         /// <summary>
@@ -124,8 +143,6 @@ namespace YARG.Core.Chart
         public void ResetToTime(double time)
         {
             _eventIndex = _events.GetIndexOfPrevious(time);
-            if (_eventIndex < 0)
-                _eventIndex = 0;
         }
     }
 

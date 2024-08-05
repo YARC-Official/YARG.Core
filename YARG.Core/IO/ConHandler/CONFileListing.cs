@@ -7,14 +7,16 @@ using YARG.Core.IO.Disposables;
 
 namespace YARG.Core.IO
 {
+    [Flags]
+    public enum CONFileListingFlag : byte
+    {
+        Contiguous = 0x40,
+        Directory = 0x80,
+    }
+
     public sealed class CONFileListing
     {
-        [Flags]
-        public enum CONFileListingFlag : byte
-        {
-            Contiguous = 0x40,
-            Directory = 0x80,
-        }
+        
 
         private readonly int _shift;
 
@@ -27,7 +29,7 @@ namespace YARG.Core.IO
         public readonly int Size;
         public readonly DateTime LastWrite;
 
-        public CONFileListing(AbridgedFileInfo conFile, string name, short pathIndex, int shift, ReadOnlySpan<byte> data)
+        public CONFileListing(AbridgedFileInfo conFile, string name, short pathIndex, CONFileListingFlag flags, int shift, ReadOnlySpan<byte> data)
         {
             _shift = shift;
 
@@ -35,7 +37,7 @@ namespace YARG.Core.IO
             Filename = name;
             PathIndex = pathIndex;
 
-            Flags = (CONFileListingFlag) data[0x28];
+            Flags = flags;
             NumBlocks = data[0x2B] << 16 | data[0x2A] << 8 | data[0x29];
             FirstBlock = data[0x31] << 16 | data[0x30] << 8 | data[0x2F];
             Size = data[0x34] << 24 | data[0x35] << 16 | data[0x36] << 8 | data[0x37];
@@ -43,13 +45,11 @@ namespace YARG.Core.IO
         }
 
         public override string ToString() => $"STFS File Listing: {Filename}";
-        public bool IsDirectory() { return (Flags & CONFileListingFlag.Directory) > 0; }
         public bool IsContiguous() { return (Flags & CONFileListingFlag.Contiguous) > 0; }
         public bool IsStillValid(in DateTime listingLastWrite) { return listingLastWrite == LastWrite && ConFile.IsStillValid(); }
 
         public CONFileStream CreateStream()
         {
-            Debug.Assert(!IsDirectory(), "Directory listing cannot be loaded as a file");
             return new CONFileStream(ConFile.FullName, IsContiguous(), Size, FirstBlock, _shift);
         }
 
@@ -67,7 +67,6 @@ namespace YARG.Core.IO
 
         public static int GetMoggVersion(CONFileListing listing, Stream stream)
         {
-            Debug.Assert(!listing.IsDirectory(), "Directory listing cannot be loaded as a file");
             long location = CONFileStream.CalculateBlockLocation(listing.FirstBlock, listing._shift);
             lock (stream)
             {

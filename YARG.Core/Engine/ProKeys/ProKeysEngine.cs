@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using YARG.Core.Chart;
 using YARG.Core.Logging;
 
@@ -7,6 +7,8 @@ namespace YARG.Core.Engine.ProKeys
     public abstract class ProKeysEngine : BaseEngine<ProKeysNote, ProKeysEngineParameters,
         ProKeysStats, ProKeysEngineState>
     {
+        protected const double DEFAULT_PRESS_TIME = -9999;
+
         public delegate void KeyStateChangeEvent(int key, bool isPressed);
         public delegate void OverhitEvent(int key);
 
@@ -66,12 +68,32 @@ namespace YARG.Core.Engine.ProKeys
             }
 
             // Cancel overstrum if past last note and no active sustains
-            if (State.NoteIndex >= Chart.Notes.Count /*&& ActiveSustains.Count == 0*/)
+            if (State.NoteIndex >= Chart.Notes.Count && ActiveSustains.Count == 0)
             {
                 return;
             }
 
+            // Cancel overstrum if WaitCountdown is active
+            if (State.IsWaitCountdownActive)
+            {
+                YargLogger.LogFormatTrace("Overstrum prevented during WaitCountdown at time: {0}, tick: {1}", State.CurrentTime, State.CurrentTick);
+                return;
+            }
+
             YargLogger.LogFormatTrace("Overhit at {0}", State.CurrentTime);
+
+            // Break all active sustains
+            for (int i = 0; i < ActiveSustains.Count; i++)
+            {
+                var sustain = ActiveSustains[i];
+                ActiveSustains.RemoveAt(i);
+                YargLogger.LogFormatTrace("Ended sustain (end time: {0}) at {1}", sustain.GetEndTime(SyncTrack, 0), State.CurrentTime);
+                i--;
+
+                double finalScore = CalculateSustainPoints(ref sustain, State.CurrentTick);
+                EngineStats.CommittedScore += (int) Math.Ceiling(finalScore);
+                OnSustainEnd?.Invoke(sustain.Note, State.CurrentTime, sustain.HasFinishedScoring);
+            }
 
             if (State.NoteIndex < Notes.Count)
             {
@@ -90,6 +112,11 @@ namespace YARG.Core.Engine.ProKeys
             OnOverhit?.Invoke(key);
         }
 
+        protected override bool CanSustainHold(ProKeysNote note)
+        {
+            return (State.KeyMask & note.DisjointMask) != 0;
+        }
+
         protected override void HitNote(ProKeysNote note)
         {
             if (note.WasHit || note.WasMissed)
@@ -101,7 +128,7 @@ namespace YARG.Core.Engine.ProKeys
 
             note.SetHitState(true, false);
 
-            ToggleKey(note.Key, false);
+            State.KeyPressTimes[note.Key] = DEFAULT_PRESS_TIME;
 
             // Detect if the last note(s) were skipped
             // bool skipped = SkipPreviousNotes(note);
@@ -146,6 +173,11 @@ namespace YARG.Core.Engine.ProKeys
 
             AddScore(note);
 
+            if (note.IsSustain)
+            {
+                StartSustain(note);
+            }
+
             OnNoteHit?.Invoke(State.NoteIndex, note);
             base.HitNote(note);
         }
@@ -161,7 +193,7 @@ namespace YARG.Core.Engine.ProKeys
 
             note.SetMissState(true, false);
 
-            ToggleKey(note.Key, false);
+            State.KeyPressTimes[note.Key] = DEFAULT_PRESS_TIME;
 
             if (note.IsStarPower)
             {
@@ -210,6 +242,11 @@ namespace YARG.Core.Engine.ProKeys
         protected void ToggleKey(int key, bool active)
         {
             State.KeyMask = active ? State.KeyMask | (1 << key) : State.KeyMask & ~(1 << key);
+        }
+
+        protected bool IsKeyInTime(ProKeysNote note, double frontEnd)
+        {
+            return State.KeyPressTimes[note.Key] > note.Time + frontEnd;
         }
     }
 }

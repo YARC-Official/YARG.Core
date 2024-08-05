@@ -250,5 +250,7 @@ namespace YARG.Core.Engine.Vocals
         {
             return Notes.Where(note => note.ChildNotes.Count > 0).Sum(_ => EngineParameters.PointsPerPhrase);
         }
+
+        protected override bool CanSustainHold(VocalNote note) => throw new InvalidOperationException();
     }
 }

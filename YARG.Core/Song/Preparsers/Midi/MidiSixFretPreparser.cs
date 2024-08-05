@@ -2,60 +2,65 @@
 
 namespace YARG.Core.Song
 {
-    public class Midi_SixFret_Preparser : MidiInstrument_Common
+    public static class Midi_SixFret_Preparser
     {
+        private const int SIXFRET_MIN = 58;
+        private const int SIXFRET_MAX = 103;
         // Open note included
-        private const int NOTE_MIN = 58;
-        private const int NOTE_MAX = 103;
         private const int NUM_LANES = 7;
-        private static readonly int[] LANEINDICES = new int[NUM_DIFFICULTIES * NOTES_PER_DIFFICULTY] {
+
+        // Six fret indexing is fucked
+        private static readonly int[] INDICES = new int[MidiPreparser_Constants.NUM_DIFFICULTIES * MidiPreparser_Constants.NOTES_PER_DIFFICULTY]
+        {
             0, 4, 5, 6, 1, 2, 3, 7, 8, 9, 10, 11,
             0, 4, 5, 6, 1, 2, 3, 7, 8, 9, 10, 11,
             0, 4, 5, 6, 1, 2, 3, 7, 8, 9, 10, 11,
             0, 4, 5, 6, 1, 2, 3, 7, 8, 9, 10, 11,
         };
 
-        private readonly bool[,] statuses = new bool[NUM_DIFFICULTIES, NUM_LANES];
-
-        private Midi_SixFret_Preparser() { }
-
-        public static DifficultyMask Parse(YARGMidiTrack track)
+        public static unsafe DifficultyMask Parse(YARGMidiTrack track)
         {
-            Midi_SixFret_Preparser preparser = new();
-            preparser.Process(track);
-            return preparser.validations;
-        }
+            var validations = default(DifficultyMask);
+            var difficulties = stackalloc bool[MidiPreparser_Constants.NUM_DIFFICULTIES];
+            var statuses = stackalloc bool[MidiPreparser_Constants.NUM_DIFFICULTIES * NUM_LANES];
 
-        protected override bool IsNote() { return NOTE_MIN <= note.value && note.value <= NOTE_MAX; }
-
-        protected override bool ParseLaneColor_ON(YARGMidiTrack track)
-        {
-            int noteValue = note.value - NOTE_MIN;
-            int diffIndex = DIFFVALUES[noteValue];
-            if (!difficultyTracker[diffIndex])
+            var note = default(MidiNote);
+            while (track.ParseEvent())
             {
-                int laneIndex = LANEINDICES[noteValue];
-                if (laneIndex < NUM_LANES)
-                    statuses[diffIndex, laneIndex] = true;
-            }
-            return false;
-        }
-
-        protected override bool ParseLaneColor_Off(YARGMidiTrack track)
-        {
-            int noteValue = note.value - NOTE_MIN;
-            int diffIndex = DIFFVALUES[noteValue];
-            if (!difficultyTracker[diffIndex])
-            {
-                int laneIndex = LANEINDICES[noteValue];
-                if (laneIndex < NUM_LANES && statuses[diffIndex, laneIndex])
+                if (track.Type is MidiEventType.Note_On or MidiEventType.Note_Off)
                 {
-                    Validate(diffIndex);
-                    difficultyTracker[diffIndex] = true;
-                    return IsFullyScanned();
+                    track.ExtractMidiNote(ref note);
+                    if (note.value < SIXFRET_MIN || note.value > SIXFRET_MAX)
+                    {
+                        continue;
+                    }
+
+                    int noteOffset = note.value - SIXFRET_MIN;
+                    int diffIndex = MidiPreparser_Constants.DIFF_INDICES[noteOffset];
+                    int laneIndex = INDICES[noteOffset];
+                    if (difficulties[diffIndex] || laneIndex >= NUM_LANES)
+                    {
+                        continue;
+                    }
+
+                    // Note Ons with no velocity equates to a note Off by spec
+                    if (track.Type == MidiEventType.Note_On && note.velocity > 0)
+                    {
+                        statuses[diffIndex * NUM_LANES + laneIndex] = true;
+                    }
+                    // Note off here
+                    else if (statuses[diffIndex * NUM_LANES + laneIndex])
+                    {
+                        validations |= (DifficultyMask) (1 << (diffIndex + 1));
+                        difficulties[diffIndex] = true;
+                        if (validations == MidiPreparser_Constants.ALL_DIFFICULTIES)
+                        {
+                            break;
+                        }
+                    }
                 }
             }
-            return false;
+            return validations;
         }
     }
 }

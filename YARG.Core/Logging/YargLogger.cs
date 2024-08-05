@@ -69,30 +69,16 @@ namespace YARG.Core.Logging
         public static void KillLogger()
         {
             _isLoggingEnabled = false;
+            FlushLogQueue();
 
-            lock (LogQueue)
+            // Dispose of all listeners
+            lock (Listeners)
             {
-                while (LogQueue.TryDequeue(out var item))
+                foreach (var listener in Listeners)
                 {
-                    using (item)
-                    {
-                        // Send it to all listeners that are currently registered
-                        lock (Listeners)
-                        {
-                            foreach (var listener in Listeners)
-                            {
-                                _logBuilder.Clear();
-                                listener.FormatLogItem(ref _logBuilder, item);
-                                listener.WriteLogItem(ref _logBuilder, item);
-                            }
-                        }
-                    }
+                    listener.Dispose();
                 }
-            }
-
-            foreach (var listener in Listeners)
-            {
-                listener.Dispose();
+                Listeners.Clear();
             }
         }
 
@@ -102,26 +88,66 @@ namespace YARG.Core.Logging
             // In the event logging is disabled, we still want to process all remaining log items
             while (_isLoggingEnabled || LogQueue.Count > 0)
             {
-                // Lock the queue and process all items
-                lock (LogQueue)
+                FlushLogQueue();
+
+                // Sleep for a short time. Logs will process at most every LOG_INTERVAL milliseconds
+                Thread.Sleep(LOG_INTERVAL);
+            }
+        }
+
+        private static void FlushLogQueue()
+        {
+            lock (LogQueue)
+            {
+                lock (Listeners)
                 {
                     while (LogQueue.TryDequeue(out var item))
                     {
                         using (item)
                         {
-                            // Send it to all listeners that are currently registered
-                            foreach (var listener in Listeners)
-                            {
-                                _logBuilder.Clear();
-                                listener.FormatLogItem(ref _logBuilder, item);
-                                listener.WriteLogItem(ref _logBuilder, item);
-                            }
+                            WriteLogItemToListeners(item);
                         }
                     }
                 }
+            }
+        }
 
-                // Sleep for a short time. Logs will process at most every LOG_INTERVAL milliseconds
-                Thread.Sleep(LOG_INTERVAL);
+        private static void WriteLogItemToListeners(LogItem item)
+        {
+            // Send it to all listeners that are currently registered
+            foreach (var listener in Listeners)
+            {
+                try
+                {
+                    _logBuilder.Clear();
+                    listener.FormatLogItem(ref _logBuilder, item);
+                    listener.WriteLogItem(ref _logBuilder, item);
+                }
+                catch (Exception e)
+                {
+                    // In the event formatting the log fails, print an error message with the exception
+                    try
+                    {
+                        using var exceptionLog = FormatLogItem.MakeItem(
+                            "Failed to format the log on this line! Refer to the exception below.\n{0}", e);
+                        exceptionLog.Level = LogLevel.Error;
+
+                        // Make sure to pass down the source information so the position
+                        // of the original log is known.
+                        exceptionLog.Source = item.Source;
+                        exceptionLog.Method = item.Method;
+                        exceptionLog.Line = item.Line;
+                        exceptionLog.Time = item.Time;
+
+                        _logBuilder.Clear();
+                        listener.FormatLogItem(ref _logBuilder, exceptionLog);
+                        listener.WriteLogItem(ref _logBuilder, exceptionLog);
+                    }
+                    catch
+                    {
+                        // If that fails too, just skip this log
+                    }
+                }
             }
         }
 

@@ -1,9 +1,9 @@
 ﻿using System;
 using System.IO;
 using YARG.Core.Chart;
+using YARG.Core.Extensions;
 using YARG.Core.IO.Ini;
 using YARG.Core.Song.Cache;
-using YARG.Core.Song.Preparsers;
 
 namespace YARG.Core.Song
 {
@@ -11,6 +11,7 @@ namespace YARG.Core.Song
     {
         Success,
         DirectoryError,
+        DuplicateFilesFound,
         IniEntryCorruption,
         IniNotDownloaded,
         ChartNotDownloaded,
@@ -31,7 +32,7 @@ namespace YARG.Core.Song
         MultipleMidiTrackNames_Update,
         MultipleMidiTrackNames_Upgrade,
 
-        LooseChart_Warning
+        LooseChart_Warning,
     }
 
     /// <summary>
@@ -249,7 +250,7 @@ namespace YARG.Core.Song
                     Instrument.FiveLaneDrums => _parts.FiveLaneDrums,
                     Instrument.ProDrums => _parts.ProDrums,
 
-                    // Instrument.TrueDrums => _parts.TrueDrums,
+                    Instrument.EliteDrums => _parts.EliteDrums,
 
                     Instrument.ProGuitar_17Fret => _parts.ProGuitar_17Fret,
                     Instrument.ProGuitar_22Fret => _parts.ProGuitar_22Fret,
@@ -288,7 +289,7 @@ namespace YARG.Core.Song
                 Instrument.FiveLaneDrums => _parts.FiveLaneDrums.SubTracks > 0,
                 Instrument.ProDrums => _parts.ProDrums.SubTracks > 0,
 
-                // Instrument.TrueDrums => _parts.TrueDrums.SubTracks > 0,
+                Instrument.EliteDrums => _parts.EliteDrums.SubTracks > 0,
 
                 Instrument.ProGuitar_17Fret => _parts.ProGuitar_17Fret.SubTracks > 0,
                 Instrument.ProGuitar_22Fret => _parts.ProGuitar_22Fret.SubTracks > 0,
@@ -335,7 +336,8 @@ namespace YARG.Core.Song
 
             if (!modifiers.TryGet("year", out _metadata.Year))
             {
-                if (modifiers.TryGet("year_chart", out _metadata.Year))
+                // Capitalization = from .chart
+                if (modifiers.TryGet("Year", out _metadata.Year))
                 {
                     if (_metadata.Year.StartsWith(", "))
                     {
@@ -389,7 +391,8 @@ namespace YARG.Core.Song
             {
                 if (!modifiers.TryGet("preview_start_time", out _metadata.PreviewStart))
                 {
-                    if (modifiers.TryGet("previewStart", out double previewStartSeconds))
+                    // Capitlization = from .chart
+                    if (modifiers.TryGet("PreviewStart", out double previewStartSeconds))
                     {
                         _metadata.PreviewStart = (long) (previewStartSeconds * MILLISECOND_FACTOR);
                     }
@@ -401,7 +404,8 @@ namespace YARG.Core.Song
 
                 if (!modifiers.TryGet("preview_end_time", out _metadata.PreviewEnd))
                 {
-                    if (modifiers.TryGet("previewEnd", out double previewEndSeconds))
+                    // Capitlization = from .chart
+                    if (modifiers.TryGet("PreviewEnd", out double previewEndSeconds))
                     {
                         _metadata.PreviewEnd = (long) (previewEndSeconds * MILLISECOND_FACTOR);
                     }
@@ -414,7 +418,8 @@ namespace YARG.Core.Song
 
             if (!modifiers.TryGet("delay", out _metadata.SongOffset) || _metadata.SongOffset == 0)
             {
-                if (modifiers.TryGet("offset", out double songOffsetSeconds))
+                // Capitlization = from .chart
+                if (modifiers.TryGet("Offset", out double songOffsetSeconds))
                 {
                     _metadata.SongOffset = (long) (songOffsetSeconds * MILLISECOND_FACTOR);
                 }
@@ -458,51 +463,51 @@ namespace YARG.Core.Song
             _metadata.IsMaster = !modifiers.TryGet("tags", out string tag) || tag.ToLower() != "cover";
         }
 
-        protected SongEntry(in BinaryReader reader, in CategoryCacheStrings strings)
+        protected SongEntry(UnmanagedMemoryStream stream, in CategoryCacheStrings strings)
         {
-            _metadata.Name = strings.titles[reader.ReadInt32()];
-            _metadata.Artist = strings.artists[reader.ReadInt32()];
-            _metadata.Album = strings.albums[reader.ReadInt32()];
-            _metadata.Genre = strings.genres[reader.ReadInt32()];
+            _metadata.Name = strings.titles[stream.Read<int>(Endianness.Little)];
+            _metadata.Artist = strings.artists[stream.Read<int>(Endianness.Little)];
+            _metadata.Album = strings.albums[stream.Read<int>(Endianness.Little)];
+            _metadata.Genre = strings.genres[stream.Read<int>(Endianness.Little)];
 
-            _metadata.Year = strings.years[reader.ReadInt32()];
-            _metadata.Charter = strings.charters[reader.ReadInt32()];
-            _metadata.Playlist = strings.playlists[reader.ReadInt32()];
-            _metadata.Source = strings.sources[reader.ReadInt32()];
+            _metadata.Year = strings.years[stream.Read<int>(Endianness.Little)];
+            _metadata.Charter = strings.charters[stream.Read<int>(Endianness.Little)];
+            _metadata.Playlist = strings.playlists[stream.Read<int>(Endianness.Little)];
+            _metadata.Source = strings.sources[stream.Read<int>(Endianness.Little)];
 
-            _metadata.IsMaster = reader.ReadBoolean();
+            _metadata.IsMaster = stream.ReadBoolean();
 
-            _metadata.AlbumTrack = reader.ReadInt32();
-            _metadata.PlaylistTrack = reader.ReadInt32();
+            _metadata.AlbumTrack = stream.Read<int>(Endianness.Little);
+            _metadata.PlaylistTrack = stream.Read<int>(Endianness.Little);
 
-            _metadata.SongLength = reader.ReadUInt64();
-            _metadata.SongOffset = reader.ReadInt64();
-            _metadata.SongRating = reader.ReadUInt32();
+            _metadata.SongLength = stream.Read<ulong>(Endianness.Little);
+            _metadata.SongOffset = stream.Read<long>(Endianness.Little);
+            _metadata.SongRating = stream.Read<uint>(Endianness.Little);
 
-            _metadata.PreviewStart = reader.ReadInt64();
-            _metadata.PreviewEnd = reader.ReadInt64();
+            _metadata.PreviewStart = stream.Read<long>(Endianness.Little);
+            _metadata.PreviewEnd = stream.Read<long>(Endianness.Little);
 
-            _metadata.VideoStartTime = reader.ReadInt64();
-            _metadata.VideoEndTime = reader.ReadInt64();
+            _metadata.VideoStartTime = stream.Read<long>(Endianness.Little);
+            _metadata.VideoEndTime = stream.Read<long>(Endianness.Little);
 
-            _metadata.LoadingPhrase = reader.ReadString();
+            _metadata.LoadingPhrase = stream.ReadString();
 
-            _parseSettings.HopoThreshold = reader.ReadInt64();
-            _parseSettings.HopoFreq_FoF = reader.ReadInt32();
-            _parseSettings.EighthNoteHopo = reader.ReadBoolean();
-            _parseSettings.SustainCutoffThreshold = reader.ReadInt64();
-            _parseSettings.NoteSnapThreshold = reader.ReadInt64();
-            _parseSettings.StarPowerNote = reader.ReadInt32();
-            _parseSettings.DrumsType = (DrumsType) reader.ReadInt32();
+            _parseSettings.HopoThreshold = stream.Read<long>(Endianness.Little);
+            _parseSettings.HopoFreq_FoF = stream.Read<int>(Endianness.Little);
+            _parseSettings.EighthNoteHopo = stream.ReadBoolean();
+            _parseSettings.SustainCutoffThreshold = stream.Read<long>(Endianness.Little);
+            _parseSettings.NoteSnapThreshold = stream.Read<long>(Endianness.Little);
+            _parseSettings.StarPowerNote = stream.Read<int>(Endianness.Little);
+            _parseSettings.DrumsType = (DrumsType) stream.Read<int>(Endianness.Little);
 
             unsafe
             {
                 fixed (AvailableParts* ptr = &_parts)
                 {
-                    reader.Read(new Span<byte>(ptr, sizeof(AvailableParts)));
+                    stream.Read(new Span<byte>(ptr, sizeof(AvailableParts)));
                 }
             }
-            _hash = HashWrapper.Deserialize(reader);
+            _hash = HashWrapper.Deserialize(stream);
 
             _intYear = ParseYear(in _metadata.Year, out _parsedYear)
                ? int.Parse(_parsedYear)

@@ -28,11 +28,11 @@ namespace YARG.Core.Song.Cache
         public readonly SortedDictionary<SortString, List<SongEntry>> Sources      = new();
 
         [NonSerialized]
-        public readonly SortedDictionary<string,   List<SongEntry>> ArtistAlbums = new(StringComparer.InvariantCultureIgnoreCase);
+        public readonly SortedDictionary<SortString, List<SongEntry>> ArtistAlbums = new();
         [NonSerialized]
-        public readonly SortedDictionary<string,   List<SongEntry>> SongLengths  = new();
+        public readonly SortedDictionary<string,     List<SongEntry>> SongLengths  = new();
         [NonSerialized]
-        public readonly SortedDictionary<DateTime, List<SongEntry>> DatesAdded   = new(DateFlippedComparer.COMPARER);
+        public readonly SortedDictionary<DateTime,   List<SongEntry>> DatesAdded   = new(DateFlippedComparer.COMPARER);
 
         [NonSerialized]
         public readonly SortedDictionary<Instrument, SortedDictionary<int, List<SongEntry>>> Instruments = new();

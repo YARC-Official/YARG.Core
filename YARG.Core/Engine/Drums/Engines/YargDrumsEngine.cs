@@ -85,8 +85,9 @@ namespace YARG.Core.Engine.Drums.Engines
                         HitNote(note);
                         OnPadHit?.Invoke(State.Action!.Value, true, State.HitVelocity.GetValueOrDefault(0));
 
-                        if (awardVelocityBonus){
-                            int velocityBonus = (int)(POINTS_PER_NOTE * 0.5 * EngineStats.ScoreMultiplier);
+                        if (awardVelocityBonus)
+                        {
+                            const int velocityBonus = POINTS_PER_NOTE / 2;
                             AddScore(velocityBonus);
                             YargLogger.LogFormatTrace("Velocity bonus of {0} points was awarded to a note at tick {1}.", velocityBonus, note.Tick);
                         }
@@ -140,6 +141,7 @@ namespace YARG.Core.Engine.Drums.Engines
             // Each note in the "chord" is hit separately on drums
             foreach (var chordNote in note.AllNotes)
             {
+                State.Action = ConvertPadToAction(EngineParameters.Mode, chordNote.Pad);
                 State.PadHit = chordNote.Pad;
                 CheckForNoteHit();
             }

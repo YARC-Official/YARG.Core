@@ -9,6 +9,7 @@ using YARG.Core.Venue;
 using System.Linq;
 using YARG.Core.Logging;
 using YARG.Core.IO.Disposables;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.Song
 {
@@ -157,12 +158,8 @@ namespace YARG.Core.Song
 
             if ((options & BackgroundType.Image) > 0)
             {
-                if (string.IsNullOrEmpty(_background) || !subFiles.TryGetValue(_background, out var file))
-                {
-                    file = GetRandomBackgroundImage(subFiles);
-                }
-
-                if (file != null)
+                if ((!string.IsNullOrEmpty(_background) && subFiles.TryGetValue(_background, out var file))
+                || TryGetRandomBackgroundImage(subFiles, out file))
                 {
                     var image = YARGImage.Load(file);
                     if (image != null)
@@ -206,25 +203,25 @@ namespace YARG.Core.Song
             return files;
         }
 
-        private UnpackedIniEntry(string directory, ChartType chartType, AbridgedFileInfo_Length chartFile, AbridgedFileInfo? iniFile, in AvailableParts parts, in HashWrapper hash, IniSection modifiers, string defaultPlaylist)
+        private UnpackedIniEntry(string directory, in IniChartNode<AbridgedFileInfo_Length> chart, AbridgedFileInfo? iniFile, in AvailableParts parts, in HashWrapper hash, IniSection modifiers, string defaultPlaylist)
             : base(in parts, in hash, modifiers, defaultPlaylist)
         {
             Directory = directory;
-            Type = chartType;
-            _chartFile = chartFile;
+            Type = chart.Type;
+            _chartFile = chart.File;
             _iniFile = iniFile;
         }
 
-        private UnpackedIniEntry(string directory, ChartType chartType, AbridgedFileInfo_Length chartFile, AbridgedFileInfo? iniFile, BinaryReader reader, CategoryCacheStrings strings)
-            : base(reader, strings)
+        private UnpackedIniEntry(string directory, in IniChartNode<AbridgedFileInfo_Length> chart, AbridgedFileInfo? iniFile, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
+            : base(stream, strings)
         {
             Directory = directory;
-            Type = chartType;
-            _chartFile = chartFile;
+            Type = chart.Type;
+            _chartFile = chart.File;
             _iniFile = iniFile;
         }
 
-        public static (ScanResult, UnpackedIniEntry?) ProcessNewEntry(string chartDirectory, IniChartNode<FileInfo> chart, FileInfo? iniFile, string defaultPlaylist)
+        public static (ScanResult, UnpackedIniEntry?) ProcessNewEntry(string chartDirectory, in IniChartNode<FileInfo> chart, FileInfo? iniFile, string defaultPlaylist)
         {
             IniSection iniModifiers;
             AbridgedFileInfo? iniFileInfo = null;
@@ -256,8 +253,9 @@ namespace YARG.Core.Song
             }
 
             var abridged = new AbridgedFileInfo_Length(chart.File);
+            var node = new IniChartNode<AbridgedFileInfo_Length>(abridged, chart.Type);
             var hash = HashWrapper.Hash(file.ReadOnlySpan);
-            var entry = new UnpackedIniEntry(chartDirectory, chart.Type, abridged, iniFileInfo, in parts, in hash, iniModifiers, defaultPlaylist);
+            var entry = new UnpackedIniEntry(chartDirectory, in node, iniFileInfo, in parts, in hash, iniModifiers, defaultPlaylist);
             if (!iniModifiers.Contains("song_length"))
             {
                 using var mixer = entry.LoadAudio(0, 0);
@@ -269,17 +267,16 @@ namespace YARG.Core.Song
             return (result, entry);
         }
 
-        public static IniSubEntry? TryLoadFromCache(string baseDirectory, BinaryReader reader, CategoryCacheStrings strings)
+        public static UnpackedIniEntry? TryLoadFromCache(string directory, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
         {
-            string directory = Path.Combine(baseDirectory, reader.ReadString());
-            byte chartTypeIndex = reader.ReadByte();
+            byte chartTypeIndex = (byte) stream.ReadByte();
             if (chartTypeIndex >= CHART_FILE_TYPES.Length)
             {
                 return null;
             }
 
             var chart = CHART_FILE_TYPES[chartTypeIndex];
-            var chartInfo = AbridgedFileInfo_Length.TryParseInfo(Path.Combine(directory, chart.File), reader, true);
+            var chartInfo = AbridgedFileInfo_Length.TryParseInfo(Path.Combine(directory, chart.File), stream, true);
             if (chartInfo == null)
             {
                 return null;
@@ -287,9 +284,9 @@ namespace YARG.Core.Song
 
             string iniFile = Path.Combine(directory, "song.ini");
             AbridgedFileInfo? iniInfo = null;
-            if (reader.ReadBoolean())
+            if (stream.ReadBoolean())
             {
-                iniInfo = AbridgedFileInfo.TryParseInfo(iniFile, reader);
+                iniInfo = AbridgedFileInfo.TryParseInfo(iniFile, stream);
                 if (iniInfo == null)
                 {
                     return null;
@@ -299,26 +296,27 @@ namespace YARG.Core.Song
             {
                 return null;
             }
-            return new UnpackedIniEntry(directory, chart.Type, chartInfo.Value, iniInfo, reader, strings);
+            var node = new IniChartNode<AbridgedFileInfo_Length>(chartInfo.Value, chart.Type);
+            return new UnpackedIniEntry(directory, in node, iniInfo, stream, strings);
         }
 
-        public static IniSubEntry? IniFromCache_Quick(string baseDirectory, BinaryReader reader, CategoryCacheStrings strings)
+        public static UnpackedIniEntry? IniFromCache_Quick(string directory, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
         {
-            string directory = Path.Combine(baseDirectory, reader.ReadString());
-            byte chartTypeIndex = reader.ReadByte();
+            byte chartTypeIndex = (byte) stream.ReadByte();
             if (chartTypeIndex >= CHART_FILE_TYPES.Length)
             {
                 return null;
             }
 
             var chart = CHART_FILE_TYPES[chartTypeIndex];
-            var chartInfo = new AbridgedFileInfo_Length(Path.Combine(directory, chart.File), reader);
+            var chartInfo = new AbridgedFileInfo_Length(Path.Combine(directory, chart.File), stream);
             AbridgedFileInfo? iniInfo = null;
-            if (reader.ReadBoolean())
+            if (stream.ReadBoolean())
             {
-                iniInfo = new AbridgedFileInfo(Path.Combine(directory, "song.ini"), reader);
+                iniInfo = new AbridgedFileInfo(Path.Combine(directory, "song.ini"), stream);
             }
-            return new UnpackedIniEntry(directory, chart.Type, chartInfo, iniInfo, reader, strings);
+            var node = new IniChartNode<AbridgedFileInfo_Length>(chartInfo, chart.Type);
+            return new UnpackedIniEntry(directory, in node, iniInfo, stream, strings);
         }
     }
 }

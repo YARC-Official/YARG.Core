@@ -7,7 +7,7 @@ namespace YARG.Core.Song.Cache
 {
     public interface IUpgradeGroup : IModificationGroup
     {
-        public Dictionary<string, IRBProUpgrade> Upgrades { get; }
+        public Dictionary<string, RBProUpgrade> Upgrades { get; }
     }
 
     public sealed class UpgradeGroup : IUpgradeGroup, IDisposable
@@ -16,7 +16,7 @@ namespace YARG.Core.Song.Cache
         private readonly DateTime _dtaLastUpdate;
         private readonly MemoryMappedArray _dtaData;
 
-        public Dictionary<string, IRBProUpgrade> Upgrades { get; } = new();
+        public Dictionary<string, RBProUpgrade> Upgrades { get; } = new();
 
         public UpgradeGroup(string directory, DateTime dtaLastUpdate, MemoryMappedArray dtaData)
         {
@@ -25,7 +25,7 @@ namespace YARG.Core.Song.Cache
             _dtaData = dtaData;
         }
 
-        public byte[] SerializeModifications()
+        public ReadOnlyMemory<byte> SerializeModifications()
         {
             using MemoryStream ms = new();
             using BinaryWriter writer = new(ms);
@@ -38,7 +38,7 @@ namespace YARG.Core.Song.Cache
                 writer.Write(upgrade.Key);
                 upgrade.Value.WriteToCache(writer);
             }
-            return ms.ToArray();
+            return new ReadOnlyMemory<byte>(ms.GetBuffer(), 0, (int)ms.Length);
         }
 
         public void Dispose()

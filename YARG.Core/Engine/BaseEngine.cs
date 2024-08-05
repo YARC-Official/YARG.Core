@@ -55,6 +55,8 @@ namespace YARG.Core.Engine
 
         protected List<SoloSection> Solos = new();
 
+        protected List<WaitCountdown> WaitCountdowns = new();
+
         protected readonly Queue<GameInput> InputQueue = new();
 
         protected readonly List<SyncTrackChange> SyncTrackChanges = new();
@@ -289,8 +291,13 @@ namespace YARG.Core.Engine
                 if (_scheduledUpdates.Count > 0)
                 {
                     GenerateQueuedUpdates(_scheduledUpdates[0].Time);
-                    _scheduledUpdates.Sort((x, y) => x.Time.CompareTo(y.Time));
                 }
+                else
+                {
+                    GenerateQueuedUpdates(time);
+                }
+
+                _scheduledUpdates.Sort((x, y) => x.Time.CompareTo(y.Time));
             }
         }
 
@@ -637,6 +644,8 @@ namespace YARG.Core.Engine
         {
 
         }
+
+        public abstract void AllowStarPower(bool isAllowed);
 
         /// <summary>
         /// Resets the engine's state back to default and then processes the list of inputs up to the given time.

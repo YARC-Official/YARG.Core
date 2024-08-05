@@ -8,6 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 #nullable enable
 
@@ -29,9 +30,9 @@ foreach (var (upper, lower, type) in types)
         where TEvent : ChartEvent
     {
         private List<TEvent> _events;
-        private int _eventIndex = 0;
+        private int _eventIndex = -1;
 
-        public TEvent Current => _events[_eventIndex];
+        public TEvent? Current => _eventIndex >= 0 ? _events[_eventIndex] : null;
         public int CurrentIndex => _eventIndex;
 
         public ChartEvent<#= upper #>Tracker(List<TEvent> events)
@@ -48,7 +49,7 @@ foreach (var (upper, lower, type) in types)
         public bool Update(<#= type #> <#= lower #>)
         {
             int previousIndex = _eventIndex;
-            while (_eventIndex + 1 < _events.Count && _events[_eventIndex + 1].<#= upper #> < <#= lower #>)
+            while (_eventIndex + 1 < _events.Count && _events[_eventIndex + 1].<#= upper #> <= <#= lower #>)
                 _eventIndex++;
             return previousIndex != _eventIndex;
         }
@@ -59,15 +60,25 @@ foreach (var (upper, lower, type) in types)
         /// <returns>
         /// True if a new event has been reached, false otherwise.
         /// </returns>
-        public bool UpdateOnce(<#= type #> <#= lower #>)
+        public bool UpdateOnce(<#= type #> <#= lower #>, [NotNullWhen(true)] out TEvent? current)
         {
-            if (_eventIndex + 1 < _events.Count && _events[_eventIndex + 1].<#= upper #> < <#= lower #>)
+            if (_eventIndex + 1 < _events.Count && _events[_eventIndex + 1].<#= upper #> <= <#= lower #>)
             {
                 _eventIndex++;
+                current = _events[_eventIndex];
                 return true;
             }
 
+            current = Current;
             return false;
+        }
+
+        /// <summary>
+        /// Resets the state of the event tracker.
+        /// </summary>
+        public void Reset()
+        {
+            _eventIndex = -1;
         }
 
         /// <summary>
@@ -76,8 +87,6 @@ foreach (var (upper, lower, type) in types)
         public void ResetTo<#= upper #>(<#= type #> <#= lower #>)
         {
             _eventIndex = _events.GetIndexOfPrevious(<#= lower #>);
-            if (_eventIndex < 0)
-                _eventIndex = 0;
         }
     }
 

@@ -33,11 +33,11 @@ namespace YARG.Core.Song
             }
         }
 
-        public static HashWrapper Deserialize(BinaryReader reader)
+        public static HashWrapper Deserialize(Stream stream)
         {
             var wrapper = new HashWrapper();
             var span = new Span<byte>(wrapper._hash, HASH_SIZE_IN_BYTES);
-            if (reader.Read(span) != HASH_SIZE_IN_BYTES)
+            if (stream.Read(span) != HASH_SIZE_IN_BYTES)
             {
                 throw new EndOfStreamException();
             }

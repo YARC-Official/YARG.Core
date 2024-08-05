@@ -45,5 +45,10 @@ namespace YARG.Core.IO.Disposables
             _file.Dispose();
             GC.SuppressFinalize(this);
         }
+
+        ~MemoryMappedArray()
+        {
+            YargLogger.LogWarning("Dev warning: only use MemoryMappedArray IF YOU MANUALLY DISPOSE! Not doing so defeats the purpose!");
+        }
     }
 }
