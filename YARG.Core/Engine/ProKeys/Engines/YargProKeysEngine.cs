@@ -215,20 +215,41 @@ namespace YARG.Core.Engine.ProKeys.Engines
             // If no note was hit but the user hit a key, then over hit
             if (State.KeyHit != null)
             {
-                var inWindow = IsNoteInWindow(parentNote);
-
-                ProKeysNote? adjacentNote = null;
-                bool isAdjacent = false;
-                foreach (var note in parentNote.AllNotes)
+                static ProKeysNote? CheckForAdjacency(ProKeysNote fullNote, int key)
                 {
-                    if (!ProKeysUtilities.IsAdjacentKey(note.Key, State.KeyHit.Value))
+                    foreach (var note in fullNote.AllNotes)
                     {
-                        continue;
+                        if (ProKeysUtilities.IsAdjacentKey(note.Key, key))
+                        {
+                            return note;
+                        }
                     }
 
-                    isAdjacent = true;
-                    adjacentNote = note;
-                    break;
+                    return null;
+                }
+
+                ProKeysNote? adjacentNote;
+                bool isAdjacent;
+                bool inWindow;
+
+                // Try to fat finger previous note first
+
+                // Previous note can only be fat fingered if the current distance from the note
+                // is within the fat finger threshold (default 100ms)
+                if (parentNote.PreviousNote is not null
+                    && State.CurrentTime - parentNote.PreviousNote.Time < State.FatFingerTimer.SpeedAdjustedThreshold)
+                {
+                    adjacentNote = CheckForAdjacency(parentNote.PreviousNote, State.KeyHit.Value);
+                    isAdjacent = adjacentNote != null;
+                    inWindow = IsNoteInWindow(parentNote.PreviousNote, out _);
+
+                }
+                // Try to fat finger current note (upcoming note)
+                else
+                {
+                    adjacentNote = CheckForAdjacency(parentNote, State.KeyHit.Value);
+                    isAdjacent = adjacentNote != null;
+                    inWindow = IsNoteInWindow(parentNote, out _);
                 }
 
                 var isFatFingerActive = State.FatFingerTimer.IsActive;
@@ -250,7 +271,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
 
                     State.FatFingerNote = adjacentNote;
 
-                    YargLogger.LogFormatDebug("Hit adjacent key {0} Starting fat finger timer at {1}. End time: {2}. Key is {3}", State.FatFingerKey, State.CurrentTime,
+                    YargLogger.LogFormatDebug("Hit adjacent key {0} to note {1}. Starting fat finger timer at {2}. End time: {3}. Key is {4}", State.FatFingerKey, adjacentNote!.Key, State.CurrentTime,
                         State.FatFingerTimer.EndTime, State.FatFingerKey);
                 }
 
