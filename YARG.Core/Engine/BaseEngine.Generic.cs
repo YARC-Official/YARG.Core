@@ -7,11 +7,10 @@ using YARG.Core.Utility;
 
 namespace YARG.Core.Engine
 {
-    public abstract class BaseEngine<TNoteType, TEngineParams, TEngineStats, TEngineState> : BaseEngine
+    public abstract class BaseEngine<TNoteType, TEngineParams, TEngineStats> : BaseEngine
         where TNoteType : Note<TNoteType>
         where TEngineParams : BaseEngineParameters
         where TEngineStats : BaseStats, new()
-        where TEngineState : BaseEngineState, new()
     {
         // Max number of measures that SP will last when draining
         // SP draining is done based on measures
@@ -63,9 +62,6 @@ namespace YARG.Core.Engine
         protected readonly List<TNoteType> Notes;
         protected readonly TEngineParams   EngineParameters;
 
-        public TEngineState State;
-
-        public override BaseEngineState      BaseState      => State;
         public override BaseEngineParameters BaseParameters => EngineParameters;
         public override BaseStats            BaseStats      => EngineStats;
 
@@ -80,8 +76,7 @@ namespace YARG.Core.Engine
             EngineParameters = engineParameters;
 
             EngineStats = new TEngineStats();
-            State = new TEngineState();
-            State.Reset();
+            Reset();
 
             EngineStats.ScoreMultiplier = 1;
             if (TreatChordAsSeparate)
@@ -120,9 +115,9 @@ namespace YARG.Core.Engine
         protected override void GenerateQueuedUpdates(double nextTime)
         {
             base.GenerateQueuedUpdates(nextTime);
-            var previousTime = State.CurrentTime;
+            var previousTime = CurrentTime;
 
-            for (int i = State.NoteIndex; i < Notes.Count; i++)
+            for (int i = NoteIndex; i < Notes.Count; i++)
             {
                 var note = Notes[i];
 
@@ -168,18 +163,18 @@ namespace YARG.Core.Engine
                 }
             }
 
-            if (State.CurrentWaitCountdownIndex < WaitCountdowns.Count)
+            if (CurrentWaitCountdownIndex < WaitCountdowns.Count)
             {
                 // Queue updates for countdown start/end/change
 
-                if (State.IsWaitCountdownActive)
+                if (IsWaitCountdownActive)
                 {
-                    var currentCountdown = WaitCountdowns[State.CurrentWaitCountdownIndex];
+                    var currentCountdown = WaitCountdowns[CurrentWaitCountdownIndex];
                     double deactivateTime = currentCountdown.DeactivateTime;
 
                     if (IsTimeBetween(deactivateTime, previousTime, nextTime))
                     {
-                        YargLogger.LogFormatTrace("Queuing countdown {0} deactivation at {1}", State.CurrentWaitCountdownIndex, deactivateTime);
+                        YargLogger.LogFormatTrace("Queuing countdown {0} deactivation at {1}", CurrentWaitCountdownIndex, deactivateTime);
                         QueueUpdateTime(deactivateTime, "Deactivate Countdown");
                     }
                 }
@@ -187,17 +182,17 @@ namespace YARG.Core.Engine
                 {
                     int nextCountdownIndex;
 
-                    if (previousTime < WaitCountdowns[State.CurrentWaitCountdownIndex].Time)
+                    if (previousTime < WaitCountdowns[CurrentWaitCountdownIndex].Time)
                     {
                         // No countdowns are currently displayed
                         // CurrentWaitCountdownIndex has already been incremented for the next countdown
-                        nextCountdownIndex = State.CurrentWaitCountdownIndex;
+                        nextCountdownIndex = CurrentWaitCountdownIndex;
                     }
                     else
                     {
                         // A countdown is currently onscreen, but is past its deactivation time and is fading out
                         // CurrentWaitCountdownIndex will not be incremented until the progress bar no longer needs updating
-                        nextCountdownIndex = State.CurrentWaitCountdownIndex + 1;
+                        nextCountdownIndex = CurrentWaitCountdownIndex + 1;
                     }
 
                     if (nextCountdownIndex < WaitCountdowns.Count)
@@ -213,66 +208,66 @@ namespace YARG.Core.Engine
                 }
             }
 
-            if (State.StarPowerWhammyTimer.IsActive)
+            if (StarPowerWhammyTimer.IsActive)
             {
-                if (IsTimeBetween(State.StarPowerWhammyTimer.EndTime, previousTime, nextTime))
+                if (IsTimeBetween(StarPowerWhammyTimer.EndTime, previousTime, nextTime))
                 {
                     YargLogger.LogFormatTrace("Queuing star power whammy end time at {0}",
-                        State.StarPowerWhammyTimer.EndTime);
-                    QueueUpdateTime(State.StarPowerWhammyTimer.EndTime, "Star Power Whammy End");
+                        StarPowerWhammyTimer.EndTime);
+                    QueueUpdateTime(StarPowerWhammyTimer.EndTime, "Star Power Whammy End");
                 }
             }
         }
 
         protected override void UpdateTimeVariables(double time)
         {
-            if (time < State.CurrentTime)
+            if (time < CurrentTime)
             {
-                YargLogger.FailFormat("Time cannot go backwards! Current time: {0}, new time: {1}", State.CurrentTime,
+                YargLogger.FailFormat("Time cannot go backwards! Current time: {0}, new time: {1}", CurrentTime,
                     time);
             }
 
-            State.LastUpdateTime = State.CurrentTime;
-            State.LastTick = State.CurrentTick;
+            LastUpdateTime = CurrentTime;
+            LastTick = CurrentTick;
 
-            State.CurrentTime = time;
-            State.CurrentTick = GetCurrentTick(time);
+            CurrentTime = time;
+            CurrentTick = GetCurrentTick(time);
 
-            while (NextSyncIndex < SyncTrackChanges.Count && State.CurrentTick >= SyncTrackChanges[NextSyncIndex].Tick)
+            while (NextSyncIndex < SyncTrackChanges.Count && CurrentTick >= SyncTrackChanges[NextSyncIndex].Tick)
             {
                 CurrentSyncIndex++;
             }
 
             // Only check for WaitCountdowns in this chart if there are any remaining
-            if (State.CurrentWaitCountdownIndex < WaitCountdowns.Count)
+            if (CurrentWaitCountdownIndex < WaitCountdowns.Count)
             {
-                var currentCountdown = WaitCountdowns[State.CurrentWaitCountdownIndex];
+                var currentCountdown = WaitCountdowns[CurrentWaitCountdownIndex];
 
                 if (time >= currentCountdown.Time)
                 {
-                    if (!State.IsWaitCountdownActive && time < currentCountdown.DeactivateTime)
+                    if (!IsWaitCountdownActive && time < currentCountdown.DeactivateTime)
                     {
                         // Entered new countdown window
-                        State.IsWaitCountdownActive = true;
-                        YargLogger.LogFormatTrace("Countdown {0} activated at time {1}. Expected time: {2}", State.CurrentWaitCountdownIndex, time, currentCountdown.Time);
+                        IsWaitCountdownActive = true;
+                        YargLogger.LogFormatTrace("Countdown {0} activated at time {1}. Expected time: {2}", CurrentWaitCountdownIndex, time, currentCountdown.Time);
                     }
 
                     if (time <= currentCountdown.DeactivateTime + WaitCountdown.FADE_ANIM_LENGTH)
                     {
                         // This countdown is currently displayed onscreen
-                        int newMeasuresLeft = currentCountdown.CalculateMeasuresLeft(State.CurrentTick);
+                        int newMeasuresLeft = currentCountdown.CalculateMeasuresLeft(CurrentTick);
 
-                        if (State.IsWaitCountdownActive && !currentCountdown.IsActive)
+                        if (IsWaitCountdownActive && !currentCountdown.IsActive)
                         {
-                            State.IsWaitCountdownActive = false;
-                            YargLogger.LogFormatTrace("Countdown {0} deactivated at time {1}. Expected time: {2}", State.CurrentWaitCountdownIndex, time, currentCountdown.DeactivateTime);
+                            IsWaitCountdownActive = false;
+                            YargLogger.LogFormatTrace("Countdown {0} deactivated at time {1}. Expected time: {2}", CurrentWaitCountdownIndex, time, currentCountdown.DeactivateTime);
                         }
 
                         UpdateCountdown(newMeasuresLeft, currentCountdown.TimeLength, currentCountdown.TimeEnd);
                     }
                     else
                     {
-                        State.CurrentWaitCountdownIndex++;
+                        CurrentWaitCountdownIndex++;
                     }
                 }
             }
@@ -306,9 +301,10 @@ namespace YARG.Core.Engine
 
         public override void Reset(bool keepCurrentButtons = false)
         {
+            base.Reset();
+
             InputQueue.Clear();
 
-            State.Reset();
             EngineStats.Reset();
 
             EventLogger.Clear();
@@ -337,7 +333,7 @@ namespace YARG.Core.Engine
         protected abstract void CheckForNoteHit();
 
         /// <summary>
-        /// Checks if the given note can be hit with the current input state.
+        /// Checks if the given note can be hit with the current input
         /// </summary>
         /// <param name="note">The Note to attempt to hit.</param>
         /// <returns>True if note can be hit. False otherwise.</returns>
@@ -368,14 +364,14 @@ namespace YARG.Core.Engine
             while (prevNote is not null && !prevNote.WasFullyHitOrMissed())
             {
                 skipped = true;
-                YargLogger.LogFormatTrace("Missed note (Index: {0}) ({1}) due to note skip at {2}", State.NoteIndex, prevNote.IsParent ? "Parent" : "Child", State.CurrentTime);
+                YargLogger.LogFormatTrace("Missed note (Index: {0}) ({1}) due to note skip at {2}", NoteIndex, prevNote.IsParent ? "Parent" : "Child", CurrentTime);
                 MissNote(prevNote);
 
                 if (TreatChordAsSeparate)
                 {
                     foreach (var child in prevNote.ChildNotes)
                     {
-                        YargLogger.LogFormatTrace("Missed note (Index: {0}) ({1}) due to note skip at {2}", State.NoteIndex, child.IsParent ? "Parent" : "Child", State.CurrentTime);
+                        YargLogger.LogFormatTrace("Missed note (Index: {0}) ({1}) due to note skip at {2}", NoteIndex, child.IsParent ? "Parent" : "Child", CurrentTime);
                         MissNote(child);
                     }
                 }
@@ -420,16 +416,16 @@ namespace YARG.Core.Engine
                 // Sustain is too short for a burst
                 if (SustainBurstThreshold > note.TickLength)
                 {
-                    isBurst = State.CurrentTick >= note.Tick;
+                    isBurst = CurrentTick >= note.Tick;
                 }
                 else
                 {
-                    isBurst = State.CurrentTick >= note.TickEnd - SustainBurstThreshold;
+                    isBurst = CurrentTick >= note.TickEnd - SustainBurstThreshold;
                 }
 
-                bool isEndOfSustain = State.CurrentTick >= note.TickEnd;
+                bool isEndOfSustain = CurrentTick >= note.TickEnd;
 
-                uint sustainTick = isBurst || isEndOfSustain ? note.TickEnd : State.CurrentTick;
+                uint sustainTick = isBurst || isEndOfSustain ? note.TickEnd : CurrentTick;
 
                 bool dropped = !CanSustainHold(note);
 
@@ -446,7 +442,7 @@ namespace YARG.Core.Engine
                     if (dropped || isBurst || isEndOfSustain)
                     {
                         YargLogger.LogFormatTrace("Finished scoring sustain ({0}) at {1} (dropped: {2}, burst: {3})",
-                            sustain.Note.Tick, State.CurrentTime, dropped, isBurst);
+                            sustain.Note.Tick, CurrentTime, dropped, isBurst);
 
                         double finalScore = CalculateSustainPoints(ref sustain, sustainTick);
                         var points = (int) Math.Ceiling(finalScore);
@@ -484,22 +480,22 @@ namespace YARG.Core.Engine
 
             UpdateStars();
 
-            if (isStarPowerSustainActive && State.StarPowerWhammyTimer.IsActive)
+            if (isStarPowerSustainActive && StarPowerWhammyTimer.IsActive)
             {
-                var whammyTicks = State.CurrentTick - LastWhammyTick;
+                var whammyTicks = CurrentTick - LastWhammyTick;
 
                 GainStarPower(whammyTicks);
                 EngineStats.WhammyTicks += whammyTicks;
 
-                LastWhammyTick = State.CurrentTick;
+                LastWhammyTick = CurrentTick;
             }
 
             // Whammy is disabled after sustains are updated.
             // This is because all the ticks that have accumulated will have been accounted for when it is disabled.
             // Whereas disabling it before could mean there are some ticks which should have been whammied but weren't.
-            if (State.StarPowerWhammyTimer.IsActive && State.StarPowerWhammyTimer.IsExpired(State.CurrentTime))
+            if (StarPowerWhammyTimer.IsActive && StarPowerWhammyTimer.IsExpired(CurrentTime))
             {
-                State.StarPowerWhammyTimer.Disable();
+                StarPowerWhammyTimer.Disable();
             }
         }
 
@@ -507,14 +503,14 @@ namespace YARG.Core.Engine
         {
             if (ActiveSustains.Count == 0)
             {
-                LastWhammyTick = State.CurrentTick;
+                LastWhammyTick = CurrentTick;
             }
 
             var sustain = new ActiveSustain<TNoteType>(note);
 
             ActiveSustains.Add(sustain);
 
-            YargLogger.LogFormatTrace("Started sustain at {0} (tick len: {1}, time len: {2})", State.CurrentTime, note.TickLength, note.TimeLength);
+            YargLogger.LogFormatTrace("Started sustain at {0} (tick len: {1}, time len: {2})", CurrentTime, note.TickLength, note.TimeLength);
 
             OnSustainStart?.Invoke(note);
         }
@@ -522,31 +518,31 @@ namespace YARG.Core.Engine
         protected virtual void EndSustain(int sustainIndex, bool dropped, bool isEndOfSustain)
         {
             var sustain = ActiveSustains[sustainIndex];
-            YargLogger.LogFormatTrace("Ended sustain ({0}) at {1} (dropped: {2}, end: {3})", sustain.Note.Tick, State.CurrentTime, dropped, isEndOfSustain);
+            YargLogger.LogFormatTrace("Ended sustain ({0}) at {1} (dropped: {2}, end: {3})", sustain.Note.Tick, CurrentTime, dropped, isEndOfSustain);
             ActiveSustains.RemoveAt(sustainIndex);
 
-            OnSustainEnd?.Invoke(sustain.Note, State.CurrentTime, sustain.HasFinishedScoring);
+            OnSustainEnd?.Invoke(sustain.Note, CurrentTime, sustain.HasFinishedScoring);
         }
 
         protected void UpdateStars()
         {
             // Update which star we're on
-            while (State.CurrentStarIndex < StarScoreThresholds.Length &&
-                EngineStats.StarScore > StarScoreThresholds[State.CurrentStarIndex])
+            while (CurrentStarIndex < StarScoreThresholds.Length &&
+                EngineStats.StarScore > StarScoreThresholds[CurrentStarIndex])
             {
-                State.CurrentStarIndex++;
+                CurrentStarIndex++;
             }
 
             // Calculate current star progress
             float progress = 0f;
-            if (State.CurrentStarIndex < StarScoreThresholds.Length)
+            if (CurrentStarIndex < StarScoreThresholds.Length)
             {
-                int previousPoints = State.CurrentStarIndex > 0 ? StarScoreThresholds[State.CurrentStarIndex - 1] : 0;
-                int nextPoints = StarScoreThresholds[State.CurrentStarIndex];
+                int previousPoints = CurrentStarIndex > 0 ? StarScoreThresholds[CurrentStarIndex - 1] : 0;
+                int nextPoints = StarScoreThresholds[CurrentStarIndex];
                 progress = YargMath.InverseLerpF(previousPoints, nextPoints, EngineStats.StarScore);
             }
 
-            EngineStats.Stars = State.CurrentStarIndex + progress;
+            EngineStats.Stars = CurrentStarIndex + progress;
         }
 
         protected virtual void StripStarPower(TNoteType? note)
@@ -608,7 +604,7 @@ namespace YARG.Core.Engine
             OnStarPowerPhraseMissed?.Invoke(note);
         }
 
-        protected virtual uint CalculateStarPowerGain(uint tick) => tick - State.LastTick;
+        protected virtual uint CalculateStarPowerGain(uint tick) => tick - LastTick;
 
         protected void AwardStarPower(TNoteType note)
         {
@@ -619,23 +615,23 @@ namespace YARG.Core.Engine
 
         protected void StartSolo()
         {
-            if (State.CurrentSoloIndex >= Solos.Count)
+            if (CurrentSoloIndex >= Solos.Count)
             {
                 return;
             }
 
-            State.IsSoloActive = true;
-            OnSoloStart?.Invoke(Solos[State.CurrentSoloIndex]);
+            IsSoloActive = true;
+            OnSoloStart?.Invoke(Solos[CurrentSoloIndex]);
         }
 
         protected void EndSolo()
         {
-            if (!State.IsSoloActive)
+            if (!IsSoloActive)
             {
                 return;
             }
 
-            var currentSolo = Solos[State.CurrentSoloIndex];
+            var currentSolo = Solos[CurrentSoloIndex];
 
             double soloPercentage = currentSolo.NotesHit / (double) currentSolo.NoteCount;
 
@@ -658,10 +654,10 @@ namespace YARG.Core.Engine
 
             EngineStats.SoloBonuses += currentSolo.SoloBonus;
 
-            State.IsSoloActive = false;
+            IsSoloActive = false;
 
-            OnSoloEnd?.Invoke(Solos[State.CurrentSoloIndex]);
-            State.CurrentSoloIndex++;
+            OnSoloEnd?.Invoke(Solos[CurrentSoloIndex]);
+            CurrentSoloIndex++;
         }
 
         protected override void UpdateProgressValues(uint tick)
@@ -715,13 +711,13 @@ namespace YARG.Core.Engine
         {
             var maxWindow = EngineParameters.HitWindow.MaxWindow;
 
-            if (State.NoteIndex >= Notes.Count)
+            if (NoteIndex >= Notes.Count)
             {
                 return (EngineParameters.HitWindow.GetFrontEnd(maxWindow),
                     EngineParameters.HitWindow.GetBackEnd(maxWindow));
             }
 
-            var noteDistance = GetAverageNoteDistance(Notes[State.NoteIndex]);
+            var noteDistance = GetAverageNoteDistance(Notes[NoteIndex]);
             var hitWindow = EngineParameters.HitWindow.CalculateHitWindow(noteDistance);
 
             return (EngineParameters.HitWindow.GetFrontEnd(hitWindow),
@@ -744,7 +740,7 @@ namespace YARG.Core.Engine
             IsNoteInWindow(note, out _, time);
 
         protected bool IsNoteInWindow(TNoteType note, out bool missed) =>
-            IsNoteInWindow(note, out missed, State.CurrentTime);
+            IsNoteInWindow(note, out missed, CurrentTime);
 
         protected bool IsNoteInWindow(TNoteType note, out bool missed, double time)
         {
@@ -784,7 +780,7 @@ namespace YARG.Core.Engine
 
         private void AdvanceToNextNote(TNoteType note)
         {
-            State.NoteIndex++;
+            NoteIndex++;
             ReRunHitLogic = true;
         }
 

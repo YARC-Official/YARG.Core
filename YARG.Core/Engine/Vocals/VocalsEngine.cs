@@ -6,7 +6,7 @@ using YARG.Core.Logging;
 namespace YARG.Core.Engine.Vocals
 {
     public abstract class VocalsEngine :
-        BaseEngine<VocalNote, VocalsEngineParameters, VocalsStats, VocalsEngineState>
+        BaseEngine<VocalNote, VocalsEngineParameters, VocalsStats>
     {
         protected const int POINTS_PER_PERCUSSION = 100;
 
@@ -21,16 +21,60 @@ namespace YARG.Core.Engine.Vocals
 
         public PhraseHitEvent? OnPhraseHit;
 
+        /// <summary>
+        /// Whether or not the player/bot has hit their mic in the current update.
+        /// </summary>
+        public bool HasHit;
+
+        /// <summary>
+        /// Whether or not the player/bot sang in the current update.
+        /// </summary>
+        public bool HasSang;
+
+        /// <summary>
+        /// The float value for the last pitch sang (as a MIDI note).
+        /// </summary>
+        public float PitchSang;
+
+        /// <summary>
+        /// The amount of ticks in the current phrase.
+        /// </summary>
+        public uint? PhraseTicksTotal;
+
+        /// <summary>
+        /// The amount of ticks hit in the current phrase.
+        /// This is a decimal since you can get fractions of a point for singing slightly off.
+        /// </summary>
+        public double PhraseTicksHit;
+
+        /// <summary>
+        /// The last tick where there was a successful sing input.
+        /// </summary>
+        public uint LastSingTick;
+
         protected VocalsEngine(InstrumentDifficulty<VocalNote> chart, SyncTrack syncTrack,
             VocalsEngineParameters engineParameters, bool isBot)
             : base(chart, syncTrack, engineParameters, false, isBot)
         {
         }
 
+        public override void Reset(bool keepCurrentButtons = false)
+        {
+            HasSang = false;
+            PitchSang = 0f;
+
+            PhraseTicksTotal = null;
+            PhraseTicksHit = 0;
+
+            LastSingTick = 0;
+
+            base.Reset(keepCurrentButtons);
+        }
+
         protected override void GenerateQueuedUpdates(double nextTime)
         {
             base.GenerateQueuedUpdates(nextTime);
-            var previousTime = State.CurrentTime;
+            var previousTime = CurrentTime;
 
             // For bots, queue up updates every approximate vocal input frame to simulate
             // a stream of inputs. Make sure that the previous time has been properly set.
@@ -54,7 +98,7 @@ namespace YARG.Core.Engine.Vocals
             if (note.IsPercussion)
             {
                 AddScore(note);
-                OnNoteHit?.Invoke(State.NoteIndex, note);
+                OnNoteHit?.Invoke(NoteIndex, note);
             }
             else
             {
@@ -69,9 +113,9 @@ namespace YARG.Core.Engine.Vocals
                     StartSolo();
                 }
 
-                if (State.IsSoloActive)
+                if (IsSoloActive)
                 {
-                    Solos[State.CurrentSoloIndex].NotesHit++;
+                    Solos[CurrentSoloIndex].NotesHit++;
                 }
 
                 if (note.IsSoloEnd)
@@ -99,10 +143,10 @@ namespace YARG.Core.Engine.Vocals
                 // No matter what, we still wanna count this as a phrase hit though
                 EngineStats.NotesHit++;
 
-                OnNoteHit?.Invoke(State.NoteIndex, note);
+                OnNoteHit?.Invoke(NoteIndex, note);
 
                 // I want to call base.HitNote here, but I have no idea how vocals handles hit state so I'm scared to
-                State.NoteIndex++;
+                NoteIndex++;
             }
         }
 
@@ -111,7 +155,7 @@ namespace YARG.Core.Engine.Vocals
             if (note.IsPercussion)
             {
                 note.SetMissState(true, false);
-                OnNoteMissed?.Invoke(State.NoteIndex, note);
+                OnNoteMissed?.Invoke(NoteIndex, note);
             }
             else
             {
@@ -143,14 +187,14 @@ namespace YARG.Core.Engine.Vocals
 
             UpdateMultiplier();
 
-            OnNoteMissed?.Invoke(State.NoteIndex, note);
+            OnNoteMissed?.Invoke(NoteIndex, note);
 
             // I want to call base.MissNote here, but I have no idea how vocals handles miss state so I'm scared to
-            State.NoteIndex++;
+            NoteIndex++;
         }
 
         /// <summary>
-        /// Checks if the given vocal note can be hit with the current input state.
+        /// Checks if the given vocal note can be hit with the current input
         /// </summary>
         /// <param name="note">The note to attempt to hit.</param>
         /// <param name="hitPercent">The hit percent of the note (0 to 1).</param>

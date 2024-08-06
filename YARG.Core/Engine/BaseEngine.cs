@@ -44,14 +44,10 @@ namespace YARG.Core.Engine
 
         public EngineEventLogger EventLogger { get; } = new();
 
-        public abstract BaseEngineState      BaseState      { get; }
         public abstract BaseEngineParameters BaseParameters { get; }
         public abstract BaseStats            BaseStats      { get; }
 
         protected bool StarPowerIsAllowed = true;
-
-        protected bool IsInputUpdate { get; private set; }
-        protected bool IsBotUpdate   { get; private set; }
 
         protected readonly SyncTrack SyncTrack;
 
@@ -72,6 +68,27 @@ namespace YARG.Core.Engine
         private readonly List<EngineFrameUpdate> _scheduledUpdates = new();
 
         private readonly List<double> _starPowerTempoTsTicks = new();
+
+        public int NoteIndex;
+
+        public double CurrentTime;
+        public double LastUpdateTime;
+
+        public double LastQueuedInputTime;
+
+        public uint CurrentTick;
+        public uint LastTick;
+
+        public int CurrentSoloIndex;
+        public int CurrentStarIndex;
+        public int CurrentWaitCountdownIndex;
+
+        public bool IsSoloActive;
+
+        public bool IsWaitCountdownActive;
+        public bool IsStarPowerInputActive;
+
+        public EngineTimer StarPowerWhammyTimer;
 
         protected uint StarPowerTickPosition;
         protected uint PreviousStarPowerTickPosition;
@@ -220,10 +237,10 @@ namespace YARG.Core.Engine
                 InputQueue.Dequeue();
 
                 // Skip inputs that are in the past
-                if (input.Time < BaseState.CurrentTime)
+                if (input.Time < CurrentTime)
                 {
                     YargLogger.FailFormat(
-                        "Queued input is in the past! Current time: {0}, input time: {1}", BaseState.CurrentTime,
+                        "Queued input is in the past! Current time: {0}, input time: {1}", CurrentTime,
                         input.Time);
                     continue;
                 }
@@ -270,10 +287,10 @@ namespace YARG.Core.Engine
                 double updateTime = _scheduledUpdates[0].Time;
 
                 // Skip updates that are in the past
-                if (updateTime < BaseState.CurrentTime)
+                if (updateTime < CurrentTime)
                 {
                     YargLogger.FailFormat(
-                        "Scheduled update is in the past! Current time: {0}, update time: {1}", BaseState.CurrentTime,
+                        "Scheduled update is in the past! Current time: {0}, update time: {1}", CurrentTime,
                         updateTime);
 
                     _scheduledUpdates.RemoveAt(0);
@@ -314,7 +331,7 @@ namespace YARG.Core.Engine
         protected virtual void GenerateQueuedUpdates(double nextTime)
         {
             YargLogger.LogFormatTrace("Generating queued updates up to {0}", nextTime);
-            var previousTime = BaseState.CurrentTime;
+            var previousTime = CurrentTime;
 
             if (BaseStats.IsStarPowerActive)
             {
@@ -340,42 +357,42 @@ namespace YARG.Core.Engine
             // issues.
 
             // In the case that the queue is not in order...
-            if (input.Time < BaseState.LastQueuedInputTime)
+            if (input.Time < LastQueuedInputTime)
             {
                 YargLogger.LogFormatWarning(
                     "Engine was forced to move an input time! Previous queued input: {0}, input being queued: {1}",
-                    BaseState.LastQueuedInputTime, input.Time);
+                    LastQueuedInputTime, input.Time);
 
-                input = new GameInput(BaseState.LastQueuedInputTime, input.Action, input.Integer);
+                input = new GameInput(LastQueuedInputTime, input.Action, input.Integer);
             }
 
             // In the case that the input is before the current time...
-            if (input.Time < BaseState.CurrentTime)
+            if (input.Time < CurrentTime)
             {
                 YargLogger.LogFormatWarning(
                     "Engine was forced to move an input time! Current time: {0}, input being queued: {1}",
-                    BaseState.CurrentTime, input.Time);
+                    CurrentTime, input.Time);
 
-                input = new GameInput(BaseState.CurrentTime, input.Action, input.Integer);
+                input = new GameInput(CurrentTime, input.Action, input.Integer);
             }
 
             InputQueue.Enqueue(input);
-            BaseState.LastQueuedInputTime = input.Time;
+            LastQueuedInputTime = input.Time;
         }
 
         public void QueueUpdateTime(double time, string reason)
         {
             // Ignore updates for the current time
-            if (time == BaseState.CurrentTime)
+            if (time == CurrentTime)
             {
                 return;
             }
 
             // Disallow updates in the past
-            if (time < BaseState.CurrentTime)
+            if (time < CurrentTime)
             {
                 YargLogger.FailFormat(
-                    "Cannot queue update in the past! Current time: {0}, time being queued: {1}", BaseState.CurrentTime,
+                    "Cannot queue update in the past! Current time: {0}, time being queued: {1}", CurrentTime,
                     time);
                 return;
             }
@@ -400,7 +417,27 @@ namespace YARG.Core.Engine
             } while (ReRunHitLogic);
         }
 
-        public abstract void Reset(bool keepCurrentButtons = false);
+        public virtual void Reset(bool keepCurrentButtons = false)
+        {
+            NoteIndex = 0;
+
+            CurrentTime = double.MinValue;
+            LastUpdateTime = double.MinValue;
+
+            LastQueuedInputTime = double.MinValue;
+
+            CurrentTick = 0;
+            LastTick = 0;
+
+            CurrentSoloIndex = 0;
+            CurrentStarIndex = 0;
+            CurrentWaitCountdownIndex = 0;
+
+            IsSoloActive = false;
+
+            IsWaitCountdownActive = false;
+            IsStarPowerInputActive = false;
+        }
 
         protected abstract void MutateStateWithInput(GameInput gameInput);
 
@@ -433,7 +470,7 @@ namespace YARG.Core.Engine
                 return;
             }
 
-            StarPowerActivationTime = BaseState.CurrentTime;
+            StarPowerActivationTime = CurrentTime;
             StarPowerTickActivationPosition = StarPowerTickPosition;
 
             StarPowerTickEndPosition = StarPowerTickActivationPosition + BaseStats.StarPowerTickAmount;
@@ -442,7 +479,7 @@ namespace YARG.Core.Engine
             YargLogger.LogFormatTrace("Activated at SP tick {0}, ends at SP tick {1}. Start time: {2}, End time: {3}",
                 StarPowerTickActivationPosition, StarPowerTickEndPosition, StarPowerActivationTime, StarPowerEndTime);
 
-            RebaseProgressValues(BaseState.CurrentTick);
+            RebaseProgressValues(CurrentTick);
             BaseStats.IsStarPowerActive = true;
 
             UpdateMultiplier();
@@ -451,13 +488,13 @@ namespace YARG.Core.Engine
 
         protected void ReleaseStarPower()
         {
-            YargLogger.LogFormatTrace("Star Power ended at {0} (tick: {1})", BaseState.CurrentTime,
+            YargLogger.LogFormatTrace("Star Power ended at {0} (tick: {1})", CurrentTime,
                 StarPowerTickPosition);
             BaseStats.StarPowerBarAmount = 0;
             BaseStats.IsStarPowerActive = false;
-            BaseStats.TimeInStarPower += BaseState.CurrentTime - StarPowerActivationTime;
+            BaseStats.TimeInStarPower += CurrentTime - StarPowerActivationTime;
 
-            RebaseProgressValues(BaseState.CurrentTick);
+            RebaseProgressValues(CurrentTick);
 
             UpdateMultiplier();
             OnStarPowerStatus?.Invoke(false);
@@ -486,7 +523,7 @@ namespace YARG.Core.Engine
                 YargLogger.LogFormatTrace("New end tick and time: {0}, {1}", StarPowerTickEndPosition, StarPowerEndTime);
             }
 
-            RebaseProgressValues(BaseState.CurrentTick);
+            RebaseProgressValues(CurrentTick);
         }
 
         protected void DrainStarPower(uint starPowerTicks)
@@ -505,7 +542,7 @@ namespace YARG.Core.Engine
         protected virtual void UpdateStarPower()
         {
             PreviousStarPowerTickPosition = StarPowerTickPosition;
-            StarPowerTickPosition = GetStarPowerDrainTimeToTicks(BaseState.CurrentTime, CurrentSyncTrackState);
+            StarPowerTickPosition = GetStarPowerDrainTimeToTicks(CurrentTime, CurrentSyncTrackState);
 
             if (BaseStats.IsStarPowerActive)
             {
@@ -517,7 +554,7 @@ namespace YARG.Core.Engine
                 }
             }
 
-            if (BaseState.IsStarPowerInputActive && CanStarPowerActivate)
+            if (IsStarPowerInputActive && CanStarPowerActivate)
             {
                 ActivateStarPower();
             }
@@ -689,7 +726,7 @@ namespace YARG.Core.Engine
             BaseParameters.SongSpeed = speed;
             BaseParameters.HitWindow.Scale = speed;
 
-            BaseState.StarPowerWhammyTimer.SetSpeed(speed);
+            StarPowerWhammyTimer.SetSpeed(speed);
         }
 
         protected static void StartTimer(ref EngineTimer timer, double startTime, double offset = 0)

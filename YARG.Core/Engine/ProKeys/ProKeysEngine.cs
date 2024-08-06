@@ -1,11 +1,12 @@
 using System;
 using YARG.Core.Chart;
+using YARG.Core.Input;
 using YARG.Core.Logging;
 
 namespace YARG.Core.Engine.ProKeys
 {
     public abstract class ProKeysEngine : BaseEngine<ProKeysNote, ProKeysEngineParameters,
-        ProKeysStats, ProKeysEngineState>
+        ProKeysStats>
     {
         protected const double DEFAULT_PRESS_TIME = -9999;
 
@@ -16,45 +17,86 @@ namespace YARG.Core.Engine.ProKeys
 
         public OverhitEvent? OnOverhit;
 
+        // Used for hit logic. May not be the same value as KeyHeldMask
+        protected int KeyMask;
+
+        protected int PreviousKeyMask;
+
+        protected double[] KeyPressTimes = new double[(int)ProKeysAction.Key25 + 1];
+
+        /// <summary>
+        /// The integer value for the key that was hit this update. <c>null</c> is none.
+        /// </summary>
+        protected int? KeyHit;
+
+        /// <summary>
+        /// The integer value for the key that was released this update. <c>null</c> is none.
+        /// </summary>
+        protected int? KeyReleased;
+
+        protected int? FatFingerKey;
+
+        protected EngineTimer ChordStaggerTimer;
+        protected EngineTimer FatFingerTimer;
+
+        protected ProKeysNote? FatFingerNote;
+
         protected ProKeysEngine(InstrumentDifficulty<ProKeysNote> chart, SyncTrack syncTrack,
             ProKeysEngineParameters engineParameters, bool isBot)
             : base(chart, syncTrack, engineParameters, true, isBot)
         {
-            State.Initialize(engineParameters);
+            ChordStaggerTimer = new(engineParameters.ChordStaggerWindow);
+            FatFingerTimer = new(engineParameters.FatFingerWindow);
+
+            KeyPressTimes = new double[(int)ProKeysAction.Key25 + 1];
+            for(int i = 0; i < KeyPressTimes.Length; i++)
+            {
+                KeyPressTimes[i] = -9999;
+            }
         }
 
         protected override void GenerateQueuedUpdates(double nextTime)
         {
             base.GenerateQueuedUpdates(nextTime);
-            var previousTime = State.CurrentTime;
+            var previousTime = CurrentTime;
 
-            if (State.ChordStaggerTimer.IsActive)
+            if (ChordStaggerTimer.IsActive)
             {
-                if (IsTimeBetween(State.ChordStaggerTimer.EndTime, previousTime, nextTime))
+                if (IsTimeBetween(ChordStaggerTimer.EndTime, previousTime, nextTime))
                 {
-                    YargLogger.LogFormatTrace("Queuing chord stagger end time at {0}", State.ChordStaggerTimer.EndTime);
-                    QueueUpdateTime(State.ChordStaggerTimer.EndTime, "Chord Stagger End");
+                    YargLogger.LogFormatTrace("Queuing chord stagger end time at {0}", ChordStaggerTimer.EndTime);
+                    QueueUpdateTime(ChordStaggerTimer.EndTime, "Chord Stagger End");
                 }
             }
 
-            if (State.FatFingerTimer.IsActive)
+            if (FatFingerTimer.IsActive)
             {
-                if (IsTimeBetween(State.FatFingerTimer.EndTime, previousTime, nextTime))
+                if (IsTimeBetween(FatFingerTimer.EndTime, previousTime, nextTime))
                 {
-                    YargLogger.LogFormatTrace("Queuing fat finger end time at {0}", State.FatFingerTimer.EndTime);
-                    QueueUpdateTime(State.FatFingerTimer.EndTime, "Fat Finger End");
+                    YargLogger.LogFormatTrace("Queuing fat finger end time at {0}", FatFingerTimer.EndTime);
+                    QueueUpdateTime(FatFingerTimer.EndTime, "Fat Finger End");
                 }
             }
         }
 
         public override void Reset(bool keepCurrentButtons = false)
         {
-            // Never retain keys held in Pro Keys because otherwise you get infinite front end
-            State.KeyMask = 0;
-            // Don't clear this value otherwise the bot won't let go of keys. Should probably be handled better.
-            // State.KeyHeldMask = 0;
-            State.KeyHit = null;
-            State.KeyReleased = null;
+            KeyMask = 0;
+
+            for(int i = 0; i < KeyPressTimes.Length; i++)
+            {
+                KeyPressTimes[i] = -9999;
+            }
+
+            KeyHit = null;
+            KeyReleased = null;
+
+            FatFingerKey = null;
+
+            ChordStaggerTimer.Disable();
+            FatFingerTimer.Disable();
+
+            FatFingerNote = null;
 
             base.Reset(keepCurrentButtons);
         }
@@ -62,45 +104,45 @@ namespace YARG.Core.Engine.ProKeys
         protected virtual void Overhit(int key)
         {
             // Can't overstrum before first note is hit/missed
-            if (State.NoteIndex == 0)
+            if (NoteIndex == 0)
             {
                 return;
             }
 
             // Cancel overstrum if past last note and no active sustains
-            if (State.NoteIndex >= Chart.Notes.Count && ActiveSustains.Count == 0)
+            if (NoteIndex >= Chart.Notes.Count && ActiveSustains.Count == 0)
             {
                 return;
             }
 
             // Cancel overstrum if WaitCountdown is active
-            if (State.IsWaitCountdownActive)
+            if (IsWaitCountdownActive)
             {
-                YargLogger.LogFormatTrace("Overstrum prevented during WaitCountdown at time: {0}, tick: {1}", State.CurrentTime, State.CurrentTick);
+                YargLogger.LogFormatTrace("Overstrum prevented during WaitCountdown at time: {0}, tick: {1}", CurrentTime, CurrentTick);
                 return;
             }
 
-            YargLogger.LogFormatTrace("Overhit at {0}", State.CurrentTime);
+            YargLogger.LogFormatTrace("Overhit at {0}", CurrentTime);
 
             // Break all active sustains
             for (int i = 0; i < ActiveSustains.Count; i++)
             {
                 var sustain = ActiveSustains[i];
                 ActiveSustains.RemoveAt(i);
-                YargLogger.LogFormatTrace("Ended sustain (end time: {0}) at {1}", sustain.GetEndTime(SyncTrack, 0), State.CurrentTime);
+                YargLogger.LogFormatTrace("Ended sustain (end time: {0}) at {1}", sustain.GetEndTime(SyncTrack, 0), CurrentTime);
                 i--;
 
-                double finalScore = CalculateSustainPoints(ref sustain, State.CurrentTick);
+                double finalScore = CalculateSustainPoints(ref sustain, CurrentTick);
                 EngineStats.CommittedScore += (int) Math.Ceiling(finalScore);
-                OnSustainEnd?.Invoke(sustain.Note, State.CurrentTime, sustain.HasFinishedScoring);
+                OnSustainEnd?.Invoke(sustain.Note, CurrentTime, sustain.HasFinishedScoring);
             }
 
-            if (State.NoteIndex < Notes.Count)
+            if (NoteIndex < Notes.Count)
             {
                 // Don't remove the phrase if the current note being overstrummed is the start of a phrase
-                if (!Notes[State.NoteIndex].IsStarPowerStart)
+                if (!Notes[NoteIndex].IsStarPowerStart)
                 {
-                    StripStarPower(Notes[State.NoteIndex]);
+                    StripStarPower(Notes[NoteIndex]);
                 }
             }
 
@@ -114,7 +156,7 @@ namespace YARG.Core.Engine.ProKeys
 
         protected override bool CanSustainHold(ProKeysNote note)
         {
-            return (State.KeyMask & note.DisjointMask) != 0;
+            return (KeyMask & note.DisjointMask) != 0;
         }
 
         protected override void HitNote(ProKeysNote note)
@@ -122,13 +164,13 @@ namespace YARG.Core.Engine.ProKeys
             if (note.WasHit || note.WasMissed)
             {
                 YargLogger.LogFormatTrace("Tried to hit/miss note twice (Key: {0}, Index: {1}, Hit: {2}, Missed: {3})",
-                    note.Key, State.NoteIndex, note.WasHit, note.WasMissed);
+                    note.Key, NoteIndex, note.WasHit, note.WasMissed);
                 return;
             }
 
             note.SetHitState(true, false);
 
-            State.KeyPressTimes[note.Key] = DEFAULT_PRESS_TIME;
+            KeyPressTimes[note.Key] = DEFAULT_PRESS_TIME;
 
             // Detect if the last note(s) were skipped
             // bool skipped = SkipPreviousNotes(note);
@@ -144,9 +186,9 @@ namespace YARG.Core.Engine.ProKeys
                 StartSolo();
             }
 
-            if (State.IsSoloActive)
+            if (IsSoloActive)
             {
-                Solos[State.CurrentSoloIndex].NotesHit++;
+                Solos[CurrentSoloIndex].NotesHit++;
             }
 
             if (note.IsSoloEnd && note.ParentOrSelf.WasFullyHitOrMissed())
@@ -157,7 +199,7 @@ namespace YARG.Core.Engine.ProKeys
             // Chords only count as one note hit
             if (note.ParentOrSelf.WasFullyHit())
             {
-                State.ChordStaggerTimer.Disable();
+                ChordStaggerTimer.Disable();
 
                 EngineStats.Combo++;
 
@@ -178,7 +220,7 @@ namespace YARG.Core.Engine.ProKeys
                 StartSustain(note);
             }
 
-            OnNoteHit?.Invoke(State.NoteIndex, note);
+            OnNoteHit?.Invoke(NoteIndex, note);
             base.HitNote(note);
         }
 
@@ -187,13 +229,13 @@ namespace YARG.Core.Engine.ProKeys
             if (note.WasHit || note.WasMissed)
             {
                 YargLogger.LogFormatTrace("Tried to hit/miss note twice (Key: {0}, Index: {1}, Hit: {2}, Missed: {3})",
-                    note.Key, State.NoteIndex, note.WasHit, note.WasMissed);
+                    note.Key, NoteIndex, note.WasHit, note.WasMissed);
                 return;
             }
 
             note.SetMissState(true, false);
 
-            State.KeyPressTimes[note.Key] = DEFAULT_PRESS_TIME;
+            KeyPressTimes[note.Key] = DEFAULT_PRESS_TIME;
 
             if (note.IsStarPower)
             {
@@ -214,7 +256,7 @@ namespace YARG.Core.Engine.ProKeys
 
             UpdateMultiplier();
 
-            OnNoteMissed?.Invoke(State.NoteIndex, note);
+            OnNoteMissed?.Invoke(NoteIndex, note);
             base.HitNote(note);
         }
 
@@ -241,12 +283,12 @@ namespace YARG.Core.Engine.ProKeys
 
         protected void ToggleKey(int key, bool active)
         {
-            State.KeyMask = active ? State.KeyMask | (1 << key) : State.KeyMask & ~(1 << key);
+            KeyMask = active ? KeyMask | (1 << key) : KeyMask & ~(1 << key);
         }
 
         protected bool IsKeyInTime(ProKeysNote note, int key, double frontEnd)
         {
-            return State.KeyPressTimes[key] > note.Time + frontEnd;
+            return KeyPressTimes[key] > note.Time + frontEnd;
         }
 
         protected bool IsKeyInTime(ProKeysNote note, double frontEnd) => IsKeyInTime(note, note.Key, frontEnd);

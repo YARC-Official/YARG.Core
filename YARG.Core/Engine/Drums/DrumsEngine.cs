@@ -6,7 +6,7 @@ using YARG.Core.Logging;
 namespace YARG.Core.Engine.Drums
 {
     public abstract class DrumsEngine : BaseEngine<DrumNote, DrumsEngineParameters,
-        DrumsStats, DrumsEngineState>
+        DrumsStats>
     {
         public delegate void OverhitEvent();
 
@@ -14,6 +14,16 @@ namespace YARG.Core.Engine.Drums
 
         public OverhitEvent? OnOverhit;
         public PadHitEvent?  OnPadHit;
+
+        /// <summary>
+        /// The integer value for the pad that was inputted this update. <c>null</c> is none, and the value can
+        /// be based off of <see cref="FourLaneDrumPad"/> or <see cref="FiveLaneDrumPad"/>.
+        /// </summary>
+        protected int? PadHit;
+
+        protected float? HitVelocity;
+
+        protected DrumsAction? Action;
 
         protected DrumsEngine(InstrumentDifficulty<DrumNote> chart, SyncTrack syncTrack,
             DrumsEngineParameters engineParameters, bool isBot)
@@ -23,36 +33,41 @@ namespace YARG.Core.Engine.Drums
 
         public override void Reset(bool keepCurrentButtons = false)
         {
+            PadHit = null;
+            HitVelocity = null;
+            Action = null;
+
             base.Reset(keepCurrentButtons);
         }
 
         public virtual void Overhit()
         {
             // Can't overhit before first note is hit/missed
-            if (State.NoteIndex == 0)
+            if (NoteIndex == 0)
             {
                 return;
             }
 
             // Cancel overhit if past last note
-            if (State.NoteIndex >= Chart.Notes.Count - 1)
+            if (NoteIndex >= Chart.Notes.Count - 1)
             {
                 return;
             }
 
             // Cancel overhit if WaitCountdown is active
-            if (State.IsWaitCountdownActive)
+            if (IsWaitCountdownActive)
             {
-                YargLogger.LogFormatTrace("Overhit prevented during WaitCountdown at time: {0}, tick: {1}", State.CurrentTime, State.CurrentTick);
+                YargLogger.LogFormatTrace("Overhit prevented during WaitCountdown at time: {0}, tick: {1}",
+                    CurrentTime, CurrentTick);
                 return;
             }
 
-            if (State.NoteIndex < Notes.Count)
+            if (NoteIndex < Notes.Count)
             {
                 // Don't remove the phrase if the current note being overstrummed is the start of a phrase
-                if (!Notes[State.NoteIndex].IsStarPowerStart)
+                if (!Notes[NoteIndex].IsStarPowerStart)
                 {
-                    StripStarPower(Notes[State.NoteIndex]);
+                    StripStarPower(Notes[NoteIndex]);
                 }
             }
 
@@ -73,7 +88,8 @@ namespace YARG.Core.Engine.Drums
         {
             if (note.WasHit || note.WasMissed)
             {
-                YargLogger.LogFormatTrace("Tried to hit/miss note twice (Pad: {0}, Index: {1}, Hit: {2}, Missed: {3})", note.Pad, State.NoteIndex, note.WasHit, note.WasMissed);
+                YargLogger.LogFormatTrace("Tried to hit/miss note twice (Pad: {0}, Index: {1}, Hit: {2}, Missed: {3})",
+                    note.Pad, NoteIndex, note.WasHit, note.WasMissed);
                 return;
             }
 
@@ -94,9 +110,9 @@ namespace YARG.Core.Engine.Drums
                 StartSolo();
             }
 
-            if (State.IsSoloActive)
+            if (IsSoloActive)
             {
-                Solos[State.CurrentSoloIndex].NotesHit++;
+                Solos[CurrentSoloIndex].NotesHit++;
             }
 
             if (note.IsSoloEnd && note.ParentOrSelf.WasFullyHitOrMissed())
@@ -104,7 +120,8 @@ namespace YARG.Core.Engine.Drums
                 EndSolo();
             }
 
-            if (!activationAutoHit && note.IsStarPowerActivator && CanStarPowerActivate && note.ParentOrSelf.WasFullyHit())
+            if (!activationAutoHit && note.IsStarPowerActivator && CanStarPowerActivate &&
+                note.ParentOrSelf.WasFullyHit())
             {
                 ActivateStarPower();
             }
@@ -126,7 +143,7 @@ namespace YARG.Core.Engine.Drums
             // Score and such is accounted for above.
             if (!activationAutoHit)
             {
-                OnNoteHit?.Invoke(State.NoteIndex, note);
+                OnNoteHit?.Invoke(NoteIndex, note);
             }
 
             base.HitNote(note);
@@ -141,7 +158,7 @@ namespace YARG.Core.Engine.Drums
             if (IsBot) return true;
 
             // Hit velocity was not recorded for this note, bonus will always be false
-            if (State.HitVelocity is not {} lastInputVelocity) return false;
+            if (HitVelocity is not { } lastInputVelocity) return false;
 
             hitNote.HitVelocity = lastInputVelocity;
 
@@ -196,12 +213,14 @@ namespace YARG.Core.Engine.Drums
             if (hitNote.IsGhost)
             {
                 awardVelocityBonus = lastInputVelocity < awardThreshold;
-                YargLogger.LogFormatTrace("Ghost note was hit with a velocity of {0} at tick {1}. Bonus awarded: {2}", lastInputVelocity, hitNote.Tick, awardVelocityBonus);
+                YargLogger.LogFormatTrace("Ghost note was hit with a velocity of {0} at tick {1}. Bonus awarded: {2}",
+                    lastInputVelocity, hitNote.Tick, awardVelocityBonus);
             }
             else if (hitNote.IsAccent)
             {
                 awardVelocityBonus = lastInputVelocity > (1 - awardThreshold);
-                YargLogger.LogFormatTrace("Accent note was hit with a velocity of {0} at tick {1}. Bonus awarded: {2}", lastInputVelocity, hitNote.Tick, awardVelocityBonus);
+                YargLogger.LogFormatTrace("Accent note was hit with a velocity of {0} at tick {1}. Bonus awarded: {2}",
+                    lastInputVelocity, hitNote.Tick, awardVelocityBonus);
             }
 
             return awardVelocityBonus;
@@ -211,7 +230,8 @@ namespace YARG.Core.Engine.Drums
         {
             if (note.WasHit || note.WasMissed)
             {
-                YargLogger.LogFormatTrace("Tried to hit/miss note twice (Pad: {0}, Index: {1}, Hit: {2}, Missed: {3})", note.Pad, State.NoteIndex, note.WasHit, note.WasMissed);
+                YargLogger.LogFormatTrace("Tried to hit/miss note twice (Pad: {0}, Index: {1}, Hit: {2}, Missed: {3})",
+                    note.Pad, NoteIndex, note.WasHit, note.WasMissed);
                 return;
             }
 
@@ -226,6 +246,7 @@ namespace YARG.Core.Engine.Drums
             {
                 EndSolo();
             }
+
             if (note.IsSoloStart)
             {
                 StartSolo();
@@ -235,7 +256,7 @@ namespace YARG.Core.Engine.Drums
 
             UpdateMultiplier();
 
-            OnNoteMissed?.Invoke(State.NoteIndex, note);
+            OnNoteMissed?.Invoke(NoteIndex, note);
             base.MissNote(note);
         }
 
