@@ -18,7 +18,7 @@ namespace YARG.Core.Engine.Drums
 
         //Ghost notes are below this threshold, Accent notes are above 1 - threshold
         public float VelocityThreshold { get; private set; }
-        
+
         // The maximum allowed time (seconds) between notes to use context-sensitive velocity scoring
         public float SituationalVelocityWindow { get; private set; }
 
@@ -28,7 +28,7 @@ namespace YARG.Core.Engine.Drums
 
         public DrumsEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, float[] starMultiplierThresholds,
             DrumMode mode)
-            : base(hitWindow, maxMultiplier, starMultiplierThresholds)
+            : base(hitWindow, maxMultiplier, 0, starMultiplierThresholds)
         {
             Mode = mode;
             VelocityThreshold = 0.35f;

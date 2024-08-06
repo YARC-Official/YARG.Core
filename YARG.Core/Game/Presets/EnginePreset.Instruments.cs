@@ -117,11 +117,11 @@ namespace YARG.Core.Game
                 return new GuitarEngineParameters(
                     hitWindow,
                     isBass ? BASS_MAX_MULTIPLIER : DEFAULT_MAX_MULTIPLIER,
+                    DEFAULT_WHAMMY_BUFFER,
                     starMultiplierThresholds,
                     HopoLeniency,
                     StrumLeniency,
                     StrumLeniencySmall,
-                    DEFAULT_WHAMMY_BUFFER,
                     InfiniteFrontEnd,
                     AntiGhosting);
             }
@@ -301,6 +301,7 @@ namespace YARG.Core.Game
                 return new ProKeysEngineParameters(
                     hitWindow,
                     DEFAULT_MAX_MULTIPLIER,
+                    DEFAULT_WHAMMY_BUFFER,
                     starMultiplierThresholds,
                     ChordStaggerWindow,
                     FatFingerWindow);

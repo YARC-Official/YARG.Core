@@ -21,6 +21,8 @@ namespace YARG.Core.Engine
         public bool IsWaitCountdownActive;
         public bool IsStarPowerInputActive;
 
+        public EngineTimer StarPowerWhammyTimer;
+
         public virtual void Reset()
         {
             NoteIndex = 0;
