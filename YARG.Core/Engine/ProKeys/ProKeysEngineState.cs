@@ -8,6 +8,8 @@ namespace YARG.Core.Engine.ProKeys
         // Used for hit logic. May not be the same value as KeyHeldMask
         public int KeyMask;
 
+        public int PreviousKeyMask;
+
         public double[] KeyPressTimes = new double[(int)ProKeysAction.Key25 + 1];
 
         /// <summary>
