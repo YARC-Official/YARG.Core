@@ -13,8 +13,6 @@ namespace YARG.Core.Engine.Guitar
 
         public OverstrumEvent? OnOverstrum;
 
-        protected uint LastWhammyTick;
-
         protected GuitarEngine(InstrumentDifficulty<GuitarNote> chart, SyncTrack syncTrack,
             GuitarEngineParameters engineParameters, bool isBot)
             : base(chart, syncTrack, engineParameters, false, isBot)
@@ -67,16 +65,6 @@ namespace YARG.Core.Engine.Guitar
                     YargLogger.LogFormatTrace("Queuing strum leniency end time at {0}",
                         State.StrumLeniencyTimer.EndTime);
                     QueueUpdateTime(State.StrumLeniencyTimer.EndTime, "Strum Leniency End");
-                }
-            }
-
-            if (State.StarPowerWhammyTimer.IsActive)
-            {
-                if (IsTimeBetween(State.StarPowerWhammyTimer.EndTime, previousTime, nextTime))
-                {
-                    YargLogger.LogFormatTrace("Queuing star power whammy end time at {0}",
-                        State.StarPowerWhammyTimer.EndTime);
-                    QueueUpdateTime(State.StarPowerWhammyTimer.EndTime, "Star Power Whammy End");
                 }
             }
         }
@@ -297,37 +285,7 @@ namespace YARG.Core.Engine.Guitar
                 }
             }
 
-            if (ActiveSustains.Count == 0)
-            {
-                LastWhammyTick = State.CurrentTick;
-            }
-
             base.StartSustain(note);
-        }
-
-        protected override void UpdateSustains()
-        {
-            bool isStarPowerSustainActive = ActiveSustains.Any(sustain => sustain.Note.IsStarPower);
-
-            base.UpdateSustains();
-
-            if (isStarPowerSustainActive && State.StarPowerWhammyTimer.IsActive)
-            {
-                var whammyTicks = State.CurrentTick - LastWhammyTick;
-
-                GainStarPower(whammyTicks);
-                EngineStats.WhammyTicks += whammyTicks;
-
-                LastWhammyTick = State.CurrentTick;
-            }
-
-            // Whammy is disabled after sustains are updated.
-            // This is because all the ticks that have accumulated will have been accounted for when it is disabled.
-            // Whereas disabling it before could mean there are some ticks which should have been whammied but weren't.
-            if (State.StarPowerWhammyTimer.IsActive && State.StarPowerWhammyTimer.IsExpired(State.CurrentTime))
-            {
-                State.StarPowerWhammyTimer.Disable();
-            }
         }
 
         public override void SetSpeed(double speed)
@@ -335,7 +293,6 @@ namespace YARG.Core.Engine.Guitar
             base.SetSpeed(speed);
             State.HopoLeniencyTimer.SetSpeed(speed);
             State.StrumLeniencyTimer.SetSpeed(speed);
-            State.StarPowerWhammyTimer.SetSpeed(speed);
         }
 
         protected sealed override int CalculateBaseScore()

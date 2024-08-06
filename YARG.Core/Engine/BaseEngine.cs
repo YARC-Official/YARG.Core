@@ -688,6 +688,8 @@ namespace YARG.Core.Engine
         {
             BaseParameters.SongSpeed = speed;
             BaseParameters.HitWindow.Scale = speed;
+
+            BaseState.StarPowerWhammyTimer.SetSpeed(speed);
         }
 
         protected static void StartTimer(ref EngineTimer timer, double startTime, double offset = 0)

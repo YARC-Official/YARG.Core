@@ -69,6 +69,8 @@ namespace YARG.Core.Engine
         public override BaseEngineParameters BaseParameters => EngineParameters;
         public override BaseStats            BaseStats      => EngineStats;
 
+        protected uint LastWhammyTick;
+
         protected BaseEngine(InstrumentDifficulty<TNoteType> chart, SyncTrack syncTrack,
             TEngineParams engineParameters, bool isChordSeparate, bool isBot)
             : base(syncTrack, isChordSeparate, isBot)
@@ -208,6 +210,16 @@ namespace YARG.Core.Engine
                             QueueUpdateTime(nextCountdownStartTime, "Activate Countdown");
                         }
                     }
+                }
+            }
+
+            if (State.StarPowerWhammyTimer.IsActive)
+            {
+                if (IsTimeBetween(State.StarPowerWhammyTimer.EndTime, previousTime, nextTime))
+                {
+                    YargLogger.LogFormatTrace("Queuing star power whammy end time at {0}",
+                        State.StarPowerWhammyTimer.EndTime);
+                    QueueUpdateTime(State.StarPowerWhammyTimer.EndTime, "Star Power Whammy End");
                 }
             }
         }
@@ -393,10 +405,13 @@ namespace YARG.Core.Engine
         {
             EngineStats.PendingScore = 0;
 
+            bool isStarPowerSustainActive = false;
             for (int i = 0; i < ActiveSustains.Count; i++)
             {
                 ref var sustain = ref ActiveSustains[i];
                 var note = sustain.Note;
+
+                isStarPowerSustainActive |= note.IsStarPower;
 
                 // If we're close enough to the end of the sustain, finish it
                 // Provides leniency for sustains with no gap (and just in general)
@@ -468,10 +483,33 @@ namespace YARG.Core.Engine
             }
 
             UpdateStars();
+
+            if (isStarPowerSustainActive && State.StarPowerWhammyTimer.IsActive)
+            {
+                var whammyTicks = State.CurrentTick - LastWhammyTick;
+
+                GainStarPower(whammyTicks);
+                EngineStats.WhammyTicks += whammyTicks;
+
+                LastWhammyTick = State.CurrentTick;
+            }
+
+            // Whammy is disabled after sustains are updated.
+            // This is because all the ticks that have accumulated will have been accounted for when it is disabled.
+            // Whereas disabling it before could mean there are some ticks which should have been whammied but weren't.
+            if (State.StarPowerWhammyTimer.IsActive && State.StarPowerWhammyTimer.IsExpired(State.CurrentTime))
+            {
+                State.StarPowerWhammyTimer.Disable();
+            }
         }
 
         protected virtual void StartSustain(TNoteType note)
         {
+            if (ActiveSustains.Count == 0)
+            {
+                LastWhammyTick = State.CurrentTick;
+            }
+
             var sustain = new ActiveSustain<TNoteType>(note);
 
             ActiveSustains.Add(sustain);

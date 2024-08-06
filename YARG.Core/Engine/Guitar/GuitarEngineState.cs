@@ -26,8 +26,6 @@
         /// </summary>
         public EngineTimer StrumLeniencyTimer;
 
-        public EngineTimer StarPowerWhammyTimer;
-
         public double FrontEndExpireTime;
 
         public void Initialize(GuitarEngineParameters parameters)

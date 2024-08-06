@@ -19,11 +19,6 @@ namespace YARG.Core.Engine.Guitar
         /// </summary>
         public int GhostInputs;
 
-        /// <summary>
-        /// Amount of Star Power/Overdrive gained from whammy during the current whammy period.
-        /// </summary>
-        public uint WhammyTicks;
-
         public GuitarStats()
         {
         }
@@ -33,7 +28,6 @@ namespace YARG.Core.Engine.Guitar
             Overstrums = stats.Overstrums;
             HoposStrummed = stats.HoposStrummed;
             GhostInputs = stats.GhostInputs;
-            WhammyTicks = stats.WhammyTicks;
             SustainScore = stats.SustainScore;
         }
 
@@ -43,7 +37,6 @@ namespace YARG.Core.Engine.Guitar
             Overstrums = 0;
             HoposStrummed = 0;
             GhostInputs = 0;
-            WhammyTicks = 0;
             SustainScore = 0;
         }
 
@@ -54,7 +47,6 @@ namespace YARG.Core.Engine.Guitar
             writer.Write(Overstrums);
             writer.Write(HoposStrummed);
             writer.Write(GhostInputs);
-            writer.Write(WhammyTicks);
             writer.Write(SustainScore);
         }
 
@@ -65,7 +57,6 @@ namespace YARG.Core.Engine.Guitar
             Overstrums = reader.ReadInt32();
             HoposStrummed = reader.ReadInt32();
             GhostInputs = reader.ReadInt32();
-            WhammyTicks = reader.ReadUInt32();
             SustainScore = reader.ReadInt32();
         }
     }
