@@ -11,6 +11,8 @@ namespace YARG.Core.Chart
         public int DisjointMask { get; }
         public int NoteMask     { get; private set; }
 
+        public bool IsGlissando => (ProKeysFlags & ProKeysNoteFlags.Glissando) != 0;
+
         public bool IsSustain => TickLength > 0;
 
         public ProKeysNote(int key, ProKeysNoteFlags proKeysFlags, NoteFlags flags,
