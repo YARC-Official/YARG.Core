@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using YARG.Core.Chart;
 using YARG.Core.Input;
 using YARG.Core.Logging;
@@ -124,19 +124,8 @@ namespace YARG.Core.Engine.ProKeys.Engines
                 double frontEnd = EngineParameters.HitWindow.GetFrontEnd(hitWindow);
                 double backEnd = EngineParameters.HitWindow.GetBackEnd(hitWindow);
 
-                bool keysInTime = true;
-                foreach (var childNote in parentNote.AllNotes)
-                {
-                    if (!IsKeyInTime(childNote, frontEnd))
-                    {
-                        //YargLogger.LogFormatDebug("Key {0} out of time (Diff: {1})", childNote.Key, childNote.Time - State.KeyPressTimes[childNote.Key]);
-                        keysInTime = false;
-                        break;
-                    }
-                }
-
                 // Hit whole note
-                if (CanNoteBeHit(parentNote) && keysInTime)
+                if (CanNoteBeHit(parentNote))
                 {
                     YargLogger.LogDebug("Can hit whole note");
                     foreach (var childNote in parentNote.AllNotes)
@@ -282,7 +271,52 @@ namespace YARG.Core.Engine.ProKeys.Engines
 
         protected override bool CanNoteBeHit(ProKeysNote note)
         {
-            return (State.KeyMask & note.NoteMask) == note.NoteMask;
+            double hitWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
+            double frontEnd = EngineParameters.HitWindow.GetFrontEnd(hitWindow);
+
+            if((State.KeyMask & note.NoteMask) == note.NoteMask)
+            {
+                foreach (var childNote in note.AllNotes)
+                {
+                    if (!IsKeyInTime(childNote, frontEnd))
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            // Glissando hit logic
+            // Forces the first glissando to be hit correctly, then the rest can be hit "loosely"
+            if (note.PreviousNote is not null && note.IsGlissando && note.PreviousNote.IsGlissando)
+            {
+                var keyDiff = State.KeyMask ^ State.PreviousKeyMask;
+                var keysPressed = keyDiff & State.KeyMask;
+                //var keysReleased = keyDiff & State.PreviousKeyMask;
+
+                foreach (var child in note.AllNotes)
+                {
+                    var pressCopy = keysPressed;
+
+                    int i = 0;
+                    while (pressCopy > 0)
+                    {
+                        if((pressCopy & 1) != 0 && IsKeyInTime(child, i, frontEnd))
+                        {
+                            // It's not ideal that this is here but there's no way to know what key hit the note
+                            // within HitNote() so we have to set the press time here
+                            State.KeyPressTimes[i] = DEFAULT_PRESS_TIME;
+                            return true;
+                        }
+
+                        i++;
+                        pressCopy >>= 1;
+                    }
+                }
+            }
+
+            return false;
         }
 
         protected override void UpdateBot(double time)

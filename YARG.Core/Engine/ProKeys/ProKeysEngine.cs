@@ -244,9 +244,11 @@ namespace YARG.Core.Engine.ProKeys
             State.KeyMask = active ? State.KeyMask | (1 << key) : State.KeyMask & ~(1 << key);
         }
 
-        protected bool IsKeyInTime(ProKeysNote note, double frontEnd)
+        protected bool IsKeyInTime(ProKeysNote note, int key, double frontEnd)
         {
-            return State.KeyPressTimes[note.Key] > note.Time + frontEnd;
+            return State.KeyPressTimes[key] > note.Time + frontEnd;
         }
+
+        protected bool IsKeyInTime(ProKeysNote note, double frontEnd) => IsKeyInTime(note, note.Key, frontEnd);
     }
 }
