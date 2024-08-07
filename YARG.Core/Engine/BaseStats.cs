@@ -1,4 +1,4 @@
-﻿namespace YARG.Core.Engine
+namespace YARG.Core.Engine
 {
     public abstract class BaseStats
     {
@@ -88,6 +88,11 @@
         public double TimeInStarPower;
 
         /// <summary>
+        /// Amount of Star Power/Overdrive gained from whammy during the current whammy period.
+        /// </summary>
+        public uint WhammyTicks;
+
+        /// <summary>
         /// True if the player currently has Star Power/Overdrive active.
         /// </summary>
         public bool IsStarPowerActive;
@@ -164,6 +169,7 @@
             StarPowerTickAmount = 0;
             TotalStarPowerTicks = 0;
             TimeInStarPower = 0;
+            WhammyTicks = 0;
             IsStarPowerActive = false;
 
             StarPowerPhrasesHit = 0;

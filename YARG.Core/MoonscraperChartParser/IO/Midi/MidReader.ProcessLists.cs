@@ -749,6 +749,11 @@ namespace MoonscraperChartEditor.Song.IO
                     ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams,
                         MoonPhrase.Type.ProKeys_RangeShift5, eventProcessParams.trackDifficulty)
                 },
+
+                { MidIOHelper.PRO_KEYS_GLISSANDO, (ref EventProcessParams eventProcessParams) =>
+                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams,
+                        MoonPhrase.Type.ProKeys_Glissando, eventProcessParams.trackDifficulty)
+                },
             };
 
             for (int key = MidIOHelper.PRO_KEYS_RANGE_START; key <= MidIOHelper.PRO_KEYS_RANGE_END; key++)

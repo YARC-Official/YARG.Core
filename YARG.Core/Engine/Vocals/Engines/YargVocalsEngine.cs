@@ -20,15 +20,15 @@ namespace YARG.Core.Engine.Vocals.Engines
                 return;
             }
 
-            var phrase = Notes[State.NoteIndex];
+            var phrase = Notes[NoteIndex];
 
             // Handle singing notes
-            var singNote = GetNoteInPhraseAtSongTick(phrase, State.CurrentTick);
+            var singNote = GetNoteInPhraseAtSongTick(phrase, CurrentTick);
             if (singNote is not null)
             {
                 // Bots are queued extra updates to account for in-between "inputs"
-                State.PitchSang = singNote.PitchAtSongTime(songTime);
-                State.HasSang = true;
+                PitchSang = singNote.PitchAtSongTime(songTime);
+                HasSang = true;
                 OnSing?.Invoke(true);
             }
             else
@@ -38,10 +38,10 @@ namespace YARG.Core.Engine.Vocals.Engines
             }
 
             // Handle percussion notes
-            var percussion = GetNextPercussionNote(phrase, State.CurrentTick);
+            var percussion = GetNextPercussionNote(phrase, CurrentTick);
             if (percussion is not null && songTime >= percussion.Time)
             {
-                State.HasHit = true;
+                HasHit = true;
             }
         }
 
@@ -51,12 +51,12 @@ namespace YARG.Core.Engine.Vocals.Engines
 
             if (action is VocalsAction.Hit && gameInput.Button)
             {
-                State.HasHit = true;
+                HasHit = true;
             }
             else if (action is VocalsAction.Pitch)
             {
-                State.HasSang = true;
-                State.PitchSang = gameInput.Axis;
+                HasSang = true;
+                PitchSang = gameInput.Axis;
 
                 OnSing?.Invoke(true);
             }
@@ -67,25 +67,25 @@ namespace YARG.Core.Engine.Vocals.Engines
             UpdateStarPower();
 
             // Quit early if there are no notes left
-            if (State.NoteIndex >= Notes.Count)
+            if (NoteIndex >= Notes.Count)
             {
-                State.HasSang = false;
+                HasSang = false;
                 return;
             }
 
             UpdateBot(time);
 
-            var phrase = Notes[State.NoteIndex];
-            State.PhraseTicksTotal ??= GetTicksInPhrase(phrase);
+            var phrase = Notes[NoteIndex];
+            PhraseTicksTotal ??= GetTicksInPhrase(phrase);
 
             CheckForNoteHit();
 
             // Check for the end of a phrase
-            if (State.CurrentTick > phrase.TickEnd)
+            if (CurrentTick > phrase.TickEnd)
             {
-                bool hasNotes = State.PhraseTicksTotal.Value != 0;
+                bool hasNotes = PhraseTicksTotal.Value != 0;
 
-                var percentHit = State.PhraseTicksHit / State.PhraseTicksTotal.Value;
+                var percentHit = PhraseTicksHit / PhraseTicksTotal.Value;
                 if (!hasNotes)
                 {
                     percentHit = 1.0;
@@ -94,21 +94,21 @@ namespace YARG.Core.Engine.Vocals.Engines
                 bool hit = percentHit >= EngineParameters.PhraseHitPercent;
                 if (hit)
                 {
-                    EngineStats.TicksHit += State.PhraseTicksTotal.Value;
+                    EngineStats.TicksHit += PhraseTicksTotal.Value;
                     HitNote(phrase);
                 }
                 else
                 {
-                    var ticksHit = (uint) Math.Round(State.PhraseTicksHit);
+                    var ticksHit = (uint) Math.Round(PhraseTicksHit);
 
                     EngineStats.TicksHit += ticksHit;
-                    EngineStats.TicksMissed += State.PhraseTicksTotal.Value - ticksHit;
+                    EngineStats.TicksMissed += PhraseTicksTotal.Value - ticksHit;
 
                     MissNote(phrase, percentHit);
                 }
 
-                State.PhraseTicksHit = 0;
-                State.PhraseTicksTotal = null;
+                PhraseTicksHit = 0;
+                PhraseTicksTotal = null;
 
                 if (hasNotes)
                 {
@@ -125,26 +125,26 @@ namespace YARG.Core.Engine.Vocals.Engines
 
         private void CheckSingingHit()
         {
-            if (!State.HasSang)
+            if (!HasSang)
             {
                 return;
             }
 
-            State.HasSang = false;
-            var lastSingTick = State.LastSingTick;
-            State.LastSingTick = State.CurrentTick;
+            HasSang = false;
+            var lastSingTick = LastSingTick;
+            LastSingTick = CurrentTick;
 
             // If the last sing detected was on the same tick (or less), skip it
             // since we've already handled that tick.
-            if (lastSingTick >= State.CurrentTick)
+            if (lastSingTick >= CurrentTick)
             {
                 return;
             }
 
-            var phrase = Notes[State.NoteIndex];
+            var phrase = Notes[NoteIndex];
 
             // Get the note that we should currently be targeting
-            var note = GetNoteInPhraseAtSongTick(phrase, State.CurrentTick);
+            var note = GetNoteInPhraseAtSongTick(phrase, CurrentTick);
             if (note is null)
             {
                 // If we're not on a note, we cannot be hitting a note
@@ -162,11 +162,11 @@ namespace YARG.Core.Engine.Vocals.Engines
                 // ticks, since the user cannot change pitch between inputs.
                 var maxLeniency = 1.0 / EngineParameters.ApproximateVocalFps;
                 var lastTick = Math.Max(
-                    SyncTrack.TimeToTick(State.CurrentTime - maxLeniency),
+                    SyncTrack.TimeToTick(CurrentTime - maxLeniency),
                     lastSingTick);
 
-                var ticksSinceLast = State.CurrentTick - lastTick;
-                State.PhraseTicksHit += ticksSinceLast * hitPercent;
+                var ticksSinceLast = CurrentTick - lastTick;
+                PhraseTicksHit += ticksSinceLast * hitPercent;
 
                 OnHit?.Invoke(true);
             }
@@ -178,14 +178,14 @@ namespace YARG.Core.Engine.Vocals.Engines
 
         private void CheckPercussionHit()
         {
-            var phrase = Notes[State.NoteIndex];
-            var note = GetNextPercussionNote(phrase, State.CurrentTick);
+            var phrase = Notes[NoteIndex];
+            var note = GetNextPercussionNote(phrase, CurrentTick);
 
             if (note is not null)
             {
                 if (IsNoteInWindow(note, out var missed))
                 {
-                    if (State.HasHit)
+                    if (HasHit)
                     {
                         HitNote(note);
                     }
@@ -198,13 +198,13 @@ namespace YARG.Core.Engine.Vocals.Engines
             }
             else
             {
-                if (State.HasHit && CanStarPowerActivate)
+                if (HasHit && CanStarPowerActivate)
                 {
                     ActivateStarPower();
                 }
             }
 
-            State.HasHit = false;
+            HasHit = false;
         }
 
         protected override bool CanVocalNoteBeHit(VocalNote note, out float hitPercent)
@@ -216,12 +216,12 @@ namespace YARG.Core.Engine.Vocals.Engines
                 return true;
             }
 
-            var expectedPitch = note.PitchAtSongTime(State.CurrentTime);
+            var expectedPitch = note.PitchAtSongTime(CurrentTime);
 
             // Formula for calculating the distance to the expected pitch, while ignoring octaves
             float distanceToExpected = Math.Min(
-                Mod(State.PitchSang - expectedPitch, 12f),
-                Mod(expectedPitch - State.PitchSang, 12f));
+                Mod(PitchSang - expectedPitch, 12f),
+                Mod(expectedPitch - PitchSang, 12f));
 
             // If it is within the full points window, award full points
             if (distanceToExpected <= EngineParameters.PitchWindowPerfect)

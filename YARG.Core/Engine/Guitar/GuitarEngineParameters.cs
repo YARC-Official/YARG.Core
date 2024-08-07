@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 
 namespace YARG.Core.Engine.Guitar
 {
@@ -9,26 +9,22 @@ namespace YARG.Core.Engine.Guitar
         public double StrumLeniency;
         public double StrumLeniencySmall;
 
-        public double StarPowerWhammyBuffer;
-
-        public bool InfiniteFrontEnd;
-        public bool AntiGhosting;
+        public bool InfiniteFrontEnd { get; private set; }
+        public bool AntiGhosting     { get; private set; }
 
         public GuitarEngineParameters()
         {
         }
 
-        public GuitarEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, float[] starMultiplierThresholds,
-            double hopoLeniency, double strumLeniency, double strumLeniencySmall, double spWhammyBuffer,
+        public GuitarEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, double spWhammyBuffer, float[] starMultiplierThresholds,
+            double hopoLeniency, double strumLeniency, double strumLeniencySmall,
             bool infiniteFrontEnd, bool antiGhosting)
-            : base(hitWindow, maxMultiplier, starMultiplierThresholds)
+            : base(hitWindow, maxMultiplier, spWhammyBuffer, starMultiplierThresholds)
         {
             HopoLeniency = hopoLeniency;
 
             StrumLeniency = strumLeniency;
             StrumLeniencySmall = strumLeniencySmall;
-
-            StarPowerWhammyBuffer = spWhammyBuffer;
 
             InfiniteFrontEnd = infiniteFrontEnd;
             AntiGhosting = antiGhosting;
@@ -43,8 +39,6 @@ namespace YARG.Core.Engine.Guitar
             writer.Write(StrumLeniency);
             writer.Write(StrumLeniencySmall);
 
-            writer.Write(StarPowerWhammyBuffer);
-
             writer.Write(InfiniteFrontEnd);
             writer.Write(AntiGhosting);
         }
@@ -57,8 +51,6 @@ namespace YARG.Core.Engine.Guitar
 
             StrumLeniency = reader.ReadDouble();
             StrumLeniencySmall = reader.ReadDouble();
-
-            StarPowerWhammyBuffer = reader.ReadDouble();
 
             InfiniteFrontEnd = reader.ReadBoolean();
             AntiGhosting = reader.ReadBoolean();

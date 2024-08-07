@@ -1,4 +1,4 @@
-﻿namespace YARG.Core.Engine.Guitar
+namespace YARG.Core.Engine.Guitar
 {
     public class GuitarStats : BaseStats
     {
@@ -17,11 +17,6 @@
         /// </summary>
         public int GhostInputs;
 
-        /// <summary>
-        /// Amount of Star Power/Overdrive gained from whammy during the current whammy period.
-        /// </summary>
-        public uint WhammyTicks;
-
         public GuitarStats()
         {
         }
@@ -31,7 +26,6 @@
             Overstrums = stats.Overstrums;
             HoposStrummed = stats.HoposStrummed;
             GhostInputs = stats.GhostInputs;
-            WhammyTicks = stats.WhammyTicks;
             SustainScore = stats.SustainScore;
         }
 
@@ -41,7 +35,6 @@
             Overstrums = 0;
             HoposStrummed = 0;
             GhostInputs = 0;
-            WhammyTicks = 0;
             SustainScore = 0;
         }
     }

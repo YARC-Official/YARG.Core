@@ -12,9 +12,9 @@ namespace YARG.Core.Engine.ProKeys
         {
         }
 
-        public ProKeysEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, float[] starMultiplierThresholds,
+        public ProKeysEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, double spWhammyBuffer, float[] starMultiplierThresholds,
             double chordStaggerWindow, double fatFingerWindow)
-            : base(hitWindow, maxMultiplier, starMultiplierThresholds)
+            : base(hitWindow, maxMultiplier, spWhammyBuffer, starMultiplierThresholds)
         {
             ChordStaggerWindow = chordStaggerWindow;
             FatFingerWindow = fatFingerWindow;

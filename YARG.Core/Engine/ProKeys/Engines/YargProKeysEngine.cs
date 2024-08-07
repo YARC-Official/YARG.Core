@@ -18,25 +18,26 @@ namespace YARG.Core.Engine.ProKeys.Engines
 
             if (action is ProKeysAction.StarPower)
             {
-                // TODO
+                IsStarPowerInputActive = gameInput.Button;
             }
             else if (action is ProKeysAction.TouchEffects)
             {
-                // TODO
+                StarPowerWhammyTimer.Start(gameInput.Time);
             }
             else
             {
                 if (gameInput.Button)
                 {
-                    State.KeyHit = (int) action;
+                    KeyHit = (int) action;
                 }
                 else
                 {
-                    State.KeyReleased = (int) action;
+                    KeyReleased = (int) action;
                 }
 
+                PreviousKeyMask = KeyMask;
                 ToggleKey((int) action, gameInput.Button);
-                State.KeyPressTimes[(int) action] = gameInput.Time;
+                KeyPressTimes[(int) action] = gameInput.Time;
 
                 OnKeyStateChange?.Invoke((int) action, gameInput.Button);
             }
@@ -49,49 +50,49 @@ namespace YARG.Core.Engine.ProKeys.Engines
             // Update bot (will return if not enabled)
             UpdateBot(time);
 
-            if (State.FatFingerTimer.IsActive)
+            if (FatFingerTimer.IsActive)
             {
                 // Fat Fingered key was released before the timer expired
-                if (State.KeyReleased == State.FatFingerKey && !State.FatFingerTimer.IsExpired(State.CurrentTime))
+                if (KeyReleased == FatFingerKey && !FatFingerTimer.IsExpired(CurrentTime))
                 {
-                    YargLogger.LogFormatDebug("Released fat fingered key at {0}. Note was hit: {1}", State.CurrentTime, State.FatFingerNote!.WasHit);
+                    YargLogger.LogFormatDebug("Released fat fingered key at {0}. Note was hit: {1}", CurrentTime, FatFingerNote!.WasHit);
 
                     // The note must be hit to disable the timer
-                    if (State.FatFingerNote!.WasHit)
+                    if (FatFingerNote!.WasHit)
                     {
                         YargLogger.LogDebug("Disabling fat finger timer as the note has been hit.");
-                        State.FatFingerTimer.Disable();
-                        State.FatFingerKey = null;
-                        State.FatFingerNote = null;
+                        FatFingerTimer.Disable();
+                        FatFingerKey = null;
+                        FatFingerNote = null;
                     }
                 }
-                else if(State.FatFingerTimer.IsExpired(State.CurrentTime))
+                else if(FatFingerTimer.IsExpired(CurrentTime))
                 {
-                    YargLogger.LogFormatDebug("Fat Finger timer expired at {0}", State.CurrentTime);
+                    YargLogger.LogFormatDebug("Fat Finger timer expired at {0}", CurrentTime);
 
-                    var fatFingerKeyMask = 1 << State.FatFingerKey;
+                    var fatFingerKeyMask = 1 << FatFingerKey;
 
-                    var isHoldingWrongKey = (State.KeyMask & fatFingerKeyMask) == fatFingerKeyMask;
+                    var isHoldingWrongKey = (KeyMask & fatFingerKeyMask) == fatFingerKeyMask;
 
                     // Overhit if key is still held OR if key is not held but note was not hit either
-                    if (isHoldingWrongKey || (!isHoldingWrongKey && !State.FatFingerNote!.WasHit))
+                    if (isHoldingWrongKey || (!isHoldingWrongKey && !FatFingerNote!.WasHit))
                     {
                         YargLogger.LogFormatDebug("Overhit due to fat finger with key {0}. KeyMask: {1}. Holding: {2}. WasHit: {3}",
-                            State.FatFingerKey, State.KeyMask, isHoldingWrongKey, State.FatFingerNote!.WasHit);
-                        Overhit(State.FatFingerKey!.Value);
+                            FatFingerKey, KeyMask, isHoldingWrongKey, FatFingerNote!.WasHit);
+                        Overhit(FatFingerKey!.Value);
                     }
 
-                    State.FatFingerTimer.Disable();
-                    State.FatFingerKey = null;
-                    State.FatFingerNote = null;
+                    FatFingerTimer.Disable();
+                    FatFingerKey = null;
+                    FatFingerNote = null;
                 }
             }
 
             // Quit early if there are no notes left
-            if (State.NoteIndex >= Notes.Count)
+            if (NoteIndex >= Notes.Count)
             {
-                State.KeyHit = null;
-                State.KeyReleased = null;
+                KeyHit = null;
+                KeyReleased = null;
                 UpdateSustains();
                 return;
             }
@@ -102,7 +103,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
 
         protected override void CheckForNoteHit()
         {
-            var parentNote = Notes[State.NoteIndex];
+            var parentNote = Notes[NoteIndex];
 
             // Miss out the back end
             if (!IsNoteInWindow(parentNote, out bool missed))
@@ -123,19 +124,8 @@ namespace YARG.Core.Engine.ProKeys.Engines
                 double frontEnd = EngineParameters.HitWindow.GetFrontEnd(hitWindow);
                 double backEnd = EngineParameters.HitWindow.GetBackEnd(hitWindow);
 
-                bool keysInTime = true;
-                foreach (var childNote in parentNote.AllNotes)
-                {
-                    if (!IsKeyInTime(childNote, frontEnd))
-                    {
-                        //YargLogger.LogFormatDebug("Key {0} out of time (Diff: {1})", childNote.Key, childNote.Time - State.KeyPressTimes[childNote.Key]);
-                        keysInTime = false;
-                        break;
-                    }
-                }
-
                 // Hit whole note
-                if (CanNoteBeHit(parentNote) && keysInTime)
+                if (CanNoteBeHit(parentNote))
                 {
                     YargLogger.LogDebug("Can hit whole note");
                     foreach (var childNote in parentNote.AllNotes)
@@ -143,7 +133,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                         HitNote(childNote);
                     }
 
-                    State.KeyHit = null;
+                    KeyHit = null;
                 }
                 else
                 {
@@ -152,13 +142,13 @@ namespace YARG.Core.Engine.ProKeys.Engines
                     if (parentNote.IsChord)
                     {
                         // Note is a chord and chord staggering was active and is now expired
-                        if (State.ChordStaggerTimer.IsActive && State.ChordStaggerTimer.IsExpired(State.CurrentTime))
+                        if (ChordStaggerTimer.IsActive && ChordStaggerTimer.IsExpired(CurrentTime))
                         {
-                            YargLogger.LogFormatDebug("Ending chord staggering at {0}", State.CurrentTime);
+                            YargLogger.LogFormatDebug("Ending chord staggering at {0}", CurrentTime);
                             foreach (var note in parentNote.AllNotes)
                             {
                                 // This key in the chord was held by the time chord staggering ended, so it can be hit
-                                if ((State.KeyMask & note.DisjointMask) == note.DisjointMask && IsKeyInTime(note, frontEnd))
+                                if ((KeyMask & note.DisjointMask) == note.DisjointMask && IsKeyInTime(note, frontEnd))
                                 {
                                     HitNote(note);
                                     YargLogger.LogFormatDebug("Hit staggered note {0} in chord", note.Key);
@@ -170,25 +160,25 @@ namespace YARG.Core.Engine.ProKeys.Engines
                                 }
                             }
 
-                            State.ChordStaggerTimer.Disable();
+                            ChordStaggerTimer.Disable();
                         }
                         else
                         {
                             foreach (var note in parentNote.AllNotes)
                             {
                                 // Go to next note if the key hit does not match the note's key
-                                if (State.KeyHit != note.Key)
+                                if (KeyHit != note.Key)
                                 {
                                     continue;
                                 }
 
-                                if (!State.ChordStaggerTimer.IsActive)
+                                if (!ChordStaggerTimer.IsActive)
                                 {
-                                    StartTimer(ref State.ChordStaggerTimer, State.CurrentTime);
+                                    StartTimer(ref ChordStaggerTimer, CurrentTime);
                                     YargLogger.LogFormatDebug("Starting chord staggering at {0}. End time is {1}",
-                                        State.CurrentTime, State.ChordStaggerTimer.EndTime);
+                                        CurrentTime, ChordStaggerTimer.EndTime);
 
-                                    var chordStaggerEndTime = State.ChordStaggerTimer.EndTime;
+                                    var chordStaggerEndTime = ChordStaggerTimer.EndTime;
 
                                     double noteMissTime = note.Time + backEnd;
 
@@ -196,15 +186,15 @@ namespace YARG.Core.Engine.ProKeys.Engines
                                     if (chordStaggerEndTime > noteMissTime)
                                     {
                                         double diff = noteMissTime - chordStaggerEndTime;
-                                        StartTimer(ref State.ChordStaggerTimer, State.CurrentTime - Math.Abs(diff));
+                                        StartTimer(ref ChordStaggerTimer, CurrentTime - Math.Abs(diff));
 
                                         YargLogger.LogFormatDebug(
                                             "Chord stagger window shortened by {0}. New end time is {1}. Note backend time is {2}",
-                                            diff, State.ChordStaggerTimer.EndTime, noteMissTime);
+                                            diff, ChordStaggerTimer.EndTime, noteMissTime);
                                     }
                                 }
 
-                                State.KeyHit = null;
+                                KeyHit = null;
                                 break;
                             }
                         }
@@ -213,64 +203,130 @@ namespace YARG.Core.Engine.ProKeys.Engines
             }
 
             // If no note was hit but the user hit a key, then over hit
-            if (State.KeyHit != null)
+            if (KeyHit != null)
             {
-                var inWindow = IsNoteInWindow(parentNote);
-
-                ProKeysNote? adjacentNote = null;
-                bool isAdjacent = false;
-                foreach (var note in parentNote.AllNotes)
+                static ProKeysNote? CheckForAdjacency(ProKeysNote fullNote, int key)
                 {
-                    if (!ProKeysUtilities.IsAdjacentKey(note.Key, State.KeyHit.Value))
+                    foreach (var note in fullNote.AllNotes)
                     {
-                        continue;
+                        if (ProKeysUtilities.IsAdjacentKey(note.Key, key))
+                        {
+                            return note;
+                        }
                     }
 
-                    isAdjacent = true;
-                    adjacentNote = note;
-                    break;
+                    return null;
                 }
 
-                var isFatFingerActive = State.FatFingerTimer.IsActive;
+                ProKeysNote? adjacentNote;
+                bool isAdjacent;
+                bool inWindow;
+
+                // Try to fat finger previous note first
+
+                // Previous note can only be fat fingered if the current distance from the note
+                // is within the fat finger threshold (default 100ms)
+                if (parentNote.PreviousNote is not null
+                    && CurrentTime - parentNote.PreviousNote.Time < FatFingerTimer.SpeedAdjustedThreshold)
+                {
+                    adjacentNote = CheckForAdjacency(parentNote.PreviousNote, KeyHit.Value);
+                    isAdjacent = adjacentNote != null;
+                    inWindow = IsNoteInWindow(parentNote.PreviousNote, out _);
+
+                }
+                // Try to fat finger current note (upcoming note)
+                else
+                {
+                    adjacentNote = CheckForAdjacency(parentNote, KeyHit.Value);
+                    isAdjacent = adjacentNote != null;
+                    inWindow = IsNoteInWindow(parentNote, out _);
+                }
+
+                var isFatFingerActive = FatFingerTimer.IsActive;
 
                 if (!inWindow || !isAdjacent || isFatFingerActive)
                 {
-                    Overhit(State.KeyHit.Value);
+                    Overhit(KeyHit.Value);
 
                     // TODO Maybe don't disable the timer/use a flag saying no more fat fingers allowed for the current note.
 
-                    State.FatFingerTimer.Disable();
-                    State.FatFingerKey = null;
-                    State.FatFingerNote = null;
+                    FatFingerTimer.Disable();
+                    FatFingerKey = null;
+                    FatFingerNote = null;
                 }
                 else
                 {
-                    StartTimer(ref State.FatFingerTimer, State.CurrentTime);
-                    State.FatFingerKey = State.KeyHit.Value;
+                    StartTimer(ref FatFingerTimer, CurrentTime);
+                    FatFingerKey = KeyHit.Value;
 
-                    State.FatFingerNote = adjacentNote;
+                    FatFingerNote = adjacentNote;
 
-                    YargLogger.LogFormatDebug("Hit adjacent key {0} Starting fat finger timer at {1}. End time: {2}. Key is {3}", State.FatFingerKey, State.CurrentTime,
-                        State.FatFingerTimer.EndTime, State.FatFingerKey);
+                    YargLogger.LogFormatDebug("Hit adjacent key {0} to note {1}. Starting fat finger timer at {2}. End time: {3}. Key is {4}", FatFingerKey, adjacentNote!.Key, CurrentTime,
+                        FatFingerTimer.EndTime, FatFingerKey);
                 }
 
-                State.KeyHit = null;
+                KeyHit = null;
             }
         }
 
         protected override bool CanNoteBeHit(ProKeysNote note)
         {
-            return (State.KeyMask & note.NoteMask) == note.NoteMask;
+            double hitWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
+            double frontEnd = EngineParameters.HitWindow.GetFrontEnd(hitWindow);
+
+            if((KeyMask & note.NoteMask) == note.NoteMask)
+            {
+                foreach (var childNote in note.AllNotes)
+                {
+                    if (!IsKeyInTime(childNote, frontEnd))
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            // Glissando hit logic
+            // Forces the first glissando to be hit correctly, then the rest can be hit "loosely"
+            if (note.PreviousNote is not null && note.IsGlissando && note.PreviousNote.IsGlissando)
+            {
+                var keyDiff = KeyMask ^ PreviousKeyMask;
+                var keysPressed = keyDiff & KeyMask;
+                //var keysReleased = keyDiff & PreviousKeyMask;
+
+                foreach (var child in note.AllNotes)
+                {
+                    var pressCopy = keysPressed;
+
+                    int i = 0;
+                    while (pressCopy > 0)
+                    {
+                        if((pressCopy & 1) != 0 && IsKeyInTime(child, i, frontEnd))
+                        {
+                            // It's not ideal that this is here but there's no way to know what key hit the note
+                            // within HitNote() so we have to set the press time here
+                            KeyPressTimes[i] = DEFAULT_PRESS_TIME;
+                            return true;
+                        }
+
+                        i++;
+                        pressCopy >>= 1;
+                    }
+                }
+            }
+
+            return false;
         }
 
         protected override void UpdateBot(double time)
         {
-            if (!IsBot || State.NoteIndex >= Notes.Count)
+            if (!IsBot || NoteIndex >= Notes.Count)
             {
                 return;
             }
 
-            var note = Notes[State.NoteIndex];
+            var note = Notes[NoteIndex];
 
             if (time < note.Time)
             {
@@ -279,7 +335,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
 
             // // Disables keys that are not in the current note
             // int key = 0;
-            // for (var mask = State.KeyHeldMaskVisual; mask > 0; mask >>= 1)
+            // for (var mask = KeyHeldMaskVisual; mask > 0; mask >>= 1)
             // {
             //     if ((mask & 1) == 1 && (note.NoteMask & 1 << key) == 0)
             //     {

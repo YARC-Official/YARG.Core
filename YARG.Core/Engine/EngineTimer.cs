@@ -13,6 +13,8 @@ namespace YARG.Core.Engine
 
         public readonly double TimeThreshold;
 
+        public double SpeedAdjustedThreshold => TimeThreshold * _speed;
+
         public readonly double StartTime => _startTime;
         public readonly double EndTime => _startTime + TimeThreshold * _speed;
 

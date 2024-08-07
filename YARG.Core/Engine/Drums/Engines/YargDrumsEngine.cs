@@ -20,9 +20,9 @@ namespace YARG.Core.Engine.Drums.Engines
             // Every button release has its gameInput.Axis set to 0, so this works safely.
             if (gameInput.Axis > 0)
             {
-                State.Action = gameInput.GetAction<DrumsAction>();
-                State.PadHit = ConvertInputToPad(EngineParameters.Mode, gameInput.GetAction<DrumsAction>());
-                State.HitVelocity = gameInput.Axis;
+                Action = gameInput.GetAction<DrumsAction>();
+                PadHit = ConvertInputToPad(EngineParameters.Mode, gameInput.GetAction<DrumsAction>());
+                HitVelocity = gameInput.Axis;
             }
         }
 
@@ -34,22 +34,22 @@ namespace YARG.Core.Engine.Drums.Engines
             UpdateBot(time);
 
             // Only check hit if there are notes left
-            if (State.NoteIndex < Notes.Count)
+            if (NoteIndex < Notes.Count)
             {
                 CheckForNoteHit();
             }
-            else if (State.Action is {} padAction)
+            else if (Action is {} padAction)
             {
-                OnPadHit?.Invoke(padAction, false, State.HitVelocity.GetValueOrDefault(0));
+                OnPadHit?.Invoke(padAction, false, HitVelocity.GetValueOrDefault(0));
                 ResetPadState();
             }
         }
 
         protected override void CheckForNoteHit()
         {
-            for (int i = State.NoteIndex; i < Notes.Count; i++)
+            for (int i = NoteIndex; i < Notes.Count; i++)
             {
-                bool isFirstNoteInWindow = i == State.NoteIndex;
+                bool isFirstNoteInWindow = i == NoteIndex;
                 bool stopSkipping = false;
 
                 var parentNote = Notes[i];
@@ -83,7 +83,7 @@ namespace YARG.Core.Engine.Drums.Engines
                         // TODO - Deadly Dynamics modifier check on awardVelocityBonus
 
                         HitNote(note);
-                        OnPadHit?.Invoke(State.Action!.Value, true, State.HitVelocity.GetValueOrDefault(0));
+                        OnPadHit?.Invoke(Action!.Value, true, HitVelocity.GetValueOrDefault(0));
 
                         if (awardVelocityBonus)
                         {
@@ -100,7 +100,7 @@ namespace YARG.Core.Engine.Drums.Engines
                     }
                     else
                     {
-                        //YargLogger.LogFormatDebug("Cant hit note (Index: {0}) at {1}.", i, State.CurrentTime);
+                        //YargLogger.LogFormatDebug("Cant hit note (Index: {0}) at {1}.", i, CurrentTime);
                     }
                 }
 
@@ -111,9 +111,9 @@ namespace YARG.Core.Engine.Drums.Engines
             }
 
             // If no note was hit but the user hit a pad, then over hit
-            if (State.PadHit != null)
+            if (PadHit != null)
             {
-                OnPadHit?.Invoke(State.Action!.Value, false, State.HitVelocity.GetValueOrDefault(0));
+                OnPadHit?.Invoke(Action!.Value, false, HitVelocity.GetValueOrDefault(0));
                 Overhit();
                 ResetPadState();
             }
@@ -121,17 +121,17 @@ namespace YARG.Core.Engine.Drums.Engines
 
         protected override bool CanNoteBeHit(DrumNote note)
         {
-            return note.Pad == State.PadHit;
+            return note.Pad == PadHit;
         }
 
         protected override void UpdateBot(double time)
         {
-            if (!IsBot || State.NoteIndex >= Notes.Count)
+            if (!IsBot || NoteIndex >= Notes.Count)
             {
                 return;
             }
 
-            var note = Notes[State.NoteIndex];
+            var note = Notes[NoteIndex];
 
             if (time < note.Time)
             {
@@ -141,17 +141,17 @@ namespace YARG.Core.Engine.Drums.Engines
             // Each note in the "chord" is hit separately on drums
             foreach (var chordNote in note.AllNotes)
             {
-                State.Action = ConvertPadToAction(EngineParameters.Mode, chordNote.Pad);
-                State.PadHit = chordNote.Pad;
+                Action = ConvertPadToAction(EngineParameters.Mode, chordNote.Pad);
+                PadHit = chordNote.Pad;
                 CheckForNoteHit();
             }
         }
 
         private void ResetPadState()
         {
-            State.Action = null;
-            State.PadHit = null;
-            State.HitVelocity = null;
+            Action = null;
+            PadHit = null;
+            HitVelocity = null;
         }
     }
 }

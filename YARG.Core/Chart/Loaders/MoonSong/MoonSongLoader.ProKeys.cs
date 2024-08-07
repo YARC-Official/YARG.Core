@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using MoonscraperChartEditor.Song;
 
 namespace YARG.Core.Chart
@@ -31,10 +30,24 @@ namespace YARG.Core.Chart
         {
             var key = moonNote.proKeysKey;
             var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
+            var proKeysFlags = GetProKeysNoteFlags(moonNote, currentPhrases);
 
             double time = _moonSong.TickToTime(moonNote.tick);
-            return new ProKeysNote(key, generalFlags, time, GetLengthInTime(moonNote),
+            return new ProKeysNote(key, proKeysFlags, generalFlags, time, GetLengthInTime(moonNote),
                 moonNote.tick, moonNote.length);
+        }
+
+        private ProKeysNoteFlags GetProKeysNoteFlags(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases)
+        {
+            var flags = ProKeysNoteFlags.None;
+
+            if (currentPhrases.TryGetValue(MoonPhrase.Type.ProKeys_Glissando, out var glissando) &&
+                IsEventInPhrase(moonNote, glissando))
+            {
+                flags |= ProKeysNoteFlags.Glissando;
+            }
+
+            return flags;
         }
     }
 }
