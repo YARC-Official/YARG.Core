@@ -2,7 +2,7 @@
 
 namespace YARG.Core.Replays
 {
-    public class ReplayNew
+    public class Replay
     {
         public ReplayHeader          Header;
         public ReplayMetadata        Metadata;
@@ -14,7 +14,7 @@ namespace YARG.Core.Replays
 
         public ReplayFrame[] Frames;
 
-        public ReplayNew()
+        public Replay()
         {
             Header = new ReplayHeader();
             Metadata = new ReplayMetadata();
