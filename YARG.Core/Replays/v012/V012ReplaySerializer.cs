@@ -7,27 +7,27 @@ namespace YARG.Core.Replays
     {
         #region Replay
 
-        public static void SerializeReplay(BinaryWriter writer, ReplayNew replayNew)
+        public static void SerializeReplay(BinaryWriter writer, Replay replay)
         {
-            Sections.SerializeHeader(writer, replayNew.Header);
-            Sections.SerializeMetadata(writer, replayNew.Metadata);
-            Sections.SerializePresetContainer(writer, replayNew.PresetContainer);
+            Sections.SerializeHeader(writer, replay.Header);
+            Sections.SerializeMetadata(writer, replay.Metadata);
+            Sections.SerializePresetContainer(writer, replay.PresetContainer);
 
-            writer.Write(replayNew.PlayerCount);
-            foreach (var playerName in replayNew.PlayerNames)
+            writer.Write(replay.PlayerCount);
+            foreach (var playerName in replay.PlayerNames)
             {
                 writer.Write(playerName);
             }
 
-            foreach (var frame in replayNew.Frames)
+            foreach (var frame in replay.Frames)
             {
                 Sections.SerializeFrame(writer, frame);
             }
         }
 
-        public static ReplayNew? DeserializeReplay(SpanBinaryReader reader, int version = 0)
+        public static Replay? DeserializeReplay(SpanBinaryReader reader, int version = 0)
         {
-            var replay = new ReplayNew();
+            var replay = new Replay();
 
             var header = Sections.DeserializeHeader(reader, version);
             if (header == null)

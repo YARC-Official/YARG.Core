@@ -4,11 +4,11 @@ using YARG.Core.Song;
 
 namespace YARG.Core.Replays
 {
-    public struct ReplayMetadata
+    public class ReplayMetadata
     {
-        public string      SongName;
-        public string      ArtistName;
-        public string      CharterName;
+        public string      SongName    = string.Empty;
+        public string      ArtistName  = string.Empty;
+        public string      CharterName = string.Empty;
         public int         BandScore;
         public StarAmount  BandStars;
         public double      ReplayLength;

@@ -10,38 +10,38 @@ namespace YARG.Core.Replays
     {
         #region Replay
 
-        public static void SerializeReplay(BinaryWriter writer, ReplayNew replayNew)
+        public static void SerializeReplay(BinaryWriter writer, Replay replay)
         {
             var blockStream = new MemoryStream();
             var blockWriter = new BinaryWriter(blockStream);
 
             // Header is always serialized into the main stream.
-            Sections.SerializeHeader(writer, replayNew.Header);
+            Sections.SerializeHeader(writer, replay.Header);
 
             // Metadata
-            Sections.SerializeMetadata(blockWriter, replayNew.Metadata);
+            Sections.SerializeMetadata(blockWriter, replay.Metadata);
             WriteBlock(writer, blockStream);
 
             // PresetContainer
-            Sections.SerializePresetContainer(blockWriter, replayNew.PresetContainer);
+            Sections.SerializePresetContainer(blockWriter, replay.PresetContainer);
             WriteBlock(writer, blockStream);
 
-            writer.Write(replayNew.PlayerCount);
-            foreach (var playerName in replayNew.PlayerNames)
+            writer.Write(replay.PlayerCount);
+            foreach (var playerName in replay.PlayerNames)
             {
                 writer.Write(playerName);
             }
 
-            foreach (var frame in replayNew.Frames)
+            foreach (var frame in replay.Frames)
             {
                 Sections.SerializeFrame(blockWriter, frame);
                 WriteBlock(writer, blockStream);
             }
         }
 
-        public static ReplayNew? DeserializeReplay(byte[] replayFileData, int version = 0)
+        public static Replay? DeserializeReplay(byte[] replayFileData, int version = 0)
         {
-            var replay = new ReplayNew();
+            var replay = new Replay();
             var memoryStream = new MemoryStream(replayFileData);
 
             var position = 0;

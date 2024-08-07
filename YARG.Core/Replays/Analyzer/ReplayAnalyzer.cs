@@ -16,14 +16,14 @@ namespace YARG.Core.Replays.Analyzer
     public class ReplayAnalyzer
     {
         private readonly SongChart _chart;
-        private readonly ReplayNew    _replay;
+        private readonly Replay    _replay;
 
         private readonly double _fps;
         private readonly bool   _doFrameUpdates;
 
         private readonly Random _random = new();
 
-        public ReplayAnalyzer(SongChart chart, ReplayNew replay, double fps)
+        public ReplayAnalyzer(SongChart chart, Replay replay, double fps)
         {
             _chart = chart;
             _replay = replay;
@@ -33,7 +33,7 @@ namespace YARG.Core.Replays.Analyzer
         }
 
         public static AnalysisResult[] AnalyzeReplay(SongChart chart,
-            ReplayNew replay, double fps = 0)
+            Replay replay, double fps = 0)
         {
             var analyzer = new ReplayAnalyzer(chart, replay, fps);
             return analyzer.Analyze();
