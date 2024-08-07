@@ -7,7 +7,7 @@ using YARG.Core.Extensions;
 
 namespace YARG.Core.Game
 {
-    public class YargProfile : IBinarySerializable
+    public class YargProfile
     {
         private const int PROFILE_VERSION = 1;
 
@@ -68,7 +68,7 @@ namespace YARG.Core.Game
         /// Use <see cref="AddSingleModifier"/> and <see cref="RemoveModifiers"/> to modify.
         /// </summary>
         [JsonProperty]
-        public Modifier CurrentModifiers { get; private set; }
+        public Modifier CurrentModifiers;
 
         public YargProfile()
         {
@@ -173,57 +173,6 @@ namespace YARG.Core.Game
             {
                 vocalsPart.ConvertAllToUnpitched();
             }
-        }
-
-        // For replay serialization
-        public void Serialize(BinaryWriter writer)
-        {
-            writer.Write(PROFILE_VERSION);
-
-            writer.Write(Id);
-
-            writer.Write(Name);
-
-            writer.Write(EnginePreset);
-
-            writer.Write(ThemePreset);
-            writer.Write(ColorProfile);
-            writer.Write(CameraPreset);
-
-            writer.Write((byte) CurrentInstrument);
-            writer.Write((byte) CurrentDifficulty);
-            writer.Write((ulong) CurrentModifiers);
-            writer.Write(HarmonyIndex);
-
-            writer.Write(NoteSpeed);
-            writer.Write(HighwayLength);
-            writer.Write(LeftyFlip);
-        }
-
-        public void Deserialize(BinaryReader reader, int version = 0)
-        {
-            version = reader.ReadInt32();
-
-            Id = reader.ReadGuid();
-
-            Name = reader.ReadString();
-
-            EnginePreset = reader.ReadGuid();
-
-            ThemePreset = reader.ReadGuid();
-            ColorProfile = reader.ReadGuid();
-            CameraPreset = reader.ReadGuid();
-
-            CurrentInstrument = (Instrument) reader.ReadByte();
-            CurrentDifficulty = (Difficulty) reader.ReadByte();
-            CurrentModifiers = (Modifier) reader.ReadUInt64();
-            HarmonyIndex = reader.ReadByte();
-
-            NoteSpeed = reader.ReadSingle();
-            HighwayLength = reader.ReadSingle();
-            LeftyFlip = reader.ReadBoolean();
-
-            GameMode = CurrentInstrument.ToGameMode();
         }
     }
 }

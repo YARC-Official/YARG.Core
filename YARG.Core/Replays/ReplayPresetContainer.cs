@@ -12,7 +12,7 @@ namespace YARG.Core.Replays
     /// A container that stores the presets used in a replay, and allows for easy access of
     /// said presets. The container has separate versioning from the replay itself.
     /// </summary>
-    public class ReplayPresetContainer : IBinarySerializable
+    public class ReplayPresetContainer
     {
         private static readonly JsonSerializerSettings _jsonSettings = new()
         {
@@ -79,7 +79,7 @@ namespace YARG.Core.Replays
             SerializeDict(writer, _cameraPresets);
         }
 
-        public void Deserialize(BinaryReader reader, int version = 0)
+        public void Deserialize(SpanBinaryReader reader, int version = 0)
         {
             // This container has separate versioning
             version = reader.ReadInt32();
@@ -102,7 +102,7 @@ namespace YARG.Core.Replays
             }
         }
 
-        private static void DeserializeDict<T>(BinaryReader reader, Dictionary<Guid, T> dict)
+        private static void DeserializeDict<T>(SpanBinaryReader reader, Dictionary<Guid, T> dict)
         {
             dict.Clear();
             int len = reader.ReadInt32();

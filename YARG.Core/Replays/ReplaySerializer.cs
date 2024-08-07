@@ -2,6 +2,7 @@
 using System.IO;
 using System.Security.Cryptography;
 using YARG.Core.Song;
+using YARG.Core.Utility;
 
 namespace YARG.Core.Replays
 {
@@ -38,19 +39,27 @@ namespace YARG.Core.Replays
             }
         }
 
-        public static ReplayNew? DeserializeReplay(BinaryReader reader, int version = 0)
+        public static ReplayNew? DeserializeReplay(byte[] replayFileData, int version = 0)
         {
             var replay = new ReplayNew();
+            var memoryStream = new MemoryStream(replayFileData);
 
-            var header = Sections.DeserializeHeader(reader, version);
+            var position = 0;
+            var wholeFileSpan = replayFileData.AsSpan();
+
+            var headerSpan = wholeFileSpan[position..0x20];
+            var spanReader = new SpanBinaryReader(headerSpan);
+
+            var header = Sections.DeserializeHeader(spanReader, version);
             if (header == null)
             {
                 return null;
             }
 
-            var position = reader.BaseStream.Position;
+            position = spanReader.Position;
+
             var sha = SHA1.Create();
-            var hash = sha.ComputeHash(reader.BaseStream);
+            var hash = sha.ComputeHash(replayFileData, position, replayFileData.Length - position);
             var computedChecksum = HashWrapper.Create(hash);
 
             if(!header.Value.ReplayChecksum.Equals(computedChecksum))
@@ -59,25 +68,50 @@ namespace YARG.Core.Replays
             }
 
             // Metadata
-            var metadataLength = ReadBlockLength(reader);
-            replay.Metadata = Sections.DeserializeMetadata(reader, version);
+            position = spanReader.Position;
+            spanReader = new SpanBinaryReader(wholeFileSpan[position..0x2]);
+            var metadataLength = ReadBlockLength(spanReader);
+
+            position = spanReader.Position;
+            spanReader = new SpanBinaryReader(wholeFileSpan[position..metadataLength]);
+            replay.Metadata = Sections.DeserializeMetadata(spanReader, version);
 
             // PresetContainer
-            var presetContainerLength = ReadBlockLength(reader);
-            replay.PresetContainer = Sections.DeserializePresetContainer(reader, version);
+            position = spanReader.Position;
+            spanReader = new SpanBinaryReader(wholeFileSpan[position..0x2]);
+            var presetContainerLength = ReadBlockLength(spanReader);
 
-            int playerCount = reader.ReadInt32();
+            position = spanReader.Position;
+            spanReader = new SpanBinaryReader(wholeFileSpan[position..presetContainerLength]);
+            replay.PresetContainer = Sections.DeserializePresetContainer(spanReader, version);
+
+            // Player names
+            position = spanReader.Position;
+            spanReader = new SpanBinaryReader(wholeFileSpan[position..]);
+
+            int playerCount = spanReader.ReadInt32();
+
+            // Hard limit on player count to prevent OOM
+            if (playerCount > 255)
+            {
+                return null;
+            }
+
             var playerNames = new string[playerCount];
             for (int i = 0; i < playerCount; i++)
             {
-                playerNames[i] = reader.ReadString();
+                playerNames[i] = spanReader.ReadString();
             }
+
+            // Player Frames
+            position = spanReader.Position;
+            spanReader = new SpanBinaryReader(wholeFileSpan[position..]);
 
             replay.Frames = new ReplayFrame[playerCount];
 
             for (int i = 0; i < playerCount; i++)
             {
-                replay.Frames[i] = Sections.DeserializeFrame(reader, version);
+                replay.Frames[i] = Sections.DeserializeFrame(spanReader, version);
             }
 
             return replay;
@@ -127,7 +161,7 @@ namespace YARG.Core.Replays
             return length;
         }
 
-        private static int ReadBlockLength(BinaryReader reader)
+        private static int ReadBlockLength(SpanBinaryReader reader)
         {
             Span<ushort> data = stackalloc ushort[2] { 0x00, 0x00 };
 

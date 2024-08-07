@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using YARG.Core.Utility;
 
 namespace YARG.Core.Replays
 {
@@ -24,7 +25,7 @@ namespace YARG.Core.Replays
             }
         }
 
-        public static ReplayNew? DeserializeReplay(BinaryReader reader, int version = 0)
+        public static ReplayNew? DeserializeReplay(SpanBinaryReader reader, int version = 0)
         {
             var replay = new ReplayNew();
 
