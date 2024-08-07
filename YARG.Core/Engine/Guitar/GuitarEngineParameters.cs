@@ -9,8 +9,8 @@ namespace YARG.Core.Engine.Guitar
         public double StrumLeniency;
         public double StrumLeniencySmall;
 
-        public bool InfiniteFrontEnd { get; private set; }
-        public bool AntiGhosting     { get; private set; }
+        public bool InfiniteFrontEnd;
+        public bool AntiGhosting;
 
         public GuitarEngineParameters()
         {

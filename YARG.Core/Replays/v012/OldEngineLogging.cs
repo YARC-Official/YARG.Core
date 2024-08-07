@@ -67,7 +67,7 @@ namespace YARG.Core.Replays
         }
     }
 
-    public abstract class BaseEngineEvent : IBinarySerializable
+    public abstract class BaseEngineEvent
     {
         public EngineEventType EventType { get; }
 

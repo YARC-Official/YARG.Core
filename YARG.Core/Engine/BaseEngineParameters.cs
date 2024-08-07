@@ -12,10 +12,9 @@ namespace YARG.Core.Engine
 
         public int MaxMultiplier;
 
-        public double StarPowerWhammyBuffer { get; private set; }
+        public float[] StarMultiplierThresholds;
 
-        public float[] StarMultiplierThresholds { get; private set; }
-
+        public double StarPowerWhammyBuffer;
         public double SongSpeed;
 
         protected BaseEngineParameters()
