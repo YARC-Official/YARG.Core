@@ -1,14 +1,16 @@
-﻿using System;
+using System;
 using System.IO;
 using YARG.Core.Engine;
 using YARG.Core.Engine.Drums;
 using YARG.Core.Engine.Guitar;
 using YARG.Core.Engine.ProKeys;
 using YARG.Core.Engine.Vocals;
+using YARG.Core.Extensions;
 using YARG.Core.Game;
 using YARG.Core.Input;
 using YARG.Core.IO;
 using YARG.Core.Song;
+using YARG.Core.Utility;
 
 namespace YARG.Core.Replays
 {
@@ -23,17 +25,17 @@ namespace YARG.Core.Replays
             {
                 header.Magic.Serialize(writer);
 
-                writer.Write(header.ReplayVersion);
-                writer.Write(header.EngineVersion);
+                writer.Write((int)header.ReplayVersion);
+                writer.Write((int)header.EngineVersion);
 
                 header.ReplayChecksum.Serialize(writer);
             }
 
-            public static ReplayHeader? DeserializeHeader(BinaryReader reader, int version = 0)
+            public static ReplayHeader? DeserializeHeader(SpanBinaryReader reader, int version = 0)
             {
                 var header = new ReplayHeader();
 
-                var magic = EightCC.Read(reader.BaseStream);
+                var magic = new EightCC(reader.ReadBytes(8));
 
                 if (magic != ReplayIO.REPLAY_MAGIC_HEADER)
                 {
@@ -43,7 +45,7 @@ namespace YARG.Core.Replays
                 header.Magic = magic;
                 header.ReplayVersion = (short) reader.ReadInt32();
                 header.EngineVersion = (short) reader.ReadInt32();
-                header.ReplayChecksum = HashWrapper.Deserialize(reader);
+                header.ReplayChecksum = HashWrapper.Create(reader.ReadBytes(HashWrapper.HASH_SIZE_IN_BYTES));
 
                 return header;
             }
@@ -64,7 +66,7 @@ namespace YARG.Core.Replays
                 metadata.SongChecksum.Serialize(writer);
             }
 
-            public static ReplayMetadata DeserializeMetadata(BinaryReader reader, int version = 0)
+            public static ReplayMetadata DeserializeMetadata(SpanBinaryReader reader, int version = 0)
             {
                 var metadata = new ReplayMetadata();
 
@@ -75,7 +77,7 @@ namespace YARG.Core.Replays
                 metadata.BandStars = (StarAmount) reader.ReadByte();
                 metadata.ReplayLength = reader.ReadDouble();
                 metadata.Date = DateTime.FromBinary(reader.ReadInt64());
-                metadata.SongChecksum = HashWrapper.Deserialize(reader);
+                metadata.SongChecksum = HashWrapper.Create(reader.ReadBytes(HashWrapper.HASH_SIZE_IN_BYTES));
 
                 return metadata;
             }
@@ -89,7 +91,7 @@ namespace YARG.Core.Replays
                 presetContainer.Serialize(writer);
             }
 
-            public static ReplayPresetContainer DeserializePresetContainer(BinaryReader reader, int version = 0)
+            public static ReplayPresetContainer DeserializePresetContainer(SpanBinaryReader reader, int version = 0)
             {
                 var presetContainer = new ReplayPresetContainer();
                 presetContainer.Deserialize(reader, version);
@@ -115,7 +117,7 @@ namespace YARG.Core.Replays
                 }
             }
 
-            public static ReplayFrame DeserializeFrame(BinaryReader reader, int version = 0)
+            public static ReplayFrame DeserializeFrame(SpanBinaryReader reader, int version = 0)
             {
                 var frame = new ReplayFrame();
                 frame.PlayerInfo = DeserializePlayerInfo(reader, version);
@@ -138,7 +140,11 @@ namespace YARG.Core.Replays
                 if (version <= 5)
                 {
                     var eventLogger = new EngineEventLogger();
-                    eventLogger.Deserialize(reader, version);
+
+                    var memoryStream = new MemoryStream(reader.Data.ToArray());
+                    var logReader = new BinaryReader(memoryStream);
+                    logReader.BaseStream.Seek(reader.Position, SeekOrigin.Begin);
+                    eventLogger.Deserialize(logReader, version);
                 }
 
                 return frame;
@@ -152,18 +158,68 @@ namespace YARG.Core.Replays
             {
                 writer.Write(playerInfo.PlayerId);
                 writer.Write(playerInfo.ColorProfileId);
-                playerInfo.Profile.Serialize(writer);
+                SerializeYargProfile(writer, playerInfo.Profile);
             }
 
-            public static ReplayPlayerInfo DeserializePlayerInfo(BinaryReader reader, int version = 0)
+            public static ReplayPlayerInfo DeserializePlayerInfo(SpanBinaryReader reader, int version = 0)
             {
                 var playerInfo = new ReplayPlayerInfo();
                 playerInfo.PlayerId = reader.ReadInt32();
                 playerInfo.ColorProfileId = reader.ReadInt32();
 
-                playerInfo.Profile = new YargProfile();
-                playerInfo.Profile.Deserialize(reader, version);
+                playerInfo.Profile = DeserializeYargProfile(reader, version);
                 return playerInfo;
+            }
+
+            #endregion
+
+            #region Profile
+
+            public static void SerializeYargProfile(BinaryWriter writer, YargProfile profile)
+            {
+                writer.Write(profile.Id);
+                writer.Write(profile.Name);
+                writer.Write(profile.EnginePreset);
+                writer.Write(profile.ThemePreset);
+                writer.Write(profile.ColorProfile);
+                writer.Write(profile.CameraPreset);
+                writer.Write((byte) profile.CurrentInstrument);
+                writer.Write((byte) profile.CurrentDifficulty);
+                writer.Write((ulong) profile.CurrentModifiers);
+                writer.Write(profile.HarmonyIndex);
+                writer.Write(profile.NoteSpeed);
+                writer.Write(profile.HighwayLength);
+                writer.Write(profile.LeftyFlip);
+            }
+
+            public static YargProfile DeserializeYargProfile(SpanBinaryReader reader, int version = 0)
+            {
+                var profile = new YargProfile();
+
+                version = reader.ReadInt32();
+
+                profile.Id = reader.ReadGuid();
+
+                profile.Name = reader.ReadString();
+
+                profile.EnginePreset = reader.ReadGuid();
+
+                profile.ThemePreset = reader.ReadGuid();
+                profile.ColorProfile = reader.ReadGuid();
+                profile.CameraPreset = reader.ReadGuid();
+
+                profile.CurrentInstrument = (Instrument) reader.ReadByte();
+                profile.CurrentDifficulty = (Difficulty) reader.ReadByte();
+                profile.CurrentModifiers = (Modifier) reader.ReadUInt64();
+                profile.HarmonyIndex = reader.ReadByte();
+
+                profile.NoteSpeed = reader.ReadSingle();
+                profile.HighwayLength = reader.ReadSingle();
+                profile.LeftyFlip = reader.ReadBoolean();
+
+                profile.GameMode = profile.CurrentInstrument.ToGameMode();
+
+                return profile;
             }
 
             #endregion
@@ -206,11 +262,15 @@ namespace YARG.Core.Replays
                 }
             }
 
-            public static BaseEngineParameters DeserializeEngineParameters(BinaryReader reader, GameMode gameMode,
+            public static BaseEngineParameters DeserializeEngineParameters(SpanBinaryReader reader, GameMode gameMode,
                 int version = 0)
             {
-                var hitWindow = new HitWindowSettings();
-                hitWindow.Deserialize(reader, version);
+                var maxWindow = reader.ReadDouble();
+                var minWindow = reader.ReadDouble();
+                var isDynamic = reader.ReadBoolean();
+                var frontToBackRatio = reader.ReadDouble();
+
+                var hitWindow = new HitWindowSettings(maxWindow, minWindow, frontToBackRatio, isDynamic, 0, 0, 0);
 
                 int maxMultiplier = reader.ReadInt32();
                 float[] starMultiplierThresholds = new float[reader.ReadInt32()];
@@ -278,7 +338,7 @@ namespace YARG.Core.Replays
                 writer.Write(stats.Stars);
             }
 
-            public static BaseStats DeserializeStats(BinaryReader reader, GameMode gameMode, int version = 0)
+            public static BaseStats DeserializeStats(SpanBinaryReader reader, GameMode gameMode, int version = 0)
             {
                 var committedScore = reader.ReadInt32();
                 var pendingScore = reader.ReadInt32();

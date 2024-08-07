@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using YARG.Core.Song;
 using YARG.Core.Utility;
 
 namespace YARG.Core.Replays
