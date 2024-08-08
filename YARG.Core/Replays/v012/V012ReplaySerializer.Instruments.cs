@@ -113,8 +113,6 @@ namespace YARG.Core.Replays
 
             public static void SerializeVocalsParameters(BinaryWriter writer, VocalsEngineParameters parameters)
             {
-                writer.Write(parameters.PitchWindow);
-                writer.Write(parameters.PitchWindowPerfect);
                 writer.Write(parameters.PhraseHitPercent);
                 writer.Write(parameters.ApproximateVocalFps);
                 writer.Write(parameters.SingToActivateStarPower);
@@ -125,8 +123,6 @@ namespace YARG.Core.Replays
             {
                 var parameters = new VocalsEngineParameters();
 
-                parameters.PitchWindow = reader.ReadSingle();
-                parameters.PitchWindowPerfect = reader.ReadSingle();
                 parameters.PhraseHitPercent = reader.ReadDouble();
                 parameters.ApproximateVocalFps = reader.ReadDouble();
                 parameters.SingToActivateStarPower = reader.ReadBoolean();
