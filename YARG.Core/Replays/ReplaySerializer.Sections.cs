@@ -31,7 +31,7 @@ namespace YARG.Core.Replays
                 header.ReplayChecksum.Serialize(writer);
             }
 
-            public static ReplayHeader? DeserializeHeader(SpanBinaryReader reader, int version = 0)
+            public static ReplayHeader? DeserializeHeader(ref SpanBinaryReader reader, int version = 0)
             {
                 var header = new ReplayHeader();
 
@@ -65,7 +65,7 @@ namespace YARG.Core.Replays
                 metadata.SongChecksum.Serialize(writer);
             }
 
-            public static ReplayMetadata DeserializeMetadata(SpanBinaryReader reader, int version = 0)
+            public static ReplayMetadata DeserializeMetadata(ref SpanBinaryReader reader, int version = 0)
             {
                 var metadata = new ReplayMetadata();
 
@@ -90,11 +90,11 @@ namespace YARG.Core.Replays
                 presetContainer.Serialize(writer);
             }
 
-            public static ReplayPresetContainer DeserializePresetContainer(SpanBinaryReader reader, int version = 0)
+            public static ReplayPresetContainer DeserializePresetContainer(ref SpanBinaryReader reader, int version = 0)
             {
                 var presetContainer = new ReplayPresetContainer();
 
-                presetContainer.Deserialize(reader, version);
+                presetContainer.Deserialize(ref reader, version);
                 return presetContainer;
             }
 
@@ -117,13 +117,13 @@ namespace YARG.Core.Replays
                 }
             }
 
-            public static ReplayFrame DeserializeFrame(SpanBinaryReader reader, int version = 0)
+            public static ReplayFrame DeserializeFrame(ref SpanBinaryReader reader, int version = 0)
             {
                 var frame = new ReplayFrame();
-                frame.PlayerInfo = DeserializePlayerInfo(reader, version);
+                frame.PlayerInfo = DeserializePlayerInfo(ref reader, version);
                 frame.EngineParameters =
-                    DeserializeEngineParameters(reader, frame.PlayerInfo.Profile.GameMode, version);
-                frame.Stats = DeserializeStats(reader, frame.PlayerInfo.Profile.GameMode, version);
+                    DeserializeEngineParameters(ref reader, frame.PlayerInfo.Profile.GameMode, version);
+                frame.Stats = DeserializeStats(ref reader, frame.PlayerInfo.Profile.GameMode, version);
 
                 frame.InputCount = reader.ReadInt32();
                 frame.Inputs = new GameInput[frame.InputCount];
@@ -150,13 +150,13 @@ namespace YARG.Core.Replays
                 SerializeYargProfile(writer, playerInfo.Profile);
             }
 
-            public static ReplayPlayerInfo DeserializePlayerInfo(SpanBinaryReader reader, int version = 0)
+            public static ReplayPlayerInfo DeserializePlayerInfo(ref SpanBinaryReader reader, int version = 0)
             {
                 var playerInfo = new ReplayPlayerInfo();
                 playerInfo.PlayerId = reader.ReadInt32();
                 playerInfo.ColorProfileId = reader.ReadInt32();
 
-                playerInfo.Profile = DeserializeYargProfile(reader, version);
+                playerInfo.Profile = DeserializeYargProfile(ref reader, version);
 
                 return playerInfo;
             }
@@ -182,7 +182,7 @@ namespace YARG.Core.Replays
                 writer.Write(profile.LeftyFlip);
             }
 
-            public static YargProfile DeserializeYargProfile(SpanBinaryReader reader, int version = 0)
+            public static YargProfile DeserializeYargProfile(ref SpanBinaryReader reader, int version = 0)
             {
                 var profile = new YargProfile();
 
@@ -253,7 +253,7 @@ namespace YARG.Core.Replays
                 }
             }
 
-            public static BaseEngineParameters DeserializeEngineParameters(SpanBinaryReader reader, GameMode gameMode,
+            public static BaseEngineParameters DeserializeEngineParameters(ref SpanBinaryReader reader, GameMode gameMode,
                 int version = 0)
             {
                 // Hit Window
@@ -282,19 +282,19 @@ namespace YARG.Core.Replays
                 {
                     case GameMode.FiveFretGuitar:
                     case GameMode.SixFretGuitar:
-                        engineParameters = Instruments.DeserializeGuitarParameters(reader, version);
+                        engineParameters = Instruments.DeserializeGuitarParameters(ref reader, version);
                         break;
                     case GameMode.FourLaneDrums:
                     case GameMode.FiveLaneDrums:
-                        engineParameters = Instruments.DeserializeDrumsParameters(reader, version);
+                        engineParameters = Instruments.DeserializeDrumsParameters(ref reader, version);
                         break;
                     case GameMode.ProGuitar:
                         break;
                     case GameMode.ProKeys:
-                        engineParameters = Instruments.DeserializeProKeysParameters(reader, version);
+                        engineParameters = Instruments.DeserializeProKeysParameters(ref reader, version);
                         break;
                     case GameMode.Vocals:
-                        engineParameters = Instruments.DeserializeVocalsParameters(reader, version);
+                        engineParameters = Instruments.DeserializeVocalsParameters(ref reader, version);
                         break;
                     default:
                         throw new ArgumentOutOfRangeException(nameof(gameMode), gameMode, null);
@@ -354,7 +354,7 @@ namespace YARG.Core.Replays
                 }
             }
 
-            public static BaseStats DeserializeStats(SpanBinaryReader reader, GameMode gameMode, int version = 0)
+            public static BaseStats DeserializeStats(ref SpanBinaryReader reader, GameMode gameMode, int version = 0)
             {
                 var committedScore = reader.ReadInt32();
                 var pendingScore = reader.ReadInt32();
@@ -380,22 +380,22 @@ namespace YARG.Core.Replays
                     case GameMode.FiveFretGuitar:
                     case GameMode.SixFretGuitar:
                         stats = new GuitarStats();
-                        Instruments.DeserializeGuitarStats(reader, version);
+                        Instruments.DeserializeGuitarStats(ref reader, version);
                         break;
                     case GameMode.FourLaneDrums:
                     case GameMode.FiveLaneDrums:
                         stats = new DrumsStats();
-                        Instruments.DeserializeDrumsStats(reader, version);
+                        Instruments.DeserializeDrumsStats(ref reader, version);
                         break;
                     case GameMode.ProGuitar:
                         break;
                     case GameMode.ProKeys:
                         stats = new ProKeysStats();
-                        Instruments.DeserializeProKeysStats(reader, version);
+                        Instruments.DeserializeProKeysStats(ref reader, version);
                         break;
                     case GameMode.Vocals:
                         stats = new VocalsStats();
-                        Instruments.DeserializeVocalsStats(reader, version);
+                        Instruments.DeserializeVocalsStats(ref reader, version);
                         break;
                     default:
                         throw new ArgumentOutOfRangeException(nameof(gameMode), gameMode, null);

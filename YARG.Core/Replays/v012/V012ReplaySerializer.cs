@@ -45,7 +45,7 @@ namespace YARG.Core.Replays
 
             var replay = new Replay();
 
-            var header = Sections.DeserializeHeader(reader, version);
+            var header = Sections.DeserializeHeader(ref reader, version);
             if (header == null)
             {
                 return (ReplayReadResult.NotAReplay, null);
@@ -53,8 +53,8 @@ namespace YARG.Core.Replays
 
             replay.Header = header.Value;
 
-            replay.Metadata = Sections.DeserializeMetadata(reader, version);
-            replay.PresetContainer = Sections.DeserializePresetContainer(reader, version);
+            replay.Metadata = Sections.DeserializeMetadata(ref reader, version);
+            replay.PresetContainer = Sections.DeserializePresetContainer(ref reader, version);
 
             int playerCount = reader.ReadInt32();
 
@@ -73,7 +73,7 @@ namespace YARG.Core.Replays
 
             for (int i = 0; i < playerCount; i++)
             {
-                replay.Frames[i] = Sections.DeserializeFrame(reader, version);
+                replay.Frames[i] = Sections.DeserializeFrame(ref reader, version);
             }
 
             return (ReplayReadResult.Valid, replay);

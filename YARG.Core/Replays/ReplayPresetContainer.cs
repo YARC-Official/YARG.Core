@@ -79,13 +79,13 @@ namespace YARG.Core.Replays
             SerializeDict(writer, _cameraPresets);
         }
 
-        public void Deserialize(SpanBinaryReader reader, int version = 0)
+        public void Deserialize(ref SpanBinaryReader reader, int version = 0)
         {
             // This container has separate versioning
             version = reader.ReadInt32();
 
-            DeserializeDict(reader, _colorProfiles);
-            DeserializeDict(reader, _cameraPresets);
+            DeserializeDict(ref reader, _colorProfiles);
+            DeserializeDict(ref reader, _cameraPresets);
         }
 
         private static void SerializeDict<T>(BinaryWriter writer, Dictionary<Guid, T> dict)
@@ -102,7 +102,7 @@ namespace YARG.Core.Replays
             }
         }
 
-        private static void DeserializeDict<T>(SpanBinaryReader reader, Dictionary<Guid, T> dict)
+        private static void DeserializeDict<T>(ref SpanBinaryReader reader, Dictionary<Guid, T> dict)
         {
             dict.Clear();
             int len = reader.ReadInt32();
