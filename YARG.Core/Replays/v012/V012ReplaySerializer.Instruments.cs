@@ -91,14 +91,15 @@ namespace YARG.Core.Replays
 
             public static void SerializeDrumsStats(BinaryWriter writer, DrumsStats stats)
             {
-                writer.Write(stats.Overhits);
+                //writer.Write(stats.Overhits);
             }
 
             public static DrumsStats DeserializeDrumsStats(ref SpanBinaryReader reader, int version = 0)
             {
                 var stats = new DrumsStats();
 
-                stats.Overhits = reader.ReadInt32();
+                // v0.12 never wrote overhits - whoopsie
+                //stats.Overhits = reader.ReadInt32();
 
                 return stats;
             }
