@@ -127,7 +127,49 @@ namespace YARG.Core.Replays
                 parameters.PhraseHitPercent = reader.ReadDouble();
                 parameters.ApproximateVocalFps = reader.ReadDouble();
                 parameters.SingToActivateStarPower = reader.ReadBoolean();
-                parameters.PointsPerPhrase = reader.ReadInt32();
+
+                var positionUpToPhrasePts = reader.Position;
+
+                // This variable was never accounted for in v0.12 versioning which means it's a bit tricky to determine
+                // if it was written.
+                var ptsPerPhrase = reader.ReadInt32();
+
+                var positionAfterPhrasePts = reader.Position;
+
+                if (ptsPerPhrase != 400 && ptsPerPhrase != 800 && ptsPerPhrase != 1600 && ptsPerPhrase != 2000)
+                {
+                    // If the int32 read isn't any of these values, PointsPerPhrase was never written
+                    reader.Seek(positionUpToPhrasePts);
+                    parameters.PointsPerPhrase = 2000;
+                }
+                else
+                {
+                    // If it was one of these values, it could still not be written (it could be the CommittedScore)
+                    // We need to check the next few vars
+
+                    var committedScore = reader.ReadInt32();
+                    var pendingScore = reader.ReadInt32();
+                    var combo = reader.ReadInt32();
+                    var maxCombo = reader.ReadInt32();
+                    var scoreMultiplier = reader.ReadInt32();
+                    var notesHit = reader.ReadInt32();
+
+                    if (pendingScore != 0 || maxCombo > notesHit)
+                    {
+                        // pendingScore should always be 0 in vocals
+                        // maxCombo can never be bigger than the number of notes hit
+
+                        // Walk back the position because PointsPerPhrase was never written
+                        reader.Seek(positionUpToPhrasePts);
+                    }
+                    else
+                    {
+                        // If all these checks pass, we can assume PointsPerPhrase was written
+                        // Seek back to the position after reading PointsPerPhrase
+                        reader.Seek(positionAfterPhrasePts);
+                        parameters.PointsPerPhrase = ptsPerPhrase;
+                    }
+                }
 
                 return parameters;
             }
