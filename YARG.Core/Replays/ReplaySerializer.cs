@@ -39,10 +39,9 @@ namespace YARG.Core.Replays
             }
         }
 
-        public static Replay? DeserializeReplay(byte[] replayFileData, int version = 0)
+        public static (ReplayReadResult Result, Replay? Replay) DeserializeReplay(byte[] replayFileData, int version = 0)
         {
             var replay = new Replay();
-            var memoryStream = new MemoryStream(replayFileData);
 
             var position = 0;
             var wholeFileSpan = replayFileData.AsSpan();
@@ -53,7 +52,7 @@ namespace YARG.Core.Replays
             var header = Sections.DeserializeHeader(spanReader, version);
             if (header == null)
             {
-                return null;
+                return (ReplayReadResult.NotAReplay, null);
             }
 
             position = spanReader.Position;
@@ -64,7 +63,7 @@ namespace YARG.Core.Replays
 
             if(!header.Value.ReplayChecksum.Equals(computedChecksum))
             {
-                return null;
+                return (ReplayReadResult.Corrupted, null);
             }
 
             // Metadata
@@ -94,7 +93,7 @@ namespace YARG.Core.Replays
             // Hard limit on player count to prevent OOM
             if (playerCount > 255)
             {
-                return null;
+                return (ReplayReadResult.Corrupted, null);
             }
 
             var playerNames = new string[playerCount];
@@ -114,7 +113,7 @@ namespace YARG.Core.Replays
                 replay.Frames[i] = Sections.DeserializeFrame(spanReader, version);
             }
 
-            return replay;
+            return (ReplayReadResult.Valid, replay);
         }
 
         #endregion
