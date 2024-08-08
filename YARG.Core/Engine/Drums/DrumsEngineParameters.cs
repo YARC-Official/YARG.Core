@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 
 namespace YARG.Core.Engine.Drums
 {
@@ -16,11 +16,18 @@ namespace YARG.Core.Engine.Drums
         /// </summary>
         public DrumMode Mode;
 
-        //Ghost notes are below this threshold, Accent notes are above 1 - threshold
-        public float VelocityThreshold { get; private set; }
+        /// <summary>
+        /// Velocity threshold for Drum note types.
+        /// </summary>
+        /// <remarks>
+        /// Ghost notes are below the threshold, Accent notes are above the threshold.
+        /// </remarks>
+        public float VelocityThreshold;
 
-        // The maximum allowed time (seconds) between notes to use context-sensitive velocity scoring
-        public float SituationalVelocityWindow { get; private set; }
+        /// <summary>
+        /// The maximum allowed time in seconds between notes to use context-sensitive velocity scoring.
+        /// </summary>
+        public float SituationalVelocityWindow;
 
         public DrumsEngineParameters()
         {
