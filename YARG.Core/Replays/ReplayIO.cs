@@ -32,6 +32,30 @@ namespace YARG.Core.Replays
             0, 1, 2, 3
         };
 
+        public static HashWrapper? WriteReplay(string path, Replay replay)
+        {
+            using var stream = File.Open(path, FileMode.CreateNew, FileAccess.ReadWrite);
+            using var writer = new BinaryWriter(stream);
+
+            try
+            {
+                replay.Header = new ReplayHeader
+                {
+                    Magic = REPLAY_MAGIC_HEADER,
+                    ReplayVersion = REPLAY_VERSION,
+                    EngineVersion = ENGINE_VERSION
+                };
+                ReplaySerializer.SerializeReplay(writer, replay);
+                return replay.Header.ReplayChecksum;
+            }
+            catch (Exception ex)
+            {
+                YargLogger.LogException(ex, "Failed to write replay file");
+            }
+
+            return null;
+        }
+
         public static ReplayReadResult ReadReplay(string path, out Replay? replay)
         {
             replay = null;
