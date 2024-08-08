@@ -20,7 +20,6 @@ namespace YARG.Core.Replays
                 writer.Write(parameters.HopoLeniency);
                 writer.Write(parameters.StrumLeniency);
                 writer.Write(parameters.StrumLeniencySmall);
-                writer.Write(parameters.StarPowerWhammyBuffer);
                 writer.Write(parameters.InfiniteFrontEnd);
                 writer.Write(parameters.AntiGhosting);
             }
