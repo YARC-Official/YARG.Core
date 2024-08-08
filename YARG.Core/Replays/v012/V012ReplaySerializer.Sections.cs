@@ -141,10 +141,7 @@ namespace YARG.Core.Replays
                 {
                     var eventLogger = new EngineEventLogger();
 
-                    var memoryStream = new MemoryStream(reader.Data.ToArray());
-                    var logReader = new BinaryReader(memoryStream);
-                    logReader.BaseStream.Seek(reader.Position, SeekOrigin.Begin);
-                    eventLogger.Deserialize(logReader, version);
+                    eventLogger.Deserialize(ref reader, version);
                 }
 
                 return frame;
