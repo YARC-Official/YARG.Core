@@ -276,13 +276,15 @@ namespace YARG.Core.Replays
                 var dwGamma = reader.ReadDouble();
 
                 int maxMultiplier = reader.ReadInt32();
-                float[] starMultiplierThresholds = new float[reader.ReadInt32()];
+                double whammyBuffer = reader.ReadDouble();
+                int starThresholdsLength = reader.ReadInt32();
+
+                float[] starMultiplierThresholds = new float[starThresholdsLength];
                 for (int i = 0; i < starMultiplierThresholds.Length; i++)
                 {
                     starMultiplierThresholds[i] = reader.ReadSingle();
                 }
 
-                double spWhammyBuffer = reader.ReadDouble();
                 double songSpeed = reader.ReadDouble();
 
                 BaseEngineParameters engineParameters = null!;
@@ -313,7 +315,7 @@ namespace YARG.Core.Replays
                 engineParameters.HitWindow = hitWindow;
                 engineParameters.MaxMultiplier = maxMultiplier;
                 engineParameters.StarMultiplierThresholds = starMultiplierThresholds;
-                engineParameters.StarPowerWhammyBuffer = spWhammyBuffer;
+                engineParameters.StarPowerWhammyBuffer = whammyBuffer;
                 engineParameters.SongSpeed = songSpeed;
 
                 return engineParameters;
