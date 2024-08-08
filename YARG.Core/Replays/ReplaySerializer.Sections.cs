@@ -329,6 +329,7 @@ namespace YARG.Core.Replays
             {
                 writer.Write(stats.CommittedScore);
                 writer.Write(stats.PendingScore);
+                writer.Write(stats.SustainScore);
                 writer.Write(stats.Combo);
                 writer.Write(stats.MaxCombo);
                 writer.Write(stats.ScoreMultiplier);
@@ -337,6 +338,7 @@ namespace YARG.Core.Replays
                 writer.Write(stats.StarPowerTickAmount);
                 writer.Write(stats.TotalStarPowerTicks);
                 writer.Write(stats.TimeInStarPower);
+                writer.Write(stats.WhammyTicks);
                 writer.Write(stats.IsStarPowerActive);
                 writer.Write(stats.StarPowerPhrasesHit);
                 writer.Write(stats.TotalStarPowerPhrases);
