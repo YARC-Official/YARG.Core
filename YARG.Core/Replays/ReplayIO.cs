@@ -74,6 +74,8 @@ namespace YARG.Core.Replays
                 {
                     var header = Unsafe.Read<ReplayHeader>(ptr);
 
+                    header.Magic = new EightCC(data);
+
                     if (header.Magic != REPLAY_MAGIC_HEADER)
                     {
                         return ReplayReadResult.NotAReplay;
