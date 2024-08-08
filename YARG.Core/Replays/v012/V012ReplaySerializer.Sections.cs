@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using YARG.Core.Engine;
 using YARG.Core.Engine.Drums;
@@ -60,7 +60,7 @@ namespace YARG.Core.Replays
                 writer.Write(metadata.ArtistName);
                 writer.Write(metadata.CharterName);
                 writer.Write(metadata.BandScore);
-                writer.Write((int) metadata.BandStars);
+                writer.Write((byte) metadata.BandStars);
                 writer.Write(metadata.ReplayLength);
                 writer.Write(metadata.Date.ToBinary());
                 metadata.SongChecksum.Serialize(writer);
