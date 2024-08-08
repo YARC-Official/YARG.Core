@@ -1,5 +1,3 @@
-using System.IO;
-
 namespace YARG.Core.Engine.Guitar
 {
     public class GuitarEngineParameters : BaseEngineParameters
@@ -28,32 +26,6 @@ namespace YARG.Core.Engine.Guitar
 
             InfiniteFrontEnd = infiniteFrontEnd;
             AntiGhosting = antiGhosting;
-        }
-
-        public override void Serialize(BinaryWriter writer)
-        {
-            base.Serialize(writer);
-
-            writer.Write(HopoLeniency);
-
-            writer.Write(StrumLeniency);
-            writer.Write(StrumLeniencySmall);
-
-            writer.Write(InfiniteFrontEnd);
-            writer.Write(AntiGhosting);
-        }
-
-        public override void Deserialize(BinaryReader reader, int version = 0)
-        {
-            base.Deserialize(reader, version);
-
-            HopoLeniency = reader.ReadDouble();
-
-            StrumLeniency = reader.ReadDouble();
-            StrumLeniencySmall = reader.ReadDouble();
-
-            InfiniteFrontEnd = reader.ReadBoolean();
-            AntiGhosting = reader.ReadBoolean();
         }
 
         public override string ToString()
