@@ -88,7 +88,7 @@ namespace YARG.Core.Utility
         {
             int length = Read7BitEncodedInt();
 
-            var value = Encoding.Unicode.GetString(Data.Slice(Position, length));
+            var value = Encoding.UTF8.GetString(Data.Slice(Position, length));
             Position += length;
 
             return value;
