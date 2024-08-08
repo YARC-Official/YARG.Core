@@ -72,6 +72,8 @@ namespace YARG.Core.Replays
             {
                 fixed(byte* ptr = data)
                 {
+                    // This is technically invalid for v0.12 replays as the header size was changed
+                    // But because the engine version never changed from 0 it doesn't actually matter LOL
                     var header = Unsafe.Read<ReplayHeader>(ptr);
 
                     header.Magic = new EightCC(data);
