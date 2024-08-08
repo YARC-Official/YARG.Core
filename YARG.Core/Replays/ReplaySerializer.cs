@@ -15,8 +15,7 @@ namespace YARG.Core.Replays
             var blockStream = new MemoryStream();
             var blockWriter = new BinaryWriter(blockStream);
 
-            // Header is always serialized into the main stream.
-            Sections.SerializeHeader(writer, replay.Header);
+            writer.BaseStream.Seek(ReplayHeader.SIZE, SeekOrigin.Begin);
 
             // Metadata
             Sections.SerializeMetadata(blockWriter, replay.Metadata);
@@ -37,6 +36,16 @@ namespace YARG.Core.Replays
                 Sections.SerializeFrame(blockWriter, frame);
                 WriteBlock(writer, blockStream);
             }
+
+            writer.BaseStream.Seek(ReplayHeader.SIZE, SeekOrigin.Begin);
+
+            var sha = SHA1.Create();
+            var hashWrapper = HashWrapper.Create(sha.ComputeHash(writer.BaseStream));
+            replay.Header.ReplayChecksum = hashWrapper;
+
+            writer.BaseStream.Seek(0, SeekOrigin.Begin);
+
+            Sections.SerializeHeader(writer, replay.Header);
         }
 
         public static (ReplayReadResult Result, Replay? Replay) DeserializeReplay(byte[] replayFileData, int version = 0)

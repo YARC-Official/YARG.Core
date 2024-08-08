@@ -1,5 +1,7 @@
 ﻿using System;
 using System.IO;
+using System.Security.Cryptography;
+using YARG.Core.Song;
 using YARG.Core.Utility;
 
 namespace YARG.Core.Replays
@@ -10,7 +12,8 @@ namespace YARG.Core.Replays
 
         public static void SerializeReplay(BinaryWriter writer, Replay replay)
         {
-            Sections.SerializeHeader(writer, replay.Header);
+            writer.BaseStream.Seek(ReplayHeader.SIZE, SeekOrigin.Begin);
+
             Sections.SerializeMetadata(writer, replay.Metadata);
             Sections.SerializePresetContainer(writer, replay.PresetContainer);
 
@@ -24,6 +27,16 @@ namespace YARG.Core.Replays
             {
                 Sections.SerializeFrame(writer, frame);
             }
+
+            writer.BaseStream.Seek(ReplayHeader.SIZE, SeekOrigin.Begin);
+
+            var sha = SHA1.Create();
+            var hashWrapper = HashWrapper.Create(sha.ComputeHash(writer.BaseStream));
+            replay.Header.ReplayChecksum = hashWrapper;
+
+            writer.BaseStream.Seek(0, SeekOrigin.Begin);
+
+            Sections.SerializeHeader(writer, replay.Header);
         }
 
         public static (ReplayReadResult Result, Replay? Replay) DeserializeReplay(byte[] data, int version = 0)
