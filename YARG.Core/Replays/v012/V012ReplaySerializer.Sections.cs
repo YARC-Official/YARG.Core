@@ -179,7 +179,7 @@ namespace YARG.Core.Replays
             {
                 writer.Write(YargProfile.PROFILE_VERSION);
 
-                writer.Write(profile.Id);
+                //writer.Write(profile.Id);
                 writer.Write(profile.Name);
                 writer.Write(profile.EnginePreset);
                 writer.Write(profile.ThemePreset);
@@ -200,7 +200,7 @@ namespace YARG.Core.Replays
 
                 version = reader.ReadInt32();
 
-                profile.Id = reader.ReadGuid();
+                //profile.Id = reader.ReadGuid();
 
                 profile.Name = reader.ReadString();
 
@@ -268,8 +268,8 @@ namespace YARG.Core.Replays
             {
                 var maxWindow = reader.ReadDouble();
                 var minWindow = reader.ReadDouble();
-                var frontToBackRatio = reader.ReadDouble();
                 var isDynamic = reader.ReadBoolean();
+                var frontToBackRatio = reader.ReadDouble();
 
                 int maxMultiplier = reader.ReadInt32();
                 float[] starMultiplierThresholds = new float[reader.ReadInt32()];
@@ -355,17 +355,14 @@ namespace YARG.Core.Replays
                 {
                     case GameMode.FiveFretGuitar:
                     case GameMode.SixFretGuitar:
-                        stats = new GuitarStats();
-                        Instruments.DeserializeGuitarStats(ref reader, version);
+                        stats = Instruments.DeserializeGuitarStats(ref reader, version);
                         break;
                     case GameMode.FourLaneDrums:
                     case GameMode.FiveLaneDrums:
-                        stats = new DrumsStats();
-                        Instruments.DeserializeDrumsStats(ref reader, version);
+                        stats = Instruments.DeserializeDrumsStats(ref reader, version);
                         break;
                     case GameMode.Vocals:
-                        stats = new VocalsStats();
-                        Instruments.DeserializeVocalsStats(ref reader, version);
+                        stats = Instruments.DeserializeVocalsStats(ref reader, version);
                         break;
                     default:
                         throw new ArgumentOutOfRangeException(nameof(gameMode), "Unsupported game mode: " + gameMode);
