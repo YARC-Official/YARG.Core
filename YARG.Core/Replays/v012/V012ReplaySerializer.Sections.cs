@@ -229,7 +229,11 @@ namespace YARG.Core.Replays
             public static void SerializeEngineParameters(BinaryWriter writer, BaseEngineParameters engineParameters,
                 GameMode gameMode)
             {
-                engineParameters.HitWindow.Serialize(writer);
+                writer.Write(engineParameters.HitWindow.MaxWindow);
+                writer.Write(engineParameters.HitWindow.MinWindow);
+                writer.Write(engineParameters.HitWindow.IsDynamic);
+                writer.Write(engineParameters.HitWindow.FrontToBackRatio);
+
                 writer.Write(engineParameters.MaxMultiplier);
                 writer.Write(engineParameters.StarMultiplierThresholds.Length);
                 foreach (var f in engineParameters.StarMultiplierThresholds)
@@ -262,10 +266,8 @@ namespace YARG.Core.Replays
             {
                 var maxWindow = reader.ReadDouble();
                 var minWindow = reader.ReadDouble();
-                var isDynamic = reader.ReadBoolean();
                 var frontToBackRatio = reader.ReadDouble();
-
-                var hitWindow = new HitWindowSettings(maxWindow, minWindow, frontToBackRatio, isDynamic, 0, 0, 0);
+                var isDynamic = reader.ReadBoolean();
 
                 int maxMultiplier = reader.ReadInt32();
                 float[] starMultiplierThresholds = new float[reader.ReadInt32()];

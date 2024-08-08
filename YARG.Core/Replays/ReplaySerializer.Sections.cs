@@ -219,7 +219,15 @@ namespace YARG.Core.Replays
             public static void SerializeEngineParameters(BinaryWriter writer, BaseEngineParameters engineParameters,
                 GameMode gameMode)
             {
-                engineParameters.HitWindow.Serialize(writer);
+                writer.Write(engineParameters.HitWindow.MaxWindow);
+                writer.Write(engineParameters.HitWindow.MinWindow);
+                writer.Write(engineParameters.HitWindow.FrontToBackRatio);
+
+                writer.Write(engineParameters.HitWindow.IsDynamic);
+                writer.Write(engineParameters.HitWindow.DynamicWindowSlope);
+                writer.Write(engineParameters.HitWindow.DynamicWindowScale);
+                writer.Write(engineParameters.HitWindow.DynamicWindowGamma);
+
                 writer.Write(engineParameters.MaxMultiplier);
                 writer.Write(engineParameters.StarPowerWhammyBuffer);
                 writer.Write(engineParameters.StarMultiplierThresholds.Length);
@@ -265,8 +273,6 @@ namespace YARG.Core.Replays
                 var dwScale = reader.ReadDouble();
                 var dwGamma = reader.ReadDouble();
 
-                var hitWindow = new HitWindowSettings(maxWindow, minWindow, frontToBackRatio, isDynamic, dwSlope, dwScale, dwGamma);
-
                 int maxMultiplier = reader.ReadInt32();
                 float[] starMultiplierThresholds = new float[reader.ReadInt32()];
                 for (int i = 0; i < starMultiplierThresholds.Length; i++)
@@ -299,6 +305,8 @@ namespace YARG.Core.Replays
                     default:
                         throw new ArgumentOutOfRangeException(nameof(gameMode), gameMode, null);
                 }
+
+                var hitWindow = new HitWindowSettings(maxWindow, minWindow, frontToBackRatio, isDynamic, dwSlope, dwScale, dwGamma);
 
                 engineParameters.HitWindow = hitWindow;
                 engineParameters.MaxMultiplier = maxMultiplier;
