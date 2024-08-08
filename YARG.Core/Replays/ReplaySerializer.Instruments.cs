@@ -46,8 +46,6 @@ namespace YARG.Core.Replays
                 writer.Write(stats.Overstrums);
                 writer.Write(stats.HoposStrummed);
                 writer.Write(stats.GhostInputs);
-                writer.Write(stats.SustainScore);
-                writer.Write(stats.WhammyTicks);
             }
 
             public static GuitarStats DeserializeGuitarStats(ref SpanBinaryReader reader, int version = 0)
