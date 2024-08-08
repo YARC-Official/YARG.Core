@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using YARG.Core.Utility;
 
 namespace YARG.Core.Replays
@@ -25,14 +26,16 @@ namespace YARG.Core.Replays
             }
         }
 
-        public static Replay? DeserializeReplay(SpanBinaryReader reader, int version = 0)
+        public static (ReplayReadResult Result, Replay? Replay) DeserializeReplay(byte[] data, int version = 0)
         {
+            var reader = new SpanBinaryReader(data.AsSpan());
+
             var replay = new Replay();
 
             var header = Sections.DeserializeHeader(reader, version);
             if (header == null)
             {
-                return null;
+                return (ReplayReadResult.NotAReplay, null);
             }
 
             replay.Header = header.Value;
@@ -41,6 +44,12 @@ namespace YARG.Core.Replays
             replay.PresetContainer = Sections.DeserializePresetContainer(reader, version);
 
             int playerCount = reader.ReadInt32();
+
+            if (playerCount > 255)
+            {
+                return (ReplayReadResult.Corrupted, null);
+            }
+
             var playerNames = new string[playerCount];
             for (int i = 0; i < playerCount; i++)
             {
@@ -54,7 +63,7 @@ namespace YARG.Core.Replays
                 replay.Frames[i] = Sections.DeserializeFrame(reader, version);
             }
 
-            return replay;
+            return (ReplayReadResult.Valid, replay);
         }
 
         #endregion

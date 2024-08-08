@@ -1,9 +1,11 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using YARG.Core.IO;
 using YARG.Core.Logging;
 using YARG.Core.Song;
+using YARG.Core.Utility;
 
 namespace YARG.Core.Replays
 {
@@ -20,12 +22,64 @@ namespace YARG.Core.Replays
         public static readonly EightCC REPLAY_MAGIC_HEADER = new('Y', 'A', 'R', 'G', 'P', 'L', 'A', 'Y');
 
         public const short REPLAY_VERSION = 6;
+        public const short ENGINE_VERSION = 1;
+
+        private const short PRE_REFACTOR_ENGINE_VERSION = 5;
 
         // Some versions may be invalidated (such as significant format changes)
         private static readonly short[] InvalidVersions =
         {
             0, 1, 2, 3
         };
+
+        public static ReplayReadResult ReadReplay(string path, out Replay? replay)
+        {
+            replay = null;
+            if (!File.Exists(path))
+            {
+                return ReplayReadResult.NotAReplay;
+            }
+
+            byte[] data = File.ReadAllBytes(path);
+
+            int fileVersion;
+
+            unsafe
+            {
+                fixed(byte* ptr = data)
+                {
+                    var header = Unsafe.Read<ReplayHeader>(ptr);
+
+                    if (header.Magic != REPLAY_MAGIC_HEADER)
+                    {
+                        return ReplayReadResult.NotAReplay;
+                    }
+
+                    if (InvalidVersions.Contains(header.ReplayVersion) || header.ReplayVersion > REPLAY_VERSION)
+                    {
+                        return ReplayReadResult.InvalidVersion;
+                    }
+
+                    fileVersion = header.ReplayVersion;
+                }
+            }
+
+            // Old replays
+            if (fileVersion <= PRE_REFACTOR_ENGINE_VERSION)
+            {
+                var value = V012ReplaySerializer.DeserializeReplay(data, fileVersion);
+
+                replay = value.Replay;
+                return value.Result;
+            }
+            else
+            {
+                var value = ReplaySerializer.DeserializeReplay(data, fileVersion);
+
+                replay = value.Replay;
+                return value.Result;
+            }
+        }
 
         // note: [NotNullWhen(ReplayReadResult.Valid)] is not a valid form of [NotNullWhen],
         // so replayFile will always be indicated as possibly being null
