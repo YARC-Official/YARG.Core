@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Security.Cryptography;
 using YARG.Core.Song;
@@ -64,7 +64,7 @@ namespace YARG.Core.Replays
                 return (ReplayReadResult.NotAReplay, null);
             }
 
-            position = spanReader.Position;
+            position += spanReader.Position;
 
             var sha = SHA1.Create();
             var hash = sha.ComputeHash(replayFileData, position, replayFileData.Length - position);
@@ -76,25 +76,25 @@ namespace YARG.Core.Replays
             }
 
             // Metadata
-            position = spanReader.Position;
-            spanReader = new SpanBinaryReader(wholeFileSpan[position..0x2]);
+            //position = spanReader.Position;
+            spanReader = new SpanBinaryReader(wholeFileSpan.Slice(position, 2));
             var metadataLength = ReadBlockLength(ref spanReader);
 
-            position = spanReader.Position;
-            spanReader = new SpanBinaryReader(wholeFileSpan[position..metadataLength]);
+            position += spanReader.Position;
+            spanReader = new SpanBinaryReader(wholeFileSpan.Slice(position, metadataLength));
             replay.Metadata = Sections.DeserializeMetadata(ref spanReader, version);
 
             // PresetContainer
-            position = spanReader.Position;
-            spanReader = new SpanBinaryReader(wholeFileSpan[position..0x2]);
+            position += spanReader.Position;
+            spanReader = new SpanBinaryReader(wholeFileSpan.Slice(position, 2));
             var presetContainerLength = ReadBlockLength(ref spanReader);
 
-            position = spanReader.Position;
-            spanReader = new SpanBinaryReader(wholeFileSpan[position..presetContainerLength]);
+            position += spanReader.Position;
+            spanReader = new SpanBinaryReader(wholeFileSpan.Slice(position, presetContainerLength));
             replay.PresetContainer = Sections.DeserializePresetContainer(ref spanReader, version);
 
             // Player names
-            position = spanReader.Position;
+            position += spanReader.Position;
             spanReader = new SpanBinaryReader(wholeFileSpan[position..]);
 
             int playerCount = spanReader.ReadInt32();
@@ -112,7 +112,7 @@ namespace YARG.Core.Replays
             }
 
             // Player Frames
-            position = spanReader.Position;
+            position += spanReader.Position;
             spanReader = new SpanBinaryReader(wholeFileSpan[position..]);
 
             replay.Frames = new ReplayFrame[playerCount];
