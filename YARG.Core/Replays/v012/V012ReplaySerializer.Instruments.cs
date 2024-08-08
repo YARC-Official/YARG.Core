@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using YARG.Core.Engine.Drums;
 using YARG.Core.Engine.Guitar;
 using YARG.Core.Engine.ProKeys;
@@ -85,7 +85,7 @@ namespace YARG.Core.Replays
                 return parameters;
             }
 
-            #endregion'
+            #endregion
 
             #region Stats
 
@@ -97,48 +97,6 @@ namespace YARG.Core.Replays
             public static DrumsStats DeserializeDrumsStats(ref SpanBinaryReader reader, int version = 0)
             {
                 var stats = new DrumsStats();
-
-                stats.Overhits = reader.ReadInt32();
-
-                return stats;
-            }
-
-            #endregion
-
-            #endregion
-
-            #region Pro Keys
-
-            #region Parameters
-
-            public static void SerializeProKeysParameters(BinaryWriter writer, ProKeysEngineParameters parameters)
-            {
-                writer.Write(parameters.ChordStaggerWindow);
-                writer.Write(parameters.FatFingerWindow);
-            }
-
-            public static ProKeysEngineParameters DeserializeProKeysParameters(ref SpanBinaryReader reader, int version = 0)
-            {
-                var parameters = new ProKeysEngineParameters();
-
-                parameters.ChordStaggerWindow = reader.ReadDouble();
-                parameters.FatFingerWindow = reader.ReadDouble();
-
-                return parameters;
-            }
-
-            #endregion
-
-            #region Stats
-
-            public static void SerializeProKeysStats(BinaryWriter writer, ProKeysStats stats)
-            {
-                writer.Write(stats.Overhits);
-            }
-
-            public static ProKeysStats DeserializeProKeysStats(ref SpanBinaryReader reader, int version = 0)
-            {
-                var stats = new ProKeysStats();
 
                 stats.Overhits = reader.ReadInt32();
 

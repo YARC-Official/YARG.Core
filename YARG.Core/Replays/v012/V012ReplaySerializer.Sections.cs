@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using YARG.Core.Engine;
 using YARG.Core.Engine.Drums;
@@ -249,16 +249,11 @@ namespace YARG.Core.Replays
                     case GameMode.FiveLaneDrums:
                         Instruments.SerializeDrumsParameters(writer, (engineParameters as DrumsEngineParameters)!);
                         break;
-                    case GameMode.ProGuitar:
-                        break;
-                    case GameMode.ProKeys:
-                        Instruments.SerializeProKeysParameters(writer, (engineParameters as ProKeysEngineParameters)!);
-                        break;
                     case GameMode.Vocals:
                         Instruments.SerializeVocalsParameters(writer, (engineParameters as VocalsEngineParameters)!);
                         break;
                     default:
-                        throw new ArgumentOutOfRangeException();
+                        throw new ArgumentOutOfRangeException(nameof(gameMode), "Unsupported game mode: " + gameMode);
                 }
             }
 
@@ -296,17 +291,14 @@ namespace YARG.Core.Replays
                     case GameMode.FiveLaneDrums:
                         engineParameters = Instruments.DeserializeDrumsParameters(ref reader, version);
                         break;
-                    case GameMode.ProGuitar:
-                        break;
-                    case GameMode.ProKeys:
-                        engineParameters = Instruments.DeserializeProKeysParameters(ref reader, version);
-                        break;
                     case GameMode.Vocals:
                         engineParameters = Instruments.DeserializeVocalsParameters(ref reader, version);
                         break;
                     default:
-                        throw new ArgumentOutOfRangeException(nameof(gameMode), gameMode, null);
+                        throw new ArgumentOutOfRangeException(nameof(gameMode), "Unsupported game mode: " + gameMode);
                 }
+
+                var hitWindow = new HitWindowSettings(maxWindow, minWindow, frontToBackRatio, isDynamic, 0, 0, 0);
 
                 engineParameters.HitWindow = hitWindow;
                 engineParameters.MaxMultiplier = maxMultiplier;
@@ -367,18 +359,12 @@ namespace YARG.Core.Replays
                         stats = new DrumsStats();
                         Instruments.DeserializeDrumsStats(ref reader, version);
                         break;
-                    case GameMode.ProGuitar:
-                        break;
-                    case GameMode.ProKeys:
-                        stats = new ProKeysStats();
-                        Instruments.DeserializeProKeysStats(ref reader, version);
-                        break;
                     case GameMode.Vocals:
                         stats = new VocalsStats();
                         Instruments.DeserializeVocalsStats(ref reader, version);
                         break;
                     default:
-                        throw new ArgumentOutOfRangeException(nameof(gameMode), gameMode, null);
+                        throw new ArgumentOutOfRangeException(nameof(gameMode), "Unsupported game mode: " + gameMode);
                 }
 
                 stats.CommittedScore = committedScore;
