@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using YARG.Core.Engine.Drums;
 using YARG.Core.Engine.Guitar;
 using YARG.Core.Engine.ProKeys;
@@ -72,14 +72,18 @@ namespace YARG.Core.Replays
 
             public static void SerializeDrumsParameters(BinaryWriter writer, DrumsEngineParameters parameters)
             {
-                writer.Write((int) parameters.Mode);
+                writer.Write((byte) parameters.Mode);
+                writer.Write(parameters.VelocityThreshold);
+                writer.Write(parameters.SituationalVelocityWindow);
             }
 
             public static DrumsEngineParameters DeserializeDrumsParameters(ref SpanBinaryReader reader, int version = 0)
             {
                 var parameters = new DrumsEngineParameters();
 
-                parameters.Mode = (DrumsEngineParameters.DrumMode) reader.ReadInt32();
+                parameters.Mode = (DrumsEngineParameters.DrumMode) reader.ReadByte();
+                parameters.VelocityThreshold = reader.ReadSingle();
+                parameters.SituationalVelocityWindow = reader.ReadSingle();
 
                 return parameters;
             }
