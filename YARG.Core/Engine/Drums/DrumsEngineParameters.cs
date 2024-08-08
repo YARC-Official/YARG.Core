@@ -1,6 +1,4 @@
-using System.IO;
-
-namespace YARG.Core.Engine.Drums
+﻿namespace YARG.Core.Engine.Drums
 {
     public class DrumsEngineParameters : BaseEngineParameters
     {
@@ -40,24 +38,6 @@ namespace YARG.Core.Engine.Drums
             Mode = mode;
             VelocityThreshold = 0.35f;
             SituationalVelocityWindow = 1.5f;
-        }
-
-        public override void Serialize(BinaryWriter writer)
-        {
-            base.Serialize(writer);
-
-            writer.Write((byte) Mode);
-            writer.Write(VelocityThreshold);
-            writer.Write(SituationalVelocityWindow);
-        }
-
-        public override void Deserialize(BinaryReader reader, int version = 0)
-        {
-            base.Deserialize(reader, version);
-
-            Mode = (DrumMode) reader.ReadByte();
-            VelocityThreshold = reader.ReadSingle();
-            SituationalVelocityWindow = reader.ReadSingle();
         }
 
         public override string ToString()

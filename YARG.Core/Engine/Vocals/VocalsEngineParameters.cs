@@ -1,6 +1,4 @@
-﻿using System.IO;
-
-namespace YARG.Core.Engine.Vocals
+﻿namespace YARG.Core.Engine.Vocals
 {
     public class VocalsEngineParameters : BaseEngineParameters
     {
@@ -53,30 +51,6 @@ namespace YARG.Core.Engine.Vocals
             ApproximateVocalFps = approximateVocalFps;
             SingToActivateStarPower = singToActivateStarPower;
             PointsPerPhrase = pointsPerPhrase;
-        }
-
-        public override void Serialize(BinaryWriter writer)
-        {
-            base.Serialize(writer);
-
-            writer.Write(PitchWindow);
-            writer.Write(PitchWindowPerfect);
-            writer.Write(PhraseHitPercent);
-            writer.Write(ApproximateVocalFps);
-            writer.Write(SingToActivateStarPower);
-            writer.Write(PointsPerPhrase);
-        }
-
-        public override void Deserialize(BinaryReader reader, int version = 0)
-        {
-            base.Deserialize(reader, version);
-
-            PitchWindow = reader.ReadSingle();
-            PitchWindowPerfect = reader.ReadSingle();
-            PhraseHitPercent = reader.ReadDouble();
-            ApproximateVocalFps = reader.ReadDouble();
-            SingToActivateStarPower = reader.ReadBoolean();
-            PointsPerPhrase = reader.ReadInt32();
         }
     }
 }
