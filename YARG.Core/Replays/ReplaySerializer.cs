@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Security.Cryptography;
 using YARG.Core.Song;
@@ -58,7 +58,7 @@ namespace YARG.Core.Replays
             var headerSpan = wholeFileSpan[position..0x20];
             var spanReader = new SpanBinaryReader(headerSpan);
 
-            var header = Sections.DeserializeHeader(spanReader, version);
+            var header = Sections.DeserializeHeader(ref spanReader, version);
             if (header == null)
             {
                 return (ReplayReadResult.NotAReplay, null);
@@ -78,20 +78,20 @@ namespace YARG.Core.Replays
             // Metadata
             position = spanReader.Position;
             spanReader = new SpanBinaryReader(wholeFileSpan[position..0x2]);
-            var metadataLength = ReadBlockLength(spanReader);
+            var metadataLength = ReadBlockLength(ref spanReader);
 
             position = spanReader.Position;
             spanReader = new SpanBinaryReader(wholeFileSpan[position..metadataLength]);
-            replay.Metadata = Sections.DeserializeMetadata(spanReader, version);
+            replay.Metadata = Sections.DeserializeMetadata(ref spanReader, version);
 
             // PresetContainer
             position = spanReader.Position;
             spanReader = new SpanBinaryReader(wholeFileSpan[position..0x2]);
-            var presetContainerLength = ReadBlockLength(spanReader);
+            var presetContainerLength = ReadBlockLength(ref spanReader);
 
             position = spanReader.Position;
             spanReader = new SpanBinaryReader(wholeFileSpan[position..presetContainerLength]);
-            replay.PresetContainer = Sections.DeserializePresetContainer(spanReader, version);
+            replay.PresetContainer = Sections.DeserializePresetContainer(ref spanReader, version);
 
             // Player names
             position = spanReader.Position;
@@ -119,7 +119,7 @@ namespace YARG.Core.Replays
 
             for (int i = 0; i < playerCount; i++)
             {
-                replay.Frames[i] = Sections.DeserializeFrame(spanReader, version);
+                replay.Frames[i] = Sections.DeserializeFrame(ref spanReader, version);
             }
 
             return (ReplayReadResult.Valid, replay);
@@ -169,7 +169,7 @@ namespace YARG.Core.Replays
             return length;
         }
 
-        private static int ReadBlockLength(SpanBinaryReader reader)
+        private static int ReadBlockLength(ref SpanBinaryReader reader)
         {
             Span<ushort> data = stackalloc ushort[2] { 0x00, 0x00 };
 

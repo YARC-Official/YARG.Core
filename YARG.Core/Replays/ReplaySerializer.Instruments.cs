@@ -25,7 +25,7 @@ namespace YARG.Core.Replays
                 writer.Write(parameters.AntiGhosting);
             }
 
-            public static GuitarEngineParameters DeserializeGuitarParameters(SpanBinaryReader reader, int version = 0)
+            public static GuitarEngineParameters DeserializeGuitarParameters(ref SpanBinaryReader reader, int version = 0)
             {
                 var parameters = new GuitarEngineParameters();
 
@@ -51,7 +51,7 @@ namespace YARG.Core.Replays
                 writer.Write(stats.WhammyTicks);
             }
 
-            public static GuitarStats DeserializeGuitarStats(SpanBinaryReader reader, int version = 0)
+            public static GuitarStats DeserializeGuitarStats(ref SpanBinaryReader reader, int version = 0)
             {
                 var stats = new GuitarStats();
 
@@ -75,7 +75,7 @@ namespace YARG.Core.Replays
                 writer.Write((int) parameters.Mode);
             }
 
-            public static DrumsEngineParameters DeserializeDrumsParameters(SpanBinaryReader reader, int version = 0)
+            public static DrumsEngineParameters DeserializeDrumsParameters(ref SpanBinaryReader reader, int version = 0)
             {
                 var parameters = new DrumsEngineParameters();
 
@@ -93,7 +93,7 @@ namespace YARG.Core.Replays
                 writer.Write(stats.Overhits);
             }
 
-            public static DrumsStats DeserializeDrumsStats(SpanBinaryReader reader, int version = 0)
+            public static DrumsStats DeserializeDrumsStats(ref SpanBinaryReader reader, int version = 0)
             {
                 var stats = new DrumsStats();
 
@@ -116,7 +116,7 @@ namespace YARG.Core.Replays
                 writer.Write(parameters.FatFingerWindow);
             }
 
-            public static ProKeysEngineParameters DeserializeProKeysParameters(SpanBinaryReader reader, int version = 0)
+            public static ProKeysEngineParameters DeserializeProKeysParameters(ref SpanBinaryReader reader, int version = 0)
             {
                 var parameters = new ProKeysEngineParameters();
 
@@ -135,7 +135,7 @@ namespace YARG.Core.Replays
                 writer.Write(stats.Overhits);
             }
 
-            public static ProKeysStats DeserializeProKeysStats(SpanBinaryReader reader, int version = 0)
+            public static ProKeysStats DeserializeProKeysStats(ref SpanBinaryReader reader, int version = 0)
             {
                 var stats = new ProKeysStats();
 
@@ -162,7 +162,7 @@ namespace YARG.Core.Replays
                 writer.Write(parameters.PointsPerPhrase);
             }
 
-            public static VocalsEngineParameters DeserializeVocalsParameters(SpanBinaryReader reader, int version = 0)
+            public static VocalsEngineParameters DeserializeVocalsParameters(ref SpanBinaryReader reader, int version = 0)
             {
                 var parameters = new VocalsEngineParameters();
 
@@ -186,7 +186,7 @@ namespace YARG.Core.Replays
                 writer.Write(stats.TicksMissed);
             }
 
-            public static VocalsStats DeserializeVocalsStats(SpanBinaryReader reader, int version = 0)
+            public static VocalsStats DeserializeVocalsStats(ref SpanBinaryReader reader, int version = 0)
             {
                 var stats = new VocalsStats();
 
