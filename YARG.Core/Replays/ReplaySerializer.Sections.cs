@@ -391,23 +391,19 @@ namespace YARG.Core.Replays
                 {
                     case GameMode.FiveFretGuitar:
                     case GameMode.SixFretGuitar:
-                        stats = new GuitarStats();
-                        Instruments.DeserializeGuitarStats(ref reader, version);
+                        stats = Instruments.DeserializeGuitarStats(ref reader, version);
                         break;
                     case GameMode.FourLaneDrums:
                     case GameMode.FiveLaneDrums:
-                        stats = new DrumsStats();
-                        Instruments.DeserializeDrumsStats(ref reader, version);
+                        stats = Instruments.DeserializeDrumsStats(ref reader, version);
                         break;
                     case GameMode.ProGuitar:
                         break;
                     case GameMode.ProKeys:
-                        stats = new ProKeysStats();
-                        Instruments.DeserializeProKeysStats(ref reader, version);
+                        stats = Instruments.DeserializeProKeysStats(ref reader, version);
                         break;
                     case GameMode.Vocals:
-                        stats = new VocalsStats();
-                        Instruments.DeserializeVocalsStats(ref reader, version);
+                        stats = Instruments.DeserializeVocalsStats(ref reader, version);
                         break;
                     default:
                         throw new ArgumentOutOfRangeException(nameof(gameMode), gameMode, null);
