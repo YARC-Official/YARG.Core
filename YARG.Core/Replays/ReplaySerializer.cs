@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Security.Cryptography;
 using YARG.Core.Song;
@@ -130,7 +130,8 @@ namespace YARG.Core.Replays
         private static int WriteBlock(BinaryWriter writer, Stream blockStream)
         {
             var length = WriteBlockLength(writer, blockStream);
-            blockStream.CopyTo(writer.BaseStream, length);
+            blockStream.SetLength(length);
+            blockStream.CopyTo(writer.BaseStream);
             blockStream.Position = 0;
 
             return length;
