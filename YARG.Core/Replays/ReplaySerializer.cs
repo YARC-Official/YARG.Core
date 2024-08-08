@@ -113,12 +113,17 @@ namespace YARG.Core.Replays
 
             // Player Frames
             position += spanReader.Position;
-            spanReader = new SpanBinaryReader(wholeFileSpan[position..]);
 
             replay.Frames = new ReplayFrame[playerCount];
 
             for (int i = 0; i < playerCount; i++)
             {
+                spanReader = new SpanBinaryReader(wholeFileSpan.Slice(position, 2));
+                var frameLength = ReadBlockLength(ref spanReader);
+                position += spanReader.Position;
+
+                spanReader = new SpanBinaryReader(wholeFileSpan.Slice(position, frameLength));
+
                 replay.Frames[i] = Sections.DeserializeFrame(ref spanReader, version);
             }
 
