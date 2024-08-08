@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using YARG.Core.Engine;
 using YARG.Core.Engine.Drums;
@@ -177,6 +177,8 @@ namespace YARG.Core.Replays
 
             public static void SerializeYargProfile(BinaryWriter writer, YargProfile profile)
             {
+                writer.Write(YargProfile.PROFILE_VERSION);
+
                 writer.Write(profile.Id);
                 writer.Write(profile.Name);
                 writer.Write(profile.EnginePreset);

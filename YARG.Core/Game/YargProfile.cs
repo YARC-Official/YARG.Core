@@ -9,7 +9,7 @@ namespace YARG.Core.Game
 {
     public class YargProfile
     {
-        private const int PROFILE_VERSION = 1;
+        public const int PROFILE_VERSION = 1;
 
         public Guid Id;
         public string Name;
