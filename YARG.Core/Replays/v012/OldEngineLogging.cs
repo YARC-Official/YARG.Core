@@ -12,7 +12,7 @@ using YARG.Core.Utility;
 
 namespace YARG.Core.Replays
 {
-    public class EngineEventLogger : IBinarySerializable
+    public class EngineEventLogger
     {
         public IReadOnlyList<BaseEngineEvent> Events => _events;
 
@@ -37,7 +37,7 @@ namespace YARG.Core.Replays
             }
         }
 
-        public void Deserialize(BinaryReader reader, int version = 0)
+        public void Deserialize(ref SpanBinaryReader reader, int version = 0)
         {
             int count = reader.ReadInt32();
             for (int i = 0; i < count; i++)
@@ -46,7 +46,7 @@ namespace YARG.Core.Replays
 
                 if (engineEvent is null) break;
 
-                engineEvent.Deserialize(reader, version);
+                engineEvent.Deserialize(ref reader, version);
 
                 _events.Add(engineEvent);
             }
@@ -85,7 +85,7 @@ namespace YARG.Core.Replays
             writer.Write(EventTime);
         }
 
-        public virtual void Deserialize(BinaryReader reader, int version = 0)
+        public virtual void Deserialize(ref SpanBinaryReader reader, int version = 0)
         {
             // Don't deserialize event type as it's done manually to determine object type
 
@@ -193,9 +193,9 @@ namespace YARG.Core.Replays
             writer.Write(WasSkipped);
         }
 
-        public override void Deserialize(BinaryReader reader, int version = 0)
+        public override void Deserialize(ref SpanBinaryReader reader, int version = 0)
         {
-            base.Deserialize(reader, version);
+            base.Deserialize(ref reader, version);
 
             NoteTime = reader.ReadDouble();
             NoteLength = reader.ReadDouble();
@@ -242,9 +242,9 @@ namespace YARG.Core.Replays
             writer.Write(Score);
         }
 
-        public override void Deserialize(BinaryReader reader, int version = 0)
+        public override void Deserialize(ref SpanBinaryReader reader, int version = 0)
         {
-            base.Deserialize(reader, version);
+            base.Deserialize(ref reader, version);
 
             Score = reader.ReadInt32();
         }
@@ -265,9 +265,9 @@ namespace YARG.Core.Replays
             writer.Write(IsActive);
         }
 
-        public override void Deserialize(BinaryReader reader, int version = 0)
+        public override void Deserialize(ref SpanBinaryReader reader, int version = 0)
         {
-            base.Deserialize(reader, version);
+            base.Deserialize(ref reader, version);
 
             IsActive = reader.ReadBoolean();
         }
@@ -298,9 +298,9 @@ namespace YARG.Core.Replays
             writer.Write(TimerExpired);
         }
 
-        public override void Deserialize(BinaryReader reader, int version = 0)
+        public override void Deserialize(ref SpanBinaryReader reader, int version = 0)
         {
-            base.Deserialize(reader, version);
+            base.Deserialize(ref reader, version);
 
             TimerName = reader.ReadString();
             TimerValue = reader.ReadDouble();
