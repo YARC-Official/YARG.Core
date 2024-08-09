@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using YARG.Core.Engine;
 using YARG.Core.Engine.Drums;
@@ -260,7 +260,8 @@ namespace YARG.Core.Replays
                 }
             }
 
-            public static BaseEngineParameters DeserializeEngineParameters(ref SpanBinaryReader reader, GameMode gameMode,
+            public static BaseEngineParameters DeserializeEngineParameters(ref SpanBinaryReader reader,
+                GameMode gameMode,
                 int version = 0)
             {
                 var maxWindow = reader.ReadDouble();
@@ -268,8 +269,25 @@ namespace YARG.Core.Replays
                 var isDynamic = reader.ReadBoolean();
                 var frontToBackRatio = reader.ReadDouble();
 
+                var positionUpToMultiplier = reader.Position;
+
+                // This variable was not accounted for in versioning
                 int maxMultiplier = reader.ReadInt32();
-                float[] starMultiplierThresholds = new float[reader.ReadInt32()];
+
+                var multiplierThresholdLength = reader.ReadInt32();
+
+                // This was always 6 in v0.12 so if its not then maxMultiplier was never written
+                if (multiplierThresholdLength != 6)
+                {
+                    reader.Seek(positionUpToMultiplier);
+
+                    // Bass multiplier was 4 before maxMultiplier was added
+                    maxMultiplier = 4;
+
+                    multiplierThresholdLength = reader.ReadInt32();
+                }
+
+                float[] starMultiplierThresholds = new float[multiplierThresholdLength];
                 for (int i = 0; i < starMultiplierThresholds.Length; i++)
                 {
                     starMultiplierThresholds[i] = reader.ReadSingle();
