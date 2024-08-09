@@ -64,97 +64,56 @@ namespace YARG.Core.Replays
                 return ReplayReadResult.NotAReplay;
             }
 
-            byte[] data = File.ReadAllBytes(path);
-
-            int fileVersion;
-
-            unsafe
+            try
             {
-                fixed(byte* ptr = data)
+                byte[] data = File.ReadAllBytes(path);
+
+                int fileVersion;
+
+                unsafe
                 {
-                    // This is technically invalid for v0.12 replays as the header size was changed
-                    // But because the engine version never changed from 0 it doesn't actually matter LOL
-                    var header = Unsafe.Read<ReplayHeader>(ptr);
-
-                    header.Magic = new EightCC(data);
-
-                    if (header.Magic != REPLAY_MAGIC_HEADER)
+                    fixed (byte* ptr = data)
                     {
-                        return ReplayReadResult.NotAReplay;
-                    }
+                        // This is technically invalid for v0.12 replays as the header size was changed
+                        // But because the engine version never changed from 0 it doesn't actually matter LOL
+                        var header = Unsafe.Read<ReplayHeader>(ptr);
 
-                    if (InvalidVersions.Contains(header.ReplayVersion) || header.ReplayVersion > REPLAY_VERSION)
-                    {
-                        return ReplayReadResult.InvalidVersion;
-                    }
+                        header.Magic = new EightCC(data);
 
-                    fileVersion = header.ReplayVersion;
+                        if (header.Magic != REPLAY_MAGIC_HEADER)
+                        {
+                            return ReplayReadResult.NotAReplay;
+                        }
+
+                        if (InvalidVersions.Contains(header.ReplayVersion) || header.ReplayVersion > REPLAY_VERSION)
+                        {
+                            return ReplayReadResult.InvalidVersion;
+                        }
+
+                        fileVersion = header.ReplayVersion;
+                    }
                 }
-            }
 
-            // Old replays
-            if (fileVersion <= PRE_REFACTOR_ENGINE_VERSION)
+                // Old replays
+                if (fileVersion <= PRE_REFACTOR_ENGINE_VERSION)
+                {
+                    var value = V012ReplaySerializer.DeserializeReplay(data, fileVersion);
+
+                    replay = value.Replay;
+                    return value.Result;
+                }
+                else
+                {
+                    var value = ReplaySerializer.DeserializeReplay(data, fileVersion);
+
+                    replay = value.Replay;
+                    return value.Result;
+                }
+            } catch (Exception ex)
             {
-                var value = V012ReplaySerializer.DeserializeReplay(data, fileVersion);
-
-                replay = value.Replay;
-                return value.Result;
-            }
-            else
-            {
-                var value = ReplaySerializer.DeserializeReplay(data, fileVersion);
-
-                replay = value.Replay;
-                return value.Result;
+                YargLogger.LogException(ex, "Failed to read replay file");
+                return ReplayReadResult.Corrupted;
             }
         }
-
-        // note: [NotNullWhen(ReplayReadResult.Valid)] is not a valid form of [NotNullWhen],
-        // so replayFile will always be indicated as possibly being null
-        // public static ReplayReadResult ReadReplay(string path, out ReplayNew? replay)
-        // {
-        //     using var stream = File.OpenRead(path);
-        //     using var reader = new BinaryReader(stream);
-        //
-        //     try
-        //     {
-        //         replayFile = ReplayFile.Create(reader);
-        //
-        //         if (replayFile.Header.Magic != REPLAY_MAGIC_HEADER) return ReplayReadResult.NotAReplay;
-        //
-        //         var version = replayFile.Header.ReplayVersion;
-        //         if (InvalidVersions.Contains(version) || version > REPLAY_VERSION) return ReplayReadResult.InvalidVersion;
-        //
-        //         replayFile.ReadData(reader, replayFile.Header.ReplayVersion);
-        //
-        //         return ReplayReadResult.Valid;
-        //     }
-        //     catch (Exception ex)
-        //     {
-        //         YargLogger.LogException(ex, "Failed to read replay file");
-        //         replayFile = null;
-        //         return ReplayReadResult.Corrupted;
-        //     }
-        // }
-        //
-        // public static HashWrapper? WriteReplay(string path, Replay replay)
-        // {
-        //     using var stream = File.OpenWrite(path);
-        //     using var writer = new BinaryWriter(stream);
-        //
-        //     try
-        //     {
-        //         var replayFile = new ReplayFile(replay);
-        //
-        //         replayFile.Serialize(writer);
-        //         return replayFile.Header.ReplayChecksum;
-        //     }
-        //     catch (Exception ex)
-        //     {
-        //         YargLogger.LogException(ex, "Failed to write replay file");
-        //     }
-        //
-        //     return null;
-        // }
     }
 }
