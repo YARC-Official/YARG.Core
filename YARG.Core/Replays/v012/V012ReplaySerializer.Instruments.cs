@@ -58,7 +58,7 @@ namespace YARG.Core.Replays
                 stats.Overstrums = reader.ReadInt32();
                 stats.HoposStrummed = reader.ReadInt32();
                 stats.GhostInputs = reader.ReadInt32();
-                reader.ReadDouble();
+                var spWhammyGain = reader.ReadDouble();
 
                 return stats;
             }
