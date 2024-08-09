@@ -1,6 +1,4 @@
-﻿using System.IO;
-
-namespace YARG.Core.Engine.Drums
+﻿namespace YARG.Core.Engine.Drums
 {
     public class DrumsEngineParameters : BaseEngineParameters
     {
@@ -14,13 +12,20 @@ namespace YARG.Core.Engine.Drums
         /// <summary>
         /// What mode the inputs should be processed in.
         /// </summary>
-        public DrumMode Mode { get; private set; }
+        public DrumMode Mode;
 
-        //Ghost notes are below this threshold, Accent notes are above 1 - threshold
-        public float VelocityThreshold { get; private set; }
+        /// <summary>
+        /// Velocity threshold for Drum note types.
+        /// </summary>
+        /// <remarks>
+        /// Ghost notes are below the threshold, Accent notes are above the threshold.
+        /// </remarks>
+        public float VelocityThreshold;
 
-        // The maximum allowed time (seconds) between notes to use context-sensitive velocity scoring
-        public float SituationalVelocityWindow { get; private set; }
+        /// <summary>
+        /// The maximum allowed time in seconds between notes to use context-sensitive velocity scoring.
+        /// </summary>
+        public float SituationalVelocityWindow;
 
         public DrumsEngineParameters()
         {
@@ -33,24 +38,6 @@ namespace YARG.Core.Engine.Drums
             Mode = mode;
             VelocityThreshold = 0.35f;
             SituationalVelocityWindow = 1.5f;
-        }
-
-        public override void Serialize(BinaryWriter writer)
-        {
-            base.Serialize(writer);
-
-            writer.Write((byte) Mode);
-            writer.Write(VelocityThreshold);
-            writer.Write(SituationalVelocityWindow);
-        }
-
-        public override void Deserialize(BinaryReader reader, int version = 0)
-        {
-            base.Deserialize(reader, version);
-
-            Mode = (DrumMode) reader.ReadByte();
-            VelocityThreshold = reader.ReadSingle();
-            SituationalVelocityWindow = reader.ReadSingle();
         }
 
         public override string ToString()

@@ -18,11 +18,11 @@ namespace YARG.Core.Engine.ProKeys.Engines
 
             if (action is ProKeysAction.StarPower)
             {
-                // TODO
+                IsStarPowerInputActive = gameInput.Button;
             }
             else if (action is ProKeysAction.TouchEffects)
             {
-                // TODO
+                StarPowerWhammyTimer.Start(gameInput.Time);
             }
             else
             {
