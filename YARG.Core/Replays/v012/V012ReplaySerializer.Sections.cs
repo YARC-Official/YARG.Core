@@ -352,17 +352,59 @@ namespace YARG.Core.Replays
             public static BaseStats DeserializeStats(ref SpanBinaryReader reader, GameMode gameMode, int version = 0)
             {
                 var committedScore = reader.ReadInt32();
+
+                var positionUpToPendingScore = reader.Position;
+
+                // Another variable which was not versioned :(
                 var pendingScore = reader.ReadInt32();
+
+                var positionAfterPendingScore = reader.Position;
+
+                var tempCombo = reader.ReadInt32();
+                var tempMaxCombo = reader.ReadInt32();
+                var tempScoreMultiplier = reader.ReadInt32();
+                var tempNotesHit = reader.ReadInt32();
+                var tempTotalNotes = reader.ReadInt32();
+
+                // If any of these pass its really suspicious so pendingScore likely was not written
+                if (tempCombo > tempMaxCombo || tempScoreMultiplier > 12 || tempNotesHit < tempMaxCombo)
+                {
+                    reader.Seek(positionUpToPendingScore);
+                    pendingScore = 0;
+                }
+                else
+                {
+                    reader.Seek(positionAfterPendingScore);
+                }
+
                 var combo = reader.ReadInt32();
                 var maxCombo = reader.ReadInt32();
                 var scoreMultiplier = reader.ReadInt32();
                 var notesHit = reader.ReadInt32();
                 var totalNotes = reader.ReadInt32();
+
+                // NotesMissed was replaced with TotalNotes at some point
+                // There's no way of telling besides seeing if they notesHit is bigger than "totalNotes"
+                // But in reality this could be true as it was missed notes, and you can miss more than you hit
+                if (notesHit > totalNotes)
+                {
+                    var missedNotes = totalNotes;
+                    totalNotes = notesHit + missedNotes;
+                }
+
                 var starPowerAmount = reader.ReadDouble();
                 var starPowerBaseAmount = reader.ReadDouble();
                 var isStarPowerActive = reader.ReadBoolean();
                 var starPowerPhrasesHit = reader.ReadInt32();
                 var totalStarPowerPhrases = reader.ReadInt32();
+
+                // Same as above
+                if (starPowerPhrasesHit > totalStarPowerPhrases)
+                {
+                    var spMissed = totalStarPowerPhrases;
+                    totalStarPowerPhrases = starPowerPhrasesHit + spMissed;
+                }
+
                 var soloBonuses = reader.ReadInt32();
 
                 BaseStats stats = null!;
