@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using YARG.Core.Engine;
 using YARG.Core.Engine.Drums;
@@ -18,15 +18,14 @@ namespace YARG.Core.Replays
     {
         private static class Sections
         {
-
             #region Header
 
             public static void SerializeHeader(BinaryWriter writer, ReplayHeader header)
             {
                 header.Magic.Serialize(writer);
 
-                writer.Write((int)header.ReplayVersion);
-                writer.Write((int)header.EngineVersion);
+                writer.Write((int) header.ReplayVersion);
+                writer.Write((int) header.EngineVersion);
 
                 header.ReplayChecksum.Serialize(writer);
             }
@@ -365,9 +364,17 @@ namespace YARG.Core.Replays
                 var tempScoreMultiplier = reader.ReadInt32();
                 var tempNotesHit = reader.ReadInt32();
                 var tempTotalNotes = reader.ReadInt32();
+                var tempUnusedStarPowerAmount = reader.ReadDouble();
+                var tempUnusedStarPowerBaseAmount = reader.ReadDouble();
+
+                var tempIsSpActiveByte = reader.ReadByte();
 
                 // If any of these pass its really suspicious so pendingScore likely was not written
-                if (tempCombo > tempMaxCombo || tempScoreMultiplier > 12 || tempNotesHit < tempMaxCombo)
+                if (tempCombo > tempMaxCombo || tempScoreMultiplier > 12 || tempNotesHit < tempMaxCombo
+                    || tempIsSpActiveByte > 1
+                    || tempUnusedStarPowerAmount is > 0 and < 1.28854456937478154416e-231
+                    || tempUnusedStarPowerBaseAmount is > 0 and < 1.28854456937478154416e-231
+                    || (gameMode == GameMode.Vocals && tempIsSpActiveByte == 0 && tempCombo <= 3 && tempScoreMultiplier - 1 != tempCombo))
                 {
                     reader.Seek(positionUpToPendingScore);
                     pendingScore = 0;

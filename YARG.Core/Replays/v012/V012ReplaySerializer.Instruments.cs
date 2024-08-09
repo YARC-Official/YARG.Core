@@ -148,16 +148,29 @@ namespace YARG.Core.Replays
                     // We need to check the next few vars
 
                     var committedScore = reader.ReadInt32();
+
+                    // This variable isn't reliable as it wasn't versioned either!
                     var pendingScore = reader.ReadInt32();
+
                     var combo = reader.ReadInt32();
                     var maxCombo = reader.ReadInt32();
                     var scoreMultiplier = reader.ReadInt32();
                     var notesHit = reader.ReadInt32();
+                    var notesMissed = reader.ReadInt32();
 
-                    if (pendingScore != 0 || maxCombo > notesHit)
+                    var unusedSpAmount = reader.ReadInt32();
+                    var unusedSpBaseAmount = reader.ReadInt32();
+
+                    var isSpActiveByte = reader.ReadByte();
+                    var isSpActive = isSpActiveByte != 0;
+
+                    if (maxCombo > notesHit || isSpActiveByte > 1 ||
+                        (!isSpActive && scoreMultiplier > combo - 1))
                     {
-                        // pendingScore should always be 0 in vocals
+                        // pendingScore should always be 0 in vocals (if it was written)
                         // maxCombo can never be bigger than the number of notes hit
+                        // The byte for isSpActive can only be 0 or 1
+                        // If SP isn't active, the score multiplier can't be higher than the combo - 1
 
                         // Walk back the position because PointsPerPhrase was never written
                         reader.Seek(positionUpToPhrasePts);
