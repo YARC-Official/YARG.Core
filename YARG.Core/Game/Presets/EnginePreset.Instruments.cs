@@ -235,7 +235,7 @@ namespace YARG.Core.Game
             }
 
             public VocalsEngineParameters Create(float[] starMultiplierThresholds, Difficulty difficulty,
-                float updatesPerSecond)
+                float updatesPerSecond, bool singToActivateStarPower)
             {
                 // Hit window is in semitones (max. difference between correct pitch and sung pitch).
                 var (pitchWindow, hitPercent, pointsPerPhrase) = difficulty switch
@@ -258,7 +258,7 @@ namespace YARG.Core.Game
                     pitchWindow * PerfectPitchPercent,
                     hitPercent,
                     updatesPerSecond,
-                    true,
+                    singToActivateStarPower,
                     pointsPerPhrase);
             }
         }
