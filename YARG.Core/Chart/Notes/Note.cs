@@ -140,20 +140,56 @@ namespace YARG.Core.Chart
 
         public bool WasFullyHit()
         {
-            if (!WasHit) return false;
-            return _childNotes.All(childNote => childNote.WasFullyHit());
+            if (!WasHit)
+            {
+                return false;
+            }
+
+            foreach (var childNote in _childNotes)
+            {
+                if (!childNote.WasFullyHit())
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         public bool WasFullyMissed()
         {
-            if (!WasMissed) return false;
-            return _childNotes.All(childNote => childNote.WasFullyMissed());
+            if (!WasMissed)
+            {
+                return false;
+            }
+
+            foreach (var childNote in _childNotes)
+            {
+                if (!childNote.WasFullyMissed())
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         public bool WasFullyHitOrMissed()
         {
-            if (!WasMissed && !WasHit) return false;
-            return _childNotes.All(childNote => childNote.WasFullyHitOrMissed());
+            if (!WasMissed && !WasHit)
+            {
+                return false;
+            }
+
+            foreach (var childNote in _childNotes)
+            {
+                if (!childNote.WasFullyHitOrMissed())
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         public void OverridePreviousNote()

@@ -398,9 +398,12 @@ namespace YARG.Core.Engine
             }
 
             // Ignore duplicate updates
-            if (_scheduledUpdates.Any(i => i.Time == time))
+            foreach (var update in _scheduledUpdates)
             {
-                return;
+                if(update.Time == time)
+                {
+                    return;
+                }
             }
 
             _scheduledUpdates.Add(new EngineFrameUpdate
