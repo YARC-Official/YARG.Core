@@ -255,5 +255,7 @@
         Pitch = 0,
         /// <summary>Percussion hit action, reported as a button..</summary>
         Hit = 1,
+        /// <summary>Star Power activation, reported as a button.</summary>
+        StarPower = 2,
     }
 }
