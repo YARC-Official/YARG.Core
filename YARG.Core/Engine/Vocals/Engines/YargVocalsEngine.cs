@@ -60,6 +60,10 @@ namespace YARG.Core.Engine.Vocals.Engines
 
                 OnSing?.Invoke(true);
             }
+            else if (action is VocalsAction.StarPower)
+            {
+                IsStarPowerInputActive = gameInput.Button;
+            }
         }
 
         protected override void UpdateHitLogic(double time)
@@ -198,7 +202,8 @@ namespace YARG.Core.Engine.Vocals.Engines
             }
             else
             {
-                if (HasHit && CanStarPowerActivate)
+                // Singing (or any noise) can result in a call to CheckPercussionHit() as well, so we need to check SingToActivateStarPower here.
+                if (HasHit && CanStarPowerActivate && EngineParameters.SingToActivateStarPower)
                 {
                     ActivateStarPower();
                 }
