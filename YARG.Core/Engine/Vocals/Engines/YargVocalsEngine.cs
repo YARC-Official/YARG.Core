@@ -60,9 +60,9 @@ namespace YARG.Core.Engine.Vocals.Engines
 
                 OnSing?.Invoke(true);
             }
-            else if (action is VocalsAction.StarPower && CanStarPowerActivate)
+            else if (action is VocalsAction.StarPower)
             {
-                ActivateStarPower();
+                IsStarPowerInputActive = gameInput.Button;
             }
         }
 
