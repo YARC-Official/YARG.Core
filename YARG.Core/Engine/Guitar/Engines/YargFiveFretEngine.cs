@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using YARG.Core.Chart;
 using YARG.Core.Input;
 using YARG.Core.Logging;
@@ -298,7 +298,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                     // while NoteMask is the entire chord
 
                     var maskToRemove = sustainNote.IsDisjoint ? sustainNote.DisjointMask : sustainNote.NoteMask;
-                    buttonsMasked -= (byte) maskToRemove;
+                    buttonsMasked &= unchecked((byte) ~maskToRemove);
                 }
             }
 
