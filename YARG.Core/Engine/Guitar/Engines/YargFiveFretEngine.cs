@@ -307,15 +307,23 @@ namespace YARG.Core.Engine.Guitar.Engines
             static bool IsNoteHittable(GuitarNote note, byte buttonsMasked)
             {
                 // Only used for sustain logic
-                bool useDisjointMask = note is { IsDisjoint: true, WasHit: true };
+                bool useDisjointSustainMask = note is { IsDisjoint: true, WasHit: true };
 
                 // Use the DisjointMask for comparison if disjointed and was hit (for sustain logic)
-                int noteMask = useDisjointMask ? note.DisjointMask : note.NoteMask;
+                int noteMask = useDisjointSustainMask ? note.DisjointMask : note.NoteMask;
 
                 // If disjointed and is sustain logic (was hit), can hit if disjoint mask matches
-                if (useDisjointMask && (note.DisjointMask & buttonsMasked) != 0)
+                if (useDisjointSustainMask && (note.DisjointMask & buttonsMasked) != 0)
                 {
-                    return true;
+                    if ((note.DisjointMask & buttonsMasked) != 0)
+                    {
+                        return true;
+                    }
+
+                    if ((note.NoteMask & OPEN_MASK) != 0)
+                    {
+                        return true;
+                    }
                 }
 
                 // Open chords

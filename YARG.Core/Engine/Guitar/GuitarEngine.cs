@@ -14,7 +14,7 @@ namespace YARG.Core.Engine.Guitar
 
         public OverstrumEvent? OnOverstrum;
 
-        public byte ButtonMask;
+        public byte ButtonMask = OPEN_MASK;
         protected byte LastButtonMask;
 
         protected bool HasFretted;
@@ -102,7 +102,7 @@ namespace YARG.Core.Engine.Guitar
         {
             byte buttons = ButtonMask;
 
-            ButtonMask = 0;
+            ButtonMask = OPEN_MASK;
 
             HasFretted = false;
             HasStrummed = false;
@@ -181,7 +181,24 @@ namespace YARG.Core.Engine.Guitar
         protected override bool CanSustainHold(GuitarNote note)
         {
             var mask = note.IsDisjoint ? note.DisjointMask : note.NoteMask;
-            bool extendedSustainHold = (mask & ButtonMask) == mask;
+
+            var buttonsMasked = ButtonMask;
+            if ((mask & OPEN_MASK) != 0)
+            {
+                buttonsMasked |= OPEN_MASK;
+            }
+
+            bool extendedSustainHold = (mask & buttonsMasked) == mask;
+
+            // Open chord
+            if ((note.ParentOrSelf.NoteMask & OPEN_MASK) != 0 && note.ParentOrSelf.NoteMask != OPEN_MASK &&
+                (note.DisjointMask & OPEN_MASK) != 0)
+            {
+                if (note.IsDisjoint || note.IsExtendedSustain)
+                {
+                    return true;
+                }
+            }
 
             return note.IsExtendedSustain ? extendedSustainHold : CanNoteBeHit(note);
         }
@@ -320,8 +337,10 @@ namespace YARG.Core.Engine.Guitar
             {
                 var activeSustain = ActiveSustains[i];
 
-                // open notes NEED to have a bit in the bit mask because this is not going to work properly in some cases
-                if ((activeSustain.Note.NoteMask & note.NoteMask) != 0 || (activeSustain.Note.NoteMask == 0 && note.NoteMask == 0))
+                var activeSustainMask = activeSustain.Note.IsDisjoint ? activeSustain.Note.DisjointMask : activeSustain.Note.NoteMask;
+                var noteMask = note.IsDisjoint ? note.DisjointMask : note.NoteMask;
+
+                if ((activeSustainMask & noteMask) != 0)
                 {
                     EndSustain(i, true, CurrentTick >= activeSustain.Note.TickEnd);
                     i--;
