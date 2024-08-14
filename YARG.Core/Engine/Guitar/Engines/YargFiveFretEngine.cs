@@ -319,10 +319,19 @@ namespace YARG.Core.Engine.Guitar.Engines
                 }
 
                 // Open chords
-                // if ((noteMask & OPEN_MASK) != 0)
-                // {
-                //     return true;
-                // }
+                // Contains open fret but the note mask is not strictly the open mask
+                if ((noteMask & OPEN_MASK) != 0 && noteMask != OPEN_MASK)
+                {
+                    // Open chords are basically normal chords except no anchoring in any circumstances
+                    // Prevents HOPO/Tap chords from being anchored
+
+                    var buttonsMaskedWithOpen = buttonsMasked | OPEN_MASK;
+
+                    if (buttonsMaskedWithOpen == noteMask)
+                    {
+                        return true;
+                    }
+                }
 
                 // If holding exact note mask, can hit
                 if (buttonsMasked == noteMask)
