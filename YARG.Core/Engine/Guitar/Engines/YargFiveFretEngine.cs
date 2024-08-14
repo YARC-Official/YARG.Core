@@ -85,6 +85,17 @@ namespace YARG.Core.Engine.Guitar.Engines
                 IsFretPress = gameInput.Button;
 
                 ToggleFret(gameInput.Action, gameInput.Button);
+
+                // No other frets are held, enable the "open fret"
+                if ((ButtonMask & ~OPEN_MASK) == 0)
+                {
+                    ButtonMask |= OPEN_MASK;
+                }
+                else
+                {
+                    // Some frets are held, disable the "open fret"
+                    ButtonMask &= unchecked((byte) ~OPEN_MASK);
+                }
             }
 
             YargLogger.LogFormatTrace("Mutated input state: Button Mask: {0}, HasFretted: {1}, HasStrummed: {2}",
@@ -307,12 +318,11 @@ namespace YARG.Core.Engine.Guitar.Engines
                     return true;
                 }
 
-                // If open, must not hold any frets
-                // If not open, must be holding at least 1 fret
-                if (noteMask == 0 && buttonsMasked != 0 || noteMask != 0 && buttonsMasked == 0)
-                {
-                    return false;
-                }
+                // Open chords
+                // if ((noteMask & OPEN_MASK) != 0)
+                // {
+                //     return true;
+                // }
 
                 // If holding exact note mask, can hit
                 if (buttonsMasked == noteMask)

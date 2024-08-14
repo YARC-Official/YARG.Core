@@ -1,5 +1,6 @@
 using System.Drawing;
 using System.IO;
+using YARG.Core.Chart;
 using YARG.Core.Extensions;
 using YARG.Core.Utility;
 
@@ -26,12 +27,12 @@ namespace YARG.Core.Game
             {
                 return index switch
                 {
-                    0 => OpenFret,
                     1 => GreenFret,
                     2 => RedFret,
                     3 => YellowFret,
                     4 => BlueFret,
                     5 => OrangeFret,
+                    (int) FiveFretGuitarFret.Open => OpenFret,
                     _ => default
                 };
             }
@@ -99,18 +100,18 @@ namespace YARG.Core.Game
 
             /// <summary>
             /// Gets the note color for a specific note index.
-            /// 0 = open note, 1 = green, 5 = orange.
+            /// 1 = green, 5 = orange.
             /// </summary>
             public Color GetNoteColor(int index)
             {
                 return index switch
                 {
-                    0 => OpenNote,
                     1 => GreenNote,
                     2 => RedNote,
                     3 => YellowNote,
                     4 => BlueNote,
                     5 => OrangeNote,
+                    (int) FiveFretGuitarFret.Open => OpenNote,
                     _ => default
                 };
             }
@@ -124,18 +125,18 @@ namespace YARG.Core.Game
 
             /// <summary>
             /// Gets the Star Power note color for a specific note index.
-            /// 0 = open note, 1 = green, 5 = orange.
+            /// 1 = green, 5 = orange.
             /// </summary>
             public Color GetNoteStarPowerColor(int index)
             {
                 return index switch
                 {
-                    0 => OpenNoteStarPower,
                     1 => GreenNoteStarPower,
                     2 => RedNoteStarPower,
                     3 => YellowNoteStarPower,
                     4 => BlueNoteStarPower,
                     5 => OrangeNoteStarPower,
+                    (int) FiveFretGuitarFret.Open => OpenNoteStarPower,
                     _ => default
                 };
             }

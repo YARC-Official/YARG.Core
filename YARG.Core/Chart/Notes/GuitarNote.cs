@@ -89,23 +89,23 @@ namespace YARG.Core.Chart
 
     public enum FiveFretGuitarFret
     {
-        Open,
-        Green,
+        Green = 1,
         Red,
         Yellow,
         Blue,
         Orange,
+        Open = 7,
     }
 
     public enum SixFretGuitarFret
     {
-        Open,
-        Black1,
+        Black1 = 1,
         Black2,
         Black3,
         White1,
         White2,
         White3,
+        Open,
     }
 
     public enum GuitarNoteType
