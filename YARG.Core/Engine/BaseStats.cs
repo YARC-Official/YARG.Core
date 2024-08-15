@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using YARG.Core.Utility;
 
 namespace YARG.Core.Engine
@@ -83,6 +83,10 @@ namespace YARG.Core.Engine
 
         public uint TotalStarPowerTicks;
 
+        public double TotalStarPowerBarsFilled;
+
+        public int StarPowerActivationCount;
+
         public double TimeInStarPower;
 
         /// <summary>
@@ -139,6 +143,8 @@ namespace YARG.Core.Engine
 
             StarPowerTickAmount = stats.StarPowerTickAmount;
             TotalStarPowerTicks = stats.TotalStarPowerTicks;
+            TotalStarPowerBarsFilled = stats.TotalStarPowerBarsFilled;
+            StarPowerActivationCount = stats.StarPowerActivationCount;
             TimeInStarPower = stats.TimeInStarPower;
             IsStarPowerActive = stats.IsStarPowerActive;
 
@@ -164,6 +170,8 @@ namespace YARG.Core.Engine
 
             StarPowerTickAmount = 0;
             TotalStarPowerTicks = 0;
+            TotalStarPowerBarsFilled = 0;
+            StarPowerActivationCount = 0;
             TimeInStarPower = 0;
             WhammyTicks = 0;
             IsStarPowerActive = false;

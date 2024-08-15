@@ -479,6 +479,8 @@ namespace YARG.Core.Engine
             StarPowerTickEndPosition = StarPowerTickActivationPosition + BaseStats.StarPowerTickAmount;
             StarPowerEndTime = GetStarPowerDrainTickToTime(StarPowerTickEndPosition, CurrentSyncTrackState);
 
+            BaseStats.StarPowerActivationCount++;
+
             YargLogger.LogFormatTrace("Activated at SP tick {0}, ends at SP tick {1}. Start time: {2}, End time: {3}",
                 StarPowerTickActivationPosition, StarPowerTickEndPosition, StarPowerActivationTime, StarPowerEndTime);
 
@@ -515,6 +517,7 @@ namespace YARG.Core.Engine
 
             // Add the amount of ticks gained to the total ticks gained
             BaseStats.TotalStarPowerTicks += BaseStats.StarPowerTickAmount - prevTicks;
+            BaseStats.TotalStarPowerBarsFilled = (double)BaseStats.TotalStarPowerTicks / TicksPerFullSpBar;
 
             if (BaseStats.IsStarPowerActive)
             {
