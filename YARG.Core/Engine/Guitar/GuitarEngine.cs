@@ -15,11 +15,12 @@ namespace YARG.Core.Engine.Guitar
         public OverstrumEvent? OnOverstrum;
 
         public byte ButtonMask = OPEN_MASK;
+
         protected byte LastButtonMask;
 
         protected bool HasFretted;
         protected bool HasStrummed;
-        protected bool HasTapped;
+        protected bool HasTapped   = true;
         protected bool HasWhammied;
 
         protected bool IsFretPress;
@@ -106,6 +107,7 @@ namespace YARG.Core.Engine.Guitar
 
             HasFretted = false;
             HasStrummed = false;
+            HasTapped = true;
 
             WasNoteGhosted = false;
 
