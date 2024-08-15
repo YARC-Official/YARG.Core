@@ -131,11 +131,21 @@ namespace YARG.Core.Engine.Guitar.Engines
                         Overstrum();
                     }
                 }
-            }
 
-            // First update all the active sustains (ones which were started before this update)
-            // This can drop any sustains which end at this time
-            // UpdateSustains(false);
+                if (!strumEatenByHopo)
+                {
+                    double offset = 0;
+
+                    if (NoteIndex >= Notes.Count || !IsNoteInWindow(Notes[NoteIndex]))
+                    {
+                        offset = EngineParameters.StrumLeniencySmall;
+                    }
+
+                    StartTimer(ref StrumLeniencyTimer, CurrentTime, offset);
+
+                    ReRunHitLogic = true;
+                }
+            }
 
             // Update bot (will return if not enabled)
             UpdateBot(time);
@@ -154,17 +164,6 @@ namespace YARG.Core.Engine.Guitar.Engines
 
             var hitWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
             var frontEnd = EngineParameters.HitWindow.GetFrontEnd(hitWindow);
-
-            if (HasStrummed && !strumEatenByHopo)
-            {
-                // Offset timer by small strum leniency if there's no note in the hit window
-                double offset = !IsNoteInWindow(note) ? EngineParameters.StrumLeniencySmall : 0;
-
-                // Start the strum leniency timer at full value
-                StartTimer(ref StrumLeniencyTimer, CurrentTime, offset);
-
-                ReRunHitLogic = true;
-            }
 
             if (HasFretted)
             {
