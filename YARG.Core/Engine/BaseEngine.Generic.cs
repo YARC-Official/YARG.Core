@@ -872,8 +872,16 @@ namespace YARG.Core.Engine
 
                     // Countdown should start at end of the first note if it's directly on a measure line
                     // Otherwise it should start at the beginning of the next measure
+
+                    // Increasing measure index if there's no more measures causes an exception
+                    // Temporary fix by adding a check for the last measure
+                    // Affects 1/1 time signatures
                     int curMeasureIndex = allMeasureBeatLines.GetIndexOfPrevious(noteOneTickEnd);
-                    if (allMeasureBeatLines[curMeasureIndex].Tick < noteOneTickEnd) curMeasureIndex++;
+                    if (allMeasureBeatLines[curMeasureIndex].Tick < noteOneTickEnd
+                        && curMeasureIndex + 1 < allMeasureBeatLines.Count)
+                    {
+                        curMeasureIndex++;
+                    }
 
                     var curMeasureline = allMeasureBeatLines[curMeasureIndex];
                     while (curMeasureline.Tick <= noteTwoTick)
