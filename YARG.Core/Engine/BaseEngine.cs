@@ -493,7 +493,6 @@ namespace YARG.Core.Engine
         {
             YargLogger.LogFormatTrace("Star Power ended at {0} (tick: {1})", CurrentTime,
                 StarPowerTickPosition);
-            BaseStats.StarPowerBarAmount = 0;
             BaseStats.IsStarPowerActive = false;
             BaseStats.TimeInStarPower += CurrentTime - StarPowerActivationTime;
 
@@ -513,8 +512,6 @@ namespace YARG.Core.Engine
             {
                 BaseStats.StarPowerTickAmount = TicksPerFullSpBar;
             }
-
-            BaseStats.StarPowerBarAmount = BaseStats.StarPowerTickAmount / (double) TicksPerFullSpBar;
 
             // Add the amount of ticks gained to the total ticks gained
             BaseStats.TotalStarPowerTicks += BaseStats.StarPowerTickAmount - prevTicks;
@@ -539,7 +536,6 @@ namespace YARG.Core.Engine
             }
 
             BaseStats.StarPowerTickAmount = (uint) newAmount;
-            BaseStats.StarPowerBarAmount = BaseStats.StarPowerTickAmount / (double) TicksPerFullSpBar;
         }
 
         protected virtual void UpdateStarPower()

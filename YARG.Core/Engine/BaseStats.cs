@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using YARG.Core.Utility;
 
 namespace YARG.Core.Engine
@@ -79,11 +79,6 @@ namespace YARG.Core.Engine
         /// </summary>
         public virtual float Percent => TotalNotes == 0 ? 1f : (float) NotesHit / TotalNotes;
 
-        /// <summary>
-        /// Amount of Star Power/Overdrive the player currently has.
-        /// </summary>
-        public double StarPowerBarAmount;
-
         public uint StarPowerTickAmount;
 
         public uint TotalStarPowerTicks;
@@ -142,7 +137,6 @@ namespace YARG.Core.Engine
             NotesHit = stats.NotesHit;
             TotalNotes = stats.TotalNotes;
 
-            StarPowerBarAmount = stats.StarPowerBarAmount;
             StarPowerTickAmount = stats.StarPowerTickAmount;
             TotalStarPowerTicks = stats.TotalStarPowerTicks;
             TimeInStarPower = stats.TimeInStarPower;
@@ -168,7 +162,6 @@ namespace YARG.Core.Engine
             // Don't reset TotalNotes
             // TotalNotes = 0;
 
-            StarPowerBarAmount = 0;
             StarPowerTickAmount = 0;
             TotalStarPowerTicks = 0;
             TimeInStarPower = 0;
@@ -196,7 +189,6 @@ namespace YARG.Core.Engine
             writer.Write(NotesHit);
             writer.Write(TotalNotes);
 
-            writer.Write(StarPowerBarAmount);
             writer.Write(StarPowerTickAmount);
             writer.Write(TotalStarPowerTicks);
             writer.Write(TimeInStarPower);
@@ -225,7 +217,6 @@ namespace YARG.Core.Engine
             NotesHit = reader.ReadInt32();
             TotalNotes = reader.ReadInt32();
 
-            StarPowerBarAmount = reader.ReadDouble();
             StarPowerTickAmount = reader.ReadUInt32();
             TotalStarPowerTicks = reader.ReadUInt32();
             TimeInStarPower = reader.ReadDouble();
