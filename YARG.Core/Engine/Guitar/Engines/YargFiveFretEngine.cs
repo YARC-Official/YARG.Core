@@ -286,27 +286,46 @@ namespace YARG.Core.Engine.Guitar.Engines
         protected override bool CanNoteBeHit(GuitarNote note)
         {
             byte buttonsMasked = ButtonMask;
-            foreach (var sustain in ActiveSustains)
+            if (ActiveSustains.Count > 0)
             {
-                var sustainNote = sustain.Note;
-
-                if (sustainNote.IsExtendedSustain)
+                foreach (var sustain in ActiveSustains)
                 {
-                    // Remove the note mask if its an extended sustain
-                    // Difference between NoteMask and DisjointMask is that DisjointMask is only a single fret
-                    // while NoteMask is the entire chord
+                    var sustainNote = sustain.Note;
 
-                    var maskToRemove = sustainNote.IsDisjoint ? sustainNote.DisjointMask : sustainNote.NoteMask;
-                    buttonsMasked &= unchecked((byte) ~maskToRemove);
+                    if (sustainNote.IsExtendedSustain)
+                    {
+                        // Remove the note mask if its an extended sustain
+                        // Difference between NoteMask and DisjointMask is that DisjointMask is only a single fret
+                        // while NoteMask is the entire chord
+
+                        // TODO Notes cannot be hit if a sustain of the same fret is being held e.g H-ELL Solo 3C5
+
+                        //byte sameFretsHeld = (byte) ((byte) (sustain.Note.NoteMask & note.NoteMask) & ButtonMask);
+
+                        var maskToRemove = sustainNote.IsDisjoint ? sustainNote.DisjointMask : sustainNote.NoteMask;
+                        buttonsMasked &= unchecked((byte) ~maskToRemove);
+                        //buttonsMasked |= sameFretsHeld;
+                    }
+                }
+
+                // If the resulting masked buttons are 0, we need to apply the Open Mask so open notes can be hit
+                // Need to make a copy of the button mask to prevent modifying the original
+                byte buttonMaskCopy = ButtonMask;
+                if (buttonsMasked == 0)
+                {
+                    buttonsMasked |= OPEN_MASK;
+                    buttonMaskCopy |= OPEN_MASK;
+                }
+
+                // We dont want to use masked buttons for hit logic if the buttons are identical
+                if (buttonsMasked != buttonMaskCopy && IsNoteHittable(note, buttonsMasked))
+                {
+                    return true;
                 }
             }
 
-            if (buttonsMasked == 0)
-            {
-                buttonsMasked |= OPEN_MASK;
-            }
-
-            return IsNoteHittable(note, buttonsMasked);
+            // If masked/extended sustain logic didn't work, try original ButtonMask
+            return IsNoteHittable(note, ButtonMask);
 
             static bool IsNoteHittable(GuitarNote note, byte buttonsMasked)
             {
