@@ -115,10 +115,28 @@ namespace YARG.Core.Chart
         {
             var flags = GuitarNoteFlags.None;
 
-            // Extended sustains
+            var noteEndTick = moonNote.tick + moonNote.length;
+
+            // Extended sustains (Forwards)
             var nextNote = moonNote.NextSeperateMoonNote;
-            if (nextNote is not null && (moonNote.tick + moonNote.length) > nextNote.tick &&
-                (nextNote.tick - moonNote.tick) > _settings.NoteSnapThreshold)
+            var ticksToNextNote = nextNote?.tick - moonNote.tick ?? 0;
+
+            if (nextNote is not null &&
+                noteEndTick > nextNote.tick &&
+                ticksToNextNote > _settings.NoteSnapThreshold)
+            {
+                flags |= GuitarNoteFlags.ExtendedSustain;
+            }
+
+            // Extended sustains (Backwards)
+            var prevNote = moonNote.PreviousSeperateMoonNote;
+            var prevNoteEndTick = prevNote?.tick + prevNote?.length ?? 0;
+            var ticksToPrevNote = moonNote.tick - prevNote?.tick ?? 0;
+
+            if (prevNote is not null &&
+                prevNoteEndTick > moonNote.tick &&
+                moonNote.length > 0 &&
+                ticksToPrevNote > _settings.NoteSnapThreshold)
             {
                 flags |= GuitarNoteFlags.ExtendedSustain;
             }
