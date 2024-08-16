@@ -130,15 +130,28 @@ namespace YARG.Core.Chart
 
             // Extended sustains (Backwards)
             var prevNote = moonNote.PreviousSeperateMoonNote;
-            var prevNoteEndTick = prevNote?.tick + prevNote?.length ?? 0;
-            var ticksToPrevNote = moonNote.tick - prevNote?.tick ?? 0;
 
-            if (prevNote is not null &&
-                prevNoteEndTick > moonNote.tick &&
-                moonNote.length > 0 &&
-                ticksToPrevNote > _settings.NoteSnapThreshold)
+            if (prevNote is not null)
             {
-                flags |= GuitarNoteFlags.ExtendedSustain;
+                var prevNoteTick = prevNote.tick;
+                uint largestLength = 0;
+
+                // Must find the longest length of previous note (disjoint chords)
+                while(prevNote is not null && prevNote.previous?.tick == prevNote.tick)
+                {
+                    largestLength = Math.Max(largestLength, prevNote.length);
+                    prevNote = prevNote.previous;
+                }
+
+                var prevNoteEndTick = prevNoteTick + largestLength;
+                var ticksToPrevNote = moonNote.tick - prevNoteTick;
+
+                if (prevNoteEndTick > moonNote.tick &&
+                    moonNote.length > 0 &&
+                    ticksToPrevNote > _settings.NoteSnapThreshold)
+                {
+                    flags |= GuitarNoteFlags.ExtendedSustain;
+                }
             }
 
             // Disjoint chords
