@@ -301,6 +301,11 @@ namespace YARG.Core.Engine.Guitar.Engines
                 }
             }
 
+            if (buttonsMasked == 0)
+            {
+                buttonsMasked |= OPEN_MASK;
+            }
+
             return IsNoteHittable(note, buttonsMasked);
 
             static bool IsNoteHittable(GuitarNote note, byte buttonsMasked)
