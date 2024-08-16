@@ -413,6 +413,17 @@ namespace YARG.Core.Engine.Guitar.Engines
 
             StrumLeniencyTimer.Disable();
 
+            for(int i = 0; i < ActiveSustains.Count; i++)
+            {
+                var sustainNote = ActiveSustains[i].Note;
+
+                var sustainMask = sustainNote.IsDisjoint ? sustainNote.DisjointMask : sustainNote.NoteMask;
+                if ((sustainMask & note.NoteMask) != 0)
+                {
+                    EndSustain(i, true, CurrentTick >= sustainNote.TickEnd);
+                }
+            }
+
             base.HitNote(note);
         }
 

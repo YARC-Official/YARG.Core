@@ -333,25 +333,6 @@ namespace YARG.Core.Engine.Guitar
             }
         }
 
-        protected override void StartSustain(GuitarNote note)
-        {
-            for (int i = 0; i < ActiveSustains.Count; i++)
-            {
-                var activeSustain = ActiveSustains[i];
-
-                var activeSustainMask = activeSustain.Note.IsDisjoint ? activeSustain.Note.DisjointMask : activeSustain.Note.NoteMask;
-                var noteMask = note.IsDisjoint ? note.DisjointMask : note.NoteMask;
-
-                if ((activeSustainMask & noteMask) != 0)
-                {
-                    EndSustain(i, true, CurrentTick >= activeSustain.Note.TickEnd);
-                    i--;
-                }
-            }
-
-            base.StartSustain(note);
-        }
-
         public override void SetSpeed(double speed)
         {
             base.SetSpeed(speed);
