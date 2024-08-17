@@ -1,4 +1,4 @@
-﻿using NUnit.Framework;
+using NUnit.Framework;
 using YARG.Core.Chart;
 using YARG.Core.Engine;
 using YARG.Core.Engine.Drums;
@@ -229,7 +229,6 @@ public partial class Cli
         PrintStatDifference("TotalNotes",             originalStats.TotalNotes,             resultStats.TotalNotes);
         PrintStatDifference("NotesMissed",            originalStats.NotesMissed,            resultStats.NotesMissed);
         PrintStatDifference("Percent",                originalStats.Percent,                resultStats.Percent);
-        PrintStatDifference("StarPowerBarAmount",     originalStats.StarPowerBarAmount,     resultStats.StarPowerBarAmount);
         PrintStatDifference("StarPowerTickAmount",    originalStats.StarPowerTickAmount,    resultStats.StarPowerTickAmount);
         PrintStatDifference("TotalStarPowerTicks",    originalStats.TotalStarPowerTicks,    resultStats.TotalStarPowerTicks);
         PrintStatDifference("TimeInStarPower",        originalStats.TimeInStarPower,        resultStats.TimeInStarPower);
