@@ -18,9 +18,9 @@ namespace YARG.Core.Engine.ProKeys
         public OverhitEvent? OnOverhit;
 
         // Used for hit logic. May not be the same value as KeyHeldMask
-        protected int KeyMask;
+        public int KeyMask { get; protected set; }
 
-        protected int PreviousKeyMask;
+        public int PreviousKeyMask { get; protected set; }
 
         protected double[] KeyPressTimes = new double[(int)ProKeysAction.Key25 + 1];
 
@@ -54,6 +54,11 @@ namespace YARG.Core.Engine.ProKeys
                 KeyPressTimes[i] = -9999;
             }
         }
+
+        public EngineTimer GetChordStaggerTimer() => ChordStaggerTimer;
+        public EngineTimer GetFatFingerTimer() => FatFingerTimer;
+
+        public ReadOnlySpan<double> GetKeyPressTimes() => KeyPressTimes;
 
         protected override void GenerateQueuedUpdates(double nextTime)
         {

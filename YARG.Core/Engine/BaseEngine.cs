@@ -69,35 +69,35 @@ namespace YARG.Core.Engine
 
         private readonly List<double> _starPowerTempoTsTicks = new();
 
-        public int NoteIndex;
+        public int NoteIndex { get; protected set; }
 
-        public double CurrentTime;
-        public double LastUpdateTime;
+        public double CurrentTime { get; protected set; }
+        public double LastUpdateTime { get; protected set; }
 
-        public double LastQueuedInputTime;
+        public double LastQueuedInputTime { get; protected set; }
 
-        public uint CurrentTick;
-        public uint LastTick;
+        public uint CurrentTick { get; protected set; }
+        public uint LastTick { get; protected set; }
 
-        public int CurrentSoloIndex;
-        public int CurrentStarIndex;
-        public int CurrentWaitCountdownIndex;
+        public int CurrentSoloIndex { get; protected set; }
+        public int CurrentStarIndex { get; protected set; }
+        public int CurrentWaitCountdownIndex { get; protected set; }
 
-        public bool IsSoloActive;
+        public bool IsSoloActive { get; protected set; }
 
-        public bool IsWaitCountdownActive;
-        public bool IsStarPowerInputActive;
+        public bool IsWaitCountdownActive { get; protected set; }
+        public bool IsStarPowerInputActive { get; protected set; }
 
-        public EngineTimer StarPowerWhammyTimer;
+        protected EngineTimer StarPowerWhammyTimer;
 
-        protected uint StarPowerTickPosition;
-        protected uint PreviousStarPowerTickPosition;
+        public uint StarPowerTickPosition { get; protected set; }
+        public uint PreviousStarPowerTickPosition { get; protected set; }
 
-        protected uint StarPowerTickActivationPosition;
-        protected uint StarPowerTickEndPosition;
+        public uint StarPowerTickActivationPosition { get; protected set; }
+        public uint StarPowerTickEndPosition { get; protected set; }
 
-        protected double StarPowerActivationTime;
-        protected double StarPowerEndTime;
+        public double StarPowerActivationTime { get; protected set; }
+        public double StarPowerEndTime { get; protected set; }
 
         public struct EngineFrameUpdate
         {
@@ -186,6 +186,8 @@ namespace YARG.Core.Engine
 
             CurrentSyncIndex = 0;
         }
+
+        public EngineTimer GetStarPowerWhammyTimer() => StarPowerWhammyTimer;
 
         /// <summary>
         /// Gets the number of notes the engine recognizes in a specific note parent.

@@ -24,33 +24,33 @@ namespace YARG.Core.Engine.Vocals
         /// <summary>
         /// Whether or not the player/bot has hit their mic in the current update.
         /// </summary>
-        public bool HasHit;
+        protected bool HasHit;
 
         /// <summary>
         /// Whether or not the player/bot sang in the current update.
         /// </summary>
-        public bool HasSang;
+        protected bool HasSang;
 
         /// <summary>
         /// The float value for the last pitch sang (as a MIDI note).
         /// </summary>
-        public float PitchSang;
+        public float PitchSang { get; protected set; }
 
         /// <summary>
         /// The amount of ticks in the current phrase.
         /// </summary>
-        public uint? PhraseTicksTotal;
+        public uint? PhraseTicksTotal { get; protected set; }
 
         /// <summary>
         /// The amount of ticks hit in the current phrase.
         /// This is a decimal since you can get fractions of a point for singing slightly off.
         /// </summary>
-        public double PhraseTicksHit;
+        public double PhraseTicksHit { get; protected set; }
 
         /// <summary>
         /// The last tick where there was a successful sing input.
         /// </summary>
-        public uint LastSingTick;
+        public uint LastSingTick { get; protected set; }
 
         protected VocalsEngine(InstrumentDifficulty<VocalNote> chart, SyncTrack syncTrack,
             VocalsEngineParameters engineParameters, bool isBot)

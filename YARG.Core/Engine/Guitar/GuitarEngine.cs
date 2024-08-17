@@ -14,18 +14,18 @@ namespace YARG.Core.Engine.Guitar
 
         public OverstrumEvent? OnOverstrum;
 
-        public byte ButtonMask = OPEN_MASK;
+        public byte ButtonMask { get; protected set; } = OPEN_MASK;
 
-        protected byte LastButtonMask;
+        public byte LastButtonMask { get; protected set; }
 
         protected bool HasFretted;
         protected bool HasStrummed;
-        protected bool HasTapped   = true;
+        protected bool HasTapped = true;
         protected bool HasWhammied;
 
         protected bool IsFretPress;
 
-        protected bool WasNoteGhosted;
+        public bool WasNoteGhosted { get; protected set; }
 
         /// <summary>
         /// The amount of time a hopo is allowed to take a strum input.
@@ -49,6 +49,10 @@ namespace YARG.Core.Engine.Guitar
             HopoLeniencyTimer = new EngineTimer(engineParameters.HopoLeniency);
             StarPowerWhammyTimer = new EngineTimer(engineParameters.StarPowerWhammyBuffer);
         }
+
+        public EngineTimer GetHopoLeniencyTimer() => HopoLeniencyTimer;
+        public EngineTimer GetStrumLeniencyTimer() => StrumLeniencyTimer;
+        public double GetFrontEndExpireTime() => FrontEndExpireTime;
 
         protected override void GenerateQueuedUpdates(double nextTime)
         {
