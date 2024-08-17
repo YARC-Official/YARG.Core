@@ -92,7 +92,7 @@ namespace YARG.Core.Engine
         /// <summary>
         /// Amount of Star Power/Overdrive gained from whammy during the current whammy period.
         /// </summary>
-        public uint WhammyTicks;
+        public uint StarPowerWhammyTicks;
 
         /// <summary>
         /// True if the player currently has Star Power/Overdrive active.
@@ -173,7 +173,7 @@ namespace YARG.Core.Engine
             TotalStarPowerBarsFilled = 0;
             StarPowerActivationCount = 0;
             TimeInStarPower = 0;
-            WhammyTicks = 0;
+            StarPowerWhammyTicks = 0;
             IsStarPowerActive = false;
 
             StarPowerPhrasesHit = 0;
@@ -200,7 +200,7 @@ namespace YARG.Core.Engine
             writer.Write(StarPowerTickAmount);
             writer.Write(TotalStarPowerTicks);
             writer.Write(TimeInStarPower);
-            writer.Write(WhammyTicks);
+            writer.Write(StarPowerWhammyTicks);
             writer.Write(IsStarPowerActive);
 
             writer.Write(StarPowerPhrasesHit);
@@ -228,7 +228,7 @@ namespace YARG.Core.Engine
             StarPowerTickAmount = reader.ReadUInt32();
             TotalStarPowerTicks = reader.ReadUInt32();
             TimeInStarPower = reader.ReadDouble();
-            WhammyTicks = reader.ReadUInt32();
+            StarPowerWhammyTicks = reader.ReadUInt32();
             IsStarPowerActive = reader.ReadBoolean();
 
             StarPowerPhrasesHit = reader.ReadInt32();

@@ -90,6 +90,8 @@ namespace YARG.Core.Engine
 
         protected EngineTimer StarPowerWhammyTimer;
 
+        public uint LastStarPowerWhammyTick { get; protected set; }
+
         public uint StarPowerTickPosition { get; protected set; }
         public uint PreviousStarPowerTickPosition { get; protected set; }
 

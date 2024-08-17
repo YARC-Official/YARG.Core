@@ -65,8 +65,6 @@ namespace YARG.Core.Engine
         public override BaseEngineParameters BaseParameters => EngineParameters;
         public override BaseStats            BaseStats      => EngineStats;
 
-        public uint LastWhammyTick { get; protected set; }
-
         protected BaseEngine(InstrumentDifficulty<TNoteType> chart, SyncTrack syncTrack,
             TEngineParams engineParameters, bool isChordSeparate, bool isBot)
             : base(syncTrack, isChordSeparate, isBot)
@@ -482,12 +480,12 @@ namespace YARG.Core.Engine
 
             if (isStarPowerSustainActive && StarPowerWhammyTimer.IsActive)
             {
-                var whammyTicks = CurrentTick - LastWhammyTick;
+                var whammyTicks = CurrentTick - LastStarPowerWhammyTick;
 
                 GainStarPower(whammyTicks);
-                EngineStats.WhammyTicks += whammyTicks;
+                EngineStats.StarPowerWhammyTicks += whammyTicks;
 
-                LastWhammyTick = CurrentTick;
+                LastStarPowerWhammyTick = CurrentTick;
             }
 
             // Whammy is disabled after sustains are updated.
@@ -503,7 +501,7 @@ namespace YARG.Core.Engine
         {
             if (ActiveSustains.Count == 0)
             {
-                LastWhammyTick = CurrentTick;
+                LastStarPowerWhammyTick = CurrentTick;
             }
 
             var sustain = new ActiveSustain<TNoteType>(note);

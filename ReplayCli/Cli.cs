@@ -1,4 +1,4 @@
-using NUnit.Framework;
+﻿using NUnit.Framework;
 using YARG.Core.Chart;
 using YARG.Core.Engine;
 using YARG.Core.Engine.Drums;
@@ -246,11 +246,11 @@ public partial class Cli
             case (GuitarStats originalGuitar, GuitarStats resultGuitar):
             {
                 Console.WriteLine("Guitar stats:");
-                PrintStatDifference("Overstrums",    originalGuitar.Overstrums,    resultGuitar.Overstrums);
-                PrintStatDifference("HoposStrummed", originalGuitar.HoposStrummed, resultGuitar.HoposStrummed);
-                PrintStatDifference("GhostInputs",   originalGuitar.GhostInputs,   resultGuitar.GhostInputs);
-                PrintStatDifference("WhammyTicks",   originalGuitar.WhammyTicks,   resultGuitar.WhammyTicks);
-                PrintStatDifference("SustainScore",  originalGuitar.SustainScore,  resultGuitar.SustainScore);
+                PrintStatDifference("Overstrums",             originalGuitar.Overstrums,             resultGuitar.Overstrums);
+                PrintStatDifference("HoposStrummed",          originalGuitar.HoposStrummed,          resultGuitar.HoposStrummed);
+                PrintStatDifference("GhostInputs",            originalGuitar.GhostInputs,            resultGuitar.GhostInputs);
+                PrintStatDifference("StarPowerWhammyTicks",   originalGuitar.StarPowerWhammyTicks,   resultGuitar.StarPowerWhammyTicks);
+                PrintStatDifference("SustainScore",           originalGuitar.SustainScore,           resultGuitar.SustainScore);
                 break;
             }
             case (DrumsStats originalDrums, DrumsStats resultDrums):
