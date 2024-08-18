@@ -13,7 +13,7 @@ namespace YARG.Core.Audio
 
     public static class GlobalAudioHandler
     {
-        public const int WHAMMY_FFT_DEFAULT = 2048;
+        public const int WHAMMY_FFT_DEFAULT = 512;
         public const int WHAMMY_OVERSAMPLE_DEFAULT = 8;
         public static readonly int MAX_THREADS = Environment.ProcessorCount switch
         {
@@ -105,6 +105,16 @@ namespace YARG.Core.Audio
         public static void SetReverbSetting(SongStem stem, bool reverb)
         {
             StemSettings[stem].Reverb = reverb;
+        }
+
+        public static float GetWhammyPitchSetting(SongStem stem)
+        {
+            return StemSettings[stem].WhammyPitch;
+        }
+
+        public static void SetWhammyPitchSetting(SongStem stem, float percent)
+        {
+            StemSettings[stem].WhammyPitch = percent;
         }
 
         private static object _instanceLock = new();
