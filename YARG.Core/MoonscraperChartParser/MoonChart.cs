@@ -78,6 +78,13 @@ namespace MoonscraperChartEditor.Song
             return MoonObjectHelper.Remove(ev, events);
         }
 
+        public void Sort()
+        {
+            notes.Sort((left, right) => left.InsertionCompareTo(right));
+            specialPhrases.Sort((left, right) => left.InsertionCompareTo(right));
+            events.Sort((left, right) => left.InsertionCompareTo(right));
+        }
+
         // Only implemented to allow collection initializer support
         IEnumerator IEnumerable.GetEnumerator() => throw new System.NotImplementedException();
 
