@@ -185,9 +185,6 @@ namespace MoonscraperChartEditor.Song.IO
         {
             YargLogger.LogTrace("Loading .chart [SyncTrack] section");
 
-            // This is valid since we are guaranteed to have at least one tempo event at all times
-            var tempoTracker = new ChartEventTickTracker<TempoChange>(song.syncTrack.Tempos);
-
             uint prevTick = 0;
             var chartEvent = new DotChartEvent();
             while (YARGChartFileReader.TryParseEvent(ref chartText, ref chartEvent))
@@ -199,14 +196,13 @@ namespace MoonscraperChartEditor.Song.IO
                         throw new Exception("Tick value not in ascending order");
                     prevTick = tick;
 
-                    tempoTracker.Update(tick);
-
                     switch (chartEvent.Type)
                     {
                         case ChartEventType.Bpm:
                         {
                             ulong tempo = YARGTextReader.ExtractUInt64AndWhitespace(ref chartText);
-                            song.Add(new TempoChange(tempo / 1000f, song.TickToTime(tick, tempoTracker.Current!), tick));
+                            song.Add(new TempoChange(tempo / 1000f,
+                                song.TickToTime(tick, song.syncTrack.Tempos[^1]), tick));
                             break;
                         }
 
@@ -224,7 +220,7 @@ namespace MoonscraperChartEditor.Song.IO
                             denominator = (uint) Math.Pow(2, denominator);
 
                             song.Add(new TimeSignatureChange(numerator, denominator,
-                                song.TickToTime(tick, tempoTracker.Current!), tick));
+                                song.TickToTime(tick, song.syncTrack.Tempos[^1]), tick));
                             break;
                         }
 
