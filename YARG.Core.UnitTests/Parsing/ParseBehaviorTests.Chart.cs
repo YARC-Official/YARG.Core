@@ -17,13 +17,65 @@ namespace YARG.Core.UnitTests.Parsing
 
     public class ChartParseBehaviorTests
     {
+        private class ChartSection : IDisposable
+        {
+            private StringBuilder _builder;
+            private List<(uint tick, string typeCode, string data)> _events = new();
+
+            public ChartSection(StringBuilder builder, string sectionName)
+            {
+                _builder = builder;
+
+                _builder.Append($"[{sectionName}]{NEWLINE}");
+                _builder.Append($"{{{NEWLINE}");
+            }
+
+            public void AddEvent(uint tick, string typeCode, string data)
+            {
+                _events.Add((tick, typeCode, data));
+            }
+
+            public void AddEvent(uint tick, string typeCode, uint value1)
+            {
+                _events.Add((tick, typeCode, $"{value1}"));
+            }
+
+            public void AddEvent(uint tick, string typeCode, uint value1, uint value2)
+            {
+                _events.Add((tick, typeCode, $"{value1} {value2}"));
+            }
+
+            public void Dispose()
+            {
+                _events.Sort((left, right) =>
+                {
+                    int compare = left.tick.CompareTo(right.tick);
+                    if (compare != 0)
+                        return compare;
+
+                    compare = string.Compare(left.typeCode, right.typeCode, StringComparison.Ordinal);
+                    if (compare != 0)
+                        return compare;
+
+                    return string.Compare(left.data, right.data, StringComparison.Ordinal);
+                });
+
+                foreach (var (tick, typeCode, data) in _events)
+                {
+                    _builder.Append($"  {tick} = {typeCode} {data}{NEWLINE}");
+                }
+
+                _builder.Append($"}}{NEWLINE}");
+            }
+        }
+
         private static readonly Dictionary<MoonInstrument, string> InstrumentToNameLookup =
             InstrumentStrToEnumLookup.ToDictionary((pair) => pair.Value, (pair) => pair.Key);
 
         private static readonly Dictionary<Difficulty, string> DifficultyToNameLookup =
             TrackNameToTrackDifficultyLookup.ToDictionary((pair) => pair.Value, (pair) => pair.Key);
 
-        private static readonly Dictionary<int, int> GuitarNoteLookup = new()
+        private static readonly Dictionary<int, uint> GuitarNoteLookup = new()
         {
             { (int)GuitarFret.Green,  0 },
             { (int)GuitarFret.Red,    1 },
@@ -33,7 +85,7 @@ namespace YARG.Core.UnitTests.Parsing
             { (int)GuitarFret.Open,   7 },
         };
 
-        private static readonly Dictionary<int, int> GhlGuitarNoteLookup = new()
+        private static readonly Dictionary<int, uint> GhlGuitarNoteLookup = new()
         {
             { (int)GHLiveGuitarFret.Black1, 3 },
             { (int)GHLiveGuitarFret.Black2, 4 },
@@ -44,7 +96,7 @@ namespace YARG.Core.UnitTests.Parsing
             { (int)GHLiveGuitarFret.Open,   7 },
         };
 
-        private static readonly Dictionary<int, int> DrumsNoteLookup = new()
+        private static readonly Dictionary<int, uint> DrumsNoteLookup = new()
         {
             { (int)DrumPad.Kick,   0 },
             { (int)DrumPad.Red,    1 },
@@ -54,14 +106,14 @@ namespace YARG.Core.UnitTests.Parsing
             { (int)DrumPad.Green,  5 },
         };
 
-        private static readonly Dictionary<GameMode, Dictionary<int, int>> InstrumentToNoteLookupLookup = new()
+        private static readonly Dictionary<GameMode, Dictionary<int, uint>> InstrumentToNoteLookupLookup = new()
         {
             { GameMode.Guitar,    GuitarNoteLookup },
             { GameMode.Drums,     DrumsNoteLookup },
             { GameMode.GHLGuitar, GhlGuitarNoteLookup },
         };
 
-        private static readonly Dictionary<MoonPhrase.Type, int> SpecialPhraseLookup = new()
+        private static readonly Dictionary<MoonPhrase.Type, uint> SpecialPhraseLookup = new()
         {
             { MoonPhrase.Type.Starpower,           PHRASE_STARPOWER },
             { MoonPhrase.Type.Versus_Player1,      PHRASE_VERSUS_PLAYER_1 },
@@ -78,80 +130,44 @@ namespace YARG.Core.UnitTests.Parsing
             MoonPhrase.Type.ProDrums_Activation,
         };
 
+        // Explicitly use \r\n here to ensure the parser handles all whitespace correctly
         private const string NEWLINE = "\r\n";
 
         private static void GenerateSongSection(MoonSong sourceSong, StringBuilder builder)
         {
-            builder.Append($"[{SECTION_SONG}]{NEWLINE}{{{NEWLINE}");
+            // Used only as a scoped guard here for the start/end of the section
+            using var section = new ChartSection(builder, SECTION_SONG);
+
+            // Write metadata values manually, shoving methods for it into ChartSection isn't really viable
             builder.Append($"  Resolution = {sourceSong.resolution}{NEWLINE}");
-            builder.Append($"}}{NEWLINE}");
         }
 
         private static void GenerateSyncSection(MoonSong sourceSong, StringBuilder builder)
         {
-            builder.Append($"[{SECTION_SYNC_TRACK}]{NEWLINE}{{{NEWLINE}");
+            using var section = new ChartSection(builder, SECTION_SYNC_TRACK);
 
             var syncTrack = sourceSong.syncTrack;
 
-            // Indexing the separate lists is the only way to
-            // 1: Not allocate more space for a combined list, and
-            // 2: Not rely on polymorphic queries
-            int timeSigIndex = 0;
-            int bpmIndex = 0;
-            while (timeSigIndex < syncTrack.TimeSignatures.Count ||
-                   bpmIndex < syncTrack.Tempos.Count)
+            foreach (var bpm in syncTrack.Tempos)
             {
-                // Generate in this order: time sig, bpm
-                while (timeSigIndex < syncTrack.TimeSignatures.Count &&
-                    // Time sig comes before or at the same time as a bpm
-                    (bpmIndex == syncTrack.Tempos.Count || syncTrack.TimeSignatures[timeSigIndex].Tick <= syncTrack.Tempos[bpmIndex].Tick))
-                {
-                    var ts = syncTrack.TimeSignatures[timeSigIndex++];
-                    builder.Append($"  {ts.Tick} = TS {ts.Numerator} {(int) Math.Log2(ts.Denominator)}{NEWLINE}");
-                }
-
-                while (bpmIndex < syncTrack.Tempos.Count &&
-                    // Bpm comes before a time sig (equals does not count)
-                    (timeSigIndex == syncTrack.TimeSignatures.Count || syncTrack.Tempos[bpmIndex].Tick < syncTrack.TimeSignatures[timeSigIndex].Tick))
-                {
-                    var bpm = syncTrack.Tempos[bpmIndex++];
-                    uint writtenBpm = (uint) (bpm.BeatsPerMinute * 1000);
-                    builder.Append($"  {bpm.Tick} = B {writtenBpm}{NEWLINE}");
-                }
+                uint writtenBpm = (uint) (bpm.BeatsPerMinute * 1000);
+                section.AddEvent(bpm.Tick, "B", $"{writtenBpm}");
             }
-            builder.Append($"}}{NEWLINE}");
+
+            foreach (var ts in syncTrack.TimeSignatures)
+            {
+                section.AddEvent(ts.Tick, "TS", ts.Numerator, (uint) Math.Log2(ts.Denominator));
+            }
         }
 
         private static void GenerateEventsSection(MoonSong sourceSong, StringBuilder builder)
         {
-            builder.Append($"[{SECTION_EVENTS}]{NEWLINE}{{{NEWLINE}");
+            using var section = new ChartSection(builder, SECTION_EVENTS);
 
-            // Indexing the separate lists is the only way to
-            // 1: Not allocate more space for a combined list, and
-            // 2: Not rely on polymorphic queries
-            int sectionIndex = 0;
-            int eventIndex = 0;
-            while (sectionIndex < sourceSong.sections.Count ||
-                   eventIndex < sourceSong.events.Count)
+            foreach (var ev in sourceSong.events.Concat(sourceSong.sections))
             {
-                // Generate in this order: sections, events
-                while (sectionIndex < sourceSong.sections.Count &&
-                    // Section comes before or at the same time as an event
-                    (eventIndex == sourceSong.events.Count || sourceSong.sections[sectionIndex].tick <= sourceSong.events[eventIndex].tick))
-                {
-                    var section = sourceSong.sections[sectionIndex++];
-                    builder.Append($"  {section.tick} = E \"{section.text}\"");
-                }
-
-                while (eventIndex < sourceSong.events.Count &&
-                    // Event comes before a section (equals does not count)
-                    (sectionIndex == sourceSong.sections.Count || sourceSong.events[eventIndex].tick < sourceSong.sections[sectionIndex].tick))
-                {
-                    var ev = sourceSong.events[eventIndex++];
-                    builder.Append($"  {ev.tick} = E \"{ev.text}\"");
-                }
+                section.AddEvent(ev.tick, "E", $"\"{ev.text}\"");
             }
-            builder.Append($"}}{NEWLINE}");
         }
 
         private static void GenerateInstrumentSection(MoonSong sourceSong, StringBuilder builder, MoonInstrument instrument, Difficulty difficulty)
@@ -165,47 +181,19 @@ namespace YARG.Core.UnitTests.Parsing
 
             string instrumentName = InstrumentToNameLookup[instrument];
             string difficultyName = DifficultyToNameLookup[difficulty];
-            builder.Append($"[{difficultyName}{instrumentName}]{NEWLINE}{{{NEWLINE}");
 
-            // Combine all of the chart events into a single list and sort them according to insertion order
-            // Not very efficient, but adding a 4th list to the previous handling and
-            // quadratically increasing the number of checks is just not sane lol
-            List<MoonObject> combined = [..chart.notes, ..chart.specialPhrases, ..chart.events];
-            combined.Sort((obj1, obj2) => obj1.InsertionCompareTo(obj2));
+            using var section = new ChartSection(builder, $"{difficultyName}{instrumentName}");
 
-            List<MoonPhrase> phrasesToRemove = new();
-            for (int i = 0; i < combined.Count; i++)
+            foreach (var note in chart.notes)
             {
-                var chartObj = combined[i];
+                AppendNote(section, note, gameMode);
+            }
 
-                switch (chartObj)
-                {
-                    case MoonNote note:
-                        AppendNote(builder, note, gameMode);
-                        break;
-                    case MoonPhrase phrase:
-                        // Drums-only phrases
-                        if (gameMode is not GameMode.Drums && DrumsOnlySpecialPhrases.Contains(phrase.type))
-                        {
-                            phrasesToRemove.Add(phrase);
-                            continue;
-                        }
-
-                        // Solos are written as text events in .chart
-                        if (phrase.type is MoonPhrase.Type.Solo)
-                        {
-                            builder.Append($"  {phrase.tick} = E {SOLO_START}{NEWLINE}");
-                            MoonObjectHelper.Insert(new MoonText(SOLO_END, phrase.tick + phrase.length), combined);
-                            continue;
-                        }
-
-                        int phraseNumber = SpecialPhraseLookup[phrase.type];
-                        builder.Append($"  {phrase.tick} = S {phraseNumber} {phrase.length}{NEWLINE}");
-                        break;
-                    case MoonText text:
-                        builder.Append($"  {text.tick} = E {text.text}{NEWLINE}");
-                        break;
-                }
+            var textPhrases = new List<MoonText>();
+            var phrasesToRemove = new List<MoonPhrase>();
+            foreach (var phrase in chart.specialPhrases)
+            {
+                AppendPhrase(section, phrase, gameMode, phrasesToRemove, textPhrases);
             }
 
             foreach (var phrase in phrasesToRemove)
@@ -213,10 +201,13 @@ namespace YARG.Core.UnitTests.Parsing
                 chart.Remove(phrase);
             }
 
-            builder.Append($"}}{NEWLINE}");
+            foreach (var text in chart.events.Concat(textPhrases))
+            {
+                section.AddEvent(text.tick, "E", text.text);
+            }
         }
 
-        private static void AppendNote(StringBuilder builder, MoonNote note, GameMode gameMode)
+        private static void AppendNote(ChartSection section, MoonNote note, GameMode gameMode)
         {
             uint tick = note.tick;
             var flags = note.flags;
@@ -230,29 +221,53 @@ namespace YARG.Core.UnitTests.Parsing
             var noteLookup = InstrumentToNoteLookupLookup[gameMode];
 
             // Not technically necessary, but might as well lol
-            int rawNote = gameMode switch {
+            int rawNote = gameMode switch
+            {
                 GameMode.Guitar => (int)note.guitarFret,
                 GameMode.GHLGuitar => (int)note.ghliveGuitarFret,
-                GameMode.ProGuitar => throw new NotSupportedException(".chart does not support Pro Guitar!"),
                 GameMode.Drums => (int)note.drumPad,
-                _ => note.rawNote
+
+                _ => throw new NotSupportedException($".chart does not support game mode {gameMode}!")
             };
 
-            int chartNumber = noteLookup[rawNote];
+            uint chartNumber = noteLookup[rawNote];
             if (canDoubleKick && (flags & Flags.DoubleKick) != 0)
                 chartNumber = NOTE_OFFSET_INSTRUMENT_PLUS;
 
-            builder.Append($"  {tick} = N {chartNumber} {note.length}{NEWLINE}");
+            section.AddEvent(tick, "N", chartNumber, note.length);
             if (canForce && (flags & Flags.Forced) != 0)
-                builder.Append($"  {tick} = N 5 0{NEWLINE}");
+                section.AddEvent(tick, "N", 5, 0);
             if (canTap && (flags & Flags.Tap) != 0)
-                builder.Append($"  {tick} = N 6 0{NEWLINE}");
+                section.AddEvent(tick, "N", 6, 0);
             if (canCymbal && (flags & Flags.ProDrums_Cymbal) != 0)
-                builder.Append($"  {tick} = N {NOTE_OFFSET_PRO_DRUMS + chartNumber} 0{NEWLINE}");
+                section.AddEvent(tick, "N", NOTE_OFFSET_PRO_DRUMS + chartNumber, 0);
             if (canDynamics && (flags & Flags.ProDrums_Accent) != 0)
-                builder.Append($"  {tick} = N {NOTE_OFFSET_DRUMS_ACCENT + chartNumber} 0{NEWLINE}");
+                section.AddEvent(tick, "N", NOTE_OFFSET_DRUMS_ACCENT + chartNumber, 0);
             if (canDynamics && (flags & Flags.ProDrums_Ghost) != 0)
-                builder.Append($"  {tick} = N {NOTE_OFFSET_DRUMS_GHOST + chartNumber} 0{NEWLINE}");
+                section.AddEvent(tick, "N", NOTE_OFFSET_DRUMS_GHOST + chartNumber, 0);
+        }
+
+        private static void AppendPhrase(ChartSection section, MoonPhrase phrase, GameMode gameMode,
+            List<MoonPhrase> phrasesToRemove, List<MoonText> textPhrases)
+        {
+            // Drums-only phrases
+            if (gameMode is not GameMode.Drums && DrumsOnlySpecialPhrases.Contains(phrase.type))
+            {
+                phrasesToRemove.Add(phrase);
+                return;
+            }
+
+            // Solos are written as text events in .chart
+            if (phrase.type is MoonPhrase.Type.Solo)
+            {
+                // No need to worry about sorting here, `ChartSection` will already sort its events
+                textPhrases.Add(new MoonText(SOLO_START, phrase.tick));
+                textPhrases.Add(new MoonText(SOLO_END, phrase.tick + phrase.length));
+                return;
+            }
+
+            uint phraseNumber = SpecialPhraseLookup[phrase.type];
+            section.AddEvent(phrase.tick, "S", phraseNumber, phrase.length);
         }
 
         private static string GenerateChartFile(MoonSong sourceSong)
