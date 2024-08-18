@@ -237,7 +237,7 @@ namespace MoonscraperChartEditor.Song.IO
                 uint tsTick = (uint) timesig.Time;
                 tempoTracker.Update(tsTick);
                 song.Add(new TimeSignatureChange((uint) timesig.Value.Numerator, (uint) timesig.Value.Denominator,
-                    song.TickToTime(tsTick, tempoTracker.Current), tsTick));
+                    song.TickToTime(tsTick, tempoTracker.Current!), tsTick));
             }
         }
 

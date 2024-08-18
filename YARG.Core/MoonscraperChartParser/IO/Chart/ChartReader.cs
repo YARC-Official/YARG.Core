@@ -315,7 +315,7 @@ namespace MoonscraperChartEditor.Song.IO
                         var tempoText = remaining.GetNextWord(out remaining);
                         uint tempo = (uint) FastInt32Parse(tempoText);
 
-                        song.Add(new TempoChange(tempo / 1000f, song.TickToTime(tick, tempoTracker.Current), tick));
+                        song.Add(new TempoChange(tempo / 1000f, song.TickToTime(tick, tempoTracker.Current!), tick));
                     }
                     else if (typeCode.Equals("TS", StringComparison.Ordinal))
                     {
@@ -327,7 +327,7 @@ namespace MoonscraperChartEditor.Song.IO
                         var denominatorText = remaining.GetNextWord(out remaining);
                         uint denominator = denominatorText.IsEmpty ? 2 : (uint) FastInt32Parse(denominatorText);
                         song.Add(new TimeSignatureChange(numerator, (uint) Math.Pow(2, denominator),
-                            song.TickToTime(tick, tempoTracker.Current), tick));
+                            song.TickToTime(tick, tempoTracker.Current!), tick));
                     }
                     else if (typeCode.Equals("A", StringComparison.Ordinal))
                     {
