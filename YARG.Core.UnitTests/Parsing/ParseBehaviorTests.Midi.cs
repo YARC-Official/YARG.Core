@@ -1,4 +1,4 @@
-using Melanchall.DryWetMidi.Common;
+﻿using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.Core;
 using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
@@ -188,7 +188,53 @@ namespace YARG.Core.UnitTests.Parsing
         };
         #endregion
 
+        #region ProKeys
+        private static readonly Dictionary<Difficulty, string> ProKeysTrackNameLookup = new()
+        {
+            { Difficulty.Expert, PRO_KEYS_EXPERT },
+            { Difficulty.Hard,   PRO_KEYS_HARD },
+            { Difficulty.Medium, PRO_KEYS_MEDIUM },
+            { Difficulty.Easy,   PRO_KEYS_EASY },
+        };
+
+        private static readonly Dictionary<int, int> ProKeysNoteOffsetLookup
+            = Enumerable.Range(0, 25).ToDictionary((i) => i, (i) => i);
+
+        private static readonly Dictionary<Difficulty, int> ProKeysDifficultyStartOffsetLookup = new()
+        {
+            { Difficulty.Expert, 48 },
+            { Difficulty.Hard,   48 },
+            { Difficulty.Medium, 48 },
+            { Difficulty.Easy,   48 },
+        };
+
+        private static readonly Dictionary<MoonPhrase.Type, byte[]> ProKeysSpecialPhraseLookup = new()
+        {
+            { MoonPhrase.Type.Starpower,     new[] { STARPOWER_NOTE } },
+            { MoonPhrase.Type.Solo,          new[] { SOLO_NOTE_PRO_KEYS } },
+            { MoonPhrase.Type.TrillLane,     new[] { TRILL_LANE_NOTE } },
+
+            { MoonPhrase.Type.ProKeys_RangeShift0,   new[] { PRO_KEYS_SHIFT_0 } },
+            { MoonPhrase.Type.ProKeys_RangeShift1,   new[] { PRO_KEYS_SHIFT_1 } },
+            { MoonPhrase.Type.ProKeys_RangeShift2,   new[] { PRO_KEYS_SHIFT_2 } },
+            { MoonPhrase.Type.ProKeys_RangeShift3,   new[] { PRO_KEYS_SHIFT_3 } },
+            { MoonPhrase.Type.ProKeys_RangeShift4,   new[] { PRO_KEYS_SHIFT_4 } },
+            { MoonPhrase.Type.ProKeys_RangeShift5,   new[] { PRO_KEYS_SHIFT_5 } },
+            { MoonPhrase.Type.ProKeys_Glissando,     new[] { PRO_KEYS_GLISSANDO } },
+        };
+        #endregion
+
         #region Lookups
+        private static readonly HashSet<MoonInstrument> SplitDifficultyTrackLookup = new()
+        {
+            MoonInstrument.ProKeys
+        };
+
+        private static readonly Dictionary<MoonInstrument, Dictionary<Difficulty, string>> InstrumentDifficultyToNameLookupLookup = new()
+        {
+            { MoonInstrument.ProKeys, ProKeysTrackNameLookup },
+        };
+
         private static readonly Dictionary<GameMode, Dictionary<int, int>> InstrumentNoteOffsetLookup = new()
         {
             { GameMode.Guitar,    GuitarNoteOffsetLookup },
@@ -196,6 +242,7 @@ namespace YARG.Core.UnitTests.Parsing
             { GameMode.GHLGuitar, GhlGuitarNoteOffsetLookup },
             { GameMode.ProGuitar, ProGuitarNoteOffsetLookup },
             { GameMode.Vocals,    VocalsNoteOffsetLookup },
+            { GameMode.ProKeys,   ProKeysNoteOffsetLookup },
         };
 
         private static readonly Dictionary<GameMode, Dictionary<MoonNoteType, int>> InstrumentForceOffsetLookup = new()
@@ -205,6 +252,7 @@ namespace YARG.Core.UnitTests.Parsing
             { GameMode.GHLGuitar, GhlGuitarForceOffsetLookup },
             { GameMode.ProGuitar, ProGuitarForceOffsetLookup },
             { GameMode.Vocals,     new() },
+            { GameMode.ProKeys,    new() },
         };
 
         private static readonly Dictionary<GameMode, Dictionary<Flags, byte>> InstrumentChannelFlagLookup = new()
@@ -214,6 +262,7 @@ namespace YARG.Core.UnitTests.Parsing
             { GameMode.GHLGuitar, new() },
             { GameMode.ProGuitar, ProGuitarChannelFlagLookup },
             { GameMode.Vocals,     new() },
+            { GameMode.ProKeys,    new() },
         };
 
         private static readonly Dictionary<GameMode, Dictionary<Difficulty, int>> InstrumentDifficultyStartLookup = new()
@@ -223,6 +272,7 @@ namespace YARG.Core.UnitTests.Parsing
             { GameMode.GHLGuitar, GHL_GUITAR_DIFF_START_LOOKUP },
             { GameMode.ProGuitar, PRO_GUITAR_DIFF_START_LOOKUP },
             { GameMode.Vocals,    VocalsDifficultyStartOffsetLookup },
+            { GameMode.ProKeys,   ProKeysDifficultyStartOffsetLookup },
         };
 
         private static readonly Dictionary<GameMode, Dictionary<MoonPhrase.Type, byte[]>> InstrumentSpecialPhraseLookup = new()
@@ -232,6 +282,7 @@ namespace YARG.Core.UnitTests.Parsing
             { GameMode.GHLGuitar, GhlGuitarSpecialPhraseLookup },
             { GameMode.ProGuitar, ProGuitarSpecialPhraseLookup },
             { GameMode.Vocals,    VocalsSpecialPhraseLookup },
+            { GameMode.ProKeys,   ProKeysSpecialPhraseLookup },
         };
         #endregion
 
@@ -289,33 +340,49 @@ namespace YARG.Core.UnitTests.Parsing
             else if (gameMode == GameMode.Guitar)
                 timedEvents.Add((0, new MidiTextEvent($"[{ENHANCED_OPENS_TEXT}]")));
 
-            long lastNoteTick = 0;
             foreach (var difficulty in EnumExtensions<Difficulty>.Values)
             {
                 if (singleDifficulty && difficulty != Difficulty.Expert)
                     continue;
 
                 var chart = sourceSong.GetChart(instrument, difficulty);
-
-                foreach (var note in chart.notes)
-                {
-                    GenerateNote(timedEvents, note, gameMode, difficulty, ref lastNoteTick);
-                }
-
-                foreach (var phrase in chart.specialPhrases)
-                {
-                    GenerateSpecialPhrase(timedEvents, phrase, gameMode);
-                }
-
-                foreach (var ev in chart.events)
-                {
-                    timedEvents.Add((ev.tick, new MidiTextEvent(ev.text)));
-                }
+                GenerateTrack(timedEvents, chart, gameMode, difficulty);
             }
 
             // Write events to new track
             string instrumentName = InstrumentToNameLookup[instrument];
             return FinalizeTrackChunk(instrumentName, timedEvents);
+        }
+
+        private static TrackChunk GenerateTrackChunk(MoonSong sourceSong, MoonInstrument instrument, Difficulty difficulty)
+        {
+            var gameMode = MoonSong.InstrumentToChartGameMode(instrument);
+            var timedEvents = new MidiEventList();
+
+            var chart = sourceSong.GetChart(instrument, difficulty);
+            GenerateTrack(timedEvents, chart, gameMode, difficulty);
+
+            string instrumentName = InstrumentDifficultyToNameLookupLookup[instrument][difficulty];
+            return FinalizeTrackChunk(instrumentName, timedEvents);
+        }
+
+        private static void GenerateTrack(MidiEventList events, MoonChart chart, GameMode gameMode, Difficulty difficulty)
+        {
+            long lastNoteTick = 0;
+            foreach (var note in chart.notes)
+            {
+                GenerateNote(events, note, gameMode, difficulty, ref lastNoteTick);
+            }
+
+            foreach (var phrase in chart.specialPhrases)
+            {
+                GenerateSpecialPhrase(events, phrase, gameMode);
+            }
+
+            foreach (var ev in chart.events)
+            {
+                events.Add((ev.tick, new MidiTextEvent(ev.text)));
+            }
         }
 
         private static void GenerateNote(MidiEventList events, MoonNote note, GameMode gameMode, Difficulty difficulty,
@@ -360,13 +427,16 @@ namespace YARG.Core.UnitTests.Parsing
 
             // Note properties
             var flags = note.flags;
-            int rawNote = gameMode switch {
+            int rawNote = gameMode switch
+            {
                 GameMode.Guitar => (int)note.guitarFret,
                 GameMode.GHLGuitar => (int)note.ghliveGuitarFret,
                 GameMode.ProGuitar => (int)note.proGuitarString,
                 GameMode.Drums => (int)note.drumPad,
                 GameMode.Vocals => note.vocalsPitch,
-                _ => note.rawNote
+                GameMode.ProKeys => note.proKeysKey,
+
+                _ => throw new NotImplementedException($"Unimplemented game mode {gameMode}!")
             };
 
             // Note number
@@ -508,8 +578,19 @@ namespace YARG.Core.UnitTests.Parsing
 
             foreach (var instrument in EnumExtensions<MoonInstrument>.Values)
             {
-                var chunk = GenerateTrackChunk(sourceSong, instrument);
-                midi.Chunks.Add(chunk);
+                if (SplitDifficultyTrackLookup.Contains(instrument))
+                {
+                    foreach (var difficulty in EnumExtensions<Difficulty>.Values)
+                    {
+                        var chunk = GenerateTrackChunk(sourceSong, instrument, difficulty);
+                        midi.Chunks.Add(chunk);
+                    }
+                }
+                else
+                {
+                    var chunk = GenerateTrackChunk(sourceSong, instrument);
+                    midi.Chunks.Add(chunk);
+                }
             }
 
             return midi;
