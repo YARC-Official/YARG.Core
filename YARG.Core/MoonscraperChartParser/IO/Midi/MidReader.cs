@@ -772,17 +772,8 @@ namespace MoonscraperChartEditor.Song.IO
                         break;
 
                     case MoonNote.MoonNoteType.Tap:
-                        if (!note.IsOpenNote(gameMode))
-                        {
-                            note.flags |= MoonNote.Flags.Tap;
-                            note.flags &= ~MoonNote.Flags.Forced;
-                        }
-                        else
-                        {
-                            // Open notes cannot become taps, mark them as HOPOs instead
-                            newType = MoonNote.MoonNoteType.Hopo;
-                            goto case MoonNote.MoonNoteType.Hopo;
-                        }
+                        note.flags |= MoonNote.Flags.Tap;
+                        note.flags &= ~MoonNote.Flags.Forced;
                         break;
 
                     default:
