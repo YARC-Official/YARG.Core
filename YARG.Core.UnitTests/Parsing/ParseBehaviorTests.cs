@@ -1,4 +1,4 @@
-using MoonscraperChartEditor.Song;
+﻿using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
 using NUnit.Framework;
 using YARG.Core.Chart;
@@ -369,6 +369,72 @@ namespace YARG.Core.UnitTests.Parsing
             NewNote(49, 0, flags: Flags.Vocals_Percussion),
         };
 
+        public static readonly MoonChart ProKeysNotes = new(GameMode.ProKeys)
+        {
+            NewSpecial(0, MoonPhrase.Type.ProKeys_RangeShift0),
+            NewNote(0, 0, length: 1),
+            NewNote(1, 1, length: 1),
+            NewNote(2, 2, length: 1),
+            NewNote(3, 3, length: 1),
+
+            NewSpecial(4, MoonPhrase.Type.ProKeys_RangeShift1),
+            NewNote(4, 4, length: 1),
+            NewNote(5, 5, length: 1),
+            NewNote(6, 6, length: 1),
+            NewNote(7, 7, length: 1),
+
+            NewSpecial(8, MoonPhrase.Type.Starpower, length: 8),
+            NewSpecial(8, MoonPhrase.Type.ProKeys_RangeShift2),
+            NewNote(8, 8, length: 1),
+            NewNote(9, 9, length: 1),
+            NewNote(10, 10, length: 1),
+            NewNote(11, 11, length: 1),
+
+            NewSpecial(12, MoonPhrase.Type.ProKeys_RangeShift3),
+            NewNote(12, 12, length: 1),
+            NewNote(13, 13, length: 1),
+            NewNote(14, 14, length: 1),
+            NewNote(15, 15, length: 1),
+
+            NewSpecial(16, MoonPhrase.Type.Solo, length: 9),
+            NewSpecial(16, MoonPhrase.Type.ProKeys_RangeShift4),
+            NewNote(16, 16, length: 1),
+            NewNote(17, 17, length: 1),
+            NewNote(18, 18, length: 1),
+            NewNote(19, 19, length: 1),
+
+            NewSpecial(20, MoonPhrase.Type.ProKeys_RangeShift5),
+            NewNote(20, 20, length: 1),
+            NewNote(21, 21, length: 1),
+            NewNote(22, 22, length: 1),
+            NewNote(23, 23, length: 1),
+            NewNote(24, 24, length: 1),
+
+            NewSpecial(25, MoonPhrase.Type.ProKeys_Glissando, length: 10),
+            NewNote(25, 0),
+            NewNote(26, 1),
+            NewNote(27, 2),
+            NewNote(28, 3),
+            NewNote(29, 4),
+            NewNote(30, 5),
+            NewNote(31, 6),
+            NewNote(32, 7),
+            NewNote(33, 8),
+            NewNote(34, 9),
+
+            NewSpecial(35, MoonPhrase.Type.ProKeys_Glissando, length: 10),
+            NewNote(35, 10),
+            NewNote(36, 11),
+            NewNote(37, 10),
+            NewNote(38, 11),
+            NewNote(39, 10),
+            NewNote(40, 11),
+            NewNote(41, 10),
+            NewNote(42, 11),
+            NewNote(43, 10),
+            NewNote(44, 11),
+        };
+
         public static MoonSong GenerateSong()
         {
             var song = new MoonSong(RESOLUTION);
@@ -391,6 +457,7 @@ namespace YARG.Core.UnitTests.Parsing
                 GameMode.ProGuitar => ProGuitarTrack,
                 GameMode.Drums => DrumsTrack,
                 GameMode.Vocals => VocalsNotes,
+                GameMode.ProKeys => ProKeysNotes,
                 _ => throw new NotImplementedException($"No note data for game mode {gameMode}")
             };
         }
