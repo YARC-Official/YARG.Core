@@ -89,6 +89,13 @@ namespace YARG.Core.UnitTests.Parsing
             NewNote(38, GuitarFret.Blue, flags: Flags.Forced),
             NewNote(39, GuitarFret.Orange, flags: Flags.Forced),
             NewNote(40, GuitarFret.Open, flags: Flags.Forced),
+
+            NewNote(41, GuitarFret.Green, length: 1),
+            NewNote(42, GuitarFret.Red, length: 1),
+            NewNote(43, GuitarFret.Yellow, length: 1),
+            NewNote(44, GuitarFret.Blue, length: 1),
+            NewNote(45, GuitarFret.Orange, length: 1),
+            NewNote(46, GuitarFret.Open, length: 1),
         };
 
         public static readonly MoonChart GhlGuitarTrack = new(GameMode.GHLGuitar)
