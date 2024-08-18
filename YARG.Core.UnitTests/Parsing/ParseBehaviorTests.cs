@@ -22,17 +22,17 @@ namespace YARG.Core.UnitTests.Parsing
         };
 
         private static MoonNote NewNote(int index, int rawNote, float length = 0, Flags flags = Flags.None)
-            => new((uint)(index * RESOLUTION), rawNote, (uint)(length * RESOLUTION), flags);
+            => new((uint) (index * RESOLUTION), rawNote, (uint) (length * RESOLUTION), flags);
         private static MoonNote NewNote(int index, GuitarFret fret, float length = 0, Flags flags = Flags.None)
-            => NewNote(index, (int)fret, length, flags);
+            => NewNote(index, (int) fret, length, flags);
         private static MoonNote NewNote(int index, GHLiveGuitarFret fret, float length = 0, Flags flags = Flags.None)
-            => NewNote(index, (int)fret, length, flags);
+            => NewNote(index, (int) fret, length, flags);
         private static MoonNote NewNote(int index, DrumPad pad, float length = 0, Flags flags = Flags.None)
-            => NewNote(index, (int)pad, length, flags);
+            => NewNote(index, (int) pad, length, flags);
         private static MoonNote NewNote(int index, ProGuitarString str, int fret, float length = 0, Flags flags = Flags.None)
             => NewNote(index, MoonNote.MakeProGuitarRawNote(str, fret), length, flags);
         private static MoonPhrase NewSpecial(int index, MoonPhrase.Type type, float length = 0)
-            => new((uint)(index * RESOLUTION), (uint)(length * RESOLUTION), type);
+            => new((uint) (index * RESOLUTION), (uint) (length * RESOLUTION), type);
 
         public static readonly MoonChart GuitarTrack = new(GameMode.Guitar)
         {
@@ -451,7 +451,8 @@ namespace YARG.Core.UnitTests.Parsing
 
         public static MoonChart GameModeToChartData(GameMode gameMode)
         {
-            return gameMode switch {
+            return gameMode switch
+            {
                 GameMode.Guitar => GuitarTrack,
                 GameMode.GHLGuitar => GhlGuitarTrack,
                 GameMode.ProGuitar => ProGuitarTrack,

@@ -151,7 +151,7 @@ namespace YARG.Core.UnitTests.Parsing
             foreach (var bpm in syncTrack.Tempos)
             {
                 uint writtenBpm = (uint) (bpm.BeatsPerMinute * 1000);
-                section.AddEvent(bpm.Tick, "B", $"{writtenBpm}");
+                section.AddEvent(bpm.Tick, "B", writtenBpm);
             }
 
             foreach (var ts in syncTrack.TimeSignatures)
@@ -166,7 +166,7 @@ namespace YARG.Core.UnitTests.Parsing
 
             foreach (var ev in sourceSong.events.Concat(sourceSong.sections))
             {
-                section.AddEvent(ev.tick, "E", $"\"{ev.text}\"");
+                section.AddEvent(ev.tick, "E", '"' + ev.text + '"');
             }
         }
 
@@ -223,9 +223,9 @@ namespace YARG.Core.UnitTests.Parsing
             // Not technically necessary, but might as well lol
             int rawNote = gameMode switch
             {
-                GameMode.Guitar => (int)note.guitarFret,
-                GameMode.GHLGuitar => (int)note.ghliveGuitarFret,
-                GameMode.Drums => (int)note.drumPad,
+                GameMode.Guitar => (int) note.guitarFret,
+                GameMode.GHLGuitar => (int) note.ghliveGuitarFret,
+                GameMode.Drums => (int) note.drumPad,
 
                 _ => throw new NotSupportedException($".chart does not support game mode {gameMode}!")
             };
