@@ -21,7 +21,7 @@ namespace YARG.Core.UnitTests.Parsing
     public class MidiParseBehaviorTests
     {
         private const uint SUSTAIN_CUTOFF_THRESHOLD = RESOLUTION / 3;
-        private static readonly uint HopoThreshold = (uint)GetHopoThreshold(ParseSettings.Default, RESOLUTION);
+        private static readonly uint HopoThreshold = (uint) GetHopoThreshold(ParseSettings.Default, RESOLUTION);
 
         private static readonly Dictionary<MoonInstrument, string> InstrumentToNameLookup = new()
         {
@@ -289,8 +289,8 @@ namespace YARG.Core.UnitTests.Parsing
 #pragma warning restore IDE0230
 
         // Because SevenBitNumber andFourBitNumber have no implicit operators for taking in bytes
-        private static SevenBitNumber S(byte number) => (SevenBitNumber)number;
-        private static FourBitNumber F(byte number) => (FourBitNumber)number;
+        private static SevenBitNumber S(byte number) => (SevenBitNumber) number;
+        private static FourBitNumber F(byte number) => (FourBitNumber) number;
 
         private static TrackChunk GenerateSyncChunk(MoonSong sourceSong)
         {
@@ -429,10 +429,10 @@ namespace YARG.Core.UnitTests.Parsing
             var flags = note.flags;
             int rawNote = gameMode switch
             {
-                GameMode.Guitar => (int)note.guitarFret,
-                GameMode.GHLGuitar => (int)note.ghliveGuitarFret,
-                GameMode.ProGuitar => (int)note.proGuitarString,
-                GameMode.Drums => (int)note.drumPad,
+                GameMode.Guitar => (int) note.guitarFret,
+                GameMode.GHLGuitar => (int) note.ghliveGuitarFret,
+                GameMode.ProGuitar => (int) note.proGuitarString,
+                GameMode.Drums => (int) note.drumPad,
                 GameMode.Vocals => note.vocalsPitch,
                 GameMode.ProKeys => note.proKeysKey,
 
@@ -440,8 +440,8 @@ namespace YARG.Core.UnitTests.Parsing
             };
 
             // Note number
-            byte noteNumber = (byte)(difficultyStart + noteOffsetLookup[rawNote]);
-            if (canDoubleKick && rawNote == (int)DrumPad.Kick && (flags & Flags.DoubleKick) != 0)
+            byte noteNumber = (byte) (difficultyStart + noteOffsetLookup[rawNote]);
+            if (canDoubleKick && rawNote == (int) DrumPad.Kick && (flags & Flags.DoubleKick) != 0)
                 noteNumber--;
 
             // Drum dynamics
@@ -455,7 +455,7 @@ namespace YARG.Core.UnitTests.Parsing
 
             // Pro Guitar fret number
             if (gameMode is GameMode.ProGuitar && velocity > 0)
-                velocity = (byte)(100 + note.proGuitarFret);
+                velocity = (byte) (100 + note.proGuitarFret);
 
             // Pro Guitar channel flags
             if (!channelFlagLookup.TryGetValue(flags, out byte channel))
@@ -492,7 +492,7 @@ namespace YARG.Core.UnitTests.Parsing
                     note.flags |= Flags.Forced_Strum;
                 }
 
-                byte forceNote = (byte)(difficultyStart + forceOffsetLookup[type]);
+                byte forceNote = (byte) (difficultyStart + forceOffsetLookup[type]);
                 midiNote = new TNoteEvent() { NoteNumber = S(forceNote), Velocity = S(velocity) };
                 events.Add((noteTick, midiNote));
             }
@@ -501,10 +501,10 @@ namespace YARG.Core.UnitTests.Parsing
                 midiNote = new TNoteEvent() { NoteNumber = S(TAP_NOTE_CH), Velocity = S(velocity) };
                 events.Add((noteTick, midiNote));
             }
-            if (canTom && PAD_TO_CYMBAL_LOOKUP.TryGetValue((DrumPad)rawNote, out int padNote) &&
+            if (canTom && PAD_TO_CYMBAL_LOOKUP.TryGetValue((DrumPad) rawNote, out int padNote) &&
                 (flags & Flags.ProDrums_Cymbal) == 0)
             {
-                midiNote = new TNoteEvent() { NoteNumber = S((byte)padNote), Velocity = S(velocity) };
+                midiNote = new TNoteEvent() { NoteNumber = S((byte) padNote), Velocity = S(velocity) };
                 events.Add((noteTick, midiNote));
             }
         }
@@ -573,7 +573,7 @@ namespace YARG.Core.UnitTests.Parsing
                 GenerateEventsChunk(sourceSong)
             )
             {
-                TimeDivision = new TicksPerQuarterNoteTimeDivision((short)sourceSong.resolution)
+                TimeDivision = new TicksPerQuarterNoteTimeDivision((short) sourceSong.resolution)
             };
 
             foreach (var instrument in EnumExtensions<MoonInstrument>.Values)
