@@ -48,7 +48,7 @@ namespace MoonscraperChartEditor.Song
             for (int i = 0; i < charts.Length; ++i)
             {
                 var instrument = (MoonInstrument)(i / EnumExtensions<Difficulty>.Count);
-                charts[i] = new MoonChart(this, instrument);
+                charts[i] = new MoonChart(instrument);
             }
         }
 
