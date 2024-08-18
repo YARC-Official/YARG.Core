@@ -1,4 +1,4 @@
-﻿using Melanchall.DryWetMidi.Common;
+using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.Core;
 using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
@@ -16,6 +16,7 @@ namespace YARG.Core.UnitTests.Parsing
     using static ParseBehaviorTests;
 
     using MidiEventList = List<(long absoluteTick, MidiEvent midiEvent)>;
+    using MidiTextEvent = Melanchall.DryWetMidi.Core.TextEvent;
 
     public class MidiParseBehaviorTests
     {
@@ -230,33 +231,15 @@ namespace YARG.Core.UnitTests.Parsing
         {
             var timedEvents = new MidiEventList();
 
-            var syncTrack = sourceSong.syncTrack;
-
-            // Indexing the separate lists is the only way to
-            // 1: Not allocate more space for a combined list, and
-            // 2: Not rely on polymorphic queries
-            int timeSigIndex = 0;
-            int bpmIndex = 0;
-            while (timeSigIndex < syncTrack.TimeSignatures.Count ||
-                   bpmIndex < syncTrack.Tempos.Count)
+            foreach (var bpm in sourceSong.syncTrack.Tempos)
             {
-                // Generate in this order: time sig, bpm
-                while (timeSigIndex < syncTrack.TimeSignatures.Count &&
-                    // Time sig comes before or at the same time as a bpm
-                    (bpmIndex == syncTrack.Tempos.Count || syncTrack.TimeSignatures[timeSigIndex].Tick <= syncTrack.Tempos[bpmIndex].Tick))
-                {
-                    var ts = syncTrack.TimeSignatures[timeSigIndex++];
-                    timedEvents.Add((ts.Tick, new TimeSignatureEvent((byte) ts.Numerator, (byte) ts.Denominator)));
-                }
+                long microseconds = TempoChange.BpmToMicroSeconds(bpm.BeatsPerMinute);
+                timedEvents.Add((bpm.Tick, new SetTempoEvent(microseconds)));
+            }
 
-                while (bpmIndex < syncTrack.Tempos.Count &&
-                    // Bpm comes before a time sig (equals does not count)
-                    (timeSigIndex == syncTrack.TimeSignatures.Count || syncTrack.Tempos[bpmIndex].Tick < syncTrack.TimeSignatures[timeSigIndex].Tick))
-                {
-                    var bpm = syncTrack.Tempos[bpmIndex++];
-                    long microseconds = TempoChange.BpmToMicroSeconds(bpm.BeatsPerMinute);
-                    timedEvents.Add((bpm.Tick, new SetTempoEvent(microseconds)));
-                }
+            foreach (var ts in sourceSong.syncTrack.TimeSignatures)
+            {
+                timedEvents.Add((ts.Tick, new TimeSignatureEvent((byte) ts.Numerator, (byte) ts.Denominator)));
             }
 
             return FinalizeTrackChunk("TEMPO_TRACK", timedEvents);
@@ -266,30 +249,14 @@ namespace YARG.Core.UnitTests.Parsing
         {
             MidiEventList timedEvents = new();
 
-            // Indexing the separate lists is the only way to
-            // 1: Not allocate more space for a combined list, and
-            // 2: Not rely on polymorphic queries
-            int sectionIndex = 0;
-            int eventIndex = 0;
-            while (sectionIndex < sourceSong.sections.Count ||
-                   eventIndex < sourceSong.events.Count)
+            foreach (var section in sourceSong.sections)
             {
-                // Generate in this order: sections, events
-                while (sectionIndex < sourceSong.sections.Count &&
-                    // Section comes before or at the same time as an event
-                    (eventIndex == sourceSong.events.Count || sourceSong.sections[sectionIndex].tick <= sourceSong.events[eventIndex].tick))
-                {
-                    var section = sourceSong.sections[sectionIndex++];
-                    timedEvents.Add((section.tick, new Melanchall.DryWetMidi.Core.TextEvent(section.text)));
-                }
+                timedEvents.Add((section.tick, new MidiTextEvent(section.text)));
+            }
 
-                while (eventIndex < sourceSong.events.Count &&
-                    // Event comes before a section (equals does not count)
-                    (sectionIndex == sourceSong.sections.Count || sourceSong.events[eventIndex].tick < sourceSong.sections[sectionIndex].tick))
-                {
-                    var ev = sourceSong.events[eventIndex++];
-                    timedEvents.Add((ev.tick, new Melanchall.DryWetMidi.Core.TextEvent(ev.text)));
-                }
+            foreach (var ev in sourceSong.events)
+            {
+                timedEvents.Add((ev.tick, new MidiTextEvent(ev.text)));
             }
 
             return FinalizeTrackChunk(EVENTS_TRACK, timedEvents);
@@ -304,9 +271,9 @@ namespace YARG.Core.UnitTests.Parsing
 
             // Text event flags to enable extended features
             if (gameMode == GameMode.Drums)
-                timedEvents.Add((0, new Melanchall.DryWetMidi.Core.TextEvent($"[{CHART_DYNAMICS_TEXT}]")));
+                timedEvents.Add((0, new MidiTextEvent($"[{CHART_DYNAMICS_TEXT}]")));
             else if (gameMode == GameMode.Guitar)
-                timedEvents.Add((0, new Melanchall.DryWetMidi.Core.TextEvent($"[{ENHANCED_OPENS_TEXT}]")));
+                timedEvents.Add((0, new MidiTextEvent($"[{ENHANCED_OPENS_TEXT}]")));
 
             long lastNoteTick = 0;
             foreach (var difficulty in EnumExtensions<Difficulty>.Values)
@@ -316,41 +283,19 @@ namespace YARG.Core.UnitTests.Parsing
 
                 var chart = sourceSong.GetChart(instrument, difficulty);
 
-                // Indexing the separate lists is the only way to
-                // 1: Not allocate more space for a combined list, and
-                // 2: Not rely on polymorphic queries
-                int noteIndex = 0;
-                int phraseIndex = difficulty == Difficulty.Expert? 0 : chart.specialPhrases.Count;
-                int eventIndex = difficulty == Difficulty.Expert ? 0 : chart.events.Count;
-
-                while (noteIndex < chart.notes.Count ||
-                        phraseIndex < chart.specialPhrases.Count ||
-                        eventIndex < chart.events.Count)
+                foreach (var note in chart.notes)
                 {
-                    // Generate in this order: phrases, notes, then events
-                    while (phraseIndex < chart.specialPhrases.Count &&
-                        // Phrase comes before or at the same time as a note
-                        (noteIndex == chart.notes.Count || chart.specialPhrases[phraseIndex].tick <= chart.notes[noteIndex].tick) &&
-                        // Phrase comes before or at the same time as an event
-                        (eventIndex == chart.events.Count || chart.specialPhrases[phraseIndex].tick <= chart.events[eventIndex].tick))
-                        GenerateSpecialPhrase(timedEvents, chart.specialPhrases[phraseIndex++], gameMode);
+                    GenerateNote(timedEvents, note, gameMode, difficulty, ref lastNoteTick);
+                }
 
-                    while (noteIndex < chart.notes.Count &&
-                        // Note comes before a phrase (equals does not count)
-                        (phraseIndex == chart.specialPhrases.Count || chart.notes[noteIndex].tick < chart.specialPhrases[phraseIndex].tick) &&
-                        // Note comes before or at the same time as an event
-                        (eventIndex  == chart.events.Count         || chart.notes[noteIndex].tick <= chart.events[eventIndex].tick))
-                        GenerateNote(timedEvents, chart.notes[noteIndex++], gameMode, difficulty, ref lastNoteTick);
+                foreach (var phrase in chart.specialPhrases)
+                {
+                    GenerateSpecialPhrase(timedEvents, phrase, gameMode);
+                }
 
-                    while (eventIndex < chart.events.Count &&
-                        // Event comes before a phrase (equals does not count)
-                        (phraseIndex == chart.specialPhrases.Count || chart.events[eventIndex].tick < chart.specialPhrases[phraseIndex].tick) &&
-                        // Event comes before a note (equals does not count)
-                        (noteIndex   == chart.notes.Count          || chart.events[eventIndex].tick < chart.notes[noteIndex].tick))
-                    {
-                        var ev = chart.events[eventIndex++];
-                        timedEvents.Add((ev.tick, new Melanchall.DryWetMidi.Core.TextEvent(ev.text)));
-                    }
+                foreach (var ev in chart.events)
+                {
+                    timedEvents.Add((ev.tick, new MidiTextEvent(ev.text)));
                 }
             }
 
@@ -499,25 +444,20 @@ namespace YARG.Core.UnitTests.Parsing
         private static TrackChunk FinalizeTrackChunk(string trackName, MidiEventList events)
         {
             // Sort events by time
-            events.Sort((ev1, ev2) => {
-                if (ev1.absoluteTick > ev2.absoluteTick)
-                    return 1;
-                else if (ev1.absoluteTick < ev2.absoluteTick)
-                    return -1;
+            events.Sort((left, right) =>
+            {
+                int compare = left.absoluteTick.CompareTo(right.absoluteTick);
+                if (compare != 0)
+                    return compare;
 
                 // Determine priority for certain types of events
-                return (ev1.midiEvent, ev2.midiEvent) switch {
+                return (left.midiEvent, right.midiEvent) switch
+                {
                     // Same-type note events should be sorted by note number
                     // Not *entirely* necessary, but without this then
                     // sorting is inconsistent and will throw an exception
-                    (NoteOnEvent on1, NoteOnEvent on2) =>
-                        on1.NoteNumber > on2.NoteNumber ? 1
-                        : on1.NoteNumber < on2.NoteNumber ? -1
-                        : 0,
-                    (NoteOffEvent off1, NoteOffEvent off2) =>
-                        off1.NoteNumber > off2.NoteNumber ? 1
-                        : off1.NoteNumber < off2.NoteNumber ? -1
-                        : 0,
+                    (NoteOnEvent on1, NoteOnEvent on2) => on1.NoteNumber.CompareTo(on2.NoteNumber),
+                    (NoteOffEvent off1, NoteOffEvent off2) => off1.NoteNumber.CompareTo(off2.NoteNumber),
                     // Note on events should come last, and note offs first
                     (NoteOnEvent, _) => 1,
                     (NoteOffEvent, _) => -1,
