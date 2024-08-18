@@ -49,6 +49,8 @@ namespace YARG.Core.UnitTests.Parsing
         };
 
 #pragma warning disable IDE0230 // Use UTF-8 string literal
+
+        #region Guitar
         private static readonly Dictionary<int, int> GuitarNoteOffsetLookup = new()
         {
             { (int)GuitarFret.Open,   -1 },
@@ -74,7 +76,9 @@ namespace YARG.Core.UnitTests.Parsing
             { MoonPhrase.Type.TremoloLane,    new[] { TREMOLO_LANE_NOTE } },
             { MoonPhrase.Type.TrillLane,      new[] { TRILL_LANE_NOTE } },
         };
+        #endregion
 
+        #region GhlGuitar
         private static readonly Dictionary<int, int> GhlGuitarNoteOffsetLookup = new()
         {
             { (int)GHLiveGuitarFret.Open,   0 },
@@ -97,7 +101,9 @@ namespace YARG.Core.UnitTests.Parsing
             { MoonPhrase.Type.Starpower, new[] { STARPOWER_NOTE } },
             { MoonPhrase.Type.Solo,      new[] { SOLO_NOTE } },
         };
+        #endregion
 
+        #region ProGuitar
         private static readonly Dictionary<int, int> ProGuitarNoteOffsetLookup = new()
         {
             { (int)ProGuitarString.Red,    0 },
@@ -123,7 +129,9 @@ namespace YARG.Core.UnitTests.Parsing
             { MoonPhrase.Type.TremoloLane, new[] { TREMOLO_LANE_NOTE } },
             { MoonPhrase.Type.TrillLane,   new[] { TRILL_LANE_NOTE } },
         };
+        #endregion
 
+        #region Drums
         private static readonly Dictionary<int, int> DrumsNoteOffsetLookup = new()
         {
             { (int)DrumPad.Kick,   0 },
@@ -144,7 +152,9 @@ namespace YARG.Core.UnitTests.Parsing
             { MoonPhrase.Type.TrillLane,           new[] { TRILL_LANE_NOTE } },
             { MoonPhrase.Type.ProDrums_Activation, new[] { DRUM_FILL_NOTE_0, DRUM_FILL_NOTE_1, DRUM_FILL_NOTE_2, DRUM_FILL_NOTE_3, DRUM_FILL_NOTE_4 } },
         };
+        #endregion
 
+        #region Vocals
         private static readonly Dictionary<int, int> VocalsNoteOffsetLookup = BuildVocalsNoteLookup();
 
         private static Dictionary<int, int> BuildVocalsNoteLookup()
@@ -176,7 +186,9 @@ namespace YARG.Core.UnitTests.Parsing
             { MoonPhrase.Type.Versus_Player1, new[] { LYRICS_PHRASE_1 } },
             { MoonPhrase.Type.Versus_Player2, new[] { LYRICS_PHRASE_2 } },
         };
+        #endregion
 
+        #region Lookups
         private static readonly Dictionary<GameMode, Dictionary<int, int>> InstrumentNoteOffsetLookup = new()
         {
             { GameMode.Guitar,    GuitarNoteOffsetLookup },
@@ -221,6 +233,8 @@ namespace YARG.Core.UnitTests.Parsing
             { GameMode.ProGuitar, ProGuitarSpecialPhraseLookup },
             { GameMode.Vocals,    VocalsSpecialPhraseLookup },
         };
+        #endregion
+
 #pragma warning restore IDE0230
 
         // Because SevenBitNumber andFourBitNumber have no implicit operators for taking in bytes
