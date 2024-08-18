@@ -231,7 +231,10 @@ namespace MoonscraperChartEditor.Song.IO
                     song.TickToTime(tempoTick, song.syncTrack.Tempos[^1]), tempoTick));
             }
 
+            // Use tempo tracker to avoid repeated binary search lookup
+            // This is valid since we are guaranteed to have at least one tempo event at all times
             var tempoTracker = new ChartEventTickTracker<TempoChange>(song.syncTrack.Tempos);
+
             foreach (var timesig in tempoMap.GetTimeSignatureChanges())
             {
                 uint tsTick = (uint) timesig.Time;
