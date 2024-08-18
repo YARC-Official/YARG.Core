@@ -223,7 +223,7 @@ namespace MoonscraperChartEditor.Song.IO
                             // Denominator is stored as a power of 2, apply it here
                             denominator = (uint) Math.Pow(2, denominator);
 
-                            song.Add(new TimeSignatureChange(numerator, (uint) Math.Pow(2, denominator),
+                            song.Add(new TimeSignatureChange(numerator, denominator,
                                 song.TickToTime(tick, tempoTracker.Current!), tick));
                             break;
                         }
