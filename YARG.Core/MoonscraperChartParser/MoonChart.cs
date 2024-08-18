@@ -1,16 +1,13 @@
 ﻿// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
+using System.Collections;
 using System.Collections.Generic;
 
 namespace MoonscraperChartEditor.Song
 {
-    internal class MoonChart
+    internal class MoonChart : IEnumerable
     {
-        /// <summary>
-        /// The song this chart is connected to.
-        /// </summary>
-        public MoonSong song { get; private set; }
         /// <summary>
         /// The game mode the chart is designed for
         /// </summary>
@@ -34,15 +31,13 @@ namespace MoonscraperChartEditor.Song
         /// <summary>
         /// Creates a new chart object.
         /// </summary>
-        /// <param name="_song">The song to associate this chart with.</param>
-        public MoonChart(MoonSong _song, GameMode _gameMode)
+        public MoonChart(GameMode _gameMode)
         {
-            song = _song;
             gameMode = _gameMode;
         }
 
-        public MoonChart(MoonSong song, MoonSong.MoonInstrument Instrument)
-            : this(song, MoonSong.InstrumentToChartGameMode(Instrument))
+        public MoonChart(MoonSong.MoonInstrument Instrument)
+            : this(MoonSong.InstrumentToChartGameMode(Instrument))
         {
         }
 
@@ -82,6 +77,9 @@ namespace MoonscraperChartEditor.Song
         {
             return MoonObjectHelper.Remove(ev, events);
         }
+
+        // Only implemented to allow collection initializer support
+        IEnumerator IEnumerable.GetEnumerator() => throw new System.NotImplementedException();
 
         public enum GameMode
         {
