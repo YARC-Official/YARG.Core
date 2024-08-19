@@ -185,16 +185,12 @@ namespace MoonscraperChartEditor.Song.IO
         {
             YargLogger.LogTrace("Loading .chart [SyncTrack] section");
 
-            uint prevTick = 0;
             var chartEvent = new DotChartEvent();
             while (YARGChartFileReader.TryParseEvent(ref chartText, ref chartEvent))
             {
                 try
                 {
                     uint tick = (uint) chartEvent.Position;
-                    if (prevTick > tick)
-                        throw new Exception("Tick value not in ascending order");
-                    prevTick = tick;
 
                     switch (chartEvent.Type)
                     {
@@ -255,16 +251,12 @@ namespace MoonscraperChartEditor.Song.IO
         {
             YargLogger.LogTrace("Loading .chart [Events] section");
 
-            uint prevTick = 0;
             var chartEvent = new DotChartEvent();
             while (YARGChartFileReader.TryParseEvent(ref chartText, ref chartEvent))
             {
                 try
                 {
                     uint tick = (uint) chartEvent.Position;
-                    if (prevTick > tick)
-                        throw new Exception("Tick value not in ascending order");
-                    prevTick = tick;
 
                     // Get event type
                     switch (chartEvent.Type)
@@ -323,16 +315,12 @@ namespace MoonscraperChartEditor.Song.IO
             var noteProcessDict = GetNoteProcessDict(gameMode);
             var specialPhraseProcessDict = GetSpecialPhraseProcessDict(gameMode);
 
-            uint prevTick = 0;
             var chartEvent = new DotChartEvent();
             while (YARGChartFileReader.TryParseEvent(ref chartText, ref chartEvent))
             {
                 try
                 {
                     uint tick = (uint) chartEvent.Position;
-                    if (prevTick > tick)
-                        throw new Exception("Tick value not in ascending order");
-                    prevTick = tick;
 
                     switch (chartEvent.Type)
                     {
