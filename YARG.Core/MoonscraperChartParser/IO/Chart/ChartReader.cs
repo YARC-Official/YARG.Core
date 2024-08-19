@@ -209,8 +209,6 @@ namespace MoonscraperChartEditor.Song.IO
                             // Denominator is optional, and defaults to 2 (becomes 4)
                             if (!YARGTextReader.TryExtractUInt32(ref chartText, out uint denominator))
                                 denominator = 2;
-                            else
-                                YARGTextReader.SkipWhitespace(ref chartText);
 
                             // Denominator is stored as a power of 2, apply it here
                             denominator = (uint) Math.Pow(2, denominator);
