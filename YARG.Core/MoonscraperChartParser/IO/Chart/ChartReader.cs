@@ -154,7 +154,8 @@ namespace MoonscraperChartEditor.Song.IO
         {
             YargLogger.LogTrace("Loading .chart [Song] section");
 
-            var metadata = YARGChartFileReader.ExtractChartModifiers(ref chartText);
+            var modifiers = YARGChartFileReader.ExtractModifiers(ref chartText, YARGChartFileReader.METADATA_MODIFIERS);
+            var metadata = new IniSection(modifiers, YARGChartFileReader.METADATA_MODIFIERS);
 
             // Resolution = 192
             if (!metadata.TryGet("Resolution", out uint resolution))

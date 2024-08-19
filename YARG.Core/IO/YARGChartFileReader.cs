@@ -240,13 +240,6 @@ namespace YARG.Core.IO
             return true;
         }
 
-        public static IniSection ExtractChartModifiers<TChar>(ref YARGTextContainer<TChar> container)
-            where TChar : unmanaged, IEquatable<TChar>, IConvertible
-        {
-            var modifiers = ExtractModifiers(ref container, METADATA_MODIFIERS);
-            return new IniSection(modifiers, METADATA_MODIFIERS);
-        }
-
         public static Dictionary<string, List<IniModifier>> ExtractModifiers<TChar>(
             ref YARGTextContainer<TChar> container, Dictionary<string, IniModifierCreator> knownModifiers)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
