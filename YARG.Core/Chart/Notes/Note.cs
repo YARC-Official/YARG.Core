@@ -13,8 +13,9 @@ namespace YARG.Core.Chart
         StarPowerStart = 1 << 1,
         StarPowerEnd   = 1 << 2,
 
-        SoloStart = 1 << 3,
-        SoloEnd   = 1 << 4,
+        Solo      = 1 << 3,
+        SoloStart = 1 << 4,
+        SoloEnd   = 1 << 5,
     }
 
     public abstract class Note<TNote> : ChartEvent, ICloneable<TNote>
@@ -81,6 +82,7 @@ namespace YARG.Core.Chart
         public bool IsStarPowerStart => (Flags & NoteFlags.StarPowerStart) != 0;
         public bool IsStarPowerEnd   => (Flags & NoteFlags.StarPowerEnd) != 0;
 
+        public bool IsSolo => (Flags & NoteFlags.Solo) != 0;
         public bool IsSoloStart => (Flags & NoteFlags.SoloStart) != 0;
         public bool IsSoloEnd   => (Flags & NoteFlags.SoloEnd) != 0;
 

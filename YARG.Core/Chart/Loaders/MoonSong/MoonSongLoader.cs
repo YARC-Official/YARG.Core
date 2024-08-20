@@ -244,6 +244,8 @@ namespace YARG.Core.Chart
             // Solos
             if (currentPhrases.TryGetValue(MoonPhrase.Type.Solo, out var solo) && IsEventInPhrase(moonNote, solo))
             {
+                flags |= NoteFlags.Solo;
+
                 if (previous == null || !IsEventInPhrase(previous, solo))
                     flags |= NoteFlags.SoloStart;
 

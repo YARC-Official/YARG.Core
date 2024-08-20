@@ -807,6 +807,17 @@ namespace YARG.Core.Engine
         private List<SoloSection> GetSoloSections()
         {
             var soloSections = new List<SoloSection>();
+
+            if (Notes.Count > 0 && Notes[0].IsSolo)
+            {
+                Notes[0].ActivateFlag(NoteFlags.SoloStart);
+            }
+
+            if (Notes.Count > 0 && Notes[^1].IsSolo)
+            {
+                Notes[^1].ActivateFlag(NoteFlags.SoloEnd);
+            }
+
             for (int i = 0; i < Notes.Count; i++)
             {
                 var start = Notes[i];
