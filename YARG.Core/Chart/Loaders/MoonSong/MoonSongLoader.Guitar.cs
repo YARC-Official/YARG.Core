@@ -82,7 +82,7 @@ namespace YARG.Core.Chart
 
         private GuitarNoteType GetGuitarNoteType(MoonNote moonNote)
         {
-            var type = moonNote.GetGuitarNoteType(_currentMoonMode, _moonSong.hopoThreshold);
+            var type = moonNote.GetGuitarNoteType(_moonSong.hopoThreshold);
 
             // Apply chord HOPO cancellation, if enabled
             if (_settings.ChordHopoCancellation && type == MoonNote.MoonNoteType.Hopo &&

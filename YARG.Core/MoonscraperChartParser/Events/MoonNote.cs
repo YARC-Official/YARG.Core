@@ -299,7 +299,7 @@ namespace MoonscraperChartEditor.Song
         /// <summary>
         /// Live calculation of what Note_Type this note would currently be.
         /// </summary>
-        public MoonNoteType GetGuitarNoteType(MoonChart.GameMode gameMode, float hopoThreshold)
+        public MoonNoteType GetGuitarNoteType(float hopoThreshold)
         {
             if ((flags & Flags.Tap) != 0)
             {

@@ -782,7 +782,7 @@ namespace MoonscraperChartEditor.Song.IO
                 }
 
                 double time = song.TickToTime(note.tick);
-                var finalType = note.GetGuitarNoteType(gameMode, song.hopoThreshold);
+                var finalType = note.GetGuitarNoteType(song.hopoThreshold);
                 YargLogger.Assert(finalType == newType);
             }
         }
