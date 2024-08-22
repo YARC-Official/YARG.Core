@@ -146,6 +146,7 @@ namespace YARG.Core.Engine
             TotalStarPowerBarsFilled = stats.TotalStarPowerBarsFilled;
             StarPowerActivationCount = stats.StarPowerActivationCount;
             TimeInStarPower = stats.TimeInStarPower;
+            StarPowerWhammyTicks = stats.StarPowerWhammyTicks;
             IsStarPowerActive = stats.IsStarPowerActive;
 
             StarPowerPhrasesHit = stats.StarPowerPhrasesHit;
