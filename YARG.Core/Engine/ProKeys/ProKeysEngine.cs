@@ -173,6 +173,16 @@ namespace YARG.Core.Engine.ProKeys
                 return;
             }
 
+            bool partiallyHit = false;
+            foreach(var child in note.ParentOrSelf.AllNotes)
+            {
+                if (child.WasHit || child.WasMissed)
+                {
+                    partiallyHit = true;
+                    break;
+                }
+            }
+
             note.SetHitState(true, false);
 
             KeyPressTimes[note.Key] = DEFAULT_PRESS_TIME;
@@ -201,11 +211,14 @@ namespace YARG.Core.Engine.ProKeys
                 EndSolo();
             }
 
-            // Chords only count as one note hit
             if (note.ParentOrSelf.WasFullyHit())
             {
                 ChordStaggerTimer.Disable();
+            }
 
+            // Only increase combo for the first note in a chord
+            if (!partiallyHit)
+            {
                 EngineStats.Combo++;
 
                 if (EngineStats.Combo > EngineStats.MaxCombo)
@@ -257,7 +270,16 @@ namespace YARG.Core.Engine.ProKeys
                 StartSolo();
             }
 
-            EngineStats.Combo = 0;
+            // If no notes within a chord were hit, combo is 0
+            if (note.ParentOrSelf.WasFullyMissed())
+            {
+                EngineStats.Combo = 0;
+            }
+            else
+            {
+                // If any of the notes in a chord were hit, the combo for that note is rewarded, but it is reset back to 1
+                EngineStats.Combo = 1;
+            }
 
             UpdateMultiplier();
 
