@@ -48,30 +48,22 @@ namespace YARG.Core.IO.Ini
 #endif
 
         private readonly Dictionary<string, List<IniModifier>> modifiers;
-
-#if DEBUG
         private readonly Dictionary<string, IniModifierCreator> knownModifiers;
-#endif
 
         public int Count => modifiers.Count;
 
 
-        // `knownModifiers` is always provided as an argument so other code doesn't have to do `#if DEBUG` guards
         public IniSection(in Dictionary<string, IniModifierCreator> knownModifiers)
         {
             modifiers = new();
-#if DEBUG
             this.knownModifiers = knownModifiers;
-#endif
         }
 
         public IniSection(in Dictionary<string, List<IniModifier>> modifiers,
             in Dictionary<string, IniModifierCreator> knownModifiers)
         {
             this.modifiers = modifiers;
-#if DEBUG
             this.knownModifiers = knownModifiers;
-#endif
         }
 
         public void Append(in Dictionary<string, List<IniModifier>> modsToAdd)
