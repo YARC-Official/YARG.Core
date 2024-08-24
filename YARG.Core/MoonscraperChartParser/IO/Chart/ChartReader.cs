@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2016-2020 Alexander Ong
+// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
 // Chart file format specifications- https://docs.google.com/document/d/1v2v0U-9HQ5qHeccpExDOLJ5CMPZZ3QytPmAG5WF0Kzs/edit?usp=sharing
@@ -47,6 +47,11 @@ namespace MoonscraperChartEditor.Song.IO
             public ParseSettings            settings;
             public NoteEvent                noteEvent;
             public List<NoteEventProcessFn> postNotesAddedProcessList;
+        }
+
+        private struct Metadata
+        {
+            public uint resolution;
         }
 
         #region Utility
@@ -127,7 +132,10 @@ namespace MoonscraperChartEditor.Song.IO
             }
 
             ExpectSection(ref chartText, YARGChartFileReader.HEADERTRACK, sectionIndex: 0);
-            var song = ReadMetadataSection(ref chartText, ref settings);
+            var metadata = ReadMetadataSection(ref chartText);
+
+            var song = new MoonSong(metadata.resolution);
+            ValidateAndApplySettings(song, ref settings);
 
             ExpectSection(ref chartText, YARGChartFileReader.SYNCTRACK, sectionIndex: 1);
             ReadSyncSection(ref chartText, song);
@@ -154,8 +162,7 @@ namespace MoonscraperChartEditor.Song.IO
             return song;
         }
 
-        private static MoonSong ReadMetadataSection<TChar>(ref YARGTextContainer<TChar> chartText,
-            ref ParseSettings settings)
+        private static Metadata ReadMetadataSection<TChar>(ref YARGTextContainer<TChar> chartText)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {
             YargLogger.LogTrace("Loading .chart [Song] section");
@@ -163,15 +170,15 @@ namespace MoonscraperChartEditor.Song.IO
             var modifiers = YARGChartFileReader.ExtractModifiers(ref chartText, ChartIOHelper.MetadataModifiers);
             var metadata = new IniSection(modifiers, ChartIOHelper.MetadataModifiers);
 
-            // Resolution = 192
             if (!metadata.TryGet("Resolution", out uint resolution))
                 throw new InvalidDataException("Could not read .chart resolution!");
             if (resolution < 1)
                 throw new InvalidDataException($"Invalid .chart resolution {resolution}! Must be non-zero and non-negative");
 
-            var song = new MoonSong(resolution);
-            ValidateAndApplySettings(song, ref settings);
-            return song;
+            return new Metadata()
+            {
+                resolution = resolution,
+            };
         }
 
         private static void ValidateAndApplySettings(MoonSong song, ref ParseSettings settings)
