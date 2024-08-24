@@ -233,6 +233,7 @@ namespace MoonscraperChartEditor.Song.IO
                         if (nextStartTick != ev.tick)
                         {
                             chart.Add(new MoonPhrase(startTick, ev.tick + 1 - startTick, MoonPhrase.Type.Solo));
+                            startTick = uint.MaxValue;
                         }
                         else
                         {
