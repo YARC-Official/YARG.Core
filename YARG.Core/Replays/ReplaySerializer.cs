@@ -132,24 +132,16 @@ namespace YARG.Core.Replays
 
         #endregion
 
-        private static int WriteBlock(BinaryWriter writer, Stream blockStream)
+        private static int WriteBlock(BinaryWriter writer, MemoryStream blockStream)
         {
-            var length = WriteBlockLength(writer, blockStream);
-            blockStream.SetLength(length);
-            blockStream.CopyTo(writer.BaseStream);
+            var blockLength = (int) blockStream.Position;
+            writer.Write(blockLength);
+
+            var block = new ReadOnlySpan<byte>(blockStream.GetBuffer(), 0, blockLength);
+            writer.BaseStream.Write(block);
             blockStream.Position = 0;
 
-            return length;
-        }
-
-        private static int WriteBlockLength(BinaryWriter writer, Stream blockStream)
-        {
-            var length = (int) blockStream.Position;
-
-            writer.Write(length);
-            blockStream.Position = 0;
-
-            return length;
+            return blockLength;
         }
 
         private static int ReadBlockLength(ref SpanBinaryReader reader)
