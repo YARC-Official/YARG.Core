@@ -143,6 +143,12 @@ namespace MoonscraperChartEditor.Song.IO
                     ReadInstrumentSection(ref chartText, song, ref settings,
                         instrument.ToMoonInstrument(), difficulty.ToMoonDifficulty());
                 }
+                else
+                {
+                    string trackName = YARGTextReader.PeekLine(ref chartText);
+                    YargLogger.LogFormatWarning("Unrecognized .chart section '{0}'!", trackName);
+                    YARGChartFileReader.SkipCurrentTrack(ref chartText);
+                }
             }
 
             return song;

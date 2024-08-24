@@ -184,6 +184,15 @@ namespace YARG.Core.IO
             return true;
         }
 
+        public static void SkipCurrentTrack<TChar>(ref YARGTextContainer<TChar> container)
+            where TChar : unmanaged, IEquatable<TChar>, IConvertible
+        {
+            if (YARGTextReader.SkipLinesUntil(ref container, TextConstants<TChar>.CLOSE_BRACE))
+            {
+                YARGTextReader.GotoNextLine(ref container);
+            }
+        }
+
         public static unsafe bool TryParseEvent<TChar>(ref YARGTextContainer<TChar> container, ref DotChartEvent ev)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {
