@@ -27,7 +27,7 @@ namespace YARG.Core.Replays
         private const short PRE_REFACTOR_ENGINE_VERSION = 5;
 
         // Some versions may be invalidated (such as significant format changes)
-        private static readonly short[] InvalidVersions =
+        private static readonly int[] InvalidVersions =
         {
             0, 1, 2, 3
         };

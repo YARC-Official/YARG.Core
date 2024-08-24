@@ -42,8 +42,8 @@ namespace YARG.Core.Replays
                     return null;
                 }
 
-                header.ReplayVersion = reader.ReadInt16();
-                header.EngineVersion = reader.ReadInt16();
+                header.ReplayVersion = reader.ReadInt32();
+                header.EngineVersion = reader.ReadInt32();
                 header.ReplayChecksum = HashWrapper.Create(reader.ReadBytes(HashWrapper.HASH_SIZE_IN_BYTES));
 
                 return header;

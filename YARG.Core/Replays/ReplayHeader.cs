@@ -8,13 +8,12 @@ namespace YARG.Core.Replays
         public const int SIZE = 0x20;
 
         public EightCC     Magic;
-        public short       ReplayVersion;
-        public short       EngineVersion;
+        public int         ReplayVersion;
+        public int         EngineVersion;
         public HashWrapper ReplayChecksum;
 
-        public bool IsDevelopmentVersion()
-        {
-            return (ReplayVersion & 0x8000) != 0 || (EngineVersion & 0x8000) != 0;
-        }
+        public bool IsDevelopmentReplay() => (ReplayVersion & 0x8000_0000) != 0;
+
+        public bool IsDevelopmentEngine() => (EngineVersion & 0x8000_0000) != 0;
     }
 }

@@ -24,8 +24,8 @@ namespace YARG.Core.Replays
             {
                 header.Magic.Serialize(writer);
 
-                writer.Write((int) header.ReplayVersion);
-                writer.Write((int) header.EngineVersion);
+                writer.Write(header.ReplayVersion);
+                writer.Write(header.EngineVersion);
 
                 header.ReplayChecksum.Serialize(writer);
             }
@@ -42,8 +42,8 @@ namespace YARG.Core.Replays
                 }
 
                 header.Magic = magic;
-                header.ReplayVersion = (short) reader.ReadInt32();
-                header.EngineVersion = (short) reader.ReadInt32();
+                header.ReplayVersion = reader.ReadInt32();
+                header.EngineVersion = reader.ReadInt32();
                 header.ReplayChecksum = HashWrapper.Create(reader.ReadBytes(HashWrapper.HASH_SIZE_IN_BYTES));
 
                 return header;
