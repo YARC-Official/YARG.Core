@@ -77,29 +77,6 @@ namespace YARG.Core.IO
             new("S",  ChartEventType.Special),
         };
 
-        public static readonly Dictionary<string, IniModifierCreator> METADATA_MODIFIERS = new()
-        {
-            { "Name",           new("Name", ModifierType.String_Chart) },
-            { "Artist",         new("Artist", ModifierType.String_Chart) },
-            { "Album",          new("Album", ModifierType.String_Chart) },
-            { "Genre",          new("Genre", ModifierType.String_Chart) },
-            { "Year",           new("Year", ModifierType.String_Chart) },
-            { "Charter",        new("Charter", ModifierType.String_Chart) },
-
-            { "Difficulty",     new("Difficulty", ModifierType.Int32) },
-            { "Length",         new("Length", ModifierType.Double) },
-            { "Offset",         new("Offset", ModifierType.Double) },
-            { "PreviewStart",   new("PreviewStart", ModifierType.Double) },
-            { "PreviewEnd",     new("PreviewEnd", ModifierType.Double) },
-
-            { "Resolution",     new("Resolution", ModifierType.UInt32) },
-        };
-
-        public static readonly Dictionary<string, Dictionary<string, IniModifierCreator>> METADATA_DICTIONARY = new()
-        {
-            { "[Song]", METADATA_MODIFIERS },
-        };
-
         public static bool IsStartOfTrack<TChar>(in YARGTextContainer<TChar> container)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {

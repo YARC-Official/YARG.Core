@@ -3,6 +3,7 @@
 
 using System.Collections.Generic;
 using YARG.Core.Chart;
+using YARG.Core.IO.Ini;
 
 namespace MoonscraperChartEditor.Song.IO
 {
@@ -24,6 +25,12 @@ namespace MoonscraperChartEditor.Song.IO
         public const int PHRASE_DRUM_FILL = 64;
         public const int PHRASE_TREMOLO_LANE = 65;
         public const int PHRASE_TRILL_LANE = 66;
+
+        // Only metadata relevant to parsing the chart is included here
+        public static readonly Dictionary<string, IniModifierCreator> MetadataModifiers = new()
+        {
+            { "Resolution",     new("Resolution", ModifierType.UInt32) },
+        };
 
         public static readonly Dictionary<int, int> GuitarNoteNumLookup = new()
         {
