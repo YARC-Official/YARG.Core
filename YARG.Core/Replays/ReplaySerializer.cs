@@ -144,69 +144,17 @@ namespace YARG.Core.Replays
 
         private static int WriteBlockLength(BinaryWriter writer, Stream blockStream)
         {
-            var length = WriteBlockLength(writer, (int) blockStream.Position);
+            var length = (int) blockStream.Position;
+
+            writer.Write(length);
             blockStream.Position = 0;
-
-            return length;
-        }
-
-        private static int WriteBlockLength(BinaryWriter writer, int length)
-        {
-            const int maxLength = 0x3FFF_FFFF;
-            if(length > maxLength)
-            {
-                throw new ArgumentOutOfRangeException(nameof(length), "Block length is too large");
-            }
-
-            // Split the length into 2 shorts
-            ushort low = (ushort) (length & 0xFFFF);
-            ushort high = (ushort) ((length >> 16) & 0xFFFF);
-
-            // If the low byte has the MSB set, we need to write 2 shorts instead of 1
-            if ((low & 0b1000_0000) == 1)
-            {
-                // Set the MSB to 1 to indicate that the length is stored in 2 bytes
-                high |= 0x8000;
-                writer.Write(high);
-            }
-
-            writer.Write(low);
 
             return length;
         }
 
         private static int ReadBlockLength(ref SpanBinaryReader reader)
         {
-            Span<ushort> data = stackalloc ushort[2] { 0x00, 0x00 };
-
-            ref ushort low = ref data[0];
-            ref ushort high = ref data[1];
-
-            low = reader.ReadUInt16();
-
-            // If the first (high) byte is negative (MSB is 1), it means that the length is stored in 2 bytes
-            if ((data[0] & 0x8000) == 1)
-            {
-                // Take out MSB to make it positive
-                const ushort msb = 0x8000;
-                low &= unchecked((ushort) ~msb);
-
-                // Read the second byte
-                high = reader.ReadUInt16();
-
-                // Move the first byte to the second byte
-                // Don't need to remove the MSB since it's positive
-                //(low, high) = (high, low);
-            }
-
-            unsafe
-            {
-                // Return the 2 shorts as a single int
-                fixed (void* dataPtr = &low)
-                {
-                    return *(int*) dataPtr;
-                }
-            }
+            return reader.ReadInt32();
         }
     }
 }
