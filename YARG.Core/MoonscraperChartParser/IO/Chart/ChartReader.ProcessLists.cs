@@ -201,36 +201,44 @@ namespace MoonscraperChartEditor.Song.IO
             };
         }
 
-        private static unsafe void ConvertSoloEvents(ref NoteProcessParams noteProcessParams)
+        private static void ConvertSoloEvents(ref NoteProcessParams noteProcessParams)
         {
             var chart = noteProcessParams.chart;
             // Keeps tracks of soloes that start on the same tick when another solo ends
-            var soloQueue = stackalloc uint[2] { uint.MaxValue, uint.MaxValue };
+            uint startTick = uint.MaxValue;
+            uint nextStartTick = uint.MaxValue;
             for (int i = 0; i < chart.events.Count; ++i)
             {
                 var ev = chart.events[i];
                 if (ev.text == TextEvents.SOLO_START)
                 {
-                    soloQueue[soloQueue[0] != uint.MaxValue ? 1 : 0] = ev.tick;
+                    if (startTick == uint.MaxValue)
+                    {
+                        startTick = ev.tick;
+                    }
+                    else
+                    {
+                        nextStartTick = ev.tick;
+                    }
                 }
                 else if (ev.text == TextEvents.SOLO_END)
                 {
-                    if (soloQueue[0] != uint.MaxValue)
+                    if (startTick != uint.MaxValue)
                     {
                         // .chart handles solo phrases with *inclusive ends*, so we have to add one tick.
                         // The only exception will be if another solo starts on the same exact tick.
                         //
                         // Comparing to the current tick instead of against uint.MaxValue ensures
                         // that the we don't allow overlaps
-                        if (soloQueue[1] != ev.tick)
+                        if (nextStartTick != ev.tick)
                         {
-                            chart.Add(new MoonPhrase(soloQueue[0], ev.tick + 1 - soloQueue[0], MoonPhrase.Type.Solo));
+                            chart.Add(new MoonPhrase(startTick, ev.tick + 1 - startTick, MoonPhrase.Type.Solo));
                         }
                         else
                         {
-                            chart.Add(new MoonPhrase(soloQueue[0], ev.tick - soloQueue[0], MoonPhrase.Type.Solo));
-                            soloQueue[0] = soloQueue[1];
-                            soloQueue[1] = uint.MaxValue;
+                            chart.Add(new MoonPhrase(startTick, ev.tick - startTick, MoonPhrase.Type.Solo));
+                            startTick = nextStartTick;
+                            nextStartTick = uint.MaxValue;
                         }
                     }
                 }
