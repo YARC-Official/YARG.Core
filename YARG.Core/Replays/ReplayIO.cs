@@ -1,11 +1,11 @@
 using System;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
+using YARG.Core.Extensions;
 using YARG.Core.IO;
+using YARG.Core.IO.Disposables;
 using YARG.Core.Logging;
 using YARG.Core.Song;
-using YARG.Core.Utility;
 
 namespace YARG.Core.Replays
 {
@@ -66,45 +66,54 @@ namespace YARG.Core.Replays
 
             try
             {
-                byte[] data = File.ReadAllBytes(path);
+                using var fileStream = File.OpenRead(path);
 
-                int fileVersion;
-
-                unsafe
+                if (!REPLAY_MAGIC_HEADER.Matches(fileStream))
                 {
-                    fixed (byte* ptr = data)
-                    {
-                        // This is technically invalid for v0.12 replays as the header size was changed
-                        // But because the engine version never changed from 0 it doesn't actually matter LOL
-                        var header = Unsafe.Read<ReplayHeader>(ptr);
+                    return ReplayReadResult.NotAReplay;
+                }
 
-                        header.Magic = new EightCC(data);
+                int replayVersion = fileStream.Read<int>(Endianness.Little);
 
-                        if (header.Magic != REPLAY_MAGIC_HEADER)
-                        {
-                            return ReplayReadResult.NotAReplay;
-                        }
+                if (InvalidVersions.Contains(replayVersion) || replayVersion > REPLAY_VERSION)
+                {
+                    return ReplayReadResult.InvalidVersion;
+                }
 
-                        if (InvalidVersions.Contains(header.ReplayVersion) || header.ReplayVersion > REPLAY_VERSION)
-                        {
-                            return ReplayReadResult.InvalidVersion;
-                        }
+                int engineVersion = fileStream.Read<int>(Endianness.Little);
+                var hash = HashWrapper.Deserialize(fileStream);
 
-                        fileVersion = header.ReplayVersion;
-                    }
+                var header = new ReplayHeader
+                {
+                    Magic = REPLAY_MAGIC_HEADER,
+                    ReplayVersion = replayVersion,
+                    EngineVersion = engineVersion,
+                    ReplayChecksum = hash
+                };
+
+                var dataLength = fileStream.Length - fileStream.Position;
+
+                using var data = AllocatedArray<byte>.Read(fileStream, dataLength);
+                using var memoryStream = data.ToStream();
+
+                var checksum = HashWrapper.Hash(data.ReadOnlySpan);
+
+                if (!checksum.Equals(hash))
+                {
+                    return ReplayReadResult.Corrupted;
                 }
 
                 // Old replays
-                if (fileVersion <= PRE_REFACTOR_ENGINE_VERSION)
+                if (replayVersion <= PRE_REFACTOR_ENGINE_VERSION)
                 {
-                    var value = V012ReplaySerializer.DeserializeReplay(data, fileVersion);
+                    var value = V012ReplaySerializer.DeserializeReplay(memoryStream, replayVersion);
 
                     replay = value.Replay;
                     return value.Result;
                 }
                 else
                 {
-                    var value = ReplaySerializer.DeserializeReplay(data, fileVersion);
+                    var value = ReplaySerializer.DeserializeReplay(memoryStream, replayVersion);
 
                     replay = value.Replay;
                     return value.Result;

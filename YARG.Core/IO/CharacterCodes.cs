@@ -47,6 +47,11 @@ namespace YARG.Core.IO
         public void Deserialize(BinaryReader reader, int version = 0)
             => throw new InvalidOperationException("FourCC is a readonly struct, use the Read static method instead.");
 
+        public bool Matches(Stream stream)
+        {
+            return stream.Read<uint>(Endianness.Big) == _code;
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator ==(FourCC left, FourCC right) => left._code == right._code;
 
@@ -107,6 +112,11 @@ namespace YARG.Core.IO
         [Obsolete("EightCC is a readonly struct, use the Read static method instead.", true)]
         public void Deserialize(BinaryReader reader, int version = 0)
             => throw new InvalidOperationException("EightCC is a readonly struct, use the Read static method instead.");
+
+        public bool Matches(Stream stream)
+        {
+            return stream.Read<ulong>(Endianness.Big) == _code;
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator ==(EightCC left, EightCC right) => left._code == right._code;

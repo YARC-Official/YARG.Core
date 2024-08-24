@@ -49,31 +49,13 @@ namespace YARG.Core.Replays
             Sections.SerializeHeader(writer, replay.Header);
         }
 
-        public static (ReplayReadResult Result, Replay? Replay) DeserializeReplay(byte[] replayFileData, int version = 0)
+        public static (ReplayReadResult Result, Replay? Replay) DeserializeReplay(UnmanagedMemoryStream stream, int version = 0)
         {
             var replay = new Replay();
 
             var position = 0;
-            var wholeFileSpan = replayFileData.AsSpan();
 
-            var headerSpan = wholeFileSpan[position..0x20];
             var spanReader = new SpanBinaryReader(headerSpan);
-
-            var header = Sections.DeserializeHeader(ref spanReader, version);
-            if (header == null)
-            {
-                return (ReplayReadResult.NotAReplay, null);
-            }
-
-            position += spanReader.Position;
-
-            var hash = HashWrapper.Algorithm.ComputeHash(replayFileData, position, replayFileData.Length - position);
-            var computedChecksum = HashWrapper.Create(hash);
-
-            if(!header.Value.ReplayChecksum.Equals(computedChecksum))
-            {
-                return (ReplayReadResult.Corrupted, null);
-            }
 
             // Metadata
             //position = spanReader.Position;

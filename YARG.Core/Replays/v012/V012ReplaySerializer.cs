@@ -1,6 +1,4 @@
-﻿using System;
-using System.IO;
-using System.Security.Cryptography;
+﻿using System.IO;
 using YARG.Core.Song;
 using YARG.Core.Utility;
 
@@ -38,19 +36,11 @@ namespace YARG.Core.Replays
             Sections.SerializeHeader(writer, replay.Header);
         }
 
-        public static (ReplayReadResult Result, Replay? Replay) DeserializeReplay(byte[] data, int version = 0)
+        public static (ReplayReadResult Result, Replay? Replay) DeserializeReplay(UnmanagedMemoryStream stream, int version = 0)
         {
             var reader = new SpanBinaryReader(data.AsSpan());
 
             var replay = new Replay();
-
-            var header = Sections.DeserializeHeader(ref reader, version);
-            if (header == null)
-            {
-                return (ReplayReadResult.NotAReplay, null);
-            }
-
-            replay.Header = header.Value;
 
             replay.Metadata = Sections.DeserializeMetadata(ref reader, version);
             replay.PresetContainer = Sections.DeserializePresetContainer(ref reader, version);
