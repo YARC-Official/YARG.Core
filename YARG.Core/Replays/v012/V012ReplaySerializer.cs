@@ -30,8 +30,7 @@ namespace YARG.Core.Replays
 
             writer.BaseStream.Seek(ReplayHeader.SIZE, SeekOrigin.Begin);
 
-            var sha = SHA1.Create();
-            var hashWrapper = HashWrapper.Create(sha.ComputeHash(writer.BaseStream));
+            var hashWrapper = HashWrapper.Create(HashWrapper.Algorithm.ComputeHash(writer.BaseStream));
             replay.Header.ReplayChecksum = hashWrapper;
 
             writer.BaseStream.Seek(0, SeekOrigin.Begin);

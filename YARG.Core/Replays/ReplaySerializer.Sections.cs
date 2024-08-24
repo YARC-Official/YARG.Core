@@ -338,7 +338,7 @@ namespace YARG.Core.Replays
                 writer.Write(stats.StarPowerTickAmount);
                 writer.Write(stats.TotalStarPowerTicks);
                 writer.Write(stats.TimeInStarPower);
-                writer.Write(stats.WhammyTicks);
+                writer.Write(stats.StarPowerWhammyTicks);
                 writer.Write(stats.IsStarPowerActive);
                 writer.Write(stats.StarPowerPhrasesHit);
                 writer.Write(stats.TotalStarPowerPhrases);
@@ -422,7 +422,7 @@ namespace YARG.Core.Replays
                 stats.StarPowerTickAmount = starPowerTickAmount;
                 stats.TotalStarPowerTicks = totalStarPowerTicks;
                 stats.TimeInStarPower = timeInStarPower;
-                stats.WhammyTicks = whammyTicks;
+                stats.StarPowerWhammyTicks = whammyTicks;
                 stats.IsStarPowerActive = isStarPowerActive;
                 stats.StarPowerPhrasesHit = starPowerPhrasesHit;
                 stats.TotalStarPowerPhrases = totalStarPowerPhrases;

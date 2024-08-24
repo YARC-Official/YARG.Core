@@ -39,8 +39,9 @@ namespace YARG.Core.Replays
 
             writer.BaseStream.Seek(ReplayHeader.SIZE, SeekOrigin.Begin);
 
-            var sha = SHA1.Create();
-            var hashWrapper = HashWrapper.Create(sha.ComputeHash(writer.BaseStream));
+            HashWrapper.Algorithm.ComputeHash(writer.BaseStream);
+
+            var hashWrapper = HashWrapper.Create( HashWrapper.Algorithm.ComputeHash(writer.BaseStream));
             replay.Header.ReplayChecksum = hashWrapper;
 
             writer.BaseStream.Seek(0, SeekOrigin.Begin);
@@ -66,8 +67,7 @@ namespace YARG.Core.Replays
 
             position += spanReader.Position;
 
-            var sha = SHA1.Create();
-            var hash = sha.ComputeHash(replayFileData, position, replayFileData.Length - position);
+            var hash = HashWrapper.Algorithm.ComputeHash(replayFileData, position, replayFileData.Length - position);
             var computedChecksum = HashWrapper.Create(hash);
 
             if(!header.Value.ReplayChecksum.Equals(computedChecksum))
