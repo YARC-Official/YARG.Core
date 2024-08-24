@@ -55,7 +55,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                 // Fat Fingered key was released before the timer expired
                 if (KeyReleased == FatFingerKey && !FatFingerTimer.IsExpired(CurrentTime))
                 {
-                    YargLogger.LogFormatDebug("Released fat fingered key at {0}. Note was hit: {1}", CurrentTime, FatFingerNote!.WasHit);
+                    YargLogger.LogFormatTrace("Released fat fingered key at {0}. Note was hit: {1}", CurrentTime, FatFingerNote!.WasHit);
 
                     // The note must be hit to disable the timer
                     if (FatFingerNote!.WasHit)
@@ -68,7 +68,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                 }
                 else if(FatFingerTimer.IsExpired(CurrentTime))
                 {
-                    YargLogger.LogFormatDebug("Fat Finger timer expired at {0}", CurrentTime);
+                    YargLogger.LogFormatTrace("Fat Finger timer expired at {0}", CurrentTime);
 
                     var fatFingerKeyMask = 1 << FatFingerKey;
 
@@ -77,7 +77,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                     // Overhit if key is still held OR if key is not held but note was not hit either
                     if (isHoldingWrongKey || (!isHoldingWrongKey && !FatFingerNote!.WasHit))
                     {
-                        YargLogger.LogFormatDebug("Overhit due to fat finger with key {0}. KeyMask: {1}. Holding: {2}. WasHit: {3}",
+                        YargLogger.LogFormatTrace("Overhit due to fat finger with key {0}. KeyMask: {1}. Holding: {2}. WasHit: {3}",
                             FatFingerKey, KeyMask, isHoldingWrongKey, FatFingerNote!.WasHit);
                         Overhit(FatFingerKey!.Value);
                     }
@@ -127,7 +127,6 @@ namespace YARG.Core.Engine.ProKeys.Engines
                 // Hit whole note
                 if (CanNoteBeHit(parentNote))
                 {
-                    YargLogger.LogDebug("Can hit whole note");
                     foreach (var childNote in parentNote.AllNotes)
                     {
                         HitNote(childNote);
@@ -144,18 +143,18 @@ namespace YARG.Core.Engine.ProKeys.Engines
                         // Note is a chord and chord staggering was active and is now expired
                         if (ChordStaggerTimer.IsActive && ChordStaggerTimer.IsExpired(CurrentTime))
                         {
-                            YargLogger.LogFormatDebug("Ending chord staggering at {0}", CurrentTime);
+                            YargLogger.LogFormatTrace("Ending chord staggering at {0}", CurrentTime);
                             foreach (var note in parentNote.AllNotes)
                             {
                                 // This key in the chord was held by the time chord staggering ended, so it can be hit
                                 if ((KeyMask & note.DisjointMask) == note.DisjointMask && IsKeyInTime(note, frontEnd))
                                 {
                                     HitNote(note);
-                                    YargLogger.LogFormatDebug("Hit staggered note {0} in chord", note.Key);
+                                    YargLogger.LogFormatTrace("Hit staggered note {0} in chord", note.Key);
                                 }
                                 else
                                 {
-                                    YargLogger.LogFormatDebug("Missing note {0} due to chord staggering", note.Key);
+                                    YargLogger.LogFormatTrace("Missing note {0} due to chord staggering", note.Key);
                                     MissNote(note);
                                 }
                             }
@@ -175,7 +174,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                                 if (!ChordStaggerTimer.IsActive)
                                 {
                                     StartTimer(ref ChordStaggerTimer, CurrentTime);
-                                    YargLogger.LogFormatDebug("Starting chord staggering at {0}. End time is {1}",
+                                    YargLogger.LogFormatTrace("Starting chord staggering at {0}. End time is {1}",
                                         CurrentTime, ChordStaggerTimer.EndTime);
 
                                     var chordStaggerEndTime = ChordStaggerTimer.EndTime;
@@ -188,7 +187,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                                         double diff = noteMissTime - chordStaggerEndTime;
                                         StartTimer(ref ChordStaggerTimer, CurrentTime - Math.Abs(diff));
 
-                                        YargLogger.LogFormatDebug(
+                                        YargLogger.LogFormatTrace(
                                             "Chord stagger window shortened by {0}. New end time is {1}. Note backend time is {2}",
                                             diff, ChordStaggerTimer.EndTime, noteMissTime);
                                     }
@@ -261,7 +260,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
 
                     FatFingerNote = adjacentNote;
 
-                    YargLogger.LogFormatDebug("Hit adjacent key {0} to note {1}. Starting fat finger timer at {2}. End time: {3}. Key is {4}", FatFingerKey, adjacentNote!.Key, CurrentTime,
+                    YargLogger.LogFormatTrace("Hit adjacent key {0} to note {1}. Starting fat finger timer at {2}. End time: {3}. Key is {4}", FatFingerKey, adjacentNote!.Key, CurrentTime,
                         FatFingerTimer.EndTime, FatFingerKey);
                 }
 
