@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2020 Alexander Ong
+﻿// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
 // Chart file format specifications- https://docs.google.com/document/d/1v2v0U-9HQ5qHeccpExDOLJ5CMPZZ3QytPmAG5WF0Kzs/edit?usp=sharing
@@ -53,33 +53,6 @@ namespace MoonscraperChartEditor.Song.IO
         {
             public uint resolution;
         }
-
-        #region Utility
-
-        // https://cc.davelozinski.com/c-sharp/fastest-way-to-convert-a-string-to-an-int
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int FastInt32Parse(ReadOnlySpan<char> text)
-        {
-            int value = 0;
-            foreach (char character in text) value = value * 10 + (character - '0');
-
-            return value;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static ulong FastUint64Parse(ReadOnlySpan<char> text)
-        {
-            ulong value = 0;
-            foreach (char character in text) value = value * 10 + (ulong) (character - '0');
-
-            return value;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static ReadOnlySpan<char> GetNextWord(this ReadOnlySpan<char> buffer, out ReadOnlySpan<char> remaining)
-            => buffer.SplitOnceTrimmed(' ', out remaining);
-
-        #endregion
 
         public static MoonSong ReadFromFile(string filepath)
         {
