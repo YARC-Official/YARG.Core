@@ -109,6 +109,12 @@ namespace YARG.Core.Replays
                     var value = V012ReplaySerializer.DeserializeReplay(memoryStream, replayVersion);
 
                     replay = value.Replay;
+
+                    if (replay != null)
+                    {
+                        replay.Header = header;
+                    }
+
                     return value.Result;
                 }
                 else
@@ -116,6 +122,12 @@ namespace YARG.Core.Replays
                     var value = ReplaySerializer.DeserializeReplay(memoryStream, replayVersion);
 
                     replay = value.Replay;
+
+                    if (replay != null)
+                    {
+                        replay.Header = header;
+                    }
+
                     return value.Result;
                 }
             } catch (Exception ex)
