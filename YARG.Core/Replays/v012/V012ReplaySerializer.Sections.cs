@@ -30,25 +30,6 @@ namespace YARG.Core.Replays
                 header.ReplayChecksum.Serialize(writer);
             }
 
-            public static ReplayHeader? DeserializeHeader(ref SpanBinaryReader reader, int version = 0)
-            {
-                var header = new ReplayHeader();
-
-                var magic = new EightCC(reader.ReadBytes(8));
-
-                if (magic != ReplayIO.REPLAY_MAGIC_HEADER)
-                {
-                    return null;
-                }
-
-                header.Magic = magic;
-                header.ReplayVersion = reader.ReadInt32();
-                header.EngineVersion = reader.ReadInt32();
-                header.ReplayChecksum = HashWrapper.Create(reader.ReadBytes(HashWrapper.HASH_SIZE_IN_BYTES));
-
-                return header;
-            }
-
             #endregion
 
             #region Metadata
