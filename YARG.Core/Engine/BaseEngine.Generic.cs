@@ -443,7 +443,7 @@ namespace YARG.Core.Engine
                     // Currently beind held by sustain drop leniency
                     if (sustain.IsLeniencyHeld)
                     {
-                        if (CurrentTime > sustain.LeniencyDropTime + EngineParameters.SustainDropLeniency)
+                        if (CurrentTime > sustain.LeniencyDropTime + EngineParameters.SustainDropLeniency * EngineParameters.SongSpeed)
                         {
                             dropped = true;
                         }
