@@ -290,6 +290,7 @@ namespace YARG.Core.Engine.ProKeys
         protected override void AddScore(ProKeysNote note)
         {
             AddScore(POINTS_PER_PRO_NOTE);
+            EngineStats.NoteScore += POINTS_PER_NOTE;
         }
 
         protected sealed override int CalculateBaseScore()

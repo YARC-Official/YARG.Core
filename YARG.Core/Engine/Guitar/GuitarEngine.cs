@@ -317,6 +317,7 @@ namespace YARG.Core.Engine.Guitar
         protected override void AddScore(GuitarNote note)
         {
             int notePoints = POINTS_PER_NOTE * (1 + note.ChildNotes.Count);
+            EngineStats.NoteScore += notePoints;
             AddScore(notePoints);
         }
 

@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using YARG.Core.Utility;
 
 namespace YARG.Core.Engine
@@ -28,6 +28,11 @@ namespace YARG.Core.Engine
         /// Calculated from <see cref="CommittedScore"/>, <see cref="PendingScore"/>, and <see cref="SoloBonuses"/>.
         /// </remarks>
         public int TotalScore => CommittedScore + PendingScore + SoloBonuses;
+
+        /// <summary>
+        /// Total score earned from hitting notes.
+        /// </summary>
+        public int NoteScore;
 
         /// <summary>
         /// Total score earned from holding sustains.
