@@ -12,6 +12,8 @@ namespace YARG.Core.Game
     {
         public const double DEFAULT_WHAMMY_BUFFER = 0.25;
 
+        public const double DEFAULT_SUSTAIN_DROP_LENIENCY = 0.025;
+
         public const int DEFAULT_MAX_MULTIPLIER = 4;
         public const int BASS_MAX_MULTIPLIER    = 6;
 
@@ -89,6 +91,10 @@ namespace YARG.Core.Game
             [SettingRange(min: 0f)]
             public double StrumLeniencySmall = 0.025;
 
+            [SettingType(SettingType.MillisecondInput)]
+            [SettingRange(min: 0f, max: 0.05f)]
+            public double SustainDropLeniency = DEFAULT_SUSTAIN_DROP_LENIENCY;
+
             [SettingType(SettingType.Special)]
             public HitWindowPreset HitWindow = new()
             {
@@ -118,6 +124,7 @@ namespace YARG.Core.Game
                     hitWindow,
                     isBass ? BASS_MAX_MULTIPLIER : DEFAULT_MAX_MULTIPLIER,
                     DEFAULT_WHAMMY_BUFFER,
+                    SustainDropLeniency,
                     starMultiplierThresholds,
                     HopoLeniency,
                     StrumLeniency,
@@ -276,6 +283,10 @@ namespace YARG.Core.Game
             [SettingRange(min: 0f)]
             public double FatFingerWindow = 0.1;
 
+            [SettingType(SettingType.MillisecondInput)]
+            [SettingRange(min: 0f, max: 0.05f)]
+            public double SustainDropLeniency = DEFAULT_SUSTAIN_DROP_LENIENCY;
+
             [SettingType(SettingType.Special)]
             public HitWindowPreset HitWindow = new()
             {
@@ -302,6 +313,7 @@ namespace YARG.Core.Game
                     hitWindow,
                     DEFAULT_MAX_MULTIPLIER,
                     DEFAULT_WHAMMY_BUFFER,
+                    SustainDropLeniency,
                     starMultiplierThresholds,
                     ChordStaggerWindow,
                     FatFingerWindow);

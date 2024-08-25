@@ -14,6 +14,8 @@ namespace YARG.Core.Engine
 
         public double StarPowerWhammyBuffer { get; private set; }
 
+        public double SustainDropLeniency { get; private set; }
+
         public float[] StarMultiplierThresholds { get; private set; }
 
         public double SongSpeed;
@@ -24,10 +26,12 @@ namespace YARG.Core.Engine
             StarMultiplierThresholds = Array.Empty<float>();
         }
 
-        protected BaseEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, double spWhammyBuffer, float[] starMultiplierThresholds)
+        protected BaseEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, double spWhammyBuffer,
+            double sustainDropLeniency, float[] starMultiplierThresholds)
         {
             HitWindow = hitWindow;
             StarPowerWhammyBuffer = spWhammyBuffer;
+            SustainDropLeniency = sustainDropLeniency;
             MaxMultiplier = maxMultiplier;
             StarMultiplierThresholds = starMultiplierThresholds;
         }

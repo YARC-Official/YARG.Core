@@ -45,7 +45,7 @@ namespace YARG.Core.Engine.Vocals
         public VocalsEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, float[] starMultiplierThresholds,
             float pitchWindow, float pitchWindowPerfect, double phraseHitPercent, double approximateVocalFps,
             bool singToActivateStarPower, int pointsPerPhrase)
-            : base(hitWindow, maxMultiplier, 0, starMultiplierThresholds)
+            : base(hitWindow, maxMultiplier, 0, 0, starMultiplierThresholds)
         {
             PitchWindow = pitchWindow;
             PitchWindowPerfect = pitchWindowPerfect;
