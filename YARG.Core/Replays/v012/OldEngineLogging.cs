@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using YARG.Core.Extensions;
 using YARG.Core.Utility;
 
 /*
@@ -37,16 +38,16 @@ namespace YARG.Core.Replays
             }
         }
 
-        public void Deserialize(ref SpanBinaryReader reader, int version = 0)
+        public void Deserialize(UnmanagedMemoryStream stream, int version = 0)
         {
-            int count = reader.ReadInt32();
+            int count = stream.Read<int>(Endianness.Little);
             for (int i = 0; i < count; i++)
             {
-                var engineEvent = GetEventObjectFromType((EngineEventType) reader.ReadInt32());
+                var engineEvent = GetEventObjectFromType((EngineEventType) stream.Read<int>(Endianness.Little));
 
                 if (engineEvent is null) break;
 
-                engineEvent.Deserialize(ref reader, version);
+                engineEvent.Deserialize(stream, version);
 
                 _events.Add(engineEvent);
             }
@@ -85,11 +86,11 @@ namespace YARG.Core.Replays
             writer.Write(EventTime);
         }
 
-        public virtual void Deserialize(ref SpanBinaryReader reader, int version = 0)
+        public virtual void Deserialize(UnmanagedMemoryStream stream, int version = 0)
         {
             // Don't deserialize event type as it's done manually to determine object type
 
-            EventTime = reader.ReadDouble();
+            EventTime = stream.Read<double>(Endianness.Little);
         }
 
         public static bool operator ==(BaseEngineEvent? a, BaseEngineEvent? b)
@@ -193,18 +194,18 @@ namespace YARG.Core.Replays
             writer.Write(WasSkipped);
         }
 
-        public override void Deserialize(ref SpanBinaryReader reader, int version = 0)
+        public override void Deserialize(UnmanagedMemoryStream stream, int version = 0)
         {
-            base.Deserialize(ref reader, version);
+            base.Deserialize(stream, version);
 
-            NoteTime = reader.ReadDouble();
-            NoteLength = reader.ReadDouble();
+            NoteTime = stream.Read<double>(Endianness.Little);
+            NoteLength = stream.Read<double>(Endianness.Little);
 
-            NoteIndex = reader.ReadInt32();
-            NoteMask = reader.ReadInt32();
+            NoteIndex = stream.Read<int>(Endianness.Little);
+            NoteMask = stream.Read<int>(Endianness.Little);
 
-            WasHit = reader.ReadBoolean();
-            WasSkipped = reader.ReadBoolean();
+            WasHit = stream.ReadBoolean();
+            WasSkipped = stream.ReadBoolean();
         }
 
         public override bool Equals(BaseEngineEvent? engineEvent)
@@ -242,11 +243,11 @@ namespace YARG.Core.Replays
             writer.Write(Score);
         }
 
-        public override void Deserialize(ref SpanBinaryReader reader, int version = 0)
+        public override void Deserialize(UnmanagedMemoryStream stream, int version = 0)
         {
-            base.Deserialize(ref reader, version);
+            base.Deserialize(stream, version);
 
-            Score = reader.ReadInt32();
+            Score = stream.Read<int>(Endianness.Little);
         }
     }
 
@@ -265,11 +266,11 @@ namespace YARG.Core.Replays
             writer.Write(IsActive);
         }
 
-        public override void Deserialize(ref SpanBinaryReader reader, int version = 0)
+        public override void Deserialize(UnmanagedMemoryStream stream, int version = 0)
         {
-            base.Deserialize(ref reader, version);
+            base.Deserialize(stream, version);
 
-            IsActive = reader.ReadBoolean();
+            IsActive = stream.ReadBoolean();
         }
     }
 
@@ -298,15 +299,15 @@ namespace YARG.Core.Replays
             writer.Write(TimerExpired);
         }
 
-        public override void Deserialize(ref SpanBinaryReader reader, int version = 0)
+        public override void Deserialize(UnmanagedMemoryStream stream, int version = 0)
         {
-            base.Deserialize(ref reader, version);
+            base.Deserialize(stream, version);
 
-            TimerName = reader.ReadString();
-            TimerValue = reader.ReadDouble();
-            TimerStarted = reader.ReadBoolean();
-            TimerStopped = reader.ReadBoolean();
-            TimerExpired = reader.ReadBoolean();
+            TimerName = stream.ReadString();
+            TimerValue = stream.Read<double>(Endianness.Little);
+            TimerStarted = stream.ReadBoolean();
+            TimerStopped = stream.ReadBoolean();
+            TimerExpired = stream.ReadBoolean();
         }
 
         public override bool Equals(BaseEngineEvent? engineEvent)

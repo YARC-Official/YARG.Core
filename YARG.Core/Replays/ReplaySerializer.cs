@@ -1,8 +1,8 @@
 using System;
 using System.IO;
-using System.Security.Cryptography;
+using YARG.Core.Extensions;
 using YARG.Core.Song;
-using YARG.Core.Utility;
+using YARG.Core.Song.Cache;
 
 namespace YARG.Core.Replays
 {
@@ -53,33 +53,18 @@ namespace YARG.Core.Replays
         {
             var replay = new Replay();
 
-            var position = 0;
+            long position = 0;
 
-            var spanReader = new SpanBinaryReader(headerSpan);
+            UnmanagedMemoryStream sliceStream;
 
             // Metadata
-            //position = spanReader.Position;
-            spanReader = new SpanBinaryReader(wholeFileSpan.Slice(position, 2));
-            var metadataLength = ReadBlockLength(ref spanReader);
-
-            position += spanReader.Position;
-            spanReader = new SpanBinaryReader(wholeFileSpan.Slice(position, metadataLength));
-            replay.Metadata = Sections.DeserializeMetadata(ref spanReader, version);
+            replay.Metadata = Sections.DeserializeMetadata(stream, version);
 
             // PresetContainer
-            position += spanReader.Position;
-            spanReader = new SpanBinaryReader(wholeFileSpan.Slice(position, 2));
-            var presetContainerLength = ReadBlockLength(ref spanReader);
-
-            position += spanReader.Position;
-            spanReader = new SpanBinaryReader(wholeFileSpan.Slice(position, presetContainerLength));
-            replay.PresetContainer = Sections.DeserializePresetContainer(ref spanReader, version);
+            replay.PresetContainer = Sections.DeserializePresetContainer(stream, version);
 
             // Player names
-            position += spanReader.Position;
-            spanReader = new SpanBinaryReader(wholeFileSpan[position..]);
-
-            int playerCount = spanReader.ReadInt32();
+            int playerCount = stream.Read<int>(Endianness.Little);
 
             // Hard limit on player count to prevent OOM
             if (playerCount > 255)
@@ -90,23 +75,15 @@ namespace YARG.Core.Replays
             var playerNames = new string[playerCount];
             for (int i = 0; i < playerCount; i++)
             {
-                playerNames[i] = spanReader.ReadString();
+                playerNames[i] = stream.ReadString();
             }
 
             // Player Frames
-            position += spanReader.Position;
-
             replay.Frames = new ReplayFrame[playerCount];
 
             for (int i = 0; i < playerCount; i++)
             {
-                spanReader = new SpanBinaryReader(wholeFileSpan.Slice(position, 2));
-                var frameLength = ReadBlockLength(ref spanReader);
-                position += spanReader.Position;
-
-                spanReader = new SpanBinaryReader(wholeFileSpan.Slice(position, frameLength));
-
-                replay.Frames[i] = Sections.DeserializeFrame(ref spanReader, version);
+                replay.Frames[i] = Sections.DeserializeFrame(stream, version);
             }
 
             return (ReplayReadResult.Valid, replay);
@@ -126,9 +103,15 @@ namespace YARG.Core.Replays
             return blockLength;
         }
 
-        private static int ReadBlockLength(ref SpanBinaryReader reader)
+        private static UnmanagedMemoryStream ReadBlock(UnmanagedMemoryStream stream)
         {
-            return reader.ReadInt32();
+            var blockLength = ReadBlockLength(stream);
+            return stream.Slice(blockLength);
+        }
+
+        private static int ReadBlockLength(UnmanagedMemoryStream stream)
+        {
+            return stream.Read<int>(Endianness.Little);
         }
     }
 }

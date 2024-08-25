@@ -3,6 +3,7 @@ using YARG.Core.Engine.Drums;
 using YARG.Core.Engine.Guitar;
 using YARG.Core.Engine.ProKeys;
 using YARG.Core.Engine.Vocals;
+using YARG.Core.Extensions;
 using YARG.Core.Utility;
 
 namespace YARG.Core.Replays
@@ -24,15 +25,15 @@ namespace YARG.Core.Replays
                 writer.Write(parameters.AntiGhosting);
             }
 
-            public static GuitarEngineParameters DeserializeGuitarParameters(ref SpanBinaryReader reader, int version = 0)
+            public static GuitarEngineParameters DeserializeGuitarParameters(UnmanagedMemoryStream stream, int version = 0)
             {
                 var parameters = new GuitarEngineParameters();
 
-                parameters.HopoLeniency = reader.ReadDouble();
-                parameters.StrumLeniency = reader.ReadDouble();
-                parameters.StrumLeniencySmall = reader.ReadDouble();
-                parameters.InfiniteFrontEnd = reader.ReadBoolean();
-                parameters.AntiGhosting = reader.ReadBoolean();
+                parameters.HopoLeniency = stream.Read<double>(Endianness.Little);
+                parameters.StrumLeniency = stream.Read<double>(Endianness.Little);
+                parameters.StrumLeniencySmall = stream.Read<double>(Endianness.Little);
+                parameters.InfiniteFrontEnd = stream.ReadBoolean();
+                parameters.AntiGhosting = stream.ReadBoolean();
 
                 return parameters;
             }
@@ -48,13 +49,13 @@ namespace YARG.Core.Replays
                 writer.Write(stats.GhostInputs);
             }
 
-            public static GuitarStats DeserializeGuitarStats(ref SpanBinaryReader reader, int version = 0)
+            public static GuitarStats DeserializeGuitarStats(UnmanagedMemoryStream stream, int version = 0)
             {
                 var stats = new GuitarStats();
 
-                stats.Overstrums = reader.ReadInt32();
-                stats.HoposStrummed = reader.ReadInt32();
-                stats.GhostInputs = reader.ReadInt32();
+                stats.Overstrums = stream.Read<int>(Endianness.Little);
+                stats.HoposStrummed = stream.Read<int>(Endianness.Little);
+                stats.GhostInputs = stream.Read<int>(Endianness.Little);
 
                 return stats;
             }
@@ -74,13 +75,13 @@ namespace YARG.Core.Replays
                 writer.Write(parameters.SituationalVelocityWindow);
             }
 
-            public static DrumsEngineParameters DeserializeDrumsParameters(ref SpanBinaryReader reader, int version = 0)
+            public static DrumsEngineParameters DeserializeDrumsParameters(UnmanagedMemoryStream stream, int version = 0)
             {
                 var parameters = new DrumsEngineParameters();
 
-                parameters.Mode = (DrumsEngineParameters.DrumMode) reader.ReadByte();
-                parameters.VelocityThreshold = reader.ReadSingle();
-                parameters.SituationalVelocityWindow = reader.ReadSingle();
+                parameters.Mode = (DrumsEngineParameters.DrumMode) stream.ReadByte();
+                parameters.VelocityThreshold = stream.Read<float>(Endianness.Little);
+                parameters.SituationalVelocityWindow = stream.Read<float>(Endianness.Little);
 
                 return parameters;
             }
@@ -94,11 +95,11 @@ namespace YARG.Core.Replays
                 writer.Write(stats.Overhits);
             }
 
-            public static DrumsStats DeserializeDrumsStats(ref SpanBinaryReader reader, int version = 0)
+            public static DrumsStats DeserializeDrumsStats(UnmanagedMemoryStream stream, int version = 0)
             {
                 var stats = new DrumsStats();
 
-                stats.Overhits = reader.ReadInt32();
+                stats.Overhits = stream.Read<int>(Endianness.Little);
 
                 return stats;
             }
@@ -117,12 +118,12 @@ namespace YARG.Core.Replays
                 writer.Write(parameters.FatFingerWindow);
             }
 
-            public static ProKeysEngineParameters DeserializeProKeysParameters(ref SpanBinaryReader reader, int version = 0)
+            public static ProKeysEngineParameters DeserializeProKeysParameters(UnmanagedMemoryStream stream, int version = 0)
             {
                 var parameters = new ProKeysEngineParameters();
 
-                parameters.ChordStaggerWindow = reader.ReadDouble();
-                parameters.FatFingerWindow = reader.ReadDouble();
+                parameters.ChordStaggerWindow = stream.Read<double>(Endianness.Little);
+                parameters.FatFingerWindow = stream.Read<double>(Endianness.Little);
 
                 return parameters;
             }
@@ -136,11 +137,11 @@ namespace YARG.Core.Replays
                 writer.Write(stats.Overhits);
             }
 
-            public static ProKeysStats DeserializeProKeysStats(ref SpanBinaryReader reader, int version = 0)
+            public static ProKeysStats DeserializeProKeysStats(UnmanagedMemoryStream stream, int version = 0)
             {
                 var stats = new ProKeysStats();
 
-                stats.Overhits = reader.ReadInt32();
+                stats.Overhits = stream.Read<int>(Endianness.Little);
 
                 return stats;
             }
@@ -163,16 +164,16 @@ namespace YARG.Core.Replays
                 writer.Write(parameters.PointsPerPhrase);
             }
 
-            public static VocalsEngineParameters DeserializeVocalsParameters(ref SpanBinaryReader reader, int version = 0)
+            public static VocalsEngineParameters DeserializeVocalsParameters(UnmanagedMemoryStream stream, int version = 0)
             {
                 var parameters = new VocalsEngineParameters();
 
-                parameters.PitchWindow = reader.ReadSingle();
-                parameters.PitchWindowPerfect = reader.ReadSingle();
-                parameters.PhraseHitPercent = reader.ReadDouble();
-                parameters.ApproximateVocalFps = reader.ReadDouble();
-                parameters.SingToActivateStarPower = reader.ReadBoolean();
-                parameters.PointsPerPhrase = reader.ReadInt32();
+                parameters.PitchWindow = stream.Read<float>(Endianness.Little);
+                parameters.PitchWindowPerfect = stream.Read<float>(Endianness.Little);
+                parameters.PhraseHitPercent = stream.Read<double>(Endianness.Little);
+                parameters.ApproximateVocalFps = stream.Read<double>(Endianness.Little);
+                parameters.SingToActivateStarPower = stream.ReadBoolean();
+                parameters.PointsPerPhrase = stream.Read<int>(Endianness.Little);
 
                 return parameters;
             }
@@ -187,12 +188,12 @@ namespace YARG.Core.Replays
                 writer.Write(stats.TicksMissed);
             }
 
-            public static VocalsStats DeserializeVocalsStats(ref SpanBinaryReader reader, int version = 0)
+            public static VocalsStats DeserializeVocalsStats(UnmanagedMemoryStream stream, int version = 0)
             {
                 var stats = new VocalsStats();
 
-                stats.TicksHit = reader.ReadUInt32();
-                stats.TicksMissed = reader.ReadUInt32();
+                stats.TicksHit = stream.Read<uint>(Endianness.Little);
+                stats.TicksMissed = stream.Read<uint>(Endianness.Little);
 
                 return stats;
             }

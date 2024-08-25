@@ -3,6 +3,7 @@ using YARG.Core.Engine.Drums;
 using YARG.Core.Engine.Guitar;
 using YARG.Core.Engine.ProKeys;
 using YARG.Core.Engine.Vocals;
+using YARG.Core.Extensions;
 using YARG.Core.Utility;
 
 namespace YARG.Core.Replays
@@ -25,16 +26,16 @@ namespace YARG.Core.Replays
                 writer.Write(parameters.AntiGhosting);
             }
 
-            public static GuitarEngineParameters DeserializeGuitarParameters(ref SpanBinaryReader reader, int version = 0)
+            public static GuitarEngineParameters DeserializeGuitarParameters(UnmanagedMemoryStream stream, int version = 0)
             {
                 var parameters = new GuitarEngineParameters();
 
-                parameters.HopoLeniency = reader.ReadDouble();
-                parameters.StrumLeniency = reader.ReadDouble();
-                parameters.StrumLeniencySmall = reader.ReadDouble();
-                parameters.StarPowerWhammyBuffer = reader.ReadDouble();
-                parameters.InfiniteFrontEnd = reader.ReadBoolean();
-                parameters.AntiGhosting = reader.ReadBoolean();
+                parameters.HopoLeniency = stream.Read<double>(Endianness.Little);
+                parameters.StrumLeniency = stream.Read<double>(Endianness.Little);
+                parameters.StrumLeniencySmall = stream.Read<double>(Endianness.Little);
+                parameters.StarPowerWhammyBuffer = stream.Read<double>(Endianness.Little);
+                parameters.InfiniteFrontEnd = stream.ReadBoolean();
+                parameters.AntiGhosting = stream.ReadBoolean();
 
                 return parameters;
             }
@@ -51,14 +52,14 @@ namespace YARG.Core.Replays
                 writer.Write(0.0); // StarPowerWhammyGain - No longer exists
             }
 
-            public static GuitarStats DeserializeGuitarStats(ref SpanBinaryReader reader, int version = 0)
+            public static GuitarStats DeserializeGuitarStats(UnmanagedMemoryStream stream, int version = 0)
             {
                 var stats = new GuitarStats();
 
-                stats.Overstrums = reader.ReadInt32();
-                stats.HoposStrummed = reader.ReadInt32();
-                stats.GhostInputs = reader.ReadInt32();
-                var spWhammyGain = reader.ReadDouble();
+                stats.Overstrums = stream.Read<int>(Endianness.Little);
+                stats.HoposStrummed = stream.Read<int>(Endianness.Little);
+                stats.GhostInputs = stream.Read<int>(Endianness.Little);
+                var spWhammyGain = stream.Read<double>(Endianness.Little);
 
                 return stats;
             }
@@ -76,11 +77,11 @@ namespace YARG.Core.Replays
                 writer.Write((byte) parameters.Mode);
             }
 
-            public static DrumsEngineParameters DeserializeDrumsParameters(ref SpanBinaryReader reader, int version = 0)
+            public static DrumsEngineParameters DeserializeDrumsParameters(UnmanagedMemoryStream stream, int version = 0)
             {
                 var parameters = new DrumsEngineParameters();
 
-                parameters.Mode = (DrumsEngineParameters.DrumMode) reader.ReadByte();
+                parameters.Mode = (DrumsEngineParameters.DrumMode) stream.ReadByte();
 
                 return parameters;
             }
@@ -94,7 +95,7 @@ namespace YARG.Core.Replays
                 //writer.Write(stats.Overhits);
             }
 
-            public static DrumsStats DeserializeDrumsStats(ref SpanBinaryReader reader, int version = 0)
+            public static DrumsStats DeserializeDrumsStats(UnmanagedMemoryStream stream, int version = 0)
             {
                 var stats = new DrumsStats();
 
@@ -120,26 +121,26 @@ namespace YARG.Core.Replays
                 writer.Write(parameters.PointsPerPhrase);
             }
 
-            public static VocalsEngineParameters DeserializeVocalsParameters(ref SpanBinaryReader reader, int version = 0)
+            public static VocalsEngineParameters DeserializeVocalsParameters(UnmanagedMemoryStream stream, int version = 0)
             {
                 var parameters = new VocalsEngineParameters();
 
-                parameters.PhraseHitPercent = reader.ReadDouble();
-                parameters.ApproximateVocalFps = reader.ReadDouble();
-                parameters.SingToActivateStarPower = reader.ReadBoolean();
+                parameters.PhraseHitPercent = stream.Read<double>(Endianness.Little);
+                parameters.ApproximateVocalFps = stream.Read<double>(Endianness.Little);
+                parameters.SingToActivateStarPower = stream.ReadBoolean();
 
-                var positionUpToPhrasePts = reader.Position;
+                var positionUpToPhrasePts = stream.Position;
 
                 // This variable was never accounted for in v0.12 versioning which means it's a bit tricky to determine
                 // if it was written.
-                var ptsPerPhrase = reader.ReadInt32();
+                var ptsPerPhrase = stream.Read<int>(Endianness.Little);
 
-                var positionAfterPhrasePts = reader.Position;
+                var positionAfterPhrasePts = stream.Position;
 
                 if (ptsPerPhrase != 400 && ptsPerPhrase != 800 && ptsPerPhrase != 1600 && ptsPerPhrase != 2000)
                 {
                     // If the int32 read isn't any of these values, PointsPerPhrase was never written
-                    reader.Seek(positionUpToPhrasePts);
+                    stream.Seek(positionUpToPhrasePts, SeekOrigin.Begin);
                     parameters.PointsPerPhrase = 2000;
                 }
                 else
@@ -147,21 +148,21 @@ namespace YARG.Core.Replays
                     // If it was one of these values, it could still not be written (it could be the CommittedScore)
                     // We need to check the next few vars
 
-                    var committedScore = reader.ReadInt32();
+                    var committedScore = stream.Read<int>(Endianness.Little);
 
                     // This variable isn't reliable as it wasn't versioned either!
-                    var pendingScore = reader.ReadInt32();
+                    var pendingScore = stream.Read<int>(Endianness.Little);
 
-                    var combo = reader.ReadInt32();
-                    var maxCombo = reader.ReadInt32();
-                    var scoreMultiplier = reader.ReadInt32();
-                    var notesHit = reader.ReadInt32();
-                    var notesMissed = reader.ReadInt32();
+                    var combo = stream.Read<int>(Endianness.Little);
+                    var maxCombo = stream.Read<int>(Endianness.Little);
+                    var scoreMultiplier = stream.Read<int>(Endianness.Little);
+                    var notesHit = stream.Read<int>(Endianness.Little);
+                    var notesMissed = stream.Read<int>(Endianness.Little);
 
-                    var unusedSpAmount = reader.ReadInt32();
-                    var unusedSpBaseAmount = reader.ReadInt32();
+                    var unusedSpAmount = stream.Read<int>(Endianness.Little);
+                    var unusedSpBaseAmount = stream.Read<int>(Endianness.Little);
 
-                    var isSpActiveByte = reader.ReadByte();
+                    var isSpActiveByte = (byte) stream.ReadByte();
                     var isSpActive = isSpActiveByte != 0;
 
                     if (maxCombo > notesHit || isSpActiveByte > 1 ||
@@ -173,13 +174,13 @@ namespace YARG.Core.Replays
                         // If SP isn't active, the score multiplier can't be higher than the combo - 1
 
                         // Walk back the position because PointsPerPhrase was never written
-                        reader.Seek(positionUpToPhrasePts);
+                        stream.Seek(positionUpToPhrasePts, SeekOrigin.Begin);
                     }
                     else
                     {
                         // If all these checks pass, we can assume PointsPerPhrase was written
                         // Seek back to the position after reading PointsPerPhrase
-                        reader.Seek(positionAfterPhrasePts);
+                        stream.Seek(positionAfterPhrasePts, SeekOrigin.Begin);
                         parameters.PointsPerPhrase = ptsPerPhrase;
                     }
                 }
@@ -197,12 +198,12 @@ namespace YARG.Core.Replays
                 writer.Write(stats.TicksMissed);
             }
 
-            public static VocalsStats DeserializeVocalsStats(ref SpanBinaryReader reader, int version = 0)
+            public static VocalsStats DeserializeVocalsStats(UnmanagedMemoryStream stream, int version = 0)
             {
                 var stats = new VocalsStats();
 
-                stats.TicksHit = reader.ReadUInt32();
-                stats.TicksMissed = reader.ReadUInt32();
+                stats.TicksHit = stream.Read<uint>(Endianness.Little);
+                stats.TicksMissed = stream.Read<uint>(Endianness.Little);
 
                 return stats;
             }

@@ -79,13 +79,13 @@ namespace YARG.Core.Replays
             SerializeDict(writer, _cameraPresets);
         }
 
-        public void Deserialize(ref SpanBinaryReader reader, int version = 0)
+        public void Deserialize(UnmanagedMemoryStream stream, int version = 0)
         {
             // This container has separate versioning
-            version = reader.ReadInt32();
+            version = stream.Read<int>(Endianness.Little);
 
-            DeserializeDict(ref reader, _colorProfiles);
-            DeserializeDict(ref reader, _cameraPresets);
+            DeserializeDict(stream, _colorProfiles);
+            DeserializeDict(stream, _cameraPresets);
         }
 
         private static void SerializeDict<T>(BinaryWriter writer, Dictionary<Guid, T> dict)
@@ -102,17 +102,17 @@ namespace YARG.Core.Replays
             }
         }
 
-        private static void DeserializeDict<T>(ref SpanBinaryReader reader, Dictionary<Guid, T> dict)
+        private static void DeserializeDict<T>(UnmanagedMemoryStream stream, Dictionary<Guid, T> dict)
         {
             dict.Clear();
-            int len = reader.ReadInt32();
+            int len = stream.Read<int>(Endianness.Little);
             for (int i = 0; i < len; i++)
             {
                 // Read key
-                var guid = reader.ReadGuid();
+                var guid = stream.ReadGuid();
 
                 // Read preset
-                var json = reader.ReadString();
+                var json = stream.ReadString();
                 var preset = JsonConvert.DeserializeObject<T>(json, _jsonSettings)!;
 
                 dict.Add(guid, preset);

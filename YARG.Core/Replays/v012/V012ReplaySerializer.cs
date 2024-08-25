@@ -1,4 +1,7 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
+using System.Security.Cryptography;
+using YARG.Core.Extensions;
 using YARG.Core.Song;
 using YARG.Core.Utility;
 
@@ -38,14 +41,12 @@ namespace YARG.Core.Replays
 
         public static (ReplayReadResult Result, Replay? Replay) DeserializeReplay(UnmanagedMemoryStream stream, int version = 0)
         {
-            var reader = new SpanBinaryReader(data.AsSpan());
-
             var replay = new Replay();
 
-            replay.Metadata = Sections.DeserializeMetadata(ref reader, version);
-            replay.PresetContainer = Sections.DeserializePresetContainer(ref reader, version);
+            replay.Metadata = Sections.DeserializeMetadata(stream, version);
+            replay.PresetContainer = Sections.DeserializePresetContainer(stream, version);
 
-            int playerCount = reader.ReadInt32();
+            int playerCount = stream.Read<int>(Endianness.Little);
 
             if (playerCount > 255)
             {
@@ -55,14 +56,14 @@ namespace YARG.Core.Replays
             var playerNames = new string[playerCount];
             for (int i = 0; i < playerCount; i++)
             {
-                playerNames[i] = reader.ReadString();
+                playerNames[i] = stream.ReadString();
             }
 
             replay.Frames = new ReplayFrame[playerCount];
 
             for (int i = 0; i < playerCount; i++)
             {
-                replay.Frames[i] = Sections.DeserializeFrame(ref reader, version);
+                replay.Frames[i] = Sections.DeserializeFrame(stream, version);
             }
 
             return (ReplayReadResult.Valid, replay);

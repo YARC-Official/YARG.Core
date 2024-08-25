@@ -65,18 +65,20 @@ namespace YARG.Core.Replays
                 metadata.SongChecksum.Serialize(writer);
             }
 
-            public static ReplayMetadata DeserializeMetadata(ref SpanBinaryReader reader, int version = 0)
+            public static ReplayMetadata DeserializeMetadata(UnmanagedMemoryStream stream, int version = 0)
             {
+                using var blockStream = ReadBlock(stream);
+
                 var metadata = new ReplayMetadata();
 
-                metadata.SongName = reader.ReadString();
-                metadata.ArtistName = reader.ReadString();
-                metadata.CharterName = reader.ReadString();
-                metadata.BandScore = reader.ReadInt32();
-                metadata.BandStars = (StarAmount) reader.ReadByte();
-                metadata.ReplayLength = reader.ReadDouble();
-                metadata.Date = DateTime.FromBinary(reader.ReadInt64());
-                metadata.SongChecksum = HashWrapper.Create(reader.ReadBytes(HashWrapper.HASH_SIZE_IN_BYTES));
+                metadata.SongName = blockStream.ReadString();
+                metadata.ArtistName = blockStream.ReadString();
+                metadata.CharterName = blockStream.ReadString();
+                metadata.BandScore = blockStream.Read<int>(Endianness.Little);
+                metadata.BandStars = (StarAmount) blockStream.ReadByte();
+                metadata.ReplayLength = blockStream.Read<double>(Endianness.Little);
+                metadata.Date = DateTime.FromBinary(blockStream.Read<long>(Endianness.Little));
+                metadata.SongChecksum = HashWrapper.Deserialize(blockStream);
 
                 return metadata;
             }
@@ -90,11 +92,13 @@ namespace YARG.Core.Replays
                 presetContainer.Serialize(writer);
             }
 
-            public static ReplayPresetContainer DeserializePresetContainer(ref SpanBinaryReader reader, int version = 0)
+            public static ReplayPresetContainer DeserializePresetContainer(UnmanagedMemoryStream stream, int version = 0)
             {
+                using var blockStream = ReadBlock(stream);
+
                 var presetContainer = new ReplayPresetContainer();
 
-                presetContainer.Deserialize(ref reader, version);
+                presetContainer.Deserialize(blockStream, version);
                 return presetContainer;
             }
 
@@ -117,21 +121,23 @@ namespace YARG.Core.Replays
                 }
             }
 
-            public static ReplayFrame DeserializeFrame(ref SpanBinaryReader reader, int version = 0)
+            public static ReplayFrame DeserializeFrame(UnmanagedMemoryStream stream, int version = 0)
             {
-                var frame = new ReplayFrame();
-                frame.PlayerInfo = DeserializePlayerInfo(ref reader, version);
-                frame.EngineParameters =
-                    DeserializeEngineParameters(ref reader, frame.PlayerInfo.Profile.GameMode, version);
-                frame.Stats = DeserializeStats(ref reader, frame.PlayerInfo.Profile.GameMode, version);
+                using var blockStream = ReadBlock(stream);
 
-                frame.InputCount = reader.ReadInt32();
+                var frame = new ReplayFrame();
+                frame.PlayerInfo = DeserializePlayerInfo(blockStream, version);
+                frame.EngineParameters =
+                    DeserializeEngineParameters(blockStream, frame.PlayerInfo.Profile.GameMode, version);
+                frame.Stats = DeserializeStats(blockStream, frame.PlayerInfo.Profile.GameMode, version);
+
+                frame.InputCount = blockStream.Read<int>(Endianness.Little);
                 frame.Inputs = new GameInput[frame.InputCount];
                 for (int i = 0; i < frame.InputCount; i++)
                 {
-                    var time = reader.ReadDouble();
-                    var action = reader.ReadInt32();
-                    var value = reader.ReadInt32();
+                    var time = blockStream.Read<double>(Endianness.Little);
+                    var action = blockStream.Read<int>(Endianness.Little);
+                    var value = blockStream.Read<int>(Endianness.Little);
 
                     frame.Inputs[i] = new GameInput(time, action, value);
                 }
@@ -150,13 +156,13 @@ namespace YARG.Core.Replays
                 SerializeYargProfile(writer, playerInfo.Profile);
             }
 
-            public static ReplayPlayerInfo DeserializePlayerInfo(ref SpanBinaryReader reader, int version = 0)
+            public static ReplayPlayerInfo DeserializePlayerInfo(UnmanagedMemoryStream stream, int version = 0)
             {
                 var playerInfo = new ReplayPlayerInfo();
-                playerInfo.PlayerId = reader.ReadInt32();
-                playerInfo.ColorProfileId = reader.ReadInt32();
+                playerInfo.PlayerId = stream.Read<int>(Endianness.Little);
+                playerInfo.ColorProfileId = stream.Read<int>(Endianness.Little);
 
-                playerInfo.Profile = DeserializeYargProfile(ref reader, version);
+                playerInfo.Profile = DeserializeYargProfile(stream, version);
 
                 return playerInfo;
             }
@@ -184,30 +190,30 @@ namespace YARG.Core.Replays
                 writer.Write(profile.LeftyFlip);
             }
 
-            public static YargProfile DeserializeYargProfile(ref SpanBinaryReader reader, int version = 0)
+            public static YargProfile DeserializeYargProfile(UnmanagedMemoryStream stream, int version = 0)
             {
                 var profile = new YargProfile();
 
-                version = reader.ReadInt32();
+                version = stream.Read<int>(Endianness.Little);
 
-                profile.Id = reader.ReadGuid();
+                profile.Id = stream.ReadGuid();
 
-                profile.Name = reader.ReadString();
+                profile.Name = stream.ReadString();
 
-                profile.EnginePreset = reader.ReadGuid();
+                profile.EnginePreset = stream.ReadGuid();
 
-                profile.ThemePreset = reader.ReadGuid();
-                profile.ColorProfile = reader.ReadGuid();
-                profile.CameraPreset = reader.ReadGuid();
+                profile.ThemePreset = stream.ReadGuid();
+                profile.ColorProfile = stream.ReadGuid();
+                profile.CameraPreset = stream.ReadGuid();
 
-                profile.CurrentInstrument = (Instrument) reader.ReadByte();
-                profile.CurrentDifficulty = (Difficulty) reader.ReadByte();
-                profile.CurrentModifiers = (Modifier) reader.ReadUInt64();
-                profile.HarmonyIndex = reader.ReadByte();
+                profile.CurrentInstrument = (Instrument) stream.ReadByte();
+                profile.CurrentDifficulty = (Difficulty) stream.ReadByte();
+                profile.CurrentModifiers = (Modifier) stream.Read<ulong>(Endianness.Little);
+                profile.HarmonyIndex = (byte) stream.ReadByte();
 
-                profile.NoteSpeed = reader.ReadSingle();
-                profile.HighwayLength = reader.ReadSingle();
-                profile.LeftyFlip = reader.ReadBoolean();
+                profile.NoteSpeed = stream.Read<float>(Endianness.Little);
+                profile.HighwayLength = stream.Read<float>(Endianness.Little);
+                profile.LeftyFlip = stream.ReadBoolean();
 
                 profile.GameMode = profile.CurrentInstrument.ToGameMode();
 
@@ -263,48 +269,48 @@ namespace YARG.Core.Replays
                 }
             }
 
-            public static BaseEngineParameters DeserializeEngineParameters(ref SpanBinaryReader reader, GameMode gameMode,
+            public static BaseEngineParameters DeserializeEngineParameters(UnmanagedMemoryStream stream, GameMode gameMode,
                 int version = 0)
             {
                 // Hit Window
-                var maxWindow = reader.ReadDouble();
-                var minWindow = reader.ReadDouble();
-                var frontToBackRatio = reader.ReadDouble();
-                var isDynamic = reader.ReadBoolean();
-                var dwSlope = reader.ReadDouble();
-                var dwScale = reader.ReadDouble();
-                var dwGamma = reader.ReadDouble();
+                var maxWindow = stream.Read<double>(Endianness.Little);
+                var minWindow = stream.Read<double>(Endianness.Little);
+                var frontToBackRatio = stream.Read<double>(Endianness.Little);
+                var isDynamic = stream.ReadBoolean();
+                var dwSlope = stream.Read<double>(Endianness.Little);
+                var dwScale = stream.Read<double>(Endianness.Little);
+                var dwGamma = stream.Read<double>(Endianness.Little);
 
-                int maxMultiplier = reader.ReadInt32();
-                double whammyBuffer = reader.ReadDouble();
-                int starThresholdsLength = reader.ReadInt32();
+                int maxMultiplier = stream.Read<int>(Endianness.Little);
+                double whammyBuffer = stream.Read<double>(Endianness.Little);
+                int starThresholdsLength = stream.Read<int>(Endianness.Little);
 
                 float[] starMultiplierThresholds = new float[starThresholdsLength];
                 for (int i = 0; i < starMultiplierThresholds.Length; i++)
                 {
-                    starMultiplierThresholds[i] = reader.ReadSingle();
+                    starMultiplierThresholds[i] = stream.Read<float>(Endianness.Little);
                 }
 
-                double songSpeed = reader.ReadDouble();
+                double songSpeed = stream.Read<double>(Endianness.Little);
 
                 BaseEngineParameters engineParameters = null!;
                 switch (gameMode)
                 {
                     case GameMode.FiveFretGuitar:
                     case GameMode.SixFretGuitar:
-                        engineParameters = Instruments.DeserializeGuitarParameters(ref reader, version);
+                        engineParameters = Instruments.DeserializeGuitarParameters(stream, version);
                         break;
                     case GameMode.FourLaneDrums:
                     case GameMode.FiveLaneDrums:
-                        engineParameters = Instruments.DeserializeDrumsParameters(ref reader, version);
+                        engineParameters = Instruments.DeserializeDrumsParameters(stream, version);
                         break;
                     case GameMode.ProGuitar:
                         break;
                     case GameMode.ProKeys:
-                        engineParameters = Instruments.DeserializeProKeysParameters(ref reader, version);
+                        engineParameters = Instruments.DeserializeProKeysParameters(stream, version);
                         break;
                     case GameMode.Vocals:
-                        engineParameters = Instruments.DeserializeVocalsParameters(ref reader, version);
+                        engineParameters = Instruments.DeserializeVocalsParameters(stream, version);
                         break;
                     default:
                         throw new ArgumentOutOfRangeException(nameof(gameMode), gameMode, null);
@@ -368,44 +374,44 @@ namespace YARG.Core.Replays
                 }
             }
 
-            public static BaseStats DeserializeStats(ref SpanBinaryReader reader, GameMode gameMode, int version = 0)
+            public static BaseStats DeserializeStats(UnmanagedMemoryStream stream, GameMode gameMode, int version = 0)
             {
-                var committedScore = reader.ReadInt32();
-                var pendingScore = reader.ReadInt32();
-                var sustainScore = reader.ReadInt32();
-                var combo = reader.ReadInt32();
-                var maxCombo = reader.ReadInt32();
-                var scoreMultiplier = reader.ReadInt32();
-                var notesHit = reader.ReadInt32();
-                var totalNotes = reader.ReadInt32();
-                var starPowerTickAmount = reader.ReadUInt32();
-                var totalStarPowerTicks = reader.ReadUInt32();
-                var timeInStarPower = reader.ReadDouble();
-                var whammyTicks = reader.ReadUInt32();
-                var isStarPowerActive = reader.ReadBoolean();
-                var starPowerPhrasesHit = reader.ReadInt32();
-                var totalStarPowerPhrases = reader.ReadInt32();
-                var soloBonuses = reader.ReadInt32();
-                var starPowerScore = reader.ReadInt32();
+                var committedScore = stream.Read<int>(Endianness.Little);
+                var pendingScore = stream.Read<int>(Endianness.Little);
+                var sustainScore = stream.Read<int>(Endianness.Little);
+                var combo = stream.Read<int>(Endianness.Little);
+                var maxCombo = stream.Read<int>(Endianness.Little);
+                var scoreMultiplier = stream.Read<int>(Endianness.Little);
+                var notesHit = stream.Read<int>(Endianness.Little);
+                var totalNotes = stream.Read<int>(Endianness.Little);
+                var starPowerTickAmount = stream.Read<uint>(Endianness.Little);
+                var totalStarPowerTicks = stream.Read<uint>(Endianness.Little);
+                var timeInStarPower = stream.Read<double>(Endianness.Little);
+                var whammyTicks = stream.Read<uint>(Endianness.Little);
+                var isStarPowerActive = stream.ReadBoolean();
+                var starPowerPhrasesHit = stream.Read<int>(Endianness.Little);
+                var totalStarPowerPhrases = stream.Read<int>(Endianness.Little);
+                var soloBonuses = stream.Read<int>(Endianness.Little);
+                var starPowerScore = stream.Read<int>(Endianness.Little);
 
                 BaseStats stats = null!;
                 switch (gameMode)
                 {
                     case GameMode.FiveFretGuitar:
                     case GameMode.SixFretGuitar:
-                        stats = Instruments.DeserializeGuitarStats(ref reader, version);
+                        stats = Instruments.DeserializeGuitarStats(stream, version);
                         break;
                     case GameMode.FourLaneDrums:
                     case GameMode.FiveLaneDrums:
-                        stats = Instruments.DeserializeDrumsStats(ref reader, version);
+                        stats = Instruments.DeserializeDrumsStats(stream, version);
                         break;
                     case GameMode.ProGuitar:
                         break;
                     case GameMode.ProKeys:
-                        stats = Instruments.DeserializeProKeysStats(ref reader, version);
+                        stats = Instruments.DeserializeProKeysStats(stream, version);
                         break;
                     case GameMode.Vocals:
-                        stats = Instruments.DeserializeVocalsStats(ref reader, version);
+                        stats = Instruments.DeserializeVocalsStats(stream, version);
                         break;
                     default:
                         throw new ArgumentOutOfRangeException(nameof(gameMode), gameMode, null);
