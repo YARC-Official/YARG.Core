@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using YARG.Core.Utility;
 
 namespace YARG.Core.Engine
@@ -33,6 +33,11 @@ namespace YARG.Core.Engine
         /// Total score earned from holding sustains.
         /// </summary>
         public int SustainScore;
+
+        /// <summary>
+        /// Total score earned from score multipliers.
+        /// </summary>
+        public int MultiplierScore;
 
         /// <summary>
         /// The score used to calculate star progress.

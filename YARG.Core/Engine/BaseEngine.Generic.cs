@@ -384,13 +384,24 @@ namespace YARG.Core.Engine
 
         protected void AddScore(int score)
         {
-            int multiplierScore = score * EngineStats.ScoreMultiplier;
-            EngineStats.CommittedScore += multiplierScore;
+            int scoreMultiplier = score * EngineStats.ScoreMultiplier;
+
+            // scoreMultiplier includes combo+star power score
+            EngineStats.CommittedScore += scoreMultiplier;
 
             if (EngineStats.IsStarPowerActive)
             {
                 // Amount of points just from Star Power is half of the current multiplier (8x total -> 4x SP points)
-                EngineStats.StarPowerScore += multiplierScore / 2;
+                var spScore = scoreMultiplier / 2;
+
+                EngineStats.StarPowerScore += spScore;
+
+                // Subtract score from the note that was just hit to get the multiplier points
+                EngineStats.MultiplierScore += spScore - score;
+            }
+            else
+            {
+                EngineStats.MultiplierScore += scoreMultiplier - score;
             }
             UpdateStars();
         }
