@@ -60,6 +60,16 @@ namespace YARG.Core.Extensions
             return Encoding.UTF8.GetString(bytes);
         }
 
+        public static Guid ReadGuid(this Stream stream)
+        {
+            Span<byte> span = stackalloc byte[16];
+            if (stream.Read(span) != span.Length)
+            {
+                throw new EndOfStreamException("Failed to read GUID, ran out of bytes!");
+            }
+            return new Guid(span);
+        }
+
         public static byte[] ReadBytes(this Stream stream, int length)
         {
             byte[] buffer = new byte[length];
