@@ -436,7 +436,28 @@ namespace YARG.Core.Engine
 
                 uint sustainTick = isBurst || isEndOfSustain ? note.TickEnd : CurrentTick;
 
-                bool dropped = !CanSustainHold(note);
+                bool dropped = false;
+
+                if(!CanSustainHold(note))
+                {
+                    // Currently beind held by sustain drop leniency
+                    if (sustain.IsLeniencyHeld)
+                    {
+                        if (CurrentTime > sustain.LeniencyDropTime + EngineParameters.SustainDropLeniency)
+                        {
+                            dropped = true;
+                        }
+                    }
+                    else
+                    {
+                        sustain.IsLeniencyHeld = true;
+                        sustain.LeniencyDropTime = CurrentTime;
+                    }
+                }
+                else
+                {
+                    sustain.IsLeniencyHeld = false;
+                }
 
                 // If the sustain has not finished scoring, then we need to calculate the points
                 if (!sustain.HasFinishedScoring)
