@@ -2,7 +2,6 @@ using System;
 using System.IO;
 using System.Linq;
 using YARG.Core.Extensions;
-using YARG.Core.IO;
 using YARG.Core.IO.Disposables;
 using YARG.Core.Logging;
 using YARG.Core.Song;
@@ -19,8 +18,6 @@ namespace YARG.Core.Replays
 
     public static class ReplayIO
     {
-        public static readonly EightCC REPLAY_MAGIC_HEADER = new('Y', 'A', 'R', 'G', 'P', 'L', 'A', 'Y');
-
         public const short REPLAY_VERSION = 6;
         public const short ENGINE_VERSION = 1;
 
@@ -41,7 +38,7 @@ namespace YARG.Core.Replays
             {
                 replay.Header = new ReplayHeader
                 {
-                    Magic = REPLAY_MAGIC_HEADER,
+                    Magic = ReplayHeader.REPLAY_MAGIC_HEADER,
                     ReplayVersion = REPLAY_VERSION,
                     EngineVersion = ENGINE_VERSION
                 };
@@ -68,7 +65,7 @@ namespace YARG.Core.Replays
             {
                 using var fileStream = File.OpenRead(path);
 
-                if (!REPLAY_MAGIC_HEADER.Matches(fileStream))
+                if (!ReplayHeader.REPLAY_MAGIC_HEADER.Matches(fileStream))
                 {
                     return ReplayReadResult.NotAReplay;
                 }
@@ -85,7 +82,7 @@ namespace YARG.Core.Replays
 
                 var header = new ReplayHeader
                 {
-                    Magic = REPLAY_MAGIC_HEADER,
+                    Magic = ReplayHeader.REPLAY_MAGIC_HEADER,
                     ReplayVersion = replayVersion,
                     EngineVersion = engineVersion,
                     ReplayChecksum = hash

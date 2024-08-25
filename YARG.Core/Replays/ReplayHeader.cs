@@ -5,7 +5,9 @@ namespace YARG.Core.Replays
 {
     public struct ReplayHeader
     {
-        public const int SIZE = 0x20;
+        public const int SIZE = 0x24;
+
+        public static readonly EightCC REPLAY_MAGIC_HEADER = new('Y', 'A', 'R', 'G', 'P', 'L', 'A', 'Y');
 
         public EightCC     Magic;
         public int         ReplayVersion;
