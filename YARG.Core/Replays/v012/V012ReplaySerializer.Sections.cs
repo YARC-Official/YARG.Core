@@ -247,6 +247,8 @@ namespace YARG.Core.Replays
                 var hitWindow = new SerializedHitWindowSettings();
                 var baseParams = new SerializedBaseEngineParameters();
 
+                baseParams.HitWindow = hitWindow;
+
                 hitWindow.MaxWindow = stream.Read<double>(Endianness.Little);
                 hitWindow.MinWindow = stream.Read<double>(Endianness.Little);
                 hitWindow.IsDynamic = stream.ReadBoolean();
@@ -295,11 +297,9 @@ namespace YARG.Core.Replays
                     case GameMode.FourLaneDrums:
                     case GameMode.FiveLaneDrums:
                         var drumsParams = Instruments.DeserializeDrumsParameters(stream, version);
-
                         return new DrumsEngineParameters(drumsParams, baseParams);
                     case GameMode.Vocals:
                         var vocalsParams = Instruments.DeserializeVocalsParameters(stream, version);
-
                         return new VocalsEngineParameters(vocalsParams, baseParams);
                     default:
                         throw new ArgumentOutOfRangeException(nameof(gameMode), "Unsupported game mode: " + gameMode);

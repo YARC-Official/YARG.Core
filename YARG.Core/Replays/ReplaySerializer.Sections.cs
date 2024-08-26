@@ -257,6 +257,8 @@ namespace YARG.Core.Replays
                 var hitWindow = new SerializedHitWindowSettings();
                 var baseParams = new SerializedBaseEngineParameters();
 
+                baseParams.HitWindow = hitWindow;
+
                 // Hit Window
                 hitWindow.MaxWindow = stream.Read<double>(Endianness.Little);
                 hitWindow.MinWindow = stream.Read<double>(Endianness.Little);

@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using YARG.Core.Replays.Serialization;
 using YARG.Core.Utility;
 
 namespace YARG.Core.Engine
@@ -45,8 +46,19 @@ namespace YARG.Core.Engine
 
         private readonly double _minMaxWindowRatio;
 
-        public HitWindowSettings()
+        internal HitWindowSettings(SerializedHitWindowSettings hitWindow)
         {
+            Scale = 1.0;
+            MaxWindow = hitWindow.MaxWindow;
+            MinWindow = hitWindow.MinWindow;
+            FrontToBackRatio = hitWindow.FrontToBackRatio;
+
+            IsDynamic = hitWindow.IsDynamic;
+            DynamicWindowSlope = hitWindow.DynamicWindowSlope;
+            DynamicWindowScale = hitWindow.DynamicWindowScale;
+            DynamicWindowGamma = hitWindow.DynamicWindowGamma;
+
+            _minMaxWindowRatio = MinWindow / MaxWindow;
         }
 
         public HitWindowSettings(double maxWindow, double minWindow, double frontToBackRatio, bool isDynamic,

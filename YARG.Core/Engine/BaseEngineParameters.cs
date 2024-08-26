@@ -19,11 +19,14 @@ namespace YARG.Core.Engine
 
         internal BaseEngineParameters(SerializedBaseEngineParameters baseParams)
         {
-            HitWindow = new HitWindowSettings();
+            HitWindow = new HitWindowSettings(baseParams.HitWindow);
+
             MaxMultiplier = baseParams.MaxMultiplier;
             StarPowerWhammyBuffer = baseParams.StarPowerWhammyBuffer;
             SustainDropLeniency = baseParams.SustainDropLeniency;
             StarMultiplierThresholds = baseParams.StarMultiplierThresholds;
+
+            SongSpeed = baseParams.SongSpeed;
         }
 
         protected BaseEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, double spWhammyBuffer,
