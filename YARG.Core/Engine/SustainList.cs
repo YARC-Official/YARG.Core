@@ -109,6 +109,9 @@ namespace YARG.Core.Engine
         public double    BaseScore;
 
         public bool HasFinishedScoring;
+        public bool IsLeniencyHeld;
+
+        public double LeniencyDropTime;
 
         public ActiveSustain(TNoteType note)
         {
@@ -117,6 +120,9 @@ namespace YARG.Core.Engine
             BaseScore = 0;
 
             HasFinishedScoring = false;
+            IsLeniencyHeld = false;
+
+            LeniencyDropTime = 0;
         }
 
         public double GetEndTime(SyncTrack syncTrack, uint sustainBurstThreshold)

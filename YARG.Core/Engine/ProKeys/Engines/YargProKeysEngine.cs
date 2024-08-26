@@ -332,24 +332,25 @@ namespace YARG.Core.Engine.ProKeys.Engines
                 return;
             }
 
-            // // Disables keys that are not in the current note
-            // int key = 0;
-            // for (var mask = KeyHeldMaskVisual; mask > 0; mask >>= 1)
-            // {
-            //     if ((mask & 1) == 1 && (note.NoteMask & 1 << key) == 0)
-            //     {
-            //         MutateStateWithInput(new GameInput(note.Time, key, false));
-            //     }
-            //
-            //     key++;
-            // }
-            //
-            // // Press keys for current note
-            // foreach (var chordNote in note.AllNotes)
-            // {
-            //     MutateStateWithInput(new GameInput(note.Time, chordNote.Key, true));
-            //     CheckForNoteHit();
-            // }
+            // Disables keys that are not in the current note
+            int key = 0;
+            for (var mask = KeyMask; mask > 0; mask >>= 1)
+            {
+                if ((mask & 1) == 1)
+                {
+                    MutateStateWithInput(new GameInput(note.Time, key, false));
+                }
+
+                key++;
+            }
+
+
+            // Press keys for current note
+            foreach (var chordNote in note.AllNotes)
+            {
+                MutateStateWithInput(new GameInput(note.Time, chordNote.Key, true));
+                CheckForNoteHit();
+            }
         }
     }
 }

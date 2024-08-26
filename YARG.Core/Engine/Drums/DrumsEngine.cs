@@ -271,6 +271,7 @@ namespace YARG.Core.Engine.Drums
         {
             int pointsPerNote = GetPointsPerNote();
             AddScore(pointsPerNote);
+            EngineStats.NoteScore += pointsPerNote;
         }
 
         protected sealed override int CalculateBaseScore()

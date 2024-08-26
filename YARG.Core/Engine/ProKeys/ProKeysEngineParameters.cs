@@ -10,9 +10,9 @@
         {
         }
 
-        public ProKeysEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, double spWhammyBuffer, float[] starMultiplierThresholds,
-            double chordStaggerWindow, double fatFingerWindow)
-            : base(hitWindow, maxMultiplier, spWhammyBuffer, starMultiplierThresholds)
+        public ProKeysEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, double spWhammyBuffer,
+            double sustainDropLeniency, float[] starMultiplierThresholds, double chordStaggerWindow, double fatFingerWindow)
+            : base(hitWindow, maxMultiplier, spWhammyBuffer, sustainDropLeniency, starMultiplierThresholds)
         {
             ChordStaggerWindow = chordStaggerWindow;
             FatFingerWindow = fatFingerWindow;
