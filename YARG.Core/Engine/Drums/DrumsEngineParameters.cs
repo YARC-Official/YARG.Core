@@ -14,7 +14,7 @@ namespace YARG.Core.Engine.Drums
         /// <summary>
         /// What mode the inputs should be processed in.
         /// </summary>
-        public DrumMode Mode;
+        public readonly DrumMode Mode;
 
         /// <summary>
         /// Velocity threshold for Drum note types.
@@ -22,12 +22,12 @@ namespace YARG.Core.Engine.Drums
         /// <remarks>
         /// Ghost notes are below the threshold, Accent notes are above the threshold.
         /// </remarks>
-        public float VelocityThreshold;
+        public readonly float VelocityThreshold;
 
         /// <summary>
         /// The maximum allowed time in seconds between notes to use context-sensitive velocity scoring.
         /// </summary>
-        public float SituationalVelocityWindow;
+        public readonly float SituationalVelocityWindow;
 
         internal DrumsEngineParameters(SerializedDrumsEngineParameters drumsParams,
             SerializedBaseEngineParameters baseParams) : base(baseParams)

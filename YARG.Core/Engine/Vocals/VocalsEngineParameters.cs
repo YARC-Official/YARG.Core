@@ -8,35 +8,35 @@ namespace YARG.Core.Engine.Vocals
         /// The total size of the pitch window. If the player sings outside of it, no hit
         /// percent is awarded.
         /// </summary>
-        public float PitchWindow;
+        public readonly float PitchWindow;
 
         /// <summary>
         /// The total size of the pitch window that awards full points. If the player sings
         /// outside of it while in the normal pitch window, the amount of fill percent
         /// awarded will decrease gradually.
         /// </summary>
-        public float PitchWindowPerfect;
+        public readonly float PitchWindowPerfect;
 
         /// <summary>
         /// The percent of ticks that have to be correct in a phrase for it to count for full points.
         /// </summary>
-        public double PhraseHitPercent;
+        public readonly double PhraseHitPercent;
 
         /// <summary>
         /// How often the vocals give a pitch reading (approximately). This is used to determine
         /// the leniency for hit ticks.
         /// </summary>
-        public double ApproximateVocalFps;
+        public readonly double ApproximateVocalFps;
 
         /// <summary>
         /// Whether or not the player can sing to activate starpower.
         /// </summary>
-        public bool SingToActivateStarPower;
+        public readonly bool SingToActivateStarPower;
 
         /// <summary>
         /// Base score awarded per complete vocal phrase.
         /// </summary>
-        public int PointsPerPhrase;
+        public readonly int PointsPerPhrase;
 
         internal VocalsEngineParameters(SerializedVocalsEngineParameters vocalsParams,
             SerializedBaseEngineParameters baseParams)
