@@ -10,6 +10,7 @@ namespace YARG.Core.Replays.Serialization
         public bool InfiniteFrontEnd;
         public bool AntiGhosting;
 
-        public double StarPowerWhammyBufferUnused;
+        // Removed in version 6+
+        public double StarPowerWhammyBuffer;
     }
 }

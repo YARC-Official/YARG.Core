@@ -289,7 +289,7 @@ namespace YARG.Core.Replays
                     case GameMode.FiveFretGuitar:
                     case GameMode.SixFretGuitar:
                         var guitarParams = Instruments.DeserializeGuitarParameters(stream, version);
-                        baseParams.StarPowerWhammyBuffer = guitarParams.StarPowerWhammyBufferUnused;
+                        baseParams.StarPowerWhammyBuffer = guitarParams.StarPowerWhammyBuffer;
 
                         return new GuitarEngineParameters(guitarParams, baseParams);
                     case GameMode.FourLaneDrums:

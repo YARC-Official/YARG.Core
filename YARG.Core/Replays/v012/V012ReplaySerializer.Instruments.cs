@@ -34,7 +34,7 @@ namespace YARG.Core.Replays
                 parameters.HopoLeniency = stream.Read<double>(Endianness.Little);
                 parameters.StrumLeniency = stream.Read<double>(Endianness.Little);
                 parameters.StrumLeniencySmall = stream.Read<double>(Endianness.Little);
-                parameters.StarPowerWhammyBufferUnused = stream.Read<double>(Endianness.Little);
+                parameters.StarPowerWhammyBuffer = stream.Read<double>(Endianness.Little);
                 parameters.InfiniteFrontEnd = stream.ReadBoolean();
                 parameters.AntiGhosting = stream.ReadBoolean();
 
