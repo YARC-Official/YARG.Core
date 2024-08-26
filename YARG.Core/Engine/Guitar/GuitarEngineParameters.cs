@@ -1,17 +1,27 @@
+using YARG.Core.Replays.Serialization;
+
 namespace YARG.Core.Engine.Guitar
 {
     public class GuitarEngineParameters : BaseEngineParameters
     {
-        public double HopoLeniency;
+        public readonly double HopoLeniency;
 
-        public double StrumLeniency;
-        public double StrumLeniencySmall;
+        public readonly double StrumLeniency;
+        public readonly double StrumLeniencySmall;
 
-        public bool InfiniteFrontEnd;
-        public bool AntiGhosting;
+        public readonly bool InfiniteFrontEnd;
+        public readonly bool AntiGhosting;
 
-        public GuitarEngineParameters()
+        internal GuitarEngineParameters(SerializedGuitarEngineParameters guitarParams,
+            SerializedBaseEngineParameters baseParams) : base(baseParams)
         {
+            HopoLeniency = guitarParams.HopoLeniency;
+
+            StrumLeniency = guitarParams.StrumLeniency;
+            StrumLeniencySmall = guitarParams.StrumLeniencySmall;
+
+            InfiniteFrontEnd = guitarParams.InfiniteFrontEnd;
+            AntiGhosting = guitarParams.AntiGhosting;
         }
 
         public GuitarEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, double spWhammyBuffer,

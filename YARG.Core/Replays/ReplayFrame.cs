@@ -1,6 +1,4 @@
-using System;
 using YARG.Core.Engine;
-using YARG.Core.Engine.Guitar;
 using YARG.Core.Input;
 
 namespace YARG.Core.Replays
@@ -13,13 +11,13 @@ namespace YARG.Core.Replays
         public int                  InputCount;
         public GameInput[]          Inputs;
 
-        // Disabling this because it looks ugly with the initializers lol
-        // ReSharper disable once ConvertConstructorToMemberInitializers
-        public ReplayFrame()
+        public ReplayFrame(ReplayPlayerInfo playerInfo, BaseEngineParameters engineParams, BaseStats stats, GameInput[] inputs)
         {
-            EngineParameters = new GuitarEngineParameters();
-            Stats = new GuitarStats();
-            Inputs = Array.Empty<GameInput>();
+            PlayerInfo = playerInfo;
+            EngineParameters = engineParams;
+            Stats = stats;
+            Inputs = inputs;
+            InputCount = inputs.Length;
         }
     }
 }

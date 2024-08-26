@@ -1,4 +1,6 @@
-﻿namespace YARG.Core.Engine.Vocals
+﻿using YARG.Core.Replays.Serialization;
+
+namespace YARG.Core.Engine.Vocals
 {
     public class VocalsEngineParameters : BaseEngineParameters
     {
@@ -36,7 +38,9 @@
         /// </summary>
         public int PointsPerPhrase;
 
-        public VocalsEngineParameters()
+        internal VocalsEngineParameters(SerializedVocalsEngineParameters vocalsParams,
+            SerializedBaseEngineParameters baseParams)
+            : base(baseParams)
         {
         }
 

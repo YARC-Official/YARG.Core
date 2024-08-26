@@ -4,6 +4,7 @@ using YARG.Core.Engine.Guitar;
 using YARG.Core.Engine.ProKeys;
 using YARG.Core.Engine.Vocals;
 using YARG.Core.Extensions;
+using YARG.Core.Replays.Serialization;
 using YARG.Core.Utility;
 
 namespace YARG.Core.Replays
@@ -26,14 +27,14 @@ namespace YARG.Core.Replays
                 writer.Write(parameters.AntiGhosting);
             }
 
-            public static GuitarEngineParameters DeserializeGuitarParameters(UnmanagedMemoryStream stream, int version = 0)
+            public static SerializedGuitarEngineParameters DeserializeGuitarParameters(UnmanagedMemoryStream stream, int version = 0)
             {
-                var parameters = new GuitarEngineParameters();
+                var parameters = new SerializedGuitarEngineParameters();
 
                 parameters.HopoLeniency = stream.Read<double>(Endianness.Little);
                 parameters.StrumLeniency = stream.Read<double>(Endianness.Little);
                 parameters.StrumLeniencySmall = stream.Read<double>(Endianness.Little);
-                parameters.StarPowerWhammyBuffer = stream.Read<double>(Endianness.Little);
+                parameters.StarPowerWhammyBufferUnused = stream.Read<double>(Endianness.Little);
                 parameters.InfiniteFrontEnd = stream.ReadBoolean();
                 parameters.AntiGhosting = stream.ReadBoolean();
 
@@ -77,9 +78,9 @@ namespace YARG.Core.Replays
                 writer.Write((byte) parameters.Mode);
             }
 
-            public static DrumsEngineParameters DeserializeDrumsParameters(UnmanagedMemoryStream stream, int version = 0)
+            public static SerializedDrumsEngineParameters DeserializeDrumsParameters(UnmanagedMemoryStream stream, int version = 0)
             {
-                var parameters = new DrumsEngineParameters();
+                var parameters = new SerializedDrumsEngineParameters();
 
                 parameters.Mode = (DrumsEngineParameters.DrumMode) stream.ReadByte();
 
@@ -121,9 +122,9 @@ namespace YARG.Core.Replays
                 writer.Write(parameters.PointsPerPhrase);
             }
 
-            public static VocalsEngineParameters DeserializeVocalsParameters(UnmanagedMemoryStream stream, int version = 0)
+            public static SerializedVocalsEngineParameters DeserializeVocalsParameters(UnmanagedMemoryStream stream, int version = 0)
             {
-                var parameters = new VocalsEngineParameters();
+                var parameters = new SerializedVocalsEngineParameters();
 
                 parameters.PhraseHitPercent = stream.Read<double>(Endianness.Little);
                 parameters.ApproximateVocalFps = stream.Read<double>(Endianness.Little);

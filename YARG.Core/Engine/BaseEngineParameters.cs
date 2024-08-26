@@ -1,26 +1,30 @@
 using System;
 using System.Globalization;
 using System.Linq;
+using YARG.Core.Replays.Serialization;
 
 namespace YARG.Core.Engine
 {
     public abstract class BaseEngineParameters
     {
-        public HitWindowSettings HitWindow;
+        public readonly HitWindowSettings HitWindow;
 
-        public int MaxMultiplier;
+        public readonly int MaxMultiplier;
 
-        public double StarPowerWhammyBuffer;
-        public double SustainDropLeniency;
+        public readonly double StarPowerWhammyBuffer;
+        public readonly double SustainDropLeniency;
 
-        public float[] StarMultiplierThresholds;
+        public readonly float[] StarMultiplierThresholds;
 
         public double SongSpeed;
 
-        protected BaseEngineParameters()
+        internal BaseEngineParameters(SerializedBaseEngineParameters baseParams)
         {
             HitWindow = new HitWindowSettings();
-            StarMultiplierThresholds = Array.Empty<float>();
+            MaxMultiplier = baseParams.MaxMultiplier;
+            StarPowerWhammyBuffer = baseParams.StarPowerWhammyBuffer;
+            SustainDropLeniency = baseParams.SustainDropLeniency;
+            StarMultiplierThresholds = baseParams.StarMultiplierThresholds;
         }
 
         protected BaseEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, double spWhammyBuffer,

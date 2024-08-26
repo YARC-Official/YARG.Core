@@ -10,6 +10,7 @@ using YARG.Core.Extensions;
 using YARG.Core.Game;
 using YARG.Core.Input;
 using YARG.Core.IO;
+using YARG.Core.Replays.Serialization;
 using YARG.Core.Song;
 using YARG.Core.Utility;
 
@@ -107,24 +108,23 @@ namespace YARG.Core.Replays
             {
                 using var blockStream = ReadBlock(stream);
 
-                var frame = new ReplayFrame();
-                frame.PlayerInfo = DeserializePlayerInfo(blockStream, version);
-                frame.EngineParameters =
-                    DeserializeEngineParameters(blockStream, frame.PlayerInfo.Profile.GameMode, version);
-                frame.Stats = DeserializeStats(blockStream, frame.PlayerInfo.Profile.GameMode, version);
+                var playerInfo = DeserializePlayerInfo(blockStream, version);
+                var engineParameters =
+                    DeserializeEngineParameters(blockStream, playerInfo.Profile.GameMode, version);
+                var stats = DeserializeStats(blockStream, playerInfo.Profile.GameMode, version);
 
-                frame.InputCount = blockStream.Read<int>(Endianness.Little);
-                frame.Inputs = new GameInput[frame.InputCount];
-                for (int i = 0; i < frame.InputCount; i++)
+                var inputCount = blockStream.Read<int>(Endianness.Little);
+                var inputs = new GameInput[inputCount];
+                for (int i = 0; i < inputCount; i++)
                 {
                     var time = blockStream.Read<double>(Endianness.Little);
                     var action = blockStream.Read<int>(Endianness.Little);
                     var value = blockStream.Read<int>(Endianness.Little);
 
-                    frame.Inputs[i] = new GameInput(time, action, value);
+                    inputs[i] = new GameInput(time, action, value);
                 }
 
-                return frame;
+                return new ReplayFrame(playerInfo, engineParameters, stats, inputs);
             }
 
             #endregion
@@ -254,59 +254,56 @@ namespace YARG.Core.Replays
             public static BaseEngineParameters DeserializeEngineParameters(UnmanagedMemoryStream stream, GameMode gameMode,
                 int version = 0)
             {
+                var hitWindow = new SerializedHitWindowSettings();
+                var baseParams = new SerializedBaseEngineParameters();
+
                 // Hit Window
-                var maxWindow = stream.Read<double>(Endianness.Little);
-                var minWindow = stream.Read<double>(Endianness.Little);
-                var frontToBackRatio = stream.Read<double>(Endianness.Little);
-                var isDynamic = stream.ReadBoolean();
-                var dwSlope = stream.Read<double>(Endianness.Little);
-                var dwScale = stream.Read<double>(Endianness.Little);
-                var dwGamma = stream.Read<double>(Endianness.Little);
+                hitWindow.MaxWindow = stream.Read<double>(Endianness.Little);
+                hitWindow.MinWindow = stream.Read<double>(Endianness.Little);
+                hitWindow.FrontToBackRatio = stream.Read<double>(Endianness.Little);
+                hitWindow.IsDynamic = stream.ReadBoolean();
+                hitWindow.DynamicWindowSlope = stream.Read<double>(Endianness.Little);
+                hitWindow.DynamicWindowScale = stream.Read<double>(Endianness.Little);
+                hitWindow.DynamicWindowGamma = stream.Read<double>(Endianness.Little);
 
-                int maxMultiplier = stream.Read<int>(Endianness.Little);
-                double whammyBuffer = stream.Read<double>(Endianness.Little);
-                int starThresholdsLength = stream.Read<int>(Endianness.Little);
+                // Base Engine Params
+                baseParams.MaxMultiplier = stream.Read<int>(Endianness.Little);
+                baseParams.StarPowerWhammyBuffer = stream.Read<double>(Endianness.Little);
+                baseParams.SustainDropLeniency = stream.Read<double>(Endianness.Little);
+                baseParams.StarMultiplierThresholds = new float[stream.Read<int>(Endianness.Little)];
 
-                float[] starMultiplierThresholds = new float[starThresholdsLength];
-                for (int i = 0; i < starMultiplierThresholds.Length; i++)
+                for (int i = 0; i < baseParams.StarMultiplierThresholds.Length; i++)
                 {
-                    starMultiplierThresholds[i] = stream.Read<float>(Endianness.Little);
+                    baseParams.StarMultiplierThresholds[i] = stream.Read<float>(Endianness.Little);
                 }
 
-                double songSpeed = stream.Read<double>(Endianness.Little);
+                baseParams.SongSpeed = stream.Read<double>(Endianness.Little);
 
-                BaseEngineParameters engineParameters = null!;
                 switch (gameMode)
                 {
                     case GameMode.FiveFretGuitar:
                     case GameMode.SixFretGuitar:
-                        engineParameters = Instruments.DeserializeGuitarParameters(stream, version);
-                        break;
+                        var guitarParams = Instruments.DeserializeGuitarParameters(stream, version);
+
+                        return new GuitarEngineParameters(guitarParams, baseParams);
                     case GameMode.FourLaneDrums:
                     case GameMode.FiveLaneDrums:
-                        engineParameters = Instruments.DeserializeDrumsParameters(stream, version);
-                        break;
+                        var drumsParams = Instruments.DeserializeDrumsParameters(stream, version);
+
+                        return new DrumsEngineParameters(drumsParams, baseParams);
                     case GameMode.ProGuitar:
-                        break;
+                        throw new NotImplementedException("Pro Guitar Replays are not implemented yet!");
                     case GameMode.ProKeys:
-                        engineParameters = Instruments.DeserializeProKeysParameters(stream, version);
-                        break;
+                        var proKeysParams = Instruments.DeserializeProKeysParameters(stream, version);
+
+                        return new ProKeysEngineParameters(proKeysParams, baseParams);
                     case GameMode.Vocals:
-                        engineParameters = Instruments.DeserializeVocalsParameters(stream, version);
-                        break;
+                        var vocalsParams = Instruments.DeserializeVocalsParameters(stream, version);
+
+                        return new VocalsEngineParameters(vocalsParams, baseParams);
                     default:
                         throw new ArgumentOutOfRangeException(nameof(gameMode), gameMode, null);
                 }
-
-                var hitWindow = new HitWindowSettings(maxWindow, minWindow, frontToBackRatio, isDynamic, dwSlope, dwScale, dwGamma);
-
-                engineParameters.HitWindow = hitWindow;
-                engineParameters.MaxMultiplier = maxMultiplier;
-                engineParameters.StarMultiplierThresholds = starMultiplierThresholds;
-                engineParameters.StarPowerWhammyBuffer = whammyBuffer;
-                engineParameters.SongSpeed = songSpeed;
-
-                return engineParameters;
             }
 
             #endregion

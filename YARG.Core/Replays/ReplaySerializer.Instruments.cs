@@ -4,6 +4,7 @@ using YARG.Core.Engine.Guitar;
 using YARG.Core.Engine.ProKeys;
 using YARG.Core.Engine.Vocals;
 using YARG.Core.Extensions;
+using YARG.Core.Replays.Serialization;
 using YARG.Core.Utility;
 
 namespace YARG.Core.Replays
@@ -25,9 +26,9 @@ namespace YARG.Core.Replays
                 writer.Write(parameters.AntiGhosting);
             }
 
-            public static GuitarEngineParameters DeserializeGuitarParameters(UnmanagedMemoryStream stream, int version = 0)
+            public static SerializedGuitarEngineParameters DeserializeGuitarParameters(UnmanagedMemoryStream stream, int version = 0)
             {
-                var parameters = new GuitarEngineParameters();
+                var parameters = new SerializedGuitarEngineParameters();
 
                 parameters.HopoLeniency = stream.Read<double>(Endianness.Little);
                 parameters.StrumLeniency = stream.Read<double>(Endianness.Little);
@@ -75,9 +76,9 @@ namespace YARG.Core.Replays
                 writer.Write(parameters.SituationalVelocityWindow);
             }
 
-            public static DrumsEngineParameters DeserializeDrumsParameters(UnmanagedMemoryStream stream, int version = 0)
+            public static SerializedDrumsEngineParameters DeserializeDrumsParameters(UnmanagedMemoryStream stream, int version = 0)
             {
-                var parameters = new DrumsEngineParameters();
+                var parameters = new SerializedDrumsEngineParameters();
 
                 parameters.Mode = (DrumsEngineParameters.DrumMode) stream.ReadByte();
                 parameters.VelocityThreshold = stream.Read<float>(Endianness.Little);
@@ -118,9 +119,9 @@ namespace YARG.Core.Replays
                 writer.Write(parameters.FatFingerWindow);
             }
 
-            public static ProKeysEngineParameters DeserializeProKeysParameters(UnmanagedMemoryStream stream, int version = 0)
+            public static SerializedProKeysEngineParameters DeserializeProKeysParameters(UnmanagedMemoryStream stream, int version = 0)
             {
-                var parameters = new ProKeysEngineParameters();
+                var parameters = new SerializedProKeysEngineParameters();
 
                 parameters.ChordStaggerWindow = stream.Read<double>(Endianness.Little);
                 parameters.FatFingerWindow = stream.Read<double>(Endianness.Little);
@@ -164,9 +165,9 @@ namespace YARG.Core.Replays
                 writer.Write(parameters.PointsPerPhrase);
             }
 
-            public static VocalsEngineParameters DeserializeVocalsParameters(UnmanagedMemoryStream stream, int version = 0)
+            public static SerializedVocalsEngineParameters DeserializeVocalsParameters(UnmanagedMemoryStream stream, int version = 0)
             {
-                var parameters = new VocalsEngineParameters();
+                var parameters = new SerializedVocalsEngineParameters();
 
                 parameters.PitchWindow = stream.Read<float>(Endianness.Little);
                 parameters.PitchWindowPerfect = stream.Read<float>(Endianness.Little);

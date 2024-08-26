@@ -1,4 +1,6 @@
-﻿namespace YARG.Core.Engine.ProKeys
+﻿using YARG.Core.Replays.Serialization;
+
+namespace YARG.Core.Engine.ProKeys
 {
     public class ProKeysEngineParameters : BaseEngineParameters
     {
@@ -6,12 +8,14 @@
 
         public double FatFingerWindow;
 
-        public ProKeysEngineParameters()
+        internal ProKeysEngineParameters(SerializedProKeysEngineParameters proKeysParams,
+            SerializedBaseEngineParameters baseParams) : base(baseParams)
         {
         }
 
         public ProKeysEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, double spWhammyBuffer,
-            double sustainDropLeniency, float[] starMultiplierThresholds, double chordStaggerWindow, double fatFingerWindow)
+            double sustainDropLeniency, float[] starMultiplierThresholds, double chordStaggerWindow,
+            double fatFingerWindow)
             : base(hitWindow, maxMultiplier, spWhammyBuffer, sustainDropLeniency, starMultiplierThresholds)
         {
             ChordStaggerWindow = chordStaggerWindow;

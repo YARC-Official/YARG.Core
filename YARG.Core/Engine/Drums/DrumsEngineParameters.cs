@@ -1,4 +1,6 @@
-﻿namespace YARG.Core.Engine.Drums
+﻿using YARG.Core.Replays.Serialization;
+
+namespace YARG.Core.Engine.Drums
 {
     public class DrumsEngineParameters : BaseEngineParameters
     {
@@ -27,8 +29,12 @@
         /// </summary>
         public float SituationalVelocityWindow;
 
-        public DrumsEngineParameters()
+        internal DrumsEngineParameters(SerializedDrumsEngineParameters drumsParams,
+            SerializedBaseEngineParameters baseParams) : base(baseParams)
         {
+            Mode = drumsParams.Mode;
+            VelocityThreshold = drumsParams.VelocityThreshold;
+            SituationalVelocityWindow = drumsParams.SituationalVelocityWindow;
         }
 
         public DrumsEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, float[] starMultiplierThresholds,
