@@ -330,12 +330,14 @@ namespace YARG.Core.Replays
 
             public static BaseStats DeserializeStats(UnmanagedMemoryStream stream, GameMode gameMode, int version = 0)
             {
-                var committedScore = stream.Read<int>(Endianness.Little);
+                var baseStats = new SerializedBaseStats();
+
+                baseStats.CommittedScore = stream.Read<int>(Endianness.Little);
 
                 var positionUpToPendingScore = stream.Position;
 
                 // Another variable which was not versioned :(
-                var pendingScore = stream.Read<int>(Endianness.Little);
+                baseStats.PendingScore = stream.Read<int>(Endianness.Little);
 
                 var positionAfterPendingScore = stream.Position;
 
@@ -357,76 +359,59 @@ namespace YARG.Core.Replays
                     || (gameMode == GameMode.Vocals && tempIsSpActiveByte == 0 && tempCombo <= 3 && tempScoreMultiplier - 1 != tempCombo))
                 {
                     stream.Seek(positionUpToPendingScore, SeekOrigin.Begin);
-                    pendingScore = 0;
+                    baseStats.PendingScore = 0;
                 }
                 else
                 {
                     stream.Seek(positionAfterPendingScore, SeekOrigin.Begin);
                 }
 
-                var combo = stream.Read<int>(Endianness.Little);
-                var maxCombo = stream.Read<int>(Endianness.Little);
-                var scoreMultiplier = stream.Read<int>(Endianness.Little);
-                var notesHit = stream.Read<int>(Endianness.Little);
-                var totalNotes = stream.Read<int>(Endianness.Little);
+                baseStats.Combo = stream.Read<int>(Endianness.Little);
+                baseStats.MaxCombo = stream.Read<int>(Endianness.Little);
+                baseStats.ScoreMultiplier = stream.Read<int>(Endianness.Little);
+                baseStats.NotesHit = stream.Read<int>(Endianness.Little);
+                baseStats.TotalNotes = stream.Read<int>(Endianness.Little);
 
                 // NotesMissed was replaced with TotalNotes at some point
                 // There's no way of telling besides seeing if they notesHit is bigger than "totalNotes"
                 // But in reality this could be true as it was missed notes, and you can miss more than you hit
-                if (notesHit > totalNotes)
+                if (baseStats.NotesHit > baseStats.TotalNotes)
                 {
-                    var missedNotes = totalNotes;
-                    totalNotes = notesHit + missedNotes;
+                    var missedNotes = baseStats.TotalNotes;
+                    baseStats.TotalNotes = baseStats.NotesHit + missedNotes;
                 }
 
                 var starPowerAmount = stream.Read<double>(Endianness.Little);
                 var starPowerBaseAmount = stream.Read<double>(Endianness.Little);
-                var isStarPowerActive = stream.ReadBoolean();
-                var starPowerPhrasesHit = stream.Read<int>(Endianness.Little);
-                var totalStarPowerPhrases = stream.Read<int>(Endianness.Little);
+                baseStats.IsStarPowerActive = stream.ReadBoolean();
+                baseStats.StarPowerPhrasesHit = stream.Read<int>(Endianness.Little);
+                baseStats.TotalStarPowerPhrases = stream.Read<int>(Endianness.Little);
 
                 // Same as above
-                if (starPowerPhrasesHit > totalStarPowerPhrases)
+                if (baseStats.StarPowerPhrasesHit > baseStats.TotalStarPowerPhrases)
                 {
-                    var spMissed = totalStarPowerPhrases;
-                    totalStarPowerPhrases = starPowerPhrasesHit + spMissed;
+                    var spMissed = baseStats.TotalStarPowerPhrases;
+                    baseStats.TotalStarPowerPhrases = baseStats.StarPowerPhrasesHit + spMissed;
                 }
 
-                var soloBonuses = stream.Read<int>(Endianness.Little);
+                baseStats.SoloBonuses = stream.Read<int>(Endianness.Little);
 
-                BaseStats stats = null!;
                 switch (gameMode)
                 {
                     case GameMode.FiveFretGuitar:
                     case GameMode.SixFretGuitar:
-                        stats = Instruments.DeserializeGuitarStats(stream, version);
-                        break;
+                        var guitarStats = Instruments.DeserializeGuitarStats(stream, version);
+                        return new GuitarStats(guitarStats, baseStats);
                     case GameMode.FourLaneDrums:
                     case GameMode.FiveLaneDrums:
-                        stats = Instruments.DeserializeDrumsStats(stream, version);
-                        break;
+                        var drumsStats = Instruments.DeserializeDrumsStats(stream, version);
+                        return new DrumsStats(drumsStats, baseStats);
                     case GameMode.Vocals:
-                        stats = Instruments.DeserializeVocalsStats(stream, version);
-                        break;
+                        var vocalsStats = Instruments.DeserializeVocalsStats(stream, version);
+                        return new VocalsStats(vocalsStats, baseStats);
                     default:
                         throw new ArgumentOutOfRangeException(nameof(gameMode), "Unsupported game mode: " + gameMode);
                 }
-
-                stats.CommittedScore = committedScore;
-                stats.PendingScore = pendingScore;
-                stats.Combo = combo;
-                stats.MaxCombo = maxCombo;
-                stats.ScoreMultiplier = scoreMultiplier;
-                stats.NotesHit = notesHit;
-                stats.TotalNotes = totalNotes;
-                //stats.StarPowerAmount = starPowerAmount;
-                //stats.StarPowerBaseAmount = starPowerBaseAmount;
-                stats.IsStarPowerActive = isStarPowerActive;
-                stats.StarPowerPhrasesHit = starPowerPhrasesHit;
-                stats.TotalStarPowerPhrases = totalStarPowerPhrases;
-                stats.SoloBonuses = soloBonuses;
-
-                return stats;
             }
 
             #endregion

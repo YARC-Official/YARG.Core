@@ -1,4 +1,6 @@
-﻿namespace YARG.Core.Engine.Drums
+﻿using YARG.Core.Replays.Serialization;
+
+namespace YARG.Core.Engine.Drums
 {
     public class DrumsStats : BaseStats
     {
@@ -7,8 +9,9 @@
         /// </summary>
         public int Overhits;
 
-        public DrumsStats()
+        internal DrumsStats(SerializedDrumsStats drumsStats, SerializedBaseStats baseStats) : base(baseStats)
         {
+            Overhits = drumsStats.Overhits;
         }
 
         public DrumsStats(DrumsStats stats) : base(stats)

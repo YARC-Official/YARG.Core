@@ -1,3 +1,5 @@
+using YARG.Core.Replays.Serialization;
+
 namespace YARG.Core.Engine.Guitar
 {
     public class GuitarStats : BaseStats
@@ -17,8 +19,11 @@ namespace YARG.Core.Engine.Guitar
         /// </summary>
         public int GhostInputs;
 
-        public GuitarStats()
+        internal GuitarStats(SerializedGuitarStats guitarStats, SerializedBaseStats baseStats) : base(baseStats)
         {
+            Overstrums = guitarStats.Overstrums;
+            HoposStrummed = guitarStats.HoposStrummed;
+            GhostInputs = guitarStats.GhostInputs;
         }
 
         public GuitarStats(GuitarStats stats) : base(stats)

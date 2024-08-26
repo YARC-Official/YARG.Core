@@ -284,22 +284,18 @@ namespace YARG.Core.Replays
                     case GameMode.FiveFretGuitar:
                     case GameMode.SixFretGuitar:
                         var guitarParams = Instruments.DeserializeGuitarParameters(stream, version);
-
                         return new GuitarEngineParameters(guitarParams, baseParams);
                     case GameMode.FourLaneDrums:
                     case GameMode.FiveLaneDrums:
                         var drumsParams = Instruments.DeserializeDrumsParameters(stream, version);
-
                         return new DrumsEngineParameters(drumsParams, baseParams);
                     case GameMode.ProGuitar:
                         throw new NotImplementedException("Pro Guitar Replays are not implemented yet!");
                     case GameMode.ProKeys:
                         var proKeysParams = Instruments.DeserializeProKeysParameters(stream, version);
-
                         return new ProKeysEngineParameters(proKeysParams, baseParams);
                     case GameMode.Vocals:
                         var vocalsParams = Instruments.DeserializeVocalsParameters(stream, version);
-
                         return new VocalsEngineParameters(vocalsParams, baseParams);
                     default:
                         throw new ArgumentOutOfRangeException(nameof(gameMode), gameMode, null);
@@ -355,66 +351,51 @@ namespace YARG.Core.Replays
 
             public static BaseStats DeserializeStats(UnmanagedMemoryStream stream, GameMode gameMode, int version = 0)
             {
-                var committedScore = stream.Read<int>(Endianness.Little);
-                var pendingScore = stream.Read<int>(Endianness.Little);
-                var sustainScore = stream.Read<int>(Endianness.Little);
-                var combo = stream.Read<int>(Endianness.Little);
-                var maxCombo = stream.Read<int>(Endianness.Little);
-                var scoreMultiplier = stream.Read<int>(Endianness.Little);
-                var notesHit = stream.Read<int>(Endianness.Little);
-                var totalNotes = stream.Read<int>(Endianness.Little);
-                var starPowerTickAmount = stream.Read<uint>(Endianness.Little);
-                var totalStarPowerTicks = stream.Read<uint>(Endianness.Little);
-                var timeInStarPower = stream.Read<double>(Endianness.Little);
-                var whammyTicks = stream.Read<uint>(Endianness.Little);
-                var isStarPowerActive = stream.ReadBoolean();
-                var starPowerPhrasesHit = stream.Read<int>(Endianness.Little);
-                var totalStarPowerPhrases = stream.Read<int>(Endianness.Little);
-                var soloBonuses = stream.Read<int>(Endianness.Little);
-                var starPowerScore = stream.Read<int>(Endianness.Little);
+                var baseStats = new SerializedBaseStats();
 
-                BaseStats stats = null!;
+                baseStats.CommittedScore = stream.Read<int>(Endianness.Little);
+                baseStats.PendingScore = stream.Read<int>(Endianness.Little);
+                baseStats.NoteScore = stream.Read<int>(Endianness.Little);
+                baseStats.SustainScore = stream.Read<int>(Endianness.Little);
+                baseStats.MultiplierScore = stream.Read<int>(Endianness.Little);
+                baseStats.Combo = stream.Read<int>(Endianness.Little);
+                baseStats.MaxCombo = stream.Read<int>(Endianness.Little);
+                baseStats.ScoreMultiplier = stream.Read<int>(Endianness.Little);
+                baseStats.NotesHit = stream.Read<int>(Endianness.Little);
+                baseStats.TotalNotes = stream.Read<int>(Endianness.Little);
+                baseStats.StarPowerTickAmount = stream.Read<uint>(Endianness.Little);
+                baseStats.TotalStarPowerTicks = stream.Read<uint>(Endianness.Little);
+                baseStats.TotalStarPowerBarsFilled = stream.Read<double>(Endianness.Little);
+                baseStats.StarPowerActivationCount = stream.Read<int>(Endianness.Little);
+                baseStats.TimeInStarPower = stream.Read<double>(Endianness.Little);
+                baseStats.StarPowerWhammyTicks = stream.Read<uint>(Endianness.Little);
+                baseStats.IsStarPowerActive = stream.ReadBoolean();
+                baseStats.StarPowerPhrasesHit = stream.Read<int>(Endianness.Little);
+                baseStats.TotalStarPowerPhrases = stream.Read<int>(Endianness.Little);
+                baseStats.SoloBonuses = stream.Read<int>(Endianness.Little);
+                baseStats.StarPowerScore = stream.Read<int>(Endianness.Little);
+
                 switch (gameMode)
                 {
                     case GameMode.FiveFretGuitar:
                     case GameMode.SixFretGuitar:
-                        stats = Instruments.DeserializeGuitarStats(stream, version);
-                        break;
+                        var guitarStats = Instruments.DeserializeGuitarStats(stream, version);
+                        return new GuitarStats(guitarStats, baseStats);
                     case GameMode.FourLaneDrums:
                     case GameMode.FiveLaneDrums:
-                        stats = Instruments.DeserializeDrumsStats(stream, version);
-                        break;
+                        var drumsStats = Instruments.DeserializeDrumsStats(stream, version);
+                        return new DrumsStats(drumsStats, baseStats);
                     case GameMode.ProGuitar:
-                        break;
+                        throw new NotImplementedException("Pro Guitar Replays are not implemented yet!");
                     case GameMode.ProKeys:
-                        stats = Instruments.DeserializeProKeysStats(stream, version);
-                        break;
+                        var proKeysStats = Instruments.DeserializeProKeysStats(stream, version);
+                        return new ProKeysStats(proKeysStats, baseStats);
                     case GameMode.Vocals:
-                        stats = Instruments.DeserializeVocalsStats(stream, version);
-                        break;
+                        var vocalsStats = Instruments.DeserializeVocalsStats(stream, version);
+                        return new VocalsStats(vocalsStats, baseStats);
                     default:
                         throw new ArgumentOutOfRangeException(nameof(gameMode), gameMode, null);
                 }
-
-                stats.CommittedScore = committedScore;
-                stats.PendingScore = pendingScore;
-                stats.SustainScore = sustainScore;
-                stats.Combo = combo;
-                stats.MaxCombo = maxCombo;
-                stats.ScoreMultiplier = scoreMultiplier;
-                stats.NotesHit = notesHit;
-                stats.TotalNotes = totalNotes;
-                stats.StarPowerTickAmount = starPowerTickAmount;
-                stats.TotalStarPowerTicks = totalStarPowerTicks;
-                stats.TimeInStarPower = timeInStarPower;
-                stats.StarPowerWhammyTicks = whammyTicks;
-                stats.IsStarPowerActive = isStarPowerActive;
-                stats.StarPowerPhrasesHit = starPowerPhrasesHit;
-                stats.TotalStarPowerPhrases = totalStarPowerPhrases;
-                stats.SoloBonuses = soloBonuses;
-                stats.StarPowerScore = starPowerScore;
-
-                return stats;
             }
 
             #endregion

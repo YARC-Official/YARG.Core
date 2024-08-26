@@ -50,9 +50,9 @@ namespace YARG.Core.Replays
                 writer.Write(stats.GhostInputs);
             }
 
-            public static GuitarStats DeserializeGuitarStats(UnmanagedMemoryStream stream, int version = 0)
+            public static SerializedGuitarStats DeserializeGuitarStats(UnmanagedMemoryStream stream, int version = 0)
             {
-                var stats = new GuitarStats();
+                var stats = new SerializedGuitarStats();
 
                 stats.Overstrums = stream.Read<int>(Endianness.Little);
                 stats.HoposStrummed = stream.Read<int>(Endianness.Little);
@@ -96,9 +96,9 @@ namespace YARG.Core.Replays
                 writer.Write(stats.Overhits);
             }
 
-            public static DrumsStats DeserializeDrumsStats(UnmanagedMemoryStream stream, int version = 0)
+            public static SerializedDrumsStats DeserializeDrumsStats(UnmanagedMemoryStream stream, int version = 0)
             {
-                var stats = new DrumsStats();
+                var stats = new SerializedDrumsStats();
 
                 stats.Overhits = stream.Read<int>(Endianness.Little);
 
@@ -138,9 +138,9 @@ namespace YARG.Core.Replays
                 writer.Write(stats.Overhits);
             }
 
-            public static ProKeysStats DeserializeProKeysStats(UnmanagedMemoryStream stream, int version = 0)
+            public static SerializedProKeysStats DeserializeProKeysStats(UnmanagedMemoryStream stream, int version = 0)
             {
-                var stats = new ProKeysStats();
+                var stats = new SerializedProKeysStats();
 
                 stats.Overhits = stream.Read<int>(Endianness.Little);
 
@@ -189,9 +189,9 @@ namespace YARG.Core.Replays
                 writer.Write(stats.TicksMissed);
             }
 
-            public static VocalsStats DeserializeVocalsStats(UnmanagedMemoryStream stream, int version = 0)
+            public static SerializedVocalsStats DeserializeVocalsStats(UnmanagedMemoryStream stream, int version = 0)
             {
-                var stats = new VocalsStats();
+                var stats = new SerializedVocalsStats();
 
                 stats.TicksHit = stream.Read<uint>(Endianness.Little);
                 stats.TicksMissed = stream.Read<uint>(Endianness.Little);

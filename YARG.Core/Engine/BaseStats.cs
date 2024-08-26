@@ -1,3 +1,5 @@
+using YARG.Core.Replays.Serialization;
+
 namespace YARG.Core.Engine
 {
     public abstract class BaseStats
@@ -134,8 +136,34 @@ namespace YARG.Core.Engine
         /// </summary>
         public float Stars;
 
-        protected BaseStats()
+        internal BaseStats(SerializedBaseStats stats)
         {
+            CommittedScore = stats.CommittedScore;
+            PendingScore = stats.PendingScore;
+            NoteScore = stats.NoteScore;
+            SustainScore = stats.SustainScore;
+            MultiplierScore = stats.MultiplierScore;
+            Combo = stats.Combo;
+            MaxCombo = stats.MaxCombo;
+            ScoreMultiplier = stats.ScoreMultiplier;
+            NotesHit = stats.NotesHit;
+            TotalNotes = stats.TotalNotes;
+
+            StarPowerTickAmount = stats.StarPowerTickAmount;
+            TotalStarPowerTicks = stats.TotalStarPowerTicks;
+            TotalStarPowerBarsFilled = stats.TotalStarPowerBarsFilled;
+            StarPowerActivationCount = stats.StarPowerActivationCount;
+            TimeInStarPower = stats.TimeInStarPower;
+            StarPowerWhammyTicks = stats.StarPowerWhammyTicks;
+            IsStarPowerActive = stats.IsStarPowerActive;
+
+            StarPowerPhrasesHit = stats.StarPowerPhrasesHit;
+            TotalStarPowerPhrases = stats.TotalStarPowerPhrases;
+
+            SoloBonuses = stats.SoloBonuses;
+            StarPowerScore = stats.StarPowerScore;
+
+            Stars = stats.Stars;
         }
 
         protected BaseStats(BaseStats stats)

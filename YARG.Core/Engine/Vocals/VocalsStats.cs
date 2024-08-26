@@ -1,4 +1,6 @@
-﻿namespace YARG.Core.Engine.Vocals
+﻿using YARG.Core.Replays.Serialization;
+
+namespace YARG.Core.Engine.Vocals
 {
     public class VocalsStats : BaseStats
     {
@@ -19,8 +21,10 @@
 
         public override float Percent => TotalTicks == 0 ? 1f : (float) TicksHit / TotalTicks;
 
-        public VocalsStats()
+        internal VocalsStats(SerializedVocalsStats vocalsStats, SerializedBaseStats baseStats) : base(baseStats)
         {
+            TicksHit = vocalsStats.TicksHit;
+            TicksMissed = vocalsStats.TicksMissed;
         }
 
         public VocalsStats(VocalsStats stats) : base(stats)

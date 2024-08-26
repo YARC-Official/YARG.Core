@@ -1,4 +1,6 @@
-﻿namespace YARG.Core.Engine.ProKeys
+﻿using YARG.Core.Replays.Serialization;
+
+namespace YARG.Core.Engine.ProKeys
 {
     public class ProKeysStats : BaseStats
     {
@@ -7,8 +9,9 @@
         /// </summary>
         public int Overhits;
 
-        public ProKeysStats()
+        internal ProKeysStats(SerializedProKeysStats proKeysStats, SerializedBaseStats baseStats) : base(baseStats)
         {
+            Overhits = proKeysStats.Overhits;
         }
 
         public ProKeysStats(ProKeysStats stats) : base(stats)

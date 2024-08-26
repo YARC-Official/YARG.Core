@@ -53,9 +53,9 @@ namespace YARG.Core.Replays
                 writer.Write(0.0); // StarPowerWhammyGain - No longer exists
             }
 
-            public static GuitarStats DeserializeGuitarStats(UnmanagedMemoryStream stream, int version = 0)
+            public static SerializedGuitarStats DeserializeGuitarStats(UnmanagedMemoryStream stream, int version = 0)
             {
-                var stats = new GuitarStats();
+                var stats = new SerializedGuitarStats();
 
                 stats.Overstrums = stream.Read<int>(Endianness.Little);
                 stats.HoposStrummed = stream.Read<int>(Endianness.Little);
@@ -96,9 +96,9 @@ namespace YARG.Core.Replays
                 //writer.Write(stats.Overhits);
             }
 
-            public static DrumsStats DeserializeDrumsStats(UnmanagedMemoryStream stream, int version = 0)
+            public static SerializedDrumsStats DeserializeDrumsStats(UnmanagedMemoryStream stream, int version = 0)
             {
-                var stats = new DrumsStats();
+                var stats = new SerializedDrumsStats();
 
                 // v0.12 never wrote overhits - whoopsie
                 //stats.Overhits = reader.ReadInt32();
@@ -199,9 +199,9 @@ namespace YARG.Core.Replays
                 writer.Write(stats.TicksMissed);
             }
 
-            public static VocalsStats DeserializeVocalsStats(UnmanagedMemoryStream stream, int version = 0)
+            public static SerializedVocalsStats DeserializeVocalsStats(UnmanagedMemoryStream stream, int version = 0)
             {
-                var stats = new VocalsStats();
+                var stats = new SerializedVocalsStats();
 
                 stats.TicksHit = stream.Read<uint>(Endianness.Little);
                 stats.TicksMissed = stream.Read<uint>(Endianness.Little);
