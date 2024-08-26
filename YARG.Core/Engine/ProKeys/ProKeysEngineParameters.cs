@@ -11,6 +11,8 @@ namespace YARG.Core.Engine.ProKeys
         internal ProKeysEngineParameters(SerializedProKeysEngineParameters proKeysParams,
             SerializedBaseEngineParameters baseParams) : base(baseParams)
         {
+            ChordStaggerWindow = proKeysParams.ChordStaggerWindow;
+            FatFingerWindow = proKeysParams.FatFingerWindow;
         }
 
         public ProKeysEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, double spWhammyBuffer,

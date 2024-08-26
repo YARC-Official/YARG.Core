@@ -220,6 +220,7 @@ namespace YARG.Core.Replays
 
                 writer.Write(engineParameters.MaxMultiplier);
                 writer.Write(engineParameters.StarPowerWhammyBuffer);
+                writer.Write(engineParameters.SustainDropLeniency);
                 writer.Write(engineParameters.StarMultiplierThresholds.Length);
                 foreach (var f in engineParameters.StarMultiplierThresholds)
                 {
@@ -312,7 +313,9 @@ namespace YARG.Core.Replays
             {
                 writer.Write(stats.CommittedScore);
                 writer.Write(stats.PendingScore);
+                writer.Write(stats.NoteScore);
                 writer.Write(stats.SustainScore);
+                writer.Write(stats.MultiplierScore);
                 writer.Write(stats.Combo);
                 writer.Write(stats.MaxCombo);
                 writer.Write(stats.ScoreMultiplier);
@@ -320,6 +323,8 @@ namespace YARG.Core.Replays
                 writer.Write(stats.TotalNotes);
                 writer.Write(stats.StarPowerTickAmount);
                 writer.Write(stats.TotalStarPowerTicks);
+                writer.Write(stats.TotalStarPowerBarsFilled);
+                writer.Write(stats.StarPowerActivationCount);
                 writer.Write(stats.TimeInStarPower);
                 writer.Write(stats.StarPowerWhammyTicks);
                 writer.Write(stats.IsStarPowerActive);

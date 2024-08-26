@@ -42,6 +42,12 @@ namespace YARG.Core.Engine.Vocals
             SerializedBaseEngineParameters baseParams)
             : base(baseParams)
         {
+            PitchWindow = vocalsParams.PitchWindow;
+            PitchWindowPerfect = vocalsParams.PitchWindowPerfect;
+            PhraseHitPercent = vocalsParams.PhraseHitPercent;
+            ApproximateVocalFps = vocalsParams.ApproximateVocalFps;
+            SingToActivateStarPower = vocalsParams.SingToActivateStarPower;
+            PointsPerPhrase = vocalsParams.PointsPerPhrase;
         }
 
         public VocalsEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, float[] starMultiplierThresholds,

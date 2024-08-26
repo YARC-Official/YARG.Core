@@ -53,10 +53,6 @@ namespace YARG.Core.Replays
         {
             var replay = new Replay();
 
-            long position = 0;
-
-            UnmanagedMemoryStream sliceStream;
-
             // Metadata
             replay.Metadata = Sections.DeserializeMetadata(stream, version);
 
