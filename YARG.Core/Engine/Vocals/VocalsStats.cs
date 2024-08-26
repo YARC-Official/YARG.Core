@@ -27,6 +27,10 @@ namespace YARG.Core.Engine.Vocals
             TicksMissed = vocalsStats.TicksMissed;
         }
 
+        public VocalsStats()
+        {
+        }
+
         public VocalsStats(VocalsStats stats) : base(stats)
         {
             TicksHit = stats.TicksHit;

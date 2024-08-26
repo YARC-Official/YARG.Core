@@ -14,6 +14,10 @@ namespace YARG.Core.Engine.Drums
             Overhits = drumsStats.Overhits;
         }
 
+        public DrumsStats()
+        {
+        }
+
         public DrumsStats(DrumsStats stats) : base(stats)
         {
             Overhits = stats.Overhits;

@@ -26,6 +26,10 @@ namespace YARG.Core.Engine.Guitar
             GhostInputs = guitarStats.GhostInputs;
         }
 
+        public GuitarStats()
+        {
+        }
+
         public GuitarStats(GuitarStats stats) : base(stats)
         {
             Overstrums = stats.Overstrums;

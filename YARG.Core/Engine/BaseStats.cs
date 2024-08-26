@@ -166,6 +166,10 @@ namespace YARG.Core.Engine
             Stars = stats.Stars;
         }
 
+        protected BaseStats()
+        {
+        }
+
         protected BaseStats(BaseStats stats)
         {
             CommittedScore = stats.CommittedScore;

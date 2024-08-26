@@ -14,6 +14,10 @@ namespace YARG.Core.Engine.ProKeys
             Overhits = proKeysStats.Overhits;
         }
 
+        public ProKeysStats()
+        {
+        }
+
         public ProKeysStats(ProKeysStats stats) : base(stats)
         {
             Overhits = stats.Overhits;
