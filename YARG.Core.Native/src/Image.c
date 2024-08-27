@@ -1,4 +1,4 @@
-#include "image.h"
+#include "Image.h"
 
 byte* YARGImage_Load(const byte* bytes, int length, int* width, int* height, int* components)
 {

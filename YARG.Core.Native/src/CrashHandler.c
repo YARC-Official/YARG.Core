@@ -53,8 +53,6 @@ const char* GetExceptionString(DWORD exception)
 
 #else
 
-#include <signal.h>
-
 const char* GetExceptionString(int signal, siginfo_t* sigInfo)
 {
     switch (signal)

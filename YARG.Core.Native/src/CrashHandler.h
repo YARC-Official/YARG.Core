@@ -10,6 +10,7 @@ YARG_EXPORT void YARGCrash();
 #if _WIN32
 const char* GetExceptionString(DWORD exceptionCode);
 #else
+#include <signal.h>
 const char* GetExceptionString(int signal, siginfo_t* sigInfo);
 #endif
 
