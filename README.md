@@ -21,6 +21,7 @@ Some libraries/assets are packaged **within** the source code and have licenses 
 | Library | License |
 | --- | --- |
 | [Moonscraper](https://github.com/FireFox2000000/Moonscraper-Chart-Editor) | [BSD 3-Clause License](https://github.com/FireFox2000000/Moonscraper-Chart-Editor/blob/master/LICENSE)
+| [stb_image](https://github.com/nothings/stb) | [Public Domain/MIT](https://github.com/nothings/stb/blob/f75e8d1cad7d90d72ef7a4661f1b994ef78b4e31/stb_image.h#L7948-L7988)
 
 Please note that other libraries are **not** packaged within the source code, and are to be install by NuGet.
 
@@ -32,4 +33,5 @@ Please note that other libraries are **not** packaged within the source code, an
 | [GuitarGame_ChartFormats](https://github.com/TheNathannator/GuitarGame_ChartFormats) | Reference | File Format Documentation
 | [DryWetMidi](https://www.nuget.org/packages/Melanchall.DryWetMidi) | Library | Parsing `.mid` Files
 | [Moonscraper](https://github.com/FireFox2000000/Moonscraper-Chart-Editor) | Library | Parsing `.chart` Files
+| [stb_image](https://github.com/nothings/stb) | Library | Image loading
 | [NUnit](https://docs.nunit.org/articles/nunit/intro.html) | Library | Unit tests
