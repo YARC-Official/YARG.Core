@@ -1,15 +1,21 @@
-#ifndef YARG_TYPEDEFS_H
+﻿#ifndef YARG_TYPEDEFS_H
 #define YARG_TYPEDEFS_H
 
 // Standard type definitions
 #include <stddef.h>
 #include <stdint.h>
 
+#ifdef _WIN32
+#include "Windows.h"
+#endif
+
 // Library export defines
-#ifdef __cplusplus
-    #define EXTERN_C extern "C"
-#else
-    #define EXTERN_C
+#ifndef EXTERN_C
+    #ifdef __cplusplus
+        #define EXTERN_C extern "C"
+    #else
+        #define EXTERN_C
+    #endif
 #endif
 
 #if defined(_WIN32) || defined(__CYGWIN__)

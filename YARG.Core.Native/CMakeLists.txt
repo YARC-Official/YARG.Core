@@ -28,6 +28,13 @@ target_link_libraries(YARG.Core.Native
     stb
 )
 
+if(WIN32)
+    target_link_libraries(YARG.Core.Native
+        PRIVATE
+        dbghelp
+    )
+endif()
+
 # Various target properties
 set_target_properties(YARG.Core.Native PROPERTIES
     VERSION "0.1.0" # Build version
