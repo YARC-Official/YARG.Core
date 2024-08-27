@@ -99,7 +99,8 @@ namespace YARG.Core.Song
         protected ParseSettings _parseSettings;
         protected HashWrapper _hash;
 
-        public abstract string Directory { get; }
+        public abstract string Location { get; }
+        public abstract string DirectoryActual { get; }
 
         public abstract EntryType SubType { get; }
 

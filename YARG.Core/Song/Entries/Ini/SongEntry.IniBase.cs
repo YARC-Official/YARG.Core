@@ -117,7 +117,7 @@ namespace YARG.Core.Song
 
         public ReadOnlySpan<byte> Serialize(CategoryCacheWriteNode node, string groupDirectory)
         {
-            string relativePath = Path.GetRelativePath(groupDirectory, Directory);
+            string relativePath = Path.GetRelativePath(groupDirectory, Location);
             if (relativePath == ".")
                 relativePath = string.Empty;
 
