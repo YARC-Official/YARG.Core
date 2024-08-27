@@ -21,6 +21,13 @@ add_library(YARG.Core.Native SHARED
     ${HEADER_FILES}
 )
 
+# Link against libraries
+add_subdirectory(lib)
+target_link_libraries(YARG.Core.Native
+    PRIVATE
+    stb
+)
+
 # Various target properties
 set_target_properties(YARG.Core.Native PROPERTIES
     VERSION "0.1.0" # Build version
@@ -30,6 +37,12 @@ set_target_properties(YARG.Core.Native PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin
     LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin
     ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin
+)
+
+# Set defines
+target_compile_definitions(YARG.Core.Native
+    PRIVATE
+    "YARG_EXPORTS"
 )
 
 # Set a uniform debug define

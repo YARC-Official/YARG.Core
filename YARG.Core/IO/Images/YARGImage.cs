@@ -3,6 +3,7 @@ using System.Buffers.Binary;
 using System.IO;
 using System.Runtime.InteropServices;
 using YARG.Core.IO.Disposables;
+using YARG.Core.Native;
 
 namespace YARG.Core.IO
 {
@@ -48,7 +49,7 @@ namespace YARG.Core.IO
 
         private static YARGImage? Load(FixedArray<byte> file)
         {
-            var result = LoadNative(file.Ptr, (int)file.Length, out int width, out int height, out int components);
+            var result = YARGNative.Image_Load(file.Ptr, (int)file.Length, out int width, out int height, out int components);
             if (result == null)
             {
                 return null;
@@ -88,7 +89,7 @@ namespace YARG.Core.IO
                 }
                 else
                 {
-                    FreeNative(Data);
+                    YARGNative.Image_Free(Data);
                 }
                 _disposed = true;
             }
@@ -104,11 +105,5 @@ namespace YARG.Core.IO
         {
             _Dispose();
         }
-
-        [DllImport("STB2CSharp", EntryPoint = "load_image_from_memory")]
-        private static extern byte* LoadNative(byte* data, int length, out int width, out int height, out int components);
-
-        [DllImport("STB2CSharp", EntryPoint = "free_image")]
-        private static extern void FreeNative(byte* image);
     }
 }
