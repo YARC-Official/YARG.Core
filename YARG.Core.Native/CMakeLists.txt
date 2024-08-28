@@ -1,8 +1,5 @@
 project(YARG.Core.Native LANGUAGES CXX C)
 
-# CMake compiler settings
-set(CMAKE_CXX_STANDARD 17)
-
 # Collect project sources
 file(GLOB_RECURSE SOURCE_FILES
     CONFIGURE_DEPENDS
@@ -36,17 +33,18 @@ if(WIN32)
 endif()
 
 # Various target properties
+set(ROOT_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin/native)
+set(FULL_OUTPUT_DIRECTORY ${ROOT_OUTPUT_DIRECTORY}/${YARG_PLATFORM}/${YARG_ARCH_BITS})
 set_target_properties(YARG.Core.Native PROPERTIES
-    VERSION "0.1.0" # Build version
-    SOVERSION "0" # ABI version
+    NO_SONAME TRUE # Don't include version info in Linux binary names
 
     # Set separate output name from the C# assembly
     OUTPUT_NAME "yarg_core_native"
 
     # Change output to the current directory for easier visibility of output files
-    RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin/native
-    LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin/native
-    ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin/native
+    RUNTIME_OUTPUT_DIRECTORY ${FULL_OUTPUT_DIRECTORY}
+    LIBRARY_OUTPUT_DIRECTORY ${FULL_OUTPUT_DIRECTORY}
+    ARCHIVE_OUTPUT_DIRECTORY ${FULL_OUTPUT_DIRECTORY}
 )
 
 # Set defines
