@@ -1,9 +1,6 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
-using System.Runtime.InteropServices;
 using YARG.Core.Logging;
 
 namespace YARG.Core.IO.Disposables
@@ -12,7 +9,7 @@ namespace YARG.Core.IO.Disposables
     /// A wrapper interface over a fixed area of unmanaged memory.
     /// Provides functions to create spans and span slices alongside
     /// basic indexing and enumeration.<br></br><br></br>
-    /// 
+    ///
     /// For serious performance-critical code, the raw pointer to
     /// the start of the memory block is also provided.<br></br>
     /// However, code that uses the value directly should first check
@@ -25,11 +22,6 @@ namespace YARG.Core.IO.Disposables
     public unsafe class FixedArray<T> : IDisposable
         where T : unmanaged
     {
-        public static FixedArray<T> Alias(T* ptr, long length)
-        {
-            return new FixedArray<T>(ptr, length);
-        }
-
         /// <summary>
         /// Pointer to the beginning of the memory block.<br></br>
         /// DO NOT TOUCH UNLESS YOU ENSURE YOU'RE WITHIN BOUNDS
@@ -41,12 +33,6 @@ namespace YARG.Core.IO.Disposables
         /// </summary>
         public readonly long Length;
 
-        protected FixedArray(T* ptr, long length)
-        {
-            Ptr = ptr;
-            Length = length;
-        }
-
         /// <summary>
         /// Provides the pointer to the block of memory in IntPtr form
         /// </summary>
@@ -55,9 +41,14 @@ namespace YARG.Core.IO.Disposables
         /// <summary>
         /// Provides a ReadOnlySpan over the block of memory
         /// </summary>
-        public ReadOnlySpan<T> ReadOnlySpan => new(Ptr, (int)Length);
+        public ReadOnlySpan<T> ReadOnlySpan => new(Ptr, (int) Length);
 
-        public UnmanagedMemoryStream ToStream() => new((byte*)Ptr, (int)(Length * sizeof(T)));
+        public UnmanagedMemoryStream ToStream() => new((byte*) Ptr, (int) (Length * sizeof(T)));
+
+        public static FixedArray<T> Alias(void* ptr, long length)
+        {
+            return new FixedArray<T>((T*) ptr, length);
+        }
 
         /// <summary>
         /// Indexer into the fixed block of memory
@@ -76,15 +67,22 @@ namespace YARG.Core.IO.Disposables
             }
         }
 
-        public virtual void Dispose()
+        protected FixedArray(T* ptr, long length)
         {
-            GC.SuppressFinalize(this);
+            Ptr = ptr;
+            Length = length;
         }
 
         ~FixedArray()
         {
-            YargLogger.LogWarning($"{GetType()} was not disposed correctly!");
+            YargLogger.LogFormatWarning("Dev warning: only use {0} IF YOU MANUALLY DISPOSE! Not doing so defeats the purpose!", GetType());
             Dispose(false);
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
         private void Dispose(bool disposing)
