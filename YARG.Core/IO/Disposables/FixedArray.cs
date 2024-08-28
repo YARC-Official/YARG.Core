@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -83,8 +83,19 @@ namespace YARG.Core.IO.Disposables
 
         ~FixedArray()
         {
-            Dispose();
+            YargLogger.LogWarning($"{GetType()} was not disposed correctly!");
+            Dispose(false);
         }
+
+        private void Dispose(bool disposing)
+        {
+            if (disposing)
+                DisposeManaged();
+            DisposeUnmanaged();
+        }
+
+        protected virtual void DisposeManaged() { }
+        protected virtual void DisposeUnmanaged() { }
 
         private sealed class FixedArrayDebugView
         {

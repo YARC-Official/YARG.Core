@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -44,10 +44,9 @@ namespace YARG.Core.IO.Disposables
             return new Span<T>(Ptr + offset, (int) count);
         }
 
-        public override void Dispose()
+        protected override void DisposeUnmanaged()
         {
             Marshal.FreeHGlobal(IntPtr);
-            GC.SuppressFinalize(this);
         }
 
         ~AllocatedArray()

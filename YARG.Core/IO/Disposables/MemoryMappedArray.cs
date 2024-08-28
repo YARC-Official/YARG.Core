@@ -38,12 +38,12 @@ namespace YARG.Core.IO.Disposables
             _accessor = accessor;
         }
 
-        public override void Dispose()
+        // Note: not DisposeUnmanaged, as object references are invalidated during finalization
+        protected override void DisposeManaged()
         {
             _accessor.SafeMemoryMappedViewHandle.ReleasePointer();
             _accessor.Dispose();
             _file.Dispose();
-            GC.SuppressFinalize(this);
         }
 
         ~MemoryMappedArray()
