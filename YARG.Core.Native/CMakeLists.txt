@@ -44,9 +44,9 @@ set_target_properties(YARG.Core.Native PROPERTIES
     OUTPUT_NAME "yarg_core_native"
 
     # Change output to the current directory for easier visibility of output files
-    RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin
-    LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin
-    ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin
+    RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin/native
+    LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin/native
+    ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin/native
 )
 
 # Set defines

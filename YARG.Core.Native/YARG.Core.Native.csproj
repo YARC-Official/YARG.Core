@@ -6,15 +6,17 @@
     <PublishRelease>true</PublishRelease>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <Nullable>enable</Nullable>
+
+    <!-- Output managed assembly to a separate folder from the native binaries -->
+    <BaseOutputPath>bin/managed</BaseOutputPath>
   </PropertyGroup>
 
+  <!-- Display native code in the solution view -->
   <ItemGroup>
     <CppFile Include="**/*.h" Visible="true" />
     <CppFile Include="**/*.c" Visible="true" />
     <CppFile Include="**/*.hpp" Visible="true" />
     <CppFile Include="**/*.cpp" Visible="true" />
   </ItemGroup>
-
-  <Import Project="../YARG.Core.Native/YARG.Core.Native.build.targets" />
 
 </Project>
