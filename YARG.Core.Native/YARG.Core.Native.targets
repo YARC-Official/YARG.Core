@@ -39,8 +39,8 @@
   </Choose>
 
   <ItemGroup>
-    <CMakeOutput Include="$(CMakeOutputDirectory)YARG.Core.Native.dll" />
-    <CMakeOutput Include="$(CMakeOutputDirectory)YARG.Core.Native.pdb" />
+    <CMakeOutput Include="$(CMakeOutputDirectory)yarg_core_native.dll" />
+    <CMakeOutput Include="$(CMakeOutputDirectory)yarg_core_native.pdb" />
     <None Include="@(CMakeOutput)">
       <Visible>false</Visible>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

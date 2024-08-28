@@ -38,6 +38,4 @@
     </Compile>
   </ItemGroup>
 
-  <Import Project="../YARG.Core.Native/YARG.Core.Native.build.targets" />
-
 </Project>

@@ -9,9 +9,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestConsole", "TestConsole\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "YARG.Core.UnitTests", "YARG.Core.UnitTests\YARG.Core.UnitTests.csproj", "{CEB65528-9BCC-4E6D-BC93-24104FF9EB25}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReplayCli", "ReplayCli\ReplayCli.csproj", "{40F9BEDC-2124-4CCF-9CF8-74C43170A4C5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ReplayCli", "ReplayCli\ReplayCli.csproj", "{40F9BEDC-2124-4CCF-9CF8-74C43170A4C5}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "YARG.Core.Benchmarks", "YARG.Core.Benchmarks\YARG.Core.Benchmarks.csproj", "{D26697B2-1739-4327-9B34-1501FE0E619F}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "YARG.Core.Native", "YARG.Core.Native\YARG.Core.Native.csproj", "{CE6ED02B-33FA-48B8-A253-3D555E4B116A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -127,6 +129,26 @@ Global
 		{D26697B2-1739-4327-9B34-1501FE0E619F}.Release|x64.Build.0 = Release|Any CPU
 		{D26697B2-1739-4327-9B34-1501FE0E619F}.Release|x86.ActiveCfg = Release|Any CPU
 		{D26697B2-1739-4327-9B34-1501FE0E619F}.Release|x86.Build.0 = Release|Any CPU
+		{CE6ED02B-33FA-48B8-A253-3D555E4B116A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CE6ED02B-33FA-48B8-A253-3D555E4B116A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CE6ED02B-33FA-48B8-A253-3D555E4B116A}.Debug|ARM.ActiveCfg = Debug|Any CPU
+		{CE6ED02B-33FA-48B8-A253-3D555E4B116A}.Debug|ARM.Build.0 = Debug|Any CPU
+		{CE6ED02B-33FA-48B8-A253-3D555E4B116A}.Debug|ARM64.ActiveCfg = Debug|Any CPU
+		{CE6ED02B-33FA-48B8-A253-3D555E4B116A}.Debug|ARM64.Build.0 = Debug|Any CPU
+		{CE6ED02B-33FA-48B8-A253-3D555E4B116A}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{CE6ED02B-33FA-48B8-A253-3D555E4B116A}.Debug|x64.Build.0 = Debug|Any CPU
+		{CE6ED02B-33FA-48B8-A253-3D555E4B116A}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{CE6ED02B-33FA-48B8-A253-3D555E4B116A}.Debug|x86.Build.0 = Debug|Any CPU
+		{CE6ED02B-33FA-48B8-A253-3D555E4B116A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CE6ED02B-33FA-48B8-A253-3D555E4B116A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CE6ED02B-33FA-48B8-A253-3D555E4B116A}.Release|ARM.ActiveCfg = Release|Any CPU
+		{CE6ED02B-33FA-48B8-A253-3D555E4B116A}.Release|ARM.Build.0 = Release|Any CPU
+		{CE6ED02B-33FA-48B8-A253-3D555E4B116A}.Release|ARM64.ActiveCfg = Release|Any CPU
+		{CE6ED02B-33FA-48B8-A253-3D555E4B116A}.Release|ARM64.Build.0 = Release|Any CPU
+		{CE6ED02B-33FA-48B8-A253-3D555E4B116A}.Release|x64.ActiveCfg = Release|Any CPU
+		{CE6ED02B-33FA-48B8-A253-3D555E4B116A}.Release|x64.Build.0 = Release|Any CPU
+		{CE6ED02B-33FA-48B8-A253-3D555E4B116A}.Release|x86.ActiveCfg = Release|Any CPU
+		{CE6ED02B-33FA-48B8-A253-3D555E4B116A}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
