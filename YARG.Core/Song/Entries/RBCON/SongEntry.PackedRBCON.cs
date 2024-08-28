@@ -223,7 +223,7 @@ namespace YARG.Core.Song
                         var file = new FileInfo(fileBase + ext);
                         if (file.Exists)
                         {
-                            var image = YARGImage.Load(file);
+                            var image = YARGImage.LoadFile(file);
                             if (image != null)
                             {
                                 return new BackgroundResult(image);

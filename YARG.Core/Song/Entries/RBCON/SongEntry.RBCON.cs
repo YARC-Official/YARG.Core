@@ -213,7 +213,7 @@ namespace YARG.Core.Song
             {
                 return null;
             }
-            return new YARGImage(bytes);
+            return YARGImage.LoadDXT(bytes);
         }
 
         public override FixedArray<byte>? LoadMiloData()
