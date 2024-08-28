@@ -1,8 +1,9 @@
-﻿#ifdef _WIN32
+#ifdef _WIN32
 
 #include "CrashHandler.h"
 
 #include <Windows.h>
+#include <stdio.h>
 #include <DbgHelp.h>
 
 // MiniDumpWriteDump function pointer type
@@ -10,16 +11,6 @@
 
 void CreateMiniDump(EXCEPTION_POINTERS* exceptionPointers)
 {
-    // TODO Try to link with dbghelp.lib instead of loading it dynamically?
-    // HMODULE hDbgHelp = LoadLibrary("dbghelp.dll");
-    // if (hDbgHelp == NULL)
-    // {
-    //     return;
-    // }
-
-    // Get the MiniDumpWriteDump function pointer
-    // MINIDUMPWRITEDUMP MiniDumpWriteDump = (MINIDUMPWRITEDUMP)GetProcAddress(hDbgHelp, "MiniDumpWriteDump");
-
     // Create the dump file
     HANDLE hFile = CreateFileW(L"crash.dmp", GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     if (hFile == INVALID_HANDLE_VALUE)
@@ -43,8 +34,34 @@ void CreateMiniDump(EXCEPTION_POINTERS* exceptionPointers)
 
 LONG WINAPI CrashHandler_ExceptionHandler(EXCEPTION_POINTERS* exceptionPointers)
 {
+    const char* exception = GetExceptionString(exceptionPointers->ExceptionRecord->ExceptionCode);
     //CreateMiniDump(exceptionPointers);
-    MessageBox(NULL, "An exception occurred!", "Exception", MB_OK | MB_ICONERROR);
+
+    const char* pipeName = "\\\\.\\pipe\\YARGPipe";
+    HANDLE pipeHandle = CreateFile(pipeName, GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+
+    char buff[256];
+    if (pipeHandle == INVALID_HANDLE_VALUE)
+    {
+        ZeroMemory(buff, 256);
+        sprintf_s(buff, 100, "Failed to open pipe: %d", GetLastError());
+        MessageBox(NULL, buff, "Pipe Open Result", MB_OK | MB_ICONERROR);
+        return EXCEPTION_EXECUTE_HANDLER;
+    }
+
+    DWORD result;
+    BOOL writeResult = WriteFile(pipeHandle, exception, (DWORD)strlen(exception) + 1, &result, NULL);
+    CloseHandle(pipeHandle);
+
+    if (!writeResult)
+    {
+        ZeroMemory(buff, 256);
+        sprintf_s(buff, 100, "Failed to write to pipe: %d", GetLastError());
+        MessageBox(NULL, buff, "Pipe Write Result", MB_OK | MB_ICONERROR);
+        return EXCEPTION_EXECUTE_HANDLER;
+    }
+
+    MessageBox(NULL, exception, "Exception", MB_OK | MB_ICONERROR);
     return EXCEPTION_EXECUTE_HANDLER;
 }
 
