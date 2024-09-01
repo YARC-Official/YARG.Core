@@ -28,7 +28,7 @@ namespace YARG.Core.Replays
         private static readonly EightCC REPLAY_MAGIC_HEADER_OLD = new('Y', 'A', 'R', 'G', 'P', 'L', 'A', 'Y');
         private static readonly EightCC REPLAY_MAGIC_HEADER = new('Y', 'A', 'R', 'E', 'P', 'L', 'A', 'Y');
 
-        private static readonly (int OLD_MIN, int NEW_METADATA_MIN, int NEW_DATA_MIN, int CURRENT) REPLAY_VERSIONS = (4, 6, 6, 6);
+        private static readonly (int OLD_MIN, int METADATA_MIN, int DATA_MIN, int CURRENT) REPLAY_VERSIONS = (4, 6, 6, 6);
         private const int ENGINE_VERSION = 0;
 
         public static (ReplayReadResult Result, ReplayInfo Info, ReplayData Data) TryDeserialize(string path)
@@ -60,13 +60,13 @@ namespace YARG.Core.Replays
 
                 using var headerStream = headerArray.ToStream();
                 var info = new ReplayInfo(path, headerStream);
-                if (info.ReplayVersion < REPLAY_VERSIONS.NEW_METADATA_MIN || info.ReplayVersion > REPLAY_VERSIONS.CURRENT)
+                if (info.ReplayVersion < REPLAY_VERSIONS.METADATA_MIN || info.ReplayVersion > REPLAY_VERSIONS.CURRENT)
                 {
                     return (ReplayReadResult.InvalidVersion, null!, null!);
                 }
 
                 // Ensures a cutoff for only legible data
-                if (info.ReplayVersion < REPLAY_VERSIONS.NEW_DATA_MIN)
+                if (info.ReplayVersion < REPLAY_VERSIONS.DATA_MIN)
                 {
                     return (ReplayReadResult.MetadataOnly, info, null!);
                 }
@@ -116,12 +116,12 @@ namespace YARG.Core.Replays
 
                 using var headerStream = headerArray.ToStream();
                 var info = new ReplayInfo(path, headerStream);
-                if (info.ReplayVersion < REPLAY_VERSIONS.NEW_METADATA_MIN || info.ReplayVersion > REPLAY_VERSIONS.CURRENT)
+                if (info.ReplayVersion < REPLAY_VERSIONS.METADATA_MIN || info.ReplayVersion > REPLAY_VERSIONS.CURRENT)
                 {
                     return (ReplayReadResult.InvalidVersion, null!);
                 }
 
-                if (info.ReplayVersion < REPLAY_VERSIONS.NEW_DATA_MIN)
+                if (info.ReplayVersion < REPLAY_VERSIONS.DATA_MIN)
                 {
                     return (ReplayReadResult.MetadataOnly, info);
                 }
@@ -157,7 +157,7 @@ namespace YARG.Core.Replays
                     if (REPLAY_MAGIC_HEADER_OLD.Matches(fstream))
                     {
                         // If true, someone did a no-no and swapped the file
-                        if (info.ReplayVersion >= REPLAY_VERSIONS.NEW_METADATA_MIN)
+                        if (info.ReplayVersion >= REPLAY_VERSIONS.METADATA_MIN)
                         {
                             return (ReplayReadResult.DataMismatch, null!);
                         }
@@ -175,7 +175,7 @@ namespace YARG.Core.Replays
                 }
 
                 // If true, someone did a no-no and swapped the file
-                if (info.ReplayVersion < REPLAY_VERSIONS.NEW_METADATA_MIN)
+                if (info.ReplayVersion < REPLAY_VERSIONS.METADATA_MIN)
                 {
                     return (ReplayReadResult.DataMismatch, null!);
                 }
@@ -267,7 +267,7 @@ namespace YARG.Core.Replays
         private static (ReplayReadResult, ReplayInfo) ReadInfo_Old(string path, FileStream fstream)
         {
             int replayVersion = fstream.Read<int>(Endianness.Little);
-            if (replayVersion < REPLAY_VERSIONS.OLD_MIN || replayVersion >= REPLAY_VERSIONS.NEW_METADATA_MIN)
+            if (replayVersion < REPLAY_VERSIONS.OLD_MIN || replayVersion >= REPLAY_VERSIONS.METADATA_MIN)
             {
                 return (ReplayReadResult.InvalidVersion, null!);
             }
