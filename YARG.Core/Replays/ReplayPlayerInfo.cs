@@ -1,37 +1,35 @@
-using System.Diagnostics.CodeAnalysis;
-using System.IO;
+﻿using System.IO;
+using YARG.Core.Extensions;
 using YARG.Core.Game;
-using YARG.Core.Utility;
 
 namespace YARG.Core.Replays
 {
-    public struct ReplayPlayerInfo : IBinarySerializable
+    public readonly struct ReplayPlayerInfo
     {
-        public int         PlayerId;
-        public int         ColorProfileId;
-        public YargProfile Profile;
+        public readonly int         PlayerId;
+        public readonly int         ColorProfileId;
+        public readonly YargProfile Profile;
 
-        public ReplayPlayerInfo(BinaryReader reader, int version = 0) : this()
+        public ReplayPlayerInfo(int playerid, int colorProfileId, YargProfile profile)
         {
-            Deserialize(reader, version);
+            PlayerId = playerid;
+            ColorProfileId = colorProfileId;
+            Profile = profile;
         }
 
-        public void Serialize(BinaryWriter writer)
+        public ReplayPlayerInfo(Stream stream)
+        {
+            PlayerId = stream.Read<int>(Endianness.Little);
+            ColorProfileId = stream.Read<int>(Endianness.Little);
+            Profile = new YargProfile(stream);
+        }
+
+        public readonly void Serialize(BinaryWriter writer)
         {
             writer.Write(PlayerId);
             writer.Write(ColorProfileId);
 
             Profile.Serialize(writer);
-        }
-
-        [MemberNotNull(nameof(Profile))]
-        public void Deserialize(BinaryReader reader, int version = 0)
-        {
-            PlayerId = reader.ReadInt32();
-            ColorProfileId = reader.ReadInt32();
-
-            Profile = new YargProfile();
-            Profile.Deserialize(reader, version);
         }
     }
 }

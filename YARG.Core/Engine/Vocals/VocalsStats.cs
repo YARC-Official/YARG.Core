@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.Engine.Vocals
 {
@@ -31,6 +32,13 @@ namespace YARG.Core.Engine.Vocals
             TicksMissed = stats.TicksMissed;
         }
 
+        public VocalsStats(UnmanagedMemoryStream stream, int version)
+            : base(stream, version)
+        {
+            TicksHit = stream.Read<uint>(Endianness.Little);
+            TicksMissed = stream.Read<uint>(Endianness.Little);
+        }
+
         public override void Reset()
         {
             base.Reset();
@@ -44,14 +52,6 @@ namespace YARG.Core.Engine.Vocals
 
             writer.Write(TicksHit);
             writer.Write(TicksMissed);
-        }
-
-        public override void Deserialize(BinaryReader reader, int version = 0)
-        {
-            base.Deserialize(reader, version);
-
-            TicksHit = reader.ReadUInt32();
-            TicksMissed = reader.ReadUInt32();
         }
     }
 }

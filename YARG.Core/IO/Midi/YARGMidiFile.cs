@@ -24,7 +24,7 @@ namespace YARG.Core.IO
         public YARGMidiFile(Stream stream)
         {
             _stream = stream;
-            if (FourCC.Read(stream) != HEADER_TAG)
+            if (!HEADER_TAG.Matches(stream))
                 throw new Exception("Midi Header Chunk Tag 'MThd' not found");
 
             int length = stream.Read<int>(Endianness.Big);
@@ -44,7 +44,7 @@ namespace YARG.Core.IO
                 return null;
 
             _trackNumber++;
-            if (FourCC.Read(_stream) != TRACK_TAG)
+            if (!TRACK_TAG.Matches(_stream))
                 throw new Exception($"Midi Track Tag 'MTrk' not found for Track '{_trackNumber}'");
 
             try

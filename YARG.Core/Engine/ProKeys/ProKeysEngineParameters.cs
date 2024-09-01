@@ -1,16 +1,13 @@
 ﻿using System.IO;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.Engine.ProKeys
 {
     public class ProKeysEngineParameters : BaseEngineParameters
     {
-        public double ChordStaggerWindow { get; private set; }
+        public readonly double ChordStaggerWindow;
 
-        public double FatFingerWindow { get; private set; }
-
-        public ProKeysEngineParameters()
-        {
-        }
+        public readonly double FatFingerWindow;
 
         public ProKeysEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, double spWhammyBuffer,
             double sustainDropLeniency, float[] starMultiplierThresholds, double chordStaggerWindow, double fatFingerWindow)
@@ -20,20 +17,19 @@ namespace YARG.Core.Engine.ProKeys
             FatFingerWindow = fatFingerWindow;
         }
 
+        public ProKeysEngineParameters(UnmanagedMemoryStream stream, int version)
+            : base(stream, version)
+        {
+            ChordStaggerWindow = stream.Read<double>(Endianness.Little);
+            FatFingerWindow = stream.Read<double>(Endianness.Little);
+        }
+
         public override void Serialize(BinaryWriter writer)
         {
             base.Serialize(writer);
 
             writer.Write(ChordStaggerWindow);
             writer.Write(FatFingerWindow);
-        }
-
-        public override void Deserialize(BinaryReader reader, int version = 0)
-        {
-            base.Deserialize(reader, version);
-
-            ChordStaggerWindow = reader.ReadDouble();
-            FatFingerWindow = reader.ReadDouble();
         }
 
         public override string ToString()

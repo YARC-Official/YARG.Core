@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.Engine.Guitar
 {
@@ -31,6 +32,15 @@ namespace YARG.Core.Engine.Guitar
             SustainScore = stats.SustainScore;
         }
 
+        public GuitarStats(UnmanagedMemoryStream stream, int version)
+            : base(stream, version)
+        {
+            Overstrums = stream.Read<int>(Endianness.Little);
+            HoposStrummed = stream.Read<int>(Endianness.Little);
+            GhostInputs = stream.Read<int>(Endianness.Little);
+            SustainScore = stream.Read<int>(Endianness.Little);
+        }
+
         public override void Reset()
         {
             base.Reset();
@@ -48,16 +58,6 @@ namespace YARG.Core.Engine.Guitar
             writer.Write(HoposStrummed);
             writer.Write(GhostInputs);
             writer.Write(SustainScore);
-        }
-
-        public override void Deserialize(BinaryReader reader, int version = 0)
-        {
-            base.Deserialize(reader, version);
-
-            Overstrums = reader.ReadInt32();
-            HoposStrummed = reader.ReadInt32();
-            GhostInputs = reader.ReadInt32();
-            SustainScore = reader.ReadInt32();
         }
     }
 }

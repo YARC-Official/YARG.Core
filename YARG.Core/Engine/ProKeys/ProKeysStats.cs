@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.Engine.ProKeys
 {
@@ -18,6 +19,12 @@ namespace YARG.Core.Engine.ProKeys
             Overhits = stats.Overhits;
         }
 
+        public ProKeysStats(UnmanagedMemoryStream stream, int version)
+            : base(stream, version)
+        {
+            Overhits = stream.Read<int>(Endianness.Little);
+        }
+
         public override void Reset()
         {
             base.Reset();
@@ -29,13 +36,6 @@ namespace YARG.Core.Engine.ProKeys
             base.Serialize(writer);
 
             writer.Write(Overhits);
-        }
-
-        public override void Deserialize(BinaryReader reader, int version = 0)
-        {
-            base.Deserialize(reader, version);
-
-            Overhits = reader.ReadInt32();
         }
     }
 }

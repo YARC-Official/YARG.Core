@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.Engine.Drums
 {
@@ -18,6 +19,12 @@ namespace YARG.Core.Engine.Drums
             Overhits = stats.Overhits;
         }
 
+        public DrumsStats(UnmanagedMemoryStream stream, int version)
+            : base(stream, version)
+        {
+            Overhits = stream.Read<int>(Endianness.Little);
+        }
+
         public override void Reset()
         {
             base.Reset();
@@ -29,13 +36,6 @@ namespace YARG.Core.Engine.Drums
             base.Serialize(writer);
 
             writer.Write(Overhits);
-        }
-
-        public override void Deserialize(BinaryReader reader, int version = 0)
-        {
-            base.Deserialize(reader, version);
-
-            Overhits = reader.ReadInt32();
         }
     }
 }

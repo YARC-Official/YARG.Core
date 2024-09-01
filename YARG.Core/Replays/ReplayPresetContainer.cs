@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Bson;
 using YARG.Core.Extensions;
 using YARG.Core.Game;
 using YARG.Core.Utility;
@@ -13,7 +12,7 @@ namespace YARG.Core.Replays
     /// A container that stores the presets used in a replay, and allows for easy access of
     /// said presets. The container has separate versioning from the replay itself.
     /// </summary>
-    public class ReplayPresetContainer : IBinarySerializable
+    public class ReplayPresetContainer
     {
         private static readonly JsonSerializerSettings _jsonSettings = new()
         {
@@ -28,48 +27,19 @@ namespace YARG.Core.Replays
         private readonly Dictionary<Guid, ColorProfile> _colorProfiles = new();
         private readonly Dictionary<Guid, CameraPreset> _cameraPresets = new();
 
-        /// <returns>
-        /// The color profile if it's in this container, otherwise, <c>null</c>.
-        /// </returns>
-        public ColorProfile? GetColorProfile(Guid guid)
+        public ReplayPresetContainer(Dictionary<Guid, ColorProfile> colors, Dictionary<Guid, CameraPreset> cameras)
         {
-            return _colorProfiles.GetValueOrDefault(guid);
+            _colorProfiles = colors;
+            _cameraPresets = cameras;
         }
 
-        /// <summary>
-        /// Stores the specified color profile into this container. If the color profile
-        /// is a default one, nothing is stored.
-        /// </summary>
-        public void StoreColorProfile(ColorProfile colorProfile)
+        public ReplayPresetContainer(UnmanagedMemoryStream stream, int version)
         {
-            if (colorProfile.DefaultPreset)
-            {
-                return;
-            }
+            // This container has separate versioning
+            int _ = stream.Read<int>(Endianness.Little);
 
-            _colorProfiles[colorProfile.Id] = colorProfile;
-        }
-
-        /// <returns>
-        /// The camera preset if it's in this container, otherwise, <c>null</c>.
-        /// </returns>
-        public CameraPreset? GetCameraPreset(Guid guid)
-        {
-            return _cameraPresets.GetValueOrDefault(guid);
-        }
-
-        /// <summary>
-        /// Stores the specified camera preset into this container. If the camera preset
-        /// is a default one, nothing is stored.
-        /// </summary>
-        public void StoreCameraPreset(CameraPreset cameraPreset)
-        {
-            if (cameraPreset.DefaultPreset)
-            {
-                return;
-            }
-
-            _cameraPresets[cameraPreset.Id] = cameraPreset;
+            DeserializeDict(stream, _colorProfiles);
+            DeserializeDict(stream, _cameraPresets);
         }
 
         public void Serialize(BinaryWriter writer)
@@ -80,13 +50,20 @@ namespace YARG.Core.Replays
             SerializeDict(writer, _cameraPresets);
         }
 
-        public void Deserialize(BinaryReader reader, int version = 0)
+        /// <returns>
+        /// The color profile if it's in this container, otherwise, <c>null</c>.
+        /// </returns>
+        public ColorProfile? GetColorProfile(Guid guid)
         {
-            // This container has separate versioning
-            version = reader.ReadInt32();
+            return _colorProfiles.GetValueOrDefault(guid);
+        }
 
-            DeserializeDict(reader, _colorProfiles);
-            DeserializeDict(reader, _cameraPresets);
+        /// <returns>
+        /// The camera preset if it's in this container, otherwise, <c>null</c>.
+        /// </returns>
+        public CameraPreset? GetCameraPreset(Guid guid)
+        {
+            return _cameraPresets.GetValueOrDefault(guid);
         }
 
         private static void SerializeDict<T>(BinaryWriter writer, Dictionary<Guid, T> dict)
@@ -103,17 +80,17 @@ namespace YARG.Core.Replays
             }
         }
 
-        private static void DeserializeDict<T>(BinaryReader reader, Dictionary<Guid, T> dict)
+        private static void DeserializeDict<T>(Stream stream, Dictionary<Guid, T> dict)
         {
             dict.Clear();
-            int len = reader.ReadInt32();
+            int len = stream.Read<int>(Endianness.Little);
             for (int i = 0; i < len; i++)
             {
                 // Read key
-                var guid = reader.ReadGuid();
+                var guid = stream.ReadGuid();
 
                 // Read preset
-                var json = reader.ReadString();
+                var json = stream.ReadString();
                 var preset = JsonConvert.DeserializeObject<T>(json, _jsonSettings)!;
 
                 dict.Add(guid, preset);

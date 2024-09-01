@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Drawing;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -35,6 +36,32 @@ namespace YARG.Core.Extensions
             return Unsafe.As<byte, bool>(ref b);
         }
 
+        public static int Read7BitEncodedInt(this Stream stream)
+        {
+            uint result = 0;
+            byte byteReadJustNow;
+
+            const int MaxBytesWithoutOverflow = 4;
+            for (int shift = 0; shift < MaxBytesWithoutOverflow * 7; shift += 7)
+            {
+                byteReadJustNow = (byte) stream.ReadByte();
+                result |= (byteReadJustNow & 0x7Fu) << shift;
+                if (byteReadJustNow <= 0x7Fu)
+                {
+                    return (int) result;
+                }
+            }
+
+            byteReadJustNow = (byte) stream.ReadByte();
+            if (byteReadJustNow > 0b_1111u)
+            {
+                throw new Exception("LEB value exceeds max allowed");
+            }
+
+            result |= (uint) byteReadJustNow << MaxBytesWithoutOverflow * 7;
+            return (int) result;
+        }
+
         public static string ReadString(this Stream stream)
         {
             int length = Read7BitEncodedInt(stream);
@@ -58,6 +85,22 @@ namespace YARG.Core.Extensions
 
             var bytes = stream.ReadBytes(length);
             return Encoding.UTF8.GetString(bytes);
+        }
+
+        public static Color ReadColor(this Stream stream)
+        {
+            int argb = stream.Read<int>(Endianness.Little);
+            return Color.FromArgb(argb);
+        }
+
+        public static Guid ReadGuid(this Stream stream)
+        {
+            Span<byte> span = stackalloc byte[16];
+            if (stream.Read(span) != span.Length)
+            {
+                throw new EndOfStreamException("Failed to read GUID, ran out of bytes!");
+            }
+            return new Guid(span);
         }
 
         public static byte[] ReadBytes(this Stream stream, int length)
@@ -91,32 +134,6 @@ namespace YARG.Core.Extensions
                 for (int i = 0, j = sizeof(TType) - 1; i < half; ++i, --j)
                     (bytes[j], bytes[i]) = (bytes[i], bytes[j]);
             }
-        }
-
-        private static int Read7BitEncodedInt(this Stream stream)
-        {
-            uint result = 0;
-            byte byteReadJustNow;
-
-            const int MaxBytesWithoutOverflow = 4;
-            for (int shift = 0; shift < MaxBytesWithoutOverflow * 7; shift += 7)
-            {
-                byteReadJustNow = (byte) stream.ReadByte();
-                result |= (byteReadJustNow & 0x7Fu) << shift;
-                if (byteReadJustNow <= 0x7Fu)
-                {
-                    return (int) result;
-                }
-            }
-
-            byteReadJustNow = (byte) stream.ReadByte();
-            if (byteReadJustNow > 0b_1111u)
-            {
-                throw new Exception("LEB value exceeds max allowed");
-            }
-
-            result |= (uint) byteReadJustNow << MaxBytesWithoutOverflow * 7;
-            return (int) result;
         }
     }
 }

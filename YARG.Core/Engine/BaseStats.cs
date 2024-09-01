@@ -1,9 +1,9 @@
 ﻿using System.IO;
-using YARG.Core.Utility;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.Engine
 {
-    public abstract class BaseStats : IBinarySerializable
+    public abstract class BaseStats
     {
         /// <summary>
         /// Finalized score (e.g from notes hit and sustains)
@@ -168,6 +168,34 @@ namespace YARG.Core.Engine
             Stars = stats.Stars;
         }
 
+        protected BaseStats(UnmanagedMemoryStream stream, int version)
+        {
+            CommittedScore = stream.Read<int>(Endianness.Little);
+            PendingScore = stream.Read<int>(Endianness.Little);
+
+            Combo = stream.Read<int>(Endianness.Little);
+            MaxCombo = stream.Read<int>(Endianness.Little);
+            ScoreMultiplier = stream.Read<int>(Endianness.Little);
+
+            NotesHit = stream.Read<int>(Endianness.Little);
+            TotalNotes = stream.Read<int>(Endianness.Little);
+
+            StarPowerTickAmount = stream.Read<uint>(Endianness.Little);
+            TotalStarPowerTicks = stream.Read<uint>(Endianness.Little);
+            TimeInStarPower = stream.Read<double>(Endianness.Little);
+            StarPowerWhammyTicks = stream.Read<uint>(Endianness.Little);
+            IsStarPowerActive = stream.ReadBoolean();
+
+            StarPowerPhrasesHit = stream.Read<int>(Endianness.Little);
+            TotalStarPowerPhrases = stream.Read<int>(Endianness.Little);
+
+            SoloBonuses = stream.Read<int>(Endianness.Little);
+            StarPowerScore = stream.Read<int>(Endianness.Little);
+
+            // Deliberately not read so that stars can be re-calculated if thresholds change
+            // Stars = reader.ReadInt32();
+        }
+
         public virtual void Reset()
         {
             CommittedScore = 0;
@@ -222,34 +250,6 @@ namespace YARG.Core.Engine
 
             // Deliberately not written so that stars can be re-calculated with different thresholds
             // writer.Write(Stars);
-        }
-
-        public virtual void Deserialize(BinaryReader reader, int version = 0)
-        {
-            CommittedScore = reader.ReadInt32();
-            PendingScore = reader.ReadInt32();
-
-            Combo = reader.ReadInt32();
-            MaxCombo = reader.ReadInt32();
-            ScoreMultiplier = reader.ReadInt32();
-
-            NotesHit = reader.ReadInt32();
-            TotalNotes = reader.ReadInt32();
-
-            StarPowerTickAmount = reader.ReadUInt32();
-            TotalStarPowerTicks = reader.ReadUInt32();
-            TimeInStarPower = reader.ReadDouble();
-            StarPowerWhammyTicks = reader.ReadUInt32();
-            IsStarPowerActive = reader.ReadBoolean();
-
-            StarPowerPhrasesHit = reader.ReadInt32();
-            TotalStarPowerPhrases = reader.ReadInt32();
-
-            SoloBonuses = reader.ReadInt32();
-            StarPowerScore = reader.ReadInt32();
-
-            // Deliberately not read so that stars can be re-calculated if thresholds change
-            // Stars = reader.ReadInt32();
         }
     }
 }

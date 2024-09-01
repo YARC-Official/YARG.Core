@@ -1,78 +1,303 @@
-using System;
+﻿using System;
 using System.IO;
-using System.Linq;
+using System.Runtime.InteropServices.ComTypes;
+using System.Text.RegularExpressions;
+using YARG.Core.Extensions;
+using YARG.Core.Game;
 using YARG.Core.IO;
+using YARG.Core.IO.Disposables;
 using YARG.Core.Logging;
 using YARG.Core.Song;
+using YARG.Core.Utility;
 
 namespace YARG.Core.Replays
 {
     public enum ReplayReadResult
     {
         Valid,
-        NotAReplay,
+        MetadataOnly,
         InvalidVersion,
+        DataMismatch,
+        NotAReplay,
         Corrupted,
+        FileNotFound,
     }
 
     public static class ReplayIO
     {
-        public static readonly EightCC REPLAY_MAGIC_HEADER = new('Y', 'A', 'R', 'G', 'P', 'L', 'A', 'Y');
+        private static readonly EightCC REPLAY_MAGIC_HEADER_OLD = new('Y', 'A', 'R', 'G', 'P', 'L', 'A', 'Y');
+        private static readonly EightCC REPLAY_MAGIC_HEADER = new('Y', 'A', 'R', 'E', 'P', 'L', 'A', 'Y');
 
-        public const int REPLAY_VERSION = 5;
+        // Disallows versions under this value entirely as metadata wasn't consistent before this point
+        private const int MIN_VERSION_OLD = 4;
+        private const int MAX_VERSION_OLD = 5;
 
-        // Some versions may be invalidated (such as significant format changes)
-        private static readonly int[] InvalidVersions =
+        // Disallows versions under this value entirely, usually for metadata updates
+        private const int MIN_VERSION = 6;
+        private const int MIN_METADATA_VERSION = 6;
+        private const int REPLAY_VERSION = 6;
+        private const int ENGINE_VERSION = 0;
+
+        public static (ReplayReadResult Result, ReplayInfo Info, ReplayData Data) TryDeserialize(string path)
         {
-            0, 1, 2, 3
-        };
-
-        // note: [NotNullWhen(ReplayReadResult.Valid)] is not a valid form of [NotNullWhen],
-        // so replayFile will always be indicated as possibly being null
-        public static ReplayReadResult ReadReplay(string path, out ReplayFile? replayFile)
-        {
-            using var stream = File.OpenRead(path);
-            using var reader = new BinaryReader(stream);
-
             try
             {
-                replayFile = ReplayFile.Create(reader);
+                using var fstream = File.OpenRead(path);
+                if (!REPLAY_MAGIC_HEADER.Matches(fstream))
+                {
+                    if (REPLAY_MAGIC_HEADER_OLD.Matches(fstream))
+                    {
+                        var (result, info_old) = ReadInfo_Old(path, fstream);
+                        return (result, info_old, null!);
+                    }
+                    else
+                    {
+                        return (ReplayReadResult.NotAReplay, null!, null!);
+                    }
+                }
 
-                if (replayFile.Header.Magic != REPLAY_MAGIC_HEADER) return ReplayReadResult.NotAReplay;
+                var headerHash = HashWrapper.Deserialize(fstream);
+                int headerLength = fstream.Read<int>(Endianness.Little);
+                using var headerArray = AllocatedArray<byte>.Read(fstream, headerLength);
+                if (!headerHash.Equals(HashWrapper.Hash(headerArray.ReadOnlySpan)))
+                {
+                    return (ReplayReadResult.Corrupted, null!, null!);
+                }
 
-                int version = replayFile.Header.ReplayVersion;
-                if (InvalidVersions.Contains(version) || version > REPLAY_VERSION) return ReplayReadResult.InvalidVersion;
+                using var headerStream = headerArray.ToStream();
+                var info = new ReplayInfo(path, headerStream);
+                if (info.ReplayVersion < MIN_VERSION || info.ReplayVersion > REPLAY_VERSION)
+                {
+                    return (ReplayReadResult.InvalidVersion, null!, null!);
+                }
 
-                replayFile.ReadData(reader, replayFile.Header.ReplayVersion);
+                if (info.ReplayVersion < MIN_METADATA_VERSION)
+                {
+                    return (ReplayReadResult.MetadataOnly, info, null!);
+                }
 
-                return ReplayReadResult.Valid;
+                using var data = AllocatedArray<byte>.Read(fstream, fstream.Length - fstream.Position);
+                if (!info.ReplayChecksum.Equals(HashWrapper.Hash(data.ReadOnlySpan)))
+                {
+                    return (ReplayReadResult.Corrupted, null!, null!);
+                }
+
+                using var dataStream = data.ToStream();
+                var replayData = new ReplayData(dataStream, info.ReplayVersion);
+                return (ReplayReadResult.Valid, info, replayData);
             }
             catch (Exception ex)
             {
                 YargLogger.LogException(ex, "Failed to read replay file");
-                replayFile = null;
-                return ReplayReadResult.Corrupted;
+                return (ReplayReadResult.Corrupted, null!, null!);
             }
         }
 
-        public static HashWrapper? WriteReplay(string path, Replay replay)
+        public static (ReplayReadResult Result, ReplayInfo Info) TryReadMetadata(string path)
         {
-            using var stream = File.OpenWrite(path);
-            using var writer = new BinaryWriter(stream);
-
             try
             {
-                var replayFile = new ReplayFile(replay);
+                using var fstream = File.OpenRead(path);
+                if (!REPLAY_MAGIC_HEADER.Matches(fstream))
+                {
+                    if (REPLAY_MAGIC_HEADER_OLD.Matches(fstream))
+                    {
+                        return ReadInfo_Old(path, fstream);
+                    }
+                    else
+                    {
+                        return (ReplayReadResult.NotAReplay, null!);
+                    }
+                }
 
-                replayFile.Serialize(writer);
-                return replayFile.Header.ReplayChecksum;
+                var headerHash = HashWrapper.Deserialize(fstream);
+                int headerLength = fstream.Read<int>(Endianness.Little);
+                using var headerArray = AllocatedArray<byte>.Read(fstream, headerLength);
+                if (!headerHash.Equals(HashWrapper.Hash(headerArray.ReadOnlySpan)))
+                {
+                    return (ReplayReadResult.Corrupted, null!);
+                }
+
+                using var headerStream = headerArray.ToStream();
+                var info = new ReplayInfo(path, headerStream);
+                if (info.ReplayVersion < MIN_VERSION || info.ReplayVersion > REPLAY_VERSION)
+                {
+                    return (ReplayReadResult.InvalidVersion, null!);
+                }
+
+                if (info.ReplayVersion < MIN_METADATA_VERSION)
+                {
+                    return (ReplayReadResult.MetadataOnly, info);
+                }
+
+                // The stream-based hashing function provides better efficiency in this instance
+                // as we don't read the entire file.
+                using var algo = HashWrapper.Algorithm;
+                var hash = algo.ComputeHash(fstream);
+                if (!info.ReplayChecksum.Equals(HashWrapper.Create(hash)))
+                {
+                    return (ReplayReadResult.Corrupted, null!);
+                }
+                return (ReplayReadResult.Valid, info);
             }
             catch (Exception ex)
             {
-                YargLogger.LogException(ex, "Failed to write replay file");
+                YargLogger.LogException(ex, "Failed to read replay file");
+                return (ReplayReadResult.Corrupted, null!);
+            }
+        }
+
+        public static (ReplayReadResult Result, ReplayData Data) TryLoadData(ReplayInfo info)
+        {
+            try
+            {
+                using var fstream = File.OpenRead(info.FilePath);
+                if (!REPLAY_MAGIC_HEADER.Matches(fstream))
+                {
+                    if (REPLAY_MAGIC_HEADER_OLD.Matches(fstream))
+                    {
+                        if (info.ReplayVersion > MAX_VERSION_OLD)
+                        {
+                            return (ReplayReadResult.DataMismatch, null!);
+                        }
+
+                        int replayVersion_old = fstream.Read<int>(Endianness.Little);
+                        int engineVersion_old = fstream.Read<int>(Endianness.Little);
+                        var replayChecksum_old = HashWrapper.Deserialize(fstream);
+                        if (replayVersion_old != info.ReplayVersion || info.EngineVersion != engineVersion_old || !info.ReplayChecksum.Equals(replayChecksum_old))
+                        {
+                            return (ReplayReadResult.DataMismatch, null!);
+                        }
+                    }
+                    return (ReplayReadResult.InvalidVersion, null!);
+                }
+
+                if (info.ReplayVersion <= MAX_VERSION_OLD)
+                {
+                    return (ReplayReadResult.DataMismatch, null!);
+                }
+
+                var headerHash = HashWrapper.Deserialize(fstream);
+                int headerLength = fstream.Read<int>(Endianness.Little);
+                using var headerArray = AllocatedArray<byte>.Read(fstream, headerLength);
+                if (!headerHash.Equals(HashWrapper.Hash(headerArray.ReadOnlySpan)))
+                {
+                    return (ReplayReadResult.Corrupted, null!);
+                }
+
+                using var headerStream = headerArray.ToStream();
+                int replayVersion = headerStream.Read<int>(Endianness.Little);
+                int engineVersion = headerStream.Read<int>(Endianness.Little);
+                var replayChecksum = HashWrapper.Deserialize(headerStream);
+                if (replayVersion != info.ReplayVersion || info.EngineVersion != engineVersion || !info.ReplayChecksum.Equals(replayChecksum))
+                {
+                    return (ReplayReadResult.DataMismatch, null!);
+                }
+
+                // Do not need to validate remaining header data
+                headerStream.Position += headerStream.Read7BitEncodedInt();
+                headerStream.Position += headerStream.Read7BitEncodedInt();
+                headerStream.Position += headerStream.Read7BitEncodedInt();
+                headerStream.Position += HashWrapper.HASH_SIZE_IN_BYTES;
+                headerStream.Position += sizeof(long);
+                headerStream.Position += sizeof(int);
+                headerStream.Position += sizeof(int);
+                headerStream.Position += sizeof(byte);
+
+                using var data = AllocatedArray<byte>.Read(fstream, fstream.Length - fstream.Position);
+                if (!info.ReplayChecksum.Equals(HashWrapper.Hash(data.ReadOnlySpan)))
+                {
+                    return (ReplayReadResult.Corrupted, null!);
+                }
+
+                using var dataStream = data.ToStream();
+                var replayData = new ReplayData(dataStream, info.ReplayVersion);
+                return (ReplayReadResult.Valid, replayData);
+            }
+            catch (Exception ex)
+            {
+                YargLogger.LogException(ex, "Failed to read replay file");
+                return (ReplayReadResult.Corrupted, null!);
+            }
+        }
+
+        public static (bool Success, ReplayInfo Info) TrySerialize(string directory, SongEntry song, double length, int score, StarAmount stars, ReplayPresetContainer presets, ReplayFrame[] frames)
+        {
+            try
+            {
+                // Write all the data for the replay hash
+                using var dataStream = new MemoryStream();
+                using var dataWriter = new BinaryWriter(dataStream);
+
+                presets.Serialize(dataWriter);
+                dataWriter.Write(frames.Length);
+                foreach (var frame in frames)
+                {
+                    frame.Serialize(dataWriter);
+                }
+
+                var replayData = new ReadOnlySpan<byte>(dataStream.GetBuffer(), 0, (int) dataStream.Length);
+                var replayChecksum = HashWrapper.Hash(replayData);
+                var date = DateTime.Now;
+                var replayName = ReplayInfo.ConstructReplayName(song.Name, song.Artist, song.Charter, in date);
+                var path = Path.Combine(directory, replayName + ".replay");
+                var info = new ReplayInfo(path, replayName, REPLAY_VERSION, ENGINE_VERSION, in replayChecksum, song.Name, song.Artist, song.Charter, song.Hash, in date, length, score, stars);
+
+                // Write all the data for the header hash
+                using var headerStream = new MemoryStream();
+                using var headerWriter = new BinaryWriter(headerStream);
+                info.Serialize(headerWriter);
+
+                var headerData = new ReadOnlySpan<byte>(headerStream.GetBuffer(), 0, (int) headerStream.Length);
+                var headerChecksum = HashWrapper.Hash(headerData);
+
+                // Write all processed data to the file
+                using var fstream = File.OpenWrite(path);
+                using var fileWriter = new BinaryWriter(fstream);
+                REPLAY_MAGIC_HEADER.Serialize(fileWriter);
+                headerChecksum.Serialize(fileWriter);
+                fileWriter.Write(headerData.Length);
+                fileWriter.Write(headerData);
+                fileWriter.Write(replayData);
+                return (true, info);
+            }
+            catch (Exception e)
+            {
+                YargLogger.LogException(e, "Failed to save replay to file");
+                return (false, null!);
+            }
+        }
+
+        private static (ReplayReadResult, ReplayInfo) ReadInfo_Old(string path, FileStream fstream)
+        {
+            int replayVersion = fstream.Read<int>(Endianness.Little);
+            if (replayVersion < MIN_VERSION_OLD || replayVersion > MAX_VERSION_OLD)
+            {
+                return (ReplayReadResult.InvalidVersion, null!);
             }
 
-            return null;
+            int engineVersion = fstream.Read<int>(Endianness.Little);
+            var replayChecksum = HashWrapper.Deserialize(fstream);
+
+            using var data = AllocatedArray<byte>.Read(fstream, fstream.Length - fstream.Position);
+            if (!replayChecksum.Equals(HashWrapper.Hash(data.ReadOnlySpan)))
+            {
+                return (ReplayReadResult.Corrupted, null!);
+            }
+
+            using var memStream = data.ToStream();
+            var song = memStream.ReadString();
+            var artist = memStream.ReadString();
+            var charter = memStream.ReadString();
+            var score = memStream.Read<int>(Endianness.Little);
+            var stars = (StarAmount) memStream.ReadByte();
+            var length = memStream.Read<double>(Endianness.Little);
+            var date = DateTime.FromBinary(memStream.Read<long>(Endianness.Little));
+            var songChecksum = HashWrapper.Deserialize(memStream);
+
+            var replayName = ReplayInfo.ConstructReplayName(song, artist, charter, in date);
+            var info = new ReplayInfo(path, replayName, replayVersion, engineVersion, in replayChecksum, song, artist, charter, in songChecksum, in date, length, score, stars);
+            return (ReplayReadResult.MetadataOnly, info);
         }
     }
 }
