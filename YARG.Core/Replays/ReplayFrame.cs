@@ -3,6 +3,7 @@ using System.IO;
 using YARG.Core.Engine;
 using YARG.Core.Engine.Drums;
 using YARG.Core.Engine.Guitar;
+using YARG.Core.Engine.ProKeys;
 using YARG.Core.Engine.Vocals;
 using YARG.Core.Extensions;
 using YARG.Core.Input;
@@ -52,6 +53,10 @@ namespace YARG.Core.Replays
                 case GameMode.Vocals:
                     EngineParameters = new VocalsEngineParameters(stream, version);
                     Stats = new VocalsStats(stream, version);
+                    break;
+                case GameMode.ProKeys:
+                    EngineParameters = new ProKeysEngineParameters(stream, version);
+                    Stats = new ProKeysStats(stream, version);
                     break;
                 default:
                     throw new InvalidOperationException("Stat creation not implemented.");
