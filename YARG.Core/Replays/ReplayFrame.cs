@@ -6,6 +6,7 @@ using YARG.Core.Engine.Guitar;
 using YARG.Core.Engine.ProKeys;
 using YARG.Core.Engine.Vocals;
 using YARG.Core.Extensions;
+using YARG.Core.Game;
 using YARG.Core.Input;
 using YARG.Core.IO;
 
@@ -15,16 +16,20 @@ namespace YARG.Core.Replays
     {
         private static readonly FourCC FRAME_TAG = new('R', 'P', 'F', 'M');
 
-        public readonly ReplayPlayerInfo     PlayerInfo;
+        public readonly int                  PlayerId;
+        public readonly int                  ColorProfileId;
+        public readonly YargProfile          Profile;
         public readonly BaseEngineParameters EngineParameters;
         public readonly BaseStats            Stats;
         public readonly GameInput[]          Inputs;
 
         public int InputCount => Inputs.Length;
 
-        public ReplayFrame(ReplayPlayerInfo info, BaseEngineParameters param, BaseStats stats, GameInput[] inputs)
+        public ReplayFrame(int playerId, int colorProfileId, YargProfile profile, BaseEngineParameters param, BaseStats stats, GameInput[] inputs)
         {
-            PlayerInfo = info;
+            PlayerId = playerId;
+            ColorProfileId = colorProfileId;
+            Profile = profile;
             Stats = stats;
             EngineParameters = param;
             Inputs = inputs;
@@ -37,8 +42,11 @@ namespace YARG.Core.Replays
                 throw new Exception("RPFM tag not found");
             }
 
-            PlayerInfo = new ReplayPlayerInfo(stream);
-            switch (PlayerInfo.Profile.CurrentInstrument.ToGameMode())
+            PlayerId = stream.Read<int>(Endianness.Little);
+            ColorProfileId = stream.Read<int>(Endianness.Little);
+            Profile = new YargProfile(stream);
+
+            switch (Profile.CurrentInstrument.ToGameMode())
             {
                 case GameMode.FiveFretGuitar:
                 case GameMode.SixFretGuitar:
@@ -77,7 +85,11 @@ namespace YARG.Core.Replays
         public void Serialize(BinaryWriter writer)
         {
             FRAME_TAG.Serialize(writer);
-            PlayerInfo.Serialize(writer);
+
+            writer.Write(PlayerId);
+            writer.Write(ColorProfileId);
+            Profile.Serialize(writer);
+
             EngineParameters.Serialize(writer);
             Stats.Serialize(writer);
 

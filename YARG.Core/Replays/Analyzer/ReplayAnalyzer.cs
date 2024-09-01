@@ -55,7 +55,7 @@ namespace YARG.Core.Replays.Analyzer
 
         private AnalysisResult RunFrame(ReplayFrame frame)
         {
-            var engine = CreateEngine(frame.PlayerInfo.Profile, frame.EngineParameters);
+            var engine = CreateEngine(frame.Profile, frame.EngineParameters);
             engine.Reset();
 
             double maxTime;

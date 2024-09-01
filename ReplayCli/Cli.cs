@@ -112,7 +112,7 @@ public partial class Cli
         for (int i = 0; i < _replayData.Frames.Length; i++)
         {
             var frame = _replayData.Frames[i];
-            var profile = frame.PlayerInfo.Profile;
+            var profile = frame.Profile;
 
             Console.WriteLine($"{i}. {profile.Name}, {profile.CurrentInstrument} ({profile.CurrentDifficulty})");
 
