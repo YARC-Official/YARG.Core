@@ -16,8 +16,6 @@ namespace YARG.Core.Replays
     {
         private static readonly FourCC FRAME_TAG = new('R', 'P', 'F', 'M');
 
-        public readonly int                  PlayerId;
-        public readonly int                  ColorProfileId;
         public readonly YargProfile          Profile;
         public readonly BaseEngineParameters EngineParameters;
         public readonly BaseStats            Stats;
@@ -25,10 +23,8 @@ namespace YARG.Core.Replays
 
         public int InputCount => Inputs.Length;
 
-        public ReplayFrame(int playerId, int colorProfileId, YargProfile profile, BaseEngineParameters param, BaseStats stats, GameInput[] inputs)
+        public ReplayFrame(YargProfile profile, BaseEngineParameters param, BaseStats stats, GameInput[] inputs)
         {
-            PlayerId = playerId;
-            ColorProfileId = colorProfileId;
             Profile = profile;
             Stats = stats;
             EngineParameters = param;
@@ -42,10 +38,7 @@ namespace YARG.Core.Replays
                 throw new Exception("RPFM tag not found");
             }
 
-            PlayerId = stream.Read<int>(Endianness.Little);
-            ColorProfileId = stream.Read<int>(Endianness.Little);
             Profile = new YargProfile(stream);
-
             switch (Profile.CurrentInstrument.ToGameMode())
             {
                 case GameMode.FiveFretGuitar:
@@ -85,11 +78,7 @@ namespace YARG.Core.Replays
         public void Serialize(BinaryWriter writer)
         {
             FRAME_TAG.Serialize(writer);
-
-            writer.Write(PlayerId);
-            writer.Write(ColorProfileId);
             Profile.Serialize(writer);
-
             EngineParameters.Serialize(writer);
             Stats.Serialize(writer);
 
