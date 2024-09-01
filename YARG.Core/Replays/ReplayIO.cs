@@ -28,14 +28,7 @@ namespace YARG.Core.Replays
         private static readonly EightCC REPLAY_MAGIC_HEADER_OLD = new('Y', 'A', 'R', 'G', 'P', 'L', 'A', 'Y');
         private static readonly EightCC REPLAY_MAGIC_HEADER = new('Y', 'A', 'R', 'E', 'P', 'L', 'A', 'Y');
 
-        // Disallows versions under this value entirely as metadata wasn't consistent before this point
-        private const int MIN_VERSION_OLD = 4;
-        private const int MAX_VERSION_OLD = 5;
-
-        // Disallows versions under this value entirely, usually for metadata updates
-        private const int MIN_VERSION = 6;
-        private const int MIN_METADATA_VERSION = 6;
-        private const int REPLAY_VERSION = 6;
+        private static readonly (int OLD_MIN, int NEW_METADATA_MIN, int NEW_DATA_MIN, int CURRENT) REPLAY_VERSIONS = (4, 6, 6, 6);
         private const int ENGINE_VERSION = 0;
 
         public static (ReplayReadResult Result, ReplayInfo Info, ReplayData Data) TryDeserialize(string path)
@@ -66,12 +59,12 @@ namespace YARG.Core.Replays
 
                 using var headerStream = headerArray.ToStream();
                 var info = new ReplayInfo(path, headerStream);
-                if (info.ReplayVersion < MIN_VERSION || info.ReplayVersion > REPLAY_VERSION)
+                if (info.ReplayVersion < REPLAY_VERSIONS.NEW_METADATA_MIN || info.ReplayVersion > REPLAY_VERSIONS.CURRENT)
                 {
                     return (ReplayReadResult.InvalidVersion, null!, null!);
                 }
 
-                if (info.ReplayVersion < MIN_METADATA_VERSION)
+                if (info.ReplayVersion < REPLAY_VERSIONS.NEW_DATA_MIN)
                 {
                     return (ReplayReadResult.MetadataOnly, info, null!);
                 }
@@ -120,12 +113,12 @@ namespace YARG.Core.Replays
 
                 using var headerStream = headerArray.ToStream();
                 var info = new ReplayInfo(path, headerStream);
-                if (info.ReplayVersion < MIN_VERSION || info.ReplayVersion > REPLAY_VERSION)
+                if (info.ReplayVersion < REPLAY_VERSIONS.NEW_METADATA_MIN || info.ReplayVersion > REPLAY_VERSIONS.CURRENT)
                 {
                     return (ReplayReadResult.InvalidVersion, null!);
                 }
 
-                if (info.ReplayVersion < MIN_METADATA_VERSION)
+                if (info.ReplayVersion < REPLAY_VERSIONS.NEW_DATA_MIN)
                 {
                     return (ReplayReadResult.MetadataOnly, info);
                 }
@@ -156,7 +149,7 @@ namespace YARG.Core.Replays
                 {
                     if (REPLAY_MAGIC_HEADER_OLD.Matches(fstream))
                     {
-                        if (info.ReplayVersion > MAX_VERSION_OLD)
+                        if (info.ReplayVersion >= REPLAY_VERSIONS.NEW_METADATA_MIN)
                         {
                             return (ReplayReadResult.DataMismatch, null!);
                         }
@@ -172,7 +165,7 @@ namespace YARG.Core.Replays
                     return (ReplayReadResult.InvalidVersion, null!);
                 }
 
-                if (info.ReplayVersion <= MAX_VERSION_OLD)
+                if (info.ReplayVersion < REPLAY_VERSIONS.NEW_METADATA_MIN)
                 {
                     return (ReplayReadResult.DataMismatch, null!);
                 }
@@ -241,7 +234,7 @@ namespace YARG.Core.Replays
                 var date = DateTime.Now;
                 var replayName = ReplayInfo.ConstructReplayName(song.Name, song.Artist, song.Charter, in date);
                 var path = Path.Combine(directory, replayName + ".replay");
-                var info = new ReplayInfo(path, replayName, REPLAY_VERSION, ENGINE_VERSION, in replayChecksum, song.Name, song.Artist, song.Charter, song.Hash, in date, length, score, stars);
+                var info = new ReplayInfo(path, replayName, REPLAY_VERSIONS.CURRENT, ENGINE_VERSION, in replayChecksum, song.Name, song.Artist, song.Charter, song.Hash, in date, length, score, stars);
 
                 // Write all the data for the header hash
                 using var headerStream = new MemoryStream();
@@ -271,7 +264,7 @@ namespace YARG.Core.Replays
         private static (ReplayReadResult, ReplayInfo) ReadInfo_Old(string path, FileStream fstream)
         {
             int replayVersion = fstream.Read<int>(Endianness.Little);
-            if (replayVersion < MIN_VERSION_OLD || replayVersion > MAX_VERSION_OLD)
+            if (replayVersion < REPLAY_VERSIONS.OLD_MIN || replayVersion >= REPLAY_VERSIONS.NEW_METADATA_MIN)
             {
                 return (ReplayReadResult.InvalidVersion, null!);
             }
