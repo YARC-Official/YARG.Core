@@ -225,25 +225,17 @@ namespace YARG.Core.Replays
             }
         }
 
-        public static (bool Success, ReplayInfo Info) TrySerialize(string directory, SongEntry song, double length, int score, StarAmount stars, ReplayPresetContainer presets, ReplayFrame[] frames)
+        public static (bool Success, ReplayInfo Info) TrySerialize(string directory, SongEntry song, double length, int score, StarAmount stars, ReplayData data)
         {
             try
             {
                 // Write all the data for the replay hash
-                using var dataStream = new MemoryStream();
-                using var dataWriter = new BinaryWriter(dataStream);
-
-                presets.Serialize(dataWriter);
-                dataWriter.Write(frames.Length);
-                foreach (var frame in frames)
-                {
-                    frame.Serialize(dataWriter);
-                }
-
-                var replayData = new ReadOnlySpan<byte>(dataStream.GetBuffer(), 0, (int) dataStream.Length);
+                var replayData = data.Serialize();
                 var replayChecksum = HashWrapper.Hash(replayData);
+
                 var date = DateTime.Now;
                 var replayName = ReplayInfo.ConstructReplayName(song.Name, song.Artist, song.Charter, in date);
+
                 var path = Path.Combine(directory, replayName + ".replay");
                 var info = new ReplayInfo(path, replayName, REPLAY_VERSIONS.CURRENT, ENGINE_VERSION, in replayChecksum, song.Name, song.Artist, song.Charter, song.Hash, in date, length, score, stars);
 
