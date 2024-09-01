@@ -38,6 +38,7 @@ namespace YARG.Core.Replays
                 using var fstream = File.OpenRead(path);
                 if (!REPLAY_MAGIC_HEADER.Matches(fstream))
                 {
+                    // Old replays don't have their actual data deserialized
                     if (REPLAY_MAGIC_HEADER_OLD.Matches(fstream))
                     {
                         var (result, info_old) = ReadInfo_Old(path, fstream);
@@ -64,6 +65,7 @@ namespace YARG.Core.Replays
                     return (ReplayReadResult.InvalidVersion, null!, null!);
                 }
 
+                // Ensures a cutoff for only legible data
                 if (info.ReplayVersion < REPLAY_VERSIONS.NEW_DATA_MIN)
                 {
                     return (ReplayReadResult.MetadataOnly, info, null!);
@@ -93,6 +95,7 @@ namespace YARG.Core.Replays
                 using var fstream = File.OpenRead(path);
                 if (!REPLAY_MAGIC_HEADER.Matches(fstream))
                 {
+                    // Old replays use a different read pattern with fewer checks
                     if (REPLAY_MAGIC_HEADER_OLD.Matches(fstream))
                     {
                         return ReadInfo_Old(path, fstream);
@@ -125,6 +128,9 @@ namespace YARG.Core.Replays
 
                 // The stream-based hashing function provides better efficiency in this instance
                 // as we don't read the entire file.
+                //
+                // We still want to check the integrity here so that it doesn't error out when attempting to load
+                // the file in its entirety later.
                 using var algo = HashWrapper.Algorithm;
                 var hash = algo.ComputeHash(fstream);
                 if (!info.ReplayChecksum.Equals(HashWrapper.Create(hash)))
@@ -147,8 +153,10 @@ namespace YARG.Core.Replays
                 using var fstream = File.OpenRead(info.FilePath);
                 if (!REPLAY_MAGIC_HEADER.Matches(fstream))
                 {
+                    // Old replays don't have their actual data deserialized
                     if (REPLAY_MAGIC_HEADER_OLD.Matches(fstream))
                     {
+                        // If true, someone did a no-no and swapped the file
                         if (info.ReplayVersion >= REPLAY_VERSIONS.NEW_METADATA_MIN)
                         {
                             return (ReplayReadResult.DataMismatch, null!);
@@ -157,6 +165,7 @@ namespace YARG.Core.Replays
                         int replayVersion_old = fstream.Read<int>(Endianness.Little);
                         int engineVersion_old = fstream.Read<int>(Endianness.Little);
                         var replayChecksum_old = HashWrapper.Deserialize(fstream);
+                        // If true, someone did a no-no and swapped the file
                         if (replayVersion_old != info.ReplayVersion || info.EngineVersion != engineVersion_old || !info.ReplayChecksum.Equals(replayChecksum_old))
                         {
                             return (ReplayReadResult.DataMismatch, null!);
@@ -165,6 +174,7 @@ namespace YARG.Core.Replays
                     return (ReplayReadResult.InvalidVersion, null!);
                 }
 
+                // If true, someone did a no-no and swapped the file
                 if (info.ReplayVersion < REPLAY_VERSIONS.NEW_METADATA_MIN)
                 {
                     return (ReplayReadResult.DataMismatch, null!);
@@ -182,6 +192,7 @@ namespace YARG.Core.Replays
                 int replayVersion = headerStream.Read<int>(Endianness.Little);
                 int engineVersion = headerStream.Read<int>(Endianness.Little);
                 var replayChecksum = HashWrapper.Deserialize(headerStream);
+                // If true, someone did a no-no and swapped the file
                 if (replayVersion != info.ReplayVersion || info.EngineVersion != engineVersion || !info.ReplayChecksum.Equals(replayChecksum))
                 {
                     return (ReplayReadResult.DataMismatch, null!);
