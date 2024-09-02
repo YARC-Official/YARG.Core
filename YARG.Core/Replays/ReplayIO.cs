@@ -198,16 +198,6 @@ namespace YARG.Core.Replays
                     return (ReplayReadResult.DataMismatch, null!);
                 }
 
-                // Do not need to validate remaining header data
-                headerStream.Position += headerStream.Read7BitEncodedInt();
-                headerStream.Position += headerStream.Read7BitEncodedInt();
-                headerStream.Position += headerStream.Read7BitEncodedInt();
-                headerStream.Position += HashWrapper.HASH_SIZE_IN_BYTES;
-                headerStream.Position += sizeof(long);
-                headerStream.Position += sizeof(int);
-                headerStream.Position += sizeof(int);
-                headerStream.Position += sizeof(byte);
-
                 using var data = AllocatedArray<byte>.Read(fstream, fstream.Length - fstream.Position);
                 if (!info.ReplayChecksum.Equals(HashWrapper.Hash(data.ReadOnlySpan)))
                 {
