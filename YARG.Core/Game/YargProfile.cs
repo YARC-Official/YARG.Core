@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using YARG.Core.Chart;
 using YARG.Core.Utility;
 using YARG.Core.Extensions;
+using System.Linq;
 
 namespace YARG.Core.Game
 {
@@ -31,6 +32,8 @@ namespace YARG.Core.Game
             get => InputCalibrationMilliseconds / 1000.0;
             set => InputCalibrationMilliseconds = (long) (value * 1000);
         }
+
+        public bool HasValidInstrument => GameMode.PossibleInstruments().Contains(CurrentInstrument);
 
         public Guid EnginePreset;
 
