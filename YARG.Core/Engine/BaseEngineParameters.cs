@@ -32,9 +32,7 @@ namespace YARG.Core.Engine
         protected BaseEngineParameters(UnmanagedMemoryStream stream, int version)
         {
             HitWindow = new HitWindowSettings(stream, version);
-
             MaxMultiplier = stream.Read<int>(Endianness.Little);
-
             StarPowerWhammyBuffer = stream.Read<double>(Endianness.Little);
 
             // Read star multiplier thresholds
@@ -51,7 +49,6 @@ namespace YARG.Core.Engine
         public virtual void Serialize(BinaryWriter writer)
         {
             HitWindow.Serialize(writer);
-
             writer.Write(MaxMultiplier);
             writer.Write(StarPowerWhammyBuffer);
 
