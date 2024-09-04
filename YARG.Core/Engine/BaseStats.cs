@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using YARG.Core.Extensions;
+using YARG.Core.Replays;
 
 namespace YARG.Core.Engine
 {
@@ -251,5 +252,7 @@ namespace YARG.Core.Engine
             // Deliberately not written so that stars can be re-calculated with different thresholds
             // writer.Write(Stars);
         }
+
+        public abstract ReplayStats ConstructReplayStats(string name);
     }
 }

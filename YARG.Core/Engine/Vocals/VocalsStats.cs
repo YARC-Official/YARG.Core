@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using YARG.Core.Extensions;
+using YARG.Core.Replays;
 
 namespace YARG.Core.Engine.Vocals
 {
@@ -52,6 +53,11 @@ namespace YARG.Core.Engine.Vocals
 
             writer.Write(TicksHit);
             writer.Write(TicksMissed);
+        }
+
+        public override ReplayStats ConstructReplayStats(string name)
+        {
+            return new VocalsReplayStats(name, this);
         }
     }
 }

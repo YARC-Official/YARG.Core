@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using YARG.Core.Extensions;
+using YARG.Core.Replays;
 
 namespace YARG.Core.Engine.Guitar
 {
@@ -58,6 +59,11 @@ namespace YARG.Core.Engine.Guitar
             writer.Write(HoposStrummed);
             writer.Write(GhostInputs);
             writer.Write(SustainScore);
+        }
+
+        public override ReplayStats ConstructReplayStats(string name)
+        {
+            return new GuitarReplayStats(name, this);
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using YARG.Core.Extensions;
+using YARG.Core.Replays;
 
 namespace YARG.Core.Engine.ProKeys
 {
@@ -36,6 +37,11 @@ namespace YARG.Core.Engine.ProKeys
             base.Serialize(writer);
 
             writer.Write(Overhits);
+        }
+
+        public override ReplayStats ConstructReplayStats(string name)
+        {
+            return new ProKeysReplayStats(name, this);
         }
     }
 }
