@@ -26,7 +26,9 @@ namespace YARG.Core.Replays
         public readonly DateTime Date;
         public readonly HashWrapper SongChecksum;
 
-        public ReplayInfo(string path, string replayName, int replayVersion, int engineVerion, in HashWrapper replayChecksum, string song, string artist, string charter, in HashWrapper songChecksum, in DateTime date, double length, int score, StarAmount stars)
+        public readonly ReplayStats[] Stats;
+
+        public ReplayInfo(string path, string replayName, int replayVersion, int engineVerion, in HashWrapper replayChecksum, string song, string artist, string charter, in HashWrapper songChecksum, in DateTime date, double length, int score, StarAmount stars, ReplayStats[] stats)
         {
             FilePath = path;
             ReplayName = replayName;
@@ -43,6 +45,7 @@ namespace YARG.Core.Replays
             ReplayLength = length;
             BandScore = score;
             BandStars = stars;
+            Stats = stats;
         }
 
         public ReplayInfo(string path, UnmanagedMemoryStream stream)
@@ -63,6 +66,23 @@ namespace YARG.Core.Replays
             BandStars = (StarAmount) stream.ReadByte();
 
             ReplayName = ConstructReplayName(SongName, ArtistName, CharterName, in Date);
+
+            int statCount = stream.Read<int>(Endianness.Little);
+            Stats = new ReplayStats[statCount];
+            for (int i = 0; i < statCount; i++)
+            {
+                var mode = (GameMode) stream.ReadByte();
+                Stats[i] = mode switch
+                {
+                    GameMode.FiveFretGuitar or
+                    GameMode.SixFretGuitar => new GuitarReplayStats(stream, ReplayVersion),
+                    GameMode.FourLaneDrums or
+                    GameMode.FiveLaneDrums => new DrumsReplayStats(stream, ReplayVersion),
+                    GameMode.ProKeys       => new ProKeysReplayStats(stream, ReplayVersion),
+                    GameMode.Vocals        => new VocalsReplayStats(stream, ReplayVersion),
+                    _ => throw new Exception($"Stats for {mode} not supported"),
+                };
+            }
         }
 
         public void Serialize(BinaryWriter writer)
@@ -79,6 +99,12 @@ namespace YARG.Core.Replays
             writer.Write(ReplayLength);
             writer.Write(BandScore);
             writer.Write((byte) BandStars);
+
+            writer.Write(Stats.Length);
+            foreach (var stat in Stats)
+            {
+                stat.Serialize(writer);
+            }
         }
 
         // Remove invalid characters from the replay name
