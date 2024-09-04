@@ -61,7 +61,7 @@ namespace YARG.Core.Replays
             CharterName = stream.ReadString();
             SongChecksum = HashWrapper.Deserialize(stream);
             Date = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
-            ReplayLength = stream.Read<int>(Endianness.Little);
+            ReplayLength = stream.Read<double>(Endianness.Little);
             BandScore = stream.Read<int>(Endianness.Little);
             BandStars = (StarAmount) stream.ReadByte();
 
