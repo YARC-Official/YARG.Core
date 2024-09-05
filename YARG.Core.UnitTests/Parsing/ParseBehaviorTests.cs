@@ -519,15 +519,36 @@ namespace YARG.Core.UnitTests.Parsing
 
         private static void SortSong(MoonSong song)
         {
-            song.events.Sort((left, right) => left.InsertionCompareTo(right));
-            song.sections.Sort((left, right) => left.InsertionCompareTo(right));
-            song.venue.Sort((left, right) => left.InsertionCompareTo(right));
+            // Ensure parser only outputs data in ascending order
+            static void AssertAscendingTick<TEvent>(List<TEvent> events)
+                where TEvent : MoonObject
+            {
+                if (events.Count < 2)
+                    return;
+
+                for (int i = 1; i < events.Count; i++)
+                {
+                    Assert.That(events[i].tick, Is.GreaterThanOrEqualTo(events[i - 1].tick),
+                        "Chart data must be in ascending tick order from the parser.");
+                }
+            }
+
+            static void SortEvents<TEvent>(List<TEvent> events)
+                where TEvent : MoonObject
+            {
+                AssertAscendingTick(events);
+                events.Sort((left, right) => left.InsertionCompareTo(right));
+            }
+
+            SortEvents(song.events);
+            SortEvents(song.sections);
+            SortEvents(song.venue);
 
             foreach (var chart in song.Charts)
             {
-                chart.notes.Sort((left, right) => left.InsertionCompareTo(right));
-                chart.specialPhrases.Sort((left, right) => left.InsertionCompareTo(right));
-                chart.events.Sort((left, right) => left.InsertionCompareTo(right));
+                SortEvents(chart.notes);
+                SortEvents(chart.specialPhrases);
+                SortEvents(chart.events);
             }
         }
 
