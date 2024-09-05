@@ -15,60 +15,28 @@ namespace YARG.Core.UnitTests.Parsing
     using static TextEvents;
     using static ParseBehaviorTests;
 
-    public class ChartParseBehaviorTests
+    using ChartEventList = List<(uint tick, string typeCode, string data)>;
+
+    public static class ChartEventListExtensions
     {
-        private class ChartSection : IDisposable
+        public static void AddEvent(this ChartEventList events, uint tick, string typeCode, string data)
         {
-            private StringBuilder _builder;
-            private List<(uint tick, string typeCode, string data)> _events = new();
-
-            public ChartSection(StringBuilder builder, string sectionName)
-            {
-                _builder = builder;
-
-                _builder.Append($"[{sectionName}]{NEWLINE}");
-                _builder.Append($"{{{NEWLINE}");
-            }
-
-            public void AddEvent(uint tick, string typeCode, string data)
-            {
-                _events.Add((tick, typeCode, data));
-            }
-
-            public void AddEvent(uint tick, string typeCode, uint value1)
-            {
-                _events.Add((tick, typeCode, $"{value1}"));
-            }
-
-            public void AddEvent(uint tick, string typeCode, uint value1, uint value2)
-            {
-                _events.Add((tick, typeCode, $"{value1} {value2}"));
-            }
-
-            public void Dispose()
-            {
-                _events.Sort((left, right) =>
-                {
-                    int compare = left.tick.CompareTo(right.tick);
-                    if (compare != 0)
-                        return compare;
-
-                    compare = string.Compare(left.typeCode, right.typeCode, StringComparison.Ordinal);
-                    if (compare != 0)
-                        return compare;
-
-                    return string.Compare(left.data, right.data, StringComparison.Ordinal);
-                });
-
-                foreach (var (tick, typeCode, data) in _events)
-                {
-                    _builder.Append($"  {tick} = {typeCode} {data}{NEWLINE}");
-                }
-
-                _builder.Append($"}}{NEWLINE}");
-            }
+            events.Add((tick, typeCode, data));
         }
 
+        public static void AddEvent(this ChartEventList events, uint tick, string typeCode, uint value1)
+        {
+            events.Add((tick, typeCode, $"{value1}"));
+        }
+
+        public static void AddEvent(this ChartEventList events, uint tick, string typeCode, uint value1, uint value2)
+        {
+            events.Add((tick, typeCode, $"{value1} {value2}"));
+        }
+    }
+
+    public class ChartParseBehaviorTests
+    {
         private static readonly Dictionary<MoonInstrument, string> InstrumentToNameLookup =
             InstrumentStrToEnumLookup.ToDictionary((pair) => pair.Value, (pair) => pair.Key);
 
@@ -135,16 +103,16 @@ namespace YARG.Core.UnitTests.Parsing
 
         private static void GenerateSongSection(MoonSong sourceSong, StringBuilder builder)
         {
-            // Used only as a scoped guard here for the start/end of the section
-            using var section = new ChartSection(builder, SECTION_SONG);
+            WriteSectionHeader(builder, SECTION_SONG);
 
-            // Write metadata values manually, shoving methods for it into ChartSection isn't really viable
             builder.Append($"  Resolution = {sourceSong.resolution}{NEWLINE}");
+
+            WriteSectionFooter(builder);
         }
 
         private static void GenerateSyncSection(MoonSong sourceSong, StringBuilder builder)
         {
-            using var section = new ChartSection(builder, SECTION_SYNC_TRACK);
+            var section = new ChartEventList();
 
             var syncTrack = sourceSong.syncTrack;
 
@@ -158,16 +126,20 @@ namespace YARG.Core.UnitTests.Parsing
             {
                 section.AddEvent(ts.Tick, "TS", ts.Numerator, (uint) Math.Log2(ts.Denominator));
             }
+
+            FinalizeSection(builder, SECTION_SYNC_TRACK, section);
         }
 
         private static void GenerateEventsSection(MoonSong sourceSong, StringBuilder builder)
         {
-            using var section = new ChartSection(builder, SECTION_EVENTS);
+            var section = new ChartEventList();
 
             foreach (var ev in sourceSong.events.Concat(sourceSong.sections))
             {
                 section.AddEvent(ev.tick, "E", '"' + ev.text + '"');
             }
+
+            FinalizeSection(builder, SECTION_EVENTS, section);
         }
 
         private static void GenerateInstrumentSection(MoonSong sourceSong, StringBuilder builder, MoonInstrument instrument, Difficulty difficulty)
@@ -179,10 +151,7 @@ namespace YARG.Core.UnitTests.Parsing
 
             var chart = sourceSong.GetChart(instrument, difficulty);
 
-            string instrumentName = InstrumentToNameLookup[instrument];
-            string difficultyName = DifficultyToNameLookup[difficulty];
-
-            using var section = new ChartSection(builder, $"{difficultyName}{instrumentName}");
+            var section = new ChartEventList();
 
             foreach (var note in chart.notes)
             {
@@ -205,9 +174,15 @@ namespace YARG.Core.UnitTests.Parsing
             {
                 section.AddEvent(text.tick, "E", text.text);
             }
+
+            string instrumentName = InstrumentToNameLookup[instrument];
+            string difficultyName = DifficultyToNameLookup[difficulty];
+            string sectionName = $"{difficultyName}{instrumentName}";
+
+            FinalizeSection(builder, sectionName, section);
         }
 
-        private static void AppendNote(ChartSection section, MoonNote note, GameMode gameMode)
+        private static void AppendNote(ChartEventList section, MoonNote note, GameMode gameMode)
         {
             uint tick = note.tick;
             var flags = note.flags;
@@ -247,7 +222,7 @@ namespace YARG.Core.UnitTests.Parsing
                 section.AddEvent(tick, "N", NOTE_OFFSET_DRUMS_GHOST + chartNumber, 0);
         }
 
-        private static void AppendPhrase(ChartSection section, MoonPhrase phrase, GameMode gameMode,
+        private static void AppendPhrase(ChartEventList section, MoonPhrase phrase, GameMode gameMode,
             List<MoonPhrase> phrasesToRemove, List<MoonText> textPhrases)
         {
             // Drums-only phrases
@@ -268,6 +243,45 @@ namespace YARG.Core.UnitTests.Parsing
 
             uint phraseNumber = SpecialPhraseLookup[phrase.type];
             section.AddEvent(phrase.tick, "S", phraseNumber, phrase.length);
+        }
+
+        private static void WriteSectionHeader(StringBuilder builder, string name)
+        {
+            // [Name]\r\n
+            // {\r\n
+            builder.Append($"[{name}]{NEWLINE}");
+            builder.Append($"{{{NEWLINE}");
+        }
+
+        private static void WriteSectionFooter(StringBuilder builder)
+        {
+            // }\r\n
+            builder.Append($"}}{NEWLINE}");
+        }
+
+        private static void FinalizeSection(StringBuilder builder, string name, ChartEventList events)
+        {
+            events.Sort((left, right) =>
+            {
+                int compare = left.tick.CompareTo(right.tick);
+                if (compare != 0)
+                    return compare;
+
+                compare = string.Compare(left.typeCode, right.typeCode, StringComparison.Ordinal);
+                if (compare != 0)
+                    return compare;
+
+                return string.Compare(left.data, right.data, StringComparison.Ordinal);
+            });
+
+            WriteSectionHeader(builder, name);
+
+            foreach (var (tick, typeCode, data) in events)
+            {
+                builder.Append($"  {tick} = {typeCode} {data}{NEWLINE}");
+            }
+
+            WriteSectionFooter(builder);
         }
 
         private static string GenerateChartFile(MoonSong sourceSong)
