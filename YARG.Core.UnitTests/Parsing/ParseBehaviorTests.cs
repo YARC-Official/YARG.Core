@@ -1,4 +1,5 @@
-﻿using MoonscraperChartEditor.Song;
+﻿using System.Collections;
+using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
 using NUnit.Framework;
 using YARG.Core.Chart;
@@ -9,6 +10,20 @@ namespace YARG.Core.UnitTests.Parsing
     using static MoonSong;
     using static MoonChart;
     using static MoonNote;
+
+    // Collection initializer support wrapper,
+    // to avoid implementing a hack into the real MoonChart
+    internal class ParseBehavior(GameMode gameMode) : IEnumerable
+    {
+        public MoonChart chart = new(gameMode);
+
+        public void Add(MoonNote note) => chart.Add(note);
+        public void Add(MoonPhrase phrase) => chart.Add(phrase);
+        public void Add(MoonText ev) => chart.Add(ev);
+
+        // Only implemented to allow collection initializer support
+        IEnumerator IEnumerable.GetEnumerator() => throw new NotImplementedException();
+    }
 
     internal class ParseBehaviorTests
     {
@@ -34,7 +49,7 @@ namespace YARG.Core.UnitTests.Parsing
         private static MoonPhrase NewSpecial(int index, MoonPhrase.Type type, float length = 0)
             => new((uint) (index * RESOLUTION), (uint) (length * RESOLUTION), type);
 
-        public static readonly MoonChart GuitarTrack = new(GameMode.Guitar)
+        public static readonly ParseBehavior GuitarTrack = new(GameMode.Guitar)
         {
             NewNote(0, GuitarFret.Green),
             NewNote(1, GuitarFret.Red),
@@ -98,7 +113,7 @@ namespace YARG.Core.UnitTests.Parsing
             NewNote(46, GuitarFret.Open, length: 1),
         };
 
-        public static readonly MoonChart GhlGuitarTrack = new(GameMode.GHLGuitar)
+        public static readonly ParseBehavior GhlGuitarTrack = new(GameMode.GHLGuitar)
         {
             NewNote(0, GHLiveGuitarFret.Black1),
             NewNote(1, GHLiveGuitarFret.Black2),
@@ -142,7 +157,7 @@ namespace YARG.Core.UnitTests.Parsing
             NewNote(33, GHLiveGuitarFret.Open),
         };
 
-        public static readonly MoonChart ProGuitarTrack = new(GameMode.ProGuitar)
+        public static readonly ParseBehavior ProGuitarTrack = new(GameMode.ProGuitar)
         {
             NewNote(0, ProGuitarString.Red, 0),
             NewNote(1, ProGuitarString.Green, 1),
@@ -198,7 +213,7 @@ namespace YARG.Core.UnitTests.Parsing
             NewNote(41, ProGuitarString.Purple, 5),
         };
 
-        public static readonly MoonChart DrumsTrack = new(GameMode.Drums)
+        public static readonly ParseBehavior DrumsTrack = new(GameMode.Drums)
         {
             NewNote(0, DrumPad.Kick),
             NewNote(1, DrumPad.Kick, flags: Flags.DoubleKick),
@@ -299,7 +314,7 @@ namespace YARG.Core.UnitTests.Parsing
 
         private const byte VOCALS_RANGE_START = MidIOHelper.VOCALS_RANGE_START;
 
-        public static readonly MoonChart VocalsNotes = new(GameMode.Vocals)
+        public static readonly ParseBehavior VocalsNotes = new(GameMode.Vocals)
         {
             NewSpecial(0, MoonPhrase.Type.Versus_Player1, length: 12),
             NewSpecial(0, MoonPhrase.Type.Vocals_LyricPhrase, length: 12),
@@ -369,7 +384,7 @@ namespace YARG.Core.UnitTests.Parsing
             NewNote(49, 0, flags: Flags.Vocals_Percussion),
         };
 
-        public static readonly MoonChart ProKeysNotes = new(GameMode.ProKeys)
+        public static readonly ParseBehavior ProKeysNotes = new(GameMode.ProKeys)
         {
             NewSpecial(0, MoonPhrase.Type.ProKeys_RangeShift0),
             NewNote(0, 0, length: 1),
@@ -451,7 +466,7 @@ namespace YARG.Core.UnitTests.Parsing
 
         public static MoonChart GameModeToChartData(GameMode gameMode)
         {
-            return gameMode switch
+            var behavior = gameMode switch
             {
                 GameMode.Guitar => GuitarTrack,
                 GameMode.GHLGuitar => GhlGuitarTrack,
@@ -461,6 +476,9 @@ namespace YARG.Core.UnitTests.Parsing
                 GameMode.ProKeys => ProKeysNotes,
                 _ => throw new NotImplementedException($"No note data for game mode {gameMode}")
             };
+
+            // ParseBehavior is simply an initialization wrapper, don't return it directly
+            return behavior.chart;
         }
 
         public static void PopulateSyncTrack(MoonSong song)

@@ -6,7 +6,7 @@ using System.Collections.Generic;
 
 namespace MoonscraperChartEditor.Song
 {
-    internal class MoonChart : IEnumerable
+    internal class MoonChart
     {
         /// <summary>
         /// The game mode the chart is designed for
@@ -84,9 +84,6 @@ namespace MoonscraperChartEditor.Song
             specialPhrases.Sort((left, right) => left.InsertionCompareTo(right));
             events.Sort((left, right) => left.InsertionCompareTo(right));
         }
-
-        // Only implemented to allow collection initializer support
-        IEnumerator IEnumerable.GetEnumerator() => throw new System.NotImplementedException();
 
         public enum GameMode
         {
