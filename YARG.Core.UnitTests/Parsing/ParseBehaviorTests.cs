@@ -517,10 +517,26 @@ namespace YARG.Core.UnitTests.Parsing
             }
         }
 
+        private static void SortSong(MoonSong song)
+        {
+            song.events.Sort((left, right) => left.InsertionCompareTo(right));
+            song.sections.Sort((left, right) => left.InsertionCompareTo(right));
+            song.venue.Sort((left, right) => left.InsertionCompareTo(right));
+
+            foreach (var chart in song.Charts)
+            {
+                chart.notes.Sort((left, right) => left.InsertionCompareTo(right));
+                chart.specialPhrases.Sort((left, right) => left.InsertionCompareTo(right));
+                chart.events.Sort((left, right) => left.InsertionCompareTo(right));
+            }
+        }
+
         public static void VerifySong(MoonSong sourceSong, MoonSong parsedSong, IEnumerable<GameMode> supportedModes)
         {
-            sourceSong.Sort();
-            parsedSong.Sort();
+            // Sort songs before comparing, to ensure general consistency regardless of event ordering
+            // Behavior which relies on a specific event ordering should be checked using a dedicated test
+            SortSong(sourceSong);
+            SortSong(parsedSong);
 
             VerifyGlobal(sourceSong, parsedSong);
 
