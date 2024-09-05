@@ -1,4 +1,4 @@
-﻿using Melanchall.DryWetMidi.Common;
+using Melanchall.DryWetMidi.Common;
 using Melanchall.DryWetMidi.Core;
 using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
@@ -345,8 +345,26 @@ namespace YARG.Core.UnitTests.Parsing
                 if (singleDifficulty && difficulty != Difficulty.Expert)
                     continue;
 
-                var chart = sourceSong.GetChart(instrument, difficulty);
-                GenerateTrack(timedEvents, chart, gameMode, difficulty);
+                var notesChart = sourceSong.GetChart(instrument, difficulty);
+
+                long lastNoteTick = 0;
+                foreach (var note in notesChart.notes)
+                {
+                    GenerateNote(timedEvents, note, gameMode, difficulty, ref lastNoteTick);
+                }
+            }
+
+            // Phrases and text events apply to all difficulties
+            // Grab the ones from the Expert chart
+            var chart = sourceSong.GetChart(instrument, Difficulty.Expert);
+            foreach (var phrase in chart.specialPhrases)
+            {
+                GenerateSpecialPhrase(timedEvents, phrase, gameMode);
+            }
+
+            foreach (var ev in chart.events)
+            {
+                timedEvents.Add((ev.tick, new MidiTextEvent(ev.text)));
             }
 
             // Write events to new track
@@ -360,29 +378,25 @@ namespace YARG.Core.UnitTests.Parsing
             var timedEvents = new MidiEventList();
 
             var chart = sourceSong.GetChart(instrument, difficulty);
-            GenerateTrack(timedEvents, chart, gameMode, difficulty);
 
-            string instrumentName = InstrumentDifficultyToNameLookupLookup[instrument][difficulty];
-            return FinalizeTrackChunk(instrumentName, timedEvents);
-        }
-
-        private static void GenerateTrack(MidiEventList events, MoonChart chart, GameMode gameMode, Difficulty difficulty)
-        {
             long lastNoteTick = 0;
             foreach (var note in chart.notes)
             {
-                GenerateNote(events, note, gameMode, difficulty, ref lastNoteTick);
+                GenerateNote(timedEvents, note, gameMode, difficulty, ref lastNoteTick);
             }
 
             foreach (var phrase in chart.specialPhrases)
             {
-                GenerateSpecialPhrase(events, phrase, gameMode);
+                GenerateSpecialPhrase(timedEvents, phrase, gameMode);
             }
 
             foreach (var ev in chart.events)
             {
-                events.Add((ev.tick, new MidiTextEvent(ev.text)));
+                timedEvents.Add((ev.tick, new MidiTextEvent(ev.text)));
             }
+
+            string instrumentName = InstrumentDifficultyToNameLookupLookup[instrument][difficulty];
+            return FinalizeTrackChunk(instrumentName, timedEvents);
         }
 
         private static void GenerateNote(MidiEventList events, MoonNote note, GameMode gameMode, Difficulty difficulty,
