@@ -6,6 +6,7 @@ using NUnit.Framework;
 using YARG.Core.Chart;
 using YARG.Core.Extensions;
 using YARG.Core.Logging;
+using YARG.Core.Parsing;
 
 namespace YARG.Core.UnitTests.Parsing
 {
@@ -626,6 +627,17 @@ namespace YARG.Core.UnitTests.Parsing
             {
                 Assert.Fail($"Chart parsing threw an exception!\n{ex}");
                 return;
+            }
+
+            // Apply vocals phrases to source global events
+            var vocalsChart = sourceSong.GetChart(MoonInstrument.Vocals, Difficulty.Expert);
+            foreach (var phrase in vocalsChart.specialPhrases)
+            {
+                if (phrase.type == MoonPhrase.Type.Vocals_LyricPhrase)
+                {
+                    sourceSong.InsertText(new MoonText(TextEvents.LYRIC_PHRASE_START, phrase.tick));
+                    sourceSong.InsertText(new MoonText(TextEvents.LYRIC_PHRASE_END, phrase.tick + phrase.length));
+                }
             }
 
             VerifySong(sourceSong, parsedSong, InstrumentNoteOffsetLookup.Keys);
