@@ -235,6 +235,12 @@ namespace YARG.Core.Engine.Drums
                 return;
             }
 
+            if (note.IsStarPowerActivator && CanStarPowerActivate)
+            {
+                HitNote(note, true);
+                return;
+            }
+
             note.SetMissState(true, false);
 
             if (note.IsStarPower)
