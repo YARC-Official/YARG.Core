@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
 using NUnit.Framework;
@@ -491,7 +491,7 @@ namespace YARG.Core.UnitTests.Parsing
         {
             foreach (var text in events)
             {
-                song.Add(text.Clone());
+                song.AddText(text.Clone());
             }
         }
 

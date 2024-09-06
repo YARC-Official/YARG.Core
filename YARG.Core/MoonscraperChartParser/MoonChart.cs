@@ -48,17 +48,32 @@ namespace MoonscraperChartEditor.Song
             specialPhrases.Clear();
         }
 
-        public int Add(MoonNote note)
+        public void Add(MoonNote note)
+        {
+            MoonObjectHelper.AddToEnd(note, notes);
+        }
+
+        public void Add(MoonPhrase phrase)
+        {
+            MoonObjectHelper.AddToEnd(phrase, specialPhrases);
+        }
+
+        public void Add(MoonText ev)
+        {
+            MoonObjectHelper.AddToEnd(ev, events);
+        }
+
+        public int Insert(MoonNote note)
         {
             return MoonObjectHelper.Insert(note, notes);
         }
 
-        public int Add(MoonPhrase phrase)
+        public int Insert(MoonPhrase phrase)
         {
             return MoonObjectHelper.Insert(phrase, specialPhrases);
         }
 
-        public int Add(MoonText ev)
+        public int Insert(MoonText ev)
         {
             return MoonObjectHelper.Insert(ev, events);
         }
