@@ -15,23 +15,23 @@ namespace YARG.Core.UnitTests.Parsing
     using static TextEvents;
     using static ParseBehaviorTests;
 
-    using ChartEventList = List<(uint tick, string typeCode, string data)>;
+    using ChartEventList = List<(uint tick, string data)>;
 
     public static class ChartEventListExtensions
     {
         public static void AddEvent(this ChartEventList events, uint tick, string typeCode, string data)
         {
-            events.Add((tick, typeCode, data));
+            events.Add((tick, $"{typeCode} {data}"));
         }
 
         public static void AddEvent(this ChartEventList events, uint tick, string typeCode, uint value1)
         {
-            events.Add((tick, typeCode, $"{value1}"));
+            events.Add((tick, $"{typeCode} {value1}"));
         }
 
         public static void AddEvent(this ChartEventList events, uint tick, string typeCode, uint value1, uint value2)
         {
-            events.Add((tick, typeCode, $"{value1} {value2}"));
+            events.Add((tick, $"{typeCode} {value1} {value2}"));
         }
     }
 
@@ -267,18 +267,14 @@ namespace YARG.Core.UnitTests.Parsing
                 if (compare != 0)
                     return compare;
 
-                compare = string.Compare(left.typeCode, right.typeCode, StringComparison.Ordinal);
-                if (compare != 0)
-                    return compare;
-
                 return string.Compare(left.data, right.data, StringComparison.Ordinal);
             });
 
             WriteSectionHeader(builder, name);
 
-            foreach (var (tick, typeCode, data) in events)
+            foreach (var (tick, data) in events)
             {
-                builder.Append($"  {tick} = {typeCode} {data}{NEWLINE}");
+                builder.Append($"  {tick} = {data}{NEWLINE}");
             }
 
             WriteSectionFooter(builder);
