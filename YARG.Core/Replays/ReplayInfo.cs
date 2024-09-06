@@ -20,6 +20,7 @@ namespace YARG.Core.Replays
         public readonly string SongName;
         public readonly string ArtistName;
         public readonly string CharterName;
+        public readonly float SongSpeed;
         public readonly int BandScore;
         public readonly StarAmount BandStars;
         public readonly double ReplayLength;
@@ -28,7 +29,7 @@ namespace YARG.Core.Replays
 
         public readonly ReplayStats[] Stats;
 
-        public ReplayInfo(string path, string replayName, int replayVersion, int engineVerion, in HashWrapper replayChecksum, string song, string artist, string charter, in HashWrapper songChecksum, in DateTime date, double length, int score, StarAmount stars, ReplayStats[] stats)
+        public ReplayInfo(string path, string replayName, int replayVersion, int engineVerion, in HashWrapper replayChecksum, string song, string artist, string charter, in HashWrapper songChecksum, in DateTime date, float speed, double length, int score, StarAmount stars, ReplayStats[] stats)
         {
             FilePath = path;
             ReplayName = replayName;
@@ -42,6 +43,7 @@ namespace YARG.Core.Replays
             CharterName = charter;
             SongChecksum = songChecksum;
             Date = date;
+            SongSpeed = speed;
             ReplayLength = length;
             BandScore = score;
             BandStars = stars;
@@ -61,6 +63,7 @@ namespace YARG.Core.Replays
             CharterName = stream.ReadString();
             SongChecksum = HashWrapper.Deserialize(stream);
             Date = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
+            SongSpeed = stream.Read<float>(Endianness.Little);
             ReplayLength = stream.Read<double>(Endianness.Little);
             BandScore = stream.Read<int>(Endianness.Little);
             BandStars = (StarAmount) stream.ReadByte();
@@ -96,6 +99,7 @@ namespace YARG.Core.Replays
             writer.Write(CharterName);
             SongChecksum.Serialize(writer);
             writer.Write(Date.ToBinary());
+            writer.Write(SongSpeed);
             writer.Write(ReplayLength);
             writer.Write(BandScore);
             writer.Write((byte) BandStars);

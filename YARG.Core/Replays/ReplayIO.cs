@@ -215,7 +215,7 @@ namespace YARG.Core.Replays
             }
         }
 
-        public static (bool Success, ReplayInfo Info) TrySerialize(string directory, SongEntry song, double length, int score, StarAmount stars, ReplayStats[] stats, ReplayData data)
+        public static (bool Success, ReplayInfo Info) TrySerialize(string directory, SongEntry song, float speed, double length, int score, StarAmount stars, ReplayStats[] stats, ReplayData data)
         {
             try
             {
@@ -227,7 +227,7 @@ namespace YARG.Core.Replays
                 var replayName = ReplayInfo.ConstructReplayName(song.Name, song.Artist, song.Charter, in date);
 
                 var path = Path.Combine(directory, replayName + ".replay");
-                var info = new ReplayInfo(path, replayName, REPLAY_VERSIONS.CURRENT, ENGINE_VERSION, in replayChecksum, song.Name, song.Artist, song.Charter, song.Hash, in date, length, score, stars, stats);
+                var info = new ReplayInfo(path, replayName, REPLAY_VERSIONS.CURRENT, ENGINE_VERSION, in replayChecksum, song.Name, song.Artist, song.Charter, song.Hash, in date, speed, length, score, stars, stats);
 
                 // Write all the data for the header hash
                 using var headerStream = new MemoryStream();
@@ -256,6 +256,9 @@ namespace YARG.Core.Replays
 
         private static (ReplayReadResult, ReplayInfo) ReadInfo_Old(string path, FileStream fstream)
         {
+            // This value can't be correctly parsed from old data due to version inconsistencies
+            // + It originally only came from EngineParameters
+            const float DEFAULT_SPEED = 1.0f;
             int replayVersion = fstream.Read<int>(Endianness.Little);
             if (replayVersion < REPLAY_VERSIONS.OLD_MIN || replayVersion >= REPLAY_VERSIONS.METADATA_MIN)
             {
@@ -282,7 +285,7 @@ namespace YARG.Core.Replays
             var songChecksum = HashWrapper.Deserialize(memStream);
 
             var replayName = ReplayInfo.ConstructReplayName(song, artist, charter, in date);
-            var info = new ReplayInfo(path, replayName, replayVersion, engineVersion, in replayChecksum, song, artist, charter, in songChecksum, in date, length, score, stars, Array.Empty<ReplayStats>());
+            var info = new ReplayInfo(path, replayName, replayVersion, engineVersion, in replayChecksum, song, artist, charter, in songChecksum, in date, DEFAULT_SPEED, length, score, stars, Array.Empty<ReplayStats>());
             return (ReplayReadResult.MetadataOnly, info);
         }
     }
