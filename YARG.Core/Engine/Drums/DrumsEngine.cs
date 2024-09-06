@@ -235,6 +235,7 @@ namespace YARG.Core.Engine.Drums
                 return;
             }
 
+            // Allow drummers to skip SP activation notes without being penalized.
             if (note.IsStarPowerActivator && CanStarPowerActivate)
             {
                 HitNote(note, true);
