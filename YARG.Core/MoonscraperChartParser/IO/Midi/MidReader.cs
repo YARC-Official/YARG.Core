@@ -372,7 +372,11 @@ namespace MoonscraperChartEditor.Song.IO
                             continue;
 
                         // Add the event
-                        song.Add(new MoonVenue(eventData.type, eventData.text, (uint)startTick, (uint)(startTick - absoluteTime)));
+                        // Must be inserted due to potentially being out of ascending order
+                        MoonObjectHelper.OrderedInsertFromBack(
+                            new MoonVenue(eventData.type, eventData.text, (uint)startTick, (uint)(absoluteTime - startTick)),
+                            song.venue
+                        );
                     }
                 }
                 else if (MidIOHelper.IsTextEvent(trackEvent, out var text))
