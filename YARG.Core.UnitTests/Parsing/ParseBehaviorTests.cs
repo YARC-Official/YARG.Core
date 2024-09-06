@@ -457,7 +457,7 @@ namespace YARG.Core.UnitTests.Parsing
             PopulateGlobalEvents(song, GlobalEvents);
             foreach (var instrument in EnumExtensions<MoonInstrument>.Values)
             {
-                var gameMode = InstrumentToChartGameMode(instrument);
+                var gameMode = MoonSong.InstrumentToChartGameMode(instrument);
                 var track = GameModeToChartData(gameMode);
                 PopulateInstrument(song, instrument, track);
             }
