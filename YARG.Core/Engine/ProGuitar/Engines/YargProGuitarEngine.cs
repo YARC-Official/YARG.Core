@@ -37,7 +37,7 @@ namespace YARG.Core.Engine.ProGuitar.Engines
 
         protected override void UpdateHitLogic(double time)
         {
-            throw new System.NotImplementedException();
+            // throw new System.NotImplementedException();
         }
 
         protected override void CheckForNoteHit()
