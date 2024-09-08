@@ -178,6 +178,15 @@ namespace YARG.Core.Game
             }
         }
 
+        public void EnsureValidInstrument()
+        {
+
+            if (!HasValidInstrument)
+            {
+                CurrentInstrument = GameMode.PossibleInstruments()[0];
+            }
+        }
+
         // For replay serialization
         public void Serialize(BinaryWriter writer)
         {
