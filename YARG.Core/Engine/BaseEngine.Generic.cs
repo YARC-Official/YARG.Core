@@ -299,7 +299,7 @@ namespace YARG.Core.Engine
 
         public override void Reset(bool keepCurrentButtons = false)
         {
-            base.Reset();
+            base.Reset(keepCurrentButtons);
 
             InputQueue.Clear();
 
@@ -362,14 +362,16 @@ namespace YARG.Core.Engine
             while (prevNote is not null && !prevNote.WasFullyHitOrMissed())
             {
                 skipped = true;
-                YargLogger.LogFormatTrace("Missed note (Index: {0}) ({1}) due to note skip at {2}", NoteIndex, prevNote.IsParent ? "Parent" : "Child", CurrentTime);
+                YargLogger.LogFormatTrace("Missed note (Index: {0}) ({1}) due to note skip at {2}",
+                    NoteIndex, prevNote.IsParent ? "Parent" : "Child", CurrentTime);
                 MissNote(prevNote);
 
                 if (TreatChordAsSeparate)
                 {
                     foreach (var child in prevNote.ChildNotes)
                     {
-                        YargLogger.LogFormatTrace("Missed note (Index: {0}) ({1}) due to note skip at {2}", NoteIndex, child.IsParent ? "Parent" : "Child", CurrentTime);
+                        YargLogger.LogFormatTrace("Missed note (Index: {0}) ({1}) due to note skip at {2}",
+                            NoteIndex, child.IsParent ? "Parent" : "Child", CurrentTime);
                         MissNote(child);
                     }
                 }
