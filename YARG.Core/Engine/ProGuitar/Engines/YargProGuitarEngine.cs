@@ -27,11 +27,20 @@ namespace YARG.Core.Engine.ProGuitar.Engines
             }
             else if (action <= ProGuitarAction.String6_Fret)
             {
-                HeldFrets[(int) action] = gameInput.Integer;
+                HeldFrets[(int) action] = (byte) gameInput.Integer;
             }
             else if (action is >= ProGuitarAction.String1_Strum and <= ProGuitarAction.String6_Strum)
             {
-                // TODO
+                int index = action - ProGuitarAction.String1_Strum;
+
+                // Strum works on protar by sending the "velocity" of the string hit. If there is a change in this value,
+                // we can call it a strum. The "velocity" value is based upon a sensor on each string which outputs a pretty
+                // much random value on strum.
+                if (LastStrumValues[index] != gameInput.Integer)
+                {
+                    LastStrumValues[index] = (byte) gameInput.Integer;
+                    Strums |= (byte) (1 << index);
+                }
             }
         }
 

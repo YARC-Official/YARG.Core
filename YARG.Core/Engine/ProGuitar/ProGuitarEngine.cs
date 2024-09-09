@@ -12,7 +12,10 @@ namespace YARG.Core.Engine.ProGuitar
         public delegate void OverstrumEvent();
         public OverstrumEvent? OnOverstrum;
 
-        public int[] HeldFrets = new int[STRING_COUNT];
+        public FretBytes HeldFrets = FretBytes.CreateEmpty();
+
+        public FretBytes LastStrumValues = FretBytes.CreateEmpty();
+        public byte Strums = 0;
 
         public bool WasNoteGhosted { get; protected set; }
 

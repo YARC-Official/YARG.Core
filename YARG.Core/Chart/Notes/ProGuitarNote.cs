@@ -1,4 +1,5 @@
 ﻿using System;
+using YARG.Core.Engine.ProGuitar;
 
 namespace YARG.Core.Chart
 {
@@ -8,7 +9,12 @@ namespace YARG.Core.Chart
         public ProGuitarNoteFlags ProFlags;
 
         public int String   { get; }
+
+        // TODO: Convert this into a byte (probably)
         public int Fret     { get; }
+
+        private FretBytes _chordMask;
+        public FretBytes ChordMask => _chordMask;
 
         public ProGuitarNoteType Type { get; set; }
 
@@ -38,6 +44,9 @@ namespace YARG.Core.Chart
             Type = type;
 
             ProFlags = _proFlags = proFlags;
+
+            _chordMask = FretBytes.CreateMask();
+            _chordMask[proString] = (byte) proFret;
         }
 
         public ProGuitarNote(ProGuitarNote other) : base(other)
@@ -47,13 +56,21 @@ namespace YARG.Core.Chart
             Type = other.Type;
 
             ProFlags = _proFlags = other._proFlags;
+
+            _chordMask = FretBytes.CreateMask();
+            _chordMask[String] = (byte) Fret;
         }
 
         public override void AddChildNote(ProGuitarNote note)
         {
-            // TODO Check if string+fret already exists in the parent and skip adding if it does
+            if (_chordMask[note.String] != FretBytes.IGNORE_BYTE)
+            {
+                return;
+            }
 
             base.AddChildNote(note);
+
+            _chordMask[note.String] = (byte) note.Fret;
         }
 
         public override void ResetNoteState()
