@@ -14,15 +14,41 @@ namespace YARG.Core.Engine.ProGuitar
 
         public FretBytes HeldFrets = FretBytes.CreateEmpty();
 
-        public FretBytes LastStrumValues = FretBytes.CreateEmpty();
-        public byte Strums = 0;
+        protected byte Strums = 0;
+        protected bool HasFretted;
+        protected bool HasTapped = true;
 
         public bool WasNoteGhosted { get; protected set; }
+
+        /// <summary>
+        /// The amount of time a hopo is allowed to take a strum input.
+        /// Strum after this time and it will overstrum.
+        /// </summary>
+        protected EngineTimer HopoLeniencyTimer;
 
         public ProGuitarEngine(InstrumentDifficulty<ProGuitarNote> chart, SyncTrack syncTrack,
             ProGuitarEngineParameters engineParameters, bool isBot)
             : base(chart, syncTrack, engineParameters, false, isBot)
         {
+            HopoLeniencyTimer = new EngineTimer(engineParameters.HopoLeniency);
+        }
+
+        protected override void GenerateQueuedUpdates(double nextTime)
+        {
+            base.GenerateQueuedUpdates(nextTime);
+            var previousTime = CurrentTime;
+
+            // TODO: Sustains
+
+            // Check all timers
+            if (HopoLeniencyTimer.IsActive)
+            {
+                if (IsTimeBetween(HopoLeniencyTimer.EndTime, previousTime, nextTime))
+                {
+                    YargLogger.LogFormatTrace("Queuing hopo leniency end time at {0}", HopoLeniencyTimer.EndTime);
+                    QueueUpdateTime(HopoLeniencyTimer.EndTime, "HOPO Leniency End");
+                }
+            }
         }
 
         public override void Reset(bool keepCurrentButtons = false)
@@ -35,8 +61,13 @@ namespace YARG.Core.Engine.ProGuitar
                 }
             }
 
+            Strums = 0;
+            HasFretted = false;
+            HasTapped = true;
+
             WasNoteGhosted = false;
 
+            HopoLeniencyTimer.Disable();
             StarPowerWhammyTimer.Disable();
 
             ActiveSustains.Clear();
@@ -96,6 +127,13 @@ namespace YARG.Core.Engine.ProGuitar
             UpdateMultiplier();
 
             OnOverstrum?.Invoke();
+        }
+
+        protected override bool CanSustainHold(ProGuitarNote note)
+        {
+            // TODO: Extended sustain stuff
+
+            return CanNoteBeHit(note);
         }
 
         protected override void HitNote(ProGuitarNote note)
