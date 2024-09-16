@@ -36,6 +36,13 @@ namespace YARG.Core.Engine.ProGuitar.Engines
                 if (gameInput.Button)
                 {
                     Strums |= (byte) (1 << (action - ProGuitarAction.String1_Strum));
+
+                    // TODO: The problem right now is that if you hit another string after the required ones, it counts as an overstrum
+
+                    if (!ChordStrumLeniencyTimer.IsActive)
+                    {
+                        ChordStrumLeniencyTimer.Start(gameInput.Time);
+                    }
                 }
             }
         }
@@ -43,7 +50,7 @@ namespace YARG.Core.Engine.ProGuitar.Engines
         protected override void UpdateHitLogic(double time)
         {
             UpdateStarPower();
-            // UpdateTimers();
+            UpdateTimers();
 
             // Update bot (will return if not enabled)
             // UpdateBot(time);
@@ -66,8 +73,21 @@ namespace YARG.Core.Engine.ProGuitar.Engines
             CheckForNoteHit();
             UpdateSustains();
 
-            Strums = 0;
+            // "Strums" isn't reset here because the chord strum leniency will deal with it
             HasFretted = false;
+        }
+
+        protected void UpdateTimers()
+        {
+            if (ChordStrumLeniencyTimer.IsActive && ChordStrumLeniencyTimer.IsExpired(CurrentTime))
+            {
+                Strums = 0;
+
+                // We overstrum here because it means that the strum wasn't used up at this point
+                Overstrum();
+
+                ChordStrumLeniencyTimer.Disable();
+            }
         }
 
         protected override void CheckForNoteHit()
@@ -134,24 +154,39 @@ namespace YARG.Core.Engine.ProGuitar.Engines
                 }
 
                 // If hopo/tap checks failed then the note can be hit if it was strummed
-                if (Strums != 0 &&
+                if (IsCorrectStrum(note.ChordMask) &&
                     (isFirstNoteInWindow || (NoteIndex > 0 && EngineStats.Combo == 0)))
                 {
                     HitNote(note);
+
                     if (Strums != 0)
                     {
-                        YargLogger.LogFormatTrace("Hit note (Index: {0}) at {1} with strum input",
+                        YargLogger.LogFormatTrace("Hit note (Index: {0}) at {1} with strum",
                             i, CurrentTime);
                     }
-                    else
-                    {
-                        YargLogger.LogFormatTrace("Hit note (Index: {0}) at {1} with strum leniency",
-                            i, CurrentTime);
-                    }
+
+                    // Make sure to reset strums
+                    Strums = 0;
+                    ChordStrumLeniencyTimer.Disable();
 
                     break;
                 }
             }
+        }
+
+        protected bool IsCorrectStrum(FretBytes chordMask)
+        {
+            for (int i = 0; i < 6; i++)
+            {
+                bool strummedString = ((Strums >> i) & 1) == 1;
+
+                if (chordMask[i] != FretBytes.IGNORE_BYTE && !strummedString)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         protected override bool CanNoteBeHit(ProGuitarNote note)

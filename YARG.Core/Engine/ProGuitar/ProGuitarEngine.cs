@@ -26,11 +26,19 @@ namespace YARG.Core.Engine.ProGuitar
         /// </summary>
         protected EngineTimer HopoLeniencyTimer;
 
+        /// <summary>
+        /// The amount of time a strum can be inputted from the time of the first strum.
+        /// This allows chords to be strummed properly (as otherwise, the player would
+        /// have to hit all strings at once).
+        /// </summary>
+        protected EngineTimer ChordStrumLeniencyTimer;
+
         public ProGuitarEngine(InstrumentDifficulty<ProGuitarNote> chart, SyncTrack syncTrack,
             ProGuitarEngineParameters engineParameters, bool isBot)
             : base(chart, syncTrack, engineParameters, false, isBot)
         {
             HopoLeniencyTimer = new EngineTimer(engineParameters.HopoLeniency);
+            ChordStrumLeniencyTimer = new EngineTimer(engineParameters.ChordStrumLeniency);
         }
 
         protected override void GenerateQueuedUpdates(double nextTime)
@@ -47,6 +55,16 @@ namespace YARG.Core.Engine.ProGuitar
                 {
                     YargLogger.LogFormatTrace("Queuing hopo leniency end time at {0}", HopoLeniencyTimer.EndTime);
                     QueueUpdateTime(HopoLeniencyTimer.EndTime, "HOPO Leniency End");
+                }
+            }
+
+            if (ChordStrumLeniencyTimer.IsActive)
+            {
+                if (IsTimeBetween(ChordStrumLeniencyTimer.EndTime, previousTime, nextTime))
+                {
+                    YargLogger.LogFormatTrace("Queuing chord strum leniency end time at {0}",
+                        ChordStrumLeniencyTimer.EndTime);
+                    QueueUpdateTime(ChordStrumLeniencyTimer.EndTime, "Chord Strum Leniency End");
                 }
             }
         }
@@ -68,6 +86,7 @@ namespace YARG.Core.Engine.ProGuitar
             WasNoteGhosted = false;
 
             HopoLeniencyTimer.Disable();
+            ChordStrumLeniencyTimer.Disable();
             StarPowerWhammyTimer.Disable();
 
             ActiveSustains.Clear();
