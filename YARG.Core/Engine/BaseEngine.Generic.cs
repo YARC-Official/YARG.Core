@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using YARG.Core.Chart;
@@ -304,8 +304,6 @@ namespace YARG.Core.Engine
             InputQueue.Clear();
 
             EngineStats.Reset();
-
-            EventLogger.Clear();
 
             foreach (var note in Notes)
             {
