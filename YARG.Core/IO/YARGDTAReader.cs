@@ -18,9 +18,12 @@ namespace YARG.Core.IO
                 return false;
             }
 
-            container = data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF
-                ? new YARGTextContainer<byte>(data.Ptr + 3, data.Ptr + data.Length, Encoding.UTF8)
-                : new YARGTextContainer<byte>(data.Ptr, data.Ptr + data.Length, YARGTextReader.Latin1);
+            container = new YARGTextContainer<byte>(in data, YARGTextReader.Latin1);
+            if (data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF)
+            {
+                container.Position += 3;
+                container.Encoding = Encoding.UTF8;
+            }
             return true;
         }
 

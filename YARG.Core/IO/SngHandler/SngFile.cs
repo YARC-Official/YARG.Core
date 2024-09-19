@@ -96,7 +96,7 @@ namespace YARG.Core.IO
             ulong numPairs = stream.Read<ulong>(Endianness.Little);
 
             using var bytes = FixedArray<byte>.Read(stream, length);
-            var container = new YARGTextContainer<byte>(bytes.Ptr, bytes.Ptr + length, null!);
+            var container = new YARGTextContainer<byte>(in bytes, null!);
 
             for (ulong i = 0; i < numPairs; i++)
             {
