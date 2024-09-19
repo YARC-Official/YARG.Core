@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.Engine.Vocals
 {
@@ -8,39 +9,35 @@ namespace YARG.Core.Engine.Vocals
         /// The total size of the pitch window. If the player sings outside of it, no hit
         /// percent is awarded.
         /// </summary>
-        public float PitchWindow { get; private set; }
+        public readonly float PitchWindow;
 
         /// <summary>
         /// The total size of the pitch window that awards full points. If the player sings
         /// outside of it while in the normal pitch window, the amount of fill percent
         /// awarded will decrease gradually.
         /// </summary>
-        public float PitchWindowPerfect { get; private set; }
+        public readonly float PitchWindowPerfect;
 
         /// <summary>
         /// The percent of ticks that have to be correct in a phrase for it to count for full points.
         /// </summary>
-        public double PhraseHitPercent { get; private set; }
+        public readonly double PhraseHitPercent;
 
         /// <summary>
         /// How often the vocals give a pitch reading (approximately). This is used to determine
         /// the leniency for hit ticks.
         /// </summary>
-        public double ApproximateVocalFps { get; private set; }
+        public readonly double ApproximateVocalFps;
 
         /// <summary>
         /// Whether or not the player can sing to activate starpower.
         /// </summary>
-        public bool SingToActivateStarPower { get; private set; }
+        public readonly bool SingToActivateStarPower;
 
         /// <summary>
         /// Base score awarded per complete vocal phrase.
         /// </summary>
-        public int PointsPerPhrase { get; private set; }
-
-        public VocalsEngineParameters()
-        {
-        }
+        public readonly int PointsPerPhrase;
 
         public VocalsEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, float[] starMultiplierThresholds,
             float pitchWindow, float pitchWindowPerfect, double phraseHitPercent, double approximateVocalFps,
@@ -55,6 +52,17 @@ namespace YARG.Core.Engine.Vocals
             PointsPerPhrase = pointsPerPhrase;
         }
 
+        public VocalsEngineParameters(UnmanagedMemoryStream stream, int version)
+            : base(stream, version)
+        {
+            PitchWindow = stream.Read<float>(Endianness.Little);
+            PitchWindowPerfect = stream.Read<float>(Endianness.Little);
+            PhraseHitPercent = stream.Read<double>(Endianness.Little);
+            ApproximateVocalFps = stream.Read<double>(Endianness.Little);
+            SingToActivateStarPower = stream.ReadBoolean();
+            PointsPerPhrase = stream.Read<int>(Endianness.Little);
+        }
+
         public override void Serialize(BinaryWriter writer)
         {
             base.Serialize(writer);
@@ -65,18 +73,6 @@ namespace YARG.Core.Engine.Vocals
             writer.Write(ApproximateVocalFps);
             writer.Write(SingToActivateStarPower);
             writer.Write(PointsPerPhrase);
-        }
-
-        public override void Deserialize(BinaryReader reader, int version = 0)
-        {
-            base.Deserialize(reader, version);
-
-            PitchWindow = reader.ReadSingle();
-            PitchWindowPerfect = reader.ReadSingle();
-            PhraseHitPercent = reader.ReadDouble();
-            ApproximateVocalFps = reader.ReadDouble();
-            SingToActivateStarPower = reader.ReadBoolean();
-            PointsPerPhrase = reader.ReadInt32();
         }
     }
 }

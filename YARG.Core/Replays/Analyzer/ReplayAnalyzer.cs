@@ -6,6 +6,8 @@ using YARG.Core.Engine.Drums;
 using YARG.Core.Engine.Drums.Engines;
 using YARG.Core.Engine.Guitar;
 using YARG.Core.Engine.Guitar.Engines;
+using YARG.Core.Engine.ProKeys.Engines;
+using YARG.Core.Engine.ProKeys;
 using YARG.Core.Engine.Vocals;
 using YARG.Core.Engine.Vocals.Engines;
 using YARG.Core.Game;
@@ -15,31 +17,26 @@ namespace YARG.Core.Replays.Analyzer
 {
     public class ReplayAnalyzer
     {
-        private readonly SongChart _chart;
-        private readonly Replay    _replay;
+        private readonly SongChart  _chart;
+        private readonly ReplayData _replay;
 
         private readonly double _fps;
         private readonly bool   _doFrameUpdates;
 
-        private readonly bool _keepEngineLoggers;
-
         private readonly Random _random = new();
 
-        public ReplayAnalyzer(SongChart chart, Replay replay, double fps, bool keepEngineLoggers)
+        public ReplayAnalyzer(SongChart chart, ReplayData replay, double fps)
         {
             _chart = chart;
             _replay = replay;
 
             _fps = fps;
             _doFrameUpdates = _fps > 0;
-
-            _keepEngineLoggers = keepEngineLoggers;
         }
 
-        public static AnalysisResult[] AnalyzeReplay(SongChart chart,
-            Replay replay, double fps = 0, bool keepEngineLoggers = false)
+        public static AnalysisResult[] AnalyzeReplay(SongChart chart, ReplayData replay, double fps = 0)
         {
-            var analyzer = new ReplayAnalyzer(chart, replay, fps, keepEngineLoggers);
+            var analyzer = new ReplayAnalyzer(chart, replay, fps);
             return analyzer.Analyze();
         }
 
@@ -60,18 +57,19 @@ namespace YARG.Core.Replays.Analyzer
 
         private AnalysisResult RunFrame(ReplayFrame frame)
         {
-            var engine = CreateEngine(frame.PlayerInfo.Profile, frame.EngineParameters);
+            var engine = CreateEngine(frame.Profile, frame.EngineParameters);
             engine.Reset();
 
-            double maxTime;
-            if (frame.Inputs.Length == 0)
+            double maxTime = _chart.GetEndTime();
+            if (frame.Inputs.Length > 0)
             {
-                maxTime = _chart.GetEndTime() + 2;
+                double last = frame.Inputs[^1].Time;
+                if (last > maxTime)
+                {
+                    maxTime = last;
+                }
             }
-            else
-            {
-                maxTime = Math.Max(_chart.GetEndTime(), frame.Inputs[^1].Time) + 2;
-            }
+            maxTime += 2;
 
             if (!_doFrameUpdates)
             {
@@ -113,7 +111,6 @@ namespace YARG.Core.Replays.Analyzer
             {
                 Passed = passed,
                 Stats = engine.BaseStats,
-                EventLogger = _keepEngineLoggers ? engine.EventLogger : null,
             };
         }
 
@@ -162,6 +159,26 @@ namespace YARG.Core.Replays.Analyzer
                         notes,
                         _chart.SyncTrack,
                         (DrumsEngineParameters) parameters,
+                        profile.IsBot);
+                }
+                case GameMode.ProKeys:
+                {
+                    // Reset the notes
+                    var notes = _chart.ProKeys.GetDifficulty(profile.CurrentDifficulty).Clone();
+                    profile.ApplyModifiers(notes);
+                    foreach (var note in notes.Notes)
+                    {
+                        foreach (var subNote in note.AllNotes)
+                        {
+                            subNote.ResetNoteState();
+                        }
+                    }
+
+                    // Create engine
+                    return new YargProKeysEngine(
+                        notes,
+                        _chart.SyncTrack,
+                        (ProKeysEngineParameters) parameters,
                         profile.IsBot);
                 }
                 case GameMode.Vocals:

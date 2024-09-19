@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Drawing;
 using System.IO;
-using YARG.Core.Utility;
 
 namespace YARG.Core.Extensions
 {
@@ -40,11 +39,6 @@ namespace YARG.Core.Extensions
             }
 
             writer.Write(span);
-        }
-        
-        public static void Write(this BinaryWriter writer, IBinarySerializable serializable)
-        {
-            serializable.Serialize(writer);
         }
     }
 }
