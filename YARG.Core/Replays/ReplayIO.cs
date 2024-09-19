@@ -38,6 +38,7 @@ namespace YARG.Core.Replays
                 using var fstream = File.OpenRead(path);
                 if (!REPLAY_MAGIC_HEADER.Matches(fstream))
                 {
+                    fstream.Position = 0;
                     // Old replays don't have their actual data deserialized
                     if (REPLAY_MAGIC_HEADER_OLD.Matches(fstream))
                     {
