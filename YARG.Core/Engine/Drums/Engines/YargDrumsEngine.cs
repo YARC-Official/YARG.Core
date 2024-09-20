@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using YARG.Core.Chart;
 using YARG.Core.Input;
 using YARG.Core.Logging;
@@ -38,7 +38,7 @@ namespace YARG.Core.Engine.Drums.Engines
             {
                 CheckForNoteHit();
             }
-            else if (Action is {} padAction)
+            else if (Action is { } padAction)
             {
                 OnPadHit?.Invoke(padAction, false, HitVelocity.GetValueOrDefault(0));
                 ResetPadState();
@@ -66,6 +66,12 @@ namespace YARG.Core.Engine.Drums.Engines
                             // that means all of them would miss.
                             foreach (var missedNote in parentNote.AllNotes)
                             {
+                                // Allow drummers to skip SP activation notes without being penalized.
+                                if (missedNote.IsStarPowerActivator && CanStarPowerActivate)
+                                {
+                                    HitNote(missedNote, true);
+                                    continue;
+                                }
                                 MissNote(missedNote);
                             }
                         }
