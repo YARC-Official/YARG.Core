@@ -232,7 +232,7 @@ namespace YARG.Core.Song
                     return (ScanResult.IniNotDownloaded, null);
                 }
 
-                iniModifiers = SongIniHandler.ReadSongIniFile(iniFile);
+                iniModifiers = SongIniHandler.ReadSongIniFile(iniFile.FullName);
                 iniFileInfo = new AbridgedFileInfo(iniFile);
             }
             else

@@ -7,9 +7,9 @@ namespace YARG.Core.IO.Ini
 {
     public static class SongIniHandler
     {
-        public static IniSection ReadSongIniFile(FileInfo iniFile)
+        public static IniSection ReadSongIniFile(string iniPath)
         {
-            var modifiers = YARGIniReader.ReadIniFile(iniFile, SONG_INI_DICTIONARY);
+            var modifiers = YARGIniReader.ReadIniFile(iniPath, SONG_INI_DICTIONARY);
             if (!modifiers.TryGetValue("[song]", out var section))
             {
                 section = new IniSection();

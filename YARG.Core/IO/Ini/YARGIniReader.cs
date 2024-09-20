@@ -8,12 +8,12 @@ namespace YARG.Core.IO.Ini
 {
     public static class YARGIniReader
     {
-        public static Dictionary<string, IniSection> ReadIniFile(FileInfo iniFile, Dictionary<string, Dictionary<string, IniModifierCreator>> sections)
+        public static Dictionary<string, IniSection> ReadIniFile(string iniPath, Dictionary<string, Dictionary<string, IniModifierCreator>> sections)
         {
             try
             {
-                using var bytes = FixedArray<byte>.Load(iniFile.FullName);
-                if (YARGTextReader.IsUTF8(bytes, out var byteContainer))
+                using var bytes = FixedArray<byte>.Load(iniPath);
+                if (YARGTextReader.IsUTF8(in bytes, out var byteContainer))
                 {
                     return ProcessIni(ref byteContainer, sections);
                 }
