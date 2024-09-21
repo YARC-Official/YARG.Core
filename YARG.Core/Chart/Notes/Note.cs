@@ -91,6 +91,8 @@ namespace YARG.Core.Chart
         public bool IsSoloStart => (Flags & NoteFlags.SoloStart) != 0;
         public bool IsSoloEnd   => (Flags & NoteFlags.SoloEnd) != 0;
 
+        public virtual int LaneIndex => -1;
+
         /// <summary>
         /// Returns an enumerator that contains all child notes and the parent note itself (allocation free).
         /// </summary>
