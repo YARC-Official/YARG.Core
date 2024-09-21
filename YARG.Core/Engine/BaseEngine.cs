@@ -445,6 +445,8 @@ namespace YARG.Core.Engine
 
             IsSoloActive = false;
 
+            TotalLanes = 0;
+            CurrentLaneIndex = 1;
             IsLaneActive = false;
             NextRequiredTrillNote = -1;
 
