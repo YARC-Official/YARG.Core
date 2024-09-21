@@ -1,4 +1,6 @@
 ﻿using System.IO;
+using YARG.Core.Extensions;
+using YARG.Core.Replays;
 
 namespace YARG.Core.Engine.Guitar
 {
@@ -19,11 +21,6 @@ namespace YARG.Core.Engine.Guitar
         /// </summary>
         public int GhostInputs;
 
-        /// <summary>
-        /// Amount of Star Power/Overdrive gained from whammy during the current whammy period.
-        /// </summary>
-        public double StarPowerWhammyGain;
-
         public GuitarStats()
         {
         }
@@ -33,7 +30,16 @@ namespace YARG.Core.Engine.Guitar
             Overstrums = stats.Overstrums;
             HoposStrummed = stats.HoposStrummed;
             GhostInputs = stats.GhostInputs;
-            StarPowerWhammyGain = stats.StarPowerWhammyGain;
+            SustainScore = stats.SustainScore;
+        }
+
+        public GuitarStats(UnmanagedMemoryStream stream, int version)
+            : base(stream, version)
+        {
+            Overstrums = stream.Read<int>(Endianness.Little);
+            HoposStrummed = stream.Read<int>(Endianness.Little);
+            GhostInputs = stream.Read<int>(Endianness.Little);
+            SustainScore = stream.Read<int>(Endianness.Little);
         }
 
         public override void Reset()
@@ -42,7 +48,7 @@ namespace YARG.Core.Engine.Guitar
             Overstrums = 0;
             HoposStrummed = 0;
             GhostInputs = 0;
-            StarPowerWhammyGain = 0;
+            SustainScore = 0;
         }
 
         public override void Serialize(BinaryWriter writer)
@@ -52,17 +58,12 @@ namespace YARG.Core.Engine.Guitar
             writer.Write(Overstrums);
             writer.Write(HoposStrummed);
             writer.Write(GhostInputs);
-            writer.Write(StarPowerWhammyGain);
+            writer.Write(SustainScore);
         }
 
-        public override void Deserialize(BinaryReader reader, int version = 0)
+        public override ReplayStats ConstructReplayStats(string name)
         {
-            base.Deserialize(reader, version);
-
-            Overstrums = reader.ReadInt32();
-            HoposStrummed = reader.ReadInt32();
-            GhostInputs = reader.ReadInt32();
-            StarPowerWhammyGain = reader.ReadDouble();
+            return new GuitarReplayStats(name, this);
         }
     }
 }

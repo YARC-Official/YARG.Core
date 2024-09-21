@@ -18,7 +18,8 @@ namespace YARG.Core.Song
         public readonly AbridgedFileInfo_Length? _midi;
 
         protected override DateTime MidiLastUpdate => _midi!.Value.LastUpdatedTime;
-        public override string Directory { get; } = string.Empty;
+        public override string Location { get; }
+        public override string DirectoryActual => Location;
         public override EntryType SubType => EntryType.ExCON;
 
         public static (ScanResult, UnpackedRBCONEntry?) ProcessNewEntry(UnpackedCONGroup group, string nodename, in YARGTextContainer<byte> container, Dictionary<string, SortedList<DateTime, SongUpdate>> updates, Dictionary<string, (YARGTextContainer<byte>, RBProUpgrade)> upgrades)
@@ -89,7 +90,7 @@ namespace YARG.Core.Song
             AbridgedFileInfo_Length? updateMidi, RBProUpgrade? upgrade, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
             : base(updateMidi, upgrade, stream, strings)
         {
-            Directory = directory;
+            Location = directory;
 
             _midi = midi;
             _dta = dta;
@@ -104,8 +105,8 @@ namespace YARG.Core.Song
                 nodename = results.location.Split('/')[1];
             _nodename = nodename;
 
-            Directory = Path.Combine(group.Location, nodename);
-            string midiPath = Path.Combine(Directory, nodename + ".mid");
+            Location = Path.Combine(group.Location, nodename);
+            string midiPath = Path.Combine(Location, nodename + ".mid");
 
             FileInfo midiInfo = new(midiPath);
             if (!midiInfo.Exists)
@@ -130,7 +131,7 @@ namespace YARG.Core.Song
         {
             if ((options & BackgroundType.Yarground) > 0)
             {
-                string yarground = Path.Combine(Directory, YARGROUND_FULLNAME);
+                string yarground = Path.Combine(Location, YARGROUND_FULLNAME);
                 if (File.Exists(yarground))
                 {
                     var stream = File.OpenRead(yarground);
@@ -142,7 +143,7 @@ namespace YARG.Core.Song
             {
                 foreach (var name in BACKGROUND_FILENAMES)
                 {
-                    var fileBase = Path.Combine(Directory, name);
+                    var fileBase = Path.Combine(Location, name);
                     foreach (var ext in VIDEO_EXTENSIONS)
                     {
                         string videoFile = fileBase + ext;
@@ -160,7 +161,7 @@ namespace YARG.Core.Song
                 //                                     No "video"
                 foreach (var name in BACKGROUND_FILENAMES[..2])
                 {
-                    var fileBase = Path.Combine(Directory, name);
+                    var fileBase = Path.Combine(Location, name);
                     foreach (var ext in IMAGE_EXTENSIONS)
                     {
                         var file = new FileInfo(fileBase + ext);
@@ -186,7 +187,7 @@ namespace YARG.Core.Song
                 return bytes;
             }
 
-            var info = new FileInfo(Path.Combine(Directory, "gen", _nodename + ".milo_xbox"));
+            var info = new FileInfo(Path.Combine(Location, "gen", _nodename + ".milo_xbox"));
             if (!info.Exists)
             {
                 return null;
@@ -220,7 +221,7 @@ namespace YARG.Core.Song
                 return bytes;
             }
 
-            var info = new FileInfo(Path.Combine(Directory, "gen", _nodename + "_keep.png_xbox"));
+            var info = new FileInfo(Path.Combine(Location, "gen", _nodename + "_keep.png_xbox"));
             if (!info.Exists)
             {
                 return null;
@@ -236,13 +237,13 @@ namespace YARG.Core.Song
                 return stream;
             }
 
-            string path = Path.Combine(Directory, _nodename + ".yarg_mogg");
+            string path = Path.Combine(Location, _nodename + ".yarg_mogg");
             if (File.Exists(path))
             {
                 return new YargMoggReadStream(path);
             }
 
-            path = Path.Combine(Directory, _nodename + ".mogg");
+            path = Path.Combine(Location, _nodename + ".mogg");
             if (!File.Exists(path))
             {
                 return null;

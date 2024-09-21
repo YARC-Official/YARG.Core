@@ -18,7 +18,8 @@ namespace YARG.Core.Song
         private readonly AbridgedFileInfo _sngInfo;
         private readonly string _chartName;
 
-        public override string Directory => _sngInfo.FullName;
+        public override string Location => _sngInfo.FullName;
+        public override string DirectoryActual => Path.GetDirectoryName(_sngInfo.FullName);
         public override ChartType Type { get; }
         public override DateTime GetAddTime() => _sngInfo.LastUpdatedTime;
 

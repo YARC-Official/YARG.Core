@@ -1,9 +1,10 @@
 ﻿using System.IO;
-using YARG.Core.Utility;
+using YARG.Core.Extensions;
+using YARG.Core.Replays;
 
 namespace YARG.Core.Engine
 {
-    public abstract class BaseStats : IBinarySerializable
+    public abstract class BaseStats
     {
         /// <summary>
         /// Finalized score (e.g from notes hit and sustains)
@@ -28,6 +29,21 @@ namespace YARG.Core.Engine
         /// Calculated from <see cref="CommittedScore"/>, <see cref="PendingScore"/>, and <see cref="SoloBonuses"/>.
         /// </remarks>
         public int TotalScore => CommittedScore + PendingScore + SoloBonuses;
+
+        /// <summary>
+        /// Total score earned from hitting notes.
+        /// </summary>
+        public int NoteScore;
+
+        /// <summary>
+        /// Total score earned from holding sustains.
+        /// </summary>
+        public int SustainScore;
+
+        /// <summary>
+        /// Total score earned from score multipliers.
+        /// </summary>
+        public int MultiplierScore;
 
         /// <summary>
         /// The score used to calculate star progress.
@@ -70,25 +86,29 @@ namespace YARG.Core.Engine
         public int NotesMissed => TotalNotes - NotesHit;
 
         /// <summary>
-        /// Amount of Star Power/Overdrive the player currently has.
+        /// The percent of notes hit.
         /// </summary>
-        public double StarPowerAmount;
+        public virtual float Percent => TotalNotes == 0 ? 1f : (float) NotesHit / TotalNotes;
+
+        public uint StarPowerTickAmount;
+
+        public uint TotalStarPowerTicks;
+
+        public double TotalStarPowerBarsFilled;
+
+        public int StarPowerActivationCount;
+
+        public double TimeInStarPower;
 
         /// <summary>
-        /// Amount of Star Power/Overdrive the player had as of the most recent SP/OD rebase
-        /// (SP activation, time signature change, SP sustain whammy start).
+        /// Amount of Star Power/Overdrive gained from whammy during the current whammy period.
         /// </summary>
-        public double StarPowerBaseAmount;
+        public uint StarPowerWhammyTicks;
 
         /// <summary>
         /// True if the player currently has Star Power/Overdrive active.
         /// </summary>
         public bool IsStarPowerActive;
-
-        /// <summary>
-        /// Whether or not Star Power/Overdrive can be activated.
-        /// </summary>
-        public bool CanStarPowerActivate => StarPowerAmount >= 0.5 && !IsStarPowerActive;
 
         /// <summary>
         /// Number of Star Power phrases which have been hit.
@@ -111,6 +131,8 @@ namespace YARG.Core.Engine
         /// </summary>
         public int SoloBonuses;
 
+        public int StarPowerScore;
+
         /// <summary>
         /// The number of stars the player has achieved, along with the progress to the next star.
         /// </summary>
@@ -130,15 +152,49 @@ namespace YARG.Core.Engine
             NotesHit = stats.NotesHit;
             TotalNotes = stats.TotalNotes;
 
-            StarPowerAmount = stats.StarPowerAmount;
-            StarPowerBaseAmount = stats.StarPowerBaseAmount;
+            StarPowerTickAmount = stats.StarPowerTickAmount;
+            TotalStarPowerTicks = stats.TotalStarPowerTicks;
+            TotalStarPowerBarsFilled = stats.TotalStarPowerBarsFilled;
+            StarPowerActivationCount = stats.StarPowerActivationCount;
+            TimeInStarPower = stats.TimeInStarPower;
+            StarPowerWhammyTicks = stats.StarPowerWhammyTicks;
             IsStarPowerActive = stats.IsStarPowerActive;
 
             StarPowerPhrasesHit = stats.StarPowerPhrasesHit;
             TotalStarPowerPhrases = stats.TotalStarPowerPhrases;
 
             SoloBonuses = stats.SoloBonuses;
+            StarPowerScore = stats.StarPowerScore;
+
             Stars = stats.Stars;
+        }
+
+        protected BaseStats(UnmanagedMemoryStream stream, int version)
+        {
+            CommittedScore = stream.Read<int>(Endianness.Little);
+            PendingScore = stream.Read<int>(Endianness.Little);
+
+            Combo = stream.Read<int>(Endianness.Little);
+            MaxCombo = stream.Read<int>(Endianness.Little);
+            ScoreMultiplier = stream.Read<int>(Endianness.Little);
+
+            NotesHit = stream.Read<int>(Endianness.Little);
+            TotalNotes = stream.Read<int>(Endianness.Little);
+
+            StarPowerTickAmount = stream.Read<uint>(Endianness.Little);
+            TotalStarPowerTicks = stream.Read<uint>(Endianness.Little);
+            TimeInStarPower = stream.Read<double>(Endianness.Little);
+            StarPowerWhammyTicks = stream.Read<uint>(Endianness.Little);
+            IsStarPowerActive = stream.ReadBoolean();
+
+            StarPowerPhrasesHit = stream.Read<int>(Endianness.Little);
+            TotalStarPowerPhrases = stream.Read<int>(Endianness.Little);
+
+            SoloBonuses = stream.Read<int>(Endianness.Little);
+            StarPowerScore = stream.Read<int>(Endianness.Little);
+
+            // Deliberately not read so that stars can be re-calculated if thresholds change
+            // Stars = reader.ReadInt32();
         }
 
         public virtual void Reset()
@@ -152,14 +208,20 @@ namespace YARG.Core.Engine
             // Don't reset TotalNotes
             // TotalNotes = 0;
 
-            StarPowerAmount = 0;
-            StarPowerBaseAmount = 0;
+            StarPowerTickAmount = 0;
+            TotalStarPowerTicks = 0;
+            TotalStarPowerBarsFilled = 0;
+            StarPowerActivationCount = 0;
+            TimeInStarPower = 0;
+            StarPowerWhammyTicks = 0;
             IsStarPowerActive = false;
 
             StarPowerPhrasesHit = 0;
             // TotalStarPowerPhrases = 0;
 
             SoloBonuses = 0;
+            StarPowerScore = 0;
+
             Stars = 0;
         }
 
@@ -175,42 +237,22 @@ namespace YARG.Core.Engine
             writer.Write(NotesHit);
             writer.Write(TotalNotes);
 
-            writer.Write(StarPowerAmount);
-            writer.Write(StarPowerBaseAmount);
+            writer.Write(StarPowerTickAmount);
+            writer.Write(TotalStarPowerTicks);
+            writer.Write(TimeInStarPower);
+            writer.Write(StarPowerWhammyTicks);
             writer.Write(IsStarPowerActive);
 
             writer.Write(StarPowerPhrasesHit);
             writer.Write(TotalStarPowerPhrases);
 
             writer.Write(SoloBonuses);
+            writer.Write(StarPowerScore);
 
             // Deliberately not written so that stars can be re-calculated with different thresholds
             // writer.Write(Stars);
         }
 
-        public virtual void Deserialize(BinaryReader reader, int version = 0)
-        {
-            CommittedScore = reader.ReadInt32();
-            PendingScore = reader.ReadInt32();
-
-            Combo = reader.ReadInt32();
-            MaxCombo = reader.ReadInt32();
-            ScoreMultiplier = reader.ReadInt32();
-
-            NotesHit = reader.ReadInt32();
-            TotalNotes = reader.ReadInt32();
-
-            StarPowerAmount = reader.ReadDouble();
-            StarPowerBaseAmount = reader.ReadDouble();
-            IsStarPowerActive = reader.ReadBoolean();
-
-            StarPowerPhrasesHit = reader.ReadInt32();
-            TotalStarPowerPhrases = reader.ReadInt32();
-
-            SoloBonuses = reader.ReadInt32();
-
-            // Deliberately not read so that stars can be re-calculated if thresholds change
-            // Stars = reader.ReadInt32();
-        }
+        public abstract ReplayStats ConstructReplayStats(string name);
     }
 }

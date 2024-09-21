@@ -44,6 +44,7 @@ namespace MoonscraperChartEditor.Song.IO
         private static readonly Dictionary<int, EventProcessFn> DrumsNoteProcessMap = BuildDrumsNoteProcessDict(enableVelocity: false);
         private static readonly Dictionary<int, EventProcessFn> DrumsNoteProcessMap_Velocity = BuildDrumsNoteProcessDict(enableVelocity: true);
         private static readonly Dictionary<int, EventProcessFn> VocalsNoteProcessMap = BuildVocalsNoteProcessDict();
+        private static readonly Dictionary<int, EventProcessFn> ProKeysNoteProcessMap = BuildProKeysNoteProcessDict();
 
         private static readonly CommonPhraseSettings GuitarPhraseSettings = new()
         {
@@ -80,6 +81,13 @@ namespace MoonscraperChartEditor.Song.IO
             lanePhrases = false,
         };
 
+        private static readonly CommonPhraseSettings ProKeysPhraseSettings = new()
+        {
+            soloNote = MidIOHelper.SOLO_NOTE_PRO_KEYS,
+            versusPhrases = false,
+            lanePhrases = true,
+        };
+
         // These dictionaries map the text of a MIDI text event to a specific function that processes them
         private static readonly Dictionary<string, ProcessModificationProcessFn> GuitarTextProcessMap = new()
         {
@@ -100,6 +108,10 @@ namespace MoonscraperChartEditor.Song.IO
         };
 
         private static readonly Dictionary<string, ProcessModificationProcessFn> VocalsTextProcessMap = new()
+        {
+        };
+
+        private static readonly Dictionary<string, ProcessModificationProcessFn> ProKeysTextProcessMap = new()
         {
         };
 
@@ -132,6 +144,10 @@ namespace MoonscraperChartEditor.Song.IO
         {
         };
 
+        private static readonly Dictionary<PhaseShiftSysEx.PhraseCode, EventProcessFn> ProKeysSysExProcessMap = new()
+        {
+        };
+
         // Some post-processing events should always be carried out on certain tracks
         private static readonly List<EventProcessFn> GuitarPostProcessList = new()
         {
@@ -156,6 +172,10 @@ namespace MoonscraperChartEditor.Song.IO
             CopyDownHarmonyPhrases,
         };
 
+        private static readonly List<EventProcessFn> ProKeysPostProcessList = new()
+        {
+        };
+
         private static Dictionary<int, EventProcessFn> GetNoteProcessDict(MoonChart.GameMode gameMode)
         {
             return gameMode switch
@@ -165,6 +185,7 @@ namespace MoonscraperChartEditor.Song.IO
                 MoonChart.GameMode.ProGuitar => ProGuitarNoteProcessMap,
                 MoonChart.GameMode.Drums => DrumsNoteProcessMap,
                 MoonChart.GameMode.Vocals => VocalsNoteProcessMap,
+                MoonChart.GameMode.ProKeys => ProKeysNoteProcessMap,
                 _ => throw new NotImplementedException($"No process map for game mode {gameMode}!")
             };
         }
@@ -182,6 +203,7 @@ namespace MoonscraperChartEditor.Song.IO
                 MoonChart.GameMode.ProGuitar => ProGuitarPhraseSettings,
                 MoonChart.GameMode.Drums => DrumsPhraseSettings,
                 MoonChart.GameMode.Vocals => VocalsPhraseSettings,
+                MoonChart.GameMode.ProKeys => ProKeysPhraseSettings,
                 _ => throw new NotImplementedException($"No process map for game mode {gameMode}!")
             };
             phraseSettings.starPowerNote = spNote;
@@ -202,6 +224,7 @@ namespace MoonscraperChartEditor.Song.IO
                 MoonChart.GameMode.ProGuitar => ProGuitarTextProcessMap,
                 MoonChart.GameMode.Drums => DrumsTextProcessMap,
                 MoonChart.GameMode.Vocals => VocalsTextProcessMap,
+                MoonChart.GameMode.ProKeys => ProKeysTextProcessMap,
                 _ => throw new NotImplementedException($"No process map for game mode {gameMode}!")
             };
         }
@@ -215,6 +238,7 @@ namespace MoonscraperChartEditor.Song.IO
                 MoonChart.GameMode.ProGuitar => ProGuitarSysExProcessMap,
                 MoonChart.GameMode.Drums => DrumsSysExProcessMap,
                 MoonChart.GameMode.Vocals => VocalsSysExProcessMap,
+                MoonChart.GameMode.ProKeys => ProKeysSysExProcessMap,
                 _ => throw new NotImplementedException($"No process map for game mode {gameMode}!")
             };
         }
@@ -228,6 +252,7 @@ namespace MoonscraperChartEditor.Song.IO
                 MoonChart.GameMode.ProGuitar => ProGuitarPostProcessList,
                 MoonChart.GameMode.Drums => DrumsPostProcessList,
                 MoonChart.GameMode.Vocals => VocalsPostProcessList,
+                MoonChart.GameMode.ProKeys => ProKeysPostProcessList,
                 _ => throw new NotImplementedException($"No process map for game mode {gameMode}!")
             };
         }
@@ -690,6 +715,62 @@ namespace MoonscraperChartEditor.Song.IO
                     {
                         ProcessNoteOnEventAsNote(ref eventProcessParams, difficulty, rawNote, sustainCutoff: false);
                     };
+                });
+            }
+
+            return processFnDict;
+        }
+
+        private static Dictionary<int, EventProcessFn> BuildProKeysNoteProcessDict()
+        {
+            var processFnDict = new Dictionary<int, EventProcessFn>()
+            {
+                { MidIOHelper.PRO_KEYS_SHIFT_0, (ref EventProcessParams eventProcessParams) =>
+                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams,
+                        MoonPhrase.Type.ProKeys_RangeShift0, eventProcessParams.trackDifficulty)
+                },
+                { MidIOHelper.PRO_KEYS_SHIFT_1, (ref EventProcessParams eventProcessParams) =>
+                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams,
+                        MoonPhrase.Type.ProKeys_RangeShift1, eventProcessParams.trackDifficulty)
+                },
+                { MidIOHelper.PRO_KEYS_SHIFT_2, (ref EventProcessParams eventProcessParams) =>
+                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams,
+                        MoonPhrase.Type.ProKeys_RangeShift2, eventProcessParams.trackDifficulty)
+                },
+                { MidIOHelper.PRO_KEYS_SHIFT_3, (ref EventProcessParams eventProcessParams) =>
+                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams,
+                        MoonPhrase.Type.ProKeys_RangeShift3, eventProcessParams.trackDifficulty)
+                },
+                { MidIOHelper.PRO_KEYS_SHIFT_4, (ref EventProcessParams eventProcessParams) =>
+                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams,
+                        MoonPhrase.Type.ProKeys_RangeShift4, eventProcessParams.trackDifficulty)
+                },
+                { MidIOHelper.PRO_KEYS_SHIFT_5, (ref EventProcessParams eventProcessParams) =>
+                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams,
+                        MoonPhrase.Type.ProKeys_RangeShift5, eventProcessParams.trackDifficulty)
+                },
+
+                { MidIOHelper.PRO_KEYS_GLISSANDO, (ref EventProcessParams eventProcessParams) =>
+                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams,
+                        MoonPhrase.Type.ProKeys_Glissando, eventProcessParams.trackDifficulty)
+                },
+            };
+
+            for (int key = MidIOHelper.PRO_KEYS_RANGE_START; key <= MidIOHelper.PRO_KEYS_RANGE_END; key++)
+            {
+                int fret = key - MidIOHelper.PRO_KEYS_RANGE_START;
+
+                processFnDict.Add(key, (ref EventProcessParams eventProcessParams) =>
+                {
+                    if (eventProcessParams.trackDifficulty is null)
+                    {
+                        YargLogger.Assert(eventProcessParams.trackDifficulty is not null,
+                            "`trackDifficulty` cannot be null when processing pro-keys");
+                        return;
+                    }
+
+                    var diff = eventProcessParams.trackDifficulty.Value;
+                    ProcessNoteOnEventAsNote(ref eventProcessParams, diff, fret);
                 });
             }
 

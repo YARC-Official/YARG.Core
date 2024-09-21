@@ -4,10 +4,11 @@ using Newtonsoft.Json;
 using YARG.Core.Chart;
 using YARG.Core.Utility;
 using YARG.Core.Extensions;
+using System.Linq;
 
 namespace YARG.Core.Game
 {
-    public class YargProfile : IBinarySerializable
+    public class YargProfile
     {
         private const int PROFILE_VERSION = 1;
 
@@ -31,6 +32,8 @@ namespace YARG.Core.Game
             get => InputCalibrationMilliseconds / 1000.0;
             set => InputCalibrationMilliseconds = (long) (value * 1000);
         }
+
+        public bool HasValidInstrument => GameMode.PossibleInstruments().Contains(CurrentInstrument);
 
         public Guid EnginePreset;
 
@@ -90,6 +93,30 @@ namespace YARG.Core.Game
         public YargProfile(Guid id) : this()
         {
             Id = id;
+        }
+
+        public YargProfile(Stream stream)
+        {
+            int version = stream.Read<int>(Endianness.Little);
+
+            Name = stream.ReadString();
+
+            EnginePreset = stream.ReadGuid();
+
+            ThemePreset = stream.ReadGuid();
+            ColorProfile = stream.ReadGuid();
+            CameraPreset = stream.ReadGuid();
+
+            CurrentInstrument = (Instrument) stream.ReadByte();
+            CurrentDifficulty = (Difficulty) stream.ReadByte();
+            CurrentModifiers = (Modifier) stream.Read<ulong>(Endianness.Little);
+            HarmonyIndex = (byte)stream.ReadByte();
+
+            NoteSpeed = stream.Read<float>(Endianness.Little);
+            HighwayLength = stream.Read<float>(Endianness.Little);
+            LeftyFlip = stream.ReadBoolean();
+
+            GameMode = CurrentInstrument.ToGameMode();
         }
 
         public void AddSingleModifier(Modifier modifier)
@@ -175,6 +202,15 @@ namespace YARG.Core.Game
             }
         }
 
+        public void EnsureValidInstrument()
+        {
+
+            if (!HasValidInstrument)
+            {
+                CurrentInstrument = GameMode.PossibleInstruments()[0];
+            }
+        }
+
         // For replay serialization
         public void Serialize(BinaryWriter writer)
         {
@@ -196,30 +232,6 @@ namespace YARG.Core.Game
             writer.Write(NoteSpeed);
             writer.Write(HighwayLength);
             writer.Write(LeftyFlip);
-        }
-
-        public void Deserialize(BinaryReader reader, int version = 0)
-        {
-            version = reader.ReadInt32();
-
-            Name = reader.ReadString();
-
-            EnginePreset = reader.ReadGuid();
-
-            ThemePreset = reader.ReadGuid();
-            ColorProfile = reader.ReadGuid();
-            CameraPreset = reader.ReadGuid();
-
-            CurrentInstrument = (Instrument) reader.ReadByte();
-            CurrentDifficulty = (Difficulty) reader.ReadByte();
-            CurrentModifiers = (Modifier) reader.ReadUInt64();
-            HarmonyIndex = reader.ReadByte();
-
-            NoteSpeed = reader.ReadSingle();
-            HighwayLength = reader.ReadSingle();
-            LeftyFlip = reader.ReadBoolean();
-
-            GameMode = CurrentInstrument.ToGameMode();
         }
     }
 }

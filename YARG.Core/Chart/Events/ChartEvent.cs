@@ -13,6 +13,9 @@ namespace YARG.Core.Chart
         public uint TickLength { get; set; }
         public uint TickEnd    => Tick + TickLength;
 
+        // For subclasses that set the base properties through other parameters
+        public ChartEvent() {}
+
         public ChartEvent(double time, double timeLength, uint tick, uint tickLength)
         {
             Time = time;
@@ -24,6 +27,14 @@ namespace YARG.Core.Chart
         public ChartEvent(ChartEvent other)
             : this(other.Time, other.TimeLength, other.Tick, other.TickLength)
         {
+        }
+
+        protected bool Equals(ChartEvent other)
+        {
+            return Time == other.Time &&
+                TimeLength == other.TimeLength &&
+                Tick == other.Tick &&
+                TickLength == other.TickLength;
         }
     }
 }

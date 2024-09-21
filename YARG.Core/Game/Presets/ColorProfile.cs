@@ -1,6 +1,7 @@
 using System.Drawing;
 using System.IO;
 using Newtonsoft.Json;
+using YARG.Core.Game.Settings;
 using YARG.Core.Utility;
 
 namespace YARG.Core.Game
@@ -23,15 +24,21 @@ namespace YARG.Core.Game
         [JsonIgnore]
         public int Version = COLOR_PROFILE_VERSION;
 
+        [SettingSubSection]
         public FiveFretGuitarColors FiveFretGuitar;
-        public FourLaneDrumsColors  FourLaneDrums;
-        public FiveLaneDrumsColors  FiveLaneDrums;
+        [SettingSubSection]
+        public FourLaneDrumsColors FourLaneDrums;
+        [SettingSubSection]
+        public FiveLaneDrumsColors FiveLaneDrums;
+        [SettingSubSection]
+        public ProKeysColors ProKeys;
 
         public ColorProfile(string name, bool defaultPreset = false) : base(name, defaultPreset)
         {
             FiveFretGuitar = new FiveFretGuitarColors();
             FourLaneDrums = new FourLaneDrumsColors();
             FiveLaneDrums = new FiveLaneDrumsColors();
+            ProKeys = new ProKeysColors();
         }
 
         public override BasePreset CopyWithNewName(string name)
@@ -40,7 +47,8 @@ namespace YARG.Core.Game
             {
                 FiveFretGuitar = FiveFretGuitar.Copy(),
                 FourLaneDrums = FourLaneDrums.Copy(),
-                FiveLaneDrums = FiveLaneDrums.Copy()
+                FiveLaneDrums = FiveLaneDrums.Copy(),
+                ProKeys = ProKeys.Copy(),
             };
         }
 
@@ -52,6 +60,7 @@ namespace YARG.Core.Game
             FiveFretGuitar.Serialize(writer);
             FourLaneDrums.Serialize(writer);
             FiveLaneDrums.Serialize(writer);
+            ProKeys.Serialize(writer);
         }
 
         public void Deserialize(BinaryReader reader, int version = 0)
@@ -62,6 +71,7 @@ namespace YARG.Core.Game
             FiveFretGuitar.Deserialize(reader, version);
             FourLaneDrums.Deserialize(reader, version);
             FiveLaneDrums.Deserialize(reader, version);
+            ProKeys.Deserialize(reader, version);
         }
     }
 }

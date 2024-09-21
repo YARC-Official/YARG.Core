@@ -4,6 +4,51 @@ namespace YARG.Core.Extensions
 {
     public static class MemoryExtensions
     {
+        public static bool TryWriteAndAdvance(ref this Span<char> dest, ReadOnlySpan<char> source, ref int written)
+        {
+            if (!source.TryCopyTo(dest))
+                return false;
+
+            dest = dest[source.Length..];
+            written += source.Length;
+            return true;
+        }
+
+        public static bool TryWriteAndAdvance(ref this Span<char> dest, char value, ref int written)
+        {
+            if (dest.Length < 1)
+                return false;
+
+            dest[0] = value;
+            dest = dest[1..];
+            written++;
+            return true;
+        }
+
+        public static bool TryWriteAndAdvance(ref this Span<char> dest, int value, ref int written,
+            ReadOnlySpan<char> format = default)
+        {
+            bool success = value.TryFormat(dest, out int valueWritten, format);
+            written += valueWritten;
+
+            if (success)
+                dest = dest[valueWritten..];
+
+            return success;
+        }
+
+        public static bool TryWriteAndAdvance(ref this Span<char> dest, double value, ref int written,
+            ReadOnlySpan<char> format = default)
+        {
+            bool success = value.TryFormat(dest, out int valueWritten, format);
+            written += valueWritten;
+
+            if (success)
+                dest = dest[valueWritten..];
+
+            return success;
+        }
+
         public static string ToHexString(this byte[] buffer, bool dashes = true)
             => ToHexString(buffer.AsSpan(), dashes);
 

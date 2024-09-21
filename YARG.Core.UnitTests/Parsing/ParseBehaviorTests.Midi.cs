@@ -230,30 +230,32 @@ namespace YARG.Core.UnitTests.Parsing
         {
             var timedEvents = new MidiEventList();
 
+            var syncTrack = sourceSong.syncTrack;
+
             // Indexing the separate lists is the only way to
             // 1: Not allocate more space for a combined list, and
             // 2: Not rely on polymorphic queries
             int timeSigIndex = 0;
             int bpmIndex = 0;
-            while (timeSigIndex < sourceSong.timeSignatures.Count ||
-                   bpmIndex < sourceSong.bpms.Count)
+            while (timeSigIndex < syncTrack.TimeSignatures.Count ||
+                   bpmIndex < syncTrack.Tempos.Count)
             {
                 // Generate in this order: time sig, bpm
-                while (timeSigIndex < sourceSong.timeSignatures.Count &&
+                while (timeSigIndex < syncTrack.TimeSignatures.Count &&
                     // Time sig comes before or at the same time as a bpm
-                    (bpmIndex == sourceSong.bpms.Count || sourceSong.timeSignatures[timeSigIndex].tick <= sourceSong.bpms[bpmIndex].tick))
+                    (bpmIndex == syncTrack.Tempos.Count || syncTrack.TimeSignatures[timeSigIndex].Tick <= syncTrack.Tempos[bpmIndex].Tick))
                 {
-                    var ts = sourceSong.timeSignatures[timeSigIndex++];
-                    timedEvents.Add((ts.tick, new TimeSignatureEvent((byte) ts.numerator, (byte) ts.denominator)));
+                    var ts = syncTrack.TimeSignatures[timeSigIndex++];
+                    timedEvents.Add((ts.Tick, new TimeSignatureEvent((byte) ts.Numerator, (byte) ts.Denominator)));
                 }
 
-                while (bpmIndex < sourceSong.bpms.Count &&
+                while (bpmIndex < syncTrack.Tempos.Count &&
                     // Bpm comes before a time sig (equals does not count)
-                    (timeSigIndex == sourceSong.timeSignatures.Count || sourceSong.bpms[bpmIndex].tick < sourceSong.timeSignatures[timeSigIndex].tick))
+                    (timeSigIndex == syncTrack.TimeSignatures.Count || syncTrack.Tempos[bpmIndex].Tick < syncTrack.TimeSignatures[timeSigIndex].Tick))
                 {
-                    var bpm = sourceSong.bpms[bpmIndex++];
-                    long microseconds = TempoChange.BpmToMicroSeconds(bpm.value);
-                    timedEvents.Add((bpm.tick, new SetTempoEvent(microseconds)));
+                    var bpm = syncTrack.Tempos[bpmIndex++];
+                    long microseconds = TempoChange.BpmToMicroSeconds(bpm.BeatsPerMinute);
+                    timedEvents.Add((bpm.Tick, new SetTempoEvent(microseconds)));
                 }
             }
 
@@ -283,7 +285,7 @@ namespace YARG.Core.UnitTests.Parsing
 
                 while (eventIndex < sourceSong.events.Count &&
                     // Event comes before a section (equals does not count)
-                    (sectionIndex == sourceSong.sections.Count || sourceSong.bpms[eventIndex].tick < sourceSong.sections[sectionIndex].tick))
+                    (sectionIndex == sourceSong.sections.Count || sourceSong.events[eventIndex].tick < sourceSong.sections[sectionIndex].tick))
                 {
                     var ev = sourceSong.events[eventIndex++];
                     timedEvents.Add((ev.tick, new Melanchall.DryWetMidi.Core.TextEvent(ev.text)));

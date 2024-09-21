@@ -308,7 +308,7 @@ namespace YARG.Core.Chart
                             if (note.Tick >= endTick || note.TickEnd < startTick)
                                 break;
 
-                            foreach (var child in note.ChordEnumerator())
+                            foreach (var child in note.AllNotes)
                             {
                                 if (child.Tick >= endTick || child.TickEnd < startTick || child.IsNonPitched)
                                     continue;
@@ -385,7 +385,7 @@ namespace YARG.Core.Chart
             var phraseNote = new VocalNote(phraseFlags, time, timeLength, tick, tickLength);
             foreach (var note in notes)
             {
-                phraseNote.AddNoteToPhrase(note);
+                phraseNote.AddChildNote(note);
             }
 
             return new VocalsPhrase(time, timeLength, tick, tickLength, phraseNote, lyrics);

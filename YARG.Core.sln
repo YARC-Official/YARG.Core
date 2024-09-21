@@ -9,7 +9,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestConsole", "TestConsole\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "YARG.Core.UnitTests", "YARG.Core.UnitTests\YARG.Core.UnitTests.csproj", "{CEB65528-9BCC-4E6D-BC93-24104FF9EB25}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ReplayAnalyzer", "ReplayAnalyzer\ReplayAnalyzer.csproj", "{40F9BEDC-2124-4CCF-9CF8-74C43170A4C5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReplayCli", "ReplayCli\ReplayCli.csproj", "{40F9BEDC-2124-4CCF-9CF8-74C43170A4C5}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "YARG.Core.Benchmarks", "YARG.Core.Benchmarks\YARG.Core.Benchmarks.csproj", "{D26697B2-1739-4327-9B34-1501FE0E619F}"
 EndProject

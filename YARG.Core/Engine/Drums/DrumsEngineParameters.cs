@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.Engine.Drums
 {
@@ -14,17 +15,29 @@ namespace YARG.Core.Engine.Drums
         /// <summary>
         /// What mode the inputs should be processed in.
         /// </summary>
-        public DrumMode Mode { get; private set; }
+        public readonly DrumMode Mode;
 
-        public DrumsEngineParameters()
-        {
-        }
+        //Ghost notes are below this threshold, Accent notes are above 1 - threshold
+        public readonly float VelocityThreshold;
+
+        // The maximum allowed time (seconds) between notes to use context-sensitive velocity scoring
+        public readonly float SituationalVelocityWindow;
 
         public DrumsEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, float[] starMultiplierThresholds,
             DrumMode mode)
-            : base(hitWindow, maxMultiplier, starMultiplierThresholds)
+            : base(hitWindow, maxMultiplier, 0, 0, starMultiplierThresholds)
         {
             Mode = mode;
+            VelocityThreshold = 0.35f;
+            SituationalVelocityWindow = 1.5f;
+        }
+
+        public DrumsEngineParameters(UnmanagedMemoryStream stream, int version)
+            : base(stream, version)
+        {
+            Mode = (DrumMode) stream.ReadByte();
+            VelocityThreshold = stream.Read<float>(Endianness.Little);
+            SituationalVelocityWindow = stream.Read<float>(Endianness.Little);
         }
 
         public override void Serialize(BinaryWriter writer)
@@ -32,13 +45,16 @@ namespace YARG.Core.Engine.Drums
             base.Serialize(writer);
 
             writer.Write((byte) Mode);
+            writer.Write(VelocityThreshold);
+            writer.Write(SituationalVelocityWindow);
         }
 
-        public override void Deserialize(BinaryReader reader, int version = 0)
+        public override string ToString()
         {
-            base.Deserialize(reader, version);
-
-            Mode = (DrumMode) reader.ReadByte();
+            return
+                $"{base.ToString()}\n" +
+                $"Velocity threshold: {VelocityThreshold}\n" +
+                $"Situational velocity window: {SituationalVelocityWindow}";
         }
     }
 }

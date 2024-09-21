@@ -20,7 +20,8 @@ namespace YARG.Core.Song
         private readonly DateTime _lastMidiWrite;
 
         protected override DateTime MidiLastUpdate => _midiListing?.ConFile.LastUpdatedTime ?? DateTime.MinValue;
-        public override string Directory { get; } = string.Empty;
+        public override string Location { get; }
+        public override string DirectoryActual => Path.GetDirectoryName(_midiListing?.ConFile.FullName);
         public override EntryType SubType => EntryType.CON;
 
         public static (ScanResult, PackedRBCONEntry?) ProcessNewEntry(PackedCONGroup group, string nodename, in YARGTextContainer<byte> container, Dictionary<string, SortedList<DateTime, SongUpdate>> updates, Dictionary<string, (YARGTextContainer<byte>, RBProUpgrade)> upgrades)
@@ -116,6 +117,7 @@ namespace YARG.Core.Song
             string midiPath = results.location + ".mid";
             if (!group.ConFile.TryGetListing(midiPath, out _midiListing))
             {
+                Location = string.Empty;
                 return;
             }
 
@@ -131,7 +133,7 @@ namespace YARG.Core.Song
             group.ConFile.TryGetListing(genPath + "_keep.png_xbox", out _imgListing);
 
             string midiDirectory = group.ConFile.GetFilename(_midiListing.PathIndex);
-            Directory = Path.Combine(group.Location, midiDirectory);
+            Location = Path.Combine(group.Location, midiDirectory);
         }
 
         private PackedRBCONEntry(CONFileListing? midi, DateTime midiLastWrite, CONFileListing? moggListing, CONFileListing? miloListing, CONFileListing? imgListing, string directory,
@@ -144,12 +146,12 @@ namespace YARG.Core.Song
             _imgListing = imgListing;
             _lastMidiWrite = midiLastWrite;
 
-            Directory = directory;
+            Location = directory;
         }
 
         public override void Serialize(BinaryWriter writer, CategoryCacheWriteNode node)
         {
-            writer.Write(Directory);
+            writer.Write(Location);
             writer.Write(_midiListing!.Filename);
             writer.Write(_midiListing.LastWrite.ToBinary());
             base.Serialize(writer, node);

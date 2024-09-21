@@ -24,7 +24,7 @@
                     // of the normal lengths.
                     var newNote = new VocalNote(-1f, note.HarmonyPart, note.Type, note.Time,
                         note.TotalTimeLength, note.Tick, note.TotalTickLength);
-                    newPhraseParent.AddNoteToPhrase(newNote);
+                    newPhraseParent.AddChildNote(newNote);
                 }
 
                 // Replace the next and previous note values

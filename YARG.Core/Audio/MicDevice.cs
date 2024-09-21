@@ -7,9 +7,14 @@ namespace YARG.Core.Audio
     public readonly struct MicOutputFrame
     {
         /// <summary>
-        /// The time of the input.
+        /// The time of the input. This is NOT relative!
         /// </summary>
         public readonly double Time;
+
+        /// <summary>
+        /// Whether or not this output frame is a mic hit, or a sing output.
+        /// </summary>
+        public readonly bool IsHit;
 
         /// <summary>
         /// Pitch (in hertz) of the microphone.
@@ -26,9 +31,10 @@ namespace YARG.Core.Audio
         /// </summary>
         public float PitchAsMidiNote => 12f * MathF.Log(Pitch / 440f, 2f) + 69f;
 
-        public MicOutputFrame(double time, float pitch, float volume)
+        public MicOutputFrame(double time, bool isHit, float pitch, float volume)
         {
             Time = time;
+            IsHit = isHit;
             Pitch = pitch;
             Volume = volume;
         }

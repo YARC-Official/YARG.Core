@@ -34,7 +34,7 @@ namespace YARG.Core.Chart
         public VocalsPhrase(VocalsPhrase other)
             : base(other)
         {
-            PhraseParentNote = other.PhraseParentNote.CloneAsPhrase();
+            PhraseParentNote = other.PhraseParentNote.Clone();
             Lyrics = other.Lyrics.Duplicate();
         }
 

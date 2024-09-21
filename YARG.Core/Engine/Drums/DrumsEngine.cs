@@ -1,52 +1,73 @@
 ﻿using System;
 using YARG.Core.Chart;
 using YARG.Core.Input;
+using YARG.Core.Logging;
 
 namespace YARG.Core.Engine.Drums
 {
     public abstract class DrumsEngine : BaseEngine<DrumNote, DrumsEngineParameters,
-        DrumsStats, DrumsEngineState>
+        DrumsStats>
     {
-        private const int POINTS_PER_PRO_NOTE = POINTS_PER_NOTE + 10;
-
         public delegate void OverhitEvent();
 
-        public delegate void PadHitEvent(DrumsAction action, bool noteWasHit);
+        public delegate void PadHitEvent(DrumsAction action, bool noteWasHit, float velocity);
 
         public OverhitEvent? OnOverhit;
         public PadHitEvent?  OnPadHit;
 
+        /// <summary>
+        /// The integer value for the pad that was inputted this update. <c>null</c> is none, and the value can
+        /// be based off of <see cref="FourLaneDrumPad"/> or <see cref="FiveLaneDrumPad"/>.
+        /// </summary>
+        protected int? PadHit;
+
+        protected float? HitVelocity;
+
+        protected DrumsAction? Action;
+
         protected DrumsEngine(InstrumentDifficulty<DrumNote> chart, SyncTrack syncTrack,
-            DrumsEngineParameters engineParameters)
-            : base(chart, syncTrack, engineParameters, true)
+            DrumsEngineParameters engineParameters, bool isBot)
+            : base(chart, syncTrack, engineParameters, true, isBot)
         {
         }
 
         public override void Reset(bool keepCurrentButtons = false)
         {
+            PadHit = null;
+            HitVelocity = null;
+            Action = null;
+
             base.Reset(keepCurrentButtons);
         }
 
         public virtual void Overhit()
         {
             // Can't overhit before first note is hit/missed
-            if (State.NoteIndex == 0)
+            if (NoteIndex == 0)
             {
                 return;
             }
 
             // Cancel overhit if past last note
-            if (State.NoteIndex >= Chart.Notes.Count - 1)
+            if (NoteIndex >= Chart.Notes.Count - 1)
             {
                 return;
             }
 
-            if (State.NoteIndex < Notes.Count)
+            // Cancel overhit if WaitCountdown is active
+            if (IsWaitCountdownActive)
+            {
+                YargLogger.LogFormatTrace("Overhit prevented during WaitCountdown at time: {0}, tick: {1}",
+                    CurrentTime, CurrentTick);
+                return;
+            }
+
+            if (NoteIndex < Notes.Count)
             {
                 // Don't remove the phrase if the current note being overstrummed is the start of a phrase
-                if (!Notes[State.NoteIndex].IsStarPowerStart)
+                if (!Notes[NoteIndex].IsStarPowerStart)
                 {
-                    StripStarPower(Notes[State.NoteIndex]);
+                    StripStarPower(Notes[NoteIndex]);
                 }
             }
 
@@ -58,42 +79,24 @@ namespace YARG.Core.Engine.Drums
             OnOverhit?.Invoke();
         }
 
-        protected override bool HitNote(DrumNote note)
+        protected override void HitNote(DrumNote note)
         {
-            return HitNote(note, false);
+            HitNote(note, false);
         }
 
-        protected bool HitNote(DrumNote note, bool activationAutoHit)
+        protected void HitNote(DrumNote note, bool activationAutoHit)
         {
+            if (note.WasHit || note.WasMissed)
+            {
+                YargLogger.LogFormatTrace("Tried to hit/miss note twice (Pad: {0}, Index: {1}, Hit: {2}, Missed: {3})",
+                    note.Pad, NoteIndex, note.WasHit, note.WasMissed);
+                return;
+            }
+
             note.SetHitState(true, false);
 
             // Detect if the last note(s) were skipped
-            bool skipped = false;
-            var prevNote = note.ParentOrSelf.PreviousNote;
-            while (prevNote is not null && !prevNote.WasFullyHitOrMissed())
-            {
-                skipped = true;
-                EngineStats.Combo = 0;
-
-                foreach (var chordNote in prevNote.ChordEnumerator())
-                {
-                    if (chordNote.WasMissed || chordNote.WasHit)
-                    {
-                        continue;
-                    }
-
-                    chordNote.SetMissState(true, false);
-                    OnNoteMissed?.Invoke(State.NoteIndex, prevNote);
-                }
-
-                State.NoteIndex++;
-                prevNote = prevNote.PreviousNote;
-            }
-
-            if (skipped)
-            {
-                StripStarPower(note.ParentOrSelf.PreviousNote);
-            }
+            bool skipped = SkipPreviousNotes(note.ParentOrSelf);
 
             // Make sure that the note is fully hit, so the last hit note awards the starpower.
             if (note.IsStarPower && note.IsStarPowerEnd && note.ParentOrSelf.WasFullyHit())
@@ -107,9 +110,9 @@ namespace YARG.Core.Engine.Drums
                 StartSolo();
             }
 
-            if (State.IsSoloActive)
+            if (IsSoloActive)
             {
-                Solos[State.CurrentSoloIndex].NotesHit++;
+                Solos[CurrentSoloIndex].NotesHit++;
             }
 
             if (note.IsSoloEnd && note.ParentOrSelf.WasFullyHitOrMissed())
@@ -117,7 +120,8 @@ namespace YARG.Core.Engine.Drums
                 EndSolo();
             }
 
-            if (!activationAutoHit && note.IsStarPowerActivator && EngineStats.CanStarPowerActivate && note.ParentOrSelf.WasFullyHit())
+            if (!activationAutoHit && note.IsStarPowerActivator && CanStarPowerActivate &&
+                note.ParentOrSelf.WasFullyHit())
             {
                 ActivateStarPower();
             }
@@ -139,19 +143,98 @@ namespace YARG.Core.Engine.Drums
             // Score and such is accounted for above.
             if (!activationAutoHit)
             {
-                OnNoteHit?.Invoke(State.NoteIndex, note);
+                OnNoteHit?.Invoke(NoteIndex, note);
             }
 
-            if (note.ParentOrSelf.WasFullyHitOrMissed())
+            base.HitNote(note);
+        }
+
+        protected bool ApplyVelocity(DrumNote hitNote)
+        {
+            // Neutral notes cannot award bonus points here
+            if (hitNote.IsNeutral) return false;
+
+            // Bots will always hit at a velocity of 1, just give them the bonus
+            if (IsBot) return true;
+
+            // Hit velocity was not recorded for this note, bonus will always be false
+            if (HitVelocity is not { } lastInputVelocity) return false;
+
+            hitNote.HitVelocity = lastInputVelocity;
+
+            // Apply bonus points from successful ghost / accent note hits
+            float awardThreshold = EngineParameters.VelocityThreshold;
+            float situationalVelocityWindow = EngineParameters.SituationalVelocityWindow;
+
+            var compareNote = hitNote.PreviousNote;
+
+            while (compareNote != null)
             {
-                State.NoteIndex++;
+                if (hitNote.Time - compareNote.Time > situationalVelocityWindow)
+                {
+                    // This note is too far in the past to consider for comparison, stop searching
+                    compareNote = null;
+                    break;
+                }
+
+                if (compareNote.HitVelocity != null && compareNote.Pad == hitNote.Pad)
+                {
+                    // Comparison note is assigned to the same pad and has stored velocity data
+                    // Stop searching and use this note for comparison
+                    break;
+                }
+
+                compareNote = compareNote.PreviousNote;
             }
 
-            return true;
+            if (compareNote != null)
+            {
+                //compare this note's velocity against the velocity recorded for the last note
+                float? relativeVelocityThreshold;
+
+                if (compareNote.Type == hitNote.Type)
+                {
+                    // Comparison note is the same ghost/accent type as this note
+                    // If this note was awarded a velocity bonus, allow multiple consecutive hits at the previous velocity
+                    relativeVelocityThreshold = compareNote.HitVelocity;
+                }
+                else
+                {
+                    // Comparison note is not of the same ghost/accent type as this note
+                    // Award a velocity bonus if this note was hit with a delta value greater than the previous hit
+                    relativeVelocityThreshold = compareNote.HitVelocity - awardThreshold;
+                }
+
+                awardThreshold = Math.Max(awardThreshold, relativeVelocityThreshold ?? 0);
+            }
+
+            bool awardVelocityBonus = false;
+
+            if (hitNote.IsGhost)
+            {
+                awardVelocityBonus = lastInputVelocity < awardThreshold;
+                YargLogger.LogFormatTrace("Ghost note was hit with a velocity of {0} at tick {1}. Bonus awarded: {2}",
+                    lastInputVelocity, hitNote.Tick, awardVelocityBonus);
+            }
+            else if (hitNote.IsAccent)
+            {
+                awardVelocityBonus = lastInputVelocity > (1 - awardThreshold);
+                YargLogger.LogFormatTrace("Accent note was hit with a velocity of {0} at tick {1}. Bonus awarded: {2}",
+                    lastInputVelocity, hitNote.Tick, awardVelocityBonus);
+            }
+
+            return awardVelocityBonus;
         }
 
         protected override void MissNote(DrumNote note)
         {
+            if (note.WasHit || note.WasMissed)
+            {
+                YargLogger.LogFormatTrace("Tried to hit/miss note twice (Pad: {0}, Index: {1}, Hit: {2}, Missed: {3})",
+                    note.Pad, NoteIndex, note.WasHit, note.WasMissed);
+                return;
+            }
+
             note.SetMissState(true, false);
 
             if (note.IsStarPower)
@@ -163,6 +246,7 @@ namespace YARG.Core.Engine.Drums
             {
                 EndSolo();
             }
+
             if (note.IsSoloStart)
             {
                 StartSolo();
@@ -172,12 +256,8 @@ namespace YARG.Core.Engine.Drums
 
             UpdateMultiplier();
 
-            OnNoteMissed?.Invoke(State.NoteIndex, note);
-
-            if (note.ParentOrSelf.WasFullyHitOrMissed())
-            {
-                State.NoteIndex++;
-            }
+            OnNoteMissed?.Invoke(NoteIndex, note);
+            base.MissNote(note);
         }
 
         protected int GetPointsPerNote()
@@ -190,7 +270,8 @@ namespace YARG.Core.Engine.Drums
         protected override void AddScore(DrumNote note)
         {
             int pointsPerNote = GetPointsPerNote();
-            AddScore(pointsPerNote * EngineStats.ScoreMultiplier);
+            AddScore(pointsPerNote);
+            EngineStats.NoteScore += pointsPerNote;
         }
 
         protected sealed override int CalculateBaseScore()
@@ -290,5 +371,54 @@ namespace YARG.Core.Engine.Drums
                 _ => throw new Exception("Unreachable.")
             };
         }
+
+        protected static DrumsAction ConvertPadToAction(DrumsEngineParameters.DrumMode mode, int pad)
+        {
+            return mode switch
+            {
+                DrumsEngineParameters.DrumMode.NonProFourLane => pad switch
+                {
+                    (int) FourLaneDrumPad.Kick => DrumsAction.Kick,
+
+                    (int) FourLaneDrumPad.RedDrum    => DrumsAction.RedDrum,
+                    (int) FourLaneDrumPad.YellowDrum => DrumsAction.YellowDrum,
+                    (int) FourLaneDrumPad.BlueDrum   => DrumsAction.BlueDrum,
+                    (int) FourLaneDrumPad.GreenDrum  => DrumsAction.GreenDrum,
+
+                    _ => throw new Exception("Unreachable.")
+                },
+                DrumsEngineParameters.DrumMode.ProFourLane => pad switch
+                {
+                    (int) FourLaneDrumPad.Kick => DrumsAction.Kick,
+
+                    (int) FourLaneDrumPad.RedDrum    => DrumsAction.RedDrum,
+                    (int) FourLaneDrumPad.YellowDrum => DrumsAction.YellowDrum,
+                    (int) FourLaneDrumPad.BlueDrum   => DrumsAction.BlueDrum,
+                    (int) FourLaneDrumPad.GreenDrum  => DrumsAction.GreenCymbal,
+
+                    (int) FourLaneDrumPad.YellowCymbal => DrumsAction.YellowCymbal,
+                    (int) FourLaneDrumPad.BlueCymbal   => DrumsAction.BlueCymbal,
+                    (int) FourLaneDrumPad.GreenCymbal  => DrumsAction.GreenCymbal,
+
+                    _ => throw new Exception("Unreachable.")
+                },
+                DrumsEngineParameters.DrumMode.FiveLane => pad switch
+                {
+                    (int) FiveLaneDrumPad.Kick => DrumsAction.Kick,
+
+                    (int) FiveLaneDrumPad.Red   => DrumsAction.RedDrum,
+                    (int) FiveLaneDrumPad.Blue  => DrumsAction.BlueDrum,
+                    (int) FiveLaneDrumPad.Green => DrumsAction.GreenDrum,
+
+                    (int) FiveLaneDrumPad.Yellow => DrumsAction.YellowCymbal,
+                    (int) FiveLaneDrumPad.Orange => DrumsAction.OrangeCymbal,
+
+                    _ => throw new Exception("Unreachable.")
+                },
+                _ => throw new Exception("Unreachable.")
+            };
+        }
+
+        protected override bool CanSustainHold(DrumNote note) => throw new InvalidOperationException();
     }
 }

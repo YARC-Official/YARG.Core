@@ -201,31 +201,49 @@ namespace MoonscraperChartEditor.Song.IO
             };
         }
 
-        private class SoloPhraseConverter : ITextPhraseConverter
-        {
-            private readonly MoonChart _chart;
-
-            public string StartEvent => TextEvents.SOLO_START;
-            public string EndEvent => TextEvents.SOLO_END;
-
-            public SoloPhraseConverter(MoonChart chart)
-            {
-                _chart = chart;
-            }
-
-            public void AddPhrase(uint startTick, uint endTick)
-            {
-                _chart.Add(new MoonPhrase(startTick, endTick - startTick, MoonPhrase.Type.Solo));
-            }
-
-            public void AddPhraseEvent(string text, uint tick) { }
-        }
-
         private static void ConvertSoloEvents(ref NoteProcessParams noteProcessParams)
         {
             var chart = noteProcessParams.chart;
-            var maxTick = chart.notes.LastOrDefault()?.tick ?? 0;
-            TextEvents.ConvertToPhrases(chart.events, new SoloPhraseConverter(chart), maxTick);
+            // Keeps tracks of soloes that start on the same tick when another solo ends
+            uint startTick = uint.MaxValue;
+            uint nextStartTick = uint.MaxValue;
+            for (int i = 0; i < chart.events.Count; ++i)
+            {
+                var ev = chart.events[i];
+                if (ev.text == TextEvents.SOLO_START)
+                {
+                    if (startTick == uint.MaxValue)
+                    {
+                        startTick = ev.tick;
+                    }
+                    else
+                    {
+                        nextStartTick = ev.tick;
+                    }
+                }
+                else if (ev.text == TextEvents.SOLO_END)
+                {
+                    if (startTick != uint.MaxValue)
+                    {
+                        // .chart handles solo phrases with *inclusive ends*, so we have to add one tick.
+                        // The only exception will be if another solo starts on the same exact tick.
+                        //
+                        // Comparing to the current tick instead of against uint.MaxValue ensures
+                        // that the we don't allow overlaps
+                        if (nextStartTick != ev.tick)
+                        {
+                            chart.Add(new MoonPhrase(startTick, ev.tick + 1 - startTick, MoonPhrase.Type.Solo));
+                            startTick = uint.MaxValue;
+                        }
+                        else
+                        {
+                            chart.Add(new MoonPhrase(startTick, ev.tick - startTick, MoonPhrase.Type.Solo));
+                            startTick = nextStartTick;
+                            nextStartTick = uint.MaxValue;
+                        }
+                    }
+                }
+            }
         }
 
         private static void DisambiguateDrumsType(ref NoteProcessParams processParams)

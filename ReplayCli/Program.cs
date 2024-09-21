@@ -1,101 +1,30 @@
-﻿using ReplayAnalyzer;
+﻿using ReplayCli;
 using YARG.Core;
-using YARG.Core.Chart;
-using YARG.Core.Replays;
-
-void ClearAndPrintHeader()
-{
-    const string HEADER = "Welcome to the YARG.Core Replay Analyzer";
-
-    Console.Clear();
-    Console.ForegroundColor = ConsoleColor.Cyan;
-    Console.SetCursorPosition((Console.WindowWidth - HEADER.Length) / 2, Console.CursorTop + 1);
-    Console.WriteLine(HEADER);
-
-    Console.SetCursorPosition(Console.CursorLeft, Console.CursorTop + 1);
-    Console.ForegroundColor = ConsoleColor.White;
-}
-
-string songPath = string.Empty;
-string replayPath = string.Empty;
-int runMode = 0;
+using YARG.Core.Logging;
 
 var defaultColor = Console.ForegroundColor;
 
-for (int i = 0; i < args.Length; ++i)
+YargLogger.AddLogListener(new ConsoleYargLogListener());
+
+var cli = new Cli();
+
+if (!cli.ParseArguments(args))
 {
-    var arg = args[i];
-    switch (arg)
-    {
-        case "--song":
-        case "-s":
-        {
-            i++;
-            songPath = args[i].Trim();
-            if (!Directory.Exists(songPath))
-            {
-                Console.WriteLine("ERROR: Song directory does not exist.");
-                return;
-            }
-
-            break;
-        }
-        case "--replay":
-        case "-r":
-        {
-            i++;
-            replayPath = args[i].Trim();
-            if (!File.Exists(replayPath))
-            {
-                Console.WriteLine("ERROR: Replay file does not exist.");
-                return;
-            }
-
-            break;
-        }
-        case "--mode":
-        case "-m":
-        {
-            i++;
-            if (!int.TryParse(args[i], out runMode))
-            {
-                Console.WriteLine("ERROR: Invalid run mode.");
-                return;
-            }
-
-            break;
-        }
-        case "--help":
-        case "-h":
-        {
-            Console.WriteLine("Usage:");
-            Console.WriteLine("  --song     | -s   Path to song folder.");
-            Console.WriteLine("  --replay   | -r   Path to the replay file.");
-            Console.WriteLine("  --mode     | -m   Run mode (0 = normal, 1 = simulated fps, 2 = dump inputs).");
-            Console.WriteLine("  --help     | -h   Show this help message.");
-            return;
-        }
-    }
+    return -1;
 }
 
-if (string.IsNullOrEmpty(songPath))
+var runResult = cli.Run();
+
+Console.ForegroundColor = defaultColor;
+
+if (!runResult)
 {
-    Console.WriteLine("ERROR: A song directory must be specified.");
-    return;
+    return -1;
 }
 
-if (string.IsNullOrEmpty(replayPath))
-{
-    Console.WriteLine("ERROR: A replay file path must be specified.");
-    return;
-}
+return 0;
 
-if (runMode is < 0 or > 2)
-{
-    Console.WriteLine("ERROR: Invalid run mode.");
-    return;
-}
-
+/*
 string songIni = Path.Combine(songPath, "song.ini");
 string notesMid = Path.Combine(songPath, "notes.mid");
 string notesChart = Path.Combine(songPath, "notes.chart");
@@ -108,13 +37,16 @@ if (!File.Exists(songIni) || (!File.Exists(notesMid) && !File.Exists(notesChart)
 SongChart chart;
 try
 {
+    var parseSettings = ParseSettings.Default;
+    parseSettings.DrumsType = DrumsType.FourLane;
+
     if (File.Exists(notesMid))
     {
-        chart = SongChart.FromFile(ParseSettings.Default, notesMid);
+        chart = SongChart.FromFile(parseSettings, notesMid);
     }
     else
     {
-        chart = SongChart.FromFile(ParseSettings.Default, notesChart);
+        chart = SongChart.FromFile(parseSettings, notesChart);
     }
 }
 catch (Exception e)
@@ -148,15 +80,9 @@ if (runMode is 0 or 1)
     // Analyze replay
 
     Console.WriteLine("Analyzing replay...");
-    var analyzer = new Analyzer(chart, replay);
-    if (runMode == 0)
-    {
-        analyzer.Run();
-    }
-    else
-    {
-        analyzer.RunWithSimulatedUpdates();
-    }
+
+    // TODO Reimplement frame updates
+    var results = ReplayAnalyzer.AnalyzeReplay(chart, replay);
 
     Console.WriteLine("Done!\n");
 
@@ -164,7 +90,8 @@ if (runMode is 0 or 1)
 
     if (runMode == 0)
     {
-        var bandScore = analyzer.BandScores[0];
+        var player1 = results[0];
+        var bandScore = results.Sum(x => x.Stats.TotalScore);
         if (bandScore != replay.BandScore)
         {
             Console.ForegroundColor = ConsoleColor.Red;
@@ -182,56 +109,58 @@ if (runMode is 0 or 1)
             Console.WriteLine($"Difference     : {Math.Abs(bandScore - replay.BandScore)}\n");
         }
     }
-    else
-    {
-        var distinctScores = analyzer.BandScores.Values.Distinct().ToList();
+    // Need to reimplement this later
 
-        if (distinctScores.Count != 1)
-        {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine("SCORES ARE NOT CONSISTENT!");
-            Console.WriteLine($"Chart runs      : {Analyzer.ATTEMPTS}");
-            Console.WriteLine($"Distinct scores : {distinctScores.Count}\n");
-            Console.WriteLine("Scores:");
-            foreach (var score in distinctScores)
-            {
-                Console.WriteLine($" - {score}");
-            }
-        }
-        else
-        {
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine("SCORES WERE CONSISTENT!");
-            Console.WriteLine($"Chart runs      : {Analyzer.ATTEMPTS}");
-            Console.WriteLine($"Distinct scores : {distinctScores.Count}");
-        }
-    }
+    // else
+    // {
+    //     var distinctScores = analyzer.BandScores.Values.Distinct().ToList();
+    //
+    //     if (distinctScores.Count != 1)
+    //     {
+    //         Console.ForegroundColor = ConsoleColor.Red;
+    //         Console.WriteLine("SCORES ARE NOT CONSISTENT!");
+    //         Console.WriteLine($"Chart runs      : {Analyzer.ATTEMPTS}");
+    //         Console.WriteLine($"Distinct scores : {distinctScores.Count}\n");
+    //         Console.WriteLine("Scores:");
+    //         foreach (var score in distinctScores)
+    //         {
+    //             Console.WriteLine($" - {score}");
+    //         }
+    //     }
+    //     else
+    //     {
+    //         Console.ForegroundColor = ConsoleColor.Green;
+    //         Console.WriteLine("SCORES WERE CONSISTENT!");
+    //         Console.WriteLine($"Chart runs      : {Analyzer.ATTEMPTS}");
+    //         Console.WriteLine($"Distinct scores : {distinctScores.Count}");
+    //     }
+    // }
 }
-// else
-// {
-//     Console.Write("Enter player number to analyze inputs: ");
-//     string playerId = Console.ReadLine();
-//
-//     if (!int.TryParse(playerId, out int selectedPlayer))
-//     {
-//         continue;
-//     }
-//
-//     Console.WriteLine("|       Time | Action |       Axis |    Integer | Button | Difference |");
-//     double lastTime = double.NegativeInfinity;
-//     foreach (var replayInput in replay.Frames[selectedPlayer].Inputs)
-//     {
-//         Console.WriteLine(
-//             $"| {replayInput.Time,10:0.0000} | {replayInput.Action,6} | {replayInput.Axis,10:0.00} | " +
-//             $"{replayInput.Integer,10} | {(replayInput.Button ? "Y" : "N"),6} | {replayInput.Time - lastTime,10:0.0000} |");
-//         lastTime = replayInput.Time;
-//     }
-//
-//     Console.WriteLine(
-//         $"{replay.Frames[selectedPlayer].Inputs.Length} input(s) were read from player {selectedPlayer}.");
-// }
+else
+{
+    Console.Write("Enter player number to analyze inputs: ");
+    string playerId = Console.ReadLine();
 
-Console.ForegroundColor = defaultColor;
+    if (!int.TryParse(playerId, out int selectedPlayer))
+    {
+        Console.WriteLine("ERROR: Invalid input.");
+        return;
+    }
+
+    Console.WriteLine("|       Time | Action |       Axis |    Integer | Button | Difference |");
+    double lastTime = double.NegativeInfinity;
+    foreach (var replayInput in replay.Frames[selectedPlayer].Inputs)
+    {
+        Console.WriteLine(
+            $"| {replayInput.Time,10:0.0000} | {replayInput.Action,6} | {replayInput.Axis,10:0.00} | " +
+            $"{replayInput.Integer,10} | {(replayInput.Button ? "Y" : "N"),6} | {replayInput.Time - lastTime,10:0.0000} |");
+        lastTime = replayInput.Time;
+    }
+
+    Console.WriteLine(
+        $"{replay.Frames[selectedPlayer].Inputs.Length} input(s) were read from player {selectedPlayer}.");
+}
+*/
 
 /*
 while (true)

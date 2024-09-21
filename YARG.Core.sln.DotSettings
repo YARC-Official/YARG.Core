@@ -5,4 +5,5 @@
 	<s:String x:Key="/Default/CodeStyle/Naming/CSharpNaming/Abbreviations/=RBCON/@EntryIndexedValue">RBCON</s:String>
 	<s:String x:Key="/Default/CodeStyle/Naming/CSharpNaming/Abbreviations/=YARG/@EntryIndexedValue">YARG</s:String>
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=Unpitched/@EntryIndexedValue">True</s:Boolean>
+	<s:Boolean x:Key="/Default/UserDictionary/Words/=Whammied/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=YARG/@EntryIndexedValue">True</s:Boolean></wpf:ResourceDictionary>

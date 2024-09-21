@@ -4,33 +4,20 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
+using YARG.Core.Chart;
 using YARG.Core.Extensions;
 
 namespace MoonscraperChartEditor.Song
 {
     internal class MoonSong
     {
-        // Song properties
-        public Metadata metaData = new();
-
-        public string name
-        {
-            get => metaData.name;
-            set => metaData.name = value;
-        }
-
-        public float resolution;
+        public float resolution => syncTrack.Resolution;
         public float hopoThreshold;
-        public float offset = 0;
-
-        public float? manualLength = null;
 
         // Charts
         private readonly MoonChart[] charts;
 
-        public IReadOnlyList<MoonChart> Charts => charts.ToList();
+        public IReadOnlyList<MoonChart> Charts => charts;
 
         /// <summary>
         /// Read only list of song events.
@@ -45,24 +32,17 @@ namespace MoonscraperChartEditor.Song
         /// </summary>
         public List<MoonVenue> venue { get; private set; } = new();
 
-        /// <summary>
-        /// Read only list of a song's bpm changes.
-        /// </summary>
-        public List<MoonTempo> bpms { get; private set; } = new();
-        /// <summary>
-        /// Read only list of a song's time signature changes.
-        /// </summary>
-        public List<MoonTimeSignature> timeSignatures { get; private set; } = new();
-        /// <summary>
-        /// Read only list of a song's beats.
-        /// </summary>
-        public List<MoonBeat> beats { get; private set; } = new();
+        public SyncTrack syncTrack { get; private set; }
 
         /// <summary>
         /// Default constructor for a new chart. Initialises all lists and adds locked bpm and timesignature objects.
         /// </summary>
-        public MoonSong()
+        public MoonSong(uint resolution)
         {
+            syncTrack = new(resolution);
+            syncTrack.Tempos.Add(new TempoChange(120, 0, 0));
+            syncTrack.TimeSignatures.Add(new TimeSignatureChange(4, 4, 0, 0));
+
             // Chart initialisation
             charts = new MoonChart[EnumExtensions<MoonInstrument>.Count * EnumExtensions<Difficulty>.Count];
             for (int i = 0; i < charts.Length; ++i)
@@ -96,58 +76,24 @@ namespace MoonscraperChartEditor.Song
             return !GetChart(instrument, difficulty).IsEmpty;
         }
 
+        public double TickToTime(uint tick)
+        {
+            return syncTrack.TickToTime(tick);
+        }
+
+        public double TickToTime(uint tick, TempoChange tempo)
+        {
+            return syncTrack.TickToTime(tick, tempo);
+        }
+
         public uint TimeToTick(double time)
         {
-            return TimeToTick(time, resolution);
+            return syncTrack.TimeToTick(time);
         }
 
-        /// <summary>
-        /// Converts a time value into a tick position value. May be inaccurate due to interger rounding.
-        /// </summary>
-        /// <param name="time">The time (in seconds) to convert.</param>
-        /// <param name="resolution">Ticks per beat, usually provided from the resolution song of a Song class.</param>
-        /// <returns>Returns the calculated tick position.</returns>
-        public uint TimeToTick(double time, float resolution)
+        public uint TimeToTick(double time, TempoChange tempo)
         {
-            if (time < 0)
-                time = 0;
-
-            var prevBPM = bpms[0];
-
-            // Search for the last bpm
-            for (int i = 0; i < bpms.Count; ++i)
-            {
-                var bpmInfo = bpms[i];
-                if (bpmInfo.assignedTime >= time)
-                    break;
-                else
-                    prevBPM = bpmInfo;
-            }
-
-            uint position = prevBPM.tick;
-            position += TickFunctions.TimeToDis(prevBPM.assignedTime, time, resolution, prevBPM.value);
-
-            return position;
-        }
-
-        /// <summary>
-        /// Finds the value of the first bpm that appears before or on the specified tick position.
-        /// </summary>
-        /// <param name="position">The tick position</param>
-        /// <returns>Returns the value of the bpm that was found.</returns>
-        public MoonTempo? GetPrevBPM(uint position)
-        {
-            return MoonObjectHelper.GetPrevious(bpms, position);
-        }
-
-        /// <summary>
-        /// Finds the value of the first time signature that appears before the specified tick position.
-        /// </summary>
-        /// <param name="position">The tick position</param>
-        /// <returns>Returns the value of the time signature that was found.</returns>
-        public MoonTimeSignature? GetPrevTS(uint position)
-        {
-            return MoonObjectHelper.GetPrevious(timeSignatures, position);
+            return syncTrack.TimeToTick(time, tempo);
         }
 
         public MoonText? GetPrevSection(uint position)
@@ -155,63 +101,44 @@ namespace MoonscraperChartEditor.Song
             return MoonObjectHelper.GetPrevious(sections, position);
         }
 
-        /// <summary>
-        /// Converts a tick position into the time it will appear in the song.
-        /// </summary>
-        /// <param name="position">Tick position.</param>
-        /// <returns>Returns the time in seconds.</returns>
-        public double TickToTime(uint position)
+        private void AddSyncEvent<TEvent>(List<TEvent> events, TEvent newEvent)
+            where TEvent : SyncEvent
         {
-            return TickToTime(position, resolution);
+            if (events.Count < 1)
+            {
+                events.Add(newEvent);
+                return;
+            }
+
+            uint lastTick = events[^1].Tick;
+            if (newEvent.Tick == lastTick)
+            {
+                // Replace
+                events[^1] = newEvent;
+            }
+            else if (newEvent.Tick < lastTick)
+            {
+                throw new InvalidOperationException($"Out-of-order sync track event at tick {newEvent.Tick}!");
+            }
+            else
+            {
+                events.Add(newEvent);
+            }
         }
 
-        /// <summary>
-        /// Converts a tick position into the time it will appear in the song.
-        /// </summary>
-        /// <param name="position">Tick position.</param>
-        /// <param name="resolution">Ticks per beat, usually provided from the resolution song of a Song class.</param>
-        /// <returns>Returns the time in seconds.</returns>
-        public double TickToTime(uint position, float resolution)
+        public void Add(Beatline beat)
         {
-            int previousBPMPos = MoonObjectHelper.FindClosestPosition(position, bpms);
-            if (bpms[previousBPMPos].tick > position)
-                --previousBPMPos;
-
-            var prevBPM = bpms[previousBPMPos];
-            double time = prevBPM.assignedTime;
-            time += TickFunctions.DisToTime(prevBPM.tick, position, resolution, prevBPM.value);
-
-            return time;
+            AddSyncEvent(syncTrack.Beatlines, beat);
         }
 
-        public void Add(MoonBeat beat)
+        public void Add(TimeSignatureChange timeSig)
         {
-            MoonObjectHelper.Insert(beat, beats);
+            AddSyncEvent(syncTrack.TimeSignatures, timeSig);
         }
 
-        public void Add(MoonTimeSignature timeSig)
+        public void Add(TempoChange bpm)
         {
-            MoonObjectHelper.Insert(timeSig, timeSignatures);
-        }
-
-        public void Add(MoonTempo bpm)
-        {
-            MoonObjectHelper.Insert(bpm, bpms);
-        }
-
-        public bool Remove(MoonBeat beat)
-        {
-            return beat.tick > 0 && MoonObjectHelper.Remove(beat, beats);
-        }
-
-        public bool Remove(MoonTimeSignature timeSig)
-        {
-            return timeSig.tick > 0 && MoonObjectHelper.Remove(timeSig, timeSignatures);
-        }
-
-        public bool Remove(MoonTempo bpm)
-        {
-            return bpm.tick > 0 && MoonObjectHelper.Remove(bpm, bpms);
+            AddSyncEvent(syncTrack.Tempos, bpm);
         }
 
         public void Add(MoonText ev)
@@ -244,70 +171,6 @@ namespace MoonscraperChartEditor.Song
             return MoonObjectHelper.Remove(venueEvent, venue);
         }
 
-        /// <summary>
-        /// Dramatically speeds up calculations of songs with lots of bpm changes.
-        /// </summary>
-        public void UpdateBPMTimeValues()
-        {
-            /*
-             * Essentially just an optimised version of this, as this was n^2 and bad
-             * foreach (var bpm in bpms)
-             * {
-             *     bpm.assignedTime = LiveTickToTime(bpm.tick, resolution);
-             * }
-            */
-
-            if (bpms.Count == 0 || bpms[0].tick != 0)
-                bpms.Insert(0, new MoonTempo());
-
-            if (timeSignatures.Count == 0 || timeSignatures[0].tick != 0)
-                timeSignatures.Insert(0, new MoonTimeSignature());
-
-            double time = 0;
-            var prevBPM = bpms[0];
-            prevBPM.assignedTime = 0;
-
-            foreach (var bpm in bpms)
-            {
-                time += TickFunctions.DisToTime(prevBPM.tick, bpm.tick, resolution, prevBPM.value);
-                bpm.assignedTime = time;
-                prevBPM = bpm;
-            }
-        }
-
-        public double LiveTickToTime(uint position, float resolution)
-        {
-            return LiveTickToTime(position, resolution, bpms[0], bpms);
-        }
-
-        public static double LiveTickToTime(uint position, float resolution, MoonTempo initialBpm, List<MoonTempo> synctrack)
-        {
-            double time = 0;
-            var prevBPM = initialBpm;
-
-            foreach (var syncTrack in synctrack)
-            {
-                var bpmInfo = syncTrack as MoonTempo;
-
-                if (bpmInfo == null)
-                    continue;
-
-                if (bpmInfo.tick > position)
-                {
-                    break;
-                }
-                else
-                {
-                    time += TickFunctions.DisToTime(prevBPM.tick, bpmInfo.tick, resolution, prevBPM.value);
-                    prevBPM = bpmInfo;
-                }
-            }
-
-            time += TickFunctions.DisToTime(prevBPM.tick, position, resolution, prevBPM.value);
-
-            return time;
-        }
-
         public float ResolutionScaleRatio(float targetResoltion)
         {
             return targetResoltion / resolution;
@@ -338,6 +201,9 @@ namespace MoonscraperChartEditor.Song
                 case MoonInstrument.ProBass_17Fret:
                 case MoonInstrument.ProBass_22Fret:
                     return MoonChart.GameMode.ProGuitar;
+
+                case MoonInstrument.ProKeys:
+                    return MoonChart.GameMode.ProKeys;
 
                 case MoonInstrument.Vocals:
                 case MoonInstrument.Harmony1:
@@ -374,6 +240,7 @@ namespace MoonscraperChartEditor.Song
             ProGuitar_22Fret,
             ProBass_17Fret,
             ProBass_22Fret,
+            ProKeys,
             Vocals,
             Harmony1,
             Harmony2,

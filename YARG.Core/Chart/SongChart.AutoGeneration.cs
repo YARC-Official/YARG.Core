@@ -145,7 +145,7 @@ namespace YARG.Core.Chart
                             if (newActivationPhrases.Count == 0)
                             {
                                 // No new activation phrases were added after parsing the chart
-                                // Assume that no other difficulties will need this either 
+                                // Assume that no other difficulties will need this either
                                 chartNeedsActivationPhrases = false;
                                 break;
                             }
@@ -175,11 +175,11 @@ namespace YARG.Core.Chart
                         // Assume that any drum chart with manually placed fill phrases will have enough. Stop here
                         YargLogger.LogDebug("Prevented generating Activation phrases for a Drum chart that already has them");
                         return;
-                    
+
                     case PhraseType.StarPower:
                         starPowerPhrases.Add(thisPhrase);
                         break;
-                    
+
                     case PhraseType.Solo:
                         soloPhrases.Add(thisPhrase);
                         break;
@@ -207,7 +207,7 @@ namespace YARG.Core.Chart
 
             int currentMeasureIndex = measureBeatLines.GetIndexOfPrevious(spacingRefTime);
             int totalMeasures = measureBeatLines.Count;
-            
+
             // Prefer section boundaries and time signature changes for activation placement when possible
             int currentSectionIndex = Sections.GetIndexOfPrevious(spacingRefTime);
 
@@ -232,7 +232,7 @@ namespace YARG.Core.Chart
                 currentMeasureIndex += measuresPerActivator;
 
                 var currentMeasureLine = measureBeatLines[currentMeasureIndex];
-                
+
                 int newSectionIndex = Sections.GetIndexOfPrevious(currentMeasureLine.Tick);
                 if (newSectionIndex > currentSectionIndex)
                 {
@@ -304,7 +304,7 @@ namespace YARG.Core.Chart
                     testNote = testNote.NextNote;
                 }
 
-                if (totalNotesForStarPower < SP_MIN_NOTES) 
+                if (totalNotesForStarPower < SP_MIN_NOTES)
                 {
                     continue;
                 }
@@ -318,9 +318,9 @@ namespace YARG.Core.Chart
                 uint fillPhraseStartTick = previousMeasureLine.Tick;
 
                 var newDrumFillPhrase = new Phrase(
-                    PhraseType.DrumFill, 
+                    PhraseType.DrumFill,
                     fillPhraseStartTime,
-                    currentMeasureTime - fillPhraseStartTime, 
+                    currentMeasureTime - fillPhraseStartTime,
                     fillPhraseStartTick,
                     currentMeasureTick - fillPhraseStartTick
                 );
@@ -394,7 +394,7 @@ namespace YARG.Core.Chart
                 }
 
                 // Add the activator flag to all notes in this chord
-                foreach (var note in activationNote.ChordEnumerator())
+                foreach (var note in activationNote.AllNotes)
                 {
                     note.ActivateFlag(DrumNoteFlags.StarPowerActivator);
                 }
@@ -436,7 +436,7 @@ namespace YARG.Core.Chart
             bool containsKick = false;
             bool containsSnare = false;
 
-            foreach (var childNote in note.ChordEnumerator())
+            foreach (var childNote in note.AllNotes)
             {
                 var thisPad = childNote.Pad;
                 if (instrument == Instrument.FiveLaneDrums)

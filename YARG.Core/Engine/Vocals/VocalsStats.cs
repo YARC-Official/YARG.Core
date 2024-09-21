@@ -1,4 +1,6 @@
 ﻿using System.IO;
+using YARG.Core.Extensions;
+using YARG.Core.Replays;
 
 namespace YARG.Core.Engine.Vocals
 {
@@ -7,12 +9,19 @@ namespace YARG.Core.Engine.Vocals
         /// <summary>
         /// The amount of note ticks that was hit by the vocalist.
         /// </summary>
-        public uint VocalTicksHit;
+        public uint TicksHit;
 
         /// <summary>
         /// The amount of note ticks that were missed by the vocalist.
         /// </summary>
-        public uint VocalTicksMissed;
+        public uint TicksMissed;
+
+        /// <summary>
+        /// The total amount of note ticks.
+        /// </summary>
+        public uint TotalTicks => TicksHit + TicksMissed;
+
+        public override float Percent => TotalTicks == 0 ? 1f : (float) TicksHit / TotalTicks;
 
         public VocalsStats()
         {
@@ -20,31 +29,35 @@ namespace YARG.Core.Engine.Vocals
 
         public VocalsStats(VocalsStats stats) : base(stats)
         {
-            VocalTicksHit = stats.VocalTicksHit;
-            VocalTicksMissed = stats.VocalTicksMissed;
+            TicksHit = stats.TicksHit;
+            TicksMissed = stats.TicksMissed;
+        }
+
+        public VocalsStats(UnmanagedMemoryStream stream, int version)
+            : base(stream, version)
+        {
+            TicksHit = stream.Read<uint>(Endianness.Little);
+            TicksMissed = stream.Read<uint>(Endianness.Little);
         }
 
         public override void Reset()
         {
             base.Reset();
-            VocalTicksHit = 0;
-            VocalTicksMissed = 0;
+            TicksHit = 0;
+            TicksMissed = 0;
         }
 
         public override void Serialize(BinaryWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write(VocalTicksHit);
-            writer.Write(VocalTicksMissed);
+            writer.Write(TicksHit);
+            writer.Write(TicksMissed);
         }
 
-        public override void Deserialize(BinaryReader reader, int version = 0)
+        public override ReplayStats ConstructReplayStats(string name)
         {
-            base.Deserialize(reader, version);
-
-            VocalTicksHit = reader.ReadUInt32();
-            VocalTicksMissed = reader.ReadUInt32();
+            return new VocalsReplayStats(name, this);
         }
     }
 }

@@ -11,8 +11,6 @@ namespace YARG.Core.Chart
         public int DisjointMask { get; }
         public int NoteMask     { get; private set; }
 
-        public uint SustainTicksHeld;
-
         public GuitarNoteType Type { get; set; }
 
         public bool IsStrum => Type == GuitarNoteType.Strum;
@@ -62,6 +60,8 @@ namespace YARG.Core.Chart
 
         public override void AddChildNote(GuitarNote note)
         {
+            if ((NoteMask & GetNoteMask(note.Fret)) != 0) return;
+
             base.AddChildNote(note);
 
             NoteMask |= GetNoteMask(note.Fret);
@@ -71,7 +71,6 @@ namespace YARG.Core.Chart
         {
             base.ResetNoteState();
             GuitarFlags = _guitarFlags;
-            SustainTicksHeld = 0;
         }
 
         protected override void CopyFlags(GuitarNote other)
@@ -90,23 +89,23 @@ namespace YARG.Core.Chart
 
     public enum FiveFretGuitarFret
     {
-        Open,
-        Green,
+        Green = 1,
         Red,
         Yellow,
         Blue,
         Orange,
+        Open = 7,
     }
 
     public enum SixFretGuitarFret
     {
-        Open,
-        Black1,
+        Black1 = 1,
         Black2,
         Black3,
         White1,
         White2,
         White3,
+        Open,
     }
 
     public enum GuitarNoteType

@@ -1,140 +1,96 @@
 ﻿using System;
 using YARG.Core.Chart;
 using YARG.Core.Input;
+using YARG.Core.Logging;
 
 namespace YARG.Core.Engine.Vocals.Engines
 {
     public class YargVocalsEngine : VocalsEngine
     {
-        public YargVocalsEngine(InstrumentDifficulty<VocalNote> chart, SyncTrack syncTrack, VocalsEngineParameters engineParameters)
-            : base(chart, syncTrack, engineParameters)
+        public YargVocalsEngine(InstrumentDifficulty<VocalNote> chart, SyncTrack syncTrack,
+            VocalsEngineParameters engineParameters, bool isBot)
+            : base(chart, syncTrack, engineParameters, isBot)
         {
         }
 
-        public override void UpdateBot(double songTime)
+        protected override void UpdateBot(double songTime)
         {
-            base.UpdateBot(songTime);
-
-            // Skip if the song hasn't started yet
-            if (songTime < 0) return;
-
-            // Skip if the song time and the current time is basically the same
-            if (Math.Abs(songTime - State.CurrentTime) <= double.Epsilon) return;
-
-            // This is a little more tricky since vocals requires a constant stream of inputs.
-            // We can use the ApproximateVocalFps from 0s songTime to determine the amount of inputs
-            // (or rather updates) we need to apply.
-            double spf = 1.0 / EngineParameters.ApproximateVocalFps;
-
-            // First, get the first update after the last time
-            // (CurrentTime would the be last time at this point)
-            double first;
-
-            // ReSharper disable once CompareOfFloatsByEqualityOperator
-            // Since CurrentTime is set equal to `double.MinValue`, this should work
-            if (State.CurrentTime == double.MinValue)
+            if (!IsBot)
             {
-                // If the last update time is not set, just assume 0
-                first = 0;
+                return;
+            }
+
+            var phrase = Notes[NoteIndex];
+
+            // Handle singing notes
+            var singNote = GetNoteInPhraseAtSongTick(phrase, CurrentTick);
+            if (singNote is not null)
+            {
+                // Bots are queued extra updates to account for in-between "inputs"
+                PitchSang = singNote.PitchAtSongTime(songTime);
+                HasSang = true;
+                OnSing?.Invoke(true);
             }
             else
             {
-                first = Math.Ceiling(State.CurrentTime / spf) * spf;
+                // Stop hitting to prevent the hit particles from showing up too much
+                OnHit?.Invoke(false);
             }
 
-            // Push out a bunch of updates
-            for (double time = first; time < songTime; time += spf)
+            // Handle percussion notes
+            var percussion = GetNextPercussionNote(phrase, CurrentTick);
+            if (percussion is not null && songTime >= percussion.Time)
             {
-                // Skip all updates that are in the past
-                if (time <= State.CurrentTime) continue;
-
-                if (State.NoteIndex < Notes.Count)
-                {
-                    var phrase = Notes[State.NoteIndex];
-                    var note = GetNoteInPhraseAtSongTick(phrase, State.CurrentTick);
-
-                    if (note is not null && !note.IsPercussion)
-                    {
-                        State.DidSing = true;
-                        State.PitchSang = note.PitchAtSongTime(State.CurrentTime);
-                        State.LastSingTime = time;
-                    }
-                    else
-                    {
-                        State.DidSing = false;
-                    }
-                }
-
-                UpdateHitLogic(time);
+                HasHit = true;
             }
         }
 
-        protected override bool UpdateHitLogic(double time)
+        protected override void MutateStateWithInput(GameInput gameInput)
         {
-            UpdateTimeVariables(time);
+            var action = gameInput.GetAction<VocalsAction>();
 
-            // Activate starpower
-            if (IsInputUpdate && CurrentInput.GetAction<VocalsAction>() == VocalsAction.StarPower &&
-                EngineStats.CanStarPowerActivate)
+            if (action is VocalsAction.Hit && gameInput.Button)
             {
-                ActivateStarPower();
+                HasHit = true;
             }
+            else if (action is VocalsAction.Pitch)
+            {
+                HasSang = true;
+                PitchSang = gameInput.Axis;
 
+                OnSing?.Invoke(true);
+            }
+            else if (action is VocalsAction.StarPower)
+            {
+                IsStarPowerInputActive = gameInput.Button;
+            }
+        }
+
+        protected override void UpdateHitLogic(double time)
+        {
             UpdateStarPower();
 
-            // Get the pitch this update
-            if (IsInputUpdate && CurrentInput.GetAction<VocalsAction>() == VocalsAction.Pitch)
+            // Quit early if there are no notes left
+            if (NoteIndex >= Notes.Count)
             {
-                State.DidSing = true;
-                State.PitchSang = CurrentInput.Axis;
-
-                State.LastSingTime = State.CurrentTime;
-            }
-            else if (!IsBotUpdate)
-            {
-                State.DidSing = false;
+                HasSang = false;
+                return;
             }
 
-            // Quits early if there are no notes left
-            if (State.NoteIndex >= Notes.Count)
+            UpdateBot(time);
+
+            var phrase = Notes[NoteIndex];
+            PhraseTicksTotal ??= GetTicksInPhrase(phrase);
+
+            CheckForNoteHit();
+
+            // Check for the end of a phrase
+            if (CurrentTick > phrase.TickEnd)
             {
-                return false;
-            }
+                bool hasNotes = PhraseTicksTotal.Value != 0;
 
-            // Set phrase ticks if not set
-            var phrase = Notes[State.NoteIndex];
-            State.PhraseTicksTotal ??= GetVocalTicksInPhrase(phrase);
-
-            // If an input was detected, and this tick has not been processed, process it
-            if (State.DidSing)
-            {
-                bool noteHit = CheckForNoteHit();
-
-                if (noteHit)
-                {
-                    State.PhraseTicksHit++;
-                    State.LastHitTime = State.CurrentTime;
-                }
-                else
-                {
-                    // If star power can activate, there is no note to hit, and the player
-                    // hasn't sang in 0.25 seconds, then activate starpower.
-                    if (EngineParameters.SingToActivateStarPower &&
-                        GetNoteInPhraseAtSongTick(phrase, State.CurrentTick) is null &&
-                        EngineStats.CanStarPowerActivate &&
-                        State.CurrentTime - State.LastHitTime > 0.5)
-                    {
-                        ActivateStarPower();
-                    }
-                }
-            }
-
-            // Check for end of phrase
-            if (State.CurrentTick > phrase.TickEnd)
-            {
-                // Get the percent hit. If there's no notes, 100% was hit.
-                double percentHit = State.PhraseTicksHit / State.PhraseTicksTotal.Value;
-                if (State.PhraseTicksTotal.Value == 0)
+                var percentHit = PhraseTicksHit / PhraseTicksTotal.Value;
+                if (!hasNotes)
                 {
                     percentHit = 1.0;
                 }
@@ -142,63 +98,174 @@ namespace YARG.Core.Engine.Vocals.Engines
                 bool hit = percentHit >= EngineParameters.PhraseHitPercent;
                 if (hit)
                 {
-                    // Update stats (always add 100% of the phrase when hit)
-                    EngineStats.VocalTicksHit += (uint) State.PhraseTicksTotal.Value;
-
+                    EngineStats.TicksHit += PhraseTicksTotal.Value;
                     HitNote(phrase);
                 }
                 else
                 {
-                    // Update stats (just do it normally here)
-                    EngineStats.VocalTicksHit += State.PhraseTicksHit;
-                    EngineStats.VocalTicksMissed += (uint) (State.PhraseTicksTotal.Value - State.PhraseTicksHit);
+                    var ticksHit = (uint) Math.Round(PhraseTicksHit);
+
+                    EngineStats.TicksHit += ticksHit;
+                    EngineStats.TicksMissed += PhraseTicksTotal.Value - ticksHit;
 
                     MissNote(phrase, percentHit);
                 }
 
-                UpdateStars();
+                PhraseTicksHit = 0;
+                PhraseTicksTotal = null;
 
-                // Update tick variables
-                State.PhraseTicksHit = 0;
-                State.PhraseTicksTotal = State.NoteIndex < Notes.Count ?
-                    GetVocalTicksInPhrase(Notes[State.NoteIndex]) :
-                    null;
-
-                OnPhraseHit?.Invoke(percentHit / EngineParameters.PhraseHitPercent, hit);
+                if (hasNotes)
+                {
+                    OnPhraseHit?.Invoke(percentHit / EngineParameters.PhraseHitPercent, hit);
+                }
             }
-
-            // Vocals never need a re-update
-            return false;
         }
 
-        protected override bool CanNoteBeHit(VocalNote note)
+        protected override void CheckForNoteHit()
         {
-            // Non-pitched notes (talkies) can be hit always
+            CheckSingingHit();
+            CheckPercussionHit();
+        }
+
+        private void CheckSingingHit()
+        {
+            if (!HasSang)
+            {
+                return;
+            }
+
+            HasSang = false;
+            var lastSingTick = LastSingTick;
+            LastSingTick = CurrentTick;
+
+            // If the last sing detected was on the same tick (or less), skip it
+            // since we've already handled that tick.
+            if (lastSingTick >= CurrentTick)
+            {
+                return;
+            }
+
+            var phrase = Notes[NoteIndex];
+
+            // Get the note that we should currently be targeting
+            var note = GetNoteInPhraseAtSongTick(phrase, CurrentTick);
+            if (note is null)
+            {
+                // If we're not on a note, we cannot be hitting a note
+                OnHit?.Invoke(false);
+
+                return;
+            }
+
+            OnTargetNoteChanged?.Invoke(note);
+
+            // This will never be a percussion note here
+            if (CanVocalNoteBeHit(note, out float hitPercent))
+            {
+                // We will apply a leniency here and assume that it will also hit all other
+                // ticks, since the user cannot change pitch between inputs.
+                var maxLeniency = 1.0 / EngineParameters.ApproximateVocalFps;
+                var lastTick = Math.Max(
+                    SyncTrack.TimeToTick(CurrentTime - maxLeniency),
+                    lastSingTick);
+
+                var ticksSinceLast = CurrentTick - lastTick;
+                PhraseTicksHit += ticksSinceLast * hitPercent;
+
+                OnHit?.Invoke(true);
+            }
+            else
+            {
+                OnHit?.Invoke(false);
+            }
+        }
+
+        private void CheckPercussionHit()
+        {
+            var phrase = Notes[NoteIndex];
+            var note = GetNextPercussionNote(phrase, CurrentTick);
+
+            if (note is not null)
+            {
+                if (IsNoteInWindow(note, out var missed))
+                {
+                    if (HasHit)
+                    {
+                        HitNote(note);
+                    }
+                }
+                else if (missed)
+                {
+                    // Miss out the back end
+                    MissNote(note);
+                }
+            }
+            else
+            {
+                // Singing (or any noise) can result in a call to CheckPercussionHit() as well, so we need to check SingToActivateStarPower here.
+                if (HasHit && CanStarPowerActivate && EngineParameters.SingToActivateStarPower)
+                {
+                    ActivateStarPower();
+                }
+            }
+
+            HasHit = false;
+        }
+
+        protected override bool CanVocalNoteBeHit(VocalNote note, out float hitPercent)
+        {
+            // If it is non-pitched, it is always hittable
             if (note.IsNonPitched)
             {
+                hitPercent = 1f;
                 return true;
             }
 
-            // Octave does not matter
-            float notePitch = note.PitchAtSongTime(State.CurrentTime) % 12f;
-            float singPitch = State.PitchSang % 12f;
-            float dist = Math.Abs(singPitch - notePitch);
+            var expectedPitch = note.PitchAtSongTime(CurrentTime);
 
-            // Try to check once within the range and...
-            if (dist <= EngineParameters.HitWindow.MaxWindow)
+            // Formula for calculating the distance to the expected pitch, while ignoring octaves
+            float distanceToExpected = Math.Min(
+                Mod(PitchSang - expectedPitch, 12f),
+                Mod(expectedPitch - PitchSang, 12f));
+
+            // If it is within the full points window, award full points
+            if (distanceToExpected <= EngineParameters.PitchWindowPerfect)
             {
+                hitPercent = 1f;
                 return true;
             }
 
-            // ...try again twelve notes (one octave) away.
-            // This effectively allows wrapping in the check. Only subtraction is needed
-            // since we take the absolute value before hand and now.
-            if (Math.Abs(dist - 12f) <= EngineParameters.HitWindow.MaxWindow)
+            // If it is outside of the total pitch window, then award no points
+            if (distanceToExpected > EngineParameters.PitchWindow)
             {
-                return true;
+                hitPercent = 0f;
+                return false;
             }
 
-            return false;
+            hitPercent = YargMath.InverseLerpF(
+                EngineParameters.PitchWindow,
+                EngineParameters.PitchWindowPerfect,
+                distanceToExpected);
+            return true;
+
+            // Positive remainder
+            static float Mod(float a, float b)
+            {
+                var remainder = a % b;
+                if (remainder < 0)
+                {
+                    if (b < 0)
+                    {
+                        return remainder - b;
+                    }
+
+                    return remainder + b;
+                }
+
+                return remainder;
+            }
         }
+
+        protected override bool CanNoteBeHit(VocalNote note) => throw new NotImplementedException();
     }
 }

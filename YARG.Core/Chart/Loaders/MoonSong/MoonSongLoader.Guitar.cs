@@ -82,7 +82,7 @@ namespace YARG.Core.Chart
 
         private GuitarNoteType GetGuitarNoteType(MoonNote moonNote)
         {
-            var type = moonNote.GetGuitarNoteType(_currentMoonMode, _moonSong.hopoThreshold);
+            var type = moonNote.GetGuitarNoteType(_moonSong.hopoThreshold);
 
             // Apply chord HOPO cancellation, if enabled
             if (_settings.ChordHopoCancellation && type == MoonNote.MoonNoteType.Hopo &&
@@ -115,12 +115,43 @@ namespace YARG.Core.Chart
         {
             var flags = GuitarNoteFlags.None;
 
-            // Extended sustains
+            var noteEndTick = moonNote.tick + moonNote.length;
+
+            // Extended sustains (Forwards)
             var nextNote = moonNote.NextSeperateMoonNote;
-            if (nextNote is not null && (moonNote.tick + moonNote.length) > nextNote.tick &&
-                (nextNote.tick - moonNote.tick) > _settings.NoteSnapThreshold)
+            var ticksToNextNote = nextNote?.tick - moonNote.tick ?? 0;
+
+            if (nextNote is not null &&
+                noteEndTick > nextNote.tick &&
+                ticksToNextNote > _settings.NoteSnapThreshold)
             {
                 flags |= GuitarNoteFlags.ExtendedSustain;
+            }
+
+            // Extended sustains (Backwards)
+            var prevNote = moonNote.PreviousSeperateMoonNote;
+
+            if (prevNote is not null)
+            {
+                var prevNoteTick = prevNote.tick;
+                uint largestLength = 0;
+
+                // Must find the longest length of previous note (disjoint chords)
+                while(prevNote is not null && prevNote.previous?.tick == prevNote.tick)
+                {
+                    largestLength = Math.Max(largestLength, prevNote.length);
+                    prevNote = prevNote.previous;
+                }
+
+                var prevNoteEndTick = prevNoteTick + largestLength;
+                var ticksToPrevNote = moonNote.tick - prevNoteTick;
+
+                if (prevNoteEndTick > moonNote.tick &&
+                    moonNote.length > 0 &&
+                    ticksToPrevNote > _settings.NoteSnapThreshold)
+                {
+                    flags |= GuitarNoteFlags.ExtendedSustain;
+                }
             }
 
             // Disjoint chords

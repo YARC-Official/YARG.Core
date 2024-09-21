@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -76,7 +76,7 @@ namespace YARG.TestConsole
             {
                 foreach (var entry in node)
                 {
-                    if (entry is UnpackedIniEntry iniEntry && iniEntry.Directory == directory)
+                    if (entry is UnpackedIniEntry iniEntry && iniEntry.Location == directory)
                         return entry;
                 }
             }
@@ -91,7 +91,7 @@ namespace YARG.TestConsole
             {
                 foreach (var entry in node)
                 {
-                    if (entry is SngEntry sngEntry && sngEntry.Directory == filePath)
+                    if (entry is SngEntry sngEntry && sngEntry.Location == filePath)
                         return entry;
                 }
             }

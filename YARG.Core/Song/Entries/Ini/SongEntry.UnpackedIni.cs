@@ -18,7 +18,8 @@ namespace YARG.Core.Song
         private readonly AbridgedFileInfo_Length _chartFile;
         private readonly AbridgedFileInfo? _iniFile;
 
-        public override string Directory { get; }
+        public override string Location { get; }
+        public override string DirectoryActual => Location;
         public override ChartType Type { get; }
         public override DateTime GetAddTime() => _chartFile.LastUpdatedTime;
 
@@ -86,7 +87,7 @@ namespace YARG.Core.Song
         {
             foreach (var filename in PREVIEW_FILES)
             {
-                var audioFile = Path.Combine(Directory, filename);
+                var audioFile = Path.Combine(Location, filename);
                 if (File.Exists(audioFile))
                 {
                     return GlobalAudioHandler.LoadCustomFile(audioFile, speed, 0, SongStem.Preview);
@@ -181,7 +182,7 @@ namespace YARG.Core.Song
                 if (!_iniFile.Value.IsStillValid())
                     return null;
             }
-            else if (File.Exists(Path.Combine(Directory, "song.ini")))
+            else if (File.Exists(Path.Combine(Location, "song.ini")))
             {
                 return null;
             }
@@ -192,7 +193,7 @@ namespace YARG.Core.Song
         private Dictionary<string, FileInfo> GetSubFiles()
         {
             Dictionary<string, FileInfo> files = new();
-            var dirInfo = new DirectoryInfo(Directory);
+            var dirInfo = new DirectoryInfo(Location);
             if (dirInfo.Exists)
             {
                 foreach (var file in dirInfo.EnumerateFiles())
@@ -206,7 +207,7 @@ namespace YARG.Core.Song
         private UnpackedIniEntry(string directory, in IniChartNode<AbridgedFileInfo_Length> chart, AbridgedFileInfo? iniFile, in AvailableParts parts, in HashWrapper hash, IniSection modifiers, string defaultPlaylist)
             : base(in parts, in hash, modifiers, defaultPlaylist)
         {
-            Directory = directory;
+            Location = directory;
             Type = chart.Type;
             _chartFile = chart.File;
             _iniFile = iniFile;
@@ -215,7 +216,7 @@ namespace YARG.Core.Song
         private UnpackedIniEntry(string directory, in IniChartNode<AbridgedFileInfo_Length> chart, AbridgedFileInfo? iniFile, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
             : base(stream, strings)
         {
-            Directory = directory;
+            Location = directory;
             Type = chart.Type;
             _chartFile = chart.File;
             _iniFile = iniFile;

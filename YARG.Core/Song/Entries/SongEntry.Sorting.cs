@@ -28,7 +28,7 @@ namespace YARG.Core.Song
                 (strCmp = Album.CompareTo(other.Album)) == 0 &&
                 (strCmp = Charter.CompareTo(other.Charter)) == 0)
             {
-                strCmp = Directory.CompareTo(other.Directory);
+                strCmp = Location.CompareTo(other.Location);
             }
             return strCmp;
         }
