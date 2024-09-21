@@ -104,6 +104,12 @@ namespace YARG.Core.Engine
             public string Reason;
         }
 
+        public uint TotalLanes;
+        public uint CurrentLaneIndex;
+        protected bool IsLaneActive;
+        protected bool AllowLaneNoteMiss;
+        protected int NextRequiredTrillNote;
+
         /// <summary>
         /// Whether or not the specified engine should treat a note as a chord, or separately.
         /// For example, guitars would treat each note as a chord, where as drums would treat them
@@ -438,6 +444,13 @@ namespace YARG.Core.Engine
             CurrentWaitCountdownIndex = 0;
 
             IsSoloActive = false;
+
+            IsLaneActive = false;
+            NextRequiredTrillNote = -1;
+
+            // Allows one free missed note while lane is active, set to false when spent
+            // Trill phrases still require alternating inputs
+            AllowLaneNoteMiss = false; 
 
             IsWaitCountdownActive = false;
             IsStarPowerInputActive = false;

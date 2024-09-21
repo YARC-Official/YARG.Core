@@ -90,11 +90,27 @@ namespace YARG.Core.Engine.Guitar.Engines
                 if ((ButtonMask & ~OPEN_MASK) == 0)
                 {
                     ButtonMask |= OPEN_MASK;
+                    SubmitTrillNote(7); // Fret value for open notes
                 }
                 else
                 {
                     // Some frets are held, disable the "open fret"
                     ButtonMask &= unchecked((byte) ~OPEN_MASK);
+
+                    if (IsLaneActive)
+                    {
+                        int curFretMask = 16; // Mask value for only 5th fret held
+                        for (int i = 5; i >= 1; i--)
+                        {
+                            if ((ButtonMask & curFretMask) != 0)
+                            {
+                                SubmitTrillNote(i);
+                                break;
+                            }
+
+                            curFretMask >>= 1; // Right shift one bit to get mask for previous fret
+                        }
+                    }
                 }
             }
 
@@ -210,6 +226,12 @@ namespace YARG.Core.Engine.Guitar.Engines
                 {
                     if (isFirstNoteInWindow && missed)
                     {
+                        // Intercept missed note while lane phrase is active and missed note allowance has not been spent
+                        if (HitNoteFromLane(note))
+                        {
+                            break;
+                        }
+                        
                         MissNote(note);
                         YargLogger.LogFormatTrace("Missed note (Index: {0}, Mask: {1}) at {2}", i,
                             note.NoteMask, CurrentTime);

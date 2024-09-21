@@ -324,6 +324,9 @@ namespace YARG.Core.Engine
                 solo.NotesHit = 0;
                 solo.SoloBonus = 0;
             }
+
+            CurrentLaneIndex = 1;
+            GetTotalLanes();
         }
 
         protected abstract void CheckForNoteHit();
@@ -342,14 +345,87 @@ namespace YARG.Core.Engine
             if (note.ParentOrSelf.WasFullyHitOrMissed())
             {
                 AdvanceToNextNote(note);
+                
+                if (CurrentLaneIndex > TotalLanes)
+                {
+                    return;
+                }
+
+                // Change lane state from hit
+                if ((note.Flags & NoteFlags.LaneEnd) != 0)
+                {
+                    // Lane ended, disable all lane related properties
+                    IsLaneActive = false;
+                    NextRequiredTrillNote = -1;
+                    AllowLaneNoteMiss = false;
+                }
+                else if ((note.Flags & NoteFlags.Tremolo) != 0)
+                {
+                    // Reactivate lane phrase if combo was dropped in the middle
+                    IsLaneActive = true;
+
+                    // This will immediately be set back to false if called by HitNoteFromLane
+                    AllowLaneNoteMiss = true;
+                }
+                else if ((note.Flags & NoteFlags.Trill) != 0)
+                {
+                    // Reactivate lane phrase if combo was dropped in the middle
+                    IsLaneActive = true;
+
+                    // Missed note allowances during trills are only given by SubmitTrillNote
+                    // Set required note to next note value to ensure players are alternating
+                    if (note.NextNote != null)
+                    {
+                        NextRequiredTrillNote = note.NextNote.LaneIndex;
+                    }
+                }
             }
+        }
+
+        // Intercept a missed note while a lane phrase is active with allowances remaining
+        protected bool HitNoteFromLane(TNoteType note)
+        {
+            if (IsLaneActive && AllowLaneNoteMiss)
+            {
+                HitNote(note);
+
+                // Spend missed note allowance
+                AllowLaneNoteMiss = false;
+
+                return true;
+            }
+
+            return false;
         }
 
         protected virtual void MissNote(TNoteType note)
         {
             if (note.ParentOrSelf.WasFullyHitOrMissed())
             {
+                if (IsLaneActive)
+                {
+                    // No missed note allowances left, combo will not resume until a note is hit normally
+                    IsLaneActive = false;
+                    AllowLaneNoteMiss = false;
+                    NextRequiredTrillNote = -1;
+                }
+
                 AdvanceToNextNote(note);
+            }
+        }
+
+        protected void SubmitTrillNote(int newNote)
+        {
+            if (!IsLaneActive || NextRequiredTrillNote == -1)
+            {
+                return;
+            }
+
+            if (newNote == NextRequiredTrillNote)
+            {
+                // Required input received, grant another missed note allowance
+                AllowLaneNoteMiss = true;
+                NextRequiredTrillNote = -1;
             }
         }
 
@@ -359,6 +435,12 @@ namespace YARG.Core.Engine
             var prevNote = current.PreviousNote;
             while (prevNote is not null && !prevNote.WasFullyHitOrMissed())
             {
+                if (HitNoteFromLane(prevNote))
+                {
+                    // Save this note from being counted as a skip if there are lane miss allowances left
+                    continue;
+                }
+
                 skipped = true;
                 YargLogger.LogFormatTrace("Missed note (Index: {0}) ({1}) due to note skip at {2}", NoteIndex, prevNote.IsParent ? "Parent" : "Child", CurrentTime);
                 MissNote(prevNote);
@@ -808,6 +890,11 @@ namespace YARG.Core.Engine
 
         private void AdvanceToNextNote(TNoteType note)
         {
+            if (note.IsLaneStart)
+            {
+                CurrentLaneIndex++;
+            }
+
             NoteIndex++;
             ReRunHitLogic = true;
         }
@@ -877,6 +964,50 @@ namespace YARG.Core.Engine
             }
 
             return soloSections;
+        }
+
+        private void GetTotalLanes()
+        {
+            TotalLanes = 0;
+
+            if (Notes.Count == 0)
+            {
+                return;
+            }
+
+            // Modify lane start and end points if selected practice sections cut off the charted boundaries
+            if (Notes[0].IsLane)
+            {
+                Notes[0].ActivateFlag(NoteFlags.LaneStart);
+            }
+
+            if (Notes[^1].IsLane)
+            {
+                Notes[^1].ActivateFlag(NoteFlags.LaneEnd);
+            }
+
+            for (int i = 0; i < Chart.Phrases.Count; i++)
+            {
+                var thisPhrase = Chart.Phrases[i];
+
+                if (thisPhrase.TickEnd < Notes[0].Tick)
+                {
+                    continue;
+                }
+
+                if (thisPhrase.Tick > Notes[^1].TickEnd)
+                {
+                    break;
+                }
+
+                switch (thisPhrase.Type)
+                {
+                    case PhraseType.TremoloLane:
+                    case PhraseType.TrillLane:
+                        TotalLanes++;
+                        break;
+                }
+            }
         }
 
         private List<WaitCountdown> GetWaitCountdowns()

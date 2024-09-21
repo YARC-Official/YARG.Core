@@ -23,6 +23,7 @@ namespace YARG.Core.Engine.Drums.Engines
                 Action = gameInput.GetAction<DrumsAction>();
                 PadHit = ConvertInputToPad(EngineParameters.Mode, gameInput.GetAction<DrumsAction>());
                 HitVelocity = gameInput.Axis;
+                SubmitTrillNote((int) PadHit);
             }
         }
 
@@ -60,8 +61,17 @@ namespace YARG.Core.Engine.Drums.Engines
                     // Miss out the back end
                     if (!IsNoteInWindow(note, out bool missed))
                     {
+                        // You can't skip ahead if the note is not in the hit window to begin with
+                        stopSkipping = true;
+
                         if (isFirstNoteInWindow && missed)
                         {
+                            // Intercept missed note while lane phrase is active and missed note allowance has not been spent
+                            if (HitNoteFromLane(parentNote))
+                            {
+                                break;
+                            }
+
                             // If one of the notes in the chord was missed out the back end,
                             // that means all of them would miss.
                             foreach (var missedNote in parentNote.AllNotes)
@@ -75,9 +85,7 @@ namespace YARG.Core.Engine.Drums.Engines
                                 MissNote(missedNote);
                             }
                         }
-
-                        // You can't skip ahead if the note is not in the hit window to begin with
-                        stopSkipping = true;
+                        
                         break;
                     }
 
