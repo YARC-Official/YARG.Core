@@ -91,6 +91,12 @@ namespace YARG.Core.Chart
         public bool IsSoloStart => (Flags & NoteFlags.SoloStart) != 0;
         public bool IsSoloEnd   => (Flags & NoteFlags.SoloEnd) != 0;
 
+        public bool IsTremolo => (Flags & NoteFlags.Tremolo) != 0;
+        public bool IsTrill => (Flags & NoteFlags.Trill) != 0;
+        public bool IsLane => IsTremolo || IsTrill;
+        public bool IsLaneStart => (Flags & NoteFlags.LaneStart) != 0;
+        public bool IsLaneEnd   => (Flags & NoteFlags.LaneEnd) != 0;
+
         public virtual int LaneIndex => -1;
 
         /// <summary>

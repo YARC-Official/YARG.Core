@@ -351,14 +351,14 @@ namespace YARG.Core.Engine
                 }
 
                 // Change lane state from hit
-                if ((note.Flags & NoteFlags.LaneEnd) != 0)
+                if (note.IsLaneEnd)
                 {
                     // Lane ended, disable all lane related properties
                     IsLaneActive = false;
                     NextRequiredTrillNote = -1;
                     AllowLaneNoteMiss = false;
                 }
-                else if ((note.Flags & NoteFlags.Tremolo) != 0)
+                else if (note.IsTremolo)
                 {
                     // Reactivate lane phrase if combo was dropped in the middle
                     IsLaneActive = true;
@@ -366,7 +366,7 @@ namespace YARG.Core.Engine
                     // This will immediately be set back to false if called by HitNoteFromLane
                     AllowLaneNoteMiss = true;
                 }
-                else if ((note.Flags & NoteFlags.Trill) != 0)
+                else if (note.IsTrill)
                 {
                     // Reactivate lane phrase if combo was dropped in the middle
                     IsLaneActive = true;
