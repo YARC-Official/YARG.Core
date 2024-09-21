@@ -264,7 +264,7 @@ namespace YARG.Core.Song
         public static (ScanResult, SngEntry?) ProcessNewEntry(SngFile sng, in IniChartNode<SngFileListing> chart, string defaultPlaylist)
         {
             using var file = chart.File.LoadAllBytes(sng);
-            var (result, parts) = ScanIniChartFile(file, chart.Type, sng.Metadata);
+            var (result, parts) = ScanIniChartFile(in file, chart.Type, sng.Metadata);
             if (result != ScanResult.Success)
             {
                 return (result, null);

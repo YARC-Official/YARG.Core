@@ -9,7 +9,7 @@ namespace YARG.Core.IO
 {
     public unsafe static class YARGDTAReader
     {
-        public static bool TryCreate(FixedArray<byte> data, out YARGTextContainer<byte> container)
+        public static bool TryCreate(in FixedArray<byte> data, out YARGTextContainer<byte> container)
         {
             if ((data[0] == 0xFF && data[1] == 0xFE) || (data[0] == 0xFE && data[1] == 0xFF))
             {

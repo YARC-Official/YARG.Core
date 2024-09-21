@@ -246,7 +246,7 @@ namespace YARG.Core.Song
             }
 
             using var file = FixedArray<byte>.Load(chart.File.FullName);
-            var (result, parts) = ScanIniChartFile(file, chart.Type, iniModifiers);
+            var (result, parts) = ScanIniChartFile(in file, chart.Type, iniModifiers);
             if (result != ScanResult.Success)
             {
                 return (result, null);

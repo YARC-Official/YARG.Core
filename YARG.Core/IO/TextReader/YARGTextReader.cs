@@ -29,7 +29,7 @@ namespace YARG.Core.IO
         public static readonly Encoding UTF8Strict = new UTF8Encoding(false, true);
         public static readonly Encoding UTF32BE = new UTF32Encoding(true, false);
 
-        public static bool IsUTF8(FixedArray<byte> data, out YARGTextContainer<byte> container)
+        public static bool IsUTF8(in FixedArray<byte> data, out YARGTextContainer<byte> container)
         {
             if ((data[0] == 0xFF && data[1] == 0xFE) || (data[0] == 0xFE && data[1] == 0xFF))
             {
@@ -46,7 +46,7 @@ namespace YARG.Core.IO
             return true;
         }
 
-        public static FixedArray<char> ConvertToUTF16(FixedArray<byte> data, out YARGTextContainer<char> container)
+        public static FixedArray<char> ConvertToUTF16(in FixedArray<byte> data, out YARGTextContainer<char> container)
         {
             if (data[2] == 0)
             {
@@ -74,7 +74,7 @@ namespace YARG.Core.IO
             return buffer;
         }
 
-        public static FixedArray<int> ConvertToUTF32(FixedArray<byte> data, out YARGTextContainer<int> container)
+        public static FixedArray<int> ConvertToUTF32(in FixedArray<byte> data, out YARGTextContainer<int> container)
         {
             FixedArray<int> buffer;
             long length = (data.Length - 3) / 4;

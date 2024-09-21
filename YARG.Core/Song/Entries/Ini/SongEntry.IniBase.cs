@@ -156,7 +156,7 @@ namespace YARG.Core.Song
             return FixedArray<byte>.Default;
         }
 
-        protected static (ScanResult Result, AvailableParts Parts) ScanIniChartFile(FixedArray<byte> file, ChartType chartType, IniSection modifiers)
+        protected static (ScanResult Result, AvailableParts Parts) ScanIniChartFile(in FixedArray<byte> file, ChartType chartType, IniSection modifiers)
         {
             DrumPreparseHandler drums = new()
             {
@@ -166,27 +166,27 @@ namespace YARG.Core.Song
             var parts = AvailableParts.Default;
             if (chartType == ChartType.Chart)
             {
-                if (YARGTextReader.IsUTF8(file, out var byteContainer))
+                if (YARGTextReader.IsUTF8(in file, out var byteContainer))
                 {
                     ParseDotChart(ref byteContainer, modifiers, ref parts, drums);
                 }
                 else
                 {
-                    using var chars = YARGTextReader.ConvertToUTF16(file, out var charContainer);
+                    using var chars = YARGTextReader.ConvertToUTF16(in file, out var charContainer);
                     if (chars.IsAllocated)
                     {
                         ParseDotChart(ref charContainer, modifiers, ref parts, drums);
                     }
                     else
                     {
-                        using var ints = YARGTextReader.ConvertToUTF32(file, out var intContainer);
+                        using var ints = YARGTextReader.ConvertToUTF32(in file, out var intContainer);
                         ParseDotChart(ref intContainer, modifiers, ref parts, drums);
                     }
                 }
             }
             else // if (chartType == ChartType.Mid || chartType == ChartType.Midi) // Uncomment for any future file type
             {
-                if (!ParseDotMidi(file, modifiers, ref parts, drums))
+                if (!ParseDotMidi(in file, modifiers, ref parts, drums))
                 {
                     return (ScanResult.MultipleMidiTrackNames, parts);
                 }
@@ -228,7 +228,7 @@ namespace YARG.Core.Song
                 drums.Type = DrumsType.FourLane;
         }
 
-        private static bool ParseDotMidi(FixedArray<byte> file, IniSection modifiers, ref AvailableParts parts, DrumPreparseHandler drums)
+        private static bool ParseDotMidi(in FixedArray<byte> file, IniSection modifiers, ref AvailableParts parts, DrumPreparseHandler drums)
         {
             bool usePro = !modifiers.TryGet("pro_drums", out bool proDrums) || proDrums;
             if (drums.Type == DrumsType.Unknown)
@@ -239,7 +239,7 @@ namespace YARG.Core.Song
             else if (drums.Type == DrumsType.FourLane && usePro)
                 drums.Type = DrumsType.ProDrums;
 
-            return ParseMidi(file, drums, ref parts);
+            return ParseMidi(in file, drums, ref parts);
         }
 
         /// <returns>Whether the track was fully traversed</returns>

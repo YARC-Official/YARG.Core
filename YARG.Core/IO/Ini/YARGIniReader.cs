@@ -18,13 +18,13 @@ namespace YARG.Core.IO.Ini
                     return ProcessIni(ref byteContainer, sections);
                 }
 
-                using var chars = YARGTextReader.ConvertToUTF16(bytes, out var charContainer);
+                using var chars = YARGTextReader.ConvertToUTF16(in bytes, out var charContainer);
                 if (chars.IsAllocated)
                 {
                     return ProcessIni(ref charContainer, sections);
                 }
 
-                using var ints = YARGTextReader.ConvertToUTF32(bytes, out var intContainer);
+                using var ints = YARGTextReader.ConvertToUTF32(in bytes, out var intContainer);
                 return ProcessIni(ref intContainer, sections);
 
             }
