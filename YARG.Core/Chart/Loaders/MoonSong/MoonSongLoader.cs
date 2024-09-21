@@ -33,7 +33,9 @@ namespace YARG.Core.Chart
         public MoonSongLoader(MoonSong song, ParseSettings settings)
         {
             if (settings.NoteSnapThreshold < 0)
+            {
                 settings.NoteSnapThreshold = 0;
+            }
 
             _moonSong = song;
             _settings = settings;
@@ -163,7 +165,9 @@ namespace YARG.Core.Chart
 
                 // Skip Expert+ notes if not on Expert+
                 if (difficulty != Difficulty.ExpertPlus && (moonNote.flags & MoonNote.Flags.InstrumentPlus) != 0)
+                {
                     continue;
+                }
 
                 var newNote = createNote(moonNote, currentPhrases);
                 AddNoteToList(notes, newNote);
@@ -199,7 +203,9 @@ namespace YARG.Core.Chart
                 };
 
                 if (!phraseType.HasValue)
+                {
                     continue;
+                }
 
                 double time = _moonSong.TickToTime(moonPhrase.tick);
                 var newPhrase = new Phrase(phraseType.Value, time, GetLengthInTime(moonPhrase), moonPhrase.tick, moonPhrase.length);
@@ -224,36 +230,57 @@ namespace YARG.Core.Chart
 
         private NoteFlags GetGeneralFlags(MoonNote moonNote, CurrentPhrases currentPhrases)
         {
-            var flags = NoteFlags.None;
-
-            var previous = moonNote.PreviousSeperateMoonNote;
-            var next = moonNote.NextSeperateMoonNote;
+            var allFlags = NoteFlags.None;
 
             // Star power
-            if (currentPhrases.TryGetValue(MoonPhrase.Type.Starpower, out var starPower) && IsEventInPhrase(moonNote, starPower))
+            if (currentPhrases.TryGetValue(MoonPhrase.Type.Starpower, out var starPower))
             {
-                flags |= NoteFlags.StarPower;
-
-                if (previous == null || !IsEventInPhrase(previous, starPower))
-                    flags |= NoteFlags.StarPowerStart;
-
-                if (next == null || !IsEventInPhrase(next, starPower))
-                    flags |= NoteFlags.StarPowerEnd;
+                allFlags |= ApplyPhraseFlags(starPower, moonNote, NoteFlags.StarPower, NoteFlags.StarPowerStart, NoteFlags.StarPowerEnd);
             }
 
             // Solos
-            if (currentPhrases.TryGetValue(MoonPhrase.Type.Solo, out var solo) && IsEventInPhrase(moonNote, solo))
+            if (currentPhrases.TryGetValue(MoonPhrase.Type.Solo, out var solo))
             {
-                flags |= NoteFlags.Solo;
-
-                if (previous == null || !IsEventInPhrase(previous, solo))
-                    flags |= NoteFlags.SoloStart;
-
-                if (next == null || !IsEventInPhrase(next, solo))
-                    flags |= NoteFlags.SoloEnd;
+                allFlags |= ApplyPhraseFlags(solo, moonNote, NoteFlags.Solo, NoteFlags.SoloStart, NoteFlags.SoloEnd);
+            }
+            
+            // Tremolo
+            if (currentPhrases.TryGetValue(MoonPhrase.Type.TremoloLane, out var tremolo)) 
+            {
+                allFlags |= ApplyPhraseFlags(tremolo, moonNote, NoteFlags.Tremolo, NoteFlags.LaneStart, NoteFlags.LaneEnd);
+            }
+            // Trills (assume tremolo cannot be active at the same time)
+            else if (currentPhrases.TryGetValue(MoonPhrase.Type.TrillLane, out var trill)) 
+            {
+                allFlags |= ApplyPhraseFlags(trill, moonNote, NoteFlags.Trill, NoteFlags.LaneStart, NoteFlags.LaneEnd);
             }
 
-            return flags;
+            return allFlags;
+
+            static NoteFlags ApplyPhraseFlags(MoonPhrase phrase, MoonNote moonNote, NoteFlags phraseFlag, NoteFlags phraseStartFlag, NoteFlags phraseEndFlag)
+            {
+                var theseFlags = NoteFlags.None;
+
+                if (IsEventInPhrase(moonNote, phrase))
+                {
+                    theseFlags |= phraseFlag;
+
+                    var previous = moonNote.PreviousSeperateMoonNote;
+                    var next = moonNote.NextSeperateMoonNote;
+
+                    if (previous == null || !IsEventInPhrase(previous, phrase))
+                    {
+                        theseFlags |= phraseStartFlag;
+                    }
+
+                    if (next == null || !IsEventInPhrase(next, phrase))
+                    {
+                        theseFlags |= phraseEndFlag;
+                    }
+                }
+
+                return theseFlags;
+            }
         }
 
         private void AddNoteToList<TNote>(List<TNote> notes, TNote note)
