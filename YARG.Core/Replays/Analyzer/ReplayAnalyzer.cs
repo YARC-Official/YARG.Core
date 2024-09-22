@@ -58,6 +58,7 @@ namespace YARG.Core.Replays.Analyzer
         private AnalysisResult RunFrame(ReplayFrame frame)
         {
             var engine = CreateEngine(frame.Profile, frame.EngineParameters);
+            engine.SetSpeed(frame.EngineParameters.SongSpeed);
             engine.Reset();
 
             double maxTime = _chart.GetEndTime();
