@@ -125,7 +125,7 @@ namespace YARG.Core.Engine
 
                 if (sustain.IsLeniencyHeld && IsTimeBetween(leniencyDropTime, previousTime, nextTime))
                 {
-                    YargLogger.LogFormatDebug("Queuing sustain (tick: {0}) leniency drop time at {1}", sustain.Note.Tick,
+                    YargLogger.LogFormatTrace("Queuing sustain (tick: {0}) leniency drop time at {1}", sustain.Note.Tick,
                         leniencyDropTime);
                     QueueUpdateTime(leniencyDropTime, "Sustain Leniency Drop");
                 }
