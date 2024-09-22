@@ -18,7 +18,10 @@ namespace YARG.Core.IO
     /// However, code that uses the value directly should first check
     /// for valid boundaries.
     /// </summary>
-    /// <remarks>DO NOT USE THIS AS AN ALTERNATIVE TO STACK-BASED ARRAYS</remarks>
+    /// <remarks>
+    /// 1. DO NOT USE THIS AS AN ALTERNATIVE TO STACK-BASED ARRAYS!<br></br>
+    /// 2. YOU MUST MANUALLY DISPOSE OF ANY INSTANCE YOU CREATE! IT WILL NOT DO IT FOR YOU!
+    /// </remarks>
     /// <typeparam name="T">The unmanaged type contained in the block of memory</typeparam>
     [DebuggerDisplay("Length = {Length}")]
     public unsafe struct FixedArray<T> : IDisposable
