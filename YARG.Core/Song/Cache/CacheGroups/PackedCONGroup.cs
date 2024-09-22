@@ -14,8 +14,8 @@ namespace YARG.Core.Song.Cache
         public readonly CONFileListing? UpgradeDta;
         public Stream? Stream;
 
-        private FixedArray<byte> _songDTAData = FixedArray<byte>.Default;
-        private FixedArray<byte> _upgradeDTAData = FixedArray<byte>.Default;
+        private FixedArray<byte> _songDTAData = FixedArray<byte>.Null;
+        private FixedArray<byte> _upgradeDTAData = FixedArray<byte>.Null;
 
         public override string Location => Info.FullName;
         public Dictionary<string, RBProUpgrade> Upgrades { get; } = new();

@@ -371,7 +371,7 @@ namespace YARG.Core.Song.Cache
 
         private UpgradeGroup? CreateUpgradeGroup(in FileCollection collection, FileInfo dta, bool removeEntries)
         {
-            var fileData = FixedArray<byte>.Default;
+            var fileData = FixedArray<byte>.Null;
             YARGTextContainer<byte> container;
             try
             {
@@ -426,7 +426,7 @@ namespace YARG.Core.Song.Cache
 
         private UpdateGroup? CreateUpdateGroup(in FileCollection collection, FileInfo dta, bool removeEntries)
         {
-            var fileData = FixedArray<byte>.Default;
+            var fileData = FixedArray<byte>.Null;
             YARGTextContainer<byte> container;
             try
             {
@@ -887,20 +887,20 @@ namespace YARG.Core.Song.Cache
             if (!info.Exists || info.Length < MIN_CACHEFILESIZE)
             {
                 YargLogger.LogDebug("Cache invalid or not found");
-                return FixedArray<byte>.Default;
+                return FixedArray<byte>.Null;
             }
 
             using var stream = new FileStream(cacheLocation, FileMode.Open, FileAccess.Read);
             if (stream.Read<int>(Endianness.Little) != CACHE_VERSION)
             {
                 YargLogger.LogDebug($"Cache outdated");
-                return FixedArray<byte>.Default;
+                return FixedArray<byte>.Null;
             }
 
             if (stream.ReadBoolean() != fullDirectoryPlaylists)
             {
                 YargLogger.LogDebug($"FullDirectoryFlag flipped");
-                return FixedArray<byte>.Default;
+                return FixedArray<byte>.Null;
             }
             return FixedArray<byte>.Read(stream, info.Length - stream.Position);
         }

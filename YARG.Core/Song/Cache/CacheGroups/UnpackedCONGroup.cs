@@ -9,7 +9,7 @@ namespace YARG.Core.Song.Cache
     public sealed class UnpackedCONGroup : CONGroup, IDisposable
     {
         public readonly AbridgedFileInfo DTA;
-        private FixedArray<byte> _fileData = FixedArray<byte>.Default;
+        private FixedArray<byte> _fileData = FixedArray<byte>.Null;
 
         public override string Location { get; }
 

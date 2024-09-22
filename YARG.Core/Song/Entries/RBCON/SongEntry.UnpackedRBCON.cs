@@ -186,7 +186,7 @@ namespace YARG.Core.Song
             }
 
             string filename = Path.Combine(Location, "gen", _nodename + ".milo_xbox");
-            return File.Exists(filename) ? FixedArray<byte>.Load(filename) : FixedArray<byte>.Default;
+            return File.Exists(filename) ? FixedArray<byte>.Load(filename) : FixedArray<byte>.Null;
         }
 
         protected override Stream? GetMidiStream()
@@ -202,7 +202,7 @@ namespace YARG.Core.Song
         {
             return _dta != null && _dta.Value.IsStillValid() && _midi!.Value.IsStillValid()
                 ? FixedArray<byte>.Load(_midi.Value.FullName)
-                : FixedArray<byte>.Default;
+                : FixedArray<byte>.Null;
         }
 
         protected override FixedArray<byte> LoadRawImageData()
@@ -214,7 +214,7 @@ namespace YARG.Core.Song
             }
 
             string filename = Path.Combine(Location, "gen", _nodename + "_keep.png_xbox");
-            return File.Exists(filename) ? FixedArray<byte>.Load(filename) : FixedArray<byte>.Default;
+            return File.Exists(filename) ? FixedArray<byte>.Load(filename) : FixedArray<byte>.Null;
         }
 
         protected override Stream? GetMoggStream()

@@ -46,7 +46,7 @@ namespace YARG.Core.Song
         {
             if (_midiListing == null || !_midiListing.ConFile.IsStillValid())
             {
-                return FixedArray<byte>.Default;
+                return FixedArray<byte>.Null;
             }
             return _midiListing.LoadAllBytes();
         }
@@ -75,7 +75,7 @@ namespace YARG.Core.Song
 
         public override FixedArray<byte> LoadUpgradeMidi()
         {
-            return _midi.IsStillValid() ? FixedArray<byte>.Load(_midi.FullName) : FixedArray<byte>.Default;
+            return _midi.IsStillValid() ? FixedArray<byte>.Load(_midi.FullName) : FixedArray<byte>.Null;
         }
     }
 }

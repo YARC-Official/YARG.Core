@@ -241,7 +241,7 @@ namespace YARG.Core.Song
             {
                 return bytes;
             }
-            return _miloListing != null ? _miloListing.LoadAllBytes() : FixedArray<byte>.Default;
+            return _miloListing != null ? _miloListing.LoadAllBytes() : FixedArray<byte>.Null;
         }
 
         protected override Stream? GetMidiStream()
@@ -255,7 +255,7 @@ namespace YARG.Core.Song
         {
             return _midiListing != null && _midiListing.IsStillValid(_lastMidiWrite)
                 ? _midiListing.LoadAllBytes(file!)
-                : FixedArray<byte>.Default;
+                : FixedArray<byte>.Null;
         }
 
         protected override FixedArray<byte> LoadRawImageData()
@@ -265,7 +265,7 @@ namespace YARG.Core.Song
             {
                 return bytes;
             }
-            return _imgListing != null ? _imgListing.LoadAllBytes() : FixedArray<byte>.Default;
+            return _imgListing != null ? _imgListing.LoadAllBytes() : FixedArray<byte>.Null;
         }
 
         protected override Stream? GetMoggStream()

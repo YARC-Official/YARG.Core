@@ -30,7 +30,7 @@ namespace YARG.Core.IO
         /// <summary>
         /// A indisposable default instance with a null pointer
         /// </summary>
-        public static readonly FixedArray<T> Default = new()
+        public static readonly FixedArray<T> Null = new()
         {
             _disposed = true
         };

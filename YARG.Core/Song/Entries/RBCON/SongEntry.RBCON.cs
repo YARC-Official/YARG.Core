@@ -215,7 +215,7 @@ namespace YARG.Core.Song
         {
            return UpdateMilo != null && UpdateMilo.Value.Exists()
                 ? FixedArray<byte>.Load(UpdateMilo.Value.FullName)
-                : FixedArray<byte>.Default;
+                : FixedArray<byte>.Null;
         }
 
         public virtual void Serialize(BinaryWriter writer, CategoryCacheWriteNode node)
@@ -333,7 +333,7 @@ namespace YARG.Core.Song
         {
             return UpdateImage != null && UpdateImage.Value.Exists()
                 ? FixedArray<byte>.Load(UpdateImage.Value.FullName)
-                : FixedArray<byte>.Default;
+                : FixedArray<byte>.Null;
         }
 
         protected virtual Stream? GetMoggStream()
@@ -360,7 +360,7 @@ namespace YARG.Core.Song
         {
             return _updateMidi != null && _updateMidi.Value.IsStillValid(false)
                ? FixedArray<byte>.Load(_updateMidi.Value.FullName)
-               : FixedArray<byte>.Default;
+               : FixedArray<byte>.Null;
         }
 
         protected ScanResult ParseRBCONMidi(Stream? file)
@@ -379,7 +379,7 @@ namespace YARG.Core.Song
             {
                 using var chartFile = LoadMidiFile(file);
                 using var updateFile = LoadUpdateMidiFile();
-                using var upgradeFile = _upgrade != null ? _upgrade.LoadUpgradeMidi() : FixedArray<byte>.Default;
+                using var upgradeFile = _upgrade != null ? _upgrade.LoadUpgradeMidi() : FixedArray<byte>.Null;
 
                 DrumPreparseHandler drumTracker = new()
                 {

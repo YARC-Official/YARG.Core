@@ -51,7 +51,7 @@ namespace YARG.Core.IO
             if (data[2] == 0)
             {
                 container = default;
-                return FixedArray<char>.Default;
+                return FixedArray<char>.Null;
             }
 
             const int UTF16BOM_OFFSET = 2;

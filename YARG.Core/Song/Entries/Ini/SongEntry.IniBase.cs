@@ -153,7 +153,7 @@ namespace YARG.Core.Song
 
         public override FixedArray<byte> LoadMiloData()
         {
-            return FixedArray<byte>.Default;
+            return FixedArray<byte>.Null;
         }
 
         protected static (ScanResult Result, AvailableParts Parts) ScanIniChartFile(in FixedArray<byte> file, ChartType chartType, IniSection modifiers)
