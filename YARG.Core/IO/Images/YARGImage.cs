@@ -28,31 +28,19 @@ namespace YARG.Core.IO
         public static YARGImage? Load(FileInfo file)
         {
             using var bytes = FixedArray<byte>.Load(file.FullName);
-            if (!bytes.IsAllocated)
-            {
-                return null;
-            }
-            return Load(in bytes);
+            return bytes.IsAllocated ? Load(in bytes) : null;
         }
 
         public static YARGImage? Load(in SngFileListing listing, SngFile sngFile)
         {
             using var bytes = listing.LoadAllBytes(sngFile);
-            if (!bytes.IsAllocated)
-            {
-                return null;
-            }
-            return Load(in bytes);
+            return bytes.IsAllocated ? Load(in bytes) : null;
         }
 
         private static YARGImage? Load(in FixedArray<byte> file)
         {
             var result = LoadNative(file.Ptr, (int)file.Length, out int width, out int height, out int components);
-            if (result == null)
-            {
-                return null;
-            }
-            return new YARGImage(result, width, height, components);
+            return result != null ? new YARGImage(result, width, height, components) : null;
         }
 
         public unsafe YARGImage(in FixedArray<byte> bytes)

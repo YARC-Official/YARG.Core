@@ -74,14 +74,12 @@ namespace YARG.Core.Song.Cache
             try
             {
                 using var cacheFile = LoadCacheToMemory(cacheLocation, handler.fullDirectoryPlaylists);
-                if (!cacheFile.IsAllocated)
+                if (cacheFile.IsAllocated)
                 {
-                    return false;
+                    _progress.Stage = ScanStage.LoadingCache;
+                    YargLogger.LogDebug("Quick Read start");
+                    handler.Deserialize_Quick(cacheFile.ToStream());
                 }
-
-                _progress.Stage = ScanStage.LoadingCache;
-                YargLogger.LogDebug("Quick Read start");
-                handler.Deserialize_Quick(cacheFile.ToStream());
             }
             catch (Exception ex)
             {
