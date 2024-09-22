@@ -2,7 +2,6 @@
 using System.Buffers.Binary;
 using System.IO;
 using System.Runtime.InteropServices;
-using YARG.Core.IO.Disposables;
 
 namespace YARG.Core.IO
 {
@@ -23,40 +22,28 @@ namespace YARG.Core.IO
         public readonly int Height;
         public readonly ImageFormat Format;
 
-        private readonly FixedArray<byte>? _handle;
+        private readonly FixedArray<byte> _handle;
         private bool _disposed;
 
         public static YARGImage? Load(FileInfo file)
         {
-            using var bytes = MemoryMappedArray.Load(file);
-            if (bytes == null)
-            {
-                return null;
-            }
-            return Load(bytes);
+            using var bytes = FixedArray<byte>.Load(file.FullName);
+            return bytes.IsAllocated ? Load(in bytes) : null;
         }
 
         public static YARGImage? Load(in SngFileListing listing, SngFile sngFile)
         {
             using var bytes = listing.LoadAllBytes(sngFile);
-            if (bytes == null)
-            {
-                return null;
-            }
-            return Load(bytes);
+            return bytes.IsAllocated ? Load(in bytes) : null;
         }
 
-        private static YARGImage? Load(FixedArray<byte> file)
+        private static YARGImage? Load(in FixedArray<byte> file)
         {
             var result = LoadNative(file.Ptr, (int)file.Length, out int width, out int height, out int components);
-            if (result == null)
-            {
-                return null;
-            }
-            return new YARGImage(result, width, height, components);
+            return result != null ? new YARGImage(result, width, height, components) : null;
         }
 
-        public unsafe YARGImage(FixedArray<byte> bytes)
+        public unsafe YARGImage(in FixedArray<byte> bytes)
         {
             _handle = bytes;
             Data = bytes.Ptr + 32;
@@ -82,7 +69,7 @@ namespace YARG.Core.IO
         {
             if (!_disposed)
             {
-                if (_handle != null)
+                if (_handle.IsAllocated)
                 {
                     _handle.Dispose();
                 }

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using YARG.Core.IO;
-using YARG.Core.IO.Disposables;
 
 namespace YARG.Core.Song
 {
@@ -12,7 +11,7 @@ namespace YARG.Core.Song
         public abstract DateTime LastUpdatedTime { get; }
         public abstract void WriteToCache(BinaryWriter writer);
         public abstract Stream? GetUpgradeMidiStream();
-        public abstract FixedArray<byte>? LoadUpgradeMidi();
+        public abstract FixedArray<byte> LoadUpgradeMidi();
     }
 
     [Serializable]
@@ -43,11 +42,11 @@ namespace YARG.Core.Song
             return _midiListing.CreateStream();
         }
 
-        public override FixedArray<byte>? LoadUpgradeMidi()
+        public override FixedArray<byte> LoadUpgradeMidi()
         {
             if (_midiListing == null || !_midiListing.ConFile.IsStillValid())
             {
-                return null;
+                return FixedArray<byte>.Null;
             }
             return _midiListing.LoadAllBytes();
         }
@@ -56,10 +55,10 @@ namespace YARG.Core.Song
     [Serializable]
     public sealed class UnpackedRBProUpgrade : RBProUpgrade
     {
-        private readonly AbridgedFileInfo_Length _midi;
+        private readonly AbridgedFileInfo _midi;
         public override DateTime LastUpdatedTime => _midi.LastUpdatedTime;
 
-        public UnpackedRBProUpgrade(in AbridgedFileInfo_Length info)
+        public UnpackedRBProUpgrade(in AbridgedFileInfo info)
         {
             _midi = info;
         }
@@ -67,7 +66,6 @@ namespace YARG.Core.Song
         public override void WriteToCache(BinaryWriter writer)
         {
             writer.Write(_midi.LastUpdatedTime.ToBinary());
-            writer.Write(_midi.Length);
         }
 
         public override Stream? GetUpgradeMidiStream()
@@ -75,9 +73,9 @@ namespace YARG.Core.Song
             return _midi.IsStillValid() ? new FileStream(_midi.FullName, FileMode.Open, FileAccess.Read, FileShare.Read) : null;
         }
 
-        public override FixedArray<byte>? LoadUpgradeMidi()
+        public override FixedArray<byte> LoadUpgradeMidi()
         {
-            return _midi.IsStillValid() ? MemoryMappedArray.Load(_midi) : null;
+            return _midi.IsStillValid() ? FixedArray<byte>.Load(_midi.FullName) : FixedArray<byte>.Null;
         }
     }
 }

@@ -10,10 +10,10 @@ namespace YARG.Core.IO
         public Encoding Encoding;
         public TChar* Position;
 
-        public YARGTextContainer(void* position, void* end, Encoding encoding)
+        public YARGTextContainer(in FixedArray<TChar> buffer, Encoding encoding)
         {
-            Position = (TChar*)position;
-            End = (TChar*) end;
+            Position = buffer.Ptr;
+            End = buffer.Ptr + buffer.Length;
             Encoding = encoding;
         }
 

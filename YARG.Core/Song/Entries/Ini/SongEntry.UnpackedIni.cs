@@ -8,14 +8,13 @@ using YARG.Core.Audio;
 using YARG.Core.Venue;
 using System.Linq;
 using YARG.Core.Logging;
-using YARG.Core.IO.Disposables;
 using YARG.Core.Extensions;
 
 namespace YARG.Core.Song
 {
     public sealed class UnpackedIniEntry : IniSubEntry
     {
-        private readonly AbridgedFileInfo_Length _chartFile;
+        private readonly AbridgedFileInfo _chartFile;
         private readonly AbridgedFileInfo? _iniFile;
 
         public override string Location { get; }
@@ -29,7 +28,6 @@ namespace YARG.Core.Song
         {
             writer.Write((byte) Type);
             writer.Write(_chartFile.LastUpdatedTime.ToBinary());
-            writer.Write(_chartFile.Length);
             if (_iniFile != null)
             {
                 writer.Write(true);
@@ -204,7 +202,7 @@ namespace YARG.Core.Song
             return files;
         }
 
-        private UnpackedIniEntry(string directory, in IniChartNode<AbridgedFileInfo_Length> chart, AbridgedFileInfo? iniFile, in AvailableParts parts, in HashWrapper hash, IniSection modifiers, string defaultPlaylist)
+        private UnpackedIniEntry(string directory, in IniChartNode<AbridgedFileInfo> chart, AbridgedFileInfo? iniFile, in AvailableParts parts, in HashWrapper hash, IniSection modifiers, string defaultPlaylist)
             : base(in parts, in hash, modifiers, defaultPlaylist)
         {
             Location = directory;
@@ -213,7 +211,7 @@ namespace YARG.Core.Song
             _iniFile = iniFile;
         }
 
-        private UnpackedIniEntry(string directory, in IniChartNode<AbridgedFileInfo_Length> chart, AbridgedFileInfo? iniFile, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
+        private UnpackedIniEntry(string directory, in IniChartNode<AbridgedFileInfo> chart, AbridgedFileInfo? iniFile, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
             : base(stream, strings)
         {
             Location = directory;
@@ -233,7 +231,7 @@ namespace YARG.Core.Song
                     return (ScanResult.IniNotDownloaded, null);
                 }
 
-                iniModifiers = SongIniHandler.ReadSongIniFile(iniFile);
+                iniModifiers = SongIniHandler.ReadSongIniFile(iniFile.FullName);
                 iniFileInfo = new AbridgedFileInfo(iniFile);
             }
             else
@@ -246,15 +244,15 @@ namespace YARG.Core.Song
                 return (ScanResult.ChartNotDownloaded, null);
             }
 
-            using var file = MemoryMappedArray.Load(chart.File);
-            var (result, parts) = ScanIniChartFile(file, chart.Type, iniModifiers);
+            using var file = FixedArray<byte>.Load(chart.File.FullName);
+            var (result, parts) = ScanIniChartFile(in file, chart.Type, iniModifiers);
             if (result != ScanResult.Success)
             {
                 return (result, null);
             }
 
-            var abridged = new AbridgedFileInfo_Length(chart.File);
-            var node = new IniChartNode<AbridgedFileInfo_Length>(abridged, chart.Type);
+            var abridged = new AbridgedFileInfo(chart.File);
+            var node = new IniChartNode<AbridgedFileInfo>(abridged, chart.Type);
             var hash = HashWrapper.Hash(file.ReadOnlySpan);
             var entry = new UnpackedIniEntry(chartDirectory, in node, iniFileInfo, in parts, in hash, iniModifiers, defaultPlaylist);
             if (!iniModifiers.Contains("song_length"))
@@ -277,7 +275,7 @@ namespace YARG.Core.Song
             }
 
             var chart = CHART_FILE_TYPES[chartTypeIndex];
-            var chartInfo = AbridgedFileInfo_Length.TryParseInfo(Path.Combine(directory, chart.File), stream, true);
+            var chartInfo = AbridgedFileInfo.TryParseInfo(Path.Combine(directory, chart.File), stream, true);
             if (chartInfo == null)
             {
                 return null;
@@ -297,7 +295,7 @@ namespace YARG.Core.Song
             {
                 return null;
             }
-            var node = new IniChartNode<AbridgedFileInfo_Length>(chartInfo.Value, chart.Type);
+            var node = new IniChartNode<AbridgedFileInfo>(chartInfo.Value, chart.Type);
             return new UnpackedIniEntry(directory, in node, iniInfo, stream, strings);
         }
 
@@ -310,13 +308,13 @@ namespace YARG.Core.Song
             }
 
             var chart = CHART_FILE_TYPES[chartTypeIndex];
-            var chartInfo = new AbridgedFileInfo_Length(Path.Combine(directory, chart.File), stream);
+            var chartInfo = new AbridgedFileInfo(Path.Combine(directory, chart.File), stream);
             AbridgedFileInfo? iniInfo = null;
             if (stream.ReadBoolean())
             {
                 iniInfo = new AbridgedFileInfo(Path.Combine(directory, "song.ini"), stream);
             }
-            var node = new IniChartNode<AbridgedFileInfo_Length>(chartInfo, chart.Type);
+            var node = new IniChartNode<AbridgedFileInfo>(chartInfo, chart.Type);
             return new UnpackedIniEntry(directory, in node, iniInfo, stream, strings);
         }
     }

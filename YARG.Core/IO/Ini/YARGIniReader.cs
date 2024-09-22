@@ -2,30 +2,29 @@
 using System.Collections.Generic;
 using System.IO;
 using YARG.Core.Extensions;
-using YARG.Core.IO.Disposables;
 using YARG.Core.Logging;
 
 namespace YARG.Core.IO.Ini
 {
     public static class YARGIniReader
     {
-        public static Dictionary<string, IniSection> ReadIniFile(FileInfo iniFile, Dictionary<string, Dictionary<string, IniModifierCreator>> sections)
+        public static Dictionary<string, IniSection> ReadIniFile(string iniPath, Dictionary<string, Dictionary<string, IniModifierCreator>> sections)
         {
             try
             {
-                using var bytes = MemoryMappedArray.Load(iniFile);
-                if (YARGTextReader.IsUTF8(bytes, out var byteContainer))
+                using var bytes = FixedArray<byte>.Load(iniPath);
+                if (YARGTextReader.IsUTF8(in bytes, out var byteContainer))
                 {
                     return ProcessIni(ref byteContainer, sections);
                 }
 
-                using var chars = YARGTextReader.ConvertToUTF16(bytes, out var charContainer);
-                if (chars != null)
+                using var chars = YARGTextReader.ConvertToUTF16(in bytes, out var charContainer);
+                if (chars.IsAllocated)
                 {
                     return ProcessIni(ref charContainer, sections);
                 }
 
-                using var ints = YARGTextReader.ConvertToUTF32(bytes, out var intContainer);
+                using var ints = YARGTextReader.ConvertToUTF32(in bytes, out var intContainer);
                 return ProcessIni(ref intContainer, sections);
 
             }

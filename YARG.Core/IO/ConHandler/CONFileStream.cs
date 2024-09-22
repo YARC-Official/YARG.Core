@@ -1,7 +1,6 @@
 ﻿using System;
 using System.IO;
 using System.Runtime.CompilerServices;
-using YARG.Core.IO.Disposables;
 
 namespace YARG.Core.IO
 {
@@ -16,15 +15,15 @@ namespace YARG.Core.IO
         private const int HASHBLOCK_OFFSET = 4075;
         private const int DIST_PER_HASH = 4072;
 
-        public static AllocatedArray<byte> LoadFile(string file, bool isContinguous, int fileSize, int blockNum, int shift)
+        public static FixedArray<byte> LoadFile(string file, bool isContinguous, int fileSize, int blockNum, int shift)
         {
             using FileStream filestream = new(file, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
             return LoadFile(filestream, isContinguous, fileSize, blockNum, shift);
         }
 
-        public static AllocatedArray<byte> LoadFile(Stream filestream, bool isContinguous, int fileSize, int blockNum, int shift)
+        public static FixedArray<byte> LoadFile(Stream filestream, bool isContinguous, int fileSize, int blockNum, int shift)
         {
-            var data = AllocatedArray<byte>.Alloc(fileSize);
+            var data = FixedArray<byte>.Alloc(fileSize);
             if (isContinguous)
             {
                 long skipVal = BYTES_PER_BLOCK << shift;
@@ -117,8 +116,8 @@ namespace YARG.Core.IO
 
         private readonly FileStream _filestream;
         private readonly long fileSize;
-        private readonly AllocatedArray<byte> dataBuffer;
-        private readonly AllocatedArray<long> blockLocations;
+        private readonly FixedArray<byte> dataBuffer;
+        private readonly FixedArray<long> blockLocations;
         private readonly int initialOffset;
 
         private long bufferPosition;
@@ -172,14 +171,14 @@ namespace YARG.Core.IO
             int block = firstBlock;
             if (isContinguous)
             {
-                dataBuffer = AllocatedArray<byte>.Alloc(BYTES_PER_SECTION);
+                dataBuffer = FixedArray<byte>.Alloc(BYTES_PER_SECTION);
 
                 int blockOffset = firstBlock % BLOCKS_PER_SECTION;
                 initialOffset = blockOffset * BYTES_PER_BLOCK;
 
                 int totalSpace = fileSize + initialOffset;
                 int numBlocks = totalSpace % BYTES_PER_SECTION == 0 ? totalSpace / BYTES_PER_SECTION : totalSpace / BYTES_PER_SECTION + 1;
-                blockLocations = AllocatedArray<long>.Alloc(numBlocks);
+                using var locations = FixedArray<long>.Alloc(numBlocks * sizeof(long));
 
                 int blockMovement = BLOCKS_PER_SECTION - blockOffset;
                 int byteMovement = blockMovement * BYTES_PER_BLOCK;
@@ -188,7 +187,11 @@ namespace YARG.Core.IO
                 long location = CalculateBlockLocation(firstBlock, shift);
                 for (int i = 0; i < numBlocks; i++)
                 {
-                    blockLocations[i] = location;
+                    unsafe
+                    {
+                        locations.Ptr[i] = location;
+                    }
+
                     if (i < numBlocks - 1)
                     {
                         block += blockMovement;
@@ -209,31 +212,36 @@ namespace YARG.Core.IO
                         byteMovement = BYTES_PER_SECTION;
                     }
                 }
+                blockLocations = locations.TransferOwnership();
+                dataBuffer = FixedArray<byte>.Alloc(BYTES_PER_SECTION);
             }
             else
             {
-                dataBuffer = AllocatedArray<byte>.Alloc(BYTES_PER_BLOCK);
+                dataBuffer = FixedArray<byte>.Alloc(BYTES_PER_BLOCK);
 
                 int numBlocks = fileSize % BYTES_PER_BLOCK == 0 ? fileSize / BYTES_PER_BLOCK : fileSize / BYTES_PER_BLOCK + 1;
-                blockLocations = AllocatedArray<long>.Alloc(numBlocks);
+                using var locations = FixedArray<long>.Alloc(numBlocks * sizeof(long));
 
                 Span<byte> buffer = stackalloc byte[3];
                 initialOffset = 0;
                 for (int i = 0; i < numBlocks; i++)
                 {
-                    long location = CalculateBlockLocation(block, shift);
-                    blockLocations[i] = location;
-
-                    if (i < numBlocks - 1)
+                    unsafe
                     {
-                        long hashlocation = location - ((long) (block % BLOCKS_PER_SECTION) * DIST_PER_HASH + HASHBLOCK_OFFSET);
-                        _filestream.Seek(hashlocation, SeekOrigin.Begin);
-                        if (_filestream.Read(buffer) != 3)
-                            throw new Exception("Hashblock Read error in CON subfile");
+                        long location = locations.Ptr[i] = CalculateBlockLocation(block, shift);
+                        if (i < numBlocks - 1)
+                        {
+                            long hashlocation = location - ((long) (block % BLOCKS_PER_SECTION) * DIST_PER_HASH + HASHBLOCK_OFFSET);
+                            _filestream.Seek(hashlocation, SeekOrigin.Begin);
+                            if (_filestream.Read(buffer) != 3)
+                                throw new Exception("Hashblock Read error in CON subfile");
 
-                        block = buffer[0] << 16 | buffer[1] << 8 | buffer[2];
+                            block = buffer[0] << 16 | buffer[1] << 8 | buffer[2];
+                        }
                     }
                 }
+                blockLocations = locations.TransferOwnership();
+                dataBuffer = FixedArray<byte>.Alloc(BYTES_PER_BLOCK);
             }
             UpdateBuffer();
         }

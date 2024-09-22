@@ -2,15 +2,14 @@
 using System.Collections.Generic;
 using System.IO;
 using YARG.Core.IO;
-using YARG.Core.IO.Disposables;
 using YARG.Core.Logging;
 
 namespace YARG.Core.Song.Cache
 {
     public sealed class UnpackedCONGroup : CONGroup, IDisposable
     {
-        public readonly AbridgedFileInfo_Length DTA;
-        private MemoryMappedArray? _fileData;
+        public readonly AbridgedFileInfo DTA;
+        private FixedArray<byte> _fileData = FixedArray<byte>.Null;
 
         public override string Location { get; }
 
@@ -18,14 +17,14 @@ namespace YARG.Core.Song.Cache
             : base(defaultPlaylist)
         {
             Location = directory;
-            DTA = new AbridgedFileInfo_Length(dta);
+            DTA = new AbridgedFileInfo(dta);
         }
 
         public bool LoadDTA(out YARGTextContainer<byte> container)
         {
             try
             {
-                _fileData = MemoryMappedArray.Load(DTA);
+                _fileData = FixedArray<byte>.Load(DTA.FullName);
                 return YARGDTAReader.TryCreate(_fileData, out container);
             }
             catch (Exception ex)
@@ -58,7 +57,10 @@ namespace YARG.Core.Song.Cache
 
         public void Dispose()
         {
-            _fileData?.Dispose();
+            if (_fileData.IsAllocated)
+            {
+                _fileData.Dispose();
+            }
         }
     }
 }

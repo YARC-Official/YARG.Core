@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using YARG.Core.IO;
-using YARG.Core.IO.Disposables;
 using YARG.Core.Logging;
 
 namespace YARG.Core.Song.Cache
@@ -15,8 +14,8 @@ namespace YARG.Core.Song.Cache
         public readonly CONFileListing? UpgradeDta;
         public Stream? Stream;
 
-        private AllocatedArray<byte>? _songDTAData;
-        private AllocatedArray<byte>? _upgradeDTAData;
+        private FixedArray<byte> _songDTAData = FixedArray<byte>.Null;
+        private FixedArray<byte> _upgradeDTAData = FixedArray<byte>.Null;
 
         public override string Location => Info.FullName;
         public Dictionary<string, RBProUpgrade> Upgrades { get; } = new();
@@ -119,12 +118,12 @@ namespace YARG.Core.Song.Cache
         public void DisposeStreamAndSongDTA()
         {
             Stream?.Dispose();
-            _songDTAData?.Dispose();
+            _songDTAData.Dispose();
         }
 
         public void DisposeUpgradeDTA()
         {
-            _upgradeDTAData?.Dispose();
+            _upgradeDTAData.Dispose();
         }
     }
 }

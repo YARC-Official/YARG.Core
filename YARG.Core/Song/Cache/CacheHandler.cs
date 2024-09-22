@@ -5,7 +5,6 @@ using System.Linq;
 using YARG.Core.Audio;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
-using YARG.Core.IO.Disposables;
 using YARG.Core.Logging;
 
 namespace YARG.Core.Song.Cache
@@ -35,7 +34,7 @@ namespace YARG.Core.Song.Cache
         /// Format is YY_MM_DD_RR: Y = year, M = month, D = day, R = revision (reset across dates, only increment
         /// if multiple cache version changes happen in a single day).
         /// </summary>
-        public const int CACHE_VERSION = 24_08_01_01;
+        public const int CACHE_VERSION = 24_09_21_01;
 
         public static ScanProgressTracker Progress => _progress;
         private static ScanProgressTracker _progress;
@@ -75,14 +74,12 @@ namespace YARG.Core.Song.Cache
             try
             {
                 using var cacheFile = LoadCacheToMemory(cacheLocation, handler.fullDirectoryPlaylists);
-                if (cacheFile == null)
+                if (cacheFile.IsAllocated)
                 {
-                    return false;
+                    _progress.Stage = ScanStage.LoadingCache;
+                    YargLogger.LogDebug("Quick Read start");
+                    handler.Deserialize_Quick(cacheFile.ToStream());
                 }
-
-                _progress.Stage = ScanStage.LoadingCache;
-                YargLogger.LogDebug("Quick Read start");
-                handler.Deserialize_Quick(cacheFile.ToStream());
             }
             catch (Exception ex)
             {
@@ -109,7 +106,7 @@ namespace YARG.Core.Song.Cache
                 try
                 {
                     using var cacheFile = LoadCacheToMemory(cacheLocation, handler.fullDirectoryPlaylists);
-                    if (cacheFile != null)
+                    if (cacheFile.IsAllocated)
                     {
                         _progress.Stage = ScanStage.LoadingCache;
                         YargLogger.LogDebug("Full Read start");
@@ -372,25 +369,25 @@ namespace YARG.Core.Song.Cache
 
         private UpgradeGroup? CreateUpgradeGroup(in FileCollection collection, FileInfo dta, bool removeEntries)
         {
-            MemoryMappedArray? fileData = null;
+            var fileData = FixedArray<byte>.Null;
             YARGTextContainer<byte> container;
             try
             {
-                fileData = MemoryMappedArray.Load(dta);
+                fileData = FixedArray<byte>.Load(dta.FullName);
                 if (!YARGDTAReader.TryCreate(fileData, out container))
                 {
-                    fileData!.Dispose();
+                    fileData.Dispose();
                     return null;
                 }
             }
             catch (Exception ex)
             {
                 YargLogger.LogException(ex, $"Error while loading {dta.FullName}");
-                fileData?.Dispose();
+                fileData.Dispose();
                 return null;
             }
 
-            var group = new UpgradeGroup(collection.Directory.FullName, dta.LastWriteTime, fileData!);
+            var group = new UpgradeGroup(collection.Directory.FullName, dta.LastWriteTime, fileData);
             try
             {
                 while (YARGDTAReader.StartNode(ref container))
@@ -399,7 +396,7 @@ namespace YARG.Core.Song.Cache
                     if (collection.Subfiles.TryGetValue($"{name.ToLower()}_plus.mid", out var info)
                     && CanAddUpgrade(name, info.LastWriteTime))
                     {
-                        var abridged = new AbridgedFileInfo_Length(info, false);
+                        var abridged = new AbridgedFileInfo(info, false);
                         var upgrade = new UnpackedRBProUpgrade(abridged);
                         group.Upgrades[name] = upgrade;
                         AddUpgrade(name, container, upgrade);
@@ -427,25 +424,25 @@ namespace YARG.Core.Song.Cache
 
         private UpdateGroup? CreateUpdateGroup(in FileCollection collection, FileInfo dta, bool removeEntries)
         {
-            MemoryMappedArray? fileData = null;
+            var fileData = FixedArray<byte>.Null;
             YARGTextContainer<byte> container;
             try
             {
-                fileData = MemoryMappedArray.Load(dta);
+                fileData = FixedArray<byte>.Load(dta.FullName);
                 if (!YARGDTAReader.TryCreate(fileData, out container))
                 {
-                    fileData!.Dispose();
+                    fileData.Dispose();
                     return null;
                 }
             }
             catch (Exception ex)
             {
                 YargLogger.LogException(ex, $"Error while loading {dta.FullName}");
-                fileData?.Dispose();
+                fileData.Dispose();
                 return null;
             }
 
-            var group = new UpdateGroup(collection.Directory, dta.LastWriteTime, fileData!);
+            var group = new UpdateGroup(collection.Directory, dta.LastWriteTime, fileData);
             try
             {
                 var mapping = MapUpdateFiles(in collection);
@@ -454,17 +451,17 @@ namespace YARG.Core.Song.Cache
                     string name = YARGDTAReader.GetNameOfNode(ref container, true);
                     if (!group.Updates.TryGetValue(name, out var update))
                     {
-                        AbridgedFileInfo_Length? midi = null;
+                        AbridgedFileInfo? midi = null;
                         AbridgedFileInfo? mogg = null;
-                        AbridgedFileInfo_Length? milo = null;
-                        AbridgedFileInfo_Length? image = null;
+                        AbridgedFileInfo? milo = null;
+                        AbridgedFileInfo? image = null;
 
                         string subname = name.ToLowerInvariant();
                         if (mapping.TryGetValue(subname, out var files))
                         {
                             if (files.TryGetValue(subname + "_update.mid", out var file))
                             {
-                                midi = new AbridgedFileInfo_Length(file, false);
+                                midi = new AbridgedFileInfo(file, false);
                             }
                             if (files.TryGetValue(subname + "_update.mogg", out file))
                             {
@@ -472,11 +469,11 @@ namespace YARG.Core.Song.Cache
                             }
                             if (files.TryGetValue(subname + ".milo_xbox", out file))
                             {
-                                milo = new AbridgedFileInfo_Length(file, false);
+                                milo = new AbridgedFileInfo(file, false);
                             }
                             if (files.TryGetValue(subname + "_keep.png_xbox", out file))
                             {
-                                image = new AbridgedFileInfo_Length(file, false);
+                                image = new AbridgedFileInfo(file, false);
                             }
                         }
 
@@ -882,28 +879,28 @@ namespace YARG.Core.Song.Cache
         /// </summary>
         private const int MIN_CACHEFILESIZE = 93;
 
-        private static AllocatedArray<byte>? LoadCacheToMemory(string cacheLocation, bool fullDirectoryPlaylists)
+        private static FixedArray<byte> LoadCacheToMemory(string cacheLocation, bool fullDirectoryPlaylists)
         {
             FileInfo info = new(cacheLocation);
             if (!info.Exists || info.Length < MIN_CACHEFILESIZE)
             {
                 YargLogger.LogDebug("Cache invalid or not found");
-                return null;
+                return FixedArray<byte>.Null;
             }
 
             using var stream = new FileStream(cacheLocation, FileMode.Open, FileAccess.Read);
             if (stream.Read<int>(Endianness.Little) != CACHE_VERSION)
             {
                 YargLogger.LogDebug($"Cache outdated");
-                return null;
+                return FixedArray<byte>.Null;
             }
 
             if (stream.ReadBoolean() != fullDirectoryPlaylists)
             {
                 YargLogger.LogDebug($"FullDirectoryFlag flipped");
-                return null;
+                return FixedArray<byte>.Null;
             }
-            return AllocatedArray<byte>.Read(stream, info.Length - stream.Position);
+            return FixedArray<byte>.Read(stream, info.Length - stream.Position);
         }
 
         private void Serialize(string cacheLocation)
@@ -1241,7 +1238,7 @@ namespace YARG.Core.Song.Cache
                 string name = stream.ReadString();
                 string filename = Path.Combine(directory, $"{name}_plus.mid");
 
-                var info = new AbridgedFileInfo_Length(filename, stream);
+                var info = new AbridgedFileInfo(filename, stream);
                 AddUpgrade(name, default, new UnpackedRBProUpgrade(info));
             }
         }

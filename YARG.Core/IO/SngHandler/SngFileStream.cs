@@ -6,7 +6,6 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using YARG.Core.Extensions;
-using YARG.Core.IO.Disposables;
 
 namespace YARG.Core.IO
 {
@@ -30,12 +29,12 @@ namespace YARG.Core.IO
             VECTOR_INDEX_MASK = NUM_VECTORS_MASK << VECTOR_SHIFT;
         }
 
-        public static unsafe AllocatedArray<byte> LoadFile(FileStream stream, SngMask mask, long fileSize, long position)
+        public static unsafe FixedArray<byte> LoadFile(FileStream stream, SngMask mask, long fileSize, long position)
         {
             if (stream.Seek(position, SeekOrigin.Begin) != position)
                 throw new EndOfStreamException();
 
-            var buffer = AllocatedArray<byte>.Read(stream, fileSize);
+            var buffer = FixedArray<byte>.Read(stream, fileSize);
             var buffEnd = buffer.Ptr + buffer.Length;
             var vecEndIndex = buffer.Length & ~VECTOR_MASK;
             var buffPosition = buffer.Ptr + vecEndIndex;
@@ -69,7 +68,7 @@ namespace YARG.Core.IO
         private readonly long initialOffset;
 
         private readonly SngMask _mask;
-        private readonly AllocatedArray<byte> dataBuffer = AllocatedArray<byte>.Alloc(BUFFER_SIZE);
+        private readonly FixedArray<byte> dataBuffer = FixedArray<byte>.Alloc(BUFFER_SIZE);
 
         public  readonly string Name;
 

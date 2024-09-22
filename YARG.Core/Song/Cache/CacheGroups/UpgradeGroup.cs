@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using YARG.Core.IO.Disposables;
+using YARG.Core.IO;
 
 namespace YARG.Core.Song.Cache
 {
@@ -14,11 +14,11 @@ namespace YARG.Core.Song.Cache
     {
         private readonly string _directory;
         private readonly DateTime _dtaLastUpdate;
-        private readonly MemoryMappedArray _dtaData;
+        private readonly FixedArray<byte> _dtaData;
 
         public Dictionary<string, RBProUpgrade> Upgrades { get; } = new();
 
-        public UpgradeGroup(string directory, DateTime dtaLastUpdate, MemoryMappedArray dtaData)
+        public UpgradeGroup(string directory, DateTime dtaLastUpdate, in FixedArray<byte> dtaData)
         {
             _directory = directory;
             _dtaLastUpdate = dtaLastUpdate;

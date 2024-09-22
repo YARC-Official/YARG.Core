@@ -638,8 +638,7 @@ namespace YARG.Core.Song.Cache
         private void QuickReadExtractedCONGroup(UnmanagedMemoryStream stream, CategoryCacheStrings strings, ParallelExceptionTracker tracker)
         {
             string directory = stream.ReadString();
-            var lastWrite = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
-            var dta = new AbridgedFileInfo_Length(Path.Combine(directory, "songs.dta"), lastWrite, 0);
+            var dta = new AbridgedFileInfo(Path.Combine(directory, "songs.dta"), stream);
 
             var enumerable = new CacheEnumerable<(string Name, UnmanagedMemoryStream Stream)>(stream, tracker, () =>
             {

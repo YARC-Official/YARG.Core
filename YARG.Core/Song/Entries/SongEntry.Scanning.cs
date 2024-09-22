@@ -4,14 +4,13 @@ using System.IO;
 using System.Text;
 using YARG.Core.Chart;
 using YARG.Core.IO;
-using YARG.Core.IO.Disposables;
 using YARG.Core.Song.Preparsers;
 
 namespace YARG.Core.Song
 {
     public abstract partial class SongEntry
     {
-        protected static bool ParseMidi(FixedArray<byte> file, DrumPreparseHandler drums, ref AvailableParts parts)
+        protected static bool ParseMidi(in FixedArray<byte> file, DrumPreparseHandler drums, ref AvailableParts parts)
         {
             var midiFile = new YARGMidiFile(file.ToStream());
             bool harm2 = false;

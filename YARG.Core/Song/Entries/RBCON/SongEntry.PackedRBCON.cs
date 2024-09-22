@@ -7,7 +7,6 @@ using YARG.Core.IO;
 using YARG.Core.Venue;
 using System.Linq;
 using YARG.Core.Logging;
-using YARG.Core.IO.Disposables;
 
 namespace YARG.Core.Song
 {
@@ -65,10 +64,10 @@ namespace YARG.Core.Song
                 return null;
             }
 
-            AbridgedFileInfo_Length? updateMidi = null;
+            AbridgedFileInfo? updateMidi = null;
             if (stream.ReadBoolean())
             {
-                updateMidi = AbridgedFileInfo_Length.TryParseInfo(stream, false);
+                updateMidi = AbridgedFileInfo.TryParseInfo(stream, false);
                 if (updateMidi == null)
                 {
                     return null;
@@ -96,7 +95,7 @@ namespace YARG.Core.Song
             conFile.TryGetListing(midiFilename, out var midiListing);
             var lastMidiWrite = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
 
-            AbridgedFileInfo_Length? updateMidi = stream.ReadBoolean() ? new AbridgedFileInfo_Length(stream) : null;
+            AbridgedFileInfo? updateMidi = stream.ReadBoolean() ? new AbridgedFileInfo(stream) : null;
             var upgrade = upgrades.TryGetValue(nodename, out var node) ? node.Upgrade : null;
 
             conFile.TryGetListing(Path.ChangeExtension(midiFilename, ".mogg"), out var moggListing);
@@ -137,7 +136,7 @@ namespace YARG.Core.Song
         }
 
         private PackedRBCONEntry(CONFileListing? midi, DateTime midiLastWrite, CONFileListing? moggListing, CONFileListing? miloListing, CONFileListing? imgListing, string directory,
-            AbridgedFileInfo_Length? updateMidi, RBProUpgrade? upgrade, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
+            AbridgedFileInfo? updateMidi, RBProUpgrade? upgrade, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
             : base(updateMidi, upgrade, stream, strings)
         {
             _midiListing = midi;
@@ -235,14 +234,14 @@ namespace YARG.Core.Song
             return null;
         }
 
-        public override FixedArray<byte>? LoadMiloData()
+        public override FixedArray<byte> LoadMiloData()
         {
             var bytes = base.LoadMiloData();
-            if (bytes != null)
+            if (bytes.IsAllocated)
             {
                 return bytes;
             }
-            return _miloListing?.LoadAllBytes();
+            return _miloListing != null ? _miloListing.LoadAllBytes() : FixedArray<byte>.Null;
         }
 
         protected override Stream? GetMidiStream()
@@ -252,23 +251,21 @@ namespace YARG.Core.Song
             return _midiListing.CreateStream();
         }
 
-        protected override FixedArray<byte>? LoadMidiFile(Stream? file)
+        protected override FixedArray<byte> LoadMidiFile(Stream? file)
         {
-            if (_midiListing == null || !_midiListing.IsStillValid(_lastMidiWrite))
-            {
-                return null;
-            }
-            return _midiListing.LoadAllBytes(file!);
+            return _midiListing != null && _midiListing.IsStillValid(_lastMidiWrite)
+                ? _midiListing.LoadAllBytes(file!)
+                : FixedArray<byte>.Null;
         }
 
-        protected override FixedArray<byte>? LoadRawImageData()
+        protected override FixedArray<byte> LoadRawImageData()
         {
             var bytes = base.LoadRawImageData();
-            if (bytes != null)
+            if (bytes.IsAllocated)
             {
                 return bytes;
             }
-            return _imgListing?.LoadAllBytes();
+            return _imgListing != null ? _imgListing.LoadAllBytes() : FixedArray<byte>.Null;
         }
 
         protected override Stream? GetMoggStream()

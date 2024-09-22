@@ -3,14 +3,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using YARG.Core.Extensions;
-using YARG.Core.IO.Disposables;
 using YARG.Core.Logging;
 
 namespace YARG.Core.IO
 {
     public unsafe static class YARGDTAReader
     {
-        public static bool TryCreate(FixedArray<byte> data, out YARGTextContainer<byte> container)
+        public static bool TryCreate(in FixedArray<byte> data, out YARGTextContainer<byte> container)
         {
             if ((data[0] == 0xFF && data[1] == 0xFE) || (data[0] == 0xFE && data[1] == 0xFF))
             {
@@ -19,9 +18,12 @@ namespace YARG.Core.IO
                 return false;
             }
 
-            container = data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF
-                ? new YARGTextContainer<byte>(data.Ptr + 3, data.Ptr + data.Length, Encoding.UTF8)
-                : new YARGTextContainer<byte>(data.Ptr, data.Ptr + data.Length, YARGTextReader.Latin1);
+            container = new YARGTextContainer<byte>(in data, YARGTextReader.Latin1);
+            if (data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF)
+            {
+                container.Position += 3;
+                container.Encoding = Encoding.UTF8;
+            }
             return true;
         }
 
