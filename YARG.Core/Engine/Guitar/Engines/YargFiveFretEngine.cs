@@ -408,9 +408,11 @@ namespace YARG.Core.Engine.Guitar.Engines
                 }
 
                 // Anchoring single notes
+                // Anchors are buttons held lower than the note mask
 
-                // Anchor buttons held are lower than the note mask
-                return anchorButtons < noteMask;
+                // Remove the open mask from note otherwise this will always pass (as its higher than all notes)
+                // This is only used for single notes, open chords are handled above
+                return anchorButtons < (noteMask & unchecked((byte) ~OPEN_MASK));
             }
         }
 
