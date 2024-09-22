@@ -142,6 +142,7 @@ public partial class Cli
         {
             AnalyzerMode.Verify      => RunVerify(),
             AnalyzerMode.SimulateFps => RunSimulateFps(),
+            AnalyzerMode.DumpInputs  => RunDumpInputs(),
             _ => false
         };
     }
