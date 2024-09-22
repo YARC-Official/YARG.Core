@@ -477,7 +477,7 @@ namespace YARG.Core.Engine
                         if (CurrentTime >= sustain.LeniencyDropTime + EngineParameters.SustainDropLeniency * EngineParameters.SongSpeed)
                         {
                             dropped = true;
-                            YargLogger.LogFormatDebug("Dropping sustain using leniency time at {0}", CurrentTime);
+                            YargLogger.LogFormatTrace("Dropping sustain using leniency time at {0}", CurrentTime);
                         }
                     }
                     else
