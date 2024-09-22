@@ -131,6 +131,10 @@ namespace YARG.Core.IO
             return new Span<T>(Ptr + offset, (int) count);
         }
 
+        /// <summary>
+        /// Provides a unmanaged stream over the buffer of data. By design, the stream runs over bytes.
+        /// </summary>
+        /// <returns>The stream, duh</returns>
         public readonly UnmanagedMemoryStream ToStream() => new((byte*) Ptr, Length * sizeof(T));
 
         /// <summary>
@@ -153,6 +157,18 @@ namespace YARG.Core.IO
             {
                 _disposed = true
             };
+        }
+
+        /// <summary>
+        /// Copies the pointer and length to a new instance of FixedArray, leaving the current one
+        /// in a limbo state - no longer responsible for disposing of the data.
+        /// </summary>
+        /// <remarks>Useful for cleanly handling exception safety</remarks>
+        /// <returns>The instance that takes responsibilty over disposing of the buffer</returns>
+        public FixedArray<T> TransferOwnership()
+        {
+            _disposed = true;
+            return new FixedArray<T>(Ptr, Length);
         }
 
         /// <summary>
