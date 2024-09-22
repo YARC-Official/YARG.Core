@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
-using YARG.Core.IO.Disposables;
 
 namespace YARG.Core.Song.Cache
 {
@@ -13,9 +12,9 @@ namespace YARG.Core.Song.Cache
         public readonly DateTime DTALastWrite;
         public readonly Dictionary<string, SongUpdate> Updates = new();
 
-        private readonly MemoryMappedArray _dtaData;
+        private readonly FixedArray<byte> _dtaData;
 
-        public UpdateGroup(DirectoryInfo directory, DateTime dtaLastUpdate, MemoryMappedArray dtaData)
+        public UpdateGroup(DirectoryInfo directory, DateTime dtaLastUpdate, in FixedArray<byte> dtaData)
         {
             Directory = directory;
             DTALastWrite = dtaLastUpdate;

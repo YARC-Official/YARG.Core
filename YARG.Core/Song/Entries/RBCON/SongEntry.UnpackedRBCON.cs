@@ -6,7 +6,6 @@ using YARG.Core.Song.Cache;
 using YARG.Core.IO;
 using YARG.Core.Logging;
 using YARG.Core.Venue;
-using YARG.Core.IO.Disposables;
 
 namespace YARG.Core.Song
 {
@@ -179,20 +178,16 @@ namespace YARG.Core.Song
             return null;
         }
 
-        public override FixedArray<byte>? LoadMiloData()
+        public override FixedArray<byte> LoadMiloData()
         {
             var bytes = base.LoadMiloData();
-            if (bytes != null)
+            if (bytes.IsAllocated)
             {
                 return bytes;
             }
 
-            var info = new FileInfo(Path.Combine(Location, "gen", _nodename + ".milo_xbox"));
-            if (!info.Exists)
-            {
-                return null;
-            }
-            return MemoryMappedArray.Load(info);
+            string filename = Path.Combine(Location, "gen", _nodename + ".milo_xbox");
+            return File.Exists(filename) ? FixedArray<byte>.Load(filename) : FixedArray<byte>.Default;
         }
 
         protected override Stream? GetMidiStream()
@@ -204,29 +199,23 @@ namespace YARG.Core.Song
             return new FileStream(_midi.Value.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
         }
 
-        protected override FixedArray<byte>? LoadMidiFile(Stream? file)
+        protected override FixedArray<byte> LoadMidiFile(Stream? file)
         {
-            if (_dta == null || !_dta.Value.IsStillValid() || !_midi!.Value.IsStillValid())
-            {
-                return null;
-            }
-            return MemoryMappedArray.Load(_midi.Value);
+            return _dta != null && _dta.Value.IsStillValid() && _midi!.Value.IsStillValid()
+                ? FixedArray<byte>.Load(_midi.Value.FullName)
+                : FixedArray<byte>.Default;
         }
 
-        protected override FixedArray<byte>? LoadRawImageData()
+        protected override FixedArray<byte> LoadRawImageData()
         {
             var bytes = base.LoadRawImageData();
-            if (bytes != null)
+            if (bytes.IsAllocated)
             {
                 return bytes;
             }
 
-            var info = new FileInfo(Path.Combine(Location, "gen", _nodename + "_keep.png_xbox"));
-            if (!info.Exists)
-            {
-                return null;
-            }
-            return MemoryMappedArray.Load(info);
+            string filename = Path.Combine(Location, "gen", _nodename + "_keep.png_xbox");
+            return File.Exists(filename) ? FixedArray<byte>.Load(filename) : FixedArray<byte>.Default;
         }
 
         protected override Stream? GetMoggStream()

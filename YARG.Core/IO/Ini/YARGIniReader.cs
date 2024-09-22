@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using YARG.Core.Extensions;
-using YARG.Core.IO.Disposables;
 using YARG.Core.Logging;
 
 namespace YARG.Core.IO.Ini
@@ -13,14 +12,14 @@ namespace YARG.Core.IO.Ini
         {
             try
             {
-                using var bytes = MemoryMappedArray.Load(iniFile);
+                using var bytes = FixedArray<byte>.Load(iniFile.FullName);
                 if (YARGTextReader.IsUTF8(bytes, out var byteContainer))
                 {
                     return ProcessIni(ref byteContainer, sections);
                 }
 
                 using var chars = YARGTextReader.ConvertToUTF16(bytes, out var charContainer);
-                if (chars != null)
+                if (chars.IsAllocated)
                 {
                     return ProcessIni(ref charContainer, sections);
                 }

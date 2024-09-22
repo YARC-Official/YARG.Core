@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using YARG.Core.Extensions;
-using YARG.Core.IO.Disposables;
 
 namespace YARG.Core.IO
 {
@@ -53,7 +52,7 @@ namespace YARG.Core.IO
         private MidiEvent _event;
         private MidiEvent _running;
 
-        private readonly AllocatedArray<byte>? _buffer;
+        private readonly FixedArray<byte> _buffer;
         private readonly byte* _end;
         private byte* _position;
 
@@ -71,7 +70,7 @@ namespace YARG.Core.IO
             }
             else
             {
-                _buffer = AllocatedArray<byte>.Read(stream, length);
+                _buffer = FixedArray<byte>.Read(stream, length);
                 _position = _buffer.Ptr;
             }
             _end = _position + length;
@@ -224,7 +223,10 @@ namespace YARG.Core.IO
 
         public void Dispose()
         {
-            _buffer?.Dispose();
+            if (_buffer.IsAllocated)
+            {
+                _buffer.Dispose();
+            }
         }
     }
 

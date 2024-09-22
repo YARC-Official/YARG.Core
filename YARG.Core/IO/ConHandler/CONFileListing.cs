@@ -3,7 +3,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Text;
 using YARG.Core.Extensions;
-using YARG.Core.IO.Disposables;
 
 namespace YARG.Core.IO
 {
@@ -54,13 +53,15 @@ namespace YARG.Core.IO
         }
 
         // This overload should only be called during scanning
-        public AllocatedArray<byte> LoadAllBytes(Stream stream)
+        public FixedArray<byte> LoadAllBytes(Stream stream)
         {
             lock (stream)
+            {
                 return CONFileStream.LoadFile(stream, IsContiguous(), Size, FirstBlock, _shift);
+            }
         }
 
-        public AllocatedArray<byte> LoadAllBytes()
+        public FixedArray<byte> LoadAllBytes()
         {
             return CONFileStream.LoadFile(ConFile.FullName, IsContiguous(), Size, FirstBlock, _shift);
         }

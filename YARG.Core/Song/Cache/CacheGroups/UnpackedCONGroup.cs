@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using YARG.Core.IO;
-using YARG.Core.IO.Disposables;
 using YARG.Core.Logging;
 
 namespace YARG.Core.Song.Cache
@@ -10,7 +9,7 @@ namespace YARG.Core.Song.Cache
     public sealed class UnpackedCONGroup : CONGroup, IDisposable
     {
         public readonly AbridgedFileInfo_Length DTA;
-        private MemoryMappedArray? _fileData;
+        private FixedArray<byte> _fileData = FixedArray<byte>.Default;
 
         public override string Location { get; }
 
@@ -25,7 +24,7 @@ namespace YARG.Core.Song.Cache
         {
             try
             {
-                _fileData = MemoryMappedArray.Load(DTA);
+                _fileData = FixedArray<byte>.Load(DTA.FullName);
                 return YARGDTAReader.TryCreate(_fileData, out container);
             }
             catch (Exception ex)
@@ -58,7 +57,10 @@ namespace YARG.Core.Song.Cache
 
         public void Dispose()
         {
-            _fileData?.Dispose();
+            if (_fileData.IsAllocated)
+            {
+                _fileData.Dispose();
+            }
         }
     }
 }

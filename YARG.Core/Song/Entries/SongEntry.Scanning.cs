@@ -4,7 +4,6 @@ using System.IO;
 using System.Text;
 using YARG.Core.Chart;
 using YARG.Core.IO;
-using YARG.Core.IO.Disposables;
 using YARG.Core.Song.Preparsers;
 
 namespace YARG.Core.Song

@@ -2,7 +2,6 @@
 using System.ComponentModel;
 using System.Text;
 using YARG.Core.Extensions;
-using YARG.Core.IO.Disposables;
 
 namespace YARG.Core.IO
 {
@@ -45,12 +44,12 @@ namespace YARG.Core.IO
             return true;
         }
 
-        public static FixedArray<char>? ConvertToUTF16(FixedArray<byte> data, out YARGTextContainer<char> container)
+        public static FixedArray<char> ConvertToUTF16(FixedArray<byte> data, out YARGTextContainer<char> container)
         {
             if (data[2] == 0)
             {
                 container = default;
-                return null;
+                return FixedArray<char>.Default;
             }
 
             FixedArray<char> buffer;
@@ -58,7 +57,7 @@ namespace YARG.Core.IO
             if ((data[0] == 0xFF) != BitConverter.IsLittleEndian) unsafe
             {
                 // We have to swap the endian of the data so string conversion works properly
-                buffer = AllocatedArray<char>.Alloc(length);
+                buffer = FixedArray<char>.Alloc(length);
                 for (int i = 0, j = 2; i < buffer.Length; ++i, j += 2)
                 {
                     buffer.Ptr[i] = (char) (data.Ptr[j] << 8 | data.Ptr[j + 1]);
@@ -66,7 +65,7 @@ namespace YARG.Core.IO
             }
             else
             {
-                buffer = FixedArray<char>.Alias((char*)(data.Ptr + 2), length);
+                buffer = data.Cast<char>(2, length - 2);
             }
             container = new YARGTextContainer<char>(buffer.Ptr, buffer.Ptr + length, data[0] == 0xFF ? Encoding.Unicode : Encoding.BigEndianUnicode);
             SkipPureWhitespace(ref container);
@@ -80,7 +79,7 @@ namespace YARG.Core.IO
             if ((data[0] == 0xFF) != BitConverter.IsLittleEndian) unsafe
             {
                 // We have to swap the endian of the data so string conversion works properly
-                buffer = AllocatedArray<int>.Alloc(length);
+                buffer = FixedArray<int>.Alloc(length);
                 for (int i = 0, j = 3; i < buffer.Length; ++i, j += 4)
                 {
                     buffer.Ptr[i] = data.Ptr[j] << 24 |
@@ -91,7 +90,7 @@ namespace YARG.Core.IO
             }
             else
             {
-                buffer = FixedArray<int>.Alias((int*)(data.Ptr + 3), length);
+                buffer = data.Cast<int>(3, length - 3);
             }
             container = new YARGTextContainer<int>(buffer.Ptr, buffer.Ptr + length, data[0] == 0xFF ? Encoding.UTF32 : UTF32BE);
             SkipPureWhitespace(ref container);

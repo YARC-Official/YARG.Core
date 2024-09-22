@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using YARG.Core.Extensions;
-using YARG.Core.IO.Disposables;
 using YARG.Core.Logging;
 
 namespace YARG.Core.IO

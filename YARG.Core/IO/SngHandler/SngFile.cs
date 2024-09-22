@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using YARG.Core.Extensions;
-using YARG.Core.IO.Disposables;
 using YARG.Core.IO.Ini;
 using YARG.Core.Logging;
 
@@ -67,48 +66,25 @@ namespace YARG.Core.IO
 
         public static SngFile? TryLoadFromFile(AbridgedFileInfo file)
         {
-            using var stream = InitStream_Internal(file.FullName);
-            if (stream == null)
-            {
-                return null;
-            }
-
             try
             {
-                return new SngFile(file, stream);
-            }
-            catch (Exception ex)
-            {
-                YargLogger.LogException(ex, $"Error loading {file.FullName}.");
-                return null;
-            }
-        }
-
-        private static FileStream? InitStream_Internal(string filename)
-        {
-            try
-            {
-                var filestream = File.OpenRead(filename);
-                using var wrapper = DisposableCounter.Wrap(filestream);
-
-                var yargSongStream = YARGSongFileStream.TryLoad(filestream);
+                using var filestream = File.OpenRead(file.FullName);
+                using var yargSongStream = YARGSongFileStream.TryLoad(filestream);
                 if (yargSongStream != null)
                 {
                     yargSongStream.Seek(SNGPKG.Length, SeekOrigin.Current);
-                    return yargSongStream;
+                    return new SngFile(file, yargSongStream);
                 }
 
                 filestream.Position = 0;
                 Span<byte> tag = stackalloc byte[SNGPKG.Length];
-                if (filestream.Read(tag) != tag.Length || !tag.SequenceEqual(SNGPKG))
-                {
-                    return null;
-                }
-                return wrapper.Release();
+                return filestream.Read(tag) == tag.Length && tag.SequenceEqual(SNGPKG)
+                    ? new SngFile(file, filestream)
+                    : null;
             }
             catch (Exception ex)
             {
-                YargLogger.LogException(ex, $"Error loading {filename}");
+                YargLogger.LogException(ex, $"Error loading {file.FullName}.");
                 return null;
             }
         }
@@ -119,7 +95,7 @@ namespace YARG.Core.IO
             long length = stream.Read<long>(Endianness.Little) - sizeof(long);
             ulong numPairs = stream.Read<ulong>(Endianness.Little);
 
-            using var bytes = AllocatedArray<byte>.Read(stream, length);
+            using var bytes = FixedArray<byte>.Read(stream, length);
             var container = new YARGTextContainer<byte>(bytes.Ptr, bytes.Ptr + length, null!);
 
             for (ulong i = 0; i < numPairs; i++)
@@ -152,7 +128,7 @@ namespace YARG.Core.IO
             long length = stream.Read<long>(Endianness.Little) - sizeof(long);
             ulong numListings = stream.Read<ulong>(Endianness.Little);
 
-            using var buffer = AllocatedArray<byte>.Read(stream, length);
+            using var buffer = FixedArray<byte>.Read(stream, length);
             using var bufferStream = buffer.ToStream();
 
             Dictionary<string, SngFileListing> listings = new((int)numListings);

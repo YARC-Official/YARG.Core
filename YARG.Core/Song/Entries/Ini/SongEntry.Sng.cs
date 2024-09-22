@@ -4,7 +4,6 @@ using System.Linq;
 using YARG.Core.Audio;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
-using YARG.Core.IO.Disposables;
 using YARG.Core.IO.Ini;
 using YARG.Core.Logging;
 using YARG.Core.Song.Cache;

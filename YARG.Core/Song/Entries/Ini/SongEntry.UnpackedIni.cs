@@ -8,7 +8,6 @@ using YARG.Core.Audio;
 using YARG.Core.Venue;
 using System.Linq;
 using YARG.Core.Logging;
-using YARG.Core.IO.Disposables;
 using YARG.Core.Extensions;
 
 namespace YARG.Core.Song
@@ -246,7 +245,7 @@ namespace YARG.Core.Song
                 return (ScanResult.ChartNotDownloaded, null);
             }
 
-            using var file = MemoryMappedArray.Load(chart.File);
+            using var file = FixedArray<byte>.Load(chart.File.FullName);
             var (result, parts) = ScanIniChartFile(file, chart.Type, iniModifiers);
             if (result != ScanResult.Success)
             {

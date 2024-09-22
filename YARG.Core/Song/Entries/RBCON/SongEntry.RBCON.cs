@@ -11,7 +11,6 @@ using Melanchall.DryWetMidi.Core;
 using YARG.Core.Extensions;
 using YARG.Core.Audio;
 using YARG.Core.Logging;
-using YARG.Core.IO.Disposables;
 
 namespace YARG.Core.Song
 {
@@ -209,20 +208,14 @@ namespace YARG.Core.Song
         public override YARGImage? LoadAlbumData()
         {
             var bytes = LoadRawImageData();
-            if (bytes == null)
-            {
-                return null;
-            }
-            return new YARGImage(bytes);
+            return bytes.IsAllocated ? new YARGImage(bytes) : null;
         }
 
-        public override FixedArray<byte>? LoadMiloData()
+        public override FixedArray<byte> LoadMiloData()
         {
-            if (UpdateMilo == null || !UpdateMilo.Value.Exists())
-            {
-                return null;
-            }
-            return MemoryMappedArray.Load(UpdateMilo.Value);
+           return UpdateMilo != null && UpdateMilo.Value.Exists()
+                ? FixedArray<byte>.Load(UpdateMilo.Value.FullName)
+                : FixedArray<byte>.Default;
         }
 
         public virtual void Serialize(BinaryWriter writer, CategoryCacheWriteNode node)
@@ -267,7 +260,7 @@ namespace YARG.Core.Song
         }
 
         protected abstract bool IsMoggValid(Stream? file);
-        protected abstract FixedArray<byte>? LoadMidiFile(Stream? file);
+        protected abstract FixedArray<byte> LoadMidiFile(Stream? file);
         protected abstract Stream? GetMidiStream();
 
         protected RBCONEntry() : base()
@@ -336,13 +329,11 @@ namespace YARG.Core.Song
         }
 
 
-        protected virtual FixedArray<byte>? LoadRawImageData()
+        protected virtual FixedArray<byte> LoadRawImageData()
         {
-            if (UpdateImage != null && UpdateImage.Value.Exists())
-            {
-                return MemoryMappedArray.Load(UpdateImage.Value);
-            }
-            return null;
+            return UpdateImage != null && UpdateImage.Value.Exists()
+                ? FixedArray<byte>.Load(UpdateImage.Value.FullName)
+                : FixedArray<byte>.Default;
         }
 
         protected virtual Stream? GetMoggStream()
@@ -365,13 +356,11 @@ namespace YARG.Core.Song
             return new FileStream(mogg.FullName, FileMode.Open, FileAccess.Read);
         }
 
-        protected FixedArray<byte>? LoadUpdateMidiFile()
+        protected FixedArray<byte> LoadUpdateMidiFile()
         {
-            if (_updateMidi == null || !_updateMidi.Value.IsStillValid(false))
-            {
-                return null;
-            }
-            return MemoryMappedArray.Load(_updateMidi.Value);
+            return _updateMidi != null && _updateMidi.Value.IsStillValid(false)
+               ? FixedArray<byte>.Load(_updateMidi.Value.FullName)
+               : FixedArray<byte>.Default;
         }
 
         protected ScanResult ParseRBCONMidi(Stream? file)
@@ -390,7 +379,7 @@ namespace YARG.Core.Song
             {
                 using var chartFile = LoadMidiFile(file);
                 using var updateFile = LoadUpdateMidiFile();
-                using var upgradeFile = _upgrade?.LoadUpgradeMidi();
+                using var upgradeFile = _upgrade != null ? _upgrade.LoadUpgradeMidi() : FixedArray<byte>.Default;
 
                 DrumPreparseHandler drumTracker = new()
                 {
@@ -400,7 +389,7 @@ namespace YARG.Core.Song
                 long bufLength = 0;
                 if (_updateMidi != null)
                 {
-                    if (updateFile == null)
+                    if (!updateFile.IsAllocated)
                         return ScanResult.MissingUpdateMidi;
 
                     if (!ParseMidi(updateFile, drumTracker, ref _parts))
@@ -411,7 +400,7 @@ namespace YARG.Core.Song
 
                 if (_upgrade != null)
                 {
-                    if (upgradeFile == null)
+                    if (!upgradeFile.IsAllocated)
                         return ScanResult.MissingUpgradeMidi;
 
                     if (!ParseMidi(upgradeFile, drumTracker, ref _parts))
@@ -420,7 +409,7 @@ namespace YARG.Core.Song
                     bufLength += upgradeFile.Length;
                 }
 
-                if (chartFile == null)
+                if (!chartFile.IsAllocated)
                     return ScanResult.MissingMidi;
 
                 if (!ParseMidi(chartFile, drumTracker, ref _parts))
@@ -434,19 +423,19 @@ namespace YARG.Core.Song
                     return ScanResult.NoNotes;
                 }
 
-                using var buffer = AllocatedArray<byte>.Alloc(bufLength);
+                using var buffer = FixedArray<byte>.Alloc(bufLength);
                 unsafe
                 {
                     System.Runtime.CompilerServices.Unsafe.CopyBlock(buffer.Ptr, chartFile.Ptr, (uint) chartFile.Length);
 
                     long offset = chartFile.Length;
-                    if (updateFile != null)
+                    if (updateFile.IsAllocated)
                     {
                         System.Runtime.CompilerServices.Unsafe.CopyBlock(buffer.Ptr + offset, updateFile.Ptr, (uint) updateFile.Length);
                         offset += updateFile.Length;
                     }
 
-                    if (upgradeFile != null)
+                    if (upgradeFile.IsAllocated)
                     {
                         System.Runtime.CompilerServices.Unsafe.CopyBlock(buffer.Ptr + offset, upgradeFile.Ptr, (uint) upgradeFile.Length);
                     }

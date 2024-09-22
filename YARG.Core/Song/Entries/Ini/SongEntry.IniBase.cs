@@ -7,7 +7,6 @@ using System.Linq;
 using YARG.Core.Chart;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
-using YARG.Core.IO.Disposables;
 using YARG.Core.IO.Ini;
 using YARG.Core.Song.Cache;
 using YARG.Core.Song.Preparsers;
@@ -152,9 +151,9 @@ namespace YARG.Core.Song
             return SongChart.FromDotChart(_parseSettings, reader.ReadToEnd());
         }
 
-        public override FixedArray<byte>? LoadMiloData()
+        public override FixedArray<byte> LoadMiloData()
         {
-            return null;
+            return FixedArray<byte>.Default;
         }
 
         protected static (ScanResult Result, AvailableParts Parts) ScanIniChartFile(FixedArray<byte> file, ChartType chartType, IniSection modifiers)
@@ -174,7 +173,7 @@ namespace YARG.Core.Song
                 else
                 {
                     using var chars = YARGTextReader.ConvertToUTF16(file, out var charContainer);
-                    if (chars != null)
+                    if (chars.IsAllocated)
                     {
                         ParseDotChart(ref charContainer, modifiers, ref parts, drums);
                     }
