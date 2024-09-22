@@ -55,10 +55,10 @@ namespace YARG.Core.Song
     [Serializable]
     public sealed class UnpackedRBProUpgrade : RBProUpgrade
     {
-        private readonly AbridgedFileInfo_Length _midi;
+        private readonly AbridgedFileInfo _midi;
         public override DateTime LastUpdatedTime => _midi.LastUpdatedTime;
 
-        public UnpackedRBProUpgrade(in AbridgedFileInfo_Length info)
+        public UnpackedRBProUpgrade(in AbridgedFileInfo info)
         {
             _midi = info;
         }
@@ -66,7 +66,6 @@ namespace YARG.Core.Song
         public override void WriteToCache(BinaryWriter writer)
         {
             writer.Write(_midi.LastUpdatedTime.ToBinary());
-            writer.Write(_midi.Length);
         }
 
         public override Stream? GetUpgradeMidiStream()

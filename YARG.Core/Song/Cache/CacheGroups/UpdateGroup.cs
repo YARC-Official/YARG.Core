@@ -48,14 +48,14 @@ namespace YARG.Core.Song.Cache
         private readonly List<YARGTextContainer<byte>> _containers;
 
         public readonly string BaseDirectory;
-        public readonly AbridgedFileInfo_Length? Midi;
+        public readonly AbridgedFileInfo? Midi;
         public readonly AbridgedFileInfo? Mogg;
-        public readonly AbridgedFileInfo_Length? Milo;
-        public readonly AbridgedFileInfo_Length? Image;
+        public readonly AbridgedFileInfo? Milo;
+        public readonly AbridgedFileInfo? Image;
 
         public YARGTextContainer<byte>[] Containers => _containers.ToArray();
 
-        internal SongUpdate(string directory, AbridgedFileInfo_Length? midi, AbridgedFileInfo? mogg, AbridgedFileInfo_Length? milo, AbridgedFileInfo_Length? image)
+        internal SongUpdate(string directory, AbridgedFileInfo? midi, AbridgedFileInfo? mogg, AbridgedFileInfo? milo, AbridgedFileInfo? image)
         {
             _containers = new();
             BaseDirectory = directory;
@@ -77,8 +77,7 @@ namespace YARG.Core.Song.Cache
             WriteInfo(Milo, writer);
             WriteInfo(Image, writer);
 
-            static void WriteInfo<TInfo>(in TInfo? info, BinaryWriter writer)
-                where TInfo : struct, IAbridgedInfo
+            static void WriteInfo(in AbridgedFileInfo? info, BinaryWriter writer)
             {
                 if (info != null)
                 {
@@ -116,8 +115,7 @@ namespace YARG.Core.Song.Cache
             }
             return CheckInfo(in Image, stream);
 
-            static bool CheckInfo<TInfo>(in TInfo? info, UnmanagedMemoryStream stream)
-                where TInfo : struct, IAbridgedInfo
+            static bool CheckInfo(in AbridgedFileInfo? info, UnmanagedMemoryStream stream)
             {
                 if (stream.ReadBoolean())
                 {

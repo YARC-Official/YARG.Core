@@ -8,7 +8,7 @@ namespace YARG.Core.Song.Cache
 {
     public sealed class UnpackedCONGroup : CONGroup, IDisposable
     {
-        public readonly AbridgedFileInfo_Length DTA;
+        public readonly AbridgedFileInfo DTA;
         private FixedArray<byte> _fileData = FixedArray<byte>.Default;
 
         public override string Location { get; }
@@ -17,7 +17,7 @@ namespace YARG.Core.Song.Cache
             : base(defaultPlaylist)
         {
             Location = directory;
-            DTA = new AbridgedFileInfo_Length(dta);
+            DTA = new AbridgedFileInfo(dta);
         }
 
         public bool LoadDTA(out YARGTextContainer<byte> container)

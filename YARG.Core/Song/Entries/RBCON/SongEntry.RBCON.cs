@@ -38,12 +38,12 @@ namespace YARG.Core.Song
         private RBMetadata _rbMetadata;
         private RBCONDifficulties _rbDifficulties;
 
-        private AbridgedFileInfo_Length? _updateMidi;
+        private AbridgedFileInfo? _updateMidi;
         private RBProUpgrade? _upgrade;
 
         private AbridgedFileInfo? UpdateMogg;
-        private AbridgedFileInfo_Length? UpdateMilo;
-        private AbridgedFileInfo_Length? UpdateImage;
+        private AbridgedFileInfo? UpdateMilo;
+        private AbridgedFileInfo? UpdateImage;
 
         public string RBSongId => _rbMetadata.SongID;
         public int RBBandDiff => _rbDifficulties.Band;
@@ -271,15 +271,15 @@ namespace YARG.Core.Song
             _parseSettings.NoteSnapThreshold = NOTE_SNAP_THRESHOLD;
         }
 
-        protected RBCONEntry(AbridgedFileInfo_Length? updateMidi, RBProUpgrade? upgrade, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
+        protected RBCONEntry(AbridgedFileInfo? updateMidi, RBProUpgrade? upgrade, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
             : base(stream, strings)
         {
             _updateMidi = updateMidi;
             _upgrade = upgrade;
 
             UpdateMogg =  stream.ReadBoolean() ? new AbridgedFileInfo(stream.ReadString(), false) : null;
-            UpdateMilo =  stream.ReadBoolean() ? new AbridgedFileInfo_Length(stream.ReadString(), false) : null;
-            UpdateImage = stream.ReadBoolean() ? new AbridgedFileInfo_Length(stream.ReadString(), false) : null;
+            UpdateMilo =  stream.ReadBoolean() ? new AbridgedFileInfo(stream.ReadString(), false) : null;
+            UpdateImage = stream.ReadBoolean() ? new AbridgedFileInfo(stream.ReadString(), false) : null;
 
             _rbMetadata.AnimTempo = stream.Read<uint>(Endianness.Little);
             _rbMetadata.SongID = stream.ReadString();

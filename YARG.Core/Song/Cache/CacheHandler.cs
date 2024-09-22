@@ -34,7 +34,7 @@ namespace YARG.Core.Song.Cache
         /// Format is YY_MM_DD_RR: Y = year, M = month, D = day, R = revision (reset across dates, only increment
         /// if multiple cache version changes happen in a single day).
         /// </summary>
-        public const int CACHE_VERSION = 24_08_01_01;
+        public const int CACHE_VERSION = 24_09_21_01;
 
         public static ScanProgressTracker Progress => _progress;
         private static ScanProgressTracker _progress;
@@ -398,7 +398,7 @@ namespace YARG.Core.Song.Cache
                     if (collection.Subfiles.TryGetValue($"{name.ToLower()}_plus.mid", out var info)
                     && CanAddUpgrade(name, info.LastWriteTime))
                     {
-                        var abridged = new AbridgedFileInfo_Length(info, false);
+                        var abridged = new AbridgedFileInfo(info, false);
                         var upgrade = new UnpackedRBProUpgrade(abridged);
                         group.Upgrades[name] = upgrade;
                         AddUpgrade(name, container, upgrade);
@@ -453,17 +453,17 @@ namespace YARG.Core.Song.Cache
                     string name = YARGDTAReader.GetNameOfNode(ref container, true);
                     if (!group.Updates.TryGetValue(name, out var update))
                     {
-                        AbridgedFileInfo_Length? midi = null;
+                        AbridgedFileInfo? midi = null;
                         AbridgedFileInfo? mogg = null;
-                        AbridgedFileInfo_Length? milo = null;
-                        AbridgedFileInfo_Length? image = null;
+                        AbridgedFileInfo? milo = null;
+                        AbridgedFileInfo? image = null;
 
                         string subname = name.ToLowerInvariant();
                         if (mapping.TryGetValue(subname, out var files))
                         {
                             if (files.TryGetValue(subname + "_update.mid", out var file))
                             {
-                                midi = new AbridgedFileInfo_Length(file, false);
+                                midi = new AbridgedFileInfo(file, false);
                             }
                             if (files.TryGetValue(subname + "_update.mogg", out file))
                             {
@@ -471,11 +471,11 @@ namespace YARG.Core.Song.Cache
                             }
                             if (files.TryGetValue(subname + ".milo_xbox", out file))
                             {
-                                milo = new AbridgedFileInfo_Length(file, false);
+                                milo = new AbridgedFileInfo(file, false);
                             }
                             if (files.TryGetValue(subname + "_keep.png_xbox", out file))
                             {
-                                image = new AbridgedFileInfo_Length(file, false);
+                                image = new AbridgedFileInfo(file, false);
                             }
                         }
 
@@ -1240,7 +1240,7 @@ namespace YARG.Core.Song.Cache
                 string name = stream.ReadString();
                 string filename = Path.Combine(directory, $"{name}_plus.mid");
 
-                var info = new AbridgedFileInfo_Length(filename, stream);
+                var info = new AbridgedFileInfo(filename, stream);
                 AddUpgrade(name, default, new UnpackedRBProUpgrade(info));
             }
         }
