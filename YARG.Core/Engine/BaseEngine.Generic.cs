@@ -115,6 +115,39 @@ namespace YARG.Core.Engine
             base.GenerateQueuedUpdates(nextTime);
             var previousTime = CurrentTime;
 
+            foreach (var sustain in ActiveSustains)
+            {
+                var burstTime = sustain.GetEndTime(SyncTrack, SustainBurstThreshold);
+                var endTime = sustain.GetEndTime(SyncTrack, 0);
+
+                var scaledDropLeniency = EngineParameters.SustainDropLeniency * EngineParameters.SongSpeed;
+                var leniencyDropTime = sustain.LeniencyDropTime + scaledDropLeniency;
+
+                if (sustain.IsLeniencyHeld && IsTimeBetween(leniencyDropTime, previousTime, nextTime))
+                {
+                    YargLogger.LogFormatDebug("Queuing sustain (tick: {0}) leniency drop time at {1}", sustain.Note.Tick,
+                        leniencyDropTime);
+                    QueueUpdateTime(leniencyDropTime, "Sustain Leniency Drop");
+                }
+
+                // Burst time is for scoring, so that scoring finishes at the correct time
+                if (IsTimeBetween(burstTime, previousTime, nextTime))
+                {
+                    YargLogger.LogFormatTrace("Queuing sustain (tick: {0}) burst time at {1}", sustain.Note.Tick,
+                        burstTime);
+                    QueueUpdateTime(burstTime, "Sustain Burst");
+                }
+
+                // The true end of the sustain is for hit logic. Sustains are "kept" even after the burst ticks so must
+                // also be handled.
+                if (IsTimeBetween(endTime, previousTime, nextTime))
+                {
+                    YargLogger.LogFormatTrace("Queuing sustain (tick: {0}) end time at {1}", sustain.Note.Tick,
+                        endTime);
+                    QueueUpdateTime(endTime, "Sustain End");
+                }
+            }
+
             for (int i = NoteIndex; i < Notes.Count; i++)
             {
                 var note = Notes[i];
@@ -441,9 +474,10 @@ namespace YARG.Core.Engine
                     // Currently beind held by sustain drop leniency
                     if (sustain.IsLeniencyHeld)
                     {
-                        if (CurrentTime > sustain.LeniencyDropTime + EngineParameters.SustainDropLeniency * EngineParameters.SongSpeed)
+                        if (CurrentTime >= sustain.LeniencyDropTime + EngineParameters.SustainDropLeniency * EngineParameters.SongSpeed)
                         {
                             dropped = true;
+                            YargLogger.LogFormatDebug("Dropping sustain using leniency time at {0}", CurrentTime);
                         }
                     }
                     else

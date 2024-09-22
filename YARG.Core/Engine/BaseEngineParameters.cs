@@ -35,6 +35,9 @@ namespace YARG.Core.Engine
             MaxMultiplier = stream.Read<int>(Endianness.Little);
             StarPowerWhammyBuffer = stream.Read<double>(Endianness.Little);
 
+            // Version 7 but DATA_MIN was increased so no need to version check
+            SustainDropLeniency = stream.Read<double>(Endianness.Little);
+
             // Read star multiplier thresholds
             int count = stream.Read<int>(Endianness.Little);
             StarMultiplierThresholds = new float[count];
@@ -51,6 +54,8 @@ namespace YARG.Core.Engine
             HitWindow.Serialize(writer);
             writer.Write(MaxMultiplier);
             writer.Write(StarPowerWhammyBuffer);
+
+            writer.Write(SustainDropLeniency);
 
             // Write star multiplier thresholds
             writer.Write(StarMultiplierThresholds.Length);

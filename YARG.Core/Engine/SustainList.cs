@@ -122,7 +122,7 @@ namespace YARG.Core.Engine
             HasFinishedScoring = false;
             IsLeniencyHeld = false;
 
-            LeniencyDropTime = 0;
+            LeniencyDropTime = -9999;
         }
 
         public double GetEndTime(SyncTrack syncTrack, uint sustainBurstThreshold)

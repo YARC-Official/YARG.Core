@@ -98,10 +98,16 @@ namespace YARG.Core.Engine
         public double StarPowerActivationTime { get; protected set; }
         public double StarPowerEndTime { get; protected set; }
 
-        public struct EngineFrameUpdate
+        public readonly struct EngineFrameUpdate
         {
-            public double Time;
-            public string Reason;
+            public EngineFrameUpdate(double time, string reason)
+            {
+                Time = time;
+                Reason = reason;
+            }
+
+            public readonly double Time;
+            public readonly string Reason;
         }
 
         /// <summary>
@@ -407,8 +413,7 @@ namespace YARG.Core.Engine
                 }
             }
 
-            _scheduledUpdates.Add(new EngineFrameUpdate
-                { Time = time, Reason = reason });
+            _scheduledUpdates.Add(new EngineFrameUpdate(time, reason));
         }
 
         private void RunEngineLoop(double time)

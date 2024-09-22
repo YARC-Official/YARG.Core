@@ -59,29 +59,6 @@ namespace YARG.Core.Engine.Guitar
             base.GenerateQueuedUpdates(nextTime);
             var previousTime = CurrentTime;
 
-            foreach (var sustain in ActiveSustains)
-            {
-                var burstTime = sustain.GetEndTime(SyncTrack, SustainBurstThreshold);
-                var endTime = sustain.GetEndTime(SyncTrack, 0);
-
-                // Burst time is for scoring, so that scoring finishes at the correct time
-                if (IsTimeBetween(burstTime, previousTime, nextTime))
-                {
-                    YargLogger.LogFormatTrace("Queuing sustain (mask: {0}) burst time at {1}", sustain.Note.NoteMask,
-                        burstTime);
-                    QueueUpdateTime(burstTime, "Sustain Burst");
-                }
-
-                // The true end of the sustain is for hit logic. Sustains are "kept" even after the burst ticks so must
-                // also be handled.
-                if (IsTimeBetween(endTime, previousTime, nextTime))
-                {
-                    YargLogger.LogFormatTrace("Queuing sustain (mask: {0}) end time at {1}", sustain.Note.NoteMask,
-                        endTime);
-                    QueueUpdateTime(endTime, "Sustain End");
-                }
-            }
-
             // Check all timers
             if (HopoLeniencyTimer.IsActive)
             {
