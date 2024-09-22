@@ -24,6 +24,9 @@ namespace YARG.Core.IO
     public unsafe struct FixedArray<T> : IDisposable
         where T : unmanaged
     {
+        /// <summary>
+        /// A indisposable default instance with a null pointer
+        /// </summary>
         public static readonly FixedArray<T> Default = new()
         {
             _disposed = true
