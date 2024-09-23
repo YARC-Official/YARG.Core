@@ -15,7 +15,7 @@
 
         public FixedArray<byte> LoadAllBytes(SngFile sngFile)
         {
-            var stream = sngFile.LoadStream();
+            using var stream = sngFile.LoadStream();
             return SngFileStream.LoadFile(stream, sngFile.Mask, Length, Position);
         }
 
