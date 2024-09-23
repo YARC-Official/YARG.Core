@@ -855,7 +855,7 @@ namespace YARG.Core.Song.Cache
                 }
                 catch (Exception e)
                 {
-                    YargLogger.LogException(e, $"Error while scanning chart file {chart} within {sngFile.Info}!");
+                    YargLogger.LogException(e, $"Error while scanning chart file {chart} within {sngFile.Info.FullName}!");
                     AddToBadSongs(sngFile.Info.FullName, ScanResult.IniEntryCorruption);
                 }
                 break;
