@@ -70,5 +70,6 @@ namespace YARG.Core.Chart
         //YARG internal
         Menu,
         Score,
+        NoCue,
     }
 }
