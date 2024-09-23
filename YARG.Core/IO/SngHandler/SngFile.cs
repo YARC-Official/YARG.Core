@@ -12,7 +12,7 @@ namespace YARG.Core.IO
     /// <summary>
     /// <see href="https://github.com/mdsitton/SngFileFormat">Documentation of SNG file type</see>
     /// </summary>
-    public class SngFile : IEnumerable<KeyValuePair<string, SngFileListing>>
+    public class SngFile : IEnumerable<KeyValuePair<string, SngFileListing>>, IDisposable
     {
         public readonly AbridgedFileInfo Info;
         public readonly uint Version;
@@ -20,29 +20,30 @@ namespace YARG.Core.IO
         public readonly IniSection Metadata;
 
         private readonly Dictionary<string, SngFileListing> _listings;
-        private readonly int[]? _values;
+        private readonly YARGSongFileStream? _encryptedStream;
 
-        private SngFile(AbridgedFileInfo info, Stream? stream, int[]? values)
+        private SngFile(AbridgedFileInfo info, Stream stream)
         {
             Info = info;
             Version = stream.Read<uint>(Endianness.Little);
             Mask = new SngMask(stream);
             Metadata = ReadMetadata(stream);
             _listings = ReadListings(stream);
-            _values = values;
+            _encryptedStream = stream as YARGSongFileStream;
         }
 
         public SngFileListing this[string key] => _listings[key];
         public bool ContainsKey(string key) => _listings.ContainsKey(key);
         public bool TryGetValue(string key, out SngFileListing listing) => _listings.TryGetValue(key, out listing);
 
+        public void Dispose()
+        {
+            _encryptedStream?.Dispose();
+        }
+
         public Stream LoadStream()
         {
-            if (_values != null)
-            {
-                return new YARGSongFileStream(Info.FullName, _values);
-            }
-            return new FileStream(Info.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+            return _encryptedStream != null ? _encryptedStream.Clone() : new FileStream(Info.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
         }
 
         IEnumerator<KeyValuePair<string, SngFileListing>> IEnumerable<KeyValuePair<string, SngFileListing>>.GetEnumerator()
@@ -70,13 +71,13 @@ namespace YARG.Core.IO
                 using var yargSongStream = YARGSongFileStream.TryLoad(filestream);
                 if (yargSongStream != null)
                 {
-                    return new SngFile(file, yargSongStream, yargSongStream.Values);
                     yargSongStream.Position += SNGPKG.Length;
+                    return new SngFile(file, yargSongStream);
                 }
 
                 filestream.Position = 0;
                 Span<byte> tag = stackalloc byte[SNGPKG.Length];
-                return filestream.Read(tag) == tag.Length && tag.SequenceEqual(SNGPKG) ? new SngFile(file, filestream, null) : null;
+                return filestream.Read(tag) == tag.Length && tag.SequenceEqual(SNGPKG) ? new SngFile(file, filestream) : null;
             }
             catch (Exception ex)
             {

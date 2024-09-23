@@ -694,7 +694,7 @@ namespace YARG.Core.Song.Cache
                     string ext = info.Extension;
                     if (ext == ".sng" || ext == ".yargsong")
                     {
-                        var sngFile = SngFile.TryLoadFromFile(abridged);
+                        using var sngFile = SngFile.TryLoadFromFile(abridged);
                         if (sngFile != null)
                         {
                             ScanSngFile(sngFile, group, tracker.Playlist);

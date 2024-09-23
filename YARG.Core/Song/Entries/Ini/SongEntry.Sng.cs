@@ -36,7 +36,7 @@ namespace YARG.Core.Song
             if (!_sngInfo.IsStillValid())
                 return null;
 
-            var sngFile = SngFile.TryLoadFromFile(_sngInfo);
+            using var sngFile = SngFile.TryLoadFromFile(_sngInfo);
             if (sngFile == null)
                 return null;
 
@@ -45,7 +45,7 @@ namespace YARG.Core.Song
 
         public override StemMixer? LoadAudio(float speed, double volume, params SongStem[] ignoreStems)
         {
-            var sngFile = SngFile.TryLoadFromFile(_sngInfo);
+            using var sngFile = SngFile.TryLoadFromFile(_sngInfo);
             if (sngFile == null)
             {
                 YargLogger.LogFormatError("Failed to load sng file {0}", _sngInfo.FullName);
@@ -56,7 +56,7 @@ namespace YARG.Core.Song
 
         public override StemMixer? LoadPreviewAudio(float speed)
         {
-            var sngFile = SngFile.TryLoadFromFile(_sngInfo);
+            using var sngFile = SngFile.TryLoadFromFile(_sngInfo);
             if (sngFile == null)
             {
                 YargLogger.LogFormatError("Failed to load sng file {0}", _sngInfo.FullName);
@@ -85,7 +85,7 @@ namespace YARG.Core.Song
 
         public override YARGImage? LoadAlbumData()
         {
-            var sngFile = SngFile.TryLoadFromFile(_sngInfo);
+            using var sngFile = SngFile.TryLoadFromFile(_sngInfo);
             if (sngFile == null)
                 return null;
 
@@ -116,7 +116,7 @@ namespace YARG.Core.Song
 
         public override BackgroundResult? LoadBackground(BackgroundType options)
         {
-            var sngFile = SngFile.TryLoadFromFile(_sngInfo);
+            using var sngFile = SngFile.TryLoadFromFile(_sngInfo);
             if (sngFile == null)
             {
                 return null;
@@ -290,8 +290,8 @@ namespace YARG.Core.Song
             if (sngInfo == null)
                 return null;
 
+            using var sngFile = SngFile.TryLoadFromFile(sngInfo.Value);
             uint version = stream.Read<uint>(Endianness.Little);
-            var sngFile = SngFile.TryLoadFromFile(sngInfo.Value);
             if (sngFile == null || sngFile.Version != version)
             {
                 // TODO: Implement Update-in-place functionality

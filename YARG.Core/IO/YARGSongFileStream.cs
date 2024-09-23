@@ -20,7 +20,6 @@ namespace YARG.Core.IO
         // value cipher).
         private readonly int[] _values;
 
-        public int[] Values => (int[])_values.Clone();
         public override long Position
         {
             get => _stream.Position - HEADER_SIZE;
@@ -142,6 +141,11 @@ namespace YARG.Core.IO
         public override void Flush()
         {
             _stream.Flush();
+        }
+
+        public YARGSongFileStream Clone()
+        {
+            return new YARGSongFileStream(_stream.Name, _values);
         }
     }
 }
