@@ -29,7 +29,7 @@ namespace YARG.Core.IO
             VECTOR_INDEX_MASK = NUM_VECTORS_MASK << VECTOR_SHIFT;
         }
 
-        public static unsafe FixedArray<byte> LoadFile(FileStream stream, SngMask mask, long fileSize, long position)
+        public static unsafe FixedArray<byte> LoadFile(Stream stream, SngMask mask, long fileSize, long position)
         {
             if (stream.Seek(position, SeekOrigin.Begin) != position)
                 throw new EndOfStreamException();
@@ -63,7 +63,7 @@ namespace YARG.Core.IO
         private const int SEEK_MODULUS = BUFFER_SIZE - 1;
         private const int SEEK_MODULUS_MINUS = ~SEEK_MODULUS;
 
-        private readonly FileStream _stream;
+        private readonly Stream _stream;
         private readonly long fileSize;
         private readonly long initialOffset;
 
@@ -99,7 +99,7 @@ namespace YARG.Core.IO
             }
         }
 
-        public SngFileStream(string name, FileStream stream, SngMask mask, long fileSize, long position)
+        public SngFileStream(string name, Stream stream, SngMask mask, long fileSize, long position)
         {
             Name = name;
             _stream = stream;

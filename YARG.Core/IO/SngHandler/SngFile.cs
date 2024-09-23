@@ -22,7 +22,7 @@ namespace YARG.Core.IO
         private readonly Dictionary<string, SngFileListing> _listings;
         private readonly int[]? _values;
 
-        private SngFile(AbridgedFileInfo info, FileStream stream, int[]? values)
+        private SngFile(AbridgedFileInfo info, Stream? stream, int[]? values)
         {
             Info = info;
             Version = stream.Read<uint>(Endianness.Little);
@@ -36,7 +36,7 @@ namespace YARG.Core.IO
         public bool ContainsKey(string key) => _listings.ContainsKey(key);
         public bool TryGetValue(string key, out SngFileListing listing) => _listings.TryGetValue(key, out listing);
 
-        public FileStream LoadFileStream()
+        public Stream LoadStream()
         {
             if (_values != null)
             {
@@ -70,8 +70,8 @@ namespace YARG.Core.IO
                 using var yargSongStream = YARGSongFileStream.TryLoad(filestream);
                 if (yargSongStream != null)
                 {
-                    yargSongStream.Seek(SNGPKG.Length, SeekOrigin.Current);
                     return new SngFile(file, yargSongStream, yargSongStream.Values);
+                    yargSongStream.Position += SNGPKG.Length;
                 }
 
                 filestream.Position = 0;

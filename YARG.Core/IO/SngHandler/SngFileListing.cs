@@ -15,13 +15,13 @@
 
         public FixedArray<byte> LoadAllBytes(SngFile sngFile)
         {
-            var stream = sngFile.LoadFileStream();
+            var stream = sngFile.LoadStream();
             return SngFileStream.LoadFile(stream, sngFile.Mask, Length, Position);
         }
 
         public SngFileStream CreateStream(SngFile sngFile)
         {
-            var stream = sngFile.LoadFileStream();
+            var stream = sngFile.LoadStream();
             return new SngFileStream(Name, stream, sngFile.Mask, Length, Position);
         }
     }
