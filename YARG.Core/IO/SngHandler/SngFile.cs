@@ -22,16 +22,14 @@ namespace YARG.Core.IO
         private readonly Dictionary<string, SngFileListing> _listings;
         private readonly int[]? _values;
 
-        private SngFile(AbridgedFileInfo info, FileStream stream)
+        private SngFile(AbridgedFileInfo info, FileStream stream, int[]? values)
         {
             Info = info;
             Version = stream.Read<uint>(Endianness.Little);
             Mask = new SngMask(stream);
             Metadata = ReadMetadata(stream);
             _listings = ReadListings(stream);
-
-            if (stream is YARGSongFileStream yargSongStream)
-                _values = yargSongStream.Values;
+            _values = values;
         }
 
         public SngFileListing this[string key] => _listings[key];
@@ -73,14 +71,12 @@ namespace YARG.Core.IO
                 if (yargSongStream != null)
                 {
                     yargSongStream.Seek(SNGPKG.Length, SeekOrigin.Current);
-                    return new SngFile(file, yargSongStream);
+                    return new SngFile(file, yargSongStream, yargSongStream.Values);
                 }
 
                 filestream.Position = 0;
                 Span<byte> tag = stackalloc byte[SNGPKG.Length];
-                return filestream.Read(tag) == tag.Length && tag.SequenceEqual(SNGPKG)
-                    ? new SngFile(file, filestream)
-                    : null;
+                return filestream.Read(tag) == tag.Length && tag.SequenceEqual(SNGPKG) ? new SngFile(file, filestream, null) : null;
             }
             catch (Exception ex)
             {
@@ -129,18 +125,43 @@ namespace YARG.Core.IO
             ulong numListings = stream.Read<ulong>(Endianness.Little);
 
             using var buffer = FixedArray<byte>.Read(stream, length);
-            using var bufferStream = buffer.ToStream();
 
             Dictionary<string, SngFileListing> listings = new((int)numListings);
-            for (ulong i = 0; i < numListings; i++)
+            unsafe
             {
-                unsafe
+                var curr = buffer.Ptr;
+                var end = buffer.Ptr + length;
+                for (ulong i = 0; i < numListings; i++)
                 {
-                    var strLen = bufferStream.ReadByte();
-                    string filename = Encoding.UTF8.GetString(bufferStream.PositionPointer, strLen);
-                    bufferStream.Position += strLen;
-                    long fileLength = bufferStream.Read<long>(Endianness.Little);
-                    long position = bufferStream.Read<long>(Endianness.Little);
+                    if (curr == end)
+                    {
+                        throw new EndOfStreamException();
+                    }
+
+                    int strlen = *curr++;
+                    if (curr + strlen > end)
+                    {
+                        throw new EndOfStreamException();
+                    }
+
+                    string filename = Encoding.UTF8.GetString(curr, strlen);
+                    curr += strlen;
+
+                    if (curr + sizeof(long) > end)
+                    {
+                        throw new EndOfStreamException();
+                    }
+
+                    long fileLength = *(long*) curr;
+                    curr += sizeof(long);
+
+                    if (curr + sizeof(long) > end)
+                    {
+                        throw new EndOfStreamException();
+                    }
+
+                    long position = *(long*) curr;
+                    curr += sizeof(long);
                     listings.Add(filename.ToLower(), new SngFileListing(filename, position, fileLength));
                 }
             }
@@ -149,6 +170,11 @@ namespace YARG.Core.IO
 
         private static unsafe int GetLength(ref YARGTextContainer<byte> container)
         {
+            if (container.Position + sizeof(int) > container.End)
+            {
+                throw new EndOfStreamException();
+            }
+
             int length = *(int*)container.Position;
             container.Position += sizeof(int);
             if (container.Position + length > container.End)
