@@ -4,42 +4,33 @@ using YARG.Core.Extensions;
 
 namespace YARG.Core.IO
 {
-    public interface IAbridgedInfo
-    {
-        public string FullName { get; }
-        public DateTime LastUpdatedTime { get; }
-    }
-
     /// <summary>
     /// A FileInfo structure that only contains the filename and time last added
     /// </summary>
-    public readonly struct AbridgedFileInfo : IAbridgedInfo
+    public readonly struct AbridgedFileInfo
     {
         public const FileAttributes RECALL_ON_DATA_ACCESS = (FileAttributes)0x00400000;
 
         /// <summary>
         /// The file path
         /// </summary>
-        private readonly string _fullname;
+        public readonly string FullName;
 
         /// <summary>
         /// The time the file was last written or created on OS - whichever came later
         /// </summary>
-        private readonly DateTime _lastUpdatedTime;
-
-        public string FullName => _fullname;
-        public DateTime LastUpdatedTime => _lastUpdatedTime;
+        public readonly DateTime LastUpdatedTime;
 
         public AbridgedFileInfo(string file, bool checkCreationTime = true)
             : this(new FileInfo(file), checkCreationTime) { }
 
         public AbridgedFileInfo(FileInfo info, bool checkCreationTime = true)
         {
-            _fullname = info.FullName;
-            _lastUpdatedTime = info.LastWriteTime;
-            if (checkCreationTime && info.CreationTime > _lastUpdatedTime)
+            FullName = info.FullName;
+            LastUpdatedTime = info.LastWriteTime;
+            if (checkCreationTime && info.CreationTime > LastUpdatedTime)
             {
-                _lastUpdatedTime = info.CreationTime;
+                LastUpdatedTime = info.CreationTime;
             }
         }
 
@@ -54,30 +45,30 @@ namespace YARG.Core.IO
         /// </summary>
         public AbridgedFileInfo(string filename, UnmanagedMemoryStream stream)
         {
-            _fullname = filename;
-            _lastUpdatedTime = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
+            FullName = filename;
+            LastUpdatedTime = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
         }
 
         public AbridgedFileInfo(string filename, in DateTime lastUpdatedTime)
         {
-            _fullname = filename;
-            _lastUpdatedTime = lastUpdatedTime;
+            FullName = filename;
+            LastUpdatedTime = lastUpdatedTime;
         }
 
         public void Serialize(BinaryWriter writer)
         {
-            writer.Write(_fullname);
-            writer.Write(_lastUpdatedTime.ToBinary());
+            writer.Write(FullName);
+            writer.Write(LastUpdatedTime.ToBinary());
         }
 
         public bool Exists()
         {
-            return File.Exists(_fullname);
+            return File.Exists(FullName);
         }
 
         public bool IsStillValid(bool checkCreationTime = true)
         {
-            var info = new FileInfo(_fullname);
+            var info = new FileInfo(FullName);
             if (!info.Exists)
             {
                 return false;
@@ -88,7 +79,7 @@ namespace YARG.Core.IO
             {
                 timeToCompare = info.CreationTime;
             }
-            return timeToCompare == _lastUpdatedTime;
+            return timeToCompare == LastUpdatedTime;
         }
 
         /// <summary>
@@ -112,7 +103,7 @@ namespace YARG.Core.IO
             }
 
             var abridged = new AbridgedFileInfo(info, checkCreationTime);
-            if (abridged._lastUpdatedTime != DateTime.FromBinary(stream.Read<long>(Endianness.Little)))
+            if (abridged.LastUpdatedTime != DateTime.FromBinary(stream.Read<long>(Endianness.Little)))
             {
                 return null;
             }

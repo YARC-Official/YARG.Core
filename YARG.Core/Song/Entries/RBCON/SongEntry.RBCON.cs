@@ -957,8 +957,7 @@ namespace YARG.Core.Song
             return strings;
         }
 
-        private static void WriteUpdateInfo<TInfo>(TInfo? info, BinaryWriter writer)
-            where TInfo : struct, IAbridgedInfo
+        private static void WriteUpdateInfo(in AbridgedFileInfo? info, BinaryWriter writer)
         {
             if (info != null)
             {
