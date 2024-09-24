@@ -78,19 +78,21 @@ namespace YARG.Core.Engine.Vocals
             GetWaitCountdowns(Notes);
         }
 
-        public void BuildCountdownsFromAllParts(SongChart chart)
+        public void BuildCountdownsFromAllParts(List<VocalsPart> allParts)
         {
             // Get notes from all available vocals parts
             var allNotes = new List<VocalNote>();
 
-            var allParts = chart.GetVocalsTrack(Instrument.Harmony).Parts;
             for (int p = 0; p < allParts.Count; p++)
             {
                 allNotes.AddRange(allParts[p].CloneAsInstrumentDifficulty().Notes);
             }
 
-            // Sort combined list by Note time
-            allNotes.Sort((a, b) => (int)(a.Tick - b.Tick));
+            if (allParts.Count > 1)
+            {
+                // Sort combined list by Note time
+                allNotes.Sort((a, b) => (int)(a.Tick - b.Tick));
+            }
 
             GetWaitCountdowns(allNotes);
         }
