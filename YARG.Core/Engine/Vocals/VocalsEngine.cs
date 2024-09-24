@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using YARG.Core.Chart;
 using YARG.Core.Logging;
@@ -69,6 +70,34 @@ namespace YARG.Core.Engine.Vocals
             LastSingTick = 0;
 
             base.Reset(keepCurrentButtons);
+        }
+
+        public void BuildCountdownsFromSelectedPart()
+        {
+            // Vocals selected, build countdowns from solo vocals line only
+            GetWaitCountdowns(Notes);
+        }
+
+        public void BuildCountdownsFromAllParts(SongChart chart)
+        {
+            // Get notes from all available vocals parts
+            var allNotes = new List<VocalNote>();
+
+            for (int i = 0; i < 2; i++)
+            {
+                var instrument = i == 0 ? Instrument.Vocals : Instrument.Harmony;
+                
+                var allParts = chart.GetVocalsTrack(instrument).Parts;
+                for (int p = 0; p < allParts.Count; p++)
+                {
+                    allNotes.AddRange(allParts[p].CloneAsInstrumentDifficulty().Notes);
+                }
+            }
+
+            // Sort combined list by Note time
+            allNotes.Sort((a, b) => (int)(a.Tick - b.Tick));
+
+            GetWaitCountdowns(allNotes);
         }
 
         protected override void GenerateQueuedUpdates(double nextTime)
