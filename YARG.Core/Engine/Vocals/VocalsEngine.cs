@@ -83,15 +83,10 @@ namespace YARG.Core.Engine.Vocals
             // Get notes from all available vocals parts
             var allNotes = new List<VocalNote>();
 
-            for (int i = 0; i < 2; i++)
+            var allParts = chart.GetVocalsTrack(Instrument.Harmony).Parts;
+            for (int p = 0; p < allParts.Count; p++)
             {
-                var instrument = i == 0 ? Instrument.Vocals : Instrument.Harmony;
-                
-                var allParts = chart.GetVocalsTrack(instrument).Parts;
-                for (int p = 0; p < allParts.Count; p++)
-                {
-                    allNotes.AddRange(allParts[p].CloneAsInstrumentDifficulty().Notes);
-                }
+                allNotes.AddRange(allParts[p].CloneAsInstrumentDifficulty().Notes);
             }
 
             // Sort combined list by Note time
