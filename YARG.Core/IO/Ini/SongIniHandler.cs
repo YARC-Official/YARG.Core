@@ -115,6 +115,12 @@ namespace YARG.Core.IO.Ini
                 { "loading_phrase",                       new("loading_phrase", ModifierType.String) },
                 { "lyrics",                               new("lyrics", ModifierType.Bool) },
 
+                { "credit_written_by",                    new("credit_written_by", ModifierType.String) },
+                { "credit_performed_by",                  new("credit_performed_by", ModifierType.String) },
+                { "credit_courtesy_of",                   new("credit_courtesy_of", ModifierType.String) },
+                { "credit_album_cover",                   new("credit_album_cover", ModifierType.String) },
+                { "credit_license",                       new("credit_license", ModifierType.String) },
+
                 { "modchart",                             new("modchart", ModifierType.Bool) },
                 { "multiplier_note",                      new("multiplier_note", ModifierType.Int32) },
 

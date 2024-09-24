@@ -134,6 +134,12 @@ namespace YARG.Core.Song
 
         public string LoadingPhrase => _metadata.LoadingPhrase;
 
+        public string CreditWrittenBy => _metadata.CreditWrittenBy;
+        public string CreditPerformedBy => _metadata.CreditPerformedBy;
+        public string CreditCourtesyOf => _metadata.CreditCourtesyOf;
+        public string CreditAlbumCover => _metadata.CreditAlbumCover;
+        public string CreditLicense => _metadata.CreditLicense;
+
         public ulong SongLengthMilliseconds
         {
             get => _metadata.SongLength;
@@ -369,6 +375,12 @@ namespace YARG.Core.Song
 
             modifiers.TryGet("loading_phrase", out _metadata.LoadingPhrase);
 
+            modifiers.TryGet("credit_written_by", out _metadata.CreditWrittenBy);
+            modifiers.TryGet("credit_performed_by", out _metadata.CreditPerformedBy);
+            modifiers.TryGet("credit_courtesy_of", out _metadata.CreditCourtesyOf);
+            modifiers.TryGet("credit_album_cover", out _metadata.CreditAlbumCover);
+            modifiers.TryGet("credit_license", out _metadata.CreditLicense);
+
             if (!modifiers.TryGet("playlist_track", out _metadata.PlaylistTrack))
             {
                 _metadata.PlaylistTrack = -1;
@@ -493,6 +505,12 @@ namespace YARG.Core.Song
 
             _metadata.LoadingPhrase = stream.ReadString();
 
+            _metadata.CreditWrittenBy = stream.ReadString();
+            _metadata.CreditPerformedBy = stream.ReadString();
+            _metadata.CreditCourtesyOf = stream.ReadString();
+            _metadata.CreditAlbumCover = stream.ReadString();
+            _metadata.CreditLicense = stream.ReadString();
+
             _parseSettings.HopoThreshold = stream.Read<long>(Endianness.Little);
             _parseSettings.HopoFreq_FoF = stream.Read<int>(Endianness.Little);
             _parseSettings.EighthNoteHopo = stream.ReadBoolean();
@@ -542,6 +560,12 @@ namespace YARG.Core.Song
             writer.Write(_metadata.VideoEndTime);
 
             writer.Write(_metadata.LoadingPhrase);
+
+            writer.Write(_metadata.CreditWrittenBy);
+            writer.Write(_metadata.CreditPerformedBy);
+            writer.Write(_metadata.CreditCourtesyOf);
+            writer.Write(_metadata.CreditAlbumCover);
+            writer.Write(_metadata.CreditLicense);
 
             writer.Write(_parseSettings.HopoThreshold);
             writer.Write(_parseSettings.HopoFreq_FoF);

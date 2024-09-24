@@ -1,11 +1,4 @@
-﻿using System.IO;
-using System.Text.RegularExpressions;
-using YARG.Core.Chart;
-using YARG.Core.IO;
-using YARG.Core.IO.Ini;
-using YARG.Core.Song.Cache;
-
-namespace YARG.Core.Song
+﻿namespace YARG.Core.Song
 {
     public struct SongMetadata
     {
@@ -30,6 +23,11 @@ namespace YARG.Core.Song
             AlbumTrack = 0,
             PlaylistTrack = 0,
             LoadingPhrase = string.Empty,
+            CreditWrittenBy = string.Empty,
+            CreditPerformedBy = string.Empty,
+            CreditCourtesyOf = string.Empty,
+            CreditAlbumCover = string.Empty,
+            CreditLicense = string.Empty,
             Year = DEFAULT_YEAR,
             SongLength = 0,
             SongOffset = 0,
@@ -65,5 +63,11 @@ namespace YARG.Core.Song
         public int PlaylistTrack;
 
         public string LoadingPhrase;
+
+        public string CreditWrittenBy;
+        public string CreditPerformedBy;
+        public string CreditCourtesyOf;
+        public string CreditAlbumCover;
+        public string CreditLicense;
     }
 }
