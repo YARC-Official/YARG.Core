@@ -106,8 +106,6 @@ namespace YARG.Core.Engine
             }
 
             Solos = GetSoloSections();
-
-            WaitCountdowns = GetWaitCountdowns();
         }
 
         protected override void GenerateQueuedUpdates(double nextTime)
@@ -913,12 +911,12 @@ namespace YARG.Core.Engine
             return soloSections;
         }
 
-        private List<WaitCountdown> GetWaitCountdowns()
+        protected void GetWaitCountdowns(List<TNoteType> notes)
         {
             var allMeasureBeatLines = SyncTrack.Beatlines.Where(x => x.Type == BeatlineType.Measure).ToList();
 
-            var waitCountdowns = new List<WaitCountdown>();
-            for (int i = 0; i < Notes.Count; i++)
+            WaitCountdowns = new List<WaitCountdown>();
+            for (int i = 0; i < notes.Count; i++)
             {
                 // Compare the note at the current index against the previous note
                 // Create a countdown if the distance between the notes is > 10s
@@ -928,12 +926,12 @@ namespace YARG.Core.Engine
                 double noteOneTimeEnd = 0;
 
                 if (i > 0) {
-                    noteOne = Notes[i-1];
+                    noteOne = notes[i-1];
                     noteOneTickEnd = noteOne.TickEnd;
                     noteOneTimeEnd = noteOne.TimeEnd;
                 }
 
-                Note<TNoteType> noteTwo = Notes[i];
+                Note<TNoteType> noteTwo = notes[i];
                 double noteTwoTime = noteTwo.Time;
 
                 if (noteTwoTime - noteOneTimeEnd >= WaitCountdown.MIN_SECONDS)
@@ -983,7 +981,7 @@ namespace YARG.Core.Engine
                         // Create a WaitCountdown instance to reference at runtime
                         var newCountdown = new WaitCountdown(beatlinesThisCountdown);
 
-                        waitCountdowns.Add(newCountdown);
+                        WaitCountdowns.Add(newCountdown);
                         YargLogger.LogFormatTrace("Created a WaitCountdown at time {0} of {1} measures and {2} seconds in length",
                                                  newCountdown.Time, countdownTotalMeasures, beatlinesThisCountdown[^1].Time - noteOneTimeEnd);
                     }
@@ -994,8 +992,6 @@ namespace YARG.Core.Engine
                     }
                 }
             }
-
-            return waitCountdowns;
         }
     }
 }

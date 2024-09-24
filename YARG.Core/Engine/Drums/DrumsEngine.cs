@@ -29,6 +29,7 @@ namespace YARG.Core.Engine.Drums
             DrumsEngineParameters engineParameters, bool isBot)
             : base(chart, syncTrack, engineParameters, true, isBot)
         {
+            GetWaitCountdowns(Notes);
         }
 
         public override void Reset(bool keepCurrentButtons = false)

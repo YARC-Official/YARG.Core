@@ -53,6 +53,8 @@ namespace YARG.Core.Engine.ProKeys
             {
                 KeyPressTimes[i] = -9999;
             }
+
+            GetWaitCountdowns(Notes);
         }
 
         public EngineTimer GetChordStaggerTimer() => ChordStaggerTimer;
