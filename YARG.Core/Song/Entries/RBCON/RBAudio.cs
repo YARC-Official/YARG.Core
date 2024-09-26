@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using YARG.Core.Extensions;
 
 namespace YARG.Core.Song
@@ -39,26 +37,26 @@ namespace YARG.Core.Song
             Crowd = ReadArray(stream);
         }
 
-        public readonly void Serialize(BinaryWriter writer)
+        public readonly void Serialize(MemoryStream stream)
         {
-            WriteArray(Track, writer);
-            WriteArray(Drums, writer);
-            WriteArray(Bass, writer);
-            WriteArray(Guitar, writer);
-            WriteArray(Keys, writer);
-            WriteArray(Vocals, writer);
-            WriteArray(Crowd, writer);
+            WriteArray(Track, stream);
+            WriteArray(Drums, stream);
+            WriteArray(Bass, stream);
+            WriteArray(Guitar, stream);
+            WriteArray(Keys, stream);
+            WriteArray(Vocals, stream);
+            WriteArray(Crowd, stream);
         }
 
-        public static void WriteArray(in TType[] values, BinaryWriter writer)
+        public static void WriteArray(in TType[] values, MemoryStream stream)
         {
-            writer.Write(values.Length);
+            stream.Write(values.Length, Endianness.Little);
             unsafe
             {
                 fixed (TType* ptr = values)
                 {
                     var span = new ReadOnlySpan<byte>(ptr, values.Length * sizeof(TType));
-                    writer.Write(span);
+                    stream.Write(span);
                 }
             }
         }

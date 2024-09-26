@@ -1,5 +1,4 @@
-﻿using System;
-using YARG.Core.IO;
+﻿using YARG.Core.IO;
 
 namespace YARG.Core.Song
 {

@@ -33,7 +33,10 @@ namespace YARG.Core.Extensions
         public static bool ReadBoolean(this Stream stream)
         {
             byte b = (byte)stream.ReadByte();
-            return Unsafe.As<byte, bool>(ref b);
+            unsafe
+            {
+                return *(bool*)&b;
+            }
         }
 
         public static int Read7BitEncodedInt(this Stream stream)
@@ -122,6 +125,59 @@ namespace YARG.Core.Extensions
                 CorrectByteOrder<TType>(buffer, endianness);
                 stream.Write(new Span<byte>(buffer, sizeof(TType)));
             }
+        }
+
+        public static void Write(this Stream stream, bool value)
+        {
+            unsafe
+            {
+                stream.WriteByte(*(byte*) &value);
+            }
+        }
+
+        public static void Write7BitEncodedInt(this Stream stream, int value)
+        {
+            // Write out an int 7 bits at a time.  The high bit of the byte,
+            // when on, tells reader to continue reading more bytes.
+            uint v = (uint) value;   // support negative numbers
+            while (v >= 0x80)
+            {
+                stream.WriteByte((byte) (v | 0x80));
+                v >>= 7;
+            }
+            stream.WriteByte((byte) v);
+        }
+
+        public static unsafe void Write(this Stream stream, string value)
+        {
+            if (value.Length == 0)
+            {
+                stream.WriteByte(0);
+                return;
+            }
+
+            var buffer = stackalloc byte[value.Length * 4];
+            fixed (char* chars = value)
+            {
+                int len = Encoding.UTF8.GetBytes(chars, value.Length, buffer, value.Length * 4);
+                stream.Write7BitEncodedInt(len);
+                stream.Write(new ReadOnlySpan<byte>(buffer, len));
+            }
+        }
+
+        public static void Write(this Stream stream, Color color)
+        {
+            stream.Write(color.ToArgb(), Endianness.Little);
+        }
+
+        public static void Write(this Stream stream, Guid guid)
+        {
+            Span<byte> span = stackalloc byte[16];
+            if (!guid.TryWriteBytes(span))
+            {
+                throw new InvalidOperationException("Failed to write GUID bytes.");
+            }
+            stream.Write(span);
         }
 
         private static unsafe void CorrectByteOrder<TType>(byte* bytes, Endianness endianness)

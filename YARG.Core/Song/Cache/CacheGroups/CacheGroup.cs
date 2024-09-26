@@ -1,36 +1,35 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
-using System.Text;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.Song.Cache
 {
-    public interface ICacheGroup<TEntry>
-        where TEntry : SongEntry
+    public interface ICacheGroup
     {
         public int Count { get; }
 
-        public ReadOnlyMemory<byte> SerializeEntries(Dictionary<SongEntry, CategoryCacheWriteNode> nodes);
+        public void SerializeEntries(MemoryStream stream, Dictionary<SongEntry, CategoryCacheWriteNode> nodes);
         public bool TryRemoveEntry(SongEntry entryToRemove);
 
-        public static void SerializeGroups<TGroup>(List<TGroup> groups, BinaryWriter writer, Dictionary<SongEntry, CategoryCacheWriteNode> nodes)
-            where TGroup : ICacheGroup<TEntry>
+        public static void SerializeGroups<TGroup>(List<TGroup> groups, FileStream fileStream, Dictionary<SongEntry, CategoryCacheWriteNode> nodes)
+            where TGroup : ICacheGroup
         {
-            var spans = new ReadOnlyMemory<byte>[groups.Count];
+            var streams = new MemoryStream[groups.Count];
             int length = 4;
             for (int i = 0; i < groups.Count; i++)
             {
-                spans[i] = groups[i].SerializeEntries(nodes);
-                length += sizeof(int) + spans[i].Length;
+                streams[i] = new MemoryStream();
+                groups[i].SerializeEntries(streams[i], nodes);
+                length += sizeof(int) + (int) streams[i].Length;
             }
 
-            writer.Write(length);
-            writer.Write(groups.Count);
-            for (int i = 0; i < groups.Count; i++)
+            fileStream.Write(length, Endianness.Little);
+            fileStream.Write(streams.Length, Endianness.Little);
+            for (int i = 0; i < streams.Length; i++)
             {
-                var span = spans[i].Span;
-                writer.Write(span.Length);
-                writer.Write(span);
+                using var stream = streams[i];
+                fileStream.Write((int) stream.Length, Endianness.Little);
+                fileStream.Write(stream.GetBuffer(), 0, (int) stream.Length);
             }
         }
     }
