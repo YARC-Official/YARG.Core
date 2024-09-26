@@ -34,6 +34,7 @@ namespace YARG.Core.Chart
             var fret = GetFiveFretGuitarFret(moonNote);
             var noteType = GetGuitarNoteType(moonNote);
             var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
+            generalFlags |= GetTremoloFlags(moonNote, currentPhrases);
             var guitarFlags = GetGuitarNoteFlags(moonNote);
 
             double time = _moonSong.TickToTime(moonNote.tick);
@@ -45,6 +46,7 @@ namespace YARG.Core.Chart
             var fret = GetSixFretGuitarFret(moonNote);
             var noteType = GetGuitarNoteType(moonNote);
             var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
+            generalFlags |= GetTremoloFlags(moonNote, currentPhrases);
             var guitarFlags = GetGuitarNoteFlags(moonNote);
 
             double time = _moonSong.TickToTime(moonNote.tick);

@@ -38,6 +38,7 @@ namespace YARG.Core.Chart
             var pad = GetFourLaneDrumPad(moonNote);
             var noteType = GetDrumNoteType(moonNote);
             var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
+            generalFlags |= GetTremoloFlags(moonNote, currentPhrases, isDrumNote:true);
             var drumFlags = GetDrumNoteFlags(moonNote, currentPhrases);
 
             double time = _moonSong.TickToTime(moonNote.tick);
@@ -49,6 +50,7 @@ namespace YARG.Core.Chart
             var pad = GetFiveLaneDrumPad(moonNote);
             var noteType = GetDrumNoteType(moonNote);
             var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
+            generalFlags |= GetTremoloFlags(moonNote, currentPhrases, isDrumNote:true);
             var drumFlags = GetDrumNoteFlags(moonNote, currentPhrases);
 
             double time = _moonSong.TickToTime(moonNote.tick);

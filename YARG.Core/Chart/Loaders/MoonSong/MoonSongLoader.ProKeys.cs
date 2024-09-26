@@ -30,6 +30,7 @@ namespace YARG.Core.Chart
         {
             var key = moonNote.proKeysKey;
             var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
+            generalFlags |= GetTremoloFlags(moonNote, currentPhrases);
             var proKeysFlags = GetProKeysNoteFlags(moonNote, currentPhrases);
 
             double time = _moonSong.TickToTime(moonNote.tick);

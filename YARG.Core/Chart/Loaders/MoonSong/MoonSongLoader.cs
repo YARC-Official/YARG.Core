@@ -225,57 +225,130 @@ namespace YARG.Core.Chart
 
         private NoteFlags GetGeneralFlags(MoonNote moonNote, CurrentPhrases currentPhrases)
         {
-            var allFlags = NoteFlags.None;
+            var flags = NoteFlags.None;
+
+            var previous = moonNote.PreviousSeperateMoonNote;
+            var next = moonNote.NextSeperateMoonNote;
 
             // Star power
-            if (currentPhrases.TryGetValue(MoonPhrase.Type.Starpower, out var starPower))
+            if (currentPhrases.TryGetValue(MoonPhrase.Type.Starpower, out var starPower) && IsEventInPhrase(moonNote, starPower))
             {
-                allFlags |= ApplyPhraseFlags(starPower, moonNote, NoteFlags.StarPower, NoteFlags.StarPowerStart, NoteFlags.StarPowerEnd);
+                flags |= NoteFlags.StarPower;
+
+                if (previous == null || !IsEventInPhrase(previous, starPower))
+                {
+                    flags |= NoteFlags.StarPowerStart;
+                }
+
+                if (next == null || !IsEventInPhrase(next, starPower))
+                {
+                    flags |= NoteFlags.StarPowerEnd;
+                }
             }
 
             // Solos
-            if (currentPhrases.TryGetValue(MoonPhrase.Type.Solo, out var solo))
+            if (currentPhrases.TryGetValue(MoonPhrase.Type.Solo, out var solo) && IsEventInPhrase(moonNote, solo))
             {
-                allFlags |= ApplyPhraseFlags(solo, moonNote, NoteFlags.Solo, NoteFlags.SoloStart, NoteFlags.SoloEnd);
-            }
-            
-            // Tremolo
-            if (currentPhrases.TryGetValue(MoonPhrase.Type.TremoloLane, out var tremolo)) 
-            {
-                allFlags |= ApplyPhraseFlags(tremolo, moonNote, NoteFlags.Tremolo, NoteFlags.LaneStart, NoteFlags.LaneEnd);
-            }
-            // Trills (assume tremolo cannot be active at the same time)
-            else if (currentPhrases.TryGetValue(MoonPhrase.Type.TrillLane, out var trill)) 
-            {
-                allFlags |= ApplyPhraseFlags(trill, moonNote, NoteFlags.Trill, NoteFlags.LaneStart, NoteFlags.LaneEnd);
-            }
+                flags |= NoteFlags.Solo;
 
-            return allFlags;
-
-            static NoteFlags ApplyPhraseFlags(MoonPhrase phrase, MoonNote moonNote, NoteFlags phraseFlag, NoteFlags phraseStartFlag, NoteFlags phraseEndFlag)
-            {
-                var theseFlags = NoteFlags.None;
-
-                if (IsEventInPhrase(moonNote, phrase))
+                if (previous == null || !IsEventInPhrase(previous, solo))
                 {
-                    theseFlags |= phraseFlag;
+                    flags |= NoteFlags.SoloStart;
+                }
 
-                    var previous = moonNote.PreviousSeperateMoonNote;
-                    var next = moonNote.NextSeperateMoonNote;
+                if (next == null || !IsEventInPhrase(next, solo))
+                {
+                    flags |= NoteFlags.SoloEnd;
+                }
+            }
 
-                    if (previous == null || !IsEventInPhrase(previous, phrase))
+            // Trill
+            if (currentPhrases.TryGetValue(MoonPhrase.Type.TrillLane, out var trill) && IsEventInPhrase(moonNote, trill))
+            {
+                flags |= NoteFlags.Trill;
+
+                if (previous == null || !IsEventInPhrase(previous, trill))
+                {
+                    flags |= NoteFlags.LaneStart;
+                }
+
+                if (next == null || !IsEventInPhrase(next, trill))
+                {
+                    flags |= NoteFlags.LaneEnd;
+                }
+            }
+
+            return flags;
+        }
+
+        private NoteFlags GetTremoloFlags(MoonNote moonNote, CurrentPhrases currentPhrases, bool isDrumNote = false)
+        {
+            var flags = NoteFlags.None;
+
+            if (currentPhrases.TryGetValue(MoonPhrase.Type.TremoloLane, out var tremolo) && IsEventInPhrase(moonNote, tremolo))
+            {
+                var previous = moonNote.PreviousSeperateMoonNote;
+                var next = moonNote.NextSeperateMoonNote;
+
+                bool isLaneStart = previous != null && !IsEventInPhrase(previous, tremolo);
+                bool isLaneEnd = next != null && !IsEventInPhrase(next, tremolo);
+
+                bool isTremoloNote = true;
+
+                if (moonNote.isChord)
+                {
+                    if (isDrumNote && moonNote.drumPad == MoonNote.DrumPad.Kick)
                     {
-                        theseFlags |= phraseStartFlag;
+                        // Chorded kick notes inside of tremolo phrases should not be considered tremolo notes
+                        // A kick tremolo is still possible if it is the only note in the phrase
+                        return flags;
                     }
 
-                    if (next == null || !IsEventInPhrase(next, phrase))
+                    // Chord child notes will only be considered part of a tremolo if they are also present in the adjacent tremolo notes
+                    if (!isLaneStart)
                     {
-                        theseFlags |= phraseEndFlag;
+                        isTremoloNote = false;
+                        foreach (var childNote in previous!.chord)
+                        {
+                            if (childNote.rawNote == moonNote.rawNote)
+                            {
+                                isTremoloNote = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (isTremoloNote && !isLaneEnd)
+                    {
+                        isTremoloNote = false;
+                        foreach (var childNote in next!.chord)
+                        {
+                            if (childNote.rawNote == moonNote.rawNote)
+                            {
+                                isTremoloNote = true;
+                                break;
+                            }
+                        }
                     }
                 }
 
-                return theseFlags;
+                if (isTremoloNote)
+                {
+                    flags |= NoteFlags.Tremolo;
+                    
+                    if (isLaneStart)
+                    {
+                        flags |= NoteFlags.LaneStart;
+                    }
+
+                    if (isLaneEnd)
+                    {
+                        flags |= NoteFlags.LaneEnd;
+                    }
+                }
             }
+
+            return flags;
         }
 
         private void AddNoteToList<TNote>(List<TNote> notes, TNote note)
