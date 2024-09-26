@@ -27,6 +27,7 @@ namespace YARG.Core.Chart
             int proFret = GetProGuitarFret(moonNote);
             var noteType = GetProGuitarNoteType(moonNote);
             var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
+            generalFlags |= GetTremoloFlags(moonNote, currentPhrases);
             var proFlags = GetProGuitarNoteFlags(moonNote);
 
             double time = _moonSong.TickToTime(moonNote.tick);
