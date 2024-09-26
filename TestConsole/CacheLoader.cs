@@ -31,7 +31,7 @@ namespace YARG.TestConsole
                 throw new Exception($"Please add at least one song directory to {SongDirsPath}");
 
             var task = Task.Run(() => CacheHandler.RunScan(
-                fast: false,
+                tryQuickScan: false,
                 SongCachePath,
                 BadSongsPath,
                 MULTITHREADING,

@@ -1,12 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 using YARG.Core.Audio;
 using YARG.Core.Chart;
 using YARG.Core.IO;
-using YARG.Core.Logging;
 using YARG.Core.Venue;
 
 namespace YARG.Core.Song

@@ -1,30 +1,28 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Text;
 using YARG.Core.Extensions;
 using YARG.Core.Logging;
 
 namespace YARG.Core.IO
 {
-    public unsafe static class YARGDTAReader
+    public static unsafe class YARGDTAReader
     {
-        public static bool TryCreate(in FixedArray<byte> data, out YARGTextContainer<byte> container)
+        public static YARGTextContainer<byte> TryCreate(in FixedArray<byte> data)
         {
             if ((data[0] == 0xFF && data[1] == 0xFE) || (data[0] == 0xFE && data[1] == 0xFF))
             {
                 YargLogger.LogError("UTF-16 & UTF-32 are not supported for .dta files");
-                container = default;
-                return false;
+                return YARGTextContainer<byte>.Null;
             }
 
-            container = new YARGTextContainer<byte>(in data, YARGTextReader.Latin1);
+            var container = new YARGTextContainer<byte>(in data, YARGTextReader.Latin1);
             if (data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF)
             {
                 container.Position += 3;
                 container.Encoding = Encoding.UTF8;
             }
-            return true;
+            return container;
         }
 
         public static char SkipWhitespace(ref YARGTextContainer<byte> container)

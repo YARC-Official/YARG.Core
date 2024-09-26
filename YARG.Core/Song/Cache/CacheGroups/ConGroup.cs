@@ -1,39 +1,75 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
+using YARG.Core.Extensions;
 using YARG.Core.IO;
 
 namespace YARG.Core.Song.Cache
 {
-    public abstract class CONGroup : ICacheGroup<RBCONEntry>
+    public abstract class CONGroup<TEntry> : ICacheGroup
+        where TEntry : RBCONEntry
     {
-        protected readonly Dictionary<string, SortedDictionary<int, RBCONEntry>> entries = new();
+        protected readonly Dictionary<string, SortedDictionary<int, TEntry>> entries = new();
 
-        private int _count;
-        public int Count { get { lock (entries) return _count; } }
-
+        public readonly string Location;
+        public readonly AbridgedFileInfo Info;
         public readonly string DefaultPlaylist;
+        public readonly FixedArray<byte> SongDTAData;
 
-        public abstract string Location { get; }
-
-        protected CONGroup(string defaultPlaylist)
+        public int Count
         {
+            get
+            {
+                int count = 0;
+                foreach (var node in entries.Values)
+                {
+                    count += node.Count;
+                }
+                return count;
+            }
+        }
+
+        protected CONGroup(in FixedArray<byte> songDTAData, string location, in AbridgedFileInfo info, string defaultPlaylist)
+        {
+            SongDTAData = songDTAData;
+            Location = location;
+            Info = info;
             DefaultPlaylist = defaultPlaylist;
         }
 
-        public abstract void ReadEntry(string nodeName, int index, Dictionary<string, (YARGTextContainer<byte>, RBProUpgrade)> upgrades, UnmanagedMemoryStream stream, CategoryCacheStrings strings);
-        public abstract ReadOnlyMemory<byte> SerializeEntries(Dictionary<SongEntry, CategoryCacheWriteNode> nodes);
+        public abstract void ReadEntry(string nodeName, int index, RBProUpgrade upgrade, UnmanagedMemoryStream stream, CategoryCacheStrings strings);
 
-        public void AddEntry(string name, int index, RBCONEntry entry)
+        public void SerializeEntries(MemoryStream groupStream, Dictionary<SongEntry, CategoryCacheWriteNode> nodes)
         {
-            SortedDictionary<int, RBCONEntry> dict;
+            groupStream.Write(Location);
+            groupStream.Write(Info.LastUpdatedTime.ToBinary(), Endianness.Little);
+            groupStream.Write(Count, Endianness.Little);
+
+            using var entryStream = new MemoryStream();
+            foreach (var entryList in entries)
+            {
+                foreach (var entry in entryList.Value)
+                {
+                    groupStream.Write(entryList.Key);
+                    groupStream.Write(entry.Key, Endianness.Little);
+
+                    entryStream.SetLength(0);
+                    entry.Value.Serialize(entryStream, nodes[entry.Value]);
+
+                    groupStream.Write((int) entryStream.Length, Endianness.Little);
+                    groupStream.Write(entryStream.GetBuffer(), 0, (int) entryStream.Length);
+                }
+            }
+        }
+
+        public void AddEntry(string name, int index, TEntry entry)
+        {
+            SortedDictionary<int, TEntry> dict;
             lock (entries)
             {
                 if (!entries.TryGetValue(name, out dict))
                 {
-                    entries.Add(name, dict = new SortedDictionary<int, RBCONEntry>());
+                    entries.Add(name, dict = new SortedDictionary<int, TEntry>());
                 }
-                ++_count;
             }
 
             lock (dict)
@@ -48,8 +84,6 @@ namespace YARG.Core.Song.Cache
             {
                 if (!entries.Remove(name, out var dict))
                     return false;
-
-                _count -= dict.Count;
             }
             return true;
         }
@@ -64,11 +98,10 @@ namespace YARG.Core.Song.Cache
                 {
                     entries.Remove(name);
                 }
-                --_count;
             }
         }
 
-        public bool TryGetEntry(string name, int index, out RBCONEntry? entry)
+        public bool TryGetEntry(string name, int index, out TEntry? entry)
         {
             entry = null;
             lock (entries)
@@ -92,37 +125,11 @@ namespace YARG.Core.Song.Cache
                         {
                             entries.Remove(dict.Key);
                         }
-                        --_count;
                         return true;
                     }
                 }
             }
             return false;
-        }
-
-        protected void Serialize(BinaryWriter writer, ref Dictionary<SongEntry, CategoryCacheWriteNode> nodes)
-        {
-            writer.Write(_count);
-            foreach (var entryList in entries)
-            {
-                foreach (var entry in entryList.Value)
-                {
-                    writer.Write(entryList.Key);
-                    writer.Write(entry.Key);
-
-                    byte[] data = SerializeEntry(entry.Value, nodes[entry.Value]);
-                    writer.Write(data.Length);
-                    writer.Write(data);
-                }
-            }
-        }
-
-        private static byte[] SerializeEntry(RBCONEntry entry, CategoryCacheWriteNode node)
-        {
-            using MemoryStream ms = new();
-            using BinaryWriter writer = new(ms);
-            entry.Serialize(writer, node);
-            return ms.ToArray();
         }
     }
 }

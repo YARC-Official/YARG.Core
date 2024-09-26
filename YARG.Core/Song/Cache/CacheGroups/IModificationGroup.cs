@@ -1,32 +1,32 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
-using System.Text;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.Song.Cache
 {
     public interface IModificationGroup
     {
-        public ReadOnlyMemory<byte> SerializeModifications();
+        public void SerializeModifications(MemoryStream stream);
 
-        public static void SerializeGroups<TGroup>(List<TGroup> groups, BinaryWriter writer)
+        public static void SerializeGroups<TGroup>(List<TGroup> groups, FileStream fileStream)
             where TGroup : IModificationGroup
         {
-            var spans = new ReadOnlyMemory<byte>[groups.Count];
+            var streams = new MemoryStream[groups.Count];
             int length = sizeof(int);
             for (int i = 0; i < groups.Count; i++)
             {
-                spans[i] = groups[i].SerializeModifications();
-                length += sizeof(int) + spans[i].Length;
+                var stream = streams[i] = new MemoryStream();
+                groups[i].SerializeModifications(stream);
+                length += sizeof(int) + (int) stream.Length;
             }
 
-            writer.Write(length);
-            writer.Write(groups.Count);
+            fileStream.Write(length, Endianness.Little);
+            fileStream.Write(streams.Length, Endianness.Little);
             for (int i = 0; i < groups.Count; i++)
             {
-                var span = spans[i].Span;
-                writer.Write(span.Length);
-                writer.Write(span);
+                using var stream = streams[i];
+                fileStream.Write((int) stream.Length, Endianness.Little);
+                fileStream.Write(stream.GetBuffer(), 0, (int) stream.Length);
             }
         }
     }

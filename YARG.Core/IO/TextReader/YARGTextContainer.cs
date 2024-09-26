@@ -6,18 +6,17 @@ namespace YARG.Core.IO
     public unsafe struct YARGTextContainer<TChar>
         where TChar : unmanaged, IConvertible
     {
+        public static readonly YARGTextContainer<TChar> Null = new()
+        {
+            Encoding = null!,
+            Position = null,
+        };
+
         public readonly TChar* End;
         public Encoding Encoding;
         public TChar* Position;
 
-        public YARGTextContainer(in FixedArray<TChar> buffer, Encoding encoding)
-        {
-            Position = buffer.Ptr;
-            End = buffer.Ptr + buffer.Length;
-            Encoding = encoding;
-        }
-
-        public TChar CurrentValue
+        public readonly TChar CurrentValue
         {
             get
             {
@@ -27,6 +26,15 @@ namespace YARG.Core.IO
                 }
                 throw new InvalidOperationException("End of file reached");
             }
+        }
+
+        public readonly bool IsActive => End != null;
+
+        public YARGTextContainer(in FixedArray<TChar> buffer, Encoding encoding)
+        {
+            Position = buffer.Ptr;
+            End = buffer.Ptr + buffer.Length;
+            Encoding = encoding;
         }
 
         public readonly bool IsCurrentCharacter(int cmp)

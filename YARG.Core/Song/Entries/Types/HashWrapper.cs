@@ -94,6 +94,15 @@ namespace YARG.Core.Song
             }
         }
 
+        public readonly void Serialize(Stream stream)
+        {
+            fixed (int* values = _hash)
+            {
+                var bytes = new Span<byte>(values, HASH_SIZE_IN_BYTES);
+                stream.Write(bytes);
+            }
+        }
+
         public readonly int CompareTo(HashWrapper other)
         {
             for (int i = 0; i < HASH_SIZE_IN_INTS; ++i)
