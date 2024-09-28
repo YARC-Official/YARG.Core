@@ -1,4 +1,4 @@
-﻿using NUnit.Framework;
+using NUnit.Framework;
 using YARG.Core.Chart;
 using YARG.Core.Engine;
 using YARG.Core.Engine.Drums;
@@ -39,6 +39,7 @@ public partial class Cli
             "verify"       => AnalyzerMode.Verify,
             "simulate_fps" => AnalyzerMode.SimulateFps,
             "dump_inputs"  => AnalyzerMode.DumpInputs,
+            "read"         => AnalyzerMode.Read,
             _              => AnalyzerMode.None
         };
 
@@ -143,7 +144,8 @@ public partial class Cli
             AnalyzerMode.Verify      => RunVerify(),
             AnalyzerMode.SimulateFps => RunSimulateFps(),
             AnalyzerMode.DumpInputs  => RunDumpInputs(),
-            _ => false
+            AnalyzerMode.Read        => RunRead(),
+            _                        => false
         };
     }
 

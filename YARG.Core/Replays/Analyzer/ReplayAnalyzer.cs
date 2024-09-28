@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
 using YARG.Core.Chart;
 using YARG.Core.Engine;
 using YARG.Core.Engine.Drums;
@@ -38,6 +39,94 @@ namespace YARG.Core.Replays.Analyzer
         {
             var analyzer = new ReplayAnalyzer(chart, replay, fps);
             return analyzer.Analyze();
+        }
+
+        public static string PrintStatDifferences(BaseStats originalStats, BaseStats resultStats)
+        {
+            var sb = new StringBuilder();
+
+            void AppendStatDifference<T>(string name, T frameStat, T resultStat)
+                where T : IEquatable<T>
+            {
+                if (frameStat.Equals(resultStat))
+                    sb.AppendLine($"- {name + ":",-31} {frameStat,-12} (identical)");
+                else
+                    sb.AppendLine($"- {name + ":",-31} {frameStat,-10} -> {resultStat}");
+            }
+
+            sb.AppendLine("Base stats:");
+            AppendStatDifference("CommittedScore", originalStats.CommittedScore, resultStats.CommittedScore);
+            AppendStatDifference("PendingScore", originalStats.PendingScore, resultStats.PendingScore);
+            AppendStatDifference("TotalScore", originalStats.TotalScore, resultStats.TotalScore);
+            AppendStatDifference("StarScore", originalStats.StarScore, resultStats.StarScore);
+            AppendStatDifference("Combo", originalStats.Combo, resultStats.Combo);
+            AppendStatDifference("MaxCombo", originalStats.MaxCombo, resultStats.MaxCombo);
+            AppendStatDifference("ScoreMultiplier", originalStats.ScoreMultiplier, resultStats.ScoreMultiplier);
+            AppendStatDifference("NotesHit", originalStats.NotesHit, resultStats.NotesHit);
+            AppendStatDifference("TotalNotes", originalStats.TotalNotes, resultStats.TotalNotes);
+            AppendStatDifference("NotesMissed", originalStats.NotesMissed, resultStats.NotesMissed);
+            AppendStatDifference("Percent", originalStats.Percent, resultStats.Percent);
+            AppendStatDifference("StarPowerTickAmount", originalStats.StarPowerTickAmount,
+                resultStats.StarPowerTickAmount);
+            AppendStatDifference("TotalStarPowerTicks", originalStats.TotalStarPowerTicks,
+                resultStats.TotalStarPowerTicks);
+            AppendStatDifference("TimeInStarPower", originalStats.TimeInStarPower, resultStats.TimeInStarPower);
+            AppendStatDifference("IsStarPowerActive", originalStats.IsStarPowerActive, resultStats.IsStarPowerActive);
+            AppendStatDifference("StarPowerPhrasesHit", originalStats.StarPowerPhrasesHit,
+                resultStats.StarPowerPhrasesHit);
+            AppendStatDifference("TotalStarPowerPhrases", originalStats.TotalStarPowerPhrases,
+                resultStats.TotalStarPowerPhrases);
+            AppendStatDifference("StarPowerPhrasesMissed", originalStats.StarPowerPhrasesMissed,
+                resultStats.StarPowerPhrasesMissed);
+            AppendStatDifference("SoloBonuses", originalStats.SoloBonuses, resultStats.SoloBonuses);
+            AppendStatDifference("StarPowerScore", originalStats.StarPowerScore, resultStats.StarPowerScore);
+            // PrintStatDifference("Stars",                  originalStats.Stars,                  resultStats.Stars);
+
+            sb.AppendLine();
+            switch (originalStats, resultStats)
+            {
+                case (GuitarStats originalGuitar, GuitarStats resultGuitar):
+                {
+                    sb.AppendLine("Guitar stats:");
+                    AppendStatDifference("Overstrums", originalGuitar.Overstrums, resultGuitar.Overstrums);
+                    AppendStatDifference("HoposStrummed", originalGuitar.HoposStrummed, resultGuitar.HoposStrummed);
+                    AppendStatDifference("GhostInputs", originalGuitar.GhostInputs, resultGuitar.GhostInputs);
+                    AppendStatDifference("StarPowerWhammyTicks", originalGuitar.StarPowerWhammyTicks,
+                        resultGuitar.StarPowerWhammyTicks);
+                    AppendStatDifference("SustainScore", originalGuitar.SustainScore, resultGuitar.SustainScore);
+                    break;
+                }
+                case (DrumsStats originalDrums, DrumsStats resultDrums):
+                {
+                    sb.AppendLine("Drums stats:");
+                    AppendStatDifference("Overhits", originalDrums.Overhits, resultDrums.Overhits);
+                    break;
+                }
+                case (VocalsStats originalVocals, VocalsStats resultVocals):
+                {
+                    sb.AppendLine("Vocals stats:");
+                    AppendStatDifference("TicksHit", originalVocals.TicksHit, resultVocals.TicksHit);
+                    AppendStatDifference("TicksMissed", originalVocals.TicksMissed, resultVocals.TicksMissed);
+                    AppendStatDifference("TotalTicks", originalVocals.TotalTicks, resultVocals.TotalTicks);
+                    break;
+                }
+                case (ProKeysStats originalKeys, ProKeysStats resultKeys):
+                {
+                    sb.AppendLine("Pro Keys stats:");
+                    AppendStatDifference("Overhits", originalKeys.Overhits, resultKeys.Overhits);
+                    break;
+                }
+                default:
+                {
+                    if (originalStats.GetType() != resultStats.GetType())
+                        sb.AppendLine(
+                            $"Stats types do not match! Original: {originalStats.GetType()}, result: {resultStats.GetType()}");
+                    else
+                        sb.AppendLine($"Unhandled stats type {originalStats.GetType()}!");
+                    break;
+                }
+            }
+            return sb.ToString();
         }
 
         private AnalysisResult[] Analyze()
@@ -111,7 +200,9 @@ namespace YARG.Core.Replays.Analyzer
             return new AnalysisResult
             {
                 Passed = passed,
-                Stats = engine.BaseStats,
+                Frame = frame,
+                OriginalStats = frame.Stats,
+                ResultStats = engine.BaseStats,
             };
         }
 

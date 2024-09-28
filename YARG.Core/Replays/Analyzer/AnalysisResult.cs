@@ -7,7 +7,10 @@ namespace YARG.Core.Replays.Analyzer
     {
         public bool Passed;
 
-        public BaseStats Stats;
+        public ReplayFrame Frame;
+
+        public BaseStats OriginalStats;
+        public BaseStats ResultStats;
 
         public int ScoreDifference;
     }

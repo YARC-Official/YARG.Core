@@ -6,5 +6,6 @@ public enum AnalyzerMode
 
     Verify,
     SimulateFps,
-    DumpInputs
+    DumpInputs,
+    Read,
 }

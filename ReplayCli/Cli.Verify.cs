@@ -1,4 +1,4 @@
-﻿using YARG.Core.Replays.Analyzer;
+using YARG.Core.Replays.Analyzer;
 
 namespace ReplayCli;
 
@@ -24,7 +24,7 @@ public partial class Cli
 
         // Print result data
 
-        var bandScore = results.Sum(x => x.Stats.TotalScore);
+        var bandScore = results.Sum(x => x.ResultStats.TotalScore);
         if (bandScore != _replayInfo.BandScore)
         {
             Console.ForegroundColor = ConsoleColor.Red;
@@ -48,7 +48,7 @@ public partial class Cli
                     Console.WriteLine($"-------------");
                     Console.WriteLine($"Frame {frameIndex + 1}");
                     Console.WriteLine($"-------------");
-                    PrintStatDifferences(frame.Stats, result.Stats);
+                    PrintStatDifferences(frame.Stats, result.ResultStats);
                     Console.WriteLine();
                 }
             }
