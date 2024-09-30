@@ -9,6 +9,9 @@ namespace YARG.Core.Engine.ProGuitar
     {
         private const int STRING_COUNT = 6;
 
+        // TODO: Make this into an engine param
+        protected const int EXTRA_STRING_HIT_LIMIT = 2;
+
         public delegate void OverstrumEvent();
         public OverstrumEvent? OnOverstrum;
 
@@ -17,6 +20,9 @@ namespace YARG.Core.Engine.ProGuitar
         protected byte Strums = 0;
         protected bool HasFretted;
         protected bool HasTapped = true;
+
+        protected int  ExtraStringsHit      = 0;
+        protected bool ExtraStringOverstrum = false;
 
         public bool WasNoteGhosted { get; protected set; }
 
@@ -33,12 +39,21 @@ namespace YARG.Core.Engine.ProGuitar
         /// </summary>
         protected EngineTimer ChordStrumLeniencyTimer;
 
+        /// <summary>
+        /// The amount of time after a note hit where strums can still be inputted to count
+        /// towards the previous note.
+        /// </summary>
+        protected EngineTimer AfterStrumLeniencyTimer;
+
         public ProGuitarEngine(InstrumentDifficulty<ProGuitarNote> chart, SyncTrack syncTrack,
             ProGuitarEngineParameters engineParameters, bool isBot)
             : base(chart, syncTrack, engineParameters, false, isBot)
         {
             HopoLeniencyTimer = new EngineTimer(engineParameters.HopoLeniency);
             ChordStrumLeniencyTimer = new EngineTimer(engineParameters.ChordStrumLeniency);
+
+            // TODO: Use a separate engine parameter
+            AfterStrumLeniencyTimer = new EngineTimer(engineParameters.ChordStrumLeniency);
         }
 
         protected override void GenerateQueuedUpdates(double nextTime)
@@ -67,6 +82,16 @@ namespace YARG.Core.Engine.ProGuitar
                     QueueUpdateTime(ChordStrumLeniencyTimer.EndTime, "Chord Strum Leniency End");
                 }
             }
+
+            if (AfterStrumLeniencyTimer.IsActive)
+            {
+                if (IsTimeBetween(AfterStrumLeniencyTimer.EndTime, previousTime, nextTime))
+                {
+                    YargLogger.LogFormatTrace("Queuing after strum leniency end time at {0}",
+                        AfterStrumLeniencyTimer.EndTime);
+                    QueueUpdateTime(AfterStrumLeniencyTimer.EndTime, "After Strum Leniency End");
+                }
+            }
         }
 
         public override void Reset(bool keepCurrentButtons = false)
@@ -82,6 +107,9 @@ namespace YARG.Core.Engine.ProGuitar
             Strums = 0;
             HasFretted = false;
             HasTapped = true;
+
+            ExtraStringsHit = 0;
+            ExtraStringOverstrum = false;
 
             WasNoteGhosted = false;
 

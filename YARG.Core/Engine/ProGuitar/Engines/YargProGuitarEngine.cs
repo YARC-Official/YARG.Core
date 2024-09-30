@@ -79,12 +79,41 @@ namespace YARG.Core.Engine.ProGuitar.Engines
 
         protected void UpdateTimers()
         {
+            if (AfterStrumLeniencyTimer.IsActive && AfterStrumLeniencyTimer.IsExpired(CurrentTime))
+            {
+                AfterStrumLeniencyTimer.Disable();
+            }
+
             if (ChordStrumLeniencyTimer.IsActive && ChordStrumLeniencyTimer.IsExpired(CurrentTime))
             {
                 Strums = 0;
 
-                // We overstrum here because it means that the strum wasn't used up at this point
-                Overstrum();
+                // Right after we hit a note...
+                if (AfterStrumLeniencyTimer.IsActive)
+                {
+                    // Any string strummed is an extra strum (since all strings are required to hit a note)
+                    for (int i = 0; i < 6; i++)
+                    {
+                        bool strummedString = ((Strums >> i) & 1) == 1;
+                        if (strummedString)
+                        {
+                            ExtraStringsHit++;
+                        }
+                    }
+
+                    // If the extra strings hit is over the limit, overstrum.
+                    // Remember however, that there should only be one overstrum per extra strings hit per note.
+                    if (ExtraStringsHit > EXTRA_STRING_HIT_LIMIT && !ExtraStringOverstrum)
+                    {
+                        Overstrum();
+                        ExtraStringOverstrum = true;
+                    }
+                }
+                else
+                {
+                    // We overstrum here because it means that the strum wasn't used up at this point
+                    Overstrum();
+                }
 
                 ChordStrumLeniencyTimer.Disable();
             }
@@ -148,6 +177,9 @@ namespace YARG.Core.Engine.ProGuitar.Engines
                 if (HasTapped && (hopoCondition || tapCondition) && !WasNoteGhosted)
                 {
                     HitNote(note);
+
+                    AfterStrumLeniencyTimer.Disable();
+
                     YargLogger.LogFormatTrace("Hit note (Index: {0}) at {1} with hopo rules",
                         i, CurrentTime);
                     break;
@@ -165,9 +197,19 @@ namespace YARG.Core.Engine.ProGuitar.Engines
                             i, CurrentTime);
                     }
 
+                    CountExtraStringsHit(note.ChordMask);
+                    if (ExtraStringsHit > EXTRA_STRING_HIT_LIMIT)
+                    {
+                        ExtraStringOverstrum = true;
+                        Overstrum();
+                    }
+
                     // Make sure to reset strums
                     Strums = 0;
                     ChordStrumLeniencyTimer.Disable();
+
+                    // Start the after strum timer
+                    AfterStrumLeniencyTimer.Start(CurrentTime);
 
                     break;
                 }
@@ -187,6 +229,22 @@ namespace YARG.Core.Engine.ProGuitar.Engines
             }
 
             return true;
+        }
+
+        protected void CountExtraStringsHit(FretBytes chordMask)
+        {
+            ExtraStringsHit = 0;
+            ExtraStringOverstrum = false;
+
+            for (int i = 0; i < 6; i++)
+            {
+                bool strummedString = ((Strums >> i) & 1) == 1;
+
+                if (chordMask[i] == FretBytes.IGNORE_BYTE && strummedString)
+                {
+                    ExtraStringsHit++;
+                }
+            }
         }
 
         protected override bool CanNoteBeHit(ProGuitarNote note)
