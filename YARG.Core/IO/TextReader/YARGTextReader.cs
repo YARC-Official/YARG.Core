@@ -113,15 +113,11 @@ namespace YARG.Core.IO
             // Explicitly dereferencing the pointer into a value first avoids this issue. The useless `cmp`
             // is still generated, but now `rax` points to the stack, and so the over-read is always done in
             // a valid memory space.
-
-            // while (container.Position < container.End && container.Position->ToInt32(null) <= 32)
-            while (container.Position < container.End)
+            //
+            // 9/28 Edit: However, now that fixedArray removed memorymappedfile functionality, the overread is a non-issue
+            // in terms of causing any actual access violation errors
+            while (container.Position < container.End && container.Position->ToInt32(null) <= 32)
             {
-                var c = *container.Position;
-                if (c.ToInt32(null) > 32)
-                {
-                    break;
-                }
                 ++container.Position;
             }
         }
