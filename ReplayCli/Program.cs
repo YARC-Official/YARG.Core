@@ -17,6 +17,8 @@ var runResult = cli.Run();
 
 Console.ForegroundColor = defaultColor;
 
+YargLogger.KillLogger();
+
 if (!runResult)
 {
     return -1;
