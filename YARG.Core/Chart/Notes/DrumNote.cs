@@ -21,7 +21,7 @@ namespace YARG.Core.Chart
 
         public bool IsStarPowerActivator => (DrumFlags & DrumNoteFlags.StarPowerActivator) != 0;
 
-        public override int LaneIndex => Pad;
+        public override int LaneNote => Pad;
 
         public DrumNote(FourLaneDrumPad pad, DrumNoteType noteType, DrumNoteFlags drumFlags,
             NoteFlags flags, double time, uint tick)

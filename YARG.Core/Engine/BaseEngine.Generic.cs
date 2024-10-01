@@ -444,38 +444,27 @@ namespace YARG.Core.Engine
             {
                 AdvanceToNextNote(note);
                 
-                if (CurrentLaneIndex > TotalLanes)
+                if (!LanesExist)
                 {
                     return;
                 }
 
-                // Change lane state from hit
-                if (note.IsLaneEnd)
+                if (!IsLaneActive && note.IsLane && !note.IsLaneEnd)
                 {
-                    // Lane ended, disable all lane related properties
-                    IsLaneActive = false;
-                    NextRequiredTrillNote = -1;
-                    AllowLaneNoteMiss = false;
-                }
-                else if (note.IsTremolo)
-                {
-                    // Reactivate lane phrase if combo was dropped in the middle
-                    IsLaneActive = true;
-
-                    // This will immediately be set back to false if called by HitNoteFromLane
-                    AllowLaneNoteMiss = true;
-                }
-                else if (note.IsTrill)
-                {
-                    // Reactivate lane phrase if combo was dropped in the middle
-                    IsLaneActive = true;
-
-                    // Missed note allowances during trills are only given by SubmitTrillNote
-                    // Set required note to next note value to ensure players are alternating
-                    if (note.NextNote != null)
+                    // This was a manually hit lane note while lane behavior was disabled,
+                    // either LaneStart or starting a new combo after a miss
+                    if (note.IsTrill && note.NextNote!.IsTrill)
                     {
-                        NextRequiredTrillNote = note.NextNote.LaneIndex;
+                        RequiredLaneNote = note.NextNote!.LaneNote;
+                        NextTrillNote = note.LaneNote;
                     }
+                    else
+                    {
+                        RequiredLaneNote = note.LaneNote;
+                    }
+
+                    // Only update once per combo here, future updates will be called by SubmitLaneNote inputs
+                    UpdateLaneForgiveness();
                 }
             }
         }
@@ -483,12 +472,14 @@ namespace YARG.Core.Engine
         // Intercept a missed note while a lane phrase is active with allowances remaining
         protected bool HitNoteFromLane(TNoteType note)
         {
-            if (IsLaneActive && AllowLaneNoteMiss)
+            if (note.IsLane)
             {
-                HitNote(note);
+                if (note.Time > LaneForgivenessTime)
+                {
+                    return false;
+                }
 
-                // Spend missed note allowance
-                AllowLaneNoteMiss = false;
+                HitNote(note);
 
                 return true;
             }
@@ -502,29 +493,56 @@ namespace YARG.Core.Engine
             {
                 if (IsLaneActive)
                 {
-                    // No missed note allowances left, combo will not resume until a note is hit normally
-                    IsLaneActive = false;
-                    AllowLaneNoteMiss = false;
-                    NextRequiredTrillNote = -1;
+                    // Disable lane behavior until the next manual note hit
+                    RequiredLaneNote = -1;
+                    NextTrillNote = -1;
                 }
 
                 AdvanceToNextNote(note);
             }
         }
 
-        protected void SubmitTrillNote(int newNote)
+        protected void SubmitLaneNote(int newNote)
         {
-            if (!IsLaneActive || NextRequiredTrillNote == -1)
+            if (!IsLaneActive)
             {
                 return;
             }
 
-            if (newNote == NextRequiredTrillNote)
+            if (newNote == RequiredLaneNote)
             {
-                // Required input received, grant another missed note allowance
-                AllowLaneNoteMiss = true;
-                NextRequiredTrillNote = -1;
+                // Required input received, extend the lane forgiveness threshold
+                UpdateLaneForgiveness();
+
+                // Update next required note for trills to ensure alternating inputs
+                if (NextTrillNote != -1)
+                {
+                    int lastLaneNote = RequiredLaneNote;
+                    RequiredLaneNote = NextTrillNote;
+                    NextTrillNote = lastLaneNote;
+                }
+
+                return;
             }
+        }
+
+        protected bool ActiveLaneIncludesNote(int inputNote)
+        {
+            if (inputNote == RequiredLaneNote || (NextTrillNote != -1 && inputNote == NextTrillNote))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private void UpdateLaneForgiveness()
+        {
+            // TODO - make this an engine parameter
+            const float FRONTEND_PERCENTAGE = 1f;
+            var hitWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(Notes[NoteIndex]));
+
+            LaneForgivenessTime = CurrentTime + (-EngineParameters.HitWindow.GetFrontEnd(hitWindow) * FRONTEND_PERCENTAGE);
         }
 
         protected bool SkipPreviousNotes(TNoteType current)
@@ -1053,13 +1071,24 @@ namespace YARG.Core.Engine
 
         private void AdvanceToNextNote(TNoteType note)
         {
-            if (note.IsLaneStart)
-            {
-                CurrentLaneIndex++;
-            }
-
             NoteIndex++;
             ReRunHitLogic = true;
+
+            if (!LanesExist)
+            {
+                return;
+            }
+
+            if (note.IsLaneEnd)
+            {
+                // Lane ended, disable all lane related properties
+                RequiredLaneNote = -1;
+                NextTrillNote = -1;
+                LaneForgivenessTime = -1;
+
+                // Update the result of LanesExist
+                CurrentLaneIndex++;
+            }
         }
 
         public double GetAverageNoteDistance(TNoteType note)

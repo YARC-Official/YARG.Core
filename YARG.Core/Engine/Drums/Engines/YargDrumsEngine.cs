@@ -23,7 +23,7 @@ namespace YARG.Core.Engine.Drums.Engines
                 Action = gameInput.GetAction<DrumsAction>();
                 PadHit = ConvertInputToPad(EngineParameters.Mode, gameInput.GetAction<DrumsAction>());
                 HitVelocity = gameInput.Axis;
-                SubmitTrillNote((int) PadHit);
+                SubmitLaneNote((int) PadHit);
             }
         }
 

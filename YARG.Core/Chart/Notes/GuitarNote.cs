@@ -45,7 +45,7 @@ namespace YARG.Core.Chart
             FiveFretGuitarFret.Open => FiveLaneKeysAction.OpenNote,
             _ => throw new Exception("Unhandled.")
         };
-        public override int LaneIndex => Fret;
+        public override int LaneNote => NoteMask;
 
         public GuitarNote(FiveFretGuitarFret fret, GuitarNoteType noteType, GuitarNoteFlags guitarFlags,
             NoteFlags flags, double time, double timeLength, uint tick, uint tickLength)

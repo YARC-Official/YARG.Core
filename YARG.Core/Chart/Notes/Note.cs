@@ -97,7 +97,7 @@ namespace YARG.Core.Chart
         public bool IsLaneStart => (Flags & NoteFlags.LaneStart) != 0;
         public bool IsLaneEnd   => (Flags & NoteFlags.LaneEnd) != 0;
 
-        public virtual int LaneIndex => -1;
+        public virtual int LaneNote => -1;
 
         /// <summary>
         /// Returns an enumerator that contains all child notes and the parent note itself (allocation free).
