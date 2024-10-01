@@ -26,6 +26,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
             }
             else if (action is ProKeysAction.TouchEffects)
             {
+                LastWhammyTimerState = StarPowerWhammyTimer.IsActive;
                 StarPowerWhammyTimer.Start(gameInput.Time);
             }
             else

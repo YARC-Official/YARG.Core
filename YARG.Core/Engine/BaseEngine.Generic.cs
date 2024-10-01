@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using YARG.Core.Chart;
+using YARG.Core.Extensions;
 using YARG.Core.Logging;
 using YARG.Core.Utility;
 
@@ -508,6 +510,9 @@ namespace YARG.Core.Engine
                         var points = (int) Math.Ceiling(finalScore);
 
                         AddScore(points);
+                        ulong timeAsUlong = UnsafeExtensions.DoubleToUInt64Bits(CurrentTime);
+                        ulong baseScoreAsUlong = UnsafeExtensions.DoubleToUInt64Bits(sustain.BaseScore);
+                        YargLogger.LogFormatTrace("Added {0} points for end of sustain at {1} (0x{2}). Base Score/Tick: {3} (0x{4}), {5}", points, CurrentTime, timeAsUlong.ToString("X"), sustain.BaseScore, baseScoreAsUlong.ToString("X"), sustain.BaseTick);
 
                         // SustainPoints must include the multiplier, but NOT the star power multiplier
                         int sustainPoints = points * EngineStats.ScoreMultiplier;
@@ -542,13 +547,19 @@ namespace YARG.Core.Engine
 
             if (isStarPowerSustainActive && StarPowerWhammyTimer.IsActive)
             {
-                var whammyTicks = CurrentTick - LastStarPowerWhammyTick;
+                var whammyTicks = CurrentTick - LastTick;
+
+                // Just started whammying, award 1 tick
+                if (!LastWhammyTimerState)
+                {
+                    whammyTicks = 1;
+                }
 
                 GainStarPower(whammyTicks);
                 EngineStats.StarPowerWhammyTicks += whammyTicks;
-
-                LastStarPowerWhammyTick = CurrentTick;
             }
+
+            LastWhammyTimerState = StarPowerWhammyTimer.IsActive;
 
             // Whammy is disabled after sustains are updated.
             // This is because all the ticks that have accumulated will have been accounted for when it is disabled.
@@ -561,11 +572,6 @@ namespace YARG.Core.Engine
 
         protected virtual void StartSustain(TNoteType note)
         {
-            if (ActiveSustains.Count == 0)
-            {
-                LastStarPowerWhammyTick = CurrentTick;
-            }
-
             var sustain = new ActiveSustain<TNoteType>(note);
 
             ActiveSustains.Add(sustain);
