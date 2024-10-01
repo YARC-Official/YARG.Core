@@ -22,7 +22,7 @@ namespace YARG.Core.Chart
         public bool IsExtendedSustain => (GuitarFlags & GuitarNoteFlags.ExtendedSustain) != 0;
         public bool IsDisjoint        => (GuitarFlags & GuitarNoteFlags.Disjoint) != 0;
 
-        public override int LaneIndex => Fret;
+        public override int LaneNote => NoteMask;
 
         public GuitarNote(FiveFretGuitarFret fret, GuitarNoteType noteType, GuitarNoteFlags guitarFlags,
             NoteFlags flags, double time, double timeLength, uint tick, uint tickLength)

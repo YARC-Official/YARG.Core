@@ -29,7 +29,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                 if (gameInput.Button)
                 {
                     KeyHit = (int) action;
-                    SubmitTrillNote((int) action);
+                    SubmitLaneNote((int) action);
                 }
                 else
                 {
