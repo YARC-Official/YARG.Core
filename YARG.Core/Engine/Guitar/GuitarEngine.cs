@@ -134,10 +134,28 @@ namespace YARG.Core.Engine.Guitar
                 return;
             }
 
-            // Cancel overstrum if lane phrase is active
+            // Prevent overstrum if the current ButtonMask satisfies the active lane
             if (IsLaneActive)
             {
-                return;
+                var laneMask = GetLaneMask();
+
+                if (MaskIsMultiFret(RequiredLaneNote)) // Active lane is chord tremolo
+                {
+                    if (laneMask == RequiredLaneNote)
+                    {
+                        // All frets held are an exact match
+                        return;
+                    }
+                }
+                else // Active lane is a single fret
+                {
+                    var heldMSB = GetMostSignificantBit(laneMask);
+                    if (heldMSB == GetMostSignificantBit(RequiredLaneNote) || (NextTrillNote != -1 && heldMSB == GetMostSignificantBit(NextTrillNote)))
+                    {
+                        // The right-most held fret matches the active lane
+                        return;
+                    }
+                }
             }
 
             YargLogger.LogFormatTrace("Overstrummed at {0}", CurrentTime);

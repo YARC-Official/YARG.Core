@@ -129,9 +129,9 @@ namespace YARG.Core.Engine.ProKeys
                 return;
             }
 
-            // Cancel overstrum if lane phrase is active
-            if (IsLaneActive)
+            if (ActiveLaneIncludesNote(key))
             {
+                // Cancel overhit if this key is satisfies an active lane
                 return;
             }
 
