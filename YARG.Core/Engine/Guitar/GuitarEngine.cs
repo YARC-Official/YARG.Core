@@ -378,6 +378,37 @@ namespace YARG.Core.Engine.Guitar
         {
             return (ButtonMask & (1 << (int) fret)) != 0;
         }
+        
+        protected int GetLaneMask()
+        {
+            var laneMask = ButtonMask;
+
+            foreach(var sustain in ActiveSustains)
+            {
+                // Remove any frets from disjointed sustains
+                laneMask &= (byte) ~sustain.Note.NoteMask;
+            }
+
+            return laneMask;
+        }
+
+        protected static bool MaskIsMultiFret(int mask)
+        {
+            return (mask & (mask - 1)) != 0;
+        }
+
+        protected static int GetMostSignificantBit(int mask)
+        {
+            // Gets the most significant bit of the mask
+            var msbIndex = 0;
+            while (mask != 0)
+            {
+                mask >>= 1;
+                msbIndex++;
+            }
+
+            return msbIndex;
+        }
 
         protected static bool IsFretInput(GameInput input)
         {

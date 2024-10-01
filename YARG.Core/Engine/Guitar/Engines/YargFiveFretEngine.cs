@@ -65,6 +65,8 @@ namespace YARG.Core.Engine.Guitar.Engines
         {
             var action = gameInput.GetAction<GuitarAction>();
 
+            bool newNoteInput = false;
+
             // Star power
             if (action is GuitarAction.StarPower)
             {
@@ -77,6 +79,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             else if (action is GuitarAction.StrumDown or GuitarAction.StrumUp && gameInput.Button)
             {
                 HasStrummed = true;
+                newNoteInput = true;
             }
             else if (IsFretInput(gameInput))
             {
@@ -90,27 +93,29 @@ namespace YARG.Core.Engine.Guitar.Engines
                 if ((ButtonMask & ~OPEN_MASK) == 0)
                 {
                     ButtonMask |= OPEN_MASK;
-                    SubmitTrillNote(7); // Fret value for open notes
                 }
                 else
                 {
                     // Some frets are held, disable the "open fret"
                     ButtonMask &= unchecked((byte) ~OPEN_MASK);
+                }
 
-                    if (IsLaneActive)
-                    {
-                        int curFretMask = 16; // Mask value for only 5th fret held
-                        for (int i = 5; i >= 1; i--)
-                        {
-                            if ((ButtonMask & curFretMask) != 0)
-                            {
-                                SubmitTrillNote(i);
-                                break;
-                            }
+                newNoteInput = true;
+            }
 
-                            curFretMask >>= 1; // Right shift one bit to get mask for previous fret
-                        }
-                    }
+            if (newNoteInput && IsLaneActive)
+            {
+                var laneMask = GetLaneMask();
+                if (MaskIsMultiFret(RequiredLaneNote))
+                {
+                    // Submit entire button mask to active chord lane
+                    SubmitLaneNote(laneMask);
+                }
+                else
+                {
+                    // Submit right-most fret to active single lane
+                    int singleFretMask = laneMask == OPEN_MASK ? OPEN_MASK : 1 << (GetMostSignificantBit(laneMask) - 1);
+                    SubmitLaneNote(singleFretMask);
                 }
             }
 
@@ -523,19 +528,6 @@ namespace YARG.Core.Engine.Guitar.Engines
             }
 
             return false;
-        }
-
-        private static int GetMostSignificantBit(int mask)
-        {
-            // Gets the most significant bit of the mask
-            var msbIndex = 0;
-            while (mask != 0)
-            {
-                mask >>= 1;
-                msbIndex++;
-            }
-
-            return msbIndex;
         }
     }
 }
