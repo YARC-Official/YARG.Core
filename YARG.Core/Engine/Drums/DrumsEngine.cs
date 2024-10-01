@@ -63,9 +63,9 @@ namespace YARG.Core.Engine.Drums
                 return;
             }
 
-            // Cancel overhit if lane phrase is active
-            if (IsLaneActive)
+            if (PadHit != null && ActiveLaneIncludesNote((int) PadHit))
             {
+                // Do not count this as an overhit if the last pad hit was part of an active lane
                 return;
             }
 
