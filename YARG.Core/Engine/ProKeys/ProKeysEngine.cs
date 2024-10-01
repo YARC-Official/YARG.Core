@@ -27,12 +27,12 @@ namespace YARG.Core.Engine.ProKeys
         /// <summary>
         /// The integer value for the key that was hit this update. <c>null</c> is none.
         /// </summary>
-        protected int? KeyHit;
+        protected int? KeyHitThisUpdate;
 
         /// <summary>
         /// The integer value for the key that was released this update. <c>null</c> is none.
         /// </summary>
-        protected int? KeyReleased;
+        protected int? KeyReleasedThisUpdate;
 
         protected int? FatFingerKey;
 
@@ -95,8 +95,8 @@ namespace YARG.Core.Engine.ProKeys
                 KeyPressTimes[i] = -9999;
             }
 
-            KeyHit = null;
-            KeyReleased = null;
+            KeyHitThisUpdate = null;
+            KeyReleasedThisUpdate = null;
 
             FatFingerKey = null;
 
