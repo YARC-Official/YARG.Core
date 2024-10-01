@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using YARG.Core.Chart;
 using YARG.Core.Input;
@@ -34,8 +34,6 @@ namespace YARG.Core.Engine
         public SoloEndEvent?         OnSoloEnd;
         public ComboResetEvent?      OnComboReset;
         public ComboIncrementEvent?  OnComboIncrement;
-
-        public bool IsInputQueued => InputQueue.Count > 0;
 
         public bool CanStarPowerActivate => BaseStats.StarPowerTickAmount >= TicksPerHalfSpBar;
 
@@ -87,7 +85,7 @@ namespace YARG.Core.Engine
 
         protected EngineTimer StarPowerWhammyTimer;
 
-        public uint LastStarPowerWhammyTick { get; protected set; }
+        protected bool LastWhammyTimerState;
 
         public uint StarPowerTickPosition { get; protected set; }
         public uint PreviousStarPowerTickPosition { get; protected set; }
@@ -344,7 +342,7 @@ namespace YARG.Core.Engine
             {
                 if (IsTimeBetween(StarPowerEndTime, previousTime, nextTime))
                 {
-                    YargLogger.LogFormatDebug("Queuing Star Power End Time at {0}", StarPowerEndTime);
+                    YargLogger.LogFormatTrace("Queuing Star Power End Time at {0}", StarPowerEndTime);
                     QueueUpdateTime(StarPowerEndTime, "SP End Time");
                 }
             }
