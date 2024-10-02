@@ -44,10 +44,15 @@ namespace YARG.Core.Engine
         /// </summary>
         public readonly double FrontToBackRatio;
 
+        /// <summary>
+        /// Determines how many notes hit during player input in a tremolo or trill lane
+        /// </summary>
+        public readonly double TremoloFrontEndPercent;
+
         private readonly double _minMaxWindowRatio;
 
         public HitWindowSettings(double maxWindow, double minWindow, double frontToBackRatio, bool isDynamic,
-            double dwSlope, double dwScale, double dwGamma)
+            double dwSlope, double dwScale, double dwGamma, double tremoloPercentage)
         {
             // Swap max and min if necessary to ensure that max is always larger than min
             if (maxWindow < minWindow)
@@ -65,6 +70,8 @@ namespace YARG.Core.Engine
             DynamicWindowScale = Math.Clamp(dwScale, 0.3, 3);
             DynamicWindowGamma = Math.Clamp(dwGamma, 0.1, 10);
 
+            TremoloFrontEndPercent = tremoloPercentage;
+
             _minMaxWindowRatio = MinWindow / MaxWindow;
         }
 
@@ -80,6 +87,8 @@ namespace YARG.Core.Engine
             DynamicWindowScale = stream.Read<double>(Endianness.Little);
             DynamicWindowGamma = stream.Read<double>(Endianness.Little);
 
+            TremoloFrontEndPercent = stream.Read<double>(Endianness.Little);
+
             _minMaxWindowRatio = MinWindow / MaxWindow;
         }
 
@@ -93,6 +102,8 @@ namespace YARG.Core.Engine
             writer.Write(DynamicWindowSlope);
             writer.Write(DynamicWindowScale);
             writer.Write(DynamicWindowGamma);
+
+            writer.Write(TremoloFrontEndPercent);
         }
 
         /// <summary>
@@ -138,6 +149,13 @@ namespace YARG.Core.Engine
             }
 
             return Dark_Yarg_Impl(averageTimeDistance);
+        }
+
+        public double CalculateTremoloWindow(double averageTimeDistance)
+        {
+            var hitWindow = CalculateHitWindow(averageTimeDistance);
+
+            return -GetFrontEnd(hitWindow) * TremoloFrontEndPercent;
         }
 
         private double Original_Yarg_Impl(double averageTimeDistance)

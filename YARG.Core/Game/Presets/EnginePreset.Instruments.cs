@@ -45,10 +45,14 @@ namespace YARG.Core.Game
             [SettingRange(0f, 2f)]
             public double FrontToBackRatio = 1.0;
 
+            [SettingType(SettingType.Slider)]
+            [SettingRange(0f, 1f)]
+            public double TremoloFrontEndPercent = 0.75;
+
             public HitWindowSettings Create()
             {
                 return new HitWindowSettings(MaxWindow, MinWindow, FrontToBackRatio, IsDynamic,
-                    DynamicSlope, DynamicScale, DynamicGamma);
+                    DynamicSlope, DynamicScale, DynamicGamma, TremoloFrontEndPercent);
             }
 
             public HitWindowPreset Copy()
@@ -63,7 +67,9 @@ namespace YARG.Core.Game
                     DynamicSlope = DynamicSlope,
                     DynamicGamma = DynamicGamma,
 
-                    FrontToBackRatio = FrontToBackRatio
+                    FrontToBackRatio = FrontToBackRatio,
+
+                    TremoloFrontEndPercent = TremoloFrontEndPercent
                 };
             }
         }
@@ -104,7 +110,8 @@ namespace YARG.Core.Game
                 MaxWindow = 0.14,
                 MinWindow = 0.14,
                 IsDynamic = false,
-                FrontToBackRatio = 1.0
+                FrontToBackRatio = 1.0,
+                TremoloFrontEndPercent = 0.75
             };
 
             public FiveFretGuitarPreset Copy()
@@ -151,7 +158,8 @@ namespace YARG.Core.Game
                 MaxWindow = 0.14,
                 MinWindow = 0.14,
                 IsDynamic = false,
-                FrontToBackRatio = 1.0
+                FrontToBackRatio = 1.0,
+                TremoloFrontEndPercent = 0.75
             };
 
             public DrumsPreset Copy()
@@ -260,7 +268,7 @@ namespace YARG.Core.Game
                 };
 
                 var hitWindow = new HitWindowSettings(
-                    PercussionHitWindow, PercussionHitWindow, 1, false, 0, 0, 0);
+                    PercussionHitWindow, PercussionHitWindow, 1, false, 0, 0, 0, 0);
 
                 return new VocalsEngineParameters(
                     hitWindow,
@@ -298,7 +306,8 @@ namespace YARG.Core.Game
                 MaxWindow = 0.14,
                 MinWindow = 0.14,
                 IsDynamic = false,
-                FrontToBackRatio = 1.0
+                FrontToBackRatio = 1.0,
+                TremoloFrontEndPercent = 0.75
             };
 
             public ProKeysPreset Copy()
