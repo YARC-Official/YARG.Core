@@ -1193,7 +1193,7 @@ namespace YARG.Core.Engine
             }
         }
 
-        protected void GetWaitCountdowns()
+        protected void GetWaitCountdowns(List<TNoteType> notes)
         {
             WaitCountdowns = new List<WaitCountdown>();
             for (int i = 0; i < notes.Count; i++)
