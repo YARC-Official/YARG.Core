@@ -153,6 +153,8 @@ namespace YARG.Core.Engine.Guitar
                         return;
                     }
                 }
+
+                YargLogger.LogFormatTrace("Punishing lane overstrum at {0}. Current mask: {1}, RequiredLaneNote: {2}, NextTrillNote: {3}", CurrentTime, laneMask, RequiredLaneNote, NextTrillNote);
             }
 
             YargLogger.LogFormatTrace("Overstrummed at {0}", CurrentTime);

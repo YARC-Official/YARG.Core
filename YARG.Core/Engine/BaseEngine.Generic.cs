@@ -412,6 +412,7 @@ namespace YARG.Core.Engine
                 }
 
                 HitNote(note);
+                YargLogger.LogFormatDebug("Missed note was forgiven by lane at time {0}. LaneForgivenessTime: {1}", note.Time, LaneForgivenessTime);
 
                 return true;
             }
@@ -428,6 +429,7 @@ namespace YARG.Core.Engine
                     // Disable lane behavior until the next manual note hit
                     RequiredLaneNote = -1;
                     NextTrillNote = -1;
+                    YargLogger.LogFormatDebug("Lane note was missed at time {0}. LaneForgivenessTime: {1}", CurrentTime, LaneForgivenessTime);
                 }
 
                 AdvanceToNextNote(note);
@@ -470,11 +472,7 @@ namespace YARG.Core.Engine
 
         private void UpdateLaneForgiveness()
         {
-            // TODO - make this an engine parameter
-            const float FRONTEND_PERCENTAGE = 1f;
-            var hitWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(Notes[NoteIndex]));
-
-            LaneForgivenessTime = CurrentTime + (-EngineParameters.HitWindow.GetFrontEnd(hitWindow) * FRONTEND_PERCENTAGE);
+            LaneForgivenessTime = CurrentTime + EngineParameters.HitWindow.CalculateTremoloWindow(GetAverageNoteDistance(Notes[NoteIndex]));
         }
 
         protected bool SkipPreviousNotes(TNoteType current)
