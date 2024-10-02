@@ -1068,7 +1068,7 @@ namespace YARG.Core.Engine
             }
         }
 
-        protected void GetWaitCountdowns()
+        protected void GetWaitCountdowns(List<TNoteType> notes)
         {
             var allMeasureBeatLines = SyncTrack.Beatlines.Where(x => x.Type == BeatlineType.Measure).ToList();
 
