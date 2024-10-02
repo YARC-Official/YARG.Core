@@ -540,7 +540,7 @@ namespace YARG.Core.Engine
 
         private void UpdateLaneForgiveness()
         {
-            LaneForgivenessTime = CurrentTime + EngineParameters.HitWindow.CalculateTremoloWindow(GetAverageNoteDistance(Notes[NoteIndex]));
+            LaneForgivenessTime = CurrentTime + EngineParameters.HitWindow.CalculateTremoloWindow();
         }
 
         protected bool SkipPreviousNotes(TNoteType current)

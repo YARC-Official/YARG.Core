@@ -151,11 +151,9 @@ namespace YARG.Core.Engine
             return Dark_Yarg_Impl(averageTimeDistance);
         }
 
-        public double CalculateTremoloWindow(double averageTimeDistance)
+        public double CalculateTremoloWindow()
         {
-            var hitWindow = CalculateHitWindow(averageTimeDistance);
-
-            return -GetFrontEnd(hitWindow) * TremoloFrontEndPercent;
+            return -GetFrontEnd(MaxWindow) * TremoloFrontEndPercent;
         }
 
         private double Original_Yarg_Impl(double averageTimeDistance)
