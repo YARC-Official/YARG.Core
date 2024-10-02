@@ -78,6 +78,12 @@ namespace YARG.Core.Engine.Drums
                 return;
             }
 
+            // Cancel overhit if lane phrase is active
+            if (IsLaneActive)
+            {
+                return;
+            }
+
             if (NoteIndex < Notes.Count)
             {
                 // Don't remove the phrase if the current note being overstrummed is the start of a phrase
