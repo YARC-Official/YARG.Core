@@ -131,6 +131,12 @@ namespace YARG.Core.Engine.Guitar
                 return;
             }
 
+            // Cancel overstrum if lane phrase is active
+            if (IsLaneActive)
+            {
+                return;
+            }
+
             YargLogger.LogFormatTrace("Overstrummed at {0}", CurrentTime);
 
             // Break all active sustains

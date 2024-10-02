@@ -129,6 +129,12 @@ namespace YARG.Core.Engine.ProKeys
                 return;
             }
 
+            // Cancel overstrum if lane phrase is active
+            if (IsLaneActive)
+            {
+                return;
+            }
+
             YargLogger.LogFormatTrace("Overhit at {0}", CurrentTime);
 
             // Break all active sustains
@@ -286,7 +292,7 @@ namespace YARG.Core.Engine.ProKeys
             UpdateMultiplier();
 
             OnNoteMissed?.Invoke(NoteIndex, note);
-            base.HitNote(note);
+            base.MissNote(note);
         }
 
         protected override void AddScore(ProKeysNote note)
