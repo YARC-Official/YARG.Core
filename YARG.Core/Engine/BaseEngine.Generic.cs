@@ -479,8 +479,8 @@ namespace YARG.Core.Engine
                     return false;
                 }
 
-                HitNote(note);
                 YargLogger.LogFormatDebug("Missed note was forgiven by lane at time {0}. LaneForgivenessTime: {1}", note.Time, LaneForgivenessTime);
+                HitNote(note);
 
                 return true;
             }
