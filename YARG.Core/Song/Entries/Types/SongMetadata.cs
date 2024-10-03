@@ -83,7 +83,7 @@ namespace YARG.Core.Song
 
             if (!modifiers.TryGet("year", out Year))
             {
-                if (modifiers.TryGet("Year", out Year))
+                if (modifiers.TryGet("year_chart", out Year))
                 {
                     if (Year.StartsWith(", "))
                     {
@@ -139,7 +139,7 @@ namespace YARG.Core.Song
                 if (!modifiers.TryGet("preview_start_time", out PreviewStart))
                 {
                     // Capitlization = from .chart
-                    if (modifiers.TryGet("PreviewStart", out double previewStartSeconds))
+                    if (modifiers.TryGet("previewStart_chart", out double previewStartSeconds))
                     {
                         PreviewStart = (long) (previewStartSeconds * MILLISECOND_FACTOR);
                     }
@@ -152,7 +152,7 @@ namespace YARG.Core.Song
                 if (!modifiers.TryGet("preview_end_time", out PreviewEnd))
                 {
                     // Capitlization = from .chart
-                    if (modifiers.TryGet("PreviewEnd", out double previewEndSeconds))
+                    if (modifiers.TryGet("previewEnd_chart", out double previewEndSeconds))
                     {
                         PreviewEnd = (long) (previewEndSeconds * MILLISECOND_FACTOR);
                     }
@@ -165,7 +165,7 @@ namespace YARG.Core.Song
 
             if (!modifiers.TryGet("delay", out SongOffset) || SongOffset == 0)
             {
-                if (modifiers.TryGet("Offset", out double songOffsetSeconds))
+                if (modifiers.TryGet("delay_chart", out double songOffsetSeconds))
                 {
                     SongOffset = (long) (songOffsetSeconds * MILLISECOND_FACTOR);
                 }

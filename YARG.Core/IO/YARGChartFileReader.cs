@@ -217,6 +217,21 @@ namespace YARG.Core.IO
             return true;
         }
 
+        public static readonly Dictionary<string, IniModifierCreator> CHART_MODIFIERS = new()
+        {
+            { "Album",        new("album", ModifierType.SortString_Chart) },
+            { "Artist",       new("artist", ModifierType.SortString_Chart) },
+            { "Charter",      new("charter", ModifierType.SortString_Chart) },
+            { "Difficulty",   new("diff_band", ModifierType.Int32) },
+            { "Genre",        new("genre", ModifierType.SortString_Chart) },
+            { "Name",         new("name", ModifierType.SortString_Chart) },
+            { "Offset",       new("delay_chart", ModifierType.Double) },
+            { "PreviewEnd",   new("previewEnd_chart", ModifierType.Double) },
+            { "PreviewStart", new("previewStart_chart", ModifierType.Double) },
+            { "Resolution",   new("Resolution", ModifierType.Int64) },
+            { "Year",         new("year_chart", ModifierType.String_Chart) },
+        };
+
         public unsafe static Dictionary<string, List<IniModifier>> ExtractModifiers<TChar>(ref YARGTextContainer<TChar> container)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {
@@ -224,7 +239,7 @@ namespace YARG.Core.IO
             while (IsStillCurrentTrack(ref container))
             {
                 string name = YARGTextReader.ExtractModifierName(ref container);
-                if (SongIniHandler.SONG_INI_MODIFIERS.TryGetValue(name, out var node))
+                if (CHART_MODIFIERS.TryGetValue(name, out var node))
                 {
                     var mod = node.CreateModifier(ref container);
                     if (modifiers.TryGetValue(node.OutputName, out var list))
