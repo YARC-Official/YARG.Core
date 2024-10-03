@@ -12,7 +12,7 @@ namespace YARG.Core.Song
             var midiFile = new YARGMidiFile(file.ToStream());
             if (midiFile.Resolution == 0)
             {
-                return (ScanResult.ZeroResolution, 0);
+                return (ScanResult.InvalidResolution, 0);
             }
 
             bool harm2 = false;
