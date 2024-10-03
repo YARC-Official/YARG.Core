@@ -558,7 +558,7 @@ namespace YARG.Core.Song
                 {
                     switch (ParseMidi(in updateMidi, drumTracker, ref info.Parts).Result)
                     {
-                        case ScanResult.ZeroResolution: return (ScanResult.ZeroResolution_Update, default);
+                        case ScanResult.InvalidResolution: return (ScanResult.InvalidResolution_Update, default);
                         case ScanResult.MultipleMidiTrackNames: return (ScanResult.MultipleMidiTrackNames_Update, default);
                     }
                     bufLength += updateMidi.Length;
@@ -568,7 +568,7 @@ namespace YARG.Core.Song
                 {
                     switch (ParseMidi(in upgradeMidi, drumTracker, ref info.Parts).Result)
                     {
-                        case ScanResult.ZeroResolution: return (ScanResult.ZeroResolution_Upgrade, default);
+                        case ScanResult.InvalidResolution: return (ScanResult.InvalidResolution_Upgrade, default);
                         case ScanResult.MultipleMidiTrackNames: return (ScanResult.MultipleMidiTrackNames_Upgrade, default);
                     }
                     bufLength += upgradeMidi.Length;

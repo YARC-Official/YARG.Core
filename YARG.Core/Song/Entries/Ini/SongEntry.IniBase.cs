@@ -311,9 +311,9 @@ namespace YARG.Core.Song
                     {
                         var mod = resolutions[0];
                         resolution = mod.Buffer[0];
-                        if (resolution == 0)
+                        if (resolution < 1)
                         {
-                            return (ScanResult.ZeroResolution, 0);
+                            return (ScanResult.InvalidResolution, 0);
                         }
                     }
                 }

@@ -22,9 +22,9 @@ namespace YARG.Core.Song
         PossibleCorruption,
         FailedSngLoad,
 
-        ZeroResolution,
-        ZeroResolution_Update,
-        ZeroResolution_Upgrade,
+        InvalidResolution,
+        InvalidResolution_Update,
+        InvalidResolution_Upgrade,
 
         NoAudio,
         PathTooLong,
