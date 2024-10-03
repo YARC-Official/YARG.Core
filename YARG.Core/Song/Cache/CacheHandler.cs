@@ -529,6 +529,15 @@ namespace YARG.Core.Song.Cache
                         writer.WriteLine("Loose chart files halted all traversal into the subdirectories at this location.");
                         writer.WriteLine("To fix, if desired, place the loose chart files in a separate dedicated folder.");
                         break;
+                    case ScanResult.InvalidResolution:
+                        writer.WriteLine("This chart uses an invalid resolution (or possibly contains it in an improper format, if .chart)");
+                        break;
+                    case ScanResult.InvalidResolution_Update:
+                        writer.WriteLine("The midi chart update file applicable with this chart has an invalid resolution of zero");
+                        break;
+                    case ScanResult.InvalidResolution_Upgrade:
+                        writer.WriteLine("The midi pro guitar upgrade file applicable with this chart has an invalid resolution of zero");
+                        break;
                 }
                 writer.WriteLine();
             }
