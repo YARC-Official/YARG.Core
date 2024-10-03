@@ -305,7 +305,7 @@ namespace YARG.Core.Song
             if (YARGChartFileReader.ValidateTrack(ref container, YARGChartFileReader.HEADERTRACK))
             {
                 var chartMods = YARGChartFileReader.ExtractModifiers(ref container);
-                if (chartMods.TryGetValue("Resolution", out var resolutions))
+                if (chartMods.Remove("Resolution", out var resolutions))
                 {
                     unsafe
                     {
@@ -316,7 +316,6 @@ namespace YARG.Core.Song
                             return (ScanResult.ZeroResolution, 0);
                         }
                     }
-                    chartMods.Remove("Resolution");
                 }
                 modifiers.Append(chartMods);
             }
