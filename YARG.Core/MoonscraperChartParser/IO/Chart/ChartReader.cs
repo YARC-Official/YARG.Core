@@ -107,6 +107,7 @@ namespace MoonscraperChartEditor.Song.IO
             }
         }
 
+        private const uint DEFAULT_RESOLUTION = 192;
         public static MoonSong ReadFromText(ref ParseSettings settings, ReadOnlySpan<char> chartText)
         {
             int textIndex = 0;
@@ -124,7 +125,15 @@ namespace MoonscraperChartEditor.Song.IO
             // Check for the [Song] section first explicitly, need the Resolution property up-front
             ExpectSection(chartText, ref textIndex, ChartIOHelper.SECTION_SONG, out var sectionBody);
             var song = SubmitDataSong(sectionBody);
-            ValidateAndApplySettings(song, ref settings);
+
+            // With a 192 resolution, .chart has a HOPO threshold of 65 ticks, not 64,
+            // so we need to scale this factor to different resolutions (480 res = 162.5 threshold)
+            // This extra tick is meant for some slight leniency; .mid has it too, but it's applied
+            // after factoring in the resolution there, not before.
+            const uint THRESHOLD_AT_DEFAULT = 65;
+            song.hopoThreshold = settings.HopoThreshold > ParseSettings.SETTING_DEFAULT
+                ? (uint) settings.HopoThreshold
+                : (song.resolution * THRESHOLD_AT_DEFAULT) / DEFAULT_RESOLUTION;
 
             // Check for [SyncTrack] next, we need it for time conversions
             ExpectSection(chartText, ref textIndex, ChartIOHelper.SECTION_SYNC_TRACK, out sectionBody);
@@ -255,6 +264,7 @@ namespace MoonscraperChartEditor.Song.IO
 
         private static MoonSong SubmitDataSong(AsciiTrimSplitter sectionLines)
         {
+            uint resolution = DEFAULT_RESOLUTION;
             foreach (var line in sectionLines)
             {
                 var key = line.SplitOnceTrimmed('=', out var value);
@@ -262,25 +272,11 @@ namespace MoonscraperChartEditor.Song.IO
 
                 if (key.Equals("Resolution", StringComparison.Ordinal))
                 {
-                    uint resolution = (uint)FastInt32Parse(value);
-                    return new MoonSong(resolution);
+                    resolution = (uint)FastInt32Parse(value);
+                    break;
                 }
             }
-
-            throw new InvalidDataException("No resolution was found in the chart data!");
-        }
-
-        private static void ValidateAndApplySettings(MoonSong song, ref ParseSettings settings)
-        {
-            // Apply HOPO threshold settings
-            song.hopoThreshold = ChartIOHelper.GetHopoThreshold(in settings, song.resolution);
-
-            // Sustain cutoff threshold is not verified, sustains are not cut off by default in .chart
-            // SP note is not verified, as it is only relevant for .mid
-            // Note snap threshold is not verified, as the parser doesn't use it
-
-            // Chord HOPO cancellation does not apply in .chart
-            settings.ChordHopoCancellation = false;
+            return new MoonSong(resolution);
         }
 
         private static void SubmitDataSync(MoonSong song, AsciiTrimSplitter sectionLines)

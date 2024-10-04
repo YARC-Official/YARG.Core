@@ -108,7 +108,18 @@ namespace MoonscraperChartEditor.Song.IO
             var song = new MoonSong((uint)ticks.TicksPerQuarterNote);
 
             // Apply settings
-            ValidateAndApplySettings(song, ref settings);
+            song.hopoThreshold = settings.HopoThreshold > ParseSettings.SETTING_DEFAULT
+                ? (uint)settings.HopoThreshold 
+                : (song.resolution / 3);
+
+            if (settings.SustainCutoffThreshold <= ParseSettings.SETTING_DEFAULT)
+            {
+                settings.SustainCutoffThreshold = song.resolution / 3;
+            }
+
+            // +1 for a small bit of leniency
+            song.hopoThreshold++;
+            settings.SustainCutoffThreshold++;
 
             // Read all bpm data in first. This will also allow song.TimeToTick to function properly.
             ReadSync(midi.GetTempoMap(), song);
@@ -193,30 +204,6 @@ namespace MoonscraperChartEditor.Song.IO
 
                 ReadNotes(ref settings, track, song, MoonSong.MoonInstrument.ProKeys, difficulty);
             }
-        }
-
-        private static void ValidateAndApplySettings(MoonSong song, ref ParseSettings settings)
-        {
-            // Apply HOPO threshold settings
-            song.hopoThreshold = MidIOHelper.GetHopoThreshold(settings, song.resolution);
-
-            // Verify sustain cutoff threshold
-            if (settings.SustainCutoffThreshold < 0)
-            {
-                // Default to 1/12th step + 1
-                settings.SustainCutoffThreshold = (long) (song.resolution / 3) + 1;
-            }
-            else
-            {
-                // Limit minimum cutoff to 1 tick, non-sustain notes created by charting programs are 1 tick
-                settings.SustainCutoffThreshold = Math.Max(settings.SustainCutoffThreshold, 1);
-            }
-
-            // SP note is not verified, as it being set is checked for by SP fixups
-            // Note snap threshold is also not verified, as the parser doesn't use it
-
-            // Enable chord HOPO cancellation
-            settings.ChordHopoCancellation = true;
         }
 
         private static void ReadSync(TempoMap tempoMap, MoonSong song)
