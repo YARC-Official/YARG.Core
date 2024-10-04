@@ -9,7 +9,6 @@ namespace YARG.Core.Benchmarks
     // [SimpleJob(RunStrategy.ColdStart, targetCount: 25, invocationCount: 1)]
     public class DotChartParsingBenchmarks
     {
-        private ParseSettings settings = ParseSettings.Default;
         private string chartText;
 
         [GlobalSetup]
@@ -25,7 +24,7 @@ namespace YARG.Core.Benchmarks
         [Benchmark]
         public SongChart ChartParsing()
         {
-            return SongChart.FromDotChart(settings, chartText);
+            return SongChart.FromDotChart(in ParseSettings.Default_Chart, chartText);
         }
     }
 }

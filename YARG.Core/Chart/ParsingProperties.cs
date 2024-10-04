@@ -25,16 +25,31 @@ namespace YARG.Core.Chart
         public static readonly ParseSettings Default = new()
         {
             DrumsType = DrumsType.Unknown,
-
             HopoThreshold = SETTING_DEFAULT,
-            HopoFreq_FoF = SETTING_DEFAULT,
-            EighthNoteHopo = false,
-            ChordHopoCancellation = false,
-
             SustainCutoffThreshold = SETTING_DEFAULT,
-            NoteSnapThreshold = 0,
-
+            ChordHopoCancellation = false,
             StarPowerNote = SETTING_DEFAULT,
+            NoteSnapThreshold = 0,
+        };
+
+        public static readonly ParseSettings Default_Chart = new()
+        {
+            DrumsType = DrumsType.Unknown,
+            HopoThreshold = SETTING_DEFAULT,
+            SustainCutoffThreshold = 0,
+            ChordHopoCancellation = false,
+            StarPowerNote = SETTING_DEFAULT,
+            NoteSnapThreshold = 0,
+        };
+
+        public static readonly ParseSettings Default_Midi = new()
+        {
+            DrumsType = DrumsType.Unknown,
+            HopoThreshold = SETTING_DEFAULT,
+            SustainCutoffThreshold = SETTING_DEFAULT,
+            ChordHopoCancellation = false,
+            StarPowerNote = 116,
+            NoteSnapThreshold = 0,
         };
 
         /// <summary>
