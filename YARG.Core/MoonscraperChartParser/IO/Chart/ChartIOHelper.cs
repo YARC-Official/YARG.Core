@@ -96,17 +96,5 @@ namespace MoonscraperChartEditor.Song.IO
             { "GHLRhythm",      MoonSong.MoonInstrument.GHLiveRhythm },
             { "GHLCoop",        MoonSong.MoonInstrument.GHLiveCoop },
         };
-
-        public static float GetHopoThreshold(in ParseSettings settings, float resolution)
-        {
-            // With a 192 resolution, .chart has a HOPO threshold of 65 ticks, not 64,
-            // so we need to scale this factor to different resolutions (480 res = 162.5 threshold)
-            // This extra tick is meant for some slight leniency; .mid has it too, but it's applied
-            // after factoring in the resolution there, not before.
-            const float DEFAULT_RESOLUTION = 192;
-            const float THRESHOLD_LENIENCY_FACTOR = 1 / DEFAULT_RESOLUTION;
-
-            return settings.GetHopoThreshold(resolution) + THRESHOLD_LENIENCY_FACTOR * resolution;
-        }
     }
 }
