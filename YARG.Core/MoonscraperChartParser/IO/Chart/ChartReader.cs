@@ -78,13 +78,13 @@ namespace MoonscraperChartEditor.Song.IO
 
         public static MoonSong ReadFromFile(string filepath)
         {
-            var settings = ParseSettings.Default;
+            var settings = ParseSettings.Default_Chart;
             return ReadFromFile(ref settings, filepath);
         }
 
         public static MoonSong ReadFromText(ReadOnlySpan<char> chartText)
         {
-            var settings = ParseSettings.Default;
+            var settings = ParseSettings.Default_Chart;
             return ReadFromText(ref settings, chartText);
         }
 

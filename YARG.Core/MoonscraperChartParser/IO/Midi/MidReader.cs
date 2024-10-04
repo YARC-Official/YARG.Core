@@ -71,19 +71,19 @@ namespace MoonscraperChartEditor.Song.IO
 
         public static MoonSong ReadMidi(string path)
         {
-            var settings = ParseSettings.Default;
+            var settings = ParseSettings.Default_Midi;
             return ReadMidi(ref settings, path);
         }
 
         public static MoonSong ReadMidi(Stream stream)
         {
-            var settings = ParseSettings.Default;
+            var settings = ParseSettings.Default_Midi;
             return ReadMidi(ref settings, stream);
         }
 
         public static MoonSong ReadMidi(MidiFile midi)
         {
-            var settings = ParseSettings.Default;
+            var settings = ParseSettings.Default_Midi;
             return ReadMidi(ref settings, midi);
         }
 
