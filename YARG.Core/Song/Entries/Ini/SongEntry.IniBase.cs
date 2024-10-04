@@ -202,8 +202,8 @@ namespace YARG.Core.Song
                 }
             }
 
-            // .chart defaults to no cutting off sustains whatsoever if the ini does not define the value.
-            // Since a failed `TryGet` sets the value to zero, we would need no additional work outside .mid
+            // .chart defaults to no sustain cutoff whatsoever if the ini does not define the value.
+            // Since a failed `TryGet` sets the value to zero, we would need no additional work unless it's .mid
             if (!modifiers.TryGet("sustain_cutoff_threshold", out settings.SustainCutoffThreshold) && format != ChartFormat.Chart)
             {
                 settings.SustainCutoffThreshold = results.resolution / 3;
