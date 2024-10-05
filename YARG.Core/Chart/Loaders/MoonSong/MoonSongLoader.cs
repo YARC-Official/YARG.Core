@@ -283,12 +283,12 @@ namespace YARG.Core.Chart
             {
                 flags |= NoteFlags.Tremolo;
                     
-                if (previous != null && !IsEventInPhrase(previous, tremolo))
+                if (previous == null || !IsEventInPhrase(previous, tremolo))
                 {
                     flags |= NoteFlags.LaneStart;
                 }
 
-                if (next != null && !IsEventInPhrase(next, tremolo))
+                if (next == null || !IsEventInPhrase(next, tremolo))
                 {
                     flags |= NoteFlags.LaneEnd;
                 }
