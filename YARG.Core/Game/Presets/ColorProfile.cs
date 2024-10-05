@@ -1,4 +1,4 @@
-using System.Drawing;
+﻿using System.Drawing;
 using System.IO;
 using Newtonsoft.Json;
 using YARG.Core.Game.Settings;
@@ -32,6 +32,8 @@ namespace YARG.Core.Game
         public FiveLaneDrumsColors FiveLaneDrums;
         [SettingSubSection]
         public ProKeysColors ProKeys;
+        [SettingSubSection]
+        public CommonColors Common;
 
         public ColorProfile(string name, bool defaultPreset = false) : base(name, defaultPreset)
         {
@@ -39,6 +41,7 @@ namespace YARG.Core.Game
             FourLaneDrums = new FourLaneDrumsColors();
             FiveLaneDrums = new FiveLaneDrumsColors();
             ProKeys = new ProKeysColors();
+            Common = new CommonColors();
         }
 
         public override BasePreset CopyWithNewName(string name)
@@ -49,6 +52,7 @@ namespace YARG.Core.Game
                 FourLaneDrums = FourLaneDrums.Copy(),
                 FiveLaneDrums = FiveLaneDrums.Copy(),
                 ProKeys = ProKeys.Copy(),
+                Common = Common.Copy()
             };
         }
 
@@ -61,6 +65,7 @@ namespace YARG.Core.Game
             FourLaneDrums.Serialize(writer);
             FiveLaneDrums.Serialize(writer);
             ProKeys.Serialize(writer);
+            Common.Serialize(writer);
         }
 
         public void Deserialize(BinaryReader reader, int version = 0)
@@ -72,6 +77,7 @@ namespace YARG.Core.Game
             FourLaneDrums.Deserialize(reader, version);
             FiveLaneDrums.Deserialize(reader, version);
             ProKeys.Deserialize(reader, version);
+            Common.Deserialize(reader, version);
         }
     }
 }
