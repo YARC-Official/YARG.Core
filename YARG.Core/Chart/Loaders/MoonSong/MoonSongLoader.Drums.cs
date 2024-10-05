@@ -74,7 +74,8 @@ namespace YARG.Core.Chart
             var noteType = GetDrumNoteType(moonNote);
 
             var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
-            if (currentPhrases.TryGetValue(MoonPhrase.Type.TremoloLane, out var tremolo))
+            if ((generalFlags & NoteFlags.Tremolo) != 0 && 
+                currentPhrases.TryGetValue(MoonPhrase.Type.TremoloLane, out var tremolo))
             {
                 generalFlags = ModifyTremoloFlags(moonNote, generalFlags, tremolo);
             }
@@ -91,7 +92,8 @@ namespace YARG.Core.Chart
             var noteType = GetDrumNoteType(moonNote);
 
             var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
-            if (currentPhrases.TryGetValue(MoonPhrase.Type.TremoloLane, out var tremolo))
+            if ((generalFlags & NoteFlags.Tremolo) != 0 && 
+                currentPhrases.TryGetValue(MoonPhrase.Type.TremoloLane, out var tremolo))
             {
                 generalFlags = ModifyTremoloFlags(moonNote, generalFlags, tremolo);
             }
