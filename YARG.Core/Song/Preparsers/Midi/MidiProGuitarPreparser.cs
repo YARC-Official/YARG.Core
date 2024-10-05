@@ -26,8 +26,7 @@ namespace YARG.Core.Song
         private static unsafe DifficultyMask Parse(YARGMidiTrack track, int maxVelocity)
         {
             var validations = default(DifficultyMask);
-            var difficulties = stackalloc bool[MidiPreparser_Constants.NUM_DIFFICULTIES];
-            var statuses = stackalloc bool[MidiPreparser_Constants.NUM_DIFFICULTIES * NUM_STRINGS];
+            int statusBitMask = 0;
 
             var note = default(MidiNote);
             while (track.ParseEvent())
@@ -43,25 +42,26 @@ namespace YARG.Core.Song
                     int noteOffset = note.value - PROGUITAR_MIN;
                     int diffIndex = MidiPreparser_Constants.EXTENDED_DIFF_INDICES[noteOffset];
                     int laneIndex = MidiPreparser_Constants.EXTENDED_LANE_INDICES[noteOffset];
+                    var diffMask = (DifficultyMask) (1 << (diffIndex + 1));
                     //                                                         Ghost notes aren't played
-                    if (difficulties[diffIndex] || laneIndex >= NUM_STRINGS || track.Channel == ARPEGGIO_CHANNEL)
+                    if ((validations & diffMask) > 0 || laneIndex >= NUM_STRINGS || track.Channel == ARPEGGIO_CHANNEL)
                     {
                         continue;
                     }
 
+                    int statusMask = 1 << (diffIndex * NUM_STRINGS + laneIndex);
                     // Note Ons with no velocity equates to a note Off by spec
                     if (track.Type == MidiEventType.Note_On && note.velocity > 0)
                     {
                         if (MIN_VELOCITY <= note.velocity && note.velocity <= maxVelocity)
                         {
-                            statuses[diffIndex * NUM_STRINGS + laneIndex] = true;
+                            statusBitMask |= statusMask;
                         }
                     }
                     // Note off here
-                    else if (statuses[diffIndex * NUM_STRINGS + laneIndex])
+                    else if ((statusBitMask & statusMask) > 0)
                     {
-                        validations |= (DifficultyMask) (1 << (diffIndex + 1));
-                        difficulties[diffIndex] = true;
+                        validations |= diffMask;
                         if (validations == MidiPreparser_Constants.ALL_DIFFICULTIES)
                         {
                             break;
