@@ -294,73 +294,19 @@ namespace YARG.Core.Chart
                 }
             }
 
-            return flags;
-        }
-
-        private NoteFlags GetTremoloFlags(MoonNote moonNote, CurrentPhrases currentPhrases, bool isDrumNote = false)
-        {
-            var flags = NoteFlags.None;
-
+            // Tremolo
             if (currentPhrases.TryGetValue(MoonPhrase.Type.TremoloLane, out var tremolo) && IsEventInPhrase(moonNote, tremolo))
             {
-                var previous = moonNote.PreviousSeperateMoonNote;
-                var next = moonNote.NextSeperateMoonNote;
-
-                bool isLaneStart = previous != null && !IsEventInPhrase(previous, tremolo);
-                bool isLaneEnd = next != null && !IsEventInPhrase(next, tremolo);
-
-                bool isTremoloNote = true;
-
-                if (moonNote.isChord)
+                flags |= NoteFlags.Tremolo;
+                    
+                if (previous != null && !IsEventInPhrase(previous, tremolo))
                 {
-                    if (isDrumNote && moonNote.drumPad == MoonNote.DrumPad.Kick)
-                    {
-                        // Chorded kick notes inside of tremolo phrases should not be considered tremolo notes
-                        // A kick tremolo is still possible if it is the only note in the phrase
-                        return flags;
-                    }
-
-                    // Chord child notes will only be considered part of a tremolo if they are also present in the adjacent tremolo notes
-                    if (!isLaneStart)
-                    {
-                        isTremoloNote = false;
-                        foreach (var childNote in previous!.chord)
-                        {
-                            if (childNote.rawNote == moonNote.rawNote)
-                            {
-                                isTremoloNote = true;
-                                break;
-                            }
-                        }
-                    }
-
-                    if (isTremoloNote && !isLaneEnd)
-                    {
-                        isTremoloNote = false;
-                        foreach (var childNote in next!.chord)
-                        {
-                            if (childNote.rawNote == moonNote.rawNote)
-                            {
-                                isTremoloNote = true;
-                                break;
-                            }
-                        }
-                    }
+                    flags |= NoteFlags.LaneStart;
                 }
 
-                if (isTremoloNote)
+                if (next != null && !IsEventInPhrase(next, tremolo))
                 {
-                    flags |= NoteFlags.Tremolo;
-                    
-                    if (isLaneStart)
-                    {
-                        flags |= NoteFlags.LaneStart;
-                    }
-
-                    if (isLaneEnd)
-                    {
-                        flags |= NoteFlags.LaneEnd;
-                    }
+                    flags |= NoteFlags.LaneEnd;
                 }
             }
 
