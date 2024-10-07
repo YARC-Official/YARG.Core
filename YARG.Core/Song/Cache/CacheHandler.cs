@@ -1390,7 +1390,7 @@ namespace YARG.Core.Song.Cache
         {
             string filename = stream.ReadString();
             var info = new AbridgedFileInfo(filename, stream);
-            if (File.Exists(filename))
+            if (!File.Exists(filename))
             {
                 return null;
             }
