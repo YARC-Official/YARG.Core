@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
-using YARG.Core.Logging;
 
 namespace YARG.Core.IO
 {
@@ -60,16 +57,17 @@ namespace YARG.Core.IO
         /// Loads the given amount of data from the stream into a FixedArray buffer
         /// </summary>
         /// <param name="stream">Stream with leftover data</param>
-        /// <param name="byteCount">Number of bytes to read from the stream</param>
+        /// <param name="numElements">Number of <see cref="T"/> elements to read from the stream</param>
         /// <returns>The instance carrying the loaded data</returns>
-        public static FixedArray<T> Read(Stream stream, long byteCount)
+        public static FixedArray<T> Read(Stream stream, long numElements)
         {
+            long byteCount = numElements * sizeof(T);
             if (stream.Position > stream.Length - byteCount)
             {
                 throw new ArgumentException("Length extends past end of stream");
             }
 
-            var buffer = Alloc(byteCount);
+            var buffer = Alloc(numElements);
             stream.Read(new Span<byte>(buffer.Ptr, (int) byteCount));
             return buffer;
         }
@@ -77,12 +75,39 @@ namespace YARG.Core.IO
         /// <summary>
         /// Allocates a uninitialized buffer of data
         /// </summary>
-        /// <param name="byteCount">Length of the buffer in bytes</param>
+        /// <param name="numElements">Number of the elements to hold in the buffer</param>
         /// <returns>The instance carrying the empty buffer</returns>
-        public static FixedArray<T> Alloc(long byteCount)
+        public static FixedArray<T> Alloc(long numElements)
         {
-            var ptr = (T*) Marshal.AllocHGlobal((int) byteCount);
-            return new FixedArray<T>(ptr, byteCount / sizeof(T));
+            var ptr = (T*) Marshal.AllocHGlobal((int) numElements * sizeof(T));
+            return new FixedArray<T>(ptr, numElements);
+        }
+
+        /// <summary>
+        /// Creates an instance of FixedArray that solely functions as an cast over the current buffer
+        /// </summary>
+        /// <remarks>The casted copy will not dispose of the original data, so any callers must maintain the original buffer instance.</remarks>
+        /// <param name="source">The source buffer to cast</param>
+        /// <param name="offset">The index in the source buffer to start the cast from</param>
+        /// <param name="numElements">The number of elements to cast to</param>
+        /// <returns>The buffer casted to the new type</returns>
+        public static FixedArray<T> Cast<U>(in FixedArray<U> source, long offset, long numElements)
+            where U : unmanaged
+        {
+            if (offset < 0)
+            {
+                throw new IndexOutOfRangeException();
+            }
+
+            if ((source.Length - offset) * sizeof(U) < numElements * sizeof(T))
+            {
+                throw new ArgumentOutOfRangeException(nameof(numElements));
+            }
+
+            return new FixedArray<T>((T*) (source.Ptr + offset), numElements)
+            {
+                _disposed = true
+            };
         }
 
         private bool _disposed;
@@ -136,28 +161,6 @@ namespace YARG.Core.IO
         /// </summary>
         /// <returns>The stream, duh</returns>
         public readonly UnmanagedMemoryStream ToStream() => new((byte*) Ptr, Length * sizeof(T));
-
-        /// <summary>
-        /// Creates an instance of FixedArray that solely functions as an cast over the current buffer
-        /// </summary>
-        /// <remarks>The casted copy will not dispose of the original data, so any callers must maintain the original buffer instance.</remarks>
-        /// <param name="offset">Index to start the cast from</param>
-        /// <param name="count">Number of original elements to be casted</param>
-        /// <returns>The buffer casted to the new type</returns>
-        public readonly FixedArray<U> Cast<U>(long offset, long count)
-            where U : unmanaged
-        {
-            if (offset < 0 || Length < offset + count)
-            {
-                throw new IndexOutOfRangeException();
-            }
-
-            long length = (count * sizeof(T)) / sizeof(U);
-            return new FixedArray<U>((U*) (Ptr + offset), length)
-            {
-                _disposed = true
-            };
-        }
 
         /// <summary>
         /// Copies the pointer and length to a new instance of FixedArray, leaving the current one
