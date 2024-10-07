@@ -21,19 +21,20 @@ namespace YARG.Core.IO.Ini
         public static readonly Dictionary<string, IniModifierCreator> SONG_INI_MODIFIERS;
 
 #if DEBUG
-        private static readonly Dictionary<string, ModifierType> _validations;
+        private static readonly Dictionary<string, ModifierType> _types;
+        private static readonly Dictionary<string, ModifierType> _outputs;
         public static void ThrowIfNot<T>(string key)
         {
-            if (!SONG_INI_MODIFIERS.TryGetValue(key, out var mod))
+            if (!_outputs.TryGetValue(key, out var modifierType))
             {
                 throw new ArgumentException($"Dev: {key} is not a valid modifier!");
             }
 
             var typename = typeof(T).Name;
-            var type = _validations[typename];
-            if (type != mod.Type
-            && (type == ModifierType.SortString) != (mod.Type == ModifierType.SortString_Chart)
-            && (type == ModifierType.String) != (mod.Type == ModifierType.String_Chart))
+            var type = _types[typename];
+            if (type != modifierType
+            && (type == ModifierType.SortString) != (modifierType == ModifierType.SortString_Chart)
+            && (type == ModifierType.String) != (modifierType == ModifierType.String_Chart))
             {
                 throw new ArgumentException($"Dev: Modifier {key} is not of type {typename}");
             }
@@ -45,10 +46,8 @@ namespace YARG.Core.IO.Ini
             SONG_INI_MODIFIERS = new()
             {
                 { "album",                                new("album", ModifierType.SortString) },
-                { "Album",                                new("album", ModifierType.SortString_Chart) },
                 { "album_track",                          new("album_track", ModifierType.Int32) },
                 { "artist",                               new("artist", ModifierType.SortString) },
-                { "Artist",                               new("artist", ModifierType.SortString_Chart) },
 
                 { "background",                           new("background", ModifierType.String) },
                 //{ "banner_link_a",                        new("banner_link_a", ModifierType.String) },
@@ -58,13 +57,16 @@ namespace YARG.Core.IO.Ini
 
                 //{ "cassettecolor",                        new("cassettecolor", ModifierType.UInt32) },
                 { "charter",                              new("charter", ModifierType.SortString) },
-                { "Charter",                              new("charter", ModifierType.SortString_Chart) },
                 { "count",                                new("count", ModifierType.UInt32) },
                 { "cover",                                new("cover", ModifierType.String) },
+                { "credit_written_by",                    new("credit_written_by", ModifierType.String) },
+                { "credit_performed_by",                  new("credit_performed_by", ModifierType.String) },
+                { "credit_courtesy_of",                   new("credit_courtesy_of", ModifierType.String) },
+                { "credit_album_cover",                   new("credit_album_cover", ModifierType.String) },
+                { "credit_license",                       new("credit_license", ModifierType.String) },
 
                 { "dance_type",                           new("dance_type", ModifierType.UInt32) },
                 { "delay",                                new("delay", ModifierType.Int64) },
-                { "Difficulty",                           new("diff_band", ModifierType.Int32) },
                 { "diff_band",                            new("diff_band", ModifierType.Int32) },
                 { "diff_bass",                            new("diff_bass", ModifierType.Int32) },
                 { "diff_bass_real",                       new("diff_bass_real", ModifierType.Int32) },
@@ -99,7 +101,6 @@ namespace YARG.Core.IO.Ini
                 { "frets",                                new("frets", ModifierType.SortString) },
 
                 { "genre",                                new("genre", ModifierType.SortString) },
-                { "Genre",                                new("genre", ModifierType.SortString_Chart) },
                 { "guitar_type",                          new("guitar_type", ModifierType.UInt32) },
 
                 { "hopo_frequency",                       new("hopo_frequency", ModifierType.Int64) },
@@ -115,27 +116,16 @@ namespace YARG.Core.IO.Ini
                 { "loading_phrase",                       new("loading_phrase", ModifierType.String) },
                 { "lyrics",                               new("lyrics", ModifierType.Bool) },
 
-                { "credit_written_by",                    new("credit_written_by", ModifierType.String) },
-                { "credit_performed_by",                  new("credit_performed_by", ModifierType.String) },
-                { "credit_courtesy_of",                   new("credit_courtesy_of", ModifierType.String) },
-                { "credit_album_cover",                   new("credit_album_cover", ModifierType.String) },
-                { "credit_license",                       new("credit_license", ModifierType.String) },
-
                 { "modchart",                             new("modchart", ModifierType.Bool) },
                 { "multiplier_note",                      new("multiplier_note", ModifierType.Int32) },
 
                 { "name",                                 new("name", ModifierType.SortString) },
-                { "Name",                                 new("name", ModifierType.SortString_Chart) },
-
-                { "Offset",                               new("Offset", ModifierType.Double) },
 
                 { "playlist",                             new("playlist", ModifierType.SortString) },
                 { "playlist_track",                       new("playlist_track", ModifierType.Int32) },
                 { "preview",                              new("preview", ModifierType.Int64Array) },
                 { "preview_end_time",                     new("preview_end_time", ModifierType.Int64) },
-                { "PreviewEnd",                           new("PreviewEnd", ModifierType.Double) },
                 { "preview_start_time",                   new("preview_start_time", ModifierType.Int64) },
-                { "PreviewStart",                         new("PreviewStart", ModifierType.Double) },
 
                 { "pro_drum",                             new("pro_drums", ModifierType.Bool) },
                 { "pro_drums",                            new("pro_drums", ModifierType.Bool) },
@@ -178,7 +168,6 @@ namespace YARG.Core.IO.Ini
                 { "vocal_gender",                         new("vocal_gender", ModifierType.UInt32) },
 
                 { "year",                                 new("year", ModifierType.String) },
-                { "Year",                                 new("Year", ModifierType.String) },
             };
 
             SONG_INI_DICTIONARY = new()
@@ -187,7 +176,7 @@ namespace YARG.Core.IO.Ini
             };
 
 #if DEBUG
-            _validations = new()
+            _types = new()
             {
                 { nameof(SortString), ModifierType.SortString },
                 { typeof(string).Name, ModifierType.String },
@@ -202,6 +191,18 @@ namespace YARG.Core.IO.Ini
                 { typeof(double).Name, ModifierType.Double },
                 { typeof(long[]).Name, ModifierType.Int64Array },
             };
+
+            _outputs = new Dictionary<string, ModifierType>();
+            _outputs.EnsureCapacity(SONG_INI_MODIFIERS.Count + YARGChartFileReader.CHART_MODIFIERS.Count);
+            foreach (var node in SONG_INI_MODIFIERS.Values)
+            {
+                _outputs.TryAdd(node.OutputName, node.Type);
+            }
+
+            foreach (var node in YARGChartFileReader.CHART_MODIFIERS.Values)
+            {
+                _outputs.TryAdd(node.OutputName, node.Type);
+            }
 #endif
         }
     }

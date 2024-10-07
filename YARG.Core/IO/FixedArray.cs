@@ -27,10 +27,7 @@ namespace YARG.Core.IO
         /// <summary>
         /// A indisposable default instance with a null pointer
         /// </summary>
-        public static readonly FixedArray<T> Null = new()
-        {
-            _disposed = true
-        };
+        public static readonly FixedArray<T> Null = new(null, 0);
 
         /// <summary>
         /// Loads all of the given file's data into a FixedArray buffer
@@ -144,7 +141,7 @@ namespace YARG.Core.IO
         {
             Ptr = ptr;
             Length = length;
-            _disposed = false;
+            _disposed = ptr == null;
         }
 
         public readonly Span<T> Slice(long offset, long count)

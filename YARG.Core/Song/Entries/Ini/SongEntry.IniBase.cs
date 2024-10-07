@@ -1,6 +1,4 @@
-﻿using Melanchall.DryWetMidi.Core;
-using MoonscraperChartEditor.Song.IO;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -13,18 +11,6 @@ using YARG.Core.Song.Preparsers;
 
 namespace YARG.Core.Song
 {
-    public readonly struct IniChartNode<T>
-    {
-        public readonly T File;
-        public readonly ChartType Type;
-
-        public IniChartNode(T file, ChartType type)
-        {
-            File = file;
-            Type = type;
-        }
-    }
-
     public static class IniAudio
     {
         public static readonly string[] SupportedStems = { "song", "guitar", "bass", "rhythm", "keys", "vocals", "vocals_1", "vocals_2", "drums", "drums_1", "drums_2", "drums_3", "drums_4", "crowd", };
@@ -46,11 +32,11 @@ namespace YARG.Core.Song
 
     public abstract class IniSubEntry : SongEntry
     {
-        public static readonly IniChartNode<string>[] CHART_FILE_TYPES =
+        public static readonly (string Filename, ChartFormat Format)[] CHART_FILE_TYPES =
         {
-            new("notes.mid"  , ChartType.Mid),
-            new("notes.midi" , ChartType.Midi),
-            new("notes.chart", ChartType.Chart),
+            ("notes.mid"  , ChartFormat.Mid),
+            ("notes.midi" , ChartFormat.Midi),
+            ("notes.chart", ChartFormat.Chart),
         };
 
         protected static readonly string[] ALBUMART_FILES;
@@ -65,90 +51,64 @@ namespace YARG.Core.Song
             }
 
             PREVIEW_FILES = new string[IniAudio.SupportedFormats.Length];
-            for (int i = 0; i < PREVIEW_FILES.Length; i++ )
+            for (int i = 0; i < PREVIEW_FILES.Length; i++)
             {
                 PREVIEW_FILES[i] = "preview" + IniAudio.SupportedFormats[i];
             }
         }
 
-        protected readonly string _background;
-        protected readonly string _video;
-        protected readonly string _cover;
-        public readonly bool Video_Loop;
+        public readonly string Background;
+        public readonly string Video;
+        public readonly string Cover;
+        
+        public override string Year { get; }
+        public override int YearAsNumber { get; }
+        public override bool LoopVideo { get; }
 
-        public abstract ChartType Type { get; }
-
-        protected IniSubEntry(in AvailableParts parts, in HashWrapper hash, IniSection modifiers, string defaultPlaylist)
-            : base(in parts, in hash, modifiers, defaultPlaylist)
+        protected IniSubEntry(in SongMetadata metadata, in AvailableParts parts, in HashWrapper hash, in LoaderSettings settings, IniSection modifiers)
+            : base(in metadata, in parts, in hash, in settings)
         {
-            if (modifiers.TryGet("background", out _background))
+            (Year, YearAsNumber) = ParseYear(Metadata.Year);
+            if (modifiers.TryGet("background", out Background))
             {
-                string ext = Path.GetExtension(_background.Trim('\"')).ToLower();
-                _background = IMAGE_EXTENSIONS.Contains(ext) ? _background.ToLowerInvariant() : string.Empty;
+                string ext = Path.GetExtension(Background.Trim('\"')).ToLower();
+                Background = IMAGE_EXTENSIONS.Contains(ext) ? Background.ToLowerInvariant() : string.Empty;
             }
 
-            if (modifiers.TryGet("video", out _video))
+            if (modifiers.TryGet("video", out Video))
             {
-                string ext = Path.GetExtension(_video.Trim('\"')).ToLower();
-                _video = VIDEO_EXTENSIONS.Contains(ext) ? _video.ToLowerInvariant() : string.Empty;
+                string ext = Path.GetExtension(Video.Trim('\"')).ToLower();
+                Video = VIDEO_EXTENSIONS.Contains(ext) ? Video.ToLowerInvariant() : string.Empty;
             }
 
-            if (modifiers.TryGet("cover", out _cover))
+            if (modifiers.TryGet("cover", out Cover))
             {
-                string ext = Path.GetExtension(_cover.Trim('\"')).ToLower();
-                _cover = IMAGE_EXTENSIONS.Contains(ext) ? _cover.ToLowerInvariant() : string.Empty;
+                string ext = Path.GetExtension(Cover.Trim('\"')).ToLower();
+                Cover = IMAGE_EXTENSIONS.Contains(ext) ? Cover.ToLowerInvariant() : string.Empty;
             }
-            modifiers.TryGet("video_loop", out Video_Loop);
+            LoopVideo = modifiers.TryGet("video_loop", out bool loop) && loop;
         }
 
         protected IniSubEntry(UnmanagedMemoryStream stream, CategoryCacheStrings strings)
             : base(stream, strings)
         {
-            _background = stream.ReadString();
-            _video = stream.ReadString();
-            _cover = stream.ReadString();
-            Video_Loop = stream.ReadBoolean();
+            YearAsNumber = stream.Read<int>(Endianness.Little);
+            Background = stream.ReadString();
+            Video = stream.ReadString();
+            Cover = stream.ReadString();
+            LoopVideo = stream.ReadBoolean();
+
+            Year = YearAsNumber != int.MaxValue ? YearAsNumber.ToString() : Metadata.Year;
         }
 
-        protected abstract Stream? GetChartStream();
-
-        protected abstract void SerializeSubData(BinaryWriter writer);
-
-        public ReadOnlySpan<byte> Serialize(CategoryCacheWriteNode node, string groupDirectory)
+        public override void Serialize(MemoryStream stream, CategoryCacheWriteNode node)
         {
-            string relativePath = Path.GetRelativePath(groupDirectory, Location);
-            if (relativePath == ".")
-                relativePath = string.Empty;
-
-            using MemoryStream ms = new();
-            using BinaryWriter writer = new(ms);
-
-            writer.Write(SubType == EntryType.Sng);
-            writer.Write(relativePath);
-
-            SerializeSubData(writer);
-            SerializeMetadata(writer, node);
-
-            writer.Write(_background);
-            writer.Write(_video);
-            writer.Write(_cover);
-            writer.Write(Video_Loop);
-            return new ReadOnlySpan<byte>(ms.GetBuffer(), 0, (int)ms.Length);
-        }
-
-        public override SongChart? LoadChart()
-        {
-            using var stream = GetChartStream();
-            if (stream == null)
-                return null;
-
-            if (Type != ChartType.Chart)
-            {
-                return SongChart.FromMidi(_parseSettings, MidFileLoader.LoadMidiFile(stream));
-            }
-
-            using var reader = new StreamReader(stream);
-            return SongChart.FromDotChart(_parseSettings, reader.ReadToEnd());
+            base.Serialize(stream, node);
+            stream.Write(YearAsNumber, Endianness.Little);
+            stream.Write(Background);
+            stream.Write(Video);
+            stream.Write(Cover);
+            stream.Write(LoopVideo);
         }
 
         public override FixedArray<byte> LoadMiloData()
@@ -156,7 +116,7 @@ namespace YARG.Core.Song
             return FixedArray<byte>.Null;
         }
 
-        protected static (ScanResult Result, AvailableParts Parts) ScanIniChartFile(in FixedArray<byte> file, ChartType chartType, IniSection modifiers)
+        protected static (ScanResult Result, AvailableParts Parts, LoaderSettings Settings) ProcessChartFile(in FixedArray<byte> file, ChartFormat format, IniSection modifiers)
         {
             DrumPreparseHandler drums = new()
             {
@@ -164,52 +124,199 @@ namespace YARG.Core.Song
             };
 
             var parts = AvailableParts.Default;
-            if (chartType == ChartType.Chart)
+            var settings = default(LoaderSettings);
+            var results = default((ScanResult result, long resolution));
+            if (format == ChartFormat.Chart)
             {
                 if (YARGTextReader.IsUTF8(in file, out var byteContainer))
                 {
-                    ParseDotChart(ref byteContainer, modifiers, ref parts, drums);
+                    results = ParseDotChart(ref byteContainer, modifiers, ref parts, drums);
                 }
                 else
                 {
                     using var chars = YARGTextReader.ConvertToUTF16(in file, out var charContainer);
                     if (chars.IsAllocated)
                     {
-                        ParseDotChart(ref charContainer, modifiers, ref parts, drums);
+                        results = ParseDotChart(ref charContainer, modifiers, ref parts, drums);
                     }
                     else
                     {
                         using var ints = YARGTextReader.ConvertToUTF32(in file, out var intContainer);
-                        ParseDotChart(ref intContainer, modifiers, ref parts, drums);
+                        results = ParseDotChart(ref intContainer, modifiers, ref parts, drums);
                     }
                 }
             }
             else // if (chartType == ChartType.Mid || chartType == ChartType.Midi) // Uncomment for any future file type
             {
-                if (!ParseDotMidi(in file, modifiers, ref parts, drums))
-                {
-                    return (ScanResult.MultipleMidiTrackNames, parts);
-                }
+                results = ParseDotMidi(in file, modifiers, ref parts, drums);
+            }
+
+            if (results.result != ScanResult.Success)
+            {
+                return (results.result, parts, settings);
             }
 
             SetDrums(ref parts, drums);
-
             if (!CheckScanValidity(in parts))
-                return (ScanResult.NoNotes, parts);
+            {
+                return (ScanResult.NoNotes, parts, settings);
+            }
 
             if (!modifiers.Contains("name"))
-                return (ScanResult.NoName, parts);
+            {
+                return (ScanResult.NoName, parts, settings);
+            }
+
+            if (!modifiers.TryGet("hopo_frequency", out settings.HopoThreshold) || settings.HopoThreshold <= 0)
+            {
+                if (modifiers.TryGet("eighthnote_hopo", out bool eighthNoteHopo))
+                {
+                    settings.HopoThreshold = results.resolution / (eighthNoteHopo ? 2 : 3);
+                }
+                else if (modifiers.TryGet("hopofreq", out long hopoFreq))
+                {
+                    int denominator = hopoFreq switch
+                    {
+                        0 => 24,
+                        1 => 16,
+                        2 => 12,
+                        3 => 8,
+                        4 => 6,
+                        5 => 4,
+                        _ => throw new NotImplementedException($"Unhandled hopofreq value {hopoFreq}!")
+                    };
+                    settings.HopoThreshold = 4 * results.resolution / denominator;
+                }
+                else
+                {
+                    settings.HopoThreshold = results.resolution / 3;
+                }
+
+                if (format == ChartFormat.Chart)
+                {
+                    // With a 192 resolution, .chart has a HOPO threshold of 65 ticks, not 64,
+                    // so we need to scale this factor to different resolutions (480 res = 162.5 threshold).
+                    // Why?... idk, but I hate it.
+                    const float DEFAULT_RESOLUTION = 192;
+                    settings.HopoThreshold += (long) (results.resolution / DEFAULT_RESOLUTION);
+                }
+            }
+
+            // .chart defaults to no sustain cutoff whatsoever if the ini does not define the value.
+            // Since a failed `TryGet` sets the value to zero, we would need no additional work unless it's .mid
+            if (!modifiers.TryGet("sustain_cutoff_threshold", out settings.SustainCutoffThreshold) && format != ChartFormat.Chart)
+            {
+                settings.SustainCutoffThreshold = results.resolution / 3;
+            }
+
+            if (format == ChartFormat.Mid || format == ChartFormat.Midi)
+            {
+                if (!modifiers.TryGet("multiplier_note", out settings.OverdiveMidiNote) || settings.OverdiveMidiNote != 103)
+                {
+                    settings.OverdiveMidiNote = 116;
+                }
+            }
 
             SetIntensities(modifiers, ref parts);
-            return (ScanResult.Success, parts);
+            return (ScanResult.Success, parts, settings);
         }
 
-        private static void ParseDotChart<TChar>(ref YARGTextContainer<TChar> container, IniSection modifiers, ref AvailableParts parts, DrumPreparseHandler drums)
+        private static (string Parsed, int AsNumber) ParseYear(in string baseString)
+        {
+            string parsedString = baseString;
+            int number = int.MaxValue;
+            for (int i = 0; i <= baseString.Length - 4; ++i)
+            {
+                int pivot = i;
+                int tmpNumber = 0;
+                while (i < pivot + 4 && i < baseString.Length && char.IsDigit(baseString[i]))
+                {
+                    tmpNumber = 10 * tmpNumber + baseString[i] - '0';
+                    ++i;
+                }
+
+                if (i == pivot + 4)
+                {
+                    parsedString = baseString[pivot..i];
+                    number = tmpNumber;
+                    break;
+                }
+            }
+            return (parsedString, number);
+        }
+
+        protected static bool TryGetRandomBackgroundImage<TEnumerable, TValue>(TEnumerable collection, out TValue? value)
+            where TEnumerable : IEnumerable<KeyValuePair<string, TValue>>
+        {
+            // Choose a valid image background present in the folder at random
+            var images = new List<TValue>();
+            foreach (var format in SongEntry.IMAGE_EXTENSIONS)
+            {
+                var (_, image) = collection.FirstOrDefault(node => node.Key == "bg" + format);
+                if (image != null)
+                {
+                    images.Add(image);
+                }
+            }
+
+            foreach (var (shortname, image) in collection)
+            {
+                if (!shortname.StartsWith("background"))
+                {
+                    continue;
+                }
+
+                foreach (var format in SongEntry.IMAGE_EXTENSIONS)
+                {
+                    if (shortname.EndsWith(format))
+                    {
+                        images.Add(image);
+                        break;
+                    }
+                }
+            }
+
+            if (images.Count == 0)
+            {
+                value = default!;
+                return false;
+            }
+            value = images[SongEntry.BACKROUND_RNG.Next(images.Count)];
+            return true;
+        }
+
+        protected static DrumsType ParseDrumsType(in AvailableParts parts)
+        {
+            if (parts.FourLaneDrums.SubTracks > 0)
+            {
+                return DrumsType.FourLane;
+            }
+            if (parts.FiveLaneDrums.SubTracks > 0)
+            {
+                return DrumsType.FiveLane;
+            }
+            return DrumsType.Unknown;
+        }
+
+        private static (ScanResult result, long resolution) ParseDotChart<TChar>(ref YARGTextContainer<TChar> container, IniSection modifiers, ref AvailableParts parts, DrumPreparseHandler drums)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {
+            long resolution = 192;
             if (YARGChartFileReader.ValidateTrack(ref container, YARGChartFileReader.HEADERTRACK))
             {
                 var chartMods = YARGChartFileReader.ExtractModifiers(ref container);
+                if (chartMods.Remove("Resolution", out var resolutions))
+                {
+                    unsafe
+                    {
+                        var mod = resolutions[0];
+                        resolution = mod.Buffer[0];
+                        if (resolution < 1)
+                        {
+                            return (ScanResult.InvalidResolution, 0);
+                        }
+                    }
+                }
                 modifiers.Append(chartMods);
             }
 
@@ -225,20 +332,25 @@ namespace YARG.Core.Song
             }
 
             if (drums.Type == DrumsType.Unknown && drums.ValidatedDiffs > 0)
+            {
                 drums.Type = DrumsType.FourLane;
+            }
+            return (ScanResult.Success, resolution);
         }
-
-        private static bool ParseDotMidi(in FixedArray<byte> file, IniSection modifiers, ref AvailableParts parts, DrumPreparseHandler drums)
+        private static (ScanResult result, long resolution) ParseDotMidi(in FixedArray<byte> file, IniSection modifiers, ref AvailableParts parts, DrumPreparseHandler drums)
         {
             bool usePro = !modifiers.TryGet("pro_drums", out bool proDrums) || proDrums;
             if (drums.Type == DrumsType.Unknown)
             {
                 if (usePro)
+                {
                     drums.Type = DrumsType.UnknownPro;
+                }
             }
             else if (drums.Type == DrumsType.FourLane && usePro)
+            {
                 drums.Type = DrumsType.ProDrums;
-
+            }
             return ParseMidi(in file, drums, ref parts);
         }
 
@@ -253,16 +365,16 @@ namespace YARG.Core.Song
 
             return instrument switch
             {
-                Instrument.FiveFretGuitar =>     ChartPreparser.Traverse(ref container, difficulty, ref parts.FiveFretGuitar,     &ChartPreparser.ValidateFiveFret),
-                Instrument.FiveFretBass =>       ChartPreparser.Traverse(ref container, difficulty, ref parts.FiveFretBass,       &ChartPreparser.ValidateFiveFret),
-                Instrument.FiveFretRhythm =>     ChartPreparser.Traverse(ref container, difficulty, ref parts.FiveFretRhythm,     &ChartPreparser.ValidateFiveFret),
+                Instrument.FiveFretGuitar => ChartPreparser.Traverse(ref container, difficulty, ref parts.FiveFretGuitar, &ChartPreparser.ValidateFiveFret),
+                Instrument.FiveFretBass => ChartPreparser.Traverse(ref container, difficulty, ref parts.FiveFretBass, &ChartPreparser.ValidateFiveFret),
+                Instrument.FiveFretRhythm => ChartPreparser.Traverse(ref container, difficulty, ref parts.FiveFretRhythm, &ChartPreparser.ValidateFiveFret),
                 Instrument.FiveFretCoopGuitar => ChartPreparser.Traverse(ref container, difficulty, ref parts.FiveFretCoopGuitar, &ChartPreparser.ValidateFiveFret),
-                Instrument.SixFretGuitar =>      ChartPreparser.Traverse(ref container, difficulty, ref parts.SixFretGuitar,      &ChartPreparser.ValidateSixFret),
-                Instrument.SixFretBass =>        ChartPreparser.Traverse(ref container, difficulty, ref parts.SixFretBass,        &ChartPreparser.ValidateSixFret),
-                Instrument.SixFretRhythm =>      ChartPreparser.Traverse(ref container, difficulty, ref parts.SixFretRhythm,      &ChartPreparser.ValidateSixFret),
-                Instrument.SixFretCoopGuitar =>  ChartPreparser.Traverse(ref container, difficulty, ref parts.SixFretCoopGuitar,  &ChartPreparser.ValidateSixFret),
-                Instrument.Keys =>               ChartPreparser.Traverse(ref container, difficulty, ref parts.Keys,               &ChartPreparser.ValidateFiveFret),
-                Instrument.FourLaneDrums =>      drums.ParseChart(ref container, difficulty),
+                Instrument.SixFretGuitar => ChartPreparser.Traverse(ref container, difficulty, ref parts.SixFretGuitar, &ChartPreparser.ValidateSixFret),
+                Instrument.SixFretBass => ChartPreparser.Traverse(ref container, difficulty, ref parts.SixFretBass, &ChartPreparser.ValidateSixFret),
+                Instrument.SixFretRhythm => ChartPreparser.Traverse(ref container, difficulty, ref parts.SixFretRhythm, &ChartPreparser.ValidateSixFret),
+                Instrument.SixFretCoopGuitar => ChartPreparser.Traverse(ref container, difficulty, ref parts.SixFretCoopGuitar, &ChartPreparser.ValidateSixFret),
+                Instrument.Keys => ChartPreparser.Traverse(ref container, difficulty, ref parts.Keys, &ChartPreparser.ValidateFiveFret),
+                Instrument.FourLaneDrums => drums.ParseChart(ref container, difficulty),
                 _ => false,
             };
         }
@@ -416,45 +528,6 @@ namespace YARG.Core.Song
                     parts.LeadVocals.Intensity = parts.HarmonyVocals.Intensity;
                 }
             }
-        }
-
-        protected static bool TryGetRandomBackgroundImage<T>(IEnumerable<KeyValuePair<string, T>> collection, out T value)
-        {
-            // Choose a valid image background present in the folder at random
-            var images = new List<T>();
-            foreach (var format in IMAGE_EXTENSIONS)
-            {
-                var (_, image) = collection.FirstOrDefault(node => node.Key == "bg" + format);
-                if (image != null)
-                {
-                    images.Add(image);
-                }
-            }
-
-            foreach (var (shortname, image) in collection)
-            {
-                if (!shortname.StartsWith("background"))
-                {
-                    continue;
-                }
-
-                foreach (var format in IMAGE_EXTENSIONS)
-                {
-                    if (shortname.EndsWith(format))
-                    {
-                        images.Add(image);
-                        break;
-                    }
-                }
-            }
-
-            if (images.Count == 0)
-            {
-                value = default!;
-                return false;
-            }
-            value = images[BACKROUND_RNG.Next(images.Count)];
-            return true;
         }
     }
 }

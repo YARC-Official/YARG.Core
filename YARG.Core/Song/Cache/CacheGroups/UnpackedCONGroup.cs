@@ -6,60 +6,22 @@ using YARG.Core.Logging;
 
 namespace YARG.Core.Song.Cache
 {
-    public sealed class UnpackedCONGroup : CONGroup, IDisposable
+    public sealed class UnpackedCONGroup : CONGroup<UnpackedRBCONEntry>
     {
-        public readonly AbridgedFileInfo DTA;
-        private FixedArray<byte> _fileData = FixedArray<byte>.Null;
+        public readonly Dictionary<string, List<YARGTextContainer<byte>>> SongNodes = new();
 
-        public override string Location { get; }
-
-        public UnpackedCONGroup(string directory, FileInfo dta, string defaultPlaylist)
-            : base(defaultPlaylist)
+        public UnpackedCONGroup(in FixedArray<byte> data, Dictionary<string, List<YARGTextContainer<byte>>> songNodes, string directory, in AbridgedFileInfo dta, string defaultPlaylist)
+            : base(in data, directory, in dta, defaultPlaylist)
         {
-            Location = directory;
-            DTA = new AbridgedFileInfo(dta);
+            SongNodes = songNodes;
         }
 
-        public bool LoadDTA(out YARGTextContainer<byte> container)
+        public override void ReadEntry(string nodeName, int index, RBProUpgrade upgrade, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
         {
-            try
-            {
-                _fileData = FixedArray<byte>.Load(DTA.FullName);
-                return YARGDTAReader.TryCreate(_fileData, out container);
-            }
-            catch (Exception ex)
-            {
-                YargLogger.LogException(ex, $"Error while loading {DTA.FullName}");
-                container = default;
-                return false;
-            }
-        }
-
-        public override void ReadEntry(string nodeName, int index, Dictionary<string, (YARGTextContainer<byte>, RBProUpgrade)> upgrades, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
-        {
-            var song = UnpackedRBCONEntry.TryLoadFromCache(Location, DTA, nodeName, upgrades, stream, strings);
+            var song = UnpackedRBCONEntry.TryLoadFromCache(Location, in Info, nodeName, upgrade, stream, strings);
             if (song != null)
             {
                 AddEntry(nodeName, index, song);
-            }
-        }
-
-        public override ReadOnlyMemory<byte> SerializeEntries(Dictionary<SongEntry, CategoryCacheWriteNode> nodes)
-        {
-            using MemoryStream ms = new();
-            using BinaryWriter writer = new(ms);
-
-            writer.Write(Location);
-            writer.Write(DTA.LastUpdatedTime.ToBinary());
-            Serialize(writer, ref nodes);
-            return new ReadOnlyMemory<byte>(ms.GetBuffer(), 0, (int)ms.Length);
-        }
-
-        public void Dispose()
-        {
-            if (_fileData.IsAllocated)
-            {
-                _fileData.Dispose();
             }
         }
     }

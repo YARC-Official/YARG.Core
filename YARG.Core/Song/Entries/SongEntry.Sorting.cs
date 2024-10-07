@@ -33,10 +33,7 @@ namespace YARG.Core.Song
             return strCmp;
         }
 
-        public virtual DateTime GetAddTime()
-        {
-            return DateTime.MinValue;
-        }
+        public abstract DateTime GetAddDate();
 
         public bool IsPreferedOver(SongEntry other)
         {
