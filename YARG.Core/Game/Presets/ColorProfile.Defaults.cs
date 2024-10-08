@@ -187,9 +187,9 @@ namespace YARG.Core.Game
             Common = new CommonColors
             {
                 StarPowerColor = DefaultBackgroundLayer1,
-                GrooveColor1 = DefaultBackgroundLayer1,
-                GrooveColor2 = DefaultBackgroundLayer2,
-                GrooveColor4 = DefaultBackgroundLayer4
+                BackgroundGrooveBaseColor1 = DefaultBackgroundLayer1,
+                BackgroundGrooveBaseColor2 = DefaultBackgroundLayer2,
+                BackgroundGroovePatternColor = DefaultBackgroundLayer4
             },
         };
 
