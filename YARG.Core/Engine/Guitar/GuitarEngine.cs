@@ -132,28 +132,14 @@ namespace YARG.Core.Engine.Guitar
             }
 
             // Prevent overstrum if the current ButtonMask satisfies the active lane
+            var laneMask = GetLaneMask();
+            if (ActiveLaneIncludesNote(laneMask))
+            {
+                return;
+            }
+
             if (IsLaneActive)
             {
-                var laneMask = GetLaneMask();
-
-                if (MaskIsMultiFret(RequiredLaneNote)) // Active lane is chord tremolo
-                {
-                    if (laneMask == RequiredLaneNote)
-                    {
-                        // All frets held are an exact match
-                        return;
-                    }
-                }
-                else // Active lane is a single fret
-                {
-                    var heldMSB = GetMostSignificantBit(laneMask);
-                    if (heldMSB == GetMostSignificantBit(RequiredLaneNote) || (NextTrillNote != -1 && heldMSB == GetMostSignificantBit(NextTrillNote)))
-                    {
-                        // The right-most held fret matches the active lane
-                        return;
-                    }
-                }
-
                 YargLogger.LogFormatTrace("Punishing lane overstrum at {0}. Current mask: {1}, RequiredLaneNote: {2}, NextTrillNote: {3}", CurrentTime, laneMask, RequiredLaneNote, NextTrillNote);
             }
 
@@ -341,6 +327,34 @@ namespace YARG.Core.Engine.Guitar
                 RebaseSustains(CurrentTick);
                 EngineStats.ScoreMultiplier = newMultiplier;
             }
+        }
+
+        protected override bool ActiveLaneIncludesNote (int mask)
+        {
+            if (!IsLaneActive)
+            {
+                return false;
+            }
+
+            if (MaskIsMultiFret(RequiredLaneNote)) // Active lane is chord tremolo
+            {
+                if (mask == RequiredLaneNote)
+                {
+                    // All frets held are an exact match
+                    return true;
+                }
+            }
+            else // Active lane is a single fret
+            {
+                var heldMSB = GetMostSignificantBit(mask);
+                if (heldMSB == GetMostSignificantBit(RequiredLaneNote) || (NextTrillNote != -1 && heldMSB == GetMostSignificantBit(NextTrillNote)))
+                {
+                    // The right-most held fret matches the active lane
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         public override void SetSpeed(double speed)

@@ -375,29 +375,29 @@ namespace YARG.Core.Engine
             if (note.ParentOrSelf.WasFullyHitOrMissed())
             {
                 AdvanceToNextNote(note);
-                
-                if (!LanesExist)
+            }
+
+            if (!LanesExist)
+            {
+                return;
+            }
+
+            if (!IsLaneActive && note.IsLane && !note.IsLaneEnd)
+            {
+                // This was a manually hit lane note while lane behavior was disabled,
+                // either LaneStart or starting a new combo after a miss
+                if (note.IsTrill && note.NextNote!.IsTrill)
                 {
-                    return;
+                    RequiredLaneNote = note.NextNote!.LaneNote;
+                    NextTrillNote = note.LaneNote;
+                }
+                else
+                {
+                    RequiredLaneNote = note.LaneNote;
                 }
 
-                if (!IsLaneActive && note.IsLane && !note.IsLaneEnd)
-                {
-                    // This was a manually hit lane note while lane behavior was disabled,
-                    // either LaneStart or starting a new combo after a miss
-                    if (note.IsTrill && note.NextNote!.IsTrill)
-                    {
-                        RequiredLaneNote = note.NextNote!.LaneNote;
-                        NextTrillNote = note.LaneNote;
-                    }
-                    else
-                    {
-                        RequiredLaneNote = note.LaneNote;
-                    }
-
-                    // Only update once per combo here, future updates will be called by SubmitLaneNote inputs
-                    UpdateLaneForgiveness();
-                }
+                // Only update once per combo here, future updates will be called by SubmitLaneNote inputs
+                UpdateLaneForgiveness();
             }
         }
 
@@ -424,15 +424,15 @@ namespace YARG.Core.Engine
         {
             if (note.ParentOrSelf.WasFullyHitOrMissed())
             {
-                if (IsLaneActive)
-                {
-                    // Disable lane behavior until the next manual note hit
-                    RequiredLaneNote = -1;
-                    NextTrillNote = -1;
-                    YargLogger.LogFormatDebug("Lane note was missed at time {0}. LaneForgivenessTime: {1}", CurrentTime, LaneForgivenessTime);
-                }
-
                 AdvanceToNextNote(note);
+            }
+
+            if (ActiveLaneIncludesNote(note.LaneNote))
+            {
+                // Disable lane behavior until the next manual note hit
+                RequiredLaneNote = -1;
+                NextTrillNote = -1;
+                YargLogger.LogFormatDebug("Lane note {0} was missed at time {1}.", note.LaneNote, CurrentTime);
             }
         }
 
@@ -460,8 +460,13 @@ namespace YARG.Core.Engine
             }
         }
 
-        protected bool ActiveLaneIncludesNote(int inputNote)
+        protected virtual bool ActiveLaneIncludesNote(int inputNote)
         {
+            if (!IsLaneActive)
+            {
+                return false;
+            }
+
             if (inputNote == RequiredLaneNote || (NextTrillNote != -1 && inputNote == NextTrillNote))
             {
                 return true;
@@ -472,7 +477,7 @@ namespace YARG.Core.Engine
 
         private void UpdateLaneForgiveness()
         {
-            LaneForgivenessTime = CurrentTime + EngineParameters.HitWindow.CalculateTremoloWindow();
+            LaneForgivenessTime = Notes[NoteIndex].Time + EngineParameters.HitWindow.CalculateTremoloWindow();
         }
 
         protected bool SkipPreviousNotes(TNoteType current)
