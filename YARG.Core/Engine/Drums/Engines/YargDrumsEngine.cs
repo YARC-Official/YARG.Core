@@ -64,16 +64,16 @@ namespace YARG.Core.Engine.Drums.Engines
 
                         if (isFirstNoteInWindow && missed)
                         {
-                            // Intercept missed note while lane phrase is active and missed note allowance has not been spent
-                            if (HitNoteFromLane(parentNote))
-                            {
-                                break;
-                            }
-
                             // If one of the notes in the chord was missed out the back end,
                             // that means all of them would miss.
                             foreach (var missedNote in parentNote.AllNotes)
                             {
+                                // Intercept missed note while lane phrase is active and missed note is in forgiveness window
+                                if (HitNoteFromLane(missedNote))
+                                {
+                                    continue;
+                                }
+                                
                                 // Allow drummers to skip SP activation notes without being penalized.
                                 if (missedNote.IsStarPowerActivator && CanStarPowerActivate)
                                 {
