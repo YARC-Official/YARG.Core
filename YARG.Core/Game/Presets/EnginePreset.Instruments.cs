@@ -46,8 +46,8 @@ namespace YARG.Core.Game
             public double FrontToBackRatio = 1.0;
 
             [SettingType(SettingType.Slider)]
-            [SettingRange(0f, 1f)]
-            public double TremoloFrontEndPercent = 0.75;
+            [SettingRange(0f, 3f)]
+            public double TremoloFrontEndPercent = 1.0;
 
             public HitWindowSettings Create()
             {
