@@ -10,8 +10,8 @@ namespace YARG.Core.Chart
     {
         private bool _discoFlip = false;
 
-        private uint _lastTremoloTick;
-        private List<int>? _validTremoloNotes = null; 
+        private uint _lastLanePhraseTick;
+        private List<int>? _validLaneNotes = null; 
 
         public InstrumentTrack<DrumNote> LoadDrumsTrack(Instrument instrument)
         {
@@ -74,11 +74,7 @@ namespace YARG.Core.Chart
             var noteType = GetDrumNoteType(moonNote);
 
             var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
-            if ((generalFlags & NoteFlags.Tremolo) != 0 && 
-                currentPhrases.TryGetValue(MoonPhrase.Type.TremoloLane, out var tremolo))
-            {
-                generalFlags = ModifyTremoloFlags(moonNote, generalFlags, tremolo);
-            }
+            generalFlags = ModifyDrumLaneFlags(moonNote, currentPhrases, generalFlags);
 
             var drumFlags = GetDrumNoteFlags(moonNote, currentPhrases);
 
@@ -92,11 +88,7 @@ namespace YARG.Core.Chart
             var noteType = GetDrumNoteType(moonNote);
 
             var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
-            if ((generalFlags & NoteFlags.Tremolo) != 0 && 
-                currentPhrases.TryGetValue(MoonPhrase.Type.TremoloLane, out var tremolo))
-            {
-                generalFlags = ModifyTremoloFlags(moonNote, generalFlags, tremolo);
-            }
+            generalFlags = ModifyDrumLaneFlags(moonNote, currentPhrases, generalFlags);
 
             var drumFlags = GetDrumNoteFlags(moonNote, currentPhrases);
 
@@ -340,24 +332,43 @@ namespace YARG.Core.Chart
             return DrumNoteFlags.None;
         }
 
-        private NoteFlags ModifyTremoloFlags(MoonNote moonNote, NoteFlags flags, MoonPhrase tremolo)
+        private NoteFlags ModifyDrumLaneFlags(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases, NoteFlags flags)
         {
-            if (_validTremoloNotes == null || tremolo.tick != _lastTremoloTick)
+            MoonPhrase? lanePhrase = null;
+            bool isTrill = false;
+
+            if ((flags & NoteFlags.Tremolo) != 0)
             {
-                _lastTremoloTick = tremolo.tick;
-                _validTremoloNotes = GetValidTremoloNotes(moonNote, tremolo);
+                currentPhrases.TryGetValue(MoonPhrase.Type.TremoloLane, out lanePhrase);
+            }
+            else if ((flags & NoteFlags.Trill) != 0)
+            {
+                currentPhrases.TryGetValue(MoonPhrase.Type.TrillLane, out lanePhrase);
+                isTrill = true;
             }
 
-            if (!_validTremoloNotes.Contains(moonNote.rawNote))
+            if (lanePhrase == null)
+            {
+                return flags;
+            }
+
+            if (_validLaneNotes == null || lanePhrase.tick != _lastLanePhraseTick)
+            {
+                _lastLanePhraseTick = lanePhrase.tick;
+                _validLaneNotes = GetValidLaneNotes(moonNote, lanePhrase, isTrill);
+            }
+
+            if (!_validLaneNotes.Contains(moonNote.rawNote))
             {
                 flags &= ~NoteFlags.Tremolo;
+                flags &= ~NoteFlags.Trill;
                 flags &= ~NoteFlags.LaneStart;
                 flags &= ~NoteFlags.LaneEnd;
             }
 
             return flags;
 
-            static List<int> GetValidTremoloNotes(MoonNote moonNote, MoonPhrase tremolo)
+            static List<int> GetValidLaneNotes(MoonNote moonNote, MoonPhrase lanePhrase, bool isTrill)
             {
                 // Iterate forward every note in this phrase to find the notes that appear the most
                 // Assumes that this will only run when the first note in a phrase is provided
@@ -367,7 +378,7 @@ namespace YARG.Core.Chart
                 const int CLINCH_THRESHOLD = 5;
                 int highestTotal = 0;
                 
-                for (var noteRef = moonNote; noteRef != null && IsEventInPhrase(noteRef, tremolo); noteRef = noteRef.next)
+                for (var noteRef = moonNote; noteRef != null && IsEventInPhrase(noteRef, lanePhrase); noteRef = noteRef.next)
                 {
                     if (noteRef.isChord && noteRef.drumPad == MoonNote.DrumPad.Kick)
                     {
@@ -413,17 +424,18 @@ namespace YARG.Core.Chart
 
                         if (stopSearching)
                         {
-                            // Safe to say this is the only laned note in the phrase
+                            // Safe to say this is the only laned note a tremolo phrase
                             break;
                         }
                     }
                 }
 
+                int validNoteTotal = isTrill ? highestTotal - 2 : highestTotal;
                 List<int> validTremoloNotes = new();
 
                 foreach (var (note, total) in noteTotals)
                 {
-                    if (total == highestTotal)
+                    if (total >= validNoteTotal)
                     {
                         validTremoloNotes.Add(note);
                     }
