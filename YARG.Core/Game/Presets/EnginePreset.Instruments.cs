@@ -108,7 +108,7 @@ namespace YARG.Core.Game
                 MinWindow = 0.14,
                 IsDynamic = false,
                 FrontToBackRatio = 1.0,
-                TremoloFrontEndPercent = 0.75
+                TremoloFrontEndPercent = 1.15
             };
 
             public FiveFretGuitarPreset Copy()
@@ -154,7 +154,7 @@ namespace YARG.Core.Game
                 MinWindow = 0.14,
                 IsDynamic = false,
                 FrontToBackRatio = 1.0,
-                TremoloFrontEndPercent = 0.75
+                TremoloFrontEndPercent = 1.15
             };
 
             public DrumsPreset Copy()
@@ -302,7 +302,7 @@ namespace YARG.Core.Game
                 MinWindow = 0.14,
                 IsDynamic = false,
                 FrontToBackRatio = 1.0,
-                TremoloFrontEndPercent = 0.75
+                TremoloFrontEndPercent = 1.15
             };
 
             public ProKeysPreset Copy()
