@@ -382,7 +382,7 @@ namespace YARG.Core.Chart
                 {
                     if (noteRef.isChord && noteRef.drumPad == MoonNote.DrumPad.Kick)
                     {
-                        // Kick tremolos are only possible with a winning total, no ties with other notes
+                        // Kick tremolos are only possible with a winning total on non-chorded kicks, no ties with other notes
                         continue;
                     }
 
