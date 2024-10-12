@@ -15,6 +15,7 @@ namespace YARG.Core.Game
         NoteShuffle   = 1 << 5,
         NoKicks       = 1 << 6,
         UnpitchedOnly = 1 << 7,
+        NoDynamics    = 1 << 8,
     }
 
     public static class ModifierConflicts
@@ -46,7 +47,8 @@ namespace YARG.Core.Game
 
                 GameMode.FourLaneDrums or
                 GameMode.FiveLaneDrums =>
-                    Modifier.NoKicks,
+                    Modifier.NoKicks    |
+                    Modifier.NoDynamics,
 
                 GameMode.Vocals =>
                     Modifier.UnpitchedOnly,

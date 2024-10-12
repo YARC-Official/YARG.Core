@@ -198,5 +198,19 @@ namespace YARG.Core.Chart
                 }
             }
         }
+
+        public static void RemoveDynamics(this InstrumentDifficulty<DrumNote> difficulty)
+        {
+            foreach (var i in difficulty.Notes)
+            {
+                foreach (var note in i.AllNotes)
+                {
+                    if (note.IsGhost || note.IsAccent)
+                    {
+                        note.Type = DrumNoteType.Neutral;
+                    }
+                }
+            }
+        }
     }
 }
