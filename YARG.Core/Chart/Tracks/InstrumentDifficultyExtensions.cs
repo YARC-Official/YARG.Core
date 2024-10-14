@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace YARG.Core.Chart
 {
@@ -205,10 +205,7 @@ namespace YARG.Core.Chart
             {
                 foreach (var note in i.AllNotes)
                 {
-                    if (note.IsGhost || note.IsAccent)
-                    {
-                        note.Type = DrumNoteType.Neutral;
-                    }
+                    note.Type = DrumNoteType.Neutral;
                 }
             }
         }
