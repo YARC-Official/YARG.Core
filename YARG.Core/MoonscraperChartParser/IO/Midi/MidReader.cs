@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2020 Alexander Ong
+﻿// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
 using System;
@@ -137,16 +137,16 @@ namespace MoonscraperChartEditor.Song.IO
                         break;
 
                     case MidIOHelper.PRO_KEYS_EXPERT:
-                        ReadProKeys(ref settings, track, song, MoonSong.Difficulty.Expert);
+                        ReadNotes(ref settings, track, song, MoonSong.MoonInstrument.ProKeys, MoonSong.Difficulty.Expert);
                         break;
                     case MidIOHelper.PRO_KEYS_HARD:
-                        ReadProKeys(ref settings, track, song, MoonSong.Difficulty.Hard);
+                        ReadNotes(ref settings, track, song, MoonSong.MoonInstrument.ProKeys, MoonSong.Difficulty.Hard);
                         break;
                     case MidIOHelper.PRO_KEYS_MEDIUM:
-                        ReadProKeys(ref settings, track, song, MoonSong.Difficulty.Medium);
+                        ReadNotes(ref settings, track, song, MoonSong.MoonInstrument.ProKeys, MoonSong.Difficulty.Medium);
                         break;
                     case MidIOHelper.PRO_KEYS_EASY:
-                        ReadProKeys(ref settings, track, song, MoonSong.Difficulty.Easy);
+                        ReadNotes(ref settings, track, song, MoonSong.MoonInstrument.ProKeys, MoonSong.Difficulty.Easy);
                         break;
 
                     case MidIOHelper.VOCALS_TRACK:
@@ -182,17 +182,6 @@ namespace MoonscraperChartEditor.Song.IO
             }
 
             return song;
-
-            static void ReadProKeys(ref ParseSettings settings, TrackChunk track, MoonSong song,
-                MoonSong.Difficulty difficulty)
-            {
-                // Always clear the current difficulty as `ReadNotes` may populate some phrases
-                // from other difficulties.
-                var chart = song.GetChart(MoonSong.MoonInstrument.ProKeys, difficulty);
-                chart.Clear();
-
-                ReadNotes(ref settings, track, song, MoonSong.MoonInstrument.ProKeys, difficulty);
-            }
         }
 
         private static void ValidateAndApplySettings(MoonSong song, ref ParseSettings settings)

@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2020 Alexander Ong
+﻿// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
 using System;
@@ -85,7 +85,7 @@ namespace MoonscraperChartEditor.Song.IO
         {
             soloNote = MidIOHelper.SOLO_NOTE_PRO_KEYS,
             versusPhrases = false,
-            lanePhrases = true,
+            // lanePhrases = true, // Handled manually due to per-difficulty tracks
         };
 
         // These dictionaries map the text of a MIDI text event to a specific function that processes them
@@ -769,6 +769,10 @@ namespace MoonscraperChartEditor.Song.IO
                 { MidIOHelper.PRO_KEYS_GLISSANDO, (ref EventProcessParams eventProcessParams) =>
                     ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams,
                         MoonPhrase.Type.ProKeys_Glissando, eventProcessParams.trackDifficulty)
+                },
+                { MidIOHelper.TRILL_LANE_NOTE, (ref EventProcessParams eventProcessParams) =>
+                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams,
+                        MoonPhrase.Type.TrillLane, eventProcessParams.trackDifficulty)
                 },
             };
 
