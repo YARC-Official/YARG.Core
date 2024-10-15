@@ -342,7 +342,7 @@ namespace MoonscraperChartEditor.Song.IO
             var gameMode = MoonSong.InstrumentToChartGameMode(processParams.instrument);
             if (gameMode != MoonChart.GameMode.Guitar)
             {
-                YargLogger.LogFormatDebug("Attempted to apply guitar enhanced opens process map to non-guitar instrument: {0}", processParams.instrument);
+                YargLogger.LogFormatWarning("Attempted to apply guitar enhanced opens process map to non-guitar instrument: {0}", processParams.instrument);
                 return;
             }
 
@@ -542,7 +542,7 @@ namespace MoonscraperChartEditor.Song.IO
 
                         if (noteEvent.Velocity < 100)
                         {
-                            YargLogger.LogFormatDebug("Encountered Pro Guitar note with invalid fret velocity {0}! Must be at least 100", noteEvent.Velocity);
+                            YargLogger.LogFormatWarning("Encountered Pro Guitar note with invalid fret velocity {0}! Must be at least 100", noteEvent.Velocity);
                             return;
                         }
 
@@ -764,8 +764,7 @@ namespace MoonscraperChartEditor.Song.IO
                 {
                     if (eventProcessParams.trackDifficulty is null)
                     {
-                        YargLogger.Assert(eventProcessParams.trackDifficulty is not null,
-                            "`trackDifficulty` cannot be null when processing pro-keys");
+                        YargLogger.Fail("`trackDifficulty` cannot be null when processing Pro Keys!");
                         return;
                     }
 
