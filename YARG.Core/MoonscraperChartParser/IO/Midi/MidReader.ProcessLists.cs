@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2016-2020 Alexander Ong
+// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
 using System;
@@ -393,11 +393,27 @@ namespace MoonscraperChartEditor.Song.IO
 
             if (settings.lanePhrases)
             {
+                static void ProcessLanePhrase(ref EventProcessParams processParams, MoonPhrase.Type phraseType)
+                {
+                    if (processParams.timedEvent.midiEvent is not NoteEvent noteEvent)
+                    {
+                        YargLogger.FailFormat("Wrong note event type! Expected: {0}, Actual: {1}",
+                            typeof(NoteEvent), processParams.timedEvent.midiEvent.GetType());
+                        return;
+                    }
+
+                    ProcessNoteOnEventAsSpecialPhrase(ref processParams, phraseType, MoonSong.Difficulty.Expert);
+                    if ((int)noteEvent.Velocity is >= 41 and <= 50)
+                    {
+                        ProcessNoteOnEventAsSpecialPhrase(ref processParams, phraseType, MoonSong.Difficulty.Hard);
+                    }
+                }
+
                 processMap.Add(MidIOHelper.TREMOLO_LANE_NOTE, (ref EventProcessParams eventProcessParams) => {
-                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams, MoonPhrase.Type.TremoloLane);
+                    ProcessLanePhrase(ref eventProcessParams, MoonPhrase.Type.TremoloLane);
                 });
                 processMap.Add(MidIOHelper.TRILL_LANE_NOTE, (ref EventProcessParams eventProcessParams) => {
-                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams, MoonPhrase.Type.TrillLane);
+                    ProcessLanePhrase(ref eventProcessParams, MoonPhrase.Type.TrillLane);
                 });
             }
 
