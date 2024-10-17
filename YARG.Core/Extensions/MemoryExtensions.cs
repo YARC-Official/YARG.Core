@@ -121,8 +121,9 @@ namespace YARG.Core.Extensions
             {
                 for (int i = 1; i < buffer.Length; i++)
                 {
-                    WriteByte(destination, buffer[i], ref destIndex, ref charsWritten);
                     destination[destIndex++] = '-';
+                    charsWritten++;
+                    WriteByte(destination, buffer[i], ref destIndex, ref charsWritten);
                 }
             }
             else
