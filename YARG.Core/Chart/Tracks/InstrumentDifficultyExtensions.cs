@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace YARG.Core.Chart
 {
@@ -195,6 +195,17 @@ namespace YARG.Core.Chart
                     {
                         difficulty.Notes[index].PreviousNote = null;
                     }
+                }
+            }
+        }
+
+        public static void RemoveDynamics(this InstrumentDifficulty<DrumNote> difficulty)
+        {
+            foreach (var i in difficulty.Notes)
+            {
+                foreach (var note in i.AllNotes)
+                {
+                    note.Type = DrumNoteType.Neutral;
                 }
             }
         }

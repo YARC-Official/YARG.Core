@@ -900,7 +900,7 @@ namespace YARG.Core.Song.Cache
                 YargLogger.LogDebug($"FullDirectoryFlag flipped");
                 return FixedArray<byte>.Null;
             }
-            return FixedArray<byte>.Read(stream, info.Length - stream.Position);
+            return FixedArray<byte>.ReadRemainder(stream);
         }
 
         private void Serialize(string cacheLocation)

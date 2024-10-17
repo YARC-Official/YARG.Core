@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using Newtonsoft.Json;
 using YARG.Core.Chart;
@@ -186,6 +186,11 @@ namespace YARG.Core.Game
                     if (IsModifierActive(Modifier.NoKicks))
                     {
                         drumsTrack.RemoveKickDrumNotes();
+                    }
+
+                    if (IsModifierActive(Modifier.NoDynamics))
+                    {
+                        drumsTrack.RemoveDynamics();
                     }
 
                     break;

@@ -176,7 +176,7 @@ namespace YARG.Core.IO
 
                 int totalSpace = fileSize + _initialOffset;
                 int numBlocks = totalSpace % BYTES_PER_SECTION == 0 ? totalSpace / BYTES_PER_SECTION : totalSpace / BYTES_PER_SECTION + 1;
-                using var blockLocations = FixedArray<long>.Alloc(numBlocks * sizeof(long));
+                using var blockLocations = FixedArray<long>.Alloc(numBlocks);
 
                 int blockMovement = BLOCKS_PER_SECTION - blockOffset;
                 int byteMovement = blockMovement * BYTES_PER_BLOCK;
@@ -216,7 +216,7 @@ namespace YARG.Core.IO
             else
             {
                 int numBlocks = fileSize % BYTES_PER_BLOCK == 0 ? fileSize / BYTES_PER_BLOCK : fileSize / BYTES_PER_BLOCK + 1;
-                using var blockLocations = FixedArray<long>.Alloc(numBlocks * sizeof(long));
+                using var blockLocations = FixedArray<long>.Alloc(numBlocks);
 
                 Span<byte> buffer = stackalloc byte[3];
                 _initialOffset = 0;

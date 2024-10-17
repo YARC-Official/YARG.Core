@@ -56,11 +56,12 @@ namespace YARG.Core.IO
 
             const int UTF16BOM_OFFSET = 2;
             FixedArray<char> buffer;
+            long length = (data.Length - UTF16BOM_OFFSET) / sizeof(char);
             if ((data[0] == 0xFF) != BitConverter.IsLittleEndian)
             {
                 // We have to swap the endian of the data so string conversion works properly
                 // but we can't just use the original buffer as we create a hash off it.
-                buffer = FixedArray<char>.Alloc(data.Length - UTF16BOM_OFFSET);
+                buffer = FixedArray<char>.Alloc(length);
                 for (int i = 0, j = UTF16BOM_OFFSET; i < buffer.Length; ++i, j += sizeof(char))
                 {
                     buffer.Ptr[i] = (char) (data.Ptr[j] << 8 | data.Ptr[j + 1]);
@@ -68,7 +69,7 @@ namespace YARG.Core.IO
             }
             else
             {
-                buffer = data.Cast<char>(UTF16BOM_OFFSET, data.Length - UTF16BOM_OFFSET);
+                buffer = FixedArray<char>.Cast(in data, UTF16BOM_OFFSET, length);
             }
             container = new YARGTextContainer<char>(in buffer, data[0] == 0xFF ? Encoding.Unicode : Encoding.BigEndianUnicode);
             SkipPureWhitespace(ref container);
@@ -79,11 +80,12 @@ namespace YARG.Core.IO
         {
             const int UTF32BOM_OFFSET = 3;
             FixedArray<int> buffer;
+            long length = (data.Length - UTF32BOM_OFFSET) / sizeof(int);
             if ((data[0] == 0xFF) != BitConverter.IsLittleEndian)
             {
                 // We have to swap the endian of the data so string conversion works properly
                 // but we can't just use the original buffer as we create a hash off it.
-                buffer = FixedArray<int>.Alloc(data.Length - UTF32BOM_OFFSET);
+                buffer = FixedArray<int>.Alloc(length);
                 for (int i = 0, j = UTF32BOM_OFFSET; i < buffer.Length; ++i, j += sizeof(int))
                 {
                     buffer.Ptr[i] = data.Ptr[j] << 24 |
@@ -94,7 +96,7 @@ namespace YARG.Core.IO
             }
             else
             {
-                buffer = data.Cast<int>(UTF32BOM_OFFSET, data.Length - UTF32BOM_OFFSET);
+                buffer = FixedArray<int>.Cast(in data, UTF32BOM_OFFSET, length);
             }
             container = new YARGTextContainer<int>(in buffer, data[0] == 0xFF ? Encoding.UTF32 : UTF32BE);
             SkipPureWhitespace(ref container);
