@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using Newtonsoft.Json;
 using YARG.Core.Chart;
@@ -40,6 +40,7 @@ namespace YARG.Core.Game
         public Guid ThemePreset;
         public Guid ColorProfile;
         public Guid CameraPreset;
+        public Guid HighwayPreset;
 
         /// <summary>
         /// The selected instrument.
@@ -86,6 +87,7 @@ namespace YARG.Core.Game
             // Set preset IDs to default
             ColorProfile = Game.ColorProfile.Default.Id;
             CameraPreset = Game.CameraPreset.Default.Id;
+            HighwayPreset = Game.HighwayPreset.Default.Id;
 
             CurrentModifiers = Modifier.None;
         }
@@ -106,6 +108,7 @@ namespace YARG.Core.Game
             ThemePreset = stream.ReadGuid();
             ColorProfile = stream.ReadGuid();
             CameraPreset = stream.ReadGuid();
+            HighwayPreset = stream.ReadGuid();
 
             CurrentInstrument = (Instrument) stream.ReadByte();
             CurrentDifficulty = (Difficulty) stream.ReadByte();
@@ -116,7 +119,7 @@ namespace YARG.Core.Game
             HighwayLength = stream.Read<float>(Endianness.Little);
             LeftyFlip = stream.ReadBoolean();
 
-            GameMode = CurrentInstrument.ToGameMode();
+            GameMode = CurrentInstrument.ToGameMode();        
         }
 
         public void AddSingleModifier(Modifier modifier)
@@ -228,6 +231,7 @@ namespace YARG.Core.Game
             writer.Write(ThemePreset);
             writer.Write(ColorProfile);
             writer.Write(CameraPreset);
+            writer.Write(HighwayPreset);
 
             writer.Write((byte) CurrentInstrument);
             writer.Write((byte) CurrentDifficulty);
