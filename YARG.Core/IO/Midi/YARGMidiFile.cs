@@ -13,9 +13,9 @@ namespace YARG.Core.IO
         private static readonly FourCC TRACK_TAG = new('M', 'T', 'r', 'k');
 
         private readonly Stream _stream;
-        private readonly ushort _format;
-        private readonly ushort _numTracks;
-        private readonly ushort _tickRate;
+        public readonly ushort Format;
+        public readonly ushort NumTracks;
+        public readonly ushort Resolution;
 
         private ushort _trackNumber = 0;
         public ushort TrackNumber => _trackNumber;
@@ -32,20 +32,22 @@ namespace YARG.Core.IO
                 throw new Exception("Midi Header not of sufficient length");
 
             long next = stream.Position + length;
-            _format = stream.Read<ushort>(Endianness.Big);
-            _numTracks = stream.Read<ushort>(Endianness.Big);
-            _tickRate = stream.Read<ushort>(Endianness.Big);
+            Format = stream.Read<ushort>(Endianness.Big);
+            NumTracks = stream.Read<ushort>(Endianness.Big);
+            Resolution = stream.Read<ushort>(Endianness.Big);
             stream.Position = next;
         }
 
         public YARGMidiTrack? LoadNextTrack()
         {
-            if (_trackNumber == _numTracks || _stream.Position == _stream.Length)
+            if (_trackNumber == NumTracks || _stream.Position == _stream.Length)
                 return null;
 
             _trackNumber++;
             if (!TRACK_TAG.Matches(_stream))
+            {
                 throw new Exception($"Midi Track Tag 'MTrk' not found for Track '{_trackNumber}'");
+            }
 
             try
             {

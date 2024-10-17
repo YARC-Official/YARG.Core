@@ -1,6 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
+using System.IO;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.Song
 {
@@ -41,5 +41,76 @@ namespace YARG.Core.Song
 
         public RBAudio<int> Indices;
         public RBAudio<float> Panning;
+
+        public RBMetadata(UnmanagedMemoryStream stream)
+        {
+            AnimTempo = stream.Read<uint>(Endianness.Little);
+            SongID = stream.ReadString();
+            VocalPercussionBank = stream.ReadString();
+            VocalSongScrollSpeed = stream.Read<uint>(Endianness.Little);
+            VocalGender = stream.ReadBoolean();
+            VocalTonicNote = stream.Read<uint>(Endianness.Little);
+            SongTonality = stream.ReadBoolean();
+            TuningOffsetCents = stream.Read<int>(Endianness.Little);
+            VenueVersion = stream.Read<uint>(Endianness.Little);
+            DrumBank = stream.ReadString();
+
+            RealGuitarTuning = RBAudio<int>.ReadArray(stream);
+            RealBassTuning = RBAudio<int>.ReadArray(stream);
+
+            Indices = new RBAudio<int>(stream);
+            Panning = new RBAudio<float>(stream);
+
+            Soloes = ReadStringArray(stream);
+            VideoVenues = ReadStringArray(stream);
+        }
+
+        public readonly void Serialize(MemoryStream stream)
+        {
+            stream.Write(AnimTempo, Endianness.Little);
+            stream.Write(SongID);
+            stream.Write(VocalPercussionBank);
+            stream.Write(VocalSongScrollSpeed, Endianness.Little);
+            stream.Write(VocalGender);
+            stream.Write(VocalTonicNote, Endianness.Little);
+            stream.Write(SongTonality);
+            stream.Write(TuningOffsetCents, Endianness.Little);
+            stream.Write(VenueVersion, Endianness.Little);
+            stream.Write(DrumBank);
+
+            RBAudio<int>.WriteArray(in RealGuitarTuning, stream);
+            RBAudio<int>.WriteArray(in RealBassTuning, stream);
+
+            Indices.Serialize(stream);
+            Panning.Serialize(stream);
+
+            stream.Write(Soloes.Length, Endianness.Little);
+            for (int i = 0; i < Soloes.Length; ++i)
+            {
+                stream.Write(Soloes[i]);
+            }
+
+            stream.Write(VideoVenues.Length, Endianness.Little);
+            for (int i = 0; i < VideoVenues.Length; ++i)
+            {
+                stream.Write(VideoVenues[i]);
+            }
+        }
+
+        private static string[] ReadStringArray(UnmanagedMemoryStream stream)
+        {
+            int length = stream.Read<int>(Endianness.Little);
+            if (length == 0)
+            {
+                return Array.Empty<string>();
+            }
+
+            var strings = new string[length];
+            for (int i = 0; i < length; ++i)
+            {
+                strings[i] = stream.ReadString();
+            }
+            return strings;
+        }
     }
 }

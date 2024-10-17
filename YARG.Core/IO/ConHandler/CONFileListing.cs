@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Diagnostics;
 using System.IO;
-using System.Text;
 using YARG.Core.Extensions;
 
 namespace YARG.Core.IO
@@ -15,8 +13,6 @@ namespace YARG.Core.IO
 
     public sealed class CONFileListing
     {
-        
-
         private readonly int _shift;
 
         public readonly AbridgedFileInfo ConFile;
@@ -28,7 +24,7 @@ namespace YARG.Core.IO
         public readonly int Size;
         public readonly DateTime LastWrite;
 
-        public CONFileListing(AbridgedFileInfo conFile, string name, short pathIndex, CONFileListingFlag flags, int shift, ReadOnlySpan<byte> data)
+        public unsafe CONFileListing(AbridgedFileInfo conFile, string name, short pathIndex, int shift, byte* data)
         {
             _shift = shift;
 
@@ -36,7 +32,7 @@ namespace YARG.Core.IO
             Filename = name;
             PathIndex = pathIndex;
 
-            Flags = flags;
+            Flags = (CONFileListingFlag) data[0x28];
             NumBlocks = data[0x2B] << 16 | data[0x2A] << 8 | data[0x29];
             FirstBlock = data[0x31] << 16 | data[0x30] << 8 | data[0x2F];
             Size = data[0x34] << 24 | data[0x35] << 16 | data[0x36] << 8 | data[0x37];

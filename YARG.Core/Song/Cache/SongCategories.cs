@@ -1,7 +1,7 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.Song.Cache
 {
@@ -74,7 +74,7 @@ namespace YARG.Core.Song.Cache
         public EntryComparer Comparer => _COMPARER;
         public DateTime GetKey(SongEntry entry)
         {
-            return entry.GetAddTime().Date;
+            return entry.GetAddDate();
         }
     }
 
@@ -190,7 +190,7 @@ namespace YARG.Core.Song.Cache
 
     public static class CategoryWriter
     {
-        public static void WriteToCache<TKey>(BinaryWriter fileWriter, SortedDictionary<TKey, List<SongEntry>> sections, SongAttribute attribute, ref Dictionary<SongEntry, CategoryCacheWriteNode> nodes)
+        public static void WriteToCache<TKey>(FileStream filestream, SortedDictionary<TKey, List<SongEntry>> sections, SongAttribute attribute, ref Dictionary<SongEntry, CategoryCacheWriteNode> nodes)
         {
             List<string> strings = new();
             foreach (var element in sections)
@@ -238,13 +238,14 @@ namespace YARG.Core.Song.Cache
             }
 
             using MemoryStream ms = new();
-            using BinaryWriter writer = new(ms);
-            writer.Write(strings.Count);
+            ms.Write(strings.Count, Endianness.Little);
             foreach (string str in strings)
-                writer.Write(str);
+            {
+                ms.Write(str);
+            }
 
-            fileWriter.Write((int) ms.Length);
-            ms.WriteTo(fileWriter.BaseStream);
+            filestream.Write((int) ms.Length, Endianness.Little);
+            filestream.Write(ms.GetBuffer(), 0, (int)ms.Length);
         }
     }
 }

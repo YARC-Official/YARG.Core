@@ -20,8 +20,6 @@ public class DrumEngineTester
 
     private string? _chartsDirectory;
 
-    private readonly ParseSettings _settings = ParseSettings.Default;
-
     [SetUp]
     public void Setup()
     {
@@ -37,7 +35,7 @@ public class DrumEngineTester
     {
         var chartPath = Path.Combine(_chartsDirectory!, "drawntotheflame.mid");
         var midi = MidiFile.Read(chartPath);
-        var chart = SongChart.FromMidi(_settings, midi);
+        var chart = SongChart.FromMidi(in ParseSettings.Default_Midi, midi);
         var notes = chart.ProDrums.GetDifficulty(Difficulty.Expert);
 
         var engine = new YargDrumsEngine(notes, chart.SyncTrack, _engineParams, true);
@@ -56,7 +54,7 @@ public class DrumEngineTester
     {
         var chartPath = Path.Combine(_chartsDirectory!, "drawntotheflame.mid");
         var midi = MidiFile.Read(chartPath);
-        var chart = SongChart.FromMidi(_settings, midi);
+        var chart = SongChart.FromMidi(in ParseSettings.Default_Midi, midi);
         var notes = chart.ProDrums.GetDifficulty(Difficulty.Expert);
 
         notes.RemoveKickDrumNotes();

@@ -10,7 +10,7 @@ namespace YARG.Core.Song
 
         public static unsafe bool Parse(YARGMidiTrack track)
         {
-            var statuses = stackalloc bool[NOTES_IN_DIFFICULTY];
+            int statusBitMask = 0;
             var note = default(MidiNote);
             while (track.ParseEvent())
             {
@@ -19,11 +19,12 @@ namespace YARG.Core.Song
                     track.ExtractMidiNote(ref note);
                     if (PROKEYS_MIN <= note.value && note.value <= PROKEYS_MAX)
                     {
+                        int statusMask = 1 << (note.value - PROKEYS_MIN);
                         if (track.Type == MidiEventType.Note_On && note.velocity > 0)
                         {
-                            statuses[note.value - PROKEYS_MIN] = true;
+                            statusBitMask |= statusMask;
                         }
-                        else if (statuses[note.value - PROKEYS_MIN])
+                        else if ((statusBitMask & statusMask) > 0)
                         {
                             return true;
                         }

@@ -1,49 +1,36 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using YARG.Core.Extensions;
 using YARG.Core.IO;
 
 namespace YARG.Core.Song.Cache
 {
-    public interface IUpgradeGroup : IModificationGroup
+    public sealed class UpgradeGroup : IModificationGroup
     {
-        public Dictionary<string, RBProUpgrade> Upgrades { get; }
-    }
+        public readonly string Directory;
+        public readonly DateTime DTALastWrite;
+        public readonly Dictionary<string, (YARGTextContainer<byte> Container, UnpackedRBProUpgrade Upgrade)> Upgrades;
+        public readonly FixedArray<byte> DTAData;
 
-    public sealed class UpgradeGroup : IUpgradeGroup, IDisposable
-    {
-        private readonly string _directory;
-        private readonly DateTime _dtaLastUpdate;
-        private readonly FixedArray<byte> _dtaData;
-
-        public Dictionary<string, RBProUpgrade> Upgrades { get; } = new();
-
-        public UpgradeGroup(string directory, DateTime dtaLastUpdate, in FixedArray<byte> dtaData)
+        public UpgradeGroup(string directory, DateTime lastWrite, in FixedArray<byte> data, Dictionary<string, (YARGTextContainer<byte> Node, UnpackedRBProUpgrade Upgrade)> upgrades)
         {
-            _directory = directory;
-            _dtaLastUpdate = dtaLastUpdate;
-            _dtaData = dtaData;
+            Directory = directory;
+            DTALastWrite = lastWrite;
+            Upgrades = upgrades;
+            DTAData = data;
         }
 
-        public ReadOnlyMemory<byte> SerializeModifications()
+        public void SerializeModifications(MemoryStream stream)
         {
-            using MemoryStream ms = new();
-            using BinaryWriter writer = new(ms);
-
-            writer.Write(_directory);
-            writer.Write(_dtaLastUpdate.ToBinary());
-            writer.Write(Upgrades.Count);
-            foreach (var upgrade in Upgrades)
+            stream.Write(Directory);
+            stream.Write(DTALastWrite.ToBinary(), Endianness.Little);
+            stream.Write(Upgrades.Count, Endianness.Little);
+            foreach (var node in Upgrades)
             {
-                writer.Write(upgrade.Key);
-                upgrade.Value.WriteToCache(writer);
+                stream.Write(node.Key);
+                node.Value.Upgrade.WriteToCache(stream);
             }
-            return new ReadOnlyMemory<byte>(ms.GetBuffer(), 0, (int)ms.Length);
-        }
-
-        public void Dispose()
-        {
-            _dtaData.Dispose();
         }
     }
 }

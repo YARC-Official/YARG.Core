@@ -63,11 +63,11 @@ namespace YARG.Core.IO
         private const int BYTES_16BIT = 2;
         private static readonly byte[] SNGPKG = { (byte)'S', (byte) 'N', (byte) 'G', (byte)'P', (byte)'K', (byte)'G' };
 
-        public static SngFile? TryLoadFromFile(AbridgedFileInfo file)
+        public static SngFile? TryLoadFromFile(in AbridgedFileInfo file)
         {
             try
             {
-                using var filestream = File.OpenRead(file.FullName);
+                using var filestream = new FileStream(file.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
                 using var yargSongStream = YARGSongFileStream.TryLoad(filestream);
                 if (yargSongStream != null)
                 {

@@ -2,7 +2,6 @@
 using System.IO;
 using System.Threading.Tasks;
 using YARG.Core.Extensions;
-using YARG.Core.IO;
 
 namespace YARG.Core.Song.Cache
 {

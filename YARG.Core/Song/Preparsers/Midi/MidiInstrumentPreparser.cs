@@ -1,6 +1,4 @@
-﻿using YARG.Core.IO;
-
-namespace YARG.Core.Song
+﻿namespace YARG.Core.Song
 {
     public static class MidiPreparser_Constants
     {
