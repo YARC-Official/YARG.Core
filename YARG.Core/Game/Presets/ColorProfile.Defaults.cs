@@ -182,23 +182,11 @@ namespace YARG.Core.Game
             }
         };
 
-        public static ColorProfile BoringDefault = new ("Boring", true)
-        {
-            Common = new CommonColors
-            {
-                StarPowerColor = DefaultBackgroundLayer1,
-                BackgroundGrooveBaseColor1 = DefaultBackgroundLayer1,
-                BackgroundGrooveBaseColor2 = DefaultBackgroundLayer2,
-                BackgroundGroovePatternColor = DefaultBackgroundLayer4
-            },
-        };
-
         public static readonly List<ColorProfile> Defaults = new()
         {
             Default,
             CircularDefault,
-            AprilFoolsDefault,
-            BoringDefault
+            AprilFoolsDefault
         };
     }
 }
