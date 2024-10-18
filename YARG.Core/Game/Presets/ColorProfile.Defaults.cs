@@ -15,9 +15,6 @@ namespace YARG.Core.Game
         private static readonly Color DefaultOrange = Color.FromArgb(0xFF, 0xFF, 0x84, 0x00); // #FF8400
 
         private static readonly Color DefaultStarpower = Color.White; // #FFFFFF
-        private static readonly Color DefaultBackgroundLayer1 = Color.FromArgb(0xFF, 0x0F, 0x0F, 0x0F);
-        private static readonly Color DefaultBackgroundLayer2 = Color.FromArgb(0x0E, 0x4B, 0x4B, 0x4B);
-        private static readonly Color DefaultBackgroundLayer4 = Color.FromArgb(0xFF, 0x57, 0x57, 0x57);
 
         #endregion
 

@@ -33,7 +33,6 @@ namespace YARG.Core.Game
         [SettingSubSection]
         public ProKeysColors ProKeys;
 
-
         public ColorProfile(string name, bool defaultPreset = false) : base(name, defaultPreset)
         {
             FiveFretGuitar = new FiveFretGuitarColors();

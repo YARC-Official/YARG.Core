@@ -119,7 +119,7 @@ namespace YARG.Core.Game
             HighwayLength = stream.Read<float>(Endianness.Little);
             LeftyFlip = stream.ReadBoolean();
 
-            GameMode = CurrentInstrument.ToGameMode();        
+            GameMode = CurrentInstrument.ToGameMode();
         }
 
         public void AddSingleModifier(Modifier modifier)
