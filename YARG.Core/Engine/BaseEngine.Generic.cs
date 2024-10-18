@@ -36,7 +36,7 @@ namespace YARG.Core.Engine
 
         public delegate void SustainEndEvent(TNoteType note, double timeEnded, bool finished);
 
-        public delegate void CountdownChangeEvent(int measuresLeft, double countdownLength, double endTime);
+        public delegate void CountdownChangeEvent(double countdownLength, double endTime);
 
         public NoteHitEvent?    OnNoteHit;
         public NoteMissedEvent? OnNoteMissed;
@@ -274,28 +274,26 @@ namespace YARG.Core.Engine
 
                 if (time >= currentCountdown.Time)
                 {
-                    if (!IsWaitCountdownActive && time < currentCountdown.DeactivateTime)
+                    if (time < currentCountdown.DeactivateTime)
                     {
-                        // Entered new countdown window
-                        IsWaitCountdownActive = true;
-                        YargLogger.LogFormatTrace("Countdown {0} activated at time {1}. Expected time: {2}", CurrentWaitCountdownIndex, time, currentCountdown.Time);
+                        // This countdown should be displayed onscreen
+                        if (!IsWaitCountdownActive)
+                        {
+                            // Entered new countdown window
+                            IsWaitCountdownActive = true;
+                            YargLogger.LogFormatTrace("Countdown {0} activated at time {1}. Expected time: {2}", CurrentWaitCountdownIndex, time, currentCountdown.Time);
+                        }
+
+                        UpdateCountdown(currentCountdown.TimeLength, currentCountdown.TimeEnd);
                     }
-
-                    if (time <= currentCountdown.DeactivateTime + WaitCountdown.FADE_ANIM_LENGTH)
+                    else
                     {
-                        // This countdown is currently displayed onscreen
-                        int newMeasuresLeft = currentCountdown.CalculateMeasuresLeft(CurrentTick);
-
-                        if (IsWaitCountdownActive && !currentCountdown.IsActive)
+                        if (IsWaitCountdownActive)
                         {
                             IsWaitCountdownActive = false;
                             YargLogger.LogFormatTrace("Countdown {0} deactivated at time {1}. Expected time: {2}", CurrentWaitCountdownIndex, time, currentCountdown.DeactivateTime);
                         }
 
-                        UpdateCountdown(newMeasuresLeft, currentCountdown.TimeLength, currentCountdown.TimeEnd);
-                    }
-                    else
-                    {
                         CurrentWaitCountdownIndex++;
                     }
                 }
@@ -762,9 +760,9 @@ namespace YARG.Core.Engine
             }
         }
 
-        protected void UpdateCountdown(int measuresLeft, double countdownLength, double endTime)
+        protected void UpdateCountdown(double countdownLength, double endTime)
         {
-            OnCountdownChange?.Invoke(measuresLeft, countdownLength, endTime);
+            OnCountdownChange?.Invoke(countdownLength, endTime);
         }
 
         public sealed override (double FrontEnd, double BackEnd) CalculateHitWindow()
@@ -913,83 +911,29 @@ namespace YARG.Core.Engine
 
         protected void GetWaitCountdowns(List<TNoteType> notes)
         {
-            var allMeasureBeatLines = SyncTrack.Beatlines.Where(x => x.Type == BeatlineType.Measure).ToList();
-
             WaitCountdowns = new List<WaitCountdown>();
             for (int i = 0; i < notes.Count; i++)
             {
                 // Compare the note at the current index against the previous note
-                // Create a countdown if the distance between the notes is > 10s
-                Note<TNoteType> noteOne;
-
-                uint noteOneTickEnd = 0;
                 double noteOneTimeEnd = 0;
+                uint noteOneTickEnd = 0;
 
                 if (i > 0) {
-                    noteOne = notes[i-1];
-                    noteOneTickEnd = noteOne.TickEnd;
+                    Note<TNoteType> noteOne = notes[i-1];
                     noteOneTimeEnd = noteOne.TimeEnd;
+                    noteOneTickEnd = noteOne.TickEnd;
                 }
 
                 Note<TNoteType> noteTwo = notes[i];
-                double noteTwoTime = noteTwo.Time;
 
-                if (noteTwoTime - noteOneTimeEnd >= WaitCountdown.MIN_SECONDS)
+                if (noteTwo.Time - noteOneTimeEnd >= WaitCountdown.MIN_SECONDS)
                 {
-                    uint noteTwoTick = noteTwo.Tick;
+                    // Distance between these two notes is over the threshold
+                    // Create a WaitCountdown instance to reference at runtime
+                    var newCountdown = new WaitCountdown(noteOneTimeEnd, noteTwo.Time - noteOneTimeEnd, noteOneTickEnd, noteTwo.Tick - noteOneTickEnd);
 
-                    // Determine the total number of measures that will pass during this countdown
-                    List<Beatline> beatlinesThisCountdown = new();
-
-                    // Countdown should start at end of the first note if it's directly on a measure line
-                    // Otherwise it should start at the beginning of the next measure
-
-                    // Increasing measure index if there's no more measures causes an exception
-                    // Temporary fix by adding a check for the last measure
-                    // Affects 1/1 time signatures
-                    int curMeasureIndex = allMeasureBeatLines.GetIndexOfPrevious(noteOneTickEnd);
-                    if (allMeasureBeatLines[curMeasureIndex].Tick < noteOneTickEnd
-                        && curMeasureIndex + 1 < allMeasureBeatLines.Count)
-                    {
-                        curMeasureIndex++;
-                    }
-
-                    var curMeasureline = allMeasureBeatLines[curMeasureIndex];
-                    while (curMeasureline.Tick <= noteTwoTick)
-                    {
-                        // Skip counting on measures that are too close together
-                        if (beatlinesThisCountdown.Count == 0 ||
-                            curMeasureline.Time - beatlinesThisCountdown.Last().Time >= WaitCountdown.MIN_MEASURE_LENGTH)
-                        {
-                            beatlinesThisCountdown.Add(curMeasureline);
-                        }
-
-                        curMeasureIndex++;
-
-                        if (curMeasureIndex >= allMeasureBeatLines.Count)
-                        {
-                            break;
-                        }
-
-                        curMeasureline = allMeasureBeatLines[curMeasureIndex];
-                    }
-
-                    // Prevent showing countdowns < 4 measures at low BPMs
-                    int countdownTotalMeasures = beatlinesThisCountdown.Count;
-                    if (countdownTotalMeasures >= WaitCountdown.MIN_MEASURES)
-                    {
-                        // Create a WaitCountdown instance to reference at runtime
-                        var newCountdown = new WaitCountdown(beatlinesThisCountdown);
-
-                        WaitCountdowns.Add(newCountdown);
-                        YargLogger.LogFormatTrace("Created a WaitCountdown at time {0} of {1} measures and {2} seconds in length",
-                                                 newCountdown.Time, countdownTotalMeasures, beatlinesThisCountdown[^1].Time - noteOneTimeEnd);
-                    }
-                    else
-                    {
-                        YargLogger.LogFormatTrace("Did not create a WaitCountdown at time {0} of {1} seconds in length because it was only {2} measures long",
-                                                 noteOneTimeEnd, beatlinesThisCountdown[^1].Time - noteOneTimeEnd, countdownTotalMeasures);
-                    }
+                    WaitCountdowns.Add(newCountdown);
+                    YargLogger.LogFormatTrace("Created a WaitCountdown at time {0} of {1} seconds in length", newCountdown.Time, newCountdown.TimeLength);
                 }
             }
         }
