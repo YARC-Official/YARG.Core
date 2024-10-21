@@ -109,17 +109,19 @@ namespace MoonscraperChartEditor.Song.IO
 
             // Apply settings
             song.hopoThreshold = settings.HopoThreshold > ParseSettings.SETTING_DEFAULT
-                ? (uint)settings.HopoThreshold 
-                : (song.resolution / 3);
+                // +1 for a small bit of leniency
+                ? (uint)settings.HopoThreshold + 1 
+                : (song.resolution / 3) + 1;
 
             if (settings.SustainCutoffThreshold <= ParseSettings.SETTING_DEFAULT)
             {
-                settings.SustainCutoffThreshold = song.resolution / 3;
+                settings.SustainCutoffThreshold = (song.resolution / 3) + 1;
             }
-
-            // +1 for a small bit of leniency
-            song.hopoThreshold++;
-            settings.SustainCutoffThreshold++;
+            else if (settings.SustainCutoffThreshold == 0)
+            {
+                // Limit minimum cutoff to 1 tick, non - sustain notes created by charting programs are 1 tick
+                settings.SustainCutoffThreshold = 1;
+            }
 
             // Read all bpm data in first. This will also allow song.TimeToTick to function properly.
             ReadSync(midi.GetTempoMap(), song);
