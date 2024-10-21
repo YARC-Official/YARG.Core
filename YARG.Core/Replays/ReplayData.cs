@@ -13,7 +13,6 @@ namespace YARG.Core.Replays
         private const int PRESETS_VERSION = 0;
         private readonly Dictionary<Guid, ColorProfile> _colorProfiles;
         private readonly Dictionary<Guid, CameraPreset> _cameraPresets;
-        private readonly Dictionary<Guid, HighwayPreset> _highwayPresets;
         public readonly ReplayFrame[] Frames;
 
         public int PlayerCount => Frames.Length;
@@ -22,7 +21,6 @@ namespace YARG.Core.Replays
         {
             _colorProfiles = colors;
             _cameraPresets = cameras;
-            _highwayPresets = highways;
             Frames = frames;
         }
 
@@ -31,7 +29,6 @@ namespace YARG.Core.Replays
             int _ = stream.Read<int>(Endianness.Little);
             _colorProfiles = DeserializeDict<ColorProfile>(stream);
             _cameraPresets = DeserializeDict<CameraPreset>(stream);
-            _highwayPresets = DeserializeDict<HighwayPreset>(stream);
 
             int count = stream.Read<int>(Endianness.Little);
             Frames = new ReplayFrame[count];
@@ -50,7 +47,6 @@ namespace YARG.Core.Replays
             writer.Write(PRESETS_VERSION);
             SerializeDict(writer, _colorProfiles);
             SerializeDict(writer, _cameraPresets);
-            SerializeDict(writer, _highwayPresets);
 
             writer.Write(Frames.Length);
             foreach (var frame in Frames)
@@ -75,15 +71,6 @@ namespace YARG.Core.Replays
         public CameraPreset? GetCameraPreset(Guid guid)
         {
             _cameraPresets.TryGetValue(guid, out var preset);
-            return preset;
-        }
-
-        /// <returns>
-        /// The highway preset if it's in this container, otherwise, <c>null</c>.
-        /// </returns>
-        public HighwayPreset? GetHighwayPreset(Guid guid)
-        {
-            _highwayPresets.TryGetValue(guid, out var preset);
             return preset;
         }
 
