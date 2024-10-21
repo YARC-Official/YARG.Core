@@ -17,7 +17,7 @@ namespace YARG.Core.Replays
 
         public int PlayerCount => Frames.Length;
 
-        public ReplayData(Dictionary<Guid, ColorProfile> colors, Dictionary<Guid, CameraPreset> cameras, Dictionary<Guid, HighwayPreset> highways, ReplayFrame[] frames)
+        public ReplayData(Dictionary<Guid, ColorProfile> colors, Dictionary<Guid, CameraPreset> cameras, ReplayFrame[] frames)
         {
             _colorProfiles = colors;
             _cameraPresets = cameras;
