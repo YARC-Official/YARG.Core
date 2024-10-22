@@ -1,19 +1,26 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.Song.Cache
 {
-    public sealed class IniGroup : ICacheGroup<IniSubEntry>
+    public sealed class IniGroup : ICacheGroup
     {
         public readonly string Directory;
         public readonly Dictionary<HashWrapper, List<IniSubEntry>> entries = new();
 
-        public readonly object iniLock = new();
-        private int _count;
-
-        public string Location => Directory;
-        public int Count => _count;
+        public int Count
+        {
+            get
+            {
+                int count = 0;
+                foreach (var node in entries.Values)
+                {
+                    count += node.Count;
+                }
+                return count;
+            }
+        }
 
         public IniGroup(string directory)
         {
@@ -24,13 +31,12 @@ namespace YARG.Core.Song.Cache
         {
             var hash = entry.Hash;
             List<IniSubEntry> list;
-            lock (iniLock)
+            lock (entries)
             {
                 if (!entries.TryGetValue(hash, out list))
                 {
                     entries.Add(hash, list = new List<IniSubEntry>());
                 }
-                ++_count;
             }
 
             lock (list)
@@ -51,30 +57,38 @@ namespace YARG.Core.Song.Cache
                     {
                         entries.Remove(entryToRemove.Hash);
                     }
-                    --_count;
                     return true;
                 }
             }
             return false;
         }
 
-        public ReadOnlyMemory<byte> SerializeEntries(Dictionary<SongEntry, CategoryCacheWriteNode> nodes)
+        public void SerializeEntries(MemoryStream groupStream, Dictionary<SongEntry, CategoryCacheWriteNode> nodes)
         {
-            using MemoryStream ms = new();
-            using BinaryWriter writer = new(ms);
+            groupStream.Write(Directory);
+            groupStream.Write(Count, Endianness.Little);
 
-            writer.Write(Location);
-            writer.Write(_count);
+            using MemoryStream entryStream = new();
             foreach (var shared in entries)
             {
                 foreach (var entry in shared.Value)
                 {
-                    var buffer = entry.Serialize(nodes[entry], Location);
-                    writer.Write(buffer.Length);
-                    writer.Write(buffer);
+                    entryStream.SetLength(0);
+
+                    // Validation block
+                    entryStream.Write(entry.SubType == EntryType.Sng);
+                    string relativePath = Path.GetRelativePath(Directory, entry.Location);
+                    if (relativePath == ".")
+                    {
+                        relativePath = string.Empty;
+                    }
+                    entryStream.Write(relativePath);
+                    entry.Serialize(entryStream, nodes[entry]);
+
+                    groupStream.Write((int) entryStream.Length, Endianness.Little);
+                    groupStream.Write(entryStream.GetBuffer(), 0, (int) entryStream.Length);
                 }
             }
-            return new ReadOnlyMemory<byte>(ms.GetBuffer(), 0, (int) ms.Length);
         }
     }
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2020 Alexander Ong
+﻿// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
 using System.Collections.Generic;
@@ -282,11 +282,6 @@ namespace MoonscraperChartEditor.Song.IO
             }
 
             return false;
-        }
-
-        public static float GetHopoThreshold(ParseSettings settings, float resolution)
-        {
-            return settings.GetHopoThreshold(resolution) + 1; // +1 for a small bit of leniency
         }
     }
 }

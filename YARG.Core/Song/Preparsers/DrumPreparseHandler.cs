@@ -90,16 +90,12 @@ namespace YARG.Core.Song.Preparsers
             const int MAX_NUMPADS = 7;
             const int DRUMNOTE_MAX = 101;
             const int DOUBLE_KICK_NOTE = 95;
-            const int EXPERT_INDEX = 3;
-            const int EXPERT_PLUS_INDEX = 4;
-            const int DOUBLE_KICK_OFFSET = EXPERT_INDEX * MAX_NUMPADS + 1;
+            const int DOUBLE_KICK_MASK = 1 << (3 * MAX_NUMPADS + 1);
             const int FIVE_LANE_INDEX = 6;
             const int YELLOW_FLAG = 110;
             const int GREEN_FLAG = 112;
 
-            // +1 for Expert+
-            var difficulties = stackalloc bool[MidiPreparser_Constants.NUM_DIFFICULTIES + 1];
-            var statuses = stackalloc bool[MidiPreparser_Constants.NUM_DIFFICULTIES * MAX_NUMPADS];
+            int statusBitMask = 0;
             var note = default(MidiNote);
             while (track.ParseEvent())
             {
@@ -112,7 +108,7 @@ namespace YARG.Core.Song.Preparsers
                 // Must be checked first as it still resides in the normal note range window
                 if (note.value == DOUBLE_KICK_NOTE)
                 {
-                    if (difficulties[EXPERT_PLUS_INDEX])
+                    if ((_validations & DifficultyMask.ExpertPlus) > 0)
                     {
                         continue;
                     }
@@ -120,22 +116,21 @@ namespace YARG.Core.Song.Preparsers
                     // Note Ons with no velocity equates to a note Off by spec
                     if (track.Type == MidiEventType.Note_On && note.velocity > 0)
                     {
-                        statuses[DOUBLE_KICK_OFFSET] = true;
+                        statusBitMask |= DOUBLE_KICK_MASK;
                     }
                     // NoteOff here
-                    else if (statuses[DOUBLE_KICK_OFFSET])
+                    else if ((statusBitMask & DOUBLE_KICK_MASK) > 0)
                     {
                         _validations |= DifficultyMask.Expert | DifficultyMask.ExpertPlus;
-                        difficulties[EXPERT_INDEX] = true;
-                        difficulties[EXPERT_PLUS_INDEX] = true;
                     }
                 }
                 else if (MidiPreparser_Constants.DEFAULT_NOTE_MIN <= note.value && note.value <= DRUMNOTE_MAX)
                 {
                     int noteOffset = note.value - MidiPreparser_Constants.DEFAULT_NOTE_MIN;
                     int diffIndex = MidiPreparser_Constants.DIFF_INDICES[noteOffset];
+                    var diffMask = (DifficultyMask) (1 << (diffIndex + 1));
                     //                             Necessary to account for potential five lane
-                    if (difficulties[diffIndex] && Type != DrumsType.Unknown && Type != DrumsType.UnknownPro)
+                    if ((_validations & diffMask) > 0 && Type != DrumsType.Unknown && Type != DrumsType.UnknownPro)
                     {
                         continue;
                     }
@@ -148,20 +143,20 @@ namespace YARG.Core.Song.Preparsers
                         continue;
                     }
 
+                    int statusMask = 1 << (diffIndex * MAX_NUMPADS + laneIndex);
                     // Note Ons with no velocity equates to a note Off by spec
                     if (track.Type == MidiEventType.Note_On && note.velocity > 0)
                     {
-                        statuses[diffIndex * MAX_NUMPADS + laneIndex] = true;
+                        statusBitMask |= statusMask;
                         if (laneIndex == FIVE_LANE_INDEX)
                         {
                             Type = DrumsType.FiveLane;
                         }
                     }
                     // NoteOff here
-                    else if (statuses[diffIndex * MAX_NUMPADS + laneIndex])
+                    else if ((statusBitMask & statusMask) > 0)
                     {
-                        _validations |= (DifficultyMask) (1 << (diffIndex + 1));
-                        difficulties[diffIndex] = true;
+                        _validations |= diffMask;
                     }
                 }
                 else if (YELLOW_FLAG <= note.value && note.value <= GREEN_FLAG && Type != DrumsType.FiveLane)

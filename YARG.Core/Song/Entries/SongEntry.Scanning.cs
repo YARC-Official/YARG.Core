@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
+﻿using System.Text;
 using YARG.Core.Chart;
 using YARG.Core.IO;
 using YARG.Core.Song.Preparsers;
@@ -10,9 +7,14 @@ namespace YARG.Core.Song
 {
     public abstract partial class SongEntry
     {
-        protected static bool ParseMidi(in FixedArray<byte> file, DrumPreparseHandler drums, ref AvailableParts parts)
+        protected static (ScanResult Result, long Resolution) ParseMidi(in FixedArray<byte> file, DrumPreparseHandler drums, ref AvailableParts parts)
         {
             var midiFile = new YARGMidiFile(file.ToStream());
+            if (midiFile.Resolution == 0)
+            {
+                return (ScanResult.InvalidResolution, 0);
+            }
+
             bool harm2 = false;
             bool harm3 = false;
             foreach (var track in midiFile)
@@ -22,10 +24,14 @@ namespace YARG.Core.Song
 
                 var trackname = track.FindTrackName(Encoding.ASCII);
                 if (trackname == null)
-                    return false;
+                {
+                    return (ScanResult.MultipleMidiTrackNames, 0);
+                }
 
                 if (!YARGMidiTrack.TRACKNAMES.TryGetValue(trackname, out var type))
+                {
                     continue;
+                }
 
                 switch (type)
                 {
@@ -73,18 +79,22 @@ namespace YARG.Core.Song
                     parts.HarmonyVocals.SetSubtrack(2);
                 }
             }
-            return true;
+            return (ScanResult.Success, midiFile.Resolution);
         }
 
         protected static void SetDrums(ref AvailableParts parts, DrumPreparseHandler drumTracker)
         {
             if (drumTracker.Type == DrumsType.FiveLane)
+            {
                 parts.FiveLaneDrums.Difficulties = drumTracker.ValidatedDiffs;
+            }
             else
             {
                 parts.FourLaneDrums.Difficulties = drumTracker.ValidatedDiffs;
                 if (drumTracker.Type == DrumsType.ProDrums)
+                {
                     parts.ProDrums.Difficulties = drumTracker.ValidatedDiffs;
+                }
             }
         }
 
