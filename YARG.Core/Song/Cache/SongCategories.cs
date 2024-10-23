@@ -35,7 +35,7 @@ namespace YARG.Core.Song.Cache
         public EntryComparer Comparer => _COMPARER;
         public string GetKey(SongEntry entry)
         {
-            return entry.YearAsNumber != int.MaxValue ? entry.Year[..3] + "0s" : entry.Year;
+            return entry.YearAsNumber != int.MaxValue ? entry.Year.Remove(entry.Year.Length - 1) + "0s" : entry.Year;
         }
     }
 
