@@ -71,7 +71,7 @@ namespace YARG.Core.Song
             }
             RBMetadata = new RBMetadata(stream);
 
-            Year = YearAsNumber != int.MaxValue ? YearAsNumber.ToString() : Metadata.Year;
+            Year = YearAsNumber != int.MaxValue ? YearAsNumber.ToString("D4") : Metadata.Year;
         }
 
         public override void Serialize(MemoryStream stream, CategoryCacheWriteNode node)
@@ -304,7 +304,7 @@ namespace YARG.Core.Song
                 if (entry.YearAsNumber != null)
                 {
                     info.YearAsNumber = entry.YearAsNumber.Value;
-                    info.Metadata.Year = info.YearAsNumber.ToString();
+                    info.Metadata.Year = info.YearAsNumber.ToString("D4");
                 }
                 if (entry.Source != null) { info.Metadata.Source = entry.Source; }
                 if (entry.Playlist != null) { info.Metadata.Playlist = entry.Playlist; }
