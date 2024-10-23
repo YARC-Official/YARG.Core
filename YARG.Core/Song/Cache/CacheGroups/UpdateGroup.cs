@@ -6,87 +6,68 @@ using YARG.Core.IO;
 
 namespace YARG.Core.Song.Cache
 {
-    public sealed class UpdateGroup : IModificationGroup, IDisposable
+    public sealed class UpdateGroup : IModificationGroup
     {
-        public readonly DirectoryInfo Directory;
+        public readonly string Directory;
         public readonly DateTime DTALastWrite;
         public readonly Dictionary<string, SongUpdate> Updates = new();
+        public readonly FixedArray<byte> DTAData;
 
-        private readonly FixedArray<byte> _dtaData;
-
-        public UpdateGroup(DirectoryInfo directory, DateTime dtaLastUpdate, in FixedArray<byte> dtaData)
+        public UpdateGroup(string directory, DateTime lastWrite, FixedArray<byte> data, Dictionary<string, SongUpdate> updates)
         {
+            DTAData = data;
             Directory = directory;
-            DTALastWrite = dtaLastUpdate;
-            _dtaData = dtaData;
+            DTALastWrite = lastWrite;
+            Updates = updates;
         }
 
-        public ReadOnlyMemory<byte> SerializeModifications()
+        public void SerializeModifications(MemoryStream stream)
         {
-            using MemoryStream ms = new();
-            using BinaryWriter writer = new(ms);
-
-            writer.Write(Directory.FullName);
-            writer.Write(DTALastWrite.ToBinary());
-            writer.Write(Updates.Count);
+            stream.Write(Directory);
+            stream.Write(DTALastWrite.ToBinary(), Endianness.Little);
+            stream.Write(Updates.Count, Endianness.Little);
             foreach (var (name, update) in Updates)
             {
-                writer.Write(name);
-                update.Serialize(writer);
+                stream.Write(name);
+                update.Serialize(stream);
             }
-            return new ReadOnlyMemory<byte>(ms.GetBuffer(), 0, (int)ms.Length);
-        }
-
-        public void Dispose()
-        {
-            _dtaData.Dispose();
         }
     }
 
     public class SongUpdate
     {
-        private readonly List<YARGTextContainer<byte>> _containers;
-
-        public readonly string BaseDirectory;
+        public readonly List<YARGTextContainer<byte>> Containers;
         public readonly AbridgedFileInfo? Midi;
         public readonly AbridgedFileInfo? Mogg;
         public readonly AbridgedFileInfo? Milo;
         public readonly AbridgedFileInfo? Image;
 
-        public YARGTextContainer<byte>[] Containers => _containers.ToArray();
-
-        internal SongUpdate(string directory, AbridgedFileInfo? midi, AbridgedFileInfo? mogg, AbridgedFileInfo? milo, AbridgedFileInfo? image)
+        internal SongUpdate(in AbridgedFileInfo? midi, in AbridgedFileInfo? mogg, in AbridgedFileInfo? milo, in AbridgedFileInfo? image)
         {
-            _containers = new();
-            BaseDirectory = directory;
+            Containers = new();
             Midi = midi;
             Mogg = mogg;
             Milo = milo;
             Image = image;
         }
 
-        public void Add(in YARGTextContainer<byte> container)
+        public void Serialize(MemoryStream stream)
         {
-            _containers.Add(container);
-        }
+            WriteInfo(Midi, stream);
+            WriteInfo(Mogg, stream);
+            WriteInfo(Milo, stream);
+            WriteInfo(Image, stream);
 
-        public void Serialize(BinaryWriter writer)
-        {
-            WriteInfo(Midi, writer);
-            WriteInfo(Mogg, writer);
-            WriteInfo(Milo, writer);
-            WriteInfo(Image, writer);
-
-            static void WriteInfo(in AbridgedFileInfo? info, BinaryWriter writer)
+            static void WriteInfo(in AbridgedFileInfo? info, MemoryStream stream)
             {
                 if (info != null)
                 {
-                    writer.Write(true);
-                    writer.Write(info.Value.LastUpdatedTime.ToBinary());
+                    stream.Write(true);
+                    stream.Write(info.Value.LastUpdatedTime.ToBinary(), Endianness.Little);
                 }
                 else
                 {
-                    writer.Write(false);
+                    stream.Write(false);
                 }
             }
         }
@@ -117,19 +98,13 @@ namespace YARG.Core.Song.Cache
 
             static bool CheckInfo(in AbridgedFileInfo? info, UnmanagedMemoryStream stream)
             {
-                if (stream.ReadBoolean())
+                if (!stream.ReadBoolean())
                 {
-                    var lastWrite = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
-                    if (info == null || info.Value.LastUpdatedTime != lastWrite)
-                    {
-                        return false;
-                    }
+                    return info == null;
                 }
-                else if (info != null)
-                {
-                    return false;
-                }
-                return true;
+
+                var lastWrite = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
+                return info != null && info.Value.LastUpdatedTime == lastWrite;
             }
         }
 

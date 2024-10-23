@@ -85,7 +85,7 @@ namespace MoonscraperChartEditor.Song.IO
         {
             soloNote = MidIOHelper.SOLO_NOTE_PRO_KEYS,
             versusPhrases = false,
-            lanePhrases = true,
+            // lanePhrases = true, // Handled manually due to per-difficulty tracks
         };
 
         // These dictionaries map the text of a MIDI text event to a specific function that processes them
@@ -342,7 +342,7 @@ namespace MoonscraperChartEditor.Song.IO
             var gameMode = MoonSong.InstrumentToChartGameMode(processParams.instrument);
             if (gameMode != MoonChart.GameMode.Guitar)
             {
-                YargLogger.LogFormatDebug("Attempted to apply guitar enhanced opens process map to non-guitar instrument: {0}", processParams.instrument);
+                YargLogger.LogFormatWarning("Attempted to apply guitar enhanced opens process map to non-guitar instrument: {0}", processParams.instrument);
                 return;
             }
 
@@ -393,11 +393,27 @@ namespace MoonscraperChartEditor.Song.IO
 
             if (settings.lanePhrases)
             {
+                static void ProcessLanePhrase(ref EventProcessParams processParams, MoonPhrase.Type phraseType)
+                {
+                    if (processParams.timedEvent.midiEvent is not NoteEvent noteEvent)
+                    {
+                        YargLogger.FailFormat("Wrong note event type! Expected: {0}, Actual: {1}",
+                            typeof(NoteEvent), processParams.timedEvent.midiEvent.GetType());
+                        return;
+                    }
+
+                    ProcessNoteOnEventAsSpecialPhrase(ref processParams, phraseType, MoonSong.Difficulty.Expert);
+                    if ((int)noteEvent.Velocity is >= 41 and <= 50)
+                    {
+                        ProcessNoteOnEventAsSpecialPhrase(ref processParams, phraseType, MoonSong.Difficulty.Hard);
+                    }
+                }
+
                 processMap.Add(MidIOHelper.TREMOLO_LANE_NOTE, (ref EventProcessParams eventProcessParams) => {
-                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams, MoonPhrase.Type.TremoloLane);
+                    ProcessLanePhrase(ref eventProcessParams, MoonPhrase.Type.TremoloLane);
                 });
                 processMap.Add(MidIOHelper.TRILL_LANE_NOTE, (ref EventProcessParams eventProcessParams) => {
-                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams, MoonPhrase.Type.TrillLane);
+                    ProcessLanePhrase(ref eventProcessParams, MoonPhrase.Type.TrillLane);
                 });
             }
 
@@ -542,7 +558,7 @@ namespace MoonscraperChartEditor.Song.IO
 
                         if (noteEvent.Velocity < 100)
                         {
-                            YargLogger.LogFormatDebug("Encountered Pro Guitar note with invalid fret velocity {0}! Must be at least 100", noteEvent.Velocity);
+                            YargLogger.LogFormatWarning("Encountered Pro Guitar note with invalid fret velocity {0}! Must be at least 100", noteEvent.Velocity);
                             return;
                         }
 
@@ -754,6 +770,10 @@ namespace MoonscraperChartEditor.Song.IO
                     ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams,
                         MoonPhrase.Type.ProKeys_Glissando, eventProcessParams.trackDifficulty)
                 },
+                { MidIOHelper.TRILL_LANE_NOTE, (ref EventProcessParams eventProcessParams) =>
+                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams,
+                        MoonPhrase.Type.TrillLane, eventProcessParams.trackDifficulty)
+                },
             };
 
             for (int key = MidIOHelper.PRO_KEYS_RANGE_START; key <= MidIOHelper.PRO_KEYS_RANGE_END; key++)
@@ -764,8 +784,7 @@ namespace MoonscraperChartEditor.Song.IO
                 {
                     if (eventProcessParams.trackDifficulty is null)
                     {
-                        YargLogger.Assert(eventProcessParams.trackDifficulty is not null,
-                            "`trackDifficulty` cannot be null when processing pro-keys");
+                        YargLogger.Fail("`trackDifficulty` cannot be null when processing Pro Keys!");
                         return;
                     }
 

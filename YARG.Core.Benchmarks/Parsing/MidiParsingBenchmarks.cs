@@ -9,8 +9,6 @@ namespace YARG.Core.Benchmarks
     // [SimpleJob(RunStrategy.ColdStart, targetCount: 25, invocationCount: 1)]
     public class MidiParsingBenchmarks
     {
-
-        private ParseSettings settings = ParseSettings.Default;
         private MidiFile midi;
 
         [GlobalSetup]
@@ -26,7 +24,7 @@ namespace YARG.Core.Benchmarks
         [Benchmark]
         public SongChart ChartParsing()
         {
-            return SongChart.FromMidi(settings, midi);
+            return SongChart.FromMidi(in ParseSettings.Default_Midi, midi);
         }
     }
 }

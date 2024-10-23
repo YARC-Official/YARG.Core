@@ -1,7 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Text;
+using YARG.Core.Extensions;
 using YARG.Core.IO;
 
 namespace YARG.Core.Song
@@ -9,7 +8,7 @@ namespace YARG.Core.Song
     public abstract class RBProUpgrade
     {
         public abstract DateTime LastUpdatedTime { get; }
-        public abstract void WriteToCache(BinaryWriter writer);
+        public abstract void WriteToCache(MemoryStream stream);
         public abstract Stream? GetUpgradeMidiStream();
         public abstract FixedArray<byte> LoadUpgradeMidi();
     }
@@ -28,9 +27,9 @@ namespace YARG.Core.Song
             _lastUpdatedTime = listing?.LastWrite ?? lastWrite;
         }
 
-        public override void WriteToCache(BinaryWriter writer)
+        public override void WriteToCache(MemoryStream stream)
         {
-            writer.Write(_lastUpdatedTime.ToBinary());
+            stream.Write(_lastUpdatedTime.ToBinary(), Endianness.Little);
         }
 
         public override Stream? GetUpgradeMidiStream()
@@ -63,9 +62,9 @@ namespace YARG.Core.Song
             _midi = info;
         }
 
-        public override void WriteToCache(BinaryWriter writer)
+        public override void WriteToCache(MemoryStream stream)
         {
-            writer.Write(_midi.LastUpdatedTime.ToBinary());
+            stream.Write(_midi.LastUpdatedTime.ToBinary(), Endianness.Little);
         }
 
         public override Stream? GetUpgradeMidiStream()

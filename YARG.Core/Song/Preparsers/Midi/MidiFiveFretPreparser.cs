@@ -25,8 +25,7 @@ namespace YARG.Core.Song
         {
             ReadOnlySpan<byte> SYSEXTAG = stackalloc byte[] { (byte) 'P', (byte) 'S', (byte) '\0', };
             var validations = default(DifficultyMask);
-            var difficulties = stackalloc bool[MidiPreparser_Constants.NUM_DIFFICULTIES];
-            var statuses = stackalloc bool[MidiPreparser_Constants.NUM_DIFFICULTIES * NUM_LANES];
+            int statusBitMask = 0;
 
             // Zero is reserved for open notes. Open notes apply in two situations:
             // 1. The 13s will swap to zeroes when the ENHANCED_OPENS toggle occurs
@@ -55,21 +54,22 @@ namespace YARG.Core.Song
                     int noteOffset = note.value - FIVEFRET_MIN;
                     int diffIndex = MidiPreparser_Constants.DIFF_INDICES[noteOffset];
                     int laneIndex = indices[noteOffset];
-                    if (difficulties[diffIndex] || laneIndex >= NUM_LANES)
+                    var diffMask = (DifficultyMask) (1 << (diffIndex + 1));
+                    if ((validations & diffMask) > 0 || laneIndex >= NUM_LANES)
                     {
                         continue;
                     }
 
+                    int statusMask = 1 << (diffIndex * NUM_LANES + laneIndex);
                     // Note Ons with no velocity equates to a note Off by spec
                     if (track.Type == MidiEventType.Note_On && note.velocity > 0)
                     {
-                        statuses[diffIndex * NUM_LANES + laneIndex] = true;
+                        statusBitMask |= statusMask;
                     }
                     // Note off here
-                    else if (statuses[diffIndex * NUM_LANES + laneIndex])
+                    else if ((statusBitMask & statusMask) > 0)
                     {
-                        validations |= (DifficultyMask) (1 << (diffIndex + 1));
-                        difficulties[diffIndex] = true;
+                        validations |= diffMask;
                         if (validations == MidiPreparser_Constants.ALL_DIFFICULTIES)
                         {
                             break;

@@ -55,10 +55,10 @@ namespace YARG.Core.IO
             LastUpdatedTime = lastUpdatedTime;
         }
 
-        public void Serialize(BinaryWriter writer)
+        public void Serialize(MemoryStream stream)
         {
-            writer.Write(FullName);
-            writer.Write(LastUpdatedTime.ToBinary());
+            stream.Write(FullName);
+            stream.Write(LastUpdatedTime.ToBinary(), Endianness.Little);
         }
 
         public bool Exists()

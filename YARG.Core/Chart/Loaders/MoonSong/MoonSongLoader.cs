@@ -30,11 +30,8 @@ namespace YARG.Core.Chart
         private MoonSong.MoonInstrument _currentMoonInstrument;
         private MoonSong.Difficulty _currentMoonDifficulty;
 
-        public MoonSongLoader(MoonSong song, ParseSettings settings)
+        public MoonSongLoader(MoonSong song, in ParseSettings settings)
         {
-            if (settings.NoteSnapThreshold < 0)
-                settings.NoteSnapThreshold = 0;
-
             _moonSong = song;
             _settings = settings;
         }
@@ -333,7 +330,7 @@ namespace YARG.Core.Chart
             if (phrase.length == 0)
                 return songObj.tick == phrase.tick;
 
-            return songObj.tick >= phrase.tick && songObj.tick < (phrase.tick + phrase.length);
+            return phrase.tick <= songObj.tick && songObj.tick < (phrase.tick + phrase.length);
         }
 
         private static bool IsNoteClosestToEndOfPhrase(MoonSong song, MoonNote note, MoonPhrase phrase)
@@ -366,7 +363,7 @@ namespace YARG.Core.Chart
                     if (previousNote is null)
                     {
                         // This is the first note in the chart, check by distance
-                        float tickThreshold = song.resolution / 3; // 1/12th note
+                        uint tickThreshold = song.resolution / 3; // 1/12th note
                         return Math.Abs((int) note.tick - endTick) < tickThreshold;
                     }
                     else if (note.tick >= endTick && previousNote.tick < endTick)

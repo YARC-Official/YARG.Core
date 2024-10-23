@@ -1,9 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
-using YARG.Core.Extensions;
-using YARG.Core.IO;
 
 namespace YARG.Core.Song
 {

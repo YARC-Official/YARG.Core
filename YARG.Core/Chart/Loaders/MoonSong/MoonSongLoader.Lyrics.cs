@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using MoonscraperChartEditor.Song;
@@ -69,7 +69,7 @@ namespace YARG.Core.Chart
         public LyricsTrack LoadLyrics()
         {
             var converter = new LyricConverter(_moonSong);
-            var maxTick = _moonSong.Charts.Max(x => x.events.LastOrDefault()?.tick + (uint)_moonSong.resolution ?? 0);
+            var maxTick = _moonSong.Charts.Max(x => x.events.LastOrDefault()?.tick + _moonSong.resolution ?? 0);
             TextEvents.ConvertToPhrases(_moonSong.events, converter, maxTick);
             return new LyricsTrack(converter.Phrases);
         }
