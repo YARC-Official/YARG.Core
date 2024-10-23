@@ -92,19 +92,17 @@ namespace YARG.Core.Song
         protected IniSubEntry(UnmanagedMemoryStream stream, CategoryCacheStrings strings)
             : base(stream, strings)
         {
-            YearAsNumber = stream.Read<int>(Endianness.Little);
+            (Year, YearAsNumber) = ParseYear(Metadata.Year);
+
             Background = stream.ReadString();
             Video = stream.ReadString();
             Cover = stream.ReadString();
             LoopVideo = stream.ReadBoolean();
-
-            Year = YearAsNumber != int.MaxValue ? YearAsNumber.ToString() : Metadata.Year;
         }
 
         public override void Serialize(MemoryStream stream, CategoryCacheWriteNode node)
         {
             base.Serialize(stream, node);
-            stream.Write(YearAsNumber, Endianness.Little);
             stream.Write(Background);
             stream.Write(Video);
             stream.Write(Cover);
