@@ -296,7 +296,11 @@ namespace YARG.Core.Song
                 mixer.Dispose();
                 return null;
             }
-            YargLogger.LogFormatInfo("Loaded {0} stems", mixer.Channels.Count);
+
+            if (GlobalAudioHandler.LogMixerStatus)
+            {
+                YargLogger.LogFormatInfo("Loaded {0} stems", mixer.Channels.Count);
+            }
             return mixer;
         }
 
