@@ -104,6 +104,8 @@ namespace YARG.Core.Song
         protected static readonly string YARGROUND_FULLNAME = "bg.yarground";
         protected static readonly Random BACKROUND_RNG = new();
 
+        public const int MINIMUM_YEAR_DIGITS = 4;
+
         public readonly SongMetadata Metadata;
         public readonly AvailableParts Parts;
         public readonly HashWrapper Hash;

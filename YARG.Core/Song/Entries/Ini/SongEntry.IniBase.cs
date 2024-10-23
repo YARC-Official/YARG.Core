@@ -221,28 +221,27 @@ namespace YARG.Core.Song
             return (ScanResult.Success, parts, settings);
         }
 
-        private static (string Parsed, int AsNumber) ParseYear(in string baseString)
+        private static (string Parsed, int AsNumber) ParseYear(string str)
         {
-            string parsedString = baseString;
-            int number = int.MaxValue;
-            for (int i = 0; i <= baseString.Length - 4; ++i)
+            for (int start = 0; start <= str.Length - MINIMUM_YEAR_DIGITS; ++start)
             {
-                int pivot = i;
-                int tmpNumber = 0;
-                while (i < pivot + 4 && i < baseString.Length && char.IsDigit(baseString[i]))
+                int curr = start;
+                int number = 0;
+                while (curr < str.Length && char.IsDigit(str[curr]))
                 {
-                    tmpNumber = 10 * tmpNumber + baseString[i] - '0';
-                    ++i;
+                    unchecked
+                    {
+                        number = 10 * number + str[curr] - '0';
+                    }
+                    ++curr;
                 }
 
-                if (i == pivot + 4)
+                if (curr >= start + MINIMUM_YEAR_DIGITS)
                 {
-                    parsedString = baseString[pivot..i];
-                    number = tmpNumber;
-                    break;
+                    return (str[start..curr], number);
                 }
             }
-            return (parsedString, number);
+            return (str, int.MaxValue);
         }
 
         protected static bool TryGetRandomBackgroundImage<TEnumerable, TValue>(TEnumerable collection, out TValue? value)
