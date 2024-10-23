@@ -89,7 +89,7 @@ namespace YARG.Core.Song
                 SustainCutoffThreshold = Settings.SustainCutoffThreshold,
                 StarPowerNote = Settings.OverdiveMidiNote,
                 DrumsType = ParseDrumsType(in Parts),
-                ChordHopoCancellation = _chartFormat == ChartFormat.Chart
+                ChordHopoCancellation = _chartFormat != ChartFormat.Chart
             };
 
             using var stream = new FileStream(_chartFile.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
