@@ -13,6 +13,7 @@ using YARG.Core.Engine.Vocals;
 using YARG.Core.Engine.Vocals.Engines;
 using YARG.Core.Game;
 using YARG.Core.Logging;
+using Cysharp.Text;
 
 namespace YARG.Core.Replays.Analyzer
 {
@@ -328,54 +329,272 @@ namespace YARG.Core.Replays.Analyzer
             return times;
         }
 
+        // ReSharper disable CompareOfFloatsByEqualityOperator
+
         private static bool IsPassResult(BaseStats original, BaseStats result)
         {
-            YargLogger.LogFormatDebug("Score: {0} == {1}\nHit: {2} == {3}\nMissed: {4} == {5}\nCombo: {6} == {7}\nMaxCombo: {8} == {9}\n",
-                original.CommittedScore, result.CommittedScore,
-                original.NotesHit, result.NotesHit,
-                original.NotesMissed, result.NotesMissed,
-                original.Combo, result.Combo,
-                original.MaxCombo, result.MaxCombo);
-
-            YargLogger.LogFormatDebug("Solo: {0} == {1}\nSP Bonus: {2} == {3}\nSP Phrases: {4} == {5}\n" +
-                "Time In SP: {6} == {7}\nSP Ticks: {8} == {9}",
-                original.SoloBonuses, result.SoloBonuses,
-                original.StarPowerScore, result.StarPowerScore,
-                original.StarPowerPhrasesHit, result.StarPowerPhrasesHit,
-                original.TimeInStarPower, result.TimeInStarPower,
-                original.TotalStarPowerTicks, result.TotalStarPowerTicks);
-
-            bool instrumentPass = true;
-
-            if(original is GuitarStats originalGuitar && result is GuitarStats resultGuitar)
+            // For easier maintenance/reading, manually check log level and
+            // use a string builder instead of LogFormat methods
+            if (YargLogger.MinimumLogLevel <= LogLevel.Debug)
             {
-                instrumentPass = originalGuitar.Overstrums == resultGuitar.Overstrums &&
-                    originalGuitar.GhostInputs == resultGuitar.GhostInputs &&
-                    originalGuitar.HoposStrummed == resultGuitar.HoposStrummed &&
-                    originalGuitar.StarPowerWhammyTicks == resultGuitar.StarPowerWhammyTicks;
+                using var builder = new Utf16ValueStringBuilder(true);
 
-                YargLogger.LogFormatDebug(
-                    "Guitar:\nOverstrums: {0} == {1}\nGhost Inputs: {2} == {3}\nHOPOs Strummed: {4} == {5}\n" +
-                    "Whammy Ticks: {6} == {7}\nSustain Points: {8} == {9}",
-                    originalGuitar.Overstrums, resultGuitar.Overstrums,
-                    originalGuitar.GhostInputs, resultGuitar.GhostInputs,
-                    originalGuitar.HoposStrummed, resultGuitar.HoposStrummed);
+                // This helper is copied to the instrument-specific methods
+                // because passing a `using` variable by reference is disallowed,
+                // and working around that is annoying
+                void FormatStat<T>(string stat, T originalValue, T resultValue)
+                    where T : IEquatable<T>
+                {
+                    string format = originalValue.Equals(resultValue)
+                        ? "- {0}: {1} == {2}\n"
+                        : "- {0}: {1} != {2}\n";
+                    builder.AppendFormat(format, stat, originalValue, resultValue);
+                }
+
+                // Commented stats aren't serialized
+
+                builder.AppendLine("Scoring:");
+                FormatStat("Committed score", original.CommittedScore, result.CommittedScore);
+                FormatStat("Pending score", original.PendingScore, result.PendingScore);
+                FormatStat("Score from notes", original.NoteScore, result.NoteScore);
+                FormatStat("Score from sustains", original.SustainScore, result.SustainScore);
+                FormatStat("Score from multipliers", original.MultiplierScore, result.MultiplierScore);
+                FormatStat("Score from solos", original.SoloBonuses, result.SoloBonuses);
+                FormatStat("Score from SP", original.StarPowerScore, result.StarPowerScore);
+                // FormatStat("Stars", original.Stars, result.Stars);
+                YargLogger.LogDebug(builder.ToString());
+                builder.Clear();
+
+                builder.AppendLine("Performance:");
+                FormatStat("Notes hit", original.NotesHit, result.NotesHit);
+                FormatStat("Notes missed", original.NotesMissed, result.NotesMissed);
+                FormatStat("Combo", original.Combo, result.Combo);
+                FormatStat("Max combo", original.MaxCombo, result.MaxCombo);
+                FormatStat("Multiplier", original.ScoreMultiplier, result.ScoreMultiplier);
+                FormatStat("Hit percent", original.Percent, result.Percent);
+                YargLogger.LogDebug(builder.ToString());
+                builder.Clear();
+
+                builder.AppendLine("Star Power:");
+                FormatStat("Phrases hit", original.StarPowerPhrasesHit, result.StarPowerPhrasesHit);
+                FormatStat("Phrases missed", original.StarPowerPhrasesMissed, result.StarPowerPhrasesMissed);
+                FormatStat("Total ticks earned", original.TotalStarPowerTicks, result.TotalStarPowerTicks);
+                FormatStat("Remaining ticks", original.StarPowerTickAmount, result.StarPowerTickAmount);
+                FormatStat("Ticks from whammy", original.StarPowerWhammyTicks, result.StarPowerWhammyTicks);
+                FormatStat("Time in SP", original.TimeInStarPower, result.TimeInStarPower);
+                // FormatStat("Activation count", original.StarPowerActivationCount, result.StarPowerActivationCount);
+                // FormatStat("Total bars filled", original.TotalStarPowerBarsFilled, result.TotalStarPowerBarsFilled);
+                FormatStat("Ended with SP active", original.IsStarPowerActive, result.IsStarPowerActive);
+                YargLogger.LogDebug(builder.ToString());
             }
 
-            bool generalPass = original.CommittedScore == result.CommittedScore &&
+            bool scoringPass =
+                original.CommittedScore == result.CommittedScore &&
+                original.PendingScore == result.PendingScore &&
+                original.NoteScore == result.NoteScore &&
+                original.SustainScore == result.SustainScore &&
+                original.MultiplierScore == result.MultiplierScore &&
+                original.SoloBonuses == result.SoloBonuses &&
+                original.StarPowerScore == result.StarPowerScore; // &&
+                // original.Stars == result.Stars;
+
+            bool performancePass =
                 original.NotesHit == result.NotesHit &&
                 original.SustainScore == result.SustainScore &&
                 original.NotesMissed == result.NotesMissed &&
                 original.Combo == result.Combo &&
                 original.MaxCombo == result.MaxCombo &&
-                original.SoloBonuses == result.SoloBonuses &&
-                original.StarPowerScore == result.StarPowerScore &&
+                original.ScoreMultiplier == result.ScoreMultiplier &&
+                original.Percent == result.Percent;
+
+            bool spPass =
                 original.StarPowerPhrasesHit == result.StarPowerPhrasesHit &&
-                // ReSharper disable once CompareOfFloatsByEqualityOperator
+                original.StarPowerPhrasesMissed == result.StarPowerPhrasesMissed &&
+                original.IsStarPowerActive == result.IsStarPowerActive &&
+                original.StarPowerTickAmount == result.StarPowerTickAmount &&
+                original.StarPowerWhammyTicks == result.StarPowerWhammyTicks &&
                 original.TimeInStarPower == result.TimeInStarPower &&
-                original.TotalStarPowerTicks == result.TotalStarPowerTicks;
+                // original.StarPowerActivationCount == result.StarPowerActivationCount &&
+                // original.TotalStarPowerBarsFilled == result.TotalStarPowerBarsFilled &&
+                original.IsStarPowerActive == result.IsStarPowerActive;
+
+            bool generalPass = scoringPass && performancePass && spPass;
+
+            bool instrumentPass;
+            switch (original, result)
+            {
+                case (GuitarStats guitar1, GuitarStats guitar2):
+                    instrumentPass = IsInstrumentPassResult(guitar1, guitar2);
+                    break;
+
+                case (DrumsStats drums1, DrumsStats drums2):
+                    instrumentPass = IsInstrumentPassResult(drums1, drums2);
+                    break;
+
+                case (VocalsStats vox1, VocalsStats vox2):
+                    instrumentPass = IsInstrumentPassResult(vox1, vox2);
+                    break;
+
+                // case (ProGuitarStats pg1, ProGuitarStats pg2):
+                //     instrumentPass = IsInstrumentPassResult(pg1, pg2);
+                //     break;
+
+                case (ProKeysStats pk1, ProKeysStats pk2):
+                    instrumentPass = IsInstrumentPassResult(pk1, pk2);
+                    break;
+
+                default:
+                    YargLogger.Assert(original.GetType() == result.GetType());
+                    YargLogger.LogFormatDebug("Instrument-specific validation not yet implemented for {0}", original.GetType());
+                    instrumentPass = true;
+                    break;
+            }
 
             return generalPass && instrumentPass;
         }
+
+        private static bool IsInstrumentPassResult(GuitarStats original, GuitarStats result)
+        {
+            if (YargLogger.MinimumLogLevel <= LogLevel.Debug)
+            {
+                using var builder = new Utf16ValueStringBuilder(true);
+
+                void FormatStat<T>(string stat, T originalValue, T resultValue)
+                    where T : IEquatable<T>
+                {
+                    string format = originalValue.Equals(resultValue)
+                        ? "- {0}: {1} == {2}\n"
+                        : "- {0}: {1} != {2}\n";
+                    builder.AppendFormat(format, stat, originalValue, resultValue);
+                }
+
+                builder.AppendLine("Guitar:");
+                FormatStat("Overstrums", original.Overstrums, result.Overstrums);
+                FormatStat("Ghost inputs", original.GhostInputs, result.GhostInputs);
+                FormatStat("HOPOs strummed", original.HoposStrummed, result.HoposStrummed);
+                YargLogger.LogDebug(builder.ToString());
+                builder.Clear();
+            }
+
+            return original.Overstrums == result.Overstrums &&
+                original.GhostInputs == result.GhostInputs &&
+                original.HoposStrummed == result.HoposStrummed;
+        }
+
+        private static bool IsInstrumentPassResult(DrumsStats original, DrumsStats result)
+        {
+            if (YargLogger.MinimumLogLevel <= LogLevel.Debug)
+            {
+                using var builder = new Utf16ValueStringBuilder(true);
+
+                void FormatStat<T>(string stat, T originalValue, T resultValue)
+                    where T : IEquatable<T>
+                {
+                    string format = originalValue.Equals(resultValue)
+                        ? "- {0}: {1} == {2}\n"
+                        : "- {0}: {1} != {2}\n";
+                    builder.AppendFormat(format, stat, originalValue, resultValue);
+                }
+
+                builder.AppendLine("Drums:");
+                FormatStat("Overhits", original.Overhits, result.Overhits);
+                FormatStat("Ghosts hit correctly", original.GhostsHit, result.GhostsHit);
+                FormatStat("Ghosts hit incorrectly",
+                    original.TotalGhosts - original.GhostsHit,
+                    result.TotalGhosts - result.GhostsHit);
+                FormatStat("Accents hit correctly", original.AccentsHit, result.AccentsHit);
+                FormatStat("Accents hit incorrectly",
+                    original.TotalAccents - original.AccentsHit,
+                    result.TotalAccents - result.AccentsHit);
+                FormatStat("Score from dynamics", original.DynamicsBonus, result.DynamicsBonus);
+                YargLogger.LogDebug(builder.ToString());
+                builder.Clear();
+            }
+
+            return original.Overhits == result.Overhits &&
+                original.GhostsHit == result.GhostsHit &&
+                original.TotalGhosts == result.TotalGhosts &&
+                original.AccentsHit == result.AccentsHit &&
+                original.TotalAccents == result.TotalAccents &&
+                original.DynamicsBonus == result.DynamicsBonus;
+        }
+
+        private static bool IsInstrumentPassResult(VocalsStats original, VocalsStats result)
+        {
+            if (YargLogger.MinimumLogLevel <= LogLevel.Debug)
+            {
+                using var builder = new Utf16ValueStringBuilder(true);
+
+                void FormatStat<T>(string stat, T originalValue, T resultValue)
+                    where T : IEquatable<T>
+                {
+                    string format = originalValue.Equals(resultValue)
+                        ? "- {0}: {1} == {2}\n"
+                        : "- {0}: {1} != {2}\n";
+                    builder.AppendFormat(format, stat, originalValue, resultValue);
+                }
+
+                builder.AppendLine("Vocals:");
+                FormatStat("Note ticks hit", original.TicksHit, result.TicksHit);
+                FormatStat("Note ticks missed", original.TicksMissed, result.TicksMissed);
+                YargLogger.LogDebug(builder.ToString());
+                builder.Clear();
+            }
+
+            return original.TicksHit == result.TicksHit &&
+                original.TicksMissed == result.TicksMissed;
+        }
+
+        // private static bool IsInstrumentPassResult(ProGuitarStats original, ProGuitarStats result)
+        // {
+        //     if (YargLogger.MinimumLogLevel <= LogLevel.Debug)
+        //     {
+        //         using var builder = new Utf16ValueStringBuilder(true);
+
+        //         void FormatStat<T>(string stat, T originalValue, T resultValue)
+        //             where T : IEquatable<T>
+        //         {
+        //             string format = originalValue.Equals(resultValue)
+        //                 ? "- {0}: {1} == {2}\n"
+        //                 : "- {0}: {1} != {2}\n";
+        //             builder.AppendFormat(format, stat, originalValue, resultValue);
+        //         }
+
+        //         builder.AppendLine("Pro Guitar:");
+        //         FormatStat("Stat", original.Stat, result.Stat);
+        //         YargLogger.LogDebug(builder.ToString());
+        //         builder.Clear();
+        //     }
+
+        //     return original.Stat == result.Stat;
+        // }
+
+        private static bool IsInstrumentPassResult(ProKeysStats original, ProKeysStats result)
+        {
+            if (YargLogger.MinimumLogLevel <= LogLevel.Debug)
+            {
+                using var builder = new Utf16ValueStringBuilder(true);
+
+                void FormatStat<T>(string stat, T originalValue, T resultValue)
+                    where T : IEquatable<T>
+                {
+                    string format = originalValue.Equals(resultValue)
+                        ? "- {0}: {1} == {2}\n"
+                        : "- {0}: {1} != {2}\n";
+                    builder.AppendFormat(format, stat, originalValue, resultValue);
+                }
+
+                builder.AppendLine("Guitar:");
+                FormatStat("Overhits", original.Overhits, result.Overhits);
+                FormatStat("Fat fingers ignored", original.FatFingersIgnored, result.FatFingersIgnored);
+                YargLogger.LogDebug(builder.ToString());
+                builder.Clear();
+            }
+
+            return original.Overhits == result.Overhits &&
+                original.FatFingersIgnored == result.FatFingersIgnored;
+        }
+
+        // ReSharper restore CompareOfFloatsByEqualityOperator
     }
 }
