@@ -383,6 +383,78 @@ namespace YARG.Core.Song
                 return (ScanResult.DTAError, info);
             }
 
+            // Some DTAs will contain incorrect index mappings that'll cause `index out of range` errors
+            try
+            {
+                unsafe
+                {
+                    var usedIndices = stackalloc bool[pans.Length];
+                    float[] CalculateStemValues(int[] indices)
+                    {
+                        float[] values = new float[2 * indices.Length];
+                        for (int i = 0; i < indices.Length; i++)
+                        {
+                            float theta = (pans[indices[i]] + 1) * ((float) Math.PI / 4);
+                            float volRatio = (float) Math.Pow(10, volumes[indices[i]] / 20);
+                            values[2 * i] = volRatio * (float) Math.Cos(theta);
+                            values[2 * i + 1] = volRatio * (float) Math.Sin(theta);
+                            usedIndices[indices[i]] = true;
+                        }
+                        return values;
+                    }
+
+                    if (info.RBMetadata.Indices.Drums.Length > 0)
+                    {
+                        info.RBMetadata.Panning.Drums = CalculateStemValues(info.RBMetadata.Indices.Drums);
+                    }
+
+                    if (info.RBMetadata.Indices.Bass.Length > 0)
+                    {
+                        info.RBMetadata.Panning.Bass = CalculateStemValues(info.RBMetadata.Indices.Bass);
+                    }
+
+                    if (info.RBMetadata.Indices.Guitar.Length > 0)
+                    {
+                        info.RBMetadata.Panning.Guitar = CalculateStemValues(info.RBMetadata.Indices.Guitar);
+                    }
+
+                    if (info.RBMetadata.Indices.Keys.Length > 0)
+                    {
+                        info.RBMetadata.Panning.Keys = CalculateStemValues(info.RBMetadata.Indices.Keys);
+                    }
+
+                    if (info.RBMetadata.Indices.Vocals.Length > 0)
+                    {
+                        info.RBMetadata.Panning.Vocals = CalculateStemValues(info.RBMetadata.Indices.Vocals);
+                    }
+
+                    if (info.RBMetadata.Indices.Crowd.Length > 0)
+                    {
+                        info.RBMetadata.Panning.Crowd = CalculateStemValues(info.RBMetadata.Indices.Crowd);
+                    }
+
+                    var leftover = new List<int>(pans.Length);
+                    for (int i = 0; i < pans.Length; i++)
+                    {
+                        if (!usedIndices[i])
+                        {
+                            leftover.Add(i);
+                        }
+                    }
+
+                    if (leftover.Count > 0)
+                    {
+                        info.RBMetadata.Indices.Track = leftover.ToArray();
+                        info.RBMetadata.Panning.Track = CalculateStemValues(info.RBMetadata.Indices.Track);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                YargLogger.LogException(ex);
+                return (ScanResult.DTAError, info);
+            }
+
             if (info.Difficulties.FourLaneDrums > -1)
             {
                 SetRank(ref info.Parts.FourLaneDrums.Intensity, info.Difficulties.FourLaneDrums, DrumDiffMap);
@@ -469,77 +541,6 @@ namespace YARG.Core.Song
             {
                 SetRank(ref info.Parts.BandDifficulty.Intensity, info.Difficulties.Band, BandDiffMap);
                 info.Parts.BandDifficulty.SubTracks = 1;
-            }
-
-            try
-            {
-                unsafe
-                {
-                    var usedIndices = stackalloc bool[pans.Length];
-                    float[] CalculateStemValues(int[] indices)
-                    {
-                        float[] values = new float[2 * indices.Length];
-                        for (int i = 0; i < indices.Length; i++)
-                        {
-                            float theta = (pans[indices[i]] + 1) * ((float) Math.PI / 4);
-                            float volRatio = (float) Math.Pow(10, volumes[indices[i]] / 20);
-                            values[2 * i] = volRatio * (float) Math.Cos(theta);
-                            values[2 * i + 1] = volRatio * (float) Math.Sin(theta);
-                            usedIndices[indices[i]] = true;
-                        }
-                        return values;
-                    }
-
-                    if (info.RBMetadata.Indices.Drums.Length > 0)
-                    {
-                        info.RBMetadata.Panning.Drums = CalculateStemValues(info.RBMetadata.Indices.Drums);
-                    }
-
-                    if (info.RBMetadata.Indices.Bass.Length > 0)
-                    {
-                        info.RBMetadata.Panning.Bass = CalculateStemValues(info.RBMetadata.Indices.Bass);
-                    }
-
-                    if (info.RBMetadata.Indices.Guitar.Length > 0)
-                    {
-                        info.RBMetadata.Panning.Guitar = CalculateStemValues(info.RBMetadata.Indices.Guitar);
-                    }
-
-                    if (info.RBMetadata.Indices.Keys.Length > 0)
-                    {
-                        info.RBMetadata.Panning.Keys = CalculateStemValues(info.RBMetadata.Indices.Keys);
-                    }
-
-                    if (info.RBMetadata.Indices.Vocals.Length > 0)
-                    {
-                        info.RBMetadata.Panning.Vocals = CalculateStemValues(info.RBMetadata.Indices.Vocals);
-                    }
-
-                    if (info.RBMetadata.Indices.Crowd.Length > 0)
-                    {
-                        info.RBMetadata.Panning.Crowd = CalculateStemValues(info.RBMetadata.Indices.Crowd);
-                    }
-
-                    var leftover = new List<int>(pans.Length);
-                    for (int i = 0; i < pans.Length; i++)
-                    {
-                        if (!usedIndices[i])
-                        {
-                            leftover.Add(i);
-                        }
-                    }
-
-                    if (leftover.Count > 0)
-                    {
-                        info.RBMetadata.Indices.Track = leftover.ToArray();
-                        info.RBMetadata.Panning.Track = CalculateStemValues(info.RBMetadata.Indices.Track);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                YargLogger.LogException(ex);
-                return (ScanResult.DTAError, info);
             }
             return (ScanResult.Success, info);
         }
