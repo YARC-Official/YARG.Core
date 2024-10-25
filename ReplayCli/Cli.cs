@@ -239,6 +239,11 @@ public partial class Cli
             {
                 Console.WriteLine("Drums stats:");
                 PrintStatDifference("Overhits",      originalDrums.Overhits,      resultDrums.Overhits);
+                PrintStatDifference("GhostsHit",     originalDrums.GhostsHit,     resultDrums.GhostsHit);
+                PrintStatDifference("TotalGhosts",   originalDrums.TotalGhosts,   resultDrums.TotalGhosts);
+                PrintStatDifference("AccentsHit",    originalDrums.AccentsHit,    resultDrums.AccentsHit);
+                PrintStatDifference("TotalAccents",  originalDrums.TotalAccents,  resultDrums.TotalAccents);
+                PrintStatDifference("DynamicsBonus", originalDrums.DynamicsBonus, resultDrums.DynamicsBonus);
                 break;
             }
             case (VocalsStats originalVocals, VocalsStats resultVocals):
@@ -253,6 +258,7 @@ public partial class Cli
             {
                 Console.WriteLine("Pro Keys stats:");
                 PrintStatDifference("Overhits",      originalKeys.Overhits,      resultKeys.Overhits);
+                PrintStatDifference("FatFingersIgnored", originalKeys.FatFingersIgnored, resultKeys.FatFingersIgnored);
                 break;
             }
             default:
