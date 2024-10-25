@@ -25,7 +25,7 @@ public partial class Cli
         // Print result data
 
         var bandScore = results.Sum(x => x.ResultStats.TotalScore);
-        if (bandScore != _replayInfo.BandScore)
+        if (results.Any(x => !x.Passed))
         {
             Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine("VERIFICATION FAILED!");
@@ -62,6 +62,18 @@ public partial class Cli
             Console.WriteLine($"Metadata score : {_replayInfo.BandScore}");
             Console.WriteLine($"Real score     : {bandScore}");
             Console.WriteLine($"Difference     : {Math.Abs(bandScore - _replayInfo.BandScore)}\n");
+
+            for (int frameIndex = 0; frameIndex < _replayData.Frames.Length; frameIndex++)
+            {
+                var frame = _replayData.Frames[frameIndex];
+                var result = results[frameIndex];
+
+                Console.WriteLine($"-------------");
+                Console.WriteLine($"Frame {frameIndex + 1}");
+                Console.WriteLine($"-------------");
+                PrintStatDifferences(frame.Stats, result.ResultStats);
+                Console.WriteLine();
+            }
             return true;
         }
     }
