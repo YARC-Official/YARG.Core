@@ -95,7 +95,17 @@ namespace YARG.Core.Engine.Drums.Engines
                         {
                             const int velocityBonus = POINTS_PER_NOTE / 2;
                             AddScore(velocityBonus);
+                            EngineStats.DynamicsBonus += velocityBonus;
                             YargLogger.LogFormatTrace("Velocity bonus of {0} points was awarded to a note at tick {1}.", velocityBonus, note.Tick);
+
+                            if(note.IsAccent)
+                            {
+                                EngineStats.AccentsHit++;
+                            }
+                            else if(note.IsGhost)
+                            {
+                                EngineStats.GhostsHit++;
+                            }
                         }
 
                         ResetPadState();
