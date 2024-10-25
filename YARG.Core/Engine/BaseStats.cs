@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using YARG.Core.Extensions;
 using YARG.Core.Replays;
 
@@ -164,6 +164,9 @@ namespace YARG.Core.Engine
         {
             CommittedScore = stats.CommittedScore;
             PendingScore = stats.PendingScore;
+            NoteScore = stats.NoteScore;
+            SustainScore = stats.SustainScore;
+            MultiplierScore = stats.MultiplierScore;
             Combo = stats.Combo;
             MaxCombo = stats.MaxCombo;
             ScoreMultiplier = stats.ScoreMultiplier;
@@ -191,6 +194,9 @@ namespace YARG.Core.Engine
         {
             CommittedScore = stream.Read<int>(Endianness.Little);
             PendingScore = stream.Read<int>(Endianness.Little);
+            NoteScore = stream.Read<int>(Endianness.Little);
+            SustainScore = stream.Read<int>(Endianness.Little);
+            MultiplierScore = stream.Read<int>(Endianness.Little);
 
             Combo = stream.Read<int>(Endianness.Little);
             MaxCombo = stream.Read<int>(Endianness.Little);
@@ -219,6 +225,9 @@ namespace YARG.Core.Engine
         {
             CommittedScore = 0;
             PendingScore = 0;
+            NoteScore = 0;
+            SustainScore = 0;
+            MultiplierScore = 0;
             Combo = 0;
             MaxCombo = 0;
             ScoreMultiplier = 1;
@@ -247,6 +256,9 @@ namespace YARG.Core.Engine
         {
             writer.Write(CommittedScore);
             writer.Write(PendingScore);
+            writer.Write(NoteScore);
+            writer.Write(SustainScore);
+            writer.Write(MultiplierScore);
 
             writer.Write(Combo);
             writer.Write(MaxCombo);

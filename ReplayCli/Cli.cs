@@ -200,6 +200,9 @@ public partial class Cli
         Console.WriteLine($"Base stats:");
         PrintStatDifference("CommittedScore",         originalStats.CommittedScore,         resultStats.CommittedScore);
         PrintStatDifference("PendingScore",           originalStats.PendingScore,           resultStats.PendingScore);
+        PrintStatDifference("NoteScore",              originalStats.NoteScore,              resultStats.NoteScore);
+        PrintStatDifference("SustainScore",           originalStats.SustainScore,           resultStats.SustainScore);
+        PrintStatDifference("MultiplierScore",        originalStats.MultiplierScore,        resultStats.MultiplierScore);
         PrintStatDifference("TotalScore",             originalStats.TotalScore,             resultStats.TotalScore);
         PrintStatDifference("StarScore",              originalStats.StarScore,              resultStats.StarScore);
         PrintStatDifference("Combo",                  originalStats.Combo,                  resultStats.Combo);
@@ -210,6 +213,7 @@ public partial class Cli
         PrintStatDifference("NotesMissed",            originalStats.NotesMissed,            resultStats.NotesMissed);
         PrintStatDifference("Percent",                originalStats.Percent,                resultStats.Percent);
         PrintStatDifference("StarPowerTickAmount",    originalStats.StarPowerTickAmount,    resultStats.StarPowerTickAmount);
+        PrintStatDifference("StarPowerWhammyTicks",   originalStats.StarPowerWhammyTicks,   resultStats.StarPowerWhammyTicks);
         PrintStatDifference("TotalStarPowerTicks",    originalStats.TotalStarPowerTicks,    resultStats.TotalStarPowerTicks);
         PrintStatDifference("TimeInStarPower",        originalStats.TimeInStarPower,        resultStats.TimeInStarPower);
         PrintStatDifference("IsStarPowerActive",      originalStats.IsStarPowerActive,      resultStats.IsStarPowerActive);
@@ -229,8 +233,6 @@ public partial class Cli
                 PrintStatDifference("Overstrums",             originalGuitar.Overstrums,             resultGuitar.Overstrums);
                 PrintStatDifference("HoposStrummed",          originalGuitar.HoposStrummed,          resultGuitar.HoposStrummed);
                 PrintStatDifference("GhostInputs",            originalGuitar.GhostInputs,            resultGuitar.GhostInputs);
-                PrintStatDifference("StarPowerWhammyTicks",   originalGuitar.StarPowerWhammyTicks,   resultGuitar.StarPowerWhammyTicks);
-                PrintStatDifference("SustainScore",           originalGuitar.SustainScore,           resultGuitar.SustainScore);
                 break;
             }
             case (DrumsStats originalDrums, DrumsStats resultDrums):
