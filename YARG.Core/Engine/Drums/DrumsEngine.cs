@@ -29,6 +29,21 @@ namespace YARG.Core.Engine.Drums
             DrumsEngineParameters engineParameters, bool isBot)
             : base(chart, syncTrack, engineParameters, true, isBot)
         {
+            foreach(var note in Notes)
+            {
+                foreach(var all in note.AllNotes)
+                {
+                    if(all.IsAccent)
+                    {
+                        EngineStats.TotalAccents++;
+                    }
+                    else if(all.IsGhost)
+                    {
+                        EngineStats.TotalGhosts++;
+                    }
+                }
+            }
+
             GetWaitCountdowns(Notes);
         }
 
