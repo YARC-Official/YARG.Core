@@ -31,7 +31,6 @@ namespace YARG.Core.Engine.Guitar
             Overstrums = stats.Overstrums;
             HoposStrummed = stats.HoposStrummed;
             GhostInputs = stats.GhostInputs;
-            SustainScore = stats.SustainScore;
         }
 
         public GuitarStats(ref FixedArrayStream stream, int version)
@@ -40,7 +39,6 @@ namespace YARG.Core.Engine.Guitar
             Overstrums = stream.Read<int>(Endianness.Little);
             HoposStrummed = stream.Read<int>(Endianness.Little);
             GhostInputs = stream.Read<int>(Endianness.Little);
-            SustainScore = stream.Read<int>(Endianness.Little);
         }
 
         public override void Reset()
@@ -49,7 +47,6 @@ namespace YARG.Core.Engine.Guitar
             Overstrums = 0;
             HoposStrummed = 0;
             GhostInputs = 0;
-            SustainScore = 0;
         }
 
         public override void Serialize(BinaryWriter writer)
@@ -59,7 +56,6 @@ namespace YARG.Core.Engine.Guitar
             writer.Write(Overstrums);
             writer.Write(HoposStrummed);
             writer.Write(GhostInputs);
-            writer.Write(SustainScore);
         }
 
         public override ReplayStats ConstructReplayStats(string name)
