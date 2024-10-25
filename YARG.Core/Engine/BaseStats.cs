@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using YARG.Core.Extensions;
 using YARG.Core.Replays;
 
@@ -90,23 +90,38 @@ namespace YARG.Core.Engine
         /// </summary>
         public virtual float Percent => TotalNotes == 0 ? 1f : (float) NotesHit / TotalNotes;
 
+        /// <summary>
+        /// Current amount of Star Power ticks the player has.
+        /// </summary>
         public uint StarPowerTickAmount;
 
+        /// <summary>
+        /// Total ticks of Star Power earned.
+        /// </summary>
         public uint TotalStarPowerTicks;
 
+        /// <summary>
+        /// Total bars of Star Power filled.
+        /// </summary>
         public double TotalStarPowerBarsFilled;
 
+        /// <summary>
+        /// Number of times the player has activated Star Power.
+        /// </summary>
         public int StarPowerActivationCount;
 
+        /// <summary>
+        /// Total amount of time the player has been in Star Power.
+        /// </summary>
         public double TimeInStarPower;
 
         /// <summary>
-        /// Amount of Star Power/Overdrive gained from whammy during the current whammy period.
+        /// Amount of Star Power/Overdrive gained from whammy.
         /// </summary>
         public uint StarPowerWhammyTicks;
 
         /// <summary>
-        /// True if the player currently has Star Power/Overdrive active.
+        /// True if the player currently has Star Power active.
         /// </summary>
         public bool IsStarPowerActive;
 
@@ -131,6 +146,9 @@ namespace YARG.Core.Engine
         /// </summary>
         public int SoloBonuses;
 
+        /// <summary>
+        /// Amount of points earned from Star Power.
+        /// </summary>
         public int StarPowerScore;
 
         /// <summary>
