@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using YARG.Core.Chart;
 using YARG.Core.Input;
 using YARG.Core.Logging;
@@ -69,6 +69,8 @@ namespace YARG.Core.Engine.ProKeys.Engines
                         FatFingerTimer.Disable();
                         FatFingerKey = null;
                         FatFingerNote = null;
+
+                        EngineStats.FatFingersIgnored++;
                     }
                 }
                 else if(FatFingerTimer.IsExpired(CurrentTime))
@@ -88,6 +90,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                     }
                     else
                     {
+                        EngineStats.FatFingersIgnored++;
                         YargLogger.LogFormatTrace("Fat finger was ignored. KeyMask: {0}. Holding: {1}. WasHit: {2}",
                             KeyMask, isHoldingWrongKey, FatFingerNote!.WasHit);
                     }
