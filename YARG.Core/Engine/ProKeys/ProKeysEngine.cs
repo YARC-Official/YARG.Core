@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using YARG.Core.Chart;
 using YARG.Core.Input;
 using YARG.Core.Logging;
@@ -292,10 +292,10 @@ namespace YARG.Core.Engine.ProKeys
         protected override void AddScore(ProKeysNote note)
         {
             AddScore(POINTS_PER_PRO_NOTE);
-            EngineStats.NoteScore += POINTS_PER_NOTE;
+            EngineStats.NoteScore += POINTS_PER_PRO_NOTE;
         }
 
-        protected sealed override int CalculateBaseScore()
+        protected int CalculateBaseScoreOld()
         {
             int score = 0;
             foreach (var note in Notes)
@@ -309,6 +309,37 @@ namespace YARG.Core.Engine.ProKeys
             }
 
             return score;
+        }
+
+        protected sealed override int CalculateBaseScore()
+        {
+            double score = 0;
+            int combo = 0;
+            int multiplier;
+            double weight;
+            foreach (var note in Notes)
+            {
+                // Get the current multiplier given the current combo
+                multiplier = Math.Min((combo / 10) + 1, BaseParameters.MaxMultiplier);
+
+                // invert it to calculate leniency
+                weight = 1.0 * multiplier / BaseParameters.MaxMultiplier;
+
+                score += weight * (POINTS_PER_PRO_NOTE * (1 + note.ChildNotes.Count));
+
+                foreach (var child in note.AllNotes)
+                {
+                    score += weight * (int) Math.Ceiling(child.TickLength / TicksPerSustainPoint);
+                }
+
+                // Pro Keys combo increments per chord, not per note.
+                combo++;
+
+            }
+
+            var oldScore = CalculateBaseScoreOld();
+            YargLogger.LogDebug($"[Pro Keys] Old base score: {oldScore}, New base score: {score}, Max Combo: {combo}");
+            return (int) Math.Round(score);
         }
 
         protected void ToggleKey(int key, bool active)

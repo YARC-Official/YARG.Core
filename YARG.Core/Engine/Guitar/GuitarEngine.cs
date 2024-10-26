@@ -1,4 +1,6 @@
-using System;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using YARG.Core.Chart;
 using YARG.Core.Input;
 using YARG.Core.Logging;
@@ -324,12 +326,12 @@ namespace YARG.Core.Engine.Guitar
             StrumLeniencyTimer.SetSpeed(speed);
         }
 
-        protected sealed override int CalculateBaseScore()
+        protected int CalculateBaseScoreOld()
         {
             int score = 0;
             foreach (var note in Notes)
             {
-                score += POINTS_PER_NOTE * (1 + note.ChildNotes.Count);
+                score += (POINTS_PER_NOTE * (1 + note.ChildNotes.Count));
                 score += (int) Math.Ceiling(note.TickLength / TicksPerSustainPoint);
 
                 // If a note is disjoint, each sustain is counted separately.
@@ -344,6 +346,40 @@ namespace YARG.Core.Engine.Guitar
 
             return score;
         }
+
+        protected sealed override int CalculateBaseScore()
+        {
+            double score = 0;
+            int combo = 0;
+            int multiplier;
+            double weight;
+            foreach (var note in Notes)
+            {
+                // Get the current multiplier given the current combo
+                multiplier = Math.Min((combo / 10) + 1, BaseParameters.MaxMultiplier);
+
+                // invert it to calculate leniency
+                weight = 1.0 * multiplier / BaseParameters.MaxMultiplier;
+
+                score += weight * (POINTS_PER_NOTE * (1 + note.ChildNotes.Count));
+                score += weight * Math.Ceiling(note.TickLength / TicksPerSustainPoint);
+                combo++;
+                // If a note is disjoint, each sustain is counted separately.
+                if (note.IsDisjoint)
+                {
+                    foreach (var child in note.ChildNotes)
+                    {
+                        score += Math.Ceiling(child.TickLength / TicksPerSustainPoint);
+                        combo++;
+                    }
+                }
+            }
+
+            var oldScore = CalculateBaseScoreOld();
+            YargLogger.LogDebug($"[Guitar] Old base score: {oldScore}, New base score: {score}, Max Combo: {combo}");
+            return (int) Math.Round(score);
+        }
+
 
         protected void ToggleFret(int fret, bool active)
         {
