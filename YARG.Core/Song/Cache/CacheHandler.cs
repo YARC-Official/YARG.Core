@@ -756,19 +756,27 @@ namespace YARG.Core.Song.Cache
             }
             else
             {
-                var dtaEntry = new DTAEntry(name, in node);
-                var modification = GetModification(name);
-                var song = func(group, name, dtaEntry, modification);
-                if (song.Item2 != null)
+                try
                 {
-                    if (AddEntry(song.Item2))
+                    var dtaEntry = new DTAEntry(name, in node);
+                    var modification = GetModification(name);
+                    var song = func(group, name, dtaEntry, modification);
+                    if (song.Item2 != null)
                     {
-                        group.AddEntry(name, index, song.Item2);
+                        if (AddEntry(song.Item2))
+                        {
+                            group.AddEntry(name, index, song.Item2);
+                        }
+                    }
+                    else
+                    {
+                        AddToBadSongs(group.Location + $" - Node {name}", song.Item1);
                     }
                 }
-                else
+                catch (Exception ex)
                 {
-                    AddToBadSongs(group.Location + $" - Node {name}", song.Item1);
+                    YargLogger.LogException(ex);
+                    AddToBadSongs(group.Location + $" - Node {name}", ScanResult.DTAError);
                 }
             }
         }
