@@ -35,7 +35,7 @@ namespace YARG.Core.Game
                     DynamicScale = 1,
                     DynamicSlope = 0.93,
                     DynamicGamma = 1.5,
-                    TremoloFrontEndPercent = 0.75
+                    TremoloFrontEndPercent = 1.0
                 }
             },
             Drums =
@@ -48,7 +48,7 @@ namespace YARG.Core.Game
                     DynamicScale = 1,
                     DynamicSlope = 0.60615,
                     DynamicGamma = 2,
-                    TremoloFrontEndPercent = 0.75
+                    TremoloFrontEndPercent = 1.0
                 }
             },
             Vocals =
