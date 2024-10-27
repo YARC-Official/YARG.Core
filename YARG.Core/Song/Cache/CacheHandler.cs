@@ -805,6 +805,11 @@ namespace YARG.Core.Song.Cache
                             modification.UpdateDTA.LoadData(name, container);
                         }
                         modification.Midi = update.Midi;
+                        if (modification.Midi == null)
+                        {
+                            YargLogger.LogFormatWarning("Update midi expected in directory {0}", Path.Combine(group.Directory, name));
+                        }
+
                         modification.Mogg = update.Mogg;
                         modification.Milo = update.Milo;
                         modification.Image = update.Image;
