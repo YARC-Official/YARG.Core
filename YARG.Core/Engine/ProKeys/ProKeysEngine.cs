@@ -326,7 +326,6 @@ namespace YARG.Core.Engine.ProKeys
 
                 // invert it to calculate leniency
                 weight = 1.0 * multiplier / BaseParameters.MaxMultiplier;
-
                 score += weight * (POINTS_PER_PRO_NOTE * (1 + note.ChildNotes.Count));
 
                 foreach (var child in note.AllNotes)
@@ -336,7 +335,6 @@ namespace YARG.Core.Engine.ProKeys
 
                 // Pro Keys combo increments per chord, not per note.
                 combo++;
-
             }
 
             var oldScore = CalculateBaseScoreOld();

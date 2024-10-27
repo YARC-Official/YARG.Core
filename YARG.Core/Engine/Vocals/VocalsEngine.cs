@@ -338,7 +338,6 @@ namespace YARG.Core.Engine.Vocals
 
                 // invert it to calculate leniency
                 weight = 1.0 * multiplier / BaseParameters.MaxMultiplier;
-
                 score += weight * EngineParameters.PointsPerPhrase;
                 combo++;
             }
@@ -347,7 +346,6 @@ namespace YARG.Core.Engine.Vocals
             YargLogger.LogDebug($"[Pro Keys] Old base score: {oldScore}, New base score: {score}, Max Combo: {combo}");
             return (int) Math.Round(score);
         }
-
 
         protected override bool CanSustainHold(VocalNote note) => throw new InvalidOperationException();
     }
