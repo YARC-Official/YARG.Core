@@ -43,9 +43,6 @@ namespace YARG.Core.Engine
         /// </summary>
         public readonly double FrontToBackRatio;
 
-        /// <summary>
-        /// Determines how many notes hit during player input in a tremolo or trill lane
-        /// </summary>
         public readonly double TremoloFrontEndPercent;
 
         private readonly double _minMaxWindowRatio;
