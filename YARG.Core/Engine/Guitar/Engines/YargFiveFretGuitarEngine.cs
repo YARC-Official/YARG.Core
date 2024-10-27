@@ -232,7 +232,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 {
                     if (isFirstNoteInWindow && missed)
                     {
-                        // Intercept missed note while lane phrase is active and missed note allowance has not been spent
+                        // Intercept missed note while lane phrase is active
                         if (HitNoteFromLane(note))
                         {
                             break;

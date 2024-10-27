@@ -499,7 +499,7 @@ namespace YARG.Core.Engine
             }
         }
 
-        // Intercept a missed note while a lane phrase is active with allowances remaining
+        // Intercept a missed note while a lane phrase is active
         protected bool HitNoteFromLane(TNoteType note)
         {
             if (CurrentTime > LaneExpireTime)
@@ -606,7 +606,7 @@ namespace YARG.Core.Engine
             {
                 if (HitNoteFromLane(prevNote))
                 {
-                    // Save this note from being counted as a skip if there are lane miss allowances left
+                    // Save this note from being counted as a skip if it satisfies the active lane
                     continue;
                 }
 
