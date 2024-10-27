@@ -324,6 +324,8 @@ namespace YARG.Core.Engine.Guitar
             StrumLeniencyTimer.SetSpeed(speed);
         }
 
+         // TODO: Remove this before submitting the PR for review.
+        [Obsolete]
         protected int CalculateBaseScoreOld()
         {
             int score = 0;
@@ -368,6 +370,8 @@ namespace YARG.Core.Engine.Guitar
                     foreach (var child in note.ChildNotes)
                     {
                         score += Math.Ceiling(child.TickLength / TicksPerSustainPoint);
+
+                        //TODO: Check if disjoint notes should increase combo
                         combo++;
                     }
                 }

@@ -295,6 +295,8 @@ namespace YARG.Core.Engine.ProKeys
             EngineStats.NoteScore += POINTS_PER_PRO_NOTE;
         }
 
+          // TODO: Remove this before submitting the PR for review.
+        [Obsolete] 
         protected int CalculateBaseScoreOld()
         {
             int score = 0;

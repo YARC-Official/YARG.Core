@@ -91,7 +91,7 @@ namespace YARG.Core.Engine.Vocals
             if (allParts.Count > 1)
             {
                 // Sort combined list by Note time
-                allNotes.Sort((a, b) => (int)(a.Tick - b.Tick));
+                allNotes.Sort((a, b) => (int) (a.Tick - b.Tick));
             }
 
             GetWaitCountdowns(allNotes);
@@ -318,10 +318,36 @@ namespace YARG.Core.Engine.Vocals
             }
         }
 
-        protected sealed override int CalculateBaseScore()
+        // TODO: Remove this before submitting the PR for review.
+        [Obsolete]
+        protected int CalculateBaseScoreOld()
         {
             return Notes.Where(note => note.ChildNotes.Count > 0).Sum(_ => EngineParameters.PointsPerPhrase);
         }
+
+        protected sealed override int CalculateBaseScore()
+        {
+            double score = 0;
+            int combo = 0;
+            int multiplier;
+            double weight;
+            foreach (var note in Notes.Where(note => note.ChildNotes.Any()))
+            {
+                // Get the current multiplier given the current combo
+                multiplier = Math.Min((combo / 10) + 1, BaseParameters.MaxMultiplier);
+
+                // invert it to calculate leniency
+                weight = 1.0 * multiplier / BaseParameters.MaxMultiplier;
+
+                score += weight * EngineParameters.PointsPerPhrase;
+                combo++;
+            }
+
+            var oldScore = CalculateBaseScoreOld();
+            YargLogger.LogDebug($"[Pro Keys] Old base score: {oldScore}, New base score: {score}, Max Combo: {combo}");
+            return (int) Math.Round(score);
+        }
+
 
         protected override bool CanSustainHold(VocalNote note) => throw new InvalidOperationException();
     }

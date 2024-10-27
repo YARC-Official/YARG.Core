@@ -275,6 +275,8 @@ namespace YARG.Core.Engine.Drums
             EngineStats.NoteScore += pointsPerNote;
         }
 
+         // TODO: Remove this before submitting the PR for review.
+        [Obsolete]
         protected int CalculateBaseScoreOld()
         {
             int pointsPerNote = GetPointsPerNote();
@@ -304,7 +306,6 @@ namespace YARG.Core.Engine.Drums
 
                 score += weight * (POINTS_PER_NOTE * (1 + note.ChildNotes.Count));
                 combo += 1 + note.ChildNotes.Count;
-
             }
 
             var oldScore = CalculateBaseScoreOld();
