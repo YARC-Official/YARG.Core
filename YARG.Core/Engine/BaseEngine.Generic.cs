@@ -502,7 +502,7 @@ namespace YARG.Core.Engine
         // Intercept a missed note while a lane phrase is active
         protected bool HitNoteFromLane(TNoteType note)
         {
-            if (CurrentTime > LaneExpireTime)
+            if (!IsLaneActive)
             {
                 return false;
             }
