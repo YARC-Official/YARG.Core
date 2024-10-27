@@ -112,7 +112,8 @@ namespace YARG.Core.IO
             None,
             Squirlies,
             Quotes,
-            Apostrophes
+            Apostrophes,
+            Comment
         }
 
         public static string ExtractText(ref YARGTextContainer<byte> container)
@@ -241,43 +242,63 @@ namespace YARG.Core.IO
         public static void EndNode(ref YARGTextContainer<byte> container)
         {
             int scopeLevel = 0;
-            bool inApostropes = false;
-            bool inQuotes = false;
-            bool inComment = false;
+            var textState = TextScopeState.None;
             while (container.Position < container.End && scopeLevel >= 0)
             {
                 char curr = (char) *container.Position;
                 ++container.Position;
-                if (inComment)
+                if (textState == TextScopeState.Comment)
                 {
                     if (curr == '\n')
                     {
-                        inComment = false;
+                        textState = TextScopeState.None;
                     }
+                }
+                else if (curr == '{')
+                {
+                    if (textState != TextScopeState.None)
+                    {
+                        throw new Exception("Invalid open-squirly found!");
+                    }
+                    textState = TextScopeState.Squirlies;
+                }
+                else if (curr == '}')
+                {
+                    if (textState != TextScopeState.Squirlies)
+                    {
+                        throw new Exception("Invalid close-squirly found!");
+                    }
+                    textState = TextScopeState.None;
                 }
                 else if (curr == '\"')
                 {
-                    if (inApostropes)
+                    switch (textState)
                     {
-                        throw new Exception("Ah hell nah wtf");
+                        case TextScopeState.Apostrophes:
+                            throw new Exception("Invalid quotation mark found!");
+                        case TextScopeState.None:
+                            textState = TextScopeState.Quotes;
+                            break;
+                        case TextScopeState.Quotes:
+                            textState = TextScopeState.None;
+                            break;
                     }
-                    inQuotes = !inQuotes;
                 }
-                else if (!inQuotes)
+                else if (textState != TextScopeState.Quotes)
                 {
-                    if (!inApostropes)
+                    if (textState != TextScopeState.Apostrophes)
                     {
                         switch (curr)
                         {
                             case '(': ++scopeLevel; break;
                             case ')': --scopeLevel; break;
-                            case '\'': inApostropes = true; break;
-                            case ';': inComment = true; break;
+                            case '\'': textState = TextScopeState.Apostrophes; break;
+                            case ';': textState = TextScopeState.Comment; break;
                         }
                     }
                     else if (curr == '\'')
                     {
-                        inApostropes = false;
+                        textState = TextScopeState.None;
                     }
                 }
             }
