@@ -334,7 +334,7 @@ namespace YARG.Core.Engine.Vocals
             foreach (var note in Notes.Where(note => note.ChildNotes.Any()))
             {
                 // Get the current multiplier given the current combo
-                multiplier = Math.Min((combo / 10) + 1, BaseParameters.MaxMultiplier);
+                multiplier = Math.Min(combo + 1, BaseParameters.MaxMultiplier);
 
                 // invert it to calculate leniency
                 weight = 1.0 * multiplier / BaseParameters.MaxMultiplier;
@@ -343,7 +343,7 @@ namespace YARG.Core.Engine.Vocals
             }
 
             var oldScore = CalculateBaseScoreOld();
-            YargLogger.LogDebug($"[Pro Keys] Old base score: {oldScore}, New base score: {score}, Max Combo: {combo}");
+            YargLogger.LogDebug($"[Vocals] Old base score: {oldScore}, New base score: {score}, Max Combo: {combo}");
             return (int) Math.Round(score);
         }
 
