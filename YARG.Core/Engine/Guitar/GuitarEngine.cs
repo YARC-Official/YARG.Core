@@ -340,7 +340,7 @@ namespace YARG.Core.Engine.Guitar
             }
         }
 
-        protected override bool ActiveLaneIncludesNote (int mask)
+        protected override bool ActiveLaneIncludesNote(int mask)
         {
             if (!IsLaneActive)
             {
@@ -442,6 +442,12 @@ namespace YARG.Core.Engine.Guitar
             {
                 // Remove any frets from disjointed sustains
                 laneMask &= (byte) ~sustain.Note.NoteMask;
+            }
+
+            if ((RequiredLaneNote & OPEN_MASK) != 0 && MaskIsMultiFret(RequiredLaneNote))
+            {
+                // Active tremolo lane is an open chord, add open note to the final mask
+                laneMask |= OPEN_MASK;
             }
 
             return laneMask;
