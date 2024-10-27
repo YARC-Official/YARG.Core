@@ -1659,7 +1659,7 @@ namespace YARG.Core.Song.Cache
             }
             catch (Exception ex)
             {
-                YargLogger.LogException(ex, $"Error while loading {errorFile}");
+                YargLogger.LogException(ex, $"Error while loading {info.FullName} - {errorFile}");
             }
             return group;
         }
