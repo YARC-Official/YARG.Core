@@ -111,7 +111,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
             {
                 if (missed)
                 {
-                    // Intercept missed note while lane phrase is active and missed note allowance has not been spent
+                    // Intercept missed note while lane phrase is active
                     if (!HitNoteFromLane(parentNote))
                     {
                         // If one of the notes in the chord was missed out the back end,
