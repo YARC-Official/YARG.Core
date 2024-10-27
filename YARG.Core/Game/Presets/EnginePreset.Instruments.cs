@@ -47,7 +47,7 @@ namespace YARG.Core.Game
 
             [SettingType(SettingType.Slider)]
             [SettingRange(0f, 3f)]
-            public double TremoloFrontEndPercent = 1.0;
+            public double TremoloFrontEndPercent = 1.5;
 
             public HitWindowSettings Create()
             {
@@ -108,7 +108,7 @@ namespace YARG.Core.Game
                 MinWindow = 0.14,
                 IsDynamic = false,
                 FrontToBackRatio = 1.0,
-                TremoloFrontEndPercent = 1.15
+                TremoloFrontEndPercent = 1.5
             };
 
             public FiveFretGuitarPreset Copy()
@@ -154,7 +154,7 @@ namespace YARG.Core.Game
                 MinWindow = 0.14,
                 IsDynamic = false,
                 FrontToBackRatio = 1.0,
-                TremoloFrontEndPercent = 1.15
+                TremoloFrontEndPercent = 1.9
             };
 
             public DrumsPreset Copy()
@@ -302,7 +302,7 @@ namespace YARG.Core.Game
                 MinWindow = 0.14,
                 IsDynamic = false,
                 FrontToBackRatio = 1.0,
-                TremoloFrontEndPercent = 1.15
+                TremoloFrontEndPercent = 1.5
             };
 
             public ProKeysPreset Copy()
