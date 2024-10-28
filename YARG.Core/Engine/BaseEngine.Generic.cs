@@ -316,7 +316,6 @@ namespace YARG.Core.Engine
                     // Lane forgiveness window expired, disable all lane behavior
                     RequiredLaneNote = -1;
                     NextTrillNote = -1;
-                    LaneExpireTime = -1;
                     YargLogger.LogFormatTrace("Lane behavior turned off at {0}", CurrentTime);
                 }
             }
@@ -402,10 +401,10 @@ namespace YARG.Core.Engine
                 return;
             }
 
-            YargLogger.LogFormatTrace("Lane note hit at {0}", CurrentTime);
-
-            if (!IsLaneActive || note.IsLaneStart)
+            if (note.IsLaneStart || note.Time > LaneExpireTime)
             {
+                YargLogger.LogFormatTrace("Starting lane behavior at time {0}. ", CurrentTime);
+
                 // This was a manually hit lane note while lane behavior was disabled,
                 // either IsLaneStart or starting a new combo after a mid-lane miss
                 if (note.IsTrill && note.NextNote!.IsTrill)
@@ -419,7 +418,6 @@ namespace YARG.Core.Engine
                 }
 
                 // Future updates during this lane will be handled on SubmitLaneNote inputs
-                YargLogger.LogFormatTrace("Starting lane behavior at {0}", CurrentTime);
                 UpdateLaneExpireTime();
             }
             else if (note.IsLaneEnd)
@@ -429,12 +427,14 @@ namespace YARG.Core.Engine
 
                 UpdateLaneExpireTime();
             }
+
+            YargLogger.LogFormatTrace("Lane note hit at {0}", CurrentTime);
         }
 
         // Intercept a missed note while a lane phrase is active
         protected bool HitNoteFromLane(TNoteType note)
         {
-            if (!IsLaneActive)
+            if (note.Time > LaneExpireTime)
             {
                 return false;
             }
@@ -448,7 +448,7 @@ namespace YARG.Core.Engine
                     return false;
                 }
 
-                YargLogger.LogFormatTrace("Missed note was forgiven by lane at time {0}", CurrentTime);
+                YargLogger.LogFormatTrace("Missed note with time of {0} was forgiven by lane", note.Time);
                 HitNote(note);
 
                 return true;
@@ -491,7 +491,7 @@ namespace YARG.Core.Engine
                 {
                     // This is either a non-lane note in the middle of the phrase
                     // Or we are in overstrum forgiveness window after lane has ended
-                    YargLogger.LogFormatTrace("Lane input did not extend forgiveness window at {0}", CurrentTime);
+                    YargLogger.LogFormatTrace("Lane input did not extend LaneExpireTime at {0}", CurrentTime);
                     return;
                 }
 
@@ -525,9 +525,8 @@ namespace YARG.Core.Engine
 
         private void UpdateLaneExpireTime()
         {
-            double increment = EngineParameters.HitWindow.CalculateTremoloWindow();
-            LaneExpireTime = CurrentTime + increment;
-            YargLogger.LogFormatTrace("LaneExpireTime extended by {0}. CurrentTime: {1}. New expire time {2}", increment, CurrentTime, LaneExpireTime);
+            LaneExpireTime = CurrentTime + EngineParameters.HitWindow.CalculateTremoloWindow();
+            //YargLogger.LogFormatDebug("LaneExpireTime extended to {0}. TremoloFrontEndPercent {1}. Increment {2}.", LaneExpireTime, EngineParameters.HitWindow.TremoloFrontEndPercent, LaneExpireTime - CurrentTime);
         }
 
         protected bool SkipPreviousNotes(TNoteType current)
