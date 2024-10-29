@@ -874,7 +874,7 @@ namespace YARG.Core.Engine
         {
             var soloSections = new List<SoloSection>();
 
-            if (Notes.Count > 0 && Notes[0].IsSolo)
+            if (Notes.Count > 0 && Notes[0] is { IsSolo: true, IsSoloEnd: false })
             {
                 Notes[0].ActivateFlag(NoteFlags.SoloStart);
             }
@@ -894,8 +894,16 @@ namespace YARG.Core.Engine
 
                 // note is a SoloStart
 
-                // Try to find a solo end
                 int soloNoteCount = GetNumberOfNotes(start);
+
+                // 1 note solo
+                if (start.IsSoloEnd)
+                {
+                    soloSections.Add(new SoloSection(start.Tick, start.Tick, soloNoteCount));
+                    continue;
+                }
+
+                // Try to find a solo end
                 for (int j = i + 1; j < Notes.Count; j++)
                 {
                     var end = Notes[j];
@@ -904,7 +912,7 @@ namespace YARG.Core.Engine
 
                     if (!end.IsSoloEnd) continue;
 
-                    soloSections.Add(new SoloSection(soloNoteCount));
+                    soloSections.Add(new SoloSection(start.Tick, end.Tick, soloNoteCount));
 
                     // Move i to the end of the solo section
                     i = j;
