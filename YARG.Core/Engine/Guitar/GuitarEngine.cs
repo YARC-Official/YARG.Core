@@ -358,7 +358,6 @@ namespace YARG.Core.Engine.Guitar
             return (int) Math.Round(score);
         }
 
-
         protected void ToggleFret(int fret, bool active)
         {
             ButtonMask = (byte) (active ? ButtonMask | (1 << fret) : ButtonMask & ~(1 << fret));
