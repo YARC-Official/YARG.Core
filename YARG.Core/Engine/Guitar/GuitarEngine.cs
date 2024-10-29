@@ -273,12 +273,25 @@ namespace YARG.Core.Engine.Guitar
                 StripStarPower(note);
             }
 
-            if (note.IsSoloEnd)
+            // Solo has the start and end flag
+            if(note is { IsSoloStart: true, IsSoloEnd: true })
+            {
+                // While a solo is active, end the current solo and immediately start the next.
+                if (IsSoloActive)
+                {
+                    EndSolo();
+                    StartSolo();
+                }
+                else
+                {
+                    // If no solo is currently active, start and immediately end the solo.
+                    StartSolo();
+                    EndSolo();
+                }
+            } else if(note.IsSoloEnd)
             {
                 EndSolo();
-            }
-
-            if (note.IsSoloStart)
+            } else if (note.IsSoloStart)
             {
                 StartSolo();
             }
