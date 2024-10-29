@@ -299,6 +299,7 @@ namespace YARG.Core.Song
             {
                 if (entry.Name != null) { info.Metadata.Name = entry.Name; }
                 if (entry.Artist != null) { info.Metadata.Artist = entry.Artist; }
+                if (entry.Album != null) { info.Metadata.Album = entry.Album; }
                 if (entry.Charter != null) { info.Metadata.Charter = entry.Charter; }
                 if (entry.Genre != null) { info.Metadata.Genre = entry.Genre; }
                 if (entry.YearAsNumber != null)
