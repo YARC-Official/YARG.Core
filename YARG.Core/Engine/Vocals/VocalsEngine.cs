@@ -318,13 +318,6 @@ namespace YARG.Core.Engine.Vocals
             }
         }
 
-        // TODO: Remove this before submitting the PR for review.
-        [Obsolete]
-        protected int CalculateBaseScoreOld()
-        {
-            return Notes.Where(note => note.ChildNotes.Count > 0).Sum(_ => EngineParameters.PointsPerPhrase);
-        }
-
         protected sealed override int CalculateBaseScore()
         {
             double score = 0;
@@ -342,8 +335,7 @@ namespace YARG.Core.Engine.Vocals
                 combo++;
             }
 
-            var oldScore = CalculateBaseScoreOld();
-            YargLogger.LogDebug($"[Vocals] Old base score: {oldScore}, New base score: {score}, Max Combo: {combo}");
+            YargLogger.LogDebug($"[Vocals] Base score: {score}, Max Combo: {combo}");
             return (int) Math.Round(score);
         }
 

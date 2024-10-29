@@ -324,29 +324,6 @@ namespace YARG.Core.Engine.Guitar
             StrumLeniencyTimer.SetSpeed(speed);
         }
 
-         // TODO: Remove this before submitting the PR for review.
-        [Obsolete]
-        protected int CalculateBaseScoreOld()
-        {
-            int score = 0;
-            foreach (var note in Notes)
-            {
-                score += (POINTS_PER_NOTE * (1 + note.ChildNotes.Count));
-                score += (int) Math.Ceiling(note.TickLength / TicksPerSustainPoint);
-
-                // If a note is disjoint, each sustain is counted separately.
-                if (note.IsDisjoint)
-                {
-                    foreach (var child in note.ChildNotes)
-                    {
-                        score += (int) Math.Ceiling(child.TickLength / TicksPerSustainPoint);
-                    }
-                }
-            }
-
-            return score;
-        }
-
         protected sealed override int CalculateBaseScore()
         {
             double score = 0;
@@ -377,8 +354,7 @@ namespace YARG.Core.Engine.Guitar
                 }
             }
 
-            var oldScore = CalculateBaseScoreOld();
-            YargLogger.LogDebug($"[Guitar] Old base score: {oldScore}, New base score: {score}, Max Combo: {combo}");
+            YargLogger.LogDebug($"[Vocals] Base score: {score}, Max Combo: {combo}");
             return (int) Math.Round(score);
         }
 

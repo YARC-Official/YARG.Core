@@ -295,24 +295,6 @@ namespace YARG.Core.Engine.ProKeys
             EngineStats.NoteScore += POINTS_PER_PRO_NOTE;
         }
 
-          // TODO: Remove this before submitting the PR for review.
-        [Obsolete] 
-        protected int CalculateBaseScoreOld()
-        {
-            int score = 0;
-            foreach (var note in Notes)
-            {
-                score += POINTS_PER_PRO_NOTE * (1 + note.ChildNotes.Count);
-
-                foreach (var child in note.AllNotes)
-                {
-                    score += (int) Math.Ceiling(child.TickLength / TicksPerSustainPoint);
-                }
-            }
-
-            return score;
-        }
-
         protected sealed override int CalculateBaseScore()
         {
             double score = 0;
@@ -337,8 +319,7 @@ namespace YARG.Core.Engine.ProKeys
                 combo++;
             }
 
-            var oldScore = CalculateBaseScoreOld();
-            YargLogger.LogDebug($"[Pro Keys] Old base score: {oldScore}, New base score: {score}, Max Combo: {combo}");
+            YargLogger.LogDebug($"[Pro Keys] Base score: {score}, Max Combo: {combo}");
             return (int) Math.Round(score);
         }
 

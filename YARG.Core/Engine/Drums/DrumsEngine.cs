@@ -153,13 +153,22 @@ namespace YARG.Core.Engine.Drums
         protected bool ApplyVelocity(DrumNote hitNote)
         {
             // Neutral notes cannot award bonus points here
-            if (hitNote.IsNeutral) return false;
+            if (hitNote.IsNeutral)
+            {
+                return false;
+            }
 
             // Bots will always hit at a velocity of 1, just give them the bonus
-            if (IsBot) return true;
+            if (IsBot)
+            {
+                return true;
+            }
 
             // Hit velocity was not recorded for this note, bonus will always be false
-            if (HitVelocity is not { } lastInputVelocity) return false;
+            if (HitVelocity is not { } lastInputVelocity)
+            {
+                return false;
+            }
 
             hitNote.HitVelocity = lastInputVelocity;
 
@@ -275,21 +284,6 @@ namespace YARG.Core.Engine.Drums
             EngineStats.NoteScore += pointsPerNote;
         }
 
-         // TODO: Remove this before submitting the PR for review.
-        [Obsolete]
-        protected int CalculateBaseScoreOld()
-        {
-            int pointsPerNote = GetPointsPerNote();
-
-            int score = 0;
-            foreach (var note in Notes)
-            {
-                score += pointsPerNote * (1 + note.ChildNotes.Count);
-            }
-
-            return score;
-        }
-
         protected sealed override int CalculateBaseScore()
         {
             double score = 0;
@@ -308,8 +302,7 @@ namespace YARG.Core.Engine.Drums
                 combo += 1 + note.ChildNotes.Count;
             }
 
-            var oldScore = CalculateBaseScoreOld();
-            YargLogger.LogDebug($"[Drums] Old base score: {oldScore}, New base score: {score}, Max Combo: {combo}");
+            YargLogger.LogDebug($"[Vocals] Base score: {score}, Max Combo: {combo}");
             return (int) Math.Round(score);
         }
 
