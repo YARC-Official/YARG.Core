@@ -22,7 +22,7 @@ namespace YARG.Core.Audio
 
         internal StemMixer? LoadCustomFile(string name, Stream stream, float speed, double volume, SongStem stem = SongStem.Song)
         {
-            YargLogger.LogInfo("Loading custom audio file");
+            YargLogger.LogDebug("Loading custom audio file");
             var mixer = CreateMixer(name, stream, speed, volume, false);
             if (mixer == null)
             {
@@ -34,7 +34,7 @@ namespace YARG.Core.Audio
                 mixer.Dispose();
                 return null;
             }
-            YargLogger.LogInfo("Custom audio file loaded");
+            YargLogger.LogDebug("Custom audio file loaded");
             return mixer;
         }
 
@@ -128,10 +128,8 @@ namespace YARG.Core.Audio
 
                 lock (_activeMixers)
                 {
-                    if (GlobalAudioHandler.LogMixerStatus)
-                    {
-                        YargLogger.LogFormatInfo("Mixer \"{0}\" created", mixer.Name);
-                    }
+                    var level = GlobalAudioHandler.LogMixerStatus ? LogLevel.Debug : LogLevel.Trace;
+                    YargLogger.LogFormat(level, "Mixer \"{0}\" created", mixer.Name);
                     _activeMixers.Add(mixer);
                 }
             }
@@ -145,10 +143,8 @@ namespace YARG.Core.Audio
         {
             lock (_activeMixers)
             {
-                if (GlobalAudioHandler.LogMixerStatus)
-                {
-                    YargLogger.LogFormatInfo("Mixer \"{0}\" disposed", mixer.Name);
-                }
+                var level = GlobalAudioHandler.LogMixerStatus ? LogLevel.Debug : LogLevel.Trace;
+                YargLogger.LogFormat(level, "Mixer \"{0}\" disposed", mixer.Name);
                 _activeMixers.Remove(mixer);
             }
         }
