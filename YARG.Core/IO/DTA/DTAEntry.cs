@@ -52,6 +52,8 @@ namespace YARG.Core.IO
         public long? HopoThreshold;
         public Encoding Encoding;
 
+        public bool DiscUpdate;
+
         public RBCONDifficulties Difficulties = RBCONDifficulties.Default;
 
         public DTAEntry(Encoding encoding)
@@ -279,7 +281,11 @@ namespace YARG.Core.IO
                             StringBuilder authors = new();
                             foreach (string str in YARGDTAReader.ExtractArray_String(ref container))
                             {
-                                if (str != "disc_update")
+                                if (str == "disc_update")
+                                {
+                                    DiscUpdate = true;
+                                }
+                                else
                                 {
                                     if (authors.Length == 0 && Charter == SongMetadata.DEFAULT_CHARTER)
                                     {
