@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using YARG.Core.Extensions;
 
 namespace YARG.Core.Parsing
@@ -62,17 +62,15 @@ namespace YARG.Core.Parsing
         /// All other methods that operate on text events expect them to be normalized.
         /// </remarks>
         // Equivalent to reading the capture of this regex: \[(.*?)\]
-        public static ReadOnlySpan<char> NormalizeTextEvent(ReadOnlySpan<char> text, out bool strippedBrackets)
+        public static ReadOnlySpan<char> NormalizeTextEvent(ReadOnlySpan<char> text, out bool hadBrackets)
         {
-            // Isolate text inside brackets
-            strippedBrackets = false;
-            int startIndex = text.IndexOf('[');
-            int lastIndex = text.IndexOf(']');
-            if (startIndex < 0 || lastIndex < 0 || lastIndex < startIndex)
-                return text.Trim();
-
-            strippedBrackets = true;
-            return text[++startIndex..lastIndex].Trim();
+            hadBrackets = text.Length > 0 && text[0] == '[' && text[^1] == ']';
+            if (hadBrackets)
+            {
+                // Remove brackets
+                text = text[1..(text.Length - 1)];
+            }
+            return text;
         }
 
         /// <inheritdoc cref="NormalizeTextEvent(ReadOnlySpan{char}, out bool)"/>

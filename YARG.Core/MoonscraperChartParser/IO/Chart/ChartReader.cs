@@ -396,7 +396,7 @@ namespace MoonscraperChartEditor.Song.IO
                     if (typeCodeText[0] == 'E')
                     {
                         // Get event text
-                        var eventText = remaining.TrimOnce('"');
+                        var eventText = TextEvents.NormalizeTextEvent(remaining.TrimOnce('"').Trim());
 
                         // Check for section events
                         if (TextEvents.TryParseSectionEvent(eventText, out var sectionName))
@@ -405,7 +405,6 @@ namespace MoonscraperChartEditor.Song.IO
                         }
                         else
                         {
-                            eventText = TextEvents.NormalizeTextEvent(eventText);
                             song.events.Add(new MoonText(eventText.ToString(), tick));
                         }
                     }
