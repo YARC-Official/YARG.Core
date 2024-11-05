@@ -284,22 +284,19 @@ namespace YARG.Core.IO
                             break;
                     }
                 }
-                else if (textState != TextScopeState.Quotes)
+                else if (textState == TextScopeState.None)
                 {
-                    if (textState != TextScopeState.Apostrophes)
+                    switch (curr)
                     {
-                        switch (curr)
-                        {
-                            case '(': ++scopeLevel; break;
-                            case ')': --scopeLevel; break;
-                            case '\'': textState = TextScopeState.Apostrophes; break;
-                            case ';': textState = TextScopeState.Comment; break;
-                        }
+                        case '(': ++scopeLevel; break;
+                        case ')': --scopeLevel; break;
+                        case '\'': textState = TextScopeState.Apostrophes; break;
+                        case ';': textState = TextScopeState.Comment; break;
                     }
-                    else if (curr == '\'')
-                    {
-                        textState = TextScopeState.None;
-                    }
+                }
+                else if (textState == TextScopeState.Apostrophes && curr == '\'')
+                {
+                    textState = TextScopeState.None;
                 }
             }
             SkipWhitespace(ref container);
