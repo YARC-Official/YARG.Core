@@ -60,6 +60,16 @@ namespace YARG.Core.Engine
         public int Combo;
 
         /// <summary>
+        /// The player's current combo, when counted as part of the Band Streak.
+        /// </summary>
+        public virtual int ComboInBandUnits => Combo * BandComboUnits;
+
+        /// <summary>
+        /// How much the band combo should increment per note or phrase hit for this instrument.
+        /// </summary>
+        public virtual int BandComboUnits => 1;
+
+        /// <summary>
         /// The player's highest combo achieved.
         /// </summary>
         public int MaxCombo;

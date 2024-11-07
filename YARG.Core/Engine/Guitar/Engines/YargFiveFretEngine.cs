@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using YARG.Core.Chart;
 using YARG.Core.Input;
 using YARG.Core.Logging;
@@ -97,7 +97,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                     ButtonMask &= unchecked((byte) ~OPEN_MASK);
                 }
             }
-
+            
             YargLogger.LogFormatTrace("Mutated input state: Button Mask: {0}, HasFretted: {1}, HasStrummed: {2}",
                 ButtonMask, HasFretted, HasStrummed);
         }
