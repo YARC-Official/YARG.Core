@@ -10,7 +10,7 @@ namespace YARG.Core.Game
 {
     public class YargProfile
     {
-        private const int PROFILE_VERSION = 1;
+        private const int PROFILE_VERSION = 2;
 
         public Guid Id;
         public string Name;
@@ -108,8 +108,11 @@ namespace YARG.Core.Game
             ThemePreset = stream.ReadGuid();
             ColorProfile = stream.ReadGuid();
             CameraPreset = stream.ReadGuid();
-            HighwayPreset = stream.ReadGuid();
 
+            if (version >= 2)
+            {
+                HighwayPreset = stream.ReadGuid();
+            }
             CurrentInstrument = (Instrument) stream.ReadByte();
             CurrentDifficulty = (Difficulty) stream.ReadByte();
             CurrentModifiers = (Modifier) stream.Read<ulong>(Endianness.Little);

@@ -11,8 +11,7 @@ namespace YARG.Core.Game.Settings
 
         Slider,
 
-        Toggle,
-        Hidden
+        Toggle
     }
 
     public class SettingTypeAttribute : Attribute
