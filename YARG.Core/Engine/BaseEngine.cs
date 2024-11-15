@@ -30,10 +30,10 @@ namespace YARG.Core.Engine
         public delegate void ComboIncrementEvent(int amount);
 
         public StarPowerStatusEvent? OnStarPowerStatus;
-        public SoloStartEvent? OnSoloStart;
-        public SoloEndEvent? OnSoloEnd;
-        public ComboResetEvent? OnComboReset;
-        public ComboIncrementEvent? OnComboIncrement;
+        public SoloStartEvent?       OnSoloStart;
+        public SoloEndEvent?         OnSoloEnd;
+        public ComboResetEvent?      OnComboReset;
+        public ComboIncrementEvent?  OnComboIncrement;
 
         public bool IsInputQueued => InputQueue.Count > 0;
 
