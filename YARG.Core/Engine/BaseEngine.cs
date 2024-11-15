@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using YARG.Core.Chart;
 using YARG.Core.Input;
 using YARG.Core.Logging;
@@ -9,9 +8,9 @@ namespace YARG.Core.Engine
 {
     public abstract class BaseEngine
     {
-        protected const int POINTS_PER_NOTE = 50;
+        protected const int POINTS_PER_NOTE     = 50;
         protected const int POINTS_PER_PRO_NOTE = POINTS_PER_NOTE + 10;
-        protected const int POINTS_PER_BEAT = 25;
+        protected const int POINTS_PER_BEAT     = 25;
 
         // Max number of measures that SP will last when draining
         // SP draining is done based on measures
@@ -25,17 +24,12 @@ namespace YARG.Core.Engine
         protected const int SUSTAIN_BURST_FRACTION = 4;
 
         public delegate void StarPowerStatusEvent(bool active);
-
         public delegate void SoloStartEvent(SoloSection soloSection);
-
         public delegate void SoloEndEvent(SoloSection soloSection);
-
         public delegate void ComboResetEvent();
-
         public delegate void ComboIncrementEvent(int amount);
 
         public StarPowerStatusEvent? OnStarPowerStatus;
-
         public SoloStartEvent? OnSoloStart;
         public SoloEndEvent? OnSoloEnd;
         public ComboResetEvent? OnComboReset;
@@ -48,7 +42,7 @@ namespace YARG.Core.Engine
         public int BaseScore { get; protected set; }
 
         public abstract BaseEngineParameters BaseParameters { get; }
-        public abstract BaseStats BaseStats { get; }
+        public abstract BaseStats            BaseStats      { get; }
 
         protected bool StarPowerIsAllowed = true;
 
