@@ -58,8 +58,8 @@ namespace YARG.Core.IO
             return buffer;
         }
 
-        // 128kiB
-        private const int BUFFER_SIZE = 128 * 1024;
+        //                1MB
+        private const int BUFFER_SIZE = 1024 * 1024;
         private const int SEEK_MODULUS = BUFFER_SIZE - 1;
         private const int SEEK_MODULUS_MINUS = ~SEEK_MODULUS;
 
