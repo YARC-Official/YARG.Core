@@ -14,7 +14,6 @@ namespace YARG.Core.Song
         public static bool Parse(YARGMidiTrack track, bool isLeadVocals)
         {
             long vocalPosition = -1;
-            long lyricPosition = -1;
             long phrasePosition = -1;
             long percussionPosition = -1;
 
@@ -43,10 +42,8 @@ namespace YARG.Core.Song
                     // NoteOff from this point
                     else if (VOCAL_MIN <= note.value && note.value <= VOCAL_MAX)
                     {
-                        // Guarantees that a lyric-pitch pair is valid
-                        //
                         // HARM 2/3 do not use phrases defined in their own tracks to mark playable vocals
-                        if (vocalPosition >= 0 && lyricPosition >= vocalPosition && (track.Position <= phrasePosition || !isLeadVocals))
+                        if (vocalPosition >= 0 && (track.Position <= phrasePosition || !isLeadVocals))
                         {
                             return true;
                         }
@@ -64,14 +61,6 @@ namespace YARG.Core.Song
                             return true;
                         }
                         percussionPosition = -1;
-                    }
-                }
-                else if (MidiEventType.Text <= track.Type && track.Type <= MidiEventType.Text_EnumLimit)
-                {
-                    var str = track.ExtractTextOrSysEx();
-                    if (str.Length == 0 || str[0] != '[')
-                    {
-                        lyricPosition = track.Position;
                     }
                 }
             }
