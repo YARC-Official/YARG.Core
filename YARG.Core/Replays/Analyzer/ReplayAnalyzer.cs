@@ -20,25 +20,29 @@ namespace YARG.Core.Replays.Analyzer
     public class ReplayAnalyzer
     {
         private readonly SongChart  _chart;
-        private readonly ReplayData _replay;
+
+        private readonly ReplayInfo _replayInfo;
+        private readonly ReplayData _replayData;
 
         private readonly double _fps;
         private readonly bool   _doFrameUpdates;
 
         private readonly Random _random = new();
 
-        public ReplayAnalyzer(SongChart chart, ReplayData replay, double fps)
+        public ReplayAnalyzer(SongChart chart, ReplayInfo replayInfo, ReplayData replayData, double fps)
         {
             _chart = chart;
-            _replay = replay;
+
+            _replayInfo = replayInfo;
+            _replayData = replayData;
 
             _fps = fps;
             _doFrameUpdates = _fps > 0;
         }
 
-        public static AnalysisResult[] AnalyzeReplay(SongChart chart, ReplayData replay, double fps = 0)
+        public static AnalysisResult[] AnalyzeReplay(SongChart chart, ReplayInfo info, ReplayData data, double fps = 0)
         {
-            var analyzer = new ReplayAnalyzer(chart, replay, fps);
+            var analyzer = new ReplayAnalyzer(chart, info, data, fps);
             return analyzer.Analyze();
         }
 
@@ -132,11 +136,11 @@ namespace YARG.Core.Replays.Analyzer
 
         private AnalysisResult[] Analyze()
         {
-            var results = new AnalysisResult[_replay.Frames.Length];
+            var results = new AnalysisResult[_replayData.Frames.Length];
 
             for (int i = 0; i < results.Length; i++)
             {
-                var frame = _replay.Frames[i];
+                var frame = _replayData.Frames[i];
                 var result = RunFrame(frame);
 
                 results[i] = result;
@@ -151,7 +155,7 @@ namespace YARG.Core.Replays.Analyzer
             engine.SetSpeed(frame.EngineParameters.SongSpeed);
             engine.Reset();
 
-            double maxTime = _chart.GetEndTime();
+            double maxTime = _replayInfo.ReplayLength;
             if (frame.Inputs.Length > 0)
             {
                 double last = frame.Inputs[^1].Time;
