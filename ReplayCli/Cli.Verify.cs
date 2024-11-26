@@ -18,7 +18,7 @@ public partial class Cli
 
         Console.WriteLine("Analyzing replay...");
 
-        var results = ReplayAnalyzer.AnalyzeReplay(chart, _replayData);
+        var results = ReplayAnalyzer.AnalyzeReplay(chart, _replayInfo, _replayData);
 
         Console.WriteLine("Done!\n");
 
