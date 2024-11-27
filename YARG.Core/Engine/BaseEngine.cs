@@ -96,6 +96,8 @@ namespace YARG.Core.Engine
         public double StarPowerActivationTime { get; protected set; }
         public double StarPowerEndTime { get; protected set; }
 
+        public double BaseTimeInStarPower { get; protected set; }
+
         public readonly struct EngineFrameUpdate
         {
             public EngineFrameUpdate(double time, string reason)
@@ -499,8 +501,13 @@ namespace YARG.Core.Engine
         {
             YargLogger.LogFormatTrace("Star Power ended at {0} (tick: {1})", CurrentTime,
                 StarPowerTickPosition);
+
             BaseStats.IsStarPowerActive = false;
-            BaseStats.TimeInStarPower += CurrentTime - StarPowerActivationTime;
+
+            double spTimeDelta = CurrentTime - StarPowerActivationTime;
+            BaseStats.TimeInStarPower = spTimeDelta + BaseTimeInStarPower;
+
+            BaseTimeInStarPower = BaseStats.TimeInStarPower;
 
             RebaseProgressValues(CurrentTick);
 
@@ -551,6 +558,8 @@ namespace YARG.Core.Engine
             if (BaseStats.IsStarPowerActive)
             {
                 DrainStarPower(StarPowerTickPosition - PreviousStarPowerTickPosition);
+                double spTimeDelta = CurrentTime - StarPowerActivationTime;
+                BaseStats.TimeInStarPower = spTimeDelta + BaseTimeInStarPower;
 
                 if (BaseStats.StarPowerTickAmount <= 0)
                 {
