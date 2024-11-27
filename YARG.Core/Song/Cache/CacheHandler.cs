@@ -33,7 +33,7 @@ namespace YARG.Core.Song.Cache
         /// Format is YY_MM_DD_RR: Y = year, M = month, D = day, R = revision (reset across dates, only increment
         /// if multiple cache version changes happen in a single day).
         /// </summary>
-        public const int CACHE_VERSION = 24_10_23_01;
+        public const int CACHE_VERSION = 24_10_29_01;
 
         public static ScanProgressTracker Progress => _progress;
         private static ScanProgressTracker _progress;
@@ -756,19 +756,27 @@ namespace YARG.Core.Song.Cache
             }
             else
             {
-                var dtaEntry = new DTAEntry(name, in node);
-                var modification = GetModification(name);
-                var song = func(group, name, dtaEntry, modification);
-                if (song.Item2 != null)
+                try
                 {
-                    if (AddEntry(song.Item2))
+                    var dtaEntry = new DTAEntry(name, in node);
+                    var modification = GetModification(name);
+                    var song = func(group, name, dtaEntry, modification);
+                    if (song.Item2 != null)
                     {
-                        group.AddEntry(name, index, song.Item2);
+                        if (AddEntry(song.Item2))
+                        {
+                            group.AddEntry(name, index, song.Item2);
+                        }
+                    }
+                    else
+                    {
+                        AddToBadSongs(group.Location + $" - Node {name}", song.Item1);
                     }
                 }
-                else
+                catch (Exception ex)
                 {
-                    AddToBadSongs(group.Location + $" - Node {name}", song.Item1);
+                    YargLogger.LogException(ex);
+                    AddToBadSongs(group.Location + $" - Node {name}", ScanResult.DTAError);
                 }
             }
         }
@@ -797,6 +805,11 @@ namespace YARG.Core.Song.Cache
                             modification.UpdateDTA.LoadData(name, container);
                         }
                         modification.Midi = update.Midi;
+                        if (modification.Midi == null && modification.UpdateDTA.DiscUpdate)
+                        {
+                            YargLogger.LogFormatWarning("Update midi expected in directory {0}", Path.Combine(group.Directory, name));
+                        }
+
                         modification.Mogg = update.Mogg;
                         modification.Milo = update.Milo;
                         modification.Image = update.Image;
@@ -1651,7 +1664,7 @@ namespace YARG.Core.Song.Cache
             }
             catch (Exception ex)
             {
-                YargLogger.LogException(ex, $"Error while loading {errorFile}");
+                YargLogger.LogException(ex, $"Error while loading {info.FullName} - {errorFile}");
             }
             return group;
         }
