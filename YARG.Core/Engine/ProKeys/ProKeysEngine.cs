@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using YARG.Core.Chart;
 using YARG.Core.Input;
 using YARG.Core.Logging;
@@ -153,7 +153,7 @@ namespace YARG.Core.Engine.ProKeys
                 }
             }
 
-            EngineStats.Combo = 0;
+            ResetCombo();
             EngineStats.Overhits++;
 
             UpdateMultiplier();
@@ -221,12 +221,7 @@ namespace YARG.Core.Engine.ProKeys
             // Only increase combo for the first note in a chord
             if (!partiallyHit)
             {
-                EngineStats.Combo++;
-
-                if (EngineStats.Combo > EngineStats.MaxCombo)
-                {
-                    EngineStats.MaxCombo = EngineStats.Combo;
-                }
+                IncrementCombo();
             }
 
             EngineStats.NotesHit++;
@@ -275,12 +270,13 @@ namespace YARG.Core.Engine.ProKeys
             // If no notes within a chord were hit, combo is 0
             if (note.ParentOrSelf.WasFullyMissed())
             {
-                EngineStats.Combo = 0;
+                ResetCombo();
             }
             else
             {
                 // If any of the notes in a chord were hit, the combo for that note is rewarded, but it is reset back to 1
-                EngineStats.Combo = 1;
+                ResetCombo();
+                IncrementCombo();
             }
 
             UpdateMultiplier();
