@@ -240,6 +240,10 @@ namespace YARG.Core.Engine.Guitar.Engines
                     continue;
                 }
 
+                // Defines whether solo tapping is allowed
+                // Only if SoloTaps engine parameter is set, solo is active, and no non-solo buttons are pressed
+                bool SoloTapAllowed = EngineParameters.SoloTaps && IsSoloActive && !(StandardButtonCount > 0);
+
                 // Handles hitting a hopo notes
                 // If first note is a hopo then it can be hit without combo (for practice mode)
                 bool hopoCondition = note.IsHopo && isFirstNoteInWindow &&
@@ -247,9 +251,7 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                 // If a note is a tap then it can be hit only if it is the closest note, unless
                 // the combo is 0 then it can be hit regardless of the distance (note skipping)
-                // Need a solo condition that combines IsSoloActive and that the input was a solo button
-                bool tapCondition = (note.IsTap || (IsSoloActive && ButtonIsSolo && EngineParameters.SoloTaps)) && 
-                                    (isFirstNoteInWindow || EngineStats.Combo == 0);
+                bool tapCondition = (note.IsTap || SoloTapAllowed) && (isFirstNoteInWindow || EngineStats.Combo == 0);
 
                 bool frontEndIsExpired = note.Time > FrontEndExpireTime;
                 bool canUseInfFrontEnd =

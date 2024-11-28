@@ -18,7 +18,10 @@ namespace YARG.Core.Engine.Guitar
 
         public byte LastButtonMask { get; protected set; }
 
-        public bool ButtonIsSolo { get; protected set; } = false;
+        public byte SoloButtonMask { get; protected set; } = OPEN_MASK;
+
+        // Count of standard buttons currently pressed
+        public int StandardButtonCount { get; protected set; } = 0;
 
         protected bool HasFretted;
         protected bool HasStrummed;
@@ -358,9 +361,17 @@ namespace YARG.Core.Engine.Guitar
             // FIXME: This is a terrible hack
             if((int) fret >= 10) {
                 fret -= 10;
-                ButtonIsSolo = true;
             } else {
-                ButtonIsSolo = false;
+                if (active) 
+                {
+                    // Add one to count of standard buttons pressed, avoiding overflow
+                    StandardButtonCount = (StandardButtonCount < int.MaxValue) ? StandardButtonCount + 1 : StandardButtonCount;
+                }
+                else
+                {
+                    // Subtract one from count, avoiding underflow
+                    StandardButtonCount = (StandardButtonCount > 0) ? StandardButtonCount - 1 : 0;
+                }
             }
             ButtonMask = (byte) (active ? ButtonMask | (1 << fret) : ButtonMask & ~(1 << fret));
         }
@@ -368,7 +379,8 @@ namespace YARG.Core.Engine.Guitar
         public bool IsFretHeld(GuitarAction fret)
         {
             // FIXME: This is a terrible hack
-            if((int) fret >= 10) {
+            if((int) fret >= 10) 
+            {
                 fret -= 10;
             }
             return (ButtonMask & (1 << (int) fret)) != 0;
