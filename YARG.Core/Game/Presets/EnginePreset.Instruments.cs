@@ -117,6 +117,7 @@ namespace YARG.Core.Game
                     StrumLeniency = StrumLeniency,
                     StrumLeniencySmall = StrumLeniencySmall,
                     HitWindow = HitWindow.Copy(),
+                    SoloTaps = SoloTaps,
                 };
             }
 
