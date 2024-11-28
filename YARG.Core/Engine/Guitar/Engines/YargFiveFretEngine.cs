@@ -248,7 +248,8 @@ namespace YARG.Core.Engine.Guitar.Engines
                 // If a note is a tap then it can be hit only if it is the closest note, unless
                 // the combo is 0 then it can be hit regardless of the distance (note skipping)
                 // Need a solo condition that combines IsSoloActive and that the input was a solo button
-                bool tapCondition = (note.IsTap || (IsSoloActive && ButtonIsSolo)) && (isFirstNoteInWindow || EngineStats.Combo == 0);
+                bool tapCondition = (note.IsTap || (IsSoloActive && ButtonIsSolo && EngineParameters.SoloTaps)) && 
+                                    (isFirstNoteInWindow || EngineStats.Combo == 0);
 
                 bool frontEndIsExpired = note.Time > FrontEndExpireTime;
                 bool canUseInfFrontEnd =
