@@ -47,7 +47,6 @@ namespace YARG.Core.Engine.Guitar
         {
             StrumLeniencyTimer = new EngineTimer(engineParameters.StrumLeniency);
             HopoLeniencyTimer = new EngineTimer(engineParameters.HopoLeniency);
-            StarPowerWhammyTimer = new EngineTimer(engineParameters.StarPowerWhammyBuffer);
 
             GetWaitCountdowns(Notes);
         }
@@ -96,7 +95,6 @@ namespace YARG.Core.Engine.Guitar
 
             StrumLeniencyTimer.Disable();
             HopoLeniencyTimer.Disable();
-            StarPowerWhammyTimer.Disable();
 
             FrontEndExpireTime = 0;
 
