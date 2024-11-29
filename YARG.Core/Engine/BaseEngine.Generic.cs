@@ -443,13 +443,13 @@ namespace YARG.Core.Engine
         {
             EngineStats.PendingScore = 0;
 
-            bool isStarPowerSustainActive = false;
+            bool isStarPowerSustainActiveRightNow = false;
             for (int i = 0; i < ActiveSustains.Count; i++)
             {
                 ref var sustain = ref ActiveSustains[i];
                 var note = sustain.Note;
 
-                isStarPowerSustainActive |= note.IsStarPower;
+                isStarPowerSustainActiveRightNow |= note.IsStarPower;
 
                 // If we're close enough to the end of the sustain, finish it
                 // Provides leniency for sustains with no gap (and just in general)
@@ -547,9 +547,9 @@ namespace YARG.Core.Engine
 
             UpdateStars();
 
-            if (isStarPowerSustainActive && StarPowerWhammyTimer.IsActive)
+            if ((WasSpSustainActive || isStarPowerSustainActiveRightNow) && StarPowerWhammyTimer.IsActive)
             {
-                var whammyTicks = CurrentTick - LastTick;
+                var whammyTicks = GetWhammyTicks(isStarPowerSustainActiveRightNow);
 
                 // Just started whammying, award 1 tick
                 if (!LastWhammyTimerState)
@@ -559,9 +559,16 @@ namespace YARG.Core.Engine
 
                 GainStarPower(whammyTicks);
                 EngineStats.StarPowerWhammyTicks += whammyTicks;
+                YargLogger.LogFormatTrace("Gained {0} whammy ticks this update (Total: {1}), {2} sustains active. WasSP: {3}, SP right now: {4}", whammyTicks, EngineStats.StarPowerWhammyTicks, ActiveSustains.Count, WasSpSustainActive, isStarPowerSustainActiveRightNow);
             }
 
             LastWhammyTimerState = StarPowerWhammyTimer.IsActive;
+
+            WasSpSustainActive = false;
+            foreach (var sustain in ActiveSustains)
+            {
+                WasSpSustainActive |= sustain.Note.IsStarPower;
+            }
 
             // Whammy is disabled after sustains are updated.
             // This is because all the ticks that have accumulated will have been accounted for when it is disabled.
@@ -569,6 +576,7 @@ namespace YARG.Core.Engine
             if (StarPowerWhammyTimer.IsActive && StarPowerWhammyTimer.IsExpired(CurrentTime))
             {
                 StarPowerWhammyTimer.Disable();
+                YargLogger.LogFormatTrace("Disabling whammy timer at {0}", CurrentTime);
             }
         }
 
