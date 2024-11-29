@@ -87,6 +87,11 @@ namespace YARG.Core.Engine
 
         protected bool LastWhammyTimerState;
 
+        /// <summary>
+        /// A Star Power Sustain was active in the last update.
+        /// </summary>
+        protected bool WasSpSustainActive;
+
         public uint StarPowerTickPosition { get; protected set; }
         public uint PreviousStarPowerTickPosition { get; protected set; }
 
@@ -691,6 +696,17 @@ namespace YARG.Core.Engine
             var offset = GetStarPowerDrainTicksToPeriod(starPowerTick - _starPowerTempoTsTicks[change.Index], tempo, ts);
 
             return change.Time + offset;
+        }
+
+        public uint GetWhammyTicks(bool currentSpSustainState)
+        {
+            // Just hit the SP sustain this update
+            if (!WasSpSustainActive && currentSpSustainState)
+            {
+                return 1;
+            }
+
+            return CurrentTick - LastTick;
         }
 
         protected virtual void RebaseProgressValues(uint baseTick)
