@@ -260,7 +260,7 @@ namespace MoonscraperChartEditor.Song.IO
                 ++sectionEndIndex;
             }
 
-            sectionBody = search[sectionStartIndex..sectionEndIndex].SplitTrimmedAscii('\n');
+            sectionBody = search[..sectionEndIndex].SplitTrimmedAscii('\n');
             index += sectionEndIndex + 1;
             return true;
         }
