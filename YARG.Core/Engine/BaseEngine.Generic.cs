@@ -75,6 +75,8 @@ namespace YARG.Core.Engine
             Notes = Chart.Notes;
             EngineParameters = engineParameters;
 
+            StarPowerWhammyTimer = new EngineTimer(engineParameters.StarPowerWhammyBuffer);
+
             EngineStats = new TEngineStats();
             Reset();
 
@@ -335,6 +337,8 @@ namespace YARG.Core.Engine
             InputQueue.Clear();
 
             EngineStats.Reset();
+
+            StarPowerWhammyTimer.Disable();
 
             foreach (var note in Notes)
             {
