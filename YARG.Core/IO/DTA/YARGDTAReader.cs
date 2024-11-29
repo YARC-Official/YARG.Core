@@ -242,6 +242,7 @@ namespace YARG.Core.IO
         public static void EndNode(ref YARGTextContainer<byte> container)
         {
             int scopeLevel = 0;
+            int squirlyCount = 0;
             var textState = TextScopeState.None;
             while (container.Position < container.End && scopeLevel >= 0)
             {
@@ -256,11 +257,12 @@ namespace YARG.Core.IO
                 }
                 else if (curr == '{')
                 {
-                    if (textState != TextScopeState.None)
+                    if (textState != TextScopeState.None && textState != TextScopeState.Squirlies)
                     {
                         throw new Exception("Invalid open-squirly found!");
                     }
                     textState = TextScopeState.Squirlies;
+                    ++squirlyCount;
                 }
                 else if (curr == '}')
                 {
@@ -268,7 +270,11 @@ namespace YARG.Core.IO
                     {
                         throw new Exception("Invalid close-squirly found!");
                     }
-                    textState = TextScopeState.None;
+                    --squirlyCount;
+                    if (squirlyCount == 0)
+                    {
+                        textState = TextScopeState.None;
+                    }
                 }
                 else if (curr == '\"')
                 {
