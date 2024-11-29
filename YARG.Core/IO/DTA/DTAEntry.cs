@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System;
+using System.Text;
 using YARG.Core.Song;
 
 namespace YARG.Core.IO
@@ -78,7 +79,25 @@ namespace YARG.Core.IO
                     case "name": Name = YARGDTAReader.ExtractText(ref container); break;
                     case "artist": Artist = YARGDTAReader.ExtractText(ref container); break;
                     case "master": IsMaster = YARGDTAReader.ExtractBoolean_FlippedDefault(ref container); break;
-                    case "context": /*Context = YARGDTAReader.ExtractUInt32(ref container);*/ break;
+                    case "context":
+                        unsafe
+                        {
+                            int scopeLevel = 0;
+                            while (container.Position < container.End && *container.Position != ')')
+                            {
+                                switch (*container.Position++)
+                                {
+                                    case (byte)'{': ++scopeLevel; break;
+                                    case (byte)'}': --scopeLevel; break;
+                                }
+                            }
+
+                            if (scopeLevel != 0)
+                            {
+                                throw new Exception("Invalid Context - Unbalanced brace count!");
+                            }
+                            break;
+                        }
                     case "song":
                         while (YARGDTAReader.StartNode(ref container))
                         {
