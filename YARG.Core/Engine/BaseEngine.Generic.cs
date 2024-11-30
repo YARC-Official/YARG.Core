@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -238,16 +238,6 @@ namespace YARG.Core.Engine
                             QueueUpdateTime(nextCountdownStartTime, "Activate Countdown");
                         }
                     }
-                }
-            }
-
-            if (StarPowerWhammyTimer.IsActive)
-            {
-                if (IsTimeBetween(StarPowerWhammyTimer.EndTime, previousTime, nextTime))
-                {
-                    YargLogger.LogFormatTrace("Queuing star power whammy end time at {0}",
-                        StarPowerWhammyTimer.EndTime);
-                    QueueUpdateTime(StarPowerWhammyTimer.EndTime, "Star Power Whammy End");
                 }
             }
         }
@@ -546,38 +536,6 @@ namespace YARG.Core.Engine
             }
 
             UpdateStars();
-
-            if ((WasSpSustainActive || isStarPowerSustainActiveRightNow) && StarPowerWhammyTimer.IsActive)
-            {
-                var whammyTicks = GetWhammyTicks(isStarPowerSustainActiveRightNow);
-
-                // Just started whammying, award 1 tick
-                if (!LastWhammyTimerState)
-                {
-                    whammyTicks = 1;
-                }
-
-                GainStarPower(whammyTicks);
-                EngineStats.StarPowerWhammyTicks += whammyTicks;
-                YargLogger.LogFormatTrace("Gained {0} whammy ticks this update (Total: {1}), {2} sustains active. WasSP: {3}, SP right now: {4}", whammyTicks, EngineStats.StarPowerWhammyTicks, ActiveSustains.Count, WasSpSustainActive, isStarPowerSustainActiveRightNow);
-            }
-
-            LastWhammyTimerState = StarPowerWhammyTimer.IsActive;
-
-            WasSpSustainActive = false;
-            foreach (var sustain in ActiveSustains)
-            {
-                WasSpSustainActive |= sustain.Note.IsStarPower;
-            }
-
-            // Whammy is disabled after sustains are updated.
-            // This is because all the ticks that have accumulated will have been accounted for when it is disabled.
-            // Whereas disabling it before could mean there are some ticks which should have been whammied but weren't.
-            if (StarPowerWhammyTimer.IsActive && StarPowerWhammyTimer.IsExpired(CurrentTime))
-            {
-                StarPowerWhammyTimer.Disable();
-                YargLogger.LogFormatTrace("Disabling whammy timer at {0}", CurrentTime);
-            }
         }
 
         protected virtual void StartSustain(TNoteType note)
@@ -598,6 +556,67 @@ namespace YARG.Core.Engine
             ActiveSustains.RemoveAt(sustainIndex);
 
             OnSustainEnd?.Invoke(sustain.Note, CurrentTime, sustain.HasFinishedScoring);
+        }
+
+        protected override void UpdateStarPower()
+        {
+            PreviousStarPowerTickPosition = StarPowerTickPosition;
+            StarPowerTickPosition = GetStarPowerDrainTimeToTicks(CurrentTime, CurrentSyncTrackState);
+
+            if (BaseStats.IsStarPowerActive)
+            {
+                var drain = StarPowerTickPosition - PreviousStarPowerTickPosition;
+                if ((int) BaseStats.StarPowerTickAmount - drain <= 0)
+                {
+                    BaseStats.StarPowerTickAmount = 0;
+                }
+                else
+                {
+                    BaseStats.StarPowerTickAmount -= drain;
+                }
+
+                double spTimeDelta = CurrentTime - StarPowerActivationTime;
+                BaseStats.TimeInStarPower = spTimeDelta + BaseTimeInStarPower;
+            }
+
+            bool isStarPowerSustainActive = false;
+            foreach (var sustain in ActiveSustains)
+            {
+                isStarPowerSustainActive |= sustain.Note.IsStarPower;
+            }
+
+            if (isStarPowerSustainActive && StarPowerWhammyTimer.IsActive)
+            {
+                var whammyTicks = CurrentTick - LastTick;
+
+                // Just started whammying, award 1 tick
+                if (!LastWhammyTimerState)
+                {
+                    whammyTicks = 1;
+                }
+
+                GainStarPower(whammyTicks);
+                BaseStats.StarPowerWhammyTicks += whammyTicks;
+                YargLogger.LogFormatTrace("Gained {0} whammy ticks this update (Total: {1}), {2} sustains active. SP right now: {3}", whammyTicks, EngineStats.StarPowerWhammyTicks, ActiveSustains.Count, isStarPowerSustainActive);
+            }
+
+            LastWhammyTimerState = StarPowerWhammyTimer.IsActive;
+
+            if (BaseStats is { IsStarPowerActive: true, StarPowerTickAmount: 0 })
+            {
+                ReleaseStarPower();
+            }
+
+            if (IsStarPowerInputActive && CanStarPowerActivate)
+            {
+                ActivateStarPower();
+            }
+
+            if (StarPowerWhammyTimer.IsActive && StarPowerWhammyTimer.IsExpired(CurrentTime))
+            {
+                StarPowerWhammyTimer.Disable();
+                YargLogger.LogFormatTrace("Disabling whammy timer at {0}", CurrentTime);
+            }
         }
 
         protected void UpdateStars()

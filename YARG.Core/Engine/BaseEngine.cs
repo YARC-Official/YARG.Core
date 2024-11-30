@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using YARG.Core.Chart;
 using YARG.Core.Input;
@@ -345,6 +345,16 @@ namespace YARG.Core.Engine
             YargLogger.LogFormatTrace("Generating queued updates up to {0}", nextTime);
             var previousTime = CurrentTime;
 
+            if (StarPowerWhammyTimer.IsActive)
+            {
+                if (IsTimeBetween(StarPowerWhammyTimer.EndTime, previousTime, nextTime))
+                {
+                    YargLogger.LogFormatTrace("Queuing star power whammy end time at {0}",
+                        StarPowerWhammyTimer.EndTime);
+                    QueueUpdateTime(StarPowerWhammyTimer.EndTime, "Star Power Whammy End");
+                }
+            }
+
             if (BaseStats.IsStarPowerActive)
             {
                 if (IsTimeBetween(StarPowerEndTime, previousTime, nextTime))
@@ -533,6 +543,8 @@ namespace YARG.Core.Engine
 
             // Add the amount of ticks gained to the total ticks gained
             BaseStats.TotalStarPowerTicks += BaseStats.StarPowerTickAmount - prevTicks;
+            YargLogger.LogFormatTrace("Earned {0} ticks of SP at SP tick position {1}, current: {2}, new total: {3}", BaseStats.StarPowerTickAmount - prevTicks,
+                StarPowerTickPosition, BaseStats.StarPowerTickAmount, BaseStats.TotalStarPowerTicks);
             BaseStats.TotalStarPowerBarsFilled = (double) BaseStats.TotalStarPowerTicks / TicksPerFullSpBar;
 
             if (BaseStats.IsStarPowerActive)
@@ -543,40 +555,7 @@ namespace YARG.Core.Engine
             }
         }
 
-        protected void DrainStarPower(uint starPowerTicks)
-        {
-            int newAmount = (int) BaseStats.StarPowerTickAmount - (int) starPowerTicks;
-
-            if (newAmount <= 0)
-            {
-                newAmount = 0;
-            }
-
-            BaseStats.StarPowerTickAmount = (uint) newAmount;
-        }
-
-        protected virtual void UpdateStarPower()
-        {
-            PreviousStarPowerTickPosition = StarPowerTickPosition;
-            StarPowerTickPosition = GetStarPowerDrainTimeToTicks(CurrentTime, CurrentSyncTrackState);
-
-            if (BaseStats.IsStarPowerActive)
-            {
-                DrainStarPower(StarPowerTickPosition - PreviousStarPowerTickPosition);
-                double spTimeDelta = CurrentTime - StarPowerActivationTime;
-                BaseStats.TimeInStarPower = spTimeDelta + BaseTimeInStarPower;
-
-                if (BaseStats.StarPowerTickAmount <= 0)
-                {
-                    ReleaseStarPower();
-                }
-            }
-
-            if (IsStarPowerInputActive && CanStarPowerActivate)
-            {
-                ActivateStarPower();
-            }
-        }
+        protected abstract void UpdateStarPower();
 
         /// <summary>
         /// Calculates the drain to gain ratio for Star Power for a given <see cref="TimeSignatureChange"/>
@@ -634,7 +613,7 @@ namespace YARG.Core.Engine
             return period;
         }
 
-        private uint GetStarPowerDrainTimeToTicks(double time, SyncTrackChange change)
+        protected uint GetStarPowerDrainTimeToTicks(double time, SyncTrackChange change)
         {
             var tempo = change.Tempo;
             var ts = change.TimeSignature;
@@ -697,17 +676,6 @@ namespace YARG.Core.Engine
             var offset = GetStarPowerDrainTicksToPeriod(starPowerTick - _starPowerTempoTsTicks[change.Index], tempo, ts);
 
             return change.Time + offset;
-        }
-
-        public uint GetWhammyTicks(bool currentSpSustainState)
-        {
-            // Just hit the SP sustain this update
-            if (!WasSpSustainActive && currentSpSustainState)
-            {
-                return 1;
-            }
-
-            return CurrentTick - LastTick;
         }
 
         protected virtual void RebaseProgressValues(uint baseTick)
