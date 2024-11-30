@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using YARG.Core.Chart;
@@ -361,6 +361,29 @@ namespace YARG.Core.Engine
                 {
                     YargLogger.LogFormatTrace("Queuing Star Power End Time at {0}", StarPowerEndTime);
                     QueueUpdateTime(StarPowerEndTime, "SP End Time");
+                }
+            }
+            else
+            {
+                if (StarPowerWhammyTimer.IsActive)
+                {
+                    var nextTimeTick = SyncTrack.TimeToTick(nextTime);
+                    var tickDelta = nextTimeTick - CurrentTick;
+
+                    var ticksAfterWhammy = BaseStats.StarPowerTickAmount + tickDelta;
+
+                    if (ticksAfterWhammy >= TicksPerHalfSpBar)
+                    {
+                        var ticksToHalfBar = TicksPerHalfSpBar - BaseStats.StarPowerTickAmount;
+                        var timeOfHalfBar = SyncTrack.TickToTime(CurrentTick + ticksToHalfBar);
+
+                        if (IsTimeBetween(timeOfHalfBar, previousTime, nextTime))
+                        {
+                            YargLogger.LogFormatTrace("Queuing star power half bar time at {0}",
+                                timeOfHalfBar);
+                            QueueUpdateTime(timeOfHalfBar, "Star Power Half Bar");
+                        }
+                    }
                 }
             }
         }
