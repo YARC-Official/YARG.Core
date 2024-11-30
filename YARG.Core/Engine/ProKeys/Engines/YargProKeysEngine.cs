@@ -50,8 +50,6 @@ namespace YARG.Core.Engine.ProKeys.Engines
 
         protected override void UpdateHitLogic(double time)
         {
-            UpdateStarPower();
-
             // Update bot (will return if not enabled)
             UpdateBot(time);
 

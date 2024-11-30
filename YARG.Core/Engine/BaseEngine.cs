@@ -437,6 +437,9 @@ namespace YARG.Core.Engine
             {
                 ReRunHitLogic = false;
                 UpdateTimeVariables(time);
+
+                UpdateStarPower();
+
                 UpdateHitLogic(time);
             } while (ReRunHitLogic);
         }

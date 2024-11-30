@@ -105,7 +105,6 @@ namespace YARG.Core.Engine.Guitar.Engines
 
         protected override void UpdateHitLogic(double time)
         {
-            UpdateStarPower();
             UpdateTimers();
 
             bool strumEatenByHopo = false;
