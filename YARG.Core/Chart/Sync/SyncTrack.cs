@@ -269,7 +269,7 @@ namespace YARG.Core.Chart
 
             double timeDelta = timeEnd - timeStart;
             double beatDelta = timeDelta * currentTempo.BeatsPerMinute / 60.0;
-            uint tickDelta = (uint)Math.Round(beatDelta * resolution, 8);
+            uint tickDelta = (uint) (beatDelta * resolution);
 
             return tickDelta;
         }
