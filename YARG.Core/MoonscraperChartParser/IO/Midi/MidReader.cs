@@ -329,7 +329,7 @@ namespace MoonscraperChartEditor.Song.IO
                     {
                         // Check for duplicates
                         if (TryFindMatchingNote(unpairedNoteQueue, note, out _, out _, out _))
-                            YargLogger.LogFormatWarning("Found duplicate note on at tick {0}!", absoluteTime);
+                            YargLogger.LogFormatDebug("Found duplicate note on at tick {0}!", absoluteTime);
                         else
                             unpairedNoteQueue.Add((note, absoluteTime));
                     }
@@ -338,7 +338,7 @@ namespace MoonscraperChartEditor.Song.IO
                         // Find starting note
                         if (!TryFindMatchingNote(unpairedNoteQueue, note, out var noteStart, out long startTick, out int startIndex))
                         {
-                            YargLogger.LogFormatWarning("Found note off with no corresponding note on at tick {0}!", absoluteTime);
+                            YargLogger.LogFormatDebug("Found note off with no corresponding note on at tick {0}!", absoluteTime);
                             return;
                         }
                         unpairedNoteQueue.RemoveAt(startIndex);
@@ -495,7 +495,7 @@ namespace MoonscraperChartEditor.Song.IO
             {
                 // Check for duplicates
                 if (TryFindMatchingNote(unpairedNotes, note, out _, out _, out _))
-                    YargLogger.LogFormatWarning("Found duplicate note on at tick {0}!", absoluteTick);
+                    YargLogger.LogFormatDebug("Found duplicate note on at tick {0}!", absoluteTick);
                 else
                     unpairedNotes.Add((note, absoluteTick));
             }
@@ -503,7 +503,7 @@ namespace MoonscraperChartEditor.Song.IO
             {
                 if (!TryFindMatchingNote(unpairedNotes, note, out var noteStart, out long startTick, out int startIndex))
                 {
-                    YargLogger.LogFormatWarning("Found note off with no corresponding note on at tick {0}!", absoluteTick);
+                    YargLogger.LogFormatDebug("Found note off with no corresponding note on at tick {0}!", absoluteTick);
                     return;
                 }
                 unpairedNotes.RemoveAt(startIndex);
@@ -550,14 +550,14 @@ namespace MoonscraperChartEditor.Song.IO
             if (!PhaseShiftSysEx.TryParse(sysex, out var psEvent))
             {
                 // SysEx event is not a Phase Shift SysEx event
-                YargLogger.LogFormatWarning("Encountered unknown SysEx event at tick {0}: {1}",
+                YargLogger.LogFormatDebug("Encountered unknown SysEx event at tick {0}: {1}",
                     absoluteTick, new HexBytesFormat(sysex.Data));
                 return;
             }
 
             if (psEvent.type != PhaseShiftSysEx.Type.Phrase)
             {
-                YargLogger.LogFormatWarning("Encountered unknown Phase Shift SysEx event type {0} at tick {1}!",
+                YargLogger.LogFormatDebug("Encountered unknown Phase Shift SysEx event type {0} at tick {1}!",
                     psEvent.type, absoluteTick);
                 return;
             }
@@ -566,7 +566,7 @@ namespace MoonscraperChartEditor.Song.IO
             {
                 // Check for duplicates
                 if (TryFindMatchingSysEx(unpairedSysex, psEvent, out _, out _, out _))
-                    YargLogger.LogFormatWarning("Found duplicate SysEx start event at tick {0}!", absoluteTick);
+                    YargLogger.LogFormatDebug("Found duplicate SysEx start event at tick {0}!", absoluteTick);
                 else
                     unpairedSysex.Add((psEvent, absoluteTick));
             }
@@ -574,7 +574,7 @@ namespace MoonscraperChartEditor.Song.IO
             {
                 if (!TryFindMatchingSysEx(unpairedSysex, psEvent, out var sysexStart, out long startTick, out int startIndex))
                 {
-                    YargLogger.LogFormatWarning("Found PS SysEx end with no corresponding start at tick {0}!", absoluteTick);
+                    YargLogger.LogFormatDebug("Found PS SysEx end with no corresponding start at tick {0}!", absoluteTick);
                     return;
                 }
                 unpairedSysex.RemoveAt(startIndex);
