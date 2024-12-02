@@ -171,9 +171,9 @@ namespace MoonscraperChartEditor.Song
             return MoonObjectHelper.Remove(venueEvent, venue);
         }
 
-        public float ResolutionScaleRatio(uint targetResoltion)
+        public double ResolutionScaleRatio(uint targetResoltion)
         {
-            return (float)targetResoltion / resolution;
+            return (double)targetResoltion / resolution;
         }
 
         public static MoonChart.GameMode InstrumentToChartGameMode(MoonInstrument instrument)

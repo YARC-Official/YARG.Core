@@ -194,8 +194,8 @@ namespace YARG.Core.Chart
             }
 
             // Limits for placing activation phrases (in seconds)
-            const float MIN_SPACING_TIME = 2;
-            const float MAX_SPACING_TIME = 10;
+            const double MIN_SPACING_TIME = 2;
+            const double MAX_SPACING_TIME = 10;
 
             // Update this time to the latest SP/Solo/Activation phrase encountered for comparison with the above constants
             // Start parsing after the end of the 1st SP phrase

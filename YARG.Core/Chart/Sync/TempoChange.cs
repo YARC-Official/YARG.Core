@@ -5,14 +5,14 @@ namespace YARG.Core.Chart
 {
     public class TempoChange : SyncEvent, IEquatable<TempoChange>, ICloneable<TempoChange>
     {
-        private const float SECONDS_PER_MINUTE = 60f;
+        private const double SECONDS_PER_MINUTE = 60;
 
-        public float BeatsPerMinute { get; }
-        public float SecondsPerBeat => SECONDS_PER_MINUTE / BeatsPerMinute;
+        public double BeatsPerMinute { get; }
+        public double SecondsPerBeat => SECONDS_PER_MINUTE / BeatsPerMinute;
         public long MilliSecondsPerBeat => BpmToMicroSeconds(BeatsPerMinute) / 1000;
         public long MicroSecondsPerBeat => BpmToMicroSeconds(BeatsPerMinute);
 
-        public TempoChange(float tempo, double time, uint tick) : base(time, tick)
+        public TempoChange(double tempo, double time, uint tick) : base(time, tick)
         {
             BeatsPerMinute = tempo;
         }
@@ -23,7 +23,7 @@ namespace YARG.Core.Chart
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static long BpmToMicroSeconds(float tempo)
+        public static long BpmToMicroSeconds(double tempo)
         {
             double secondsPerBeat = SECONDS_PER_MINUTE / tempo;
             double microseconds = secondsPerBeat * 1000 * 1000;
@@ -31,11 +31,11 @@ namespace YARG.Core.Chart
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static float MicroSecondsToBpm(long usecs)
+        public static double MicroSecondsToBpm(long usecs)
         {
             double secondsPerBeat = usecs / 1000f / 1000f;
             double tempo = SECONDS_PER_MINUTE / secondsPerBeat;
-            return (float) tempo;
+            return tempo;
         }
 
         public static bool operator ==(TempoChange? left, TempoChange? right)
