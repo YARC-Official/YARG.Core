@@ -60,7 +60,7 @@ namespace YARG.Core.Song
         public readonly string Background;
         public readonly string Video;
         public readonly string Cover;
-        
+
         public override string Year { get; }
         public override int YearAsNumber { get; }
         public override bool LoopVideo { get; }
@@ -195,7 +195,7 @@ namespace YARG.Core.Song
                     // With a 192 resolution, .chart has a HOPO threshold of 65 ticks, not 64,
                     // so we need to scale this factor to different resolutions (480 res = 162.5 threshold).
                     // Why?... idk, but I hate it.
-                    const float DEFAULT_RESOLUTION = 192;
+                    const double DEFAULT_RESOLUTION = 192;
                     settings.HopoThreshold += (long) (results.resolution / DEFAULT_RESOLUTION);
                 }
             }

@@ -4,7 +4,7 @@ namespace YARG.Core.Chart
 {
     public partial class TimeSignatureChange : SyncEvent, IEquatable<TimeSignatureChange>, ICloneable<TimeSignatureChange>
     {
-        public const float QUARTER_NOTE_DENOMINATOR = 4f;
+        public const double QUARTER_NOTE_DENOMINATOR = 4;
 
         public uint Numerator   { get; }
         public uint Denominator { get; }

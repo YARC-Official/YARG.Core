@@ -110,7 +110,7 @@ namespace MoonscraperChartEditor.Song.IO
             // Apply settings
             song.hopoThreshold = settings.HopoThreshold > ParseSettings.SETTING_DEFAULT
                 // +1 for a small bit of leniency
-                ? (uint)settings.HopoThreshold + 1 
+                ? (uint)settings.HopoThreshold + 1
                 : (song.resolution / 3) + 1;
 
             if (settings.SustainCutoffThreshold <= ParseSettings.SETTING_DEFAULT)
@@ -204,7 +204,7 @@ namespace MoonscraperChartEditor.Song.IO
             foreach (var tempo in tempoMap.GetTempoChanges())
             {
                 uint tempoTick = (uint) tempo.Time;
-                song.Add(new TempoChange((float) tempo.Value.BeatsPerMinute,
+                song.Add(new TempoChange(tempo.Value.BeatsPerMinute,
                     // This is valid since we are guaranteed to have at least one tempo event at all times
                     song.TickToTime(tempoTick, song.syncTrack.Tempos[^1]), tempoTick));
             }
