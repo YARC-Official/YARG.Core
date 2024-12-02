@@ -242,16 +242,24 @@ namespace YARG.Core.Chart
             TempoChange currentTempo)
         {
             if (tickStart < currentTempo.Tick)
+            {
                 throw new ArgumentOutOfRangeException(nameof(tickStart), tickStart,
                     $"The given start tick must occur during the given tempo (starting at {currentTempo.Tick})!");
+            }
 
             if (tickEnd < tickStart)
+            {
                 throw new ArgumentOutOfRangeException(nameof(tickEnd), tickEnd,
                     $"The given end tick must occur after the starting tick ({tickStart})!");
+            }
 
-            uint tickDelta = tickEnd - tickStart;
-            double beatDelta = tickDelta / (double)resolution;
-            double timeDelta = beatDelta * 60.0 / currentTempo.BeatsPerMinute;
+            double tickDelta = tickEnd - tickStart;
+
+            // The active code below is a slightly more precise version of the commented code,
+            // it seems to incur fewer rounding errors and should improve consistency.
+            // double beatDelta = tickDelta / resolution;
+            // double timeDelta = beatDelta * currentTempo.SecondsPerBeat;
+            double timeDelta = (tickDelta * 60.0) / (resolution * currentTempo.BeatsPerMinute);
 
             return timeDelta;
         }
@@ -260,18 +268,38 @@ namespace YARG.Core.Chart
             TempoChange currentTempo)
         {
             if (timeStart < currentTempo.Time)
+            {
                 throw new ArgumentOutOfRangeException(nameof(timeStart), timeStart,
-                    $"The given start time must occur during the given tempo (starting at {currentTempo.Tick})!");
+                    $"The given start time must occur during the given tempo (starting at {currentTempo.Time})!");
+            }
 
             if (timeEnd < timeStart)
+            {
                 throw new ArgumentOutOfRangeException(nameof(timeEnd), timeEnd,
                     $"The given end time must occur after the starting time ({timeStart})!");
+            }
 
             double timeDelta = timeEnd - timeStart;
-            double beatDelta = timeDelta * currentTempo.BeatsPerMinute / 60.0;
-            uint tickDelta = (uint) (beatDelta * resolution);
 
-            return tickDelta;
+            // The active code below is a slightly more precise version of the commented code,
+            // it seems to incur fewer rounding errors and should improve consistency somewhat.
+            // double beatDelta = timeDelta / currentTempo.SecondsPerBeat;
+            // double tickDelta = beatDelta * resolution;
+            double tickDelta = (timeDelta * resolution * currentTempo.BeatsPerMinute) / 60.0;
+
+            // Despite the precision improvements above, there are still some floating-point imprecisions,
+            // making time <-> tick conversions not accurately round-trippable. Thus, we need to round to
+            // prevent truncation from resulting in the wrong tick.
+            //
+            // A more conservative approach is taken here, where rounding is only done if the result is
+            // within 0.1 of the next whole value.
+            double deltaDecimals = (tickDelta + 1) - tickDelta;
+            if (Math.Abs(deltaDecimals) >= 0.9)
+            {
+                tickDelta += 0.1;
+            }
+
+            return (uint) tickDelta;
         }
 
         public double GetStartTime()
