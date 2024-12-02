@@ -313,9 +313,6 @@ namespace MoonscraperChartEditor.Song.IO
         private static void SubmitDataSync(MoonSong song, AsciiTrimSplitter sectionLines)
         {
             uint prevTick = 0;
-
-            // This is valid since we are guaranteed to have at least one tempo event at all times
-            var tempoTracker = new ChartEventTickTracker<TempoChange>(song.syncTrack.Tempos);
             foreach (var _line in sectionLines)
             {
                 var line = _line.Trim();
@@ -332,7 +329,8 @@ namespace MoonscraperChartEditor.Song.IO
                     if (prevTick > tick) throw new Exception("Tick value not in ascending order");
                     prevTick = tick;
 
-                    tempoTracker.Update(tick);
+                    // This is valid since we are guaranteed to have at least one tempo event at all times
+                    var currentTempo = song.syncTrack.Tempos[^1];
 
                     // Get event type
                     var typeCode = remaining.GetNextWord(out remaining);
@@ -342,7 +340,7 @@ namespace MoonscraperChartEditor.Song.IO
                         var tempoText = remaining.GetNextWord(out remaining);
                         uint tempo = (uint) FastInt32Parse(tempoText);
 
-                        song.Add(new TempoChange(tempo / 1000f, song.TickToTime(tick, tempoTracker.Current!), tick));
+                        song.Add(new TempoChange(tempo / 1000.0, song.TickToTime(tick, currentTempo), tick));
                     }
                     else if (typeCode.Equals("TS", StringComparison.Ordinal))
                     {
@@ -354,7 +352,7 @@ namespace MoonscraperChartEditor.Song.IO
                         var denominatorText = remaining.GetNextWord(out remaining);
                         uint denominator = denominatorText.IsEmpty ? 2 : (uint) FastInt32Parse(denominatorText);
                         song.Add(new TimeSignatureChange(numerator, (uint) Math.Pow(2, denominator),
-                            song.TickToTime(tick, tempoTracker.Current!), tick));
+                            song.TickToTime(tick, currentTempo), tick));
                     }
                     else if (typeCode.Equals("A", StringComparison.Ordinal))
                     {
