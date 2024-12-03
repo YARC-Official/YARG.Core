@@ -16,14 +16,17 @@ namespace YARG.Core.Engine.Guitar.Engines
         /// </summary>
         protected EngineTimer GamepadModeChordLeniencyTimer;
 
+        protected EngineTimer GamepadModeLiftedNotePressLeniencyTimer;
+
         private int GamepadModePressedSustainsMask;
 
         public YargFiveFretEngine(InstrumentDifficulty<GuitarNote> chart, SyncTrack syncTrack,
             GuitarEngineParameters engineParameters, bool isBot, bool isGamepadMode)
             : base(chart, syncTrack, engineParameters, isBot)
         {
-            IsGamepadMode = isGamepadMode;
+            IsGamepadMode = isBot ? false : isGamepadMode; // No gamepad mode for the bot just in case, since the bot having gamepad mode and knowing how to use it is identical to the bot not having gamepad mode
             GamepadModeChordLeniencyTimer = new EngineTimer(engineParameters.GamepadModeChordLeniency);
+            GamepadModeLiftedNotePressLeniencyTimer = new EngineTimer(0);
             GamepadModePressedSustainsMask = ButtonMask;
         }
 
@@ -149,6 +152,18 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                     // Disable hopo leniency as hopos can only eat one strum
                     HopoLeniencyTimer.Disable();
+
+                    strumEatenByHopo = true;
+                    ReRunHitLogic = true;
+                }
+                else if (GamepadModeLiftedNotePressLeniencyTimer.IsActive)
+                {
+                    StrumLeniencyTimer.Disable();
+
+                    // FIXME: We don't disable the timer here so that it works properly for chords.
+                    // This means that in fast strumming sections you can overstrum with no penalty though I think...
+                    // That's not ideal, is it?
+                    // I should think of a better solution.
 
                     strumEatenByHopo = true;
                     ReRunHitLogic = true;
@@ -326,18 +341,30 @@ namespace YARG.Core.Engine.Guitar.Engines
                     QueueUpdateTime(GamepadModeChordLeniencyTimer.EndTime, "Gamepad Mode Chord Leniency End");
                 }
             }
+            if (GamepadModeLiftedNotePressLeniencyTimer.IsActive)
+            {
+                if (IsTimeBetween(GamepadModeLiftedNotePressLeniencyTimer.EndTime, CurrentTime, nextTime))
+                {
+                    YargLogger.LogFormatTrace("Queuing gamepad mode lifted note press leniency end time at {0}",
+                        GamepadModeLiftedNotePressLeniencyTimer.EndTime);
+                    QueueUpdateTime(GamepadModeLiftedNotePressLeniencyTimer.EndTime, "Gamepad Mode Lifted Note Press Leniency End");
+                }
+            }
         }
 
         public override void Reset(bool keepCurrentButtons = false)
         {
             base.Reset(keepCurrentButtons);
             GamepadModeChordLeniencyTimer.Disable();
+            GamepadModeLiftedNotePressLeniencyTimer.Disable();
+            GamepadModePressedSustainsMask = 0;
         }
 
         public override void SetSpeed(double speed)
         {
             base.SetSpeed(speed);
             GamepadModeChordLeniencyTimer.SetSpeed(speed);
+            GamepadModeLiftedNotePressLeniencyTimer.SetSpeed(speed);
         }
 
         protected override bool CanNoteBeHit(GuitarNote note)
@@ -496,7 +523,18 @@ namespace YARG.Core.Engine.Guitar.Engines
 
             StrumLeniencyTimer.Disable();
             if (note.IsChord) GamepadModeChordLeniencyTimer.Disable();
-            if (note.IsSustain && IsGamepadMode && HasFretted && IsFretPress) GamepadModePressedSustainsMask |= note.IsDisjoint ? note.DisjointMask : note.NoteMask;
+            if (IsGamepadMode && HasFretted)
+            {
+                if (!IsFretPress)
+                {
+                    // Give Lifted Note Press Leniency until the end of the note's hit window
+                    GamepadModeLiftedNotePressLeniencyTimer.Start(note.Time + EngineParameters.HitWindow.GetBackEnd(EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note))));
+                }
+                else if (note.IsSustain) // implying && IsFretPress -- this should not trigger on release
+                {
+                    GamepadModePressedSustainsMask |= note.IsDisjoint ? note.DisjointMask : note.NoteMask;
+                }
+            }
 
             for(int i = 0; i < ActiveSustains.Count; i++)
             {
@@ -523,7 +561,12 @@ namespace YARG.Core.Engine.Guitar.Engines
             if (HopoLeniencyTimer.IsActive && HopoLeniencyTimer.IsExpired(CurrentTime))
             {
                 HopoLeniencyTimer.Disable();
+                ReRunHitLogic = true;
+            }
 
+            if (GamepadModeLiftedNotePressLeniencyTimer.IsActive && GamepadModeLiftedNotePressLeniencyTimer.IsExpired(CurrentTime))
+            {
+                GamepadModeLiftedNotePressLeniencyTimer.Disable();
                 ReRunHitLogic = true;
             }
 
@@ -537,7 +580,6 @@ namespace YARG.Core.Engine.Guitar.Engines
                     {
                         Overstrum();
                         StrumLeniencyTimer.Disable();
-
                         ReRunHitLogic = true;
                     }
                     else
@@ -551,7 +593,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             if (GamepadModeChordLeniencyTimer.IsActive && GamepadModeChordLeniencyTimer.IsExpired(CurrentTime)) {
                 Overstrum();
                 GamepadModeChordLeniencyTimer.Disable();
-                ReRunHitLogic = true; // For whoever reviews this PR: Why is this here in the above (strum leniency thing)? Do I need to do it here? Not sure. I did it just in case. Anyways either way I need to remove this comment later.
+                ReRunHitLogic = true;
             }
         }
 
