@@ -16,7 +16,7 @@ namespace YARG.Core.Engine.Guitar.Engines
         /// </summary>
         protected EngineTimer GamepadModeChordLeniencyTimer;
 
-        private int ControllerModePressedSustainsMask;
+        private int GamepadModePressedSustainsMask;
 
         public YargFiveFretEngine(InstrumentDifficulty<GuitarNote> chart, SyncTrack syncTrack,
             GuitarEngineParameters engineParameters, bool isBot, bool isGamepadMode)
@@ -24,7 +24,7 @@ namespace YARG.Core.Engine.Guitar.Engines
         {
             IsGamepadMode = isGamepadMode;
             GamepadModeChordLeniencyTimer = new EngineTimer(engineParameters.GamepadModeChordLeniency);
-            ControllerModePressedSustainsMask = ButtonMask;
+            GamepadModePressedSustainsMask = ButtonMask;
         }
 
         protected override void UpdateBot(double time)
@@ -120,9 +120,9 @@ namespace YARG.Core.Engine.Guitar.Engines
                             
                         // We don't want to strum on release if we're releasing a fret that's part of an active sustain
                         var droppedMask = LastButtonMask & ~ButtonMask;
-                        if ((droppedMask & ControllerModePressedSustainsMask) != 0) {
+                        if ((droppedMask & GamepadModePressedSustainsMask) != 0) {
                             HasStrummed = false;
-                            ControllerModePressedSustainsMask &= ~droppedMask;
+                            GamepadModePressedSustainsMask &= ~droppedMask;
                         }
                     }
                 }
@@ -156,7 +156,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 else
                 {
                     // Strummed while strum leniency is active (double strum)
-                    if (StrumLeniencyTimer.IsActive)
+                    if (StrumLeniencyTimer.IsActive && !(IsGamepadMode && HasFretted && !IsFretPress))
                     {
                         if (IsGamepadMode) GamepadModeChordLeniencyTimer.Start(CurrentTime);
                         else Overstrum();
@@ -496,7 +496,7 @@ namespace YARG.Core.Engine.Guitar.Engines
 
             StrumLeniencyTimer.Disable();
             if (note.IsChord) GamepadModeChordLeniencyTimer.Disable();
-            if (note.IsSustain) ControllerModePressedSustainsMask |= note.IsDisjoint ? note.DisjointMask : note.NoteMask;
+            if (note.IsSustain && IsGamepadMode && HasFretted && IsFretPress) GamepadModePressedSustainsMask |= note.IsDisjoint ? note.DisjointMask : note.NoteMask;
 
             for(int i = 0; i < ActiveSustains.Count; i++)
             {
