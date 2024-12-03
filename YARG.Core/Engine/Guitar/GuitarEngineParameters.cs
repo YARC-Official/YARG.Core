@@ -10,10 +10,13 @@ namespace YARG.Core.Engine.Guitar
         public readonly double StrumLeniencySmall;
         public readonly bool InfiniteFrontEnd;
         public readonly bool AntiGhosting;
+        public readonly bool GamepadModeStrumOnRelease;
+        public readonly double GamepadModeChordLeniency;
 
         public GuitarEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, double spWhammyBuffer,
             double sustainDropLeniency, float[] starMultiplierThresholds, double hopoLeniency, double strumLeniency,
-            double strumLeniencySmall, bool infiniteFrontEnd, bool antiGhosting)
+            double strumLeniencySmall, bool infiniteFrontEnd, bool antiGhosting,
+            bool gamepadModeStrumOnRelease, double gamepadModeChordLeniency)
             : base(hitWindow, maxMultiplier, spWhammyBuffer, sustainDropLeniency, starMultiplierThresholds)
         {
             HopoLeniency = hopoLeniency;
@@ -23,6 +26,9 @@ namespace YARG.Core.Engine.Guitar
 
             InfiniteFrontEnd = infiniteFrontEnd;
             AntiGhosting = antiGhosting;
+
+            GamepadModeStrumOnRelease = gamepadModeStrumOnRelease;
+            GamepadModeChordLeniency = gamepadModeChordLeniency;
         }
 
         public GuitarEngineParameters(UnmanagedMemoryStream stream, int version)
@@ -35,6 +41,9 @@ namespace YARG.Core.Engine.Guitar
 
             InfiniteFrontEnd = stream.ReadBoolean();
             AntiGhosting = stream.ReadBoolean();
+            
+            GamepadModeStrumOnRelease = stream.ReadBoolean();
+            GamepadModeChordLeniency = stream.Read<double>(Endianness.Little);
         }
 
         public override void Serialize(BinaryWriter writer)
@@ -48,6 +57,9 @@ namespace YARG.Core.Engine.Guitar
 
             writer.Write(InfiniteFrontEnd);
             writer.Write(AntiGhosting);
+            
+            writer.Write(GamepadModeStrumOnRelease);
+            writer.Write(GamepadModeChordLeniency);
         }
 
         public override string ToString()
@@ -59,7 +71,9 @@ namespace YARG.Core.Engine.Guitar
                 $"Hopo leniency: {HopoLeniency}\n" +
                 $"Strum leniency: {StrumLeniency}\n" +
                 $"Strum leniency (small): {StrumLeniencySmall}\n" +
-                $"Star power whammy buffer: {StarPowerWhammyBuffer}";
+                $"Star power whammy buffer: {StarPowerWhammyBuffer}\n" +
+                $"Gamepad mode strum on release: {GamepadModeStrumOnRelease}\n" +
+                $"Gamepad mode chord leniency: {GamepadModeChordLeniency}";
         }
     }
 }

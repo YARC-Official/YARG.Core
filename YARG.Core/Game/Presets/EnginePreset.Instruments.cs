@@ -95,6 +95,13 @@ namespace YARG.Core.Game
             [SettingRange(min: 0f, max: 0.05f)]
             public double SustainDropLeniency = DEFAULT_SUSTAIN_DROP_LENIENCY;
 
+            [SettingType(SettingType.Toggle)]
+            public bool GamepadModeStrumOnRelease = true;
+
+            [SettingType(SettingType.MillisecondInput)]
+            [SettingRange(min: 0f)]
+            public double GamepadModeChordLeniency = 0.05;
+
             [SettingType(SettingType.Special)]
             public HitWindowPreset HitWindow = new()
             {
@@ -130,7 +137,9 @@ namespace YARG.Core.Game
                     StrumLeniency,
                     StrumLeniencySmall,
                     InfiniteFrontEnd,
-                    AntiGhosting);
+                    AntiGhosting,
+                    GamepadModeStrumOnRelease,
+                    GamepadModeChordLeniency);
             }
         }
 

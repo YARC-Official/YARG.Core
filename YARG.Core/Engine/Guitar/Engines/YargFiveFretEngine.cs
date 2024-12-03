@@ -454,7 +454,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             base.MissNote(note);
         }
 
-        protected void UpdateTimers()
+        protected virtual void UpdateTimers()
         {
             if (HopoLeniencyTimer.IsActive && HopoLeniencyTimer.IsExpired(CurrentTime))
             {
