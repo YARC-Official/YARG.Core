@@ -522,6 +522,8 @@ namespace YARG.Core.Engine.Guitar.Engines
             }
 
             StrumLeniencyTimer.Disable();
+
+            // Gamepad Mode
             if (note.IsChord) GamepadModeChordLeniencyTimer.Disable();
             if (IsGamepadMode && HasFretted)
             {
@@ -530,8 +532,9 @@ namespace YARG.Core.Engine.Guitar.Engines
                     // Give Lifted Note Press Leniency until the end of the note's hit window
                     GamepadModeLiftedNotePressLeniencyTimer.Start(note.Time + EngineParameters.HitWindow.GetBackEnd(EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note))));
                 }
-                else if (note.IsSustain) // implying && IsFretPress -- this should not trigger on release
+                else if (note.IsSustain && note.TickLength > 1) // implying && IsFretPress -- this should not trigger on release
                 {
+                    YargLogger.LogDebug($"Sustain! {note.TickLength}");
                     GamepadModePressedSustainsMask |= note.IsDisjoint ? note.DisjointMask : note.NoteMask;
                 }
             }
