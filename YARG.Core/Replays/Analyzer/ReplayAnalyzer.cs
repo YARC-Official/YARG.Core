@@ -235,7 +235,8 @@ namespace YARG.Core.Replays.Analyzer
                         notes,
                         _chart.SyncTrack,
                         (GuitarEngineParameters) parameters,
-                        profile.IsBot);
+                        profile.IsBot,
+                        profile.IsModifierActive(Modifier.GamepadMode));
                 }
                 case GameMode.FourLaneDrums:
                 case GameMode.FiveLaneDrums:

@@ -7,10 +7,24 @@ namespace YARG.Core.Engine.Guitar.Engines
 {
     public class YargFiveFretEngine : GuitarEngine
     {
+        public bool IsGamepadMode { get; private set; }
+
+        /// <summary>
+        /// For gamepad mode, the amount of time you have between hitting one fret of a chord and the other(s).
+        /// Hitting a chord ends it, and if it expires you overstrum.
+        /// StrumLeniencyTimer is used for this first, and *then* ChordLeniencyTimer. It makes sense, trust me.
+        /// </summary>
+        protected EngineTimer GamepadModeChordLeniencyTimer;
+
+        private int ControllerModePressedSustainsMask;
+
         public YargFiveFretEngine(InstrumentDifficulty<GuitarNote> chart, SyncTrack syncTrack,
-            GuitarEngineParameters engineParameters, bool isBot)
+            GuitarEngineParameters engineParameters, bool isBot, bool isGamepadMode)
             : base(chart, syncTrack, engineParameters, isBot)
         {
+            IsGamepadMode = isGamepadMode;
+            GamepadModeChordLeniencyTimer = new EngineTimer(engineParameters.GamepadModeChordLeniency);
+            ControllerModePressedSustainsMask = ButtonMask;
         }
 
         protected override void UpdateBot(double time)
@@ -75,7 +89,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 LastWhammyTimerState = StarPowerWhammyTimer.IsActive;
                 StarPowerWhammyTimer.Start(gameInput.Time);
             }
-            else if (action is GuitarAction.StrumDown or GuitarAction.StrumUp && gameInput.Button)
+            else if (action is GuitarAction.StrumDown or GuitarAction.StrumUp && gameInput.Button && !IsGamepadMode)
             {
                 HasStrummed = true;
             }
@@ -97,6 +111,22 @@ namespace YARG.Core.Engine.Guitar.Engines
                     // Some frets are held, disable the "open fret"
                     ButtonMask &= unchecked((byte) ~OPEN_MASK);
                 }
+
+                if (IsGamepadMode)
+                {
+                    if (IsFretPress) HasStrummed = true;
+                    else if (!IsFretPress && EngineParameters.GamepadModeStrumOnRelease) {
+                        HasStrummed = true;
+                            
+                        // We don't want to strum on release if we're releasing a fret that's part of an active sustain
+                        var droppedMask = LastButtonMask & ~ButtonMask;
+                        if ((droppedMask & ControllerModePressedSustainsMask) != 0) {
+                            HasStrummed = false;
+                            ControllerModePressedSustainsMask &= ~droppedMask;
+                        }
+                    }
+                }
+                
             }
 
             YargLogger.LogFormatTrace("Mutated input state: Button Mask: {0}, HasFretted: {1}, HasStrummed: {2}",
@@ -128,11 +158,12 @@ namespace YARG.Core.Engine.Guitar.Engines
                     // Strummed while strum leniency is active (double strum)
                     if (StrumLeniencyTimer.IsActive)
                     {
-                        Overstrum();
+                        if (IsGamepadMode) GamepadModeChordLeniencyTimer.Start(CurrentTime);
+                        else Overstrum();
                     }
                 }
 
-                if (!strumEatenByHopo)
+                if (!strumEatenByHopo && !(IsGamepadMode && HasFretted && !IsFretPress))
                 {
                     double offset = 0;
 
@@ -283,9 +314,40 @@ namespace YARG.Core.Engine.Guitar.Engines
             }
         }
 
+        protected override void GenerateQueuedUpdates(double nextTime)
+        {
+            base.GenerateQueuedUpdates(nextTime);
+            if (GamepadModeChordLeniencyTimer.IsActive)
+            {
+                if (IsTimeBetween(GamepadModeChordLeniencyTimer.EndTime, CurrentTime, nextTime))
+                {
+                    YargLogger.LogFormatTrace("Queuing gamepad mode chord leniency end time at {0}",
+                        GamepadModeChordLeniencyTimer.EndTime);
+                    QueueUpdateTime(GamepadModeChordLeniencyTimer.EndTime, "Gamepad Mode Chord Leniency End");
+                }
+            }
+        }
+
+        public override void Reset(bool keepCurrentButtons = false)
+        {
+            base.Reset(keepCurrentButtons);
+            GamepadModeChordLeniencyTimer.Disable();
+        }
+
+        public override void SetSpeed(double speed)
+        {
+            base.SetSpeed(speed);
+            GamepadModeChordLeniencyTimer.SetSpeed(speed);
+        }
+
         protected override bool CanNoteBeHit(GuitarNote note)
         {
-            byte buttonsMasked = ButtonMask;
+            // In gamepad mode, on a release, we use LastButtonMask instead of ButtonMask.
+            // This is because, if you're *releasing*, then the fret that the note you want to hit is on *isn't actually being held*, because, well, you released it.
+            // But you should still be able to hit it -- that's the whole point.
+            byte originalButtonMask = (IsGamepadMode && HasFretted && !IsFretPress) ? LastButtonMask : ButtonMask;
+
+            byte buttonsMasked = originalButtonMask;
             if (ActiveSustains.Count > 0)
             {
                 foreach (var sustain in ActiveSustains)
@@ -310,7 +372,7 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                 // If the resulting masked buttons are 0, we need to apply the Open Mask so open notes can be hit
                 // Need to make a copy of the button mask to prevent modifying the original
-                byte buttonMaskCopy = ButtonMask;
+                byte buttonMaskCopy = originalButtonMask;
                 if (buttonsMasked == 0)
                 {
                     buttonsMasked |= OPEN_MASK;
@@ -325,7 +387,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             }
 
             // If masked/extended sustain logic didn't work, try original ButtonMask
-            return IsNoteHittable(note, ButtonMask);
+            return IsNoteHittable(note, originalButtonMask);
 
             static bool IsNoteHittable(GuitarNote note, byte buttonsMasked)
             {
@@ -433,6 +495,8 @@ namespace YARG.Core.Engine.Guitar.Engines
             }
 
             StrumLeniencyTimer.Disable();
+            if (note.IsChord) GamepadModeChordLeniencyTimer.Disable();
+            if (note.IsSustain) ControllerModePressedSustainsMask |= note.IsDisjoint ? note.DisjointMask : note.NoteMask;
 
             for(int i = 0; i < ActiveSustains.Count; i++)
             {
@@ -469,11 +533,25 @@ namespace YARG.Core.Engine.Guitar.Engines
                 if (StrumLeniencyTimer.IsExpired(CurrentTime))
                 {
                     //YargTrace.LogInfo("Strum Leniency: Expired. Overstrumming");
-                    Overstrum();
-                    StrumLeniencyTimer.Disable();
+                    if (!IsGamepadMode)
+                    {
+                        Overstrum();
+                        StrumLeniencyTimer.Disable();
 
-                    ReRunHitLogic = true;
+                        ReRunHitLogic = true;
+                    }
+                    else
+                    {
+                        GamepadModeChordLeniencyTimer.Start(CurrentTime);
+                        StrumLeniencyTimer.Disable();
+                    }
                 }
+            }
+
+            if (GamepadModeChordLeniencyTimer.IsActive && GamepadModeChordLeniencyTimer.IsExpired(CurrentTime)) {
+                Overstrum();
+                GamepadModeChordLeniencyTimer.Disable();
+                ReRunHitLogic = true; // For whoever reviews this PR: Why is this here in the above (strum leniency thing)? Do I need to do it here? Not sure. I did it just in case. Anyways either way I need to remove this comment later.
             }
         }
 
