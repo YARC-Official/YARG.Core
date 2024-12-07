@@ -223,7 +223,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 bool ghosted = CheckForGhostInput(note);
 
                 // This variable controls hit logic for ghosting
-                WasNoteGhosted = EngineParameters.AntiGhosting && (ghosted || WasNoteGhosted);
+                WasNoteGhosted = EngineParameters.AntiGhosting && !IsGamepadMode && (ghosted || WasNoteGhosted);
 
                 // Add ghost inputs to stats regardless of the setting for anti ghosting
                 if (ghosted)
@@ -534,7 +534,6 @@ namespace YARG.Core.Engine.Guitar.Engines
                 }
                 else if (note.IsSustain && note.TickLength > 1) // implying && IsFretPress -- this should not trigger on release
                 {
-                    YargLogger.LogDebug($"Sustain! {note.TickLength}");
                     GamepadModePressedSustainsMask |= note.IsDisjoint ? note.DisjointMask : note.NoteMask;
                 }
             }
