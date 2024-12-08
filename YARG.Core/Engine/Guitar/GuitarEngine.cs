@@ -18,6 +18,11 @@ namespace YARG.Core.Engine.Guitar
 
         public byte LastButtonMask { get; protected set; }
 
+        public byte SoloButtonMask { get; protected set; } = OPEN_MASK;
+
+        // Count of standard buttons currently pressed
+        public int StandardButtonCount { get; protected set; } = 0;
+
         protected bool HasFretted;
         protected bool HasStrummed;
         protected bool HasTapped = true;
@@ -358,11 +363,31 @@ namespace YARG.Core.Engine.Guitar
 
         protected void ToggleFret(int fret, bool active)
         {
+            // FIXME: This is a terrible hack
+            if((int) fret >= 10) {
+                fret -= 10;
+            } else {
+                if (active) 
+                {
+                    // Add one to count of standard buttons pressed, avoiding overflow
+                    StandardButtonCount = (StandardButtonCount < int.MaxValue) ? StandardButtonCount + 1 : StandardButtonCount;
+                }
+                else
+                {
+                    // Subtract one from count, avoiding underflow
+                    StandardButtonCount = (StandardButtonCount > 0) ? StandardButtonCount - 1 : 0;
+                }
+            }
             ButtonMask = (byte) (active ? ButtonMask | (1 << fret) : ButtonMask & ~(1 << fret));
         }
 
         public bool IsFretHeld(GuitarAction fret)
         {
+            // FIXME: This is a terrible hack
+            if((int) fret >= 10) 
+            {
+                fret -= 10;
+            }
             return (ButtonMask & (1 << (int) fret)) != 0;
         }
 
@@ -375,6 +400,11 @@ namespace YARG.Core.Engine.Guitar
                     GuitarAction.YellowFret or
                     GuitarAction.BlueFret or
                     GuitarAction.OrangeFret or
+                    GuitarAction.SoloGreenFret or
+                    GuitarAction.SoloRedFret or
+                    GuitarAction.SoloYellowFret or
+                    GuitarAction.SoloBlueFret or
+                    GuitarAction.SoloOrangeFret or
                     GuitarAction.White3Fret => true,
                 _ => false,
             };
