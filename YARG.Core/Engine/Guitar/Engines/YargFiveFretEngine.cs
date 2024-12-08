@@ -242,7 +242,8 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                 // Defines whether solo tapping is allowed
                 // Only if SoloTaps engine parameter is set, solo is active, and no non-solo buttons are pressed
-                bool SoloTapAllowed = EngineParameters.SoloTaps && IsSoloActive && !(StandardButtonCount > 0);
+                // Also allow tap if the note is a solo start note, since IsSoloActive isn't set until after this point
+                bool SoloTapAllowed = EngineParameters.SoloTaps && (IsSoloActive || note.IsSoloStart) && !(StandardButtonCount > 0);
 
                 // Handles hitting a hopo notes
                 // If first note is a hopo then it can be hit without combo (for practice mode)
