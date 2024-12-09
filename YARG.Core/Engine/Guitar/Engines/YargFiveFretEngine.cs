@@ -17,6 +17,7 @@ namespace YARG.Core.Engine.Guitar.Engines
         protected EngineTimer GamepadModeChordLeniencyTimer;
 
         protected EngineTimer GamepadModeLiftedNotePressLeniencyTimer;
+        private GuitarNote? GamepadModeLiftedNotePressLeniencyNote;
 
         private int GamepadModePressedSustainsMask;
 
@@ -157,14 +158,11 @@ namespace YARG.Core.Engine.Guitar.Engines
                     strumEatenByHopo = true;
                     ReRunHitLogic = true;
                 }
-                else if (GamepadModeLiftedNotePressLeniencyTimer.IsActive)
+                else if (IsFretPress && GamepadModeLiftedNotePressLeniencyTimer.IsActive && CanNoteBeHit(GamepadModeLiftedNotePressLeniencyNote!)) // Note won't be null if Timer is active
                 {
                     StrumLeniencyTimer.Disable();
-
-                    // FIXME: We don't disable the timer here so that it works properly for chords.
-                    // This means that in fast strumming sections you can overstrum with no penalty though I think...
-                    // That's not ideal, is it?
-                    // I should think of a better solution.
+                    GamepadModeLiftedNotePressLeniencyTimer.Disable();
+                    GamepadModeChordLeniencyTimer.Disable();
 
                     strumEatenByHopo = true;
                     ReRunHitLogic = true;
@@ -540,6 +538,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 if (!IsFretPress)
                 {
                     // Give Lifted Note Press Leniency until the end of the note's hit window
+                    GamepadModeLiftedNotePressLeniencyNote = note;
                     GamepadModeLiftedNotePressLeniencyTimer.Start(note.Time + EngineParameters.HitWindow.GetBackEnd(EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note))));
                 }
                 else if (note.IsSustain && note.TickLength > 1) // implying && IsFretPress -- this should not trigger on release
