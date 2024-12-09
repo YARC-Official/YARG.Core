@@ -423,7 +423,10 @@ namespace YARG.Core.Engine.Guitar.Engines
 
         protected override void HitNote(GuitarNote note)
         {
-            if (note.IsHopo || note.IsTap)
+            // Hopo leniency needs to activate on solo taps also
+            bool SoloTapAllowed = EngineParameters.SoloTaps && (IsSoloActive || note.IsSoloStart) && !(StandardButtonCount > 0);
+
+            if (note.IsHopo || note.IsTap || SoloTapAllowed)
             {
                 HasTapped = false;
                 StartTimer(ref HopoLeniencyTimer, CurrentTime);
