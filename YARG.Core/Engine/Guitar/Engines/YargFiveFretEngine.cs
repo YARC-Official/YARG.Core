@@ -105,6 +105,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 ToggleFret(gameInput.Action, gameInput.Button);
 
                 // No other frets are held, enable the "open fret"
+                // Always enable the "open fret" on gamepad mode
                 if ((ButtonMask & ~OPEN_MASK) == 0)
                 {
                     ButtonMask |= OPEN_MASK;
@@ -223,6 +224,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 bool ghosted = CheckForGhostInput(note);
 
                 // This variable controls hit logic for ghosting
+                // Anti-ghosting is disabled in Gamepad Mode since it inherently has anti-ghosting (you would overstrum because every press is a strum)
                 WasNoteGhosted = EngineParameters.AntiGhosting && !IsGamepadMode && (ghosted || WasNoteGhosted);
 
                 // Add ghost inputs to stats regardless of the setting for anti ghosting
@@ -398,20 +400,28 @@ namespace YARG.Core.Engine.Guitar.Engines
                 }
 
                 // If the resulting masked buttons are 0, we need to apply the Open Mask so open notes can be hit
-                // Need to make a copy of the button mask to prevent modifying the original
-                byte buttonMaskCopy = originalButtonMask;
                 if (buttonsMasked == 0)
                 {
                     buttonsMasked |= OPEN_MASK;
-                    buttonMaskCopy |= OPEN_MASK;
-                }
-
-                // We dont want to use masked buttons for hit logic if the buttons are identical
-                if (buttonsMasked != buttonMaskCopy && IsNoteHittable(note, buttonsMasked))
-                {
-                    return true;
                 }
             }
+
+            // Gamepad Mode open note handling
+            if (IsGamepadMode && (note.NoteMask & OPEN_MASK) != 0) {
+                var maskWithoutOpen = note.NoteMask & ~OPEN_MASK;
+
+                // Normal open note (allow hitting by pressing any fret)
+                if (maskWithoutOpen == 0) originalButtonMask = (byte) note.NoteMask;
+                // Open chord (only allow hitting by pressing the exact frets needed, like open chords should)
+                else if (maskWithoutOpen == originalButtonMask || maskWithoutOpen == buttonsMasked)
+                {
+                    originalButtonMask = (byte) note.NoteMask;
+                    buttonsMasked = originalButtonMask;
+                } 
+            }
+
+            // We dont want to use masked buttons for hit logic if the buttons are identical
+            if (ActiveSustains.Count > 0 && buttonsMasked != (buttonsMasked == OPEN_MASK ? originalButtonMask | OPEN_MASK : originalButtonMask) && IsNoteHittable(note, buttonsMasked)) return true;
 
             // If masked/extended sustain logic didn't work, try original ButtonMask
             return IsNoteHittable(note, originalButtonMask);
