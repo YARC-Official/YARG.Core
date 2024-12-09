@@ -16,6 +16,7 @@ namespace YARG.Core.Game
         NoKicks       = 1 << 6,
         UnpitchedOnly = 1 << 7,
         NoDynamics    = 1 << 8,
+        GamepadMode   = 1 << 9
     }
 
     public static class ModifierConflicts
@@ -43,7 +44,8 @@ namespace YARG.Core.Game
                     Modifier.AllHopos    |
                     Modifier.AllTaps     |
                     Modifier.HoposToTaps |
-                    Modifier.TapsToHopos,
+                    Modifier.TapsToHopos |
+                    Modifier.GamepadMode,
 
                 GameMode.FourLaneDrums or
                 GameMode.FiveLaneDrums =>
