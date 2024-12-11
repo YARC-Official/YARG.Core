@@ -921,7 +921,7 @@ namespace YARG.Core.Engine
                 if (curr.IsSoloStart)
                 {
                     int soloNoteCount = 0;
-                    uint start = curr.Tick;
+                    var start = curr;
                     while (true)
                     {
                         soloNoteCount += GetNumberOfNotes(curr);
@@ -931,7 +931,7 @@ namespace YARG.Core.Engine
                         }
                         curr = Notes[++i];
                     }
-                    soloSections.Add(new SoloSection(start, curr.Tick, soloNoteCount));
+                    soloSections.Add(new SoloSection(start.Tick, curr.Tick, start.Time, start.TimeEnd, soloNoteCount));
                 }
             }
 
