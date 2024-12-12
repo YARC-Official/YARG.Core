@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using YARG.Core.Chart;
 using YARG.Core.Input;
 using YARG.Core.Logging;
@@ -155,7 +155,7 @@ namespace YARG.Core.Engine.Guitar
                 }
             }
 
-            EngineStats.Combo = 0;
+            ResetCombo();
             EngineStats.Overstrums++;
 
             UpdateMultiplier();
@@ -222,12 +222,7 @@ namespace YARG.Core.Engine.Guitar
                 EndSolo();
             }
 
-            EngineStats.Combo++;
-
-            if (EngineStats.Combo > EngineStats.MaxCombo)
-            {
-                EngineStats.MaxCombo = EngineStats.Combo;
-            }
+            IncrementCombo();
 
             EngineStats.NotesHit++;
 
@@ -285,7 +280,7 @@ namespace YARG.Core.Engine.Guitar
 
             WasNoteGhosted = false;
 
-            EngineStats.Combo = 0;
+            ResetCombo();
 
             UpdateMultiplier();
 

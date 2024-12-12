@@ -154,12 +154,7 @@ namespace YARG.Core.Engine.Vocals
                 var ticks = GetTicksInPhrase(note);
                 if (ticks != 0)
                 {
-                    EngineStats.Combo++;
-
-                    if (EngineStats.Combo > EngineStats.MaxCombo)
-                    {
-                        EngineStats.MaxCombo = EngineStats.Combo;
-                    }
+                    IncrementCombo();
 
                     AddScore(note);
 
@@ -207,7 +202,7 @@ namespace YARG.Core.Engine.Vocals
                 StartSolo();
             }
 
-            EngineStats.Combo = 0;
+            ResetCombo();
 
             AddPartialScore(hitPercent);
 
