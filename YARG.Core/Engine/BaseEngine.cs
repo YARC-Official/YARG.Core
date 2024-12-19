@@ -508,6 +508,10 @@ namespace YARG.Core.Engine
             }
         }
 
+        public List<SoloSection> GetSolos()
+        {
+            return Solos;
+        }
         public double GetStarPowerBarAmount()
         {
             return BaseStats.StarPowerTickAmount / (double) TicksPerFullSpBar;
