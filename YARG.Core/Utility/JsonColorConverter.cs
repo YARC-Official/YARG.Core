@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Drawing;
 using System.Globalization;
 using Newtonsoft.Json;
@@ -46,6 +46,8 @@ namespace YARG.Core.Utility
 
                 // Convert from RGBA to ARGB
                 rgba >>= 8;
+                // If rgba is negative, the above bit shift will result in the first byte being FF, so we need to clear it.
+                rgba &= 0x00FFFFFF;
                 rgba |= a << 24;
 
                 return Color.FromArgb(rgba);
