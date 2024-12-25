@@ -607,7 +607,7 @@ namespace YARG.Core.Song.Cache
                 {
                     // However, the presence subdirectories could mean that the user didn't properly
                     // organize their collection. So as a service, we warn them in the badsongs.txt.
-                    if (collection.SubDirectories.Count > 0)
+                    if (collection.ContainsDirectory())
                     {
                         AddToBadSongs(directory.FullName, ScanResult.LooseChart_Warning);
                     }
@@ -616,10 +616,10 @@ namespace YARG.Core.Song.Cache
 
                 switch (directory.Name)
                 {
-                    // FOR ALL OF THE CASES: a missing dta file means that we will treat the folder like any other subdirectory
+                    // FOR ALL CASES: a missing dta file means that we will treat the folder like any other subdirectory
                     case "songs_updates":
                         {
-                            if (collection.Subfiles.TryGetValue(SONGUPDATES_DTA, out var dta))
+                            if (collection.FindFile(SONGUPDATES_DTA, out var dta))
                             {
                                 var updateGroup = CreateUpdateGroup(in collection, dta);
                                 if (updateGroup != null)
@@ -636,7 +636,7 @@ namespace YARG.Core.Song.Cache
                         }
                     case "songs_upgrades":
                         {
-                            if (collection.Subfiles.TryGetValue(SONGUPGRADES_DTA, out var dta))
+                            if (collection.FindFile(SONGUPGRADES_DTA, out var dta))
                             {
                                 var upgradeGroup = CreateUpgradeGroup(in collection, dta);
                                 if (upgradeGroup != null)
@@ -653,7 +653,7 @@ namespace YARG.Core.Song.Cache
                         }
                     case "songs":
                         {
-                            if (collection.Subfiles.TryGetValue(SONGS_DTA, out var dta))
+                            if (collection.FindFile(SONGS_DTA, out var dta))
                             {
                                 var _ = CreateUnpackedCONGroup(directory.FullName, dta, tracker.Playlist);
                                 return;
@@ -855,10 +855,10 @@ namespace YARG.Core.Song.Cache
         /// <returns>Whether files pertaining to an unpacked ini entry were discovered</returns>
         private bool ScanIniEntry(in FileCollection collection, IniGroup group, string defaultPlaylist)
         {
-            int i = collection.Subfiles.TryGetValue("song.ini", out var ini) ? 0 : 2;
+            int i = collection.FindFile("song.ini", out var ini) ? 0 : 2;
             while (i < 3)
             {
-                if (!collection.Subfiles.TryGetValue(IniSubEntry.CHART_FILE_TYPES[i].Filename, out var chart))
+                if (!collection.FindFile(IniSubEntry.CHART_FILE_TYPES[i].Filename, out var chart))
                 {
                     ++i;
                     continue;
@@ -1113,7 +1113,7 @@ namespace YARG.Core.Song.Cache
             }
 
             var collection = new FileCollection(dirInfo);
-            if (!collection.Subfiles.TryGetValue(SONGUPDATES_DTA, out var dta))
+            if (!collection.FindFile(SONGUPDATES_DTA, out var dta))
             {
                 // We don't *mark* the directory to allow the "New Entries" process
                 // to access this collection
@@ -1189,7 +1189,7 @@ namespace YARG.Core.Song.Cache
             }
 
             var collection = new FileCollection(dirInfo);
-            if (!collection.Subfiles.TryGetValue(SONGUPGRADES_DTA, out var dta))
+            if (!collection.FindFile(SONGUPGRADES_DTA, out var dta))
             {
                 // We don't *mark* the directory to allow the "New Entries" process
                 // to access this collection
@@ -1477,7 +1477,7 @@ namespace YARG.Core.Song.Cache
                         AbridgedFileInfo? image = null;
 
                         string subname = name.ToLowerInvariant();
-                        if (collection.SubDirectories.TryGetValue(subname, out var directory))
+                        if (collection.FindDirectory(subname, out var directory))
                         {
                             string midiName = subname + "_update.mid";
                             string moggName = subname + "_update.mogg";
@@ -1549,7 +1549,7 @@ namespace YARG.Core.Song.Cache
                     string name = YARGDTAReader.GetNameOfNode(ref container, true);
                     var upgrade = default(UnpackedRBProUpgrade);
                     // If there is no upgrade file accompanying the DTA node, there's no point in adding the upgrade
-                    if (collection.Subfiles.TryGetValue($"{name.ToLower()}_plus.mid", out var info))
+                    if (collection.FindFile($"{name.ToLower()}_plus.mid", out var info))
                     {
                         var abridged = new AbridgedFileInfo(info, false);
                         upgrade = new UnpackedRBProUpgrade(abridged);

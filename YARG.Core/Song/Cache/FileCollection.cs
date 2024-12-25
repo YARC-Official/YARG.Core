@@ -1,13 +1,14 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 
 namespace YARG.Core.Song.Cache
 {
-    public readonly struct FileCollection
+    public readonly struct FileCollection : IEnumerable<KeyValuePair<string, FileSystemInfo>>
     {
+        private readonly Dictionary<string, FileSystemInfo> _entries;
         public readonly DirectoryInfo Directory;
-        public readonly Dictionary<string, FileInfo> Subfiles;
-        public readonly Dictionary<string, DirectoryInfo> SubDirectories;
         public readonly bool ContainedDupes;
 
         internal static bool TryCollect(string directory, out FileCollection collection)
@@ -25,54 +26,79 @@ namespace YARG.Core.Song.Cache
         internal FileCollection(DirectoryInfo directory)
         {
             Directory = directory;
-            Subfiles = new();
-            SubDirectories = new();
-            var dupedFiles = new HashSet<string>();
-            var dupedDirectories = new HashSet<string>();
+            _entries = new Dictionary<string, FileSystemInfo>(StringComparer.InvariantCultureIgnoreCase);
+            var dupes = new HashSet<string>();
 
-            foreach (var info in directory.EnumerateFileSystemInfos())
+            foreach (var entry in directory.EnumerateFileSystemInfos())
             {
-                string name = info.Name.ToLowerInvariant();
-                switch (info)
+                if (!_entries.TryAdd(entry.Name, entry))
                 {
-                    case FileInfo subFile:
-                        if (!Subfiles.TryAdd(name, subFile))
-                        {
-                            dupedFiles.Add(name);
-                        }
-                        break;
-                    case DirectoryInfo subDirectory:
-                        if (!SubDirectories.TryAdd(name, subDirectory))
-                        {
-                            dupedDirectories.Add(name);
-                        }
-                        break;
+                    dupes.Add(entry.Name);
                 }
             }
 
             // Removes any sort of ambiguity from duplicates
-            ContainedDupes = dupedFiles.Count > 0 || dupedDirectories.Count > 0;
-            foreach (var dupe in dupedFiles)
+            ContainedDupes = dupes.Count > 0;
+            foreach (var dupe in dupes)
             {
-                Subfiles.Remove(dupe);
-            }
-
-            foreach (var dupe in dupedDirectories)
-            {
-                SubDirectories.Remove(dupe);
+                _entries.Remove(dupe);
             }
         }
 
-        public bool ContainsAudio()
+        public bool FindFile(string name, out FileInfo file)
         {
-            foreach (var subFile in Subfiles.Keys)
+            if (_entries.TryGetValue(name, out var entry) && entry is FileInfo result)
             {
-                if (IniAudio.IsAudioFile(subFile))
+                file = result;
+                return true;
+            }
+            file = null!;
+            return false;
+        }
+
+        public bool FindDirectory(string name, out DirectoryInfo directory)
+        {
+            if (_entries.TryGetValue(name, out var entry) && entry is DirectoryInfo result)
+            {
+                directory = result;
+                return true;
+            }
+            directory = null!;
+            return false;
+        }
+
+        public bool ContainsDirectory()
+        {
+            foreach (var entry in _entries)
+            {
+                if (entry.Value.Attributes == FileAttributes.Directory)
                 {
                     return true;
                 }
             }
             return false;
+        }
+
+        public bool ContainsAudio()
+        {
+            foreach (var entry in _entries)
+            {
+                if (IniAudio.IsAudioFile(entry.Key))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public IEnumerator<KeyValuePair<string, FileSystemInfo>> GetEnumerator()
+        {
+            return ((IEnumerable<KeyValuePair<string, FileSystemInfo>>) _entries).GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return ((IEnumerable) _entries).GetEnumerator();
         }
     }
 }

@@ -57,14 +57,17 @@ namespace YARG.Core.Song.Cache
 
         protected override void TraverseDirectory(in FileCollection collection, IniGroup group, PlaylistTracker tracker)
         {
-            foreach (var subDirectory in collection.SubDirectories)
+            foreach (var entry in collection)
             {
-                ScanDirectory(subDirectory.Value, group, tracker);
-            }
-
-            foreach (var file in collection.Subfiles)
-            {
-                ScanFile(file.Value, group, in tracker);
+                switch (entry.Value)
+                {
+                    case DirectoryInfo directory:
+                        ScanDirectory(directory, group, tracker);
+                        break;
+                    case FileInfo file:
+                        ScanFile(file, group, tracker);
+                        break;
+                }
             }
         }
 
