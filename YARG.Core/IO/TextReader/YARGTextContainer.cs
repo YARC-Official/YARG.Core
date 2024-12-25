@@ -6,12 +6,6 @@ namespace YARG.Core.IO
     public unsafe struct YARGTextContainer<TChar>
         where TChar : unmanaged, IConvertible
     {
-        public static readonly YARGTextContainer<TChar> Null = new()
-        {
-            Encoding = null!,
-            Position = null,
-        };
-
         public readonly TChar* End;
         public Encoding Encoding;
         public TChar* Position;

@@ -8,12 +8,11 @@ namespace YARG.Core.IO
 {
     public static unsafe class YARGDTAReader
     {
-        public static YARGTextContainer<byte> TryCreate(in FixedArray<byte> data)
+        public static YARGTextContainer<byte> Create(in FixedArray<byte> data)
         {
             if ((data[0] == 0xFF && data[1] == 0xFE) || (data[0] == 0xFE && data[1] == 0xFF))
             {
-                YargLogger.LogError("UTF-16 & UTF-32 are not supported for .dta files");
-                return YARGTextContainer<byte>.Null;
+                throw new Exception("UTF-16 & UTF-32 are not supported for .dta files");
             }
 
             var container = new YARGTextContainer<byte>(in data, YARGTextReader.Latin1);

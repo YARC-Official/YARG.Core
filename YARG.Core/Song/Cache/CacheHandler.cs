@@ -1463,8 +1463,8 @@ namespace YARG.Core.Song.Cache
             {
                 // We call `using` to ensure the proper disposal of data if an error occurs
                 using var data = FixedArray<byte>.Load(dta.FullName);
+                var container = YARGDTAReader.Create(data);
                 var updates = new Dictionary<string, SongUpdate>();
-                var container = YARGDTAReader.TryCreate(data);
                 while (YARGDTAReader.StartNode(ref container))
                 {
                     string name = YARGDTAReader.GetNameOfNode(ref container, true);
@@ -1542,8 +1542,8 @@ namespace YARG.Core.Song.Cache
             {
                 // We call `using` to ensure the proper disposal of data if an error occurs
                 using var data = FixedArray<byte>.Load(dta.FullName);
+                var container = YARGDTAReader.Create(data);
                 var upgrades = new Dictionary<string, (YARGTextContainer<byte> Container, UnpackedRBProUpgrade Upgrade)>();
-                var container = YARGDTAReader.TryCreate(data);
                 while (YARGDTAReader.StartNode(ref container))
                 {
                     string name = YARGDTAReader.GetNameOfNode(ref container, true);
@@ -1622,7 +1622,7 @@ namespace YARG.Core.Song.Cache
                 if (songDTAData.IsAllocated)
                 {
                     errorFile = SONGSFILEPATH;
-                    var container = YARGDTAReader.TryCreate(songDTAData);
+                    var container = YARGDTAReader.Create(songDTAData);
                     while (YARGDTAReader.StartNode(ref container))
                     {
                         string name = YARGDTAReader.GetNameOfNode(ref container, true);
@@ -1641,7 +1641,7 @@ namespace YARG.Core.Song.Cache
                 if (upgradeDTAData.IsAllocated)
                 {
                     errorFile = UPGRADESFILEPATH;
-                    var container = YARGDTAReader.TryCreate(upgradeDTAData);
+                    var container = YARGDTAReader.Create(upgradeDTAData);
                     while (YARGDTAReader.StartNode(ref container))
                     {
                         string name = YARGDTAReader.GetNameOfNode(ref container, true);
@@ -1685,7 +1685,7 @@ namespace YARG.Core.Song.Cache
                 var songNodes = new Dictionary<string, List<YARGTextContainer<byte>>>();
                 if (songDTAData.IsAllocated)
                 {
-                    var container = YARGDTAReader.TryCreate(songDTAData);
+                    var container = YARGDTAReader.Create(songDTAData);
                     while (YARGDTAReader.StartNode(ref container))
                     {
                         string name = YARGDTAReader.GetNameOfNode(ref container, true);
