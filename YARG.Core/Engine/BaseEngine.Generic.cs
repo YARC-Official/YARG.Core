@@ -985,11 +985,6 @@ namespace YARG.Core.Engine
                         YargLogger.LogFormatTrace("Created a WaitCountdown at time {0} of {1} measures and {2} seconds in length",
                                                  newCountdown.Time, countdownTotalMeasures, beatlinesThisCountdown[^1].Time - noteOneTimeEnd);
                     }
-                    else
-                    {
-                        YargLogger.LogFormatTrace("Did not create a WaitCountdown at time {0} of {1} seconds in length because it was only {2} measures long",
-                                                 noteOneTimeEnd, beatlinesThisCountdown[^1].Time - noteOneTimeEnd, countdownTotalMeasures);
-                    }
                 }
             }
         }
