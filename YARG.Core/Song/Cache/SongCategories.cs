@@ -18,13 +18,12 @@ namespace YARG.Core.Song.Cache
 
         public string GetKey(SongEntry entry)
         {
-            var name = entry.Name;
-            return name.Group switch
+            return entry.Name.Group switch
             {
                 CharacterGroup.Empty or
                 CharacterGroup.AsciiSymbol => "*",
                 CharacterGroup.AsciiNumber => "0-9",
-                _ => char.ToUpperInvariant(name.SortStr[0]).ToString(),
+                _ => char.ToUpperInvariant(entry.Name.SortStr[0]).ToString(),
             };
         }
     }
