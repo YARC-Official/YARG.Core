@@ -56,13 +56,13 @@ namespace YARG.Core.Song.Cache
         public EntryComparer Comparer => _COMPARER;
         public string GetKey(SongEntry entry)
         {
-            return (entry.SongLengthMilliseconds / MILLISECONDS_PER_MINUTE) switch
+            return entry.SongLengthMilliseconds switch
             {
-                < 2 => "00:00 - 02:00",
-                < 5 => "02:00 - 05:00",
-                < 10 => "05:00 - 10:00",
-                < 15 => "10:00 - 15:00",
-                < 20 => "15:00 - 20:00",
+                <  2 * MILLISECONDS_PER_MINUTE => "00:00 - 02:00",
+                <  5 * MILLISECONDS_PER_MINUTE => "02:00 - 05:00",
+                < 10 * MILLISECONDS_PER_MINUTE => "05:00 - 10:00",
+                < 15 * MILLISECONDS_PER_MINUTE => "10:00 - 15:00",
+                < 20 * MILLISECONDS_PER_MINUTE => "15:00 - 20:00",
                 _ => "20:00+",
             };
         }
