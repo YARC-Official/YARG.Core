@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using YARG.Core.Chart;
 using YARG.Core.Input;
 using YARG.Core.Logging;
@@ -25,15 +24,16 @@ namespace YARG.Core.Engine
         protected const int SUSTAIN_BURST_FRACTION = 4;
 
         public delegate void StarPowerStatusEvent(bool active);
-
         public delegate void SoloStartEvent(SoloSection soloSection);
-
         public delegate void SoloEndEvent(SoloSection soloSection);
+        public delegate void ComboResetEvent();
+        public delegate void ComboIncrementEvent(int amount);
 
         public StarPowerStatusEvent? OnStarPowerStatus;
-
-        public SoloStartEvent? OnSoloStart;
-        public SoloEndEvent?   OnSoloEnd;
+        public SoloStartEvent?       OnSoloStart;
+        public SoloEndEvent?         OnSoloEnd;
+        public ComboResetEvent?      OnComboReset;
+        public ComboIncrementEvent?  OnComboIncrement;
 
         public bool IsInputQueued => InputQueue.Count > 0;
 
@@ -407,7 +407,7 @@ namespace YARG.Core.Engine
             // Ignore duplicate updates
             foreach (var update in _scheduledUpdates)
             {
-                if(update.Time == time)
+                if (update.Time == time)
                 {
                     return;
                 }
@@ -516,14 +516,14 @@ namespace YARG.Core.Engine
             BaseStats.StarPowerTickAmount += ticks;
 
             // Limit amount of ticks to a full bar.
-            if(BaseStats.StarPowerTickAmount > TicksPerFullSpBar)
+            if (BaseStats.StarPowerTickAmount > TicksPerFullSpBar)
             {
                 BaseStats.StarPowerTickAmount = TicksPerFullSpBar;
             }
 
             // Add the amount of ticks gained to the total ticks gained
             BaseStats.TotalStarPowerTicks += BaseStats.StarPowerTickAmount - prevTicks;
-            BaseStats.TotalStarPowerBarsFilled = (double)BaseStats.TotalStarPowerTicks / TicksPerFullSpBar;
+            BaseStats.TotalStarPowerBarsFilled = (double) BaseStats.TotalStarPowerTicks / TicksPerFullSpBar;
 
             if (BaseStats.IsStarPowerActive)
             {
@@ -598,7 +598,7 @@ namespace YARG.Core.Engine
             var drainFactor = GetStarPowerDrainFactor(timeSignature);
 
             // Amount of time in between each chart tick.
-            var timePerTick = (double)tempo.SecondsPerBeat / Resolution;
+            var timePerTick = (double) tempo.SecondsPerBeat / Resolution;
 
             // Amount of time in between each star power tick during star power.
             var timePerStarPowerTick = timePerTick * drainFactor;
@@ -613,7 +613,7 @@ namespace YARG.Core.Engine
             var drainFactor = GetStarPowerDrainFactor(timeSignature);
 
             // Amount of time in between each chart tick.
-            var timePerTick = (double)tempo.SecondsPerBeat / Resolution;
+            var timePerTick = (double) tempo.SecondsPerBeat / Resolution;
 
             // Amount of time in between each star power tick during star power.
             var timePerStarPowerTick = timePerTick * drainFactor;
@@ -634,7 +634,7 @@ namespace YARG.Core.Engine
 
             // Ticks can only go up to 2^32, which double can handle precisely to 6 decimal places.
             // This is why the result is rounded to 6 decimal places, then truncated to an integer.
-            return (uint)Math.Round(GetStarPowerDrainPeriodToTicks(time - change.Time, tempo, ts) +
+            return (uint) Math.Round(GetStarPowerDrainPeriodToTicks(time - change.Time, tempo, ts) +
                 _starPowerTempoTsTicks[change.Index], 6);
         }
 
@@ -655,7 +655,8 @@ namespace YARG.Core.Engine
             if (starPowerTick < syncSpTick)
             {
                 high = currentSync.Index;
-            } else if (starPowerTick > syncSpTick)
+            }
+            else if (starPowerTick > syncSpTick)
             {
                 low = currentSync.Index;
             }
@@ -752,6 +753,19 @@ namespace YARG.Core.Engine
         protected static bool IsTimeBetween(double time, double prevTime, double nextTime)
         {
             return time > prevTime && time < nextTime;
+        }
+
+        protected void IncrementCombo()
+        {
+            BaseStats.Combo++;
+            BaseStats.MaxCombo = Math.Max(BaseStats.MaxCombo, BaseStats.Combo);
+            OnComboIncrement?.Invoke(BaseStats.BandComboUnits);
+        }
+
+        protected void ResetCombo()
+        {
+            BaseStats.Combo = 0;
+            OnComboReset?.Invoke();
         }
     }
 }
