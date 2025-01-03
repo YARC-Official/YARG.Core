@@ -948,6 +948,12 @@ namespace YARG.Core.Engine
                     // Temporary fix by adding a check for the last measure
                     // Affects 1/1 time signatures
                     int curMeasureIndex = allMeasureBeatLines.GetIndexOfPrevious(noteOneTickEnd);
+                    if (curMeasureIndex == -1)
+                    {
+                        // In songs with no events at time 0, it's possible to have no previous note.
+                        // In that case, just use 0.
+                        curMeasureIndex = 0;
+                    }
                     if (allMeasureBeatLines[curMeasureIndex].Tick < noteOneTickEnd
                         && curMeasureIndex + 1 < allMeasureBeatLines.Count)
                     {
