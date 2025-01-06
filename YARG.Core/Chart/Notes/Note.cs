@@ -16,6 +16,11 @@ namespace YARG.Core.Chart
         Solo      = 1 << 3,
         SoloStart = 1 << 4,
         SoloEnd   = 1 << 5,
+
+        Tremolo      = 1 << 6,
+        Trill      = 1 << 7,
+        LaneStart = 1 << 8,
+        LaneEnd   = 1 << 9,
     }
 
     public abstract class Note<TNote> : ChartEvent, ICloneable<TNote>
@@ -86,6 +91,14 @@ namespace YARG.Core.Chart
         public bool IsSoloStart => (Flags & NoteFlags.SoloStart) != 0;
         public bool IsSoloEnd   => (Flags & NoteFlags.SoloEnd) != 0;
 
+        public bool IsTremolo => (Flags & NoteFlags.Tremolo) != 0;
+        public bool IsTrill => (Flags & NoteFlags.Trill) != 0;
+        public bool IsLane => IsTremolo || IsTrill;
+        public bool IsLaneStart => (Flags & NoteFlags.LaneStart) != 0;
+        public bool IsLaneEnd   => (Flags & NoteFlags.LaneEnd) != 0;
+
+        public virtual int LaneNote => -1;
+
         /// <summary>
         /// Returns an enumerator that contains all child notes and the parent note itself (allocation free).
         /// </summary>
@@ -110,9 +123,14 @@ namespace YARG.Core.Chart
         public virtual void AddChildNote(TNote note)
         {
             if (note.Tick != Tick)
+            {
                 throw new InvalidOperationException("Child note being added is not on the same tick!");
+            }
+
             if (note.ChildNotes.Count > 0)
+            {
                 throw new InvalidOperationException("Child note being added has its own children!");
+            }
 
             note.Parent = (TNote) this;
             _childNotes.Add(note);
@@ -121,7 +139,10 @@ namespace YARG.Core.Chart
         public void SetHitState(bool hit, bool includeChildren)
         {
             WasHit = hit;
-            if (!includeChildren) return;
+            if (!includeChildren) 
+            {
+                return;
+            }
 
             foreach (var childNote in _childNotes)
             {
@@ -132,7 +153,10 @@ namespace YARG.Core.Chart
         public void SetMissState(bool miss, bool includeChildren)
         {
             WasMissed = miss;
-            if (!includeChildren) return;
+            if (!includeChildren)
+            {
+                return;
+            }
 
             foreach (var childNote in _childNotes)
             {
