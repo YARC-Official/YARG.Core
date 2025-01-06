@@ -72,7 +72,7 @@ namespace YARG.Core.Engine.Drums
                 }
             }
 
-            EngineStats.Combo = 0;
+            ResetCombo();
             EngineStats.Overhits++;
 
             UpdateMultiplier();
@@ -127,12 +127,7 @@ namespace YARG.Core.Engine.Drums
                 ActivateStarPower();
             }
 
-            EngineStats.Combo++;
-
-            if (EngineStats.Combo > EngineStats.MaxCombo)
-            {
-                EngineStats.MaxCombo = EngineStats.Combo;
-            }
+            IncrementCombo();
 
             EngineStats.NotesHit++;
 
@@ -253,7 +248,7 @@ namespace YARG.Core.Engine.Drums
                 StartSolo();
             }
 
-            EngineStats.Combo = 0;
+            ResetCombo();
 
             UpdateMultiplier();
 
