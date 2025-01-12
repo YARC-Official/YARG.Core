@@ -29,11 +29,13 @@ namespace YARG.Core.Engine
         public delegate void ComboResetEvent();
         public delegate void ComboIncrementEvent(int amount);
 
+        public delegate void UnisonBonusAwardedEvent();
         public StarPowerStatusEvent? OnStarPowerStatus;
         public SoloStartEvent?       OnSoloStart;
         public SoloEndEvent?         OnSoloEnd;
         public ComboResetEvent?      OnComboReset;
         public ComboIncrementEvent?  OnComboIncrement;
+        public UnisonBonusAwardedEvent? OnUnisonBonusAwarded;
 
         public bool IsInputQueued => InputQueue.Count > 0;
 
@@ -766,6 +768,12 @@ namespace YARG.Core.Engine
         {
             BaseStats.Combo = 0;
             OnComboReset?.Invoke();
+        }
+
+        public void AwardUnisonBonus()
+        {
+            GainStarPower(TicksPerQuarterSpBar);
+            OnUnisonBonusAwarded?.Invoke();
         }
     }
 }

@@ -1,16 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using YARG.Core.Chart;
-using YARG.Core.Input;
+using YARG.Core.Engine.Drums;
+using YARG.Core.Engine.Guitar;
+using YARG.Core.Engine.ProKeys;
 using YARG.Core.Logging;
 
 namespace YARG.Core.Engine
 {
     public partial class EngineManager
     {
-        // TODO: There is some cruft around _reportedEngines that should be removed
-        //  now that this is happening in the engine manager, which should already know
-        //  about all engines
         public class UnisonEvent : IEquatable<UnisonEvent>
         {
             public double Time { get; }
@@ -116,6 +115,23 @@ namespace YARG.Core.Engine
                     }
                 }
             }
+            // Subscribe the container to OnStarPowerPhraseHit so bonuses can be awarded as appropriate
+            if (engineContainer.Engine is BaseEngine<GuitarNote,GuitarEngineParameters,GuitarStats> guitarEngine)
+            {
+                guitarEngine.OnStarPowerPhraseHit += engineContainer.OnStarPowerPhraseHit;
+            }
+
+            if (engineContainer.Engine is BaseEngine<DrumNote, DrumsEngineParameters, DrumsStats> drumEngine)
+            {
+                drumEngine.OnStarPowerPhraseHit += engineContainer.OnStarPowerPhraseHit;
+            }
+
+            if (engineContainer.Engine is BaseEngine<ProKeysNote, ProKeysEngineParameters, ProKeysStats>
+                proKeysEngine)
+            {
+                proKeysEngine.OnStarPowerPhraseHit += engineContainer.OnStarPowerPhraseHit;
+            }
+            // Vocals don't participate in unisons, so they get left out.
         }
 
         /// <summary>
@@ -136,6 +152,12 @@ namespace YARG.Core.Engine
             var outSpSections = new List<StarPowerSection>();
             // This list should have the instruments with duplicate SP phrases removed
             var acceptedSpSections = new List<List<StarPowerSection>>();
+
+            // Since vocals can't have unisons, we may as well pull the ripcord early
+            if (instrument is Instrument.Vocals or Instrument.Harmony)
+            {
+                return phrases;
+            }
 
             var foundSelf = false;
 
@@ -297,7 +319,6 @@ namespace YARG.Core.Engine
 
                     if (dupeCount == sections.Count)
                     {
-                        YargLogger.LogDebug("Found duplicate star power list");
                         return true;
                     }
                 }
@@ -319,9 +340,8 @@ namespace YARG.Core.Engine
             }
         }
 
-        public void StarPowerPhraseHit(BaseEngine engine, double time)
+        public void OnStarPowerPhraseHit(EngineContainer container, double time)
         {
-            var container = GetEngineContainer(engine);
             // Find the relevant unison and increment its SuccessCount
             foreach (var unison in _unisonEvents)
             {
@@ -340,7 +360,6 @@ namespace YARG.Core.Engine
             }
         }
 
-        // TODO: Figure out how to actually award the bonus SP
         private void AwardStarPowerBonus(UnisonEvent unison)
         {
             if (unison.Awarded)
@@ -350,10 +369,9 @@ namespace YARG.Core.Engine
             }
             foreach (var id in unison.ParticipantIds)
             {
-                YargLogger.LogFormatDebug("EngineManager (would be) awarding bonus SP to participant ID {0}", id);
-                var engine = _allEnginesById[id].Engine;
-                // engine.GainStarPower(engine.TicksPerQuarterSpBar);
-                OnUnisonPhraseSuccess?.Invoke();
+                YargLogger.LogFormatDebug("EngineManager awarding bonus SP to participant ID {0}", id);
+                var engineContainer = _allEnginesById[id];
+                engineContainer.SendCommand(EngineContainer.EngineCommandType.AwardUnisonBonus);
             }
             unison.Awarded = true;
         }

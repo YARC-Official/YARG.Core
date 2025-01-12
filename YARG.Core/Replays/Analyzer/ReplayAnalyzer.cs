@@ -21,7 +21,7 @@ namespace YARG.Core.Replays.Analyzer
         private readonly SongChart  _chart;
         private readonly ReplayData _replay;
 
-        private readonly double _fps;
+        private          double _fps;
         private readonly bool   _doFrameUpdates;
 
         private readonly Random _random = new();
@@ -131,79 +131,82 @@ namespace YARG.Core.Replays.Analyzer
 
         private AnalysisResult[] Analyze()
         {
-            var results = new AnalysisResult[_replay.Frames.Length];
-
-            for (int i = 0; i < results.Length; i++)
+            var frames = new List<ReplayFrame>();
+            for (int i = 0; i < _replay.Frames.Length; i++)
             {
-                var frame = _replay.Frames[i];
-                var result = RunFrame(frame);
-
-                results[i] = result;
+                frames.Add(_replay.Frames[i]);
             }
 
-            return results;
+            var replayResults = RunFrames(frames);
+            return replayResults.ToArray();
         }
 
-        private AnalysisResult RunFrame(ReplayFrame frame)
+        private List<AnalysisResult> RunFrames(List<ReplayFrame> frames)
         {
-            var engine = CreateEngine(frame.Profile, frame.EngineParameters);
-            engine.SetSpeed(frame.EngineParameters.SongSpeed);
-            engine.Reset();
-
-            double maxTime = _chart.GetEndTime();
-            if (frame.Inputs.Length > 0)
+            var engines = new List<BaseEngine>();
+            var manager = new EngineManager();
+            // I don't think the engines will break if their update time goes beyond their last input
+            double maxTime = 0;
+            var results = new List<AnalysisResult>();
+            foreach (var frame in frames)
             {
-                double last = frame.Inputs[^1].Time;
-                if (last > maxTime)
-                {
-                    maxTime = last;
-                }
-            }
-            maxTime += 2;
+                var engine = CreateEngine(frame.Profile, frame.EngineParameters);
+                engines.Add(engine);
+                manager.Register(engine, frame.Profile.CurrentInstrument, _chart);
+                engine.SetSpeed(frame.EngineParameters.SongSpeed);
+                engine.Reset();
 
-            if (!_doFrameUpdates)
-            {
-                // If we're not doing frame updates, just queue all of the inputs at once
-                foreach (var input in frame.Inputs)
+                maxTime = _chart.GetEndTime();
+                if (frame.Inputs.Length > 0)
                 {
-                    var inp = input;
-                    engine.QueueInput(ref inp);
-                }
-
-                // Run the engine updates
-                engine.Update(maxTime);
-            }
-            else
-            {
-                // If we're doing frame updates, the inputs and frame times must be
-                // "interweaved" so nothing gets queued in the future
-                int currentInput = 0;
-                foreach (var time in GenerateFrameTimes(-2, maxTime))
-                {
-                    for (; currentInput < frame.Inputs.Length; currentInput++)
+                    double last = frame.Inputs[^1].Time;
+                    if (last > maxTime)
                     {
-                        var input = frame.Inputs[currentInput];
+                        maxTime = last;
+                    }
+                }
+                maxTime += 2;
+            }
+
+            // TODO: Figure out why we're failing the participant count assertion in UnisonEvent
+            //  when bonus SP is being awarded. (Validation succeeds, though, so it's not awarding extra SP in the replay)
+
+            // Seems like a sensible default?
+            _fps = _fps > 0 ? _fps : 60;
+            int currentInput = 0;
+            foreach (var time in GenerateFrameTimes(-2, maxTime))
+            {
+                for (var i = 0;i < engines.Count; i++) {
+                    for (; currentInput < frames[i].Inputs.Length; currentInput++)
+                    {
+                        var input = frames[i].Inputs[currentInput];
                         if (input.Time > time)
                         {
                             break;
                         }
 
-                        engine.QueueInput(ref input);
+                        engines[i].QueueInput(ref input);
                     }
+                }
 
+                foreach (var engine in engines)
+                {
                     engine.Update(time);
                 }
             }
 
-            bool passed = IsPassResult(frame.Stats, engine.BaseStats);
-
-            return new AnalysisResult
+            for (var i = 0; i < frames.Count; i++)
             {
-                Passed = passed,
-                Frame = frame,
-                OriginalStats = frame.Stats,
-                ResultStats = engine.BaseStats,
-            };
+                bool passed = IsPassResult(frames[i].Stats, engines[i].BaseStats);
+                results.Add(new AnalysisResult
+                {
+                    Passed = passed,
+                    Frame = frames[i],
+                    OriginalStats = frames[i].Stats,
+                    ResultStats = engines[i].BaseStats,
+                });
+            }
+            return results;
         }
 
         private BaseEngine CreateEngine(YargProfile profile, BaseEngineParameters parameters)
