@@ -76,6 +76,11 @@ namespace YARG.Core.Engine
                 // TODO: Make sure it doesn't matter whether this is note.Time or Engine.CurrentTime
                 _engineManager.OnStarPowerPhraseHit(this, Engine.CurrentTime);
             }
+
+            public void UpdateEngine(double time)
+            {
+                Engine.Update(time);
+            }
         }
 
         public EngineContainer Register<TEngineType>(TEngineType engine, Instrument instrument, SongChart chart)
@@ -99,6 +104,14 @@ namespace YARG.Core.Engine
                 }
             }
             throw new ArgumentException("Target engine not found");
+        }
+
+        public void UpdateEngines(double time)
+        {
+            foreach (var engine in _allEngines)
+            {
+                engine.UpdateEngine(time);
+            }
         }
     }
 }

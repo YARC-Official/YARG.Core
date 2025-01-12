@@ -145,7 +145,6 @@ namespace YARG.Core.Replays.Analyzer
         {
             var engines = new List<BaseEngine>();
             var manager = new EngineManager();
-            // I don't think the engines will break if their update time goes beyond their last input
             double maxTime = 0;
             var results = new List<AnalysisResult>();
             foreach (var frame in frames)
@@ -168,9 +167,6 @@ namespace YARG.Core.Replays.Analyzer
                 maxTime += 2;
             }
 
-            // TODO: Figure out why we're failing the participant count assertion in UnisonEvent
-            //  when bonus SP is being awarded. (Validation succeeds, though, so it's not awarding extra SP in the replay)
-
             // Seems like a sensible default?
             _fps = _fps > 0 ? _fps : 60;
             int currentInput = 0;
@@ -184,15 +180,12 @@ namespace YARG.Core.Replays.Analyzer
                         {
                             break;
                         }
-
+                        // TODO: Consider running this through EngineManager as well
                         engines[i].QueueInput(ref input);
                     }
                 }
 
-                foreach (var engine in engines)
-                {
-                    engine.Update(time);
-                }
+                manager.UpdateEngines(time);
             }
 
             for (var i = 0; i < frames.Count; i++)
