@@ -27,12 +27,12 @@ namespace YARG.Core.Engine.Guitar.Engines
                 return;
             }
 
-            LastButtonMask = ButtonMask;
-            ButtonMask = (byte) note.NoteMask;
+            LastButtonMask = EffectiveButtonMask;
+            EffectiveButtonMask = (byte) note.NoteMask;
 
-            YargLogger.LogFormatTrace("[Bot] Set button mask to: {0}", ButtonMask);
+            YargLogger.LogFormatTrace("[Bot] Set button mask to: {0}", EffectiveButtonMask);
 
-            HasTapped = ButtonMask != LastButtonMask;
+            HasTapped = EffectiveButtonMask != LastButtonMask;
             IsFretPress = true;
             HasStrummed = false;
             StrumLeniencyTimer.Start(time);
@@ -48,15 +48,15 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                 if (sustainNote.IsDisjoint)
                 {
-                    ButtonMask |= (byte) sustainNote.DisjointMask;
+                    EffectiveButtonMask |= (byte) sustainNote.DisjointMask;
 
-                    YargLogger.LogFormatTrace("[Bot] Added Disjoint Sustain Mask {0} to button mask. {1}", sustainNote.DisjointMask, ButtonMask);
+                    YargLogger.LogFormatTrace("[Bot] Added Disjoint Sustain Mask {0} to button mask. {1}", sustainNote.DisjointMask, EffectiveButtonMask);
                 }
                 else
                 {
-                    ButtonMask |= (byte) sustainNote.NoteMask;
+                    EffectiveButtonMask |= (byte) sustainNote.NoteMask;
 
-                    YargLogger.LogFormatTrace("[Bot] Added Sustain Mask {0} to button mask. {1}", sustainNote.NoteMask, ButtonMask);
+                    YargLogger.LogFormatTrace("[Bot] Added Sustain Mask {0} to button mask. {1}", sustainNote.NoteMask, EffectiveButtonMask);
                 }
             }
         }
@@ -81,26 +81,26 @@ namespace YARG.Core.Engine.Guitar.Engines
             }
             else if (IsFretInput(gameInput))
             {
-                LastButtonMask = ButtonMask;
+                LastButtonMask = EffectiveButtonMask;
                 HasFretted = true;
                 IsFretPress = gameInput.Button;
 
                 ToggleFret(gameInput.Action, gameInput.Button);
 
                 // No other frets are held, enable the "open fret"
-                if ((ButtonMask & ~OPEN_MASK) == 0)
+                if ((EffectiveButtonMask & ~OPEN_MASK) == 0)
                 {
-                    ButtonMask |= OPEN_MASK;
+                    EffectiveButtonMask |= OPEN_MASK;
                 }
                 else
                 {
                     // Some frets are held, disable the "open fret"
-                    ButtonMask &= unchecked((byte) ~OPEN_MASK);
+                    EffectiveButtonMask &= unchecked((byte) ~OPEN_MASK);
                 }
             }
 
             YargLogger.LogFormatTrace("Mutated input state: Button Mask: {0}, HasFretted: {1}, HasStrummed: {2}",
-                ButtonMask, HasFretted, HasStrummed);
+                EffectiveButtonMask, HasFretted, HasStrummed);
         }
 
         protected override void UpdateHitLogic(double time)
@@ -222,7 +222,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 if (!CanNoteBeHit(note))
                 {
                     YargLogger.LogFormatTrace("Cant hit note (Index: {0}, Mask {1}) at {2}. Buttons: {3}", i,
-                        note.NoteMask, CurrentTime, ButtonMask);
+                        note.NoteMask, CurrentTime, EffectiveButtonMask);
                     // This does nothing special, it's just logging strum leniency
                     if (isFirstNoteInWindow && HasStrummed && StrumLeniencyTimer.IsActive)
                     {
@@ -243,7 +243,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 // Defines whether solo tapping is allowed
                 // Only if SoloTaps engine parameter is set, solo is active, and no non-solo buttons are pressed
                 // Also allow tap if the note is a solo start note, since IsSoloActive isn't set until after this point
-                bool SoloTapAllowed = EngineParameters.SoloTaps && (IsSoloActive || note.IsSoloStart) && !(StandardButtonCount > 0);
+                bool SoloTapAllowed = EngineParameters.SoloTaps && (IsSoloActive || note.IsSoloStart) && !StandardButtonHeld;
 
                 // Handles hitting a hopo notes
                 // If first note is a hopo then it can be hit without combo (for practice mode)
@@ -290,7 +290,7 @@ namespace YARG.Core.Engine.Guitar.Engines
 
         protected override bool CanNoteBeHit(GuitarNote note)
         {
-            byte buttonsMasked = ButtonMask;
+            ushort buttonsMasked = EffectiveButtonMask;
             if (ActiveSustains.Count > 0)
             {
                 foreach (var sustain in ActiveSustains)
@@ -315,7 +315,7 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                 // If the resulting masked buttons are 0, we need to apply the Open Mask so open notes can be hit
                 // Need to make a copy of the button mask to prevent modifying the original
-                byte buttonMaskCopy = ButtonMask;
+                ushort buttonMaskCopy = EffectiveButtonMask;
                 if (buttonsMasked == 0)
                 {
                     buttonsMasked |= OPEN_MASK;
@@ -330,9 +330,9 @@ namespace YARG.Core.Engine.Guitar.Engines
             }
 
             // If masked/extended sustain logic didn't work, try original ButtonMask
-            return IsNoteHittable(note, ButtonMask);
+            return IsNoteHittable(note, EffectiveButtonMask);
 
-            static bool IsNoteHittable(GuitarNote note, byte buttonsMasked)
+            static bool IsNoteHittable(GuitarNote note, ushort buttonsMasked)
             {
                 // Only used for sustain logic
                 bool useDisjointSustainMask = note is { IsDisjoint: true, WasHit: true };
@@ -423,8 +423,9 @@ namespace YARG.Core.Engine.Guitar.Engines
 
         protected override void HitNote(GuitarNote note)
         {
-            // Hopo leniency needs to activate on solo taps also
-            bool SoloTapAllowed = EngineParameters.SoloTaps && (IsSoloActive || note.IsSoloStart) && !(StandardButtonCount > 0);
+            // Defines whether solo tapping is allowed
+            // Only if SoloTaps engine parameter is set, solo is active, and no non-solo buttons are pressed
+            bool SoloTapAllowed = EngineParameters.SoloTaps && (IsSoloActive || note.IsSoloStart) && !StandardButtonHeld;
 
             if (note.IsHopo || note.IsTap || SoloTapAllowed)
             {
@@ -500,10 +501,10 @@ namespace YARG.Core.Engine.Guitar.Engines
             }
 
             // Input is a hammer-on if the highest fret held is higher than the highest fret of the previous mask
-            bool isHammerOn = GetMostSignificantBit(ButtonMask) > GetMostSignificantBit(LastButtonMask);
+            bool isHammerOn = GetMostSignificantBit(EffectiveButtonMask) > GetMostSignificantBit(LastButtonMask);
 
             // Input is a hammer-on and the button pressed is not part of the note mask (incorrect fret)
-            if (isHammerOn && (ButtonMask & note.NoteMask) == 0)
+            if (isHammerOn && (EffectiveButtonMask & note.NoteMask) == 0)
             {
                 return true;
             }
