@@ -612,31 +612,20 @@ namespace YARG.Core.Engine
         {
             var drainFactor = GetStarPowerDrainFactor(timeSignature);
 
-            // Amount of time in between each chart tick.
-            var timePerTick = (double)tempo.SecondsPerBeat / Resolution;
+            var seconds = tempo.SecondsPerBeat * drainFactor;
+            var beats = period / seconds;
 
-            // Amount of time in between each star power tick during star power.
-            var timePerStarPowerTick = timePerTick * drainFactor;
-
-            var starPowerTicksInPeriod = period / timePerStarPowerTick;
-
-            return starPowerTicksInPeriod;
+            return beats * Resolution;
         }
 
         private double GetStarPowerDrainTicksToPeriod(double ticks, TempoChange tempo, TimeSignatureChange timeSignature)
         {
             var drainFactor = GetStarPowerDrainFactor(timeSignature);
 
-            // Amount of time in between each chart tick.
-            var timePerTick = (double)tempo.SecondsPerBeat / Resolution;
+            var seconds = tempo.SecondsPerBeat * drainFactor;
+            var beats = ticks / Resolution;
 
-            // Amount of time in between each star power tick during star power.
-            var timePerStarPowerTick = timePerTick * drainFactor;
-
-            // Inverse of PeriodToTicks
-            var period = ticks * timePerStarPowerTick;
-
-            return period;
+            return beats * seconds;
         }
 
         protected uint GetStarPowerDrainTimeToTicks(double time, SyncTrackChange change)
@@ -653,7 +642,7 @@ namespace YARG.Core.Engine
                 _starPowerTempoTsTicks[change.Index], 6);
         }
 
-        private double GetStarPowerDrainTickToTime(uint starPowerTick, SyncTrackChange currentSync)
+        protected double GetStarPowerDrainTickToTime(uint starPowerTick, SyncTrackChange currentSync)
         {
             // var change = SyncTrackChanges.GetPrevious(starPowerTick)!;
             // var tempo = change.Tempo;
