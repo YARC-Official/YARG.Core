@@ -309,8 +309,8 @@ namespace YARG.Core.Replays.Analyzer
             var times = new List<double>();
             for (double time = from; time < to; time += frameTime)
             {
-                // Add up to 45% random adjustment to the frame time
-                var randomAdjustment = _random.NextDouble() * 0.5;
+                // Add up to 10% random adjustment to the frame time
+                var randomAdjustment = _random.NextDouble() * 0.1;
 
                 // Randomly make the adjustment negative
                 if (_random.Next(2) == 0 && time > from)
