@@ -1,7 +1,6 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using YARG.Core.Chart;
 using YARG.Core.Extensions;
 using YARG.Core.Logging;
@@ -207,7 +206,8 @@ namespace YARG.Core.Engine
 
                     if (IsTimeBetween(deactivateTime, previousTime, nextTime))
                     {
-                        YargLogger.LogFormatTrace("Queuing countdown {0} deactivation at {1}", CurrentWaitCountdownIndex, deactivateTime);
+                        YargLogger.LogFormatTrace("Queuing countdown {0} deactivation at {1}",
+                            CurrentWaitCountdownIndex, deactivateTime);
                         QueueUpdateTime(deactivateTime, "Deactivate Countdown");
                     }
                 }
@@ -234,7 +234,8 @@ namespace YARG.Core.Engine
 
                         if (IsTimeBetween(nextCountdownStartTime, previousTime, nextTime))
                         {
-                            YargLogger.LogFormatTrace("Queuing countdown {0} start time at {1}", nextCountdownIndex, nextCountdownStartTime);
+                            YargLogger.LogFormatTrace("Queuing countdown {0} start time at {1}", nextCountdownIndex,
+                                nextCountdownStartTime);
                             QueueUpdateTime(nextCountdownStartTime, "Activate Countdown");
                         }
                     }
@@ -560,25 +561,6 @@ namespace YARG.Core.Engine
 
         protected override void UpdateStarPower()
         {
-            PreviousStarPowerTickPosition = StarPowerTickPosition;
-            StarPowerTickPosition = GetStarPowerDrainTimeToTicks(CurrentTime, CurrentSyncTrackState);
-
-            if (BaseStats.IsStarPowerActive)
-            {
-                var drain = StarPowerTickPosition - PreviousStarPowerTickPosition;
-                if ((int) BaseStats.StarPowerTickAmount - drain <= 0)
-                {
-                    BaseStats.StarPowerTickAmount = 0;
-                }
-                else
-                {
-                    BaseStats.StarPowerTickAmount -= drain;
-                }
-
-                double spTimeDelta = CurrentTime - StarPowerActivationTime;
-                BaseStats.TimeInStarPower = spTimeDelta + BaseTimeInStarPower;
-            }
-
             bool isStarPowerSustainActive = false;
             foreach (var sustain in ActiveSustains)
             {
@@ -598,6 +580,41 @@ namespace YARG.Core.Engine
                 GainStarPower(whammyTicks);
                 BaseStats.StarPowerWhammyTicks += whammyTicks;
                 YargLogger.LogFormatTrace("Gained {0} whammy ticks this update (Total: {1}), {2} sustains active. SP right now: {3}", whammyTicks, EngineStats.StarPowerWhammyTicks, ActiveSustains.Count, isStarPowerSustainActive);
+            }
+
+            PreviousStarPowerTickPosition = StarPowerTickPosition;
+            StarPowerTickPosition = GetStarPowerDrainTimeToTicks(CurrentTime, CurrentSyncTrackState);
+
+            if (BaseStats.IsStarPowerActive)
+            {
+                var drain = StarPowerTickPosition - PreviousStarPowerTickPosition;
+                if ((int) BaseStats.StarPowerTickAmount - drain <= 0)
+                {
+                    BaseStats.StarPowerTickAmount = 0;
+                }
+                else
+                {
+                    BaseStats.StarPowerTickAmount -= drain;
+
+                    YargLogger.LogFormatTrace("Drained {0} ticks of SP this update. New SP tick amount: {1}. Current SP Tick: {2}, Last: {3}", drain, BaseStats.StarPowerTickAmount, StarPowerTickPosition, PreviousStarPowerTickPosition);
+                }
+
+                double spTimeDelta = CurrentTime - StarPowerActivationTime;
+                BaseStats.TimeInStarPower = spTimeDelta + BaseTimeInStarPower;
+                YargLogger.LogFormatTrace("Updated Star Power Time to {0} (delta: {1}, base: {2})", BaseStats.TimeInStarPower, spTimeDelta, BaseTimeInStarPower);
+            }
+
+            // Limit amount of ticks to a full bar.
+            if(BaseStats.StarPowerTickAmount > TicksPerFullSpBar)
+            {
+                BaseStats.StarPowerTickAmount = TicksPerFullSpBar;
+
+                if (BaseStats.IsStarPowerActive)
+                {
+                    StarPowerTickEndPosition = StarPowerTickPosition + BaseStats.StarPowerTickAmount;
+                    StarPowerEndTime = GetStarPowerDrainTickToTime(StarPowerTickEndPosition, CurrentSyncTrackState);
+                    YargLogger.LogFormatTrace("Clamped SP. New end tick and time: {0}, {1}", StarPowerTickEndPosition, StarPowerEndTime);
+                }
             }
 
             LastWhammyTimerState = StarPowerWhammyTimer.IsActive;
