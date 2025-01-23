@@ -184,7 +184,8 @@ namespace YARG.Core.Engine.Guitar.Engines
                         note.NoteMask, CurrentTime, ButtonMask);
 
                     // Note skipping not allowed on the first note
-                    if (NoteIndex == 0)
+                    // Can't note skip on a lift input
+                    if (NoteIndex == 0 || (HasFretted && !IsFretPress))
                     {
                         break;
                     }
@@ -220,88 +221,55 @@ namespace YARG.Core.Engine.Guitar.Engines
 
         protected override bool CanNoteBeHit(GuitarNote note)
         {
-            // In gamepad mode, on a release, we use LastButtonMask instead of ButtonMask.
-            // This is because, if you're *releasing*, then the fret that the note you want to hit is on *isn't actually being held*, because, well, you released it.
-            // But you should still be able to hit it -- that's the whole point.
-            bool usingLifts = !IsFretPress;
-
-            byte originalButtonMask = !usingLifts ? ButtonMask : LastButtonMask;
-
-            byte buttonsMasked = originalButtonMask;
-
-            CAN_HIT:
-            if (ActiveSustains.Count > 0)
-            {
-                foreach (var sustain in ActiveSustains)
-                {
-                    var sustainNote = sustain.Note;
-
-                    if (sustainNote.IsExtendedSustain)
-                    {
-                        // Remove the note mask if its an extended sustain
-                        // Difference between NoteMask and DisjointMask is that DisjointMask is only a single fret
-                        // while NoteMask is the entire chord
-
-                        // TODO Notes cannot be hit if a sustain of the same fret is being held e.g H-ELL Solo 3C5
-
-                        //byte sameFretsHeld = (byte) ((byte) (sustain.Note.NoteMask & note.NoteMask) & ButtonMask);
-
-                        var maskToRemove = sustainNote.IsDisjoint ? sustainNote.DisjointMask : sustainNote.NoteMask;
-                        buttonsMasked &= unchecked((byte) ~maskToRemove);
-                        //buttonsMasked |= sameFretsHeld;
-                    }
-                }
-
-                // If the resulting masked buttons are 0, we need to apply the Open Mask so open notes can be hit
-                if (buttonsMasked == 0)
-                {
-                    buttonsMasked |= OPEN_MASK;
-                }
-            }
-
-            // Gamepad Mode open note handling
-            if ((note.NoteMask & OPEN_MASK) != 0)
-            {
-                var maskWithoutOpen = note.NoteMask & ~OPEN_MASK;
-
-                // Normal open note (allow hitting by pressing any fret)
-                // TODO maybe change this to an open button input
-                if (maskWithoutOpen == 0)
-                {
-                    originalButtonMask = (byte) note.NoteMask;
-                }
-                // Open chord (only allows hitting by pressing the exact frets needed)
-                else if (maskWithoutOpen == originalButtonMask || maskWithoutOpen == buttonsMasked)
-                {
-                    originalButtonMask = (byte) note.NoteMask;
-                    buttonsMasked = originalButtonMask;
-                }
-            }
-
-            // We dont want to use masked buttons for hit logic if the buttons are identical
-            if (ActiveSustains.Count > 0 &&
-                buttonsMasked != (buttonsMasked == OPEN_MASK ? originalButtonMask | OPEN_MASK : originalButtonMask) &&
-                IsNoteHittable(note, buttonsMasked))
+            if (HasFretted && !IsFretPress && TryWithMask(LastButtonMask))
             {
                 return true;
             }
 
-            // If masked/extended sustain logic didn't work, try original ButtonMask
-            if (!IsNoteHittable(note, originalButtonMask))
-            {
-                if (usingLifts)
-                {
-                    usingLifts = false;
-                    buttonsMasked = ButtonMask;
+            return TryWithMask(ButtonMask);
 
-                    // temporary
-                    goto CAN_HIT;
+            // Another local function lol
+            bool TryWithMask(byte buttonsMasked)
+            {
+                if (ActiveSustains.Count > 0)
+                {
+                    foreach (var sustain in ActiveSustains)
+                    {
+                        var sustainNote = sustain.Note;
+
+                        if (sustainNote.IsExtendedSustain)
+                        {
+                            // Remove the note mask if its an extended sustain
+                            // Difference between NoteMask and DisjointMask is that DisjointMask is only a single fret
+                            // while NoteMask is the entire chord
+
+                            // TODO Notes cannot be hit if a sustain of the same fret is being held e.g H-ELL Solo 3C5
+
+                            //byte sameFretsHeld = (byte) ((byte) (sustain.Note.NoteMask & note.NoteMask) & ButtonMask);
+
+                            var maskToRemove = sustainNote.IsDisjoint ? sustainNote.DisjointMask : sustainNote.NoteMask;
+                            buttonsMasked &= unchecked((byte) ~maskToRemove);
+                            //buttonsMasked |= sameFretsHeld;
+                        }
+                    }
+
+                    // If the resulting masked buttons are 0, we need to apply the Open Mask so open notes can be hit
+                    byte buttonMaskCopy = ButtonMask;
+                    if (buttonsMasked == 0)
+                    {
+                        buttonsMasked |= OPEN_MASK;
+                        buttonMaskCopy |= OPEN_MASK;
+                    }
+
+                    if (buttonsMasked != buttonMaskCopy && IsNoteHittable(note, buttonsMasked))
+                    {
+                        return true;
+                    }
                 }
 
-                return false;
+                // If masked/extended sustain logic didn't work, try original ButtonMask
+                return IsNoteHittable(note, buttonsMasked);
             }
-
-            return true;
 
             static bool IsNoteHittable(GuitarNote note, byte buttonsMasked)
             {
