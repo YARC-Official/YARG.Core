@@ -9,6 +9,9 @@ namespace YARG.Core.Chart
     {
         private bool _discoFlip = false;
 
+        private uint _lastLanePhraseTick;
+        private List<int>? _validLaneNotes = null; 
+
         public InstrumentTrack<DrumNote> LoadDrumsTrack(Instrument instrument)
         {
             _discoFlip = false;
@@ -37,7 +40,10 @@ namespace YARG.Core.Chart
         {
             var pad = GetFourLaneDrumPad(moonNote);
             var noteType = GetDrumNoteType(moonNote);
+
             var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
+            generalFlags = ModifyDrumLaneFlags(moonNote, currentPhrases, generalFlags);
+
             var drumFlags = GetDrumNoteFlags(moonNote, currentPhrases);
 
             double time = _moonSong.TickToTime(moonNote.tick);
@@ -48,7 +54,10 @@ namespace YARG.Core.Chart
         {
             var pad = GetFiveLaneDrumPad(moonNote);
             var noteType = GetDrumNoteType(moonNote);
+
             var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
+            generalFlags = ModifyDrumLaneFlags(moonNote, currentPhrases, generalFlags);
+
             var drumFlags = GetDrumNoteFlags(moonNote, currentPhrases);
 
             double time = _moonSong.TickToTime(moonNote.tick);
@@ -296,6 +305,119 @@ namespace YARG.Core.Chart
             }
 
             return flags;
+        }
+
+        private NoteFlags ModifyDrumLaneFlags(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases, NoteFlags flags)
+        {
+            MoonPhrase? lanePhrase = null;
+            bool isTrill = false;
+
+            if ((flags & NoteFlags.Tremolo) != 0)
+            {
+                currentPhrases.TryGetValue(MoonPhrase.Type.TremoloLane, out lanePhrase);
+            }
+            else if ((flags & NoteFlags.Trill) != 0)
+            {
+                currentPhrases.TryGetValue(MoonPhrase.Type.TrillLane, out lanePhrase);
+                isTrill = true;
+            }
+
+            if (lanePhrase == null)
+            {
+                return flags;
+            }
+
+            if (_validLaneNotes == null || lanePhrase.tick != _lastLanePhraseTick)
+            {
+                _lastLanePhraseTick = lanePhrase.tick;
+                _validLaneNotes = GetValidLaneNotes(moonNote, lanePhrase, isTrill);
+            }
+
+            if (!_validLaneNotes.Contains(moonNote.rawNote))
+            {
+                flags &= ~NoteFlags.Tremolo;
+                flags &= ~NoteFlags.Trill;
+                flags &= ~NoteFlags.LaneStart;
+                flags &= ~NoteFlags.LaneEnd;
+            }
+
+            return flags;
+
+            static List<int> GetValidLaneNotes(MoonNote moonNote, MoonPhrase lanePhrase, bool isTrill)
+            {
+                // Iterate forward every note in this phrase to find the notes that appear the most
+                // Assumes that this will only run when the first note in a phrase is provided
+                Dictionary<int,int> noteTotals = new();
+                
+                // Stop searching if the current note value has this much of a lead over the others
+                const int CLINCH_THRESHOLD = 5;
+                int highestTotal = 0;
+                
+                for (var noteRef = moonNote; noteRef != null && IsEventInPhrase(noteRef, lanePhrase); noteRef = noteRef.next)
+                {
+                    if (noteRef.isChord && noteRef.drumPad == MoonNote.DrumPad.Kick)
+                    {
+                        // Kick tremolos are only possible with a winning total on non-chorded kicks, no ties with other notes
+                        continue;
+                    }
+
+                    int thisNote = noteRef.rawNote;
+
+                    int thisTotal;
+                    if (noteTotals.ContainsKey(thisNote))
+                    {
+                        thisTotal = ++noteTotals[thisNote];
+                    }
+                    else
+                    {
+                        thisTotal = noteTotals[thisNote] = 1;
+                    }
+
+                    if (thisTotal <= highestTotal)
+                    {
+                        continue;
+                    }
+
+                    highestTotal = thisTotal;
+
+                    if (thisTotal >= CLINCH_THRESHOLD)
+                    {
+                        bool stopSearching = true;
+                        foreach(var (otherNote, otherTotal) in noteTotals)
+                        {
+                            if (otherNote == thisNote)
+                            {
+                                continue;
+                            }
+
+                            if (thisTotal - otherTotal < CLINCH_THRESHOLD)
+                            {
+                                stopSearching = false;
+                                break;
+                            }
+                        }
+
+                        if (stopSearching)
+                        {
+                            // Safe to say this is the only laned note a tremolo phrase
+                            break;
+                        }
+                    }
+                }
+
+                int validNoteTotal = isTrill ? highestTotal - 2 : highestTotal;
+                List<int> validTremoloNotes = new();
+
+                foreach (var (note, total) in noteTotals)
+                {
+                    if (total >= validNoteTotal)
+                    {
+                        validTremoloNotes.Add(note);
+                    }
+                }
+
+                return validTremoloNotes;
+            }
         }
     }
 }
