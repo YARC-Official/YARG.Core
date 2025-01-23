@@ -86,6 +86,7 @@ namespace YARG.Core.Engine.Guitar
             byte buttons = ButtonMask;
 
             ButtonMask = OPEN_MASK;
+            LastButtonMask = 0;
 
             HasFretted = false;
             HasStrummed = false;

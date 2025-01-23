@@ -230,13 +230,14 @@ namespace YARG.Core.Replays.Analyzer
                         }
                     }
 
-                    // Create engine
-                    return new YargFiveFretEngine(
-                        notes,
-                        _chart.SyncTrack,
-                        (GuitarEngineParameters) parameters,
-                        profile.IsBot,
-                        profile.IsModifierActive(Modifier.GamepadMode));
+                    // Gamepad Mode engine
+                    if (profile.IsModifierActive(Modifier.GamepadMode))
+                    {
+                        return new GamepadFiveFretEngine(notes, _chart.SyncTrack, (GuitarEngineParameters) parameters, profile.IsBot);
+                    }
+
+                    // Normal engine
+                    return new YargFiveFretEngine(notes, _chart.SyncTrack, (GuitarEngineParameters) parameters, profile.IsBot);
                 }
                 case GameMode.FourLaneDrums:
                 case GameMode.FiveLaneDrums:

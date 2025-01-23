@@ -1,13 +1,20 @@
-using System;
+﻿using System;
 using YARG.Core.Chart;
 using YARG.Core.Input;
 using YARG.Core.Logging;
 
 namespace YARG.Core.Engine.Guitar.Engines
 {
-    public class YargFiveFretEngine : GuitarEngine
+    public class GamepadFiveFretEngine : GuitarEngine
     {
-        public YargFiveFretEngine(InstrumentDifficulty<GuitarNote> chart, SyncTrack syncTrack,
+        /// <summary>
+        /// For gamepad mode, the amount of time you have between hitting one fret of a chord and the other(s).
+        /// Hitting a chord ends it, and if it expires you overstrum.
+        /// StrumLeniencyTimer is used for this first, and *then* ChordLeniencyTimer. It makes sense, trust me.
+        /// </summary>
+        private EngineTimer _chordLeniencyTimer;
+
+        public GamepadFiveFretEngine(InstrumentDifficulty<GuitarNote> chart, SyncTrack syncTrack,
             GuitarEngineParameters engineParameters, bool isBot)
             : base(chart, syncTrack, engineParameters, isBot)
         {
@@ -32,7 +39,6 @@ namespace YARG.Core.Engine.Guitar.Engines
 
             YargLogger.LogFormatTrace("[Bot] Set button mask to: {0}", ButtonMask);
 
-            HasTapped = ButtonMask != LastButtonMask;
             IsFretPress = true;
             HasStrummed = false;
             StrumLeniencyTimer.Start(time);
@@ -75,10 +81,6 @@ namespace YARG.Core.Engine.Guitar.Engines
                 LastWhammyTimerState = StarPowerWhammyTimer.IsActive;
                 StarPowerWhammyTimer.Start(gameInput.Time);
             }
-            else if (action is GuitarAction.StrumDown or GuitarAction.StrumUp && gameInput.Button)
-            {
-                HasStrummed = true;
-            }
             else if (IsFretInput(gameInput))
             {
                 LastButtonMask = ButtonMask;
@@ -106,46 +108,6 @@ namespace YARG.Core.Engine.Guitar.Engines
         protected override void UpdateHitLogic(double time)
         {
             UpdateTimers();
-
-            bool strumEatenByHopo = false;
-
-            // This is up here so overstrumming still works when there are no notes left
-            if (HasStrummed)
-            {
-                // Hopo was hit recently, eat strum input
-                if (HopoLeniencyTimer.IsActive)
-                {
-                    StrumLeniencyTimer.Disable();
-
-                    // Disable hopo leniency as hopos can only eat one strum
-                    HopoLeniencyTimer.Disable();
-
-                    strumEatenByHopo = true;
-                    ReRunHitLogic = true;
-                }
-                else
-                {
-                    // Strummed while strum leniency is active (double strum)
-                    if (StrumLeniencyTimer.IsActive)
-                    {
-                        Overstrum();
-                    }
-                }
-
-                if (!strumEatenByHopo)
-                {
-                    double offset = 0;
-
-                    if (NoteIndex >= Notes.Count || !IsNoteInWindow(Notes[NoteIndex]))
-                    {
-                        offset = EngineParameters.StrumLeniencySmall;
-                    }
-
-                    StartTimer(ref StrumLeniencyTimer, CurrentTime, offset);
-
-                    ReRunHitLogic = true;
-                }
-            }
 
             // Update bot (will return if not enabled)
             UpdateBot(time);
@@ -175,9 +137,6 @@ namespace YARG.Core.Engine.Guitar.Engines
                 // Check for fret ghosting
                 // We want to run ghost logic regardless of the setting for the ghost counter
                 bool ghosted = CheckForGhostInput(note);
-
-                // This variable controls hit logic for ghosting
-                WasNoteGhosted = EngineParameters.AntiGhosting && (ghosted || WasNoteGhosted);
 
                 // Add ghost inputs to stats regardless of the setting for anti ghosting
                 if (ghosted)
@@ -223,15 +182,9 @@ namespace YARG.Core.Engine.Guitar.Engines
                 {
                     YargLogger.LogFormatTrace("Cant hit note (Index: {0}, Mask {1}) at {2}. Buttons: {3}", i,
                         note.NoteMask, CurrentTime, ButtonMask);
-                    // This does nothing special, it's just logging strum leniency
-                    if (isFirstNoteInWindow && HasStrummed && StrumLeniencyTimer.IsActive)
-                    {
-                        YargLogger.LogFormatTrace("Starting strum leniency at {0}, will end at {1}", CurrentTime,
-                            StrumLeniencyTimer.EndTime);
-                    }
 
-                    // Note skipping not allowed on the first note if hopo/tap
-                    if ((note.IsHopo || note.IsTap) && NoteIndex == 0)
+                    // Note skipping not allowed on the first note
+                    if (NoteIndex == 0)
                     {
                         break;
                     }
@@ -240,44 +193,26 @@ namespace YARG.Core.Engine.Guitar.Engines
                     continue;
                 }
 
-                // Handles hitting a hopo notes
-                // If first note is a hopo then it can be hit without combo (for practice mode)
-                bool hopoCondition = note.IsHopo && isFirstNoteInWindow &&
-                    (EngineStats.Combo > 0 || NoteIndex == 0);
-
-                // If a note is a tap then it can be hit only if it is the closest note, unless
-                // the combo is 0 then it can be hit regardless of the distance (note skipping)
-                bool tapCondition = note.IsTap && (isFirstNoteInWindow || EngineStats.Combo == 0);
+                bool noteWindowCondition = isFirstNoteInWindow || EngineStats.Combo == 0;
 
                 bool frontEndIsExpired = note.Time > FrontEndExpireTime;
                 bool canUseInfFrontEnd =
                     EngineParameters.InfiniteFrontEnd || !frontEndIsExpired || NoteIndex == 0;
 
-                // Attempt to hit with hopo/tap rules
-                if (HasTapped && (hopoCondition || tapCondition) && canUseInfFrontEnd && !WasNoteGhosted)
+                if (HasTapped && noteWindowCondition && (note.IsHopo || note.IsTap) && canUseInfFrontEnd)
                 {
-                    HitNote(note);
                     YargLogger.LogFormatTrace("Hit note (Index: {0}, Mask: {1}) at {2} with hopo rules",
                         i, note.NoteMask, CurrentTime);
+                    HitNote(note);
                     break;
                 }
 
-                // If hopo/tap checks failed then the note can be hit if it was strummed
-                if ((HasStrummed || StrumLeniencyTimer.IsActive) &&
-                    (isFirstNoteInWindow || (NoteIndex > 0 && EngineStats.Combo == 0)))
+                // Attempt to hit the note
+                if (HasFretted && noteWindowCondition)
                 {
                     HitNote(note);
-                    if (HasStrummed)
-                    {
-                        YargLogger.LogFormatTrace("Hit note (Index: {0}, Mask: {1}) at {2} with strum input",
-                            i, note.NoteMask, CurrentTime);
-                    }
-                    else
-                    {
-                        YargLogger.LogFormatTrace("Hit note (Index: {0}, Mask: {1}) at {2} with strum leniency",
-                            i, note.NoteMask, CurrentTime);
-                    }
-
+                    YargLogger.LogFormatTrace("Hit note (Index: {0}, Mask: {1}) at {2} with strum rules",
+                        i, note.NoteMask, CurrentTime);
                     break;
                 }
             }
@@ -285,7 +220,16 @@ namespace YARG.Core.Engine.Guitar.Engines
 
         protected override bool CanNoteBeHit(GuitarNote note)
         {
-            byte buttonsMasked = ButtonMask;
+            // In gamepad mode, on a release, we use LastButtonMask instead of ButtonMask.
+            // This is because, if you're *releasing*, then the fret that the note you want to hit is on *isn't actually being held*, because, well, you released it.
+            // But you should still be able to hit it -- that's the whole point.
+            bool usingLifts = !IsFretPress;
+
+            byte originalButtonMask = !usingLifts ? ButtonMask : LastButtonMask;
+
+            byte buttonsMasked = originalButtonMask;
+
+            CAN_HIT:
             if (ActiveSustains.Count > 0)
             {
                 foreach (var sustain in ActiveSustains)
@@ -309,23 +253,55 @@ namespace YARG.Core.Engine.Guitar.Engines
                 }
 
                 // If the resulting masked buttons are 0, we need to apply the Open Mask so open notes can be hit
-                // Need to make a copy of the button mask to prevent modifying the original
-                byte buttonMaskCopy = ButtonMask;
                 if (buttonsMasked == 0)
                 {
                     buttonsMasked |= OPEN_MASK;
-                    buttonMaskCopy |= OPEN_MASK;
-                }
-
-                // We dont want to use masked buttons for hit logic if the buttons are identical
-                if (buttonsMasked != buttonMaskCopy && IsNoteHittable(note, buttonsMasked))
-                {
-                    return true;
                 }
             }
 
+            // Gamepad Mode open note handling
+            if ((note.NoteMask & OPEN_MASK) != 0)
+            {
+                var maskWithoutOpen = note.NoteMask & ~OPEN_MASK;
+
+                // Normal open note (allow hitting by pressing any fret)
+                // TODO maybe change this to an open button input
+                if (maskWithoutOpen == 0)
+                {
+                    originalButtonMask = (byte) note.NoteMask;
+                }
+                // Open chord (only allows hitting by pressing the exact frets needed)
+                else if (maskWithoutOpen == originalButtonMask || maskWithoutOpen == buttonsMasked)
+                {
+                    originalButtonMask = (byte) note.NoteMask;
+                    buttonsMasked = originalButtonMask;
+                }
+            }
+
+            // We dont want to use masked buttons for hit logic if the buttons are identical
+            if (ActiveSustains.Count > 0 &&
+                buttonsMasked != (buttonsMasked == OPEN_MASK ? originalButtonMask | OPEN_MASK : originalButtonMask) &&
+                IsNoteHittable(note, buttonsMasked))
+            {
+                return true;
+            }
+
             // If masked/extended sustain logic didn't work, try original ButtonMask
-            return IsNoteHittable(note, ButtonMask);
+            if (!IsNoteHittable(note, originalButtonMask))
+            {
+                if (usingLifts)
+                {
+                    usingLifts = false;
+                    buttonsMasked = ButtonMask;
+
+                    // temporary
+                    goto CAN_HIT;
+                }
+
+                return false;
+            }
+
+            return true;
 
             static bool IsNoteHittable(GuitarNote note, byte buttonsMasked)
             {
@@ -421,7 +397,6 @@ namespace YARG.Core.Engine.Guitar.Engines
             if (note.IsHopo || note.IsTap)
             {
                 HasTapped = false;
-                StartTimer(ref HopoLeniencyTimer, CurrentTime);
             }
             else
             {
@@ -431,8 +406,6 @@ namespace YARG.Core.Engine.Guitar.Engines
                 // Does the same thing but ensures it still works when infinite front end is disabled
                 EngineTimer.Reset(ref FrontEndExpireTime);
             }
-
-            StrumLeniencyTimer.Disable();
 
             for(int i = 0; i < ActiveSustains.Count; i++)
             {
@@ -456,25 +429,7 @@ namespace YARG.Core.Engine.Guitar.Engines
 
         protected void UpdateTimers()
         {
-            if (HopoLeniencyTimer.IsActive && HopoLeniencyTimer.IsExpired(CurrentTime))
-            {
-                HopoLeniencyTimer.Disable();
 
-                ReRunHitLogic = true;
-            }
-
-            if (StrumLeniencyTimer.IsActive)
-            {
-                //YargTrace.LogInfo("Strum Leniency: Enabled");
-                if (StrumLeniencyTimer.IsExpired(CurrentTime))
-                {
-                    //YargTrace.LogInfo("Strum Leniency: Expired. Overstrumming");
-                    Overstrum();
-                    StrumLeniencyTimer.Disable();
-
-                    ReRunHitLogic = true;
-                }
-            }
         }
 
         protected bool CheckForGhostInput(GuitarNote note)
