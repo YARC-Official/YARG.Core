@@ -10,7 +10,6 @@ namespace YARG.Core.Engine.Guitar.Engines
         /// <summary>
         /// For gamepad mode, the amount of time you have between hitting one fret of a chord and the other(s).
         /// Hitting a chord ends it, and if it expires you overstrum.
-        /// StrumLeniencyTimer is used for this first, and *then* ChordLeniencyTimer. It makes sense, trust me.
         /// </summary>
         private EngineTimer _chordLeniencyTimer;
 
@@ -18,6 +17,21 @@ namespace YARG.Core.Engine.Guitar.Engines
             GuitarEngineParameters engineParameters, bool isBot)
             : base(chart, syncTrack, engineParameters, isBot)
         {
+            _chordLeniencyTimer = new EngineTimer(EngineParameters.GamepadModeChordLeniency);
+        }
+
+        protected override void GenerateQueuedUpdates(double nextTime)
+        {
+            base.GenerateQueuedUpdates(nextTime);
+
+            if (_chordLeniencyTimer.IsActive)
+            {
+                if (IsTimeBetween(_chordLeniencyTimer.EndTime, CurrentTime, nextTime))
+                {
+                    YargLogger.LogFormatTrace("Queuing gamepad chord leniency end time at {0}", _chordLeniencyTimer.EndTime);
+                    QueueUpdateTime(_chordLeniencyTimer.EndTime, "Gamepad Chord Leniency End");
+                }
+            }
         }
 
         protected override void UpdateBot(double time)
@@ -129,6 +143,29 @@ namespace YARG.Core.Engine.Guitar.Engines
 
             if (HasFretted)
             {
+                if (IsFretPress)
+                {
+                    // Get button difference
+                    var buttonDifference = ButtonMask ^ LastButtonMask;
+
+                    // Check if button difference is part of note mask
+
+                    // Not part of note mask
+                    if ((buttonDifference & note.NoteMask) == 0)
+                    {
+                        YargLogger.LogFormatDebug("Overstrumming due to wrong fret for note (button: {0}, note mask: {1})", buttonDifference, note.NoteMask);
+                        _chordLeniencyTimer.Disable();
+                        Overstrum();
+                    }
+                    else
+                    {
+                        if (!_chordLeniencyTimer.IsActive)
+                        {
+                            _chordLeniencyTimer.Start(CurrentTime);
+                        }
+                    }
+                }
+
                 HasTapped = true;
 
                 // This is the time the front end will expire. Used for hit logic with infinite front end
@@ -362,6 +399,8 @@ namespace YARG.Core.Engine.Guitar.Engines
 
         protected override void HitNote(GuitarNote note)
         {
+            _chordLeniencyTimer.Disable();
+
             if (note.IsHopo || note.IsTap)
             {
                 HasTapped = false;
@@ -397,7 +436,12 @@ namespace YARG.Core.Engine.Guitar.Engines
 
         protected void UpdateTimers()
         {
-
+            if (_chordLeniencyTimer.IsActive && _chordLeniencyTimer.IsExpired(CurrentTime))
+            {
+                Overstrum();
+                _chordLeniencyTimer.Disable();
+                YargLogger.LogFormatDebug("Overstrummed due to chord leniency timer expiring at {0}", CurrentTime);
+            }
         }
 
         protected bool CheckForGhostInput(GuitarNote note)
