@@ -9,6 +9,7 @@ namespace YARG.Core.Engine.ProKeys
         ProKeysStats>
     {
         protected const double DEFAULT_PRESS_TIME = -9999;
+        protected const int POINTS_PER_PRO_KEYS_NOTE = 120;
 
         public delegate void KeyStateChangeEvent(int key, bool isPressed);
         public delegate void OverhitEvent(int key);
@@ -301,8 +302,8 @@ namespace YARG.Core.Engine.ProKeys
 
         protected override void AddScore(ProKeysNote note)
         {
-            AddScore(POINTS_PER_PRO_NOTE);
-            EngineStats.NoteScore += POINTS_PER_NOTE;
+            AddScore(POINTS_PER_PRO_KEYS_NOTE);
+            EngineStats.NoteScore += POINTS_PER_PRO_KEYS_NOTE;
         }
 
         protected sealed override int CalculateBaseScore()
@@ -310,7 +311,7 @@ namespace YARG.Core.Engine.ProKeys
             int score = 0;
             foreach (var note in Notes)
             {
-                score += POINTS_PER_PRO_NOTE * (1 + note.ChildNotes.Count);
+                score += POINTS_PER_PRO_KEYS_NOTE * (1 + note.ChildNotes.Count);
 
                 foreach (var child in note.AllNotes)
                 {
