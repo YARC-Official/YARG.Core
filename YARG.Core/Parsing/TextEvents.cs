@@ -89,7 +89,6 @@ namespace YARG.Core.Parsing
         /// <returns>
         /// True if the event was parsed successfully, false otherwise.
         /// </returns>
-        // Equivalent to reading the capture of this regex: (?:section|prc)[ _](.*)
         public static bool TryParseSectionEvent(ReadOnlySpan<char> text, out ReadOnlySpan<char> name)
         {
             name = ReadOnlySpan<char>.Empty;
@@ -97,17 +96,14 @@ namespace YARG.Core.Parsing
             const string SECTION_PREFIX = "section";
             const string PRC_PREFIX = "prc";
 
-            // Remove event prefix
-            if (text.StartsWith(SECTION_PREFIX))
-                text = text[SECTION_PREFIX.Length..];
-            else if (text.StartsWith(PRC_PREFIX))
-                text = text[PRC_PREFIX.Length..];
+            // Check event prefix
+            if (text.StartsWith(SECTION_PREFIX) || text.StartsWith(PRC_PREFIX))
+            {
+                name = text;
+                return true;
+            }
             else
                 return false;
-
-            // Isolate section name
-            name = text.TrimStart('_').Trim();
-            return !name.IsEmpty;
         }
 
         /// <summary>
