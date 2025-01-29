@@ -13,6 +13,9 @@ namespace YARG.Core.Engine.Guitar.Engines
         /// </summary>
         private EngineTimer _chordLeniencyTimer;
 
+        private double _liftedNotePressExpireTime;
+        private GuitarNote? _liftedNotePressLeniencyNote;
+
         public GamepadFiveFretEngine(InstrumentDifficulty<GuitarNote> chart, SyncTrack syncTrack,
             GuitarEngineParameters engineParameters, bool isBot)
             : base(chart, syncTrack, engineParameters, isBot)
@@ -32,6 +35,14 @@ namespace YARG.Core.Engine.Guitar.Engines
                     QueueUpdateTime(_chordLeniencyTimer.EndTime, "Gamepad Chord Leniency End");
                 }
             }
+        }
+
+        public override void Reset(bool keepCurrentButtons = false)
+        {
+            base.Reset(keepCurrentButtons);
+
+            _liftedNotePressExpireTime = -9999;
+            _liftedNotePressLeniencyNote = null;
         }
 
         protected override void UpdateBot(double time)
@@ -153,9 +164,22 @@ namespace YARG.Core.Engine.Guitar.Engines
                     // Not part of note mask
                     if ((buttonDifference & note.NoteMask) == 0)
                     {
-                        YargLogger.LogFormatDebug("Overstrumming due to wrong fret for note (button: {0}, note mask: {1})", buttonDifference, note.NoteMask);
+                        var liftExpired = CurrentTime >= _liftedNotePressExpireTime;
+                        var isLiftPressNote = note == _liftedNotePressLeniencyNote?.NextNote;
+                        var canNoteBeHit = _liftedNotePressLeniencyNote is not null && CanNoteBeHit(_liftedNotePressLeniencyNote);
+
+                        if (liftExpired || !isLiftPressNote || !canNoteBeHit)
+                        {
+                            YargLogger.LogFormatDebug("Overstrumming. Lift Expired: {0} ({1} >= {2}). IsLiftPressNote: {3}. CanNoteBeHit: {4}",
+                                liftExpired, CurrentTime, _liftedNotePressExpireTime, isLiftPressNote, canNoteBeHit);
+                            Overstrum();
+                        }
+                        else
+                        {
+                            YargLogger.LogFormatDebug("Cancelled overstrum due to lift press note at {0}", CurrentTime);
+                        }
+
                         _chordLeniencyTimer.Disable();
-                        Overstrum();
                     }
                     else
                     {
@@ -258,9 +282,28 @@ namespace YARG.Core.Engine.Guitar.Engines
 
         protected override bool CanNoteBeHit(GuitarNote note)
         {
-            if (HasFretted && !IsFretPress && TryWithMask(LastButtonMask))
+            int previousNoteMask = note.PreviousNote?.NoteMask ?? note.NoteMask;
+
+            bool containsSameFret = (note.NoteMask & previousNoteMask) != 0;
+            bool equalFrets = note.NoteMask == previousNoteMask;
+
+            if (HasFretted && !IsFretPress)
             {
-                return true;
+                if (note.IsStrum && equalFrets && TryWithMask(LastButtonMask))
+                {
+                    return true;
+                }
+
+                if(note.IsHopo || note.IsTap && containsSameFret && TryWithMask(LastButtonMask))
+                {
+                    return true;
+                }
+            }
+
+            // Cant "lift hit" (hit by lifting even though it uses current mask) if note is a strum and frets aren't identical
+            if (!IsFretPress && note.IsStrum && !equalFrets)
+            {
+                return false;
             }
 
             return TryWithMask(ButtonMask);
@@ -412,6 +455,19 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                 // Does the same thing but ensures it still works when infinite front end is disabled
                 EngineTimer.Reset(ref FrontEndExpireTime);
+            }
+
+            if (HasFretted && !IsFretPress)
+            {
+                _liftedNotePressLeniencyNote = note;
+
+                var backend = EngineParameters.HitWindow.GetBackEnd(
+                    EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note)));
+
+                _liftedNotePressExpireTime = note.Time + backend;
+
+                YargLogger.LogFormatDebug("Hit note via lifting at {0}, Next press note: {1}, press leniency expire time {2}",
+                    CurrentTime, _liftedNotePressLeniencyNote.NoteMask, _liftedNotePressExpireTime);
             }
 
             for(int i = 0; i < ActiveSustains.Count; i++)
