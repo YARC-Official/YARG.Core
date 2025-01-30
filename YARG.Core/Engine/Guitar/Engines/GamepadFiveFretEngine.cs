@@ -266,6 +266,38 @@ namespace YARG.Core.Engine.Guitar.Engines
                     YargLogger.LogFormatTrace("Hit note (Index: {0}, Mask: {1}) at {2} with hopo rules",
                         i, note.NoteMask, CurrentTime);
                     HitNote(note);
+
+                    var hiNote = note.NextNote;
+                    if (!IsFretPress && hiNote is not null)
+                    {
+                        var secAnchor = hiNote.NextNote;
+                        if(secAnchor is not null &&
+                            (hiNote.IsHopo || hiNote.IsTap) &&
+                            (secAnchor.IsHopo || secAnchor.IsTap))
+                        {
+                            int iters = 0;
+                            var curNote = hiNote;
+                            while (curNote is not null && curNote != secAnchor.NextNote)
+                            {
+                                if (IsNoteInWindow(curNote) && CanNoteBeHit(curNote))
+                                {
+                                    HitNote(curNote);
+                                    curNote = curNote.NextNote;
+                                }
+                                else
+                                {
+                                    break;
+                                }
+
+                                iters++;
+
+                                if (iters > 4)
+                                {
+                                    break;
+                                }
+                            }
+                        }
+                    }
                     break;
                 }
 
@@ -308,6 +340,16 @@ namespace YARG.Core.Engine.Guitar.Engines
                 else if(containsSameFret && TryWithMask(LastButtonMask))
                 {
                     return true;
+                }
+                // lol
+                else if (note.PreviousNote is not null && (note.PreviousNote.IsHopo || note.PreviousNote.IsTap) &&
+                    note.PreviousNote.PreviousNote is not null &&
+                    (note.PreviousNote.PreviousNote.IsHopo || note.PreviousNote.PreviousNote.IsTap))
+                {
+                    if (TryWithMask(LastButtonMask))
+                    {
+                        return true;
+                    }
                 }
             }
 
