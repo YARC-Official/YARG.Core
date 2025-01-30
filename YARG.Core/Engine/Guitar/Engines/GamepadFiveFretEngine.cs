@@ -289,21 +289,26 @@ namespace YARG.Core.Engine.Guitar.Engines
 
             if (HasFretted && !IsFretPress)
             {
-                if (note.IsStrum && equalFrets && TryWithMask(LastButtonMask))
+                // Strum lifting
+                if (note.IsStrum)
+                {
+                    if (!equalFrets)
+                    {
+                        // Cant "lift hit" (hit by lifting even though it uses current mask) if note is a strum and frets aren't identical
+                        return false;
+                    }
+
+                    // Frets are equal, try the last mask as lifting uses the previous mask
+                    if (TryWithMask(LastButtonMask))
+                    {
+                        return true;
+                    }
+                }
+                // Hopos or Tap lifting
+                else if(containsSameFret && TryWithMask(LastButtonMask))
                 {
                     return true;
                 }
-
-                if(note.IsHopo || note.IsTap && containsSameFret && TryWithMask(LastButtonMask))
-                {
-                    return true;
-                }
-            }
-
-            // Cant "lift hit" (hit by lifting even though it uses current mask) if note is a strum and frets aren't identical
-            if (!IsFretPress && note.IsStrum && !equalFrets)
-            {
-                return false;
             }
 
             return TryWithMask(ButtonMask);
