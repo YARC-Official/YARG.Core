@@ -16,6 +16,8 @@ namespace YARG.Core.Engine.Guitar.Engines
         private double _liftedNotePressExpireTime;
         private GuitarNote? _liftedNotePressLeniencyNote;
 
+        private byte LastHopoTapPressButtonMask;
+
         public GamepadFiveFretEngine(InstrumentDifficulty<GuitarNote> chart, SyncTrack syncTrack,
             GuitarEngineParameters engineParameters, bool isBot)
             : base(chart, syncTrack, engineParameters, isBot)
@@ -176,7 +178,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                         }
                         else
                         {
-                            YargLogger.LogFormatDebug("Cancelled overstrum due to lift press note at {0}", CurrentTime);
+                            YargLogger.LogFormatTrace("Cancelled overstrum due to lift press note at {0}", CurrentTime);
                         }
 
                         _chordLeniencyTimer.Disable();
@@ -270,33 +272,44 @@ namespace YARG.Core.Engine.Guitar.Engines
                     var hiNote = note.NextNote;
                     if (!IsFretPress && hiNote is not null)
                     {
-                        var secAnchor = hiNote.NextNote;
-                        if(secAnchor is not null &&
-                            (hiNote.IsHopo || hiNote.IsTap) &&
-                            (secAnchor.IsHopo || secAnchor.IsTap))
+                        if (IsNoteInWindow(hiNote) && CanNoteBeHit(hiNote))
                         {
-                            int iters = 0;
-                            var curNote = hiNote;
-                            while (curNote is not null && curNote != secAnchor.NextNote)
-                            {
-                                if (IsNoteInWindow(curNote) && CanNoteBeHit(curNote))
-                                {
-                                    HitNote(curNote);
-                                    curNote = curNote.NextNote;
-                                }
-                                else
-                                {
-                                    break;
-                                }
+                            HitNote(hiNote);
 
-                                iters++;
+                            // This line allows for hopos/taps to be hit using infinite front end after strumming
+                            HasTapped = true;
 
-                                if (iters > 4)
-                                {
-                                    break;
-                                }
-                            }
+                            // Does the same thing but ensures it still works when infinite front end is disabled
+                            EngineTimer.Reset(ref FrontEndExpireTime);
                         }
+
+                        // var secAnchor = hiNote.NextNote;
+                        // if(secAnchor is not null &&
+                        //     (hiNote.IsHopo || hiNote.IsTap) &&
+                        //     (secAnchor.IsHopo || secAnchor.IsTap))
+                        // {
+                        //     int iters = 0;
+                        //     var curNote = hiNote;
+                        //     while (curNote is not null && curNote != secAnchor.NextNote)
+                        //     {
+                        //         if (IsNoteInWindow(curNote) && CanNoteBeHit(curNote))
+                        //         {
+                        //             HitNote(curNote);
+                        //             curNote = curNote.NextNote;
+                        //         }
+                        //         else
+                        //         {
+                        //             break;
+                        //         }
+                        //
+                        //         iters++;
+                        //
+                        //         if (iters > 4)
+                        //         {
+                        //             break;
+                        //         }
+                        //     }
+                        // }
                     }
                     break;
                 }
@@ -319,6 +332,10 @@ namespace YARG.Core.Engine.Guitar.Engines
             bool containsSameFret = (note.NoteMask & previousNoteMask) != 0;
             bool equalFrets = note.NoteMask == previousNoteMask;
 
+            bool previousAnchorNoteHopoTap = note.PreviousNote is not null && (note.PreviousNote.IsHopo || note.PreviousNote.IsTap);
+            bool previousHiNoteHopoTap = note.PreviousNote?.PreviousNote is not null &&
+                (note.PreviousNote.PreviousNote.IsHopo || note.PreviousNote.PreviousNote.IsTap);
+
             if (HasFretted && !IsFretPress)
             {
                 // Strum lifting
@@ -337,20 +354,28 @@ namespace YARG.Core.Engine.Guitar.Engines
                     }
                 }
                 // Hopos or Tap lifting
-                else if(containsSameFret && TryWithMask(LastButtonMask))
+                else if(containsSameFret && TryWithMask(LastHopoTapPressButtonMask))
                 {
                     return true;
                 }
-                // lol
-                else if (note.PreviousNote is not null && (note.PreviousNote.IsHopo || note.PreviousNote.IsTap) &&
-                    note.PreviousNote.PreviousNote is not null &&
-                    (note.PreviousNote.PreviousNote.IsHopo || note.PreviousNote.PreviousNote.IsTap))
+                // Trill lifting
+                else if (previousAnchorNoteHopoTap && previousHiNoteHopoTap)
                 {
-                    if (TryWithMask(LastButtonMask))
+                    if (TryWithMask(LastHopoTapPressButtonMask))
                     {
                         return true;
                     }
                 }
+                // lol
+                // else if (note.PreviousNote is not null && (note.PreviousNote.IsHopo || note.PreviousNote.IsTap) &&
+                //     note.PreviousNote.PreviousNote is not null &&
+                //     (note.PreviousNote.PreviousNote.IsHopo || note.PreviousNote.PreviousNote.IsTap))
+                // {
+                //     if (TryWithMask(LastButtonMask))
+                //     {
+                //         return true;
+                //     }
+                // }
             }
 
             return TryWithMask(ButtonMask);
@@ -494,6 +519,11 @@ namespace YARG.Core.Engine.Guitar.Engines
             if (note.IsHopo || note.IsTap)
             {
                 HasTapped = false;
+
+                if (IsFretPress)
+                {
+                    LastHopoTapPressButtonMask = ButtonMask;
+                }
             }
             else
             {
@@ -513,8 +543,8 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                 _liftedNotePressExpireTime = note.Time + backend;
 
-                YargLogger.LogFormatDebug("Hit note via lifting at {0}, Next press note: {1}, press leniency expire time {2}",
-                    CurrentTime, _liftedNotePressLeniencyNote.NoteMask, _liftedNotePressExpireTime);
+                YargLogger.LogFormatTrace("Hit note {0} via lifting at {1}, Next press note: {2}, press leniency expire time {3}",
+                    note.NoteMask, CurrentTime, _liftedNotePressLeniencyNote.NoteMask, _liftedNotePressExpireTime);
             }
 
             for(int i = 0; i < ActiveSustains.Count; i++)
