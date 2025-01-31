@@ -25,6 +25,7 @@ namespace YARG.Core.Game
         public bool LeftyFlip;
 
         public bool AutoConnect;
+        public int? AutoConnectOrder;
 
         public long InputCalibrationMilliseconds;
         public double InputCalibrationSeconds
