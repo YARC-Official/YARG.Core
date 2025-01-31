@@ -332,25 +332,19 @@ namespace YARG.Core.Engine.ProKeys.Engines
                 return;
             }
 
-            // Disables keys that are not in the current note
-            int key = 0;
-            for (var mask = KeyMask; mask > 0; mask >>= 1)
-            {
-                if ((mask & 1) == 1)
-                {
-                    MutateStateWithInput(new GameInput(note.Time, key, false));
-                }
-
-                key++;
-            }
-
-
             // Press keys for current note
             foreach (var chordNote in note.AllNotes)
             {
                 MutateStateWithInput(new GameInput(note.Time, chordNote.Key, true));
                 CheckForNoteHit();
+                // Activate Star Power if it's available
+                if (EngineStats.CanStarPowerActivate)
+                {
+                    MutateStateWithInput(new GameInput(time, ProKeysAction.StarPower, true));
+                    ActivateStarPower();
+                }
             }
         }
+
     }
 }
