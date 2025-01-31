@@ -353,13 +353,57 @@ namespace YARG.Core.Engine
                         StarPowerWhammyTimer.EndTime);
                     QueueUpdateTime(StarPowerWhammyTimer.EndTime, "Star Power Whammy End");
                 }
+
+                if (BaseStats.IsStarPowerActive)
+                {
+                    double maxTime = Math.Min(StarPowerWhammyTimer.EndTime, nextTime);
+                    uint maxSpTick = GetStarPowerDrainTimeToTicks(maxTime, CurrentSyncTrackState);
+
+                    uint lastChartTick = SyncTrack.TimeToTick(previousTime);
+                    uint lastSpTick = StarPowerTickPosition;
+
+                    int spTickAmount = (int) BaseStats.StarPowerTickAmount;
+
+                    var syncIndex = CurrentSyncIndex;
+                    var currentSync = SyncTrackChanges[syncIndex];
+                    for(uint spTick = StarPowerTickPosition + 1; spTick <= maxSpTick; spTick++)
+                    {
+                        var time = GetStarPowerDrainTickToTime(spTick, CurrentSyncTrackState);
+
+                        if (time > currentSync.Time)
+                        {
+                            syncIndex++;
+                            currentSync = SyncTrackChanges[syncIndex];
+                        }
+
+                        uint chartTick = SyncTrack.TimeToTick(time, currentSync.Tempo);
+
+                        uint whammyGain = chartTick - lastChartTick;
+                        uint spDrain = spTick - lastSpTick;
+
+                        spTickAmount += (int) whammyGain;
+                        spTickAmount -= (int) spDrain;
+
+                        if (spTickAmount <= 0)
+                        {
+                            // Do we modify the engine state or just queue an update?
+                            // Below it will check the end time anyway and queue an update
+                            YargLogger.LogFormatDebug("Simulated SP gain/drain and found an end time at {0}", time);
+                            StarPowerEndTime = time;
+                            break;
+                        }
+
+                        lastChartTick = chartTick;
+                        lastSpTick = spTick;
+                    }
+                }
             }
 
             if (BaseStats.IsStarPowerActive)
             {
                 if (IsTimeBetween(StarPowerEndTime, previousTime, nextTime))
                 {
-                    YargLogger.LogFormatTrace("Queuing Star Power End Time at {0}", StarPowerEndTime);
+                    YargLogger.LogFormatDebug("Queuing Star Power End Time at {0}", StarPowerEndTime);
                     QueueUpdateTime(StarPowerEndTime, "SP End Time");
                 }
             }
