@@ -362,30 +362,141 @@ namespace YARG.Core.Song
 
             return instrument switch
             {
-                Instrument.FiveFretGuitar => ChartPreparser.Traverse(ref container, difficulty, ref parts.FiveFretGuitar, &ChartPreparser.ValidateFiveFret),
-                Instrument.FiveFretBass => ChartPreparser.Traverse(ref container, difficulty, ref parts.FiveFretBass, &ChartPreparser.ValidateFiveFret),
-                Instrument.FiveFretRhythm => ChartPreparser.Traverse(ref container, difficulty, ref parts.FiveFretRhythm, &ChartPreparser.ValidateFiveFret),
-                Instrument.FiveFretCoopGuitar => ChartPreparser.Traverse(ref container, difficulty, ref parts.FiveFretCoopGuitar, &ChartPreparser.ValidateFiveFret),
-                Instrument.SixFretGuitar => ChartPreparser.Traverse(ref container, difficulty, ref parts.SixFretGuitar, &ChartPreparser.ValidateSixFret),
-                Instrument.SixFretBass => ChartPreparser.Traverse(ref container, difficulty, ref parts.SixFretBass, &ChartPreparser.ValidateSixFret),
-                Instrument.SixFretRhythm => ChartPreparser.Traverse(ref container, difficulty, ref parts.SixFretRhythm, &ChartPreparser.ValidateSixFret),
-                Instrument.SixFretCoopGuitar => ChartPreparser.Traverse(ref container, difficulty, ref parts.SixFretCoopGuitar, &ChartPreparser.ValidateSixFret),
-                Instrument.Keys => ChartPreparser.Traverse(ref container, difficulty, ref parts.Keys, &ChartPreparser.ValidateFiveFret),
-                Instrument.FourLaneDrums => drums.ParseChart(ref container, difficulty),
+                Instrument.FiveFretGuitar     => ScanFiveFret(ref parts.FiveFretGuitar,               ref container, difficulty),
+                Instrument.FiveFretBass       => ScanFiveFret(ref parts.FiveFretBass,                 ref container, difficulty),
+                Instrument.FiveFretRhythm     => ScanFiveFret(ref parts.FiveFretRhythm,               ref container, difficulty),
+                Instrument.FiveFretCoopGuitar => ScanFiveFret(ref parts.FiveFretCoopGuitar,           ref container, difficulty),
+                Instrument.Keys               => ScanFiveFret(ref parts.Keys,                         ref container, difficulty),
+                Instrument.SixFretGuitar      => ScanSixFret (ref parts.SixFretGuitar,                ref container, difficulty),
+                Instrument.SixFretBass        => ScanSixFret (ref parts.SixFretBass,                  ref container, difficulty),
+                Instrument.SixFretRhythm      => ScanSixFret (ref parts.SixFretRhythm,                ref container, difficulty),
+                Instrument.SixFretCoopGuitar  => ScanSixFret (ref parts.SixFretCoopGuitar,            ref container, difficulty),
+                Instrument.FourLaneDrums      => ScanDrums   (ref parts.FourLaneDrums, ref drumsType, ref container, difficulty),
                 _ => false,
             };
         }
 
-        private static DrumsType GetDrumTypeFromModifier(IniSection modifiers)
+        private const int GUITAR_FIVEFRET_MAX = 5;
+        private const int OPEN_NOTE = 7;
+        private static bool ScanFiveFret<TChar>(ref PartValues part, ref YARGTextContainer<TChar> container, Difficulty difficulty)
+            where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {
-            if (!modifiers.TryGet("five_lane_drums", out bool fivelane))
-                return DrumsType.Unknown;
-            return fivelane ? DrumsType.FiveLane : DrumsType.FourLane;
+            if (part[difficulty])
+            {
+                return false;
+            }
+
+            var ev = default(DotChartEvent);
+            while (YARGChartFileReader.TryParseEvent(ref container, ref ev))
+            {
+                if (ev.Type == ChartEventType.Note)
+                {
+                    uint lane = YARGChartFileReader.ExtractWithWhitespace<TChar, uint>(ref container);
+                    ulong _ = YARGChartFileReader.Extract<TChar, ulong>(ref container);
+                    if (lane < GUITAR_FIVEFRET_MAX || lane == OPEN_NOTE)
+                    {
+                        part.ActivateDifficulty(difficulty);
+                        return false;
+                    }
+                }
+            }
+            return true;
         }
 
-        private static void SetIntensities(IniSection modifiers, ref AvailableParts parts)
+        private static bool ScanSixFret<TChar>(ref PartValues part, ref YARGTextContainer<TChar> container, Difficulty difficulty)
+            where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {
-            if (modifiers.TryGet("diff_band", out int intensity))
+            const int SIX_FRET_BLACK1 = 8;
+            if (part[difficulty])
+            {
+                return false;
+            }
+
+            var ev = default(DotChartEvent);
+            while (YARGChartFileReader.TryParseEvent(ref container, ref ev))
+            {
+                if (ev.Type == ChartEventType.Note)
+                {
+                    uint lane = YARGChartFileReader.ExtractWithWhitespace<TChar, uint>(ref container);
+                    ulong _ = YARGChartFileReader.Extract<TChar, ulong>(ref container);
+                    if (lane < GUITAR_FIVEFRET_MAX || lane == SIX_FRET_BLACK1 || lane == OPEN_NOTE)
+                    {
+                        part.ActivateDifficulty(difficulty);
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        private static bool ScanDrums<TChar>(ref PartValues part, ref DrumsType drumsType, ref YARGTextContainer<TChar> container, Difficulty difficulty)
+            where TChar : unmanaged, IEquatable<TChar>, IConvertible
+        {
+            const int YELLOW_CYMBAL = 66;
+            const int GREEN_CYMBAL = 68;
+            const int DOUBLE_BASS_MODIFIER = 32;
+
+            var diff_mask = (DifficultyMask)(1 << (int)difficulty);
+            // No point in scan a difficulty that already exists
+            if ((part.Difficulties & diff_mask) > DifficultyMask.None)
+            {
+                return false;
+            }
+
+            var requiredMask = diff_mask;
+            if (difficulty == Difficulty.Expert)
+            {
+                requiredMask |= DifficultyMask.ExpertPlus;
+            }
+
+            var ev = default(DotChartEvent);
+            while (YARGChartFileReader.TryParseEvent(ref container, ref ev))
+            {
+                if (ev.Type == ChartEventType.Note)
+                {
+                    uint lane = YARGChartFileReader.ExtractWithWhitespace<TChar, uint>(ref container);
+                    ulong _ = YARGChartFileReader.Extract<TChar, ulong>(ref container);
+                    if (0 <= lane && lane <= 4)
+                    {
+                        part.Difficulties |= diff_mask;
+                    }
+                    else if (lane == 5)
+                    {
+                        // In other words, the DrumsType.FiveLane bit is active
+                        if (drumsType >= DrumsType.FiveLane)
+                        {
+                            drumsType = DrumsType.FiveLane;
+                            part.Difficulties |= diff_mask;
+                        }
+                    }
+                    else if (YELLOW_CYMBAL <= lane && lane <= GREEN_CYMBAL)
+                    {
+                        if ((drumsType & DrumsType.ProDrums) == DrumsType.ProDrums)
+                        {
+                            drumsType = DrumsType.ProDrums;
+                        }
+                    }
+                    else if (lane == DOUBLE_BASS_MODIFIER)
+                    {
+                        if (difficulty == Difficulty.Expert)
+                        {
+                            part.Difficulties |= DifficultyMask.ExpertPlus;
+                        }
+                    }
+
+                    //  Testing against zero would not work in expert
+                    if ((part.Difficulties & requiredMask) == requiredMask && (drumsType == DrumsType.FourLane || drumsType == DrumsType.ProDrums || drumsType == DrumsType.FiveLane))
+                    {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        private static void SetIntensities(IniModifierCollection modifiers, ref AvailableParts parts)
+        {
+            if (modifiers.Extract("diff_band", out int intensity))
             {
                 parts.BandDifficulty.Intensity = (sbyte) intensity;
                 if (intensity != -1)
