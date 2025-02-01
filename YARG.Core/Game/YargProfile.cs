@@ -24,7 +24,7 @@ namespace YARG.Core.Game
 
         public bool LeftyFlip;
 
-        public bool AutoConnect;
+        public int? AutoConnectOrder;
 
         public long InputCalibrationMilliseconds;
         public double InputCalibrationSeconds
@@ -82,7 +82,6 @@ namespace YARG.Core.Game
             NoteSpeed = 6;
             HighwayLength = 1;
             LeftyFlip = false;
-            AutoConnect = false;
 
             // Set preset IDs to default
             ColorProfile = Game.ColorProfile.Default.Id;
