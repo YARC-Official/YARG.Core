@@ -4,6 +4,7 @@ using System.IO;
 using System.Text;
 using YARG.Core.Engine.Drums;
 using YARG.Core.Extensions;
+using YARG.Core.IO;
 
 namespace YARG.Core.Replays
 {
@@ -26,8 +27,8 @@ namespace YARG.Core.Replays
             PercentageHit = 100.0f * NumNotesHit / TotalNotes;
         }
 
-        public DrumsReplayStats(UnmanagedMemoryStream stream, int version)
-            : base(stream, version)
+        public DrumsReplayStats(ref FixedArrayStream stream, int version)
+            : base(ref stream, version)
         {
             TotalNotes = stream.Read<int>(Endianness.Little);
             NumNotesHit = stream.Read<int>(Endianness.Little);

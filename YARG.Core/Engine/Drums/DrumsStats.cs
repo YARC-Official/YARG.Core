@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using YARG.Core.Extensions;
+using YARG.Core.IO;
 using YARG.Core.Replays;
 
 namespace YARG.Core.Engine.Drums
@@ -20,8 +21,8 @@ namespace YARG.Core.Engine.Drums
             Overhits = stats.Overhits;
         }
 
-        public DrumsStats(UnmanagedMemoryStream stream, int version)
-            : base(stream, version)
+        public DrumsStats(ref FixedArrayStream stream, int version)
+            : base(ref stream, version)
         {
             Overhits = stream.Read<int>(Endianness.Little);
         }

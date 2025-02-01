@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using YARG.Core.Extensions;
+using YARG.Core.IO;
 
 namespace YARG.Core.Engine.Vocals
 {
@@ -52,8 +53,8 @@ namespace YARG.Core.Engine.Vocals
             PointsPerPhrase = pointsPerPhrase;
         }
 
-        public VocalsEngineParameters(UnmanagedMemoryStream stream, int version)
-            : base(stream, version)
+        public VocalsEngineParameters(ref FixedArrayStream stream, int version)
+            : base(ref stream, version)
         {
             PitchWindow = stream.Read<float>(Endianness.Little);
             PitchWindowPerfect = stream.Read<float>(Endianness.Little);

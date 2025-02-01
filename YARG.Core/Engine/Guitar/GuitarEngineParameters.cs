@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using YARG.Core.Extensions;
+using YARG.Core.IO;
 
 namespace YARG.Core.Engine.Guitar
 {
@@ -25,8 +26,8 @@ namespace YARG.Core.Engine.Guitar
             AntiGhosting = antiGhosting;
         }
 
-        public GuitarEngineParameters(UnmanagedMemoryStream stream, int version)
-            : base(stream, version)
+        public GuitarEngineParameters(ref FixedArrayStream stream, int version)
+            : base(ref stream, version)
         {
             HopoLeniency = stream.Read<double>(Endianness.Little);
 
