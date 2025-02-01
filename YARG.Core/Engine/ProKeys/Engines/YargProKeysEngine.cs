@@ -353,7 +353,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                 // Activate Star Power if it's available
                 if (EngineStats.CanStarPowerActivate)
                 {
-                    MutateStateWithInput(new GameInput(time, ProKeysAction.StarPower, true));
+                    MutateStateWithInput(new GameInput(note.Time, ProKeysAction.StarPower, true));
                     ActivateStarPower();
                 }
             }
