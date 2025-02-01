@@ -19,27 +19,37 @@ namespace YARG.Core.IO
 
         public FourCC(char a, char b, char c, char d)
         {
-            _code = ((uint)(byte) a << 24) | ((uint)(byte) b << 16) | ((uint)(byte) c << 8) | d;
+            _code = ((uint)(byte) d << 24) | ((uint)(byte) c << 16) | ((uint)(byte) b << 8) | a;
         }
 
         public FourCC(ReadOnlySpan<byte> data)
         {
-            _code = BinaryPrimitives.ReadUInt32BigEndian(data);
+            _code = BinaryPrimitives.ReadUInt32LittleEndian(data);
         }
 
         public FourCC(Stream stream)
         {
-            _code = stream.Read<uint>(Endianness.Big);
+            _code = stream.Read<uint>(Endianness.Little);
         }
 
         public void Serialize(BinaryWriter writer)
         {
-            writer.BaseStream.Write(_code, Endianness.Big);
+            writer.BaseStream.Write(_code, Endianness.Little);
         }
 
         public bool Matches(Stream stream)
         {
-            return stream.Read<uint>(Endianness.Big) == _code;
+            return stream.Read<uint>(Endianness.Little) == _code;
+        }
+
+        public bool Matches(ref FixedArrayStream stream)
+        {
+            return stream.Read<uint>(Endianness.Little) == _code;
+        }
+
+        public bool Matches(ReadOnlySpan<byte> data)
+        {
+            return BinaryPrimitives.ReadUInt32LittleEndian(data) == _code;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -54,10 +64,10 @@ namespace YARG.Core.IO
 
         public override string ToString()
         {
-            char a = (char) ((_code >> 24) & 0xFF);
-            char b = (char) ((_code >> 16) & 0xFF);
-            char c = (char) ((_code >> 8) & 0xFF);
-            char d = (char) (_code & 0xFF);
+            char d = (char) ((_code >> 24) & 0xFF);
+            char c = (char) ((_code >> 16) & 0xFF);
+            char b = (char) ((_code >> 8) & 0xFF);
+            char a = (char) (_code & 0xFF);
             return $"{a}{b}{c}{d}";
         }
     }
@@ -75,28 +85,38 @@ namespace YARG.Core.IO
 
         public EightCC(char a, char b, char c, char d, char e, char f, char g, char h)
         {
-            _code = ((ulong) (byte) a << 56) | ((ulong) (byte) b << 48) | ((ulong) (byte) c << 40) | ((ulong) (byte) d << 32) |
-                    ((ulong) (byte) e << 24) | ((ulong) (byte) f << 16) | ((ulong) (byte) g << 8)  | h;
+            _code = ((ulong) (byte) h << 56) | ((ulong) (byte) g << 48) | ((ulong) (byte) f << 40) | ((ulong) (byte) e << 32) |
+                    ((ulong) (byte) d << 24) | ((ulong) (byte) c << 16) | ((ulong) (byte) b << 8)  | a;
         }
 
         public EightCC(ReadOnlySpan<byte> data)
         {
-            _code = BinaryPrimitives.ReadUInt64BigEndian(data);
+            _code = BinaryPrimitives.ReadUInt64LittleEndian(data);
         }
 
         public EightCC(Stream stream)
         {
-            _code = stream.Read<ulong>(Endianness.Big);
+            _code = stream.Read<ulong>(Endianness.Little);
         }
 
         public void Serialize(BinaryWriter writer)
         {
-            writer.BaseStream.Write(_code, Endianness.Big);
+            writer.BaseStream.Write(_code, Endianness.Little);
         }
 
         public bool Matches(Stream stream)
         {
-            return stream.Read<ulong>(Endianness.Big) == _code;
+            return stream.Read<ulong>(Endianness.Little) == _code;
+        }
+
+        public bool Matches(ref FixedArrayStream stream)
+        {
+            return stream.Read<ulong>(Endianness.Little) == _code;
+        }
+
+        public bool Matches(ReadOnlySpan<byte> data)
+        {
+            return BinaryPrimitives.ReadUInt64LittleEndian(data) == _code;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -111,14 +131,14 @@ namespace YARG.Core.IO
 
         public override string ToString()
         {
-            char a = (char) ((_code >> 56) & 0xFF);
-            char b = (char) ((_code >> 48) & 0xFF);
-            char c = (char) ((_code >> 40) & 0xFF);
-            char d = (char) ((_code >> 32) & 0xFF);
-            char e = (char) ((_code >> 24) & 0xFF);
-            char f = (char) ((_code >> 16) & 0xFF);
-            char g = (char) ((_code >> 8) & 0xFF);
-            char h = (char) (_code & 0xFF);
+            char h = (char) ((_code >> 56) & 0xFF);
+            char g = (char) ((_code >> 48) & 0xFF);
+            char f = (char) ((_code >> 40) & 0xFF);
+            char e = (char) ((_code >> 32) & 0xFF);
+            char d = (char) ((_code >> 24) & 0xFF);
+            char c = (char) ((_code >> 16) & 0xFF);
+            char b = (char) ((_code >> 8) & 0xFF);
+            char a = (char) (_code & 0xFF);
             return $"{a}{b}{c}{d}{e}{f}{g}{h}";
         }
     }
