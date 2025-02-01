@@ -13,58 +13,57 @@ namespace YARG.Core.Engine.Guitar.Engines
         {
         }
 
-        public override void UpdateBot(double songTime)
+        protected override void UpdateBot(double time)
         {
-            base.UpdateBot(songTime);
-        
-            bool updateToSongTime = true;
-            if (State.NoteIndex < Notes.Count)
+            if (!IsBot || NoteIndex >= Notes.Count)
             {
-                var note = Notes[State.NoteIndex];
-                while (note is not null && songTime >= note.Time)
+                return;
+            }
+
+            var note = Notes[NoteIndex];
+
+            if (time < note.Time)
+            {
+                return;
+            }
+
+            LastButtonMask = ButtonMask;
+            ButtonMask = (byte) note.NoteMask;
+
+            YargLogger.LogFormatTrace("[Bot] Set button mask to: {0}", ButtonMask);
+
+            HasTapped = ButtonMask != LastButtonMask;
+            IsFretPress = true;
+            HasStrummed = false;
+            StrumLeniencyTimer.Start(time);
+
+            foreach (var sustain in ActiveSustains)
+            {
+                var sustainNote = sustain.Note;
+
+                if (!sustainNote.IsExtendedSustain)
                 {
-                    updateToSongTime = false;
-        
-                    State.ButtonMask = (byte)note.NoteMask;
-                    State.StrummedThisUpdate = true;
-                    State.FrontEndStartTime = note.Time;
-        
-                    foreach (var sustain in ActiveSustains)
-                    {
-                        var sustainNote = sustain.Note;
-                        if (sustainNote.IsDisjoint)
-                        {
-                            State.ButtonMask |= (byte)sustainNote.DisjointMask;
-                        }
-                        else
-                        {
-                            State.ButtonMask |= (byte)sustainNote.NoteMask;
-                        }
-                    }
-        
-                    if (!UpdateHitLogic(note.Time))
-                    {
-                        break;
-                    }
-        
-                    // Star Power Activation Logic
-                    if (EngineStats.CanStarPowerActivate && (note.IsStarPowerStart || note.IsSoloStart))
+                    if (EngineStats.CanStarPowerActivate)
                     {
                         CurrentInput.SetAction(GuitarAction.StarPower, true);
                     }
-        
-                    note = note.NextNote;
+                    continue;
+                }
+
+                if (sustainNote.IsDisjoint)
+                {
+                    ButtonMask |= (byte) sustainNote.DisjointMask;
+
+                    YargLogger.LogFormatTrace("[Bot] Added Disjoint Sustain Mask {0} to button mask. {1}", sustainNote.DisjointMask, ButtonMask);
+                }
+                else
+                {
+                    ButtonMask |= (byte) sustainNote.NoteMask;
+
+                    YargLogger.LogFormatTrace("[Bot] Added Sustain Mask {0} to button mask. {1}", sustainNote.NoteMask, ButtonMask);
                 }
             }
-        
-            State.StrummedThisUpdate = false;
-        
-            if (updateToSongTime)
-            {
-                UpdateHitLogic(songTime);
-            }
         }
-
 
         protected override void MutateStateWithInput(GameInput gameInput)
         {
