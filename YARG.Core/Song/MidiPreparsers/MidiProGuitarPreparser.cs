@@ -1,4 +1,5 @@
 ﻿using YARG.Core.IO;
+using static YARG.Core.IO.YARGMidiTrack;
 
 namespace YARG.Core.Song
 {
@@ -29,9 +30,10 @@ namespace YARG.Core.Song
             int statusBitMask = 0;
 
             var note = default(MidiNote);
-            while (track.ParseEvent())
+            var stats = default(Stats);
+            while (track.ParseEvent(ref stats))
             {
-                if (track.Type is MidiEventType.Note_On or MidiEventType.Note_Off)
+                if (stats.Type is MidiEventType.Note_On or MidiEventType.Note_Off)
                 {
                     track.ExtractMidiNote(ref note);
                     if (note.value < PROGUITAR_MIN || note.value > PROGUITAR_MAX)
@@ -44,14 +46,14 @@ namespace YARG.Core.Song
                     int laneIndex = MidiPreparser_Constants.EXTENDED_LANE_INDICES[noteOffset];
                     var diffMask = (DifficultyMask) (1 << (diffIndex + 1));
                     //                                                         Ghost notes aren't played
-                    if ((validations & diffMask) > 0 || laneIndex >= NUM_STRINGS || track.Channel == ARPEGGIO_CHANNEL)
+                    if ((validations & diffMask) > 0 || laneIndex >= NUM_STRINGS || stats.Channel == ARPEGGIO_CHANNEL)
                     {
                         continue;
                     }
 
                     int statusMask = 1 << (diffIndex * NUM_STRINGS + laneIndex);
                     // Note Ons with no velocity equates to a note Off by spec
-                    if (track.Type == MidiEventType.Note_On && note.velocity > 0)
+                    if (stats.Type == MidiEventType.Note_On && note.velocity > 0)
                     {
                         if (MIN_VELOCITY <= note.velocity && note.velocity <= maxVelocity)
                         {

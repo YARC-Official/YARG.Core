@@ -9,7 +9,7 @@ namespace YARG.Core.Song
     {
         protected static (ScanResult Result, long Resolution) ParseMidi(in FixedArray<byte> file, DrumPreparseHandler drums, ref AvailableParts parts)
         {
-            var midiFile = new YARGMidiFile(file.ToStream());
+            var midiFile = new YARGMidiFile(in file);
             if (midiFile.Resolution == 0)
             {
                 return (ScanResult.InvalidResolution, 0);

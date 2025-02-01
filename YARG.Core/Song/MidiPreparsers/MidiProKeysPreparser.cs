@@ -1,4 +1,5 @@
 ﻿using YARG.Core.IO;
+using static YARG.Core.IO.YARGMidiTrack;
 
 namespace YARG.Core.Song
 {
@@ -12,15 +13,16 @@ namespace YARG.Core.Song
         {
             int statusBitMask = 0;
             var note = default(MidiNote);
-            while (track.ParseEvent())
+            var stats = default(Stats);
+            while (track.ParseEvent(ref stats))
             {
-                if (track.Type is MidiEventType.Note_On or MidiEventType.Note_Off)
+                if (stats.Type is MidiEventType.Note_On or MidiEventType.Note_Off)
                 {
                     track.ExtractMidiNote(ref note);
                     if (PROKEYS_MIN <= note.value && note.value <= PROKEYS_MAX)
                     {
                         int statusMask = 1 << (note.value - PROKEYS_MIN);
-                        if (track.Type == MidiEventType.Note_On && note.velocity > 0)
+                        if (stats.Type == MidiEventType.Note_On && note.velocity > 0)
                         {
                             statusBitMask |= statusMask;
                         }

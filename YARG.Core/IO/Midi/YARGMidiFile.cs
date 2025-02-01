@@ -2,67 +2,95 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using YARG.Core.Extensions;
-using YARG.Core.Logging;
 
 namespace YARG.Core.IO
 {
-    public sealed class YARGMidiFile : IEnumerable<YARGMidiTrack>
+    public struct YARGMidiFile : IEnumerable<YARGMidiTrack>
     {
         private static readonly FourCC HEADER_TAG = new('M', 'T', 'h', 'd');
-        private static readonly FourCC TRACK_TAG = new('M', 'T', 'r', 'k');
+        private static readonly FourCC TRACK_TAG  = new('M', 'T', 'r', 'k');
+        private const int TAG_SIZE = sizeof(uint);
+        private const int DATA_OFFSET = TAG_SIZE + sizeof(int);
 
-        private readonly Stream _stream;
-        public readonly ushort Format;
-        public readonly ushort NumTracks;
-        public readonly ushort Resolution;
+        private readonly ushort _format;
+        private readonly ushort _num_tracks;
+        private readonly ushort _resolution;
 
-        private ushort _trackNumber = 0;
-        public ushort TrackNumber => _trackNumber;
+        private readonly FixedArray<byte> _data;
+        private long _position;
+        private ushort _trackNumber;
+
+        public readonly ushort Format => _format;
+        public readonly ushort NumTracks => _num_tracks;
+        public readonly ushort Resolution => _resolution;
+        public readonly ushort TrackNumber => _trackNumber;
 
         private const int SIZEOF_HEADER = 6;
-        public YARGMidiFile(Stream stream)
+        public YARGMidiFile(in FixedArray<byte> data)
         {
-            _stream = stream;
-            if (!HEADER_TAG.Matches(stream))
-                throw new Exception("Midi Header Chunk Tag 'MThd' not found");
+            if (TAG_SIZE > data.Length || !HEADER_TAG.Matches(data.ReadonlySlice(0, TAG_SIZE)))
+            {
+                throw new Exception("Midi header Tag 'MThd' mismatch");
+            }
 
-            int length = stream.Read<int>(Endianness.Big);
-            if (length < SIZEOF_HEADER)
-                throw new Exception("Midi Header not of sufficient length");
+            if (DATA_OFFSET > data.Length)
+            {
+                throw new EndOfStreamException("End of stream found within midi header");
+            }
+            
+            int headerSize = (data[TAG_SIZE] << 24) | (data[TAG_SIZE + 1] << 16) | (data[TAG_SIZE + 2] << 8) | data[TAG_SIZE + 3];
+            if (headerSize < SIZEOF_HEADER)
+            {
+                throw new Exception("Midi header length less than minimum");
+            }
 
-            long next = stream.Position + length;
-            Format = stream.Read<ushort>(Endianness.Big);
-            NumTracks = stream.Read<ushort>(Endianness.Big);
-            Resolution = stream.Read<ushort>(Endianness.Big);
-            stream.Position = next;
+            _position = DATA_OFFSET + headerSize;
+            if (_position > data.Length)
+            {
+                throw new EndOfStreamException("End of stream found within midi header");
+            }
+
+            _format     = (ushort)((data[DATA_OFFSET] << 8)     | data[DATA_OFFSET + 1]);
+            _num_tracks = (ushort)((data[DATA_OFFSET + 2] << 8) | data[DATA_OFFSET + 3]);
+            _resolution = (ushort)((data[DATA_OFFSET + 4] << 8) | data[DATA_OFFSET + 5]);
+
+            _data = data;
+            _trackNumber = 0;
         }
 
-        public YARGMidiTrack? LoadNextTrack()
+        public bool LoadNextTrack(out YARGMidiTrack track)
         {
-            if (_trackNumber == NumTracks || _stream.Position == _stream.Length)
-                return null;
-
-            _trackNumber++;
-            if (!TRACK_TAG.Matches(_stream))
+            track = default;
+            if (_trackNumber == NumTracks || _position == _data.Length)
             {
-                throw new Exception($"Midi Track Tag 'MTrk' not found for Track '{_trackNumber}'");
+                return false;
             }
 
-            try
+            ++_trackNumber;
+            if (_position + TAG_SIZE > _data.Length || !TRACK_TAG.Matches(_data.ReadonlySlice( _position, TAG_SIZE)))
             {
-                return new YARGMidiTrack(_stream);
+                throw new Exception("Midi Track Tag 'MTrk' mismatch");
             }
-            catch (UnauthorizedAccessException ex)
+            _position += TAG_SIZE;
+
+            if (_position + sizeof(int) > _data.Length)
             {
-                YargLogger.LogException(ex, "Coding note: Ensure that buffer access is enabled when you construct the memorystream");
-                return null;
+                throw new EndOfStreamException("End of stream found within midi track");
             }
+
+            int length = (_data[_position] << 24) | (_data[_position + 1] << 16) | (_data[_position + 2] << 8) | _data[_position + 3];
+            _position += sizeof(int);
+            unsafe
+            {
+                track = new YARGMidiTrack(_data.Ptr + _position, length);
+            }
+            _position += length;
+            return true;
         }
 
         public IEnumerator<YARGMidiTrack> GetEnumerator()
         {
-            return new MidiFileEnumerator(this);
+            return new Enumerator(this);
         }
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -70,34 +98,32 @@ namespace YARG.Core.IO
             return GetEnumerator();
         }
 
-        public class MidiFileEnumerator : IEnumerator<YARGMidiTrack>
+        public struct Enumerator : IEnumerator<YARGMidiTrack>
         {
-            private readonly YARGMidiFile file;
-            private YARGMidiTrack? _current;
-            public MidiFileEnumerator(YARGMidiFile file)
+            private YARGMidiFile _file;
+            private YARGMidiTrack _current;
+            public Enumerator(YARGMidiFile file)
             {
-                this.file = file;
+                _file = file;
+                _current = default;
             }
 
-            public YARGMidiTrack Current => _current!;
+            public readonly YARGMidiTrack Current => _current;
 
-            object IEnumerator.Current => _current!;
+            readonly object IEnumerator.Current => _current;
 
             public bool MoveNext()
             {
-                _current?.Dispose();
-                _current = file.LoadNextTrack();
-                return _current != null;
+                return _file.LoadNextTrack(out _current);
             }
 
-            public void Reset()
+            public readonly void Reset()
             {
                 throw new NotImplementedException();
             }
 
-            public void Dispose()
+            public readonly void Dispose()
             {
-                _current?.Dispose();
             }
         }
     }
