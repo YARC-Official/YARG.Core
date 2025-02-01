@@ -12,8 +12,8 @@ namespace YARG.Core.IO.Ini
         {
             try
             {
-                using var bytes = FixedArray<byte>.Load(iniPath);
                 if (YARGTextReader.IsUTF8(in bytes, out var byteContainer))
+                using var bytes = FixedArray.LoadFile(iniPath);
                 {
                     return ProcessIni(ref byteContainer, sections);
                 }
