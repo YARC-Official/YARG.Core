@@ -8,12 +8,12 @@ namespace YARG.Core.Song
     public struct SongMetadata
     {
         public const double MILLISECOND_FACTOR = 1000.0;
-        public static readonly SortString DEFAULT_NAME = "Unknown Name";
-        public static readonly SortString DEFAULT_ARTIST = "Unknown Artist";
-        public static readonly SortString DEFAULT_ALBUM = "Unknown Album";
-        public static readonly SortString DEFAULT_GENRE = "Unknown Genre";
-        public static readonly SortString DEFAULT_CHARTER = "Unknown Charter";
-        public static readonly SortString DEFAULT_SOURCE = "Unknown Source";
+        public const string DEFAULT_NAME = "Unknown Name";
+        public const string DEFAULT_ARTIST = "Unknown Artist";
+        public const string DEFAULT_ALBUM = "Unknown Album";
+        public const string DEFAULT_GENRE = "Unknown Genre";
+        public const string DEFAULT_CHARTER = "Unknown Charter";
+        public const string DEFAULT_SOURCE = "Unknown Source";
         public const string DEFAULT_YEAR = "####";
 
         public static readonly SongMetadata Default = new()
