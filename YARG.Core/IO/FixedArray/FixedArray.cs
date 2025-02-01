@@ -178,6 +178,15 @@ namespace YARG.Core.IO
             return new Span<T>(_ptr + offset, (int) count);
         }
 
+        public readonly ReadOnlySpan<T> ReadonlySlice(long offset, long count)
+        {
+            if (offset < 0 || offset + count > _length)
+            {
+                throw new IndexOutOfRangeException();
+            }
+            return new ReadOnlySpan<T>(_ptr + offset, (int) count);
+        }
+
         /// <summary>
         /// Copies the pointer and length to a new instance of FixedArray, leaving the current one
         /// in a limbo state - no longer responsible for disposing of the data.
