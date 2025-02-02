@@ -136,7 +136,7 @@ namespace YARG.Core.Song
             return CreateAudioMixer(speed, 0, sngFile, SongStem.Crowd);
         }
 
-        public override YARGImage? LoadAlbumData()
+        public override YARGImage LoadAlbumData()
         {
             var sngFile = SngFile.TryLoadFromFile(_sngInfo);
             if (sngFile == null)
@@ -164,7 +164,7 @@ namespace YARG.Core.Song
                     YargLogger.LogFormatError("SNG Image mapped to {0} failed to load", albumFile);
                 }
             }
-            return null;
+            return YARGImage.Null;
         }
 
         public override BackgroundResult? LoadBackground(BackgroundType options)

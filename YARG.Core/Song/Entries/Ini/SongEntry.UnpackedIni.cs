@@ -163,13 +163,13 @@ namespace YARG.Core.Song
             return LoadAudio(speed, 0, SongStem.Crowd);
         }
 
-        public override YARGImage? LoadAlbumData()
+        public override YARGImage LoadAlbumData()
         {
             var subFiles = GetSubFiles();
             if (!string.IsNullOrEmpty(Cover) && subFiles.TryGetValue(Cover, out var cover))
             {
                 var image = YARGImage.Load(cover);
-                if (image != null)
+                if (image.IsAllocated)
                 {
                     return image;
                 }
@@ -181,14 +181,14 @@ namespace YARG.Core.Song
                 if (subFiles.TryGetValue(albumFile, out var info))
                 {
                     var image = YARGImage.Load(info);
-                    if (image != null)
+                    if (image.IsAllocated)
                     {
                         return image;
                     }
                     YargLogger.LogFormatError("Image at {0} failed to load", info.FullName);
                 }
             }
-            return null;
+            return YARGImage.Null;
         }
 
         public override BackgroundResult? LoadBackground(BackgroundType options)
@@ -229,7 +229,7 @@ namespace YARG.Core.Song
                 if (subFiles.TryGetValue(Background, out var file) || TryGetRandomBackgroundImage(subFiles, out file))
                 {
                     var image = YARGImage.Load(file!);
-                    if (image != null)
+                    if (image.IsAllocated)
                     {
                         return new BackgroundResult(image);
                     }
