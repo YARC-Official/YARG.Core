@@ -20,16 +20,39 @@ namespace YARG.Core.IO
 
         public readonly ReadOnlySpan<byte> Span => new Span<byte>(ptr, (int)length);
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly bool SequenceEqual(in TextSpan other)
+        public readonly byte this[int index]
         {
-            return Span.SequenceEqual(other.Span);
+            get
+            {
+                if (index < 0 || index >= length)
+                {
+                    throw new ArgumentOutOfRangeException("index");
+                }
+                return ptr[index];
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly bool SequenceEqual(in TextSpan str)
+        {
+            return Span.SequenceEqual(str.Span);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly bool SequenceEqual(in ReadOnlySpan<byte> str)
+        {
+            return Span.SequenceEqual(str);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly string GetString(Encoding encoding)
         {
             return encoding.GetString(ptr, (int)length);
+        }
+
+        public readonly bool StartsWith(in ReadOnlySpan<byte> str)
+        {
+            return Span.StartsWith(str);
         }
     }
 }
