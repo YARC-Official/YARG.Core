@@ -5,31 +5,26 @@ using System.IO;
 
 namespace YARG.Core.Song.Cache
 {
-    public readonly struct FileCollection : IEnumerable<KeyValuePair<string, FileSystemInfo>>
+    internal readonly struct FileCollection : IEnumerable<KeyValuePair<string, FileSystemInfo>>
     {
         private readonly Dictionary<string, FileSystemInfo> _entries;
-        public readonly DirectoryInfo Directory;
+        public readonly string Directory;
         public readonly bool ContainedDupes;
 
-        internal static bool TryCollect(string directory, out FileCollection collection)
+        // Attribute maps to Remote Storage files (ex. oneDrive) that are not locally present
+        private const FileAttributes RECALL_ON_DATA_ACCESS = (FileAttributes) 0x00400000;
+        private static readonly EnumerationOptions OPTIONS = new()
         {
-            var info = new DirectoryInfo(directory);
-            if (!info.Exists)
-            {
-                collection = default;
-                return false;
-            }
-            collection = new FileCollection(info);
-            return true;
-        }
+            AttributesToSkip = FileAttributes.Hidden | FileAttributes.System | RECALL_ON_DATA_ACCESS
+        };
 
-        internal FileCollection(DirectoryInfo directory)
+        public FileCollection(DirectoryInfo directory)
         {
-            Directory = directory;
+            Directory = directory.FullName;
             _entries = new Dictionary<string, FileSystemInfo>(StringComparer.InvariantCultureIgnoreCase);
             var dupes = new HashSet<string>();
 
-            foreach (var entry in directory.EnumerateFileSystemInfos())
+            foreach (var entry in directory.EnumerateFileSystemInfos("*", OPTIONS))
             {
                 if (!_entries.TryAdd(entry.Name, entry))
                 {
