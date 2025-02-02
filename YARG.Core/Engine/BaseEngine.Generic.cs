@@ -195,6 +195,116 @@ namespace YARG.Core.Engine
                 }
             }
 
+            if (StarPowerWhammyTimer.IsActive)
+            {
+                if (IsTimeBetween(StarPowerWhammyTimer.EndTime, previousTime, nextTime))
+                {
+                    YargLogger.LogFormatTrace("Queuing star power whammy end time at {0}",
+                        StarPowerWhammyTimer.EndTime);
+                    QueueUpdateTime(StarPowerWhammyTimer.EndTime, "Star Power Whammy End");
+                }
+
+                if (ActiveSustains.Count > 0)
+                {
+                    var syncIndex = CurrentSyncIndex;
+                    var currentSync = CurrentSyncTrackState;
+
+                    double maxTime = Math.Min(StarPowerWhammyTimer.EndTime, nextTime);
+
+                    for (int i = syncIndex; i < SyncTrackChanges.Count; i++)
+                    {
+                        if (i + 1 < SyncTrackChanges.Count && SyncTrackChanges[i + 1].Time <= maxTime)
+                        {
+                            syncIndex = i;
+                            currentSync = SyncTrackChanges[i];
+                            break;
+                        }
+                    }
+
+                    uint maxSpTick = GetStarPowerDrainTimeToTicks(maxTime, currentSync);
+
+                    uint lastChartTick = SyncTrack.TimeToTick(previousTime);
+                    uint lastSpTick = StarPowerTickPosition;
+
+                    int spTickAmount = (int) BaseStats.StarPowerTickAmount;
+
+                    for(uint spTick = StarPowerTickPosition + 1; spTick <= maxSpTick; spTick++)
+                    {
+                        var time = GetStarPowerDrainTickToTime(spTick, currentSync);
+                        uint chartTick = SyncTrack.TimeToTick(time);
+
+                        if (syncIndex + 1 < SyncTrackChanges.Count && SyncTrackChanges[syncIndex + 1].Time <= time)
+                        {
+                            syncIndex++;
+                            currentSync = SyncTrackChanges[syncIndex];
+                        }
+
+                        uint whammyGain = chartTick - lastChartTick;
+                        uint spDrain = spTick - lastSpTick;
+
+                        spTickAmount += (int) whammyGain;
+
+                        if (BaseStats.IsStarPowerActive)
+                        {
+                            spTickAmount -= (int) spDrain;
+
+                            if (spTickAmount <= 0)
+                            {
+                                // Do we modify the engine state or just queue an update?
+                                // Below it will check the end time anyway and queue an update
+                                YargLogger.LogFormatDebug("Simulated SP gain/drain and found an end time at {0}", time);
+
+                                StarPowerTickEndPosition = spTick;
+                                StarPowerEndTime = time;
+                                break;
+                            }
+                        }
+
+                        if(spTickAmount > TicksPerFullSpBar)
+                        {
+                            spTickAmount = (int) TicksPerFullSpBar;
+                            YargLogger.LogFormatTrace("Simulated SP gain/drain and found a full SP bar at {0}", time);
+                            QueueUpdateTime(time, "SP Bar Cap Time");
+                        }
+
+                        lastChartTick = chartTick;
+                        lastSpTick = spTick;
+                    }
+                }
+            }
+
+            if (BaseStats.IsStarPowerActive)
+            {
+                if (IsTimeBetween(StarPowerEndTime, previousTime, nextTime))
+                {
+                    YargLogger.LogFormatTrace("Queuing Star Power End Time at {0}", StarPowerEndTime);
+                    QueueUpdateTime(StarPowerEndTime, "SP End Time");
+                }
+            }
+            else
+            {
+                if (StarPowerWhammyTimer.IsActive)
+                {
+                    var nextTimeTick = SyncTrack.TimeToTick(nextTime);
+                    var tickDelta = nextTimeTick - CurrentTick;
+
+                    var ticksAfterWhammy = BaseStats.StarPowerTickAmount + tickDelta;
+
+                    if (ticksAfterWhammy >= TicksPerHalfSpBar)
+                    {
+                        var ticksToHalfBar = TicksPerHalfSpBar - BaseStats.StarPowerTickAmount;
+                        var timeOfHalfBar = SyncTrack.TickToTime(CurrentTick + ticksToHalfBar);
+
+                        if (IsTimeBetween(timeOfHalfBar, previousTime, nextTime))
+                        {
+                            YargLogger.LogFormatTrace("Queuing star power half bar time at {0}",
+                                timeOfHalfBar);
+                            QueueUpdateTime(timeOfHalfBar, "Star Power Half Bar");
+                        }
+                    }
+                }
+            }
+
             if (CurrentWaitCountdownIndex < WaitCountdowns.Count)
             {
                 // Queue updates for countdown start/end/change
@@ -577,8 +687,18 @@ namespace YARG.Core.Engine
                     whammyTicks = 1;
                 }
 
-                GainStarPower(whammyTicks);
+                // Don't cap until drain has been calculated
+                BaseStats.StarPowerTickAmount += whammyTicks;
+
+                BaseStats.TotalStarPowerTicks += whammyTicks;
                 BaseStats.StarPowerWhammyTicks += whammyTicks;
+
+                if (BaseStats.IsStarPowerActive)
+                {
+                    UpdateStarPowerEnds();
+                }
+
+                BaseStats.TotalStarPowerBarsFilled = (double) BaseStats.TotalStarPowerTicks / TicksPerFullSpBar;
                 YargLogger.LogFormatTrace("Gained {0} whammy ticks this update (Total: {1}), {2} sustains active. SP right now: {3}", whammyTicks, EngineStats.StarPowerWhammyTicks, ActiveSustains.Count, isStarPowerSustainActive);
             }
 
@@ -611,8 +731,7 @@ namespace YARG.Core.Engine
 
                 if (BaseStats.IsStarPowerActive)
                 {
-                    StarPowerTickEndPosition = StarPowerTickPosition + BaseStats.StarPowerTickAmount;
-                    StarPowerEndTime = GetStarPowerDrainTickToTime(StarPowerTickEndPosition, CurrentSyncTrackState);
+                    UpdateStarPowerEnds();
                     YargLogger.LogFormatTrace("Clamped SP. New end tick and time: {0}, {1}", StarPowerTickEndPosition, StarPowerEndTime);
                 }
             }
