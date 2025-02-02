@@ -9,102 +9,30 @@ using YARG.Core.Venue;
 using System.Linq;
 using YARG.Core.Logging;
 using YARG.Core.Extensions;
-using MoonscraperChartEditor.Song.IO;
-using YARG.Core.Chart;
 
 namespace YARG.Core.Song
 {
     public sealed class UnpackedIniEntry : IniSubEntry
     {
-        private readonly AbridgedFileInfo _chartFile;
-        private readonly ChartFormat _chartFormat;
-        private readonly AbridgedFileInfo? _iniFile;
+        private readonly DateTime? _iniLastWrite;
 
-        public override string Location { get; }
-        public override string DirectoryActual => Location;
-        public override DateTime GetAddDate() => _chartFile.LastUpdatedTime.Date;
         public override EntryType SubType => EntryType.Ini;
-        public override ulong SongLengthMilliseconds { get; }
 
-        private UnpackedIniEntry(string directory, FileInfo chartInfo, ChartFormat format, in AbridgedFileInfo? iniFile, IniSection modifiers, in AvailableParts parts, in HashWrapper hash, in SongMetadata metadata, in LoaderSettings settings)
-            : base(in metadata, in parts, in hash, in settings, modifiers)
+        public override void Serialize(MemoryStream stream, CacheWriteIndices node)
         {
-            Location = directory;
-            _chartFile = new AbridgedFileInfo(chartInfo);
-            _chartFormat = format;
-            _iniFile = iniFile;
-
-            if (!modifiers.TryGet("song_length", out ulong songLength))
-            {
-                using var mixer = LoadAudio(0, 0);
-                if (mixer != null)
-                {
-                    songLength = (ulong) (mixer.Length * SongMetadata.MILLISECOND_FACTOR);
-                }
-            }
-            SongLengthMilliseconds = songLength;
-        }
-
-        private UnpackedIniEntry(string directory, in AbridgedFileInfo chartInfo, ChartFormat format, in AbridgedFileInfo? iniFile, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
-            : base(stream, strings)
-        {
-            Location = directory;
-            _chartFile = chartInfo;
-            _chartFormat = format;
-            _iniFile = iniFile;
-            SongLengthMilliseconds = stream.Read<ulong>(Endianness.Little);
-        }
-
-        public override void Serialize(MemoryStream stream, CategoryCacheWriteNode node)
-        {
-            // Validation block
             stream.WriteByte((byte) _chartFormat);
-            stream.Write(_chartFile.LastUpdatedTime.ToBinary(), Endianness.Little);
-            stream.Write(_iniFile != null);
-            if (_iniFile != null)
+            stream.Write(_chartLastWrite.ToBinary(), Endianness.Little);
+            stream.Write(_iniLastWrite.HasValue);
+            if (_iniLastWrite.HasValue)
             {
-                stream.Write(_iniFile.Value.LastUpdatedTime.ToBinary(), Endianness.Little);
+                stream.Write(_iniLastWrite.Value.ToBinary(), Endianness.Little);
             }
-
-            // Metadata block
             base.Serialize(stream, node);
-            stream.Write(SongLengthMilliseconds, Endianness.Little);
-        }
-
-        public override SongChart? LoadChart()
-        {
-            if (!_chartFile.IsStillValid())
-            {
-                return null;
-            }
-
-            if (_iniFile != null ? !_iniFile.Value.IsStillValid() : File.Exists(Path.Combine(Location, "song.ini")))
-            {
-                return null;
-            }
-
-            var parseSettings = new ParseSettings()
-            {
-                HopoThreshold = Settings.HopoThreshold,
-                SustainCutoffThreshold = Settings.SustainCutoffThreshold,
-                StarPowerNote = Settings.OverdiveMidiNote,
-                DrumsType = ParseDrumsType(in Parts),
-                ChordHopoCancellation = _chartFormat != ChartFormat.Chart
-            };
-
-            using var stream = new FileStream(_chartFile.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
-            if (_chartFormat == ChartFormat.Mid || _chartFormat == ChartFormat.Midi)
-            {
-                return SongChart.FromMidi(in parseSettings, MidFileLoader.LoadMidiFile(stream));
-            }
-
-            using var reader = new StreamReader(stream);
-            return SongChart.FromDotChart(in parseSettings, reader.ReadToEnd());
         }
 
         public override StemMixer? LoadAudio(float speed, double volume, params SongStem[] ignoreStems)
         {
-            bool clampStemVolume = Metadata.Source.Str.ToLowerInvariant() == "yarg";
+            bool clampStemVolume = _metadata.Source.ToLowerInvariant() == "yarg";
             var mixer = GlobalAudioHandler.CreateMixer(ToString(), speed, volume, clampStemVolume);
             if (mixer == null)
             {
@@ -121,17 +49,17 @@ namespace YARG.Core.Song
 
                 foreach (var format in IniAudio.SupportedFormats)
                 {
-                    var audioFile = stem + format;
-                    if (subFiles.TryGetValue(audioFile, out var info))
+                    var stemName = stem + format;
+                    if (subFiles.TryGetValue(stemName, out var file))
                     {
-                        var stream = new FileStream(info.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+                        var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
                         if (mixer.AddChannel(stemEnum, stream))
                         {
                             // No duplicates
                             break;
                         }
                         stream.Dispose();
-                        YargLogger.LogFormatError("Failed to load stem file {0}", info.FullName);
+                        YargLogger.LogFormatError("Failed to load stem file {0}", file);
                     }
                 }
             }
@@ -154,7 +82,7 @@ namespace YARG.Core.Song
         {
             foreach (var filename in PREVIEW_FILES)
             {
-                var audioFile = Path.Combine(Location, filename);
+                var audioFile = Path.Combine(_location, filename);
                 if (File.Exists(audioFile))
                 {
                     return GlobalAudioHandler.LoadCustomFile(audioFile, speed, 0, SongStem.Preview);
@@ -166,26 +94,26 @@ namespace YARG.Core.Song
         public override YARGImage LoadAlbumData()
         {
             var subFiles = GetSubFiles();
-            if (!string.IsNullOrEmpty(Cover) && subFiles.TryGetValue(Cover, out var cover))
+            if (!string.IsNullOrEmpty(_cover) && subFiles.TryGetValue(_cover, out var cover))
             {
                 var image = YARGImage.Load(cover);
                 if (image.IsAllocated)
                 {
                     return image;
                 }
-                YargLogger.LogFormatError("Image at {0} failed to load", cover.FullName);
+                YargLogger.LogFormatError("Image at {0} failed to load", cover);
             }
 
-            foreach (string albumFile in ALBUMART_FILES)
+            foreach (string albumName in ALBUMART_FILES)
             {
-                if (subFiles.TryGetValue(albumFile, out var info))
+                if (subFiles.TryGetValue(albumName, out var file))
                 {
-                    var image = YARGImage.Load(info);
+                    var image = YARGImage.Load(file);
                     if (image.IsAllocated)
                     {
                         return image;
                     }
-                    YargLogger.LogFormatError("Image at {0} failed to load", info.FullName);
+                    YargLogger.LogFormatError("Image at {0} failed to load", file);
                 }
             }
             return YARGImage.Null;
@@ -198,16 +126,16 @@ namespace YARG.Core.Song
             {
                 if (subFiles.TryGetValue("bg.yarground", out var file))
                 {
-                    var stream = File.OpenRead(file.FullName);
+                    var stream = File.OpenRead(file);
                     return new BackgroundResult(BackgroundType.Yarground, stream);
                 }
             }
 
             if ((options & BackgroundType.Video) > 0)
             {
-                if (subFiles.TryGetValue(Video, out var video))
+                if (subFiles.TryGetValue(_video, out var video))
                 {
-                    var stream = File.OpenRead(video.FullName);
+                    var stream = File.OpenRead(video);
                     return new BackgroundResult(BackgroundType.Video, stream);
                 }
 
@@ -215,9 +143,9 @@ namespace YARG.Core.Song
                 {
                     foreach (var format in VIDEO_EXTENSIONS)
                     {
-                        if (subFiles.TryGetValue(stem + format, out var info))
+                        if (subFiles.TryGetValue(stem + format, out var file))
                         {
-                            var stream = File.OpenRead(info.FullName);
+                            var stream = File.OpenRead(file);
                             return new BackgroundResult(BackgroundType.Video, stream);
                         }
                     }
@@ -226,7 +154,7 @@ namespace YARG.Core.Song
 
             if ((options & BackgroundType.Image) > 0)
             {
-                if (subFiles.TryGetValue(Background, out var file) || TryGetRandomBackgroundImage(subFiles, out file))
+                if (subFiles.TryGetValue(_background, out var file) || TryGetRandomBackgroundImage(subFiles, out file))
                 {
                     var image = YARGImage.Load(file!);
                     if (image.IsAllocated)
@@ -243,78 +171,80 @@ namespace YARG.Core.Song
             return FixedArray<byte>.Null;
         }
 
-        private Dictionary<string, FileInfo> GetSubFiles()
+        protected override FixedArray<byte> GetChartData(string filename)
         {
-            Dictionary<string, FileInfo> files = new();
-            var dirInfo = new DirectoryInfo(Location);
-            if (dirInfo.Exists)
+            var data = FixedArray<byte>.Null;
+            string chartPath = Path.Combine(_location, filename);
+            if (AbridgedFileInfo.Validate(chartPath, in _chartLastWrite))
             {
-                foreach (var file in dirInfo.EnumerateFiles())
+                string iniPath = Path.Combine(_location, "song.ini");
+                if (_iniLastWrite.HasValue
+                    ? AbridgedFileInfo.Validate(iniPath, _iniLastWrite.Value)
+                    : !File.Exists(iniPath))
                 {
-                    files.Add(file.Name.ToLower(), file);
+                    data = FixedArray.LoadFile(chartPath);
+                }
+            }
+            return data;
+        }
+
+        private Dictionary<string, string> GetSubFiles()
+        {
+            Dictionary<string, string> files = new();
+            if (Directory.Exists(_location))
+            {
+                foreach (var file in Directory.EnumerateFiles(_location))
+                {
+                    files.Add(file[(_location.Length + 1)..].ToLower(), file);
                 }
             }
             return files;
         }
 
-        public static (ScanResult, UnpackedIniEntry?) ProcessNewEntry(string chartDirectory, FileInfo chartInfo, ChartFormat format, FileInfo? iniFile, string defaultPlaylist)
+        private UnpackedIniEntry(string directory, in DateTime chartLastWrite, in DateTime? iniLastWrite, in ChartFormat format)
+            : base(directory, in chartLastWrite, format)
         {
-            IniSection iniModifiers;
-            AbridgedFileInfo? iniFileInfo = null;
+            _iniLastWrite = iniLastWrite;
+        }
+
+        public static ScanExpected<UnpackedIniEntry> ProcessNewEntry(string directory, FileInfo chartInfo, ChartFormat format, FileInfo? iniFile, string defaultPlaylist)
+        {
+            IniModifierCollection iniModifiers;
+            DateTime? iniLastWrite = default;
             if (iniFile != null)
             {
-                if ((iniFile.Attributes & AbridgedFileInfo.RECALL_ON_DATA_ACCESS) > 0)
-                {
-                    return (ScanResult.IniNotDownloaded, null);
-                }
-
                 iniModifiers = SongIniHandler.ReadSongIniFile(iniFile.FullName);
-                iniFileInfo = new AbridgedFileInfo(iniFile);
+                iniLastWrite = AbridgedFileInfo.NormalizedLastWrite(iniFile);
             }
             else
             {
                 iniModifiers = new();
             }
 
-            if ((chartInfo.Attributes & AbridgedFileInfo.RECALL_ON_DATA_ACCESS) > 0)
-            {
-                return (ScanResult.ChartNotDownloaded, null);
-            }
+            var entry = new UnpackedIniEntry(directory, AbridgedFileInfo.NormalizedLastWrite(chartInfo), in iniLastWrite, format);
+            entry._metadata.Playlist = defaultPlaylist;
 
-            using var file = FixedArray<byte>.Load(chartInfo.FullName);
-            var (result, parts, settings) = ProcessChartFile(file, format, iniModifiers);
-            if (result != ScanResult.Success)
-            {
-                return (result, null);
-            }
-
-            var hash = HashWrapper.Hash(file.ReadOnlySpan);
-            var metadata = new SongMetadata(iniModifiers, defaultPlaylist);
-            var entry = new UnpackedIniEntry(chartDirectory, chartInfo, format, in iniFileInfo, iniModifiers, in parts, in hash, in metadata, in settings);
-            return (result, entry);
+            using var file = FixedArray.LoadFile(chartInfo.FullName);
+            var result = ScanChart(entry, in file, iniModifiers);
+            return result == ScanResult.Success ? entry : new ScanUnexpected(result);
         }
 
-        public static UnpackedIniEntry? TryLoadFromCache(string directory, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
+        public static UnpackedIniEntry? TryDeserialize(string baseDirectory, ref FixedArrayStream stream, CacheReadStrings strings)
         {
-            byte chartTypeIndex = (byte) stream.ReadByte();
-            if (chartTypeIndex >= CHART_FILE_TYPES.Length)
-            {
-                return null;
-            }
-
-            var chart = CHART_FILE_TYPES[chartTypeIndex];
-            var chartInfo = AbridgedFileInfo.TryParseInfo(Path.Combine(directory, chart.Filename), stream);
-            if (chartInfo == null)
+            string directory = Path.Combine(baseDirectory, stream.ReadString());
+            ref readonly var chart = ref CHART_FILE_TYPES[stream.ReadByte()];
+            var chartLastWrite = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
+            if (!AbridgedFileInfo.Validate(Path.Combine(directory, chart.Filename), chartLastWrite))
             {
                 return null;
             }
 
             string iniFile = Path.Combine(directory, "song.ini");
-            AbridgedFileInfo? iniInfo = null;
+            DateTime? iniLastWrite = default;
             if (stream.ReadBoolean())
             {
-                iniInfo = AbridgedFileInfo.TryParseInfo(iniFile, stream);
-                if (iniInfo == null)
+                iniLastWrite = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
+                if (!AbridgedFileInfo.Validate(iniFile, iniLastWrite.Value))
                 {
                     return null;
                 }
@@ -323,21 +253,21 @@ namespace YARG.Core.Song
             {
                 return null;
             }
-            return new UnpackedIniEntry(directory, chartInfo.Value, chart.Format, in iniInfo, stream, strings);
+
+            var entry = new UnpackedIniEntry(directory, in chartLastWrite, in iniLastWrite, chart.Format);
+            entry.Deserialize(ref stream, strings);
+            return entry;
         }
 
-        public static UnpackedIniEntry? IniFromCache_Quick(string directory, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
+        public static UnpackedIniEntry ForceDeserialize(string baseDirectory, ref FixedArrayStream stream, CacheReadStrings strings)
         {
-            byte chartTypeIndex = (byte) stream.ReadByte();
-            if (chartTypeIndex >= CHART_FILE_TYPES.Length)
-            {
-                return null;
-            }
-
-            var chart = CHART_FILE_TYPES[chartTypeIndex];
-            var chartInfo = new AbridgedFileInfo(Path.Combine(directory, chart.Filename), stream);
-            AbridgedFileInfo? iniInfo = stream.ReadBoolean() ? new AbridgedFileInfo(Path.Combine(directory, "song.ini"), stream) : null;
-            return new UnpackedIniEntry(directory, chartInfo, chart.Format, in iniInfo, stream, strings);
+            string directory = Path.Combine(baseDirectory, stream.ReadString());
+            ref readonly var chart = ref CHART_FILE_TYPES[stream.ReadByte()];
+            var chartLastWrite = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
+            DateTime? iniLastWrite = stream.ReadBoolean() ? DateTime.FromBinary(stream.Read<long>(Endianness.Little)) : default;
+            var entry = new UnpackedIniEntry(directory, in chartLastWrite, in iniLastWrite, chart.Format);
+            entry.Deserialize(ref stream, strings);
+            return entry;
         }
     }
 }

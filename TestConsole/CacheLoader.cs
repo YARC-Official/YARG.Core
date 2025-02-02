@@ -34,8 +34,6 @@ namespace YARG.TestConsole
                 tryQuickScan: false,
                 SongCachePath,
                 BadSongsPath,
-                MULTITHREADING,
-                ALLOW_DUPLICATES,
                 FULL_DIRECTORY_PATHS,
                 songDirectories
             ));
@@ -76,7 +74,7 @@ namespace YARG.TestConsole
             {
                 foreach (var entry in node)
                 {
-                    if (entry is UnpackedIniEntry iniEntry && iniEntry.Location == directory)
+                    if (entry is UnpackedIniEntry iniEntry && iniEntry.SortBasedLocation == directory)
                         return entry;
                 }
             }
@@ -91,7 +89,7 @@ namespace YARG.TestConsole
             {
                 foreach (var entry in node)
                 {
-                    if (entry is SngEntry sngEntry && sngEntry.Location == filePath)
+                    if (entry is SngEntry sngEntry && sngEntry.SortBasedLocation == filePath)
                         return entry;
                 }
             }

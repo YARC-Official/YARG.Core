@@ -7,12 +7,12 @@ namespace YARG.Core.Song
 {
     public abstract partial class SongEntry
     {
-        protected static (ScanResult Result, long Resolution) ParseMidi(in FixedArray<byte> file, DrumPreparseHandler drums, ref AvailableParts parts)
+        protected static ScanExpected<long> ParseMidi(in FixedArray<byte> file, ref AvailableParts parts, ref DrumsType drumsType)
         {
             var midiFile = new YARGMidiFile(in file);
             if (midiFile.Resolution == 0)
             {
-                return (ScanResult.InvalidResolution, 0);
+                return new ScanUnexpected(ScanResult.InvalidResolution);
             }
 
             bool harm2 = false;
@@ -21,7 +21,7 @@ namespace YARG.Core.Song
             {
                 if (!track.FindTrackName(out var trackname))
                 {
-                    return (ScanResult.MultipleMidiTrackNames, 0);
+                    return new ScanUnexpected(ScanResult.MultipleMidiTrackNames);
                 }
 
                 if (!YARGMidiTrack.TRACKNAMES.TryGetValue(trackname.GetString(Encoding.ASCII), out var type))
@@ -74,7 +74,7 @@ namespace YARG.Core.Song
                     parts.HarmonyVocals.ActivateSubtrack(2);
                 }
             }
-            return (ScanResult.Success, midiFile.Resolution);
+            return midiFile.Resolution;
         }
 
         protected static void FinalizeDrums(ref AvailableParts parts, DrumsType drumsType)
