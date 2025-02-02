@@ -217,38 +217,35 @@ namespace YARG.Core.IO
             return true;
         }
 
-        public static readonly Dictionary<string, IniModifierCreator> CHART_MODIFIERS = new()
         {
-            { "Album",        new("album", ModifierType.SortString_Chart) },
-            { "Artist",       new("artist", ModifierType.SortString_Chart) },
-            { "Charter",      new("charter", ModifierType.SortString_Chart) },
+        public static readonly Dictionary<string, IniModifierOutline> CHART_MODIFIERS = new()
+        {
+            { "Album",        new("album", ModifierType.String) },
+            { "Artist",       new("artist", ModifierType.String) },
+            { "Charter",      new("charter", ModifierType.String) },
             { "Difficulty",   new("diff_band", ModifierType.Int32) },
-            { "Genre",        new("genre", ModifierType.SortString_Chart) },
-            { "Name",         new("name", ModifierType.SortString_Chart) },
-            { "Offset",       new("delay_chart", ModifierType.Double) },
-            { "PreviewEnd",   new("previewEnd_chart", ModifierType.Double) },
-            { "PreviewStart", new("previewStart_chart", ModifierType.Double) },
+            { "Genre",        new("genre", ModifierType.String) },
+            { "Name",         new("name", ModifierType.String) },
+            { "Offset",       new("delay_seconds", ModifierType.Double) },
+            { "PreviewEnd",   new("preview_end_seconds", ModifierType.Double) },
+            { "PreviewStart", new("preview_start_seconds", ModifierType.Double) },
             { "Resolution",   new("Resolution", ModifierType.Int64) },
-            { "Year",         new("year_chart", ModifierType.String_Chart) },
+            { "Year",         new("year_chart", ModifierType.String) },
         };
 
-        public unsafe static Dictionary<string, List<IniModifier>> ExtractModifiers<TChar>(ref YARGTextContainer<TChar> container)
+        public static unsafe IniModifierCollection ExtractModifiers<TChar>(ref YARGTextContainer<TChar> container)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {
-            Dictionary<string, List<IniModifier>> modifiers = new();
+            IniModifierCollection collection = new();
             while (IsStillCurrentTrack(ref container))
             {
                 string name = YARGTextReader.ExtractModifierName(ref container);
-                if (CHART_MODIFIERS.TryGetValue(name, out var node))
+                if (CHART_MODIFIERS.TryGetValue(name, out var outline))
                 {
-                    var mod = node.CreateModifier(ref container);
-                    if (modifiers.TryGetValue(node.OutputName, out var list))
-                        list.Add(mod);
-                    else
-                        modifiers.Add(node.OutputName, new() { mod });
+                    collection.Add(ref container, outline, true);
                 }
             }
-            return modifiers;
+            return collection;
         }
     }
 }

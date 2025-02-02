@@ -505,52 +505,52 @@ namespace YARG.Core.Song
                 }
             }
 
-            if (modifiers.TryGet("diff_guitar", out intensity))
+            if (modifiers.Extract("diff_guitar", out intensity))
             {
                 parts.ProGuitar_22Fret.Intensity = parts.ProGuitar_17Fret.Intensity = parts.FiveFretGuitar.Intensity = (sbyte) intensity;
             }
 
-            if (modifiers.TryGet("diff_bass", out intensity))
+            if (modifiers.Extract("diff_bass", out intensity))
             {
                 parts.ProBass_22Fret.Intensity = parts.ProBass_17Fret.Intensity = parts.FiveFretBass.Intensity = (sbyte) intensity;
             }
 
-            if (modifiers.TryGet("diff_rhythm", out intensity))
+            if (modifiers.Extract("diff_rhythm", out intensity))
             {
                 parts.FiveFretRhythm.Intensity = (sbyte) intensity;
             }
 
-            if (modifiers.TryGet("diff_guitar_coop", out intensity))
+            if (modifiers.Extract("diff_guitar_coop", out intensity))
             {
                 parts.FiveFretCoopGuitar.Intensity = (sbyte) intensity;
             }
 
-            if (modifiers.TryGet("diff_guitarghl", out intensity))
+            if (modifiers.Extract("diff_guitarghl", out intensity))
             {
                 parts.SixFretGuitar.Intensity = (sbyte) intensity;
             }
 
-            if (modifiers.TryGet("diff_bassghl", out intensity))
+            if (modifiers.Extract("diff_bassghl", out intensity))
             {
                 parts.SixFretBass.Intensity = (sbyte) intensity;
             }
 
-            if (modifiers.TryGet("diff_rhythm_ghl", out intensity))
+            if (modifiers.Extract("diff_rhythm_ghl", out intensity))
             {
                 parts.SixFretRhythm.Intensity = (sbyte) intensity;
             }
 
-            if (modifiers.TryGet("diff_guitar_coop_ghl", out intensity))
+            if (modifiers.Extract("diff_guitar_coop_ghl", out intensity))
             {
                 parts.SixFretCoopGuitar.Intensity = (sbyte) intensity;
             }
 
-            if (modifiers.TryGet("diff_keys", out intensity))
+            if (modifiers.Extract("diff_keys", out intensity))
             {
                 parts.ProKeys.Intensity = parts.Keys.Intensity = (sbyte) intensity;
             }
 
-            if (modifiers.TryGet("diff_drums", out intensity))
+            if (modifiers.Extract("diff_drums", out intensity))
             {
                 parts.FourLaneDrums.Intensity = (sbyte) intensity;
                 parts.ProDrums.Intensity = (sbyte) intensity;
@@ -558,7 +558,7 @@ namespace YARG.Core.Song
                 parts.EliteDrums.Intensity = (sbyte) intensity;
             }
 
-            if (modifiers.TryGet("diff_drums_real", out intensity) && intensity != -1)
+            if (modifiers.Extract("diff_drums_real", out intensity) && intensity != -1)
             {
                 parts.ProDrums.Intensity = (sbyte) intensity;
                 parts.EliteDrums.Intensity = (sbyte) intensity;
@@ -568,7 +568,7 @@ namespace YARG.Core.Song
                 }
             }
 
-            if (modifiers.TryGet("diff_guitar_real", out intensity) && intensity != -1)
+            if (modifiers.Extract("diff_guitar_real", out intensity) && intensity != -1)
             {
                 parts.ProGuitar_22Fret.Intensity = parts.ProGuitar_17Fret.Intensity = (sbyte) intensity;
                 if (parts.FiveFretGuitar.Intensity == -1)
@@ -577,7 +577,7 @@ namespace YARG.Core.Song
                 }
             }
 
-            if (modifiers.TryGet("diff_bass_real", out intensity) && intensity != -1)
+            if (modifiers.Extract("diff_bass_real", out intensity) && intensity != -1)
             {
                 parts.ProBass_22Fret.Intensity = parts.ProBass_17Fret.Intensity = (sbyte) intensity;
                 if (parts.FiveFretBass.Intensity == -1)
@@ -586,7 +586,7 @@ namespace YARG.Core.Song
                 }
             }
 
-            if (modifiers.TryGet("diff_guitar_real_22", out intensity) && intensity != -1)
+            if (modifiers.Extract("diff_guitar_real_22", out intensity) && intensity != -1)
             {
                 parts.ProGuitar_22Fret.Intensity = (sbyte) intensity;
                 if (parts.ProGuitar_17Fret.Intensity == -1)
@@ -600,7 +600,7 @@ namespace YARG.Core.Song
                 }
             }
 
-            if (modifiers.TryGet("diff_bass_real_22", out intensity) && intensity != -1)
+            if (modifiers.Extract("diff_bass_real_22", out intensity) && intensity != -1)
             {
                 parts.ProBass_22Fret.Intensity = (sbyte) intensity;
                 if (parts.ProBass_17Fret.Intensity == -1)
@@ -614,7 +614,7 @@ namespace YARG.Core.Song
                 }
             }
 
-            if (modifiers.TryGet("diff_keys_real", out intensity) && intensity != -1)
+            if (modifiers.Extract("diff_keys_real", out intensity) && intensity != -1)
             {
                 parts.ProKeys.Intensity = (sbyte) intensity;
                 if (parts.Keys.Intensity == -1)
@@ -623,12 +623,12 @@ namespace YARG.Core.Song
                 }
             }
 
-            if (modifiers.TryGet("diff_vocals", out intensity))
+            if (modifiers.Extract("diff_vocals", out intensity))
             {
                 parts.HarmonyVocals.Intensity = parts.LeadVocals.Intensity = (sbyte) intensity;
             }
 
-            if (modifiers.TryGet("diff_vocals_harm", out intensity) && intensity != -1)
+            if (modifiers.Extract("diff_vocals_harm", out intensity) && intensity != -1)
             {
                 parts.HarmonyVocals.Intensity = (sbyte) intensity;
                 if (parts.LeadVocals.Intensity == -1)
