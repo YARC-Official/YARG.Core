@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
+using System.Numerics;
 using System.Runtime.InteropServices;
 
 namespace YARG.Core.IO
@@ -90,7 +91,12 @@ namespace YARG.Core.IO
         /// <summary>
         /// A indisposable default instance with a null pointer
         /// </summary>
-        public static readonly FixedArray<T> Null = new(null, 0);
+        public static readonly FixedArray<T> Null = new()
+        {
+            _handle = IntPtr.Zero,
+            _ptr = null,
+            _length = 0,
+        };
 
         /// <summary>
         /// Allocates a uninitialized buffer of data
@@ -99,8 +105,31 @@ namespace YARG.Core.IO
         /// <returns>The instance carrying the empty buffer</returns>
         public static FixedArray<T> Alloc(long numElements)
         {
-            var ptr = (T*) Marshal.AllocHGlobal((IntPtr) (numElements * sizeof(T)));
-            return new FixedArray<T>(ptr, numElements);
+            var handle = Marshal.AllocHGlobal((IntPtr) (numElements * sizeof(T)));
+            return new FixedArray<T>()
+            {
+                _handle = handle,
+                _ptr = (T*) handle,
+                _length = numElements,
+            };
+        }
+
+        private static readonly int OVER_ALLOCATION = sizeof(Vector<byte>) - 1;
+        public static FixedArray<T> AllocVectorAligned(long numElements)
+        {
+            var handle = Marshal.AllocHGlobal((IntPtr) (numElements * sizeof(T) + OVER_ALLOCATION));
+            long adjustment = handle.ToInt64() & OVER_ALLOCATION;
+            if (adjustment > 0)
+            {
+                adjustment = sizeof(Vector<byte>) - adjustment;
+            }
+
+            return new FixedArray<T>()
+            {
+                _handle = handle,
+                _ptr = (T*) ((byte*)handle + adjustment),
+                _length = numElements,
+            };
         }
 
         /// <summary>
@@ -124,13 +153,15 @@ namespace YARG.Core.IO
                 throw new ArgumentOutOfRangeException(nameof(numElements));
             }
 
-            return new FixedArray<T>((T*) (source.Ptr + offset), numElements)
+            return new FixedArray<T>()
             {
-                _owned = false
+                _handle = IntPtr.Zero,
+                _ptr = (T*) (source.Ptr + offset),
+                _length = numElements,
             };
         }
 
-        private bool _owned;
+        private IntPtr _handle;
         private T* _ptr;
         private long _length;
 
@@ -162,13 +193,6 @@ namespace YARG.Core.IO
 
         public readonly Span<T> Span => new(Ptr, (int) Length);
 
-        private FixedArray(T* ptr, long length)
-        {
-            _ptr = ptr;
-            _length = length;
-            _owned = ptr != null;
-        }
-
         public readonly Span<T> Slice(long offset, long count)
         {
             if (offset < 0 || offset + count > _length)
@@ -195,8 +219,14 @@ namespace YARG.Core.IO
         /// <returns>The instance that takes responsibilty over disposing of the buffer</returns>
         public FixedArray<T> TransferOwnership()
         {
-            _owned = false;
-            return new FixedArray<T>(_ptr, _length);
+            var handle = _handle;
+            _handle = IntPtr.Zero;
+            return new FixedArray<T>()
+            {
+                _handle = handle,
+                _ptr = _ptr,
+                _length = _length
+            };
         }
 
         /// <summary>
@@ -223,7 +253,7 @@ namespace YARG.Core.IO
 
         public void Resize(int numElements)
         {
-            if (!_owned)
+            if (_handle == IntPtr.Zero)
             {
                 throw new InvalidOperationException("Can not resize an unowned array");
             }
@@ -234,10 +264,10 @@ namespace YARG.Core.IO
 
         public void Dispose()
         {
-            if (_owned)
+            if (_handle != IntPtr.Zero)
             {
                 Marshal.FreeHGlobal(IntPtr);
-                _owned = false;
+                _handle = IntPtr.Zero;
             }
         }
     }
