@@ -386,7 +386,7 @@ namespace YARG.Core.Replays.Analyzer
             FormatStat("Remaining ticks", original.StarPowerTickAmount, result.StarPowerTickAmount);
             FormatStat("Ticks from whammy", original.StarPowerWhammyTicks, result.StarPowerWhammyTicks);
             FormatStat("Time in SP", original.TimeInStarPower, result.TimeInStarPower);
-            // FormatStat("Activation count", original.StarPowerActivationCount, result.StarPowerActivationCount);
+            FormatStat("Activation count", original.StarPowerActivationCount, result.StarPowerActivationCount);
             // FormatStat("Total bars filled", original.TotalStarPowerBarsFilled, result.TotalStarPowerBarsFilled);
             FormatStat("Ended with SP active", original.IsStarPowerActive, result.IsStarPowerActive);
 
@@ -416,10 +416,11 @@ namespace YARG.Core.Replays.Analyzer
                 original.StarPowerPhrasesMissed == result.StarPowerPhrasesMissed &&
                 original.IsStarPowerActive == result.IsStarPowerActive &&
                 original.StarPowerTickAmount == result.StarPowerTickAmount &&
+                original.TotalStarPowerTicks == result.TotalStarPowerTicks &&
                 original.StarPowerWhammyTicks == result.StarPowerWhammyTicks &&
                 original.TimeInStarPower == result.TimeInStarPower &&
-                // original.StarPowerActivationCount == result.StarPowerActivationCount &&
-                // original.TotalStarPowerBarsFilled == result.TotalStarPowerBarsFilled &&
+                original.StarPowerActivationCount == result.StarPowerActivationCount &&
+                //original.TotalStarPowerBarsFilled == result.TotalStarPowerBarsFilled &&
                 original.IsStarPowerActive == result.IsStarPowerActive;
 
             bool generalPass = scoringPass && performancePass && spPass;

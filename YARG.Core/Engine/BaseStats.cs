@@ -220,6 +220,7 @@ namespace YARG.Core.Engine
             TotalStarPowerTicks = stream.Read<uint>(Endianness.Little);
             TimeInStarPower = stream.Read<double>(Endianness.Little);
             StarPowerWhammyTicks = stream.Read<uint>(Endianness.Little);
+            StarPowerActivationCount = stream.Read<int>(Endianness.Little);
             IsStarPowerActive = stream.ReadBoolean();
 
             StarPowerPhrasesHit = stream.Read<int>(Endianness.Little);
@@ -282,6 +283,7 @@ namespace YARG.Core.Engine
             writer.Write(TotalStarPowerTicks);
             writer.Write(TimeInStarPower);
             writer.Write(StarPowerWhammyTicks);
+            writer.Write(StarPowerActivationCount);
             writer.Write(IsStarPowerActive);
 
             writer.Write(StarPowerPhrasesHit);
