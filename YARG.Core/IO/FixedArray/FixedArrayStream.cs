@@ -80,7 +80,7 @@ namespace YARG.Core.IO
             {
                 throw new ArgumentOutOfRangeException("count");
             }
-            Unsafe.CopyBlockUnaligned(pos, _data + _position, (uint)count);
+            Unsafe.CopyBlock(pos, _data + _position, (uint)count);
             _position += count;
         }
 
