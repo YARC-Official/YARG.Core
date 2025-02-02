@@ -126,21 +126,21 @@ namespace YARG.Core.Song
             var results = default((ScanResult result, long resolution));
             if (format == ChartFormat.Chart)
             {
-                if (YARGTextReader.IsUTF8(in file, out var byteContainer))
+                if (YARGTextReader.TryUTF8(file, out var byteContainer))
                 {
                     results = ParseDotChart(ref byteContainer, modifiers, ref parts, drums);
                 }
                 else
                 {
-                    using var chars = YARGTextReader.ConvertToUTF16(in file, out var charContainer);
+                    using var chars = YARGTextReader.TryUTF16Cast(in file);
                     if (chars.IsAllocated)
                     {
-                        results = ParseDotChart(ref charContainer, modifiers, ref parts, drums);
+                        var charContainer = YARGTextReader.CreateUTF16Container(in chars);
                     }
                     else
                     {
-                        using var ints = YARGTextReader.ConvertToUTF32(in file, out var intContainer);
-                        results = ParseDotChart(ref intContainer, modifiers, ref parts, drums);
+                        using var ints = YARGTextReader.CastUTF32(in file);
+                        var intContainer = YARGTextReader.CreateUTF32Container(in ints);
                     }
                 }
             }
@@ -302,7 +302,7 @@ namespace YARG.Core.Song
             if (YARGChartFileReader.ValidateTrack(ref container, YARGChartFileReader.HEADERTRACK))
             {
                 var chartMods = YARGChartFileReader.ExtractModifiers(ref container);
-                if (chartMods.Remove("Resolution", out var resolutions))
+                if (chartMods.Extract("Resolution", out long res))
                 {
                     unsafe
                     {
@@ -314,17 +314,14 @@ namespace YARG.Core.Song
                         }
                     }
                 }
-                modifiers.Append(chartMods);
+                modifiers.Union(chartMods);
             }
 
             while (YARGChartFileReader.IsStartOfTrack(in container))
             {
                 if (!TraverseChartTrack(ref container, drums, ref parts))
                 {
-                    if (YARGTextReader.SkipLinesUntil(ref container, TextConstants<TChar>.CLOSE_BRACE))
-                    {
-                        YARGTextReader.GotoNextLine(ref container);
-                    }
+                    YARGChartFileReader.SkipToNextTrack(ref container);
                 }
             }
 
