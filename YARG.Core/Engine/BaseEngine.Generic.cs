@@ -206,65 +206,87 @@ namespace YARG.Core.Engine
 
                 if (ActiveSustains.Count > 0)
                 {
-                    var syncIndex = CurrentSyncIndex;
-                    var currentSync = CurrentSyncTrackState;
-
                     double maxTime = Math.Min(StarPowerWhammyTimer.EndTime, nextTime);
 
-                    for (int i = syncIndex; i < SyncTrackChanges.Count; i++)
+                    // Get the Sync change where the max time occurs
+                    int maxSpTickSync = CurrentSyncIndex;
+                    int nextMaxSpTickSync = CurrentSyncIndex + 1;
+
+                    while (nextMaxSpTickSync < SyncTrackChanges.Count && maxTime >= SyncTrackChanges[nextMaxSpTickSync].Time)
                     {
-                        if (i + 1 < SyncTrackChanges.Count && SyncTrackChanges[i + 1].Time <= maxTime)
-                        {
-                            syncIndex = i;
-                            currentSync = SyncTrackChanges[i];
-                            break;
-                        }
+                        maxSpTickSync++;
+                        nextMaxSpTickSync++;
                     }
 
-                    uint maxSpTick = GetStarPowerDrainTimeToTicks(maxTime, currentSync);
+                    // Get the max SP tick to the maxTime
+                    uint maxSpTick = GetStarPowerDrainTimeToTicks(maxTime, SyncTrackChanges[maxSpTickSync]);
 
-                    uint lastChartTick = SyncTrack.TimeToTick(previousTime);
+                    uint lastChartTick = CurrentTick;
                     uint lastSpTick = StarPowerTickPosition;
 
                     int spTickAmount = (int) BaseStats.StarPowerTickAmount;
 
+                    int syncIndex = CurrentSyncIndex;
+                    int nextSyncIndex = CurrentSyncIndex + 1;
+
                     for(uint spTick = StarPowerTickPosition + 1; spTick <= maxSpTick; spTick++)
                     {
-                        var time = GetStarPowerDrainTickToTime(spTick, currentSync);
-                        uint chartTick = SyncTrack.TimeToTick(time);
-
-                        if (syncIndex + 1 < SyncTrackChanges.Count && SyncTrackChanges[syncIndex + 1].Time <= time)
+                        // Get the Sync change where this SP tick occurs
+                        while (nextSyncIndex < SyncTrackChanges.Count && spTick >= StarPowerTempoTsTicks[nextSyncIndex])
                         {
                             syncIndex++;
-                            currentSync = SyncTrackChanges[syncIndex];
+                            nextSyncIndex++;
                         }
 
+                        // Time of this SP tick
+                        var time = GetStarPowerDrainTickToTime(spTick, SyncTrackChanges[syncIndex]);
+                        var newSpTick = GetStarPowerDrainTimeToTicks(time, SyncTrackChanges[syncIndex]);
+
+                        // TODO fix this SP tick round trip error.
+                        // syncIndex is sometimes 1 too many but DrainTickToTime accounts for it with a binary search
+                        // TimeToTicks does not and gets the wrong tick using the incorrect sync
+                        if (spTick != newSpTick)
+                        {
+                            YargLogger.LogFormatDebug("Round trip error: {0} -> {1}", spTick, newSpTick);
+                        }
+                        if (time > nextTime)
+                        {
+                            YargLogger.LogFormatDebug("Time exceeds next frame time: {0}. nextTime: {1}", time, nextTime);
+                        }
+
+                        uint chartTick = SyncTrack.TimeToTick(time);
+
+                        // Simulate whammy ticks
                         uint whammyGain = chartTick - lastChartTick;
-                        uint spDrain = spTick - lastSpTick;
 
                         spTickAmount += (int) whammyGain;
 
                         if (BaseStats.IsStarPowerActive)
                         {
+                            // Simulate SP drain
+                            uint spDrain = spTick - lastSpTick;
+
                             spTickAmount -= (int) spDrain;
 
+                            // Check if the ticks the player would have drops to zero or less
                             if (spTickAmount <= 0)
                             {
                                 // Do we modify the engine state or just queue an update?
                                 // Below it will check the end time anyway and queue an update
                                 YargLogger.LogFormatDebug("Simulated SP gain/drain and found an end time at {0}", time);
 
-                                StarPowerTickEndPosition = spTick;
-                                StarPowerEndTime = time;
+                                QueueUpdateTime(time, "SP End Time");
                                 break;
                             }
                         }
 
+                        // If the ticks exceed a full bar, they are capped and this needs to be synchronised
                         if(spTickAmount > TicksPerFullSpBar)
                         {
                             spTickAmount = (int) TicksPerFullSpBar;
                             YargLogger.LogFormatTrace("Simulated SP gain/drain and found a full SP bar at {0}", time);
                             QueueUpdateTime(time, "SP Bar Cap Time");
+                            break;
                         }
 
                         lastChartTick = chartTick;

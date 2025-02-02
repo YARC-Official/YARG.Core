@@ -60,9 +60,9 @@ namespace YARG.Core.Engine
 
         protected readonly List<SyncTrackChange> SyncTrackChanges = new();
 
-        private readonly List<EngineFrameUpdate> _scheduledUpdates = new();
+        protected readonly List<double> StarPowerTempoTsTicks = new();
 
-        private readonly List<double> _starPowerTempoTsTicks = new();
+        private readonly List<EngineFrameUpdate> _scheduledUpdates = new();
 
         public int NoteIndex { get; protected set; }
 
@@ -178,7 +178,7 @@ namespace YARG.Core.Engine
                 }
             }
 
-            _starPowerTempoTsTicks.Add(0);
+            StarPowerTempoTsTicks.Add(0);
             for (int i = 1; i < SyncTrackChanges.Count; i++)
             {
                 var change = SyncTrackChanges[i];
@@ -191,7 +191,7 @@ namespace YARG.Core.Engine
 
                 // Calculate the number of star power ticks that occur during this tempo
                 var starPowerTicks = GetStarPowerDrainPeriodToTicks(deltaTime, tempo!, ts!);
-                _starPowerTempoTsTicks.Add(_starPowerTempoTsTicks[^1] + starPowerTicks);
+                StarPowerTempoTsTicks.Add(StarPowerTempoTsTicks[^1] + starPowerTicks);
             }
 
             CurrentSyncIndex = 0;
@@ -579,6 +579,7 @@ namespace YARG.Core.Engine
             var seconds = tempo.SecondsPerBeat * drainFactor;
             var beats = period / seconds;
 
+            return Math.Round(beats * Resolution, 6);
             return beats * Resolution;
         }
 
@@ -602,8 +603,12 @@ namespace YARG.Core.Engine
 
             // Ticks can only go up to 2^32, which double can handle precisely to 6 decimal places.
             // This is why the result is rounded to 6 decimal places, then truncated to an integer.
-            return (uint) Math.Round(GetStarPowerDrainPeriodToTicks(time - change.Time, tempo, ts) +
-                _starPowerTempoTsTicks[change.Index], 6);
+            double ticks = GetStarPowerDrainPeriodToTicks(time - change.Time, tempo, ts) +
+                StarPowerTempoTsTicks[change.Index];
+
+            ticks = Math.Round(ticks, 6);
+
+            return (uint) ticks;
         }
 
         protected double GetStarPowerDrainTickToTime(uint starPowerTick, SyncTrackChange currentSync)
@@ -616,9 +621,9 @@ namespace YARG.Core.Engine
             //
             // return change.Time + offset;
 
-            var syncSpTick = _starPowerTempoTsTicks[currentSync.Index];
+            var syncSpTick = StarPowerTempoTsTicks[currentSync.Index];
 
-            int high = _starPowerTempoTsTicks.Count - 1;
+            int high = StarPowerTempoTsTicks.Count - 1;
             int low = 0;
             if (starPowerTick < syncSpTick)
             {
@@ -632,7 +637,7 @@ namespace YARG.Core.Engine
             while (low < high)
             {
                 int mid = (low + high) / 2;
-                if (_starPowerTempoTsTicks[mid] < starPowerTick)
+                if (StarPowerTempoTsTicks[mid] < starPowerTick)
                 {
                     low = mid + 1;
                 }
@@ -643,7 +648,7 @@ namespace YARG.Core.Engine
             }
 
             // Get the change that the star power tick is in
-            if (low < _starPowerTempoTsTicks.Count - 1)
+            if (low < StarPowerTempoTsTicks.Count - 1)
             {
                 low--;
             }
@@ -652,7 +657,7 @@ namespace YARG.Core.Engine
             var tempo = change.Tempo;
             var ts = change.TimeSignature;
 
-            var offset = GetStarPowerDrainTicksToPeriod(starPowerTick - _starPowerTempoTsTicks[change.Index], tempo, ts);
+            var offset = GetStarPowerDrainTicksToPeriod(starPowerTick - StarPowerTempoTsTicks[change.Index], tempo, ts);
 
             return change.Time + offset;
         }
