@@ -19,16 +19,12 @@ namespace YARG.Core.Song
             bool harm3 = false;
             foreach (var track in midiFile)
             {
-                if (midiFile.TrackNumber == 1)
-                    continue;
-
-                var trackname = track.FindTrackName(Encoding.ASCII);
-                if (trackname == null)
+                if (!track.FindTrackName(out var trackname))
                 {
                     return (ScanResult.MultipleMidiTrackNames, 0);
                 }
 
-                if (!YARGMidiTrack.TRACKNAMES.TryGetValue(trackname, out var type))
+                if (!YARGMidiTrack.TRACKNAMES.TryGetValue(trackname.GetString(Encoding.ASCII), out var type))
                 {
                     continue;
                 }

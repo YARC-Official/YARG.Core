@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 
 namespace YARG.Core.IO
 {
-    public unsafe struct YARGMidiTrack
+    public struct YARGMidiTrack
     {
         public static readonly Dictionary<string, MidiTrackType> TRACKNAMES = new()
         {
@@ -52,45 +52,53 @@ namespace YARG.Core.IO
             public long Length;
         }
 
-        private readonly byte* _end;
-        private byte* _trackPosition;
-        private byte* _eventPosition;
+        private readonly unsafe byte* _data;
+        private readonly long _length;
+        private long _trackPosition;
+        private long _eventPosition;
         
         private long _tickPosition;
         private long _eventLength;
         private RunningEvent _running;
 
-        public ReadOnlySpan<byte> ExtractTextOrSysEx()
+        public readonly unsafe TextSpan ExtractTextOrSysEx()
         {
-            return new ReadOnlySpan<byte>(_eventPosition, (int) _eventLength);
+            return new TextSpan()
+            {
+                ptr = _data + _eventPosition,
+                length = _eventLength,
+            };
         }
 
-        public void ExtractMidiNote(ref MidiNote note)
+        public readonly void ExtractMidiNote(ref MidiNote note)
         {
-            note = *(MidiNote*)_eventPosition;
+            unsafe
+            {
+                note = *(MidiNote*) (_data + _eventPosition);
+            }
         }
 
-        public YARGMidiTrack(byte* data, long length)
+        public unsafe YARGMidiTrack(byte* data, long length)
         {
-            _end = data + length;
-            _trackPosition = data;
-            _eventPosition = null;
+            _data = data;
+            _length = length;
+            _trackPosition = 0;
+            _eventPosition = 0;
             _tickPosition = 0;
             _eventLength = 0;
             _running = RunningEvent.Default;
         }
 
-        public bool FindTrackName(out ReadOnlySpan<byte> trackname)
+        public bool FindTrackName(out TextSpan trackname)
         {
-            trackname = ReadOnlySpan<byte>.Empty;
-            var start = _trackPosition;
+            trackname = TextSpan.Empty;
             var stats = default(Stats);
             while (ParseEvent(ref stats) && _tickPosition == 0)
             {
                 if (stats.Type == MidiEventType.Text_TrackName)
                 {
                     var ev = ExtractTextOrSysEx();
-                    if (!trackname.IsEmpty && !trackname.SequenceEqual(ev))
+                    if (!trackname.IsEmpty && !trackname.SequenceEqual(in ev))
                     {
                         return false;
                     }
@@ -98,7 +106,7 @@ namespace YARG.Core.IO
                 }
             }
 
-            _trackPosition = start;
+            _trackPosition = 0;
             _tickPosition = 0;
             _running.Type = MidiEventType.Reset_Or_Meta;
             return true;
@@ -117,13 +125,18 @@ namespace YARG.Core.IO
         public bool ParseEvent(ref Stats stats)
         {
             _tickPosition += ReadVLQ();
-            if (_trackPosition == _end)
+            if (_trackPosition == _length)
             {
                 throw new EndOfStreamException("End of midi track reached after VLQ");
             }
             stats.Position = _tickPosition;
 
-            byte tmp = *_trackPosition;
+            byte tmp;
+            unsafe
+            {
+                tmp = _data[_trackPosition];
+            }
+
             stats.Type = (MidiEventType) tmp;
             if (stats.Type < MidiEventType.Note_Off)
             {
@@ -156,12 +169,15 @@ namespace YARG.Core.IO
                     switch (stats.Type)
                     {
                         case MidiEventType.Reset_Or_Meta:
-                            if (_trackPosition >= _end)
+                            if (_trackPosition == _length)
                             {
                                 throw new EndOfStreamException("End of track reached during meta event parse");
                             }
 
-                            stats.Type = (MidiEventType) (*_trackPosition++);
+                            unsafe
+                            {
+                                stats.Type = (MidiEventType) _data[_trackPosition++];
+                            }
                             goto case MidiEventType.SysEx_End;
                         case MidiEventType.SysEx:
                         case MidiEventType.SysEx_End:
@@ -182,7 +198,7 @@ namespace YARG.Core.IO
 
             _eventPosition = _trackPosition;
             _trackPosition += _eventLength;
-            if (_trackPosition > _end)
+            if (_trackPosition > _length)
             {
                 throw new EndOfStreamException("Midi event stretches past end of track");
             }
@@ -203,12 +219,17 @@ namespace YARG.Core.IO
             uint value = 0;
             while (true)
             {
-                if (_trackPosition >= _end)
+                if (_trackPosition >= _length)
                 {
                     throw new EndOfStreamException();
                 }
 
-                uint curr = *_trackPosition++;
+                uint curr;
+                unsafe
+                {
+                    curr = _data[_trackPosition++];
+                }
+
                 value |= curr & VLQ_MASK;
                 if (curr < EXTENDED_VLQ_FLAG)
                 {
