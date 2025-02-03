@@ -1,14 +1,13 @@
 ﻿using System;
 using System.Text;
 using YARG.Core.IO;
-using static YARG.Core.IO.YARGMidiTrack;
 
 namespace YARG.Core.Song
 {
     /// <remarks>
     /// Note: also functions as the five lane Keys preparser
     /// </remarks>
-    public static class Midi_FiveFret_Preparser
+    internal static class Midi_FiveFret_Preparser
     {
         private const int FIVEFRET_MIN = 59;
         // Open note included
@@ -42,7 +41,7 @@ namespace YARG.Core.Song
             };
 
             var note = default(MidiNote);
-            var stats = default(Stats);
+            var stats = default(YARGMidiTrack.Stats);
             while (track.ParseEvent(ref stats))
             {
                 if (stats.Type is MidiEventType.Note_On or MidiEventType.Note_Off)

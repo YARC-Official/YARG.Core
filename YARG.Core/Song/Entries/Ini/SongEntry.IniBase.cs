@@ -30,7 +30,7 @@ namespace YARG.Core.Song
         }
     }
 
-    public abstract class IniSubEntry : SongEntry
+    internal abstract class IniSubEntry : SongEntry
     {
         public static readonly (string Filename, ChartFormat Format)[] CHART_FILE_TYPES =
         {
@@ -70,7 +70,7 @@ namespace YARG.Core.Song
 
         protected abstract FixedArray<byte> GetChartData(string filename);
 
-        public override void Serialize(MemoryStream stream, CacheWriteIndices indices)
+        internal override void Serialize(MemoryStream stream, CacheWriteIndices indices)
         {
             base.Serialize(stream, indices);
             stream.Write(_background);
@@ -319,6 +319,9 @@ namespace YARG.Core.Song
         {
             if (drumsType != DrumsType.FiveLane && modifiers.Extract("pro_drums", out bool proDrums))
             {
+                // We don't want to just immediately set the value to one of the other
+                // on the chance that we still need to test for FiveLane.
+                // We just know what the .ini explicitly tells us it *isn't*
                 if (proDrums)
                 {
                     drumsType -= DrumsType.FourLane;
@@ -358,6 +361,13 @@ namespace YARG.Core.Song
         {
             if (drumsType != DrumsType.FiveLane)
             {
+                // We don't want to just immediately set the value to one of the other
+                // on the chance that we still need to test for FiveLane.
+                // We just know what the .ini explicitly tells us it *isn't*.
+                //
+                // That being said, .chart differs in that FourLane is the default state.
+                // .mid's default is ProDrums, which is why we account for when the .ini does
+                // not contain the flag.
                 if (!modifiers.Extract("pro_drums", out bool proDrums) || proDrums)
                 {
                     drumsType -= DrumsType.FourLane;

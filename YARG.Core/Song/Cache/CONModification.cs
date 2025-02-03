@@ -1,7 +1,7 @@
 ﻿using System;
 using YARG.Core.IO;
 
-namespace YARG.Core.Song.Cache
+namespace YARG.Core.Song
 {
     internal class CONModification
     {

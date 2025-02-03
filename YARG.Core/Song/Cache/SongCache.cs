@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace YARG.Core.Song.Cache
+namespace YARG.Core.Song
 {
     [Serializable]
     public sealed class SongCache

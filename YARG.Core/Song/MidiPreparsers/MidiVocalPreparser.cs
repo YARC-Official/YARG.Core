@@ -1,9 +1,8 @@
 ﻿using YARG.Core.IO;
-using static YARG.Core.IO.YARGMidiTrack;
 
 namespace YARG.Core.Song
 {
-    public static class Midi_Vocal_Preparser
+    internal static class Midi_Vocal_Preparser
     {
         private const int VOCAL_MIN = 36;
         private const int VOCAL_MAX = 84;
@@ -19,7 +18,7 @@ namespace YARG.Core.Song
             long percussionPosition = -1;
 
             var note = default(MidiNote);
-            var stats = default(Stats);
+            var stats = default(YARGMidiTrack.Stats);
             while (track.ParseEvent(ref stats))
             {
                 if (stats.Type is MidiEventType.Note_On or MidiEventType.Note_Off)

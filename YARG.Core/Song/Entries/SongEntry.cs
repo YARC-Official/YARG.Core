@@ -257,7 +257,7 @@ namespace YARG.Core.Song
 
         internal void MarkAsDuplicate() { _isDuplicate = true; }
 
-        public virtual void Serialize(MemoryStream stream, CacheWriteIndices node)
+        internal virtual void Serialize(MemoryStream stream, CacheWriteIndices node)
         {
             _hash.Serialize(stream);
             unsafe
@@ -306,7 +306,7 @@ namespace YARG.Core.Song
 
         protected SongEntry() { }
 
-        protected void Deserialize(ref FixedArrayStream stream, CacheReadStrings strings)
+        private protected void Deserialize(ref FixedArrayStream stream, CacheReadStrings strings)
         {
             _hash = HashWrapper.Deserialize(ref stream);
             unsafe

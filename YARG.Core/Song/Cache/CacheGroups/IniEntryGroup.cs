@@ -4,7 +4,7 @@ using YARG.Core.Extensions;
 
 namespace YARG.Core.Song.Cache
 {
-    public sealed class IniEntryGroup : IEntryGroup
+    internal sealed class IniEntryGroup : IEntryGroup
     {
         private readonly string _directory;
         private readonly List<UnpackedIniEntry> _unpacked = new();

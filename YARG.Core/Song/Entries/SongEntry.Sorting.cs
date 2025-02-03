@@ -191,7 +191,7 @@ namespace YARG.Core.Song
             &SortByPlaylist, &SortBySource, &SortByArtistAlbum, &SortByLength, &SortByDateAdded, &SortByInstruments
         };
 
-        public static void SortEntries(SongCache cache)
+        internal static void SortEntries(SongCache cache)
         {
             Parallel.For(0, SORTERS.Length, i =>
             {
@@ -465,7 +465,7 @@ namespace YARG.Core.Song
             &CollectCacheYears,  &CollectCacheCharters, &CollectCachePlaylists, &CollectCacheSources,
         };
 
-        public static void WriteCategoriesToCache(FileStream filestream, SongCache cache, Dictionary<SongEntry, CacheWriteIndices> nodes)
+        internal static void WriteCategoriesToCache(FileStream filestream, SongCache cache, Dictionary<SongEntry, CacheWriteIndices> nodes)
         {
             foreach (var list in cache.Entries)
             {

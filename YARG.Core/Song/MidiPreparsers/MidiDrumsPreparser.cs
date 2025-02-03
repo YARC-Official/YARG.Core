@@ -1,11 +1,10 @@
 ﻿using System;
 using YARG.Core.Chart;
 using YARG.Core.IO;
-using static YARG.Core.IO.YARGMidiTrack;
 
-namespace YARG.Core.Song.Preparsers
+namespace YARG.Core.Song
 {
-    public static class Midi_Drums_Preparser
+    internal static class Midi_Drums_Preparser
     {
         private static readonly int[] INDICES = new int[MidiPreparser_Constants.NUM_DIFFICULTIES * MidiPreparser_Constants.NOTES_PER_DIFFICULTY]
         {
@@ -28,7 +27,7 @@ namespace YARG.Core.Song.Preparsers
             var validations = DifficultyMask.None;
             int statusBitMask = 0;
             var note = default(MidiNote);
-            var stats = default(Stats);
+            var stats = default(YARGMidiTrack.Stats);
             while (track.ParseEvent(ref stats))
             {
                 if (stats.Type != MidiEventType.Note_On && stats.Type != MidiEventType.Note_Off)

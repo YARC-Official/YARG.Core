@@ -4,7 +4,7 @@ using YARG.Core.IO;
 
 namespace YARG.Core.Song
 {
-    public abstract class RBProUpgrade
+    internal abstract class RBProUpgrade
     {
         public abstract DateTime LastWriteTime { get; }
         public abstract FixedArray<byte> LoadUpgradeMidi();
@@ -17,7 +17,7 @@ namespace YARG.Core.Song
     }
 
     [Serializable]
-    public sealed class PackedRBProUpgrade : RBProUpgrade
+    internal sealed class PackedRBProUpgrade : RBProUpgrade
     {
         private readonly CONFileListing? _listing;
 
@@ -38,7 +38,7 @@ namespace YARG.Core.Song
     }
 
     [Serializable]
-    public sealed class UnpackedRBProUpgrade : RBProUpgrade
+    internal sealed class UnpackedRBProUpgrade : RBProUpgrade
     {
         private readonly string _name;
         private readonly DateTime _lastWritetime;

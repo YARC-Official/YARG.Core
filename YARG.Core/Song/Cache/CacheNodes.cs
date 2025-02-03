@@ -2,9 +2,9 @@
 using YARG.Core.Extensions;
 using YARG.Core.IO;
 
-namespace YARG.Core.Song.Cache
+namespace YARG.Core.Song
 {
-    public sealed class CacheWriteIndices
+    internal sealed class CacheWriteIndices
     {
         public int Title;
         public int Artist;
@@ -16,7 +16,7 @@ namespace YARG.Core.Song.Cache
         public int Source;
     }
 
-    public class CacheReadStrings
+    internal class CacheReadStrings
     {
         public const int NUM_CATEGORIES = 8;
 

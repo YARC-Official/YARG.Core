@@ -10,13 +10,13 @@ using YARG.Core.Venue;
 
 namespace YARG.Core.Song
 {
-    public sealed class SngEntry : IniSubEntry
+    internal sealed class SngEntry : IniSubEntry
     {
         private readonly uint _version;
 
         public override EntryType SubType => EntryType.Sng;
 
-        public override void Serialize(MemoryStream stream, CacheWriteIndices indices)
+        internal override void Serialize(MemoryStream stream, CacheWriteIndices indices)
         {
             // Validation block
             stream.Write(_chartLastWrite.ToBinary(), Endianness.Little);

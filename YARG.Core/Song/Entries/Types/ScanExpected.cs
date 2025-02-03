@@ -2,7 +2,7 @@
 
 namespace YARG.Core.Song
 {
-    public enum ScanResult
+    internal enum ScanResult
     {
         Success,
         DirectoryError,
@@ -31,7 +31,7 @@ namespace YARG.Core.Song
         LooseChart_Warning,
     }
 
-    public struct ScanUnexpected
+    internal struct ScanUnexpected
     {
         private ScanResult _error;
         public readonly ScanResult Error => _error;
@@ -42,7 +42,7 @@ namespace YARG.Core.Song
         }
     }
 
-    public struct ScanExpected<T>
+    internal struct ScanExpected<T>
     {
         private ScanResult _result;
         private T _value;

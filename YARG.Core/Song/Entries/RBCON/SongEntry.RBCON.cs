@@ -12,7 +12,7 @@ using YARG.Core.Logging;
 
 namespace YARG.Core.Song
 {
-    public struct RBScanParameters
+    internal struct RBScanParameters
     {
         public DTAEntry UpdateDta;
         public DTAEntry UpgradeDta;
@@ -35,7 +35,7 @@ namespace YARG.Core.Song
         protected string _subName = string.Empty;
         protected AbridgedFileInfo? _updateDirectoryAndDtaLastWrite;
         protected DateTime? _updateMidiLastWrite;
-        protected RBProUpgrade? _upgrade;
+        private protected RBProUpgrade? _upgrade;
 
         protected RBMetadata _rbMetadata = RBMetadata.Default;
         protected RBIntensities _rbIntensities = RBIntensities.Default;
@@ -65,7 +65,7 @@ namespace YARG.Core.Song
             return last_write;
         }
 
-        public override void Serialize(MemoryStream stream, CacheWriteIndices indices)
+        internal override void Serialize(MemoryStream stream, CacheWriteIndices indices)
         {
             base.Serialize(stream, indices);
             stream.Write(_yearAsNumber, Endianness.Little);
@@ -255,14 +255,14 @@ namespace YARG.Core.Song
             return LoadAudio(speed, 0, SongStem.Crowd);
         }
 
-        public void UpdateInfo(in AbridgedFileInfo? updateDirectory, in DateTime? updateMidi, RBProUpgrade? upgrade)
+        internal void UpdateInfo(in AbridgedFileInfo? updateDirectory, in DateTime? updateMidi, RBProUpgrade? upgrade)
         {
             _updateDirectoryAndDtaLastWrite = updateDirectory;
             _updateMidiLastWrite = updateMidi;
             _upgrade = upgrade;
         }
 
-        protected new void Deserialize(ref FixedArrayStream stream, CacheReadStrings strings)
+        private protected new void Deserialize(ref FixedArrayStream stream, CacheReadStrings strings)
         {
             base.Deserialize(ref stream, strings);
             _yearAsNumber = stream.Read<int>(Endianness.Little);
@@ -317,7 +317,7 @@ namespace YARG.Core.Song
         private static readonly int[] RealDrumsDiffMap = { 124, 151, 178, 242, 345, 448 };
         private static readonly int[] RealKeysDiffMap = { 153, 211, 269, 327, 385, 443 };
         private static readonly int[] HarmonyDiffMap = { 132, 175, 218, 279, 353, 427 };
-        protected static ScanExpected<string> ProcessDTAs(RBCONEntry entry, in DTAEntry baseDTA, in DTAEntry updateDTA, in DTAEntry upgradeDTA)
+        private protected static ScanExpected<string> ProcessDTAs(RBCONEntry entry, in DTAEntry baseDTA, in DTAEntry updateDTA, in DTAEntry upgradeDTA)
         {
             string? location = null;
             float[]? volumes = null;
@@ -493,7 +493,7 @@ namespace YARG.Core.Song
             return location;
         }
 
-        protected static ScanResult ScanMidis(RBCONEntry entry, in FixedArray<byte> mainMidi)
+        private protected static ScanResult ScanMidis(RBCONEntry entry, in FixedArray<byte> mainMidi)
         {
             var updateMidi = FixedArray<byte>.Null;
             var upgradeMidi = FixedArray<byte>.Null;

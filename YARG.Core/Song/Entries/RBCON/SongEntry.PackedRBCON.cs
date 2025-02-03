@@ -9,7 +9,7 @@ using YARG.Core.Logging;
 
 namespace YARG.Core.Song
 {
-    public sealed class PackedRBCONEntry : RBCONEntry
+    internal sealed class PackedRBCONEntry : RBCONEntry
     {
         private CONFileListing _midiListing;
         private CONFileListing? _moggListing;
@@ -22,7 +22,7 @@ namespace YARG.Core.Song
         public override string ActualLocation => _root.FullName;
         protected override DateTime MidiLastWriteTime => _root.LastWriteTime;
 
-        public override void Serialize(MemoryStream stream, CacheWriteIndices node)
+        internal override void Serialize(MemoryStream stream, CacheWriteIndices node)
         {
             stream.Write(_subName);
             base.Serialize(stream, node);

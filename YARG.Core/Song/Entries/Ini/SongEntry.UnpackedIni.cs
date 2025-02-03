@@ -12,13 +12,13 @@ using YARG.Core.Extensions;
 
 namespace YARG.Core.Song
 {
-    public sealed class UnpackedIniEntry : IniSubEntry
+    internal sealed class UnpackedIniEntry : IniSubEntry
     {
         private readonly DateTime? _iniLastWrite;
 
         public override EntryType SubType => EntryType.Ini;
 
-        public override void Serialize(MemoryStream stream, CacheWriteIndices node)
+        internal override void Serialize(MemoryStream stream, CacheWriteIndices node)
         {
             stream.WriteByte((byte) _chartFormat);
             stream.Write(_chartLastWrite.ToBinary(), Endianness.Little);

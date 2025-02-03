@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
 
-namespace YARG.Core.Song.Cache
+namespace YARG.Core.Song
 {
     internal unsafe struct CacheLoopable : IEnumerable<(FixedArrayStream Slice, int Index)>
     {

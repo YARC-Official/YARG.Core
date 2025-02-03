@@ -8,7 +8,7 @@ using YARG.Core.Logging;
 
 namespace YARG.Core.Song
 {
-    public sealed class UnpackedRBCONEntry : RBCONEntry
+    internal sealed class UnpackedRBCONEntry : RBCONEntry
     {
         private DateTime _midiLastWrite;
 
@@ -17,7 +17,7 @@ namespace YARG.Core.Song
         public override string ActualLocation => Path.Combine(_root.FullName, _subName);
         protected override DateTime MidiLastWriteTime => _midiLastWrite;
 
-        public override void Serialize(MemoryStream stream, CacheWriteIndices node)
+        internal override void Serialize(MemoryStream stream, CacheWriteIndices node)
         {
             stream.Write(_subName);
             stream.Write(_midiLastWrite.ToBinary(), Endianness.Little);
@@ -188,8 +188,7 @@ namespace YARG.Core.Song
         public static UnpackedRBCONEntry? TryDeserialize(in AbridgedFileInfo root, string nodeName, ref FixedArrayStream stream, CacheReadStrings strings)
         {
             string subname = stream.ReadString();
-            string songDirectory = Path.Combine(root.FullName, subname);
-            string midiPath = Path.Combine(songDirectory, subname + ".mid");
+            string midiPath = Path.Combine(root.FullName, subname, subname + ".mid");
             var midiInfo = new FileInfo(midiPath);
             if (!midiInfo.Exists)
             {

@@ -1,13 +1,12 @@
 ﻿using System.Text;
 using YARG.Core.Chart;
 using YARG.Core.IO;
-using YARG.Core.Song.Preparsers;
 
 namespace YARG.Core.Song
 {
     public abstract partial class SongEntry
     {
-        protected static ScanExpected<long> ParseMidi(in FixedArray<byte> file, ref AvailableParts parts, ref DrumsType drumsType)
+        private protected static ScanExpected<long> ParseMidi(in FixedArray<byte> file, ref AvailableParts parts, ref DrumsType drumsType)
         {
             var midiFile = new YARGMidiFile(in file);
             if (midiFile.Resolution == 0)

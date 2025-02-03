@@ -74,7 +74,7 @@ namespace YARG.TestConsole
             {
                 foreach (var entry in node)
                 {
-                    if (entry is UnpackedIniEntry iniEntry && iniEntry.SortBasedLocation == directory)
+                    if (entry.SubType == EntryType.Ini && entry.SortBasedLocation == directory)
                         return entry;
                 }
             }
@@ -89,7 +89,7 @@ namespace YARG.TestConsole
             {
                 foreach (var entry in node)
                 {
-                    if (entry is SngEntry sngEntry && sngEntry.SortBasedLocation == filePath)
+                    if (entry.SubType == EntryType.Sng && entry.SortBasedLocation == filePath)
                         return entry;
                 }
             }

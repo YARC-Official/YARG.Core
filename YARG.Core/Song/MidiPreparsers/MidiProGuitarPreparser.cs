@@ -1,9 +1,8 @@
 ﻿using YARG.Core.IO;
-using static YARG.Core.IO.YARGMidiTrack;
 
 namespace YARG.Core.Song
 {
-    public static class Midi_ProGuitar_Preparser
+    internal static class Midi_ProGuitar_Preparser
     {
         private const int NOTES_PER_DIFFICULTY = 24;
         private const int PROGUITAR_MAX = PROGUITAR_MIN + MidiPreparser_Constants.NUM_DIFFICULTIES * NOTES_PER_DIFFICULTY;
@@ -30,7 +29,7 @@ namespace YARG.Core.Song
             int statusBitMask = 0;
 
             var note = default(MidiNote);
-            var stats = default(Stats);
+            var stats = default(YARGMidiTrack.Stats);
             while (track.ParseEvent(ref stats))
             {
                 if (stats.Type is MidiEventType.Note_On or MidiEventType.Note_Off)
