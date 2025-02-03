@@ -743,7 +743,7 @@ namespace YARG.Core.Song
             }
             if (dta.Source != null)
             {
-                if (!entry._nodeName.StartsWith("UGC_") && (dta.Source == "ugc" || dta.Source == "ugc_plus" || (dta.Source == "rb2" && dta.UGC.HasValue && dta.UGC.Value)))
+                if (!entry._nodeName.StartsWith("UGC_", StringComparison.OrdinalIgnoreCase) && (dta.Source == "ugc" || dta.Source == "ugc_plus" || (dta.Source == "rb2" && dta.UGC.HasValue && dta.UGC.Value)))
                 {
                     entry._metadata.Source = "customs";
                 }
