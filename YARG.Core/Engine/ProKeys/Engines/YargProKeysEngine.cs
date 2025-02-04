@@ -327,16 +327,20 @@ namespace YARG.Core.Engine.ProKeys.Engines
 
             var note = Notes[NoteIndex];
 
-            if (time < note.Time)
-            {
-                return;
-            }
-
-            // Disables keys that are not in the current note
+            // Release keys that are not associated with an active sustain
             int key = 0;
             for (var mask = KeyMask; mask > 0; mask >>= 1)
             {
-                if ((mask & 1) == 1)
+                bool keySustained = false;
+                for (var i = 0; i < ActiveSustains.Count; i++)
+                {
+                    if (ActiveSustains[i].Note.Key == key)
+                    {
+                        keySustained = true;
+                        break;
+                    }
+                }
+                if ((mask & 1) == 1 && !keySustained)
                 {
                     MutateStateWithInput(new GameInput(note.Time, key, false));
                 }
@@ -344,6 +348,12 @@ namespace YARG.Core.Engine.ProKeys.Engines
                 key++;
             }
 
+            // TODO: Verify the above doesn't break when the gap between a sustain and the next note gets too small
+
+            if (time < note.Time)
+            {
+                return;
+            }
 
             // Press keys for current note
             foreach (var chordNote in note.AllNotes)
