@@ -331,7 +331,13 @@ namespace YARG.Core.Engine.ProKeys.Engines
             int key = 0;
             for (var mask = KeyMask; mask > 0; mask >>= 1)
             {
+                // If it is a sustain, we do not drop
                 bool keySustained = false;
+                // Don't drop keys if the last note was within 166ms
+                bool keyTooRecent = false;
+                // We do drop the key if the note we're processing is on this key
+                bool currentKey = false;
+
                 for (var i = 0; i < ActiveSustains.Count; i++)
                 {
                     if (ActiveSustains[i].Note.Key == key)
@@ -340,7 +346,14 @@ namespace YARG.Core.Engine.ProKeys.Engines
                         break;
                     }
                 }
-                if ((mask & 1) == 1 && !keySustained)
+
+                // C# does shortcut, right?
+                keyTooRecent = NoteIndex > 0 && Notes[NoteIndex - 1].Time > CurrentTime - 0.166f;
+
+                // TODO: Do child notes need to be checked here?
+                currentKey = time >= note.Time && note.Key == key;
+
+                if ((mask & 1) == 1 && ((!keySustained && !keyTooRecent) || currentKey))
                 {
                     MutateStateWithInput(new GameInput(note.Time, key, false));
                 }
