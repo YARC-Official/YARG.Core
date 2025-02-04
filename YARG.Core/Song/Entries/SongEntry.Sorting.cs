@@ -425,10 +425,9 @@ namespace YARG.Core.Song
             }
         }
 
-        private static readonly Instrument[] ALL_INSTRUMENTS = (Instrument[])Enum.GetValues(typeof(Instrument));
         private static void SortByInstruments(SongCache cache)
         {
-            Parallel.ForEach(ALL_INSTRUMENTS, instrument =>
+            Parallel.ForEach(EnumExtensions<Instrument>.Values, instrument =>
             {
                 SortedDictionary<int, List<SongEntry>>? intensities = null;
                 foreach (var list in cache.Entries)
