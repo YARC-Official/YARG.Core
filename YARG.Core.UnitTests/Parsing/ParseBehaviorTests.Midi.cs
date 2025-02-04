@@ -353,6 +353,13 @@ namespace YARG.Core.UnitTests.Parsing
                 {
                     GenerateNote(timedEvents, note, gameMode, difficulty, ref lastNoteTick);
                 }
+
+                // Fixup: except for Pro Keys, skip trills/tremolos below Expert
+                if (instrument != MoonInstrument.ProKeys && difficulty != Difficulty.Expert)
+                {
+                    notesChart.specialPhrases.RemoveAll((phrase) =>
+                        phrase.type is MoonPhrase.Type.TremoloLane or MoonPhrase.Type.TrillLane);
+                }
             }
 
             // Phrases and text events apply to all difficulties
