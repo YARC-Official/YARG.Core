@@ -398,7 +398,7 @@ namespace YARG.Core.UnitTests.Parsing
         {
             foreach (var text in events)
             {
-                song.events.Add(text.Clone());
+                song.Add(text.Clone());
             }
         }
 
@@ -415,17 +415,20 @@ namespace YARG.Core.UnitTests.Parsing
             var chart = song.GetChart(instrument, difficulty);
             foreach (var note in track.notes)
             {
-                chart.notes.Add(note.Clone());
+                chart.Add(note.Clone());
             }
 
             foreach (var phrase in track.specialPhrases)
             {
-                chart.specialPhrases.Add(phrase.Clone());
+                chart.Add(phrase.Clone());
             }
         }
 
         public static void VerifySong(MoonSong sourceSong, MoonSong parsedSong, IEnumerable<GameMode> supportedModes)
         {
+            sourceSong.Sort();
+            parsedSong.Sort();
+
             VerifyGlobal(sourceSong, parsedSong);
 
             foreach (var instrument in EnumExtensions<MoonInstrument>.Values)

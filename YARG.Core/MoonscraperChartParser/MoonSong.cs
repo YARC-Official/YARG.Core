@@ -223,6 +223,18 @@ namespace MoonscraperChartEditor.Song
             return MoonObjectHelper.Remove(venueEvent, venue);
         }
 
+        public void Sort()
+        {
+            events.Sort((left, right) => left.InsertionCompareTo(right));
+            sections.Sort((left, right) => left.InsertionCompareTo(right));
+            venue.Sort((left, right) => left.InsertionCompareTo(right));
+
+            foreach (var chart in charts)
+            {
+                chart.Sort();
+            }
+        }
+
         public double ResolutionScaleRatio(uint targetResoltion)
         {
             return (double)targetResoltion / resolution;
