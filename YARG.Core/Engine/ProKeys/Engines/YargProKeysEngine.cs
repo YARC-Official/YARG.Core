@@ -327,41 +327,58 @@ namespace YARG.Core.Engine.ProKeys.Engines
 
             var note = Notes[NoteIndex];
 
-            // Release keys that are not associated with an active sustain
+            // Release no longer needed keys
             int key = 0;
             for (var mask = KeyMask; mask > 0; mask >>= 1)
             {
                 // If it is a sustain, we do not drop
                 bool keySustained = false;
-                // Don't drop keys if the last note was within 166ms
+                // Don't drop keys if the note isn't over 166ms stale and no more than four have been played since
                 bool keyTooRecent = false;
                 // We do drop the key if the note we're processing is on this key
                 bool currentKey = false;
 
-                for (var i = 0; i < ActiveSustains.Count; i++)
+                foreach(var sustain in ActiveSustains)
                 {
-                    if (ActiveSustains[i].Note.Key == key)
+                    if (sustain.Note.Key == key)
                     {
                         keySustained = true;
                         break;
                     }
                 }
 
-                // C# does shortcut, right?
-                keyTooRecent = NoteIndex > 0 && Notes[NoteIndex - 1].Time > CurrentTime - 0.166f;
-
-                // TODO: Do child notes need to be checked here?
-                currentKey = time >= note.Time && note.Key == key;
-
-                if ((mask & 1) == 1 && ((!keySustained && !keyTooRecent) || currentKey))
+                if (!keySustained)
                 {
-                    MutateStateWithInput(new GameInput(note.Time, key, false));
+                    // Hold up to the last 4 notes and no more unless there's a sustain
+                    // it's a bot, not an octopus
+                    for (var i = NoteIndex - 1; i >= NoteIndex - 5 && i >= 0; i--)
+                    {
+                        if (Notes[i].Key == key && Notes[i].Time > CurrentTime - 0.166f)
+                        {
+                            keyTooRecent = true;
+                            break;
+                        }
+                        // We have to check children as well
+                        foreach (var childNote in Notes[i].ChildNotes)
+                        {
+                            if (childNote.Key == key && childNote.Time > CurrentTime - 0.166f)
+                            {
+                                keyTooRecent = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    currentKey = time >= note.Time && note.Key == key;
+
+                    if ((mask & 1) == 1 && ((!keySustained && !keyTooRecent) || currentKey))
+                    {
+                        MutateStateWithInput(new GameInput(note.Time, key, false));
+                    }
+
+                    key++;
                 }
-
-                key++;
             }
-
-            // TODO: Verify the above doesn't break when the gap between a sustain and the next note gets too small
 
             if (time < note.Time)
             {
