@@ -45,7 +45,7 @@ namespace YARG.Core.Song
             {
                 return _group - other._group;
             }
-            return _sortStr.CompareTo(other._sortStr);
+            return string.CompareOrdinal(_sortStr, other._sortStr);
         }
 
         public static implicit operator string(in SortString str) => str.Original;
