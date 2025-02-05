@@ -7,6 +7,11 @@ namespace YARG.Core.Engine.ProKeys.Engines
 {
     public class YargProKeysEngine : ProKeysEngine
     {
+        // This seems like a dupe of KeyPressTimes, but it is different.
+        // Having something that only gets updated on a press input (not release) and never
+        // gets messed with by hit logic drastically simplifies the bot.
+        private double[] _keyPressedTimes = new double[(int)ProKeysAction.Key25 + 1];
+
         public YargProKeysEngine(InstrumentDifficulty<ProKeysNote> chart, SyncTrack syncTrack,
             ProKeysEngineParameters engineParameters, bool isBot) : base(chart, syncTrack, engineParameters, isBot)
         {
@@ -29,6 +34,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                 if (gameInput.Button)
                 {
                     KeyHit = (int) action;
+                    _keyPressedTimes[(int) action] = gameInput.Time;
                 }
                 else
                 {
@@ -320,64 +326,83 @@ namespace YARG.Core.Engine.ProKeys.Engines
 
         protected override void UpdateBot(double time)
         {
-            if (!IsBot || NoteIndex >= Notes.Count)
+            float        botNoteHoldTime = NoteIndex >= Notes.Count ? 1.66f : 0.166f;
+            ProKeysNote? note = null;
+
+            if (!IsBot)
             {
                 return;
             }
 
-            var note = Notes[NoteIndex];
+            if (NoteIndex < Notes.Count)
+            {
+                note = Notes[NoteIndex];
+            }
 
             // Release no longer needed keys
             int key = 0;
             for (var mask = KeyMask; mask > 0; mask >>= 1)
             {
-                // If it is a sustain, we do not drop
-                bool keySustained = false;
-                // Don't drop keys if the note isn't over 166ms stale and no more than four have been played since
-                bool keyTooRecent = false;
-                // We do drop the key if the note we're processing is on this key
-                bool currentKey = false;
+                // Keys are not released if they are part of an active sustain
+                // or were pressed less than botNoteHoldTime in the past,
+                // unless the key is going to be pressed again this update
+                // or it is the next key to be pressed and half of the time
+                // between press and next press has already elapsed
+                bool keyProtected = false;
+                bool currentKey;
 
-                foreach(var sustain in ActiveSustains)
+                if (note is not null)
                 {
-                    if (sustain.Note.Key == key)
-                    {
-                        keySustained = true;
-                        break;
-                    }
+                    currentKey = time >= note.Time && note.Key == key;
+                }
+                else
+                {
+                    currentKey = false;
                 }
 
-                if (!keySustained)
+                if (!currentKey)
                 {
-                    // Hold up to the last 4 notes and no more unless there's a sustain
-                    // it's a bot, not an octopus
-                    for (var i = NoteIndex - 1; i >= NoteIndex - 5 && i >= 0; i--)
+                    foreach (var sustain in ActiveSustains)
                     {
-                        if (Notes[i].Key == key && Notes[i].Time > CurrentTime - 0.166f)
+                        if (sustain.Note.Key == key)
                         {
-                            keyTooRecent = true;
+                            keyProtected = true;
                             break;
                         }
-                        // We have to check children as well
-                        foreach (var childNote in Notes[i].ChildNotes)
+                    }
+
+                    if (_keyPressedTimes[key] > time - botNoteHoldTime)
+                    {
+                        keyProtected = true;
+
+                        // Release the key if the next note is on this key and
+                        // half of the time between press and the next note has elapsed
+                        if (note is not null)
                         {
-                            if (childNote.Key == key && childNote.Time > CurrentTime - 0.166f)
+                            foreach (var chordNote in note.AllNotes)
                             {
-                                keyTooRecent = true;
-                                break;
+                                if (chordNote.Key == key && chordNote.Time - time < time - _keyPressedTimes[key])
+                                {
+                                    keyProtected = false;
+                                    break;
+                                }
                             }
                         }
                     }
-
-                    currentKey = time >= note.Time && note.Key == key;
-
-                    if ((mask & 1) == 1 && ((!keySustained && !keyTooRecent) || currentKey))
-                    {
-                        MutateStateWithInput(new GameInput(note.Time, key, false));
-                    }
-
-                    key++;
                 }
+
+                if ((mask & 1) == 1 && (!keyProtected || currentKey))
+                {
+                    MutateStateWithInput(new GameInput(time, key, false));
+                }
+
+                key++;
+            }
+
+
+            if (NoteIndex >= Notes.Count)
+            {
+                return;
             }
 
             if (time < note.Time)
