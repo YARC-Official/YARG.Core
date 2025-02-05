@@ -401,11 +401,11 @@ namespace MoonscraperChartEditor.Song.IO
                         // Check for section events
                         if (TextEvents.TryParseSectionEvent(eventText, out var sectionName))
                         {
-                            song.sections.Add(new MoonText(sectionName.ToString(), tick));
+                            song.AddSection(new MoonText(sectionName.ToString(), tick));
                         }
                         else
                         {
-                            song.events.Add(new MoonText(eventText.ToString(), tick));
+                            song.AddText(new MoonText(eventText.ToString(), tick));
                         }
                     }
                     else
@@ -518,7 +518,7 @@ namespace MoonscraperChartEditor.Song.IO
                             case 'E':
                             {
                                 var eventText = TextEvents.NormalizeTextEvent(remaining.TrimOnce('"'));
-                                chart.events.Add(new MoonText(eventText.ToString(), tick));
+                                chart.Add(new MoonText(eventText.ToString(), tick));
                                 break;
                             }
 
@@ -573,7 +573,7 @@ namespace MoonscraperChartEditor.Song.IO
             uint sus = noteEvent.length;
 
             var newPhrase = new MoonPhrase(tick, sus, type);
-            chart.specialPhrases.Add(newPhrase);
+            chart.Add(newPhrase);
         }
 
         private static void ProcessNoteOnEventAsChordFlag(ref NoteProcessParams noteProcessParams,

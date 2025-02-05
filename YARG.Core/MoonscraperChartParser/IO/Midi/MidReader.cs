@@ -271,11 +271,11 @@ namespace MoonscraperChartEditor.Song.IO
                     // Check for section events
                     if (TextEvents.TryParseSectionEvent(eventText, out var sectionName))
                     {
-                        song.sections.Add(new MoonText(sectionName.ToString(), (uint)absoluteTime));
+                        song.InsertSection(new MoonText(sectionName.ToString(), (uint)absoluteTime));
                     }
                     else
                     {
-                        song.events.Add(new MoonText(eventText.ToString(), (uint)absoluteTime));
+                        song.InsertText(new MoonText(eventText.ToString(), (uint)absoluteTime));
                     }
                 }
             }
@@ -296,14 +296,14 @@ namespace MoonscraperChartEditor.Song.IO
                 if (MidIOHelper.IsTextEvent(trackEvent, out var text) && !text.Text.Contains('['))
                 {
                     string lyricEvent = TextEvents.LYRIC_PREFIX_WITH_SPACE + text.Text;
-                    song.events.Add(new MoonText(lyricEvent, (uint)absoluteTime));
+                    song.InsertText(new MoonText(lyricEvent, (uint)absoluteTime));
                 }
                 else if (trackEvent is NoteEvent note && (byte)note.NoteNumber is MidIOHelper.LYRICS_PHRASE_1 or MidIOHelper.LYRICS_PHRASE_2)
                 {
                     if (note.EventType == MidiEventType.NoteOn)
-                        song.events.Add(new MoonText(TextEvents.LYRIC_PHRASE_START, (uint)absoluteTime));
+                        song.InsertText(new MoonText(TextEvents.LYRIC_PHRASE_START, (uint)absoluteTime));
                     else if (note.EventType == MidiEventType.NoteOff)
-                        song.events.Add(new MoonText(TextEvents.LYRIC_PHRASE_END, (uint)absoluteTime));
+                        song.InsertText(new MoonText(TextEvents.LYRIC_PHRASE_END, (uint)absoluteTime));
                 }
             }
         }
@@ -348,7 +348,11 @@ namespace MoonscraperChartEditor.Song.IO
                             continue;
 
                         // Add the event
-                        song.venue.Add(new MoonVenue(eventData.type, eventData.text, (uint)startTick, (uint)(startTick - absoluteTime)));
+                        // Must be inserted due to potentially being out of ascending order
+                        MoonObjectHelper.OrderedInsertFromBack(
+                            new MoonVenue(eventData.type, eventData.text, (uint)startTick, (uint)(absoluteTime - startTick)),
+                            song.venue
+                        );
                     }
                 }
                 else if (MidIOHelper.IsTextEvent(trackEvent, out var text))
@@ -358,7 +362,7 @@ namespace MoonscraperChartEditor.Song.IO
                     // Get new representation of the event
                     if (VenueLookup.VENUE_TEXT_CONVERSION_LOOKUP.TryGetValue(eventText, out var eventData))
                     {
-                        song.venue.Add(new MoonVenue(eventData.type, eventData.text, (uint)absoluteTime));
+                        song.Add(new MoonVenue(eventData.type, eventData.text, (uint)absoluteTime));
                     }
                     else
                     {
@@ -378,13 +382,13 @@ namespace MoonscraperChartEditor.Song.IO
                             }
 
                             matched = true;
-                            song.venue.Add(new MoonVenue(type, converted, (uint)absoluteTime));
+                            song.Add(new MoonVenue(type, converted, (uint)absoluteTime));
                             break;
                         }
 
                         // Unknown events
                         if (!matched)
-                            song.venue.Add(new MoonVenue(VenueLookup.Type.Unknown, eventText, (uint)absoluteTime));
+                            song.Add(new MoonVenue(VenueLookup.Type.Unknown, eventText, (uint)absoluteTime));
                     }
                 }
             }
@@ -540,7 +544,7 @@ namespace MoonscraperChartEditor.Song.IO
             // Copy text event to all difficulties
             foreach (var difficulty in EnumExtensions<MoonSong.Difficulty>.Values)
             {
-                processParams.song.GetChart(processParams.instrument, difficulty).events.Add(new MoonText(eventText, tick));
+                processParams.song.GetChart(processParams.instrument, difficulty).Add(new MoonText(eventText, tick));
             }
         }
 
