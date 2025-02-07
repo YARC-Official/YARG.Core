@@ -18,6 +18,7 @@ namespace YARG.Core.IO
         public static readonly YARGImage Null = new()
         {
             _handle = FixedArray<byte>.Null,
+            _data = null,
             _width = 0,
             _height = 0,
             _format = 0,
@@ -43,21 +44,15 @@ namespace YARG.Core.IO
 
         public static unsafe YARGImage Load(in FixedArray<byte> file)
         {
-            int x, y, comp;
-
+            int comp;
+            var image = Null;
             var context = new StbImage.stbi__context(file.Ptr, file.Length);
-            if (!StbImage.stbi__load_and_postprocess_8bit(&context, &x, &y, &comp, out var result))
+            if (StbImage.stbi__load_and_postprocess_8bit(&context, &image._width, &image._height, &comp, out image._handle))
             {
-                return Null;
+                image._data = image._handle.Ptr;
+                image._format = (ImageFormat) comp;
             }
-            return new YARGImage()
-            {
-                _handle = result.TransferOwnership(),
-                _data = result.Ptr,
-                _width = x,
-                _height = y,
-                _format = (ImageFormat) comp
-            };
+            return image;
         }
 
         public static YARGImage LoadDXT(string path)
