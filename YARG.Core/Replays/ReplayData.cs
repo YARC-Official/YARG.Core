@@ -16,13 +16,16 @@ namespace YARG.Core.Replays
         private readonly Dictionary<Guid, CameraPreset> _cameraPresets;
         public readonly ReplayFrame[] Frames;
 
+        public readonly double[] FrameTimes;
+
         public int PlayerCount => Frames.Length;
 
-        public ReplayData(Dictionary<Guid, ColorProfile> colors, Dictionary<Guid, CameraPreset> cameras, ReplayFrame[] frames)
+        public ReplayData(Dictionary<Guid, ColorProfile> colors, Dictionary<Guid, CameraPreset> cameras, ReplayFrame[] frames, double[] frameTimes)
         {
             _colorProfiles = colors;
             _cameraPresets = cameras;
             Frames = frames;
+            FrameTimes = frameTimes;
         }
 
         public ReplayData(FixedArrayStream stream, int version)
@@ -36,6 +39,13 @@ namespace YARG.Core.Replays
             for (int i = 0; i != count; i++)
             {
                 Frames[i] = new ReplayFrame(ref stream, version);
+            }
+
+            int frameCount = stream.Read<int>(Endianness.Little);
+            FrameTimes = new double[frameCount];
+            for (int i = 0; i < frameCount; i++)
+            {
+                FrameTimes[i] = stream.Read<double>(Endianness.Little);
             }
         }
 
@@ -54,6 +64,13 @@ namespace YARG.Core.Replays
             {
                 frame.Serialize(writer);
             }
+
+            writer.Write(FrameTimes.Length);
+            foreach (var time in FrameTimes)
+            {
+                writer.Write(time);
+            }
+
             return new ReadOnlySpan<byte>(stream.GetBuffer(), 0, (int) stream.Length);
         }
 

@@ -16,9 +16,10 @@ public partial class Cli
 
         // Analyze replay
 
-        Console.WriteLine("Analyzing replay...");
+        Console.WriteLine($"Analyzing replay {(_framesPerSecond > 0 ? $"at {_framesPerSecond}" : "")}...");
 
         var results = ReplayAnalyzer.AnalyzeReplay(chart, _replayInfo, _replayData);
+        var results = ReplayAnalyzer.AnalyzeReplay(chart, _replayInfo, _replayData, _framesPerSecond, _frameIndex);
 
         Console.WriteLine("Done!\n");
 
