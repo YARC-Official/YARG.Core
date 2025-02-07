@@ -47,7 +47,7 @@ namespace YARG.Core.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly string GetString(Encoding encoding)
         {
-            return encoding.GetString(ptr, (int)length);
+            return ptr != null ? encoding.GetString(ptr, (int)length) : string.Empty;
         }
 
         public readonly bool StartsWith(in ReadOnlySpan<byte> str)
