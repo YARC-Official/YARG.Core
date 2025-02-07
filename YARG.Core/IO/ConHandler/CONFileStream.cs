@@ -20,8 +20,8 @@ namespace YARG.Core.IO
         private readonly FileStream _filestream;
         private readonly long _length;
         private readonly long _initialOffset;
-        private readonly FixedArray<byte> _dataBuffer;
-        private readonly FixedArray<long> _blockLocations;
+        private FixedArray<byte> _dataBuffer;
+        private FixedArray<long> _blockLocations;
 
         private long _bufferPosition;
         private long _position;
