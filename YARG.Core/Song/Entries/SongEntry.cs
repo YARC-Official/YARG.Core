@@ -117,6 +117,8 @@ namespace YARG.Core.Song
 
         public int PlaylistTrack => _metadata.PlaylistTrack;
 
+        public SongRating SongRating => _metadata.SongRating;
+
         public string LoadingPhrase => _metadata.LoadingPhrase;
         
         public string CreditWrittenBy => _metadata.CreditWrittenBy;
