@@ -16,8 +16,6 @@ namespace Hebron.Runtime
 		{
 			var ptr = Marshal.AllocHGlobal((int)size);
 
-			MemoryStats.Allocated();
-
 			return ptr.ToPointer();
 		}
 
@@ -28,7 +26,6 @@ namespace Hebron.Runtime
 
 			var ptr = new IntPtr(a);
 			Marshal.FreeHGlobal(ptr);
-			MemoryStats.Freed();
 		}
 
 		public static void memcpy(void* a, void* b, long size)
@@ -39,41 +36,6 @@ namespace Hebron.Runtime
 		public static void memcpy(void* a, void* b, ulong size)
 		{
 			memcpy(a, b, (long)size);
-		}
-
-		public static void memmove(void* a, void* b, long size)
-		{
-			void* temp = null;
-
-			try
-			{
-				temp = malloc(size);
-				memcpy(temp, b, size);
-				memcpy(a, temp, size);
-			}
-
-			finally
-			{
-				if (temp != null)
-					free(temp);
-			}
-		}
-
-		public static int memcmp(void* a, void* b, long size)
-		{
-			var result = 0;
-			var ap = (byte*)a;
-			var bp = (byte*)b;
-			for (long i = 0; i < size; ++i)
-			{
-				if (*ap != *bp)
-					result += 1;
-
-				ap++;
-				bp++;
-			}
-
-			return result;
 		}
 
 		public static void memset(void* ptr, int value, long size)
