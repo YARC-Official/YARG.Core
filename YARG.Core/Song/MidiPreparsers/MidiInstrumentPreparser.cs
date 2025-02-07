@@ -1,6 +1,6 @@
 ﻿namespace YARG.Core.Song
 {
-    public static class MidiPreparser_Constants
+    internal static class MidiPreparser_Constants
     {
         public const DifficultyMask ALL_DIFFICULTIES = DifficultyMask.Easy | DifficultyMask.Medium | DifficultyMask.Hard | DifficultyMask.Expert;
         public const DifficultyMask ALL_DIFFICULTIES_PLUS = ALL_DIFFICULTIES | DifficultyMask.ExpertPlus;

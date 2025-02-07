@@ -64,8 +64,6 @@ namespace YARG.Core.Song
 
         public PartValues ProKeys;
 
-        // private PartValues DJ;
-
         public PartValues LeadVocals;
         public PartValues HarmonyVocals;
     }

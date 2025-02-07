@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using YARG.Core.Extensions;
+using YARG.Core.IO;
 using YARG.Core.Replays;
 
 namespace YARG.Core.Engine
@@ -179,7 +180,7 @@ namespace YARG.Core.Engine
             Stars = stats.Stars;
         }
 
-        protected BaseStats(UnmanagedMemoryStream stream, int version)
+        protected BaseStats(ref FixedArrayStream stream, int version)
         {
             CommittedScore = stream.Read<int>(Endianness.Little);
             PendingScore = stream.Read<int>(Endianness.Little);

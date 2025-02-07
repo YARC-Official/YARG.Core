@@ -31,33 +31,33 @@ namespace YARG.Core.Replays
             Inputs = inputs;
         }
 
-        public ReplayFrame(UnmanagedMemoryStream stream, int version)
+        public ReplayFrame(ref FixedArrayStream stream, int version)
         {
-            if (!FRAME_TAG.Matches(stream))
+            if (!FRAME_TAG.Matches(ref stream))
             {
                 throw new Exception("RPFM tag not found");
             }
 
-            Profile = new YargProfile(stream);
+            Profile = new YargProfile(ref stream);
             switch (Profile.CurrentInstrument.ToGameMode())
             {
                 case GameMode.FiveFretGuitar:
                 case GameMode.SixFretGuitar:
-                    EngineParameters = new GuitarEngineParameters(stream, version);
-                    Stats = new GuitarStats(stream, version);
+                    EngineParameters = new GuitarEngineParameters(ref stream, version);
+                    Stats = new GuitarStats(ref stream, version);
                     break;
                 case GameMode.FourLaneDrums:
                 case GameMode.FiveLaneDrums:
-                    EngineParameters = new DrumsEngineParameters(stream, version);
-                    Stats = new DrumsStats(stream, version);
+                    EngineParameters = new DrumsEngineParameters(ref stream, version);
+                    Stats = new DrumsStats(ref stream, version);
                     break;
                 case GameMode.Vocals:
-                    EngineParameters = new VocalsEngineParameters(stream, version);
-                    Stats = new VocalsStats(stream, version);
+                    EngineParameters = new VocalsEngineParameters(ref stream, version);
+                    Stats = new VocalsStats(ref stream, version);
                     break;
                 case GameMode.ProKeys:
-                    EngineParameters = new ProKeysEngineParameters(stream, version);
-                    Stats = new ProKeysStats(stream, version);
+                    EngineParameters = new ProKeysEngineParameters(ref stream, version);
+                    Stats = new ProKeysStats(ref stream, version);
                     break;
                 default:
                     throw new InvalidOperationException("Stat creation not implemented.");

@@ -2,7 +2,7 @@
 
 namespace YARG.Core.Song
 {
-    public static class Midi_EliteDrums_Preparser
+    internal static class Midi_EliteDrums_Preparser
     {
         private const int ELITE_NOTES_PER_DIFFICULTY = 24;
         private const int NUM_LANES = 11;
@@ -14,9 +14,10 @@ namespace YARG.Core.Song
             long statusBitMask = 0;
 
             var note = default(MidiNote);
-            while (track.ParseEvent())
+            var stats = default(YARGMidiTrack.Stats);
+            while (track.ParseEvent(ref stats))
             {
-                if (track.Type is MidiEventType.Note_On or MidiEventType.Note_Off)
+                if (stats.Type is MidiEventType.Note_On or MidiEventType.Note_Off)
                 {
                     track.ExtractMidiNote(ref note);
                     // Minimum is 0, so no minimum check required
@@ -35,7 +36,7 @@ namespace YARG.Core.Song
 
                     long statusMask = 1L << (diffIndex * NUM_LANES + laneIndex);
                     // Note Ons with no velocity equates to a note Off by spec
-                    if (track.Type == MidiEventType.Note_On && note.velocity > 0)
+                    if (stats.Type == MidiEventType.Note_On && note.velocity > 0)
                     {
                         statusBitMask |= statusMask;
                     }

@@ -4,6 +4,7 @@ using System.IO;
 using System.Text;
 using YARG.Core.Engine.ProKeys;
 using YARG.Core.Extensions;
+using YARG.Core.IO;
 
 namespace YARG.Core.Replays
 {
@@ -26,8 +27,8 @@ namespace YARG.Core.Replays
             PercentageHit = 100.0f * NumNotesHit / TotalNotes;
         }
 
-        public ProKeysReplayStats(UnmanagedMemoryStream stream, int version)
-            : base(stream, version)
+        public ProKeysReplayStats(ref FixedArrayStream stream, int version)
+            : base(ref stream, version)
         {
             TotalNotes = stream.Read<int>(Endianness.Little);
             NumNotesHit = stream.Read<int>(Endianness.Little);

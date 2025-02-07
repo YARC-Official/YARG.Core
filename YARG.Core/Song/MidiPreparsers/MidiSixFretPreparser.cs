@@ -2,7 +2,7 @@
 
 namespace YARG.Core.Song
 {
-    public static class Midi_SixFret_Preparser
+    internal static class Midi_SixFret_Preparser
     {
         private const int SIXFRET_MIN = 58;
         private const int SIXFRET_MAX = 103;
@@ -24,9 +24,10 @@ namespace YARG.Core.Song
             int statusBitMask = 0;
 
             var note = default(MidiNote);
-            while (track.ParseEvent())
+            var stats = default(YARGMidiTrack.Stats);
+            while (track.ParseEvent(ref stats))
             {
-                if (track.Type is MidiEventType.Note_On or MidiEventType.Note_Off)
+                if (stats.Type is MidiEventType.Note_On or MidiEventType.Note_Off)
                 {
                     track.ExtractMidiNote(ref note);
                     if (note.value < SIXFRET_MIN || note.value > SIXFRET_MAX)
@@ -45,7 +46,7 @@ namespace YARG.Core.Song
 
                     int statusMask = 1 << (diffIndex * NUM_LANES + laneIndex);
                     // Note Ons with no velocity equates to a note Off by spec
-                    if (track.Type == MidiEventType.Note_On && note.velocity > 0)
+                    if (stats.Type == MidiEventType.Note_On && note.velocity > 0)
                     {
                         statusBitMask |= statusMask;
                     }

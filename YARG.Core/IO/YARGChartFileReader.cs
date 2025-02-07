@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using YARG.Core.Extensions;
 using YARG.Core.IO.Ini;
 
@@ -80,15 +78,42 @@ namespace YARG.Core.IO
         public static bool IsStartOfTrack<TChar>(in YARGTextContainer<TChar> container)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {
-            return !container.IsAtEnd() && container.IsCurrentCharacter('[');
+            return !container.IsAtEnd() && container.Get() == '[';
+        }
+
+        public static bool IsStillCurrentTrack<TChar>(ref YARGTextContainer<TChar> container)
+            where TChar : unmanaged, IEquatable<TChar>, IConvertible
+        {
+            YARGTextReader.GotoNextLine(ref container);
+            if (container.IsAtEnd())
+            {
+                return false;
+            }
+
+            if (container.Get() == '}')
+            {
+                YARGTextReader.GotoNextLine(ref container);
+                return false;
+            }
+            return true;
+        }
+
+        public static void SkipToNextTrack<TChar>(ref YARGTextContainer<TChar> container)
+            where TChar : unmanaged, IEquatable<TChar>, IConvertible
+        {
+            if (YARGTextReader.SkipLinesUntil(ref container, TextConstants<TChar>.CLOSE_BRACE))
+            {
+                YARGTextReader.GotoNextLine(ref container);
+            }
         }
 
         public static bool ValidateTrack<TChar>(ref YARGTextContainer<TChar> container, string track)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {
             if (!DoesStringMatch(ref container, track))
+            {
                 return false;
-
+            }
             YARGTextReader.GotoNextLine(ref container);
             return true;
         }
@@ -98,7 +123,7 @@ namespace YARG.Core.IO
         {
             if (ValidateDifficulty(ref container, out difficulty))
             {
-                foreach (var (name, inst) in YARGChartFileReader.NOTETRACKS)
+                foreach (var (name, inst) in NOTETRACKS)
                 {
                     if (ValidateTrack(ref container, name))
                     {
@@ -111,12 +136,123 @@ namespace YARG.Core.IO
             return false;
         }
 
-        private static unsafe bool ValidateDifficulty<TChar>(ref YARGTextContainer<TChar> container, out Difficulty difficulty)
+        public static bool TryParseEvent<TChar>(ref YARGTextContainer<TChar> container, ref DotChartEvent ev)
+            where TChar : unmanaged, IEquatable<TChar>, IConvertible
+        {
+            if (!IsStillCurrentTrack(ref container))
+            {
+                return false;
+            }
+
+            if (!YARGTextReader.TryExtract(ref container, out long position))
+            {
+                throw new Exception("Could not parse event position");
+            }
+
+            if (position < ev.Position)
+            {
+                throw new Exception($".chart position out of order (previous: {ev.Position})");
+            }
+
+            ev.Position = position;
+            YARGTextReader.SkipWhitespaceAndEquals(ref container);
+
+            int length = 0;
+            while (container.Position + length < container.Length)
+            {
+                int c = container[length];
+                if (c < 'A' || 'Z' < c)
+                {
+                    break;
+                }
+                ++length;
+            }
+
+            ev.Type = ChartEventType.Unknown;
+            foreach (var (descriptor, type) in EVENTS)
+            {
+                if (length == descriptor.Length)
+                {
+                    int index = 0;
+                    while (index < length && container[index] == descriptor[index])
+                    {
+                        ++index;
+                    }
+
+                    if (index == descriptor.Length)
+                    {
+                        ev.Type = type;
+                        break;
+                    }
+                }
+            }
+
+            container.Position += length;
+            if (ev.Type != ChartEventType.Unknown)
+            {
+                YARGTextReader.SkipWhitespace(ref container);
+            }
+            return true;
+        }
+
+        public static TNumber Extract<TChar, TNumber>(ref YARGTextContainer<TChar> text)
+            where TChar : unmanaged, IConvertible
+            where TNumber : unmanaged, IComparable, IComparable<TNumber>, IConvertible, IEquatable<TNumber>, IFormattable
+        {
+            if (!YARGTextReader.TryExtract(ref text, out TNumber value))
+            {
+                throw new Exception("Could not extract " + typeof(TNumber).Name);
+            }
+            return value;
+        }
+
+        public static TNumber ExtractWithWhitespace<TChar, TNumber>(ref YARGTextContainer<TChar> text)
+            where TChar : unmanaged, IConvertible
+            where TNumber : unmanaged, IComparable, IComparable<TNumber>, IConvertible, IEquatable<TNumber>, IFormattable
+        {
+            if (!YARGTextReader.TryExtractWithWhitespace(ref text, out TNumber value))
+            {
+                throw new Exception("Could not extract " + typeof(TNumber).Name);
+            }
+            return value;
+        }
+
+        public static readonly Dictionary<string, IniModifierOutline> CHART_MODIFIERS = new()
+        {
+            { "Album",        new("album", ModifierType.String) },
+            { "Artist",       new("artist", ModifierType.String) },
+            { "Charter",      new("charter", ModifierType.String) },
+            { "Difficulty",   new("diff_band", ModifierType.Int32) },
+            { "Genre",        new("genre", ModifierType.String) },
+            { "Name",         new("name", ModifierType.String) },
+            { "Offset",       new("delay_seconds", ModifierType.Double) },
+            { "PreviewEnd",   new("preview_end_seconds", ModifierType.Double) },
+            { "PreviewStart", new("preview_start_seconds", ModifierType.Double) },
+            { "Resolution",   new("Resolution", ModifierType.Int64) },
+            { "Year",         new("year_chart", ModifierType.String) },
+        };
+
+        public static IniModifierCollection ExtractModifiers<TChar>(ref YARGTextContainer<TChar> container)
+            where TChar : unmanaged, IEquatable<TChar>, IConvertible
+        {
+            IniModifierCollection collection = new();
+            while (IsStillCurrentTrack(ref container))
+            {
+                string name = YARGTextReader.ExtractModifierName(ref container);
+                if (CHART_MODIFIERS.TryGetValue(name, out var outline))
+                {
+                    collection.Add(ref container, outline, true);
+                }
+            }
+            return collection;
+        }
+
+        private static bool ValidateDifficulty<TChar>(ref YARGTextContainer<TChar> container, out Difficulty difficulty)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {
             for (int diffIndex = 3; diffIndex >= 0; --diffIndex)
             {
-                var (name, diff) = YARGChartFileReader.DIFFICULTIES[diffIndex];
+                var (name, diff) = DIFFICULTIES[diffIndex];
                 if (DoesStringMatch(ref container, name))
                 {
                     difficulty = diff;
@@ -128,127 +264,20 @@ namespace YARG.Core.IO
             return false;
         }
 
-        private static unsafe bool DoesStringMatch<TChar>(ref YARGTextContainer<TChar> container, string str)
+        private static bool DoesStringMatch<TChar>(ref YARGTextContainer<TChar> container, string str)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {
-            if (container.End - container.Position < str.Length)
+            if (container.Length - container.Position < str.Length)
             {
                 return false;
             }
 
             int index = 0;
-            while (index < str.Length && container.Position[index].ToInt32(null) == str[index])
+            while (index < str.Length && container[index] == str[index])
             {
                 ++index;
             }
             return index == str.Length;
-        }
-
-        public static bool IsStillCurrentTrack<TChar>(ref YARGTextContainer<TChar> container)
-            where TChar : unmanaged, IEquatable<TChar>, IConvertible
-        {
-            YARGTextReader.GotoNextLine(ref container);
-            if (container.IsAtEnd())
-            {
-                return false;
-            }
-
-            if (container.IsCurrentCharacter('}'))
-            {
-                YARGTextReader.GotoNextLine(ref container);
-                return false;
-            }
-            return true;
-        }
-
-        public static unsafe bool TryParseEvent<TChar>(ref YARGTextContainer<TChar> container, ref DotChartEvent ev)
-            where TChar : unmanaged, IEquatable<TChar>, IConvertible
-        {
-            if (!IsStillCurrentTrack(ref container))
-            {
-                return false;
-            }
-
-            if (!YARGTextReader.TryExtractInt64(ref container, out long position))
-            {
-                throw new Exception("Could not parse event position");
-            }
-
-            if (position < ev.Position)
-            {
-                throw new Exception($".chart position out of order (previous: {ev.Position})");
-            }
-            ev.Position = position;
-            YARGTextReader.SkipWhitespaceAndEquals(ref container);
-
-            var start = container.Position;
-            while (container.Position < container.End)
-            {
-                int c = container.Position->ToInt32(null) | CharacterExtensions.ASCII_LOWERCASE_FLAG;
-                if (c < 'a' || 'z' < c)
-                {
-                    break;
-                }
-                ++container.Position;
-            }
-
-            long length = container.Position - start;
-            ev.Type = ChartEventType.Unknown;
-            foreach (var combo in EVENTS)
-            {
-                if (length != combo.Descriptor.Length)
-                {
-                    continue;
-                }
-
-                int index = 0;
-                while (index < length && start[index].ToInt32(null) == combo.Descriptor[index])
-                {
-                    ++index;
-                }
-
-                if (index == length)
-                {
-                    YARGTextReader.SkipWhitespace(ref container);
-                    ev.Type = combo.Type;
-                    break;
-                }
-            }
-            return true;
-        }
-
-        public static readonly Dictionary<string, IniModifierCreator> CHART_MODIFIERS = new()
-        {
-            { "Album",        new("album", ModifierType.SortString_Chart) },
-            { "Artist",       new("artist", ModifierType.SortString_Chart) },
-            { "Charter",      new("charter", ModifierType.SortString_Chart) },
-            { "Difficulty",   new("diff_band", ModifierType.Int32) },
-            { "Genre",        new("genre", ModifierType.SortString_Chart) },
-            { "Name",         new("name", ModifierType.SortString_Chart) },
-            { "Offset",       new("delay_chart", ModifierType.Double) },
-            { "PreviewEnd",   new("previewEnd_chart", ModifierType.Double) },
-            { "PreviewStart", new("previewStart_chart", ModifierType.Double) },
-            { "Resolution",   new("Resolution", ModifierType.Int64) },
-            { "Year",         new("year_chart", ModifierType.String_Chart) },
-        };
-
-        public unsafe static Dictionary<string, List<IniModifier>> ExtractModifiers<TChar>(ref YARGTextContainer<TChar> container)
-            where TChar : unmanaged, IEquatable<TChar>, IConvertible
-        {
-            Dictionary<string, List<IniModifier>> modifiers = new();
-            while (IsStillCurrentTrack(ref container))
-            {
-                string name = YARGTextReader.ExtractModifierName(ref container);
-                if (CHART_MODIFIERS.TryGetValue(name, out var node))
-                {
-                    var mod = node.CreateModifier(ref container);
-                    if (modifiers.TryGetValue(node.OutputName, out var list))
-                        list.Add(mod);
-                    else
-                        modifiers.Add(node.OutputName, new() { mod });
-                }
-            }
-            return modifiers;
         }
     }
 }

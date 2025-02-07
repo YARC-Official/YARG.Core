@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using YARG.Core.Extensions;
+using YARG.Core.IO;
 
 namespace YARG.Core.Engine.ProKeys
 {
@@ -17,8 +18,8 @@ namespace YARG.Core.Engine.ProKeys
             FatFingerWindow = fatFingerWindow;
         }
 
-        public ProKeysEngineParameters(UnmanagedMemoryStream stream, int version)
-            : base(stream, version)
+        public ProKeysEngineParameters(ref FixedArrayStream stream, int version)
+            : base(ref stream, version)
         {
             ChordStaggerWindow = stream.Read<double>(Endianness.Little);
             FatFingerWindow = stream.Read<double>(Endianness.Little);

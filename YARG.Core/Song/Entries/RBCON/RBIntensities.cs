@@ -3,9 +3,9 @@
 namespace YARG.Core.Song
 {
     [Serializable]
-    public struct RBCONDifficulties
+    public struct RBIntensities
     {
-        public static readonly RBCONDifficulties Default = new()
+        public static readonly RBIntensities Default = new()
         {
             Band = -1,
             FiveFretGuitar = -1,

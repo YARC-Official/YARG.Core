@@ -34,17 +34,18 @@ namespace YARG.Core.IO
 
         public override bool CanWrite => false;
 
-        public static YARGSongFileStream? TryLoad(FileStream filestream)
+        public static bool TryLoad(FileStream filestream, out YARGSongFileStream yargStream)
         {
+            yargStream = null!;
             Span<byte> signature = stackalloc byte[FILE_SIGNATURE.Length];
             if (filestream.Read(signature) != FILE_SIGNATURE.Length)
             {
-                return null;
+                return false;
             }
 
             if (!signature.SequenceEqual(FILE_SIGNATURE))
             {
-                return null;
+                return false;
             }
 
             // Get the Crawford special number
@@ -66,6 +67,7 @@ namespace YARG.Core.IO
             Span<byte> set = stackalloc byte[SET_LENGTH];
             if (filestream.Read(set) != SET_LENGTH)
             {
+                filestream.Close();
                 throw new EndOfStreamException("YARGSong incomplete");
             }
 
@@ -85,7 +87,8 @@ namespace YARG.Core.IO
                     values[3] += j << 2;
                 }
             }
-            return new YARGSongFileStream(filestream.Name, values);
+            yargStream = new YARGSongFileStream(filestream.Name, values);
+            return true;
         }
 
         public YARGSongFileStream(string filename, int[] values)
