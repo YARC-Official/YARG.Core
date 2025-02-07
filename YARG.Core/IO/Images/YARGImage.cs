@@ -1,6 +1,5 @@
 ﻿using StbImageSharp;
 using System;
-using System.Runtime.InteropServices;
 
 namespace YARG.Core.IO
 {

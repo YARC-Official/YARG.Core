@@ -1,7 +1,7 @@
-﻿using Hebron.Runtime;
+﻿/*
+ * Public Domain STBImageSharp by Roman Shapiro
+ */
 using System;
-using System.IO;
-using System.Runtime.InteropServices;
 
 namespace StbImageSharp
 {
