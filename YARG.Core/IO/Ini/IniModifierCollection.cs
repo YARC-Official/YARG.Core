@@ -295,7 +295,18 @@ namespace YARG.Core.IO.Ini
 
         public void Union(IniModifierCollection source)
         {
-            Union(ref _strings, source._strings);
+            if (source._strings != null)
+            {
+                _strings ??= new Dictionary<string, string>();
+                foreach (var node in source._strings)
+                {
+                    if (!_strings.TryGetValue(node.Key, out string str) || string.IsNullOrEmpty(str))
+                    {
+                        _strings[node.Key] = node.Value;
+                    }
+                }
+            }
+
             Union(ref _uint64s, source._uint64s);
             Union(ref _int64s, source._int64s);
             Union(ref _uint32s, source._uint32s);
@@ -428,13 +439,17 @@ namespace YARG.Core.IO.Ini
         }
 
         private static void Union<TValue>(ref Dictionary<string, TValue>? dest, Dictionary<string, TValue>? source)
+            where TValue : unmanaged, IEquatable<TValue>
         {
             if (source != null)
             {
                 dest ??= new Dictionary<string, TValue>();
                 foreach (var node in source)
                 {
-                    dest[node.Key] = node.Value;
+                    if (!dest.TryGetValue(node.Key, out var value) || value.Equals(default))
+                    {
+                        dest[node.Key] = node.Value;
+                    }
                 }
             }
         }
